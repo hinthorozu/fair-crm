@@ -12,22 +12,22 @@ Goal: establish the FAIR CRM repository structure and design the first business 
 
 ### Phase 1 — Design
 
-- [ ] Analyze old `fuar-crm` repository as a reference only
-- [ ] Define target FAIR CRM architecture
-- [ ] Define product module boundaries
-- [ ] Design Customer aggregate
-- [ ] Design Customer normalization and duplicate-detection strategy
-- [ ] Define integration points with KYROX Core
+- [x] Analyze old `fuar-crm` repository as a reference only — [docs/FUAR_CRM_REFERENCE_ANALYSIS.md](docs/FUAR_CRM_REFERENCE_ANALYSIS.md)
+- [x] Define target FAIR CRM architecture — [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- [x] Define product module boundaries — [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) §6
+- [x] Design Customer aggregate — [docs/CUSTOMER_DESIGN.md](docs/CUSTOMER_DESIGN.md)
+- [x] Design Customer normalization and duplicate-detection strategy — [docs/CUSTOMER_DESIGN.md](docs/CUSTOMER_DESIGN.md) §5
+- [x] Define integration points with KYROX Core — [docs/INTEGRATION_WITH_CORE.md](docs/INTEGRATION_WITH_CORE.md) *(revised: public API integration; Core gaps documented)*
 
 ### Phase 2 — Implementation
 
-- [ ] Create backend module structure
-- [ ] Implement Customer domain
-- [ ] Implement Customer application use cases
-- [ ] Implement Customer persistence
-- [ ] Add migration
-- [ ] Add Customer API
-- [ ] Add tests
+- [x] Create backend module structure
+- [x] Implement Customer domain
+- [x] Implement Customer application use cases
+- [x] Implement Customer persistence
+- [x] Add migration
+- [x] Add Customer API
+- [x] Add tests
 
 ## Milestone: Sprint 1.1.0 — Contact Module
 

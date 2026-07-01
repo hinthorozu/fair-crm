@@ -1,21 +1,75 @@
 # Changelog
 
-All notable changes to FAIR CRM will be documented in this file.
+All notable Fair CRM releases are documented in this file.
+
+Format: one version section per completed sprint milestone. Update this file after every completed sprint.
+
+---
 
 ## Unreleased
 
-### Added
+### Documentation
 
-- Initial repository structure for FAIR CRM.
-- Product vision document.
-- Initial roadmap.
-- Initial domain model notes.
-- Architecture decision log.
+- Added Activity Timeline architectural principle.
+- Documented that future automated Customer/Contact communications, including sent emails, must create Activity records.
+- Added Sprint 04 Customer Activities planning notes.
 
-### Current Focus
+---
 
-- Sprint 1.0.0 — Product Foundation & Customer Module.
+## v0.4.1 — Multi-Email Support (Customer & Contact)
 
-## Notes
+- Semicolon-separated multi-email in existing `email` string field
+- Comma and whitespace normalization on create/update
+- Duplicate email deduplication
+- Per-address validation with invalid address in error detail
+- Turkish frontend placeholder and validation messages
 
-FAIR CRM starts after KYROX Core `v0.4.0`, where the platform baseline was completed.
+---
+
+## v0.4.0 — Customer Contacts
+
+- Contact CRUD (create, read, update, soft delete)
+- List contacts by customer
+- Primary contact rule (one `is_primary` per customer)
+- Full name computed in API response (not stored in database)
+- Customer detail page with İletişim Kişileri tab
+- Turkish frontend labels and validation messages
+- Backend tests
+
+---
+
+## v0.1.0 — Customer Management Foundation
+
+Initial customer module foundation: domain model, backend structure, Core integration, and Phase 1 design.
+
+---
+
+## v0.2.0 — Customer Management Production Ready
+
+- CRUD
+- Archive
+- Restore
+- Pagination
+- Sorting
+
+---
+
+## v0.3.0 — Fair Management
+
+- CRUD
+- Archive
+- Restore
+- Pagination
+- Search
+- Sorting
+
+---
+
+## Update Protocol
+
+When a sprint completes:
+
+1. Add a new version section below the header (above older entries).
+2. List delivered features as bullet points.
+3. Bump version according to sprint scope (minor version per major module sprint unless otherwise decided).
+4. Update [PROJECT_STATUS.md](PROJECT_STATUS.md) to match the new current version.

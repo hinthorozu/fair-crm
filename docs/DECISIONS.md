@@ -55,3 +55,89 @@ The product must support:
 Status: Accepted
 
 This convention is inherited from KYROX project standards.
+
+## ADR-007 — KYROX Core as independent platform service
+
+Status: Accepted (revised)
+
+KYROX Core **v0.4.0** is an **independent reusable backend platform service**. FAIR CRM is an **independent product service**. They run as **separate deployments**.
+
+Rules:
+
+- Integrate with Core through **public HTTP APIs** (and later SDK/events when available).
+- Do **not** import kyrox-core Python modules (`app.modules.*`, `app.db.*`, etc.).
+- Do **not** share SQLAlchemy Session or database with Core.
+- Do **not** mount Core routers inside the Fair CRM application.
+- Do **not** create cross-repository database foreign keys.
+
+Rationale:
+
+- Core is a platform service consumed by products through documented contracts.
+- Clear deployment, versioning, and ownership boundaries between platform and product.
+- Aligns with kyrox-core Backend Architecture Standards: products integrate via public API.
+
+Local JWT validation using the same `JWT_SECRET_KEY` configuration is permitted — this is config alignment, not a Core code import.
+
+See [INTEGRATION_WITH_CORE.md](INTEGRATION_WITH_CORE.md).
+
+## ADR-008 — Fair CRM as separate FastAPI service (internal modular monolith)
+
+Status: Accepted (revised)
+
+FAIR CRM runs as its **own FastAPI service**, separate from KYROX Core. Internally it is a **modular monolith**: one product codebase, one process, layered modules under `backend/app/modules/`.
+
+Rules:
+
+- Fair CRM and Core have **different base URLs**, **different databases**, and **independent deploy units**.
+- Product modules follow layered architecture (domain → application → infrastructure → api), aligned with kyrox-core conventions.
+- Core platform routes (auth, orgs, audit query, settings, jobs, notifications) are **not** served by Fair CRM — clients call Core directly.
+- Extraction of Fair CRM internal modules into separate services is allowed later if required — Core remains a separate platform service regardless.
+
+See [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## ADR-009 — Evaluate platform reusability before every new feature
+
+Status: Accepted
+
+Before implementing any new Fair CRM business feature, evaluate whether the capability is **generic platform infrastructure** reusable across KYROX products.
+
+Rules:
+
+1. **Evaluate first** — During Phase 1 design (before Phase 2 code), ask: could another product (not only Fair CRM) need this without CRM-specific semantics?
+2. **If platform-generic** — Stop Fair CRM implementation. Document the need and **propose it for KYROX Core** first. Wait for approval and Core delivery (or an explicit decision to defer) before continuing in fair-crm.
+3. **If product-specific** — Proceed in fair-crm. CRM domain logic, fair/exhibitor workflows, and Fair CRM permission semantics stay here.
+4. **Integrate via Core APIs** — When Core already provides the capability, consume it through public APIs; do not reimplement or duplicate in fair-crm.
+
+Examples:
+
+| Capability | Owner |
+|------------|-------|
+| Auth, RBAC, audit write, settings, jobs, notifications | KYROX Core |
+| Customer, import pipeline, duplicate merge, fair participation | Fair CRM |
+| New generic permission-check pattern, file storage, webhooks | Evaluate → likely Core |
+
+Report platform needs in design docs (see [ARCHITECTURE.md](ARCHITECTURE.md) §13) and track in kyrox-platform before changing kyrox-core.
+
+## ADR-009 — Evaluate platform reusability before every new feature
+
+Status: Accepted
+
+Before implementing any new Fair CRM business feature, evaluate whether the capability is **generic platform infrastructure** reusable across KYROX products.
+
+Rules:
+
+1. **Evaluate first** — During Phase 1 design (before Phase 2 code), ask: could another product (not only Fair CRM) need this without CRM-specific semantics?
+2. **If platform-generic** — Stop Fair CRM implementation. Document the need and **propose it for KYROX Core** first. Wait for approval and Core delivery (or an explicit decision to defer) before continuing in fair-crm.
+3. **If product-specific** — Proceed in fair-crm. CRM domain logic, fair/exhibitor workflows, and Fair CRM permission semantics stay here.
+4. **Integrate via Core APIs** — When Core already provides the capability, consume it through public APIs; do not reimplement or duplicate in fair-crm.
+
+Examples:
+
+| Capability | Owner |
+|------------|-------|
+| Auth, RBAC, audit write, settings, jobs, notifications | KYROX Core |
+| Customer, import pipeline, duplicate merge, fair participation | Fair CRM |
+| New generic permission-check pattern, file storage, webhooks | Evaluate → likely Core |
+
+Report platform needs in design docs (see [ARCHITECTURE.md](ARCHITECTURE.md) §13) and track in kyrox-platform before changing kyrox-core.
+

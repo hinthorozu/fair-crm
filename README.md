@@ -1,85 +1,309 @@
 # FAIR CRM
 
-FAIR CRM is the first product built on top of the KYROX platform baseline.
+FAIR CRM is the first product on the KYROX platform. It manages fair exhibitors, customers, contacts, participations, and future import/scraper workflows.
 
-The product focuses on fair, exhibition, exhibitor, customer, contact, participation, stand, import, scraper, and reporting workflows.
+## Repository role
 
-## Repository Role
+| Repository | Purpose |
+|------------|---------|
+| `kyrox-platform` | Roadmap, milestones, project management |
+| `kyrox-core` | Platform service — auth, orgs, RBAC, audit, settings, jobs, notifications |
+| `fair-crm` | Product service — CRM domain only |
 
-This repository contains the FAIR CRM product code and product-specific documentation.
+## Current status
 
-Related repositories:
+- **Version:** Sprint 1.0.0 Phase 2 — Customer module implemented
+- **Platform dependency:** `kyrox-core v0.4.0+` (independent platform service)
+- **Stack:** FastAPI + PostgreSQL (product database)
 
-- `kyrox-platform` — project management, roadmap, milestones, architecture notes, and current state.
-- `kyrox-core` — platform baseline: Identity, Organization, Membership, Audit, Settings, Background Jobs, Notifications.
-- `fair-crm` — FAIR CRM product modules.
+## Architecture
 
-## Current Status
+FAIR CRM is an **independent FastAPI service** with its own PostgreSQL database. It integrates with KYROX Core **only through public HTTP APIs** — no Python imports from kyrox-core, no shared database.
 
-- Product status: Not started
-- Current phase: FAIR CRM Integration Preparation
-- First milestone: Sprint 1.0.0 — Product Foundation & Customer Module
-- Platform dependency: `kyrox-core v0.4.0`
+```text
+Client → KYROX Core (login, orgs, RBAC)
+Client → FAIR CRM (customers, …) with JWT + X-Organization-Id
+FAIR CRM → KYROX Core (permission check, audit write, settings)
+```
 
-## Platform Baseline
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/INTEGRATION_WITH_CORE.md](docs/INTEGRATION_WITH_CORE.md).
 
-FAIR CRM must use KYROX Core for platform concerns:
+## Language rules
 
-- Authentication
-- Authorization
-- Organization and membership
-- Audit logs
-- Settings
-- Background jobs
-- Notifications
+- Backend code, database, and API: **English**
+- Frontend labels and user messages: **Turkish**
 
-FAIR CRM must not reimplement these platform capabilities.
+## Prerequisites
 
-## Language Rules
+- Python 3.12+
+- PostgreSQL 14+
+- Running **KYROX Core** instance (default `http://localhost:8000`)
 
-- Backend code: English
-- Database names: English
-- API paths and schemas: English
-- Frontend labels and user-facing messages: Turkish
+## Quick start
 
-## Initial Product Modules
+### 1. Install dependencies
 
-Planned product modules:
+```bash
+cd backend
+pip install -r requirements.txt
+```
 
-1. Customer
-2. Contact
-3. Fair
-4. Fair Participation
-5. Stand / Hall
-6. Import Pipeline
-7. Scraper Sources and Runs
-8. Notes and Tags
-9. Reporting
+### 2. Configure environment
 
-## First Development Target
+Windows PowerShell:
 
-The first product aggregate is `Customer`.
+```powershell
+Copy-Item .env.example .env
+```
 
-Customer represents a CRM account that may be an exhibitor, lead, supplier, sponsor, organizer, partner, or other business entity related to fair workflows.
+macOS/Linux:
 
-## Development Workflow
+```bash
+cp .env.example .env
+```
 
-Each sprint follows this pattern:
+Edit `backend/.env`:
 
-1. Phase 1 — Design
-2. CTO Review
+```env
+DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/fair_crm
+JWT_SECRET_KEY=<same secret as kyrox-core>
+JWT_ALGORITHM=HS256
+KYROX_CORE_BASE_URL=http://localhost:8000
+```
+
+`JWT_SECRET_KEY` must match KYROX Core so Fair CRM can validate access tokens locally.
+
+### 3. Create database
+
+```sql
+CREATE DATABASE fair_crm;
+```
+
+### 4. Run migrations
+
+From the repository root:
+
+```bash
+alembic upgrade head
+```
+
+Product migrations live in `backend/alembic/`. They create `crm_*` tables only — never Core platform tables.
+
+### 5. Start KYROX Core (separate terminal)
+
+Follow [kyrox-core README](../kyrox-core/README.md). Ensure Core migrations are applied through `20260701_0025` (includes `fair_crm.customers.*` permissions).
+
+Assign `fair_crm.customers.*` permissions to the roles your test users use.
+
+### 6. Start Fair CRM API
+
+```bash
+cd backend
+uvicorn app.main:app --reload --port 8001
+```
+
+Swagger: `http://127.0.0.1:8001/docs`
+
+Health: `http://127.0.0.1:8001/health`
+
+### 7. Frontend (Customer UI)
+
+Requires **Node.js 16+** (18+ recommended).
+
+```bash
+cd frontend
+cp .env.example .env   # macOS/Linux
+# Windows: Copy-Item .env.example .env
+npm install
+npm run dev
+```
+
+Open http://127.0.0.1:5173 — Turkish UI for customer list, create, edit, search, filters, and archive.
+
+#### Automatic dev bypass (local only)
+
+The frontend API client (`frontend/src/config.ts` → `buildApiHeaders()`) **automatically** attaches dev-bypass headers on every request when local development rules match. No manual header wiring is needed in page or component code.
+
+Copy `frontend/.env.example` to `frontend/.env` (optional — sensible defaults apply during `npm run dev`):
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8001
+VITE_APP_ENV=development
+VITE_DEV_BYPASS_ENABLED=true
+VITE_DEV_BYPASS_TOKEN=dev-bypass
+VITE_ORGANIZATION_ID=00000000-0000-4000-8000-000000000010
+```
+
+**When bypass headers are sent** (non-production build only):
+
+| Condition | Bypass active |
+|-----------|---------------|
+| `npm run dev` (Vite `MODE=development`) | Yes — automatic |
+| `VITE_APP_ENV=development` (or `local` / `test`) | Yes |
+| `VITE_DEV_BYPASS_ENABLED=true` | Yes |
+| `npm run build` / production deploy | **Never** — hard-disabled via `import.meta.env.PROD` |
+
+Headers attached in development:
+
+```http
+Authorization: Bearer dev-bypass
+X-Organization-Id: 00000000-0000-4000-8000-000000000010
+```
+
+**Production behavior:** production builds never send dev-bypass headers, regardless of env vars. Integrate with the normal KYROX Core authentication flow (Bearer JWT + organization header from login).
+
+The backend must also have dev bypass enabled for local API work — see [Dev bypass mode](#dev-bypass-mode-fair-crm-without-core) below. Restart the backend after changing `backend/.env` so `FAIR_CRM_DEV_BYPASS_CORE=true` is loaded (shell env `FAIR_CRM_DEV_BYPASS_CORE=false` overrides the file).
+
+The backend enables CORS for local frontend origins in development mode.
+
+## Local development environment
+
+### PostgreSQL (Docker)
+
+From the repository root:
+
+```bash
+docker compose up -d
+```
+
+This starts PostgreSQL on `localhost:5432` with user/password `postgres`/`postgres`.
+
+### Seed demo customers (dev bypass UI)
+
+With PostgreSQL running and migrations applied, seed Turkish demo customers for the dev-bypass organization:
+
+```bash
+python scripts/seed_dev_customers.py
+```
+
+Requires `APP_ENV=development` (or `local` / `test`) in `backend/.env`. The script is **idempotent** — re-running skips customers already present (matched by `normalized_name` + organization). Seeds 14 mixed-status records (lead, active, inactive, archived) for organization `00000000-0000-4000-8000-000000000010`.
+
+Then open the frontend at http://127.0.0.1:5173 (dev bypass headers in `frontend/.env`).
+
+### End-to-end validation (Core + Fair CRM)
+
+With PostgreSQL running, start both services in separate terminals:
+
+```powershell
+# Terminal 1 — KYROX Core (ensure DATABASE_URL points at kyrox_core)
+$env:DATABASE_URL="postgresql://postgres:postgres@localhost:5432/kyrox_core"
+cd ..\kyrox-core\backend
+uvicorn app.main:app --port 8000
+
+# Terminal 2 — Fair CRM
+cd backend
+uvicorn app.main:app --port 8001
+```
+
+Then from the fair-crm root:
+
+```bash
+python scripts/e2e_validation.py
+```
+
+The script applies migrations, seeds a dev user (`dev@example.com` / `DevPassword123!`), runs login → customer CRUD → audit verification, and writes `scripts/e2e_validation_report.json`.
+
+> **Note:** If `DATABASE_URL` in your shell points at `fair_crm`, Core login will fail. Always set Core's database explicitly when starting kyrox-core.
+
+### Dev bypass mode (Fair CRM without Core)
+
+For local UI/API work without a running KYROX Core instance, enable bypass in `backend/.env`:
+
+```env
+APP_ENV=development
+FAIR_CRM_DEV_BYPASS_CORE=true
+FAIR_CRM_DEV_BYPASS_TOKEN=dev-bypass
+```
+
+When enabled, Fair CRM skips Core permission checks and audit writes. Authenticate with:
+
+```http
+Authorization: Bearer dev-bypass
+X-Organization-Id: <any-uuid>
+```
+
+Optional: `X-Dev-User-Id` to set the synthetic user id.
+
+Bypass is **only** allowed when `APP_ENV` is `development`, `local`, or `test`. Never enable in production.
+
+## KYROX Core integration
+
+| Concern | Owner | Fair CRM approach |
+|---------|-------|-------------------|
+| Login / refresh / logout | Core | Client calls Core directly |
+| JWT validation | Fair CRM | Local decode using shared `JWT_SECRET_KEY` |
+| Organization context | Header | `X-Organization-Id` on every org-scoped request |
+| Permission check | Core API | `POST /organizations/{id}/authorization/check` |
+| Audit write | Core API | Best-effort on customer mutations (Sprint 1) |
+| Settings / jobs / notifications | Core API | Available; not used in Sprint 1 Customer module |
+
+### Customer permissions (registered in Core)
+
+| Permission | Use |
+|------------|-----|
+| `fair_crm.customers.create` | Create customer |
+| `fair_crm.customers.read` | List / get customer |
+| `fair_crm.customers.update` | Update customer |
+| `fair_crm.customers.archive` | Archive (soft delete) customer |
+
+### Audit behavior (Sprint 1)
+
+Audit writes are **best-effort**. Customer create/update/archive succeeds even if the Core audit API is unavailable. Failures are logged as warnings and are not returned to API clients.
+
+## API endpoints (Sprint 1)
+
+Base URL: `http://localhost:8001/api/v1`
+
+All customer routes require:
+
+```http
+Authorization: Bearer <access_token>
+X-Organization-Id: <organization_uuid>
+```
+
+| Method | Path | Permission |
+|--------|------|------------|
+| `GET` | `/health` | — |
+| `POST` | `/customers` | `fair_crm.customers.create` |
+| `GET` | `/customers` | `fair_crm.customers.read` |
+| `GET` | `/customers/{id}` | `fair_crm.customers.read` |
+| `PATCH` | `/customers/{id}` | `fair_crm.customers.update` |
+| `DELETE` | `/customers/{id}` | `fair_crm.customers.archive` |
+| `POST` | `/customers/{id}/restore` | `fair_crm.customers.archive` |
+
+List supports query params: `status`, `customer_type`, `search`, `page`, `page_size`, `sort_by`, `sort_dir`.
+
+## Tests and quality check
+
+From repository root:
+
+```bash
+python scripts/quality_check.py
+```
+
+Or from `backend/`:
+
+```bash
+python -m pytest -q
+```
+
+Quality check runs: Python compile, FastAPI import, and full pytest suite.
+
+## Documentation
+
+| Document | Content |
+|----------|---------|
+| [ROADMAP.md](ROADMAP.md) | Milestones and sprint status |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Service layout and module boundaries |
+| [docs/INTEGRATION_WITH_CORE.md](docs/INTEGRATION_WITH_CORE.md) | Core API integration details |
+| [docs/CUSTOMER_DESIGN.md](docs/CUSTOMER_DESIGN.md) | Customer aggregate design |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | Product ADRs |
+
+## Development workflow
+
+1. Phase 1 — Design (includes platform reusability check per ADR-009)
+2. CTO review
 3. Phase 2 — Implementation
-4. CTO Review
-5. Release / documentation update when needed
+4. Quality check + review
 
-Cursor or any AI developer should read these files before implementation:
-
-1. `README.md`
-2. `ROADMAP.md`
-3. `docs/PRODUCT_VISION.md`
-4. `docs/DOMAIN_MODEL.md`
-5. `docs/DECISIONS.md`
-
-## Next Step
-
-Start Sprint 1.0.0 Phase 1: FAIR CRM Product Foundation and Customer Domain Design.
+Before implementation, read `README.md`, `ROADMAP.md`, and relevant docs under `docs/`.

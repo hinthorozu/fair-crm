@@ -44,25 +44,26 @@ A customer may represent:
 - `tax_office`
 - `country`
 - `city`
-- `source`
+- `district`
+- `address`
+- `description`
+- `source` (`manual`, `excel`, `scraper`)
 - `created_at`
 - `updated_at`
 - `deleted_at`
 
 ### Customer Status
 
-Candidate lifecycle:
+Lifecycle (finalized in Sprint 1.0.0 Phase 1 — see [CUSTOMER_DESIGN.md](CUSTOMER_DESIGN.md)):
 
-- `lead`
+- `lead` (default)
 - `active`
 - `inactive`
 - `archived`
 
-Final status names should be confirmed in Sprint 1.0.0 Phase 1.
-
 ### Customer Type
 
-Candidate values:
+Values (finalized in Sprint 1.0.0 Phase 1):
 
 - `exhibitor`
 - `visitor`
@@ -70,7 +71,7 @@ Candidate values:
 - `sponsor`
 - `organizer`
 - `partner`
-- `lead`
+- `lead` (default)
 - `other`
 
 ## Contact Entity

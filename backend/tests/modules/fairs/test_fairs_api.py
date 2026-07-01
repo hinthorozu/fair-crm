@@ -1,0 +1,371 @@
+from datetime import UTC, date, datetime
+from uuid import uuid4
+
+
+def test_create_and_get_fair(client, auth_headers, organization_id):
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={
+            "name": "İstanbul Teknoloji Fuarı 2026",
+            "organizer": "Teknova Fuarcılık",
+            "venue": "İstanbul Fuar Merkezi",
+            "city": "İstanbul",
+            "country": "Türkiye",
+            "start_date": "2026-03-15",
+            "end_date": "2026-03-18",
+            "website": "https://www.teknova-fuar.com/about",
+            "status": "planned",
+            "description": "Yıllık teknoloji fuarı",
+        },
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 201
+    body = create_response.json()
+    assert body["name"] == "İstanbul Teknoloji Fuarı 2026"
+    assert body["normalized_name"] == "ISTANBUL TEKNOLOJI FUARI 2026"
+    assert body["website"] == "teknova-fuar.com"
+    assert body["city"] == "İstanbul"
+    assert body["start_date"] == "2026-03-15"
+    assert body["end_date"] == "2026-03-18"
+    assert body["organization_id"] == str(organization_id)
+
+    fair_id = body["id"]
+    get_response = client.get(f"/api/v1/fairs/{fair_id}", headers=auth_headers)
+    assert get_response.status_code == 200
+    assert get_response.json()["id"] == fair_id
+
+
+def test_list_fairs_search(client, auth_headers):
+    client.post(
+        "/api/v1/fairs",
+        json={
+            "name": "Search Target Fair",
+            "venue": "Unique Venue Hall 42",
+        },
+        headers=auth_headers,
+    )
+
+    response = client.get("/api/v1/fairs?search=Unique+Venue", headers=auth_headers)
+    assert response.status_code == 200
+    assert len(response.json()["items"]) >= 1
+
+
+def test_update_fair(client, auth_headers):
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={"name": "Before Update Fair"},
+        headers=auth_headers,
+    )
+    fair_id = create_response.json()["id"]
+
+    update_response = client.patch(
+        f"/api/v1/fairs/{fair_id}",
+        json={"name": "After Update Fair", "status": "active"},
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["name"] == "After Update Fair"
+    assert update_response.json()["status"] == "active"
+
+
+def test_archive_fair(client, auth_headers):
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={"name": "To Archive Fair"},
+        headers=auth_headers,
+    )
+    fair_id = create_response.json()["id"]
+
+    archive_response = client.delete(f"/api/v1/fairs/{fair_id}", headers=auth_headers)
+    assert archive_response.status_code == 200
+    assert archive_response.json()["status"] == "archived"
+    assert archive_response.json()["deleted_at"] is not None
+
+    get_response = client.get(f"/api/v1/fairs/{fair_id}", headers=auth_headers)
+    assert get_response.status_code == 404
+
+    list_response = client.get("/api/v1/fairs?status=archived", headers=auth_headers)
+    assert list_response.status_code == 200
+    archived_items = list_response.json()["items"]
+    assert any(item["id"] == fair_id for item in archived_items)
+    assert archived_items[0]["status"] == "archived"
+
+
+def test_archived_included_in_default_list(client, auth_headers):
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={"name": "Visible In All Fair", "status": "active"},
+        headers=auth_headers,
+    )
+    fair_id = create_response.json()["id"]
+    client.delete(f"/api/v1/fairs/{fair_id}", headers=auth_headers)
+
+    default_list = client.get("/api/v1/fairs", headers=auth_headers)
+    assert default_list.status_code == 200
+    archived = [item for item in default_list.json()["items"] if item["id"] == fair_id]
+    assert len(archived) == 1
+    assert archived[0]["status"] == "archived"
+
+
+def test_active_filter_excludes_archived(client, auth_headers):
+    active_response = client.post(
+        "/api/v1/fairs",
+        json={"name": "Active Only Fair", "status": "active"},
+        headers=auth_headers,
+    )
+    active_id = active_response.json()["id"]
+
+    archived_response = client.post(
+        "/api/v1/fairs",
+        json={"name": "Archived Only Fair", "status": "planned"},
+        headers=auth_headers,
+    )
+    archived_id = archived_response.json()["id"]
+    client.delete(f"/api/v1/fairs/{archived_id}", headers=auth_headers)
+
+    active_list = client.get("/api/v1/fairs?status=active", headers=auth_headers)
+    ids = {item["id"] for item in active_list.json()["items"]}
+    assert active_id in ids
+    assert archived_id not in ids
+
+
+def test_restore_visible_in_default_list_not_in_archived_filter(client, auth_headers):
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={"name": "Restore All View Fair", "status": "completed"},
+        headers=auth_headers,
+    )
+    fair_id = create_response.json()["id"]
+    client.delete(f"/api/v1/fairs/{fair_id}", headers=auth_headers)
+
+    restore_response = client.post(
+        f"/api/v1/fairs/{fair_id}/restore",
+        headers=auth_headers,
+    )
+    assert restore_response.status_code == 200
+
+    archived_list = client.get("/api/v1/fairs?status=archived", headers=auth_headers)
+    assert not any(item["id"] == fair_id for item in archived_list.json()["items"])
+
+    default_list = client.get("/api/v1/fairs", headers=auth_headers)
+    restored = [item for item in default_list.json()["items"] if item["id"] == fair_id]
+    assert len(restored) == 1
+    assert restored[0]["status"] == "completed"
+
+
+def test_org_isolation_api(client, auth_headers, other_organization_id, user_id):
+    from app.integrations.kyrox_core.auth import create_test_token
+
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={"name": "Private Fair"},
+        headers=auth_headers,
+    )
+    fair_id = create_response.json()["id"]
+
+    other_headers = {
+        "Authorization": f"Bearer {create_test_token(user_id=user_id)}",
+        "X-Organization-Id": str(other_organization_id),
+    }
+    get_response = client.get(f"/api/v1/fairs/{fair_id}", headers=other_headers)
+    assert get_response.status_code == 404
+
+
+def test_unauthenticated_returns_401(client, organization_id):
+    response = client.get(
+        "/api/v1/fairs",
+        headers={"X-Organization-Id": str(organization_id)},
+    )
+    assert response.status_code == 401
+
+
+def test_restore_fair(client, auth_headers):
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={"name": "Restore Me Fair", "status": "planned"},
+        headers=auth_headers,
+    )
+    fair_id = create_response.json()["id"]
+
+    archive_response = client.delete(f"/api/v1/fairs/{fair_id}", headers=auth_headers)
+    assert archive_response.status_code == 200
+
+    archived_list = client.get("/api/v1/fairs?status=archived", headers=auth_headers)
+    assert any(item["id"] == fair_id for item in archived_list.json()["items"])
+
+    restore_response = client.post(
+        f"/api/v1/fairs/{fair_id}/restore",
+        headers=auth_headers,
+    )
+    assert restore_response.status_code == 200
+    body = restore_response.json()
+    assert body["status"] == "planned"
+    assert body["deleted_at"] is None
+
+    archived_after = client.get("/api/v1/fairs?status=archived", headers=auth_headers)
+    assert not any(item["id"] == fair_id for item in archived_after.json()["items"])
+
+    default_list = client.get("/api/v1/fairs", headers=auth_headers)
+    assert any(item["id"] == fair_id for item in default_list.json()["items"])
+
+    get_response = client.get(f"/api/v1/fairs/{fair_id}", headers=auth_headers)
+    assert get_response.status_code == 200
+
+
+def test_restore_non_archived_fair_fails(client, auth_headers):
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={"name": "Active Fair"},
+        headers=auth_headers,
+    )
+    fair_id = create_response.json()["id"]
+
+    restore_response = client.post(
+        f"/api/v1/fairs/{fair_id}/restore",
+        headers=auth_headers,
+    )
+    assert restore_response.status_code == 400
+    assert restore_response.json()["detail"] == "Fair is not archived"
+
+
+def test_restore_fair_wrong_org_returns_404(
+    client, auth_headers, other_organization_id, user_id
+):
+    from app.integrations.kyrox_core.auth import create_test_token
+
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={"name": "Org Scoped Restore Fair"},
+        headers=auth_headers,
+    )
+    fair_id = create_response.json()["id"]
+    client.delete(f"/api/v1/fairs/{fair_id}", headers=auth_headers)
+
+    other_headers = {
+        "Authorization": f"Bearer {create_test_token(user_id=user_id)}",
+        "X-Organization-Id": str(other_organization_id),
+    }
+    restore_response = client.post(
+        f"/api/v1/fairs/{fair_id}/restore",
+        headers=other_headers,
+    )
+    assert restore_response.status_code == 404
+
+
+def test_list_fairs_default_pagination(client, auth_headers):
+    response = client.get("/api/v1/fairs", headers=auth_headers)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["page"] == 1
+    assert body["page_size"] == 25
+    assert "total" in body
+    assert "total_pages" in body
+    assert isinstance(body["items"], list)
+
+
+def test_list_fairs_custom_page_size_and_page_two(client, auth_headers):
+    for index in range(3):
+        client.post(
+            "/api/v1/fairs",
+            json={"name": f"Paged Fair {index}"},
+            headers=auth_headers,
+        )
+
+    page_one = client.get("/api/v1/fairs?page=1&page_size=2", headers=auth_headers)
+    assert page_one.status_code == 200
+    body_one = page_one.json()
+    assert len(body_one["items"]) == 2
+    assert body_one["page"] == 1
+    assert body_one["page_size"] == 2
+    assert body_one["total"] >= 3
+    assert body_one["total_pages"] >= 2
+
+    page_two = client.get("/api/v1/fairs?page=2&page_size=2", headers=auth_headers)
+    body_two = page_two.json()
+    assert body_two["page"] == 2
+    assert len(body_two["items"]) >= 1
+
+
+def test_list_fairs_filters_with_pagination(client, auth_headers):
+    client.post(
+        "/api/v1/fairs",
+        json={"name": "Filter Paginate Active Fair", "status": "active"},
+        headers=auth_headers,
+    )
+    archived = client.post(
+        "/api/v1/fairs",
+        json={"name": "Filter Paginate Archived Fair"},
+        headers=auth_headers,
+    )
+    client.delete(f"/api/v1/fairs/{archived.json()['id']}", headers=auth_headers)
+
+    active_page = client.get(
+        "/api/v1/fairs?status=active&page=1&page_size=10",
+        headers=auth_headers,
+    )
+    assert active_page.status_code == 200
+    active_ids = {item["id"] for item in active_page.json()["items"]}
+    assert archived.json()["id"] not in active_ids
+
+    archived_page = client.get(
+        "/api/v1/fairs?status=archived&page=1&page_size=10",
+        headers=auth_headers,
+    )
+    assert archived_page.status_code == 200
+    assert archived_page.json()["page"] == 1
+    assert any(item["status"] == "archived" for item in archived_page.json()["items"])
+
+
+def test_list_fairs_invalid_page_size_validation(client, auth_headers):
+    response = client.get("/api/v1/fairs?page_size=0", headers=auth_headers)
+    assert response.status_code == 422
+
+    response = client.get("/api/v1/fairs?page_size=101", headers=auth_headers)
+    assert response.status_code == 422
+
+    response = client.get("/api/v1/fairs?page=0", headers=auth_headers)
+    assert response.status_code == 422
+
+
+def test_list_fairs_sort_by_name(client, auth_headers):
+    client.post(
+        "/api/v1/fairs",
+        json={"name": "Zebra Fair"},
+        headers=auth_headers,
+    )
+    client.post(
+        "/api/v1/fairs",
+        json={"name": "Alpha Fair"},
+        headers=auth_headers,
+    )
+
+    asc_response = client.get(
+        "/api/v1/fairs?sort_by=name&sort_dir=asc&page_size=100",
+        headers=auth_headers,
+    )
+    assert asc_response.status_code == 200
+    names = [item["name"] for item in asc_response.json()["items"]]
+    assert names.index("Alpha Fair") < names.index("Zebra Fair")
+
+
+def test_create_fair_invalid_date_range(client, auth_headers):
+    response = client.post(
+        "/api/v1/fairs",
+        json={
+            "name": "Invalid Dates Fair",
+            "start_date": "2026-06-01",
+            "end_date": "2026-05-01",
+        },
+        headers=auth_headers,
+    )
+    assert response.status_code == 400
+    assert "end_date" in response.json()["detail"]
+
+
+def test_create_fair_empty_name_validation(client, auth_headers):
+    response = client.post(
+        "/api/v1/fairs",
+        json={"name": "   "},
+        headers=auth_headers,
+    )
+    assert response.status_code == 422 or response.status_code == 400

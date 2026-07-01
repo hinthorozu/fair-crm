@@ -1,0 +1,69 @@
+export const labels = {
+  appTitle: "FAIR CRM",
+  customers: "Müşteriler",
+  newCustomer: "Yeni Müşteri",
+  editCustomer: "Müşteri Düzenle",
+  save: "Kaydet",
+  cancel: "İptal",
+  archive: "Arşivle",
+  archiveConfirm: "Bu müşteriyi arşivlemek istediğinize emin misiniz?",
+  restore: "Arşivden Çıkar",
+  restoreConfirm: "Bu müşteriyi arşivden çıkarmak istiyor musunuz?",
+  restoreSuccess: "Müşteri arşivden çıkarıldı.",
+  searchPlaceholder: "Müşteri ara…",
+  allStatuses: "Tümü",
+  allTypes: "Tüm tipler",
+  loading: "Yükleniyor…",
+  noResults: "Müşteri bulunamadı.",
+  actions: "İşlemler",
+  edit: "Düzenle",
+  display_name: "Müşteri Adı",
+  trade_name: "Ticari Ünvan",
+  legal_name: "Yasal Ünvan",
+  customer_type: "Tip",
+  status: "Durum",
+  country: "Ülke",
+  city: "Şehir",
+  district: "İlçe",
+  address: "Adres",
+  website: "Web Sitesi",
+  phone: "Telefon",
+  email: "E-posta",
+  source: "Kaynak",
+  description: "Açıklama",
+  normalized_name: "Normalize Ad",
+  refresh: "Yenile",
+} as const;
+
+export const paginationLabels = {
+  ariaLabel: "Sayfalama",
+  previous: "Önceki",
+  next: "Sonraki",
+  pageSizeLabel: "Sayfa başına:",
+  pageOf: (page: number, totalPages: number) => `Sayfa ${page} / ${totalPages}`,
+  totalRecords: (total: number) => `Toplam kayıt: ${total}`,
+} as const;
+
+export const customerTypeLabels: Record<string, string> = {
+  exhibitor: "Katılımcı",
+  visitor: "Ziyaretçi",
+  supplier: "Tedarikçi",
+  sponsor: "Sponsor",
+  organizer: "Organizatör",
+  partner: "Partner",
+  lead: "Aday",
+  other: "Diğer",
+};
+
+export const customerStatusLabels: Record<string, string> = {
+  lead: "Aday",
+  active: "Aktif",
+  inactive: "Pasif",
+  archived: "Arşivlenmiş",
+};
+
+export const customerSourceLabels: Record<string, string> = {
+  manual: "Manuel",
+  excel: "Excel",
+  scraper: "Scraper",
+};
