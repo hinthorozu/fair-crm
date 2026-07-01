@@ -8,11 +8,67 @@ Format: one version section per completed sprint milestone. Update this file aft
 
 ## Unreleased
 
-### Documentation
+_No unreleased changes._
 
-- Added Activity Timeline architectural principle.
-- Documented that future automated Customer/Contact communications, including sent emails, must create Activity records.
-- Added Sprint 04 Customer Activities planning notes.
+---
+
+## v0.7.0 — Customer Fair Participation
+
+- `CustomerFairParticipation` join entity (`crm_customer_fair_participations`) linking customers and fairs
+- Hall, stand, participation status, notes, primary contact, visited_at on participation (import-ready)
+- Participation statuses: planned, exhibitor, visited, contacted, follow_up_required, not_interested, customer, other
+- Unique active customer + fair; soft delete; recreate allowed after delete
+- Primary contact must belong to the same customer
+- Create blocked for archived customer or fair
+- API: `GET /customers/{id}/fair-participations`, `GET /fairs/{id}/participants`, CRUD `/fair-participations/{id}`
+- Customer detail **Katıldığı Fuarlar** tab (add, edit, delete)
+- Fair detail page with **Katılımcı Firmalar** tab; company name links to customer detail
+- Turkish UI labels and status translations
+- Backend tests and `scripts/verify_participations_live.py`
+
+---
+
+## v0.6.0 — Import Engine v1
+
+- Import batch and import row persistence with preview/apply workflow
+- Excel (.xlsx) upload with Turkish column alias mapping (Firma Adı, E-posta, …)
+- Company name normalization for duplicate detection (Turkish chars, legal suffix removal)
+- Row validation (required company_name, multi-email, website URL)
+- Duplicate detection within batch and against existing customers (exact + fuzzy via SequenceMatcher)
+- Per-row merge decisions: create_new, update_existing, skip (no blind auto-merge)
+- Apply import: create/update customers, merge empty fields, merge multi-email, contact create/update
+- Import activities (type note, source import) on create/update
+- API: `POST /imports/customers/upload`, batch/rows GET, decision PATCH, apply POST
+- Frontend **İçe Aktarma** page at `/imports` with upload panel, preview summary, rows table, apply confirm
+- Backend tests and live verification script (`scripts/verify_imports_live.py`)
+
+---
+
+## v0.5.1 — UX & Navigation Foundation
+
+- Sidebar + top bar application layout with breadcrumb navigation
+- Reusable UI component library under `frontend/src/components/ui/`
+- Customer detail page unified tab experience
+- Activity timeline with badges, date emphasis, and hover cards
+- Standardized empty states, loading skeletons, and confirm dialogs (replacing `window.confirm`)
+- Consistent table, form, badge, and color styling across customers, contacts, activities, and fairs
+- Responsive sidebar toggle for tablet/narrow screens
+- Search placeholder standardization
+
+---
+
+## v0.5.0 — Customer Activities
+
+- Activity CRUD (create, read, update, soft delete)
+- List activities by customer with pagination and sorting
+- Activity types: call, meeting, email, whatsapp, note, fair_visit, follow_up, other
+- Activity status: open, completed, cancelled
+- Activity source enum with default `manual` (system/automation values ready for future integrations)
+- Optional contact linkage with same-customer validation
+- Follow-up date support
+- Customer detail page **Aktiviteler** tab with timeline list and add/edit dialog
+- Turkish frontend labels for types, status, and source
+- Backend tests and live API verification script
 
 ---
 

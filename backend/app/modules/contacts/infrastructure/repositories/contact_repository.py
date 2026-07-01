@@ -98,6 +98,30 @@ class SqlAlchemyContactRepository:
             total_pages=meta.total_pages,
         )
 
+    def find_by_customer_and_name(
+        self,
+        organization_id: UUID,
+        customer_id: UUID,
+        first_name_lower: str,
+        last_name_lower: str,
+    ) -> Contact | None:
+        models = (
+            self._session.query(ContactModel)
+            .filter(
+                ContactModel.organization_id == organization_id,
+                ContactModel.customer_id == customer_id,
+                ContactModel.deleted_at.is_(None),
+            )
+            .all()
+        )
+        for model in models:
+            if (
+                model.first_name.strip().lower() == first_name_lower
+                and model.last_name.strip().lower() == last_name_lower
+            ):
+                return model_to_entity(model)
+        return None
+
     def clear_primary_for_customer(
         self,
         organization_id: UUID,

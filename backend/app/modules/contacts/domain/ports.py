@@ -33,6 +33,14 @@ class ContactRepository(Protocol):
         include_deleted: bool = False,
     ) -> ContactListResult: ...
 
+    def find_by_customer_and_name(
+        self,
+        organization_id: UUID,
+        customer_id: UUID,
+        first_name_lower: str,
+        last_name_lower: str,
+    ) -> Contact | None: ...
+
     def clear_primary_for_customer(
         self,
         organization_id: UUID,

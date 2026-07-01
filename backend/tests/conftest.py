@@ -13,6 +13,11 @@ from app.db.session import get_db
 from app.integrations.kyrox_core.auth import create_test_token
 from app.integrations.kyrox_core.ports import AuthorizationPort
 from app.main import create_app
+from app.modules.activities.api.dependencies import (
+    get_audit_adapter as get_activity_audit_adapter,
+    get_authorization_adapter as get_activity_authorization_adapter,
+)
+from app.modules.activities.infrastructure.persistence.models import ActivityModel  # noqa: F401
 from app.modules.contacts.api.dependencies import (
     get_audit_adapter as get_contact_audit_adapter,
     get_authorization_adapter as get_contact_authorization_adapter,
@@ -28,6 +33,18 @@ from app.modules.fairs.api.dependencies import (
     get_authorization_adapter as get_fair_authorization_adapter,
 )
 from app.modules.fairs.infrastructure.persistence.models import FairModel  # noqa: F401
+from app.modules.imports.api.dependencies import (
+    get_audit_adapter as get_import_audit_adapter,
+    get_authorization_adapter as get_import_authorization_adapter,
+)
+from app.modules.imports.infrastructure.persistence.models import ImportBatchModel, ImportRowModel  # noqa: F401
+from app.modules.participations.api.dependencies import (
+    get_audit_adapter as get_participation_audit_adapter,
+    get_authorization_adapter as get_participation_authorization_adapter,
+)
+from app.modules.participations.infrastructure.persistence.models import (  # noqa: F401
+    CustomerFairParticipationModel,
+)
 
 
 class AllowAllAuthorization(AuthorizationPort):
@@ -128,5 +145,11 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     app.dependency_overrides[get_fair_audit_adapter] = lambda: NoOpAudit()
     app.dependency_overrides[get_contact_authorization_adapter] = lambda: AllowAllAuthorization()
     app.dependency_overrides[get_contact_audit_adapter] = lambda: NoOpAudit()
+    app.dependency_overrides[get_activity_authorization_adapter] = lambda: AllowAllAuthorization()
+    app.dependency_overrides[get_activity_audit_adapter] = lambda: NoOpAudit()
+    app.dependency_overrides[get_import_authorization_adapter] = lambda: AllowAllAuthorization()
+    app.dependency_overrides[get_import_audit_adapter] = lambda: NoOpAudit()
+    app.dependency_overrides[get_participation_authorization_adapter] = lambda: AllowAllAuthorization()
+    app.dependency_overrides[get_participation_audit_adapter] = lambda: NoOpAudit()
 
     return TestClient(app)

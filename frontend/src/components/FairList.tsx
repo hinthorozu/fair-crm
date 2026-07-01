@@ -1,7 +1,11 @@
 import React from "react";
 import type { Fair, FairStatus } from "../types/fair";
 import { fairLabels, fairStatusLabels } from "../labels/fairLabels";
+import { uiLabels } from "../labels/uiLabels";
 import { labels } from "../labels";
+import { Badge } from "./ui/Badge";
+import { DataTable } from "./ui/DataTable";
+import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
 
 interface FairFiltersProps {
   search: string;
@@ -23,13 +27,15 @@ export function FairFilters({
       <input
         type="search"
         className="search-input"
-        placeholder={fairLabels.searchPlaceholder}
+        placeholder={uiLabels.searchFair}
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
+        aria-label={uiLabels.searchFair}
       />
       <select
         value={status}
         onChange={(e) => onStatusChange(e.target.value as FairStatus | "")}
+        aria-label={labels.status}
       >
         <option value="">{labels.allStatuses}</option>
         {(["planned", "active", "completed", "cancelled", "archived"] as FairStatus[]).map((s) => (
@@ -50,6 +56,8 @@ interface FairTableProps {
   onEdit: (fair: Fair) => void;
   onArchive: (fair: Fair) => void;
   onRestore: (fair: Fair) => void;
+  onOpenDetail?: (fairId: string) => void;
+  onCreate?: () => void;
   archivingId: string | null;
   restoringId: string | null;
 }
@@ -63,110 +71,112 @@ function formatDate(value: string | null): string {
   return value;
 }
 
+function fairStatusVariant(status: FairStatus): "warning" | "success" | "neutral" | "danger" | "info" {
+  const map: Record<string, "warning" | "success" | "neutral" | "danger" | "info"> = {
+    planned: "info",
+    active: "success",
+    completed: "neutral",
+    cancelled: "danger",
+    archived: "danger",
+  };
+  return map[status] ?? "neutral";
+}
+
 export function FairTable({
   items,
   onEdit,
   onArchive,
   onRestore,
+  onOpenDetail,
+  onCreate,
   archivingId,
   restoringId,
 }: FairTableProps) {
   if (items.length === 0) {
-    return <p className="empty">{fairLabels.noResults}</p>;
+    return (
+      <EmptyState
+        icon={<EmptyStateIcon />}
+        title={fairLabels.noResults}
+        actionLabel={onCreate ? uiLabels.createNew : undefined}
+        onAction={onCreate}
+      />
+    );
   }
 
   return (
-    <div className="table-wrap">
-      <table className="customer-table">
-        <thead>
-          <tr>
-            <th>{fairLabels.name}</th>
-            <th>{fairLabels.organizer}</th>
-            <th>{fairLabels.venue}</th>
-            <th>{labels.city}</th>
-            <th>{fairLabels.start_date}</th>
-            <th>{labels.status}</th>
-            <th>{labels.actions}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((f) => {
-            const isArchived = isArchivedFair(f);
-            return (
-              <tr key={f.id} className={isArchived ? "row-archived" : undefined}>
-                <td>
+    <DataTable>
+      <thead>
+        <tr>
+          <th>{fairLabels.name}</th>
+          <th>{fairLabels.organizer}</th>
+          <th>{fairLabels.venue}</th>
+          <th>{labels.city}</th>
+          <th>{fairLabels.start_date}</th>
+          <th>{labels.status}</th>
+          <th>{labels.actions}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {items.map((f) => {
+          const isArchived = isArchivedFair(f);
+          return (
+            <tr key={f.id} className={isArchived ? "row-archived" : undefined}>
+              <td>
+                {onOpenDetail ? (
+                  <button
+                    type="button"
+                    className="btn link table-link"
+                    onClick={() => onOpenDetail(f.id)}
+                  >
+                    <strong>{f.name}</strong>
+                  </button>
+                ) : (
                   <strong>{f.name}</strong>
-                  {f.country && <div className="muted">{f.country}</div>}
-                </td>
-                <td>{f.organizer ?? "—"}</td>
-                <td>{f.venue ?? "—"}</td>
-                <td>{f.city ?? "—"}</td>
-                <td>{formatDate(f.start_date)}</td>
-                <td>
-                  <span className={`badge status-${f.status}`}>
-                    {fairStatusLabels[f.status] ?? f.status}
-                  </span>
-                </td>
-                <td className="actions">
-                  {isArchived && (
+                )}
+                {f.country && <div className="muted">{f.country}</div>}
+              </td>
+              <td>{f.organizer ?? "—"}</td>
+              <td>{f.venue ?? "—"}</td>
+              <td>{f.city ?? "—"}</td>
+              <td>{formatDate(f.start_date)}</td>
+              <td>
+                <Badge variant={fairStatusVariant(f.status)}>
+                  {fairStatusLabels[f.status] ?? f.status}
+                </Badge>
+              </td>
+              <td className="actions">
+                {isArchived && (
+                  <button
+                    type="button"
+                    className="btn link"
+                    disabled={restoringId === f.id}
+                    onClick={() => onRestore(f)}
+                  >
+                    {restoringId === f.id ? labels.loading : labels.restore}
+                  </button>
+                )}
+                {!isArchived && (
+                  <>
+                    <button type="button" className="btn link" onClick={() => onEdit(f)}>
+                      {labels.edit}
+                    </button>
                     <button
                       type="button"
-                      className="btn link"
-                      disabled={restoringId === f.id}
-                      onClick={() => onRestore(f)}
+                      className="btn link danger"
+                      disabled={archivingId === f.id}
+                      onClick={() => onArchive(f)}
                     >
-                      {restoringId === f.id ? labels.loading : labels.restore}
+                      {archivingId === f.id ? labels.loading : labels.archive}
                     </button>
-                  )}
-                  {!isArchived && (
-                    <>
-                      <button type="button" className="btn link" onClick={() => onEdit(f)}>
-                        {labels.edit}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn link danger"
-                        disabled={archivingId === f.id}
-                        onClick={() => onArchive(f)}
-                      >
-                        {archivingId === f.id ? labels.loading : labels.archive}
-                      </button>
-                    </>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+                  </>
+                )}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </DataTable>
   );
 }
 
-interface ModalProps {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}
-
-export function Modal({ title, onClose, children }: ModalProps) {
-  return (
-    <div className="modal-backdrop" onClick={onClose} role="presentation">
-      <div
-        className="modal"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="fair-modal-title"
-      >
-        <header className="modal-header">
-          <h2 id="fair-modal-title">{title}</h2>
-          <button type="button" className="btn icon" onClick={onClose} aria-label={labels.cancel}>
-            ×
-          </button>
-        </header>
-        <div className="modal-body">{children}</div>
-      </div>
-    </div>
-  );
-}
+export { Modal } from "./ui/Modal";

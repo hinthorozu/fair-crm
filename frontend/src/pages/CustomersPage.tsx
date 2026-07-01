@@ -9,11 +9,20 @@ import {
   formatApiErrorMessage,
 } from "../api/customers";
 import { CustomerForm, customerToFormValues, type CustomerFormValues } from "../components/CustomerForm";
-import { CustomerFilters, CustomerTable, Modal } from "../components/CustomerList";
+import { CustomerFilters, CustomerTable } from "../components/CustomerList";
 import { PaginationBar } from "../components/Pagination";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { LoadingState, TableSkeleton } from "../components/ui/LoadingState";
+import { Modal } from "../components/ui/Modal";
+import { PageHeader } from "../components/ui/PageHeader";
 import type { Customer, CustomerStatus, CustomerType } from "../types/customer";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "../types/pagination";
 import { labels } from "../labels";
+
+type ConfirmAction =
+  | { type: "archive"; customer: Customer }
+  | { type: "restore"; customer: Customer }
+  | null;
 
 export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: string) => void }) {
   const [items, setItems] = React.useState<Customer[]>([]);
@@ -31,6 +40,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
   const [editing, setEditing] = React.useState<Customer | null>(null);
   const [archivingId, setArchivingId] = React.useState<string | null>(null);
   const [restoringId, setRestoringId] = React.useState<string | null>(null);
+  const [confirm, setConfirm] = React.useState<ConfirmAction>(null);
 
   const load = React.useCallback(async (pageOverride?: number) => {
     const targetPage = pageOverride ?? page;
@@ -83,7 +93,6 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
   };
 
   const handleArchive = async (customer: Customer) => {
-    if (!window.confirm(labels.archiveConfirm)) return;
     setArchivingId(customer.id);
     setError(null);
     setSuccess(null);
@@ -94,11 +103,11 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
       setError(err instanceof ApiError ? err.message : "Arşivleme başarısız.");
     } finally {
       setArchivingId(null);
+      setConfirm(null);
     }
   };
 
   const handleRestore = async (customer: Customer) => {
-    if (!window.confirm(labels.restoreConfirm)) return;
     setRestoringId(customer.id);
     setError(null);
     setSuccess(null);
@@ -115,27 +124,26 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
       );
     } finally {
       setRestoringId(null);
+      setConfirm(null);
     }
+  };
+
+  const openCreate = () => {
+    setEditing(null);
+    setModal("create");
   };
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>{labels.customers}</h1>
-          <p className="muted">{total} kayıt</p>
-        </div>
-        <button
-          type="button"
-          className="btn primary"
-          onClick={() => {
-            setEditing(null);
-            setModal("create");
-          }}
-        >
-          {labels.newCustomer}
-        </button>
-      </header>
+      <PageHeader
+        title={labels.customers}
+        subtitle={`${total} kayıt`}
+        actions={
+          <button type="button" className="btn primary" onClick={openCreate}>
+            {labels.newCustomer}
+          </button>
+        }
+      />
 
       <CustomerFilters
         search={search}
@@ -174,24 +182,25 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
       />
 
       {loading ? (
-        <div className="loading">{labels.loading}</div>
+        <TableSkeleton rows={6} cols={6} />
       ) : (
         <CustomerTable
           items={items}
           archivingId={archivingId}
           restoringId={restoringId}
+          onCreate={openCreate}
           onOpenDetail={onOpenDetail ? (c) => onOpenDetail(c.id) : undefined}
           onEdit={(c) => {
             setEditing(c);
             setModal("edit");
           }}
-          onArchive={(c) => void handleArchive(c)}
-          onRestore={(c) => void handleRestore(c)}
+          onArchive={(c) => setConfirm({ type: "archive", customer: c })}
+          onRestore={(c) => setConfirm({ type: "restore", customer: c })}
         />
       )}
 
       {modal === "create" && (
-        <Modal title={labels.newCustomer} onClose={() => setModal(null)}>
+        <Modal title={labels.newCustomer} onClose={() => setModal(null)} size="lg">
           <CustomerForm
             submitLabel={labels.save}
             onCancel={() => setModal(null)}
@@ -201,7 +210,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
       )}
 
       {modal === "edit" && editing && (
-        <Modal title={labels.editCustomer} onClose={() => setModal(null)}>
+        <Modal title={labels.editCustomer} onClose={() => setModal(null)} size="lg">
           <CustomerForm
             initial={customerToFormValues(editing)}
             submitLabel={labels.save}
@@ -209,6 +218,29 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
             onSubmit={handleUpdate}
           />
         </Modal>
+      )}
+
+      {confirm?.type === "archive" && (
+        <ConfirmDialog
+          title={labels.archive}
+          message={labels.archiveConfirm}
+          confirmLabel={labels.archive}
+          variant="danger"
+          loading={archivingId === confirm.customer.id}
+          onCancel={() => setConfirm(null)}
+          onConfirm={() => void handleArchive(confirm.customer)}
+        />
+      )}
+
+      {confirm?.type === "restore" && (
+        <ConfirmDialog
+          title={labels.restore}
+          message={labels.restoreConfirm}
+          confirmLabel={labels.restore}
+          loading={restoringId === confirm.customer.id}
+          onCancel={() => setConfirm(null)}
+          onConfirm={() => void handleRestore(confirm.customer)}
+        />
       )}
     </div>
   );

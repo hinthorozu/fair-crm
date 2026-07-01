@@ -1,6 +1,11 @@
 import React from "react";
 import type { Customer, CustomerStatus, CustomerType } from "../types/customer";
 import { customerStatusLabels, customerTypeLabels, labels } from "../labels";
+import { uiLabels } from "../labels/uiLabels";
+import { Badge } from "./ui/Badge";
+import { DataTable } from "./ui/DataTable";
+import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
+import { customerStatusBadgeVariant } from "../utils/badges";
 
 interface CustomerFiltersProps {
   search: string;
@@ -26,13 +31,15 @@ export function CustomerFilters({
       <input
         type="search"
         className="search-input"
-        placeholder={labels.searchPlaceholder}
+        placeholder={uiLabels.searchCustomer}
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
+        aria-label={uiLabels.searchCustomer}
       />
       <select
         value={status}
         onChange={(e) => onStatusChange(e.target.value as CustomerStatus | "")}
+        aria-label={labels.status}
       >
         <option value="">{labels.allStatuses}</option>
         {(["lead", "active", "inactive", "archived"] as CustomerStatus[]).map((s) => (
@@ -44,6 +51,7 @@ export function CustomerFilters({
       <select
         value={customerType}
         onChange={(e) => onTypeChange(e.target.value as CustomerType | "")}
+        aria-label={labels.customer_type}
       >
         <option value="">{labels.allTypes}</option>
         {Object.entries(customerTypeLabels).map(([value, label]) => (
@@ -65,6 +73,7 @@ interface CustomerTableProps {
   onArchive: (customer: Customer) => void;
   onRestore: (customer: Customer) => void;
   onOpenDetail?: (customer: Customer) => void;
+  onCreate?: () => void;
   archivingId: string | null;
   restoringId: string | null;
 }
@@ -79,30 +88,38 @@ export function CustomerTable({
   onArchive,
   onRestore,
   onOpenDetail,
+  onCreate,
   archivingId,
   restoringId,
 }: CustomerTableProps) {
   if (items.length === 0) {
-    return <p className="empty">{labels.noResults}</p>;
+    return (
+      <EmptyState
+        icon={<EmptyStateIcon />}
+        title={uiLabels.emptyCustomersTitle}
+        description={uiLabels.emptyCustomersDescription}
+        actionLabel={onCreate ? uiLabels.createNew : undefined}
+        onAction={onCreate}
+      />
+    );
   }
 
   return (
-    <div className="table-wrap">
-      <table className="customer-table">
-        <thead>
-          <tr>
-            <th>{labels.display_name}</th>
-            <th>{labels.city}</th>
-            <th>{labels.customer_type}</th>
-            <th>{labels.status}</th>
-            <th>{labels.phone}</th>
-            <th>{labels.actions}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((c) => {
-            const isArchived = isArchivedCustomer(c);
-            return (
+    <DataTable>
+      <thead>
+        <tr>
+          <th>{labels.display_name}</th>
+          <th>{labels.city}</th>
+          <th>{labels.customer_type}</th>
+          <th>{labels.status}</th>
+          <th>{labels.phone}</th>
+          <th>{labels.actions}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {items.map((c) => {
+          const isArchived = isArchivedCustomer(c);
+          return (
             <tr key={c.id} className={isArchived ? "row-archived" : undefined}>
               <td>
                 {onOpenDetail ? (
@@ -121,9 +138,9 @@ export function CustomerTable({
               <td>{c.city ?? "—"}</td>
               <td>{customerTypeLabels[c.customer_type] ?? c.customer_type}</td>
               <td>
-                <span className={`badge status-${c.status}`}>
+                <Badge variant={customerStatusBadgeVariant(c.status)}>
                   {customerStatusLabels[c.status] ?? c.status}
-                </span>
+                </Badge>
               </td>
               <td>{c.phone ?? "—"}</td>
               <td className="actions">
@@ -154,38 +171,12 @@ export function CustomerTable({
                 )}
               </td>
             </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+          );
+        })}
+      </tbody>
+    </DataTable>
   );
 }
 
-interface ModalProps {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}
-
-export function Modal({ title, onClose, children }: ModalProps) {
-  return (
-    <div className="modal-backdrop" onClick={onClose} role="presentation">
-      <div
-        className="modal"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-      >
-        <header className="modal-header">
-          <h2 id="modal-title">{title}</h2>
-          <button type="button" className="btn icon" onClick={onClose} aria-label={labels.cancel}>
-            ×
-          </button>
-        </header>
-        <div className="modal-body">{children}</div>
-      </div>
-    </div>
-  );
-}
+// Re-export Modal from ui for backward compatibility
+export { Modal } from "./ui/Modal";

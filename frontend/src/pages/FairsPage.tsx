@@ -9,14 +9,27 @@ import {
   formatApiErrorMessage,
 } from "../api/fairs";
 import { FairForm, fairToFormValues, type FairFormValues } from "../components/FairForm";
-import { FairFilters, FairTable, Modal } from "../components/FairList";
+import { FairFilters, FairTable } from "../components/FairList";
 import { PaginationBar } from "../components/Pagination";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { Modal } from "../components/ui/Modal";
+import { PageHeader } from "../components/ui/PageHeader";
+import { TableSkeleton } from "../components/ui/LoadingState";
 import type { Fair, FairStatus } from "../types/fair";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "../types/pagination";
 import { fairLabels } from "../labels/fairLabels";
 import { labels } from "../labels";
 
-export function FairsPage() {
+type ConfirmAction =
+  | { type: "archive"; fair: Fair }
+  | { type: "restore"; fair: Fair }
+  | null;
+
+interface FairsPageProps {
+  onOpenDetail?: (fairId: string) => void;
+}
+
+export function FairsPage({ onOpenDetail }: FairsPageProps) {
   const [items, setItems] = React.useState<Fair[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -31,6 +44,7 @@ export function FairsPage() {
   const [editing, setEditing] = React.useState<Fair | null>(null);
   const [archivingId, setArchivingId] = React.useState<string | null>(null);
   const [restoringId, setRestoringId] = React.useState<string | null>(null);
+  const [confirm, setConfirm] = React.useState<ConfirmAction>(null);
 
   const load = React.useCallback(async (pageOverride?: number) => {
     const targetPage = pageOverride ?? page;
@@ -82,7 +96,6 @@ export function FairsPage() {
   };
 
   const handleArchive = async (fair: Fair) => {
-    if (!window.confirm(fairLabels.archiveConfirm)) return;
     setArchivingId(fair.id);
     setError(null);
     setSuccess(null);
@@ -93,11 +106,11 @@ export function FairsPage() {
       setError(err instanceof ApiError ? err.message : fairLabels.archiveError);
     } finally {
       setArchivingId(null);
+      setConfirm(null);
     }
   };
 
   const handleRestore = async (fair: Fair) => {
-    if (!window.confirm(fairLabels.restoreConfirm)) return;
     setRestoringId(fair.id);
     setError(null);
     setSuccess(null);
@@ -113,27 +126,26 @@ export function FairsPage() {
       );
     } finally {
       setRestoringId(null);
+      setConfirm(null);
     }
+  };
+
+  const openCreate = () => {
+    setEditing(null);
+    setModal("create");
   };
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>{fairLabels.fairs}</h1>
-          <p className="muted">{total} kayıt</p>
-        </div>
-        <button
-          type="button"
-          className="btn primary"
-          onClick={() => {
-            setEditing(null);
-            setModal("create");
-          }}
-        >
-          {fairLabels.newFair}
-        </button>
-      </header>
+      <PageHeader
+        title={fairLabels.fairs}
+        subtitle={`${total} kayıt`}
+        actions={
+          <button type="button" className="btn primary" onClick={openCreate}>
+            {fairLabels.newFair}
+          </button>
+        }
+      />
 
       <FairFilters
         search={search}
@@ -167,23 +179,25 @@ export function FairsPage() {
       />
 
       {loading ? (
-        <div className="loading">{labels.loading}</div>
+        <TableSkeleton rows={5} cols={7} />
       ) : (
         <FairTable
           items={items}
           archivingId={archivingId}
           restoringId={restoringId}
+          onOpenDetail={onOpenDetail}
+          onCreate={openCreate}
           onEdit={(f) => {
             setEditing(f);
             setModal("edit");
           }}
-          onArchive={(f) => void handleArchive(f)}
-          onRestore={(f) => void handleRestore(f)}
+          onArchive={(f) => setConfirm({ type: "archive", fair: f })}
+          onRestore={(f) => setConfirm({ type: "restore", fair: f })}
         />
       )}
 
       {modal === "create" && (
-        <Modal title={fairLabels.newFair} onClose={() => setModal(null)}>
+        <Modal title={fairLabels.newFair} onClose={() => setModal(null)} size="lg">
           <FairForm
             submitLabel={labels.save}
             onCancel={() => setModal(null)}
@@ -193,7 +207,7 @@ export function FairsPage() {
       )}
 
       {modal === "edit" && editing && (
-        <Modal title={fairLabels.editFair} onClose={() => setModal(null)}>
+        <Modal title={fairLabels.editFair} onClose={() => setModal(null)} size="lg">
           <FairForm
             initial={fairToFormValues(editing)}
             submitLabel={labels.save}
@@ -201,6 +215,29 @@ export function FairsPage() {
             onSubmit={handleUpdate}
           />
         </Modal>
+      )}
+
+      {confirm?.type === "archive" && (
+        <ConfirmDialog
+          title={labels.archive}
+          message={fairLabels.archiveConfirm}
+          confirmLabel={labels.archive}
+          variant="danger"
+          loading={archivingId === confirm.fair.id}
+          onCancel={() => setConfirm(null)}
+          onConfirm={() => void handleArchive(confirm.fair)}
+        />
+      )}
+
+      {confirm?.type === "restore" && (
+        <ConfirmDialog
+          title={labels.restore}
+          message={fairLabels.restoreConfirm}
+          confirmLabel={labels.restore}
+          loading={restoringId === confirm.fair.id}
+          onCancel={() => setConfirm(null)}
+          onConfirm={() => void handleRestore(confirm.fair)}
+        />
       )}
     </div>
   );

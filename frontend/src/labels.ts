@@ -10,7 +10,7 @@ export const labels = {
   restore: "Arşivden Çıkar",
   restoreConfirm: "Bu müşteriyi arşivden çıkarmak istiyor musunuz?",
   restoreSuccess: "Müşteri arşivden çıkarıldı.",
-  searchPlaceholder: "Müşteri ara…",
+  searchPlaceholder: "Müşteri ara...",
   allStatuses: "Tümü",
   allTypes: "Tüm tipler",
   loading: "Yükleniyor…",

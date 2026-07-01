@@ -40,6 +40,8 @@ class CustomerRepository(Protocol):
         sort_dir: str = "desc",
     ) -> CustomerListResult: ...
 
+    def list_all_active(self, organization_id: UUID) -> list[Customer]: ...
+
     def find_by_normalized_name(
         self,
         organization_id: UUID,

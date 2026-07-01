@@ -1,0 +1,55 @@
+import type { ParticipationStatus } from "../types/participation";
+
+export const participationStatusLabels: Record<ParticipationStatus, string> = {
+  planned: "Planlandı",
+  exhibitor: "Katılımcı",
+  visited: "Ziyaret Edildi",
+  contacted: "İletişime Geçildi",
+  follow_up_required: "Takip Gerekli",
+  not_interested: "İlgilenmiyor",
+  customer: "Müşteri",
+  other: "Diğer",
+};
+
+export const participationStatusOptions: ParticipationStatus[] = [
+  "planned",
+  "exhibitor",
+  "visited",
+  "contacted",
+  "follow_up_required",
+  "not_interested",
+  "customer",
+  "other",
+];
+
+export const participationLabels = {
+  tabCustomerFairs: "Katıldığı Fuarlar",
+  tabFairParticipants: "Katılımcı Firmalar",
+  addToFair: "Fuara Ekle",
+  addCompany: "Firma Ekle",
+  fair: "Fuar",
+  company: "Firma",
+  hall: "Salon",
+  stand: "Stand",
+  status: "Durum",
+  primaryContact: "Birincil Kişi",
+  visitedAt: "Ziyaret Tarihi",
+  notes: "Notlar",
+  participationStatus: "Katılım Durumu",
+  date: "Tarih",
+  actions: "İşlemler",
+  newParticipation: "Fuara Ekle",
+  editParticipation: "Katılım Düzenle",
+  newParticipant: "Firma Ekle",
+  editParticipant: "Katılım Düzenle",
+  save: "Kaydet",
+  delete: "Sil",
+  edit: "Düzenle",
+  deleteConfirm: "Bu katılım kaydı silinecek. Devam edilsin mi?",
+  loadError: "Katılım kayıtları yüklenemedi.",
+  deleteError: "Katılım kaydı silinemedi.",
+  selectFair: "Fuar seçin",
+  selectCompany: "Firma seçin",
+  selectContact: "Kişi seçin (opsiyonel)",
+  noContact: "— Kişi seçilmedi —",
+} as const;

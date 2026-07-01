@@ -118,26 +118,15 @@ Examples:
 
 Report platform needs in design docs (see [ARCHITECTURE.md](ARCHITECTURE.md) §13) and track in kyrox-platform before changing kyrox-core.
 
-## ADR-009 — Evaluate platform reusability before every new feature
+## ADR-010 — Hall / Stand on CustomerFairParticipation, not Customer or Fair
 
-Status: Accepted
+Status: Accepted (Sprint 06)
 
-Before implementing any new Fair CRM business feature, evaluate whether the capability is **generic platform infrastructure** reusable across KYROX products.
+Fair-specific exhibitor data (hall, stand, fair-specific notes) belongs on the **CustomerFairParticipation** join entity, not on Customer or Fair aggregates. Import engine will resolve/create participations and write hall/stand there.
 
-Rules:
+## ADR-011 — Future Activity ↔ Participation link (deferred)
 
-1. **Evaluate first** — During Phase 1 design (before Phase 2 code), ask: could another product (not only Fair CRM) need this without CRM-specific semantics?
-2. **If platform-generic** — Stop Fair CRM implementation. Document the need and **propose it for KYROX Core** first. Wait for approval and Core delivery (or an explicit decision to defer) before continuing in fair-crm.
-3. **If product-specific** — Proceed in fair-crm. CRM domain logic, fair/exhibitor workflows, and Fair CRM permission semantics stay here.
-4. **Integrate via Core APIs** — When Core already provides the capability, consume it through public APIs; do not reimplement or duplicate in fair-crm.
+Status: Proposed — not implemented in Sprint 06
 
-Examples:
-
-| Capability | Owner |
-|------------|-------|
-| Auth, RBAC, audit write, settings, jobs, notifications | KYROX Core |
-| Customer, import pipeline, duplicate merge, fair participation | Fair CRM |
-| New generic permission-check pattern, file storage, webhooks | Evaluate → likely Core |
-
-Report platform needs in design docs (see [ARCHITECTURE.md](ARCHITECTURE.md) §13) and track in kyrox-platform before changing kyrox-core.
+Activities may later reference an optional `participation_id` to tie timeline entries to a specific fair visit/exhibitor context. No schema change in Sprint 06; add when activity UX requires fair-scoped filtering.
 

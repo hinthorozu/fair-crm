@@ -160,6 +160,17 @@ class SqlAlchemyCustomerRepository:
             total_pages=meta.total_pages,
         )
 
+    def list_all_active(self, organization_id: UUID) -> list[Customer]:
+        models = (
+            self._session.query(CustomerModel)
+            .filter(
+                CustomerModel.organization_id == organization_id,
+                CustomerModel.deleted_at.is_(None),
+            )
+            .all()
+        )
+        return [model_to_entity(model) for model in models]
+
     def find_by_normalized_name(
         self,
         organization_id: UUID,

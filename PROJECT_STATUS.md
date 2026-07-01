@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Version** | v0.4.1 |
+| **Current Version** | v0.7.0 |
 | **Last updated** | 2026-07-01 |
 | **Constitution** | [PROJECT_CONSTITUTION.md](PROJECT_CONSTITUTION.md) |
 | **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
@@ -15,7 +15,7 @@
 
 | Check | Status |
 |-------|--------|
-| Backend tests | **92 PASS** |
+| Backend tests | **145 PASS** |
 | Frontend build | **PASS** |
 
 ---
@@ -64,28 +64,78 @@
 - Turkish frontend labels
 - Tests
 
+### ✅ Sprint 04 — Customer Activities
+
+**Completed Features**
+
+- Activity CRUD (create, read, update, soft delete)
+- List activities by customer (paginated, sortable)
+- Activity types: call, meeting, email, whatsapp, note, fair_visit, follow_up, other
+- Activity status: open, completed, cancelled
+- Activity source: manual (default), system, email_automation, whatsapp_integration, import, other
+- Optional contact linkage with same-customer validation
+- Follow-up date support
+- Soft delete via `deleted_at` + `is_active`
+- Swagger
+- Customer detail page with Aktiviteler tab
+- Turkish frontend labels and timeline list
+- Backend tests
+- Live API verification script
+
+### ✅ Sprint 04.5 — UX & Navigation Foundation
+
+**Completed Features**
+
+- Sidebar navigation layout with top bar and breadcrumb
+- Reusable UI components (Badge, EmptyState, LoadingState, ConfirmDialog, Modal, PageHeader, Tabs, Card, DataTable, FormField)
+- Customer detail CRM layout with unified tabs (Genel Bilgiler, İletişim Kişileri, Aktiviteler)
+- Activity timeline UI with type/status/source badges and follow-up highlight
+- Standardized empty states, loading skeletons, and confirm dialogs
+- Table hover/zebra styling and consistent color tokens
+- Responsive sidebar and mobile-friendly forms/dialogs
+- Search placeholder standardization
+- Frontend build verified
+
+### ✅ Sprint 06 — Customer Fair Participation
+
+**Completed Features**
+
+- `CustomerFairParticipation` entity and `crm_customer_fair_participations` table
+- Many-to-many Customer ↔ Fair with hall, stand, participation status, notes, primary contact, visited_at
+- Participation status enum (planned, exhibitor, visited, contacted, follow_up_required, not_interested, customer, other)
+- Unique active customer + fair constraint; soft delete with recreate after delete
+- Primary contact validation (same customer only)
+- Archived customer/fair create blocked
+- API: list by customer, list by fair, CRUD on `/fair-participations`
+- Customer detail **Katıldığı Fuarlar** tab with add/edit/delete
+- Fair detail page with **Katılımcı Firmalar** tab (clickable company → customer detail)
+- Turkish labels and status translations
+- Backend tests (12 scenarios) and live verification script
+- Import-ready model: hall/stand on participation, not on Customer/Fair
+
+### ✅ Sprint 07 — Import Engine v1
+
+**Completed Features**
+
+- Import batch and import row models (`crm_import_batches`, `crm_import_rows`)
+- Excel (.xlsx) upload with Turkish header alias mapping
+- Row normalization (company name, email, phone)
+- Validation (required company_name, multi-email, website URL)
+- Duplicate detection within batch and against existing customers (exact + fuzzy)
+- Merge decisions per row (create_new, update_existing, skip)
+- Apply import with empty-field merge, multi-email merge, contact create/update
+- Import activity notes (source: import)
+- API: upload, batch summary, rows list, decision patch, apply
+- Frontend `/imports` page with upload, preview summary, rows table, apply confirm
+- Backend tests and live verification script
+
 ---
 
 ## Current Sprint
 
-**Sprint 04 — Customer Activities**
+**Sprint 05 — Customer Phones**
 
 Status: Planned — pending start
-
----
-
-## Planned — Sprint 04: Customer Activities
-
-Planned scope:
-
-- Customer Activity Timeline
-- Manual activity creation
-- Activity types such as Call, Meeting, Email, WhatsApp, Note, Fair Visit, Follow-up
-- Optional Contact linkage
-- Follow-up date support
-- Automatic activity generation for future system actions
-- Sent email history integration
-- Future WhatsApp integration
 
 ---
 
@@ -94,13 +144,9 @@ Planned scope:
 | Sprint | Module |
 |--------|--------|
 | Sprint 05 | Customer Phones |
-| Sprint 06 | Customer Emails |
-| Sprint 07 | Fair Participations |
-| Sprint 08 | Import Engine |
-| Sprint 09 | Duplicate Detection |
-| Sprint 10 | Merge Decision |
-| Sprint 11 | Dashboard |
-| Sprint 12 | Reporting |
+| Sprint 08 | Customer Emails |
+| Sprint 09 | Dashboard |
+| Sprint 10 | Reporting |
 
 ---
 
@@ -111,7 +157,10 @@ Planned scope:
 | 01 — Customer Management | v0.2.0 | ✅ |
 | 02 — Fair Management | v0.3.0 | ✅ |
 | 03 — Customer Contacts | v0.4.0 | ✅ |
-| 04 — Customer Activities | — | — |
+| 04 — Customer Activities | v0.5.0 | ✅ |
+| 04.5 — UX Foundation | v0.5.1 | ✅ |
+| 06 — Fair Participation | v0.7.0 | ✅ |
+| 07 — Import Engine v1 | v0.6.0 | ✅ |
 
 ---
 
