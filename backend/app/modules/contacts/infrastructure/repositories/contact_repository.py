@@ -1,8 +1,9 @@
 from uuid import UUID
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.core.pagination import PageParams, build_paginated_meta, normalize_page_params
+from app.core.pagination import build_order_clause, build_paginated_meta, normalize_page_params
 from app.modules.contacts.domain.entities import Contact
 from app.modules.contacts.domain.ports import ContactListResult
 from app.modules.contacts.infrastructure.persistence.mappers import (
@@ -17,7 +18,20 @@ CONTACT_SORT_FIELDS = {
     "updated_at": ContactModel.updated_at,
     "last_name": ContactModel.last_name,
     "first_name": ContactModel.first_name,
+    "email": ContactModel.email,
+    "department": ContactModel.department,
+    "title": ContactModel.title,
 }
+
+SEARCH_FIELDS = (
+    ContactModel.first_name,
+    ContactModel.last_name,
+    ContactModel.email,
+    ContactModel.phone,
+    ContactModel.mobile_phone,
+    ContactModel.department,
+    ContactModel.title,
+)
 
 
 class SqlAlchemyContactRepository:
@@ -62,10 +76,11 @@ class SqlAlchemyContactRepository:
         organization_id: UUID,
         customer_id: UUID,
         *,
+        search: str | None = None,
         page: int = 1,
         page_size: int = 25,
-        sort_by: str = "created_at",
-        sort_dir: str = "desc",
+        sort_by: str = "first_name",
+        sort_dir: str = "asc",
         include_deleted: bool = False,
     ) -> ContactListResult:
         page_params = normalize_page_params(page, page_size)
@@ -75,13 +90,17 @@ class SqlAlchemyContactRepository:
         )
         if not include_deleted:
             query = query.filter(ContactModel.deleted_at.is_(None))
+        if search:
+            pattern = f"%{search.strip()}%"
+            query = query.filter(or_(*[field.ilike(pattern) for field in SEARCH_FIELDS]))
 
         total = query.count()
-        sort_column = CONTACT_SORT_FIELDS.get(sort_by, ContactModel.created_at)
-        if sort_dir == "asc":
-            order = (sort_column.asc(), ContactModel.id.asc())
-        else:
-            order = (sort_column.desc(), ContactModel.id.desc())
+        sort_column = CONTACT_SORT_FIELDS.get(sort_by, ContactModel.first_name)
+        order = build_order_clause(
+            sort_column,
+            sort_dir if sort_dir in ("asc", "desc") else "asc",
+            tie_breaker=ContactModel.id,
+        )
 
         models = (
             query.order_by(*order)

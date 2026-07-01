@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import or_
 from sqlalchemy.orm import Query, Session
 
-from app.core.pagination import PageParams, build_paginated_meta
+from app.core.pagination import PageParams, build_order_clause, build_paginated_meta, normalize_page_params
 from app.modules.customers.domain.entities import Customer
 from app.modules.customers.domain.ports import CustomerListResult
 from app.modules.customers.domain.value_objects import CustomerStatus, CustomerType
@@ -32,6 +32,10 @@ CUSTOMER_SORT_FIELDS = {
     "created_at": CustomerModel.created_at,
     "updated_at": CustomerModel.updated_at,
     "display_name": CustomerModel.display_name,
+    "company_name": CustomerModel.display_name,
+    "country": CustomerModel.country,
+    "city": CustomerModel.city,
+    "email": CustomerModel.email,
 }
 
 
@@ -92,6 +96,7 @@ class SqlAlchemyCustomerRepository:
         status: CustomerStatus | None = None,
         include_archived: bool = False,
         customer_type: CustomerType | None = None,
+        country: str | None = None,
         search: str | None = None,
     ) -> Query:
         query = self._session.query(CustomerModel).filter(
@@ -109,6 +114,8 @@ class SqlAlchemyCustomerRepository:
 
         if customer_type is not None:
             query = query.filter(CustomerModel.customer_type == customer_type.value)
+        if country:
+            query = query.filter(CustomerModel.country.ilike(country.strip()))
         if search:
             pattern = f"%{search.strip()}%"
             query = query.filter(or_(*[field.ilike(pattern) for field in SEARCH_FIELDS]))
@@ -122,27 +129,30 @@ class SqlAlchemyCustomerRepository:
         status: CustomerStatus | None = None,
         include_archived: bool = False,
         customer_type: CustomerType | None = None,
+        country: str | None = None,
         search: str | None = None,
         page: int = 1,
         page_size: int = 25,
-        sort_by: str = "created_at",
-        sort_dir: str = "desc",
+        sort_by: str = "display_name",
+        sort_dir: str = "asc",
     ) -> CustomerListResult:
-        page_params = PageParams(page=page, page_size=page_size)
+        page_params = normalize_page_params(page, page_size)
         query = self._filtered_query(
             organization_id,
             status=status,
             include_archived=include_archived,
             customer_type=customer_type,
+            country=country,
             search=search,
         )
 
         total = query.count()
-        sort_column = CUSTOMER_SORT_FIELDS.get(sort_by, CustomerModel.created_at)
-        if sort_dir == "asc":
-            order = (sort_column.asc(), CustomerModel.id.asc())
-        else:
-            order = (sort_column.desc(), CustomerModel.id.desc())
+        sort_column = CUSTOMER_SORT_FIELDS.get(sort_by, CustomerModel.display_name)
+        order = build_order_clause(
+            sort_column,
+            sort_dir if sort_dir in ("asc", "desc") else "asc",
+            tie_breaker=CustomerModel.id,
+        )
 
         models = (
             query.order_by(*order)

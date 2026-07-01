@@ -26,7 +26,7 @@ export const participationLabels = {
   tabCustomerFairs: "Katıldığı Fuarlar",
   tabFairParticipants: "Katılımcı Firmalar",
   addToFair: "Fuara Ekle",
-  addCompany: "Firma Ekle",
+  addCompany: "Katılımcı Firma Ekle",
   fair: "Fuar",
   company: "Firma",
   hall: "Salon",

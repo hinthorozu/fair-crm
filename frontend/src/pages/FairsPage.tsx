@@ -10,13 +10,12 @@ import {
 } from "../api/fairs";
 import { FairForm, fairToFormValues, type FairFormValues } from "../components/FairForm";
 import { FairFilters, FairTable } from "../components/FairList";
-import { PaginationBar } from "../components/Pagination";
+import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { Modal } from "../components/ui/Modal";
 import { PageHeader } from "../components/ui/PageHeader";
-import { TableSkeleton } from "../components/ui/LoadingState";
+import { useServerDataTable } from "../hooks/useServerDataTable";
 import type { Fair, FairStatus } from "../types/fair";
-import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "../types/pagination";
 import { fairLabels } from "../labels/fairLabels";
 import { labels } from "../labels";
 
@@ -30,61 +29,29 @@ interface FairsPageProps {
 }
 
 export function FairsPage({ onOpenDetail }: FairsPageProps) {
-  const [items, setItems] = React.useState<Fair[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
-  const [search, setSearch] = React.useState("");
-  const [status, setStatus] = React.useState<FairStatus | "">("");
-  const [page, setPage] = React.useState(DEFAULT_PAGE);
-  const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
-  const [total, setTotal] = React.useState(0);
-  const [totalPages, setTotalPages] = React.useState(0);
   const [modal, setModal] = React.useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = React.useState<Fair | null>(null);
   const [archivingId, setArchivingId] = React.useState<string | null>(null);
   const [restoringId, setRestoringId] = React.useState<string | null>(null);
   const [confirm, setConfirm] = React.useState<ConfirmAction>(null);
 
-  const load = React.useCallback(async (pageOverride?: number) => {
-    const targetPage = pageOverride ?? page;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await listFairs({
-        search: search.trim() || undefined,
-        status: status || undefined,
-        page: targetPage,
-        page_size: pageSize,
-      });
-      setItems(res.items);
-      setPage(res.page);
-      setPageSize(res.page_size);
-      setTotal(res.total);
-      setTotalPages(res.total_pages);
-      if (pageOverride !== undefined && pageOverride !== res.page) {
-        setPage(pageOverride);
-      }
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : fairLabels.loadError);
-    } finally {
-      setLoading(false);
-    }
-  }, [search, status, page, pageSize]);
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      void load();
-    }, search ? 300 : 0);
-    return () => clearTimeout(timer);
-  }, [load, search]);
-
-  const resetToFirstPage = () => setPage(DEFAULT_PAGE);
+  const table = useServerDataTable<Fair>({
+    fetchFn: (params) =>
+      listFairs({
+        ...params,
+        status: (params.filters.status as FairStatus | undefined) || undefined,
+      }),
+    defaultSort: { field: "start_date", direction: "desc" },
+    filterKeys: ["status"],
+    urlSync: true,
+    urlPath: "/fairs",
+  });
 
   const handleCreate = async (values: FairFormValues) => {
     await createFair(values);
     setModal(null);
-    await load(DEFAULT_PAGE);
+    await table.refresh();
   };
 
   const handleUpdate = async (values: FairFormValues) => {
@@ -92,18 +59,17 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
     await updateFair(editing.id, values);
     setModal(null);
     setEditing(null);
-    await load();
+    await table.refresh();
   };
 
   const handleArchive = async (fair: Fair) => {
     setArchivingId(fair.id);
-    setError(null);
     setSuccess(null);
     try {
       await archiveFair(fair.id);
-      await load();
+      await table.refresh();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : fairLabels.archiveError);
+      console.error(err instanceof ApiError ? err.message : fairLabels.archiveError);
     } finally {
       setArchivingId(null);
       setConfirm(null);
@@ -112,14 +78,13 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
 
   const handleRestore = async (fair: Fair) => {
     setRestoringId(fair.id);
-    setError(null);
     setSuccess(null);
     try {
       await restoreFair(fair.id);
       setSuccess(fairLabels.restoreSuccess);
-      await load();
+      await table.refresh();
     } catch (err) {
-      setError(
+      console.error(
         err instanceof ApiError
           ? formatApiErrorMessage(err.status, err.message, fairLabels.restoreError)
           : fairLabels.restoreError,
@@ -139,7 +104,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
     <div className="page">
       <PageHeader
         title={fairLabels.fairs}
-        subtitle={`${total} kayıt`}
+        subtitle={`${table.pagination.totalItems} kayıt`}
         actions={
           <button type="button" className="btn primary" onClick={openCreate}>
             {fairLabels.newFair}
@@ -147,44 +112,30 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
         }
       />
 
-      <FairFilters
-        search={search}
-        status={status}
-        onSearchChange={(value) => {
-          resetToFirstPage();
-          setSearch(value);
-        }}
-        onStatusChange={(value) => {
-          setSuccess(null);
-          resetToFirstPage();
-          setStatus(value);
-        }}
-        onRefresh={() => void load()}
-      />
-
-      {success && <div className="banner success">{success}</div>}
-      {error && <div className="banner error">{error}</div>}
-
-      <PaginationBar
-        page={page}
-        pageSize={pageSize}
-        total={total}
-        totalPages={totalPages}
-        loading={loading}
-        onPageChange={setPage}
-        onPageSizeChange={(size) => {
-          resetToFirstPage();
-          setPageSize(size);
-        }}
-      />
-
-      {loading ? (
-        <TableSkeleton rows={5} cols={7} />
-      ) : (
+      <ServerDataTableFrame
+        table={table}
+        skeletonCols={7}
+        toolbar={
+          <FairFilters
+            search={table.search}
+            status={(table.filters.status as FairStatus | "") ?? ""}
+            onSearchChange={table.setSearch}
+            onStatusChange={(value) => {
+              setSuccess(null);
+              table.setFilters({ ...table.filters, status: value });
+            }}
+            onRefresh={() => void table.refresh()}
+          />
+        }
+      >
         <FairTable
-          items={items}
+          items={table.items}
           archivingId={archivingId}
           restoringId={restoringId}
+          sortField={table.sorting.field}
+          sortDirection={table.sorting.direction}
+          onSortChange={table.setSort}
+          emptyDueToFilters={table.hasActiveFilters}
           onOpenDetail={onOpenDetail}
           onCreate={openCreate}
           onEdit={(f) => {
@@ -194,7 +145,9 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
           onArchive={(f) => setConfirm({ type: "archive", fair: f })}
           onRestore={(f) => setConfirm({ type: "restore", fair: f })}
         />
-      )}
+      </ServerDataTableFrame>
+
+      {success && <div className="banner success">{success}</div>}
 
       {modal === "create" && (
         <Modal title={fairLabels.newFair} onClose={() => setModal(null)} size="lg">

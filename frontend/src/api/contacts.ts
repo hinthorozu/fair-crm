@@ -1,33 +1,24 @@
-import { normalizePaginatedResponse } from "./pagination";
+import { normalizeStandardListResponse, buildListQueryParams } from "./listTable";
 import { apiRequest } from "./client";
+import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
+import type { StandardListResponse } from "../types/listTable";
 import type {
   Contact,
-  ContactListResponse,
   CreateContactPayload,
-  ListContactsParams,
   UpdateContactPayload,
 } from "../types/contact";
-import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "../types/pagination";
 
-function buildQuery(params: ListContactsParams): string {
-  const q = new URLSearchParams();
-  q.set("page", String(params.page ?? DEFAULT_PAGE));
-  q.set("page_size", String(params.page_size ?? DEFAULT_PAGE_SIZE));
-  if (params.sort_by) q.set("sort_by", params.sort_by);
-  if (params.sort_dir) q.set("sort_dir", params.sort_dir);
-  return `?${q.toString()}`;
-}
+export type ListContactsParams = Partial<ServerTableFetchParams>;
 
 export async function listContactsByCustomer(
   customerId: string,
   params: ListContactsParams = {},
-): Promise<ContactListResponse> {
-  const page = params.page ?? DEFAULT_PAGE;
-  const page_size = params.page_size ?? DEFAULT_PAGE_SIZE;
+): Promise<StandardListResponse<Contact>> {
+  const query = buildListQueryParams(params);
   const raw = await apiRequest<unknown>(
-    `/api/v1/customers/${encodeURIComponent(customerId)}/contacts${buildQuery(params)}`,
+    `/api/v1/customers/${encodeURIComponent(customerId)}/contacts?${query.toString()}`,
   );
-  return normalizePaginatedResponse<Contact>(raw, { page, page_size });
+  return normalizeStandardListResponse<Contact>(raw);
 }
 
 export function getContact(id: string): Promise<Contact> {

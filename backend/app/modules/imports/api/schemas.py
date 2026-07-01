@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.api.schemas.list_response import StandardListResponse
 from app.modules.imports.domain.value_objects import ImportBatchStatus, ImportDecision, ImportRowStatus, ImportSourceType
 
 
@@ -80,9 +81,8 @@ class ImportRowResponse(BaseModel):
     updated_at: datetime
 
 
-class ImportRowListResponse(BaseModel):
-    items: list[ImportRowResponse]
-    total: int
+class ImportRowListResponse(StandardListResponse[ImportRowResponse]):
+    pass
 
 
 class SetImportRowDecisionRequest(BaseModel):

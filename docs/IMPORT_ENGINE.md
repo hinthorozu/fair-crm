@@ -127,3 +127,13 @@ PDF Extracted Rows → Import Rows → Preview → Decision → Apply
 ```
 
 No PDF parsing code exists in v1; the adapter port and pipeline are designed to accept it without changing normalize/validate/duplicate/apply logic.
+
+## Legacy UMCRM database migration (separate path)
+
+Bulk one-time import from cleaned legacy UMCRM JSON is **not** routed through the Excel Import Wizard. It uses standalone dev scripts documented in [LEGACY_UMCRM_MIGRATION.md](LEGACY_UMCRM_MIGRATION.md):
+
+```text
+cleaned JSON + merge plan → migrate_umcrm_to_kyrox.py → Fair / Customer / Participation / Activity
+```
+
+The wizard remains the supported path for ongoing fair-scoped Excel imports.

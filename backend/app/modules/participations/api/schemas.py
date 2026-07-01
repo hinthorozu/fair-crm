@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
+from app.api.schemas.list_response import StandardListResponse
 from app.modules.participations.domain.value_objects import ParticipationStatus
 
 
@@ -64,12 +65,8 @@ class CustomerParticipationListItemResponse(BaseModel):
     notes: Optional[str] = None
 
 
-class CustomerParticipationListResponse(BaseModel):
-    items: list[CustomerParticipationListItemResponse]
-    page: int
-    page_size: int
-    total: int
-    total_pages: int
+class CustomerParticipationListResponse(StandardListResponse[CustomerParticipationListItemResponse]):
+    pass
 
 
 class FairParticipantListItemResponse(BaseModel):
@@ -90,12 +87,8 @@ class FairParticipantListItemResponse(BaseModel):
     notes: Optional[str] = None
 
 
-class FairParticipantListResponse(BaseModel):
-    items: list[FairParticipantListItemResponse]
-    page: int
-    page_size: int
-    total: int
-    total_pages: int
+class FairParticipantListResponse(StandardListResponse[FairParticipantListItemResponse]):
+    pass
 
 
 class ErrorResponse(BaseModel):

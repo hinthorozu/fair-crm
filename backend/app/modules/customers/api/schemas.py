@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.api.schemas.pagination import PaginationMeta
+from app.api.schemas.list_response import StandardListResponse
 
 from app.modules.customers.domain.value_objects import CustomerSource, CustomerStatus, CustomerType
 
@@ -85,8 +85,8 @@ class CustomerResponse(BaseModel):
     possible_duplicates: Optional[list[UUID]] = None
 
 
-class CustomerListResponse(PaginationMeta):
-    items: list[CustomerResponse]
+class CustomerListResponse(StandardListResponse[CustomerResponse]):
+    pass
 
 
 class ErrorResponse(BaseModel):

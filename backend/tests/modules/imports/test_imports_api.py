@@ -6,6 +6,8 @@ from uuid import UUID
 import pytest
 from openpyxl import Workbook
 
+from tests.conftest_helpers import pagination_from
+
 from app.modules.customers.domain.entities import Customer
 from app.modules.customers.domain.value_objects import CustomerSource, CustomerStatus, CustomerType
 from app.modules.customers.infrastructure.repositories.customer_repository import (
@@ -300,7 +302,7 @@ def test_apply_creates_customer(client, auth_headers):
 
     customers = client.get("/api/v1/customers?search=Created", headers=auth_headers)
     assert customers.status_code == 200
-    assert customers.json()["total"] >= 1
+    assert pagination_from(customers.json())["totalItems"] >= 1
 
 
 def test_apply_updates_existing_empty_fields_only(client, auth_headers, db_session, organization_id):
@@ -405,7 +407,7 @@ def test_apply_creates_contact_when_contact_fields_exist(client, auth_headers):
     customers = client.get("/api/v1/customers?search=Contact", headers=auth_headers).json()
     customer_id = customers["items"][0]["id"]
     contacts = client.get(f"/api/v1/customers/{customer_id}/contacts", headers=auth_headers).json()
-    assert contacts["total"] == 1
+    assert pagination_from(contacts)["totalItems"] == 1
     assert contacts["items"][0]["first_name"] == "Mehmet"
 
 

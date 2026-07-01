@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.api.schemas.pagination import PaginationMeta
+from app.api.schemas.list_response import StandardListResponse
 from app.modules.activities.domain.value_objects import ActivitySource
 
 ActivityTypeField = Literal[
@@ -76,8 +76,8 @@ class ActivityResponse(BaseModel):
     deleted_at: Optional[datetime]
 
 
-class ActivityListResponse(PaginationMeta):
-    items: list[ActivityResponse]
+class ActivityListResponse(StandardListResponse[ActivityResponse]):
+    pass
 
 
 class ErrorResponse(BaseModel):

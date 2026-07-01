@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.api.schemas.pagination import PaginationMeta
+from app.api.schemas.list_response import StandardListResponse
 
 from app.modules.fairs.domain.value_objects import FairStatus
 
@@ -56,8 +56,8 @@ class FairResponse(BaseModel):
     deleted_at: Optional[datetime]
 
 
-class FairListResponse(PaginationMeta):
-    items: list[FairResponse]
+class FairListResponse(StandardListResponse[FairResponse]):
+    pass
 
 
 class ErrorResponse(BaseModel):

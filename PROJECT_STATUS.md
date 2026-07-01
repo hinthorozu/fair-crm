@@ -4,8 +4,8 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Version** | v0.8.1 |
-| **Last updated** | 2026-07-01 |
+| **Current Version** | v0.8.3 (Universal Server-Side DataTable) |
+| **Last updated** | 2026-07-01 (Sprint 08.0 completed) |
 | **Constitution** | [PROJECT_CONSTITUTION.md](PROJECT_CONSTITUTION.md) |
 | **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
 
@@ -15,8 +15,9 @@
 
 | Check | Status |
 |-------|--------|
-| Backend tests | **171 PASS** |
+| Backend tests | **173 PASS** |
 | Frontend build | **PASS** |
+| Legacy UMCRM dev migration | **APPLIED** (115 fairs, 28,155 customers, 29,561 participations) |
 
 ---
 
@@ -145,6 +146,44 @@
 - Backend tests (171 total) and frontend build
 - Dev runtime reset: `scripts/dev/reset-dev.ps1` (see [docs/DEV_RUNTIME.md](docs/DEV_RUNTIME.md))
 
+### ✅ Sprint 08.1 — Detail Page Action Standard
+
+**Completed Features**
+
+- `PageHeader` action bar API: typed `PageHeaderAction[]` with `primary` / `secondary` / `danger` variants; backward compatible with legacy `React.ReactNode`
+- Breadcrumb back links in PageHeader (`← Müşterilere Dön`, `← Fuarlara Dön`)
+- Customer Detail header actions: Düzenle, İletişim Kişisi Ekle, Fuara Ekle, Yeni Aktivite, Arşivle — available on every tab
+- Fair Detail header actions: Düzenle, Katılımcı Firma Ekle, Katılımcıları İçe Aktar, Yeni Aktivite (disabled), Arşivle
+- Edit customer/fair modals, contact/activity/participation forms, archive confirm — all from Detail screen without list navigation
+- Fair Detail → Katılımcıları İçe Aktar opens Import Wizard at `/imports/fair/{id}`
+- ADR-014 documented in [docs/DECISIONS.md](docs/DECISIONS.md)
+- Frontend build and browser verification PASS
+
+### ✅ Sprint 08.0 — Universal Server-Side DataTable Standard
+
+**Completed Features**
+
+- Shared list query contract: `page`, `pageSize`, `search`, `sort`, `direction`, entity filters (legacy aliases retained)
+- Shared list response: `items`, `pagination`, `sorting`, `filters` on all list endpoints
+- Server-side search/sort/filter on Contacts, Activities, Participations, Import rows
+- Fair Participants optimized for 29k+ records (no client-side full-list operations)
+- Migration `0009_list_indexes` for list performance
+- Frontend `useServerDataTable` hook + URL state sync; sortable `DataTable` headers
+- Migrated: Customers, Fairs, Customer Detail tabs, Fair Participants, Import Wizard preview
+- ADR-015 + List Screen Definition of Done in constitution
+- Backend tests (173) and frontend build PASS
+
+### ✅ Legacy UMCRM Migration (Dev)
+
+**Completed Features**
+
+- Legacy analysis, cleaning, merge plan pipeline (`scripts/legacy/`)
+- Dev domain reset: `reset_fair_crm_dev_domain.py`
+- Migration engine: `migrate_umcrm_to_kyrox.py` (`--dry-run`, `--apply`)
+- Idempotent UUID5 mapping + skip-on-reapply
+- Full dev DB import from canonical JSON (no SQL dump re-parse)
+- Documentation: [docs/LEGACY_UMCRM_MIGRATION.md](docs/LEGACY_UMCRM_MIGRATION.md)
+
 ---
 
 ## Current Sprint
@@ -155,14 +194,26 @@ Status: Planned — pending start
 
 ---
 
-## Upcoming
+## Sprint Roadmap
 
-| Sprint | Module |
-|--------|--------|
-| Sprint 05 | Customer Phones |
-| Sprint 08 | Customer Emails |
-| Sprint 09 | Dashboard |
-| Sprint 10 | Reporting |
+Chronological plan — completed, active, and backlog sprints.
+
+| Sprint | Module | Status |
+|--------|--------|--------|
+| 01 | Customer Management | Completed |
+| 02 | Fair Management | Completed |
+| 03 | Customer Contacts | Completed |
+| 04 | Customer Activities | Completed |
+| 04.5 | UX & Navigation Foundation | Completed |
+| 05 | Customer Phones | Planned |
+| 06 | Customer Fair Participation | Completed |
+| 07 | Smart Import Wizard Phase 1 | Completed |
+| 07.1 | Smart Merge Viewer & Cleanup | Completed |
+| 08.0 | Universal Server-Side DataTable Standard | Completed |
+| 08.1 | Detail Page Action Standard | Completed |
+| 09 | Customer Emails | Planned |
+| 10 | Dashboard | Planned |
+| 11 | Reporting | Planned |
 
 ---
 
@@ -178,6 +229,9 @@ Status: Planned — pending start
 | 06 — Fair Participation | v0.7.0 | ✅ |
 | 07 — Import Engine v1 | v0.6.0 | ✅ |
 | 07 — Smart Import Wizard Phase 1 | v0.8.0 | ✅ |
+| 07.1 — Smart Merge Viewer & Cleanup | v0.8.1 | ✅ |
+| 08.1 — Detail Page Action Standard | v0.8.2 | ✅ |
+| 08.0 — Universal Server-Side DataTable | v0.8.3 | ✅ |
 
 ---
 

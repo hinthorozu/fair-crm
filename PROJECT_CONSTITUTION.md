@@ -494,6 +494,21 @@ A sprint or task is **NOT complete** until all required items below are confirme
 
 Sprint-specific deliverables (CRUD, pagination, archive/restore, Turkish UI, etc.) are defined in [Module Standard](#module-standard) and [Sprint Workflow](#sprint-workflow). Runtime synchronization items above are mandatory in addition to those deliverables.
 
+### List Screen Definition of Done (ADR-015)
+
+A new or changed **list screen** is not complete until all of the following are verified:
+
+- [ ] Server-side pagination
+- [ ] Server-side search
+- [ ] Server-side sorting
+- [ ] Server-side filtering, or a documented exception in the completion report
+- [ ] URL state synchronization (refresh, back, forward, shareable links)
+- [ ] Loading state (initial + page change)
+- [ ] Empty state (including filtered-empty variant where applicable)
+- [ ] Error state with retry/refresh
+- [ ] `DataTable` / `useServerDataTable` standard compliance
+- [ ] No client-side `sort()` / `filter()` / `slice()` on large datasets fetched from the API
+
 ---
 
 ## Development Workflow

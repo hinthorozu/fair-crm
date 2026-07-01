@@ -33,10 +33,11 @@ class GetContactQuery:
 class ListContactsByCustomerQuery:
     organization_id: UUID
     customer_id: UUID
+    search: str | None = None
     page: int = 1
     page_size: int = 25
-    sort_by: str = "created_at"
-    sort_dir: str = "desc"
+    sort_by: str = "first_name"
+    sort_dir: str = "asc"
 
 
 @dataclass(frozen=True)

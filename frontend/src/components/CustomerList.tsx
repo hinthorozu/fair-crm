@@ -3,7 +3,7 @@ import type { Customer, CustomerStatus, CustomerType } from "../types/customer";
 import { customerStatusLabels, customerTypeLabels, labels } from "../labels";
 import { uiLabels } from "../labels/uiLabels";
 import { Badge } from "./ui/Badge";
-import { DataTable } from "./ui/DataTable";
+import { DataTableShell, SortableHeader } from "./ui/DataTable";
 import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
 import { customerStatusBadgeVariant } from "../utils/badges";
 
@@ -76,6 +76,10 @@ interface CustomerTableProps {
   onCreate?: () => void;
   archivingId: string | null;
   restoringId: string | null;
+  sortField?: string | null;
+  sortDirection?: "asc" | "desc" | null;
+  onSortChange?: (field: string) => void;
+  emptyDueToFilters?: boolean;
 }
 
 function isArchivedCustomer(customer: Customer): boolean {
@@ -91,13 +95,21 @@ export function CustomerTable({
   onCreate,
   archivingId,
   restoringId,
+  sortField,
+  sortDirection,
+  onSortChange,
+  emptyDueToFilters,
 }: CustomerTableProps) {
   if (items.length === 0) {
     return (
       <EmptyState
         icon={<EmptyStateIcon />}
-        title={uiLabels.emptyCustomersTitle}
-        description={uiLabels.emptyCustomersDescription}
+        title={emptyDueToFilters ? uiLabels.emptySearchTitle : uiLabels.emptyCustomersTitle}
+        description={
+          emptyDueToFilters
+            ? uiLabels.emptySearchDescription
+            : uiLabels.emptyCustomersDescription
+        }
         actionLabel={onCreate ? uiLabels.createNew : undefined}
         onAction={onCreate}
       />
@@ -105,11 +117,35 @@ export function CustomerTable({
   }
 
   return (
-    <DataTable>
+    <DataTableShell>
       <thead>
         <tr>
-          <th>{labels.display_name}</th>
-          <th>{labels.city}</th>
+          <th>
+            {onSortChange ? (
+              <SortableHeader
+                label={labels.display_name}
+                field="company_name"
+                activeField={sortField ?? null}
+                direction={sortDirection ?? null}
+                onSort={onSortChange}
+              />
+            ) : (
+              labels.display_name
+            )}
+          </th>
+          <th>
+            {onSortChange ? (
+              <SortableHeader
+                label={labels.city}
+                field="city"
+                activeField={sortField ?? null}
+                direction={sortDirection ?? null}
+                onSort={onSortChange}
+              />
+            ) : (
+              labels.city
+            )}
+          </th>
           <th>{labels.customer_type}</th>
           <th>{labels.status}</th>
           <th>{labels.phone}</th>
@@ -174,7 +210,7 @@ export function CustomerTable({
           );
         })}
       </tbody>
-    </DataTable>
+    </DataTableShell>
   );
 }
 

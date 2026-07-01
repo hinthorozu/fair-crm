@@ -20,6 +20,13 @@ export const uiLabels = {
   emptyActivitiesDescription: "Görüşme, not veya takip kaydı ekleyerek zaman çizelgesini oluşturun.",
   emptyCustomersTitle: "Müşteri bulunamadı.",
   emptyCustomersDescription: "Arama kriterlerinizi değiştirin veya yeni müşteri ekleyin.",
+  emptySearchTitle: "Sonuç bulunamadı.",
+  emptySearchDescription: "Arama veya filtre kriterlerinizi değiştirip tekrar deneyin.",
   deleteContactTitle: "İletişim Kişisini Sil",
   deleteActivityTitle: "Aktiviteyi Sil",
+  detailEdit: "Düzenle",
+  detailAddContact: "İletişim Kişisi Ekle",
+  detailNewActivity: "Yeni Aktivite",
+  detailFairActivitySoon: "Fuar aktivitesi yakında",
+  backToFairs: "Fuarlara Dön",
 } as const;

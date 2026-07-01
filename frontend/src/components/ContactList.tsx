@@ -4,7 +4,7 @@ import { contactLabels } from "../labels/contactLabels";
 import { uiLabels } from "../labels/uiLabels";
 import { labels } from "../labels";
 import { Badge } from "./ui/Badge";
-import { DataTable } from "./ui/DataTable";
+import { DataTableShell } from "./ui/DataTable";
 import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
 
 interface ContactTableProps {
@@ -13,6 +13,7 @@ interface ContactTableProps {
   onEdit: (contact: Contact) => void;
   onDelete: (contact: Contact) => void;
   onCreate?: () => void;
+  emptyDueToFilters?: boolean;
 }
 
 function formatPhone(contact: Contact): string {
@@ -25,21 +26,24 @@ export function ContactTable({
   onEdit,
   onDelete,
   onCreate,
+  emptyDueToFilters,
 }: ContactTableProps) {
   if (items.length === 0) {
     return (
       <EmptyState
         icon={<EmptyStateIcon />}
-        title={uiLabels.emptyContactsTitle}
-        description={uiLabels.emptyContactsDescription}
-        actionLabel={uiLabels.createNew}
+        title={emptyDueToFilters ? uiLabels.emptySearchTitle : uiLabels.emptyContactsTitle}
+        description={
+          emptyDueToFilters ? uiLabels.emptySearchDescription : uiLabels.emptyContactsDescription
+        }
+        actionLabel={onCreate ? uiLabels.createNew : undefined}
         onAction={onCreate}
       />
     );
   }
 
   return (
-    <DataTable>
+    <DataTableShell>
       <thead>
         <tr>
           <th>{contactLabels.fullName}</th>
@@ -81,6 +85,6 @@ export function ContactTable({
           </tr>
         ))}
       </tbody>
-    </DataTable>
+    </DataTableShell>
   );
 }

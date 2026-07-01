@@ -33,11 +33,12 @@ class CustomerRepository(Protocol):
         status: CustomerStatus | None = None,
         include_archived: bool = False,
         customer_type: CustomerType | None = None,
+        country: str | None = None,
         search: str | None = None,
         page: int = 1,
         page_size: int = 25,
-        sort_by: str = "created_at",
-        sort_dir: str = "desc",
+        sort_by: str = "display_name",
+        sort_dir: str = "asc",
     ) -> CustomerListResult: ...
 
     def list_all_active(self, organization_id: UUID) -> list[Customer]: ...

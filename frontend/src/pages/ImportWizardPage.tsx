@@ -14,11 +14,13 @@ import { getFair, listFairs } from "../api/fairs";
 import { listParticipantsByFair } from "../api/participations";
 import { Card } from "../components/ui/Card";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
-import { DataTable } from "../components/ui/DataTable";
+import { DataTableShell } from "../components/ui/DataTable";
 import { EmptyState } from "../components/ui/EmptyState";
 import { LoadingState } from "../components/ui/LoadingState";
 import { PageHeader } from "../components/ui/PageHeader";
+import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { Badge } from "../components/ui/Badge";
+import { useServerDataTable } from "../hooks/useServerDataTable";
 import {
   importBatchStatusLabels,
   importDecisionLabels,
@@ -56,7 +58,6 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
   const [stepIndex, setStepIndex] = React.useState(0);
   const [batchId, setBatchId] = React.useState<string | null>(null);
   const [batch, setBatch] = React.useState<ImportBatch | null>(null);
-  const [rows, setRows] = React.useState<ImportRow[]>([]);
   const [uploadPreview, setUploadPreview] = React.useState<UploadRawImportResponse | null>(null);
   const [fairs, setFairs] = React.useState<Fair[]>([]);
   const [selectedFairId, setSelectedFairId] = React.useState<string>(preselectedFairId ?? "");
@@ -69,13 +70,17 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
   const [error, setError] = React.useState<string | null>(null);
   const [confirmApply, setConfirmApply] = React.useState(false);
   const [applyResult, setApplyResult] = React.useState<ApplyImportResponse | null>(null);
-  const [previewFilter, setPreviewFilter] = React.useState<PreviewFilter>("all");
-  const [previewSearch, setPreviewSearch] = React.useState("");
-  const [previewSortBy, setPreviewSortBy] = React.useState<PreviewSortBy>("company_name");
-  const [previewSortDir, setPreviewSortDir] = React.useState<"asc" | "desc">("asc");
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   const currentStep = WIZARD_STEPS[stepIndex]?.id ?? "source";
+  const isPreviewStep = currentStep === "preview" || currentStep === "decisions";
+
+  const previewTable = useServerDataTable<ImportRow>({
+    fetchFn: (params) => listImportRows(batchId!, params),
+    defaultSort: { field: "company_name", direction: "asc" },
+    filterKeys: ["filter"],
+    enabled: Boolean(batchId) && isPreviewStep,
+  });
 
   const loadFairs = React.useCallback(async () => {
     try {
@@ -90,8 +95,8 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
     try {
       const fair = await getFair(fairId);
       setSelectedFair(fair);
-      const parts = await listParticipantsByFair(fairId, { page: 1, page_size: 1 });
-      setParticipantCount(parts.total);
+      const parts = await listParticipantsByFair(fairId, { page: 1, pageSize: 1 });
+      setParticipantCount(parts.pagination.totalItems);
     } catch {
       setSelectedFair(null);
     }
@@ -113,29 +118,10 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
     if (selectedFairId) void loadFairDetails(selectedFairId);
   }, [selectedFairId, loadFairDetails]);
 
-  const refreshBatch = async (id: string, listParams?: Parameters<typeof listImportRows>[1]) => {
-    const [b, r] = await Promise.all([
-      getImportBatch(id),
-      listImportRows(id, listParams ?? buildListParams()),
-    ]);
+  const refreshBatch = async (id: string) => {
+    const b = await getImportBatch(id);
     setBatch(b);
-    setRows(r.items);
   };
-
-  const buildListParams = React.useCallback(() => {
-    const params: Parameters<typeof listImportRows>[1] = {
-      sort_by: previewSortBy,
-      sort_dir: previewSortDir,
-    };
-    if (previewFilter !== "all") params.filter = previewFilter;
-    if (previewSearch.trim()) params.search = previewSearch.trim();
-    return params;
-  }, [previewFilter, previewSearch, previewSortBy, previewSortDir]);
-
-  React.useEffect(() => {
-    if (!batchId || stepIndex < 5) return;
-    void refreshBatch(batchId, buildListParams());
-  }, [batchId, stepIndex, previewFilter, previewSearch, previewSortBy, previewSortDir, buildListParams]);
 
   const handleUpload = async () => {
     if (!selectedFile || !selectedFairId) return;
@@ -200,12 +186,14 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
   const handleDecision = async (row: ImportRow, decision: ImportDecision) => {
     if (!batchId) return;
     try {
-      const updated = await setImportRowDecision(batchId, row.id, { decision });
-      setRows((prev) => prev.map((r) => (r.id === row.id ? updated : r)));
+      await setImportRowDecision(batchId, row.id, { decision });
+      await previewTable.refresh();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : importLabels.decisionError);
     }
   };
+
+  const previewFilter = (previewTable.filters.filter as PreviewFilter | undefined) || "all";
 
   const renderPreviewControls = () => (
     <div className="preview-controls">
@@ -224,7 +212,7 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
             key={key}
             type="button"
             className={`btn btn-sm ${previewFilter === key ? "btn-primary" : "btn-secondary"}`}
-            onClick={() => setPreviewFilter(key)}
+            onClick={() => previewTable.setFilter("filter", key === "all" ? "" : key)}
           >
             {label}
           </button>
@@ -235,13 +223,15 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
           type="search"
           className="form-input"
           placeholder={importLabels.previewSearch}
-          value={previewSearch}
-          onChange={(e) => setPreviewSearch(e.target.value)}
+          value={previewTable.search}
+          onChange={(e) => previewTable.setSearch(e.target.value)}
         />
         <select
           className="form-select"
-          value={previewSortBy}
-          onChange={(e) => setPreviewSortBy(e.target.value as PreviewSortBy)}
+          value={previewTable.sorting.field || "company_name"}
+          onChange={(e) =>
+            previewTable.setSorting(e.target.value as PreviewSortBy, previewTable.sorting.direction)
+          }
         >
           <option value="confidence">{importLabels.previewSortConfidence}</option>
           <option value="company_name">{importLabels.previewSortCompany}</option>
@@ -249,8 +239,13 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
         </select>
         <select
           className="form-select"
-          value={previewSortDir}
-          onChange={(e) => setPreviewSortDir(e.target.value as "asc" | "desc")}
+          value={previewTable.sorting.direction}
+          onChange={(e) =>
+            previewTable.setSorting(
+              previewTable.sorting.field || "company_name",
+              e.target.value as "asc" | "desc",
+            )
+          }
         >
           <option value="asc">Artan</option>
           <option value="desc">Azalan</option>
@@ -261,10 +256,10 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
 
   const renderMergePreviewList = (editable: boolean) => (
     <div className="merge-preview-list">
-      {rows.length === 0 ? (
+      {previewTable.items.length === 0 && !previewTable.loading ? (
         <EmptyState title="Satır yok" description="Filtreye uygun satır bulunamadı." />
       ) : (
-        rows.map((row) => (
+        previewTable.items.map((row) => (
           <div key={row.id} className="merge-preview-item">
             <div className="merge-preview-meta">
               <span>#{row.row_number}</span>
@@ -302,7 +297,7 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
     setLoading(true);
     try {
       await bulkRowDecision(batchId, action);
-      await refreshBatch(batchId);
+      await previewTable.refresh();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : importLabels.decisionError);
     } finally {
@@ -379,7 +374,7 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
       </button>
       {selectedFile && <p>{selectedFile.name}</p>}
       {uploadPreview && (
-        <DataTable>
+        <DataTableShell>
           <table>
             <tbody>
               {uploadPreview.sample_rows.slice(0, 5).map((row, ri) => (
@@ -391,7 +386,7 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
               ))}
             </tbody>
           </table>
-        </DataTable>
+        </DataTableShell>
       )}
     </Card>
   );
@@ -443,7 +438,7 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
           {importLabels.headerNo}
         </label>
       </div>
-      <DataTable>
+      <DataTableShell>
         <table>
           <thead>
             <tr>
@@ -481,7 +476,7 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
             ))}
           </tbody>
         </table>
-      </DataTable>
+      </DataTableShell>
     </Card>
   );
 
@@ -507,10 +502,14 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
       <h3>{importLabels.previewTitle}</h3>
       {selectedFair && <p>Hedef fuar: <strong>{selectedFair.name}</strong></p>}
       {renderPreviewControls()}
-      {rows.length === 0 && !batchId ? (
+      {!batchId ? (
         <EmptyState title="Satır yok" description="Önce analiz çalıştırın." />
       ) : (
-        renderMergePreviewList(false)
+        <>
+          <ServerDataTableFrame table={previewTable} skeletonRows={3}>
+            {renderMergePreviewList(false)}
+          </ServerDataTableFrame>
+        </>
       )}
     </Card>
   );
@@ -533,7 +532,9 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
         </button>
       </div>
       {renderPreviewControls()}
-      {renderMergePreviewList(true)}
+      <ServerDataTableFrame table={previewTable} skeletonRows={3}>
+        {renderMergePreviewList(true)}
+      </ServerDataTableFrame>
     </Card>
   );
 
@@ -544,7 +545,7 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
         <ul>
           <li>Oluşturulacak: {batch.ready_to_create}</li>
           <li>Güncellenecek: {batch.ready_to_update}</li>
-          <li>Atlanacak: {rows.filter((r) => r.decision === "skip").length}</li>
+          <li>Atlanacak: {previewTable.items.filter((r) => r.decision === "skip").length}</li>
         </ul>
       )}
       <button type="button" className="btn btn-primary" onClick={() => setConfirmApply(true)}>
@@ -574,7 +575,6 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
           setStepIndex(0);
           setBatchId(null);
           setBatch(null);
-          setRows([]);
           setUploadPreview(null);
           setApplyResult(null);
           setSelectedFile(null);
@@ -613,7 +613,7 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
       void handleSaveMapping();
       return;
     }
-    if (currentStep === "analyze" && rows.length > 0) {
+    if (currentStep === "analyze" && (batch?.total_rows ?? 0) > 0) {
       setStepIndex(5);
       return;
     }

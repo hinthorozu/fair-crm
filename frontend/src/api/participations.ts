@@ -1,46 +1,57 @@
-import { normalizePaginatedResponse } from "./pagination";
+import { normalizeStandardListResponse, buildListQueryParams } from "./listTable";
 import { apiRequest } from "./client";
+import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
+import type { StandardListResponse } from "../types/listTable";
 import type {
   CreateParticipationPayload,
-  CustomerParticipationListResponse,
-  FairParticipantListResponse,
-  ListParticipationsParams,
+  CustomerParticipationListItem,
+  FairParticipantListItem,
   Participation,
   UpdateParticipationPayload,
 } from "../types/participation";
-import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "../types/pagination";
 
-function buildQuery(params: ListParticipationsParams): string {
-  const q = new URLSearchParams();
-  q.set("page", String(params.page ?? DEFAULT_PAGE));
-  q.set("page_size", String(params.page_size ?? DEFAULT_PAGE_SIZE));
-  if (params.sort_by) q.set("sort_by", params.sort_by);
-  if (params.sort_dir) q.set("sort_dir", params.sort_dir);
-  return `?${q.toString()}`;
+export interface ListParticipationsParams extends Partial<ServerTableFetchParams> {
+  participationStatus?: string;
 }
 
 export async function listParticipationsByCustomer(
   customerId: string,
   params: ListParticipationsParams = {},
-): Promise<CustomerParticipationListResponse> {
-  const page = params.page ?? DEFAULT_PAGE;
-  const page_size = params.page_size ?? DEFAULT_PAGE_SIZE;
+): Promise<StandardListResponse<CustomerParticipationListItem>> {
+  const query = buildListQueryParams({
+    page: params.page,
+    pageSize: params.pageSize,
+    search: params.search,
+    sort: params.sort,
+    direction: params.direction,
+    filters: {
+      ...(params.participationStatus ? { participationStatus: params.participationStatus } : {}),
+      ...params.filters,
+    },
+  });
   const raw = await apiRequest<unknown>(
-    `/api/v1/customers/${customerId}/fair-participations${buildQuery(params)}`,
+    `/api/v1/customers/${customerId}/fair-participations?${query.toString()}`,
   );
-  return normalizePaginatedResponse(raw, { page, page_size });
+  return normalizeStandardListResponse<CustomerParticipationListItem>(raw);
 }
 
 export async function listParticipantsByFair(
   fairId: string,
   params: ListParticipationsParams = {},
-): Promise<FairParticipantListResponse> {
-  const page = params.page ?? DEFAULT_PAGE;
-  const page_size = params.page_size ?? DEFAULT_PAGE_SIZE;
-  const raw = await apiRequest<unknown>(
-    `/api/v1/fairs/${fairId}/participants${buildQuery(params)}`,
-  );
-  return normalizePaginatedResponse(raw, { page, page_size });
+): Promise<StandardListResponse<FairParticipantListItem>> {
+  const query = buildListQueryParams({
+    page: params.page,
+    pageSize: params.pageSize,
+    search: params.search,
+    sort: params.sort,
+    direction: params.direction,
+    filters: {
+      ...(params.participationStatus ? { participationStatus: params.participationStatus } : {}),
+      ...params.filters,
+    },
+  });
+  const raw = await apiRequest<unknown>(`/api/v1/fairs/${fairId}/participants?${query.toString()}`);
+  return normalizeStandardListResponse<FairParticipantListItem>(raw);
 }
 
 export function createParticipation(payload: CreateParticipationPayload): Promise<Participation> {

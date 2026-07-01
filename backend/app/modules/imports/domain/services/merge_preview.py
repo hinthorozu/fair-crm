@@ -387,4 +387,6 @@ def sort_rows(
         return sorted(rows, key=confidence, reverse=reverse)
     if sort_by == "status":
         return sorted(rows, key=lambda r: r.status.value, reverse=reverse)
+    if sort_by == "row_number" or sort_by is None:
+        return sorted(rows, key=lambda r: r.row_number, reverse=reverse)
     return sorted(rows, key=lambda r: r.row_number)

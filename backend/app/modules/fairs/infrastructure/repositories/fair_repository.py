@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import or_
 from sqlalchemy.orm import Query, Session
 
-from app.core.pagination import PageParams, build_paginated_meta
+from app.core.pagination import build_order_clause, build_paginated_meta, normalize_page_params
 from app.modules.fairs.domain.entities import Fair
 from app.modules.fairs.domain.ports import FairListResult
 from app.modules.fairs.domain.value_objects import FairStatus
@@ -30,6 +30,8 @@ FAIR_SORT_FIELDS = {
     "updated_at": FairModel.updated_at,
     "name": FairModel.name,
     "start_date": FairModel.start_date,
+    "city": FairModel.city,
+    "country": FairModel.country,
 }
 
 
@@ -89,6 +91,7 @@ class SqlAlchemyFairRepository:
         *,
         status: FairStatus | None = None,
         include_archived: bool = False,
+        country: str | None = None,
         search: str | None = None,
     ) -> Query:
         query = self._session.query(FairModel).filter(
@@ -104,6 +107,8 @@ class SqlAlchemyFairRepository:
             query = query.filter(FairModel.deleted_at.isnot(None))
         # else: no status filter → return all fairs (active + archived)
 
+        if country:
+            query = query.filter(FairModel.country.ilike(country.strip()))
         if search:
             pattern = f"%{search.strip()}%"
             query = query.filter(or_(*[field.ilike(pattern) for field in SEARCH_FIELDS]))
@@ -116,26 +121,31 @@ class SqlAlchemyFairRepository:
         *,
         status: FairStatus | None = None,
         include_archived: bool = False,
+        country: str | None = None,
         search: str | None = None,
         page: int = 1,
         page_size: int = 25,
-        sort_by: str = "created_at",
+        sort_by: str = "start_date",
         sort_dir: str = "desc",
     ) -> FairListResult:
-        page_params = PageParams(page=page, page_size=page_size)
+        page_params = normalize_page_params(page, page_size)
         query = self._filtered_query(
             organization_id,
             status=status,
             include_archived=include_archived,
+            country=country,
             search=search,
         )
 
         total = query.count()
-        sort_column = FAIR_SORT_FIELDS.get(sort_by, FairModel.created_at)
-        if sort_dir == "asc":
-            order = (sort_column.asc(), FairModel.id.asc())
-        else:
-            order = (sort_column.desc(), FairModel.id.desc())
+        sort_column = FAIR_SORT_FIELDS.get(sort_by, FairModel.start_date)
+        nulls_last = sort_by == "start_date"
+        order = build_order_clause(
+            sort_column,
+            sort_dir if sort_dir in ("asc", "desc") else "desc",
+            tie_breaker=FairModel.id,
+            nulls_last=nulls_last,
+        )
 
         models = (
             query.order_by(*order)

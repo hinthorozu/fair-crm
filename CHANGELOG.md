@@ -8,7 +8,36 @@ Format: one version section per completed sprint milestone. Update this file aft
 
 ## Unreleased
 
-_No unreleased changes._
+- Legacy UMCRM migration engine: canonical JSON → KYROX CRM (dev-only)
+- Scripts: `reset_fair_crm_dev_domain.py`, `migrate_umcrm_to_kyrox.py`
+- Full dev import verified: 115 fairs, 28,155 customers, 29,561 participations
+- Documentation: [docs/LEGACY_UMCRM_MIGRATION.md](docs/LEGACY_UMCRM_MIGRATION.md)
+
+---
+
+## v0.8.3 — Universal Server-Side DataTable Standard
+
+- Shared list query contract: `page`, `pageSize`, `search`, `sort`, `direction`, entity filters (legacy aliases retained)
+- Shared list response: nested `pagination`, `sorting`, `filters` on all list endpoints
+- Server-side search/sort/filter extended to Contacts, Activities, Participations, Import rows
+- Fair Participants list optimized for 29k+ participation records (server-side only)
+- Migration `0009_list_indexes` for customer, fair, activity, participation list fields
+- Frontend `useServerDataTable` hook with URL state sync (refresh, back, forward, shareable links)
+- Enhanced `DataTable` with sortable column headers (ASC → DESC → NONE cycle)
+- Migrated: Customers, Fairs, Customer Detail tabs, Fair Participants, Import Wizard preview rows
+- ADR-015 documented; List Screen Definition of Done added to PROJECT_CONSTITUTION.md
+- Backend tests (173) and frontend build PASS
+
+---
+
+## v0.8.2 — Detail Page Action Standard
+
+- `PageHeader` extended with typed `actions` array API (`primary` | `secondary` | `danger`) and breadcrumb back links
+- Customer Detail action bar: Düzenle, İletişim Kişisi Ekle, Fuara Ekle, Yeni Aktivite, Arşivle — available from any tab without returning to list
+- Fair Detail action bar: Düzenle, Katılımcı Firma Ekle, Katılımcıları İçe Aktar, Yeni Aktivite (disabled pending fair-scoped activity API), Arşivle
+- Edit/archive modals and forms wired directly on Detail pages; Import Wizard opens from Fair Detail with fair preselected
+- ADR-014 — Detail Page Action Standard documented in [docs/DECISIONS.md](docs/DECISIONS.md)
+- Frontend build and browser verification PASS
 
 ---
 

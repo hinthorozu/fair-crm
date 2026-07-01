@@ -67,6 +67,93 @@ function Stop-PortListeners([int[]]$Ports) {
     return @($stopped)
 }
 
+function Test-PortBindable([int]$Port) {
+    $client = New-Object System.Net.Sockets.TcpClient
+    try {
+        $client.Connect("127.0.0.1", $Port)
+        $client.Close()
+        return $false
+    } catch {
+        return $true
+    } finally {
+        if ($client.Connected) { $client.Close() }
+    }
+}
+
+function Ensure-PortFree([int]$Port, [int]$MaxAttempts = 5) {
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        if (Test-PortBindable -Port $Port) { return $true }
+        Write-Host "Port $Port still accepting connections (attempt $attempt/$MaxAttempts)"
+        $null = @(Stop-OrphanedUvicornWorkers)
+        $null = @(Stop-FairCrmUvicornProcesses -Port $Port)
+        $null = @(Stop-PortListeners -Ports @($Port))
+        Start-Sleep -Seconds 2
+    }
+    return (Test-PortBindable -Port $Port)
+}
+
+function Stop-OrphanedUvicornWorkers() {
+    # uvicorn --reload uses multiprocessing.spawn workers. When the reloader parent dies,
+    # worker children can keep port 8001 and serve stale code while netstat shows dead PIDs.
+    $stopped = @()
+    $processes = @(Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue)
+    foreach ($proc in $processes) {
+        $cmd = $proc.CommandLine
+        if (-not $cmd) { continue }
+        if ($cmd -notmatch 'multiprocessing\.spawn') { continue }
+        if ($cmd -notmatch 'spawn_main') { continue }
+        try {
+            Write-Host "Stopping orphaned uvicorn worker PID $($proc.ProcessId)"
+            Stop-Process -Id $proc.ProcessId -Force -ErrorAction Stop
+            $stopped += $proc.ProcessId
+        } catch {
+            Write-Warning "Could not stop orphaned worker PID $($proc.ProcessId): $($_.Exception.Message)"
+        }
+    }
+    return @($stopped | Select-Object -Unique)
+}
+
+function Stop-FairCrmUvicornProcesses([int]$Port) {
+    # uvicorn --reload leaves parent reloader processes alive without holding the port.
+    # Stopping only the port listener leaves stale reloaders serving old code on the next bind.
+    $stopped = @()
+    $processes = @(Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue)
+    foreach ($proc in $processes) {
+        $cmd = $proc.CommandLine
+        if (-not $cmd) { continue }
+        if ($cmd -notmatch 'uvicorn') { continue }
+        if ($cmd -notmatch 'app\.main:app') { continue }
+        if ($cmd -notmatch "--port\s+$Port") { continue }
+        try {
+            Write-Host "Stopping stale uvicorn PID $($proc.ProcessId)"
+            Stop-Process -Id $proc.ProcessId -Force -ErrorAction Stop
+            $stopped += $proc.ProcessId
+        } catch {
+            Write-Warning "Could not stop uvicorn PID $($proc.ProcessId): $($_.Exception.Message)"
+        }
+    }
+    return @($stopped | Select-Object -Unique)
+}
+
+function Stop-FairCrmViteProcesses([int]$Port) {
+    $stopped = @()
+    $processes = @(Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue)
+    foreach ($proc in $processes) {
+        $cmd = $proc.CommandLine
+        if (-not $cmd) { continue }
+        if ($cmd -notmatch 'vite') { continue }
+        if ($cmd -notmatch "--port\s+$Port") { continue }
+        try {
+            Write-Host "Stopping stale vite PID $($proc.ProcessId)"
+            Stop-Process -Id $proc.ProcessId -Force -ErrorAction Stop
+            $stopped += $proc.ProcessId
+        } catch {
+            Write-Warning "Could not stop vite PID $($proc.ProcessId): $($_.Exception.Message)"
+        }
+    }
+    return @($stopped | Select-Object -Unique)
+}
+
 function Wait-HttpOk([string[]]$Urls, [int]$TimeoutSec = 60) {
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
     while ((Get-Date) -lt $deadline) {
@@ -114,13 +201,34 @@ if (-not (Test-Path $FrontendDir)) {
 
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 
+Write-Step "Stopping stale Fair CRM dev processes (uvicorn/vite reloaders)"
+$orphanWorkersStopped = @(Stop-OrphanedUvicornWorkers)
+$uvicornStopped = @(Stop-FairCrmUvicornProcesses -Port $BackendPort)
+$viteStopped = @(Stop-FairCrmViteProcesses -Port $FrontendPort)
+if ($orphanWorkersStopped.Count -gt 0) {
+    Write-Host "Stopped $($orphanWorkersStopped.Count) orphaned uvicorn worker(s)."
+}
+if ($uvicornStopped.Count -gt 0) {
+    Write-Host "Stopped $($uvicornStopped.Count) uvicorn process(es)."
+}
+if ($viteStopped.Count -gt 0) {
+    Write-Host "Stopped $($viteStopped.Count) vite process(es)."
+}
+
 Write-Step "Clearing stale listeners on ports: $($AllPorts -join ', ')"
 $cleared = @(Stop-PortListeners -Ports $AllPorts)
 if ($cleared.Count -gt 0) {
     Start-Sleep -Seconds 2
-    Write-Host "Cleared $($cleared.Count) process(es)."
+    Write-Host "Cleared $($cleared.Count) port listener(s)."
 } else {
     Write-Host "No listeners found on target ports."
+}
+Start-Sleep -Seconds 1
+if (-not (Ensure-PortFree -Port $BackendPort)) {
+    throw "Port $BackendPort is still in use after cleanup. Stop remaining listeners manually."
+}
+if (-not (Ensure-PortFree -Port $FrontendPort)) {
+    throw "Port $FrontendPort is still in use after cleanup. Stop remaining listeners manually."
 }
 
 Write-Step "Starting backend on port $BackendPort"
@@ -139,6 +247,24 @@ $frontendProc = Start-Process -FilePath "npm.cmd" -ArgumentList $frontendArgs -W
     -RedirectStandardOutput $frontendLog -RedirectStandardError $frontendErr -PassThru -WindowStyle Hidden
 Start-Sleep -Seconds 2
 
+function Test-ParticipantsSearchOpenApi([int]$Port) {
+    try {
+        $openapi = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/openapi.json" -TimeoutSec 10
+        $params = @($openapi.paths.'/api/v1/fairs/{fair_id}/participants'.get.parameters | ForEach-Object { $_.name })
+        $required = @('search', 'page', 'page_size', 'sort', 'direction')
+        foreach ($name in $required) {
+            if ($params -notcontains $name) {
+                Write-Warning "OpenAPI missing parameter '$name' on fair participants list (found: $($params -join ', '))"
+                return $false
+            }
+        }
+        return $true
+    } catch {
+        Write-Warning "OpenAPI verification failed: $($_.Exception.Message)"
+        return $false
+    }
+}
+
 Write-Step "Verifying services"
 $backendHealth = "http://127.0.0.1:$BackendPort/health"
 $swaggerUrl = "http://127.0.0.1:$BackendPort/docs"
@@ -146,6 +272,7 @@ $frontendUrl = "http://127.0.0.1:$FrontendPort/"
 
 $backendOk = Wait-HttpOk -Urls @($backendHealth)
 $swaggerOk = Wait-HttpOk -Urls @($swaggerUrl)
+$openapiOk = Test-ParticipantsSearchOpenApi -Port $BackendPort
 $frontendOk = Wait-HttpOk -Urls @($frontendUrl, "$frontendUrl/index.html")
 
 $escapedPorts = @()
@@ -166,6 +293,9 @@ if (-not $backendOk) {
 }
 if (-not $swaggerOk) {
     Write-Error "Swagger is not reachable at $swaggerUrl"
+}
+if (-not $openapiOk) {
+    Write-Error "Backend OpenAPI on port $BackendPort is missing Sprint 08.0 list params (search/pageSize/sort/direction). A stale uvicorn worker may still be serving old code."
 }
 if (-not $frontendOk) {
     Write-Error "Frontend failed to start on port $FrontendPort. See $frontendLog and $frontendErr"

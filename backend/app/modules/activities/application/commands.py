@@ -31,6 +31,8 @@ class GetActivityQuery:
 class ListActivitiesByCustomerQuery:
     organization_id: UUID
     customer_id: UUID
+    search: str | None = None
+    activity_type: str | None = None
     page: int = 1
     page_size: int = 25
     sort_by: str = "activity_date"

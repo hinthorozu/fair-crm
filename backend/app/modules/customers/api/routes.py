@@ -1,7 +1,17 @@
+from typing import Annotated, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import AliasChoices
+
+from app.api.dependencies.list_query import parse_list_query, resolve_page_size_from_request
+from app.api.list_helpers import standard_list_from_result
+from app.modules.customers.application.list_customers import (
+    ALLOWED_SORT_FIELDS,
+    DEFAULT_SORT_DIRECTION,
+    DEFAULT_SORT_FIELD,
+)
 
 from app.core.config import get_settings
 from app.integrations.kyrox_core.auth import AuthContext
@@ -101,11 +111,23 @@ def list_customers(
     customer_status: CustomerStatus | None = Query(default=None, alias="status"),
     include_archived: bool = Query(default=False),
     customer_type: CustomerType | None = Query(default=None),
+    country: str | None = Query(default=None, max_length=100),
     search: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=25, ge=1, le=100),
-    sort_by: str = Query(default="created_at"),
-    sort_dir: str = Query(default="desc", pattern="^(?i)(asc|desc)$"),
+    page_size: Annotated[
+        int,
+        Query(ge=1, le=100, validation_alias=AliasChoices("pageSize", "page_size")),
+    ] = 25,
+    sort: Annotated[
+        str | None,
+        Query(validation_alias=AliasChoices("sort", "sort_by")),
+    ] = None,
+    sort_by: Annotated[str | None, Query(include_in_schema=False)] = None,
+    direction: Annotated[
+        str | None,
+        Query(pattern="^(?i)(asc|desc)$", validation_alias=AliasChoices("direction", "sort_dir")),
+    ] = None,
+    sort_dir: Annotated[str | None, Query(include_in_schema=False)] = None,
     auth: AuthContext = Depends(require_read_permission),
     use_case: ListCustomersUseCase = Depends(get_list_customers_use_case),
 ) -> CustomerListResponse:
@@ -130,25 +152,53 @@ def list_customers(
         list_status = None
         list_include_archived = False
 
+    list_query = parse_list_query(
+        page=page,
+        page_size=resolve_page_size_from_request(request, page_size),
+        search=search,
+        sort=sort,
+        sort_by=sort_by,
+        direction=direction,
+        sort_dir=sort_dir,
+        default_sort=DEFAULT_SORT_FIELD,
+        allowed_sort_fields=ALLOWED_SORT_FIELDS,
+        default_direction=DEFAULT_SORT_DIRECTION,
+    )
+    api_sort_field = list_query.sort_by
+    if api_sort_field == "display_name":
+        api_sort_field = "company_name"
+
     result = use_case.execute(
         ListCustomersQuery(
             organization_id=auth.organization_id,
             status=list_status,
             include_archived=list_include_archived,
             customer_type=customer_type,
-            search=search,
-            page=page,
-            page_size=page_size,
-            sort_by=sort_by,
-            sort_dir=sort_dir,
+            country=country.strip() if country and country.strip() else None,
+            search=list_query.search,
+            page=list_query.page,
+            page_size=list_query.page_size,
+            sort_by=list_query.sort_by,
+            sort_dir=list_query.sort_dir,
         )
     )
-    return CustomerListResponse(
-        items=[_to_response(item) for item in result.items],
-        page=result.page,
-        page_size=result.page_size,
-        total=result.total,
-        total_pages=result.total_pages,
+    filters: dict = {}
+    if list_query.search:
+        filters["search"] = list_query.search
+    if list_status is not None:
+        filters["status"] = list_status.value
+    if customer_type is not None:
+        filters["customerType"] = customer_type.value
+    if country and country.strip():
+        filters["country"] = country.strip()
+
+    return standard_list_from_result(
+        result,
+        sort_field=api_sort_field,
+        sort_direction=list_query.sort_dir,
+        filters=filters,
+    ).model_copy(
+        update={"items": [_to_response(item) for item in result.items]},
     )
 
 

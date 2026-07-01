@@ -25,6 +25,7 @@ interface ActivityTimelineProps {
   onEdit: (activity: Activity) => void;
   onDelete: (activity: Activity) => void;
   onCreate?: () => void;
+  emptyDueToFilters?: boolean;
 }
 
 export function ActivityTimeline({
@@ -33,14 +34,17 @@ export function ActivityTimeline({
   onEdit,
   onDelete,
   onCreate,
+  emptyDueToFilters,
 }: ActivityTimelineProps) {
   if (items.length === 0) {
     return (
       <EmptyState
         icon={<EmptyStateIcon />}
-        title={uiLabels.emptyActivitiesTitle}
-        description={uiLabels.emptyActivitiesDescription}
-        actionLabel={uiLabels.createNew}
+        title={emptyDueToFilters ? uiLabels.emptySearchTitle : uiLabels.emptyActivitiesTitle}
+        description={
+          emptyDueToFilters ? uiLabels.emptySearchDescription : uiLabels.emptyActivitiesDescription
+        }
+        actionLabel={onCreate ? uiLabels.createNew : undefined}
         onAction={onCreate}
       />
     );

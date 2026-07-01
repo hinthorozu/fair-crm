@@ -67,9 +67,11 @@ class ParticipationRepository(Protocol):
         organization_id: UUID,
         customer_id: UUID,
         *,
+        search: str | None = None,
+        participation_status: str | None = None,
         page: int = 1,
         page_size: int = 25,
-        sort_by: str = "created_at",
+        sort_by: str = "fair_start_date",
         sort_dir: str = "desc",
     ) -> CustomerParticipationListResult: ...
 
@@ -78,8 +80,10 @@ class ParticipationRepository(Protocol):
         organization_id: UUID,
         fair_id: UUID,
         *,
+        search: str | None = None,
+        participation_status: str | None = None,
         page: int = 1,
         page_size: int = 25,
-        sort_by: str = "created_at",
-        sort_dir: str = "desc",
+        sort_by: str = "company_name",
+        sort_dir: str = "asc",
     ) -> FairParticipantListResult: ...

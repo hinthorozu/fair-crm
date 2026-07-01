@@ -209,10 +209,17 @@ textarea:focus-visible,
 
 .page-header {
   display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.page-header-top {
+  display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.25rem;
+  width: 100%;
 }
 
 .page-header-content h1 {
@@ -227,7 +234,18 @@ textarea:focus-visible,
 }
 
 .page-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
   flex-shrink: 0;
+}
+
+.page-header-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0;
+  width: 100%;
 }
 
 .section-header {
@@ -601,6 +619,53 @@ textarea:hover {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
+}
+
+.table-sort-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.table-sort-header:hover {
+  color: var(--text);
+}
+
+.table-sort-header.active {
+  color: var(--text);
+}
+
+.table-sort-indicator {
+  font-size: 0.85em;
+  opacity: 0.7;
+}
+
+.table-wrap.table-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.table-error-state {
+  padding: 1.5rem;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.table-error-state p {
+  margin: 0 0 0.75rem;
+  color: var(--danger, #b91c1c);
 }
 
 .data-table,

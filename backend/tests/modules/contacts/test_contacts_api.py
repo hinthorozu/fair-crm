@@ -1,6 +1,9 @@
 from uuid import uuid4
 
 
+from tests.conftest_helpers import pagination_from
+
+
 def _create_customer(client, auth_headers, name="Contact Test Customer"):
     response = client.post(
         "/api/v1/customers",
@@ -57,7 +60,7 @@ def test_list_contacts_by_customer(client, auth_headers):
     )
     assert list_response.status_code == 200
     body = list_response.json()
-    assert body["total"] == 2
+    assert pagination_from(body)["totalItems"] == 2
     assert len(body["items"]) == 2
 
 
@@ -93,7 +96,7 @@ def test_delete_contact(client, auth_headers):
         f"/api/v1/customers/{customer_id}/contacts",
         headers=auth_headers,
     )
-    assert list_response.json()["total"] == 0
+    assert pagination_from(list_response.json())["totalItems"] == 0
 
 
 def test_contact_cannot_be_created_without_valid_customer(client, auth_headers):

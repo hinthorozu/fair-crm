@@ -3,6 +3,9 @@
 from datetime import UTC, datetime
 
 
+from tests.conftest_helpers import pagination_from
+
+
 def _create_customer(client, auth_headers, name="Participation Customer"):
     response = client.post(
         "/api/v1/customers",
@@ -102,7 +105,7 @@ def test_list_participations_by_customer(client, auth_headers):
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["total"] == 1
+    assert pagination_from(body)["totalItems"] == 1
     assert body["items"][0]["fair_name"] == "List Fair"
     assert body["items"][0]["hall"] == "A"
 
@@ -119,8 +122,34 @@ def test_list_participants_by_fair(client, auth_headers):
     response = client.get(f"/api/v1/fairs/{fair_id}/participants", headers=auth_headers)
     assert response.status_code == 200
     body = response.json()
-    assert body["total"] == 1
+    assert pagination_from(body)["totalItems"] == 1
     assert body["items"][0]["company_name"] == "Fair Participant Co"
+
+
+def test_list_participants_by_fair_search(client, auth_headers):
+    akdas_id = _create_customer(client, auth_headers, "AKDAS OUTDOOR TEST")
+    other_id = _create_customer(client, auth_headers, "Other Fair Co")
+    fair_id = _create_fair(client, auth_headers, "Search Fair")
+    client.post(
+        "/api/v1/fair-participations",
+        json=_participation_payload(akdas_id, fair_id),
+        headers=auth_headers,
+    )
+    client.post(
+        "/api/v1/fair-participations",
+        json=_participation_payload(other_id, fair_id),
+        headers=auth_headers,
+    )
+
+    response = client.get(
+        f"/api/v1/fairs/{fair_id}/participants?search=AKDAS",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert pagination_from(body)["totalItems"] == 1
+    assert body["items"][0]["company_name"] == "AKDAS OUTDOOR TEST"
+    assert body["filters"]["search"] == "AKDAS"
 
 
 def test_update_participation(client, auth_headers):
@@ -169,7 +198,7 @@ def test_soft_delete_participation(client, auth_headers):
         f"/api/v1/customers/{customer_id}/fair-participations",
         headers=auth_headers,
     )
-    assert listed.json()["total"] == 0
+    assert pagination_from(listed.json())["totalItems"] == 0
 
 
 def test_recreate_after_soft_delete(client, auth_headers):

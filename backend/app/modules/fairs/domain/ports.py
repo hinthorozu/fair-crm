@@ -32,9 +32,10 @@ class FairRepository(Protocol):
         *,
         status: FairStatus | None = None,
         include_archived: bool = False,
+        country: str | None = None,
         search: str | None = None,
         page: int = 1,
         page_size: int = 25,
-        sort_by: str = "created_at",
+        sort_by: str = "start_date",
         sort_dir: str = "desc",
     ) -> FairListResult: ...

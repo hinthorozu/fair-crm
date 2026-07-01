@@ -6,6 +6,8 @@ from uuid import UUID
 import pytest
 from openpyxl import Workbook
 
+from tests.conftest_helpers import pagination_from
+
 from app.modules.customers.domain.entities import Customer
 from app.modules.customers.domain.value_objects import CustomerSource
 from app.modules.customers.infrastructure.repositories.customer_repository import (
@@ -574,7 +576,7 @@ def test_apply_creates_contact_wizard(client, auth_headers):
     customers = client.get("/api/v1/customers?search=Contact+Wizard+Co", headers=auth_headers).json()["items"]
     customer_id = customers[0]["id"]
     contacts = client.get(f"/api/v1/customers/{customer_id}/contacts", headers=auth_headers).json()
-    assert contacts["total"] == 1
+    assert pagination_from(contacts)["totalItems"] == 1
     assert contacts["items"][0]["first_name"] == "Mehmet"
     participants = client.get(f"/api/v1/fairs/{fair_id}/participants", headers=auth_headers).json()
     assert any(p["company_name"] == "Contact Wizard Co" for p in participants["items"])
@@ -604,6 +606,6 @@ def test_rows_filter_and_search(client, auth_headers):
         f"/api/v1/imports/{batch_id}/rows?search=Alpha",
         headers=auth_headers,
     ).json()
-    assert filtered["total"] == 1
+    assert pagination_from(filtered)["totalItems"] == 1
     assert filtered["items"][0]["normalized_data_json"]["company_name"] == "Alpha Co"
 

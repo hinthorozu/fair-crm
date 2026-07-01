@@ -9,7 +9,13 @@ import { uiLabels } from "./labels/uiLabels";
 import { labels } from "./labels";
 import "./styles.css";
 
-type AppRoute = "/" | "/fairs" | "/fairs/:id" | "/imports" | "/imports/fair/:fairId" | "/customers/:id";
+type AppRoute =
+  | "/customers"
+  | "/fairs"
+  | "/fairs/:id"
+  | "/imports"
+  | "/imports/fair/:fairId"
+  | "/customers/:id";
 
 interface ParsedRoute {
   route: AppRoute;
@@ -32,16 +38,37 @@ function parseRoute(pathname: string): ParsedRoute {
     }
     return { route: "/fairs" };
   }
+  if (pathname === "/customers") {
+    return { route: "/customers" };
+  }
   const customerMatch = pathname.match(/^\/customers\/([^/]+)$/);
   if (customerMatch) {
     return { route: "/customers/:id", customerId: customerMatch[1] };
   }
-  return { route: "/" };
+  if (pathname === "/") {
+    return { route: "/customers" };
+  }
+  return { route: "/customers" };
+}
+
+function splitPath(path: string): { pathname: string; search: string } {
+  const queryIndex = path.indexOf("?");
+  if (queryIndex === -1) {
+    return { pathname: path, search: "" };
+  }
+  return {
+    pathname: path.slice(0, queryIndex),
+    search: path.slice(queryIndex),
+  };
 }
 
 function navigate(path: string) {
-  if (window.location.pathname !== path) {
-    window.history.pushState(null, "", path);
+  const { pathname, search } = splitPath(path);
+  const nextSearch =
+    search || (window.location.pathname === pathname ? window.location.search : "");
+  const next = `${pathname}${nextSearch}`;
+  if (`${window.location.pathname}${window.location.search}` !== next) {
+    window.history.pushState(null, "", next);
   }
   window.dispatchEvent(new PopStateEvent("popstate"));
 }
@@ -55,6 +82,14 @@ export function App() {
   const [fairName, setFairName] = React.useState<string | null>(null);
 
   React.useEffect(() => {
+    if (window.location.pathname === "/") {
+      const next = `/customers${window.location.search}`;
+      window.history.replaceState(null, "", next);
+      setParsed(parseRoute("/customers"));
+    }
+  }, []);
+
+  React.useEffect(() => {
     const onPopState = () => {
       setParsed(parseRoute(window.location.pathname));
       setSidebarOpen(false);
@@ -65,11 +100,12 @@ export function App() {
 
   const handleNav = (path: string, e: React.MouseEvent) => {
     e.preventDefault();
-    navigate(path);
-    setParsed(parseRoute(path));
+    const { pathname } = splitPath(path);
+    navigate(pathname);
+    setParsed(parseRoute(pathname));
     setSidebarOpen(false);
-    if (path === "/") setCustomerName(null);
-    if (path === "/fairs") setFairName(null);
+    if (pathname === "/customers") setCustomerName(null);
+    if (pathname === "/fairs") setFairName(null);
   };
 
   const goToCustomerDetail = (customerId: string) => {
@@ -80,8 +116,8 @@ export function App() {
   };
 
   const goToCustomers = () => {
-    navigate("/");
-    setParsed({ route: "/" });
+    navigate("/customers");
+    setParsed({ route: "/customers" });
     setCustomerName(null);
     setSidebarOpen(false);
   };
@@ -106,7 +142,7 @@ export function App() {
     setSidebarOpen(false);
   };
 
-  const isCustomersActive = parsed.route === "/" || parsed.route === "/customers/:id";
+  const isCustomersActive = parsed.route === "/customers" || parsed.route === "/customers/:id";
   const isFairsActive = parsed.route === "/fairs" || parsed.route === "/fairs/:id";
 
   const breadcrumbs =
@@ -137,10 +173,10 @@ export function App() {
 
   const navItems = [
     {
-      path: "/",
+      path: "/customers",
       label: uiLabels.navCustomers,
       active: isCustomersActive,
-      onClick: (e: React.MouseEvent) => handleNav("/", e),
+      onClick: (e: React.MouseEvent) => handleNav("/customers", e),
     },
     {
       path: "/fairs",
@@ -177,7 +213,7 @@ export function App() {
       {parsed.route === "/imports/fair/:fairId" && parsed.fairId && (
         <ImportWizardPage preselectedFairId={parsed.fairId} />
       )}
-      {parsed.route === "/" && <CustomersPage onOpenDetail={goToCustomerDetail} />}
+      {parsed.route === "/customers" && <CustomersPage onOpenDetail={goToCustomerDetail} />}
       {parsed.route === "/customers/:id" && parsed.customerId && (
         <CustomerDetailPage
           customerId={parsed.customerId}

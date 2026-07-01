@@ -1,31 +1,38 @@
-import { normalizePaginatedResponse } from "./pagination";
+import { normalizeStandardListResponse, buildListQueryParams } from "./listTable";
 import { apiRequest, ApiError, formatApiErrorMessage } from "./client";
+import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
+import type { StandardListResponse } from "../types/listTable";
 import type {
   CreateCustomerPayload,
   Customer,
-  CustomerListResponse,
-  ListCustomersParams,
   UpdateCustomerPayload,
 } from "../types/customer";
-import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "../types/pagination";
+import type { CustomerStatus, CustomerType } from "../types/customer";
 
-function buildQuery(params: ListCustomersParams): string {
-  const q = new URLSearchParams();
-  if (params.search) q.set("search", params.search);
-  if (params.status) q.set("status", params.status);
-  if (params.customer_type) q.set("customer_type", params.customer_type);
-  q.set("page", String(params.page ?? DEFAULT_PAGE));
-  q.set("page_size", String(params.page_size ?? DEFAULT_PAGE_SIZE));
-  if (params.sort_by) q.set("sort_by", params.sort_by);
-  if (params.sort_dir) q.set("sort_dir", params.sort_dir);
-  return `?${q.toString()}`;
+export interface ListCustomersParams extends Partial<ServerTableFetchParams> {
+  status?: CustomerStatus;
+  customer_type?: CustomerType;
+  country?: string;
 }
 
-export async function listCustomers(params: ListCustomersParams = {}): Promise<CustomerListResponse> {
-  const page = params.page ?? DEFAULT_PAGE;
-  const page_size = params.page_size ?? DEFAULT_PAGE_SIZE;
-  const raw = await apiRequest<unknown>(`/api/v1/customers${buildQuery(params)}`);
-  return normalizePaginatedResponse<Customer>(raw, { page, page_size });
+export async function listCustomers(
+  params: ListCustomersParams = {},
+): Promise<StandardListResponse<Customer>> {
+  const query = buildListQueryParams({
+    page: params.page,
+    pageSize: params.pageSize,
+    search: params.search,
+    sort: params.sort,
+    direction: params.direction,
+    filters: {
+      ...(params.status ? { status: params.status } : {}),
+      ...(params.customer_type ? { customer_type: params.customer_type } : {}),
+      ...(params.country ? { country: params.country } : {}),
+      ...params.filters,
+    },
+  });
+  const raw = await apiRequest<unknown>(`/api/v1/customers?${query.toString()}`);
+  return normalizeStandardListResponse<Customer>(raw);
 }
 
 export function getCustomer(id: string): Promise<Customer> {

@@ -1,7 +1,17 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import AliasChoices
+
+from app.api.dependencies.list_query import parse_list_query, resolve_page_size_from_request
+from app.api.list_helpers import standard_list_from_result
+from app.modules.activities.application.list_activities_by_customer import (
+    ALLOWED_SORT_FIELDS,
+    DEFAULT_SORT_DIRECTION,
+    DEFAULT_SORT_FIELD,
+)
 
 from app.core.config import get_settings
 from app.core.exceptions import ForbiddenError
@@ -76,34 +86,69 @@ def _to_response(result) -> ActivityResponse:
     responses={404: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
 )
 def list_activities_by_customer(
+    request: Request,
     customer_id: UUID,
+    activity_type: str | None = Query(default=None, alias="activityType"),
+    search: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=25, ge=1, le=100),
-    sort_by: str = Query(default="activity_date"),
-    sort_dir: str = Query(default="desc", pattern="^(?i)(asc|desc)$"),
+    page_size: Annotated[
+        int,
+        Query(ge=1, le=100, validation_alias=AliasChoices("pageSize", "page_size")),
+    ] = 25,
+    sort: Annotated[
+        str | None,
+        Query(validation_alias=AliasChoices("sort", "sort_by")),
+    ] = None,
+    sort_by: Annotated[str | None, Query(include_in_schema=False)] = None,
+    direction: Annotated[
+        str | None,
+        Query(pattern="^(?i)(asc|desc)$", validation_alias=AliasChoices("direction", "sort_dir")),
+    ] = None,
+    sort_dir: Annotated[str | None, Query(include_in_schema=False)] = None,
     auth: AuthContext = Depends(require_read_permission),
     use_case: ListActivitiesByCustomerUseCase = Depends(get_list_activities_by_customer_use_case),
 ) -> ActivityListResponse:
     try:
+        list_query = parse_list_query(
+            page=page,
+            page_size=resolve_page_size_from_request(request, page_size),
+            search=search,
+            sort=sort,
+            sort_by=sort_by,
+            direction=direction,
+            sort_dir=sort_dir,
+            default_sort=DEFAULT_SORT_FIELD,
+            allowed_sort_fields=ALLOWED_SORT_FIELDS,
+            default_direction=DEFAULT_SORT_DIRECTION,
+        )
         result = use_case.execute(
             ListActivitiesByCustomerQuery(
                 organization_id=auth.organization_id,
                 customer_id=customer_id,
-                page=page,
-                page_size=page_size,
-                sort_by=sort_by,
-                sort_dir=sort_dir,
+                search=list_query.search,
+                activity_type=activity_type.strip() if activity_type and activity_type.strip() else None,
+                page=list_query.page,
+                page_size=list_query.page_size,
+                sort_by=list_query.sort_by,
+                sort_dir=list_query.sort_dir,
             )
         )
     except CustomerNotFoundForActivityError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
-    return ActivityListResponse(
-        items=[_to_response(item) for item in result.items],
-        page=result.page,
-        page_size=result.page_size,
-        total=result.total,
-        total_pages=result.total_pages,
+    filters: dict = {}
+    if list_query.search:
+        filters["search"] = list_query.search
+    if activity_type and activity_type.strip():
+        filters["activityType"] = activity_type.strip()
+
+    return standard_list_from_result(
+        result,
+        sort_field=list_query.sort_by,
+        sort_direction=list_query.sort_dir,
+        filters=filters,
+    ).model_copy(
+        update={"items": [_to_response(item) for item in result.items]},
     )
 
 

@@ -1,7 +1,17 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import AliasChoices
+
+from app.api.dependencies.list_query import parse_list_query, resolve_page_size_from_request
+from app.api.list_helpers import standard_list_from_result
+from app.modules.imports.application.list_import_rows import (
+    ALLOWED_SORT_FIELDS,
+    DEFAULT_SORT_DIRECTION,
+    DEFAULT_SORT_FIELD,
+)
 
 from app.core.config import get_settings
 from app.core.exceptions import ForbiddenError
@@ -255,33 +265,72 @@ def analyze_import_batch(
     summary="List import batch rows",
 )
 def list_import_rows(
+    request: Request,
     batch_id: UUID,
     filter: str | None = Query(
         default=None,
         description="all | new | will_update | duplicate | invalid | skip",
     ),
     search: str | None = Query(default=None, description="Filter by company name"),
-    sort_by: str | None = Query(default=None, description="confidence | company_name | status"),
-    sort_dir: str = Query(default="asc", pattern="^(?i)(asc|desc)$"),
+    page: int = Query(default=1, ge=1),
+    page_size: Annotated[
+        int,
+        Query(ge=1, le=100, validation_alias=AliasChoices("pageSize", "page_size")),
+    ] = 25,
+    sort: Annotated[
+        str | None,
+        Query(validation_alias=AliasChoices("sort", "sort_by")),
+    ] = None,
+    sort_by: Annotated[str | None, Query(include_in_schema=False)] = None,
+    direction: Annotated[
+        str | None,
+        Query(pattern="^(?i)(asc|desc)$", validation_alias=AliasChoices("direction", "sort_dir")),
+    ] = None,
+    sort_dir: Annotated[str | None, Query(include_in_schema=False)] = None,
     auth: AuthContext = Depends(require_read_permission),
     use_case: ListImportRowsUseCase = Depends(get_list_import_rows_use_case),
 ) -> ImportRowListResponse:
+    list_query = parse_list_query(
+        page=page,
+        page_size=resolve_page_size_from_request(request, page_size),
+        search=search,
+        sort=sort,
+        sort_by=sort_by,
+        direction=direction,
+        sort_dir=sort_dir,
+        default_sort=DEFAULT_SORT_FIELD,
+        allowed_sort_fields=ALLOWED_SORT_FIELDS,
+        default_direction=DEFAULT_SORT_DIRECTION,
+    )
     try:
         result = use_case.execute(
             ListImportRowsQuery(
                 organization_id=auth.organization_id,
                 batch_id=batch_id,
                 filter=filter,
-                search=search,
-                sort_by=sort_by,
-                sort_dir=sort_dir,
+                search=list_query.search,
+                page=list_query.page,
+                page_size=list_query.page_size,
+                sort_by=list_query.sort_by,
+                sort_dir=list_query.sort_dir,
             )
         )
     except ImportBatchNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    return ImportRowListResponse(
-        items=[_row_response(item) for item in result.items],
-        total=result.total,
+
+    filters: dict = {}
+    if filter:
+        filters["filter"] = filter
+    if list_query.search:
+        filters["search"] = list_query.search
+
+    return standard_list_from_result(
+        result,
+        sort_field=list_query.sort_by,
+        sort_direction=list_query.sort_dir,
+        filters=filters,
+    ).model_copy(
+        update={"items": [_row_response(item) for item in result.items]},
     )
 
 

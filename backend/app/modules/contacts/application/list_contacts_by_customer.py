@@ -5,6 +5,12 @@ from app.modules.contacts.domain.exceptions import CustomerNotFoundForContactErr
 from app.modules.contacts.domain.ports import ContactRepository
 from app.modules.customers.domain.ports import CustomerRepository
 
+ALLOWED_SORT_FIELDS = frozenset(
+    {"created_at", "updated_at", "first_name", "last_name", "email", "department", "title"}
+)
+DEFAULT_SORT_FIELD = "first_name"
+DEFAULT_SORT_DIRECTION = "asc"
+
 
 class ListContactsByCustomerUseCase:
     def __init__(
@@ -23,14 +29,16 @@ class ListContactsByCustomerUseCase:
             raise CustomerNotFoundForContactError("Customer not found")
 
         page_params = normalize_page_params(query.page, query.page_size)
-        sort_dir = normalize_sort_direction(query.sort_dir)
+        sort_by = query.sort_by if query.sort_by in ALLOWED_SORT_FIELDS else DEFAULT_SORT_FIELD
+        sort_dir = normalize_sort_direction(query.sort_dir or DEFAULT_SORT_DIRECTION)
 
         result = self._contact_repository.list_by_customer(
             query.organization_id,
             query.customer_id,
+            search=query.search,
             page=page_params.page,
             page_size=page_params.page_size,
-            sort_by=query.sort_by,
+            sort_by=sort_by,
             sort_dir=sort_dir,
         )
 

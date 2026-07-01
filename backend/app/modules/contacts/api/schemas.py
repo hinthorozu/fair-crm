@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.api.schemas.pagination import PaginationMeta
+from app.api.schemas.list_response import StandardListResponse
 
 
 class CreateContactRequest(BaseModel):
@@ -69,8 +69,8 @@ class ContactResponse(BaseModel):
     deleted_at: Optional[datetime]
 
 
-class ContactListResponse(PaginationMeta):
-    items: list[ContactResponse]
+class ContactListResponse(StandardListResponse[ContactResponse]):
+    pass
 
 
 class ErrorResponse(BaseModel):

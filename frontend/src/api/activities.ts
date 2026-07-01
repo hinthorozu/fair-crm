@@ -1,33 +1,37 @@
-import { normalizePaginatedResponse } from "./pagination";
+import { normalizeStandardListResponse, buildListQueryParams } from "./listTable";
 import { apiRequest } from "./client";
+import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
+import type { StandardListResponse } from "../types/listTable";
 import type {
   Activity,
-  ActivityListResponse,
+  ActivityType,
   CreateActivityPayload,
-  ListActivitiesParams,
   UpdateActivityPayload,
 } from "../types/activity";
-import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "../types/pagination";
 
-function buildQuery(params: ListActivitiesParams): string {
-  const q = new URLSearchParams();
-  q.set("page", String(params.page ?? DEFAULT_PAGE));
-  q.set("page_size", String(params.page_size ?? DEFAULT_PAGE_SIZE));
-  if (params.sort_by) q.set("sort_by", params.sort_by);
-  if (params.sort_dir) q.set("sort_dir", params.sort_dir);
-  return `?${q.toString()}`;
+export interface ListActivitiesParams extends Partial<ServerTableFetchParams> {
+  activityType?: ActivityType;
 }
 
 export async function listActivitiesByCustomer(
   customerId: string,
   params: ListActivitiesParams = {},
-): Promise<ActivityListResponse> {
-  const page = params.page ?? DEFAULT_PAGE;
-  const page_size = params.page_size ?? DEFAULT_PAGE_SIZE;
+): Promise<StandardListResponse<Activity>> {
+  const query = buildListQueryParams({
+    page: params.page,
+    pageSize: params.pageSize,
+    search: params.search,
+    sort: params.sort,
+    direction: params.direction,
+    filters: {
+      ...(params.activityType ? { activityType: params.activityType } : {}),
+      ...params.filters,
+    },
+  });
   const raw = await apiRequest<unknown>(
-    `/api/v1/customers/${encodeURIComponent(customerId)}/activities${buildQuery(params)}`,
+    `/api/v1/customers/${encodeURIComponent(customerId)}/activities?${query.toString()}`,
   );
-  return normalizePaginatedResponse<Activity>(raw, { page, page_size });
+  return normalizeStandardListResponse<Activity>(raw);
 }
 
 export function getActivity(id: string): Promise<Activity> {

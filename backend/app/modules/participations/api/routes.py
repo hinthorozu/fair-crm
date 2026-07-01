@@ -1,7 +1,22 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import AliasChoices
+
+from app.api.dependencies.list_query import parse_list_query, resolve_page_size_from_request
+from app.api.list_helpers import standard_list_from_result
+from app.modules.participations.application.list_by_customer import (
+    ALLOWED_SORT_FIELDS as CUSTOMER_ALLOWED_SORT_FIELDS,
+    DEFAULT_SORT_DIRECTION as CUSTOMER_DEFAULT_SORT_DIRECTION,
+    DEFAULT_SORT_FIELD as CUSTOMER_DEFAULT_SORT_FIELD,
+)
+from app.modules.participations.application.list_by_fair import (
+    ALLOWED_SORT_FIELDS as FAIR_ALLOWED_SORT_FIELDS,
+    DEFAULT_SORT_DIRECTION as FAIR_DEFAULT_SORT_DIRECTION,
+    DEFAULT_SORT_FIELD as FAIR_DEFAULT_SORT_FIELD,
+)
 
 from app.core.config import get_settings
 from app.core.exceptions import ForbiddenError
@@ -52,6 +67,7 @@ from app.modules.participations.domain.exceptions import (
     ParticipationAlreadyDeletedError,
     ParticipationNotFoundError,
 )
+from app.modules.participations.domain.value_objects import ParticipationStatus
 
 router = APIRouter(prefix="/fair-participations", tags=["fair-participations"])
 customer_participations_router = APIRouter(
@@ -86,23 +102,51 @@ def _participation_response(result) -> ParticipationResponse:
     summary="List fair participations for a customer",
 )
 def list_participations_by_customer(
+    request: Request,
     customer_id: UUID,
+    participation_status: ParticipationStatus | None = Query(default=None, alias="participationStatus"),
+    search: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=25, ge=1, le=100),
-    sort_by: str = Query(default="created_at"),
-    sort_dir: str = Query(default="desc", pattern="^(?i)(asc|desc)$"),
+    page_size: Annotated[
+        int,
+        Query(ge=1, le=100, validation_alias=AliasChoices("pageSize", "page_size")),
+    ] = 25,
+    sort: Annotated[
+        str | None,
+        Query(validation_alias=AliasChoices("sort", "sort_by")),
+    ] = None,
+    sort_by: Annotated[str | None, Query(include_in_schema=False)] = None,
+    direction: Annotated[
+        str | None,
+        Query(pattern="^(?i)(asc|desc)$", validation_alias=AliasChoices("direction", "sort_dir")),
+    ] = None,
+    sort_dir: Annotated[str | None, Query(include_in_schema=False)] = None,
     auth: AuthContext = Depends(require_read_permission),
     use_case: ListParticipationsByCustomerUseCase = Depends(get_list_by_customer_use_case),
 ) -> CustomerParticipationListResponse:
     try:
+        list_query = parse_list_query(
+            page=page,
+            page_size=resolve_page_size_from_request(request, page_size),
+            search=search,
+            sort=sort,
+            sort_by=sort_by,
+            direction=direction,
+            sort_dir=sort_dir,
+            default_sort=CUSTOMER_DEFAULT_SORT_FIELD,
+            allowed_sort_fields=CUSTOMER_ALLOWED_SORT_FIELDS,
+            default_direction=CUSTOMER_DEFAULT_SORT_DIRECTION,
+        )
         result = use_case.execute(
             ListParticipationsByCustomerQuery(
                 organization_id=auth.organization_id,
                 customer_id=customer_id,
-                page=page,
-                page_size=page_size,
-                sort_by=sort_by,
-                sort_dir=sort_dir,
+                search=list_query.search,
+                participation_status=participation_status.value if participation_status else None,
+                page=list_query.page,
+                page_size=list_query.page_size,
+                sort_by=list_query.sort_by,
+                sort_dir=list_query.sort_dir,
             )
         )
     except CustomerNotFoundForParticipationError as exc:
@@ -110,12 +154,23 @@ def list_participations_by_customer(
     except CustomerArchivedForParticipationError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    return CustomerParticipationListResponse(
-        items=[CustomerParticipationListItemResponse.model_validate(i.__dict__) for i in result.items],
-        page=result.page,
-        page_size=result.page_size,
-        total=result.total,
-        total_pages=result.total_pages,
+    filters: dict = {}
+    if list_query.search:
+        filters["search"] = list_query.search
+    if participation_status is not None:
+        filters["participationStatus"] = participation_status.value
+
+    return standard_list_from_result(
+        result,
+        sort_field=list_query.sort_by,
+        sort_direction=list_query.sort_dir,
+        filters=filters,
+    ).model_copy(
+        update={
+            "items": [
+                CustomerParticipationListItemResponse.model_validate(i.__dict__) for i in result.items
+            ]
+        },
     )
 
 
@@ -126,23 +181,51 @@ def list_participations_by_customer(
     summary="List participant companies for a fair",
 )
 def list_participants_by_fair(
+    request: Request,
     fair_id: UUID,
+    participation_status: ParticipationStatus | None = Query(default=None, alias="participationStatus"),
+    search: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=25, ge=1, le=100),
-    sort_by: str = Query(default="created_at"),
-    sort_dir: str = Query(default="desc", pattern="^(?i)(asc|desc)$"),
+    page_size: Annotated[
+        int,
+        Query(ge=1, le=100, validation_alias=AliasChoices("pageSize", "page_size")),
+    ] = 25,
+    sort: Annotated[
+        str | None,
+        Query(validation_alias=AliasChoices("sort", "sort_by")),
+    ] = None,
+    sort_by: Annotated[str | None, Query(include_in_schema=False)] = None,
+    direction: Annotated[
+        str | None,
+        Query(pattern="^(?i)(asc|desc)$", validation_alias=AliasChoices("direction", "sort_dir")),
+    ] = None,
+    sort_dir: Annotated[str | None, Query(include_in_schema=False)] = None,
     auth: AuthContext = Depends(require_read_permission),
     use_case: ListParticipantsByFairUseCase = Depends(get_list_by_fair_use_case),
 ) -> FairParticipantListResponse:
     try:
+        list_query = parse_list_query(
+            page=page,
+            page_size=resolve_page_size_from_request(request, page_size),
+            search=search,
+            sort=sort,
+            sort_by=sort_by,
+            direction=direction,
+            sort_dir=sort_dir,
+            default_sort=FAIR_DEFAULT_SORT_FIELD,
+            allowed_sort_fields=FAIR_ALLOWED_SORT_FIELDS,
+            default_direction=FAIR_DEFAULT_SORT_DIRECTION,
+        )
         result = use_case.execute(
             ListParticipantsByFairQuery(
                 organization_id=auth.organization_id,
                 fair_id=fair_id,
-                page=page,
-                page_size=page_size,
-                sort_by=sort_by,
-                sort_dir=sort_dir,
+                search=list_query.search,
+                participation_status=participation_status.value if participation_status else None,
+                page=list_query.page,
+                page_size=list_query.page_size,
+                sort_by=list_query.sort_by,
+                sort_dir=list_query.sort_dir,
             )
         )
     except FairNotFoundForParticipationError as exc:
@@ -150,12 +233,23 @@ def list_participants_by_fair(
     except FairArchivedForParticipationError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    return FairParticipantListResponse(
-        items=[FairParticipantListItemResponse.model_validate(i.__dict__) for i in result.items],
-        page=result.page,
-        page_size=result.page_size,
-        total=result.total,
-        total_pages=result.total_pages,
+    filters: dict = {}
+    if list_query.search:
+        filters["search"] = list_query.search
+    if participation_status is not None:
+        filters["participationStatus"] = participation_status.value
+
+    return standard_list_from_result(
+        result,
+        sort_field=list_query.sort_by,
+        sort_direction=list_query.sort_dir,
+        filters=filters,
+    ).model_copy(
+        update={
+            "items": [
+                FairParticipantListItemResponse.model_validate(i.__dict__) for i in result.items
+            ]
+        },
     )
 
 

@@ -150,3 +150,45 @@ In real workflows, exhibitor lists are collected for a known fair. Requiring Fai
 - Hall/Stand belong to participation records, not Customer or Fair.
 - Import batch persists `fair_id` for the entire batch.
 - Alternative entry from Fair Detail pre-fills Fair context.
+
+## ADR-014 — Detail Page Action Standard
+
+Status: Accepted (Sprint 08.1)
+
+**Decision:**
+
+Every Detail page must expose a shared **Action Bar** inside `PageHeader`. Core CRUD and related workflows (edit, add contact, add participation, import, archive) are available directly on the Detail screen without returning to the list view.
+
+**Action variants:**
+
+- Primary — Edit
+- Secondary — Add, Import
+- Danger — Archive (and Delete when applicable)
+
+**Consequences:**
+
+- `PageHeader` accepts structured `actions` and optional `breadcrumbs`.
+- Customer Detail and Fair Detail implement the full action set per entity.
+- List screens remain for browse/search; they are not required for inline CRUD on an open record.
+- Future Detail pages must follow the same pattern.
+
+## ADR-015 — Universal Server-Side DataTable
+
+Status: Accepted (Sprint 08.0)
+
+**Decision:**
+
+All Fair CRM list views must use server-side pagination, search, sorting, and filtering by default.
+
+Client-side list operations (`sort()`, `filter()`, `slice()`) are allowed only for small static/local lists (enum dropdowns, ~20–30 item pickers).
+
+**Rationale:**
+
+The CRM now contains 28,000+ customers and 29,000+ fair participations. Fetching all records and filtering/sorting in the browser is not scalable.
+
+**Consequences:**
+
+- All new list endpoints must support the shared query contract (`page`, `pageSize`, `search`, `sort`, `direction`, entity filters).
+- All list responses follow the shared paginated response format (`items`, `pagination`, `sorting`, `filters`).
+- Frontend list views must use the shared `DataTable` / `useServerDataTable` infrastructure.
+- New list screens are not complete unless they include server-side pagination, search, sort, filter (or a documented exception), URL state, loading, empty, and error/retry states.

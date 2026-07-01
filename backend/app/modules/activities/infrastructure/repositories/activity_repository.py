@@ -1,8 +1,9 @@
 from uuid import UUID
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.core.pagination import build_paginated_meta, normalize_page_params
+from app.core.pagination import build_order_clause, build_paginated_meta, normalize_page_params
 from app.modules.activities.domain.entities import Activity
 from app.modules.activities.domain.ports import ActivityListResult
 from app.modules.activities.infrastructure.persistence.mappers import (
@@ -19,7 +20,15 @@ ACTIVITY_SORT_FIELDS = {
     "follow_up_date": ActivityModel.follow_up_date,
     "subject": ActivityModel.subject,
     "status": ActivityModel.status,
+    "activity_type": ActivityModel.activity_type,
 }
+
+SEARCH_FIELDS = (
+    ActivityModel.subject,
+    ActivityModel.description,
+    ActivityModel.activity_type,
+    ActivityModel.status,
+)
 
 
 class SqlAlchemyActivityRepository:
@@ -64,6 +73,8 @@ class SqlAlchemyActivityRepository:
         organization_id: UUID,
         customer_id: UUID,
         *,
+        search: str | None = None,
+        activity_type: str | None = None,
         page: int = 1,
         page_size: int = 25,
         sort_by: str = "activity_date",
@@ -77,13 +88,19 @@ class SqlAlchemyActivityRepository:
         )
         if not include_deleted:
             query = query.filter(ActivityModel.deleted_at.is_(None))
+        if activity_type:
+            query = query.filter(ActivityModel.activity_type == activity_type.strip())
+        if search:
+            pattern = f"%{search.strip()}%"
+            query = query.filter(or_(*[field.ilike(pattern) for field in SEARCH_FIELDS]))
 
         total = query.count()
         sort_column = ACTIVITY_SORT_FIELDS.get(sort_by, ActivityModel.activity_date)
-        if sort_dir == "asc":
-            order = (sort_column.asc(), ActivityModel.id.asc())
-        else:
-            order = (sort_column.desc(), ActivityModel.id.desc())
+        order = build_order_clause(
+            sort_column,
+            sort_dir if sort_dir in ("asc", "desc") else "desc",
+            tie_breaker=ActivityModel.id,
+        )
 
         models = (
             query.order_by(*order)

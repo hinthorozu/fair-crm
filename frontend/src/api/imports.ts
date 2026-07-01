@@ -1,12 +1,14 @@
 import { buildApiHeaders, config } from "../config";
+import { normalizeStandardListResponse, buildListQueryParams } from "./listTable";
 import { apiRequest, ApiError } from "./client";
+import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
+import type { StandardListResponse } from "../types/listTable";
 import type {
   ApplyImportResponse,
   BulkDecisionAction,
   ColumnMappingPayload,
   ImportBatch,
   ImportRow,
-  ImportRowListResponse,
   SetImportRowDecisionPayload,
   UploadRawImportResponse,
 } from "../types/import";
@@ -88,22 +90,18 @@ export async function getImportBatch(batchId: string): Promise<ImportBatch> {
 
 export async function listImportRows(
   batchId: string,
-  params?: {
-    filter?: string;
-    search?: string;
-    sort_by?: string;
-    sort_dir?: "asc" | "desc";
-  },
-): Promise<ImportRowListResponse> {
-  const query = new URLSearchParams();
-  if (params?.filter) query.set("filter", params.filter);
-  if (params?.search) query.set("search", params.search);
-  if (params?.sort_by) query.set("sort_by", params.sort_by);
-  if (params?.sort_dir) query.set("sort_dir", params.sort_dir);
-  const qs = query.toString();
-  return apiRequest<ImportRowListResponse>(
-    `/api/v1/imports/${batchId}/rows${qs ? `?${qs}` : ""}`,
-  );
+  params: Partial<ServerTableFetchParams> & { filter?: string } = {},
+): Promise<StandardListResponse<ImportRow>> {
+  const query = buildListQueryParams({
+    page: params.page,
+    pageSize: params.pageSize,
+    search: params.search,
+    sort: params.sort,
+    direction: params.direction,
+    filters: params.filter ? { filter: params.filter } : params.filters,
+  });
+  const raw = await apiRequest<unknown>(`/api/v1/imports/${batchId}/rows?${query.toString()}`);
+  return normalizeStandardListResponse<ImportRow>(raw);
 }
 
 export async function setImportRowDecision(

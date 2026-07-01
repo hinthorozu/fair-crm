@@ -1,5 +1,4 @@
-from datetime import UTC, date, datetime
-from uuid import uuid4
+from tests.conftest_helpers import pagination_from
 
 
 def test_create_and_get_fair(client, auth_headers, organization_id):
@@ -256,34 +255,37 @@ def test_list_fairs_default_pagination(client, auth_headers):
     response = client.get("/api/v1/fairs", headers=auth_headers)
     assert response.status_code == 200
     body = response.json()
-    assert body["page"] == 1
-    assert body["page_size"] == 25
-    assert "total" in body
-    assert "total_pages" in body
+    pagination = pagination_from(body)
+    assert pagination["page"] == 1
+    assert pagination["pageSize"] == 25
+    assert "totalItems" in pagination
+    assert "totalPages" in pagination
     assert isinstance(body["items"], list)
 
 
 def test_list_fairs_custom_page_size_and_page_two(client, auth_headers):
-    for index in range(3):
+    for index in range(12):
         client.post(
             "/api/v1/fairs",
-            json={"name": f"Paged Fair {index}"},
+            json={"name": f"Paged Fair {index:02d}"},
             headers=auth_headers,
         )
 
-    page_one = client.get("/api/v1/fairs?page=1&page_size=2", headers=auth_headers)
+    page_one = client.get("/api/v1/fairs?page=1&page_size=10", headers=auth_headers)
     assert page_one.status_code == 200
     body_one = page_one.json()
-    assert len(body_one["items"]) == 2
-    assert body_one["page"] == 1
-    assert body_one["page_size"] == 2
-    assert body_one["total"] >= 3
-    assert body_one["total_pages"] >= 2
+    pagination_one = pagination_from(body_one)
+    assert len(body_one["items"]) == 10
+    assert pagination_one["page"] == 1
+    assert pagination_one["pageSize"] == 10
+    assert pagination_one["totalItems"] >= 12
+    assert pagination_one["totalPages"] >= 2
 
-    page_two = client.get("/api/v1/fairs?page=2&page_size=2", headers=auth_headers)
+    page_two = client.get("/api/v1/fairs?page=2&page_size=10", headers=auth_headers)
     body_two = page_two.json()
-    assert body_two["page"] == 2
-    assert len(body_two["items"]) >= 1
+    pagination_two = pagination_from(body_two)
+    assert pagination_two["page"] == 2
+    assert len(body_two["items"]) >= 2
 
 
 def test_list_fairs_filters_with_pagination(client, auth_headers):
@@ -312,7 +314,7 @@ def test_list_fairs_filters_with_pagination(client, auth_headers):
         headers=auth_headers,
     )
     assert archived_page.status_code == 200
-    assert archived_page.json()["page"] == 1
+    assert pagination_from(archived_page.json())["page"] == 1
     assert any(item["status"] == "archived" for item in archived_page.json()["items"])
 
 

@@ -7,7 +7,7 @@ import { participationLabels, participationStatusLabels } from "../labels/partic
 import { uiLabels } from "../labels/uiLabels";
 import { labels } from "../labels";
 import { Badge } from "./ui/Badge";
-import { DataTable } from "./ui/DataTable";
+import { DataTableShell } from "./ui/DataTable";
 import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
 import { participationStatusBadgeVariant } from "../utils/badges";
 
@@ -30,6 +30,7 @@ interface CustomerParticipationTableProps {
   onCreate?: () => void;
   onEdit: (item: CustomerParticipationListItem) => void;
   onDelete: (item: CustomerParticipationListItem) => void;
+  emptyDueToFilters?: boolean;
 }
 
 export function CustomerParticipationTable({
@@ -38,13 +39,16 @@ export function CustomerParticipationTable({
   onCreate,
   onEdit,
   onDelete,
+  emptyDueToFilters,
 }: CustomerParticipationTableProps) {
   if (items.length === 0) {
     return (
       <EmptyState
         icon={<EmptyStateIcon />}
-        title="Henüz fuar katılımı yok."
-        description="Bu müşteriyi bir fuara ekleyerek başlayın."
+        title={emptyDueToFilters ? uiLabels.emptySearchTitle : "Henüz fuar katılımı yok."}
+        description={
+          emptyDueToFilters ? uiLabels.emptySearchDescription : "Bu müşteriyi bir fuara ekleyerek başlayın."
+        }
         actionLabel={onCreate ? participationLabels.addToFair : undefined}
         onAction={onCreate}
       />
@@ -52,7 +56,7 @@ export function CustomerParticipationTable({
   }
 
   return (
-    <DataTable>
+    <DataTableShell>
       <thead>
         <tr>
           <th>{participationLabels.fair}</th>
@@ -97,7 +101,7 @@ export function CustomerParticipationTable({
           </tr>
         ))}
       </tbody>
-    </DataTable>
+    </DataTableShell>
   );
 }
 
@@ -108,6 +112,7 @@ interface FairParticipantTableProps {
   onEdit: (item: FairParticipantListItem) => void;
   onDelete: (item: FairParticipantListItem) => void;
   onOpenCustomer?: (customerId: string) => void;
+  emptyDueToFilters?: boolean;
 }
 
 export function FairParticipantTable({
@@ -117,13 +122,16 @@ export function FairParticipantTable({
   onEdit,
   onDelete,
   onOpenCustomer,
+  emptyDueToFilters,
 }: FairParticipantTableProps) {
   if (items.length === 0) {
     return (
       <EmptyState
         icon={<EmptyStateIcon />}
-        title="Henüz katılımcı firma yok."
-        description="Bu fuara firma ekleyerek başlayın."
+        title={emptyDueToFilters ? uiLabels.emptySearchTitle : "Henüz katılımcı firma yok."}
+        description={
+          emptyDueToFilters ? uiLabels.emptySearchDescription : "Bu fuara firma ekleyerek başlayın."
+        }
         actionLabel={onCreate ? participationLabels.addCompany : undefined}
         onAction={onCreate}
       />
@@ -131,7 +139,7 @@ export function FairParticipantTable({
   }
 
   return (
-    <DataTable>
+    <DataTableShell>
       <thead>
         <tr>
           <th>{participationLabels.company}</th>
@@ -190,6 +198,6 @@ export function FairParticipantTable({
           </tr>
         ))}
       </tbody>
-    </DataTable>
+    </DataTableShell>
   );
 }

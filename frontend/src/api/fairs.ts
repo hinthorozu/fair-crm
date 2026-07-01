@@ -1,30 +1,29 @@
-import { normalizePaginatedResponse } from "./pagination";
+import { normalizeStandardListResponse, buildListQueryParams } from "./listTable";
 import { apiRequest, ApiError, formatApiErrorMessage } from "./client";
-import type {
-  CreateFairPayload,
-  Fair,
-  FairListResponse,
-  ListFairsParams,
-  UpdateFairPayload,
-} from "../types/fair";
-import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "../types/pagination";
+import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
+import type { StandardListResponse } from "../types/listTable";
+import type { CreateFairPayload, Fair, UpdateFairPayload, FairStatus } from "../types/fair";
 
-function buildQuery(params: ListFairsParams): string {
-  const q = new URLSearchParams();
-  if (params.search) q.set("search", params.search);
-  if (params.status) q.set("status", params.status);
-  q.set("page", String(params.page ?? DEFAULT_PAGE));
-  q.set("page_size", String(params.page_size ?? DEFAULT_PAGE_SIZE));
-  if (params.sort_by) q.set("sort_by", params.sort_by);
-  if (params.sort_dir) q.set("sort_dir", params.sort_dir);
-  return `?${q.toString()}`;
+export interface ListFairsParams extends Partial<ServerTableFetchParams> {
+  status?: FairStatus;
+  country?: string;
 }
 
-export async function listFairs(params: ListFairsParams = {}): Promise<FairListResponse> {
-  const page = params.page ?? DEFAULT_PAGE;
-  const page_size = params.page_size ?? DEFAULT_PAGE_SIZE;
-  const raw = await apiRequest<unknown>(`/api/v1/fairs${buildQuery(params)}`);
-  return normalizePaginatedResponse<Fair>(raw, { page, page_size });
+export async function listFairs(params: ListFairsParams = {}): Promise<StandardListResponse<Fair>> {
+  const query = buildListQueryParams({
+    page: params.page,
+    pageSize: params.pageSize,
+    search: params.search,
+    sort: params.sort,
+    direction: params.direction,
+    filters: {
+      ...(params.status ? { status: params.status } : {}),
+      ...(params.country ? { country: params.country } : {}),
+      ...params.filters,
+    },
+  });
+  const raw = await apiRequest<unknown>(`/api/v1/fairs?${query.toString()}`);
+  return normalizeStandardListResponse<Fair>(raw);
 }
 
 export function getFair(id: string): Promise<Fair> {

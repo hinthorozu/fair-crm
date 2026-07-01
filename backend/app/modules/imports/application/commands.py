@@ -64,6 +64,8 @@ class ListImportRowsQuery:
     batch_id: UUID
     filter: str | None = None
     search: str | None = None
+    page: int = 1
+    page_size: int = 25
     sort_by: str | None = None
     sort_dir: str = "asc"
 
@@ -140,7 +142,10 @@ class ImportRowResult:
 @dataclass
 class ImportRowListResult:
     items: list[ImportRowResult]
+    page: int
+    page_size: int
     total: int
+    total_pages: int
 
 
 @dataclass

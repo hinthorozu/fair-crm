@@ -4,7 +4,7 @@ import { fairLabels, fairStatusLabels } from "../labels/fairLabels";
 import { uiLabels } from "../labels/uiLabels";
 import { labels } from "../labels";
 import { Badge } from "./ui/Badge";
-import { DataTable } from "./ui/DataTable";
+import { DataTableShell, SortableHeader } from "./ui/DataTable";
 import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
 
 interface FairFiltersProps {
@@ -60,6 +60,10 @@ interface FairTableProps {
   onCreate?: () => void;
   archivingId: string | null;
   restoringId: string | null;
+  sortField?: string | null;
+  sortDirection?: "asc" | "desc" | null;
+  onSortChange?: (field: string) => void;
+  emptyDueToFilters?: boolean;
 }
 
 function isArchivedFair(fair: Fair): boolean {
@@ -91,12 +95,17 @@ export function FairTable({
   onCreate,
   archivingId,
   restoringId,
+  sortField,
+  sortDirection,
+  onSortChange,
+  emptyDueToFilters,
 }: FairTableProps) {
   if (items.length === 0) {
     return (
       <EmptyState
         icon={<EmptyStateIcon />}
-        title={fairLabels.noResults}
+        title={emptyDueToFilters ? uiLabels.emptySearchTitle : fairLabels.noResults}
+        description={emptyDueToFilters ? uiLabels.emptySearchDescription : undefined}
         actionLabel={onCreate ? uiLabels.createNew : undefined}
         onAction={onCreate}
       />
@@ -104,14 +113,38 @@ export function FairTable({
   }
 
   return (
-    <DataTable>
+    <DataTableShell>
       <thead>
         <tr>
-          <th>{fairLabels.name}</th>
+          <th>
+            {onSortChange ? (
+              <SortableHeader
+                label={fairLabels.name}
+                field="name"
+                activeField={sortField ?? null}
+                direction={sortDirection ?? null}
+                onSort={onSortChange}
+              />
+            ) : (
+              fairLabels.name
+            )}
+          </th>
           <th>{fairLabels.organizer}</th>
           <th>{fairLabels.venue}</th>
           <th>{labels.city}</th>
-          <th>{fairLabels.start_date}</th>
+          <th>
+            {onSortChange ? (
+              <SortableHeader
+                label={fairLabels.start_date}
+                field="start_date"
+                activeField={sortField ?? null}
+                direction={sortDirection ?? null}
+                onSort={onSortChange}
+              />
+            ) : (
+              fairLabels.start_date
+            )}
+          </th>
           <th>{labels.status}</th>
           <th>{labels.actions}</th>
         </tr>
@@ -175,7 +208,7 @@ export function FairTable({
           );
         })}
       </tbody>
-    </DataTable>
+    </DataTableShell>
   );
 }
 
