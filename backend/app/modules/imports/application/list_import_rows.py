@@ -1,10 +1,16 @@
 from uuid import UUID
 
+from app.modules.contacts.infrastructure.repositories.contact_repository import SqlAlchemyContactRepository
 from app.modules.customers.domain.ports import CustomerRepository
 from app.modules.imports.application.commands import ImportRowListResult, ListImportRowsQuery
 from app.modules.imports.application.mappers import row_to_result
+from app.modules.imports.application.merge_preview_builder import MergePreviewBuilder
 from app.modules.imports.domain.exceptions import ImportBatchNotFoundError
 from app.modules.imports.domain.ports import ImportBatchRepository, ImportRowRepository
+from app.modules.imports.domain.services.merge_preview import row_matches_filter, sort_rows
+from app.modules.participations.infrastructure.repositories.participation_repository import (
+    SqlAlchemyParticipationRepository,
+)
 
 
 class ListImportRowsUseCase:
@@ -13,10 +19,17 @@ class ListImportRowsUseCase:
         batch_repository: ImportBatchRepository,
         row_repository: ImportRowRepository,
         customer_repository: CustomerRepository,
+        participation_repository: SqlAlchemyParticipationRepository,
+        contact_repository: SqlAlchemyContactRepository,
     ) -> None:
         self._batch_repository = batch_repository
         self._row_repository = row_repository
         self._customer_repository = customer_repository
+        self._preview_builder = MergePreviewBuilder(
+            customer_repository,
+            participation_repository,
+            contact_repository,
+        )
 
     def execute(self, query: ListImportRowsQuery) -> ImportRowListResult:
         batch = self._batch_repository.get_by_id(query.organization_id, query.batch_id)
@@ -24,7 +37,22 @@ class ListImportRowsUseCase:
             raise ImportBatchNotFoundError("Import batch not found")
 
         rows = self._row_repository.list_by_batch(query.organization_id, query.batch_id)
+
+        if query.search:
+            term = query.search.strip().lower()
+            rows = [
+                row
+                for row in rows
+                if term in str((row.normalized_data_json or {}).get("company_name") or "").lower()
+            ]
+
+        if query.filter:
+            rows = [row for row in rows if row_matches_filter(row, query.filter)]
+
+        rows = sort_rows(rows, sort_by=query.sort_by, sort_dir=query.sort_dir or "asc")
+
         customer_names: dict[UUID, str] = {}
+        items = []
         for row in rows:
             if row.match_customer_id and row.match_customer_id not in customer_names:
                 customer = self._customer_repository.get_by_id(
@@ -33,13 +61,15 @@ class ListImportRowsUseCase:
                 if customer:
                     customer_names[row.match_customer_id] = customer.display_name
 
-        items = [
-            row_to_result(
-                row,
-                match_customer_name=customer_names.get(row.match_customer_id)
-                if row.match_customer_id
-                else None,
+            merge_preview = self._preview_builder.build_for_row(query.organization_id, batch, row)
+            items.append(
+                row_to_result(
+                    row,
+                    match_customer_name=customer_names.get(row.match_customer_id)
+                    if row.match_customer_id
+                    else None,
+                    merge_preview=merge_preview,
+                )
             )
-            for row in rows
-        ]
+
         return ImportRowListResult(items=items, total=len(items))

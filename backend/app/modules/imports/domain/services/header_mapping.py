@@ -23,7 +23,6 @@ CANONICAL_FIELDS = frozenset(
         "contact_phone",
         "contact_mobile_phone",
         "notes",
-        "fair_name",
         "hall",
         "stand",
     }
@@ -57,7 +56,6 @@ HEADER_ALIASES: dict[str, str] = {
     "yetkili telefon": "contact_phone",
     "yetkili cep telefonu": "contact_mobile_phone",
     "notlar": "notes",
-    "fuar": "fair_name",
     "salon": "hall",
     "stand": "stand",
 }

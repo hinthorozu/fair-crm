@@ -57,7 +57,9 @@ Adapters must return rows keyed by `CANONICAL_FIELDS` (see `domain/services/head
 
 **Required (v1):** `company_name` only.
 
-**Optional:** `email`, `phone`, `mobile_phone`, `website`, `country`, `city`, `address`, `tax_number`, `contact_first_name`, `contact_last_name`, `contact_title`, `contact_department`, `contact_email`, `contact_phone`, `contact_mobile_phone`, `notes`, `fair_name`, `hall`, `stand`.
+**Optional:** `email`, `phone`, `mobile_phone`, `website`, `country`, `city`, `address`, `tax_number`, `contact_first_name`, `contact_last_name`, `contact_title`, `contact_department`, `contact_email`, `contact_phone`, `contact_mobile_phone`, `notes`, `hall`, `stand`.
+
+**Not supported (ADR-012):** `fair_name` — Fair context is selected on the batch via `fair_id`, not from source data.
 
 A row with only `company_name` is valid. Missing optional fields do not produce validation errors.
 
@@ -82,11 +84,34 @@ A row with only `company_name` is valid. Missing optional fields do not produce 
 
 ## API
 
-- `POST /api/v1/imports/customers/upload` — Excel upload (v1)
-- `GET /api/v1/imports/{batch_id}` — batch summary (`source_type` in response)
-- `GET /api/v1/imports/{batch_id}/rows` — preview rows
+### Smart Import Wizard (Phase 1)
+
+- `POST /api/v1/imports/upload` — raw Excel upload (`fair_id` required); no CRM writes
+- `PATCH /api/v1/imports/{batch_id}/column-mapping` — manual column mapping
+- `POST /api/v1/imports/{batch_id}/analyze` — normalize, validate, duplicate detection
+- `GET /api/v1/imports/{batch_id}` — batch summary
+- `GET /api/v1/imports/{batch_id}/rows` — preview rows with `merge_preview` (field diff + summary); supports `filter`, `search`, `sort_by`, `sort_dir`
 - `PATCH /api/v1/imports/{batch_id}/rows/{row_id}/decision` — merge decision
-- `POST /api/v1/imports/{batch_id}/apply` — apply batch
+- `PATCH /api/v1/imports/{batch_id}/rows/bulk-decision` — bulk decisions
+- `POST /api/v1/imports/{batch_id}/apply` — apply batch (Customer + Participation + Contact + Activity)
+
+Batch carries required `fair_id` (ADR-012). Apply writes hall/stand/notes on `CustomerFairParticipation`.
+
+### Legacy v1 (deprecated — removal planned v0.9.0)
+
+- `POST /api/v1/imports/customers/upload` — Excel upload with auto header mapping (no fair context). Retained for backward compatibility and backend regression tests; Smart Import Wizard is the supported path.
+
+## Merge preview (Sprint 07.1)
+
+After analyze, each import row includes a computed `merge_preview` object (no extra DB columns):
+
+- `groups[]` — entity-grouped field diffs (`customer`, `participation`, `contact`)
+- Each field: `crm_value`, `import_value`, `result_value`, `outcome`, `outcome_label`
+- `summary_lines[]` — Turkish bullet summary of predicted apply effects
+
+Outcomes follow [IMPORT_WIZARD_MERGE_RULES.md](IMPORT_WIZARD_MERGE_RULES.md): conservative merge, email union exception, hall/stand on participation.
+
+Implementation: `domain/services/merge_preview.py`, attached in `ListImportRowsUseCase` and decision responses.
 
 ## Future PDF import
 

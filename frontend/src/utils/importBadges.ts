@@ -1,5 +1,19 @@
-import type { ImportRowStatus } from "../types/import";
+import type { ImportRowStatus, MergeOutcome } from "../types/import";
 import type { BadgeVariant } from "../components/ui/Badge";
+
+export function mergeOutcomeBadgeVariant(outcome: MergeOutcome | string): BadgeVariant {
+  const map: Record<string, BadgeVariant> = {
+    same: "neutral",
+    new: "info",
+    will_add: "success",
+    will_update: "primary",
+    will_keep: "warning",
+    conflict: "danger",
+    empty: "neutral",
+    skipped: "neutral",
+  };
+  return map[outcome] ?? "neutral";
+}
 
 export function importRowStatusBadgeVariant(status: ImportRowStatus | string): BadgeVariant {
   const map: Record<string, BadgeVariant> = {
@@ -18,6 +32,8 @@ export function importRowStatusBadgeVariant(status: ImportRowStatus | string): B
 export function importBatchStatusBadgeVariant(status: string): BadgeVariant {
   const map: Record<string, BadgeVariant> = {
     uploaded: "neutral",
+    mapped: "info",
+    analyzed: "info",
     previewed: "info",
     applied: "success",
     failed: "danger",

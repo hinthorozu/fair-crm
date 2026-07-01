@@ -20,3 +20,15 @@ class InvalidImportDecisionError(Exception):
 
 class ImportApplyError(Exception):
     pass
+
+
+class InvalidColumnMappingError(Exception):
+    pass
+
+
+class FairRequiredError(Exception):
+    pass
+
+
+class FairNotFoundError(Exception):
+    pass

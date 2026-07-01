@@ -79,6 +79,21 @@ class SqlAlchemyParticipationRepository:
             is not None
         )
 
+    def get_active_by_customer_and_fair(
+        self, organization_id: UUID, customer_id: UUID, fair_id: UUID
+    ) -> CustomerFairParticipation | None:
+        model = (
+            self._session.query(CustomerFairParticipationModel)
+            .filter(
+                CustomerFairParticipationModel.organization_id == organization_id,
+                CustomerFairParticipationModel.customer_id == customer_id,
+                CustomerFairParticipationModel.fair_id == fair_id,
+                CustomerFairParticipationModel.deleted_at.is_(None),
+            )
+            .one_or_none()
+        )
+        return model_to_entity(model) if model else None
+
     def list_by_customer(
         self,
         organization_id: UUID,

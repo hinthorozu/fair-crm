@@ -1,44 +1,65 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.config import get_settings
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.auth import AuthContext
+from app.modules.fairs.domain.exceptions import FairNotFoundError
 from app.modules.imports.api.dependencies import (
+    get_analyze_import_use_case,
     get_apply_import_use_case,
     get_auth_context,
+    get_bulk_row_decision_use_case,
     get_get_import_batch_use_case,
     get_list_import_rows_use_case,
+    get_set_column_mapping_use_case,
     get_set_row_decision_use_case,
     get_upload_import_use_case,
+    get_upload_raw_import_use_case,
     require_read_permission,
 )
 from app.modules.imports.api.schemas import (
+    AnalyzeImportResponse,
     ApplyImportResponse,
+    BulkRowDecisionRequest,
+    BulkRowDecisionResponse,
     ErrorResponse,
     ImportBatchResponse,
     ImportRowListResponse,
     ImportRowResponse,
+    SetColumnMappingRequest,
+    SetColumnMappingResponse,
     SetImportRowDecisionRequest,
+    UploadRawImportResponse,
 )
+from app.modules.imports.application.analyze_import import AnalyzeImportUseCase
 from app.modules.imports.application.apply_import import ApplyImportUseCase
+from app.modules.imports.application.bulk_row_decision import BulkRowDecisionUseCase
 from app.modules.imports.application.commands import (
+    AnalyzeImportCommand,
     ApplyImportCommand,
+    BulkRowDecisionCommand,
     GetImportBatchQuery,
     ListImportRowsQuery,
+    SetColumnMappingCommand,
     SetImportRowDecisionCommand,
     UploadImportCommand,
+    UploadRawImportCommand,
 )
 from app.modules.imports.application.get_import_batch import GetImportBatchUseCase
 from app.modules.imports.application.list_import_rows import ListImportRowsUseCase
+from app.modules.imports.application.set_column_mapping import SetColumnMappingUseCase
 from app.modules.imports.application.set_row_decision import SetImportRowDecisionUseCase
 from app.modules.imports.application.upload_import import UploadCustomerImportUseCase
+from app.modules.imports.application.upload_raw_import import UploadRawImportUseCase
 from app.modules.imports.domain.exceptions import (
+    FairRequiredError,
     ImportBatchAlreadyAppliedError,
     ImportBatchNotFoundError,
     ImportRowNotFoundError,
+    InvalidColumnMappingError,
     InvalidImportDecisionError,
     InvalidImportFileError,
 )
@@ -66,11 +87,50 @@ def _row_response(result) -> ImportRowResponse:
 
 
 @router.post(
+    "/upload",
+    response_model=UploadRawImportResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={400: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    summary="Upload Excel for wizard (raw preview, no CRM writes)",
+)
+async def upload_raw_import(
+    fair_id: UUID = Form(...),
+    file: UploadFile = File(...),
+    auth: AuthContext = Depends(get_auth_context),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case: UploadRawImportUseCase = Depends(get_upload_raw_import_use_case),
+) -> UploadRawImportResponse:
+    file_name = file.filename or "import.xlsx"
+    content = await file.read()
+    try:
+        result = use_case.execute(
+            UploadRawImportCommand(
+                organization_id=auth.organization_id,
+                user_id=auth.user_id,
+                access_token=_access_token(credentials),
+                fair_id=fair_id,
+                file_name=file_name,
+                file_content=content,
+            )
+        )
+    except InvalidImportFileError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except FairRequiredError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except FairNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    return UploadRawImportResponse.model_validate(result.__dict__)
+
+
+@router.post(
     "/customers/upload",
     response_model=ImportBatchResponse,
     status_code=status.HTTP_201_CREATED,
     responses={400: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
-    summary="Upload customer import xlsx",
+    summary="Upload customer import xlsx (legacy v1 — deprecated, removal planned v0.9.0)",
+    deprecated=True,
 )
 async def upload_customer_import(
     file: UploadFile = File(...),
@@ -117,6 +177,77 @@ def get_import_batch(
     return _batch_response(result)
 
 
+@router.patch(
+    "/{batch_id}/column-mapping",
+    response_model=SetColumnMappingResponse,
+    responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    summary="Set column mapping for import batch",
+)
+def set_column_mapping(
+    batch_id: UUID,
+    body: SetColumnMappingRequest,
+    auth: AuthContext = Depends(get_auth_context),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case: SetColumnMappingUseCase = Depends(get_set_column_mapping_use_case),
+) -> SetColumnMappingResponse:
+    mappings = {key: spec.model_dump() for key, spec in body.mappings.items()}
+    try:
+        result = use_case.execute(
+            SetColumnMappingCommand(
+                organization_id=auth.organization_id,
+                user_id=auth.user_id,
+                access_token=_access_token(credentials),
+                batch_id=batch_id,
+                has_header_row=body.has_header_row,
+                mappings=mappings,
+            )
+        )
+    except ImportBatchNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ImportBatchAlreadyAppliedError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except InvalidColumnMappingError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    return SetColumnMappingResponse.model_validate(result.__dict__)
+
+
+@router.post(
+    "/{batch_id}/analyze",
+    response_model=AnalyzeImportResponse,
+    responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    summary="Analyze import batch with current mapping",
+)
+def analyze_import_batch(
+    batch_id: UUID,
+    auth: AuthContext = Depends(get_auth_context),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case: AnalyzeImportUseCase = Depends(get_analyze_import_use_case),
+) -> AnalyzeImportResponse:
+    try:
+        result = use_case.execute(
+            AnalyzeImportCommand(
+                organization_id=auth.organization_id,
+                user_id=auth.user_id,
+                access_token=_access_token(credentials),
+                batch_id=batch_id,
+            )
+        )
+    except ImportBatchNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ImportBatchAlreadyAppliedError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except InvalidColumnMappingError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    return AnalyzeImportResponse(
+        batch=_batch_response(result.batch),
+        total_rows=result.total_rows,
+    )
+
+
 @router.get(
     "/{batch_id}/rows",
     response_model=ImportRowListResponse,
@@ -125,12 +256,26 @@ def get_import_batch(
 )
 def list_import_rows(
     batch_id: UUID,
+    filter: str | None = Query(
+        default=None,
+        description="all | new | will_update | duplicate | invalid | skip",
+    ),
+    search: str | None = Query(default=None, description="Filter by company name"),
+    sort_by: str | None = Query(default=None, description="confidence | company_name | status"),
+    sort_dir: str = Query(default="asc", pattern="^(?i)(asc|desc)$"),
     auth: AuthContext = Depends(require_read_permission),
     use_case: ListImportRowsUseCase = Depends(get_list_import_rows_use_case),
 ) -> ImportRowListResponse:
     try:
         result = use_case.execute(
-            ListImportRowsQuery(organization_id=auth.organization_id, batch_id=batch_id)
+            ListImportRowsQuery(
+                organization_id=auth.organization_id,
+                batch_id=batch_id,
+                filter=filter,
+                search=search,
+                sort_by=sort_by,
+                sort_dir=sort_dir,
+            )
         )
     except ImportBatchNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
@@ -179,6 +324,38 @@ def set_import_row_decision(
     return _row_response(result)
 
 
+@router.patch(
+    "/{batch_id}/rows/bulk-decision",
+    response_model=BulkRowDecisionResponse,
+    responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    summary="Bulk set import row decisions",
+)
+def bulk_row_decision(
+    batch_id: UUID,
+    body: BulkRowDecisionRequest,
+    auth: AuthContext = Depends(get_auth_context),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case: BulkRowDecisionUseCase = Depends(get_bulk_row_decision_use_case),
+) -> BulkRowDecisionResponse:
+    try:
+        result = use_case.execute(
+            BulkRowDecisionCommand(
+                organization_id=auth.organization_id,
+                user_id=auth.user_id,
+                access_token=_access_token(credentials),
+                batch_id=batch_id,
+                action=body.action,
+            )
+        )
+    except ImportBatchNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ImportBatchAlreadyAppliedError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    return BulkRowDecisionResponse(updated_count=result.updated_count)
+
+
 @router.post(
     "/{batch_id}/apply",
     response_model=ApplyImportResponse,
@@ -212,4 +389,7 @@ def apply_import_batch(
         updated_rows=result.updated_rows,
         skipped_rows=result.skipped_rows,
         invalid_rows=result.invalid_rows,
+        created_participations=result.created_participations,
+        updated_participations=result.updated_participations,
+        created_contacts=result.created_contacts,
     )

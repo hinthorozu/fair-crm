@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Version** | v0.7.0 |
+| **Current Version** | v0.8.1 |
 | **Last updated** | 2026-07-01 |
 | **Constitution** | [PROJECT_CONSTITUTION.md](PROJECT_CONSTITUTION.md) |
 | **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
@@ -15,7 +15,7 @@
 
 | Check | Status |
 |-------|--------|
-| Backend tests | **145 PASS** |
+| Backend tests | **171 PASS** |
 | Frontend build | **PASS** |
 
 ---
@@ -113,21 +113,37 @@
 - Backend tests (12 scenarios) and live verification script
 - Import-ready model: hall/stand on participation, not on Customer/Fair
 
-### ✅ Sprint 07 — Import Engine v1
+### ✅ Sprint 07 — Smart Import Wizard Phase 1
 
 **Completed Features**
 
-- Import batch and import row models (`crm_import_batches`, `crm_import_rows`)
-- Excel (.xlsx) upload with Turkish header alias mapping
-- Row normalization (company name, email, phone)
-- Validation (required company_name, multi-email, website URL)
-- Duplicate detection within batch and against existing customers (exact + fuzzy)
-- Merge decisions per row (create_new, update_existing, skip)
-- Apply import with empty-field merge, multi-email merge, contact create/update
-- Import activity notes (source: import)
-- API: upload, batch summary, rows list, decision patch, apply
-- Frontend `/imports` page with upload, preview summary, rows table, apply confirm
-- Backend tests and live verification script
+- 9-step Smart Import Wizard UI at `/imports`
+- Fair context required on batch (`fair_id`, ADR-012)
+- Raw Excel upload without CRM writes
+- Manual column mapping with headerless Excel support
+- Separate analyze step (normalize → validate → duplicate detection)
+- Two-level duplicate detection: Customer + Participation in selected Fair
+- Apply: Customer + CustomerFairParticipation + Contact + Activity (source=import)
+- Hall/stand/notes on participation only; `fair_name` not supported
+- Bulk row decisions API
+- Fair Detail → Katılımcıları İçe Aktar entry point
+- Migration `0008_import_wizard`
+- Backend tests (163 total) and frontend build
+
+### ✅ Sprint 07.1 — Smart Merge Viewer & Cleanup
+
+**Completed Features**
+
+- Field-level merge diff viewer (expand/collapse per row) with CRM vs Import comparison
+- Backend-generated merge summary per row (`merge_preview.summary_lines`)
+- Entity-grouped merge preview: Customer, Fuar Katılımı, İletişim Kişisi
+- Merge outcome badges: Aynı, Yeni, Eklenecek, Güncellenecek, Korunacak, Çakışıyor, Boş
+- Preview filters (Tümü/Yeni/Güncellenecek/Duplicate/Hatalı/Atlanacak), search, sort
+- Contact apply live verification (Customer + Participation + Contact + Activity)
+- Legacy `POST /imports/customers/upload` marked deprecated (removal v0.9.0); backend tests retained
+- Removed unused `ImportsPage.tsx`
+- Backend tests (171 total) and frontend build
+- Dev runtime reset: `scripts/dev/reset-dev.ps1` (see [docs/DEV_RUNTIME.md](docs/DEV_RUNTIME.md))
 
 ---
 
@@ -161,6 +177,7 @@ Status: Planned — pending start
 | 04.5 — UX Foundation | v0.5.1 | ✅ |
 | 06 — Fair Participation | v0.7.0 | ✅ |
 | 07 — Import Engine v1 | v0.6.0 | ✅ |
+| 07 — Smart Import Wizard Phase 1 | v0.8.0 | ✅ |
 
 ---
 

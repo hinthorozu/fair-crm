@@ -28,6 +28,7 @@ import { Badge } from "../components/ui/Badge";
 import { Card } from "../components/ui/Card";
 import { fairLabels, fairStatusLabels } from "../labels/fairLabels";
 import { participationLabels } from "../labels/participationLabels";
+import { importLabels } from "../labels/importLabels";
 import { uiLabels } from "../labels/uiLabels";
 import { labels } from "../labels";
 import type { Customer } from "../types/customer";
@@ -40,6 +41,7 @@ interface FairDetailPageProps {
   onBack: () => void;
   onFairLoaded?: (name: string) => void;
   onOpenCustomer?: (customerId: string) => void;
+  onImportParticipants?: () => void;
 }
 
 type TabId = "overview" | "participants";
@@ -49,6 +51,7 @@ export function FairDetailPage({
   onBack,
   onFairLoaded,
   onOpenCustomer,
+  onImportParticipants,
 }: FairDetailPageProps) {
   const [fair, setFair] = React.useState<Fair | null>(null);
   const [participants, setParticipants] = React.useState<FairParticipantListItem[]>([]);
@@ -190,16 +193,23 @@ export function FairDetailPage({
         }
         actions={
           activeTab === "participants" ? (
-            <button
-              type="button"
-              className="btn primary"
-              onClick={() => {
-                setEditing(null);
-                setModal("create");
-              }}
-            >
-              {participationLabels.addCompany}
-            </button>
+            <>
+              {onImportParticipants && (
+                <button type="button" className="btn secondary" onClick={onImportParticipants}>
+                  {importLabels.importFromFair}
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => {
+                  setEditing(null);
+                  setModal("create");
+                }}
+              >
+                {participationLabels.addCompany}
+              </button>
+            </>
           ) : undefined
         }
       />

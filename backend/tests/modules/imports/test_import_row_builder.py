@@ -25,7 +25,7 @@ def test_validate_company_name_only_has_no_errors():
 def test_build_import_rows_marks_company_name_only_ready():
     org_id = uuid4()
     now = datetime.now(tz=UTC)
-    batch = ImportBatch.create(
+    batch = ImportBatch.create_legacy(
         organization_id=org_id,
         file_name="test.xlsx",
         total_rows=1,
@@ -35,6 +35,7 @@ def test_build_import_rows_marks_company_name_only_ready():
         batch=batch,
         raw_rows=[{"company_name": "New Co"}],
         customers=[],
+        fair_id=None,
         now=now,
     )
     assert len(rows) == 1

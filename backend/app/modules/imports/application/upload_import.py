@@ -51,7 +51,7 @@ class UploadCustomerImportUseCase:
         source_type = self._source_adapter.source_type
         now = datetime.now(tz=UTC)
 
-        batch = ImportBatch.create(
+        batch = ImportBatch.create_legacy(
             organization_id=command.organization_id,
             file_name=command.file_name,
             total_rows=len(raw_rows),
@@ -64,6 +64,7 @@ class UploadCustomerImportUseCase:
             batch=saved_batch,
             raw_rows=raw_rows,
             customers=customers,
+            fair_id=None,
             now=now,
         )
         self._row_repository.add_many(import_rows)

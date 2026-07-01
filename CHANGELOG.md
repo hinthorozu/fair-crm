@@ -12,6 +12,36 @@ _No unreleased changes._
 
 ---
 
+## v0.8.1 — Smart Merge Viewer & Cleanup
+
+- Merge diff viewer: field-level CRM vs Import preview with entity grouping (Customer, Participation, Contact)
+- Backend `merge_preview` on import row list/decision responses with Turkish summary lines
+- Preview UX: filters, company search, sort by confidence/company/status
+- Contact import apply verified end-to-end (API + live script)
+- Legacy `POST /api/v1/imports/customers/upload` deprecated for removal in v0.9.0
+- Removed unused frontend `ImportsPage.tsx`
+- `scripts/verify_wizard_imports_live.py` extended with merge preview + contact scenarios
+- Dev runtime reset script: `scripts/dev/reset-dev.ps1` + [docs/DEV_RUNTIME.md](docs/DEV_RUNTIME.md)
+
+---
+
+## v0.8.0 — Smart Import Wizard Phase 1
+
+- Smart Import Wizard: 9-step UI at `/imports` with fair context (ADR-012)
+- `POST /api/v1/imports/upload` — raw Excel preview without CRM writes
+- `PATCH /api/v1/imports/{batch_id}/column-mapping` — manual mapping (headerless Excel supported)
+- `POST /api/v1/imports/{batch_id}/analyze` — separate analyze step
+- `PATCH /api/v1/imports/{batch_id}/rows/bulk-decision` — bulk merge decisions
+- Import batch `fair_id` required for wizard flow; migration `0008_import_wizard`
+- Two-level duplicate detection: Customer + Participation in selected Fair
+- Apply creates/updates `CustomerFairParticipation` with hall/stand/notes on participation
+- Fair Detail → Katılımcıları İçe Aktar entry route `/imports/fair/{id}`
+- `fair_name` removed from supported mapping fields
+- Backend tests (18 wizard scenarios) + legacy import tests retained
+- Frontend build verified
+
+---
+
 ## v0.7.0 — Customer Fair Participation
 
 - `CustomerFairParticipation` join entity (`crm_customer_fair_participations`) linking customers and fairs

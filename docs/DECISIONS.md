@@ -130,3 +130,23 @@ Status: Proposed — not implemented in Sprint 06
 
 Activities may later reference an optional `participation_id` to tie timeline entries to a specific fair visit/exhibitor context. No schema change in Sprint 06; add when activity UX requires fair-scoped filtering.
 
+## ADR-012 — Fair Context Required for Imports
+
+Status: Accepted (Sprint 07 Smart Import Wizard design)
+
+**Decision:**
+
+Smart Import batches must be associated with a selected Fair. The import source will not provide or resolve `fair_name`.
+
+**Rationale:**
+
+In real workflows, exhibitor lists are collected for a known fair. Requiring Fair context prevents incorrect fair matching and ensures hall/stand data is stored on CustomerFairParticipation.
+
+**Consequences:**
+
+- Import Wizard requires Fair selection (Screen 3).
+- `fair_name` is not a supported mapping field.
+- Duplicate detection must evaluate both Customer and CustomerFairParticipation.
+- Hall/Stand belong to participation records, not Customer or Fair.
+- Import batch persists `fair_id` for the entire batch.
+- Alternative entry from Fair Detail pre-fills Fair context.

@@ -3,13 +3,13 @@ import { CustomersPage } from "./pages/CustomersPage";
 import { CustomerDetailPage } from "./pages/CustomerDetailPage";
 import { FairsPage } from "./pages/FairsPage";
 import { FairDetailPage } from "./pages/FairDetailPage";
-import { ImportsPage } from "./pages/ImportsPage";
+import { ImportWizardPage } from "./pages/ImportWizardPage";
 import { AppLayout } from "./components/layout/AppLayout";
 import { uiLabels } from "./labels/uiLabels";
 import { labels } from "./labels";
 import "./styles.css";
 
-type AppRoute = "/" | "/fairs" | "/fairs/:id" | "/imports" | "/customers/:id";
+type AppRoute = "/" | "/fairs" | "/fairs/:id" | "/imports" | "/imports/fair/:fairId" | "/customers/:id";
 
 interface ParsedRoute {
   route: AppRoute;
@@ -19,6 +19,10 @@ interface ParsedRoute {
 
 function parseRoute(pathname: string): ParsedRoute {
   if (pathname === "/imports" || pathname.startsWith("/imports/")) {
+    const fairImport = pathname.match(/^\/imports\/fair\/([^/]+)$/);
+    if (fairImport) {
+      return { route: "/imports/fair/:fairId", fairId: fairImport[1] };
+    }
     return { route: "/imports" };
   }
   if (pathname === "/fairs" || pathname.startsWith("/fairs/")) {
@@ -89,6 +93,12 @@ export function App() {
     setSidebarOpen(false);
   };
 
+  const goToImportWizard = (fairId?: string) => {
+    const path = fairId ? `/imports/fair/${fairId}` : "/imports";
+    navigate(path);
+    setParsed(parseRoute(path));
+    setSidebarOpen(false);
+  };
   const goToFairDetail = (fairId: string) => {
     const path = `/fairs/${fairId}`;
     navigate(path);
@@ -141,7 +151,7 @@ export function App() {
     {
       path: "/imports",
       label: uiLabels.navImports,
-      active: parsed.route === "/imports",
+      active: parsed.route === "/imports" || parsed.route === "/imports/fair/:fairId",
       onClick: (e: React.MouseEvent) => handleNav("/imports", e),
     },
   ];
@@ -160,9 +170,13 @@ export function App() {
           onBack={goToFairs}
           onFairLoaded={setFairName}
           onOpenCustomer={goToCustomerDetail}
+          onImportParticipants={() => goToImportWizard(parsed.fairId)}
         />
       )}
-      {parsed.route === "/imports" && <ImportsPage />}
+      {parsed.route === "/imports" && <ImportWizardPage />}
+      {parsed.route === "/imports/fair/:fairId" && parsed.fairId && (
+        <ImportWizardPage preselectedFairId={parsed.fairId} />
+      )}
       {parsed.route === "/" && <CustomersPage onOpenDetail={goToCustomerDetail} />}
       {parsed.route === "/customers/:id" && parsed.customerId && (
         <CustomerDetailPage

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -18,9 +19,21 @@ from app.modules.imports.application.mappers import batch_to_result
 from app.modules.imports.domain.exceptions import ImportBatchAlreadyAppliedError, ImportBatchNotFoundError
 from app.modules.imports.domain.ports import ImportBatchRepository, ImportRowRepository
 from app.modules.imports.domain.value_objects import ImportBatchStatus, ImportDecision, ImportRowStatus
+from app.modules.participations.domain.entities import CustomerFairParticipation
+from app.modules.participations.domain.value_objects import ParticipationStatus
+from app.modules.participations.infrastructure.repositories.participation_repository import (
+    SqlAlchemyParticipationRepository,
+)
 from app.shared.email import normalize_email_field
 
 PERMISSION_APPLY = "fair_crm.imports.apply"
+
+
+@dataclass
+class _ParticipationResult:
+    id: UUID
+    created: bool
+    updated: bool
 
 
 def _merge_email_fields(existing: str | None, incoming: str | None) -> str | None:
@@ -48,6 +61,7 @@ class ApplyImportUseCase:
         customer_repository: CustomerRepository,
         contact_repository: ContactRepository,
         activity_repository: ActivityRepository,
+        participation_repository: SqlAlchemyParticipationRepository,
         authorization: AuthorizationPort,
         audit: HttpAuditAdapter,
     ) -> None:
@@ -56,6 +70,7 @@ class ApplyImportUseCase:
         self._customer_repository = customer_repository
         self._contact_repository = contact_repository
         self._activity_repository = activity_repository
+        self._participation_repository = participation_repository
         self._authorization = authorization
         self._audit = audit
 
@@ -74,12 +89,16 @@ class ApplyImportUseCase:
         if batch.status == ImportBatchStatus.APPLIED:
             raise ImportBatchAlreadyAppliedError("Import batch already applied")
 
+        fair_id = batch.fair_id
         rows = self._row_repository.list_by_batch(command.organization_id, command.batch_id)
         now = datetime.now(tz=UTC)
 
         created_count = 0
         updated_count = 0
         skipped_count = 0
+        created_participations = 0
+        updated_participations = 0
+        created_contacts = 0
         invalid_count = sum(1 for row in rows if row.status == ImportRowStatus.INVALID)
 
         for row in rows:
@@ -93,21 +112,16 @@ class ApplyImportUseCase:
                 skipped_count += 1
                 continue
 
+            customer: Customer | None = None
+            customer_created = False
+            customer_updated = False
+
             if row.decision == ImportDecision.CREATE_NEW:
                 customer = self._create_customer(row.normalized_data_json, command, now)
                 row.mark_applied_create(customer.id, now=now)
-                self._maybe_create_contact(customer, row.normalized_data_json, command, now)
-                self._create_import_activity(
-                    command,
-                    customer_id=customer.id,
-                    subject="Customer imported",
-                    batch_file=batch.file_name,
-                    now=now,
-                )
+                customer_created = True
                 created_count += 1
-                continue
-
-            if row.decision == ImportDecision.UPDATE_EXISTING:
+            elif row.decision == ImportDecision.UPDATE_EXISTING:
                 if row.match_customer_id is None:
                     continue
                 customer = self._customer_repository.get_by_id(
@@ -116,17 +130,38 @@ class ApplyImportUseCase:
                 if customer is None:
                     continue
                 self._update_customer_from_row(customer, row.normalized_data_json, now)
-                saved = self._customer_repository.update(customer)
-                self._maybe_merge_contact(saved, row.normalized_data_json, command, now)
-                self._create_import_activity(
-                    command,
-                    customer_id=saved.id,
-                    subject="Import update",
-                    batch_file=batch.file_name,
-                    now=now,
-                )
-                row.mark_applied_update(saved.id, now=now)
+                customer = self._customer_repository.update(customer)
+                row.mark_applied_update(customer.id, now=now)
+                customer_updated = True
                 updated_count += 1
+
+            if customer is None:
+                continue
+
+            if fair_id is not None:
+                participation = self._apply_participation(
+                    command, customer.id, fair_id, row.normalized_data_json, now
+                )
+                if participation.created:
+                    row.mark_participation_created(participation.id, now=now)
+                    created_participations += 1
+                elif participation.updated:
+                    row.mark_participation_updated(participation.id, now=now)
+                    updated_participations += 1
+
+            contact_created = self._apply_contact(customer, row.normalized_data_json, command, now)
+            if contact_created:
+                created_contacts += 1
+
+            action = "created" if customer_created else "updated"
+            self._create_import_activity(
+                command,
+                customer_id=customer.id,
+                batch_id=batch.id,
+                batch_file=batch.file_name,
+                action=action,
+                now=now,
+            )
 
         self._row_repository.update_many(rows)
 
@@ -134,6 +169,8 @@ class ApplyImportUseCase:
             created_rows=created_count,
             updated_rows=updated_count,
             skipped_rows=skipped_count,
+            created_participations=created_participations,
+            updated_participations=updated_participations,
             now=now,
         )
         batch.mark_applied(now=now)
@@ -149,6 +186,8 @@ class ApplyImportUseCase:
                 "created_rows": created_count,
                 "updated_rows": updated_count,
                 "skipped_rows": skipped_count,
+                "created_participations": created_participations,
+                "updated_participations": updated_participations,
             },
             metadata={"user_id": str(command.user_id)},
         )
@@ -160,6 +199,9 @@ class ApplyImportUseCase:
             updated_rows=updated_count,
             skipped_rows=skipped_count,
             invalid_rows=invalid_count,
+            created_participations=created_participations,
+            updated_participations=updated_participations,
+            created_contacts=created_contacts,
         )
 
     def _create_customer(
@@ -178,7 +220,7 @@ class ApplyImportUseCase:
             country=data.get("country"),
             city=data.get("city"),
             address=data.get("address"),
-            description=self._build_description(data),
+            description=None,
             source=CustomerSource.EXCEL,
             now=now,
         )
@@ -199,48 +241,67 @@ class ApplyImportUseCase:
             country=_fill_if_empty(customer.country, data.get("country")),
             city=_fill_if_empty(customer.city, data.get("city")),
             address=_fill_if_empty(customer.address, data.get("address")),
-            description=_fill_if_empty(customer.description, self._build_description(data)),
+            description=customer.description,
             now=now,
         )
 
-    def _maybe_create_contact(
+    def _apply_participation(
+        self,
+        command: ApplyImportCommand,
+        customer_id: UUID,
+        fair_id: UUID,
+        data: dict[str, Any],
+        now: datetime,
+    ) -> _ParticipationResult:
+        existing = self._participation_repository.get_active_by_customer_and_fair(
+            command.organization_id, customer_id, fair_id
+        )
+        hall = data.get("hall")
+        stand = data.get("stand")
+        notes = data.get("notes")
+
+        if existing is None:
+            participation = CustomerFairParticipation.create(
+                organization_id=command.organization_id,
+                customer_id=customer_id,
+                fair_id=fair_id,
+                hall=str(hall) if hall else None,
+                stand=str(stand) if stand else None,
+                participation_status=ParticipationStatus.EXHIBITOR,
+                notes=str(notes) if notes else None,
+                now=now,
+            )
+            saved = self._participation_repository.add(participation)
+            return _ParticipationResult(id=saved.id, created=True, updated=False)
+
+        changed = False
+        if not existing.hall and hall:
+            existing.hall = str(hall).strip()
+            changed = True
+        if not existing.stand and stand:
+            existing.stand = str(stand).strip()
+            changed = True
+        if not existing.notes and notes:
+            existing.notes = str(notes).strip()
+            changed = True
+        if changed:
+            existing.updated_at = now
+            saved = self._participation_repository.update(existing)
+            return _ParticipationResult(id=saved.id, created=False, updated=True)
+
+        return _ParticipationResult(id=existing.id, created=False, updated=False)
+
+    def _apply_contact(
         self,
         customer: Customer,
         data: dict[str, Any],
         command: ApplyImportCommand,
         now: datetime,
-    ) -> None:
+    ) -> bool:
         first_name = data.get("contact_first_name")
         last_name = data.get("contact_last_name")
         if not first_name or not last_name:
-            return
-
-        contact = Contact.create(
-            organization_id=command.organization_id,
-            customer_id=customer.id,
-            first_name=str(first_name),
-            last_name=str(last_name),
-            title=data.get("contact_title"),
-            department=data.get("contact_department"),
-            email=data.get("contact_email"),
-            phone=data.get("contact_phone"),
-            mobile_phone=data.get("contact_mobile_phone"),
-            notes=data.get("notes"),
-            now=now,
-        )
-        self._contact_repository.add(contact)
-
-    def _maybe_merge_contact(
-        self,
-        customer: Customer,
-        data: dict[str, Any],
-        command: ApplyImportCommand,
-        now: datetime,
-    ) -> None:
-        first_name = data.get("contact_first_name")
-        last_name = data.get("contact_last_name")
-        if not first_name or not last_name:
-            return
+            return False
 
         existing = self._contact_repository.find_by_customer_and_name(
             command.organization_id,
@@ -255,22 +316,39 @@ class ApplyImportUseCase:
                 department=_fill_if_empty(existing.department, data.get("contact_department")),
                 email=_merge_email_fields(existing.email, data.get("contact_email")),
                 phone=_fill_if_empty(existing.phone, data.get("contact_phone")),
-                mobile_phone=_fill_if_empty(existing.mobile_phone, data.get("contact_mobile_phone")),
-                notes=_fill_if_empty(existing.notes, data.get("notes")),
+                mobile_phone=_fill_if_empty(
+                    existing.mobile_phone, data.get("contact_mobile_phone")
+                ),
+                notes=existing.notes,
                 now=now,
             )
             self._contact_repository.update(existing)
-            return
+            return False
 
-        self._maybe_create_contact(customer, data, command, now)
+        contact = Contact.create(
+            organization_id=command.organization_id,
+            customer_id=customer.id,
+            first_name=str(first_name),
+            last_name=str(last_name),
+            title=data.get("contact_title"),
+            department=data.get("contact_department"),
+            email=data.get("contact_email"),
+            phone=data.get("contact_phone"),
+            mobile_phone=data.get("contact_mobile_phone"),
+            notes=None,
+            now=now,
+        )
+        self._contact_repository.add(contact)
+        return True
 
     def _create_import_activity(
         self,
         command: ApplyImportCommand,
         *,
         customer_id: UUID,
-        subject: str,
+        batch_id: UUID,
         batch_file: str,
+        action: str,
         now: datetime,
     ) -> None:
         activity = Activity.create(
@@ -278,8 +356,8 @@ class ApplyImportUseCase:
             customer_id=customer_id,
             contact_id=None,
             activity_type=ActivityType.NOTE,
-            subject=subject,
-            description=f"Import batch: {batch_file}",
+            subject="Import applied",
+            description=f"Batch {batch_id}, file {batch_file}: {action}",
             activity_date=now,
             follow_up_date=None,
             status=ActivityStatus.COMPLETED,
@@ -288,18 +366,3 @@ class ApplyImportUseCase:
             now=now,
         )
         self._activity_repository.add(activity)
-
-    def _build_description(self, data: dict[str, Any]) -> str | None:
-        parts: list[str] = []
-        if data.get("notes"):
-            parts.append(str(data["notes"]))
-        fair_parts = []
-        if data.get("fair_name"):
-            fair_parts.append(str(data["fair_name"]))
-        if data.get("hall"):
-            fair_parts.append(f"Salon: {data['hall']}")
-        if data.get("stand"):
-            fair_parts.append(f"Stand: {data['stand']}")
-        if fair_parts:
-            parts.append(" | ".join(fair_parts))
-        return "\n".join(parts) if parts else None

@@ -7,6 +7,8 @@ from app.modules.imports.domain.value_objects import (
     ImportBatchStatus,
     ImportDecision,
     ImportRowStatus,
+    ImportSourceType,
+    ImportSuggestedAction,
 )
 
 
@@ -14,6 +16,8 @@ from app.modules.imports.domain.value_objects import (
 class ImportBatch:
     id: UUID
     organization_id: UUID
+    fair_id: Optional[UUID]
+    source_type: ImportSourceType
     file_name: str
     status: ImportBatchStatus
     total_rows: int
@@ -23,6 +27,11 @@ class ImportBatch:
     created_rows: int
     updated_rows: int
     skipped_rows: int
+    created_participations: int
+    updated_participations: int
+    column_mapping_json: Optional[dict[str, Any]]
+    raw_preview_json: Optional[dict[str, Any]]
+    has_header_row: Optional[bool]
     created_at: datetime
     updated_at: datetime
     completed_at: Optional[datetime]
@@ -33,13 +42,18 @@ class ImportBatch:
         cls,
         *,
         organization_id: UUID,
+        fair_id: UUID,
         file_name: str,
-        total_rows: int,
+        source_type: ImportSourceType = ImportSourceType.EXCEL,
+        total_rows: int = 0,
+        raw_preview_json: dict[str, Any] | None = None,
         now: datetime,
     ) -> "ImportBatch":
         return cls(
             id=uuid4(),
             organization_id=organization_id,
+            fair_id=fair_id,
+            source_type=source_type,
             file_name=file_name,
             status=ImportBatchStatus.UPLOADED,
             total_rows=total_rows,
@@ -49,11 +63,61 @@ class ImportBatch:
             created_rows=0,
             updated_rows=0,
             skipped_rows=0,
+            created_participations=0,
+            updated_participations=0,
+            column_mapping_json=None,
+            raw_preview_json=raw_preview_json,
+            has_header_row=None,
             created_at=now,
             updated_at=now,
             completed_at=None,
             notes=None,
         )
+
+    @classmethod
+    def create_legacy(
+        cls,
+        *,
+        organization_id: UUID,
+        file_name: str,
+        total_rows: int,
+        now: datetime,
+    ) -> "ImportBatch":
+        """Legacy v1 upload without fair context (deprecated)."""
+        return cls(
+            id=uuid4(),
+            organization_id=organization_id,
+            fair_id=None,
+            source_type=ImportSourceType.EXCEL,
+            file_name=file_name,
+            status=ImportBatchStatus.UPLOADED,
+            total_rows=total_rows,
+            valid_rows=0,
+            invalid_rows=0,
+            duplicate_rows=0,
+            created_rows=0,
+            updated_rows=0,
+            skipped_rows=0,
+            created_participations=0,
+            updated_participations=0,
+            column_mapping_json=None,
+            raw_preview_json=None,
+            has_header_row=None,
+            created_at=now,
+            updated_at=now,
+            completed_at=None,
+            notes=None,
+        )
+
+    def mark_mapped(self, *, mapping: dict[str, Any], has_header_row: bool, now: datetime) -> None:
+        self.column_mapping_json = mapping
+        self.has_header_row = has_header_row
+        self.status = ImportBatchStatus.MAPPED
+        self.updated_at = now
+
+    def mark_analyzed(self, *, now: datetime) -> None:
+        self.status = ImportBatchStatus.ANALYZED
+        self.updated_at = now
 
     def mark_previewed(self, *, now: datetime) -> None:
         self.status = ImportBatchStatus.PREVIEWED
@@ -90,11 +154,15 @@ class ImportBatch:
         created_rows: int,
         updated_rows: int,
         skipped_rows: int,
+        created_participations: int = 0,
+        updated_participations: int = 0,
         now: datetime,
     ) -> None:
         self.created_rows = created_rows
         self.updated_rows = updated_rows
         self.skipped_rows = skipped_rows
+        self.created_participations = created_participations
+        self.updated_participations = updated_participations
         self.updated_at = now
 
 
@@ -111,9 +179,14 @@ class ImportRow:
     match_customer_id: Optional[UUID]
     match_confidence: Optional[int]
     match_reason: Optional[str]
+    participation_exists: Optional[bool]
+    match_participation_id: Optional[UUID]
+    suggested_action: Optional[ImportSuggestedAction]
     decision: Optional[ImportDecision]
     created_customer_id: Optional[UUID]
     updated_customer_id: Optional[UUID]
+    created_participation_id: Optional[UUID]
+    updated_participation_id: Optional[UUID]
     created_at: datetime
     updated_at: datetime
 
@@ -131,8 +204,17 @@ class ImportRow:
         match_customer_id: UUID | None,
         match_confidence: int | None,
         match_reason: str | None,
+        participation_exists: bool | None = None,
+        match_participation_id: UUID | None = None,
+        suggested_action: ImportSuggestedAction | None = None,
         now: datetime,
     ) -> "ImportRow":
+        default_decision = None
+        if status == ImportRowStatus.READY_TO_CREATE:
+            default_decision = ImportDecision.CREATE_NEW
+        elif status in (ImportRowStatus.POSSIBLE_DUPLICATE, ImportRowStatus.READY_TO_UPDATE):
+            default_decision = ImportDecision.UPDATE_EXISTING
+
         return cls(
             id=uuid4(),
             batch_id=batch_id,
@@ -145,9 +227,14 @@ class ImportRow:
             match_customer_id=match_customer_id,
             match_confidence=match_confidence,
             match_reason=match_reason,
-            decision=None,
+            participation_exists=participation_exists,
+            match_participation_id=match_participation_id,
+            suggested_action=suggested_action,
+            decision=default_decision,
             created_customer_id=None,
             updated_customer_id=None,
+            created_participation_id=None,
+            updated_participation_id=None,
             created_at=now,
             updated_at=now,
         )
@@ -164,6 +251,14 @@ class ImportRow:
     def mark_applied_update(self, customer_id: UUID, *, now: datetime) -> None:
         self.status = ImportRowStatus.APPLIED
         self.updated_customer_id = customer_id
+        self.updated_at = now
+
+    def mark_participation_created(self, participation_id: UUID, *, now: datetime) -> None:
+        self.created_participation_id = participation_id
+        self.updated_at = now
+
+    def mark_participation_updated(self, participation_id: UUID, *, now: datetime) -> None:
+        self.updated_participation_id = participation_id
         self.updated_at = now
 
     def mark_skipped(self, *, now: datetime) -> None:

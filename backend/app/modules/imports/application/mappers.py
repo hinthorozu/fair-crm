@@ -7,7 +7,7 @@ def batch_to_result(
     batch: ImportBatch,
     rows: list[ImportRow] | None = None,
     *,
-    source_type: ImportSourceType = ImportSourceType.EXCEL,
+    source_type: ImportSourceType | None = None,
 ) -> ImportBatchResult:
     ready_to_create = 0
     ready_to_update = 0
@@ -18,7 +18,8 @@ def batch_to_result(
     return ImportBatchResult(
         id=batch.id,
         organization_id=batch.organization_id,
-        source_type=source_type,
+        fair_id=batch.fair_id,
+        source_type=source_type or batch.source_type,
         file_name=batch.file_name,
         status=batch.status,
         total_rows=batch.total_rows,
@@ -28,6 +29,8 @@ def batch_to_result(
         created_rows=batch.created_rows,
         updated_rows=batch.updated_rows,
         skipped_rows=batch.skipped_rows,
+        created_participations=batch.created_participations,
+        updated_participations=batch.updated_participations,
         ready_to_create=ready_to_create,
         ready_to_update=ready_to_update,
         created_at=batch.created_at,
@@ -41,6 +44,7 @@ def row_to_result(
     row: ImportRow,
     *,
     match_customer_name: str | None = None,
+    merge_preview: dict | None = None,
 ) -> ImportRowResult:
     return ImportRowResult(
         id=row.id,
@@ -54,9 +58,14 @@ def row_to_result(
         match_customer_name=match_customer_name,
         match_confidence=row.match_confidence,
         match_reason=row.match_reason,
+        participation_exists=row.participation_exists,
+        suggested_action=row.suggested_action.value if row.suggested_action else None,
         decision=row.decision,
         created_customer_id=row.created_customer_id,
         updated_customer_id=row.updated_customer_id,
+        created_participation_id=row.created_participation_id,
+        updated_participation_id=row.updated_participation_id,
         created_at=row.created_at,
         updated_at=row.updated_at,
+        merge_preview=merge_preview,
     )

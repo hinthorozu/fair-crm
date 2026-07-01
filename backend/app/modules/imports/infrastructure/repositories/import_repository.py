@@ -115,3 +115,14 @@ class SqlAlchemyImportRowRepository:
             )
             update_row_model_from_entity(model, row)
         self._session.flush()
+
+    def delete_by_batch(self, organization_id: UUID, batch_id: UUID) -> None:
+        (
+            self._session.query(ImportRowModel)
+            .filter(
+                ImportRowModel.organization_id == organization_id,
+                ImportRowModel.batch_id == batch_id,
+            )
+            .delete(synchronize_session=False)
+        )
+        self._session.flush()

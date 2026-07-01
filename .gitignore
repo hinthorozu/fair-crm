@@ -32,3 +32,12 @@ Thumbs.db
 
 # Logs
 *.log
+scripts/dev/logs/
+
+# Local verification artifacts (do not commit)
+scripts/.dev_state.json
+scripts/_openapi_check.json
+scripts/_openapi_live.json
+scripts/demo_scenario_report.json
+scripts/e2e_validation_report.json
+scripts/frontend_verification_report.json

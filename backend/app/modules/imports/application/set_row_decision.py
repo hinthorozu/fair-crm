@@ -3,9 +3,11 @@ from datetime import UTC, datetime
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.client import HttpAuditAdapter
 from app.integrations.kyrox_core.ports import AuthorizationPort
+from app.modules.contacts.infrastructure.repositories.contact_repository import SqlAlchemyContactRepository
 from app.modules.customers.domain.ports import CustomerRepository
 from app.modules.imports.application.commands import ImportRowResult, SetImportRowDecisionCommand
 from app.modules.imports.application.mappers import row_to_result
+from app.modules.imports.application.merge_preview_builder import MergePreviewBuilder
 from app.modules.imports.domain.exceptions import (
     ImportBatchAlreadyAppliedError,
     ImportBatchNotFoundError,
@@ -14,6 +16,9 @@ from app.modules.imports.domain.exceptions import (
 )
 from app.modules.imports.domain.ports import ImportBatchRepository, ImportRowRepository
 from app.modules.imports.domain.value_objects import ImportBatchStatus, ImportDecision, ImportRowStatus
+from app.modules.participations.infrastructure.repositories.participation_repository import (
+    SqlAlchemyParticipationRepository,
+)
 
 PERMISSION_UPDATE = "fair_crm.imports.update"
 
@@ -24,12 +29,19 @@ class SetImportRowDecisionUseCase:
         batch_repository: ImportBatchRepository,
         row_repository: ImportRowRepository,
         customer_repository: CustomerRepository,
+        participation_repository: SqlAlchemyParticipationRepository,
+        contact_repository: SqlAlchemyContactRepository,
         authorization: AuthorizationPort,
         audit: HttpAuditAdapter,
     ) -> None:
         self._batch_repository = batch_repository
         self._row_repository = row_repository
         self._customer_repository = customer_repository
+        self._preview_builder = MergePreviewBuilder(
+            customer_repository,
+            participation_repository,
+            contact_repository,
+        )
         self._authorization = authorization
         self._audit = audit
 
@@ -84,6 +96,8 @@ class SetImportRowDecisionUseCase:
             if customer:
                 match_name = customer.display_name
 
+        merge_preview = self._preview_builder.build_for_row(command.organization_id, batch, saved)
+
         self._audit.record_event(
             organization_id=command.organization_id,
             access_token=command.access_token,
@@ -94,7 +108,7 @@ class SetImportRowDecisionUseCase:
             metadata={"user_id": str(command.user_id), "batch_id": str(command.batch_id)},
         )
 
-        return row_to_result(saved, match_customer_name=match_name)
+        return row_to_result(saved, match_customer_name=match_name, merge_preview=merge_preview)
 
     def _validate_decision(self, row, command: SetImportRowDecisionCommand) -> None:
         if row.status == ImportRowStatus.INVALID:

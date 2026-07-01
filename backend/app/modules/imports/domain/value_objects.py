@@ -14,10 +14,19 @@ class ImportSourceType(StrEnum):
 
 class ImportBatchStatus(StrEnum):
     UPLOADED = "uploaded"
+    MAPPED = "mapped"
+    ANALYZED = "analyzed"
     PREVIEWED = "previewed"
     APPLIED = "applied"
     FAILED = "failed"
     CANCELLED = "cancelled"
+
+
+class ImportSuggestedAction(StrEnum):
+    CREATE_CUSTOMER_AND_PARTICIPATION = "create_customer_and_participation"
+    LINK_EXISTING_CUSTOMER_TO_FAIR = "link_existing_customer_to_fair"
+    UPDATE_PARTICIPATION = "update_participation"
+    SKIP = "skip"
 
 
 class ImportRowStatus(StrEnum):
