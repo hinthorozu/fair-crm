@@ -5,9 +5,10 @@
 | Field | Value |
 |-------|-------|
 | **Current Version** | v0.8.3 (Universal Server-Side DataTable) |
-| **Last updated** | 2026-07-01 (Sprint 08.0 completed) |
+| **Last updated** | 2026-07-01 (Sprint 09.0 started) |
 | **Constitution** | [PROJECT_CONSTITUTION.md](PROJECT_CONSTITUTION.md) |
 | **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
+| **Product Vision** | [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) |
 
 ---
 
@@ -186,11 +187,38 @@
 
 ---
 
+## Long-Term Product Vision
+
+KYROX Fair CRM is evolving from a fair CRM into a **Customer Data Platform** — continuously acquiring, enriching, verifying, and improving customer information with human approval at every CRM write.
+
+| Topic | Document |
+|-------|----------|
+| **Full vision** | [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) |
+| Customer Data Lifecycle | Acquire → Import → Research → Enrichment → Verification → Approval → CRM → Sales → Repeat |
+| Business Phase A | Customer Acquisition (Universal Import Engine) — **current P0** |
+| Business Phase B | Customer Enrichment (website, email, phone, WhatsApp, contact discovery) |
+| Business Phase C | Fair Discovery (fair website → scraper → import → enrichment) |
+| Long-term platforms | Import, Company Intelligence, Data Quality, AI, Integration |
+
+Development priority is **business-value driven** (P0 → P1 → P2), not complexity-driven. See Product Vision for platform boundaries and philosophy.
+
+---
+
 ## Current Sprint
 
-**Sprint 05 — Customer Phones**
+**Sprint 09.0 — Data Integration & Universal Import Standard**
 
-Status: Planned — pending start
+Status: **In Progress** — Phase 1 (Architecture & documentation)
+
+**Scope (09.0):**
+
+- ADR-016 — Universal Import Standard & Data Integration module naming
+- [docs/import/IMPORT_ARCHITECTURE.md](docs/import/IMPORT_ARCHITECTURE.md) — end-to-end pipeline
+- [docs/import/MERGE_RULES.md](docs/import/MERGE_RULES.md) — conservative merge rules
+- [docs/import/MATCHING_RULES.md](docs/import/MATCHING_RULES.md) — matching & confidence scores
+- Frontend route/menu design: **Veri Entegrasyonu** at `/data-integration`
+- Excel header mode specification (İlk satır başlık / Başlık yok / Başlık satırını ben seçeceğim)
+- **No implementation code in 09.0** — documentation and ADR only
 
 ---
 
@@ -211,9 +239,11 @@ Chronological plan — completed, active, and backlog sprints.
 | 07.1 | Smart Merge Viewer & Cleanup | Completed |
 | 08.0 | Universal Server-Side DataTable Standard | Completed |
 | 08.1 | Detail Page Action Standard | Completed |
-| 09 | Customer Emails | Planned |
-| 10 | Dashboard | Planned |
-| 11 | Reporting | Planned |
+| **09.0** | **Data Integration & Universal Import Standard** | **In Progress** |
+| 09.1 | Data Integration Implementation (Excel + UI migration) | Planned |
+| 10 | Customer Emails | Planned |
+| 11 | Dashboard | Planned |
+| 12 | Reporting | Planned |
 
 ---
 

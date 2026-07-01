@@ -8,6 +8,11 @@ Format: one version section per completed sprint milestone. Update this file aft
 
 ## Unreleased
 
+- **Product Vision** — [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md): Customer Data Platform direction, business workflow phases (A/B/C), platform map, P0–P2 priorities, philosophy
+- **Sprint 09.0 started** — Data Integration architecture & Universal Import Standard (ADR-016)
+- Docs: [docs/import/IMPORT_ARCHITECTURE.md](docs/import/IMPORT_ARCHITECTURE.md), [MERGE_RULES.md](docs/import/MERGE_RULES.md), [MATCHING_RULES.md](docs/import/MATCHING_RULES.md)
+- Module naming: backend `data_integration`; frontend **Veri Entegrasyonu** at `/data-integration`
+- Excel header mode: İlk satır başlık / Başlık yok (A/B/C…) / Başlık satırını ben seçeceğim
 - Legacy UMCRM migration engine: canonical JSON → KYROX CRM (dev-only)
 - Scripts: `reset_fair_crm_dev_domain.py`, `migrate_umcrm_to_kyrox.py`
 - Full dev import verified: 115 fairs, 28,155 customers, 29,561 participations

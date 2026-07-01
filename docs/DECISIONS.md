@@ -192,3 +192,72 @@ The CRM now contains 28,000+ customers and 29,000+ fair participations. Fetching
 - All list responses follow the shared paginated response format (`items`, `pagination`, `sorting`, `filters`).
 - Frontend list views must use the shared `DataTable` / `useServerDataTable` infrastructure.
 - New list screens are not complete unless they include server-side pagination, search, sort, filter (or a documented exception), URL state, loading, empty, and error/retry states.
+
+## ADR-016 — Universal Import Standard & Data Integration Module
+
+Status: Accepted (Sprint 09.0 — architecture)
+
+**Decision:**
+
+Fair CRM adopts a **Universal Import Standard** under a dedicated **Data Integration** module. All external data ingestion (Excel today; additional sources later) follows a single preview-first pipeline: Batch → File Analysis → Header Mode → Column Mapping → Normalization → Smart Matching → Preview → Decision → Background Import → Final Report.
+
+**Module naming:**
+
+| Layer | Name |
+|-------|------|
+| Backend module / API / database | `data_integration` (English) |
+| Frontend menu label | **Veri Entegrasyonu** (Turkish) |
+| Primary route | `/data-integration` |
+
+**Import source priority** (implementation and UX ordering):
+
+1. **Excel** — first-class; Sprint 07 wizard evolves into this module
+2. **Web Scraper** — planned adapter (menu item disabled until shipped)
+3. **CSV**
+4. **XML**
+5. **JSON**
+6. **REST API**
+7. **ERP** — connector-based; lowest priority
+
+**Excel header mode (mandatory on batch setup):**
+
+| Mode | Turkish UI | Behavior |
+|------|------------|----------|
+| `first_row_header` | İlk satır başlık | Row 1 = headers |
+| `no_header` | Başlık yok | Columns A/B/C/D… with sample values in mapping |
+| `manual_header_row` | Başlık satırını ben seçeceğim | User selects header row |
+
+**Core rules (non-negotiable):**
+
+- Import is **not** direct insert (extends ADR-005).
+- Batch-level **`fair_id` required** (extends ADR-012); no `fair_name` resolution.
+- Hall/stand on **CustomerFairParticipation** only (ADR-010).
+- **No CRM writes** until user confirms preview decisions.
+- Apply runs as a **background job** with final report.
+- Merge is **additive and conservative** — see [docs/import/MERGE_RULES.md](import/MERGE_RULES.md).
+
+**Frontend navigation (Veri Entegrasyonu):**
+
+| Item | Initial status |
+|------|----------------|
+| Import İşleri | Active (wizard migrates from `/imports`) |
+| Import Geçmişi | Planned |
+| Mapping Şablonları | Planned |
+| Web Scrapers | 🚧 Disabled |
+| Export İşleri | 🚧 Disabled |
+| API Entegrasyonları | 🚧 Disabled |
+| ERP Entegrasyonları | 🚧 Disabled |
+| CSV/XML Kaynakları | 🚧 Disabled |
+| Senkronizasyon İşleri | 🚧 Disabled |
+| Entegrasyon Ayarları | 🚧 Disabled |
+
+**Rationale:**
+
+Sprint 07 delivered Excel import and merge preview. Sprint 09.0 formalizes a source-agnostic standard so CSV, API, scraper, and ERP connectors plug into one pipeline without one-off import paths.
+
+**Consequences:**
+
+- Canonical docs: [docs/import/IMPORT_ARCHITECTURE.md](import/IMPORT_ARCHITECTURE.md), [MERGE_RULES.md](import/MERGE_RULES.md), [MATCHING_RULES.md](import/MATCHING_RULES.md).
+- Existing `/imports` and `/api/v1/imports/*` remain until migration sprint; new work targets Data Integration naming.
+- Import/export/sync **background jobs** share a common job pattern.
+- Backend/API/database naming stays **English**; frontend stays **Turkish** (ADR-006).

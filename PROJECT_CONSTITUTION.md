@@ -12,21 +12,25 @@ This document is the official development constitution of the KYROX Fair CRM pro
 
 ## Single Source of Truth
 
-These three files are the project's **single source of truth**:
+These files are the project's **single source of truth**:
 
 | Document | Role |
 |----------|------|
 | [PROJECT_CONSTITUTION.md](PROJECT_CONSTITUTION.md) | Development standards and workflow (this file) |
 | [PROJECT_STATUS.md](PROJECT_STATUS.md) | Living sprint and quality status |
 | [CHANGELOG.md](CHANGELOG.md) | Version history and delivered features |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | Architecture Decision Records |
+| [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) | Long-term product direction and business workflow |
 
 ### Mandatory Rule — Before Starting Any New Sprint
 
 1. Read [PROJECT_CONSTITUTION.md](PROJECT_CONSTITUTION.md)
 2. Read [PROJECT_STATUS.md](PROJECT_STATUS.md)
 3. Read [CHANGELOG.md](CHANGELOG.md)
+4. Read [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md)
+5. Read [docs/DECISIONS.md](docs/DECISIONS.md) for ADRs relevant to the sprint
 
-No sprint work begins until all three documents have been read and understood.
+No sprint work begins until these documents have been read and understood.
 
 ### Supporting Documents
 
@@ -35,6 +39,7 @@ No sprint work begins until all three documents have been read and understood.
 | [README.md](README.md) | Setup, quick start, and integration guide |
 | [ROADMAP.md](ROADMAP.md) | Milestone planning |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Architecture Decision Records |
+| [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) | Long-term product direction (see also canonical table above) |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Detailed architecture reference |
 
 ---
@@ -42,6 +47,16 @@ No sprint work begins until all three documents have been read and understood.
 ## Project Vision
 
 FAIR CRM is the first product on the KYROX platform. It manages fair and exhibition relationships: customers, contacts, fairs, participations, imported exhibitor data, duplicate detection, merge decisions, and CRM follow-up workflows.
+
+**Long-term direction** is documented in [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md): a **Customer Data Platform** that acquires, enriches, verifies, and improves customer information — with mandatory human approval before CRM writes.
+
+### Product Vision Principles (canonical)
+
+1. **Business Workflow First** — Development priorities follow the official business phases (Customer Acquisition → Customer Enrichment → Fair Discovery) and business-value ordering (P0 / P1 / P2) defined in [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md). Technical complexity alone does not set sprint priority.
+2. **Preview First** — No import or external data is written directly to CRM (extends ADR-005, ADR-016).
+3. **Human Approval Required** — External data, enrichment, verification results, and AI suggestions never update CRM automatically.
+4. **Platform Thinking** — Universal Import, Company Intelligence, Data Quality, AI, and Integration remain independent platforms with clear boundaries.
+5. **Compass over itinerary** — Roadmaps and sprint scope may change; architectural principles and product vision remain stable (see Product Vision team motto).
 
 ### Purpose
 
@@ -494,6 +509,23 @@ A sprint or task is **NOT complete** until all required items below are confirme
 
 Sprint-specific deliverables (CRUD, pagination, archive/restore, Turkish UI, etc.) are defined in [Module Standard](#module-standard) and [Sprint Workflow](#sprint-workflow). Runtime synchronization items above are mandatory in addition to those deliverables.
 
+### Data Integration & Universal Import Standard (ADR-016)
+
+All import, export, and sync features must comply with these principles:
+
+- **Import is not direct insert.** External data never bypasses preview, matching, and user decision stages.
+- **Preview-first.** Upload, file analysis, mapping, and matching do not write CRM domain data.
+- **No persistent writes without user decision.** Apply runs only after explicit row or bulk decisions are confirmed.
+- **Fair context required.** Every import batch must have `fair_id`; `fair_name` from source data is not used (ADR-012).
+- **Conservative merge.** Import does not overwrite populated CRM fields with empty or conflicting values without user approval ([docs/import/MERGE_RULES.md](docs/import/MERGE_RULES.md)).
+- **Background jobs.** Import apply, export, and sync operations use the shared background job standard (queued → running → completed/failed, progress, final report).
+- **Naming convention.** Backend module, API routes, database tables, and enums in **English**; frontend labels and user messages in **Turkish** (ADR-006).
+- **Module identity.** Backend: `data_integration`; frontend menu: **Veri Entegrasyonu**; route: `/data-integration`.
+
+Excel batches must declare **header mode** at setup: first row header, no header (columns A/B/C/D with sample values), or manual header row selection.
+
+Canonical architecture: [docs/import/IMPORT_ARCHITECTURE.md](docs/import/IMPORT_ARCHITECTURE.md).
+
 ### List Screen Definition of Done (ADR-015)
 
 A new or changed **list screen** is not complete until all of the following are verified:
@@ -517,7 +549,7 @@ Every feature or sprint follows this workflow:
 
 ```text
 Before start
-  → Read PROJECT_CONSTITUTION.md, PROJECT_STATUS.md, CHANGELOG.md
+  → Read PROJECT_CONSTITUTION.md, PROJECT_STATUS.md, CHANGELOG.md, docs/PRODUCT_VISION.md, docs/DECISIONS.md
 
 Phase 1 — Design
   → ADR-009 platform reusability check
