@@ -81,6 +81,7 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [confirmApply, setConfirmApply] = React.useState(false);
+  const closeConfirmApply = React.useCallback(() => setConfirmApply(false), []);
   const [applyResult, setApplyResult] = React.useState<ApplyImportResponse | null>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
@@ -794,7 +795,7 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
           message={importLabels.applyConfirmMessage}
           confirmLabel={importLabels.applyConfirmTitle}
           onConfirm={() => void handleApply()}
-          onCancel={() => setConfirmApply(false)}
+          onCancel={closeConfirmApply}
         />
       )}
     </div>

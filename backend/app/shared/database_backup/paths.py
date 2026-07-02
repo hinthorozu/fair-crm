@@ -1,6 +1,13 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
+from app.shared.database_backup.formats import (
+    ALLOWED_BACKUP_EXTENSIONS,
+    FORMAT_EXTENSIONS,
+    FORMAT_FILENAME_PREFIX,
+    BackupFormat,
+)
+
 BACKUP_FILENAME_PREFIX = "faircrm_backup_"
 BACKUP_EXTENSION = ".dump"
 
@@ -15,9 +22,15 @@ def get_backups_dir(repo_root: Path | None = None) -> Path:
     return root / "backups"
 
 
-def generate_backup_filename(*, now: datetime | None = None) -> str:
+def generate_backup_filename(
+    *,
+    backup_format: BackupFormat = BackupFormat.POSTGRESQL_DUMP,
+    now: datetime | None = None,
+) -> str:
     ts = (now or datetime.now(tz=UTC)).strftime("%Y%m%d_%H%M%S")
-    return f"{BACKUP_FILENAME_PREFIX}{ts}{BACKUP_EXTENSION}"
+    prefix = FORMAT_FILENAME_PREFIX[backup_format]
+    extension = FORMAT_EXTENSIONS[backup_format]
+    return f"{prefix}{ts}{extension}"
 
 
 def resolve_backup_path(file_name: str, *, repo_root: Path | None = None) -> Path:
@@ -25,8 +38,11 @@ def resolve_backup_path(file_name: str, *, repo_root: Path | None = None) -> Pat
         raise ValueError("Invalid backup file name")
     if ".." in file_name or "/" in file_name or "\\" in file_name:
         raise ValueError("Path traversal detected")
-    if not file_name.endswith(BACKUP_EXTENSION):
-        raise ValueError("Backup file must use .dump extension")
+    if not any(file_name.endswith(ext) for ext in ALLOWED_BACKUP_EXTENSIONS):
+        raise ValueError(
+            "Backup file must use a supported extension: "
+            + ", ".join(sorted(ALLOWED_BACKUP_EXTENSIONS))
+        )
     backups_dir = get_backups_dir(repo_root).resolve()
     candidate = (backups_dir / file_name).resolve()
     if backups_dir not in candidate.parents and candidate != backups_dir:

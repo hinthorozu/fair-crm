@@ -13,7 +13,7 @@ import { Modal } from "../components/ui/Modal";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { adminLabels } from "../labels/adminLabels";
-import type { SystemBackup } from "../types/systemBackup";
+import type { BackupFormat, SystemBackup } from "../types/systemBackup";
 import type { BadgeVariant } from "../components/ui/Badge";
 
 function formatBytes(bytes: number | null): string {
@@ -59,6 +59,12 @@ function statusBadgeVariant(status: SystemBackup["status"]): BadgeVariant {
   return "danger";
 }
 
+function formatLabel(format: BackupFormat): string {
+  if (format === "postgresql_dump") return adminLabels.formatPostgresqlDumpShort;
+  if (format === "postgresql_sql") return adminLabels.formatPostgresqlSqlShort;
+  return adminLabels.formatUniversalPackageShort;
+}
+
 function buildBackupColumns(handlers: {
   onDownload: (backup: SystemBackup) => void;
   onDetails: (backup: SystemBackup) => void;
@@ -70,6 +76,12 @@ function buildBackupColumns(handlers: {
       title: adminLabels.colName,
       sortable: true,
       render: (backup) => backup.file_name,
+    },
+    {
+      key: "backup_format",
+      title: adminLabels.colFormat,
+      sortable: true,
+      render: (backup) => formatLabel(backup.backup_format),
     },
     {
       key: "started_at",
@@ -155,6 +167,7 @@ export function DatabaseBackupsPage() {
   const [notice, setNotice] = React.useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = React.useState(false);
   const [notes, setNotes] = React.useState("");
+  const [backupFormat, setBackupFormat] = React.useState<BackupFormat>("postgresql_dump");
   const [creating, setCreating] = React.useState(false);
   const [createError, setCreateError] = React.useState<string | null>(null);
   const [detailBackup, setDetailBackup] = React.useState<SystemBackup | null>(null);
@@ -198,14 +211,17 @@ export function DatabaseBackupsPage() {
 
   const closeCreateModal = React.useCallback(() => {
     setShowCreateModal(false);
+    setBackupFormat("postgresql_dump");
   }, []);
+
+  const closeDetailModal = React.useCallback(() => setDetailBackup(null), []);
 
   const handleCreateBackup = async () => {
     setCreating(true);
     setNotice(null);
     setCreateError(null);
     try {
-      const created = await createSystemBackup(notes.trim() || null);
+      const created = await createSystemBackup(notes.trim() || null, backupFormat);
       setShowCreateModal(false);
       setNotes("");
       setNotice(adminLabels.backupStarting);
@@ -269,7 +285,7 @@ export function DatabaseBackupsPage() {
         table={table}
         columns={columns}
         rowKey={(backup) => backup.id}
-        skeletonCols={8}
+        skeletonCols={9}
         emptyState={
           <EmptyState title={adminLabels.backupsEmpty} description={adminLabels.backupsEmptyDescription} />
         }
@@ -277,6 +293,48 @@ export function DatabaseBackupsPage() {
 
       {showCreateModal && (
         <Modal title={adminLabels.newBackupTitle} onClose={closeCreateModal}>
+          <fieldset className="backup-format-options">
+            <legend>{adminLabels.formatLabel}</legend>
+            <label className="backup-format-option">
+              <input
+                type="radio"
+                name="backup_format"
+                value="postgresql_dump"
+                checked={backupFormat === "postgresql_dump"}
+                onChange={() => setBackupFormat("postgresql_dump")}
+              />
+              <span>
+                <strong>{adminLabels.formatPostgresqlDump}</strong>
+                <span className="text-muted">{adminLabels.formatPostgresqlDumpDesc}</span>
+              </span>
+            </label>
+            <label className="backup-format-option">
+              <input
+                type="radio"
+                name="backup_format"
+                value="postgresql_sql"
+                checked={backupFormat === "postgresql_sql"}
+                onChange={() => setBackupFormat("postgresql_sql")}
+              />
+              <span>
+                <strong>{adminLabels.formatPostgresqlSql}</strong>
+                <span className="text-muted">{adminLabels.formatPostgresqlSqlDesc}</span>
+              </span>
+            </label>
+            <label className="backup-format-option">
+              <input
+                type="radio"
+                name="backup_format"
+                value="universal_data_package"
+                checked={backupFormat === "universal_data_package"}
+                onChange={() => setBackupFormat("universal_data_package")}
+              />
+              <span>
+                <strong>{adminLabels.formatUniversalPackage}</strong>
+                <span className="text-muted">{adminLabels.formatUniversalPackageDesc}</span>
+              </span>
+            </label>
+          </fieldset>
           <label className="form-field">
             <span>{adminLabels.notesLabel}</span>
             <textarea
@@ -301,10 +359,12 @@ export function DatabaseBackupsPage() {
       )}
 
       {detailBackup && (
-        <Modal title={adminLabels.detailsTitle} onClose={() => setDetailBackup(null)}>
+        <Modal title={adminLabels.detailsTitle} onClose={closeDetailModal}>
           <dl className="detail-list">
             <dt>{adminLabels.colName}</dt>
             <dd>{detailBackup.file_name}</dd>
+            <dt>{adminLabels.detailFormat}</dt>
+            <dd>{formatLabel(detailBackup.backup_format)}</dd>
             <dt>{adminLabels.colStatus}</dt>
             <dd>
               {statusLabel(detailBackup.status)}
@@ -322,6 +382,14 @@ export function DatabaseBackupsPage() {
             <dd>{detailBackup.notes ?? "—"}</dd>
             <dt>{adminLabels.detailChecksum}</dt>
             <dd className="mono">{detailBackup.checksum ?? "—"}</dd>
+            {detailBackup.manifest_json && (
+              <>
+                <dt>{adminLabels.detailManifest}</dt>
+                <dd className="mono backup-manifest-preview">
+                  {JSON.stringify(detailBackup.manifest_json, null, 2)}
+                </dd>
+              </>
+            )}
             <dt>{adminLabels.detailDownloadCount}</dt>
             <dd>{detailBackup.download_count}</dd>
             {detailBackup.error_message && (

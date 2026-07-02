@@ -1364,6 +1364,43 @@ textarea:hover {
   margin-top: 0.25rem;
 }
 
+.backup-format-options {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.backup-format-options legend {
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+
+.backup-format-option {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin: 0.75rem 0;
+  cursor: pointer;
+}
+
+.backup-format-option strong {
+  display: block;
+}
+
+.backup-format-option .text-muted {
+  display: block;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.backup-manifest-preview {
+  max-height: 12rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: 0.75rem;
+}
+
 .detail-list {
   display: grid;
   grid-template-columns: 160px 1fr;

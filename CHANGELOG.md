@@ -8,12 +8,35 @@ Format: one version section per completed sprint milestone. Update this file aft
 
 ## Unreleased
 
+### Shipped (implementation)
+
+- Customer hard-delete cascade safety (ADR-020) — migrations `0012` / `0013`; archive preserved, DR hard delete cascades
+- **Backup format options (Sprint 09.2.4 / ADR-021)** — Admin create modal: `.dump` (DR), `.sql` (plain export), Universal Data Package `.zip` (MVP)
+- Migration `0014_backup_format_options` — `backup_format`, `manifest_json` on `system_backups`
+- `UniversalDataPackageService` — vendor-independent JSON + manifest ZIP export (not restore)
+- Restore remains `.dump`-only; SQL and data package are export/migration formats
 - **Universal Server-Side DataTable Sorting Rule (ADR-019)** — mandatory sortable data columns except Actions
 - `UniversalDataTable` component — column `{ key, title, sortable: true }` auto-manages sort headers
 - Canonical API sort params: `sort_by` + `sort_order` (legacy `sort`/`direction`/`sort_dir` aliases retained)
 - All list screens migrated: Fairs, Customers, Participations, Contacts, Activities, Imports, Admin Backups
 - Backend whitelist tests extended; invalid sort fields fall back safely (no 400)
 - URL sort state on Fairs, Customers, Imports, Backups list pages
+
+### Architecture (documentation only — Sprint 09.2.5)
+
+- **ADR-022** — System Administration & Business Continuity Roadmap (1–2 years)
+- Official Admin → System navigation target; Business Continuity conceptual model
+- Backup Policy Engine design (Daily / Weekly / Monthly, change detection, retention)
+- Backup History, trigger types, bounded contexts (Backup vs Policy vs History vs DR vs Restore vs UDP)
+- Future: cloud/remote backup (S3, Azure Blob, GCS, NAS), DR workspace, platform admin modules
+- Updated: `PROJECT_STATUS.md`, `PROJECT_CONSTITUTION.md`, `docs/PRODUCT_VISION.md`
+
+### Product management (documentation only — Sprint 09.2.6)
+
+- **ADR-023** — Tier-Based Product Delivery Strategy (Tier 1–4)
+- Planning rule: Tier assignment before roadmap; default priority Tier 1 → 2 → 3 → 4
+- Tier 1 gate: UX (Tier 3) does not outrank open foundation without documented override
+- Updated: `PROJECT_STATUS.md`, `PROJECT_CONSTITUTION.md`, `docs/PRODUCT_VISION.md`
 
 ## v0.9.3 — Admin Database Backup Workspace
 

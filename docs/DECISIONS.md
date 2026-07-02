@@ -377,3 +377,131 @@ Operators may hard-delete a customer row directly in PostgreSQL (e.g. Navicat). 
 - SQLAlchemy models mirror the same `ondelete` values for future schema generation.
 - Integration tests verify hard delete removes child rows, nulls import links, and preserves fairs/batches; archive leaves children intact.
 
+---
+
+## ADR-021: Backup format strategy and Universal Data Package foundation
+
+**Status:** Accepted  
+**Date:** 2026-07-02
+
+**Context:**
+
+Admin Database Backups initially supported only PostgreSQL custom-format dumps (`.dump`) for disaster recovery. Operators also need plain SQL for external tools and a vendor-independent export path for future CRM migrations.
+
+**Decision:**
+
+- Three backup formats, selected at create time:
+  - `postgresql_dump` — DR restore via `pg_restore` (unchanged default)
+  - `postgresql_sql` — `pg_dump --format=plain`, export/inspection only
+  - `universal_data_package` — ZIP with JSON entities + `manifest.json`, export/migration only
+- Metadata: `system_backups.backup_format`, optional `manifest_json` (migration `0014`)
+- `UniversalDataPackageService` builds MVP ZIP (customers, fairs, participations, contacts, activities, metadata, manifest)
+- Download serves the artifact matching `backup_format`; path traversal and admin permissions unchanged
+- **Restore API remains `.dump`-only and disabled (501)** — SQL and ZIP are not restore targets
+
+**Consequences:**
+
+- Shared engine extended with `pg_dump_plain` and format-aware filename/path rules (`.dump`, `.sql`, `.zip`)
+- Admin UI format picker in New Backup modal; list shows format column
+- Dev PowerShell scripts continue to default to `.dump` for DR
+
+---
+
+## ADR-022: System Administration & Business Continuity Roadmap
+
+**Status:** Accepted (Architecture — documentation sprint 09.2.5)  
+**Date:** 2026-07-02
+
+**Context:**
+
+Database Backup Workspace (Sprint 09.2.2) and backup format options (09.2.4) established the first System Admin capability. The product needs a **1–2 year official roadmap** for System Administration and Business Continuity so implementation sprints do not collapse policy, history, DR, and export into a single monolithic backup feature.
+
+**Decision:**
+
+1. **System Administration vision** — Admin → System expands to: Dashboard, Database Backups, Backup Policies, Backup Jobs, Backup History, Disaster Recovery, Background Jobs, Audit Logs, Health Monitoring, Scheduler, Maintenance Mode, Storage Management, Environment Information, Cache Management, License, System Settings.
+
+2. **Business Continuity** — Named sub-domain under System Administration covering: Database Backups, Backup Policies, Disaster Recovery, Restore, Backup Verification, Retention Policies, Remote Backup, Cloud Backup.
+
+3. **Separate bounded contexts** — Database Backup, Backup Policy, Backup History, Backup Job, Disaster Recovery, Restore, Universal Data Package evolve as independent modules/use-case boundaries.
+
+4. **Backup Policy Engine (future)** — Policies define *when*, *under what conditions*, *how many*, and *which format*; execution produces History rows. Default policies:
+   - **Daily:** configurable time; retention 30; run only if `last_data_change > last_successful_backup`, else History **Skipped** / **No data changes**
+   - **Weekly:** Monday; retention 10; evict oldest weekly when 11th would be created
+   - **Monthly:** first day of month; retention 12 or Keep Forever (configurable)
+
+5. **Backup History (future)** — Every run logged with status (Completed / Failed / Skipped), skipped reason, timestamps, duration, policy, trigger type, backup file reference, change-detected flag.
+
+6. **Trigger types (future)** — Manual, Scheduled, Before Import, Before Restore, Before Migration, Before Upgrade, Application Update, Schema Migration.
+
+7. **Retention strategy** — Policy-scoped cleanup after successful backup; **never** auto-delete the most recent successful backup.
+
+8. **Formats** — Current: PostgreSQL Native (`.dump`), SQL (`.sql`), Universal Data Package (`.zip` MVP). Future delivery: cloud targets (S3, Azure Blob, GCS, NAS), remote backup orchestration.
+
+9. **Universal Data Package** — Long-term vendor-independent migration export (`manifest.json` + entity JSON). **Not backup.** Restore path remains `.dump`-only.
+
+10. **This ADR is roadmap-only** — No code, migration, or API in sprint 09.2.5.
+
+**Rationale:**
+
+Separating **artifact production** (Database Backup) from **operational rules** (Backup Policy) and **audit trail** (Backup History) prevents unmaintainable coupling in the shared dump engine and supports enterprise expectations (retention, skip-on-no-change, triggered pre-import backups).
+
+**Consequences:**
+
+- [PROJECT_STATUS.md](../PROJECT_STATUS.md) contains the phased delivery table (Foundation → Operations → Policy → DR → Platform admin).
+- [docs/PRODUCT_VISION.md](PRODUCT_VISION.md) adds System Administration & Business Continuity platform vision.
+- [PROJECT_CONSTITUTION.md](../PROJECT_CONSTITUTION.md) documents bounded-context rule for implementers.
+- Implementation sprints reference ADR-022 when adding policy, history, or DR features.
+
+---
+
+## ADR-023: Tier-Based Product Delivery Strategy
+
+**Status:** Accepted (Product Management — documentation sprint 09.2.6)  
+**Date:** 2026-07-02
+
+**Context:**
+
+KYROX Fair CRM is growing across CRM features, data integration, system administration, and long-term platform vision. Without a delivery taxonomy, new ideas risk being implemented in ad-hoc order — UX polish before shared engines, or vision features before business foundations.
+
+**Decision:**
+
+Adopt a **four-tier product delivery model**. Every new feature, idea, or architectural initiative must be classified into exactly one tier **before** roadmap entry and sprint planning.
+
+| Tier | Name | Scope (summary) |
+|------|------|-----------------|
+| **1** | Platform Foundation | Core architecture: auth/RBAC integration, universal UI/data engines, import/export/backup/job/notification infrastructure, scheduler, audit, health, storage, API & architecture standards |
+| **2** | Business Features | CRM business value: customers, fairs, participations, activities, import/merge, scrapers (TUYAP, IFM, F Istanbul), reporting, dashboard, statistics |
+| **3** | User Experience | KYROX Design System, responsive layout, universal wizard/cards/modal, animations, dark theme, accessibility, keyboard shortcuts, empty/loading/progress states, typography, spacing, design tokens |
+| **4** | Future Vision | Long-term: AI assistant, workflow engine, automation, cloud sync, marketplace, plugins, REST/webhooks, multi-tenant, BI, predictive analytics, Universal Data Package maturity, CRM migration toolkit |
+
+**Planning rule:**
+
+1. New idea arrives → determine **Tier**
+2. Add to official roadmap ([PROJECT_STATUS.md](../PROJECT_STATUS.md))
+3. Plan sprint — **do not** start implementation without tier assignment
+
+**Implementation rule (default priority):**
+
+```text
+Tier 1  →  Tier 2  →  Tier 3  →  Tier 4
+```
+
+- Unfinished **Tier 1** work takes precedence over **Tier 3** UX initiatives.
+- **Tier 2** ordering still follows business phases and P0/P1/P2 in [PRODUCT_VISION.md](PRODUCT_VISION.md).
+- **Product owner** may change sprint priority; **tier reclassification** requires documented rationale in roadmap or ADR.
+
+**Relationship to other models:**
+
+- **Business Workflow (Phase A/B/C)** — applies primarily to **Tier 2**
+- **ADR-022 Business Continuity** — mostly **Tier 1** (backup, policy, DR, restore)
+- **Platform Thinking (Import, Intelligence, AI)** — Tier 1 engines + Tier 2/4 capabilities
+
+**This ADR is standards-only** — No code, migration, or API in sprint 09.2.6.
+
+**Consequences:**
+
+- [PROJECT_CONSTITUTION.md](../PROJECT_CONSTITUTION.md) — Tier planning rules for all contributors
+- [PROJECT_STATUS.md](../PROJECT_STATUS.md) — Tier definitions, snapshot, sprint roadmap tags
+- [PRODUCT_VISION.md](PRODUCT_VISION.md) — Tier section + P0/P1/P2 interaction
+- Future sprint proposals must state target **Tier** in planning docs
+

@@ -1,6 +1,7 @@
 import React from "react";
 import { labels } from "../../labels";
 
+/** Overlay dialog — focus/escape/backdrop behavior follows shared modal focus pattern (see .cursor/rules/shared-modal-focus.mdc). */
 interface ModalProps {
   title: string;
   onClose: () => void;

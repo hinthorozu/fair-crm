@@ -4,8 +4,8 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Version** | v0.9.3 (Admin Database Backup Workspace) |
-| **Last updated** | 2026-07-02 (Sprint 09.2.3 — Universal DataTable Sorting) |
+| **Current Version** | v0.9.4 (Backup Format Options) |
+| **Last updated** | 2026-07-02 (Sprint 09.2.6 — Tier-Based Product Delivery Strategy) |
 | **Constitution** | [PROJECT_CONSTITUTION.md](PROJECT_CONSTITUTION.md) |
 | **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
 | **Product Vision** | [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) |
@@ -16,10 +16,11 @@
 
 | Check | Status |
 |-------|--------|
-| Backend tests | **198 PASS** |
+| Backend tests | **210 PASS** |
 | Frontend build | **PASS** |
 | Migration `0010_data_integration` | **APPLIED** (PostgreSQL) |
 | Migration `0011_system_backups` | **APPLIED** (PostgreSQL) |
+| Migration `0014_backup_format_options` | **READY** (PostgreSQL) |
 | Runtime verification (Sprint 09.2.2) | **PASS** — migration, reset-dev, Swagger, live API, live UI |
 | Legacy UMCRM dev migration | **APPLIED** (115 fairs, 28,155 customers, 29,561 participations) |
 
@@ -217,6 +218,34 @@ Status: **Backlog** — next adapter after Excel foundation.
 
 ## Recently Completed
 
+### ✅ Sprint 09.2.6 — Tier-Based Product Delivery Strategy (Product Management)
+
+Status: **Completed** (documentation only — no code, migration, or API)
+
+- Official **Tier 1–4** product delivery model for all future planning
+- **ADR-023** — planning rules, implementation priority, tier definitions
+- Updates: `PROJECT_STATUS.md`, `PROJECT_CONSTITUTION.md`, `docs/PRODUCT_VISION.md`, `docs/DECISIONS.md`
+
+### ✅ Sprint 09.2.5 — System Administration & Business Continuity Roadmap (Architecture)
+
+Status: **Completed** (documentation only — no code, migration, or API)
+
+- Official 1–2 year roadmap for **System Administration** and **Business Continuity**
+- ADR-022 — bounded contexts, policy engine, history, retention, triggers, future formats
+- Updates: `PROJECT_STATUS.md`, `PROJECT_CONSTITUTION.md`, `docs/PRODUCT_VISION.md`, `docs/DECISIONS.md`, `CHANGELOG.md`
+
+### ✅ Sprint 09.2.4 — Backup Format Options & Universal Data Package Foundation
+
+Status: **Completed**
+
+- Admin **New Backup** modal — format picker: `.dump` (DR), `.sql` (plain export), Universal Data Package `.zip` (MVP)
+- Migration `0014_backup_format_options` — `backup_format`, `manifest_json` on `system_backups`
+- Shared engine: `pg_dump_plain` for SQL; format-aware paths (`.dump`, `.sql`, `.zip`)
+- `UniversalDataPackageService` — JSON entities + manifest ZIP (export/migration, not restore)
+- List shows format column; download serves correct artifact
+- Restore remains `.dump`-only and disabled (501)
+- ADR-021
+
 ### ✅ Sprint 09.2.2 — Admin Database Backup Workspace
 
 Status: **Completed** (Definition of Done satisfied)
@@ -279,10 +308,180 @@ Chronological plan — completed, active, and backlog sprints.
 | **09.1** | **Data Integration Workspace & Universal Import Engine** | **Completed** |
 | **09.2** | **Universal Source Adapter Framework** | **Completed** |
 | **09.2.2** | **Admin Database Backup Workspace** | **Completed** |
-| 09.3 | CSV Source Adapter | Planned |
-| 10 | Customer Emails | Planned |
-| 11 | Dashboard | Planned |
-| 12 | Reporting | Planned |
+| **09.2.4** | **Backup Format Options & Universal Data Package (MVP)** | **Completed** |
+| **09.2.5** | **System Admin & Business Continuity Roadmap (docs)** | **Completed** |
+| **09.2.6** | **Tier-Based Product Delivery Strategy (docs)** | **Completed** |
+| 09.3 | CSV Source Adapter | Planned (Tier 1 adapter + Tier 2 import) |
+| 10.x | Customer Emails · Admin: Backup History & Restore | Planned |
+| 11.x | Admin: Backup Policies & Retention | Planned |
+| 12.x | Admin: DR, Remote/Cloud Backup · Reporting | Planned |
+
+---
+
+## Tier-Based Product Delivery Strategy
+
+**Canonical ADR:** [ADR-023 — Tier-Based Product Delivery Strategy](docs/DECISIONS.md)
+
+Every new idea, feature, or architectural decision is classified into **one tier** before it enters the roadmap. Direct implementation without tier assignment is not allowed.
+
+### Tier definitions
+
+| Tier | Name | Role |
+|------|------|------|
+| **1** | **Platform Foundation** | Core architecture, shared engines, standards — product cannot scale safely without these |
+| **2** | **Business Features** | CRM modules that deliver direct business value |
+| **3** | **User Experience** | UX polish, design system, interaction patterns |
+| **4** | **Future Vision** | Long-term platform bets (AI, automation, multi-tenant, BI, etc.) |
+
+### Tier 1 — Platform Foundation (examples)
+
+Authentication · Authorization · Permission System · Universal DataTable · Universal Form · Universal Detail Page · Universal Import Engine · Universal Export Engine · Universal Background Job · Universal Notification Engine · Source Adapter Framework · Backup · Restore · Backup Policy · Scheduler · Audit · Health Monitoring · Storage Management · API Standards · Architecture Standards
+
+**Rule:** Tier 1 gaps block **Tier 3** from taking priority over unfinished foundation work (unless product owner documents an explicit tier override — see ADR-023).
+
+### Tier 2 — Business Features (examples)
+
+Customer Management · Fair Management · Participation · Activities · Import · Export · Duplicate Detection · Merge Engine · Excel Mapping · Scraper Adaptors · TUYAP · IFM · F Istanbul · Reporting · Dashboard · Statistics
+
+Business Phase P0/P1/P2 ([Product Vision](docs/PRODUCT_VISION.md)) applies **within Tier 2** for value ordering.
+
+### Tier 3 — User Experience (examples)
+
+KYROX Design System · Responsive Layout · Universal Wizard · Universal Cards · Universal Modal · Animations · Dark Theme · Accessibility · Keyboard Shortcuts · Empty State · Loading State · Progress Components · Typography · Spacing · Design Tokens
+
+### Tier 4 — Future Vision (examples)
+
+AI Assistant · Workflow Engine · Automation · Cloud Sync · Marketplace · Plugin System · REST Integrations · Webhook Platform · Multi Tenant · BI · Predictive Analytics · Universal Data Package (full maturity) · CRM Migration Toolkit
+
+### Planning & implementation rules
+
+1. **New idea** → assign **Tier** first → add to roadmap → then plan sprint.
+2. **Sprint priority default:** Tier 1 → Tier 2 → Tier 3 → Tier 4.
+3. **Product owner** may reprioritize; **tier changes** require documented rationale in roadmap / ADR note.
+
+### Current delivery snapshot (indicative)
+
+| Tier | Shipped (examples) | Planned / partial |
+|------|-------------------|-------------------|
+| **1** | Universal DataTable, Import Engine, Source Adapter Framework, Backup engine, API/list standards, Core auth integration | Universal Form, Backup Policy, Scheduler, Audit, Restore enablement, Export engine |
+| **2** | Customers, Fairs, Participations, Contacts, Activities, Import/Merge wizard | CSV adapter, Emails, Reporting, Dashboard, fair scrapers (TUYAP/IFM/F Istanbul) |
+| **3** | Navigation foundation, EmptyState, Modal, UniversalDataTable UX | Design System, Dark Theme, Universal Wizard, a11y |
+| **4** | Universal Data Package MVP | AI platforms, Workflow, Multi-tenant, BI (see Product Vision) |
+
+---
+
+## System Administration & Business Continuity Roadmap (1–2 Years)
+
+**Scope:** Architecture and product direction only. Implementation follows phased sprints after P0 customer-data work where appropriate.
+
+**Canonical ADR:** [ADR-022 — System Administration & Business Continuity Roadmap](docs/DECISIONS.md)
+
+### Admin → System — target navigation
+
+```text
+Admin
+  System
+    Dashboard                          (planned)
+    Database Backups                     ✅ shipped (09.2.2 / 09.2.4)
+    Backup Policies                      (planned)
+    Backup Jobs                          (planned)
+    Backup History                       (planned)
+    Disaster Recovery                    (planned)
+    Background Jobs                      (planned)
+    Audit Logs                           (planned)
+    Health Monitoring                    (planned)
+    Scheduler                            (planned)
+    Maintenance Mode                     (planned)
+    Storage Management                   (planned)
+    Environment Information              (planned)
+    Cache Management                     (planned)
+    License                              (planned)
+    System Settings                      (planned)
+```
+
+### Business Continuity (conceptual area under System Administration)
+
+Groups operational resilience capabilities:
+
+| Module | Role | Status |
+|--------|------|--------|
+| **Database Backups** | Produce backup artifacts (`.dump`, `.sql`, `.zip`) | ✅ MVP |
+| **Backup Policies** | Define *when*, *how often*, *how many*, *which format* | Planned |
+| **Backup Jobs** | Execute policies and manual/ triggered runs | Planned |
+| **Backup History** | Record every run: Completed / Failed / Skipped | Planned |
+| **Backup Verification** | Post-backup integrity checks (beyond `pg_restore -l`) | Planned |
+| **Disaster Recovery** | Runbooks, RTO/RPO targets, DR validation workflows | Planned |
+| **Restore** | Controlled `.dump` restore (admin + dev); SQL/ZIP not restore targets | Foundation only |
+| **Retention Policies** | Policy-scoped cleanup after successful backup | Planned |
+| **Remote Backup** | Off-site copy of artifacts | Planned |
+| **Cloud Backup** | S3, Azure Blob, GCS, NAS targets | Planned |
+
+### Architecture principle — bounded contexts
+
+These contexts remain **independently evolvable** (separate use cases, permissions, persistence where needed):
+
+- Database Backup
+- Backup Policy
+- Backup History
+- Backup Job
+- Disaster Recovery
+- Restore
+- Universal Data Package
+
+**Database Backup** produces files. **Backup Policy** decides schedule and rules. **Backup History** records outcomes. Do not merge policy logic into the backup engine.
+
+### Backup Policy Engine (planned)
+
+| Policy | Schedule | Retention | Notes |
+|--------|----------|-----------|-------|
+| **Daily** | Every day, configurable hour | **30** | Only if database changed (see change detection) |
+| **Weekly** | Every Monday, configurable hour | **10** | When 11th weekly would be created, oldest weekly is removed |
+| **Monthly** | First day of month, configurable hour | **12** or **Keep Forever** (configurable) | Long-term archive tier |
+
+**Change detection (Daily):** Preferred rule — run backup only when `last_data_change > last_successful_backup`. Otherwise create **History** row: status **Skipped**, reason **No data changes**.
+
+**Retention cleanup:** Runs after a **successful** backup. Policy-scoped deletion only. **Never** auto-delete the most recent successful backup globally.
+
+### Backup History (planned fields)
+
+Every execution recorded:
+
+| Field | Description |
+|-------|-------------|
+| Status | Completed / Failed / Skipped |
+| Skipped Reason | e.g. `No data changes` |
+| Started At / Completed At / Duration | Timing |
+| Policy | Daily / Weekly / Monthly / Manual |
+| Trigger | See trigger types |
+| Backup File | Artifact reference (if produced) |
+| Change Detected | Boolean for daily smart skip |
+
+### Trigger types (planned)
+
+Manual · Scheduled · Before Import · Before Restore · Before Migration · Before Upgrade · Application Update · Schema Migration
+
+### Backup formats — current and future
+
+| Format | Purpose | Restore |
+|--------|---------|---------|
+| PostgreSQL Native (`.dump`) | Disaster recovery | Yes |
+| PostgreSQL SQL (`.sql`) | Inspection / external tools | No |
+| Universal Data Package (`.zip`) | Vendor-independent migration export | No |
+| Cloud storage targets | S3, Azure Blob, GCS, NAS | N/A (delivery layer) |
+
+**Universal Data Package** long-term target: `faircrm_package.zip` with `manifest.json`, entity JSON files, `metadata.json` — portable to MSSQL, MySQL, MariaDB, other CRMs. **Not a backup**; it is a **migration package**.
+
+### Phased delivery (indicative)
+
+| Phase | Focus | Indicative sprints |
+|-------|--------|-------------------|
+| **A — Foundation** | Backups workspace, formats, dev restore | ✅ 09.2.1 – 09.2.4 |
+| **B — Operations** | Backup History, Restore enablement, verification UI, Before Import trigger | 10.x Admin |
+| **C — Policy & retention** | Policy engine, scheduler integration, change detection, retention cleanup | 10.x – 11.x Admin |
+| **D — DR & off-site** | Disaster Recovery workspace, remote/cloud copy | 11.x – 12.x Admin |
+| **E — Platform admin** | Dashboard, jobs, audit, health, maintenance, storage, settings | 12.x+ Admin |
+
+CSV Source Adapter (09.3) and Customer Emails (10) remain on the **customer-data P0 track**; Admin phases run in parallel when team capacity allows.
 
 ---
 
@@ -306,6 +505,9 @@ Chronological plan — completed, active, and backlog sprints.
 | 09.2 — Universal Source Adapter Framework | v0.9.1 | ✅ |
 | 09.2.1 — Database Backup / Restore Standard | v0.9.2 | ✅ |
 | 09.2.2 — Admin Database Backup Workspace | v0.9.3 | ✅ |
+| 09.2.4 — Backup Format Options | v0.9.4 | ✅ |
+| 09.2.5 — System Admin & BC Roadmap (docs) | — | ✅ |
+| 09.2.6 — Tier-Based Product Delivery (docs) | — | ✅ |
 
 ---
 

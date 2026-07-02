@@ -57,6 +57,7 @@ FAIR CRM is the first product on the KYROX platform. It manages fair and exhibit
 3. **Human Approval Required** — External data, enrichment, verification results, and AI suggestions never update CRM automatically.
 4. **Platform Thinking** — Universal Import, Company Intelligence, Data Quality, AI, and Integration remain independent platforms with clear boundaries.
 5. **Compass over itinerary** — Roadmaps and sprint scope may change; architectural principles and product vision remain stable (see Product Vision team motto).
+6. **Tier before sprint** — Every new feature is classified Tier 1–4 before roadmap entry (ADR-023). Default implementation order: Tier 1 → 2 → 3 → 4; product owner may override with documented rationale.
 
 ### Purpose
 
@@ -613,9 +614,24 @@ These utilities are **developer-only CLI helpers** — they delegate to the same
 
 | Location | Role |
 |----------|------|
-| `backend/app/shared/database_backup/` | Single implementation for `pg_dump`, verify, checksum, path safety |
+| `backend/app/shared/database_backup/` | Single implementation for `pg_dump` (custom + plain SQL), verify, checksum, path safety |
+| `backend/app/shared/universal_data_package/` | Vendor-independent business data ZIP export (migration/portability — not DR restore) |
 | `python -m app.shared.database_backup` | CLI used by PowerShell scripts |
 | `backend/app/modules/system_admin/` | Admin API, background jobs, metadata (`system_backups`) |
+
+### Backup format strategy (Admin + dev)
+
+Three distinct formats — do not conflate DR with export:
+
+| Format | Extension | Purpose | Restore |
+|--------|-----------|---------|---------|
+| **PostgreSQL Native Backup** | `.dump` | Disaster recovery (`pg_dump -Fc`) | Yes (dev scripts / future admin restore) |
+| **PostgreSQL SQL Script** | `.sql` | Plain SQL for inspection / external tools (`pg_dump --format=plain`) | No (export only) |
+| **Universal Data Package** | `.zip` | JSON entities + `manifest.json` for cross-platform migration | No (export only) |
+
+Admin **New Backup** modal lets operators choose the format. Metadata stores `backup_format` and optional `manifest_json` (data packages).
+
+Dev CLI scripts default to `.dump` for DR compatibility.
 
 ### Backup / restore scripts
 
@@ -629,7 +645,7 @@ Run from the **repository root** (`fair-crm/`):
 
 **Configuration:** Scripts read `DATABASE_URL` from `backend/.env` (fallback: repo-root `.env`).
 
-**Backup format:** PostgreSQL custom format via `pg_dump -Fc`. Each successful backup is verified with `pg_restore -l`.
+**Backup format (dev CLI default):** PostgreSQL custom format via `pg_dump -Fc`. Each successful `.dump` is verified with `pg_restore -l`. Admin UI additionally supports `.sql` plain export and Universal Data Package `.zip`.
 
 **Restore safety:**
 
@@ -642,6 +658,79 @@ Run from the **repository root** (`fair-crm/`):
 **Policy:** Do not start real-data import tests until a fresh backup exists and `list-backups.ps1` shows it. The `backups/` directory is gitignored — store dumps locally only.
 
 See also: [docs/DEV_RUNTIME.md](docs/DEV_RUNTIME.md) for dev server reset.
+
+---
+
+## System Administration & Business Continuity (Roadmap)
+
+Fair CRM's **System Administration** module (`system_admin`) is the long-lived home for operational tooling (ADR-018). **Business Continuity** is the resilience sub-domain: backups, policies, history, DR, restore, retention, and off-site copy.
+
+### Bounded contexts (must stay separate)
+
+| Context | Responsibility |
+|---------|----------------|
+| **Database Backup** | Produce `.dump` / `.sql` / `.zip` artifacts |
+| **Backup Policy** | Schedule, format, retention rules, change-detection gate |
+| **Backup History** | Immutable run log: Completed / Failed / Skipped |
+| **Backup Job** | Orchestrate execution (manual, scheduled, triggered) |
+| **Disaster Recovery** | DR validation, runbooks, RTO/RPO — not the same as daily backup |
+| **Restore** | `.dump` recovery only; SQL and Universal Data Package are export formats |
+| **Universal Data Package** | Vendor-independent migration export — not DR |
+
+Do **not** embed policy or retention logic inside `app/shared/database_backup` dump functions.
+
+### Planned policy defaults (reference)
+
+| Policy | Schedule | Retention | Special rule |
+|--------|----------|-----------|--------------|
+| Daily | Configurable time | 30 | Skip if no data change since last successful backup |
+| Weekly | Monday | 10 | Drop oldest weekly when 11th would be created |
+| Monthly | 1st of month | 12 or Keep Forever | Configurable |
+
+Retention cleanup runs **after successful backup** only. **Never** auto-delete the latest global successful backup.
+
+### Triggers (planned)
+
+Manual · Scheduled · Before Import · Before Restore · Before Migration · Before Upgrade · Application Update · Schema Migration
+
+Full roadmap: [PROJECT_STATUS.md](PROJECT_STATUS.md) · [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) · **ADR-022**
+
+---
+
+## Tier-Based Product Delivery Strategy
+
+Fair CRM uses a **four-tier model** so new work is not implemented in random order as the product grows. **ADR-023** is canonical.
+
+| Tier | Name | Purpose |
+|------|------|---------|
+| **1** | Platform Foundation | Shared engines, standards, admin/ops primitives — required for sustainable scale |
+| **2** | Business Features | CRM modules and workflows that deliver customer/fair business value |
+| **3** | User Experience | Design system, layout, components, accessibility, polish |
+| **4** | Future Vision | Long-horizon bets (AI, automation, marketplace, multi-tenant, BI, migration toolkit) |
+
+### Planning rule
+
+New idea → **assign Tier** → add to [PROJECT_STATUS.md](PROJECT_STATUS.md) roadmap → plan sprint. **No direct implementation** without tier classification.
+
+### Implementation rule (default priority)
+
+```text
+Tier 1  →  Tier 2  →  Tier 3  →  Tier 4
+```
+
+- **Tier 1 before Tier 3:** UX-heavy work (Tier 3) does not take priority over open Tier 1 foundation gaps unless the product owner records an explicit override with rationale in the roadmap.
+- **Within Tier 2:** [Product Vision](docs/PRODUCT_VISION.md) P0 / P1 / P2 and business phases (Acquisition → Enrichment → Fair Discovery) still govern business-value ordering.
+- **Tier changes:** Require documented rationale (roadmap note or ADR amendment).
+
+### Tier inventory (reference)
+
+**Tier 1:** AuthN/Z, permissions, Universal DataTable/Form/Detail, Import/Export engines, background jobs, notifications, source adapters, backup/restore/policy, scheduler, audit, health, storage, API & architecture standards.
+
+**Tier 2:** Customers, fairs, participations, activities, import/export, duplicate/merge, Excel mapping, scraper adaptors (TUYAP, IFM, F Istanbul), reporting, dashboard, statistics.
+
+**Tier 3:** KYROX Design System, responsive layout, universal wizard/cards/modal, animations, dark theme, a11y, keyboard shortcuts, empty/loading/progress states, typography, spacing, design tokens.
+
+**Tier 4:** AI assistant, workflow engine, automation, cloud sync, marketplace, plugins, REST/webhooks, multi-tenant, BI, predictive analytics, Universal Data Package maturity, CRM migration toolkit.
 
 ---
 

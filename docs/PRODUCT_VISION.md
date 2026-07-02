@@ -120,7 +120,7 @@ Fair Discovery produces **candidates** for import, not direct CRM rows. After im
 
 ## Development Priority
 
-Development is driven by **business value**, not technical complexity alone.
+Development is driven by **business value**, not technical complexity alone. **Within Tier 2**, use this table:
 
 ### P0 — Highest business value
 
@@ -155,6 +155,31 @@ P2 features **never** auto-write to CRM. They accelerate human decisions.
 
 ---
 
+## Tier-Based Product Delivery
+
+As Fair CRM grows, **all new work** is classified before implementation ([ADR-023](../docs/DECISIONS.md)).
+
+| Tier | Name | What belongs here |
+|------|------|-------------------|
+| **1** | **Platform Foundation** | Auth, permissions, universal components/engines, backup/scheduler/audit, API & architecture standards |
+| **2** | **Business Features** | CRM domain modules — customers, fairs, import, merge, reporting, fair-specific scrapers |
+| **3** | **User Experience** | Design system, layout, wizards, modals, themes, a11y, motion, tokens |
+| **4** | **Future Vision** | AI, workflow automation, marketplace, multi-tenant, BI, full migration toolkit |
+
+### How Tier interacts with business priority
+
+- **Tier** answers: *What kind of work is this?* (foundation vs feature vs UX vs vision)
+- **P0 / P1 / P2** answers: *Among Tier 2 business features, what delivers value first?*
+- **Default sprint order:** Tier 1 → Tier 2 → Tier 3 → Tier 4 (product owner may override with documented rationale)
+
+**Planning rule:** New idea → Tier → Roadmap → Sprint. No ad-hoc implementation.
+
+**Tier 1 gate:** Tier 3 UX initiatives do not outrank unresolved Tier 1 foundation unless explicitly waived.
+
+Tier definitions and current snapshot: [PROJECT_STATUS.md § Tier-Based Product Delivery](../PROJECT_STATUS.md)
+
+---
+
 ## Long-Term Platforms
 
 Fair CRM evolves as a composition of **independent platforms**, each with a clear boundary:
@@ -166,8 +191,48 @@ Fair CRM evolves as a composition of **independent platforms**, each with a clea
 | **Data Quality Platform** | Verification and validation of data already in CRM |
 | **AI Intelligence Platform** | Decision-support: mapping, duplicates, merge, conflict, classification, summary |
 | **Integration Platform** | Connectors: scrapers, REST API, ERP, CSV/XML, sync jobs |
+| **System Administration Platform** | Operational tooling: backups, policies, DR, jobs, audit, health |
+| **Business Continuity Platform** | Resilience: backup policies, history, retention, restore, off-site copy |
 
 Platforms share patterns (preview-first, background jobs, approval queues) but remain **separately evolvable** modules.
+
+---
+
+## System Administration & Business Continuity
+
+**Purpose:** Operate Fair CRM safely at scale — protect customer data, recover from failure, and prove resilience before high-risk work (import, migration, upgrade).
+
+**Today (shipped):** Admin → System → **Database Backups** — manual backup with format choice (`.dump` DR, `.sql` export, Universal Data Package `.zip` MVP).
+
+**Business Continuity** is the conceptual umbrella under System Administration for everything that keeps data **available, recoverable, and auditable**:
+
+```text
+Business Continuity
+  Database Backups        ← produces artifacts
+  Backup Policies           ← defines when / how many / which format
+  Backup Jobs               ← executes policies & triggers
+  Backup History            ← Completed / Failed / Skipped audit trail
+  Backup Verification       ← integrity beyond pg_restore -l
+  Disaster Recovery         ← runbooks & validation
+  Restore                   ← controlled .dump recovery only
+  Retention Policies        ← policy-scoped cleanup
+  Remote / Cloud Backup     ← S3, Azure Blob, GCS, NAS
+```
+
+### Backup vs Backup Policy
+
+| Concept | Responsibility |
+|---------|----------------|
+| **Database Backup** | Run once; produce a file |
+| **Backup Policy** | Daily / Weekly / Monthly rules; retention; format; change-detection gate |
+
+Daily policy runs only when `last_data_change > last_successful_backup`; otherwise History records **Skipped — No data changes**.
+
+### Universal Data Package (long-term)
+
+Vendor-independent export (`manifest.json` + entity JSON). Target systems: MSSQL, MySQL, MariaDB, other CRMs. **Migration package, not backup.** Foundation shipped in Sprint 09.2.4; maturity continues under Business Continuity roadmap.
+
+**Roadmap detail:** [PROJECT_STATUS.md § System Administration & Business Continuity Roadmap](../PROJECT_STATUS.md) · **ADR-022**
 
 ---
 
@@ -301,7 +366,7 @@ What must stay stable is the **compass**: preview-first, human approval, platfor
 |----------|--------------|
 | [PROJECT_CONSTITUTION.md](../PROJECT_CONSTITUTION.md) | Development standards; incorporates Product Vision principles |
 | [PROJECT_STATUS.md](../PROJECT_STATUS.md) | Current sprint and delivery status |
-| [docs/DECISIONS.md](DECISIONS.md) | ADRs (e.g. ADR-005 preview, ADR-016 Universal Import) |
+| [docs/DECISIONS.md](DECISIONS.md) | ADRs (e.g. ADR-005 preview, ADR-016 Universal Import, ADR-023 Tier delivery) |
 | [docs/import/IMPORT_ARCHITECTURE.md](import/IMPORT_ARCHITECTURE.md) | Universal Import Engine architecture |
 | [CHANGELOG.md](../CHANGELOG.md) | Shipped features by version |
 
@@ -312,3 +377,5 @@ What must stay stable is the **compass**: preview-first, human approval, platfor
 | Date | Sprint | Change |
 |------|--------|--------|
 | 2026-07-01 | 09 | Initial Product Vision — Customer Data Platform, business phases, platforms, philosophy |
+| 2026-07-02 | 09.2.5 | System Administration & Business Continuity roadmap — Admin platform vision, policy engine, DR |
+| 2026-07-02 | 09.2.6 | Tier-Based Product Delivery Strategy — Tier 1–4 planning and priority rules (ADR-023) |

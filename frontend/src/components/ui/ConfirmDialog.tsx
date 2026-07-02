@@ -2,6 +2,7 @@ import React from "react";
 import { labels } from "../../labels";
 import { uiLabels } from "../../labels/uiLabels";
 
+/** Confirmation overlay — focus/escape/backdrop behavior follows shared modal focus pattern (see .cursor/rules/shared-modal-focus.mdc). */
 interface ConfirmDialogProps {
   title: string;
   message: string;

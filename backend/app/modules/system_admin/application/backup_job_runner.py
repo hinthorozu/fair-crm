@@ -11,8 +11,10 @@ from app.modules.system_admin.domain.value_objects import SystemBackupStage
 from app.modules.system_admin.infrastructure.repositories.backup_repository import (
     SqlAlchemySystemBackupRepository,
 )
-from app.shared.database_backup.engine import DatabaseBackupError, pg_dump_custom
+from app.shared.database_backup.engine import DatabaseBackupError, pg_dump_custom, pg_dump_plain
+from app.shared.database_backup.formats import BackupFormat
 from app.shared.database_backup.paths import resolve_backup_path
+from app.shared.universal_data_package.service import UniversalDataPackageService
 
 
 @dataclass(frozen=True)
@@ -24,6 +26,7 @@ class BackupJobCommand:
 class BackupJobRunner:
     def __init__(self, session_factory: Callable[[], Session] | None = None) -> None:
         self._session_factory = session_factory or SessionLocal
+        self._package_service = UniversalDataPackageService()
 
     def run_backup(self, command: BackupJobCommand) -> None:
         db = self._session_factory()
@@ -59,11 +62,29 @@ class BackupJobRunner:
                 db.commit()
 
             try:
-                result = pg_dump_custom(
-                    database_url=settings.database_url,
-                    output_path=output_path,
-                    on_stage=on_stage,
-                )
+                manifest_json = None
+                if backup.backup_format == BackupFormat.POSTGRESQL_DUMP:
+                    result = pg_dump_custom(
+                        database_url=settings.database_url,
+                        output_path=output_path,
+                        on_stage=on_stage,
+                    )
+                elif backup.backup_format == BackupFormat.POSTGRESQL_SQL:
+                    result = pg_dump_plain(
+                        database_url=settings.database_url,
+                        output_path=output_path,
+                        on_stage=on_stage,
+                    )
+                elif backup.backup_format == BackupFormat.UNIVERSAL_DATA_PACKAGE:
+                    result, manifest_json = self._package_service.build_package(
+                        session=db,
+                        organization_id=command.organization_id,
+                        output_path=output_path,
+                        on_stage=on_stage,
+                    )
+                else:
+                    raise DatabaseBackupError(f"Unsupported backup format: {backup.backup_format}")
+
                 finished = datetime.now(tz=UTC)
                 backup = repo.get_by_id(command.organization_id, command.backup_id)
                 if backup is None:
@@ -74,10 +95,11 @@ class BackupJobRunner:
                     checksum=result.checksum_sha256,
                     duration_seconds=duration,
                     now=finished,
+                    manifest_json=manifest_json,
                 )
                 repo.update(backup)
                 db.commit()
-            except (DatabaseBackupError, OSError) as exc:
+            except (DatabaseBackupError, OSError, ValueError) as exc:
                 db.rollback()
                 backup = repo.get_by_id(command.organization_id, command.backup_id)
                 if backup:

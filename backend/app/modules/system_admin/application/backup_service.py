@@ -8,6 +8,7 @@ from app.core.pagination import normalize_sort_direction
 from app.integrations.kyrox_core.ports import AuthorizationPort
 from app.modules.system_admin.domain.entities import SystemBackup
 from app.modules.system_admin.domain.ports import SystemBackupRepository
+from app.shared.database_backup.formats import BackupFormat
 from app.shared.database_backup.paths import generate_backup_filename, resolve_backup_path
 
 PERMISSION_CREATE = "fair_crm.admin.backups.create"
@@ -15,6 +16,7 @@ PERMISSION_CREATE = "fair_crm.admin.backups.create"
 BACKUP_ALLOWED_SORT_FIELDS = frozenset(
     {
         "file_name",
+        "backup_format",
         "started_at",
         "file_size",
         "duration_seconds",
@@ -36,12 +38,14 @@ class CreateSystemBackupCommand:
     user_email: str | None
     access_token: str
     notes: str | None
+    backup_format: BackupFormat = BackupFormat.POSTGRESQL_DUMP
 
 
 @dataclass
 class CreateSystemBackupResult:
     backup_id: UUID
     file_name: str
+    backup_format: str
     status: str
     progress_stage: str
 
@@ -65,10 +69,11 @@ class CreateSystemBackupUseCase:
             raise ForbiddenError("Permission denied")
 
         now = datetime.now(tz=UTC)
-        file_name = generate_backup_filename(now=now)
+        file_name = generate_backup_filename(backup_format=command.backup_format, now=now)
         backup = SystemBackup.create(
             organization_id=command.organization_id,
             file_name=file_name,
+            backup_format=command.backup_format,
             created_by=command.user_id,
             created_by_email=command.user_email,
             notes=command.notes,
@@ -78,6 +83,7 @@ class CreateSystemBackupUseCase:
         return CreateSystemBackupResult(
             backup_id=saved.id,
             file_name=saved.file_name,
+            backup_format=saved.backup_format.value,
             status=saved.status.value,
             progress_stage=saved.progress_stage.value,
         )
@@ -87,6 +93,7 @@ class CreateSystemBackupUseCase:
 class GetSystemBackupResult:
     id: UUID
     file_name: str
+    backup_format: str
     file_size: int | None
     status: str
     progress_stage: str
@@ -97,6 +104,7 @@ class GetSystemBackupResult:
     created_by_email: str | None
     notes: str | None
     checksum: str | None
+    manifest_json: dict | None
     download_count: int
     error_message: str | None
 
@@ -214,10 +222,19 @@ class DownloadSystemBackupUseCase:
         return backup, str(path)
 
 
+def media_type_for_backup_file(file_name: str) -> str:
+    if file_name.endswith(".sql"):
+        return "application/sql"
+    if file_name.endswith(".zip"):
+        return "application/zip"
+    return "application/octet-stream"
+
+
 def _to_result(backup: SystemBackup) -> GetSystemBackupResult:
     return GetSystemBackupResult(
         id=backup.id,
         file_name=backup.file_name,
+        backup_format=backup.backup_format.value,
         file_size=backup.file_size,
         status=backup.status.value,
         progress_stage=backup.progress_stage.value,
@@ -228,6 +245,7 @@ def _to_result(backup: SystemBackup) -> GetSystemBackupResult:
         created_by_email=backup.created_by_email,
         notes=backup.notes,
         checksum=backup.checksum,
+        manifest_json=backup.manifest_json,
         download_count=backup.download_count,
         error_message=backup.error_message,
     )

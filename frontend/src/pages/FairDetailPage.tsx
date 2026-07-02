@@ -232,6 +232,10 @@ export function FairDetailPage({
     setModal("create");
   };
 
+  const closeModal = React.useCallback(() => setModal(null), []);
+  const closeConfirmDelete = React.useCallback(() => setConfirmDelete(null), []);
+  const closeConfirmArchive = React.useCallback(() => setConfirmArchive(false), []);
+
   const isArchived = fair.status === "archived" || fair.deleted_at !== null;
 
   const headerActions: PageHeaderAction[] = [
@@ -369,36 +373,36 @@ export function FairDetailPage({
       </TabPanel>
 
       {modal === "edit-fair" && (
-        <Modal title={fairLabels.editFair} onClose={() => setModal(null)} size="lg">
+        <Modal title={fairLabels.editFair} onClose={closeModal} size="lg">
           <FairForm
             initial={fairToFormValues(fair)}
             submitLabel={labels.save}
-            onCancel={() => setModal(null)}
+            onCancel={closeModal}
             onSubmit={handleUpdateFair}
           />
         </Modal>
       )}
 
       {modal === "create" && (
-        <Modal title={participationLabels.newParticipant} onClose={() => setModal(null)} size="lg">
+        <Modal title={participationLabels.newParticipant} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="fair"
             customers={customers}
             submitLabel={participationLabels.save}
-            onCancel={() => setModal(null)}
+            onCancel={closeModal}
             onSubmit={handleCreate}
           />
         </Modal>
       )}
 
       {modal === "edit" && editing && (
-        <Modal title={participationLabels.editParticipant} onClose={() => setModal(null)} size="lg">
+        <Modal title={participationLabels.editParticipant} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="fair"
             customers={customers}
             initial={fairParticipantToFormValues(editing, editing.customer_id)}
             submitLabel={participationLabels.save}
-            onCancel={() => setModal(null)}
+            onCancel={closeModal}
             onSubmit={handleUpdate}
           />
         </Modal>
@@ -411,7 +415,7 @@ export function FairDetailPage({
           confirmLabel={uiLabels.delete}
           variant="danger"
           loading={deletingId === confirmDelete.id}
-          onCancel={() => setConfirmDelete(null)}
+          onCancel={closeConfirmDelete}
           onConfirm={() => void handleDelete(confirmDelete)}
         />
       )}
@@ -423,7 +427,7 @@ export function FairDetailPage({
           confirmLabel={labels.archive}
           variant="danger"
           loading={archiving}
-          onCancel={() => setConfirmArchive(false)}
+          onCancel={closeConfirmArchive}
           onConfirm={() => void handleArchiveFair()}
         />
       )}

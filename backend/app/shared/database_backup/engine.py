@@ -105,6 +105,95 @@ def _docker_cp_to(container: str, local_path: Path, remote_path: str) -> None:
     _run_command(["docker", "cp", str(local_path), f"{container}:{remote_path}"])
 
 
+def pg_dump_plain(
+    *,
+    database_url: str,
+    output_path: Path,
+    on_stage: StageCallback | None = None,
+) -> BackupRunResult:
+    conn = parse_database_url(database_url)
+    toolchain, container = _get_toolchain(conn)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if on_stage:
+        on_stage("preparing")
+    if on_stage:
+        on_stage("dumping")
+
+    if toolchain == "local":
+        pg_dump = _resolve_pg_tool("pg_dump")
+        assert pg_dump
+        env = os.environ.copy()
+        env["PGPASSWORD"] = conn.password
+        _run_command(
+            [
+                pg_dump,
+                "--format=plain",
+                "-h",
+                conn.host,
+                "-p",
+                str(conn.port),
+                "-U",
+                conn.user,
+                "-d",
+                conn.database,
+                "-f",
+                str(output_path),
+                "--no-owner",
+                "--no-acl",
+            ],
+            env=env,
+        )
+    else:
+        assert container
+        remote_path = f"/tmp/faircrm_backup_{uuid.uuid4().hex}.sql"
+        _docker_exec(
+            container,
+            [
+                "env",
+                f"PGPASSWORD={conn.password}",
+                "pg_dump",
+                "--format=plain",
+                "-U",
+                conn.user,
+                "-d",
+                conn.database,
+                "-f",
+                remote_path,
+                "--no-owner",
+                "--no-acl",
+            ],
+        )
+        _docker_cp_from(container, remote_path, output_path)
+        _docker_exec(container, ["rm", "-f", remote_path])
+
+    if on_stage:
+        on_stage("compressing")
+
+    verified = verify_sql_dump(sql_path=output_path)
+    checksum = sha256_file(output_path)
+    return BackupRunResult(
+        path=output_path,
+        size_bytes=verified.size_bytes,
+        checksum_sha256=checksum,
+        toc_entry_count=verified.toc_entry_count,
+        toolchain=toolchain,
+    )
+
+
+def verify_sql_dump(*, sql_path: Path) -> BackupVerificationResult:
+    if not sql_path.exists():
+        raise DatabaseBackupError(f"SQL backup file not found: {sql_path}")
+    size_bytes = sql_path.stat().st_size
+    if size_bytes <= 0:
+        raise DatabaseBackupError(f"SQL backup file is empty: {sql_path}")
+    head = sql_path.read_text(encoding="utf-8", errors="replace")[:4096]
+    if "PostgreSQL database dump" not in head and "CREATE " not in head.upper():
+        raise DatabaseBackupError(f"SQL backup file does not look like a PostgreSQL dump: {sql_path}")
+    statement_count = sum(1 for line in head.splitlines() if line.strip().endswith(";"))
+    return BackupVerificationResult(path=sql_path, size_bytes=size_bytes, toc_entry_count=statement_count)
+
+
 def pg_dump_custom(
     *,
     database_url: str,

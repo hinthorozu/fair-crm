@@ -7,9 +7,22 @@ export const adminLabels = {
   comingSoonMessage: "Bu özellik yakında kullanıma sunulacak.",
 
   backupsTitle: "Database Backups",
-  backupsSubtitle: "PostgreSQL yedekleri — import ve migration öncesi güvenli snapshot",
+  backupsSubtitle: "Disaster recovery, SQL export ve taşınabilir veri paketleri",
   newBackup: "+ New Backup",
   newBackupTitle: "Yeni Veritabanı Yedeği",
+  formatLabel: "Format",
+  formatPostgresqlDump: "PostgreSQL Native Backup (.dump)",
+  formatPostgresqlDumpDesc:
+    "Tam geri yükleme için önerilir. En güvenli restore formatıdır.",
+  formatPostgresqlSql: "PostgreSQL SQL Script (.sql)",
+  formatPostgresqlSqlDesc:
+    "PostgreSQL uyumlu düz SQL çıktısıdır. Navicat, DBeaver, DataGrip gibi araçlarda inceleme/import için uygundur.",
+  formatUniversalPackage: "Universal Data Package (.zip)",
+  formatUniversalPackageDesc:
+    "Platform bağımsız JSON + manifest veri paketi. Gelecekte MSSQL, MySQL veya başka CRM sistemlerine migration için kullanılacaktır.",
+  formatPostgresqlDumpShort: "DR (.dump)",
+  formatPostgresqlSqlShort: "SQL (.sql)",
+  formatUniversalPackageShort: "Data Package (.zip)",
   notesLabel: "Açıklama (isteğe bağlı)",
   notesPlaceholder: "Örn: Maktek import testi öncesi",
   notesHint: "Bu yedek neden alındığını not edin.",
@@ -17,6 +30,7 @@ export const adminLabels = {
   cancel: "İptal",
 
   colName: "Backup Name",
+  colFormat: "Format",
   colCreatedAt: "Created At",
   colCreatedBy: "Created By",
   colSize: "Size",
@@ -49,6 +63,8 @@ export const adminLabels = {
   downloadError: "Yedek indirilemedi.",
   detailsTitle: "Yedek Detayları",
   detailChecksum: "Checksum (SHA-256)",
+  detailFormat: "Format",
+  detailManifest: "Manifest",
   detailDownloadCount: "İndirme sayısı",
   detailError: "Hata",
   detailProgress: "İlerleme",

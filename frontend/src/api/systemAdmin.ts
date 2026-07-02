@@ -3,7 +3,7 @@ import { apiRequest, ApiError } from "./client";
 import { normalizeStandardListResponse, buildListQueryParams } from "./listTable";
 import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
 import type { StandardListResponse } from "../types/listTable";
-import type { CreateSystemBackupResponse, SystemBackup } from "../types/systemBackup";
+import type { BackupFormat, CreateSystemBackupResponse, SystemBackup } from "../types/systemBackup";
 
 export { ApiError };
 
@@ -36,10 +36,13 @@ export async function listSystemBackups(params?: {
   return normalizeStandardListResponse<SystemBackup>(raw);
 }
 
-export async function createSystemBackup(notes?: string | null): Promise<CreateSystemBackupResponse> {
+export async function createSystemBackup(
+  notes?: string | null,
+  backupFormat: BackupFormat = "postgresql_dump",
+): Promise<CreateSystemBackupResponse> {
   return apiRequest<CreateSystemBackupResponse>("/api/v1/admin/backups", {
     method: "POST",
-    body: JSON.stringify({ notes: notes ?? null }),
+    body: JSON.stringify({ notes: notes ?? null, backup_format: backupFormat }),
   });
 }
 

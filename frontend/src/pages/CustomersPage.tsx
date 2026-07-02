@@ -96,6 +96,9 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
     setModal("create");
   };
 
+  const closeModal = React.useCallback(() => setModal(null), []);
+  const closeConfirm = React.useCallback(() => setConfirm(null), []);
+
   return (
     <div className="page">
       <PageHeader
@@ -149,21 +152,21 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
       {success && <div className="banner success">{success}</div>}
 
       {modal === "create" && (
-        <Modal title={labels.newCustomer} onClose={() => setModal(null)} size="lg">
+        <Modal title={labels.newCustomer} onClose={closeModal} size="lg">
           <CustomerForm
             submitLabel={labels.save}
-            onCancel={() => setModal(null)}
+            onCancel={closeModal}
             onSubmit={handleCreate}
           />
         </Modal>
       )}
 
       {modal === "edit" && editing && (
-        <Modal title={labels.editCustomer} onClose={() => setModal(null)} size="lg">
+        <Modal title={labels.editCustomer} onClose={closeModal} size="lg">
           <CustomerForm
             initial={customerToFormValues(editing)}
             submitLabel={labels.save}
-            onCancel={() => setModal(null)}
+            onCancel={closeModal}
             onSubmit={handleUpdate}
           />
         </Modal>
@@ -176,7 +179,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
           confirmLabel={labels.archive}
           variant="danger"
           loading={archivingId === confirm.customer.id}
-          onCancel={() => setConfirm(null)}
+          onCancel={closeConfirm}
           onConfirm={() => void handleArchive(confirm.customer)}
         />
       )}
@@ -187,7 +190,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
           message={labels.restoreConfirm}
           confirmLabel={labels.restore}
           loading={restoringId === confirm.customer.id}
-          onCancel={() => setConfirm(null)}
+          onCancel={closeConfirm}
           onConfirm={() => void handleRestore(confirm.customer)}
         />
       )}

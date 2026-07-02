@@ -34,7 +34,9 @@ from app.modules.system_admin.application.backup_service import (
     BACKUP_DEFAULT_SORT_DIRECTION,
     BACKUP_DEFAULT_SORT_FIELD,
     CreateSystemBackupCommand,
+    media_type_for_backup_file,
 )
+from app.shared.database_backup.formats import BackupFormat
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/admin", tags=["Admin — System"])
@@ -69,6 +71,7 @@ def create_system_backup(
                 user_email=auth.email,
                 access_token=access_token(credentials),
                 notes=body.notes,
+                backup_format=BackupFormat(body.backup_format),
             )
         )
     except ForbiddenError as exc:
@@ -82,6 +85,7 @@ def create_system_backup(
     return CreateSystemBackupResponse(
         id=result.backup_id,
         file_name=result.file_name,
+        backup_format=result.backup_format,
         status=result.status,
         progress_stage=result.progress_stage,
     )
@@ -205,7 +209,7 @@ def download_system_backup(
 
     return FileResponse(
         path=path,
-        media_type="application/octet-stream",
+        media_type=media_type_for_backup_file(backup.file_name),
         filename=backup.file_name,
     )
 

@@ -100,6 +100,9 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
     setModal("create");
   };
 
+  const closeModal = React.useCallback(() => setModal(null), []);
+  const closeConfirm = React.useCallback(() => setConfirm(null), []);
+
   return (
     <div className="page">
       <PageHeader
@@ -150,21 +153,21 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
       {success && <div className="banner success">{success}</div>}
 
       {modal === "create" && (
-        <Modal title={fairLabels.newFair} onClose={() => setModal(null)} size="lg">
+        <Modal title={fairLabels.newFair} onClose={closeModal} size="lg">
           <FairForm
             submitLabel={labels.save}
-            onCancel={() => setModal(null)}
+            onCancel={closeModal}
             onSubmit={handleCreate}
           />
         </Modal>
       )}
 
       {modal === "edit" && editing && (
-        <Modal title={fairLabels.editFair} onClose={() => setModal(null)} size="lg">
+        <Modal title={fairLabels.editFair} onClose={closeModal} size="lg">
           <FairForm
             initial={fairToFormValues(editing)}
             submitLabel={labels.save}
-            onCancel={() => setModal(null)}
+            onCancel={closeModal}
             onSubmit={handleUpdate}
           />
         </Modal>
@@ -177,7 +180,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
           confirmLabel={labels.archive}
           variant="danger"
           loading={archivingId === confirm.fair.id}
-          onCancel={() => setConfirm(null)}
+          onCancel={closeConfirm}
           onConfirm={() => void handleArchive(confirm.fair)}
         />
       )}
@@ -188,7 +191,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
           message={fairLabels.restoreConfirm}
           confirmLabel={labels.restore}
           loading={restoringId === confirm.fair.id}
-          onCancel={() => setConfirm(null)}
+          onCancel={closeConfirm}
           onConfirm={() => void handleRestore(confirm.fair)}
         />
       )}

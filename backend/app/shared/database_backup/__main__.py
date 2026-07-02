@@ -8,12 +8,13 @@ from pathlib import Path
 
 from app.core.config import get_settings
 from app.shared.database_backup.engine import pg_dump_custom, pg_restore_custom, verify_backup_dump
-from app.shared.database_backup.paths import ensure_backups_dir, generate_backup_filename, resolve_backup_path
+from app.shared.database_backup.paths import generate_backup_filename, get_backups_dir, resolve_backup_path
 
 
 def _cmd_backup(args: argparse.Namespace) -> int:
     settings = get_settings()
-    output = Path(args.output) if args.output else ensure_backups_dir() / generate_backup_filename()
+    output = Path(args.output) if args.output else get_backups_dir() / generate_backup_filename()
+    output.parent.mkdir(parents=True, exist_ok=True)
     result = pg_dump_custom(database_url=settings.database_url, output_path=output)
     print(f"Backup complete: {result.path}")
     print(f"Size: {result.size_bytes} bytes")

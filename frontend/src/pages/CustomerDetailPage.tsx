@@ -125,6 +125,9 @@ export function CustomerDetailPage({
   const [archiving, setArchiving] = React.useState(false);
   const [confirm, setConfirm] = React.useState<ConfirmState>(null);
 
+  const closeModal = React.useCallback(() => setModal(null), []);
+  const closeConfirm = React.useCallback(() => setConfirm(null), []);
+
   const detailPath = `/customers/${customerId}`;
 
   const contactsTable = useServerDataTable<Contact>({
@@ -645,82 +648,82 @@ export function CustomerDetailPage({
       </TabPanel>
 
       {modal === "edit-customer" && (
-        <Modal title={labels.editCustomer} onClose={() => setModal(null)} size="lg">
+        <Modal title={labels.editCustomer} onClose={closeModal} size="lg">
           <CustomerForm
             initial={customerToFormValues(customer)}
             submitLabel={labels.save}
-            onCancel={() => setModal(null)}
+            onCancel={closeModal}
             onSubmit={handleUpdateCustomer}
           />
         </Modal>
       )}
 
       {modal === "create-contact" && (
-        <Modal title={contactLabels.newContact} onClose={() => setModal(null)}>
+        <Modal title={contactLabels.newContact} onClose={closeModal}>
           <ContactForm
             submitLabel={contactLabels.save}
-            onCancel={() => setModal(null)}
+            onCancel={closeModal}
             onSubmit={handleCreateContact}
           />
         </Modal>
       )}
 
       {modal === "edit-contact" && editingContact && (
-        <Modal title={contactLabels.editContact} onClose={() => setModal(null)}>
+        <Modal title={contactLabels.editContact} onClose={closeModal}>
           <ContactForm
             initial={contactToFormValues(editingContact)}
             submitLabel={contactLabels.save}
-            onCancel={() => setModal(null)}
+            onCancel={closeModal}
             onSubmit={handleUpdateContact}
           />
         </Modal>
       )}
 
       {modal === "create-activity" && (
-        <Modal title={activityLabels.newActivity} onClose={() => setModal(null)} size="lg">
+        <Modal title={activityLabels.newActivity} onClose={closeModal} size="lg">
           <ActivityForm
             contacts={contactsForForm}
             submitLabel={activityLabels.save}
-            onCancel={() => setModal(null)}
+            onCancel={closeModal}
             onSubmit={handleCreateActivity}
           />
         </Modal>
       )}
 
       {modal === "edit-activity" && editingActivity && (
-        <Modal title={activityLabels.editActivity} onClose={() => setModal(null)} size="lg">
+        <Modal title={activityLabels.editActivity} onClose={closeModal} size="lg">
           <ActivityForm
             contacts={contactsForForm}
             initial={activityToFormValues(editingActivity)}
             submitLabel={activityLabels.save}
-            onCancel={() => setModal(null)}
+            onCancel={closeModal}
             onSubmit={handleUpdateActivity}
           />
         </Modal>
       )}
 
       {modal === "create-participation" && (
-        <Modal title={participationLabels.newParticipation} onClose={() => setModal(null)} size="lg">
+        <Modal title={participationLabels.newParticipation} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="customer"
             fairs={fairs}
             contacts={contactsForForm}
             submitLabel={participationLabels.save}
-            onCancel={() => setModal(null)}
+            onCancel={closeModal}
             onSubmit={handleCreateParticipation}
           />
         </Modal>
       )}
 
       {modal === "edit-participation" && editingParticipation && participationFormInitial && (
-        <Modal title={participationLabels.editParticipation} onClose={() => setModal(null)} size="lg">
+        <Modal title={participationLabels.editParticipation} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="customer"
             fairs={fairs}
             contacts={contactsForForm}
             initial={participationFormInitial}
             submitLabel={participationLabels.save}
-            onCancel={() => setModal(null)}
+            onCancel={closeModal}
             onSubmit={handleUpdateParticipation}
           />
         </Modal>
@@ -733,7 +736,7 @@ export function CustomerDetailPage({
           confirmLabel={uiLabels.delete}
           variant="danger"
           loading={deletingContactId === confirm.item.id}
-          onCancel={() => setConfirm(null)}
+          onCancel={closeConfirm}
           onConfirm={() => void handleDeleteContact(confirm.item)}
         />
       )}
@@ -745,7 +748,7 @@ export function CustomerDetailPage({
           confirmLabel={uiLabels.delete}
           variant="danger"
           loading={deletingActivityId === confirm.item.id}
-          onCancel={() => setConfirm(null)}
+          onCancel={closeConfirm}
           onConfirm={() => void handleDeleteActivity(confirm.item)}
         />
       )}
@@ -757,7 +760,7 @@ export function CustomerDetailPage({
           confirmLabel={uiLabels.delete}
           variant="danger"
           loading={deletingParticipationId === confirm.item.id}
-          onCancel={() => setConfirm(null)}
+          onCancel={closeConfirm}
           onConfirm={() => void handleDeleteParticipation(confirm.item)}
         />
       )}
@@ -769,7 +772,7 @@ export function CustomerDetailPage({
           confirmLabel={labels.archive}
           variant="danger"
           loading={archiving}
-          onCancel={() => setConfirm(null)}
+          onCancel={closeConfirm}
           onConfirm={() => void handleArchiveCustomer()}
         />
       )}

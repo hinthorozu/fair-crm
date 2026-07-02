@@ -6,9 +6,11 @@ from sqlalchemy.orm import Session
 from app.modules.system_admin.domain.entities import SystemBackup
 from app.modules.system_admin.domain.value_objects import SystemBackupStage, SystemBackupStatus
 from app.modules.system_admin.infrastructure.persistence.models import SystemBackupModel
+from app.shared.database_backup.formats import BackupFormat
 
 BACKUP_SORT_FIELDS = {
     "file_name": SystemBackupModel.file_name,
+    "backup_format": SystemBackupModel.backup_format,
     "started_at": SystemBackupModel.started_at,
     "file_size": SystemBackupModel.file_size,
     "duration_seconds": SystemBackupModel.duration_seconds,
@@ -33,6 +35,7 @@ def _to_entity(model: SystemBackupModel) -> SystemBackup:
         id=model.id,
         organization_id=model.organization_id,
         file_name=model.file_name,
+        backup_format=BackupFormat(model.backup_format),
         file_size=model.file_size,
         status=SystemBackupStatus(model.status),
         progress_stage=SystemBackupStage(model.progress_stage),
@@ -43,6 +46,7 @@ def _to_entity(model: SystemBackupModel) -> SystemBackup:
         created_by_email=model.created_by_email,
         notes=model.notes,
         checksum=model.checksum,
+        manifest_json=model.manifest_json,
         download_count=model.download_count,
         error_message=model.error_message,
         created_at=_ensure_utc(model.created_at),
@@ -55,6 +59,7 @@ def _to_model(entity: SystemBackup) -> SystemBackupModel:
         id=entity.id,
         organization_id=entity.organization_id,
         file_name=entity.file_name,
+        backup_format=entity.backup_format.value,
         file_size=entity.file_size,
         status=entity.status.value,
         progress_stage=entity.progress_stage.value,
@@ -65,6 +70,7 @@ def _to_model(entity: SystemBackup) -> SystemBackupModel:
         created_by_email=entity.created_by_email,
         notes=entity.notes,
         checksum=entity.checksum,
+        manifest_json=entity.manifest_json,
         download_count=entity.download_count,
         error_message=entity.error_message,
         created_at=entity.created_at,
@@ -74,6 +80,7 @@ def _to_model(entity: SystemBackup) -> SystemBackupModel:
 
 def _update_model(model: SystemBackupModel, entity: SystemBackup) -> None:
     model.file_name = entity.file_name
+    model.backup_format = entity.backup_format.value
     model.file_size = entity.file_size
     model.status = entity.status.value
     model.progress_stage = entity.progress_stage.value
@@ -83,6 +90,7 @@ def _update_model(model: SystemBackupModel, entity: SystemBackup) -> None:
     model.created_by_email = entity.created_by_email
     model.notes = entity.notes
     model.checksum = entity.checksum
+    model.manifest_json = entity.manifest_json
     model.download_count = entity.download_count
     model.error_message = entity.error_message
     model.updated_at = entity.updated_at
