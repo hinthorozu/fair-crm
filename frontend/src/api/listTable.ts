@@ -22,7 +22,8 @@ function readPagination(raw: Record<string, unknown>): ListPaginationInfo | null
     const p = nested as Record<string, unknown>;
     const page = toPositiveInt(p.page, DEFAULT_PAGE);
     const pageSize = toPositiveInt(p.pageSize ?? p.page_size, DEFAULT_PAGE_SIZE);
-    const totalItems = toNonNegativeInt(p.totalItems ?? p.total) ?? 0;
+    const totalItems =
+      toNonNegativeInt(p.totalItems ?? p.total_items ?? p.total) ?? 0;
     let totalPages = toNonNegativeInt(p.totalPages ?? p.total_pages);
     if (totalPages === null) {
       totalPages = totalItems === 0 ? 0 : Math.max(1, Math.ceil(totalItems / pageSize));
@@ -32,8 +33,8 @@ function readPagination(raw: Record<string, unknown>): ListPaginationInfo | null
       pageSize,
       totalItems,
       totalPages,
-      hasNext: Boolean(p.hasNext ?? (totalPages > 0 && page < totalPages)),
-      hasPrevious: Boolean(p.hasPrevious ?? page > 1),
+      hasNext: Boolean(p.hasNext ?? p.has_next ?? (totalPages > 0 && page < totalPages)),
+      hasPrevious: Boolean(p.hasPrevious ?? p.has_previous ?? page > 1),
     };
   }
   return null;

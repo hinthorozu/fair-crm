@@ -46,7 +46,7 @@ def _build_preview_from_rows(sheet_name: str, all_rows: list[list[Any]]) -> dict
         for row in normalized_rows[:10]:
             if index < len(row) and row[index] is not None:
                 sample_values.append(row[index])
-                if len(sample_values) >= 3:
+                if len(sample_values) >= 10:
                     break
         columns.append(
             {

@@ -1,5 +1,7 @@
 import { buildApiHeaders, config } from "../config";
 
+export const API_REQUEST_TIMEOUT_MS = 30_000;
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -24,12 +26,50 @@ export function formatApiErrorMessage(
   return detail || fallback;
 }
 
+function isAbortError(err: unknown): boolean {
+  return err instanceof DOMException
+    ? err.name === "AbortError"
+    : err instanceof Error && err.name === "AbortError";
+}
+
+/** Fetch with timeout; used by apiRequest and multipart uploads. */
+export async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs: number = API_REQUEST_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+  const externalSignal = options.signal;
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    } else {
+      externalSignal.addEventListener("abort", () => controller.abort(), { once: true });
+    }
+  }
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (isAbortError(err)) {
+      throw new ApiError(
+        "Sunucu yanıt vermedi. Backend çalışıyor mu? (Zaman aşımı)",
+        0,
+      );
+    }
+    throw err;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 export async function apiRequest<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
   const url = `${config.apiBaseUrl}${path}`;
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     ...options,
     headers: buildApiHeaders(options.headers ?? {}),
   });

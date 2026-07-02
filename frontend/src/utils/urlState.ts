@@ -111,8 +111,10 @@ export function writeTableStateToUrl(
 
 export function navigateWithSearch(pathname: string, search: string) {
   const next = `${pathname}${search}`;
-  if (`${window.location.pathname}${window.location.search}` !== next) {
-    window.history.pushState(null, "", next);
+  const current = `${window.location.pathname}${window.location.search}`;
+  if (current === next) {
+    return;
   }
+  window.history.pushState(null, "", next);
   window.dispatchEvent(new PopStateEvent("popstate"));
 }

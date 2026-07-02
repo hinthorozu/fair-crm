@@ -2,6 +2,8 @@
 
 from typing import Any
 
+from openpyxl.utils import get_column_letter
+
 from app.modules.imports.domain.exceptions import InvalidColumnMappingError
 from app.modules.imports.domain.services.header_mapping import map_header_to_field, normalize_header
 from app.modules.imports.domain.value_objects import ExcelHeaderMode
@@ -31,6 +33,27 @@ WIZARD_MAPPING_FIELDS = frozenset(
 )
 
 REJECTED_MAPPING_FIELDS = frozenset({"fair_name"})
+
+MAX_MAPPING_SAMPLE_ROWS = 10
+
+
+def _is_empty_cell(value: Any) -> bool:
+    if value is None:
+        return True
+    if isinstance(value, str) and not value.strip():
+        return True
+    return False
+
+
+def _data_rows_for_preview(
+    rows: list[list[Any]],
+    mode: ExcelHeaderMode,
+    header_row_index: int | None,
+) -> list[list[Any]]:
+    if mode == ExcelHeaderMode.NO_HEADER:
+        return rows[:MAX_MAPPING_SAMPLE_ROWS]
+    start = int(header_row_index or 0) + 1
+    return rows[start : start + MAX_MAPPING_SAMPLE_ROWS]
 
 
 def header_mode_to_has_header(mode: ExcelHeaderMode) -> bool:
@@ -173,6 +196,60 @@ def apply_column_mapping(
     return mapped_rows
 
 
+def build_mapping_preview_columns(
+    raw_preview: dict[str, Any],
+    *,
+    has_header_row: bool | None = None,
+    header_mode: ExcelHeaderMode | None = None,
+    header_row_index: int | None = None,
+) -> list[dict[str, Any]]:
+    """Universal Import Mapping Preview — per-column header + sample values (max 10 rows)."""
+    mode = resolve_header_mode(header_mode=header_mode, has_header_row=has_header_row)
+    resolved_index = resolve_header_row_index(mode, header_row_index=header_row_index)
+    headers = _headers_for_mode(raw_preview, mode, resolved_index)
+    rows: list[list[Any]] = raw_preview.get("rows") or []
+    columns_meta: list[dict[str, Any]] = raw_preview.get("columns") or []
+    max_cols = len(columns_meta) if columns_meta else (max(len(r) for r in rows) if rows else 0)
+    data_rows = _data_rows_for_preview(rows, mode, resolved_index)
+
+    result: list[dict[str, Any]] = []
+    for index in range(max_cols):
+        letter = columns_meta[index]["letter"] if index < len(columns_meta) else get_column_letter(index + 1)
+        header: str | None = None
+        if mode != ExcelHeaderMode.NO_HEADER and index < len(headers) and headers[index]:
+            header = str(headers[index])
+
+        samples: list[Any] = []
+        empty_count = 0
+        for row in data_rows:
+            value = row[index] if index < len(row) else None
+            if _is_empty_cell(value):
+                samples.append(None)
+                empty_count += 1
+            else:
+                samples.append(value)
+
+        filled_count = len(samples) - empty_count
+        first_value = next((s for s in samples if s is not None), None)
+
+        result.append(
+            {
+                "key": letter,
+                "index": index,
+                "letter": letter,
+                "header": header,
+                "samples": samples,
+                "stats": {
+                    "total": len(samples),
+                    "empty": empty_count,
+                    "filled": filled_count,
+                    "first_value": str(first_value) if first_value is not None else None,
+                },
+            }
+        )
+    return result
+
+
 def build_mapping_field_options(
     raw_preview: dict[str, Any],
     *,
@@ -180,23 +257,27 @@ def build_mapping_field_options(
     header_mode: ExcelHeaderMode | None = None,
     header_row_index: int | None = None,
 ) -> list[dict[str, Any]]:
+    preview_columns = build_mapping_preview_columns(
+        raw_preview,
+        has_header_row=has_header_row,
+        header_mode=header_mode,
+        header_row_index=header_row_index,
+    )
     mode = resolve_header_mode(header_mode=header_mode, has_header_row=has_header_row)
-    resolved_index = resolve_header_row_index(mode, header_row_index=header_row_index)
-    headers = _headers_for_mode(raw_preview, mode, resolved_index)
-    columns = raw_preview.get("columns") or []
     options: list[dict[str, Any]] = []
 
-    for col in columns:
+    for col in preview_columns:
         index = col["index"]
         letter = col["letter"]
-        sample_values = col.get("sample_values") or []
+        header = col.get("header")
+        sample_values = col.get("samples") or []
         if mode == ExcelHeaderMode.NO_HEADER:
-            samples = ", ".join(str(v) for v in sample_values[:3])
+            samples = ", ".join(str(v) for v in sample_values[:3] if v is not None)
             label = f"Column {letter}"
             if samples:
                 label = f"Column {letter} ({samples})"
-        elif index < len(headers) and headers[index]:
-            label = f"{headers[index]} ({letter})"
+        elif header:
+            label = f"{header} ({letter})"
         else:
             label = f"Column {letter}"
         options.append(

@@ -144,7 +144,10 @@ export function useServerDataTable<T>({
   const defaultSortDirection = defaultSort?.direction;
 
   const load = React.useCallback(async () => {
-    if (!enabled) return;
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -185,8 +188,12 @@ export function useServerDataTable<T>({
   ]);
 
   React.useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     void load();
-  }, [load]);
+  }, [enabled, load]);
 
   React.useEffect(() => {
     if (!urlSync) return;

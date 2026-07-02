@@ -82,6 +82,16 @@ export const importLabels = {
   previewSortCompany: "Firma",
   previewSortStatus: "Durum",
   mergeDiffTitle: "Birleştirme Detayı",
+  mappingCrmField: "CRM Alanı",
+  mappingSourceColumn: "Kaynak Kolonu",
+  mappingSourcePreview: "Kaynak Önizleme",
+  mappingShowMoreSamples: "Diğer örnekleri göster",
+  mappingShowLessSamples: "Daha az göster",
+  mappingStatsTotal: "Toplam örnek",
+  mappingStatsEmpty: "Boş",
+  mappingStatsFilled: "Dolu",
+  mappingStatsFirst: "İlk değer",
+  mappingNoColumnSelected: "Kolon seçin",
 } as const;
 
 export const importBatchStatusLabels: Record<string, string> = {

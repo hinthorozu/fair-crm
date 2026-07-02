@@ -27,7 +27,7 @@ from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlc
 from app.modules.imports.application.analyze_import import AnalyzeImportUseCase
 from app.modules.imports.application.apply_import import ApplyImportUseCase
 from app.modules.imports.application.bulk_row_decision import BulkRowDecisionUseCase
-from app.modules.imports.application.get_import_batch import GetImportBatchUseCase
+from app.modules.imports.application.get_mapping_preview import GetMappingPreviewUseCase
 from app.modules.imports.application.list_import_rows import ListImportRowsUseCase
 from app.modules.imports.application.set_column_mapping import SetColumnMappingUseCase
 from app.modules.imports.application.set_row_decision import SetImportRowDecisionUseCase
@@ -199,6 +199,13 @@ def get_bulk_row_decision_use_case(
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
 ) -> BulkRowDecisionUseCase:
     return BulkRowDecisionUseCase(batch_repository, row_repository, authorization, audit)
+
+
+def get_mapping_preview_use_case(
+    batch_repository: SqlAlchemyImportBatchRepository = Depends(get_import_batch_repository),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+) -> GetMappingPreviewUseCase:
+    return GetMappingPreviewUseCase(batch_repository, authorization)
 
 
 def get_apply_import_use_case(

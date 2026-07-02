@@ -525,6 +525,8 @@ All import, export, and sync features must comply with these principles:
 
 Excel batches must declare **header mode** at setup: first row header, no header (columns A/B/C/D with sample values), or manual header row selection.
 
+**Mapping preview (ADR-024):** Column mapping UI shows CRM field, source column, and live sample preview (3 rows default, 10 max). See [docs/import/IMPORT_MAPPING_STANDARD.md](docs/import/IMPORT_MAPPING_STANDARD.md).
+
 Canonical architecture: [docs/import/IMPORT_ARCHITECTURE.md](docs/import/IMPORT_ARCHITECTURE.md).
 
 ### List Screen Definition of Done (ADR-015)

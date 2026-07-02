@@ -505,3 +505,37 @@ Tier 1  →  Tier 2  →  Tier 3  →  Tier 4
 - [PRODUCT_VISION.md](PRODUCT_VISION.md) — Tier section + P0/P1/P2 interaction
 - Future sprint proposals must state target **Tier** in planning docs
 
+---
+
+## ADR-024: Universal Import Mapping Preview
+
+**Status:** Accepted (Sprint 09.3)  
+**Date:** 2026-07-02
+
+**Context:**
+
+The Import Wizard column mapping step showed only column names (e.g. "Firma (A)", "Telefon (B)"). Users could not see actual cell values before mapping, making headerless files, wrong headers, and ambiguous columns error-prone.
+
+**Decision:**
+
+Adopt the **Universal Import Mapping Preview Standard**:
+
+1. Mapping UI uses **three columns**: CRM field → source column dropdown → live sample preview.
+2. Server returns `mapping_columns` with up to **10** sample values per column (from first 10 data rows after header resolution).
+3. New endpoint `GET /api/v1/data-integration/imports/{batch_id}/mapping-preview` recalculates samples when header mode or manual header row changes.
+4. UI defaults to **3** visible sample rows; user may expand to 10. Empty cells display as `—`; long values truncate with tooltip.
+5. Per-column **stats** (total, empty, filled, first value) shown in preview footer.
+
+**Rationale:**
+
+- Aligns with preview-first import philosophy (ADR-005, ADR-016).
+- Source-agnostic contract for future adapters (CSV, API, scraper).
+- Avoids shipping full Excel to client; samples computed server-side from stored `raw_preview_json`.
+
+**Consequences:**
+
+- [docs/import/IMPORT_MAPPING_STANDARD.md](import/IMPORT_MAPPING_STANDARD.md) — canonical spec
+- [PROJECT_CONSTITUTION.md](../PROJECT_CONSTITUTION.md) — mapping preview rule under Universal Import Standard
+- `column_mapper.build_mapping_preview_columns()` — shared builder for all source adapters
+- Import Wizard mapping step UI updated in Sprint 09.3
+

@@ -1186,6 +1186,68 @@ textarea:hover {
   background: var(--surface-alt, #f8fafc);
 }
 
+/* ── Entity select (searchable fair picker) ── */
+.entity-select {
+  position: relative;
+}
+
+.entity-select-input {
+  width: 100%;
+}
+
+.entity-select-dropdown {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+.entity-select-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.entity-select-option:hover,
+.entity-select-option.highlighted {
+  background: var(--primary-soft);
+}
+
+.entity-select-option.selected {
+  font-weight: 600;
+}
+
+.entity-select-option-label {
+  color: var(--text);
+}
+
+.entity-select-option-meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.entity-select-message {
+  padding: 0.75rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
 .import-wizard .bulk-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1247,6 +1309,69 @@ textarea:hover {
 
 .import-wizard .merge-decision-select {
   max-width: 260px;
+}
+
+.import-wizard .mapping-table th:nth-child(1) {
+  width: 16%;
+}
+
+.import-wizard .mapping-table th:nth-child(2) {
+  width: 24%;
+}
+
+.import-wizard .mapping-table th:nth-child(3) {
+  width: 60%;
+}
+
+.import-wizard .mapping-crm-field {
+  font-weight: 500;
+  vertical-align: top;
+  padding-top: 0.75rem;
+}
+
+.import-wizard .mapping-preview-cell {
+  vertical-align: top;
+}
+
+.import-wizard .mapping-field-preview {
+  font-size: 0.875rem;
+}
+
+.import-wizard .mapping-sample-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.import-wizard .mapping-sample-list li {
+  padding: 0.15rem 0;
+  border-bottom: 1px solid var(--color-border-subtle, #eee);
+}
+
+.import-wizard .mapping-sample-list li:last-child {
+  border-bottom: none;
+}
+
+.import-wizard .mapping-sample-empty {
+  color: var(--color-text-muted, #888);
+}
+
+.import-wizard .mapping-sample-value {
+  cursor: default;
+}
+
+.import-wizard .mapping-column-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #888);
+}
+
+.import-wizard .mapping-expand-samples {
+  margin-top: 0.75rem;
+  padding: 0;
 }
 
 .data-integration-layout {

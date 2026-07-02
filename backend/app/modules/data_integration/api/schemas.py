@@ -38,6 +38,9 @@ class SelectImportSheetResponse(BaseModel):
     total_rows: int
     suggested_mapping: dict[str, Any]
     available_sheets: list[str]
+    detected_headers: list[Any] = []
+    mapping_columns: list[Any] = []
+    sample_rows: list[list[Any]] = []
 
 
 class ImportBatchListResponse(BaseModel):

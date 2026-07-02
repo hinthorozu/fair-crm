@@ -24,6 +24,7 @@ from app.modules.imports.api.dependencies import (
     get_bulk_row_decision_use_case,
     get_get_import_batch_use_case,
     get_list_import_rows_use_case,
+    get_mapping_preview_use_case,
     get_set_column_mapping_use_case,
     get_set_row_decision_use_case,
     get_upload_import_use_case,
@@ -39,6 +40,7 @@ from app.modules.imports.api.schemas import (
     ImportBatchResponse,
     ImportRowListResponse,
     ImportRowResponse,
+    MappingPreviewResponse,
     SetColumnMappingRequest,
     SetColumnMappingResponse,
     SetImportRowDecisionRequest,
@@ -52,18 +54,21 @@ from app.modules.imports.application.commands import (
     ApplyImportCommand,
     BulkRowDecisionCommand,
     GetImportBatchQuery,
+    GetMappingPreviewQuery,
     ListImportRowsQuery,
     SetColumnMappingCommand,
     SetImportRowDecisionCommand,
     UploadImportCommand,
     UploadRawImportCommand,
 )
+from app.modules.imports.application.get_mapping_preview import GetMappingPreviewUseCase
 from app.modules.imports.application.get_import_batch import GetImportBatchUseCase
 from app.modules.imports.application.list_import_rows import ListImportRowsUseCase
 from app.modules.imports.application.set_column_mapping import SetColumnMappingUseCase
 from app.modules.imports.application.set_row_decision import SetImportRowDecisionUseCase
 from app.modules.imports.application.upload_import import UploadCustomerImportUseCase
 from app.modules.imports.application.upload_raw_import import UploadRawImportUseCase
+from app.modules.imports.domain.value_objects import ExcelHeaderMode
 from app.modules.imports.domain.exceptions import (
     FairRequiredError,
     ImportBatchAlreadyAppliedError,
@@ -223,6 +228,38 @@ def set_column_mapping(
     except ForbiddenError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     return SetColumnMappingResponse.model_validate(result.__dict__)
+
+
+@router.get(
+    "/{batch_id}/mapping-preview",
+    response_model=MappingPreviewResponse,
+    responses={404: {"model": ErrorResponse}},
+    summary="Get column mapping preview with sample values",
+)
+def get_mapping_preview(
+    batch_id: UUID,
+    header_mode: ExcelHeaderMode | None = Query(default=None),
+    header_row_index: int | None = Query(default=None, ge=0),
+    auth: AuthContext = Depends(require_read_permission),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case: GetMappingPreviewUseCase = Depends(get_mapping_preview_use_case),
+) -> MappingPreviewResponse:
+    try:
+        result = use_case.execute(
+            GetMappingPreviewQuery(
+                organization_id=auth.organization_id,
+                user_id=auth.user_id,
+                access_token=_access_token(credentials),
+                batch_id=batch_id,
+                header_mode=header_mode,
+                header_row_index=header_row_index,
+            )
+        )
+    except ImportBatchNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    return MappingPreviewResponse.model_validate(result.__dict__)
 
 
 @router.post(

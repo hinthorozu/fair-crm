@@ -48,6 +48,14 @@ The script is idempotent — safe to run multiple times.
 - Multiple orphaned `node` / `python` dev processes after closing terminals
 - Swagger or frontend returns connection errors after a long session
 - Before manual E2E testing of Smart Import Wizard or merge preview
+- **After `restore-db.ps1`** — restart backend (or run `reset-dev.ps1`). A stale uvicorn process may listen on `8001` but stop responding; list screens then show infinite loading or empty data until the process is replaced.
+
+## After database restore
+
+1. Confirm migrations: `alembic upgrade head` (from repo root; `alembic.ini` lives there, not in `backend/`).
+2. Confirm org scope: frontend `VITE_ORGANIZATION_ID` and backend `FAIR_CRM_DEV_ORGANIZATION_ID` must match `organization_id` on restored rows (default dev org: `00000000-0000-4000-8000-000000000010`).
+3. Restart backend — do not reuse a hung process from before restore.
+4. Smoke-test lists: `python scripts/verify_list_apis.py` (expects backend on `8001` with dev bypass headers).
 
 ## Stale process problem
 

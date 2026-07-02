@@ -146,6 +146,30 @@ export interface UploadRawImportResponse {
   };
   available_sheets?: string[];
   selected_sheet_name?: string | null;
+  mapping_columns?: MappingColumnPreview[];
+}
+
+export interface MappingColumnStats {
+  total: number;
+  empty: number;
+  filled: number;
+  first_value: string | null;
+}
+
+export interface MappingColumnPreview {
+  key: string;
+  index: number;
+  letter: string;
+  header: string | null;
+  samples: (unknown | null)[];
+  stats: MappingColumnStats;
+}
+
+export interface MappingPreviewResponse {
+  batch_id: string;
+  header_mode: ExcelHeaderMode;
+  header_row_index: number | null;
+  columns: MappingColumnPreview[];
 }
 
 export interface ColumnMappingPayload {

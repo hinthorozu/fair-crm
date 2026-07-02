@@ -97,6 +97,40 @@ def test_upload_creates_batch_with_fair_id(client, auth_headers):
     assert data["total_rows"] >= 1
     assert data["raw_columns"]
     assert data["sample_rows"]
+    assert data["mapping_columns"]
+    assert len(data["mapping_columns"][0]["samples"]) <= 10
+
+
+def test_mapping_preview_endpoint_respects_header_mode(client, auth_headers):
+    fair_id = _create_fair(client, auth_headers, "Mapping Preview Fair")
+    upload = _upload_wizard(
+        client,
+        auth_headers,
+        fair_id,
+        ["Firma Adı", "E-posta"],
+        [["Acme Ltd", "a@test.com"], ["Beta Corp", "b@test.com"]],
+    )
+    batch_id = upload.json()["batch_id"]
+
+    no_header = client.get(
+        f"/api/v1/imports/{batch_id}/mapping-preview",
+        headers=auth_headers,
+        params={"header_mode": "no_header"},
+    )
+    assert no_header.status_code == 200
+    data = no_header.json()
+    assert data["columns"][0]["header"] is None
+    assert data["columns"][0]["samples"][0] == "Firma Adı"
+
+    manual = client.get(
+        f"/api/v1/imports/{batch_id}/mapping-preview",
+        headers=auth_headers,
+        params={"header_mode": "manual_header_row", "header_row_index": 0},
+    )
+    assert manual.status_code == 200
+    manual_data = manual.json()
+    assert manual_data["columns"][0]["header"] == "Firma Adı"
+    assert manual_data["columns"][0]["samples"][0] == "Acme Ltd"
 
 
 def test_upload_returns_raw_preview(client, auth_headers):

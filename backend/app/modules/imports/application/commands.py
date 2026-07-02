@@ -54,6 +54,16 @@ class SelectImportSheetCommand:
 
 
 @dataclass(frozen=True)
+class GetMappingPreviewQuery:
+    organization_id: UUID
+    user_id: UUID
+    access_token: str
+    batch_id: UUID
+    header_mode: ExcelHeaderMode | None = None
+    header_row_index: int | None = None
+
+
+@dataclass(frozen=True)
 class ListImportBatchesQuery:
     organization_id: UUID
     page: int = 1
@@ -182,6 +192,7 @@ class UploadRawImportResult:
     source_type: ImportSourceType
     detected_headers: list[Any]
     raw_columns: list[dict[str, Any]]
+    mapping_columns: list[dict[str, Any]]
     sample_rows: list[list[Any]]
     total_rows: int
     suggested_mapping: dict[str, Any]

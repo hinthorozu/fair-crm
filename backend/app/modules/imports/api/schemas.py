@@ -102,6 +102,29 @@ class ColumnMappingSpec(BaseModel):
     value: int
 
 
+class MappingColumnStatsResponse(BaseModel):
+    total: int
+    empty: int
+    filled: int
+    first_value: str | None = None
+
+
+class MappingColumnPreviewResponse(BaseModel):
+    key: str
+    index: int
+    letter: str
+    header: str | None = None
+    samples: list[Any]
+    stats: MappingColumnStatsResponse
+
+
+class MappingPreviewResponse(BaseModel):
+    batch_id: UUID
+    header_mode: ExcelHeaderMode
+    header_row_index: int | None = None
+    columns: list[MappingColumnPreviewResponse]
+
+
 class SetColumnMappingRequest(BaseModel):
     has_header_row: bool = True
     header_mode: ExcelHeaderMode | None = None
@@ -117,6 +140,7 @@ class UploadRawImportResponse(BaseModel):
     status: ImportBatchStatus
     detected_headers: list[Any]
     raw_columns: list[dict[str, Any]]
+    mapping_columns: list[MappingColumnPreviewResponse] = []
     sample_rows: list[list[Any]]
     total_rows: int
     suggested_mapping: dict[str, Any]

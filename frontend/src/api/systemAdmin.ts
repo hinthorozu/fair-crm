@@ -1,5 +1,5 @@
 import { buildApiHeaders, config } from "../config";
-import { apiRequest, ApiError } from "./client";
+import { apiRequest, ApiError, fetchWithTimeout } from "./client";
 import { normalizeStandardListResponse, buildListQueryParams } from "./listTable";
 import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
 import type { StandardListResponse } from "../types/listTable";
@@ -51,8 +51,9 @@ export async function getSystemBackup(id: string): Promise<SystemBackup> {
 }
 
 export async function downloadSystemBackup(id: string, fileName: string): Promise<void> {
-  const url = `${config.apiBaseUrl}/api/v1/admin/backups/${id}/download`;
-  const response = await fetch(url, { headers: buildApiHeaders({}) });
+  const response = await fetchWithTimeout(`${config.apiBaseUrl}/api/v1/admin/backups/${id}/download`, {
+    headers: buildApiHeaders({}),
+  });
   if (!response.ok) {
     const text = await response.text();
     let detail = `HTTP ${response.status}`;

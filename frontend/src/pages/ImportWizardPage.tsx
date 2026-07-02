@@ -11,9 +11,11 @@ import {
   uploadRawImport,
   startImportApplyJob,
   getImportJob,
+  getMappingPreview,
   selectImportSheet,
 } from "../api/dataIntegration";
-import { getFair, listFairs } from "../api/fairs";
+import { getFair } from "../api/fairs";
+import { FairEntitySelect } from "../components/FairEntitySelect";
 import { listParticipantsByFair } from "../api/participations";
 import { Card } from "../components/ui/Card";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
@@ -43,12 +45,17 @@ import type {
   PreviewSortBy,
   UploadRawImportResponse,
   ExcelHeaderMode,
+  MappingColumnPreview,
 } from "../types/import";
 import { dataIntegrationLabels } from "../labels/dataIntegrationLabels";
 import { WIZARD_MAPPING_FIELDS as MAPPING_FIELDS } from "../types/import";
 import type { Fair } from "../types/fair";
 import { importBatchStatusBadgeVariant, importRowStatusBadgeVariant } from "../utils/importBadges";
 import { MergeDiffViewer } from "../components/imports/MergeDiffViewer";
+import {
+  columnOptionLabel,
+  MappingFieldPreview,
+} from "../components/imports/MappingFieldPreview";
 
 interface ImportWizardPageProps {
   preselectedFairId?: string;
@@ -64,7 +71,6 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
   const [batchId, setBatchId] = React.useState<string | null>(null);
   const [batch, setBatch] = React.useState<ImportBatch | null>(null);
   const [uploadPreview, setUploadPreview] = React.useState<UploadRawImportResponse | null>(null);
-  const [fairs, setFairs] = React.useState<Fair[]>([]);
   const [selectedFairId, setSelectedFairId] = React.useState<string>(preselectedFairId ?? "");
   const [selectedFair, setSelectedFair] = React.useState<Fair | null>(null);
   const [participantCount, setParticipantCount] = React.useState<number | null>(null);
@@ -84,6 +90,8 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
   const closeConfirmApply = React.useCallback(() => setConfirmApply(false), []);
   const [applyResult, setApplyResult] = React.useState<ApplyImportResponse | null>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
+  const [mappingColumns, setMappingColumns] = React.useState<MappingColumnPreview[]>([]);
+  const [showAllSamples, setShowAllSamples] = React.useState(false);
 
   const currentStep = WIZARD_STEPS[stepIndex]?.id ?? "source";
   const isPreviewStep = currentStep === "preview" || currentStep === "decisions";
@@ -94,15 +102,6 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
     filterKeys: ["filter"],
     enabled: Boolean(batchId) && isPreviewStep,
   });
-
-  const loadFairs = React.useCallback(async () => {
-    try {
-      const res = await listFairs({ page: 1, page_size: 100, status: "active" });
-      setFairs(res.items);
-    } catch {
-      /* best effort */
-    }
-  }, []);
 
   const loadFairDetails = React.useCallback(async (fairId: string) => {
     try {
@@ -116,10 +115,6 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
   }, []);
 
   React.useEffect(() => {
-    void loadFairs();
-  }, [loadFairs]);
-
-  React.useEffect(() => {
     if (preselectedFairId) {
       setSelectedFairId(preselectedFairId);
       void loadFairDetails(preselectedFairId);
@@ -130,6 +125,25 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
   React.useEffect(() => {
     if (selectedFairId) void loadFairDetails(selectedFairId);
   }, [selectedFairId, loadFairDetails]);
+
+  const refreshMappingPreview = React.useCallback(async () => {
+    if (!batchId) return;
+    const headerRowIndex = headerMode === "manual_header_row" ? manualHeaderRow - 1 : undefined;
+    try {
+      const preview = await getMappingPreview(batchId, {
+        header_mode: headerMode,
+        header_row_index: headerRowIndex,
+      });
+      setMappingColumns(preview.columns);
+    } catch {
+      /* keep existing preview */
+    }
+  }, [batchId, headerMode, manualHeaderRow]);
+
+  React.useEffect(() => {
+    if (!batchId) return;
+    void refreshMappingPreview();
+  }, [batchId, refreshMappingPreview]);
 
   const refreshBatch = async (id: string) => {
     const b = await getImportBatch(id);
@@ -155,6 +169,7 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
         initial[k] = v.value;
       }
       setMappings(initial);
+      setMappingColumns(result.mapping_columns ?? []);
       setStepIndex(3);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : importLabels.uploadError);
@@ -380,17 +395,12 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
     return () => window.clearInterval(timer);
   }, [applyJobId, batch]);
 
-  const columnOptions =
-    uploadPreview?.raw_columns.map((col) => {
-      if (headerMode === "no_header") {
-        const samples = (col.sample_values as unknown[] | undefined)?.slice(0, 2).join(", ") ?? "";
-        const label = samples ? `Column ${col.letter} (${samples})` : `Column ${col.letter}`;
-        return { index: col.index, label };
-      }
-      const headerVal = uploadPreview.detected_headers[col.index];
-      const header = headerVal ? `${headerVal} (${col.letter})` : `Column ${col.letter}`;
-      return { index: col.index, label: header };
-    }) ?? [];
+  const columnOptions = mappingColumns.map((col) => ({
+    index: col.index,
+    label: columnOptionLabel(col, headerMode),
+  }));
+
+  const hasExpandableSamples = mappingColumns.some((col) => col.samples.length > 3);
 
   const renderStepper = () => (
     <div className="wizard-stepper">
@@ -455,6 +465,10 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
                   initial[k] = v.value;
                 }
                 setMappings(initial);
+                if (res.mapping_columns) setMappingColumns(res.mapping_columns);
+                if (res.detected_headers && uploadPreview) {
+                  setUploadPreview({ ...uploadPreview, detected_headers: res.detected_headers });
+                }
               } catch {
                 /* best effort */
               }
@@ -496,16 +510,11 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
           <div>{importLabels.fairParticipants}: {participantCount ?? "—"}</div>
         </div>
       ) : (
-        <select
+        <FairEntitySelect
           value={selectedFairId}
-          onChange={(e) => setSelectedFairId(e.target.value)}
-          className="form-select"
-        >
-          <option value="">{importLabels.fairSelect}</option>
-          {fairs.map((f) => (
-            <option key={f.id} value={f.id}>{f.name}</option>
-          ))}
-        </select>
+          onChange={setSelectedFairId}
+          placeholder={importLabels.fairSelect}
+        />
       )}
       {selectedFair && !preselectedFairId && (
         <div className="fair-info-card">
@@ -569,44 +578,62 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
         </div>
       )}
       <DataTableShell>
-        <table>
+        <table className="mapping-table">
           <thead>
             <tr>
-              <th>CRM Alanı</th>
-              <th>Kaynak Kolonu</th>
+              <th>{importLabels.mappingCrmField}</th>
+              <th>{importLabels.mappingSourceColumn}</th>
+              <th>{importLabels.mappingSourcePreview}</th>
             </tr>
           </thead>
           <tbody>
-            {MAPPING_FIELDS.map((field) => (
-              <tr key={field.key}>
-                <td>
-                  {field.label}
-                  {field.required && " *"}
-                </td>
-                <td>
-                  <select
-                    value={mappings[field.key] ?? ""}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setMappings((prev) => {
-                        const next = { ...prev };
-                        if (val === "") delete next[field.key];
-                        else next[field.key] = Number(val);
-                        return next;
-                      });
-                    }}
-                  >
-                    <option value="">{importLabels.noMapping}</option>
-                    {columnOptions.map((opt) => (
-                      <option key={opt.index} value={opt.index}>{opt.label}</option>
-                    ))}
-                  </select>
-                </td>
-              </tr>
-            ))}
+            {MAPPING_FIELDS.map((field) => {
+              const mappedIndex = mappings[field.key];
+              const mappedColumn = mappingColumns.find((col) => col.index === mappedIndex);
+              return (
+                <tr key={field.key}>
+                  <td className="mapping-crm-field">
+                    {field.label}
+                    {field.required && " *"}
+                  </td>
+                  <td>
+                    <select
+                      className="form-select"
+                      value={mappings[field.key] ?? ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setMappings((prev) => {
+                          const next = { ...prev };
+                          if (val === "") delete next[field.key];
+                          else next[field.key] = Number(val);
+                          return next;
+                        });
+                      }}
+                    >
+                      <option value="">{importLabels.noMapping}</option>
+                      {columnOptions.map((opt) => (
+                        <option key={opt.index} value={opt.index}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="mapping-preview-cell">
+                    <MappingFieldPreview column={mappedColumn} showAll={showAllSamples} />
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </DataTableShell>
+      {hasExpandableSamples && (
+        <button
+          type="button"
+          className="btn btn-link mapping-expand-samples"
+          onClick={() => setShowAllSamples((prev) => !prev)}
+        >
+          {showAllSamples ? importLabels.mappingShowLessSamples : importLabels.mappingShowMoreSamples}
+        </button>
+      )}
     </Card>
   );
 

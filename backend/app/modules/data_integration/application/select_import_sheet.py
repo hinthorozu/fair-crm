@@ -7,11 +7,11 @@ from app.integrations.kyrox_core.client import HttpAuditAdapter
 from app.integrations.kyrox_core.ports import AuthorizationPort
 from app.modules.data_integration.application.adapters.registry import get_source_adapter_registry
 from app.modules.data_integration.domain.source_adapter import SourceConnection
-from app.modules.imports.application.column_mapper import suggest_column_mapping
+from app.modules.imports.application.column_mapper import build_mapping_preview_columns, suggest_column_mapping
 from app.modules.imports.application.commands import SelectImportSheetCommand
 from app.modules.imports.domain.exceptions import ImportBatchNotFoundError, InvalidImportFileError
 from app.modules.imports.domain.ports import ImportBatchRepository
-from app.modules.imports.domain.value_objects import ImportBatchStatus
+from app.modules.imports.domain.value_objects import ExcelHeaderMode, ImportBatchStatus
 
 PERMISSION_UPDATE = "fair_crm.imports.update"
 
@@ -23,6 +23,9 @@ class SelectImportSheetResult:
     total_rows: int
     suggested_mapping: dict
     available_sheets: list[str]
+    detected_headers: list
+    mapping_columns: list
+    sample_rows: list
 
 
 class SelectImportSheetUseCase:
@@ -81,10 +84,18 @@ class SelectImportSheetUseCase:
             metadata={"user_id": str(command.user_id)},
         )
 
+        mapping_columns = build_mapping_preview_columns(
+            raw_preview,
+            header_mode=ExcelHeaderMode(suggested["header_mode"]),
+            header_row_index=suggested.get("header_row_index"),
+        )
         return SelectImportSheetResult(
             batch_id=updated.id,
             selected_sheet_name=command.sheet_name,
             total_rows=raw_preview["total_rows"],
             suggested_mapping=suggested,
             available_sheets=raw_preview.get("available_sheets") or [],
+            detected_headers=raw_preview["detected_headers"],
+            mapping_columns=mapping_columns,
+            sample_rows=raw_preview["rows"][:10],
         )

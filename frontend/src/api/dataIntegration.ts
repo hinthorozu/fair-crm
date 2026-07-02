@@ -1,14 +1,16 @@
 import { buildApiHeaders, config } from "../config";
 import { normalizeStandardListResponse, buildListQueryParams } from "./listTable";
-import { apiRequest, ApiError } from "./client";
+import { apiRequest, ApiError, fetchWithTimeout } from "./client";
 import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
 import type { StandardListResponse } from "../types/listTable";
 import type {
   ApplyImportResponse,
   BulkDecisionAction,
   ColumnMappingPayload,
+  ExcelHeaderMode,
   ImportBatch,
   ImportRow,
+  MappingPreviewResponse,
   SetImportRowDecisionPayload,
   UploadRawImportResponse,
 } from "../types/import";
@@ -83,7 +85,7 @@ export async function uploadRawImport(fairId: string, file: File): Promise<Uploa
   formData.append("file", file);
   formData.append("fair_id", fairId);
 
-  const response = await fetch(`${config.apiBaseUrl}${BASE}/upload`, {
+  const response = await fetchWithTimeout(`${config.apiBaseUrl}${BASE}/upload`, {
     method: "POST",
     headers: authHeadersOnly(),
     body: formData,
@@ -110,10 +112,30 @@ export async function uploadRawImport(fairId: string, file: File): Promise<Uploa
   return data as UploadRawImportResponse;
 }
 
+export async function getMappingPreview(
+  batchId: string,
+  params: { header_mode?: ExcelHeaderMode; header_row_index?: number } = {},
+): Promise<MappingPreviewResponse> {
+  const qs = new URLSearchParams();
+  if (params.header_mode) qs.set("header_mode", params.header_mode);
+  if (params.header_row_index !== undefined) qs.set("header_row_index", String(params.header_row_index));
+  const query = qs.toString();
+  return apiRequest<MappingPreviewResponse>(
+    `${BASE}/${batchId}/mapping-preview${query ? `?${query}` : ""}`,
+  );
+}
+
 export async function selectImportSheet(
   batchId: string,
   sheetName: string,
-): Promise<{ batch_id: string; selected_sheet_name: string; suggested_mapping: Record<string, unknown> }> {
+): Promise<{
+  batch_id: string;
+  selected_sheet_name: string;
+  suggested_mapping: Record<string, unknown>;
+  detected_headers?: (string | null)[];
+  mapping_columns?: MappingPreviewResponse["columns"];
+  sample_rows?: unknown[][];
+}> {
   return apiRequest(`/api/v1/data-integration/imports/${batchId}/sheet`, {
     method: "PATCH",
     body: JSON.stringify({ sheet_name: sheetName }),

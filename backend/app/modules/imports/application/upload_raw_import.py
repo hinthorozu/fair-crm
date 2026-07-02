@@ -8,11 +8,12 @@ from app.modules.fairs.domain.exceptions import FairNotFoundError
 from app.modules.fairs.domain.ports import FairRepository
 from app.modules.data_integration.application.adapters.registry import get_source_adapter_registry
 from app.modules.data_integration.domain.source_adapter import SourceConnection
-from app.modules.imports.application.column_mapper import suggest_column_mapping
+from app.modules.imports.application.column_mapper import build_mapping_preview_columns, suggest_column_mapping
 from app.modules.imports.application.commands import UploadRawImportCommand, UploadRawImportResult
 from app.modules.imports.domain.entities import ImportBatch
 from app.modules.imports.domain.exceptions import FairRequiredError
 from app.modules.imports.domain.ports import ImportBatchRepository
+from app.modules.imports.domain.value_objects import ExcelHeaderMode
 
 PERMISSION_CREATE = "fair_crm.imports.create"
 
@@ -76,13 +77,19 @@ class UploadRawImportUseCase:
             metadata={"user_id": str(command.user_id)},
         )
 
-        sample_rows = raw_preview["rows"][:5]
+        sample_rows = raw_preview["rows"][:10]
+        mapping_columns = build_mapping_preview_columns(
+            raw_preview,
+            header_mode=ExcelHeaderMode(suggested["header_mode"]),
+            header_row_index=suggested.get("header_row_index"),
+        )
         return UploadRawImportResult(
             batch_id=saved.id,
             fair_id=saved.fair_id,
             source_type=saved.source_type,
             detected_headers=raw_preview["detected_headers"],
             raw_columns=raw_preview["columns"],
+            mapping_columns=mapping_columns,
             sample_rows=sample_rows,
             total_rows=raw_preview["total_rows"],
             suggested_mapping=suggested,
