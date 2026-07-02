@@ -17,8 +17,10 @@ from app.modules.customers.domain.value_objects import CustomerSource
 from app.modules.imports.application.commands import ApplyImportCommand, ApplyImportResult
 from app.modules.imports.application.mappers import batch_to_result
 from app.modules.imports.domain.exceptions import ImportBatchAlreadyAppliedError, ImportBatchNotFoundError
+from app.modules.imports.domain.entities import ImportBatch, ImportRow
 from app.modules.imports.domain.ports import ImportBatchRepository, ImportRowRepository
-from app.modules.imports.domain.value_objects import ImportBatchStatus, ImportDecision, ImportRowStatus
+from app.modules.imports.domain.batch_status import is_batch_terminal
+from app.modules.imports.domain.value_objects import ImportDecision, ImportRowStatus
 from app.modules.participations.domain.entities import CustomerFairParticipation
 from app.modules.participations.domain.value_objects import ParticipationStatus
 from app.modules.participations.infrastructure.repositories.participation_repository import (
@@ -27,6 +29,21 @@ from app.modules.participations.infrastructure.repositories.participation_reposi
 from app.shared.email import normalize_email_field
 
 PERMISSION_APPLY = "fair_crm.imports.apply"
+
+
+@dataclass
+class RowApplyCounters:
+    created: int = 0
+    updated: int = 0
+    skipped: int = 0
+    created_participations: int = 0
+    updated_participations: int = 0
+    created_contacts: int = 0
+    applied: bool = False
+    created_customer_id: UUID | None = None
+    updated_customer_id: UUID | None = None
+    created_participation_id: UUID | None = None
+    updated_participation_id: UUID | None = None
 
 
 @dataclass
@@ -86,7 +103,7 @@ class ApplyImportUseCase:
         batch = self._batch_repository.get_by_id(command.organization_id, command.batch_id)
         if batch is None:
             raise ImportBatchNotFoundError("Import batch not found")
-        if batch.status == ImportBatchStatus.APPLIED:
+        if is_batch_terminal(batch.status):
             raise ImportBatchAlreadyAppliedError("Import batch already applied")
 
         fair_id = batch.fair_id
@@ -102,103 +119,16 @@ class ApplyImportUseCase:
         invalid_count = sum(1 for row in rows if row.status == ImportRowStatus.INVALID)
 
         for row in rows:
-            if row.status == ImportRowStatus.INVALID:
-                continue
-            if row.decision is None:
-                continue
+            counters = self.finalize_applied_row(batch, row, command, now)
+            created_count += counters.created
+            updated_count += counters.updated
+            skipped_count += counters.skipped
+            created_participations += counters.created_participations
+            updated_participations += counters.updated_participations
+            created_contacts += counters.created_contacts
 
-            if row.decision == ImportDecision.SKIP:
-                row.mark_skipped(now=now)
-                skipped_count += 1
-                continue
-
-            if row.decision == ImportDecision.MANUAL_REVIEW:
-                continue
-
-            customer: Customer | None = None
-            customer_created = False
-            customer_updated = False
-
-            if row.decision == ImportDecision.CREATE_NEW:
-                customer = self._create_customer(row.normalized_data_json, command, now)
-                row.mark_applied_create(customer.id, now=now)
-                customer_created = True
-                created_count += 1
-            elif row.decision == ImportDecision.UPDATE_EXISTING:
-                if row.match_customer_id is None:
-                    continue
-                customer = self._customer_repository.get_by_id(
-                    command.organization_id, row.match_customer_id
-                )
-                if customer is None:
-                    continue
-                self._update_customer_from_row(customer, row.normalized_data_json, now)
-                customer = self._customer_repository.update(customer)
-                row.mark_applied_update(customer.id, now=now)
-                customer_updated = True
-                updated_count += 1
-            elif row.decision == ImportDecision.PARTICIPATION_ONLY:
-                if row.match_customer_id is None:
-                    continue
-                customer = self._customer_repository.get_by_id(
-                    command.organization_id, row.match_customer_id
-                )
-                if customer is None:
-                    continue
-                row.mark_applied_update(customer.id, now=now)
-
-            if customer is None:
-                continue
-
-            if fair_id is not None:
-                participation = self._apply_participation(
-                    command, customer.id, fair_id, row.normalized_data_json, now
-                )
-                if participation.created:
-                    row.mark_participation_created(participation.id, now=now)
-                    created_participations += 1
-                elif participation.updated:
-                    row.mark_participation_updated(participation.id, now=now)
-                    updated_participations += 1
-
-            if row.decision not in (
-                ImportDecision.PARTICIPATION_ONLY,
-                ImportDecision.MANUAL_REVIEW,
-            ):
-                contact_created = self._apply_contact(customer, row.normalized_data_json, command, now)
-                if contact_created:
-                    created_contacts += 1
-
-                action = "created" if customer_created else "updated"
-                self._create_import_activity(
-                    command,
-                    customer_id=customer.id,
-                    batch_id=batch.id,
-                    batch_file=batch.file_name,
-                    action=action,
-                    now=now,
-                )
-            elif row.decision == ImportDecision.PARTICIPATION_ONLY and fair_id is not None:
-                self._create_import_activity(
-                    command,
-                    customer_id=customer.id,
-                    batch_id=batch.id,
-                    batch_file=batch.file_name,
-                    action="participation_only",
-                    now=now,
-                )
-
-        self._row_repository.update_many(rows)
-
-        batch.update_apply_counts(
-            created_rows=created_count,
-            updated_rows=updated_count,
-            skipped_rows=skipped_count,
-            created_participations=created_participations,
-            updated_participations=updated_participations,
-            now=now,
-        )
-        batch.mark_applied(now=now)
+        remaining_rows = self._row_repository.list_by_batch(command.organization_id, command.batch_id)
+        batch = self.sync_batch_progress(batch, remaining_rows, now=now)
         updated_batch = self._batch_repository.update(batch)
 
         self._audit.record_event(
@@ -217,7 +147,7 @@ class ApplyImportUseCase:
             metadata={"user_id": str(command.user_id)},
         )
 
-        batch_result = batch_to_result(updated_batch, rows)
+        batch_result = batch_to_result(updated_batch, remaining_rows)
         return ApplyImportResult(
             batch=batch_result,
             created_rows=created_count,
@@ -228,6 +158,142 @@ class ApplyImportUseCase:
             updated_participations=updated_participations,
             created_contacts=created_contacts,
         )
+
+    def finalize_applied_row(
+        self,
+        batch: ImportBatch,
+        row: ImportRow,
+        command: ApplyImportCommand,
+        now: datetime,
+    ) -> RowApplyCounters:
+        counters = self.apply_single_row(batch, row, command, now)
+        if not counters.applied:
+            return counters
+
+        self._row_repository.delete_many(
+            command.organization_id,
+            command.batch_id,
+            [row.id],
+        )
+        batch.increment_apply_counts(
+            created_rows=counters.created,
+            updated_rows=counters.updated,
+            skipped_rows=counters.skipped,
+            created_participations=counters.created_participations,
+            updated_participations=counters.updated_participations,
+            now=now,
+        )
+        return counters
+
+    def apply_single_row(
+        self,
+        batch: ImportBatch,
+        row: ImportRow,
+        command: ApplyImportCommand,
+        now: datetime,
+    ) -> RowApplyCounters:
+        counters = RowApplyCounters()
+        if row.decision is None:
+            return counters
+
+        if row.decision == ImportDecision.SKIP:
+            counters.skipped = 1
+            counters.applied = True
+            return counters
+
+        if row.status == ImportRowStatus.INVALID:
+            return counters
+
+        fair_id = batch.fair_id
+
+        if row.decision == ImportDecision.MANUAL_REVIEW:
+            return counters
+
+        customer: Customer | None = None
+        customer_created = False
+
+        if row.decision == ImportDecision.CREATE_NEW:
+            customer = self._create_customer(row.normalized_data_json, command, now)
+            counters.created_customer_id = customer.id
+            customer_created = True
+            counters.created = 1
+        elif row.decision == ImportDecision.UPDATE_EXISTING:
+            if row.match_customer_id is None:
+                return counters
+            customer = self._customer_repository.get_by_id(
+                command.organization_id, row.match_customer_id
+            )
+            if customer is None:
+                return counters
+            self._update_customer_from_row(customer, row.normalized_data_json, now)
+            customer = self._customer_repository.update(customer)
+            counters.updated_customer_id = customer.id
+            counters.updated = 1
+        elif row.decision == ImportDecision.PARTICIPATION_ONLY:
+            if row.match_customer_id is None:
+                return counters
+            customer = self._customer_repository.get_by_id(
+                command.organization_id, row.match_customer_id
+            )
+            if customer is None:
+                return counters
+            counters.updated_customer_id = customer.id
+            counters.updated = 1
+
+        if customer is None:
+            return counters
+
+        if fair_id is not None:
+            participation = self._apply_participation(
+                command, customer.id, fair_id, row.normalized_data_json, now
+            )
+            if participation.created:
+                counters.created_participation_id = participation.id
+                counters.created_participations = 1
+            elif participation.updated:
+                counters.updated_participation_id = participation.id
+                counters.updated_participations = 1
+
+        if row.decision not in (
+            ImportDecision.PARTICIPATION_ONLY,
+            ImportDecision.MANUAL_REVIEW,
+        ):
+            contact_created = self._apply_contact(customer, row.normalized_data_json, command, now)
+            if contact_created:
+                counters.created_contacts = 1
+
+            action = "created" if customer_created else "updated"
+            self._create_import_activity(
+                command,
+                customer_id=customer.id,
+                batch_id=batch.id,
+                batch_file=batch.file_name,
+                action=action,
+                now=now,
+            )
+        elif row.decision == ImportDecision.PARTICIPATION_ONLY and fair_id is not None:
+            self._create_import_activity(
+                command,
+                customer_id=customer.id,
+                batch_id=batch.id,
+                batch_file=batch.file_name,
+                action="participation_only",
+                now=now,
+            )
+
+        counters.applied = True
+        return counters
+
+    def sync_batch_progress(
+        self,
+        batch: ImportBatch,
+        rows: list[ImportRow],
+        *,
+        now: datetime,
+    ) -> ImportBatch:
+        if not rows:
+            batch.mark_completed(now=now)
+        return batch
 
     def _create_customer(
         self,

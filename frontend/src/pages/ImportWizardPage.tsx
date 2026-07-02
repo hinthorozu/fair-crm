@@ -1,16 +1,14 @@
 import React from "react";
 import {
-  analyzeImportBatch,
   ApiError,
-  applyImportBatch,
-  bulkRowDecision,
+  applyImportDecisions,
+  bulkAssignRowDecisions,
+  configureImportHeader,
   getImportBatch,
   listImportRows,
   setColumnMapping,
   setImportRowDecision,
   uploadRawImport,
-  startImportApplyJob,
-  getImportJob,
   getMappingPreview,
   selectImportSheet,
 } from "../api/dataIntegration";
@@ -18,25 +16,27 @@ import { getFair } from "../api/fairs";
 import { FairEntitySelect } from "../components/FairEntitySelect";
 import { listParticipantsByFair } from "../api/participations";
 import { Card } from "../components/ui/Card";
-import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { DataTableShell } from "../components/ui/DataTable";
 import { EmptyState } from "../components/ui/EmptyState";
 import { LoadingState } from "../components/ui/LoadingState";
 import { PageHeader } from "../components/ui/PageHeader";
 import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { Badge } from "../components/ui/Badge";
-import { useServerDataTable } from "../hooks/useServerDataTable";
+import { useServerDataTable, type ServerTableFetchParams } from "../hooks/useServerDataTable";
+import { DEFAULT_PAGE } from "../types/listTable";
 import {
   importBatchStatusLabels,
   importDecisionLabels,
   importLabels,
+  importMatchStatusLabels,
+  importMatchTypeLabels,
+  importMatchExplanationLabels,
   importRowStatusLabels,
-  WIZARD_STEPS,
+  WIZARD_CONTINUE_STEPS,
+  WIZARD_SETUP_STEPS,
   type WizardStepId,
 } from "../labels/importLabels";
 import type {
-  ApplyImportResponse,
-  BulkDecisionAction,
   ColumnMappingPayload,
   ImportBatch,
   ImportDecision,
@@ -47,18 +47,33 @@ import type {
   ExcelHeaderMode,
   MappingColumnPreview,
 } from "../types/import";
+import { uiLabels } from "../labels/uiLabels";
 import { dataIntegrationLabels } from "../labels/dataIntegrationLabels";
 import { WIZARD_MAPPING_FIELDS as MAPPING_FIELDS } from "../types/import";
 import type { Fair } from "../types/fair";
 import { importBatchStatusBadgeVariant, importRowStatusBadgeVariant } from "../utils/importBadges";
-import { MergeDiffViewer } from "../components/imports/MergeDiffViewer";
+import { formatMatchConfidence, getImportMatchStatus } from "../utils/importMatchStatus";
 import {
-  columnOptionLabel,
-  MappingFieldPreview,
-} from "../components/imports/MappingFieldPreview";
+  canResumeDecisions,
+  canResumeSetup,
+  isTerminalBatchStatus,
+  setupStepIndexForStatus,
+} from "../utils/importResume";
+import {
+  ExcelMappingGrid,
+  columnFieldMapToMappings,
+  extractFieldMappingsFromColumnConfig,
+  isMappingGridValid,
+  mappingsToColumnFieldMap,
+} from "../components/imports/ExcelMappingGrid";
+import { MergeDiffViewer } from "../components/imports/MergeDiffViewer";
 
 interface ImportWizardPageProps {
   preselectedFairId?: string;
+  resumeBatchId?: string;
+  onUploadComplete?: () => void;
+  onMappingSaved?: () => void;
+  onFinished?: () => void;
 }
 
 function str(v: unknown): string {
@@ -66,7 +81,28 @@ function str(v: unknown): string {
   return String(v);
 }
 
-export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
+const APPLY_SUMMARY_ONLY_MESSAGES = new Set(["Karar verilmemiş"]);
+
+function isApplySummaryOnlyMessage(message: string): boolean {
+  const normalized = message.trim();
+  if (APPLY_SUMMARY_ONLY_MESSAGES.has(normalized)) return true;
+  if (normalized.includes("karar verilmemiş")) return true;
+  if (normalized.includes("işlenmedi")) return true;
+  if (normalized.includes("atlandı")) return true;
+  return false;
+}
+
+export function ImportWizardPage({
+  preselectedFairId,
+  resumeBatchId,
+  onUploadComplete,
+  onMappingSaved,
+  onFinished,
+}: ImportWizardPageProps) {
+  const [wizardMode, setWizardMode] = React.useState<"setup" | "continue">("setup");
+  const isContinueMode = wizardMode === "continue";
+  const [isSetupResume, setIsSetupResume] = React.useState(false);
+  const activeSteps = isContinueMode ? WIZARD_CONTINUE_STEPS : WIZARD_SETUP_STEPS;
   const [stepIndex, setStepIndex] = React.useState(0);
   const [batchId, setBatchId] = React.useState<string | null>(null);
   const [batch, setBatch] = React.useState<ImportBatch | null>(null);
@@ -79,28 +115,70 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
   const [manualHeaderRow, setManualHeaderRow] = React.useState(1);
   const [availableSheets, setAvailableSheets] = React.useState<string[]>([]);
   const [selectedSheet, setSelectedSheet] = React.useState<string>("");
-  const [applyJobId, setApplyJobId] = React.useState<string | null>(null);
-  const [useBackgroundApply, setUseBackgroundApply] = React.useState(true);
-  const [jobStatus, setJobStatus] = React.useState<string | null>(null);
   const [mappings, setMappings] = React.useState<Record<string, number>>({});
+  const [columnFieldMap, setColumnFieldMap] = React.useState<Record<number, string>>({});
+  const [gridColumns, setGridColumns] = React.useState<{ index: number; letter: string; header: string | null }[]>([]);
+  const [gridRows, setGridRows] = React.useState<unknown[][]>([]);
+  const [gridMeta, setGridMeta] = React.useState<{ totalDataRows?: number; previewRowCount?: number }>({});
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [confirmApply, setConfirmApply] = React.useState(false);
-  const closeConfirmApply = React.useCallback(() => setConfirmApply(false), []);
-  const [applyResult, setApplyResult] = React.useState<ApplyImportResponse | null>(null);
+  const [selectedRowIds, setSelectedRowIds] = React.useState<Set<string>>(() => new Set());
+  const [bulkAssignDecision, setBulkAssignDecision] = React.useState<ImportDecision | "">("");
+  const [bulkAssignRunning, setBulkAssignRunning] = React.useState(false);
+  const [bulkAssignResultMessage, setBulkAssignResultMessage] = React.useState<string | null>(null);
+  const [bulkAssignErrors, setBulkAssignErrors] = React.useState<
+    Array<{ row_id: string; row_number: number; message: string }>
+  >([]);
+  const [applyRunning, setApplyRunning] = React.useState(false);
+  const [applyResult, setApplyResult] = React.useState<{
+    processed_count: number;
+    not_processed_count: number;
+    failed_count: number;
+    errors: Array<{ row_id: string; row_number: number; message: string }>;
+  } | null>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [mappingColumns, setMappingColumns] = React.useState<MappingColumnPreview[]>([]);
   const [showAllSamples, setShowAllSamples] = React.useState(false);
 
-  const currentStep = WIZARD_STEPS[stepIndex]?.id ?? "source";
-  const isPreviewStep = currentStep === "preview" || currentStep === "decisions";
+  const currentStep = activeSteps[stepIndex]?.id ?? "upload";
+  const isPreviewStep = currentStep === "decisions";
+  const isImportComplete =
+    batch?.status === "completed" || batch?.status === "applied";
+  const processedRowCount = batch
+    ? batch.created_rows + batch.updated_rows + batch.skipped_rows
+    : 0;
+  const isBatchAnalyzed =
+    batch?.status === "analyzed" ||
+    batch?.status === "decision_required" ||
+    batch?.status === "applying" ||
+    batch?.status === "previewed";
+
+  const decisionListFilters = React.useMemo(
+    () => (isPreviewStep ? { filter: "pending" } : {}),
+    [isPreviewStep],
+  );
+
+  const fetchDecisionRows = React.useCallback(
+    (params: ServerTableFetchParams) => {
+      const activeFilter = params.filters?.filter;
+      return listImportRows(batchId!, {
+        ...params,
+        filters: {
+          ...params.filters,
+          filter: activeFilter || (isPreviewStep ? "pending" : undefined),
+        },
+      });
+    },
+    [batchId, isPreviewStep],
+  );
 
   const previewTable = useServerDataTable<ImportRow>({
-    fetchFn: (params) => listImportRows(batchId!, params),
+    fetchFn: fetchDecisionRows,
     defaultSort: { field: "company_name", direction: "asc" },
+    defaultFilters: decisionListFilters,
     filterKeys: ["filter"],
-    enabled: Boolean(batchId) && isPreviewStep,
+    enabled: Boolean(batchId) && isPreviewStep && isBatchAnalyzed,
   });
 
   const loadFairDetails = React.useCallback(async (fairId: string) => {
@@ -118,9 +196,60 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
     if (preselectedFairId) {
       setSelectedFairId(preselectedFairId);
       void loadFairDetails(preselectedFairId);
-      if (stepIndex < 2) setStepIndex(1);
+      if (!isContinueMode && stepIndex < 1) setStepIndex(0);
     }
-  }, [preselectedFairId, loadFairDetails, stepIndex]);
+  }, [preselectedFairId, loadFairDetails, stepIndex, isContinueMode]);
+
+  const hydrateBatchForResume = React.useCallback((b: ImportBatch) => {
+    if (b.available_sheets?.length) setAvailableSheets(b.available_sheets);
+    if (b.selected_sheet_name) setSelectedSheet(b.selected_sheet_name);
+    if (b.header_mode) {
+      setHeaderMode(b.header_mode);
+      setHasHeaderRow(b.header_mode !== "no_header");
+    }
+    if (b.header_row_index != null) setManualHeaderRow(b.header_row_index + 1);
+    const savedMappings = extractFieldMappingsFromColumnConfig(b.column_mapping_json);
+    if (Object.keys(savedMappings).length > 0) {
+      setColumnFieldMap(mappingsToColumnFieldMap(savedMappings));
+      setMappings(
+        Object.fromEntries(Object.entries(savedMappings).map(([k, v]) => [k, v.value])),
+      );
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!resumeBatchId) return;
+    setBatchId(resumeBatchId);
+    void (async () => {
+      try {
+        const b = await getImportBatch(resumeBatchId);
+        setBatch(b);
+        if (isTerminalBatchStatus(b.status)) {
+          onFinished?.();
+          return;
+        }
+        if (canResumeDecisions(b.status)) {
+          setWizardMode("continue");
+          setIsSetupResume(false);
+          setStepIndex(0);
+        } else if (canResumeSetup(b.status)) {
+          setWizardMode("setup");
+          setIsSetupResume(true);
+          hydrateBatchForResume(b);
+          setStepIndex(setupStepIndexForStatus(b.status));
+        } else {
+          onFinished?.();
+          return;
+        }
+        if (b.fair_id) {
+          setSelectedFairId(b.fair_id);
+          void loadFairDetails(b.fair_id);
+        }
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : importLabels.loadError);
+      }
+    })();
+  }, [resumeBatchId, loadFairDetails, hydrateBatchForResume, onFinished]);
 
   React.useEffect(() => {
     if (selectedFairId) void loadFairDetails(selectedFairId);
@@ -135,6 +264,14 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
         header_row_index: headerRowIndex,
       });
       setMappingColumns(preview.columns);
+      if (preview.grid) {
+        setGridColumns(preview.grid.columns);
+        setGridRows(preview.grid.rows);
+        setGridMeta({
+          totalDataRows: preview.grid.total_data_rows,
+          previewRowCount: preview.grid.preview_row_count,
+        });
+      }
     } catch {
       /* keep existing preview */
     }
@@ -149,6 +286,11 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
     const b = await getImportBatch(id);
     setBatch(b);
   };
+
+  React.useEffect(() => {
+    if (!batchId || currentStep !== "mapping") return;
+    void refreshMappingPreview();
+  }, [batchId, currentStep, refreshMappingPreview]);
 
   const handleUpload = async () => {
     if (!selectedFile || !selectedFairId) return;
@@ -169,8 +311,9 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
         initial[k] = v.value;
       }
       setMappings(initial);
+      setColumnFieldMap(mappingsToColumnFieldMap(result.suggested_mapping.mappings));
       setMappingColumns(result.mapping_columns ?? []);
-      setStepIndex(3);
+      onUploadComplete?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : importLabels.uploadError);
     } finally {
@@ -179,23 +322,22 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
   };
 
   const handleSaveMapping = async () => {
-    if (!batchId || mappings.company_name === undefined) {
-      setError("Firma Adı eşleştirmesi zorunludur.");
+    if (!batchId || !isMappingGridValid(columnFieldMap)) {
+      setError("Firma Adı eşleştirmesi zorunludur ve aynı alan iki kolona atanamaz.");
       return;
     }
     setLoading(true);
     setError(null);
     try {
+      const mappingPayload = columnFieldMapToMappings(columnFieldMap);
       const payload: ColumnMappingPayload = {
         has_header_row: headerMode !== "no_header",
         header_mode: headerMode,
         header_row_index: headerMode === "manual_header_row" ? manualHeaderRow - 1 : headerMode === "first_row_header" ? 0 : null,
-        mappings: Object.fromEntries(
-          Object.entries(mappings).map(([k, v]) => [k, { type: "column_index" as const, value: v }]),
-        ),
+        mappings: mappingPayload,
       };
       await setColumnMapping(batchId, payload);
-      setStepIndex(4);
+      (onMappingSaved ?? onFinished)?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : importLabels.loadError);
     } finally {
@@ -203,14 +345,41 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
     }
   };
 
-  const handleAnalyze = async () => {
+  const handleSheetConfirm = async () => {
+    if (!batchId || !selectedSheet) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await selectImportSheet(batchId, selectedSheet);
+      const sm = res.suggested_mapping as { header_mode?: ExcelHeaderMode; mappings?: Record<string, { value: number }> };
+      if (sm.header_mode) setHeaderMode(sm.header_mode);
+      if (sm.mappings) {
+        setMappings(
+          Object.fromEntries(Object.entries(sm.mappings).map(([k, v]) => [k, v.value])),
+        );
+        setColumnFieldMap(mappingsToColumnFieldMap(sm.mappings));
+      }
+      if (res.mapping_columns) setMappingColumns(res.mapping_columns);
+      setStepIndex(3);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : importLabels.loadError);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleHeaderConfirm = async () => {
     if (!batchId) return;
     setLoading(true);
     setError(null);
     try {
-      await analyzeImportBatch(batchId);
-      await refreshBatch(batchId);
-      setStepIndex(5);
+      await configureImportHeader(batchId, {
+        has_header_row: headerMode !== "no_header",
+        header_mode: headerMode,
+        header_row_index: headerMode === "manual_header_row" ? manualHeaderRow - 1 : headerMode === "first_row_header" ? 0 : null,
+      });
+      await refreshMappingPreview();
+      setStepIndex(4);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : importLabels.loadError);
     } finally {
@@ -223,19 +392,108 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
     try {
       await setImportRowDecision(batchId, row.id, { decision });
       await previewTable.refresh();
+      await refreshBatch(batchId);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : importLabels.decisionError);
     }
   };
 
-  const previewFilter = (previewTable.filters.filter as PreviewFilter | undefined) || "all";
+  const previewFilter =
+    (previewTable.filters.filter as PreviewFilter | undefined) ||
+    (isPreviewStep ? "pending" : "all");
+
+  const pageRowIds = React.useMemo(
+    () => previewTable.items.map((row) => row.id),
+    [previewTable.items],
+  );
+  const allPageRowsSelected =
+    pageRowIds.length > 0 && pageRowIds.every((id) => selectedRowIds.has(id));
+  const somePageRowsSelected = pageRowIds.some((id) => selectedRowIds.has(id));
+
+  const toggleRowSelection = (rowId: string, checked: boolean) => {
+    setSelectedRowIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(rowId);
+      else next.delete(rowId);
+      return next;
+    });
+  };
+
+  const togglePageSelection = (checked: boolean) => {
+    setSelectedRowIds((prev) => {
+      const next = new Set(prev);
+      for (const id of pageRowIds) {
+        if (checked) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const handleBulkAssignDecisions = async () => {
+    if (!batchId || bulkAssignRunning || !bulkAssignDecision || selectedRowIds.size === 0) return;
+    setBulkAssignRunning(true);
+    setBulkAssignResultMessage(null);
+    setBulkAssignErrors([]);
+    setError(null);
+    try {
+      const result = await bulkAssignRowDecisions(
+        batchId,
+        Array.from(selectedRowIds),
+        bulkAssignDecision,
+      );
+      setBulkAssignResultMessage(
+        importLabels.bulkAssignResult(result.updated_count, result.skipped_count),
+      );
+      setBulkAssignErrors(result.errors);
+      await previewTable.refresh();
+      await refreshBatch(batchId);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : importLabels.decisionError);
+    } finally {
+      setBulkAssignRunning(false);
+    }
+  };
+
+  const handleApplyDecisions = async () => {
+    if (!batchId || applyRunning) return;
+    setApplyRunning(true);
+    setApplyResult(null);
+    setError(null);
+    try {
+      const result = await applyImportDecisions(batchId, {
+        filter: previewFilter,
+        search: previewTable.search || undefined,
+      });
+      const executionErrors = result.errors.filter(
+        (item) => !isApplySummaryOnlyMessage(item.message),
+      );
+      setApplyResult({
+        processed_count: result.processed_count,
+        not_processed_count: result.not_processed_count,
+        failed_count: executionErrors.length > 0 ? executionErrors.length : result.failed_count,
+        errors: executionErrors,
+      });
+      setSelectedRowIds(new Set());
+      const pendingFilters = { ...previewTable.filters, filter: "pending" };
+      previewTable.setFilters(pendingFilters);
+      await previewTable.refresh({ filters: pendingFilters, page: DEFAULT_PAGE });
+      await refreshBatch(batchId);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : importLabels.decisionError);
+    } finally {
+      setApplyRunning(false);
+    }
+  };
 
   const renderPreviewControls = () => (
     <div className="preview-controls">
       <div className="preview-filters">
         {(
           [
+            ["pending", importLabels.previewFilterPending],
             ["all", importLabels.previewFilterAll],
+            ["applied", importLabels.previewFilterApplied],
             ["new", importLabels.previewFilterNew],
             ["will_update", importLabels.previewFilterUpdate],
             ["duplicate", importLabels.previewFilterDuplicate],
@@ -247,9 +505,9 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
             key={key}
             type="button"
             className={`btn btn-sm ${previewFilter === key ? "btn-primary" : "btn-secondary"}`}
-            onClick={() => previewTable.setFilter("filter", key === "all" ? "" : key)}
+            onClick={() => previewTable.setFilter("filter", key)}
           >
-            {label}
+            {importLabels.previewFilterWithCount(label, previewTable.filterCounts?.[key] ?? 0)}
           </button>
         ))}
       </div>
@@ -289,20 +547,158 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
     </div>
   );
 
+  const renderAnalyzeResultTable = () => {
+    if (previewTable.loading) {
+      return <LoadingState message="Satırlar yükleniyor…" />;
+    }
+    if (previewTable.items.length === 0) {
+      return (
+        <EmptyState
+          title="Satır bulunamadı"
+          description="Analiz sonucu boş. Kolon eşleştirmesini ve Excel verisini kontrol edin."
+        />
+      );
+    }
+    return (
+      <DataTableShell>
+        <table className="data-table import-analyze-table">
+          <thead>
+            <tr>
+              <th>{importLabels.colRow}</th>
+              <th>{importLabels.colCompany}</th>
+              <th>{importLabels.colStatus}</th>
+              <th>{importLabels.colMatch}</th>
+              <th>{importLabels.colMatchType}</th>
+              <th>{importLabels.colConfidence}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {previewTable.items.map((row) => {
+              const matchStatus = getImportMatchStatus(row);
+              return (
+                <tr key={row.id}>
+                  <td>{row.row_number}</td>
+                  <td>{str(row.normalized_data_json?.company_name)}</td>
+                  <td>{importMatchStatusLabels[matchStatus] ?? matchStatus}</td>
+                  <td>{row.match_customer_name ?? "—"}</td>
+                  <td>
+                    {row.match_reason
+                      ? importMatchTypeLabels[row.match_reason] ?? row.match_reason
+                      : "—"}
+                  </td>
+                  <td>{formatMatchConfidence(row.match_confidence)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </DataTableShell>
+    );
+  };
+
+  const renderBulkDecisionPanel = () => (
+    <div className="bulk-decision-panel">
+      <h4>{importLabels.bulkDecisionPanelTitle}</h4>
+      <div className="bulk-decision-panel-controls">
+        <label className="bulk-decision-field">
+          <span>{importLabels.bulkDecisionActionLabel}</span>
+          <select
+            className="form-select"
+            value={bulkAssignDecision}
+            onChange={(e) => setBulkAssignDecision(e.target.value as ImportDecision | "")}
+            disabled={bulkAssignRunning || applyRunning}
+          >
+            <option value="">—</option>
+            {Object.entries(importDecisionLabels).map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          disabled={
+            bulkAssignRunning
+            || applyRunning
+            || selectedRowIds.size === 0
+            || !bulkAssignDecision
+          }
+          onClick={() => void handleBulkAssignDecisions()}
+        >
+          {bulkAssignRunning ? importLabels.bulkAssignRunning : importLabels.bulkAssignSelected}
+        </button>
+        {selectedRowIds.size > 0 && (
+          <span className="text-muted">{importLabels.selectedCount(selectedRowIds.size)}</span>
+        )}
+      </div>
+      {bulkAssignResultMessage && (
+        <p className="text-muted import-bulk-result">{bulkAssignResultMessage}</p>
+      )}
+      {bulkAssignErrors.length > 0 && (
+        <div className="import-apply-errors">
+          <strong>{importLabels.bulkAssignErrorsTitle}</strong>
+          <ul>
+            {bulkAssignErrors.map((item) => (
+              <li key={item.row_id}>
+                #{item.row_number}: {item.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+
   const renderMergePreviewList = (editable: boolean) => (
     <div className="merge-preview-list">
+      {editable && previewTable.items.length > 0 && (
+        <div className="merge-preview-select-all">
+          <label className="merge-preview-checkbox-label">
+            <input
+              type="checkbox"
+              checked={allPageRowsSelected}
+              ref={(el) => {
+                if (el) el.indeterminate = !allPageRowsSelected && somePageRowsSelected;
+              }}
+              onChange={(e) => togglePageSelection(e.target.checked)}
+              aria-label={importLabels.selectAllOnPage}
+            />
+            {importLabels.selectAllOnPage}
+          </label>
+          {selectedRowIds.size > 0 && (
+            <span className="text-muted">{importLabels.selectedCount(selectedRowIds.size)}</span>
+          )}
+        </div>
+      )}
       {previewTable.items.length === 0 && !previewTable.loading ? (
         <EmptyState title="Satır yok" description="Filtreye uygun satır bulunamadı." />
       ) : (
         previewTable.items.map((row) => (
           <div key={row.id} className="merge-preview-item">
             <div className="merge-preview-meta">
+              {editable && (
+                <input
+                  type="checkbox"
+                  className="merge-preview-row-checkbox"
+                  checked={selectedRowIds.has(row.id)}
+                  onChange={(e) => toggleRowSelection(row.id, e.target.checked)}
+                  aria-label={`Satır ${row.row_number} seç`}
+                />
+              )}
               <span>#{row.row_number}</span>
               <Badge variant={importRowStatusBadgeVariant(row.status)}>
                 {importRowStatusLabels[row.status] ?? row.status}
               </Badge>
               {row.match_confidence != null && (
                 <span className="text-muted">Güven: {row.match_confidence}%</span>
+              )}
+              {typeof row.normalized_data_json?._match_explanation === "string" && (
+                <span className="text-muted import-match-explanation">
+                  {row.normalized_data_json._match_explanation
+                    .split(", ")
+                    .map((code) => importMatchExplanationLabels[code] ?? code)
+                    .join(" · ")}
+                </span>
               )}
               {editable && (
                 <select
@@ -327,89 +723,112 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
     </div>
   );
 
-  const handleBulk = async (action: BulkDecisionAction) => {
-    if (!batchId) return;
-    setLoading(true);
-    try {
-      await bulkRowDecision(batchId, action);
-      await previewTable.refresh();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : importLabels.decisionError);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleApply = async () => {
-    if (!batchId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      if (useBackgroundApply) {
-        const job = await startImportApplyJob(batchId);
-        setApplyJobId(job.job_id);
-        setJobStatus(job.status);
-        setStepIndex(8);
-      } else {
-        const result = await applyImportBatch(batchId);
-        setApplyResult(result);
-        setBatch(result.batch);
-        setStepIndex(8);
-      }
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : importLabels.applyError);
-    } finally {
-      setLoading(false);
-      setConfirmApply(false);
-    }
-  };
-
-  React.useEffect(() => {
-    if (!applyJobId) return;
-    const timer = window.setInterval(async () => {
-      try {
-        const job = await getImportJob(applyJobId);
-        setJobStatus(job.status);
-        if (job.status === "completed" && job.result_json) {
-          window.clearInterval(timer);
-          await refreshBatch(job.batch_id);
-          setApplyResult({
-            batch: batch!,
-            created_rows: Number(job.result_json.created_rows ?? 0),
-            updated_rows: Number(job.result_json.updated_rows ?? 0),
-            skipped_rows: Number(job.result_json.skipped_rows ?? 0),
-            invalid_rows: Number(job.result_json.invalid_rows ?? 0),
-            created_participations: Number(job.result_json.created_participations ?? 0),
-            updated_participations: Number(job.result_json.updated_participations ?? 0),
-            created_contacts: Number(job.result_json.created_contacts ?? 0),
-          });
-        }
-        if (job.status === "failed") {
-          window.clearInterval(timer);
-          setError(job.error_message ?? importLabels.applyError);
-        }
-      } catch {
-        /* polling */
-      }
-    }, 1500);
-    return () => window.clearInterval(timer);
-  }, [applyJobId, batch]);
-
-  const columnOptions = mappingColumns.map((col) => ({
-    index: col.index,
-    label: columnOptionLabel(col, headerMode),
-  }));
-
-  const hasExpandableSamples = mappingColumns.some((col) => col.samples.length > 3);
-
   const renderStepper = () => (
     <div className="wizard-stepper">
-      {WIZARD_STEPS.map((s, i) => (
+      {activeSteps.map((s, i) => (
         <span key={s.id} className={`wizard-step ${i === stepIndex ? "active" : i < stepIndex ? "done" : ""}`}>
           {i + 1}. {s.label}
         </span>
       ))}
     </div>
+  );
+
+  const renderSheet = () => (
+    <Card>
+      <h3>{dataIntegrationLabels.sheetTitle}</h3>
+      <p className="text-muted">{dataIntegrationLabels.sheetSubtitle}</p>
+      {availableSheets.length > 0 ? (
+        <div className="form-field">
+          <label>{dataIntegrationLabels.sheetTitle}</label>
+          <select
+            className="form-select"
+            value={selectedSheet}
+            onChange={(e) => setSelectedSheet(e.target.value)}
+          >
+            {availableSheets.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <p>{selectedSheet || "—"}</p>
+      )}
+    </Card>
+  );
+
+  const renderHeader = () => (
+    <Card>
+      <h3>{dataIntegrationLabels.headerModeTitle}</h3>
+      <div className="header-toggle">
+        <label>
+          <input
+            type="radio"
+            checked={headerMode === "first_row_header"}
+            onChange={() => {
+              setHeaderMode("first_row_header");
+              setHasHeaderRow(true);
+            }}
+          />
+          {dataIntegrationLabels.headerFirstRow}
+        </label>
+        <label>
+          <input
+            type="radio"
+            checked={headerMode === "no_header"}
+            onChange={() => {
+              setHeaderMode("no_header");
+              setHasHeaderRow(false);
+            }}
+          />
+          {dataIntegrationLabels.headerNoHeader}
+        </label>
+        <label>
+          <input
+            type="radio"
+            checked={headerMode === "manual_header_row"}
+            onChange={() => {
+              setHeaderMode("manual_header_row");
+              setHasHeaderRow(true);
+            }}
+          />
+          {dataIntegrationLabels.headerManualRow}
+        </label>
+      </div>
+      {headerMode === "manual_header_row" && (
+        <div className="form-field">
+          <label>{dataIntegrationLabels.manualHeaderRowLabel}</label>
+          <input
+            type="number"
+            min={1}
+            className="form-input"
+            value={manualHeaderRow}
+            onChange={(e) => setManualHeaderRow(Number(e.target.value) || 1)}
+          />
+        </div>
+      )}
+    </Card>
+  );
+
+  const renderMappingGrid = () => (
+    <Card>
+      <h3>{importLabels.mappingTitle}</h3>
+      <p className="text-muted">Her Excel kolonunu CRM alanına eşleştirin. Firma Adı zorunludur.</p>
+      <ExcelMappingGrid
+        columns={gridColumns}
+        rows={gridRows}
+        columnFieldMap={columnFieldMap}
+        onColumnFieldChange={(colIndex, field) =>
+          setColumnFieldMap((prev) => ({ ...prev, [colIndex]: field }))
+        }
+        totalDataRows={gridMeta.totalDataRows}
+        previewRowCount={gridMeta.previewRowCount}
+      />
+      {!isMappingGridValid(columnFieldMap) && (
+        <p className="form-error" role="status">
+          Firma Adı eşleştirmesi zorunludur ve aynı alan iki kolona atanamaz.
+        </p>
+      )}
+    </Card>
   );
 
   const renderSource = () => (
@@ -433,18 +852,29 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
   const renderUpload = () => (
     <Card>
       <h3>{importLabels.uploadTitle}</h3>
-      <p className="text-muted">{importLabels.uploadHint}</p>
-      <input
-        ref={fileRef}
-        type="file"
-        accept=".xlsx"
-        hidden
-        onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
-      />
-      <button type="button" className="btn btn-secondary" onClick={() => fileRef.current?.click()}>
-        {importLabels.selectFile}
-      </button>
-      {selectedFile && <p>{selectedFile.name}</p>}
+      {isSetupResume && batch ? (
+        <>
+          <p className="text-muted">{importLabels.uploadResumeHint}</p>
+          <p>
+            <strong>{batch.file_name}</strong>
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="text-muted">{importLabels.uploadHint}</p>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".xlsx"
+            hidden
+            onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+          />
+          <button type="button" className="btn btn-secondary" onClick={() => fileRef.current?.click()}>
+            {importLabels.selectFile}
+          </button>
+          {selectedFile && <p>{selectedFile.name}</p>}
+        </>
+      )}
       {uploadPreview && availableSheets.length > 1 && (
         <div className="form-field">
           <label>{dataIntegrationLabels.sheetTitle}</label>
@@ -642,7 +1072,11 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
       <h3>{importLabels.analyzeTitle}</h3>
       {batch && (
         <p>
-          {batch.total_rows} satır · Durum:{" "}
+          {isBatchAnalyzed
+            ? `${batch.total_rows} satır analiz edildi`
+            : `${batch.total_rows} ham satır yüklendi — analiz henüz çalıştırılmadı`}
+          {" · "}
+          Durum:{" "}
           <Badge variant={importBatchStatusBadgeVariant(batch.status)}>
             {importBatchStatusLabels[batch.status] ?? batch.status}
           </Badge>
@@ -658,173 +1092,186 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
     <Card>
       <h3>{importLabels.previewTitle}</h3>
       {selectedFair && <p>Hedef fuar: <strong>{selectedFair.name}</strong></p>}
-      {renderPreviewControls()}
-      {!batchId ? (
-        <EmptyState title="Satır yok" description="Önce analiz çalıştırın." />
+      {!isBatchAnalyzed ? (
+        <EmptyState
+          title="Analiz gerekli"
+          description="Önizleme için önce analiz adımını tamamlayın."
+        />
       ) : (
         <>
-          <ServerDataTableFrame table={previewTable} skeletonRows={3}>
-            {renderMergePreviewList(false)}
-          </ServerDataTableFrame>
+          {renderPreviewControls()}
+          {!batchId ? (
+            <EmptyState title="Satır yok" description="Önce analiz çalıştırın." />
+          ) : (
+            <>
+              {renderAnalyzeResultTable()}
+              <ServerDataTableFrame table={previewTable} skeletonRows={3}>
+                {renderMergePreviewList(false)}
+              </ServerDataTableFrame>
+            </>
+          )}
         </>
       )}
     </Card>
   );
 
-  const renderDecisions = () => (
-    <Card>
-      <h3>{importLabels.decisionsTitle}</h3>
-      <div className="bulk-actions">
-        <button type="button" className="btn btn-secondary" onClick={() => void handleBulk("create_all_new")}>
-          {importLabels.bulkCreateNew}
-        </button>
-        <button type="button" className="btn btn-secondary" onClick={() => void handleBulk("link_all_existing")}>
-          {importLabels.bulkLinkExisting}
-        </button>
-        <button type="button" className="btn btn-secondary" onClick={() => void handleBulk("update_all_duplicates")}>
-          {importLabels.bulkUpdateDuplicates}
-        </button>
-        <button type="button" className="btn btn-secondary" onClick={() => void handleBulk("skip_invalid")}>
-          {importLabels.bulkSkipInvalid}
-        </button>
-      </div>
-      {renderPreviewControls()}
-      <ServerDataTableFrame table={previewTable} skeletonRows={3}>
-        {renderMergePreviewList(true)}
-      </ServerDataTableFrame>
-    </Card>
-  );
+  const renderDecisions = () => {
+    const decisionBusy = applyRunning || bulkAssignRunning || loading;
 
-  const renderApply = () => (
-    <Card>
-      <h3>{importLabels.applyTitle}</h3>
-      {batch && (
-        <ul>
-          <li>Oluşturulacak: {batch.ready_to_create}</li>
-          <li>Güncellenecek: {batch.ready_to_update}</li>
-          <li>Atlanacak: {previewTable.items.filter((r) => r.decision === "skip").length}</li>
-        </ul>
-      )}
-      <p className="text-muted">{dataIntegrationLabels.applyBackgroundHint}</p>
-      <label>
-        <input
-          type="checkbox"
-          checked={useBackgroundApply}
-          onChange={(e) => setUseBackgroundApply(e.target.checked)}
-        />{" "}
-        {dataIntegrationLabels.applyBackground}
-      </label>
-      <button type="button" className="btn btn-primary" onClick={() => setConfirmApply(true)}>
-        {importLabels.applyConfirmTitle}
-      </button>
-    </Card>
-  );
+    if (isImportComplete && batch) {
+      return (
+        <Card>
+          <div className="import-complete-banner">
+            <h3>✅ {importLabels.importCompletedTitle}</h3>
+            <p>{importLabels.importCompletedMessage(processedRowCount)}</p>
+            <p className="text-muted">{importLabels.importCompletedNoPending}</p>
+            <button type="button" className="btn btn-primary" onClick={() => onFinished?.()}>
+              {importLabels.importCompletedBack}
+            </button>
+          </div>
+        </Card>
+      );
+    }
 
-  const renderSummary = () => (
-    <Card>
-      <h3>{importLabels.summaryTitle}</h3>
-      {applyJobId && jobStatus && !applyResult && (
-        <p>{dataIntegrationLabels.jobRunning} ({jobStatus})</p>
-      )}
-      {applyResult && (
-        <div className="import-summary">
-          <div><strong>{importLabels.resultCreated}:</strong> {applyResult.created_rows}</div>
-          <div><strong>{importLabels.resultUpdated}:</strong> {applyResult.updated_rows}</div>
-          <div><strong>{importLabels.resultParticipationCreated}:</strong> {applyResult.created_participations}</div>
-          <div><strong>{importLabels.resultParticipationUpdated}:</strong> {applyResult.updated_participations}</div>
-          <div><strong>{importLabels.resultContacts}:</strong> {applyResult.created_contacts}</div>
-          <div><strong>{importLabels.resultSkipped}:</strong> {applyResult.skipped_rows}</div>
-          <div><strong>{importLabels.resultInvalid}:</strong> {applyResult.invalid_rows}</div>
-        </div>
-      )}
-      <button
-        type="button"
-        className="btn btn-primary"
-        onClick={() => {
-          setStepIndex(0);
-          setBatchId(null);
-          setBatch(null);
-          setUploadPreview(null);
-          setApplyResult(null);
-          setSelectedFile(null);
-        }}
-      >
-        {importLabels.newImport}
-      </button>
-    </Card>
-  );
-
-  const stepContent: Record<WizardStepId, React.ReactNode> = {
-    source: renderSource(),
-    upload: renderUpload(),
-    fair: renderFair(),
-    mapping: renderMapping(),
-    analyze: renderAnalyze(),
-    preview: renderPreview(),
-    decisions: renderDecisions(),
-    apply: renderApply(),
-    summary: renderSummary(),
+    return (
+      <Card>
+        <h3>{importLabels.decisionsTitle}</h3>
+        {!isBatchAnalyzed ? (
+          <EmptyState
+            title="Analiz gerekli"
+            description="Karar adımı için önce analizi tamamlayın."
+          />
+        ) : (
+          <>
+            {renderBulkDecisionPanel()}
+            <div className="bulk-actions">
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={decisionBusy || previewTable.items.length === 0}
+                onClick={() => void handleApplyDecisions()}
+              >
+                {decisionBusy ? importLabels.applyRunning : importLabels.applyAllList}
+              </button>
+              {applyResult && (
+                <div className="import-apply-result">
+                  <p className="import-apply-result-title">{importLabels.applyCompletedTitle}</p>
+                  {applyResult.processed_count > 0 && (
+                    <p className="import-apply-result-success">
+                      ✅ {importLabels.applyProcessedCount(applyResult.processed_count)}
+                    </p>
+                  )}
+                  {applyResult.not_processed_count > 0 && (
+                    <p className="import-apply-result-info">
+                      ℹ {importLabels.applyNotProcessedCount(applyResult.not_processed_count)}
+                    </p>
+                  )}
+                  {applyResult.errors.length > 0 && (
+                    <div className="import-apply-errors">
+                      <p className="import-apply-result-warning">
+                        ⚠ {importLabels.applyFailedCount(applyResult.errors.length)}
+                      </p>
+                      <ul>
+                        {applyResult.errors.map((item) => (
+                          <li key={item.row_id}>
+                            #{item.row_number} {item.message}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            {renderPreviewControls()}
+            <ServerDataTableFrame table={previewTable} skeletonRows={3}>
+              {renderMergePreviewList(!decisionBusy)}
+            </ServerDataTableFrame>
+          </>
+        )}
+      </Card>
+    );
   };
 
+  const setupStepContent: Record<string, React.ReactNode> = {
+    fair: renderFair(),
+    upload: renderUpload(),
+    sheet: renderSheet(),
+    header: renderHeader(),
+    mapping: renderMappingGrid(),
+  };
+
+  const continueStepContent: Record<string, React.ReactNode> = {
+    decisions: renderDecisions(),
+  };
+
+  const stepContent = isContinueMode ? continueStepContent : setupStepContent;
+
   const canNext = () => {
+    if (isContinueMode) return true;
     if (currentStep === "fair") return !!selectedFairId;
-    if (currentStep === "upload") return !!selectedFile;
-    if (currentStep === "mapping") return mappings.company_name !== undefined;
+    if (currentStep === "upload") return isSetupResume || !!selectedFile;
+    if (currentStep === "sheet") return !!selectedSheet;
+    if (currentStep === "mapping") return isMappingGridValid(columnFieldMap);
     return true;
   };
 
   const handleNext = () => {
-    if (currentStep === "upload" && selectedFile && selectedFairId) {
-      void handleUpload();
+    if (isContinueMode) return;
+    if (currentStep === "upload") {
+      if (isSetupResume) {
+        setStepIndex((i) => i + 1);
+        return;
+      }
+      if (selectedFile && selectedFairId) {
+        void handleUpload();
+      }
+      return;
+    }
+    if (currentStep === "sheet") {
+      void handleSheetConfirm();
+      return;
+    }
+    if (currentStep === "header") {
+      void handleHeaderConfirm();
       return;
     }
     if (currentStep === "mapping") {
       void handleSaveMapping();
       return;
     }
-    if (currentStep === "analyze" && (batch?.total_rows ?? 0) > 0) {
-      setStepIndex(5);
-      return;
-    }
-    if (stepIndex < WIZARD_STEPS.length - 1) setStepIndex(stepIndex + 1);
+    if (stepIndex < activeSteps.length - 1) setStepIndex((i) => i + 1);
   };
+
+  const nextButtonLabel =
+    currentStep === "mapping" ? "Kaydet ve Listeye Dön" : importLabels.next;
 
   return (
     <div className="import-wizard">
       <PageHeader title={importLabels.wizardTitle} subtitle={importLabels.wizardSubtitle} />
       {renderStepper()}
       {error && <p className="form-error">{error}</p>}
-      {loading && currentStep !== "analyze" ? <LoadingState message="Yükleniyor…" /> : stepContent[currentStep]}
+      {loading ? <LoadingState message="Yükleniyor…" /> : stepContent[currentStep]}
       <div className="wizard-nav">
         <button
           type="button"
           className="btn btn-secondary"
-          disabled={stepIndex === 0 || currentStep === "summary"}
+          disabled={stepIndex === 0}
           onClick={() => setStepIndex(Math.max(0, stepIndex - 1))}
         >
           {importLabels.back}
         </button>
-        {currentStep !== "summary" && currentStep !== "apply" && (
+        {!(isContinueMode && currentStep === "decisions") && (
           <button
             type="button"
             className="btn btn-primary"
             disabled={!canNext() || loading}
             onClick={handleNext}
           >
-            {importLabels.next}
+            {nextButtonLabel}
           </button>
         )}
-        {currentStep === "apply" && null}
       </div>
-      {confirmApply && (
-        <ConfirmDialog
-          title={importLabels.applyConfirmTitle}
-          message={importLabels.applyConfirmMessage}
-          confirmLabel={importLabels.applyConfirmTitle}
-          onConfirm={() => void handleApply()}
-          onCancel={closeConfirmApply}
-        />
-      )}
     </div>
   );
 }

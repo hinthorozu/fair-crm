@@ -8,6 +8,38 @@ Format: one version section per completed sprint milestone. Update this file aft
 
 ## Unreleased
 
+### Import Job Permanent Delete
+
+- `DELETE /api/v1/data-integration/imports/{batch_id}` — hard delete batch, rows, jobs, stored Excel bytes
+- Active analyze/apply job or `analyzing`/`applying` status blocks delete (409)
+- Import list **Sil** button with confirmation dialog + success toast
+
+### Import Job Resume Flow + Decision Bulk Actions
+
+- Upload sonrası Import İşleri listesine yönlendirme
+- **Devam Et** — status-aware setup/decision resume (`/imports/continue/:id`)
+- Bulk preview: `POST .../bulk-actions/preview` (veri değiştirmez)
+- Bulk apply job: `POST .../bulk-actions/apply` (202, background)
+- Batch apply/bulk lock (409); idempotent bulk (skip rows with decision)
+- [docs/IMPORT_RESUME_BULK_COMPLETION.md](docs/IMPORT_RESUME_BULK_COMPLETION.md)
+
+### Company Name Matching Stabilization
+
+- Turkish-aware normalization + legal suffix / abbreviation handling
+- Token-based scoring with confidence bands (70 / 85 / 95)
+- Match explanations stored on import rows (`_match_explanation`)
+- [docs/COMPANY_NAME_MATCHING_COMPLETION.md](docs/COMPANY_NAME_MATCHING_COMPLETION.md)
+
+### Universal Excel Import — Column Mapping Grid + Analysis Queue
+
+- Excel preview + per-column mapping grid (dropdown per column)
+- Wizard setup: upload → sheet → header → mapping grid → Import Jobs list
+- Batch lifecycle statuses (`mapping_completed`, `analysis_queued`, `analyzing`, `decision_required`, …)
+- Background analyze via `POST .../analyze-job` (FastAPI BackgroundTasks)
+- Organization-level analyze concurrency lock (409 on conflict)
+- Migration `0015_import_batch_lifecycle`
+- [docs/IMPORT_MAPPING_GRID_COMPLETION.md](docs/IMPORT_MAPPING_GRID_COMPLETION.md)
+
 ### Development runtime (Sprint — Dev Auto Start Standard v1) — MERGE APPROVED
 
 - `docker-compose.yml` — `restart: unless-stopped` on PostgreSQL

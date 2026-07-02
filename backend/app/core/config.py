@@ -1,7 +1,7 @@
 from functools import lru_cache
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -32,6 +32,34 @@ class Settings(BaseSettings):
     database_restore_enabled: bool = Field(
         default=False,
         validation_alias="FAIR_CRM_DATABASE_RESTORE_ENABLED",
+    )
+    import_max_file_size_mb: int = Field(
+        default=50,
+        validation_alias=AliasChoices("IMPORT_MAX_FILE_SIZE_MB", "FAIR_CRM_IMPORT_MAX_FILE_SIZE_MB"),
+    )
+    import_max_rows: int = Field(
+        default=50_000,
+        validation_alias=AliasChoices("IMPORT_MAX_ROWS", "FAIR_CRM_IMPORT_MAX_ROWS"),
+    )
+    import_max_columns: int = Field(
+        default=100,
+        validation_alias=AliasChoices("IMPORT_MAX_COLUMNS", "FAIR_CRM_IMPORT_MAX_COLUMNS"),
+    )
+    import_max_sheets: int = Field(
+        default=20,
+        validation_alias=AliasChoices("IMPORT_MAX_SHEETS", "FAIR_CRM_IMPORT_MAX_SHEETS"),
+    )
+    import_mapping_sample_rows: int = Field(
+        default=10,
+        validation_alias=AliasChoices("IMPORT_MAPPING_SAMPLE_ROWS", "FAIR_CRM_IMPORT_MAPPING_SAMPLE_ROWS"),
+    )
+    import_grid_preview_rows: int = Field(
+        default=50,
+        validation_alias=AliasChoices("IMPORT_GRID_PREVIEW_ROWS", "FAIR_CRM_IMPORT_GRID_PREVIEW_ROWS"),
+    )
+    import_analyze_chunk_size: int = Field(
+        default=500,
+        validation_alias=AliasChoices("IMPORT_ANALYZE_CHUNK_SIZE", "FAIR_CRM_IMPORT_ANALYZE_CHUNK_SIZE"),
     )
 
 

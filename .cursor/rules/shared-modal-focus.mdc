@@ -1,0 +1,55 @@
+---
+description: Modal/ConfirmDialog focus stability and ADR-028 close conventions
+globs: fair-crm/frontend/src/components/ui/**/*.tsx,fair-crm/frontend/src/**/*.tsx
+alwaysApply: false
+---
+
+# Shared Modal Focus Pattern (ADR-028)
+
+`Modal`, `ConfirmDialog`, and similar overlay components must follow the **Universal Modal Standard**.
+
+## Close behavior
+
+**Allowed close paths only:**
+
+- X button (header)
+- İptal / Vazgeç / explicit cancel buttons
+- Kaydet / Tamam after successful submit (parent calls `onClose`)
+- Nested discard confirm: **Çık** (after dirty guard)
+
+**Never close on:**
+
+- Backdrop click
+- Escape key
+- Focus loss
+
+Do **not** attach `onClick` handlers to `.modal-backdrop` that call close.
+
+## Dirty form guard (`Modal` only)
+
+1. Forms inside `Modal` call `useReportFormDirty(values, baseline)` from `hooks/useModalForm.ts`.
+2. Cancel buttons use `useModalFormCancel(onCancel)` instead of calling `onCancel` directly.
+3. When `dirty === true` and user clicks X or İptal, `Modal` shows `ConfirmDialog`:
+   - **Forma Dön** → stay open, keep data
+   - **Çık** → discard and close
+
+Read-only modals (detail views) do not need dirty reporting.
+
+## Focus
+
+1. **Focus init on mount only** — run initial focus in `useEffect` with `[]` deps.
+2. **No Escape listener** on `Modal` or `ConfirmDialog`.
+
+Reference: `components/ui/Modal.tsx`, `components/ui/ConfirmDialog.tsx`, `hooks/useModalForm.ts`.
+
+## Parent components
+
+Stabilize close handlers with `useCallback`:
+
+```tsx
+const closeModal = React.useCallback(() => setModal(null), []);
+```
+
+## New modals
+
+Always use shared `Modal` / `ConfirmDialog`. Do not create ad-hoc backdrop overlays with different close rules.

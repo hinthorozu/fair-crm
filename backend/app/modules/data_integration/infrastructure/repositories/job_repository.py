@@ -120,3 +120,65 @@ class SqlAlchemyImportJobRepository:
             .all()
         )
         return [_to_entity(m) for m in models], total
+
+    def has_active_analyze_job(self, organization_id: UUID) -> bool:
+        model = (
+            self._session.query(ImportJobModel)
+            .filter(
+                ImportJobModel.organization_id == organization_id,
+                ImportJobModel.job_type == ImportJobType.ANALYZE.value,
+                ImportJobModel.status.in_(
+                    [ImportJobStatus.QUEUED.value, ImportJobStatus.RUNNING.value]
+                ),
+            )
+            .first()
+        )
+        return model is not None
+
+    def get_active_analyze_job_for_batch(
+        self, organization_id: UUID, batch_id: UUID
+    ) -> ImportJob | None:
+        model = (
+            self._session.query(ImportJobModel)
+            .filter(
+                ImportJobModel.organization_id == organization_id,
+                ImportJobModel.batch_id == batch_id,
+                ImportJobModel.job_type == ImportJobType.ANALYZE.value,
+                ImportJobModel.status.in_(
+                    [ImportJobStatus.QUEUED.value, ImportJobStatus.RUNNING.value]
+                ),
+            )
+            .order_by(ImportJobModel.created_at.desc())
+            .first()
+        )
+        return _to_entity(model) if model else None
+
+    def has_active_bulk_or_apply_job_for_batch(
+        self, organization_id: UUID, batch_id: UUID
+    ) -> bool:
+        return self.get_active_bulk_or_apply_job_for_batch(organization_id, batch_id) is not None
+
+    def get_active_bulk_or_apply_job_for_batch(
+        self, organization_id: UUID, batch_id: UUID
+    ) -> ImportJob | None:
+        model = (
+            self._session.query(ImportJobModel)
+            .filter(
+                ImportJobModel.organization_id == organization_id,
+                ImportJobModel.batch_id == batch_id,
+                ImportJobModel.job_type.in_(
+                    [ImportJobType.APPLY.value, ImportJobType.BULK_DECISION.value]
+                ),
+                ImportJobModel.status.in_(
+                    [ImportJobStatus.QUEUED.value, ImportJobStatus.RUNNING.value]
+                ),
+            )
+            .order_by(ImportJobModel.created_at.desc())
+            .first()
+        )
+        return _to_entity(model) if model else None
+
+    def has_any_active_job_for_batch(self, organization_id: UUID, batch_id: UUID) -> bool:
+        if self.get_active_analyze_job_for_batch(organization_id, batch_id) is not None:
+            return True
+        return self.get_active_bulk_or_apply_job_for_batch(organization_id, batch_id) is not None

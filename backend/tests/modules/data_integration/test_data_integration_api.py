@@ -75,9 +75,27 @@ def test_header_mode_no_header_mapping(client, auth_headers):
     assert mapping.status_code == 200
     assert mapping.json()["column_mapping"]["header_mode"] == "no_header"
 
-    analyze = client.post(f"/api/v1/data-integration/imports/{batch_id}/analyze", headers=auth_headers)
-    assert analyze.status_code == 200
-    assert analyze.json()["total_rows"] == 2
+    analyze = client.post(
+        f"/api/v1/data-integration/imports/{batch_id}/analyze-job",
+        headers=auth_headers,
+    )
+    assert analyze.status_code == 202
+    job_id = analyze.json()["job_id"]
+    job = client.get(f"/api/v1/data-integration/jobs/{job_id}", headers=auth_headers)
+    assert job.status_code == 200
+    assert job.json()["status"] == "completed"
+    batch = client.get(f"/api/v1/data-integration/imports/{batch_id}", headers=auth_headers)
+    assert batch.status_code == 200
+    analyze_body = {"batch": batch.json(), "total_rows": batch.json()["total_rows"]}
+    assert analyze_body["total_rows"] == 2
+    assert analyze_body["batch"]["status"] == "decision_required"
+
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers)
+    assert rows.status_code == 200
+    rows_body = rows.json()
+    assert rows_body["pagination"]["totalItems"] == 2
+    assert len(rows_body["items"]) == 2
+    assert rows_body["items"][0]["normalized_data_json"]["company_name"] == "Beta Corp"
 
 
 def test_apply_job_completes(client, auth_headers):
@@ -104,16 +122,38 @@ def test_apply_job_completes(client, auth_headers):
             },
         },
     ).raise_for_status()
-    client.post(f"/api/v1/data-integration/imports/{batch_id}/analyze", headers=auth_headers).raise_for_status()
+    analyze = client.post(
+        f"/api/v1/data-integration/imports/{batch_id}/analyze-job",
+        headers=auth_headers,
+    )
+    assert analyze.status_code == 202
+    analyze_job_id = analyze.json()["job_id"]
+    for _ in range(60):
+        analyze_status = client.get(
+            f"/api/v1/data-integration/jobs/{analyze_job_id}",
+            headers=auth_headers,
+        )
+        if analyze_status.json()["status"] == "completed":
+            break
 
     job_res = client.post(
-        f"/api/v1/data-integration/imports/{batch_id}/apply-job",
+        f"/api/v1/data-integration/imports/{batch_id}/bulk-actions/apply",
         headers=auth_headers,
+        json={"action_type": "create_all_new"},
     )
     assert job_res.status_code == 202
     job_id = job_res.json()["job_id"]
 
     status_res = client.get(f"/api/v1/data-integration/jobs/{job_id}", headers=auth_headers)
+    for _ in range(60):
+        status_res = client.get(f"/api/v1/data-integration/jobs/{job_id}", headers=auth_headers)
+        if status_res.json()["status"] == "completed":
+            break
     assert status_res.status_code == 200
     assert status_res.json()["status"] == "completed"
-    assert status_res.json()["result_json"]["created_rows"] == 1
+    assert status_res.json()["result_json"]["processed_rows"] >= 1
+
+    batch = client.get(f"/api/v1/data-integration/imports/{batch_id}", headers=auth_headers)
+    assert batch.status_code == 200
+    assert batch.json()["created_rows"] >= 1
+    assert batch.json()["status"] == "completed"

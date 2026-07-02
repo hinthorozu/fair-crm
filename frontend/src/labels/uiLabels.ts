@@ -30,4 +30,9 @@ export const uiLabels = {
   detailNewActivity: "Yeni Aktivite",
   detailFairActivitySoon: "Fuar aktivitesi yakında",
   backToFairs: "Fuarlara Dön",
+  modalUnsavedTitle: "Kaydedilmemiş değişiklikler",
+  modalUnsavedMessage:
+    "Kaydedilmemiş değişiklikler var. Çıkmak istediğinize emin misiniz?",
+  modalReturnToForm: "Forma Dön",
+  modalDiscardExit: "Çık",
 } as const;

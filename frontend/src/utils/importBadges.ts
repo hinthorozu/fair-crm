@@ -32,10 +32,19 @@ export function importRowStatusBadgeVariant(status: ImportRowStatus | string): B
 export function importBatchStatusBadgeVariant(status: string): BadgeVariant {
   const map: Record<string, BadgeVariant> = {
     uploaded: "neutral",
-    mapped: "info",
+    sheet_selected: "neutral",
+    header_configured: "neutral",
+    mapping_completed: "warning",
+    mapped: "warning",
+    analysis_queued: "info",
+    analyzing: "info",
     analyzed: "info",
-    previewed: "info",
+    analysis_failed: "danger",
+    decision_required: "primary",
+    applying: "info",
+    completed: "success",
     applied: "success",
+    previewed: "info",
     failed: "danger",
     cancelled: "neutral",
   };

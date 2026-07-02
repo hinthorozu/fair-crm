@@ -129,6 +129,23 @@ class SqlAlchemyParticipationRepository:
         )
         return model_to_entity(model) if model else None
 
+    def map_active_customer_ids_for_fair(
+        self, organization_id: UUID, fair_id: UUID
+    ) -> dict[UUID, UUID]:
+        rows = (
+            self._session.query(
+                CustomerFairParticipationModel.customer_id,
+                CustomerFairParticipationModel.id,
+            )
+            .filter(
+                CustomerFairParticipationModel.organization_id == organization_id,
+                CustomerFairParticipationModel.fair_id == fair_id,
+                CustomerFairParticipationModel.deleted_at.is_(None),
+            )
+            .all()
+        )
+        return {customer_id: participation_id for customer_id, participation_id in rows}
+
     def list_by_customer(
         self,
         organization_id: UUID,

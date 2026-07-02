@@ -79,6 +79,18 @@ class SqlAlchemyImportBatchRepository:
         )
         return [batch_model_to_entity(m) for m in models], total
 
+    def delete(self, organization_id: UUID, batch_id: UUID) -> bool:
+        deleted = (
+            self._session.query(ImportBatchModel)
+            .filter(
+                ImportBatchModel.organization_id == organization_id,
+                ImportBatchModel.id == batch_id,
+            )
+            .delete(synchronize_session=False)
+        )
+        self._session.flush()
+        return deleted > 0
+
 
 class SqlAlchemyImportRowRepository:
     def __init__(self, session: Session) -> None:
@@ -143,6 +155,22 @@ class SqlAlchemyImportRowRepository:
                 .one()
             )
             update_row_model_from_entity(model, row)
+        self._session.flush()
+
+    def delete_many(
+        self, organization_id: UUID, batch_id: UUID, row_ids: list[UUID]
+    ) -> None:
+        if not row_ids:
+            return
+        (
+            self._session.query(ImportRowModel)
+            .filter(
+                ImportRowModel.organization_id == organization_id,
+                ImportRowModel.batch_id == batch_id,
+                ImportRowModel.id.in_(row_ids),
+            )
+            .delete(synchronize_session=False)
+        )
         self._session.flush()
 
     def delete_by_batch(self, organization_id: UUID, batch_id: UUID) -> None:

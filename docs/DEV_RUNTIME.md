@@ -78,10 +78,18 @@ PostgreSQL may already be running via Docker `unless-stopped`; the script still 
 
 ## After database restore
 
-1. Confirm migrations: `alembic upgrade head` (from repo root)
-2. Confirm org scope: frontend `VITE_ORGANIZATION_ID` and backend `FAIR_CRM_DEV_ORGANIZATION_ID` match restored data
-3. Run `.\scripts\dev\reset-dev.ps1` (do not reuse a hung uvicorn from before restore)
-4. Smoke-test: `python scripts/verify_list_apis.py`
+**Mandatory:** restored dumps reflect an older Alembic revision. Application code expects `alembic upgrade head`.
+
+1. **Apply migrations** (from repo root): `python -m alembic upgrade head`
+   - `restore-db.ps1` does this automatically; skip only if you restored by other means and forgot this step.
+2. **Verify revision:** `python -m alembic current` → must show `(head)`
+3. **Confirm org scope:** frontend `VITE_ORGANIZATION_ID` and backend `FAIR_CRM_DEV_ORGANIZATION_ID` match restored data
+4. **Restart runtime:** `.\scripts\dev\reset-dev.ps1` (do not reuse a hung uvicorn from before restore)
+5. **Smoke-test:** `python scripts/verify_list_apis.py`
+
+### If Admin → Database Backups shows "Failed to fetch"
+
+Usually schema drift after restore (e.g. missing `backup_format` on `system_backups`). Fix: step 1 + 4 above, then refresh the page.
 
 ## Logs
 

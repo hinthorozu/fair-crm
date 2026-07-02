@@ -16,6 +16,7 @@ import {
   participationStatusLabels,
   participationStatusOptions,
 } from "../labels/participationLabels";
+import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 
 export interface ParticipationFormValues {
   fair_id: string;
@@ -117,6 +118,10 @@ export function ParticipationForm({
   const [values, setValues] = React.useState<ParticipationFormValues>(initial ?? emptyForm());
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const baseline = React.useMemo(() => initial ?? emptyForm(), [initial]);
+  const handleCancel = useModalFormCancel(onCancel);
+
+  useReportFormDirty(values, baseline);
 
   React.useEffect(() => {
     setValues(initial ?? emptyForm());
@@ -249,7 +254,7 @@ export function ParticipationForm({
       </label>
 
       <div className="form-actions">
-        <button type="button" className="btn secondary" onClick={onCancel} disabled={saving}>
+        <button type="button" className="btn secondary" onClick={handleCancel} disabled={saving}>
           İptal
         </button>
         <button type="submit" className="btn primary" disabled={saving}>

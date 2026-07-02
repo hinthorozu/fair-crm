@@ -8,6 +8,8 @@ export interface DataTableColumn<T> {
   sortField?: string;
   render: (row: T) => React.ReactNode;
   className?: string;
+  /** Used for responsive stacked-row layout (`data-label` on cells). */
+  dataLabel?: string;
 }
 
 interface SortableHeaderProps {
@@ -132,7 +134,11 @@ export function DataTable<T>({
           {data.map((row) => (
             <tr key={rowKey(row)}>
               {columns.map((column) => (
-                <td key={column.id} className={column.className}>
+                <td
+                  key={column.id}
+                  className={column.className}
+                  data-label={column.dataLabel}
+                >
                   {column.render(row)}
                 </td>
               ))}

@@ -1,3 +1,5 @@
+import type { StandardListResponse } from "./listTable";
+
 export type ImportSourceType =
   | "excel"
   | "pdf"
@@ -8,12 +10,21 @@ export type ImportSourceType =
 
 export type ImportBatchStatus =
   | "uploaded"
-  | "mapped"
+  | "sheet_selected"
+  | "header_configured"
+  | "mapping_completed"
+  | "analysis_queued"
+  | "analyzing"
   | "analyzed"
-  | "previewed"
-  | "applied"
+  | "analysis_failed"
+  | "decision_required"
+  | "applying"
+  | "completed"
   | "failed"
-  | "cancelled";
+  | "cancelled"
+  | "mapped"
+  | "previewed"
+  | "applied";
 
 export type ImportRowStatus =
   | "pending"
@@ -56,7 +67,30 @@ export interface MergePreview {
   summary_lines: string[];
 }
 
-export type PreviewFilter = "all" | "new" | "will_update" | "duplicate" | "invalid" | "skip";
+export interface ImportRowFilterCounts {
+  pending: number;
+  all: number;
+  applied: number;
+  new: number;
+  will_update: number;
+  duplicate: number;
+  invalid: number;
+  skip: number;
+}
+
+export interface ImportRowListResponse extends StandardListResponse<ImportRow> {
+  counts?: ImportRowFilterCounts;
+}
+
+export type PreviewFilter =
+  | "all"
+  | "pending"
+  | "applied"
+  | "new"
+  | "will_update"
+  | "duplicate"
+  | "invalid"
+  | "skip";
 
 export type PreviewSortBy = "confidence" | "company_name" | "status";
 
@@ -97,6 +131,12 @@ export interface ImportBatch {
   updated_at: string;
   completed_at: string | null;
   notes: string | null;
+  selected_sheet_name?: string | null;
+  available_sheets?: string[];
+  header_mode?: ExcelHeaderMode | null;
+  has_header_row?: boolean | null;
+  header_row_index?: number | null;
+  column_mapping_json?: Record<string, { type: string; value: number }> | null;
 }
 
 export interface ImportRow {
@@ -121,11 +161,6 @@ export interface ImportRow {
   merge_preview: MergePreview | null;
   created_at: string;
   updated_at: string;
-}
-
-export interface ImportRowListResponse {
-  items: ImportRow[];
-  total: number;
 }
 
 export interface UploadRawImportResponse {
@@ -170,6 +205,12 @@ export interface MappingPreviewResponse {
   header_mode: ExcelHeaderMode;
   header_row_index: number | null;
   columns: MappingColumnPreview[];
+  grid?: {
+    columns: { index: number; letter: string; header: string | null }[];
+    rows: unknown[][];
+    total_data_rows: number;
+    preview_row_count: number;
+  };
 }
 
 export interface ColumnMappingPayload {

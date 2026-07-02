@@ -110,6 +110,31 @@ def write_apply_reports(
         json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
+
+    migration_metadata = []
+    for customer in plan.customers:
+        if (
+            customer.additional_phones
+            or customer.additional_emails
+            or customer.migration_review_status
+            or len(customer.legacy_company_ids) > 1
+        ):
+            migration_metadata.append(
+                {
+                    "kyrox_customer_id": str(customer.kyrox_customer_id),
+                    "legacy_company_ids": customer.legacy_company_ids,
+                    "customer_key": customer.customer_key,
+                    "action": customer.action,
+                    "migration_review_status": customer.migration_review_status,
+                    "additional_phones": customer.additional_phones,
+                    "additional_emails": customer.additional_emails,
+                    "merge_group_id": customer.merge_group_id,
+                }
+            )
+    (reports_dir / "umcrm_migration_customer_metadata.json").write_text(
+        json.dumps(migration_metadata, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
     lines = [
         "# UMCRM Migration Apply Report",
         "",

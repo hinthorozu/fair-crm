@@ -86,7 +86,8 @@ function isArchivedCustomer(customer: Customer): boolean {
   return customer.status === "archived" || customer.deleted_at !== null;
 }
 
-function formatCreatedAt(value: string): string {
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString("tr-TR", {
@@ -150,7 +151,13 @@ function buildCustomerColumns(props: CustomerTableProps): UniversalDataTableColu
       key: "created_at",
       title: labels.created_at,
       sortable: true,
-      render: (c) => formatCreatedAt(c.created_at),
+      render: (c) => formatDateTime(c.created_at),
+    },
+    {
+      key: "updated_at",
+      title: labels.updated_at,
+      sortable: true,
+      render: (c) => formatDateTime(c.updated_at),
     },
     {
       key: "actions",

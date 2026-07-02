@@ -44,6 +44,17 @@ class SetColumnMappingCommand:
 
 
 @dataclass(frozen=True)
+class ConfigureImportHeaderCommand:
+    organization_id: UUID
+    user_id: UUID
+    access_token: str
+    batch_id: UUID
+    has_header_row: bool
+    header_mode: ExcelHeaderMode | None = None
+    header_row_index: int | None = None
+
+
+@dataclass(frozen=True)
 class SelectImportSheetCommand:
     organization_id: UUID
     user_id: UUID
@@ -78,6 +89,7 @@ class AnalyzeImportCommand:
     user_id: UUID
     access_token: str
     batch_id: UUID
+    from_background_job: bool = False
 
 
 @dataclass(frozen=True)
@@ -86,7 +98,44 @@ class BulkRowDecisionCommand:
     user_id: UUID
     access_token: str
     batch_id: UUID
-    action: str
+    action: str | None = None
+    row_ids: list[UUID] | None = None
+    decision: ImportDecision | None = None
+
+
+@dataclass(frozen=True)
+class PreviewBulkDecisionQuery:
+    organization_id: UUID
+    user_id: UUID
+    access_token: str
+    batch_id: UUID
+    action_type: str
+
+
+@dataclass(frozen=True)
+class PreviewBulkDecisionResult:
+    batch_id: UUID
+    action_type: str
+    affected_rows: int
+    already_decided_rows: int
+    summary: str
+    to_process_rows: int = 0
+    skipped_already_linked_rows: int = 0
+    unprocessable_rows: int = 0
+
+
+@dataclass(frozen=True)
+class DeleteImportBatchCommand:
+    organization_id: UUID
+    user_id: UUID
+    access_token: str
+    batch_id: UUID
+
+
+@dataclass(frozen=True)
+class DeleteImportBatchResult:
+    batch_id: UUID
+    deleted: bool
 
 
 @dataclass(frozen=True)
@@ -149,6 +198,12 @@ class ImportBatchResult:
     updated_at: datetime
     completed_at: Optional[datetime]
     notes: Optional[str]
+    selected_sheet_name: Optional[str] = None
+    available_sheets: list[str] | None = None
+    header_mode: Optional[str] = None
+    has_header_row: Optional[bool] = None
+    header_row_index: Optional[int] = None
+    column_mapping_json: Optional[dict[str, Any]] = None
 
 
 @dataclass
@@ -183,6 +238,7 @@ class ImportRowListResult:
     page_size: int
     total: int
     total_pages: int
+    filter_counts: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass
@@ -210,14 +266,32 @@ class SetColumnMappingResult:
 
 
 @dataclass
+class ConfigureImportHeaderResult:
+    batch_id: UUID
+    status: ImportBatchStatus
+    header_mode: ExcelHeaderMode
+    header_row_index: int | None
+    has_header_row: bool
+
+
+@dataclass
 class AnalyzeImportResult:
     batch: ImportBatchResult
     total_rows: int
 
 
 @dataclass
+class BulkRowDecisionErrorItem:
+    row_id: UUID
+    row_number: int
+    message: str
+
+
+@dataclass
 class BulkRowDecisionResult:
     updated_count: int
+    skipped_count: int = 0
+    errors: list[BulkRowDecisionErrorItem] = field(default_factory=list)
 
 
 @dataclass

@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import AliasChoices
 
@@ -14,30 +14,51 @@ from app.modules.imports.application.list_import_rows import (
 )
 
 from app.core.config import get_settings
+from app.db.session import get_db
+from sqlalchemy.orm import Session
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.auth import AuthContext
 from app.modules.fairs.domain.exceptions import FairNotFoundError
 from app.modules.imports.api.dependencies import (
     get_analyze_import_use_case,
     get_apply_import_use_case,
+    get_apply_import_decisions_use_case,
     get_auth_context,
     get_bulk_row_decision_use_case,
+    get_configure_import_header_use_case,
+    get_delete_import_batch_use_case,
     get_get_import_batch_use_case,
+    get_job_runner,
     get_list_import_rows_use_case,
     get_mapping_preview_use_case,
+    get_preview_bulk_row_decision_use_case,
     get_set_column_mapping_use_case,
     get_set_row_decision_use_case,
+    get_start_bulk_row_decision_job_use_case,
     get_upload_import_use_case,
     get_upload_raw_import_use_case,
     require_read_permission,
 )
+from app.modules.data_integration.application.import_job_runner import ImportJobRunner
+from app.modules.data_integration.api.schemas import StartImportJobResponse
 from app.modules.imports.api.schemas import (
     AnalyzeImportResponse,
+    ApplyImportDecisionErrorItem,
+    ApplyImportDecisionsRequest,
+    ApplyImportDecisionsResponse,
     ApplyImportResponse,
     BulkRowDecisionRequest,
+    BulkRowDecisionErrorItemResponse,
     BulkRowDecisionResponse,
+    BulkDecisionApplyRequest,
+    BulkDecisionPreviewRequest,
+    BulkDecisionPreviewResponse,
+    DeleteImportBatchResponse,
+    ConfigureImportHeaderRequest,
+    ConfigureImportHeaderResponse,
     ErrorResponse,
     ImportBatchResponse,
+    ImportRowFilterCountsResponse,
     ImportRowListResponse,
     ImportRowResponse,
     MappingPreviewResponse,
@@ -48,12 +69,25 @@ from app.modules.imports.api.schemas import (
 )
 from app.modules.imports.application.analyze_import import AnalyzeImportUseCase
 from app.modules.imports.application.apply_import import ApplyImportUseCase
+from app.modules.imports.application.apply_import_decisions import (
+    ApplyImportDecisionsCommand,
+    ApplyImportDecisionsUseCase,
+)
+from app.modules.imports.application.delete_import_batch import DeleteImportBatchUseCase
 from app.modules.imports.application.bulk_row_decision import BulkRowDecisionUseCase
+from app.modules.imports.application.preview_bulk_row_decision import PreviewBulkRowDecisionUseCase
+from app.modules.imports.application.start_bulk_row_decision_job import (
+    StartBulkRowDecisionJobCommand,
+    StartBulkRowDecisionJobUseCase,
+)
 from app.modules.imports.application.commands import (
     AnalyzeImportCommand,
     ApplyImportCommand,
     BulkRowDecisionCommand,
+    ConfigureImportHeaderCommand,
+    DeleteImportBatchCommand,
     GetImportBatchQuery,
+    PreviewBulkDecisionQuery,
     GetMappingPreviewQuery,
     ListImportRowsQuery,
     SetColumnMappingCommand,
@@ -61,6 +95,7 @@ from app.modules.imports.application.commands import (
     UploadImportCommand,
     UploadRawImportCommand,
 )
+from app.modules.imports.application.configure_import_header import ConfigureImportHeaderUseCase
 from app.modules.imports.application.get_mapping_preview import GetMappingPreviewUseCase
 from app.modules.imports.application.get_import_batch import GetImportBatchUseCase
 from app.modules.imports.application.list_import_rows import ListImportRowsUseCase
@@ -72,7 +107,10 @@ from app.modules.imports.domain.value_objects import ExcelHeaderMode
 from app.modules.imports.domain.exceptions import (
     FairRequiredError,
     ImportBatchAlreadyAppliedError,
+    ImportBatchAnalyzeNotAllowedError,
+    ImportBatchDeleteBlockedError,
     ImportBatchNotFoundError,
+    ImportBulkActionInProgressError,
     ImportRowNotFoundError,
     InvalidColumnMappingError,
     InvalidImportDecisionError,
@@ -192,6 +230,39 @@ def get_import_batch(
     return _batch_response(result)
 
 
+@router.delete(
+    "/{batch_id}",
+    response_model=DeleteImportBatchResponse,
+    status_code=status.HTTP_200_OK,
+    responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
+    summary="Permanently delete import batch and all related data",
+)
+def delete_import_batch(
+    batch_id: UUID,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(get_auth_context),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case: DeleteImportBatchUseCase = Depends(get_delete_import_batch_use_case),
+) -> DeleteImportBatchResponse:
+    try:
+        result = use_case.execute(
+            DeleteImportBatchCommand(
+                organization_id=auth.organization_id,
+                user_id=auth.user_id,
+                access_token=_access_token(credentials),
+                batch_id=batch_id,
+            )
+        )
+    except ImportBatchNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ImportBatchDeleteBlockedError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    db.commit()
+    return DeleteImportBatchResponse(batch_id=result.batch_id, deleted=result.deleted)
+
+
 @router.patch(
     "/{batch_id}/column-mapping",
     response_model=SetColumnMappingResponse,
@@ -262,13 +333,67 @@ def get_mapping_preview(
     return MappingPreviewResponse.model_validate(result.__dict__)
 
 
+@router.patch(
+    "/{batch_id}/header-config",
+    response_model=ConfigureImportHeaderResponse,
+    responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    summary="Configure Excel header row for import batch",
+)
+def configure_import_header(
+    batch_id: UUID,
+    body: ConfigureImportHeaderRequest,
+    auth: AuthContext = Depends(get_auth_context),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case: ConfigureImportHeaderUseCase = Depends(get_configure_import_header_use_case),
+) -> ConfigureImportHeaderResponse:
+    try:
+        result = use_case.execute(
+            ConfigureImportHeaderCommand(
+                organization_id=auth.organization_id,
+                user_id=auth.user_id,
+                access_token=_access_token(credentials),
+                batch_id=batch_id,
+                has_header_row=body.has_header_row,
+                header_mode=body.header_mode,
+                header_row_index=body.header_row_index,
+            )
+        )
+    except ImportBatchNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    return ConfigureImportHeaderResponse(
+        batch_id=result.batch_id,
+        status=result.status,
+        header_mode=result.header_mode,
+        header_row_index=result.header_row_index,
+        has_header_row=result.has_header_row,
+    )
+
+
 @router.post(
     "/{batch_id}/analyze",
     response_model=AnalyzeImportResponse,
     responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
-    summary="Analyze import batch with current mapping",
+    summary="[Deprecated] Use POST /data-integration/imports/{batch_id}/analyze-job",
+    deprecated=True,
 )
 def analyze_import_batch(
+    batch_id: UUID,
+) -> AnalyzeImportResponse:
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Senkron analiz kaldırıldı. POST /api/v1/data-integration/imports/{batch_id}/analyze-job kullanın.",
+    )
+
+
+@router.post(
+    "/{batch_id}/analyze-legacy",
+    response_model=AnalyzeImportResponse,
+    responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    include_in_schema=False,
+)
+def analyze_import_batch_legacy(
     batch_id: UUID,
     auth: AuthContext = Depends(get_auth_context),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
@@ -286,6 +411,8 @@ def analyze_import_batch(
     except ImportBatchNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ImportBatchAlreadyAppliedError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except ImportBatchAnalyzeNotAllowedError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except InvalidColumnMappingError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -308,7 +435,7 @@ def list_import_rows(
     batch_id: UUID,
     filter: str | None = Query(
         default=None,
-        description="all | new | will_update | duplicate | invalid | skip",
+        description="all | pending | new | will_update | duplicate | invalid | skip | applied",
     ),
     search: str | None = Query(default=None, description="Filter by company name"),
     page: int = Query(default=1, ge=1),
@@ -372,7 +499,10 @@ def list_import_rows(
         sort_direction=list_query.sort_dir,
         filters=filters,
     ).model_copy(
-        update={"items": [_row_response(item) for item in result.items]},
+        update={
+            "items": [_row_response(item) for item in result.items],
+            "counts": ImportRowFilterCountsResponse(**result.filter_counts),
+        },
     )
 
 
@@ -436,6 +566,89 @@ def bulk_row_decision(
                 access_token=_access_token(credentials),
                 batch_id=batch_id,
                 action=body.action,
+                row_ids=body.row_ids,
+                decision=body.decision,
+            )
+        )
+    except ImportBatchNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ImportBatchAlreadyAppliedError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    return BulkRowDecisionResponse(
+        updated_count=result.updated_count,
+        skipped_count=result.skipped_count,
+        errors=[
+            BulkRowDecisionErrorItemResponse(
+                row_id=item.row_id,
+                row_number=item.row_number,
+                message=item.message,
+            )
+            for item in result.errors
+        ],
+    )
+
+
+@router.post(
+    "/{batch_id}/bulk-actions/preview",
+    response_model=BulkDecisionPreviewResponse,
+    responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    summary="Preview bulk decision action (no data changes)",
+)
+def preview_bulk_decision(
+    batch_id: UUID,
+    body: BulkDecisionPreviewRequest,
+    auth: AuthContext = Depends(get_auth_context),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case: PreviewBulkRowDecisionUseCase = Depends(get_preview_bulk_row_decision_use_case),
+) -> BulkDecisionPreviewResponse:
+    try:
+        result = use_case.execute(
+            PreviewBulkDecisionQuery(
+                organization_id=auth.organization_id,
+                user_id=auth.user_id,
+                access_token=_access_token(credentials),
+                batch_id=batch_id,
+                action_type=body.action_type,
+            )
+        )
+    except ImportBatchNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ImportBatchAlreadyAppliedError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    return BulkDecisionPreviewResponse.model_validate(result.__dict__)
+
+
+@router.post(
+    "/{batch_id}/decisions/apply",
+    response_model=ApplyImportDecisionsResponse,
+    responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+    summary="Apply saved row decisions (selected rows or filter scope)",
+)
+def apply_import_decisions(
+    batch_id: UUID,
+    body: ApplyImportDecisionsRequest,
+    auth: AuthContext = Depends(get_auth_context),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case: ApplyImportDecisionsUseCase = Depends(get_apply_import_decisions_use_case),
+) -> ApplyImportDecisionsResponse:
+    try:
+        result = use_case.execute(
+            ApplyImportDecisionsCommand(
+                organization_id=auth.organization_id,
+                user_id=auth.user_id,
+                access_token=_access_token(credentials),
+                batch_id=batch_id,
+                row_ids=body.row_ids,
+                filter=body.filter,
+                search=body.search,
             )
         )
     except ImportBatchNotFoundError as exc:
@@ -444,7 +657,66 @@ def bulk_row_decision(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except ForbiddenError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
-    return BulkRowDecisionResponse(updated_count=result.updated_count)
+    return ApplyImportDecisionsResponse(
+        processed_count=result.processed_count,
+        not_processed_count=result.not_processed_count,
+        failed_count=result.failed_count,
+        errors=[
+            ApplyImportDecisionErrorItem(
+                row_id=item.row_id,
+                row_number=item.row_number,
+                message=item.message,
+            )
+            for item in result.errors
+        ],
+    )
+
+
+@router.post(
+    "/{batch_id}/bulk-actions/apply",
+    response_model=StartImportJobResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
+    summary="Start background bulk decision job",
+)
+def apply_bulk_decision_job(
+    batch_id: UUID,
+    body: BulkDecisionApplyRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(get_auth_context),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case: StartBulkRowDecisionJobUseCase = Depends(get_start_bulk_row_decision_job_use_case),
+    job_runner: ImportJobRunner = Depends(get_job_runner),
+) -> StartImportJobResponse:
+    try:
+        result = use_case.execute(
+            StartBulkRowDecisionJobCommand(
+                organization_id=auth.organization_id,
+                user_id=auth.user_id,
+                access_token=_access_token(credentials),
+                batch_id=batch_id,
+                action_type=body.action_type,
+            )
+        )
+    except ImportBatchNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ImportBatchAlreadyAppliedError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except ImportBulkActionInProgressError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    db.commit()
+    background_tasks.add_task(job_runner.run_bulk_decision, result.bulk_command)
+    return StartImportJobResponse(
+        job_id=result.job_id,
+        batch_id=result.batch_id,
+        status=result.status,
+        progress_total=result.progress_total,
+    )
 
 
 @router.post(

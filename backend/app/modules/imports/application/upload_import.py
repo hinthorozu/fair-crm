@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+from app.core.config import get_settings
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.client import HttpAuditAdapter
 from app.integrations.kyrox_core.ports import AuthorizationPort
@@ -10,6 +11,7 @@ from app.modules.imports.application.mappers import batch_to_result
 from app.modules.imports.application.source_adapters.excel_source_adapter import ExcelImportSourceAdapter
 from app.modules.imports.domain.entities import ImportBatch
 from app.modules.imports.domain.exceptions import InvalidImportFileError
+from app.modules.imports.domain.import_limits import ImportLimits
 from app.modules.imports.domain.ports import ImportBatchRepository, ImportRowRepository
 from app.modules.imports.domain.value_objects import ImportRowStatus
 
@@ -44,6 +46,9 @@ class UploadCustomerImportUseCase:
 
         if not command.file_name.lower().endswith(".xlsx"):
             raise InvalidImportFileError("Only .xlsx files are supported")
+
+        limits = ImportLimits.from_settings(get_settings())
+        limits.validate_file_size(len(command.file_content))
 
         raw_rows = self._source_adapter.extract_rows(
             command.file_content, file_name=command.file_name

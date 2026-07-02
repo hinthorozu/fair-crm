@@ -1,6 +1,8 @@
 import { buildApiHeaders, config } from "../config";
 
 export const API_REQUEST_TIMEOUT_MS = 30_000;
+/** Import analyze can process large batches against full CRM — allow longer than default list calls. */
+export const ANALYZE_IMPORT_TIMEOUT_MS = 120_000;
 
 export class ApiError extends Error {
   constructor(
@@ -67,12 +69,17 @@ export async function fetchWithTimeout(
 export async function apiRequest<T>(
   path: string,
   options: RequestInit = {},
+  timeoutMs: number = API_REQUEST_TIMEOUT_MS,
 ): Promise<T> {
   const url = `${config.apiBaseUrl}${path}`;
-  const response = await fetchWithTimeout(url, {
-    ...options,
-    headers: buildApiHeaders(options.headers ?? {}),
-  });
+  const response = await fetchWithTimeout(
+    url,
+    {
+      ...options,
+      headers: buildApiHeaders(options.headers ?? {}),
+    },
+    timeoutMs,
+  );
 
   const text = await response.text();
   let data: unknown = null;

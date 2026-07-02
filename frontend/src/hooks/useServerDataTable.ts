@@ -17,6 +17,11 @@ export interface ServerTableFetchParams {
   filters: Record<string, string>;
 }
 
+export interface ServerTableRefreshOverrides {
+  filters?: Record<string, string>;
+  page?: number;
+}
+
 export interface UseServerDataTableOptions<T> {
   fetchFn: (params: ServerTableFetchParams) => Promise<StandardListResponse<T>>;
   defaultSort?: { field: string; direction: SortDirection };
@@ -108,6 +113,7 @@ export function useServerDataTable<T>({
     defaultSort ?? { field: "", direction: "asc" as SortDirection },
   );
   const [responseFilters, setResponseFilters] = React.useState<Record<string, unknown>>({});
+  const [filterCounts, setFilterCounts] = React.useState<Record<string, number> | null>(null);
 
   const syncUrl = React.useCallback(
     (next: {
@@ -143,7 +149,7 @@ export function useServerDataTable<T>({
   const defaultSortField = defaultSort?.field;
   const defaultSortDirection = defaultSort?.direction;
 
-  const load = React.useCallback(async () => {
+  const load = React.useCallback(async (overrides?: ServerTableRefreshOverrides) => {
     if (!enabled) {
       setLoading(false);
       return;
@@ -157,19 +163,22 @@ export function useServerDataTable<T>({
         (sorting.field ? defaultSortDirection : null) ??
         defaultSortDirection ??
         null;
+      const effectiveFilters = overrides?.filters ?? filters;
+      const effectivePage = overrides?.page ?? page;
 
       const res = await fetchRef.current({
-        page,
+        page: effectivePage,
         pageSize,
         search: debouncedSearch,
         sortBy: effectiveSortBy,
         sortOrder: effectiveSortOrder,
-        filters,
+        filters: effectiveFilters,
       });
       setItems(res.items);
       setPagination(res.pagination);
       setResponseSorting(res.sorting);
       setResponseFilters(res.filters);
+      setFilterCounts(res.counts ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Liste yüklenemedi.");
     } finally {
@@ -194,6 +203,21 @@ export function useServerDataTable<T>({
     }
     void load();
   }, [enabled, load]);
+
+  React.useEffect(() => {
+    if (!enabled || Object.keys(defaultFilters).length === 0) return;
+    setFiltersState((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const [key, value] of Object.entries(defaultFilters)) {
+        if (value && !prev[key]) {
+          next[key] = value;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [defaultFilters, enabled]);
 
   React.useEffect(() => {
     if (!urlSync) return;
@@ -253,6 +277,7 @@ export function useServerDataTable<T>({
     error,
     search,
     filters,
+    filterCounts,
     sorting: effectiveSorting,
     responseFilters,
     pagination,

@@ -15,6 +15,7 @@ from app.modules.data_integration.application.get_import_job import GetImportJob
 from app.modules.data_integration.application.import_job_runner import ImportJobRunner
 from app.modules.data_integration.application.list_import_batches import ListImportBatchesUseCase
 from app.modules.data_integration.application.select_import_sheet import SelectImportSheetUseCase
+from app.modules.data_integration.application.start_import_analyze_job import StartImportAnalyzeJobUseCase
 from app.modules.data_integration.application.start_import_apply_job import StartImportApplyJobUseCase
 from app.modules.data_integration.infrastructure.repositories.job_repository import SqlAlchemyImportJobRepository
 from app.modules.imports.api.dependencies import (
@@ -72,6 +73,14 @@ def get_select_import_sheet_use_case(
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
 ) -> SelectImportSheetUseCase:
     return SelectImportSheetUseCase(batch_repository, authorization, audit)
+
+
+def get_start_import_analyze_job_use_case(
+    batch_repository: SqlAlchemyImportBatchRepository = Depends(get_import_batch_repository),
+    job_repository: SqlAlchemyImportJobRepository = Depends(get_job_repository),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+) -> StartImportAnalyzeJobUseCase:
+    return StartImportAnalyzeJobUseCase(batch_repository, job_repository, authorization)
 
 
 def get_start_import_apply_job_use_case(

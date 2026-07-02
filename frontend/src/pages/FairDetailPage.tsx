@@ -25,6 +25,11 @@ import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { TabPanel, Tabs } from "../components/ui/Tabs";
 import { Badge } from "../components/ui/Badge";
 import { Card } from "../components/ui/Card";
+import {
+  DetailDate,
+  DetailValue,
+  DetailWebsite,
+} from "../components/ui/DetailFields";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { fairLabels, fairStatusLabels } from "../labels/fairLabels";
 import { participationLabels } from "../labels/participationLabels";
@@ -152,6 +157,10 @@ export function FairDetailPage({
     }
   }, [activeTab, loadCustomersForForm]);
 
+  const closeModal = React.useCallback(() => setModal(null), []);
+  const closeConfirmDelete = React.useCallback(() => setConfirmDelete(null), []);
+  const closeConfirmArchive = React.useCallback(() => setConfirmArchive(false), []);
+
   const handleCreate = async (values: ParticipationFormValues) => {
     await createParticipation(formValuesToCreatePayload(values, "fair", fairId));
     setModal(null);
@@ -232,10 +241,6 @@ export function FairDetailPage({
     setModal("create");
   };
 
-  const closeModal = React.useCallback(() => setModal(null), []);
-  const closeConfirmDelete = React.useCallback(() => setConfirmDelete(null), []);
-  const closeConfirmArchive = React.useCallback(() => setConfirmArchive(false), []);
-
   const isArchived = fair.status === "archived" || fair.deleted_at !== null;
 
   const headerActions: PageHeaderAction[] = [
@@ -303,28 +308,56 @@ export function FairDetailPage({
               <dd>{fair.name}</dd>
             </div>
             <div>
+              <dt>{labels.status}</dt>
+              <dd>{fairStatusLabels[fair.status] ?? fair.status}</dd>
+            </div>
+            <div>
               <dt>{fairLabels.organizer}</dt>
-              <dd>{fair.organizer ?? "—"}</dd>
+              <dd>
+                <DetailValue value={fair.organizer} />
+              </dd>
             </div>
             <div>
               <dt>{fairLabels.venue}</dt>
-              <dd>{fair.venue ?? "—"}</dd>
+              <dd>
+                <DetailValue value={fair.venue} />
+              </dd>
+            </div>
+            <div>
+              <dt>{labels.website}</dt>
+              <dd>
+                <DetailWebsite value={fair.website} />
+              </dd>
+            </div>
+            <div>
+              <dt>{labels.country}</dt>
+              <dd>
+                <DetailValue value={fair.country} />
+              </dd>
             </div>
             <div>
               <dt>{labels.city}</dt>
-              <dd>{fair.city ?? "—"}</dd>
+              <dd>
+                <DetailValue value={fair.city} />
+              </dd>
             </div>
             <div>
               <dt>{fairLabels.start_date}</dt>
-              <dd>{fair.start_date ?? "—"}</dd>
+              <dd>
+                <DetailDate value={fair.start_date} />
+              </dd>
             </div>
             <div>
               <dt>{fairLabels.end_date}</dt>
-              <dd>{fair.end_date ?? "—"}</dd>
+              <dd>
+                <DetailDate value={fair.end_date} />
+              </dd>
             </div>
             <div className="full-width">
               <dt>{labels.description}</dt>
-              <dd>{fair.description ?? "—"}</dd>
+              <dd className="detail-multiline">
+                <DetailValue value={fair.description} />
+              </dd>
             </div>
           </dl>
         </Card>

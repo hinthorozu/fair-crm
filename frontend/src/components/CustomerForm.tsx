@@ -7,6 +7,7 @@ import {
   labels,
 } from "../labels";
 import { emailPlaceholder, validateMultiEmailInput } from "../utils/email";
+import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 
 export type CustomerFormValues = CreateCustomerPayload;
 
@@ -63,6 +64,10 @@ export function CustomerForm({ initial, submitLabel, onSubmit, onCancel }: Custo
   const [values, setValues] = React.useState<CustomerFormValues>(initial ?? emptyForm());
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const baseline = React.useMemo(() => initial ?? emptyForm(), [initial]);
+  const handleCancel = useModalFormCancel(onCancel);
+
+  useReportFormDirty(values, baseline);
 
   React.useEffect(() => {
     setValues(initial ?? emptyForm());
@@ -196,7 +201,7 @@ export function CustomerForm({ initial, submitLabel, onSubmit, onCancel }: Custo
       </div>
 
       <div className="form-actions">
-        <button type="button" className="btn secondary" onClick={onCancel} disabled={saving}>
+        <button type="button" className="btn secondary" onClick={handleCancel} disabled={saving}>
           {labels.cancel}
         </button>
         <button type="submit" className="btn primary" disabled={saving}>

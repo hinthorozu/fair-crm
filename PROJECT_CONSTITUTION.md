@@ -200,6 +200,8 @@ Report platform needs in design docs and track in `kyrox-platform` before changi
 - Create `crm_*` tables only — never Core platform tables
 - Run `alembic upgrade head` from repository root
 
+**After database restore (mandatory):** A PostgreSQL `.dump` restores schema at backup time, not current code. Always run `alembic upgrade head` from repo root immediately after restore, then restart dev (`reset-dev.ps1`). Skipping this breaks Admin APIs (e.g. Database Backups → "Failed to fetch" when `system_backups` columns from later migrations are missing). `restore-db.ps1` applies migrations automatically; manual restores require the same step explicitly.
+
 ### Shared Utilities
 
 - Pagination: `backend/app/core/pagination.py`

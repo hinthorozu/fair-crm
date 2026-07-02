@@ -8,7 +8,11 @@ from app.modules.imports.application.mappers import row_to_result
 from app.modules.imports.application.merge_preview_builder import MergePreviewBuilder
 from app.modules.imports.domain.exceptions import ImportBatchNotFoundError
 from app.modules.imports.domain.ports import ImportBatchRepository, ImportRowRepository
-from app.modules.imports.domain.services.merge_preview import row_matches_filter, sort_rows
+from app.modules.imports.domain.services.merge_preview import (
+    compute_decision_filter_counts,
+    row_matches_filter,
+    sort_rows,
+)
 from app.modules.participations.infrastructure.repositories.participation_repository import (
     SqlAlchemyParticipationRepository,
 )
@@ -42,27 +46,29 @@ class ListImportRowsUseCase:
             raise ImportBatchNotFoundError("Import batch not found")
 
         rows = self._row_repository.list_by_batch(query.organization_id, query.batch_id)
+        filter_counts = compute_decision_filter_counts(rows, batch=batch)
 
+        filtered_rows = rows
         if query.search:
             term = query.search.strip().lower()
-            rows = [
+            filtered_rows = [
                 row
-                for row in rows
+                for row in filtered_rows
                 if term in str((row.normalized_data_json or {}).get("company_name") or "").lower()
             ]
 
         if query.filter:
-            rows = [row for row in rows if row_matches_filter(row, query.filter)]
+            filtered_rows = [row for row in filtered_rows if row_matches_filter(row, query.filter)]
 
         sort_by = query.sort_by if query.sort_by in ALLOWED_SORT_FIELDS else DEFAULT_SORT_FIELD
         sort_dir = normalize_sort_direction(query.sort_dir or DEFAULT_SORT_DIRECTION)
         if sort_by == DEFAULT_SORT_FIELD:
             sort_by = None
-        rows = sort_rows(rows, sort_by=sort_by, sort_dir=sort_dir)
+        filtered_rows = sort_rows(filtered_rows, sort_by=sort_by, sort_dir=sort_dir)
 
         page_params = normalize_page_params(query.page, query.page_size)
-        total = len(rows)
-        page_rows = rows[page_params.offset : page_params.offset + page_params.page_size]
+        total = len(filtered_rows)
+        page_rows = filtered_rows[page_params.offset : page_params.offset + page_params.page_size]
 
         customer_names: dict[UUID, str] = {}
         items = []
@@ -92,4 +98,5 @@ class ListImportRowsUseCase:
             page_size=meta.page_size,
             total=meta.total,
             total_pages=meta.total_pages,
+            filter_counts=filter_counts,
         )

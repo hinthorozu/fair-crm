@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.api.schemas.list_response import StandardListResponse
 from app.modules.imports.domain.value_objects import ImportBatchStatus, ImportDecision, ImportRowStatus, ImportSourceType, ExcelHeaderMode
@@ -32,6 +32,12 @@ class ImportBatchResponse(BaseModel):
     updated_at: datetime
     completed_at: Optional[datetime] = None
     notes: Optional[str] = None
+    selected_sheet_name: Optional[str] = None
+    available_sheets: list[str] = Field(default_factory=list)
+    header_mode: Optional[ExcelHeaderMode] = None
+    has_header_row: Optional[bool] = None
+    header_row_index: Optional[int] = None
+    column_mapping_json: Optional[dict[str, Any]] = None
 
 
 class MergeFieldPreviewResponse(BaseModel):
@@ -82,7 +88,18 @@ class ImportRowResponse(BaseModel):
 
 
 class ImportRowListResponse(StandardListResponse[ImportRowResponse]):
-    pass
+    counts: Optional["ImportRowFilterCountsResponse"] = None
+
+
+class ImportRowFilterCountsResponse(BaseModel):
+    pending: int = 0
+    all: int = 0
+    applied: int = 0
+    new: int = 0
+    will_update: int = 0
+    duplicate: int = 0
+    invalid: int = 0
+    skip: int = 0
 
 
 class SetImportRowDecisionRequest(BaseModel):
@@ -91,10 +108,30 @@ class SetImportRowDecisionRequest(BaseModel):
 
 
 class BulkRowDecisionRequest(BaseModel):
-    action: str = Field(
-        ...,
-        description="create_all_new | link_all_existing | update_all_duplicates | skip_invalid",
+    action: str | None = Field(
+        default=None,
+        description="Legacy: create_all_new | link_all_existing | update_all_duplicates | skip_invalid",
     )
+    row_ids: list[UUID] | None = Field(default=None, min_length=1)
+    decision: ImportDecision | None = None
+
+    @model_validator(mode="after")
+    def validate_payload(self) -> "BulkRowDecisionRequest":
+        legacy = self.action is not None
+        selection = self.row_ids is not None and self.decision is not None
+        if legacy == selection:
+            raise ValueError("Provide either action or row_ids with decision")
+        if selection:
+            if not self.row_ids:
+                raise ValueError("row_ids must not be empty")
+            allowed = {
+                ImportDecision.CREATE_NEW,
+                ImportDecision.UPDATE_EXISTING,
+                ImportDecision.SKIP,
+            }
+            if self.decision not in allowed:
+                raise ValueError("Bulk decision supports create_new, update_existing, skip only")
+        return self
 
 
 class ColumnMappingSpec(BaseModel):
@@ -118,11 +155,33 @@ class MappingColumnPreviewResponse(BaseModel):
     stats: MappingColumnStatsResponse
 
 
+class ExcelGridPreviewResponse(BaseModel):
+    columns: list[dict[str, Any]]
+    rows: list[list[Any]]
+    total_data_rows: int
+    preview_row_count: int
+
+
 class MappingPreviewResponse(BaseModel):
     batch_id: UUID
     header_mode: ExcelHeaderMode
     header_row_index: int | None = None
     columns: list[MappingColumnPreviewResponse]
+    grid: ExcelGridPreviewResponse | None = None
+
+
+class ConfigureImportHeaderRequest(BaseModel):
+    has_header_row: bool = True
+    header_mode: ExcelHeaderMode | None = None
+    header_row_index: int | None = Field(default=None, ge=0)
+
+
+class ConfigureImportHeaderResponse(BaseModel):
+    batch_id: UUID
+    status: ImportBatchStatus
+    header_mode: ExcelHeaderMode
+    header_row_index: int | None = None
+    has_header_row: bool
 
 
 class SetColumnMappingRequest(BaseModel):
@@ -159,8 +218,71 @@ class AnalyzeImportResponse(BaseModel):
     total_rows: int
 
 
+class BulkRowDecisionErrorItemResponse(BaseModel):
+    row_id: UUID
+    row_number: int
+    message: str
+
+
 class BulkRowDecisionResponse(BaseModel):
     updated_count: int
+    skipped_count: int = 0
+    errors: list[BulkRowDecisionErrorItemResponse] = Field(default_factory=list)
+
+
+class BulkDecisionPreviewRequest(BaseModel):
+    action_type: str = Field(
+        ...,
+        description="create_all_new | link_all_existing | update_all_duplicates | skip_invalid",
+    )
+
+
+class BulkDecisionPreviewResponse(BaseModel):
+    batch_id: UUID
+    action_type: str
+    affected_rows: int
+    already_decided_rows: int
+    summary: str
+    to_process_rows: int = 0
+    skipped_already_linked_rows: int = 0
+    unprocessable_rows: int = 0
+
+
+class BulkDecisionApplyRequest(BaseModel):
+    action_type: str = Field(
+        ...,
+        description="create_all_new | link_all_existing | update_all_duplicates | skip_invalid",
+    )
+
+
+class ApplyImportDecisionErrorItem(BaseModel):
+    row_id: UUID
+    row_number: int
+    message: str
+
+
+class ApplyImportDecisionsRequest(BaseModel):
+    row_ids: list[UUID] | None = Field(
+        default=None,
+        description="Apply only these rows. When omitted, filter scope is used.",
+    )
+    filter: str | None = Field(
+        default=None,
+        description="Decision list filter when row_ids omitted (default: pending).",
+    )
+    search: str | None = Field(default=None, description="Optional company name search scope.")
+
+
+class ApplyImportDecisionsResponse(BaseModel):
+    processed_count: int
+    not_processed_count: int
+    failed_count: int
+    errors: list[ApplyImportDecisionErrorItem]
+
+
+class DeleteImportBatchResponse(BaseModel):
+    batch_id: UUID
+    deleted: bool = True
 
 
 class ApplyImportResponse(BaseModel):

@@ -5,7 +5,7 @@
 | Field | Value |
 |-------|-------|
 | **Current Version** | v0.9.4 (Backup Format Options) |
-| **Last updated** | 2026-07-02 (Dev Auto Start Standard) |
+| **Last updated** | 2026-07-02 (Import Resume + Bulk Actions) |
 | **Constitution** | [PROJECT_CONSTITUTION.md](PROJECT_CONSTITUTION.md) |
 | **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
 | **Product Vision** | [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) |
@@ -23,6 +23,9 @@
 | Migration `0014_backup_format_options` | **READY** (PostgreSQL) |
 | Runtime verification (Sprint 09.2.2) | **PASS** — migration, reset-dev, Swagger, live API, live UI |
 | Dev auto-start (`dev-start.ps1`) | **PASS** — idempotent; Windows reboot verified manually |
+| Import mapping grid + analyze queue | **PASS** — grid UI, background analyze, org lock (74 backend tests) |
+| Company name matching stabilization | **PASS** — Turkish normalize, token scoring (90 import tests) |
+| Import resume flow + bulk decision jobs | **PASS** — Devam Et, preview/apply bulk, batch locks |
 | Legacy UMCRM dev migration | **APPLIED** (115 fairs, 28,155 customers, 29,561 participations) |
 
 ---

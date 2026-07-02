@@ -17,7 +17,7 @@ from app.modules.imports.domain.exceptions import (
     InvalidColumnMappingError,
 )
 from app.modules.imports.domain.ports import ImportBatchRepository
-from app.modules.imports.domain.value_objects import ImportBatchStatus
+from app.modules.imports.domain.batch_status import is_batch_terminal
 
 PERMISSION_UPDATE = "fair_crm.imports.update"
 
@@ -45,7 +45,7 @@ class SetColumnMappingUseCase:
         batch = self._batch_repository.get_by_id(command.organization_id, command.batch_id)
         if batch is None:
             raise ImportBatchNotFoundError("Import batch not found")
-        if batch.status == ImportBatchStatus.APPLIED:
+        if is_batch_terminal(batch.status):
             raise ImportBatchAlreadyAppliedError("Import batch already applied")
 
         mode = resolve_header_mode(
@@ -64,7 +64,7 @@ class SetColumnMappingUseCase:
         validate_column_mapping(mapping_config)
 
         now = datetime.now(tz=UTC)
-        batch.mark_mapped(
+        batch.mark_mapping_completed(
             mapping=mapping_config,
             has_header_row=has_header,
             header_mode=mode,

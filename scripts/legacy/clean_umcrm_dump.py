@@ -27,6 +27,7 @@ from umcrm_cleaning import (  # noqa: E402
     decode_html_entities,
     fix_mojibake,
     sanitize_email_raw,
+    sanitize_user_notes,
 )
 from umcrm_sql_parser import load_umcrm_dump  # noqa: E402
 
@@ -77,9 +78,10 @@ def clean_all(data: dict[str, Any]) -> dict[str, Any]:
         if company.notes:
             notes_text = decode_html_entities(company.notes)
             notes_text, _ = fix_mojibake(notes_text)
-            notes_clean = collapse_whitespace(notes_text)
+            notes_clean = sanitize_user_notes(collapse_whitespace(notes_text))
 
         company_issues = list(name_issues) + phone_issues + website_issues
+        additional_phones = phones_clean[1:] if len(phones_clean) > 1 else []
         manual_review = name_manual or any(
             i.startswith("phone_contains") or i == "manual_review_phone" for i in phone_issues
         ) or any(i.startswith("dropped_invalid_website") for i in website_issues)
@@ -103,6 +105,7 @@ def clean_all(data: dict[str, Any]) -> dict[str, Any]:
                 "name_clean": name_clean,
                 "normalized_name": normalize_company_name(name_clean),
                 "phone_values_clean": phones_clean,
+                "additional_phones": additional_phones,
                 "website_values_clean": websites_clean,
                 "country_id": company.country_id,
                 "notes_clean": notes_clean,
@@ -111,7 +114,9 @@ def clean_all(data: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
-        company_emails = emails_by_company.get(company_id, [])
+        company_emails = list(emails_by_company.get(company_id, []))
+        if company.inline_emails:
+            company_emails.extend(company.inline_emails)
         emails_clean, emails_original, email_issues, email_stats = clean_company_emails(
             company_emails,
             cross_company_duplicates=cross_company_emails,

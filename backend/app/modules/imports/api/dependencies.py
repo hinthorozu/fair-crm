@@ -24,11 +24,19 @@ from app.modules.customers.infrastructure.repositories.customer_repository impor
     SqlAlchemyCustomerRepository,
 )
 from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
+from app.modules.data_integration.application.import_job_runner import ImportJobRunner
+from app.modules.data_integration.infrastructure.repositories.job_repository import SqlAlchemyImportJobRepository
 from app.modules.imports.application.analyze_import import AnalyzeImportUseCase
 from app.modules.imports.application.apply_import import ApplyImportUseCase
+from app.modules.imports.application.apply_import_decisions import ApplyImportDecisionsUseCase
+from app.modules.imports.application.delete_import_batch import DeleteImportBatchUseCase
 from app.modules.imports.application.bulk_row_decision import BulkRowDecisionUseCase
+from app.modules.imports.application.preview_bulk_row_decision import PreviewBulkRowDecisionUseCase
+from app.modules.imports.application.start_bulk_row_decision_job import StartBulkRowDecisionJobUseCase
+from app.modules.imports.application.get_import_batch import GetImportBatchUseCase
 from app.modules.imports.application.get_mapping_preview import GetMappingPreviewUseCase
 from app.modules.imports.application.list_import_rows import ListImportRowsUseCase
+from app.modules.imports.application.configure_import_header import ConfigureImportHeaderUseCase
 from app.modules.imports.application.set_column_mapping import SetColumnMappingUseCase
 from app.modules.imports.application.set_row_decision import SetImportRowDecisionUseCase
 from app.modules.imports.application.upload_import import UploadCustomerImportUseCase
@@ -40,6 +48,12 @@ from app.modules.imports.infrastructure.repositories.import_repository import (
 from app.modules.participations.infrastructure.repositories.participation_repository import (
     SqlAlchemyParticipationRepository,
 )
+
+_import_job_runner = ImportJobRunner()
+
+
+def get_job_runner() -> ImportJobRunner:
+    return _import_job_runner
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -128,6 +142,13 @@ def get_upload_raw_import_use_case(
     )
 
 
+def get_configure_import_header_use_case(
+    batch_repository: SqlAlchemyImportBatchRepository = Depends(get_import_batch_repository),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+) -> ConfigureImportHeaderUseCase:
+    return ConfigureImportHeaderUseCase(batch_repository, authorization)
+
+
 def get_set_column_mapping_use_case(
     batch_repository: SqlAlchemyImportBatchRepository = Depends(get_import_batch_repository),
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
@@ -174,6 +195,25 @@ def get_list_import_rows_use_case(
     )
 
 
+def get_apply_import_use_case(
+    batch_repository: SqlAlchemyImportBatchRepository = Depends(get_import_batch_repository),
+    row_repository: SqlAlchemyImportRowRepository = Depends(get_import_row_repository),
+    db: Session = Depends(get_db),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
+) -> ApplyImportUseCase:
+    return ApplyImportUseCase(
+        batch_repository,
+        row_repository,
+        SqlAlchemyCustomerRepository(db),
+        SqlAlchemyContactRepository(db),
+        SqlAlchemyActivityRepository(db),
+        SqlAlchemyParticipationRepository(db),
+        authorization,
+        audit,
+    )
+
+
 def get_set_row_decision_use_case(
     batch_repository: SqlAlchemyImportBatchRepository = Depends(get_import_batch_repository),
     row_repository: SqlAlchemyImportRowRepository = Depends(get_import_row_repository),
@@ -192,13 +232,75 @@ def get_set_row_decision_use_case(
     )
 
 
+def get_apply_import_decisions_use_case(
+    batch_repository: SqlAlchemyImportBatchRepository = Depends(get_import_batch_repository),
+    row_repository: SqlAlchemyImportRowRepository = Depends(get_import_row_repository),
+    apply_use_case: ApplyImportUseCase = Depends(get_apply_import_use_case),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
+) -> ApplyImportDecisionsUseCase:
+    return ApplyImportDecisionsUseCase(
+        batch_repository,
+        row_repository,
+        apply_use_case,
+        authorization,
+        audit,
+    )
+
+
 def get_bulk_row_decision_use_case(
     batch_repository: SqlAlchemyImportBatchRepository = Depends(get_import_batch_repository),
     row_repository: SqlAlchemyImportRowRepository = Depends(get_import_row_repository),
+    set_decision_use_case: SetImportRowDecisionUseCase = Depends(get_set_row_decision_use_case),
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
 ) -> BulkRowDecisionUseCase:
-    return BulkRowDecisionUseCase(batch_repository, row_repository, authorization, audit)
+    return BulkRowDecisionUseCase(
+        batch_repository,
+        row_repository,
+        set_decision_use_case,
+        authorization,
+        audit,
+    )
+
+
+def get_preview_bulk_row_decision_use_case(
+    batch_repository: SqlAlchemyImportBatchRepository = Depends(get_import_batch_repository),
+    row_repository: SqlAlchemyImportRowRepository = Depends(get_import_row_repository),
+    db: Session = Depends(get_db),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+) -> PreviewBulkRowDecisionUseCase:
+    return PreviewBulkRowDecisionUseCase(
+        batch_repository,
+        row_repository,
+        SqlAlchemyParticipationRepository(db),
+        SqlAlchemyCustomerRepository(db),
+        authorization,
+    )
+
+
+def get_import_job_repository(db: Session = Depends(get_db)) -> SqlAlchemyImportJobRepository:
+    return SqlAlchemyImportJobRepository(db)
+
+
+def get_start_bulk_row_decision_job_use_case(
+    batch_repository: SqlAlchemyImportBatchRepository = Depends(get_import_batch_repository),
+    row_repository: SqlAlchemyImportRowRepository = Depends(get_import_row_repository),
+    job_repository: SqlAlchemyImportJobRepository = Depends(get_import_job_repository),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+) -> StartBulkRowDecisionJobUseCase:
+    return StartBulkRowDecisionJobUseCase(
+        batch_repository, row_repository, job_repository, authorization
+    )
+
+
+def get_delete_import_batch_use_case(
+    batch_repository: SqlAlchemyImportBatchRepository = Depends(get_import_batch_repository),
+    job_repository: SqlAlchemyImportJobRepository = Depends(get_import_job_repository),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
+) -> DeleteImportBatchUseCase:
+    return DeleteImportBatchUseCase(batch_repository, job_repository, authorization, audit)
 
 
 def get_mapping_preview_use_case(
@@ -206,22 +308,3 @@ def get_mapping_preview_use_case(
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
 ) -> GetMappingPreviewUseCase:
     return GetMappingPreviewUseCase(batch_repository, authorization)
-
-
-def get_apply_import_use_case(
-    batch_repository: SqlAlchemyImportBatchRepository = Depends(get_import_batch_repository),
-    row_repository: SqlAlchemyImportRowRepository = Depends(get_import_row_repository),
-    db: Session = Depends(get_db),
-    authorization: AuthorizationPort = Depends(get_authorization_adapter),
-    audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
-) -> ApplyImportUseCase:
-    return ApplyImportUseCase(
-        batch_repository,
-        row_repository,
-        SqlAlchemyCustomerRepository(db),
-        SqlAlchemyContactRepository(db),
-        SqlAlchemyActivityRepository(db),
-        SqlAlchemyParticipationRepository(db),
-        authorization,
-        audit,
-    )

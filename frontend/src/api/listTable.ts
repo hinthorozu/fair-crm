@@ -54,7 +54,9 @@ function readSorting(raw: Record<string, unknown>): ListSortingInfo {
 }
 
 /** Normalize list API payloads into StandardListResponse shape. */
-export function normalizeStandardListResponse<T>(raw: unknown): StandardListResponse<T> {
+export function normalizeStandardListResponse<T>(
+  raw: unknown,
+): StandardListResponse<T> & { counts?: Record<string, number> } {
   const data = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const items = Array.isArray(data.items) ? (data.items as T[]) : [];
 
@@ -84,7 +86,12 @@ export function normalizeStandardListResponse<T>(raw: unknown): StandardListResp
       ? (data.filters as Record<string, string | number | boolean | null | undefined>)
       : {};
 
-  return { items, pagination, sorting, filters };
+  const counts =
+    data.counts && typeof data.counts === "object"
+      ? (data.counts as Record<string, number>)
+      : undefined;
+
+  return { items, pagination, sorting, filters, counts };
 }
 
 export function buildListQueryParams(state: {

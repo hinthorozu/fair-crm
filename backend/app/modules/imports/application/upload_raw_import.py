@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
+from app.core.config import get_settings
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.client import HttpAuditAdapter
 from app.integrations.kyrox_core.ports import AuthorizationPort
@@ -12,6 +13,7 @@ from app.modules.imports.application.column_mapper import build_mapping_preview_
 from app.modules.imports.application.commands import UploadRawImportCommand, UploadRawImportResult
 from app.modules.imports.domain.entities import ImportBatch
 from app.modules.imports.domain.exceptions import FairRequiredError
+from app.modules.imports.domain.import_limits import ImportLimits
 from app.modules.imports.domain.ports import ImportBatchRepository
 from app.modules.imports.domain.value_objects import ExcelHeaderMode
 
@@ -42,6 +44,9 @@ class UploadRawImportUseCase:
 
         if command.fair_id is None:
             raise FairRequiredError("fair_id is required")
+
+        limits = ImportLimits.from_settings(get_settings())
+        limits.validate_file_size(len(command.file_content))
 
         adapter = get_source_adapter_registry().get_for_file(command.file_name)
         raw_preview = adapter.preview(
@@ -77,11 +82,12 @@ class UploadRawImportUseCase:
             metadata={"user_id": str(command.user_id)},
         )
 
-        sample_rows = raw_preview["rows"][:10]
+        sample_rows = raw_preview["rows"][: limits.mapping_sample_rows]
         mapping_columns = build_mapping_preview_columns(
             raw_preview,
             header_mode=ExcelHeaderMode(suggested["header_mode"]),
             header_row_index=suggested.get("header_row_index"),
+            max_sample_rows=limits.mapping_sample_rows,
         )
         return UploadRawImportResult(
             batch_id=saved.id,

@@ -1,6 +1,6 @@
 import { buildApiHeaders, config } from "../config";
 import { normalizeStandardListResponse, buildListQueryParams } from "./listTable";
-import { apiRequest, ApiError } from "./client";
+import { apiRequest, ApiError, ANALYZE_IMPORT_TIMEOUT_MS } from "./client";
 import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
 import type { StandardListResponse } from "../types/listTable";
 import type {
@@ -71,7 +71,7 @@ export async function setColumnMapping(
 }
 
 export async function analyzeImportBatch(batchId: string): Promise<{ batch: ImportBatch; total_rows: number }> {
-  return apiRequest(`/api/v1/imports/${batchId}/analyze`, { method: "POST" });
+  return apiRequest(`/api/v1/imports/${batchId}/analyze`, { method: "POST" }, ANALYZE_IMPORT_TIMEOUT_MS);
 }
 
 export async function bulkRowDecision(

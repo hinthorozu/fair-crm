@@ -15,6 +15,7 @@ import { useServerDataTable } from "../hooks/useServerDataTable";
 import { adminLabels } from "../labels/adminLabels";
 import type { BackupFormat, SystemBackup } from "../types/systemBackup";
 import type { BadgeVariant } from "../components/ui/Badge";
+import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 
 function formatBytes(bytes: number | null): string {
   if (bytes == null || bytes <= 0) return "—";
@@ -75,63 +76,76 @@ function buildBackupColumns(handlers: {
       key: "file_name",
       title: adminLabels.colName,
       sortable: true,
-      render: (backup) => backup.file_name,
+      className: "col-backup-name",
+      render: (backup) => (
+        <span className="backup-file-name" title={backup.file_name}>
+          {backup.file_name}
+        </span>
+      ),
     },
     {
       key: "backup_format",
       title: adminLabels.colFormat,
       sortable: true,
+      className: "col-format",
       render: (backup) => formatLabel(backup.backup_format),
     },
     {
       key: "started_at",
       title: adminLabels.colCreatedAt,
       sortable: true,
+      className: "col-datetime",
       render: (backup) => new Date(backup.started_at).toLocaleString("tr-TR"),
     },
     {
       key: "created_by_email",
       title: adminLabels.colCreatedBy,
       sortable: true,
-      render: (backup) => backup.created_by_email ?? backup.created_by.slice(0, 8),
+      className: "col-created-by",
+      render: (backup) => {
+        const label = backup.created_by_email ?? backup.created_by.slice(0, 8);
+        return (
+          <span className="backup-created-by" title={backup.created_by_email ?? backup.created_by}>
+            {label}
+          </span>
+        );
+      },
     },
     {
       key: "file_size",
       title: adminLabels.colSize,
       sortable: true,
+      className: "col-size",
       render: (backup) => formatBytes(backup.file_size),
     },
     {
       key: "duration_seconds",
       title: adminLabels.colDuration,
       sortable: true,
+      className: "col-duration",
       render: (backup) => formatDuration(backup.duration_seconds),
     },
     {
       key: "status",
       title: adminLabels.colStatus,
       sortable: true,
+      className: "col-status",
       render: (backup) => (
-        <>
+        <div className="backup-status-cell">
           <Badge variant={statusBadgeVariant(backup.status)}>{statusLabel(backup.status)}</Badge>
           {backup.status === "running" && (
             <div className="backup-progress-hint">{stageLabel(backup.progress_stage)}</div>
           )}
-        </>
+        </div>
       ),
-    },
-    {
-      key: "notes",
-      title: adminLabels.colNotes,
-      sortable: true,
-      render: (backup) => backup.notes ?? "—",
     },
     {
       key: "actions",
       title: adminLabels.colActions,
       sortable: false,
+      className: "col-actions",
       render: (backup) => (
-        <div className="table-actions">
+        <div className="table-actions backups-table-actions">
           <button
             type="button"
             className="btn link"
@@ -143,16 +157,106 @@ function buildBackupColumns(handlers: {
           <button type="button" className="btn link" onClick={() => void handlers.onDetails(backup)}>
             {adminLabels.actionDetails}
           </button>
-          <button type="button" className="btn link disabled-action" disabled title={adminLabels.restoreDisabledHint}>
-            {adminLabels.actionRestore}
-          </button>
-          <button type="button" className="btn link disabled-action" disabled title={adminLabels.deleteDisabledHint}>
-            {adminLabels.actionDelete}
-          </button>
         </div>
       ),
     },
   ];
+}
+
+interface CreateBackupModalContentProps {
+  notes: string;
+  onNotesChange: (value: string) => void;
+  backupFormat: BackupFormat;
+  onBackupFormatChange: (value: BackupFormat) => void;
+  createError: string | null;
+  creating: boolean;
+  onCancel: () => void;
+  onSubmit: () => void;
+}
+
+function CreateBackupModalContent({
+  notes,
+  onNotesChange,
+  backupFormat,
+  onBackupFormatChange,
+  createError,
+  creating,
+  onCancel,
+  onSubmit,
+}: CreateBackupModalContentProps) {
+  const baseline = React.useMemo(
+    () => ({ notes: "", backupFormat: "postgresql_dump" as BackupFormat }),
+    [],
+  );
+  useReportFormDirty({ notes, backupFormat }, baseline);
+  const handleCancel = useModalFormCancel(onCancel);
+
+  return (
+    <>
+      <fieldset className="backup-format-options">
+        <legend>{adminLabels.formatLabel}</legend>
+        <label className="backup-format-option">
+          <input
+            type="radio"
+            name="backup_format"
+            value="postgresql_dump"
+            checked={backupFormat === "postgresql_dump"}
+            onChange={() => onBackupFormatChange("postgresql_dump")}
+          />
+          <span>
+            <strong>{adminLabels.formatPostgresqlDump}</strong>
+            <span className="text-muted">{adminLabels.formatPostgresqlDumpDesc}</span>
+          </span>
+        </label>
+        <label className="backup-format-option">
+          <input
+            type="radio"
+            name="backup_format"
+            value="postgresql_sql"
+            checked={backupFormat === "postgresql_sql"}
+            onChange={() => onBackupFormatChange("postgresql_sql")}
+          />
+          <span>
+            <strong>{adminLabels.formatPostgresqlSql}</strong>
+            <span className="text-muted">{adminLabels.formatPostgresqlSqlDesc}</span>
+          </span>
+        </label>
+        <label className="backup-format-option">
+          <input
+            type="radio"
+            name="backup_format"
+            value="universal_data_package"
+            checked={backupFormat === "universal_data_package"}
+            onChange={() => onBackupFormatChange("universal_data_package")}
+          />
+          <span>
+            <strong>{adminLabels.formatUniversalPackage}</strong>
+            <span className="text-muted">{adminLabels.formatUniversalPackageDesc}</span>
+          </span>
+        </label>
+      </fieldset>
+      <label className="form-field">
+        <span>{adminLabels.notesLabel}</span>
+        <textarea
+          rows={4}
+          value={notes}
+          onChange={(e) => onNotesChange(e.target.value)}
+          placeholder={adminLabels.notesPlaceholder}
+          maxLength={2000}
+        />
+      </label>
+      <p className="text-muted">{adminLabels.notesHint}</p>
+      {createError && <p className="form-error">{createError}</p>}
+      <div className="modal-actions">
+        <button type="button" className="btn secondary" onClick={handleCancel}>
+          {adminLabels.cancel}
+        </button>
+        <button type="button" className="btn primary" disabled={creating} onClick={onSubmit}>
+          {creating ? "…" : adminLabels.startBackup}
+        </button>
+      </div>
+    </>
+  );
 }
 
 export function DatabaseBackupsPage() {
@@ -212,6 +316,8 @@ export function DatabaseBackupsPage() {
   const closeCreateModal = React.useCallback(() => {
     setShowCreateModal(false);
     setBackupFormat("postgresql_dump");
+    setNotes("");
+    setCreateError(null);
   }, []);
 
   const closeDetailModal = React.useCallback(() => setDetailBackup(null), []);
@@ -285,7 +391,8 @@ export function DatabaseBackupsPage() {
         table={table}
         columns={columns}
         rowKey={(backup) => backup.id}
-        skeletonCols={9}
+        skeletonCols={8}
+        className="backups-table"
         emptyState={
           <EmptyState title={adminLabels.backupsEmpty} description={adminLabels.backupsEmptyDescription} />
         }
@@ -293,68 +400,16 @@ export function DatabaseBackupsPage() {
 
       {showCreateModal && (
         <Modal title={adminLabels.newBackupTitle} onClose={closeCreateModal}>
-          <fieldset className="backup-format-options">
-            <legend>{adminLabels.formatLabel}</legend>
-            <label className="backup-format-option">
-              <input
-                type="radio"
-                name="backup_format"
-                value="postgresql_dump"
-                checked={backupFormat === "postgresql_dump"}
-                onChange={() => setBackupFormat("postgresql_dump")}
-              />
-              <span>
-                <strong>{adminLabels.formatPostgresqlDump}</strong>
-                <span className="text-muted">{adminLabels.formatPostgresqlDumpDesc}</span>
-              </span>
-            </label>
-            <label className="backup-format-option">
-              <input
-                type="radio"
-                name="backup_format"
-                value="postgresql_sql"
-                checked={backupFormat === "postgresql_sql"}
-                onChange={() => setBackupFormat("postgresql_sql")}
-              />
-              <span>
-                <strong>{adminLabels.formatPostgresqlSql}</strong>
-                <span className="text-muted">{adminLabels.formatPostgresqlSqlDesc}</span>
-              </span>
-            </label>
-            <label className="backup-format-option">
-              <input
-                type="radio"
-                name="backup_format"
-                value="universal_data_package"
-                checked={backupFormat === "universal_data_package"}
-                onChange={() => setBackupFormat("universal_data_package")}
-              />
-              <span>
-                <strong>{adminLabels.formatUniversalPackage}</strong>
-                <span className="text-muted">{adminLabels.formatUniversalPackageDesc}</span>
-              </span>
-            </label>
-          </fieldset>
-          <label className="form-field">
-            <span>{adminLabels.notesLabel}</span>
-            <textarea
-              rows={4}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder={adminLabels.notesPlaceholder}
-              maxLength={2000}
-            />
-          </label>
-          <p className="text-muted">{adminLabels.notesHint}</p>
-          {createError && <p className="form-error">{createError}</p>}
-          <div className="modal-actions">
-            <button type="button" className="btn secondary" onClick={closeCreateModal}>
-              {adminLabels.cancel}
-            </button>
-            <button type="button" className="btn primary" disabled={creating} onClick={() => void handleCreateBackup()}>
-              {creating ? "…" : adminLabels.startBackup}
-            </button>
-          </div>
+          <CreateBackupModalContent
+            notes={notes}
+            onNotesChange={setNotes}
+            backupFormat={backupFormat}
+            onBackupFormatChange={setBackupFormat}
+            createError={createError}
+            creating={creating}
+            onCancel={closeCreateModal}
+            onSubmit={() => void handleCreateBackup()}
+          />
         </Modal>
       )}
 
@@ -399,6 +454,24 @@ export function DatabaseBackupsPage() {
               </>
             )}
           </dl>
+          <div className="backup-detail-actions">
+            <button
+              type="button"
+              className="btn link disabled-action"
+              disabled
+              title={adminLabels.restoreDisabledHint}
+            >
+              {adminLabels.actionRestore}
+            </button>
+            <button
+              type="button"
+              className="btn link disabled-action"
+              disabled
+              title={adminLabels.deleteDisabledHint}
+            >
+              {adminLabels.actionDelete}
+            </button>
+          </div>
         </Modal>
       )}
     </div>

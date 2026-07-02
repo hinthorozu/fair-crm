@@ -30,9 +30,12 @@ export const labels = {
   phone: "Telefon",
   email: "E-posta",
   created_at: "Kayıt Tarihi",
+  updated_at: "Güncelleme Tarihi",
   source: "Kaynak",
   description: "Açıklama",
   normalized_name: "Normalize Ad",
+  tax_number: "Vergi No",
+  tax_office: "Vergi Dairesi",
   refresh: "Yenile",
 } as const;
 

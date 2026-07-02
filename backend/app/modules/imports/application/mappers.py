@@ -37,6 +37,12 @@ def batch_to_result(
         updated_at=batch.updated_at,
         completed_at=batch.completed_at,
         notes=batch.notes,
+        selected_sheet_name=batch.selected_sheet_name,
+        available_sheets=(batch.raw_preview_json or {}).get("available_sheets") or [],
+        header_mode=batch.header_mode.value if batch.header_mode else None,
+        has_header_row=batch.has_header_row,
+        header_row_index=batch.header_row_index,
+        column_mapping_json=batch.column_mapping_json,
     )
 
 

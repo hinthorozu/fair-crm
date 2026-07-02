@@ -1,12 +1,13 @@
 """Customer list sort order tests (display name column)."""
 
-def _create_customer(client, auth_headers, display_name: str) -> None:
+def _create_customer(client, auth_headers, display_name: str) -> str:
     response = client.post(
         "/api/v1/customers",
         json={"display_name": display_name},
         headers=auth_headers,
     )
     assert response.status_code == 201
+    return response.json()["id"]
 
 
 def test_list_customers_sort_by_company_name_asc(client, auth_headers):
@@ -88,3 +89,57 @@ def test_list_customers_sort_by_created_at_desc(client, auth_headers):
     timestamps = [item["created_at"] for item in body["items"] if item["display_name"].startswith("Date Desc ")]
     assert len(timestamps) == 3
     assert timestamps == sorted(timestamps, reverse=True)
+
+
+def test_list_customers_sort_by_updated_at_asc(client, auth_headers):
+    ids = []
+    for name in ("Updated Asc A", "Updated Asc B", "Updated Asc C"):
+        ids.append(_create_customer(client, auth_headers, name))
+
+    client.patch(
+        f"/api/v1/customers/{ids[0]}",
+        json={"city": "Istanbul"},
+        headers=auth_headers,
+    )
+
+    response = client.get(
+        "/api/v1/customers?sort_by=updated_at&sort_order=asc&pageSize=100",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["sorting"]["field"] == "updated_at"
+    assert body["sorting"]["direction"] == "asc"
+
+    items = [item for item in body["items"] if item["display_name"].startswith("Updated Asc ")]
+    timestamps = [item["updated_at"] for item in items]
+    assert len(timestamps) == 3
+    assert timestamps == sorted(timestamps)
+    assert items[-1]["display_name"] == "Updated Asc A"
+
+
+def test_list_customers_sort_by_updated_at_desc(client, auth_headers):
+    ids = []
+    for name in ("Updated Desc A", "Updated Desc B", "Updated Desc C"):
+        ids.append(_create_customer(client, auth_headers, name))
+
+    client.patch(
+        f"/api/v1/customers/{ids[0]}",
+        json={"city": "Ankara"},
+        headers=auth_headers,
+    )
+
+    response = client.get(
+        "/api/v1/customers?sort_by=updated_at&sort_order=desc&pageSize=100",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["sorting"]["field"] == "updated_at"
+    assert body["sorting"]["direction"] == "desc"
+
+    items = [item for item in body["items"] if item["display_name"].startswith("Updated Desc ")]
+    timestamps = [item["updated_at"] for item in items]
+    assert len(timestamps) == 3
+    assert timestamps == sorted(timestamps, reverse=True)
+    assert items[0]["display_name"] == "Updated Desc A"

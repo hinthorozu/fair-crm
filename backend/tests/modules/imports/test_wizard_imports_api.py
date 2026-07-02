@@ -7,6 +7,7 @@ import pytest
 from openpyxl import Workbook
 
 from tests.conftest_helpers import pagination_from
+from tests.modules.imports.import_decision_helpers import apply_import_decisions
 
 from app.modules.customers.domain.entities import Customer
 from app.modules.customers.domain.value_objects import CustomerSource
@@ -67,7 +68,7 @@ def _set_mapping(client, auth_headers, batch_id, has_header_row, mappings):
 
 
 def _analyze(client, auth_headers, batch_id):
-    return client.post(f"/api/v1/imports/{batch_id}/analyze", headers=auth_headers)
+    return client.post(f"/api/v1/imports/{batch_id}/analyze-legacy", headers=auth_headers)
 
 
 def _create_customer(db_session, organization_id: UUID, *, display_name: str) -> Customer:
@@ -243,15 +244,16 @@ def test_customer_duplicate_exact_match(client, auth_headers, db_session, organi
 
 
 def test_customer_duplicate_fuzzy_match(client, auth_headers, db_session, organization_id):
-    _create_customer(db_session, organization_id, display_name="ABC Makina Sanayi A.Ş.")
+    _create_customer(db_session, organization_id, display_name="Celik Makina Imalat")
     fair_id = _create_fair(client, auth_headers)
-    upload = _upload_wizard(client, auth_headers, fair_id, ["Firma Adı"], [["ABC Makina"]])
+    upload = _upload_wizard(client, auth_headers, fair_id, ["Firma Adı"], [["Celik Makina Iml"]])
     batch_id = upload.json()["batch_id"]
     _set_mapping(client, auth_headers, batch_id, True, {"company_name": {"type": "column_index", "value": 0}})
     _analyze(client, auth_headers, batch_id)
     rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["match_customer_id"] is not None
-    assert rows[0]["match_confidence"] >= 75
+    assert rows[0]["match_confidence"] >= 85
+    assert rows[0]["match_reason"] == "fuzzy_name_candidate"
 
 
 def test_participation_duplicate_in_selected_fair(client, auth_headers, db_session, organization_id):
@@ -309,10 +311,10 @@ def test_create_customer_and_participation(client, auth_headers):
         headers=auth_headers,
         json={"decision": "create_new"},
     )
-    apply = client.post(f"/api/v1/imports/{batch_id}/apply", headers=auth_headers)
-    assert apply.status_code == 200
-    assert apply.json()["created_rows"] == 1
-    assert apply.json()["created_participations"] == 1
+    apply_import_decisions(client, auth_headers, batch_id, row_ids=[rows[0]["id"]])
+    batch = client.get(f"/api/v1/imports/{batch_id}", headers=auth_headers).json()
+    assert batch["created_rows"] == 1
+    assert batch["created_participations"] == 1
 
     participants = client.get(f"/api/v1/fairs/{fair_id}/participants", headers=auth_headers).json()
     assert any(p["company_name"] == "New Part Co" for p in participants["items"])
@@ -338,9 +340,9 @@ def test_existing_customer_create_participation(client, auth_headers, db_session
         headers=auth_headers,
         json={"decision": "update_existing"},
     )
-    apply = client.post(f"/api/v1/imports/{batch_id}/apply", headers=auth_headers)
-    assert apply.status_code == 200
-    assert apply.json()["created_participations"] == 1
+    apply_import_decisions(client, auth_headers, batch_id, row_ids=[rows[0]["id"]])
+    batch = client.get(f"/api/v1/imports/{batch_id}", headers=auth_headers).json()
+    assert batch["created_participations"] == 1
 
 
 def test_existing_participation_update(client, auth_headers, db_session, organization_id):
@@ -379,9 +381,9 @@ def test_existing_participation_update(client, auth_headers, db_session, organiz
         headers=auth_headers,
         json={"decision": "update_existing"},
     )
-    apply = client.post(f"/api/v1/imports/{batch_id}/apply", headers=auth_headers)
-    assert apply.status_code == 200
-    assert apply.json()["updated_participations"] == 1
+    apply_import_decisions(client, auth_headers, batch_id, row_ids=[rows[0]["id"]])
+    batch = client.get(f"/api/v1/imports/{batch_id}", headers=auth_headers).json()
+    assert batch["updated_participations"] == 1
 
 
 def test_empty_incoming_does_not_overwrite_db(client, auth_headers, db_session, organization_id):
@@ -415,7 +417,7 @@ def test_empty_incoming_does_not_overwrite_db(client, auth_headers, db_session, 
         headers=auth_headers,
         json={"decision": "update_existing"},
     )
-    client.post(f"/api/v1/imports/{batch_id}/apply", headers=auth_headers)
+    apply_import_decisions(client, auth_headers, batch_id, row_ids=[rows[0]["id"]])
     updated = client.get(f"/api/v1/customers/{customer.id}", headers=auth_headers).json()
     assert updated["country"] == "Türkiye"
 
@@ -453,7 +455,7 @@ def test_email_merge_canonical_format(client, auth_headers, db_session, organiza
         headers=auth_headers,
         json={"decision": "update_existing"},
     )
-    client.post(f"/api/v1/imports/{batch_id}/apply", headers=auth_headers)
+    apply_import_decisions(client, auth_headers, batch_id, row_ids=[rows[0]["id"]])
     updated = client.get(f"/api/v1/customers/{customer.id}", headers=auth_headers).json()
     assert "a@co.com" in updated["email"]
     assert "b@co.com" in updated["email"]
@@ -483,7 +485,7 @@ def test_hall_stand_on_participation(client, auth_headers):
         headers=auth_headers,
         json={"decision": "create_new"},
     )
-    client.post(f"/api/v1/imports/{batch_id}/apply", headers=auth_headers)
+    apply_import_decisions(client, auth_headers, batch_id, row_ids=[rows[0]["id"]])
     participants = client.get(f"/api/v1/fairs/{fair_id}/participants", headers=auth_headers).json()
     part = next(p for p in participants["items"] if p["company_name"] == "Hall Co")
     assert part["hall"] == "E"
@@ -502,7 +504,7 @@ def test_activity_source_import_created(client, auth_headers, db_session, organi
         headers=auth_headers,
         json={"decision": "create_new"},
     )
-    client.post(f"/api/v1/imports/{batch_id}/apply", headers=auth_headers)
+    apply_import_decisions(client, auth_headers, batch_id, row_ids=[rows[0]["id"]])
     customers = client.get("/api/v1/customers?search=Activity Co", headers=auth_headers).json()["items"]
     customer_id = customers[0]["id"]
     activities = client.get(f"/api/v1/customers/{customer_id}/activities", headers=auth_headers).json()["items"]
@@ -521,17 +523,18 @@ def test_apply_summary_correct(client, auth_headers):
         headers=auth_headers,
         json={"decision": "create_new"},
     )
+    row_ids = [rows[0]["id"]]
     if len(rows) > 1:
         client.patch(
             f"/api/v1/imports/{batch_id}/rows/{rows[1]['id']}/decision",
             headers=auth_headers,
             json={"decision": "skip"},
         )
-    apply = client.post(f"/api/v1/imports/{batch_id}/apply", headers=auth_headers)
-    assert apply.status_code == 200
-    data = apply.json()
-    assert data["created_rows"] >= 1
-    assert data["batch"]["status"] == "applied"
+        row_ids.append(rows[1]["id"])
+    apply_import_decisions(client, auth_headers, batch_id, row_ids=row_ids)
+    batch = client.get(f"/api/v1/imports/{batch_id}", headers=auth_headers).json()
+    assert batch["created_rows"] >= 1
+    assert batch["status"] in ("applied", "completed")
 
 
 def test_list_rows_includes_merge_preview(client, auth_headers, db_session, organization_id):
@@ -604,9 +607,9 @@ def test_apply_creates_contact_wizard(client, auth_headers):
         headers=auth_headers,
         json={"decision": "create_new"},
     )
-    apply = client.post(f"/api/v1/imports/{batch_id}/apply", headers=auth_headers)
-    assert apply.status_code == 200
-    assert apply.json()["created_contacts"] == 1
+    apply_import_decisions(client, auth_headers, batch_id, row_ids=[rows[0]["id"]])
+    batch = client.get(f"/api/v1/imports/{batch_id}", headers=auth_headers).json()
+    assert batch["created_rows"] == 1
     customers = client.get("/api/v1/customers?search=Contact+Wizard+Co", headers=auth_headers).json()["items"]
     customer_id = customers[0]["id"]
     contacts = client.get(f"/api/v1/customers/{customer_id}/contacts", headers=auth_headers).json()

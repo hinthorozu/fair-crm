@@ -20,3 +20,19 @@ class ImportJobRepository(Protocol):
         page: int,
         page_size: int,
     ) -> tuple[list[ImportJob], int]: ...
+
+    def has_active_analyze_job(self, organization_id: UUID) -> bool: ...
+
+    def get_active_analyze_job_for_batch(
+        self, organization_id: UUID, batch_id: UUID
+    ) -> ImportJob | None: ...
+
+    def has_active_bulk_or_apply_job_for_batch(
+        self, organization_id: UUID, batch_id: UUID
+    ) -> bool: ...
+
+    def get_active_bulk_or_apply_job_for_batch(
+        self, organization_id: UUID, batch_id: UUID
+    ) -> ImportJob | None: ...
+
+    def has_any_active_job_for_batch(self, organization_id: UUID, batch_id: UUID) -> bool: ...

@@ -7,7 +7,7 @@ from uuid import UUID
 
 from app.modules.contacts.domain.entities import Contact
 from app.modules.customers.domain.entities import Customer
-from app.modules.imports.domain.entities import ImportRow
+from app.modules.imports.domain.entities import ImportBatch, ImportRow
 from app.modules.imports.domain.value_objects import ImportDecision, ImportRowStatus
 from app.modules.participations.domain.entities import CustomerFairParticipation
 from app.shared.email import normalize_email_field
@@ -164,6 +164,18 @@ def _participation_status_label(status: Any) -> str | None:
     return str(status.value if hasattr(status, "value") else status)
 
 
+def effective_decision_for_preview(row: ImportRow) -> ImportDecision | None:
+    if row.decision is not None:
+        return row.decision
+    if row.status == ImportRowStatus.INVALID:
+        return ImportDecision.SKIP
+    if row.status == ImportRowStatus.READY_TO_CREATE:
+        return ImportDecision.CREATE_NEW
+    if row.status in (ImportRowStatus.READY_TO_UPDATE, ImportRowStatus.POSSIBLE_DUPLICATE):
+        return ImportDecision.UPDATE_EXISTING
+    return None
+
+
 def build_merge_preview(
     row: ImportRow,
     *,
@@ -173,7 +185,7 @@ def build_merge_preview(
     fair_id: UUID | None,
 ) -> dict[str, Any]:
     data = row.normalized_data_json or {}
-    decision = row.decision
+    decision = effective_decision_for_preview(row)
     is_skipped = decision == ImportDecision.SKIP or row.status == ImportRowStatus.INVALID
     is_create = (
         not is_skipped
@@ -354,6 +366,8 @@ def _build_summary_lines(groups: list[dict[str, Any]], *, is_skipped: bool) -> l
 def row_matches_filter(row: ImportRow, filter_key: str | None) -> bool:
     if not filter_key or filter_key == "all":
         return True
+    if filter_key == "pending":
+        return is_row_pending(row)
     if filter_key == "new":
         return row.status == ImportRowStatus.READY_TO_CREATE
     if filter_key == "will_update":
@@ -364,7 +378,45 @@ def row_matches_filter(row: ImportRow, filter_key: str | None) -> bool:
         return row.status == ImportRowStatus.INVALID
     if filter_key == "skip":
         return row.decision == ImportDecision.SKIP
+    if filter_key == "applied":
+        return False
     return True
+
+
+def is_row_pending(row: ImportRow) -> bool:
+    """Remaining rows in crm_import_rows are the active decision queue."""
+    return True
+
+
+DECISION_FILTER_COUNT_KEYS: tuple[str, ...] = (
+    "pending",
+    "all",
+    "applied",
+    "new",
+    "will_update",
+    "duplicate",
+    "invalid",
+    "skip",
+)
+
+
+def compute_decision_filter_counts(
+    rows: list[ImportRow],
+    *,
+    batch: ImportBatch | None = None,
+) -> dict[str, int]:
+    counts = {
+        key: sum(1 for row in rows if row_matches_filter(row, key))
+        for key in DECISION_FILTER_COUNT_KEYS
+        if key not in {"applied", "pending", "all"}
+    }
+    counts["pending"] = len(rows)
+    counts["all"] = len(rows)
+    if batch is not None:
+        counts["applied"] = batch.created_rows + batch.updated_rows + batch.skipped_rows
+    else:
+        counts["applied"] = 0
+    return counts
 
 
 def sort_rows(

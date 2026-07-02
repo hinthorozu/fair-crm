@@ -16,6 +16,7 @@ from app.modules.data_integration.api.dependencies import (
     get_job_runner,
     get_list_import_batches_use_case,
     get_select_import_sheet_use_case,
+    get_start_import_analyze_job_use_case,
     get_start_import_apply_job_use_case,
     require_read_permission,
 )
@@ -40,9 +41,17 @@ from app.modules.data_integration.application.start_import_apply_job import (
 )
 from app.modules.imports.api.routes import _access_token, _batch_response, bearer_scheme
 from app.modules.imports.application.commands import ListImportBatchesQuery, SelectImportSheetCommand
+from app.modules.data_integration.application.start_import_analyze_job import (
+    StartImportAnalyzeJobCommand,
+    StartImportAnalyzeJobUseCase,
+)
 from app.modules.imports.domain.exceptions import (
+    ImportApplyInProgressError,
+    ImportAnalyzeInProgressError,
     ImportBatchAlreadyAppliedError,
+    ImportBatchAnalyzeNotAllowedError,
     ImportBatchNotFoundError,
+    ImportBulkActionInProgressError,
     InvalidImportFileError,
 )
 
@@ -140,10 +149,53 @@ def select_import_sheet(
 
 
 @router.post(
+    "/imports/{batch_id}/analyze-job",
+    response_model=StartImportJobResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
+    summary="Start background import analyze job",
+)
+def start_import_analyze_job(
+    batch_id: UUID,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_read_permission),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case: StartImportAnalyzeJobUseCase = Depends(get_start_import_analyze_job_use_case),
+    job_runner=Depends(get_job_runner),
+) -> StartImportJobResponse:
+    try:
+        result = use_case.execute(
+            StartImportAnalyzeJobCommand(
+                organization_id=auth.organization_id,
+                user_id=auth.user_id,
+                access_token=_access_token(credentials),
+                batch_id=batch_id,
+            )
+        )
+    except ImportBatchNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ImportBatchAnalyzeNotAllowedError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except ImportAnalyzeInProgressError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    db.commit()
+    background_tasks.add_task(job_runner.run_analyze, result.analyze_command)
+    return StartImportJobResponse(
+        job_id=result.job_id,
+        batch_id=result.batch_id,
+        status=result.status,
+        progress_total=result.progress_total,
+    )
+
+
+@router.post(
     "/imports/{batch_id}/apply-job",
     response_model=StartImportJobResponse,
     status_code=status.HTTP_202_ACCEPTED,
-    responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
     summary="Start background import apply job",
 )
 def start_import_apply_job(
@@ -168,6 +220,8 @@ def start_import_apply_job(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ImportBatchAlreadyAppliedError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except (ImportApplyInProgressError, ImportBulkActionInProgressError) as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except ForbiddenError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     db.commit()

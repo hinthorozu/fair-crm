@@ -47,9 +47,15 @@ import { PageHeader, type PageHeaderAction } from "../components/ui/PageHeader";
 import { TabPanel, Tabs } from "../components/ui/Tabs";
 import { Badge } from "../components/ui/Badge";
 import { Card } from "../components/ui/Card";
+import {
+  DetailEmail,
+  DetailPhone,
+  DetailValue,
+  DetailWebsite,
+} from "../components/ui/DetailFields";
 import { activityLabels } from "../labels/activityLabels";
 import { contactLabels } from "../labels/contactLabels";
-import { customerStatusLabels, customerTypeLabels, labels } from "../labels";
+import { customerStatusLabels, customerTypeLabels, customerSourceLabels, labels } from "../labels";
 import { uiLabels } from "../labels/uiLabels";
 import { participationLabels } from "../labels/participationLabels";
 import type { Activity } from "../types/activity";
@@ -500,24 +506,84 @@ export function CustomerDetailPage({
               <dd>{customer.display_name}</dd>
             </div>
             <div>
-              <dt>{labels.city}</dt>
-              <dd>{customer.city ?? "—"}</dd>
+              <dt>{labels.legal_name}</dt>
+              <dd>
+                <DetailValue value={customer.legal_name} />
+              </dd>
+            </div>
+            <div>
+              <dt>{labels.trade_name}</dt>
+              <dd>
+                <DetailValue value={customer.trade_name} />
+              </dd>
+            </div>
+            <div>
+              <dt>{labels.customer_type}</dt>
+              <dd>{customerTypeLabels[customer.customer_type] ?? customer.customer_type}</dd>
             </div>
             <div>
               <dt>{labels.phone}</dt>
-              <dd>{customer.phone ?? "—"}</dd>
+              <dd>
+                <DetailPhone value={customer.phone} />
+              </dd>
             </div>
             <div>
               <dt>{labels.email}</dt>
-              <dd>{customer.email ?? "—"}</dd>
+              <dd>
+                <DetailEmail value={customer.email} />
+              </dd>
+            </div>
+            <div>
+              <dt>{labels.website}</dt>
+              <dd>
+                <DetailWebsite value={customer.website} />
+              </dd>
+            </div>
+            <div>
+              <dt>{labels.source}</dt>
+              <dd>{customerSourceLabels[customer.source] ?? customer.source}</dd>
+            </div>
+            <div>
+              <dt>{labels.country}</dt>
+              <dd>
+                <DetailValue value={customer.country} />
+              </dd>
+            </div>
+            <div>
+              <dt>{labels.city}</dt>
+              <dd>
+                <DetailValue value={customer.city} />
+              </dd>
+            </div>
+            <div>
+              <dt>{labels.district}</dt>
+              <dd>
+                <DetailValue value={customer.district} />
+              </dd>
+            </div>
+            <div>
+              <dt>{labels.tax_number}</dt>
+              <dd>
+                <DetailValue value={customer.tax_number} />
+              </dd>
+            </div>
+            <div>
+              <dt>{labels.tax_office}</dt>
+              <dd>
+                <DetailValue value={customer.tax_office} />
+              </dd>
             </div>
             <div className="full-width">
               <dt>{labels.address}</dt>
-              <dd>{customer.address ?? "—"}</dd>
+              <dd>
+                <DetailValue value={customer.address} />
+              </dd>
             </div>
             <div className="full-width">
               <dt>{labels.description}</dt>
-              <dd>{customer.description ?? "—"}</dd>
+              <dd className="detail-multiline">
+                <DetailValue value={customer.description} />
+              </dd>
             </div>
           </dl>
         </Card>

@@ -112,6 +112,38 @@ MIN_COMPANY_NAME_LEN = 2
 MAX_COMPANY_NAME_LEN = 200
 MIN_PHONE_DIGITS = 7
 
+KNOWN_COUNTRY_TEXTS = frozenset(
+    {
+        "türkiye",
+        "turkey",
+        "çin",
+        "cin",
+        "china",
+        "other",
+        "diger",
+        "diğer",
+        "almanya",
+        "germany",
+        "fransa",
+        "france",
+        "italya",
+        "italy",
+        "amerika",
+        "usa",
+        "united states",
+    }
+)
+
+TECHNICAL_NOTE_LINE_PATTERNS = (
+    re.compile(r"^legacy company id:\s*\d+", re.IGNORECASE),
+    re.compile(r"^migration review status:", re.IGNORECASE),
+    re.compile(r"^additional phones?:", re.IGNORECASE),
+    re.compile(r"^additional emails?:", re.IGNORECASE),
+    re.compile(r"^legacy merge group\b", re.IGNORECASE),
+    re.compile(r"^name aliases:", re.IGNORECASE),
+    re.compile(r"^phone review flags:", re.IGNORECASE),
+)
+
 
 def clean_text(value: str | None) -> str | None:
     if value is None:
@@ -169,6 +201,84 @@ def looks_like_email(value: str) -> bool:
 def looks_like_phone(value: str) -> bool:
     digits = phone_digits(value)
     return len(digits) >= 7 and len(digits) / max(len(value), 1) > 0.5
+
+
+def is_country_text(value: str) -> bool:
+    text = collapse_whitespace(value)
+    if not text:
+        return False
+    folded = text.lower()
+    if folded in KNOWN_COUNTRY_TEXTS:
+        return True
+    if "@" in text or text.lower().startswith(("http://", "https://", "www.")):
+        return False
+    if looks_like_phone(text):
+        return False
+    if is_valid_website(text):
+        return False
+    if re.fullmatch(r"[\w\u0080-\uFFFF\s\-'.]+", text, re.UNICODE) and len(text) <= 40:
+        return folded in KNOWN_COUNTRY_TEXTS
+    return False
+
+
+def classify_contact_token(value: str) -> str:
+    text = clean_text(value)
+    if not text:
+        return "empty"
+    if is_country_text(text):
+        return "country"
+    if is_valid_email(text):
+        return "email"
+    if is_valid_website(text):
+        return "website"
+    if looks_like_phone(text):
+        return "phone"
+    return "unknown"
+
+
+def parse_company_contact_slots(
+    *slot_values: str | None,
+) -> tuple[list[str], list[str], list[str], str | None]:
+    """Classify legacy company columns 2–6 into phones, websites, emails, country text."""
+    phones: list[str] = []
+    websites: list[str] = []
+    emails: list[str] = []
+    country_text: str | None = None
+
+    for raw in slot_values:
+        if not raw or not raw.strip():
+            continue
+        kind = classify_contact_token(raw)
+        stripped = raw.strip()
+        if kind == "country":
+            country_text = stripped
+        elif kind == "email":
+            emails.append(stripped)
+        elif kind == "website":
+            websites.append(stripped)
+        elif kind == "phone":
+            phones.append(stripped)
+
+    return phones, websites, emails, country_text
+
+
+def sanitize_user_notes(notes: str | None) -> str | None:
+    """Keep only real user notes; strip parseable contacts and migration technical lines."""
+    if not notes or not notes.strip():
+        return None
+    kept: list[str] = []
+    for line in notes.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if any(pattern.match(stripped) for pattern in TECHNICAL_NOTE_LINE_PATTERNS):
+            continue
+        if is_valid_email(stripped) or is_valid_website(stripped) or looks_like_phone(stripped):
+            continue
+        kept.append(stripped)
+    if not kept:
+        return None
+    return "\n".join(kept)
 
 
 def normalize_website_host(value: str) -> str | None:

@@ -59,6 +59,7 @@ function mapColumns<T>(columns: UniversalDataTableColumn<T>[]) {
     sortField: column.sortField ?? column.key,
     render: column.render,
     className: column.className,
+    dataLabel: typeof column.title === "string" ? column.title : undefined,
   }));
 }
 

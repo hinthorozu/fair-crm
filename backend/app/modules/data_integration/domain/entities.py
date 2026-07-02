@@ -23,6 +23,31 @@ class ImportJob:
     completed_at: Optional[datetime]
 
     @classmethod
+    def create_analyze_job(
+        cls,
+        *,
+        organization_id: UUID,
+        batch_id: UUID,
+        progress_total: int,
+        now: datetime,
+    ) -> "ImportJob":
+        return cls(
+            id=uuid4(),
+            organization_id=organization_id,
+            batch_id=batch_id,
+            job_type=ImportJobType.ANALYZE,
+            status=ImportJobStatus.QUEUED,
+            progress_processed=0,
+            progress_total=progress_total,
+            result_json=None,
+            error_message=None,
+            created_at=now,
+            updated_at=now,
+            started_at=None,
+            completed_at=None,
+        )
+
+    @classmethod
     def create_apply_job(
         cls,
         *,
@@ -40,6 +65,32 @@ class ImportJob:
             progress_processed=0,
             progress_total=progress_total,
             result_json=None,
+            error_message=None,
+            created_at=now,
+            updated_at=now,
+            started_at=None,
+            completed_at=None,
+        )
+
+    @classmethod
+    def create_bulk_decision_job(
+        cls,
+        *,
+        organization_id: UUID,
+        batch_id: UUID,
+        action_type: str,
+        progress_total: int,
+        now: datetime,
+    ) -> "ImportJob":
+        return cls(
+            id=uuid4(),
+            organization_id=organization_id,
+            batch_id=batch_id,
+            job_type=ImportJobType.BULK_DECISION,
+            status=ImportJobStatus.QUEUED,
+            progress_processed=0,
+            progress_total=progress_total,
+            result_json={"action_type": action_type},
             error_message=None,
             created_at=now,
             updated_at=now,

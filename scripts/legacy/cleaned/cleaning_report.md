@@ -1,7 +1,7 @@
 # UMCRM Cleaning Report
 
-Generated: 2026-07-01 15:55 UTC
-Source: `C:\Users\hinthorozu\Desktop\withdata_u7409970_umycrm.sql`
+Generated: 2026-07-02 17:53 UTC
+Source: `c:\Users\hinthorozu\Desktop\withdata_u7409970_umycrm.sql`
 
 ## Input dataset summary
 
@@ -13,7 +13,7 @@ Source: `C:\Users\hinthorozu\Desktop\withdata_u7409970_umycrm.sql`
 ## Cleaned output summary
 
 - Companies: **29,321** (all retained, none dropped)
-- Company email groups: **29,216**
+- Company email groups: **29,217**
 - Fairs: **115**
 - Relations: **29,561**
 
@@ -22,13 +22,13 @@ Source: `C:\Users\hinthorozu\Desktop\withdata_u7409970_umycrm.sql`
 - Dropped invalid email count: **43**
 - Dropped placeholder email count: **0**
 - Dropped empty email count: **0**
-- Same-company duplicate emails merged: **462**
-- Dropped placeholder phone count: **28**
-- Dropped invalid website count: **224**
-- Dropped placeholder website count: **2**
-- Normalized website count: **6,650**
+- Same-company duplicate emails merged: **473**
+- Dropped placeholder phone count: **0**
+- Dropped invalid website count: **0**
+- Dropped placeholder website count: **3**
+- Normalized website count: **7,034**
 - Nullified fair dates count: **128**
-- Manual review companies: **1,470**
+- Manual review companies: **834**
 - Manual review fairs: **7**
 - Relation duplicate dropped count: **1**
 - Relation orphans dropped: **0**

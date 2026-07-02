@@ -1,7 +1,9 @@
 import React from "react";
 import { labels } from "../../labels";
+import { uiLabels } from "../../labels/uiLabels";
+import { ConfirmDialog } from "./ConfirmDialog";
 
-/** Overlay dialog — focus/escape/backdrop behavior follows shared modal focus pattern (see .cursor/rules/shared-modal-focus.mdc). */
+/** Overlay dialog — ADR-028 Universal Modal Standard (no backdrop/Escape close; dirty guard). */
 interface ModalProps {
   title: string;
   onClose: () => void;
@@ -11,6 +13,24 @@ interface ModalProps {
 
 const FOCUSABLE_SELECTOR =
   'textarea, input:not([type="hidden"]), select, button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
+
+type ModalDirtySetter = (dirty: boolean) => void;
+
+const ModalDirtyContext = React.createContext<ModalDirtySetter | null>(null);
+const ModalCloseContext = React.createContext<(() => void) | null>(null);
+
+export function useModalDirty(): ModalDirtySetter {
+  const setter = React.useContext(ModalDirtyContext);
+  return React.useCallback((dirty: boolean) => setter?.(dirty), [setter]);
+}
+
+export function useModalRequestClose(fallback: () => void): () => void {
+  const requestClose = React.useContext(ModalCloseContext);
+  return React.useCallback(() => {
+    if (requestClose) requestClose();
+    else fallback();
+  }, [requestClose, fallback]);
+}
 
 function focusInitialElement(body: HTMLElement | null, closeButton: HTMLButtonElement | null) {
   const firstFocusable = body?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
@@ -27,49 +47,78 @@ export function Modal({ title, onClose, children, size = "default" }: ModalProps
   const onCloseRef = React.useRef(onClose);
   onCloseRef.current = onClose;
 
-  React.useEffect(() => {
-    focusInitialElement(bodyRef.current, closeRef.current);
+  const [dirty, setDirty] = React.useState(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = React.useState(false);
 
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onCloseRef.current();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+  const requestClose = React.useCallback(() => {
+    if (dirty) {
+      setShowDiscardConfirm(true);
+      return;
+    }
+    onCloseRef.current();
+  }, [dirty]);
+
+  const confirmDiscard = React.useCallback(() => {
+    setShowDiscardConfirm(false);
+    setDirty(false);
+    onCloseRef.current();
   }, []);
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      onCloseRef.current();
-    }
-  };
+  const cancelDiscard = React.useCallback(() => {
+    setShowDiscardConfirm(false);
+  }, []);
+
+  const setModalDirty = React.useCallback<ModalDirtySetter>((value) => {
+    setDirty(value);
+  }, []);
+
+  React.useEffect(() => {
+    focusInitialElement(bodyRef.current, closeRef.current);
+  }, []);
 
   return (
-    <div className="modal-backdrop" onClick={handleBackdropClick} role="presentation">
-      <div
-        className={`modal ${size === "lg" ? "modal-lg" : ""}`.trim()}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-      >
-        <header className="modal-header">
-          <h2 id="modal-title">{title}</h2>
-          <button
-            ref={closeRef}
-            type="button"
-            className="btn icon"
-            onClick={() => onCloseRef.current()}
-            aria-label={labels.cancel}
-          >
-            ×
-          </button>
-        </header>
-        <div ref={bodyRef} className="modal-body">
-          {children}
+    <>
+      <div className="modal-backdrop" role="presentation">
+        <div
+          className={`modal ${size === "lg" ? "modal-lg" : ""}`.trim()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
+        >
+          <header className="modal-header">
+            <h2 id="modal-title">{title}</h2>
+            <button
+              ref={closeRef}
+              type="button"
+              className="btn icon"
+              onClick={requestClose}
+              aria-label={labels.cancel}
+            >
+              ×
+            </button>
+          </header>
+          <ModalDirtyContext.Provider value={setModalDirty}>
+            <ModalCloseContext.Provider value={requestClose}>
+              <div ref={bodyRef} className="modal-body">
+                {children}
+              </div>
+            </ModalCloseContext.Provider>
+          </ModalDirtyContext.Provider>
         </div>
       </div>
-    </div>
+
+      {showDiscardConfirm && (
+        <ConfirmDialog
+          className="modal-backdrop-nested"
+          title={uiLabels.modalUnsavedTitle}
+          message={uiLabels.modalUnsavedMessage}
+          cancelLabel={uiLabels.modalReturnToForm}
+          confirmLabel={uiLabels.modalDiscardExit}
+          variant="danger"
+          onCancel={cancelDiscard}
+          onConfirm={confirmDiscard}
+        />
+      )}
+    </>
   );
 }

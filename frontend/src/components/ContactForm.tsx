@@ -2,6 +2,7 @@ import React from "react";
 import type { Contact, CreateContactPayload } from "../types/contact";
 import { contactLabels } from "../labels/contactLabels";
 import { emailPlaceholder, validateMultiEmailInput } from "../utils/email";
+import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 
 export type ContactFormValues = Omit<CreateContactPayload, "customer_id">;
 
@@ -48,6 +49,10 @@ export function ContactForm({ initial, submitLabel, onSubmit, onCancel }: Contac
   const [values, setValues] = React.useState<ContactFormValues>(initial ?? emptyForm());
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const baseline = React.useMemo(() => initial ?? emptyForm(), [initial]);
+  const handleCancel = useModalFormCancel(onCancel);
+
+  useReportFormDirty(values, baseline);
 
   React.useEffect(() => {
     setValues(initial ?? emptyForm());
@@ -183,7 +188,7 @@ export function ContactForm({ initial, submitLabel, onSubmit, onCancel }: Contac
       </label>
 
       <div className="form-actions full-width">
-        <button type="button" className="btn secondary" onClick={onCancel} disabled={saving}>
+        <button type="button" className="btn secondary" onClick={handleCancel} disabled={saving}>
           {contactLabels.cancel}
         </button>
         <button type="submit" className="btn primary" disabled={saving}>

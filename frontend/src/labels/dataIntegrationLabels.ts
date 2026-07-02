@@ -19,6 +19,13 @@ export const dataIntegrationLabels = {
   colCreated: "Oluşturulma",
   colActions: "İşlemler",
   openDetail: "Detay",
+  continueBatch: "Devam Et",
+  deleteBatch: "Sil",
+  deleteBatchTitle: "Import işini kalıcı olarak sil",
+  deleteBatchMessage:
+    "Bu import işi kalıcı olarak silinecek.\n\nAşağıdaki veriler tamamen kaldırılacaktır:\n\n• Upload edilen Excel dosyası\n• Import Batch\n• Import Rows\n• Analyze sonuçları\n• Decision kayıtları\n• Geçici veriler\n\nBu işlem geri alınamaz.",
+  deleteBatchConfirm: "Kalıcı Olarak Sil",
+  deleteBatchSuccess: "Import işi başarıyla silindi.",
   sheetTitle: "Sayfa seçimi",
   sheetSubtitle: "Excel dosyasındaki çalışma sayfasını seçin.",
   headerModeTitle: "Başlık modu",

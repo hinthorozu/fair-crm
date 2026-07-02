@@ -23,6 +23,7 @@ type AppRoute =
   | "/data-integration/imports"
   | "/data-integration/imports/new"
   | "/data-integration/imports/fair/:fairId"
+  | "/data-integration/imports/continue/:batchId"
   | "/data-integration/jobs"
   | "/data-integration/reports"
   | "/admin/system/backups"
@@ -34,6 +35,7 @@ interface ParsedRoute {
   route: AppRoute;
   customerId?: string;
   fairId?: string;
+  batchId?: string;
 }
 
 function parseRoute(pathname: string): ParsedRoute {
@@ -44,6 +46,10 @@ function parseRoute(pathname: string): ParsedRoute {
     return { route: "/admin/system/backups" };
   }
   if (pathname === "/data-integration" || pathname.startsWith("/data-integration/")) {
+    const continueImport = pathname.match(/^\/data-integration\/imports\/continue\/([^/]+)$/);
+    if (continueImport) {
+      return { route: "/data-integration/imports/continue/:batchId", batchId: continueImport[1] };
+    }
     const fairImport = pathname.match(/^\/data-integration\/imports\/fair\/([^/]+)$/);
     if (fairImport) {
       return { route: "/data-integration/imports/fair/:fairId", fairId: fairImport[1] };
@@ -299,11 +305,23 @@ export function App() {
       {parsed.route === "/data-integration/imports" && (
         <DataIntegrationImportsPage
           onNewImport={() => goToDataIntegration("/data-integration/imports/new")}
+          onContinueBatch={(batchId) => goToDataIntegration(`/data-integration/imports/continue/${batchId}`)}
         />
       )}
       {(parsed.route === "/data-integration/imports/new" ||
         parsed.route === "/data-integration/imports/fair/:fairId") && (
-        <ImportWizardPage preselectedFairId={parsed.fairId} />
+        <ImportWizardPage
+          preselectedFairId={parsed.fairId}
+          onUploadComplete={() => goToDataIntegration("/data-integration/imports")}
+          onMappingSaved={() => goToDataIntegration("/data-integration/imports")}
+        />
+      )}
+      {parsed.route === "/data-integration/imports/continue/:batchId" && (
+        <ImportWizardPage
+          resumeBatchId={parsed.batchId}
+          onMappingSaved={() => goToDataIntegration("/data-integration/imports")}
+          onFinished={() => goToDataIntegration("/data-integration/imports")}
+        />
       )}
       {(parsed.route === "/data-integration/jobs" || parsed.route === "/data-integration/reports") && (
         <Card>

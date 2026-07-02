@@ -238,6 +238,44 @@ def test_email_truncation_for_db_limit():
     assert overflow is not None
 
 
+def test_customer_description_excludes_legacy_metadata():
+    companies = [
+        {
+            "legacy_company_id": 18486,
+            "name_original": "ACEMOĞLU GIDA",
+            "name_clean": "ACEMOĞLU GIDA",
+            "normalized_name": "acemoglu gida",
+            "phone_values_clean": ["3423379340"],
+            "additional_phones": [],
+            "website_values_clean": ["https://oncusalca.com.tr"],
+            "country_id": 1,
+            "notes_clean": None,
+            "manual_review": True,
+            "issues": [],
+        }
+    ]
+    id_mapping = {
+        "18486": {"action": "manual_review", "target_legacy_company_id": None, "merge_group_id": "g1"},
+    }
+    plan = build_migration_plan(
+        org_id=ORG,
+        companies=companies,
+        email_groups=[{"legacy_company_id": 18486, "emails_clean": ["info@oncusalca.com.tr"]}],
+        fairs=[],
+        relations=[],
+        id_mapping=id_mapping,
+        merge_plan={"auto_merge_groups": []},
+    )
+    customer = plan.customers[0]
+    assert customer.phone == "3423379340"
+    assert customer.website == "https://oncusalca.com.tr"
+    assert customer.email == "info@oncusalca.com.tr"
+    assert customer.description is None
+    assert customer.migration_review_status == "manual_review"
+    assert "Legacy company ID" not in (plan.activities[0].description or "")
+    assert "Migration review status" not in (plan.activities[0].description or "")
+
+
 def test_parse_iso_date():
     from datetime import date
 

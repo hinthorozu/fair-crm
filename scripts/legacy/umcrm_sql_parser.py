@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterator
+
+from umcrm_cleaning import parse_company_contact_slots
 
 INSERT_RE = re.compile(
     r"^INSERT\s+INTO\s+`(?P<table>company|companyemail|country|fair|fairtocompany)`\s+VALUES\s+(?P<values>.+);\s*$",
@@ -142,6 +144,8 @@ class CompanyRow:
     web2: str | None
     country_id: int | None
     notes: str | None = None
+    inline_emails: list[str] = field(default_factory=list)
+    country_text: str | None = None
 
 
 @dataclass
@@ -176,16 +180,25 @@ def load_umcrm_dump(path: Path) -> dict[str, Any]:
                 for values in parse_insert_value_rows(values_raw):
                     if table == "company" and len(values) >= 8:
                         cid = int(values[0])
+                        phones, websites, slot_emails, country_text = parse_company_contact_slots(
+                            values[2],
+                            values[3],
+                            values[4],
+                            values[5],
+                            values[6],
+                        )
                         companies[cid] = CompanyRow(
                             id=cid,
                             name=values[1] or "",
-                            phone1=clean_text(values[2]),
-                            web1=clean_text(values[3]),
-                            phone2=clean_text(values[4]),
-                            phone3=clean_text(values[5]),
-                            web2=clean_text(values[6]),
+                            phone1=phones[0] if len(phones) > 0 else None,
+                            phone2=phones[1] if len(phones) > 1 else None,
+                            phone3=phones[2] if len(phones) > 2 else None,
+                            web1=websites[0] if len(websites) > 0 else None,
+                            web2=websites[1] if len(websites) > 1 else None,
                             country_id=int(values[7]) if values[7] else None,
                             notes=clean_text(values[9]) if len(values) > 9 else None,
+                            inline_emails=slot_emails,
+                            country_text=country_text,
                         )
                     elif table == "companyemail" and len(values) >= 3:
                         emails.append((int(values[0]), int(values[1]), clean_text(values[2])))

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-01T18:06:38.272633+00:00",
+  "generated_at": "2026-07-02T18:08:57.925241+00:00",
   "meta": {
     "organization_id": "00000000-0000-4000-8000-000000000010",
     "cleaned_dir": "C:\\Users\\hinthorozu\\Projects\\KYROX\\fair-crm\\scripts\\legacy\\cleaned",
@@ -7,14 +7,14 @@
     "limit": null
   },
   "apply_stats": {
-    "fairs_created": 0,
-    "fairs_skipped": 115,
-    "customers_created": 0,
-    "customers_skipped": 28155,
-    "participations_created": 0,
-    "participations_skipped": 29561,
-    "activities_created": 0,
-    "activities_skipped": 28155,
+    "fairs_created": 115,
+    "fairs_skipped": 0,
+    "customers_created": 28155,
+    "customers_skipped": 0,
+    "participations_created": 29561,
+    "participations_skipped": 0,
+    "activities_created": 28155,
+    "activities_skipped": 0,
     "failed_records": []
   },
   "plan_stats": {

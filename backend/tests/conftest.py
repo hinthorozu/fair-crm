@@ -178,9 +178,12 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     app.dependency_overrides[get_system_admin_authorization_adapter] = lambda: AllowAllAuthorization()
 
     import app.modules.data_integration.api.dependencies as data_integration_dependencies
+    import app.modules.imports.api.dependencies as imports_dependencies
     import app.modules.system_admin.api.dependencies as system_admin_dependencies
 
-    data_integration_dependencies._job_runner = ImportJobRunner(session_factory=lambda: db_session)
+    shared_job_runner = ImportJobRunner(session_factory=lambda: db_session)
+    data_integration_dependencies._job_runner = shared_job_runner
+    imports_dependencies._import_job_runner = shared_job_runner
     system_admin_dependencies._backup_job_runner = BackupJobRunner(session_factory=lambda: db_session)
 
     return TestClient(app)

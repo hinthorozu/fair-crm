@@ -14,12 +14,22 @@ class ImportSourceType(StrEnum):
 
 class ImportBatchStatus(StrEnum):
     UPLOADED = "uploaded"
-    MAPPED = "mapped"
+    SHEET_SELECTED = "sheet_selected"
+    HEADER_CONFIGURED = "header_configured"
+    MAPPING_COMPLETED = "mapping_completed"
+    ANALYSIS_QUEUED = "analysis_queued"
+    ANALYZING = "analyzing"
     ANALYZED = "analyzed"
-    PREVIEWED = "previewed"
-    APPLIED = "applied"
+    ANALYSIS_FAILED = "analysis_failed"
+    DECISION_REQUIRED = "decision_required"
+    APPLYING = "applying"
+    COMPLETED = "completed"
     FAILED = "failed"
     CANCELLED = "cancelled"
+    # Legacy aliases — still accepted from DB / API during transition
+    MAPPED = "mapped"
+    PREVIEWED = "previewed"
+    APPLIED = "applied"
 
 
 class ImportSuggestedAction(StrEnum):
@@ -56,6 +66,8 @@ class ImportJobStatus(StrEnum):
 
 class ImportJobType(StrEnum):
     APPLY = "apply"
+    ANALYZE = "analyze"
+    BULK_DECISION = "bulk_decision"
 
 
 class ImportDecision(StrEnum):

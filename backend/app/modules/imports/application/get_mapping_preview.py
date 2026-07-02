@@ -2,11 +2,13 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
+from app.core.config import get_settings
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.ports import AuthorizationPort
-from app.modules.imports.application.column_mapper import build_mapping_preview_columns
+from app.modules.imports.application.column_mapper import build_excel_grid_preview, build_mapping_preview_columns
 from app.modules.imports.application.commands import GetMappingPreviewQuery
 from app.modules.imports.domain.exceptions import ImportBatchNotFoundError
+from app.modules.imports.domain.import_limits import ImportLimits
 from app.modules.imports.domain.ports import ImportBatchRepository
 from app.modules.imports.domain.value_objects import ExcelHeaderMode
 
@@ -19,6 +21,7 @@ class GetMappingPreviewResult:
     header_mode: str
     header_row_index: int | None
     columns: list[dict[str, Any]]
+    grid: dict[str, Any]
 
 
 class GetMappingPreviewUseCase:
@@ -53,12 +56,21 @@ class GetMappingPreviewUseCase:
         if mode == ExcelHeaderMode.MANUAL_HEADER_ROW and header_row_index is None:
             header_row_index = 0
 
+        limits = ImportLimits.from_settings(get_settings())
         has_header_row = None if mode is None else mode != ExcelHeaderMode.NO_HEADER
         columns = build_mapping_preview_columns(
             raw_preview,
             has_header_row=has_header_row,
             header_mode=mode,
             header_row_index=header_row_index,
+            max_sample_rows=limits.mapping_sample_rows,
+        )
+        grid = build_excel_grid_preview(
+            raw_preview,
+            has_header_row=has_header_row,
+            header_mode=mode,
+            header_row_index=header_row_index,
+            max_rows=limits.grid_preview_rows,
         )
         resolved_mode = mode or ExcelHeaderMode.FIRST_ROW_HEADER
         resolved_index = header_row_index if resolved_mode != ExcelHeaderMode.NO_HEADER else None
@@ -68,4 +80,5 @@ class GetMappingPreviewUseCase:
             header_mode=resolved_mode.value,
             header_row_index=resolved_index,
             columns=columns,
+            grid=grid,
         )

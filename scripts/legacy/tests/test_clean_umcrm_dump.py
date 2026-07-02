@@ -19,6 +19,7 @@ from umcrm_cleaning import (  # noqa: E402
     clean_fair_date,
     clean_fair_relations,
     decode_html_entities,
+    parse_company_contact_slots,
     sanitize_email_raw,
 )
 
@@ -144,3 +145,18 @@ def test_company_placeholder_manual_review_not_dropped():
 
 def test_sanitize_email_strips_spaces():
     assert sanitize_email_raw(" info @ example.com ") == "info@example.com"
+
+
+def test_parse_company_contact_slots_domain_tr():
+    phones, websites, emails, country = parse_company_contact_slots(
+        "Türkiye", "5395181127", "2163155179", "sweetheaven.com.tr", None
+    )
+    assert country == "Türkiye"
+    assert phones == ["5395181127", "2163155179"]
+    assert websites == ["sweetheaven.com.tr"]
+    assert emails == []
+
+
+def test_website_www_domain_without_scheme():
+    sites, _, _ = clean_company_websites("www.umaay.com", None)
+    assert sites == ["https://www.umaay.com"]

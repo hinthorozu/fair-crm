@@ -8,6 +8,10 @@
   confirmation before overwriting the target database. Pass -DryRun to validate
   the dump without making changes.
 
+  After pg_restore, runs `alembic upgrade head` so the schema matches current
+  application code. Skipping migrations after any restore causes API 500 errors
+  (e.g. Admin Database Backups page "Failed to fetch").
+
 .PARAMETER BackupFile
   Path to a .dump file (relative to repo root or absolute).
 
@@ -86,7 +90,20 @@ if ($typedDbName -ne $conn.Database) {
 Write-DevStep "Running pg_restore"
 Invoke-FairCrmPgRestore -Context $ctx -DumpPath $resolvedBackup
 
+Write-DevStep "Applying pending schema migrations (alembic upgrade head)"
+Push-Location $ctx.RepoRoot
+try {
+    & python -m alembic upgrade head
+    if ($LASTEXITCODE -ne 0) {
+        throw "alembic upgrade head failed with exit code $LASTEXITCODE"
+    }
+} finally {
+    Pop-Location
+}
+
 Write-Host ""
 Write-Host "Restore complete." -ForegroundColor Green
 Write-Host "Database '$($conn.Database)' was restored from:"
 Write-Host "  $resolvedBackup"
+Write-Host ""
+Write-Host "Schema migrations were applied to match the current application code." -ForegroundColor Green

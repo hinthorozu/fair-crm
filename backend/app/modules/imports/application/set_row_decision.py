@@ -15,7 +15,8 @@ from app.modules.imports.domain.exceptions import (
     InvalidImportDecisionError,
 )
 from app.modules.imports.domain.ports import ImportBatchRepository, ImportRowRepository
-from app.modules.imports.domain.value_objects import ImportBatchStatus, ImportDecision, ImportRowStatus
+from app.modules.imports.domain.batch_status import is_batch_terminal
+from app.modules.imports.domain.value_objects import ImportDecision, ImportRowStatus
 from app.modules.participations.infrastructure.repositories.participation_repository import (
     SqlAlchemyParticipationRepository,
 )
@@ -57,7 +58,7 @@ class SetImportRowDecisionUseCase:
         batch = self._batch_repository.get_by_id(command.organization_id, command.batch_id)
         if batch is None:
             raise ImportBatchNotFoundError("Import batch not found")
-        if batch.status == ImportBatchStatus.APPLIED:
+        if is_batch_terminal(batch.status):
             raise ImportBatchAlreadyAppliedError("Import batch already applied")
 
         row = self._row_repository.get_by_id(
@@ -83,8 +84,6 @@ class SetImportRowDecisionUseCase:
         elif command.decision == ImportDecision.CREATE_NEW:
             row.match_customer_id = None
             row.status = ImportRowStatus.READY_TO_CREATE
-        elif command.decision == ImportDecision.SKIP:
-            row.status = ImportRowStatus.SKIPPED
         elif command.decision == ImportDecision.PARTICIPATION_ONLY:
             target_id = command.match_customer_id or row.match_customer_id
             if target_id is None:
@@ -95,6 +94,7 @@ class SetImportRowDecisionUseCase:
             row.status = ImportRowStatus.POSSIBLE_DUPLICATE
 
         saved = self._row_repository.update(row)
+        merge_preview = self._preview_builder.build_for_row(command.organization_id, batch, saved)
 
         match_name = None
         if saved.match_customer_id:
@@ -103,8 +103,6 @@ class SetImportRowDecisionUseCase:
             )
             if customer:
                 match_name = customer.display_name
-
-        merge_preview = self._preview_builder.build_for_row(command.organization_id, batch, saved)
 
         self._audit.record_event(
             organization_id=command.organization_id,

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
 
+from app.core.config import get_settings
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.client import HttpAuditAdapter
 from app.integrations.kyrox_core.ports import AuthorizationPort
@@ -10,7 +11,9 @@ from app.modules.data_integration.domain.source_adapter import SourceConnection
 from app.modules.imports.application.column_mapper import build_mapping_preview_columns, suggest_column_mapping
 from app.modules.imports.application.commands import SelectImportSheetCommand
 from app.modules.imports.domain.exceptions import ImportBatchNotFoundError, InvalidImportFileError
+from app.modules.imports.domain.import_limits import ImportLimits
 from app.modules.imports.domain.ports import ImportBatchRepository
+from app.modules.imports.domain.batch_status import is_batch_terminal
 from app.modules.imports.domain.value_objects import ExcelHeaderMode, ImportBatchStatus
 
 PERMISSION_UPDATE = "fair_crm.imports.update"
@@ -51,8 +54,8 @@ class SelectImportSheetUseCase:
         batch = self._batch_repository.get_by_id(command.organization_id, command.batch_id)
         if batch is None:
             raise ImportBatchNotFoundError("Import batch not found")
-        if batch.status == ImportBatchStatus.APPLIED:
-            raise InvalidImportFileError("Cannot change sheet on applied batch")
+        if is_batch_terminal(batch.status):
+            raise InvalidImportFileError("Cannot change sheet on completed batch")
 
         file_content = batch.stored_file_content or command.file_content
         if not file_content:
@@ -71,7 +74,6 @@ class SelectImportSheetUseCase:
         batch.has_header_row = None
         batch.header_mode = None
         batch.header_row_index = None
-        batch.status = ImportBatchStatus.UPLOADED
         updated = self._batch_repository.update(batch)
 
         self._audit.record_event(
@@ -84,10 +86,12 @@ class SelectImportSheetUseCase:
             metadata={"user_id": str(command.user_id)},
         )
 
+        limits = ImportLimits.from_settings(get_settings())
         mapping_columns = build_mapping_preview_columns(
             raw_preview,
             header_mode=ExcelHeaderMode(suggested["header_mode"]),
             header_row_index=suggested.get("header_row_index"),
+            max_sample_rows=limits.mapping_sample_rows,
         )
         return SelectImportSheetResult(
             batch_id=updated.id,
@@ -97,5 +101,5 @@ class SelectImportSheetUseCase:
             available_sheets=raw_preview.get("available_sheets") or [],
             detected_headers=raw_preview["detected_headers"],
             mapping_columns=mapping_columns,
-            sample_rows=raw_preview["rows"][:10],
+            sample_rows=raw_preview["rows"][: limits.mapping_sample_rows],
         )

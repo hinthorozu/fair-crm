@@ -2,6 +2,7 @@ import React from "react";
 import type { Fair, CreateFairPayload, FairStatus } from "../types/fair";
 import { fairLabels, fairStatusLabels } from "../labels/fairLabels";
 import { labels } from "../labels";
+import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 
 export type FairFormValues = CreateFairPayload;
 
@@ -48,6 +49,10 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
   const [values, setValues] = React.useState<FairFormValues>(initial ?? emptyForm());
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const baseline = React.useMemo(() => initial ?? emptyForm(), [initial]);
+  const handleCancel = useModalFormCancel(onCancel);
+
+  useReportFormDirty(values, baseline);
 
   React.useEffect(() => {
     setValues(initial ?? emptyForm());
@@ -146,7 +151,7 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
       </div>
 
       <div className="form-actions">
-        <button type="button" className="btn secondary" onClick={onCancel} disabled={saving}>
+        <button type="button" className="btn secondary" onClick={handleCancel} disabled={saving}>
           {labels.cancel}
         </button>
         <button type="submit" className="btn primary" disabled={saving}>

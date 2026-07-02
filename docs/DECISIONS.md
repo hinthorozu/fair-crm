@@ -539,3 +539,145 @@ Adopt the **Universal Import Mapping Preview Standard**:
 - `column_mapper.build_mapping_preview_columns()` — shared builder for all source adapters
 - Import Wizard mapping step UI updated in Sprint 09.3
 
+---
+
+## ADR-025: Excel Column Mapping Grid + Background Analyze Queue
+
+**Status:** Accepted  
+**Date:** 2026-07-02
+
+**Context:**
+
+The separate CRM-field→column mapping table did not match how users read Excel. Synchronous analyze blocked HTTP requests on large files. Multiple concurrent analyzes per organization risked CRM load spikes.
+
+**Decision:**
+
+1. **Grid mapping UI** — Excel rows in a table; each column header has a mapping dropdown (Kullanma / Firma Adı / …). `company_name` required; duplicate field assignment forbidden.
+2. **Wizard setup flow** — upload → sheet → header → mapping grid → Import Jobs list (analyze removed from inline wizard).
+3. **Lifecycle statuses** — `mapping_completed`, `analysis_queued`, `analyzing`, `decision_required`, `analysis_failed`, `completed`, etc.
+4. **Background analyze** — `POST /data-integration/imports/{id}/analyze-job` returns 202; work runs in FastAPI BackgroundTasks.
+5. **Organization lock** — at most one active analyze job (`queued`/`running`) per organization; HTTP 409 on conflict.
+6. **Matching scope** — company_name only (no phone/email/website scoring in this sprint).
+
+**Consequences:**
+
+- Sync `POST .../analyze` deprecated for production use
+- [docs/IMPORT_MAPPING_GRID_COMPLETION.md](IMPORT_MAPPING_GRID_COMPLETION.md)
+- Migration `0015_import_batch_lifecycle`
+
+---
+
+## ADR-026: Company Name Matching — Turkish Normalize + Token Scoring
+
+**Status:** Accepted  
+**Date:** 2026-07-02
+
+**Context:**
+
+Fair catalogs often list only company names with inconsistent legal suffixes, abbreviations, and Turkish character variants. Phone/email/website are frequently absent. Matching must be reliable on `company_name` alone.
+
+**Decision:**
+
+1. **Turkish normalization** — İ/I/ı/i and ş/ğ/ü/ö/ç mapped to ASCII; punctuation and dotted abbreviations normalized.
+2. **Legal suffix handling** — phrase stripping on full key; core token comparison excludes suffix tokens (not sector words like GIDA).
+3. **Token + string scoring** — Jaccard/overlap/SequenceMatcher with confidence bands: 95+ exact, 85–94 fuzzy, 70–84 weak, <70 none.
+4. **False-positive guards** — first-token and distinctive-tail mismatch rules.
+5. **Explanations** — stored in `normalized_data_json._match_explanation` for decision UI.
+
+**Consequences:**
+
+- `company_name_matcher.py`, enhanced `company_name_normalizer.py`
+- [docs/COMPANY_NAME_MATCHING_COMPLETION.md](COMPANY_NAME_MATCHING_COMPLETION.md)
+
+---
+
+## ADR-027: Import Job Resume Flow + Bulk Decision Preview/Apply Jobs
+
+**Status:** Accepted  
+**Date:** 2026-07-02
+
+**Context:**
+
+Upload and wizard were coupled: users could not safely leave mid-setup. Bulk decision buttons applied changes immediately without confirmation counts. Large batches needed non-blocking bulk operations with concurrency control.
+
+**Decision:**
+
+1. **Upload → Job** — after upload, redirect to Import Jobs list; batch stays `uploaded`; file immutable on same batch.
+2. **Devam Et** — resume from list by status: setup steps (`uploaded`→sheet, `sheet_selected`→header, `header_configured`→mapping) or `decision_required`→decisions.
+3. **Bulk preview** — `POST .../bulk-actions/preview` returns `affected_rows` + `summary` without writes.
+4. **Bulk apply job** — `POST .../bulk-actions/apply` returns 202; `ImportJobType.BULK_DECISION` background runner.
+5. **Locks** — one active `bulk_decision` or `apply` job per batch (HTTP 409).
+6. **Idempotency** — rows with existing `decision` skipped on bulk apply.
+
+**Consequences:**
+
+- [docs/IMPORT_RESUME_BULK_COMPLETION.md](IMPORT_RESUME_BULK_COMPLETION.md)
+- Batch API extended with resume metadata (`available_sheets`, `column_mapping_json`, …)
+- Frontend `importResume.ts` + confirm dialog before bulk apply
+
+---
+
+## ADR-028: Universal Modal Standard
+
+**Status:** Accepted  
+**Date:** 2026-07-02
+
+**Context:**
+
+Users lost form data when modals closed accidentally via backdrop click or Escape. Long CRM forms (customer, fair, activity, import, backup) made this costly.
+
+**Decision:**
+
+1. **Shared `Modal` and `ConfirmDialog`** are the only overlay primitives for product dialogs.
+2. **No implicit close** — backdrop click and Escape do not dismiss modals or confirm dialogs.
+3. **Explicit close only** — X, İptal/Vazgeç, Kaydet/Tamam (after success), or system-initiated close after completed operations.
+4. **Dirty guard** — forms inside `Modal` report dirty state via `useReportFormDirty`; attempting to close with unsaved changes shows:
+   - Message: *Kaydedilmemiş değişiklikler var. Çıkmak istediğinize emin misiniz?*
+   - **Forma Dön** (keep modal open) / **Çık** (discard)
+5. **Clean forms** close immediately on X or İptal without confirmation.
+
+**Implementation:**
+
+- `frontend/src/components/ui/Modal.tsx` — dirty context + nested discard `ConfirmDialog`
+- `frontend/src/components/ui/ConfirmDialog.tsx` — button-only dismiss
+- `frontend/src/hooks/useModalForm.ts` — `useReportFormDirty`, `useModalFormCancel`
+- All entity forms (`CustomerForm`, `FairForm`, `ActivityForm`, `ContactForm`, `ParticipationForm`) and admin backup create modal use the hooks.
+
+**Consequences:**
+
+- New screens must use shared `Modal`; no custom backdrop-close overlays.
+- `.cursor/rules/shared-modal-focus.mdc` updated to reflect ADR-028.
+
+---
+
+## ADR-029: Universal Decision Queue Standard — Bulk Decision Assignment
+
+**Status:** Accepted  
+**Date:** 2026-07-03
+
+**Context:**
+
+Decision Queue screens require row-by-row dropdown changes for large batches. Users need to select rows and assign a decision in bulk without writing CRM data. Final execution (customer create/update, participation, skip) must remain a separate explicit apply step.
+
+**Decision:**
+
+1. **Row selection** — per-row checkbox + master checkbox (current page only); selection persists across pagination via ID set.
+2. **Bulk Decision panel** — operation select (`create_new`, `update_existing`, `skip`) + **SEÇİLİ KAYITLARA UYGULA**; updates `decision` only, no CRM writes.
+3. **Manual override** — per-row dropdown remains editable after bulk assignment.
+4. **Final apply** — **TÜM LİSTEYİ UYGULA** executes CRM changes for the current filter/search pending scope via `POST .../decisions/apply`.
+5. **API** — extend `PATCH .../rows/bulk-decision` with `{ row_ids, decision }` (legacy `action` presets retained for scripts).
+6. **Response** — `updated_count`, `skipped_count`, `errors[]` for rows that cannot receive the requested decision (e.g. `update_existing` without match).
+7. **Universal pattern** — Selection → Bulk Decision → Manual Override → Final Apply applies to Import and future Decision Queue screens (duplicate resolution, lead decision, cleanup, approval, archive).
+
+**Consequences:**
+
+- Import Decision UI: bulk panel above list; final apply button always uses full scoped apply.
+- Reuses `SetImportRowDecisionUseCase` per selected row for consistent validation and row status updates.
+
+**Apply result UX (extension):**
+
+1. **Success summary** — `processed_count` + `not_processed_count` only; no row list for undecided rows.
+2. **`not_processed_count`** — rows without decision (or manual review); not errors, not warnings.
+3. **`errors[]`** — real execution failures only (DB, validation, constraint, unexpected exception).
+4. Frontend shows ✅ processed, ℹ not processed, ⚠ failed with row details only for execution errors.
+

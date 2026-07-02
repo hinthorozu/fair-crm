@@ -126,7 +126,28 @@ class ImportBatch:
             notes=None,
         )
 
-    def mark_mapped(
+    def mark_sheet_selected(self, *, sheet_name: str, raw_preview_json: dict[str, Any], now: datetime) -> None:
+        self.selected_sheet_name = sheet_name
+        self.raw_preview_json = raw_preview_json
+        self.total_rows = raw_preview_json.get("total_rows", 0)
+        self.status = ImportBatchStatus.SHEET_SELECTED
+        self.updated_at = now
+
+    def mark_header_configured(
+        self,
+        *,
+        has_header_row: bool,
+        header_mode: ExcelHeaderMode,
+        header_row_index: int | None,
+        now: datetime,
+    ) -> None:
+        self.has_header_row = has_header_row
+        self.header_mode = header_mode
+        self.header_row_index = header_row_index
+        self.status = ImportBatchStatus.HEADER_CONFIGURED
+        self.updated_at = now
+
+    def mark_mapping_completed(
         self,
         *,
         mapping: dict[str, Any],
@@ -137,19 +158,63 @@ class ImportBatch:
     ) -> None:
         self.column_mapping_json = mapping
         self.has_header_row = has_header_row
-        self.header_mode = header_mode
-        self.header_row_index = header_row_index
-        self.status = ImportBatchStatus.MAPPED
+        if header_mode is not None:
+            self.header_mode = header_mode
+        if header_row_index is not None:
+            self.header_row_index = header_row_index
+        self.status = ImportBatchStatus.MAPPING_COMPLETED
         self.updated_at = now
 
+    def mark_mapped(
+        self,
+        *,
+        mapping: dict[str, Any],
+        has_header_row: bool,
+        header_mode: ExcelHeaderMode | None = None,
+        header_row_index: int | None = None,
+        now: datetime,
+    ) -> None:
+        """Legacy alias — sets mapping_completed."""
+        self.mark_mapping_completed(
+            mapping=mapping,
+            has_header_row=has_header_row,
+            header_mode=header_mode,
+            header_row_index=header_row_index,
+            now=now,
+        )
+
     def set_sheet(self, *, sheet_name: str, raw_preview_json: dict[str, Any], now: datetime) -> None:
-        self.selected_sheet_name = sheet_name
-        self.raw_preview_json = raw_preview_json
-        self.total_rows = raw_preview_json.get("total_rows", 0)
+        self.mark_sheet_selected(sheet_name=sheet_name, raw_preview_json=raw_preview_json, now=now)
+
+    def mark_analysis_queued(self, *, now: datetime) -> None:
+        self.status = ImportBatchStatus.ANALYSIS_QUEUED
+        self.updated_at = now
+
+    def mark_analyzing(self, *, now: datetime) -> None:
+        self.status = ImportBatchStatus.ANALYZING
         self.updated_at = now
 
     def mark_analyzed(self, *, now: datetime) -> None:
         self.status = ImportBatchStatus.ANALYZED
+        self.updated_at = now
+
+    def mark_decision_required(self, *, now: datetime) -> None:
+        self.status = ImportBatchStatus.DECISION_REQUIRED
+        self.updated_at = now
+
+    def mark_analysis_failed(self, *, now: datetime, notes: str | None = None) -> None:
+        self.status = ImportBatchStatus.ANALYSIS_FAILED
+        self.updated_at = now
+        if notes:
+            self.notes = notes
+
+    def mark_applying(self, *, now: datetime) -> None:
+        self.status = ImportBatchStatus.APPLYING
+        self.updated_at = now
+
+    def mark_completed(self, *, now: datetime) -> None:
+        self.status = ImportBatchStatus.COMPLETED
+        self.completed_at = now
         self.updated_at = now
 
     def mark_previewed(self, *, now: datetime) -> None:
@@ -157,9 +222,7 @@ class ImportBatch:
         self.updated_at = now
 
     def mark_applied(self, *, now: datetime) -> None:
-        self.status = ImportBatchStatus.APPLIED
-        self.completed_at = now
-        self.updated_at = now
+        self.mark_completed(now=now)
 
     def mark_failed(self, *, now: datetime, notes: str | None = None) -> None:
         self.status = ImportBatchStatus.FAILED
@@ -196,6 +259,23 @@ class ImportBatch:
         self.skipped_rows = skipped_rows
         self.created_participations = created_participations
         self.updated_participations = updated_participations
+        self.updated_at = now
+
+    def increment_apply_counts(
+        self,
+        *,
+        created_rows: int = 0,
+        updated_rows: int = 0,
+        skipped_rows: int = 0,
+        created_participations: int = 0,
+        updated_participations: int = 0,
+        now: datetime,
+    ) -> None:
+        self.created_rows += created_rows
+        self.updated_rows += updated_rows
+        self.skipped_rows += skipped_rows
+        self.created_participations += created_participations
+        self.updated_participations += updated_participations
         self.updated_at = now
 
 
@@ -242,12 +322,6 @@ class ImportRow:
         suggested_action: ImportSuggestedAction | None = None,
         now: datetime,
     ) -> "ImportRow":
-        default_decision = None
-        if status == ImportRowStatus.READY_TO_CREATE:
-            default_decision = ImportDecision.CREATE_NEW
-        elif status in (ImportRowStatus.POSSIBLE_DUPLICATE, ImportRowStatus.READY_TO_UPDATE):
-            default_decision = ImportDecision.UPDATE_EXISTING
-
         return cls(
             id=uuid4(),
             batch_id=batch_id,
@@ -263,7 +337,7 @@ class ImportRow:
             participation_exists=participation_exists,
             match_participation_id=match_participation_id,
             suggested_action=suggested_action,
-            decision=default_decision,
+            decision=None,
             created_customer_id=None,
             updated_customer_id=None,
             created_participation_id=None,
@@ -292,6 +366,25 @@ class ImportRow:
 
     def mark_participation_updated(self, participation_id: UUID, *, now: datetime) -> None:
         self.updated_participation_id = participation_id
+        self.updated_at = now
+
+    def mark_applied_participation_link(
+        self,
+        customer_id: UUID,
+        participation_id: UUID,
+        *,
+        created: bool,
+        now: datetime,
+    ) -> None:
+        self.status = ImportRowStatus.APPLIED
+        self.decision = ImportDecision.PARTICIPATION_ONLY
+        self.updated_customer_id = customer_id
+        self.participation_exists = True
+        self.match_participation_id = participation_id
+        if created:
+            self.created_participation_id = participation_id
+        else:
+            self.updated_participation_id = participation_id
         self.updated_at = now
 
     def mark_skipped(self, *, now: datetime) -> None:

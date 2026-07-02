@@ -1,6 +1,6 @@
 import { buildApiHeaders, config } from "../config";
 import { normalizeStandardListResponse, buildListQueryParams } from "./listTable";
-import { apiRequest, ApiError, fetchWithTimeout } from "./client";
+import { apiRequest, ApiError, ANALYZE_IMPORT_TIMEOUT_MS, fetchWithTimeout } from "./client";
 import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
 import type { StandardListResponse } from "../types/listTable";
 import type {
@@ -9,6 +9,7 @@ import type {
   ColumnMappingPayload,
   ExcelHeaderMode,
   ImportBatch,
+  ImportDecision,
   ImportRow,
   MappingPreviewResponse,
   SetImportRowDecisionPayload,
@@ -152,22 +153,136 @@ export async function setColumnMapping(
   });
 }
 
+export async function configureImportHeader(
+  batchId: string,
+  payload: {
+    has_header_row: boolean;
+    header_mode?: ExcelHeaderMode;
+    header_row_index?: number | null;
+  },
+): Promise<{
+  batch_id: string;
+  status: string;
+  header_mode: ExcelHeaderMode;
+  header_row_index: number | null;
+  has_header_row: boolean;
+}> {
+  return apiRequest(`${BASE}/${batchId}/header-config`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function startImportAnalyzeJob(batchId: string): Promise<{
+  job_id: string;
+  batch_id: string;
+  status: string;
+  progress_total: number;
+}> {
+  return apiRequest(`/api/v1/data-integration/imports/${batchId}/analyze-job`, { method: "POST" });
+}
+
 export async function analyzeImportBatch(batchId: string): Promise<{ batch: ImportBatch; total_rows: number }> {
-  return apiRequest(`${BASE}/${batchId}/analyze`, { method: "POST" });
+  const job = await startImportAnalyzeJob(batchId);
+  const deadline = Date.now() + 120_000;
+  while (Date.now() < deadline) {
+    const status = await getImportJob(job.job_id);
+    if (status.status === "completed" && status.result_json) {
+      const batch = await getImportBatch(batchId);
+      return {
+        batch,
+        total_rows: Number(status.result_json.total_rows ?? batch.total_rows ?? 0),
+      };
+    }
+    if (status.status === "failed") {
+      throw new ApiError(status.error_message ?? "Analiz başarısız", 500, status);
+    }
+    await new Promise((r) => window.setTimeout(r, 500));
+  }
+  throw new ApiError("Analiz zaman aşımına uğradı", 504);
+}
+
+export async function bulkAssignRowDecisions(
+  batchId: string,
+  rowIds: string[],
+  decision: ImportDecision,
+): Promise<{
+  updated_count: number;
+  skipped_count: number;
+  errors: Array<{ row_id: string; row_number: number; message: string }>;
+}> {
+  return apiRequest(`${BASE}/${batchId}/rows/bulk-decision`, {
+    method: "PATCH",
+    body: JSON.stringify({ row_ids: rowIds, decision }),
+  });
 }
 
 export async function bulkRowDecision(
   batchId: string,
   action: BulkDecisionAction,
-): Promise<{ updated_count: number }> {
+): Promise<{ updated_count: number; skipped_count: number; errors: unknown[] }> {
   return apiRequest(`${BASE}/${batchId}/rows/bulk-decision`, {
     method: "PATCH",
     body: JSON.stringify({ action }),
   });
 }
 
+export interface BulkDecisionPreview {
+  batch_id: string;
+  action_type: BulkDecisionAction;
+  affected_rows: number;
+  already_decided_rows: number;
+  summary: string;
+  to_process_rows?: number;
+  skipped_already_linked_rows?: number;
+  unprocessable_rows?: number;
+}
+
+export async function previewBulkDecision(
+  batchId: string,
+  actionType: BulkDecisionAction,
+): Promise<BulkDecisionPreview> {
+  return apiRequest<BulkDecisionPreview>(`${BASE}/${batchId}/bulk-actions/preview`, {
+    method: "POST",
+    body: JSON.stringify({ action_type: actionType }),
+  });
+}
+
+export async function applyImportDecisions(
+  batchId: string,
+  payload: {
+    row_ids?: string[];
+    filter?: string;
+    search?: string;
+  },
+): Promise<{
+  processed_count: number;
+  not_processed_count: number;
+  failed_count: number;
+  errors: Array<{ row_id: string; row_number: number; message: string }>;
+}> {
+  return apiRequest(`${BASE}/${batchId}/decisions/apply`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function applyBulkDecisionJob(
+  batchId: string,
+  actionType: BulkDecisionAction,
+): Promise<{ job_id: string; batch_id: string; status: string; progress_total: number }> {
+  return apiRequest(`${BASE}/${batchId}/bulk-actions/apply`, {
+    method: "POST",
+    body: JSON.stringify({ action_type: actionType }),
+  });
+}
+
 export async function getImportBatch(batchId: string): Promise<ImportBatch> {
   return apiRequest<ImportBatch>(`${BASE}/${batchId}`);
+}
+
+export async function deleteImportBatch(batchId: string): Promise<{ batch_id: string; deleted: boolean }> {
+  return apiRequest(`${BASE}/${batchId}`, { method: "DELETE" });
 }
 
 export async function listImportRows(

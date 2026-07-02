@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
+from umcrm_cleaning import sanitize_user_notes
+
 UMCRM_MIGRATION_NAMESPACE = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
 
 COUNTRY_BY_ID = {1: "Türkiye", 2: "Other"}
@@ -76,8 +78,8 @@ def prepare_customer_fields(
     website: str | None,
     description: str | None,
 ) -> tuple[str, str | None, str | None, str | None, str | None]:
-    email_fit, email_overflow = fit_semicolon_emails(email, 255)
-    description = build_description_parts(description, email_overflow)
+    email_fit, _email_overflow = fit_semicolon_emails(email, 255)
+    description = build_description_parts(description)
     return (
         truncate_text(display_name, 255) or "Legacy Company",
         email_fit,
@@ -87,13 +89,10 @@ def prepare_customer_fields(
     )
 
 
-def join_phones(phones: list[str]) -> tuple[str | None, str | None]:
+def join_phones(phones: list[str]) -> tuple[str | None, list[str]]:
     if not phones:
-        return None, None
-    primary = phones[0]
-    extras = phones[1:]
-    extra_note = f"Additional phones: {', '.join(extras)}" if extras else None
-    return primary, extra_note
+        return None, []
+    return phones[0], phones[1:]
 
 
 def build_description_parts(*parts: str | None) -> str | None:
@@ -129,6 +128,8 @@ class CustomerImportSpec:
     country: str | None
     description: str | None
     merge_group_id: str | None = None
+    additional_phones: list[str] = field(default_factory=list)
+    additional_emails: list[str] = field(default_factory=list)
     issues: list[str] = field(default_factory=list)
 
 
@@ -233,6 +234,8 @@ def build_customer_specs(
         website = None
         country = None
         description = None
+        additional_phones: list[str] = []
+        additional_emails: list[str] = []
         issues: list[str] = []
 
         if action == "merge":
@@ -251,28 +254,32 @@ def build_customer_specs(
                     field_merge.get("emails_merged") or []
                 )
                 phones = field_merge.get("phones_merged") or []
-                phone, phone_note = join_phones(phones)
+                phone, extra_phones = join_phones(phones)
+                additional_phones = list(extra_phones)
                 websites = field_merge.get("website_canonical")
                 if not websites:
                     aliases = field_merge.get("website_aliases") or []
                     websites = aliases[0] if aliases else None
                 website = websites
                 country = COUNTRY_BY_ID.get(field_merge.get("country_id"), "Türkiye")
-                aliases = field_merge.get("aliases") or []
                 notes_merged = field_merge.get("notes_merged") or []
-                phone_issues = field_merge.get("phone_issues") or []
-                description = build_description_parts(
-                    build_description_parts(*notes_merged),
-                    f"Name aliases: {', '.join(aliases)}" if aliases else None,
-                    phone_note,
-                    f"Phone review flags: {', '.join(phone_issues)}" if phone_issues else None,
-                    f"Legacy merge group {merge_group_id}; legacy company IDs: {', '.join(map(str, legacy_ids))}",
+                description = sanitize_user_notes(
+                    build_description_parts(*notes_merged)
                 )
+                email_primary, email_overflow = fit_semicolon_emails(email, 255)
+                email = email_primary
+                if email_overflow:
+                    additional_emails = [
+                        part.strip()
+                        for part in email_overflow.removeprefix("Additional emails: ").split(";")
+                        if part.strip()
+                    ]
         else:
             company = company_by_id.get(legacy_id, {})
             display_name = company.get("name_clean") or company.get("name_original") or f"Legacy {legacy_id}"
             email = join_emails(emails_by_id.get(legacy_id, []))
-            phone, phone_note = join_phones(company.get("phone_values_clean") or [])
+            phone, extra_phones = join_phones(company.get("phone_values_clean") or [])
+            additional_phones = list(company.get("additional_phones") or extra_phones)
             websites = company.get("website_values_clean") or []
             website = websites[0] if websites else None
             country = COUNTRY_BY_ID.get(company.get("country_id"), "Türkiye")
@@ -281,12 +288,15 @@ def build_customer_specs(
                 review_status = "manual_review"
             elif action == "risk":
                 review_status = "risk"
-            description = build_description_parts(
-                company.get("notes_clean"),
-                phone_note,
-                f"Migration review status: {review_status}" if review_status else None,
-                f"Legacy company ID: {legacy_id}",
-            )
+            description = sanitize_user_notes(company.get("notes_clean"))
+            email_primary, email_overflow = fit_semicolon_emails(email, 255)
+            email = email_primary
+            if email_overflow:
+                additional_emails = [
+                    part.strip()
+                    for part in email_overflow.removeprefix("Additional emails: ").split(";")
+                    if part.strip()
+                ]
 
         if not display_name.strip():
             display_name = f"Legacy Company {key}"
@@ -308,6 +318,8 @@ def build_customer_specs(
                 country=country,
                 description=description,
                 merge_group_id=merge_group_id,
+                additional_phones=additional_phones,
+                additional_emails=additional_emails,
                 issues=issues,
             )
         )
@@ -380,7 +392,7 @@ def build_participation_specs(
                 resolved_legacy_company_id=resolved_company,
                 kyrox_fair_id=fair_uuid,
                 kyrox_customer_id=customer_uuid,
-                notes=f"Legacy relation id {rel.get('legacy_relation_id')}; source company {legacy_company_id}",
+                notes=None,
             )
         )
     return specs, skipped_duplicates
@@ -389,13 +401,6 @@ def build_participation_specs(
 def build_activity_specs(org_id: str, customers: list[CustomerImportSpec]) -> list[ActivityImportSpec]:
     activities: list[ActivityImportSpec] = []
     for customer in customers:
-        review = customer.migration_review_status or "none"
-        description = build_description_parts(
-            customer.description,
-            f"Legacy company IDs: {', '.join(map(str, customer.legacy_company_ids))}",
-            f"Merge action: {customer.action}",
-            f"Migration review status: {review}",
-        )
         activities.append(
             ActivityImportSpec(
                 kyrox_activity_id=deterministic_uuid(
@@ -403,7 +408,7 @@ def build_activity_specs(org_id: str, customers: list[CustomerImportSpec]) -> li
                 ),
                 kyrox_customer_id=customer.kyrox_customer_id,
                 subject="Legacy UMCRM migration",
-                description=description or "Imported from legacy UMCRM canonical JSON.",
+                description="Imported from legacy UMCRM.",
             )
         )
     return activities
