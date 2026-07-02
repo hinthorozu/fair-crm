@@ -56,16 +56,40 @@ class ImportRowModel(Base):
     normalized_data_json: Mapped[dict[str, Any]] = mapped_column(JsonType)
     status: Mapped[str] = mapped_column(String(32))
     validation_errors_json: Mapped[Optional[list[str]]] = mapped_column(JsonType, nullable=True)
-    match_customer_id: Mapped[Optional[UUID]] = mapped_column(nullable=True)
+    match_customer_id: Mapped[Optional[UUID]] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("crm_customers.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     match_confidence: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     match_reason: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     participation_exists: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
-    match_participation_id: Mapped[Optional[UUID]] = mapped_column(nullable=True)
+    match_participation_id: Mapped[Optional[UUID]] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("crm_customer_fair_participations.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     suggested_action: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     decision: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
-    created_customer_id: Mapped[Optional[UUID]] = mapped_column(nullable=True)
-    updated_customer_id: Mapped[Optional[UUID]] = mapped_column(nullable=True)
-    created_participation_id: Mapped[Optional[UUID]] = mapped_column(nullable=True)
-    updated_participation_id: Mapped[Optional[UUID]] = mapped_column(nullable=True)
+    created_customer_id: Mapped[Optional[UUID]] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("crm_customers.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    updated_customer_id: Mapped[Optional[UUID]] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("crm_customers.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    created_participation_id: Mapped[Optional[UUID]] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("crm_customer_fair_participations.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    updated_participation_id: Mapped[Optional[UUID]] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("crm_customer_fair_participations.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column()
     updated_at: Mapped[datetime] = mapped_column()

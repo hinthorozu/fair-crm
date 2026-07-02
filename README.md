@@ -166,7 +166,9 @@ From the repository root:
 docker compose up -d
 ```
 
-This starts PostgreSQL on `localhost:5432` with user/password `postgres`/`postgres`.
+This starts PostgreSQL on `localhost:5432` with user/password `postgres`/`postgres` (SCRAM-SHA-256, PostgreSQL 16 default). Use **Navicat 16+** or modern pgAdmin.
+
+If an older client fails with `authentication method 10 not supported`, run `scripts/dev/configure-postgres-md5-auth.ps1` once (dev only). To revert after upgrading the client: `scripts/dev/configure-postgres-scram-auth.ps1`.
 
 ### Seed demo customers (dev bypass UI)
 

@@ -14,7 +14,7 @@ class ContactModel(Base):
     organization_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
     customer_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True),
-        ForeignKey("crm_customers.id", ondelete="RESTRICT"),
+        ForeignKey("crm_customers.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )

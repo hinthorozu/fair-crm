@@ -350,3 +350,30 @@ Partial column sorting and manual `renderSortableHeader` per screen created inco
 - Activities list migrated from timeline to sortable table.
 - Constitution documents the rule under **Universal Server-Side DataTable Standard — Sorting Rule**.
 - Exceptions require a new ADR in this file.
+
+---
+
+## ADR-020: Customer hard-delete cascades related CRM rows
+
+**Status:** Accepted  
+**Date:** 2026-07-01
+
+**Context:**
+
+Operators may hard-delete a customer row directly in PostgreSQL (e.g. Navicat). Previously, foreign keys on `crm_contacts`, `crm_activities`, and `crm_customer_fair_participations` used `ON DELETE RESTRICT`, blocking deletion or leaving orphaned data.
+
+**Decision:**
+
+- `customer_id` foreign keys on contacts, activities, and participations → `ON DELETE CASCADE`.
+- Optional `contact_id` / `primary_contact_id` references → `ON DELETE SET NULL` (contact-only deletes do not block; customer delete removes contacts and their dependents via cascade).
+- Import row audit links (`match_*`, `created_*`, `updated_*` for customers and participations) → `ON DELETE SET NULL` (migration `0013_import_row_customer_fks`); import batches and fairs are never deleted with a customer.
+- `fair_id` on participations remains `RESTRICT` (fairs are not deleted with a customer).
+- Application API continues to **archive** customers (`deleted_at`); CASCADE applies to **hard SQL deletes** only.
+
+**Consequences:**
+
+- Alembic migration `0012_customer_cascade_delete` alters core CRM FK constraints.
+- Alembic migration `0013_import_row_customer_fks` clears orphan import links and adds SET NULL FKs.
+- SQLAlchemy models mirror the same `ondelete` values for future schema generation.
+- Integration tests verify hard delete removes child rows, nulls import links, and preserves fairs/batches; archive leaves children intact.
+

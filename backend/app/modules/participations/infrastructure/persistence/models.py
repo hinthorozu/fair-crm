@@ -25,7 +25,7 @@ class CustomerFairParticipationModel(Base):
     organization_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
     customer_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True),
-        ForeignKey("crm_customers.id", ondelete="RESTRICT"),
+        ForeignKey("crm_customers.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -41,7 +41,7 @@ class CustomerFairParticipationModel(Base):
     notes: Mapped[str | None] = mapped_column(Text)
     primary_contact_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True),
-        ForeignKey("crm_contacts.id", ondelete="RESTRICT"),
+        ForeignKey("crm_contacts.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
