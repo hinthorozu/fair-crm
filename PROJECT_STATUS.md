@@ -5,7 +5,7 @@
 | Field | Value |
 |-------|-------|
 | **Current Version** | v0.9.4 (Backup Format Options) |
-| **Last updated** | 2026-07-02 (Sprint 09.2.6 — Tier-Based Product Delivery Strategy) |
+| **Last updated** | 2026-07-02 (Dev Auto Start Standard) |
 | **Constitution** | [PROJECT_CONSTITUTION.md](PROJECT_CONSTITUTION.md) |
 | **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
 | **Product Vision** | [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) |
@@ -22,7 +22,23 @@
 | Migration `0011_system_backups` | **APPLIED** (PostgreSQL) |
 | Migration `0014_backup_format_options` | **READY** (PostgreSQL) |
 | Runtime verification (Sprint 09.2.2) | **PASS** — migration, reset-dev, Swagger, live API, live UI |
+| Dev auto-start (`dev-start.ps1`) | **PASS** — idempotent; Windows reboot verified manually |
 | Legacy UMCRM dev migration | **APPLIED** (115 fairs, 28,155 customers, 29,561 participations) |
+
+---
+
+## Development Runtime
+
+| Script | When to use |
+|--------|-------------|
+| `.\scripts\dev\dev-start.ps1` | After Windows or Docker Desktop restart — one command brings up Postgres + API + UI |
+| `.\scripts\dev\dev-stop.ps1` | End of day — stops API/UI; add `-StopInfra` to stop Postgres container |
+| `.\scripts\dev\reset-dev.ps1` | Stale port / hung uvicorn — force kill and restart |
+| `.\scripts\dev\verify-dev-auto-start.ps1` | Automated validation (idempotency, health, port collision) |
+
+Docker `postgres` service: `restart: unless-stopped`. Redis / worker / pgAdmin / MinIO are **not** in compose yet — `dev-start.ps1` skips optional waits when services are undefined.
+
+Details: [docs/DEV_RUNTIME.md](docs/DEV_RUNTIME.md) · [docs/DEV_AUTO_START_COMPLETION.md](docs/DEV_AUTO_START_COMPLETION.md)
 
 ---
 

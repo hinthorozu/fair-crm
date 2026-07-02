@@ -641,6 +641,10 @@ Run from the **repository root** (`fair-crm/`):
 
 | Script | Purpose |
 |--------|---------|
+| `.\scripts\dev\dev-start.ps1` | **Idempotent dev auto-start** — Docker infra + backend + frontend (after Windows/Docker restart) |
+| `.\scripts\dev\dev-stop.ps1` | Stop backend/frontend/worker; optional `-StopInfra` stops Docker containers |
+| `.\scripts\dev\reset-dev.ps1` | Force kill stale listeners and restart backend + frontend |
+| `.\scripts\dev\verify-dev-auto-start.ps1` | Automated validation suite (idempotency, health, port collision, Docker restart) |
 | `.\scripts\dev\backup-db.ps1` | Create a timestamped PostgreSQL custom-format backup (`.dump`) under `backups/` |
 | `.\scripts\dev\list-backups.ps1` | List available backups with date/time and size |
 | `.\scripts\dev\restore-db.ps1 .\backups\<file>.dump` | Restore a backup (requires explicit confirmation) |
@@ -655,11 +659,11 @@ Run from the **repository root** (`fair-crm/`):
 - Live restore requires typing the **target database name** to confirm overwrite
 - Uses `pg_restore --clean --if-exists` against the configured dev database only
 
-**Prerequisites:** PostgreSQL client tools (`pg_dump`, `pg_restore`) on PATH, **or** the local Docker Postgres container (`kyrox-postgres-dev` from `docker compose up -d postgres`) when client tools are not installed.
+**Prerequisites:** PostgreSQL client tools (`pg_dump`, `pg_restore`) on PATH, **or** the local Docker Postgres container (`kyrox-postgres-dev` from `docker compose up -d postgres`) when client tools are not installed. Infra containers use `restart: unless-stopped` in `docker-compose.yml`.
 
 **Policy:** Do not start real-data import tests until a fresh backup exists and `list-backups.ps1` shows it. The `backups/` directory is gitignored — store dumps locally only.
 
-See also: [docs/DEV_RUNTIME.md](docs/DEV_RUNTIME.md) for dev server reset.
+See also: [docs/DEV_RUNTIME.md](docs/DEV_RUNTIME.md) for dev auto-start (`dev-start.ps1`) and force reset (`reset-dev.ps1`).
 
 ---
 

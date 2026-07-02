@@ -162,11 +162,17 @@ The backend enables CORS for local frontend origins in development mode.
 
 From the repository root:
 
+```powershell
+.\scripts\dev\dev-start.ps1
+```
+
+Or manually:
+
 ```bash
 docker compose up -d
 ```
 
-This starts PostgreSQL on `localhost:5432` with user/password `postgres`/`postgres` (SCRAM-SHA-256, PostgreSQL 16 default). Use **Navicat 16+** or modern pgAdmin.
+`docker compose` starts PostgreSQL on `localhost:5432` with user/password `postgres`/`postgres` (SCRAM-SHA-256, PostgreSQL 16 default). The container uses `restart: unless-stopped` so it survives Docker Desktop restarts. Use **Navicat 16+** or modern pgAdmin.
 
 If an older client fails with `authentication method 10 not supported`, run `scripts/dev/configure-postgres-md5-auth.ps1` once (dev only). To revert after upgrading the client: `scripts/dev/configure-postgres-scram-auth.ps1`.
 

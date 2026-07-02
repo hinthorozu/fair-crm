@@ -8,6 +8,18 @@ Format: one version section per completed sprint milestone. Update this file aft
 
 ## Unreleased
 
+### Development runtime (Sprint — Dev Auto Start Standard v1) — MERGE APPROVED
+
+- `docker-compose.yml` — `restart: unless-stopped` on PostgreSQL
+- `scripts/dev/dev-lib.ps1` — shared Docker/runtime helpers
+- `scripts/dev/dev-start.ps1` — idempotent auto-start (Docker + backend + frontend)
+- `scripts/dev/dev-stop.ps1` — stop runtime processes; optional `-StopInfra`
+- `scripts/dev/reset-dev.ps1` — refactored to use `dev-lib.ps1` (force reset unchanged)
+- `scripts/dev/verify-dev-auto-start.ps1` — automated validation suite
+- Windows reboot manual verification: **PASS** (2026-07-02)
+- [docs/DEV_RUNTIME.md](docs/DEV_RUNTIME.md) — auto-start workflow documented
+- [docs/DEV_AUTO_START_COMPLETION.md](docs/DEV_AUTO_START_COMPLETION.md) — validation results + sign-off
+
 ### Shipped (implementation)
 
 - Customer hard-delete cascade safety (ADR-020) — migrations `0012` / `0013`; archive preserved, DR hard delete cascades
