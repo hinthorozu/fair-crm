@@ -40,7 +40,27 @@ class ImportRowStatus(StrEnum):
     SKIPPED = "skipped"
 
 
+class ExcelHeaderMode(StrEnum):
+    FIRST_ROW_HEADER = "first_row_header"
+    NO_HEADER = "no_header"
+    MANUAL_HEADER_ROW = "manual_header_row"
+
+
+class ImportJobStatus(StrEnum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    PARTIAL = "partial"
+
+
+class ImportJobType(StrEnum):
+    APPLY = "apply"
+
+
 class ImportDecision(StrEnum):
     CREATE_NEW = "create_new"
     UPDATE_EXISTING = "update_existing"
+    PARTICIPATION_ONLY = "participation_only"
     SKIP = "skip"
+    MANUAL_REVIEW = "manual_review"

@@ -6,13 +6,13 @@ from app.integrations.kyrox_core.client import HttpAuditAdapter
 from app.integrations.kyrox_core.ports import AuthorizationPort
 from app.modules.fairs.domain.exceptions import FairNotFoundError
 from app.modules.fairs.domain.ports import FairRepository
+from app.modules.data_integration.application.adapters.registry import get_source_adapter_registry
+from app.modules.data_integration.domain.source_adapter import SourceConnection
 from app.modules.imports.application.column_mapper import suggest_column_mapping
 from app.modules.imports.application.commands import UploadRawImportCommand, UploadRawImportResult
-from app.modules.imports.application.raw_excel_parser import parse_xlsx_raw
 from app.modules.imports.domain.entities import ImportBatch
-from app.modules.imports.domain.exceptions import FairRequiredError, InvalidImportFileError
+from app.modules.imports.domain.exceptions import FairRequiredError
 from app.modules.imports.domain.ports import ImportBatchRepository
-from app.modules.imports.domain.value_objects import ImportSourceType
 
 PERMISSION_CREATE = "fair_crm.imports.create"
 
@@ -42,14 +42,15 @@ class UploadRawImportUseCase:
         if command.fair_id is None:
             raise FairRequiredError("fair_id is required")
 
-        if not command.file_name.lower().endswith(".xlsx"):
-            raise InvalidImportFileError("Only .xlsx files are supported")
+        adapter = get_source_adapter_registry().get_for_file(command.file_name)
+        raw_preview = adapter.preview(
+            SourceConnection(payload=command.file_content, file_name=command.file_name),
+        )
 
         fair = self._fair_repository.get_by_id(command.organization_id, command.fair_id)
         if fair is None:
             raise FairNotFoundError("Fair not found")
 
-        raw_preview = parse_xlsx_raw(command.file_content)
         suggested = suggest_column_mapping(raw_preview)
         now = datetime.now(tz=UTC)
 
@@ -57,9 +58,10 @@ class UploadRawImportUseCase:
             organization_id=command.organization_id,
             fair_id=command.fair_id,
             file_name=command.file_name,
-            source_type=ImportSourceType.EXCEL,
+            source_type=adapter.source_type,
             total_rows=raw_preview["total_rows"],
             raw_preview_json=raw_preview,
+            stored_file_content=command.file_content,
             now=now,
         )
         saved = self._batch_repository.add(batch)
@@ -86,4 +88,6 @@ class UploadRawImportUseCase:
             suggested_mapping=suggested,
             status=saved.status,
             file_name=saved.file_name,
+            available_sheets=raw_preview.get("available_sheets") or [],
+            selected_sheet_name=raw_preview.get("sheet_name"),
         )

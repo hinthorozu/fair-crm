@@ -18,16 +18,7 @@ def _cell_value(value: Any) -> Any:
     return value
 
 
-def parse_xlsx_raw(file_content: bytes) -> dict[str, Any]:
-    try:
-        workbook = load_workbook(filename=BytesIO(file_content), read_only=True, data_only=True)
-    except Exception as exc:
-        raise InvalidImportFileError("Invalid xlsx file") from exc
-
-    sheet = workbook.active
-    if sheet is None:
-        raise InvalidImportFileError("Worksheet is empty")
-
+def _extract_sheet_rows(sheet) -> list[list[Any]]:
     all_rows: list[list[Any]] = []
     for row in sheet.iter_rows(values_only=True):
         if row is None:
@@ -36,9 +27,10 @@ def parse_xlsx_raw(file_content: bytes) -> dict[str, Any]:
         if all(c is None for c in cells):
             continue
         all_rows.append(cells)
+    return all_rows
 
-    workbook.close()
 
+def _build_preview_from_rows(sheet_name: str, all_rows: list[list[Any]]) -> dict[str, Any]:
     if not all_rows:
         raise InvalidImportFileError("File is empty or unreadable")
 
@@ -68,9 +60,38 @@ def parse_xlsx_raw(file_content: bytes) -> dict[str, Any]:
     detected_headers = [str(v) if v is not None else None for v in first_row]
 
     return {
-        "sheet_name": sheet.title,
+        "sheet_name": sheet_name,
         "rows": normalized_rows,
         "columns": columns,
         "detected_headers": detected_headers,
         "total_rows": len(normalized_rows),
     }
+
+
+def parse_xlsx_raw(file_content: bytes, *, sheet_name: str | None = None) -> dict[str, Any]:
+    try:
+        workbook = load_workbook(filename=BytesIO(file_content), read_only=True, data_only=True)
+    except Exception as exc:
+        raise InvalidImportFileError("Invalid xlsx file") from exc
+
+    available_sheets = [ws.title for ws in workbook.worksheets]
+    if not available_sheets:
+        workbook.close()
+        raise InvalidImportFileError("Workbook has no worksheets")
+
+    target_name = sheet_name or available_sheets[0]
+    if target_name not in available_sheets:
+        workbook.close()
+        raise InvalidImportFileError(f"Sheet '{target_name}' not found")
+
+    sheet = workbook[target_name]
+    if sheet is None:
+        workbook.close()
+        raise InvalidImportFileError("Worksheet is empty")
+
+    all_rows = _extract_sheet_rows(sheet)
+    workbook.close()
+
+    preview = _build_preview_from_rows(sheet.title, all_rows)
+    preview["available_sheets"] = available_sheets
+    return preview

@@ -64,6 +64,21 @@ def test_list_page_pagination(db_session, organization_id):
     assert second_page.page == 2
 
 
+def test_list_sorts_by_display_name_case_insensitive(db_session, organization_id):
+    repo = SqlAlchemyCustomerRepository(db_session)
+    for name in ("zulu corp", "Alpha Beta", "(10) Numbered Co", "mike industries"):
+        _seed_customer(db_session, organization_id, name)
+
+    result = repo.list_by_organization(
+        organization_id,
+        sort_by="display_name",
+        sort_dir="asc",
+        page_size=100,
+    )
+    names = [item.display_name for item in result.items]
+    assert names == sorted(names, key=str.casefold)
+
+
 def test_list_archived_customers(db_session, organization_id):
     from datetime import UTC, datetime
 

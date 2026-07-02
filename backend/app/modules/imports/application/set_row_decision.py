@@ -85,6 +85,14 @@ class SetImportRowDecisionUseCase:
             row.status = ImportRowStatus.READY_TO_CREATE
         elif command.decision == ImportDecision.SKIP:
             row.status = ImportRowStatus.SKIPPED
+        elif command.decision == ImportDecision.PARTICIPATION_ONLY:
+            target_id = command.match_customer_id or row.match_customer_id
+            if target_id is None:
+                raise InvalidImportDecisionError("match_customer_id is required for participation_only")
+            row.match_customer_id = target_id
+            row.status = ImportRowStatus.READY_TO_UPDATE
+        elif command.decision == ImportDecision.MANUAL_REVIEW:
+            row.status = ImportRowStatus.POSSIBLE_DUPLICATE
 
         saved = self._row_repository.update(row)
 
@@ -128,6 +136,15 @@ class SetImportRowDecisionUseCase:
             return
 
         if command.decision == ImportDecision.SKIP:
+            return
+
+        if command.decision == ImportDecision.MANUAL_REVIEW:
+            return
+
+        if command.decision == ImportDecision.PARTICIPATION_ONLY:
+            target_id = command.match_customer_id or row.match_customer_id
+            if target_id is None:
+                raise InvalidImportDecisionError("match_customer_id is required for participation_only")
             return
 
         raise InvalidImportDecisionError("Unsupported decision")

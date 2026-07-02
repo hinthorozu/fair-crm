@@ -1,0 +1,1746 @@
+[
+  {
+    "legacy_fair_id": 1,
+    "name_original": "ISAF - IMEX",
+    "name_clean": "ISAF - IMEX",
+    "start_date_clean": "2025-10-08",
+    "end_date_clean": "2025-10-11",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.isaffuari.com",
+    "email_subject_clean": "ISAF - IMEX Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 2,
+    "name_original": "ISK-SODEX",
+    "name_clean": "ISK-SODEX",
+    "start_date_clean": "2025-10-22",
+    "end_date_clean": "2025-10-25",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.sodex.com.tr/tr",
+    "email_subject_clean": "ISK-SODEX Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 3,
+    "name_original": "KARAVAN SHOW EURASIA",
+    "name_clean": "KARAVAN SHOW EURASIA",
+    "start_date_clean": "2025-09-23",
+    "end_date_clean": "2025-09-27",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://karavanshow.com/katilimci-listesi",
+    "email_subject_clean": "KARAVAN Show Eurasia Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 4,
+    "name_original": "METAL EXPO EURASIA İSTANBUL",
+    "name_clean": "METAL EXPO EURASIA İSTANBUL",
+    "start_date_clean": "2025-09-24",
+    "end_date_clean": "2025-09-27",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.metalexpo.com.tr/katilimci-listesi-2024",
+    "email_subject_clean": "METAL EXPO EURASIA İSTANBUL",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 5,
+    "name_original": "R+T Turkey",
+    "name_clean": "R+T Turkey",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": null,
+    "email_subject_clean": null,
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date"
+    ]
+  },
+  {
+    "legacy_fair_id": 6,
+    "name_original": "TINY HOME SHOW",
+    "name_clean": "TINY HOME SHOW",
+    "start_date_clean": "2025-09-23",
+    "end_date_clean": "2025-09-27",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://tinyhouse.ist/katilimci-listesi",
+    "email_subject_clean": "Tiny Home Show",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 7,
+    "name_original": "TRADEF",
+    "name_clean": "TRADEF",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": null,
+    "email_subject_clean": null,
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date"
+    ]
+  },
+  {
+    "legacy_fair_id": 8,
+    "name_original": "EV Charge Show",
+    "name_clean": "EV Charge Show",
+    "start_date_clean": "2025-11-12",
+    "end_date_clean": "2025-11-14",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://evchargeshow.com/tr/anasayfa/",
+    "email_subject_clean": "EV Charge Show Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 9,
+    "name_original": "Aysaf Ayakkabı Yan Sanayi Fuarı",
+    "name_clean": "Aysaf Ayakkabı Yan Sanayi Fuarı",
+    "start_date_clean": "2025-11-12",
+    "end_date_clean": "2025-11-15",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.aysafexpo.com",
+    "email_subject_clean": "Aysaf Ayakkabı Yan Sanayi Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 10,
+    "name_original": "Peyzaj İstanbul Fuarı",
+    "name_clean": "Peyzaj İstanbul Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.peyzajistanbulfuari.com/ziyaretci-genel-bilgiler/",
+    "email_subject_clean": "Peyzaj İstanbul Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 11,
+    "name_original": "Fespa Eurasia",
+    "name_clean": "Fespa Eurasia",
+    "start_date_clean": "2025-09-24",
+    "end_date_clean": "2025-09-27",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://fespaeurasia.com.tr/katilimci-listesi/",
+    "email_subject_clean": "Fespa Eurasia",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 12,
+    "name_original": "Silmo İstanbul Optik Fuarı",
+    "name_clean": "Silmo İstanbul Optik Fuarı",
+    "start_date_clean": "2025-11-19",
+    "end_date_clean": "2025-11-22",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.silmoistanbul.com/tr/katilimci-listesi/2023",
+    "email_subject_clean": "Silmo İstanbul Optik Fuarı",
+    "manual_review": false,
+    "issues": [
+      "website_scheme_added",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 13,
+    "name_original": "CFE - Carpet and Flooring Expo",
+    "name_clean": "CFE - Carpet and Flooring Expo",
+    "start_date_clean": "2026-01-06",
+    "end_date_clean": "2026-01-09",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.icfexpo.com/fuar-kunyesi",
+    "email_subject_clean": "CFE - Carpet and Flooring Expo",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 14,
+    "name_original": "AGROSHOW EURASIA FUARI",
+    "name_clean": "AGROSHOW EURASIA FUARI",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://www.agroeurasia.com/tr/fuar-kunyesi-2023",
+    "email_subject_clean": "Agroshow Eurasia Tarım Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 15,
+    "name_original": "AVRASYA CAM FUARI",
+    "name_clean": "AVRASYA CAM FUARI",
+    "start_date_clean": "2025-11-15",
+    "end_date_clean": "2025-11-18",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://www.avrasyacamfuari.com",
+    "email_subject_clean": "AVRASYA CAM FUARI",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 16,
+    "name_original": "AVRASYA KAPI FUARI",
+    "name_clean": "AVRASYA KAPI FUARI",
+    "start_date_clean": "2025-11-15",
+    "end_date_clean": "2025-11-18",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://www.avrasyakapifuari.com",
+    "email_subject_clean": "AVRASYA KAPI FUARI",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 17,
+    "name_original": "AVRASYA PENCERE FUARI",
+    "name_clean": "AVRASYA PENCERE FUARI",
+    "start_date_clean": "2025-11-15",
+    "end_date_clean": "2025-11-18",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://www.avrasyapencerefuari.com",
+    "email_subject_clean": "AVRASYA PENCERE FUARI",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 18,
+    "name_original": "Plast Eurasia İstanbul",
+    "name_clean": "Plast Eurasia İstanbul",
+    "start_date_clean": "2025-12-03",
+    "end_date_clean": "2025-12-06",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://plasteurasia.com",
+    "email_subject_clean": "Plast Eurasia İstanbul",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 19,
+    "name_original": "A-TECH",
+    "name_clean": "A-TECH",
+    "start_date_clean": "2025-10-02",
+    "end_date_clean": "2025-10-05",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.atechfuari.com/firmalar",
+    "email_subject_clean": "A-TECH Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 20,
+    "name_original": "Depreme Dayanıklı Binalar Zirvesi",
+    "name_clean": "Depreme Dayanıklı Binalar Zirvesi",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.depremedayaniklibinalar.com",
+    "email_subject_clean": "Depreme Dayanıklı Binalar Zirvesi",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 21,
+    "name_original": "Endüstri 4.0 Uygulamaları Zirvesi ve Sergisi",
+    "name_clean": "Endüstri 4.0 Uygulamaları Zirvesi ve Sergisi",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.endustri40zirvesi.com",
+    "email_subject_clean": "Endüstri 4.0 Uygulamaları Zirvesi ve Sergisi",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 22,
+    "name_original": "Enerjisini Üreten Fabrikalar Zirvesi ve Sergisi",
+    "name_clean": "Enerjisini Üreten Fabrikalar Zirvesi ve Sergisi",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.enerjisiniuretenfabrikalar.com",
+    "email_subject_clean": "Enerjisini Üreten Fabrikalar Zirvesi ve Sergisi",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 23,
+    "name_original": "Proses Zirvesi ve Sergisi",
+    "name_clean": "Proses Zirvesi ve Sergisi",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.proseszirvesi.com",
+    "email_subject_clean": "Proses Zirvesi ve Sergisi",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 24,
+    "name_original": "Robot Yatırımları Zirvesi ve Sergisi",
+    "name_clean": "Robot Yatırımları Zirvesi ve Sergisi",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.robotyatirimlari.com",
+    "email_subject_clean": "Robot Yatırımları Zirvesi ve Sergisi",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 25,
+    "name_original": "KASTEXPO",
+    "name_clean": "KASTEXPO",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://kastexpo.org/katilimci-listesi/rn",
+    "email_subject_clean": "Kastamonu Sanayi ve İş Dünyası Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 26,
+    "name_original": "Souvenir Expo Türkiye",
+    "name_clean": "Souvenir Expo Türkiye",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://souvenirexpoturkiye.com.tr/tr/",
+    "email_subject_clean": "Souvenir Expo Turkiye Turistik Hediyelik ve Hatıra Eşya Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 27,
+    "name_original": "KARAVANİST İstanbul",
+    "name_clean": "KARAVANİST İstanbul",
+    "start_date_clean": "2026-01-10",
+    "end_date_clean": "2026-01-18",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://www.karavanistfuari.com/fuar-kunyesi",
+    "email_subject_clean": "KARAVANİST İstanbul",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 28,
+    "name_original": "İstanbul Mobilya Fuarı",
+    "name_clean": "İstanbul Mobilya Fuarı",
+    "start_date_clean": "2026-01-27",
+    "end_date_clean": "2026-01-31",
+    "fair_area_clean": "TÜYAP-IFM (CNR)",
+    "website_clean": "https://istanbulmobilyafuari.com/fuar-kunyesi",
+    "email_subject_clean": "İstanbul Mobilya Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 29,
+    "name_original": "Uluslararası İstanbul İplik Fuarı",
+    "name_clean": "Uluslararası İstanbul İplik Fuarı",
+    "start_date_clean": "2026-03-26",
+    "end_date_clean": "2026-03-28",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://iplikfuari.com/fuar-kunyesi",
+    "email_subject_clean": "Uluslararası İstanbul İplik Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 30,
+    "name_original": "İstanbul Kırtasiye Ofis Fuarı",
+    "name_clean": "İstanbul Kırtasiye Ofis Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://www.kirtasiyeofisfuari.com/katilimci-listesi?letterFilter=s",
+    "email_subject_clean": "İstanbul Kırtasiye Ofis Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 31,
+    "name_original": "İstanbul Oyuncak Fuarı",
+    "name_clean": "İstanbul Oyuncak Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://www.istanbuloyuncakfuari.com/katilimci-listesi?page=9",
+    "email_subject_clean": "İstanbul Oyuncak Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 32,
+    "name_original": "Kauçuk Avrasya Fuarı",
+    "name_clean": "Kauçuk Avrasya Fuarı",
+    "start_date_clean": "2026-04-15",
+    "end_date_clean": "2026-04-18",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://kaucukistanbul.com/fuar-kunyesi",
+    "email_subject_clean": "Kauçuk Avrasya",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 33,
+    "name_original": "Expomed Eurasia - Medikal Fuarı",
+    "name_clean": "Expomed Eurasia - Medikal Fuarı",
+    "start_date_clean": "2026-04-16",
+    "end_date_clean": "2026-04-18",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "http://www.expomedistanbul.com/katilimci-listesi",
+    "email_subject_clean": "Expomed Eurasia - Medikal Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 34,
+    "name_original": "Maden Türkiye Uluslararası Madencilik Fuarı",
+    "name_clean": "Maden Türkiye Uluslararası Madencilik Fuarı",
+    "start_date_clean": "2026-04-08",
+    "end_date_clean": "2026-04-11",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://www.madenturkiyefuari.com/katilimci-listesi?page=7",
+    "email_subject_clean": "Maden Türkiye Uluslararası Madencilik Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 35,
+    "name_original": "Hardware Eurasia - Avrasya Uluslararası Hırdavat Fuarı",
+    "name_clean": "Hardware Eurasia - Avrasya Uluslararası Hırdavat Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://www.hardwareeurasia.com/katilimci-listesi?page=17",
+    "email_subject_clean": "Hardware Eurasia - Avrasya Uluslararası Hırdavat Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 36,
+    "name_original": "Fastener Expo Eurasia Fuarı",
+    "name_clean": "Fastener Expo Eurasia Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://www.fastenerexpoeurasia.com/katilimci-listesi?page=1",
+    "email_subject_clean": "Fastener Expo Eurasia Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 37,
+    "name_original": "Çukurova Kitap Fuarı",
+    "name_clean": "Çukurova Kitap Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP Adana",
+    "website_clean": "https://www.cukurovakitapfuari.com/katilimci-listesi",
+    "email_subject_clean": "Çukurova Kitap Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 38,
+    "name_original": "HOST Istanbul Fuarı",
+    "name_clean": "HOST Istanbul Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://www.hostistanbulfair.com/2024-katilimci-listesi.html",
+    "email_subject_clean": "HOST Istanbul Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 39,
+    "name_original": "Bursa Kitap Fuarı",
+    "name_clean": "Bursa Kitap Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP Bursa",
+    "website_clean": "https://bursakitapfuari.com/katilimci-listesi",
+    "email_subject_clean": "Bursa Kitap Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 45,
+    "name_original": "Line Expo - İç Giyim ve Çorap Fuarı",
+    "name_clean": "Line Expo - İç Giyim ve Çorap Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.linexpo.com.tr/tr/linexpo-2023-522",
+    "email_subject_clean": "Line Expo - İç Giyim ve Çorap Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 46,
+    "name_original": "IFCO - Hazır Giyim ve Moda Fuarı",
+    "name_clean": "IFCO - Hazır Giyim ve Moda Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.ifco.com.tr/tr/fuar/hakkimizda",
+    "email_subject_clean": "IFCO - Hazır Giyim ve Moda Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 47,
+    "name_original": "Bosphorus Boat Show Kara Fuarı",
+    "name_clean": "Bosphorus Boat Show Kara Fuarı",
+    "start_date_clean": "2026-02-15",
+    "end_date_clean": "2026-02-22",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://kara.bosphorusboatshow.com/tr/fuar-hakkinda/",
+    "email_subject_clean": "Bosphorus Boat Show Kara Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 48,
+    "name_original": "AYMOD - Ayakkabı Moda Fuarı",
+    "name_clean": "AYMOD - Ayakkabı Moda Fuarı",
+    "start_date_clean": "2025-09-03",
+    "end_date_clean": "2025-09-06",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.aymod.com",
+    "email_subject_clean": "AYMOD - Ayakkabı Moda Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 49,
+    "name_original": "Texhibition İstanbul",
+    "name_clean": "Texhibition İstanbul",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.texhibitionist.com",
+    "email_subject_clean": "Texhibition İstanbul",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 50,
+    "name_original": "HOMETEX",
+    "name_clean": "HOMETEX",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://hometex.com.tr/fuar-kunyesi",
+    "email_subject_clean": "HOMETEX Ev Tekstil Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 51,
+    "name_original": "Türkiye Arıcılık Fuarı",
+    "name_clean": "Türkiye Arıcılık Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://turkiyearicilikfuari.com/taf2024/",
+    "email_subject_clean": "Türkiye Arıcılık Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 52,
+    "name_original": "Motobike İstanbul Fuarı",
+    "name_clean": "Motobike İstanbul Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://tr.messefrankfurt.com/turkey/tr.html",
+    "email_subject_clean": "Motobike İstanbul Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 53,
+    "name_original": "ICCI - Enerji ve Çevre Fuarı",
+    "name_clean": "ICCI - Enerji ve Çevre Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.icci.com.tr/fuar-hakkinda-2/",
+    "email_subject_clean": "ICCI - Enerji ve Çevre Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 54,
+    "name_original": "SolarEx İstanbul Güneş Enerjisi & Teknolojileri Fuarı",
+    "name_clean": "SolarEx İstanbul Güneş Enerjisi & Teknolojileri Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://solarexistanbul.com",
+    "email_subject_clean": "SolarEx İstanbul Güneş Enerjisi & Teknolojileri Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 55,
+    "name_original": "Modeko - İzmir Mobilya Fuarı",
+    "name_clean": "Modeko - İzmir Mobilya Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "Fuar İzmir",
+    "website_clean": "https://modekofair.com",
+    "email_subject_clean": "Modeko - İzmir Mobilya Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 56,
+    "name_original": "Yapı Fuarı İstanbul",
+    "name_clean": "Yapı Fuarı İstanbul",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://yapifuari.com.tr/tr/katilimci-listesi",
+    "email_subject_clean": "Yapı-Turkeybuild İstanbul",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 57,
+    "name_original": "IBAKTECH",
+    "name_clean": "IBAKTECH",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://ibaktech.com/exhibitors.htmlrn",
+    "email_subject_clean": "IBAKTECH",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 58,
+    "name_original": "Istanbul Jewelry Show",
+    "name_clean": "Istanbul Jewelry Show",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.istanbuljewelryshow.com/tr/genel-bakis/istanbul-jewelry-show-hakkinda.html",
+    "email_subject_clean": "Istanbul Jewelry Show",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 59,
+    "name_original": "BusWorld",
+    "name_clean": "BusWorld",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://busworldturkey.org/tr/katılımcı-listesi",
+    "email_subject_clean": "BusWorld Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 60,
+    "name_original": "Automechanika İstanbul",
+    "name_clean": "Automechanika İstanbul",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://automechanikaistanbulplus.com/participants?lang=tr",
+    "email_subject_clean": "Automechanika İstanbul",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 61,
+    "name_original": "KOMATEK",
+    "name_clean": "KOMATEK",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.komatekfuar.com/katilimcilar/2024-katilimci-listesi",
+    "email_subject_clean": "KOMATEK Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 62,
+    "name_original": "Uluslararası İstanbul Prohunt Fuarı",
+    "name_clean": "Uluslararası İstanbul Prohunt Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.istanbulprohunt.com/index.html",
+    "email_subject_clean": "Uluslararası İstanbul Prohunt Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 63,
+    "name_original": "MCA World Fair",
+    "name_clean": "MCA World Fair",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.mcaworldfair.com",
+    "email_subject_clean": "MCA World Fair - Ölçüm, Kontrol ve Otomasyon Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 64,
+    "name_original": "İDMA İstanbul Fuarı",
+    "name_clean": "İDMA İstanbul Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.idma.com.tr/exhibitions-info/",
+    "email_subject_clean": "İDMA İstanbul Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 65,
+    "name_original": "Paintistanbul & TURKCOAT ",
+    "name_clean": "Paintistanbul & TURKCOAT",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.turkcoat-paintistanbul.com/fuar-hakkinda/",
+    "email_subject_clean": "Paintistanbul & TURKCOAT  Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 66,
+    "name_original": "IDEX İSTANBUL",
+    "name_clean": "IDEX İSTANBUL",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://idex.org.tr/fuar-hakkinda/fuar-kunyesi",
+    "email_subject_clean": "IDEX İSTANBUL",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 67,
+    "name_original": "WIN EURASIA",
+    "name_clean": "WIN EURASIA",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://platform.win-eurasia.com/participants?new",
+    "email_subject_clean": "WIN EURASIA - World of Industry Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 68,
+    "name_original": "Beauty Eurasia",
+    "name_clean": "Beauty Eurasia",
+    "start_date_clean": "2026-09-02",
+    "end_date_clean": "2026-09-04",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://beautyeurasia.com/tr/katilimci-listesi",
+    "email_subject_clean": "Beauty Eurasia Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 69,
+    "name_original": "F İSTANBUL",
+    "name_clean": "F İSTANBUL",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://platform.idos.events/exhibition/exhibitorList?fuarId=57",
+    "email_subject_clean": "F İSTANBUL",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 70,
+    "name_original": "Promosyon Show",
+    "name_clean": "Promosyon Show",
+    "start_date_clean": "2025-09-10",
+    "end_date_clean": "2025-09-13",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.promosyonshow.com/anasayfa",
+    "email_subject_clean": "Promosyon Show Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 72,
+    "name_original": "İbia Expo",
+    "name_clean": "İbia Expo",
+    "start_date_clean": "2025-09-24",
+    "end_date_clean": "2025-09-27",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://ibiaexpo.com/katilimci-listesi",
+    "email_subject_clean": "İbia Expo - YATAK YAN SANAYİ VE TEKNOLOJİLERİ FUARI",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 73,
+    "name_original": "Maktek Avrasya",
+    "name_clean": "Maktek Avrasya",
+    "start_date_clean": "2026-09-28",
+    "end_date_clean": "2026-10-01",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://maktekfuari.com/fuar-kunyesi",
+    "email_subject_clean": "Maktek Avrasya Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 74,
+    "name_original": "İntermob",
+    "name_clean": "İntermob",
+    "start_date_clean": "2025-09-25",
+    "end_date_clean": "2025-09-28",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://www.intermobistanbul.com/fuar-kunyesi",
+    "email_subject_clean": "İntermob Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 75,
+    "name_original": "World Food İstanbul ",
+    "name_clean": "World Food İstanbul",
+    "start_date_clean": "2025-09-02",
+    "end_date_clean": "2025-09-05",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://worldfood-istanbul.com/tr/worldfood-istanbul-hakkinda",
+    "email_subject_clean": "WorldFood İstanbul  Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 76,
+    "name_original": "Ankiros",
+    "name_clean": "Ankiros",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.ankiros.com",
+    "email_subject_clean": "Ankiros Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 77,
+    "name_original": "Zuchex",
+    "name_clean": "Zuchex",
+    "start_date_clean": "2025-09-11",
+    "end_date_clean": "2025-09-14",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://www.zuchex.com/2024-katilimci-listesi.html",
+    "email_subject_clean": "Zuchex Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 78,
+    "name_original": "Kalite '25",
+    "name_clean": "Kalite '25",
+    "start_date_clean": "2025-09-17",
+    "end_date_clean": "2025-09-20",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://kalitefuari.com/kalite-24-katilimci-listesi/",
+    "email_subject_clean": "Kalite '25 Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 79,
+    "name_original": "PetZoo Eurasia",
+    "name_clean": "PetZoo Eurasia",
+    "start_date_clean": "2025-10-08",
+    "end_date_clean": "2025-10-11",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://petfuari.com/katilimci-listesi?year=2023",
+    "email_subject_clean": "PetZoo Eurasia Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 80,
+    "name_original": "Saha Expo",
+    "name_clean": "Saha Expo",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": null,
+    "email_subject_clean": "Saha Expo Fuarı",
+    "manual_review": true,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "invalid_fair_website:https://www.sahaexpo.com/tr/katilimci-listesi - https://www.sahaistanbul.org.tr/kume-firmalari/27",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 81,
+    "name_original": "WoodTech",
+    "name_clean": "WoodTech",
+    "start_date_clean": "2025-10-11",
+    "end_date_clean": "2025-10-15",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://woodtechistanbul.com/fuar-kunyesi",
+    "email_subject_clean": "WoodTech İstanbul  Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 82,
+    "name_original": "Avrasya Ambalaj",
+    "name_clean": "Avrasya Ambalaj",
+    "start_date_clean": "2025-10-22",
+    "end_date_clean": "2025-10-25",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": null,
+    "email_subject_clean": "Avrasya Ambalaj Fuarı",
+    "manual_review": true,
+    "issues": [
+      "invalid_fair_website:Food-Tech Eurasia ile aynı liste https://www.packagingfair.com/katilimci-listesi?page=77",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 83,
+    "name_original": "Food-Tech Eurasia",
+    "name_clean": "Food-Tech Eurasia",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP",
+    "website_clean": null,
+    "email_subject_clean": "Food-Tech Eurasia Fuarı",
+    "manual_review": true,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "invalid_fair_website:Avrasya Ambalaj ile aynı liste https://www.foodtecheurasia.com/fuar-kunyesi",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 84,
+    "name_original": "Sign İstanbul",
+    "name_clean": "Sign İstanbul",
+    "start_date_clean": "2025-10-02",
+    "end_date_clean": "2025-10-05",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": null,
+    "email_subject_clean": "Sign İstanbul Fuarı",
+    "manual_review": true,
+    "issues": [
+      "invalid_fair_website:PromoGift ile aynı liste https://www.signistanbul.com",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 85,
+    "name_original": "Promo Gift İstanbul",
+    "name_clean": "Promo Gift İstanbul",
+    "start_date_clean": "2025-10-02",
+    "end_date_clean": "2025-10-05",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": null,
+    "email_subject_clean": "Promo Gift İstanbul Fuarı",
+    "manual_review": true,
+    "issues": [
+      "invalid_fair_website:Sign İstanbul ile aynı liste https://www.promogiftistanbul.com",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 86,
+    "name_original": "GROWTECH ANTALYA",
+    "name_clean": "GROWTECH ANTALYA",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "ANFAŞ",
+    "website_clean": "https://www.growtech.com.tr/tr/genel-bakis/contact-team.html",
+    "email_subject_clean": "GROWTECH. ANTALYA",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 87,
+    "name_original": "Peyzaj İstanbul",
+    "name_clean": "Peyzaj İstanbul",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.peyzajistanbulfuari.com/portfolio-item/katilimci-listesi/",
+    "email_subject_clean": "Peyzaj İstanbul Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 88,
+    "name_original": "İstanbul Hırdavat Fuarı",
+    "name_clean": "İstanbul Hırdavat Fuarı",
+    "start_date_clean": "2025-11-19",
+    "end_date_clean": "2025-11-22",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.hardwareeurasia.com/katilimci-listesi?page=17",
+    "email_subject_clean": "İstanbul Hırdavat Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 89,
+    "name_original": "Solar Storage",
+    "name_clean": "Solar Storage",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://solarstoragenx.com",
+    "email_subject_clean": "Solar Storage Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 90,
+    "name_original": "MÜSİAD Expo Ticaret Fuarı",
+    "name_clean": "MÜSİAD Expo Ticaret Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://musiadexpo.com/fuar-kunyesi",
+    "email_subject_clean": "MÜSİAD Expo Ticaret Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 91,
+    "name_original": "Atrax",
+    "name_clean": "Atrax",
+    "start_date_clean": "2026-01-06",
+    "end_date_clean": "2026-01-09",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://atraxexpo.com/katilimci-listesi/",
+    "email_subject_clean": "Atrax - Eğlence, Park, Spor Rekreason Alanlari Endüstrisi Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 92,
+    "name_original": "Yacht Life | Boat Show 2025",
+    "name_clean": "Yacht Life | Boat Show 2025",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://yachtlifeboatshow.com/fuar-kunyesi-tekne-fuari/",
+    "email_subject_clean": "Yacht Life | Boat Show 2025 Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 93,
+    "name_original": "Expomaritt Exposhipping İstanbul",
+    "name_clean": "Expomaritt Exposhipping İstanbul",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.expomaritt.com/tr/anasayfa.html",
+    "email_subject_clean": "Expomaritt Exposhipping İstanbul - 18. Uluslararası Denizcilik Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 94,
+    "name_original": "Emitt",
+    "name_clean": "Emitt",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://emittistanbul.com/tr/katilimci-listesi",
+    "email_subject_clean": "Emitt - Doğu Akdeniz Uluslararası Turizm ve Seyahat Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 95,
+    "name_original": "Electricity Eurasia",
+    "name_clean": "Electricity Eurasia",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://electricityeurasia.com/fuar-hakkinda-2/",
+    "email_subject_clean": "Electricity Eurasia - Elektrik ve Elektrik Ekipmanları Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 96,
+    "name_original": "Mobilefest",
+    "name_clean": "Mobilefest",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.mobilefest.net",
+    "email_subject_clean": "Mobilefest Teknoloji Fuarı ve Konferansı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 97,
+    "name_original": "VIV SELECT TÜRKİYE",
+    "name_clean": "VIV SELECT TÜRKİYE",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.vivturkey.com/katilimci_listesi.html",
+    "email_subject_clean": "VIV SELECT TÜRKİYE - Tavukçuluk ve Teknolojileri Uluslararası İhtisas Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 98,
+    "name_original": "İstanbul Eğitim ve Kariyer Fuarı",
+    "name_clean": "İstanbul Eğitim ve Kariyer Fuarı",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "Lütfi Kırdar",
+    "website_clean": "https://unitercih.com/fuar/istanbul-universite-tanitim-gunleri-2/",
+    "email_subject_clean": "İstanbul Eğitim ve Kariyer Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 99,
+    "name_original": "Wire - Tube Eurasia ",
+    "name_clean": "Wire - Tube Eurasia",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP",
+    "website_clean": null,
+    "email_subject_clean": "Wire - Tube Eurasia - Boru, Profil, Tel, Çelik, Üretimi ve Teknolojisi İhtisas Fuarı",
+    "manual_review": true,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "invalid_fair_website:https://www.tubeeurasia.com/katilimci-listesi?page=23 https://www.wireeurasia.com/katilimci-listesi?page=23",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 100,
+    "name_original": "RePlast Eurasia",
+    "name_clean": "RePlast Eurasia",
+    "start_date_clean": "2026-03-26",
+    "end_date_clean": "2026-03-28",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://www.replasteurasia.com/fuar-kunyesi",
+    "email_subject_clean": "RePlast Eurasia - Plastik Geri Dönüşüm Teknolojileri ve Ham Maddeleri Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 101,
+    "name_original": "IFAT Eurasia 2025",
+    "name_clean": "IFAT Eurasia 2025",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://www.ifat-eurasia.com/exhibitor-list-2/",
+    "email_subject_clean": "IFAT Eurasia 2025 Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 102,
+    "name_original": "Foteg İstanbul",
+    "name_clean": "Foteg İstanbul",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://fotegistanbul.com",
+    "email_subject_clean": "Foteg İstanbul - Gıda İşleme Teknolojileri Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 103,
+    "name_original": "Hostech",
+    "name_clean": "Hostech",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://www.hostechbytusid.com/fuar-kunyesi",
+    "email_subject_clean": "HOSTECH by TUSİD İSTANBUL Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 104,
+    "name_original": "IDEF",
+    "name_clean": "IDEF",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.idef.com.tr/fuar-kunyesi",
+    "email_subject_clean": "IDEF, Uluslararası Savunma Sanayii Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 105,
+    "name_original": "Asansör İstanbul",
+    "name_clean": "Asansör İstanbul",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://www.asansoristanbul.com",
+    "email_subject_clean": "Asansör İstanbul Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 106,
+    "name_original": "Petroleum İstanbul",
+    "name_clean": "Petroleum İstanbul",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://petroleumistanbul.com.tr/petroleum-istanbul/",
+    "email_subject_clean": "Petroleum İstanbul Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 107,
+    "name_original": "PAPER EURASIA",
+    "name_clean": "PAPER EURASIA",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.papereurasia.com/fuar-kunyesi",
+    "email_subject_clean": "Paper Eurasia Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 108,
+    "name_original": "Eurasia Rail",
+    "name_clean": "Eurasia Rail",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://eurasiarail.eu/tr/katilimci-listesirn",
+    "email_subject_clean": "Eurasia Rail Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 109,
+    "name_original": "GarmentTech",
+    "name_clean": "GarmentTech",
+    "start_date_clean": null,
+    "end_date_clean": null,
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.garmenttech.com.tr/hakkimizda/",
+    "email_subject_clean": "GarmentTech Fuarı",
+    "manual_review": false,
+    "issues": [
+      "nullified_start_date",
+      "nullified_end_date",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 110,
+    "name_original": "ALUEXPO",
+    "name_clean": "ALUEXPO",
+    "start_date_clean": "2025-09-18",
+    "end_date_clean": "2025-09-20",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://interactivemap.aluexpo.com",
+    "email_subject_clean": "ALUEXPO Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 111,
+    "name_original": "EIF",
+    "name_clean": "EIF",
+    "start_date_clean": "2025-10-08",
+    "end_date_clean": "2025-10-10",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://www.eif2050.com/tr/katilan-firmalar",
+    "email_subject_clean": "EIF Dünya Enerji Kongresi ve Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 112,
+    "name_original": "Franchise İstanbul Expo",
+    "name_clean": "Franchise İstanbul Expo",
+    "start_date_clean": "2026-04-16",
+    "end_date_clean": "2026-04-19",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": "https://www.franchiseistanbulexpo.com/en",
+    "email_subject_clean": "Franchise İstanbul Expo",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 113,
+    "name_original": "UNICERA İstanbul",
+    "name_clean": "UNICERA İstanbul",
+    "start_date_clean": "2026-11-02",
+    "end_date_clean": "2026-11-06",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://unicera.com.tr",
+    "email_subject_clean": "UNICERA İstanbul - Seramik Banyo Mutfak Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 114,
+    "name_original": "Adhesives and Bonding Eurasia",
+    "name_clean": "Adhesives and Bonding Eurasia",
+    "start_date_clean": "2025-11-26",
+    "end_date_clean": "2025-11-28",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://adhesivebondingeurasia.com/",
+    "email_subject_clean": "Adhesives and Bonding Eurasia Fair",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 115,
+    "name_original": "Hazır Beton Fuarı ve Zirvesi",
+    "name_clean": "Hazır Beton Fuarı ve Zirvesi",
+    "start_date_clean": "2025-11-12",
+    "end_date_clean": "2025-11-15",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://betonfuarivekongresi.com/hakkinda",
+    "email_subject_clean": "Hazır Beton Fuarı ve Zirvesi",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 116,
+    "name_original": "ETH Expo",
+    "name_clean": "ETH Expo",
+    "start_date_clean": "2025-11-26",
+    "end_date_clean": "2025-11-29",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://ethexpo.org",
+    "email_subject_clean": "ETH Expo - Sağlık & Turizm Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 117,
+    "name_original": "Helal Expo",
+    "name_clean": "Helal Expo",
+    "start_date_clean": "2025-11-26",
+    "end_date_clean": "2025-11-29",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://helalexpo.com.tr",
+    "email_subject_clean": "Helal Expo",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 118,
+    "name_original": "Güzellik & Bakım İstanbul",
+    "name_clean": "Güzellik & Bakım İstanbul",
+    "start_date_clean": "2026-03-26",
+    "end_date_clean": "2026-03-29",
+    "fair_area_clean": "İstanbul Lütfi Kırdar",
+    "website_clean": "https://guzellikvebakim.com/hakkimizda/",
+    "email_subject_clean": "Güzellik & Bakım İstanbul Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 119,
+    "name_original": "Beauty İstanbul",
+    "name_clean": "Beauty İstanbul",
+    "start_date_clean": "2026-05-07",
+    "end_date_clean": "2026-05-09",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://beauty-istanbul.com/about-istanbul-tr/",
+    "email_subject_clean": "Beauty İstanbul Fuarı",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 120,
+    "name_original": "ITM-HIGHTEXrn",
+    "name_clean": "ITM-HIGHTEXrn",
+    "start_date_clean": "2026-06-09",
+    "end_date_clean": "2026-06-13",
+    "fair_area_clean": "TÜYAP",
+    "website_clean": null,
+    "email_subject_clean": "Uluslararası Tekstil Makineleri Fuarırn",
+    "manual_review": true,
+    "issues": [
+      "invalid_fair_website:https://www.hightex.com.tr/hightex-2026-exhibitor-list/ / https://www.itmexhibition.com/en/itm-2026-exhibitor-list/rn",
+      "email_subject_preserved_for_meta"
+    ]
+  },
+  {
+    "legacy_fair_id": 121,
+    "name_original": "ELEX EXPO",
+    "name_clean": "ELEX EXPO",
+    "start_date_clean": "2026-04-23",
+    "end_date_clean": "2026-04-25",
+    "fair_area_clean": "IFM (CNR)",
+    "website_clean": "https://elesexpo.com/katilimci-listesi/yerli",
+    "email_subject_clean": "Elektrik Aydınlatma Enerji Akıllı Teknolojiler Fuar",
+    "manual_review": false,
+    "issues": [
+      "email_subject_preserved_for_meta"
+    ]
+  }
+]

@@ -39,7 +39,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
         customer_type: (params.filters.customer_type as CustomerType | undefined) || undefined,
         country: params.filters.country,
       }),
-    defaultSort: { field: "company_name", direction: "asc" },
+    defaultSort: { field: "name", direction: "asc" },
     filterKeys: ["status", "customer_type", "country"],
     urlSync: true,
     urlPath: "/customers",

@@ -548,6 +548,9 @@ export function CustomerDetailPage({
             items={contactsTable.items}
             deletingId={deletingContactId}
             emptyDueToFilters={contactsTable.hasActiveFilters}
+            sortField={contactsTable.sorting.field}
+            sortDirection={contactsTable.sorting.direction}
+            onSortChange={contactsTable.setSort}
             onCreate={openCreateModal}
             onEdit={(c) => {
               setEditingContact(c);
@@ -586,6 +589,9 @@ export function CustomerDetailPage({
             items={activitiesTable.items}
             deletingId={deletingActivityId}
             emptyDueToFilters={activitiesTable.hasActiveFilters}
+            sortField={activitiesTable.sorting.field}
+            sortDirection={activitiesTable.sorting.direction}
+            onSortChange={activitiesTable.setSort}
             onCreate={openCreateModal}
             onEdit={(a) => {
               setEditingActivity(a);
@@ -628,6 +634,9 @@ export function CustomerDetailPage({
             items={participationsTable.items}
             deletingId={deletingParticipationId}
             emptyDueToFilters={participationsTable.hasActiveFilters}
+            sortField={participationsTable.sorting.field}
+            sortDirection={participationsTable.sorting.direction}
+            onSortChange={participationsTable.setSort}
             onCreate={openCreateModal}
             onEdit={(item) => void openEditParticipation(item)}
             onDelete={(item) => setConfirm({ type: "participation", item })}

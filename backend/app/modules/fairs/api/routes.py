@@ -122,12 +122,15 @@ def list_fairs(
     ] = 25,
     sort: Annotated[
         str | None,
-        Query(validation_alias=AliasChoices("sort", "sort_by")),
+        Query(validation_alias=AliasChoices("sort_by", "sort")),
     ] = None,
     sort_by: Annotated[str | None, Query(include_in_schema=False)] = None,
     direction: Annotated[
         str | None,
-        Query(pattern="^(?i)(asc|desc)$", validation_alias=AliasChoices("direction", "sort_dir")),
+        Query(
+            pattern="^(?i)(asc|desc)$",
+            validation_alias=AliasChoices("sort_order", "sort_dir", "direction"),
+        ),
     ] = None,
     sort_dir: Annotated[str | None, Query(include_in_schema=False)] = None,
     auth: AuthContext = Depends(require_read_permission),

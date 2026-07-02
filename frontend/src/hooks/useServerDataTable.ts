@@ -12,8 +12,8 @@ export interface ServerTableFetchParams {
   page: number;
   pageSize: number;
   search: string;
-  sort: string | null;
-  direction: SortDirection | null;
+  sortBy: string | null;
+  sortOrder: SortDirection | null;
   filters: Record<string, string>;
 }
 
@@ -70,8 +70,8 @@ export function useServerDataTable<T>({
             page: DEFAULT_PAGE,
             pageSize: initialPageSize,
             search: "",
-            sort: defaultSort?.field ?? null,
-            direction: defaultSort?.direction ?? null,
+            sortBy: defaultSort?.field ?? null,
+            sortOrder: defaultSort?.direction ?? null,
             filters: { ...defaultFilters },
           },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -89,8 +89,8 @@ export function useServerDataTable<T>({
     field: string | null;
     direction: SortDirection | null;
   }>({
-    field: urlState.sort ?? defaultSort?.field ?? null,
-    direction: urlState.direction ?? defaultSort?.direction ?? null,
+    field: urlState.sortBy ?? defaultSort?.field ?? null,
+    direction: urlState.sortOrder ?? defaultSort?.direction ?? null,
   });
   const [filters, setFiltersState] = React.useState<Record<string, string>>({
     ...defaultFilters,
@@ -104,7 +104,9 @@ export function useServerDataTable<T>({
     hasNext: false,
     hasPrevious: false,
   });
-  const [responseSorting, setResponseSorting] = React.useState(defaultSort ?? { field: "", direction: "asc" as SortDirection });
+  const [responseSorting, setResponseSorting] = React.useState(
+    defaultSort ?? { field: "", direction: "asc" as SortDirection },
+  );
   const [responseFilters, setResponseFilters] = React.useState<Record<string, unknown>>({});
 
   const syncUrl = React.useCallback(
@@ -112,8 +114,8 @@ export function useServerDataTable<T>({
       page: number;
       pageSize: number;
       search: string;
-      sort: string | null;
-      direction: SortDirection | null;
+      sortBy: string | null;
+      sortOrder: SortDirection | null;
       filters: Record<string, string>;
     }) => {
       if (!urlSync) return;
@@ -123,6 +125,8 @@ export function useServerDataTable<T>({
       base.delete("page");
       base.delete("pageSize");
       base.delete("search");
+      base.delete("sort_by");
+      base.delete("sort_order");
       base.delete("sort");
       base.delete("direction");
       const searchStr = writeTableStateToUrl(next, { filterKeys }, base);
@@ -144,8 +148,8 @@ export function useServerDataTable<T>({
     setLoading(true);
     setError(null);
     try {
-      const effectiveSort = sorting.field ?? defaultSortField ?? null;
-      const effectiveDirection =
+      const effectiveSortBy = sorting.field ?? defaultSortField ?? null;
+      const effectiveSortOrder =
         sorting.direction ??
         (sorting.field ? defaultSortDirection : null) ??
         defaultSortDirection ??
@@ -155,8 +159,8 @@ export function useServerDataTable<T>({
         page,
         pageSize,
         search: debouncedSearch,
-        sort: effectiveSort,
-        direction: effectiveDirection,
+        sortBy: effectiveSortBy,
+        sortOrder: effectiveSortOrder,
         filters,
       });
       setItems(res.items);
@@ -192,7 +196,7 @@ export function useServerDataTable<T>({
       setDebouncedSearch(state.search);
       setPageState(state.page);
       setPageSizeState(state.pageSize);
-      setSorting({ field: state.sort, direction: state.direction });
+      setSorting({ field: state.sortBy, direction: state.sortOrder });
       setFiltersState((prev) => ({ ...prev, ...state.filters }));
     };
     window.addEventListener("popstate", onPopState);
@@ -205,8 +209,8 @@ export function useServerDataTable<T>({
         page: number;
         pageSize: number;
         search: string;
-        sort: string | null;
-        direction: SortDirection | null;
+        sortBy: string | null;
+        sortOrder: SortDirection | null;
         filters: Record<string, string>;
       }>,
     ) => {
@@ -214,15 +218,15 @@ export function useServerDataTable<T>({
         page: patch.page ?? page,
         pageSize: patch.pageSize ?? pageSize,
         search: patch.search ?? search,
-        sort: patch.sort !== undefined ? patch.sort : sorting.field,
-        direction: patch.direction !== undefined ? patch.direction : sorting.direction,
+        sortBy: patch.sortBy !== undefined ? patch.sortBy : sorting.field,
+        sortOrder: patch.sortOrder !== undefined ? patch.sortOrder : sorting.direction,
         filters: patch.filters ?? filters,
       };
       if (patch.page !== undefined) setPageState(patch.page);
       if (patch.pageSize !== undefined) setPageSizeState(patch.pageSize);
       if (patch.search !== undefined) setSearchState(patch.search);
-      if (patch.sort !== undefined || patch.direction !== undefined) {
-        setSorting({ field: next.sort, direction: next.direction });
+      if (patch.sortBy !== undefined || patch.sortOrder !== undefined) {
+        setSorting({ field: next.sortBy, direction: next.sortOrder });
       }
       if (patch.filters !== undefined) setFiltersState(patch.filters);
       syncUrl(next);
@@ -230,25 +234,32 @@ export function useServerDataTable<T>({
     [filters, page, pageSize, search, sorting.direction, sorting.field, syncUrl],
   );
 
+  const effectiveSorting = {
+    field: sorting.field ?? responseSorting.field ?? defaultSort?.field ?? "",
+    direction:
+      sorting.direction ?? responseSorting.direction ?? defaultSort?.direction ?? "asc",
+  };
+
   return {
     items,
     loading,
     error,
     search,
     filters,
-    sorting: responseSorting,
+    sorting: effectiveSorting,
     responseFilters,
     pagination,
     setSearch: (value: string) => applyState({ search: value, page: DEFAULT_PAGE }),
-    setFilters: (next: Record<string, string>) => applyState({ filters: next, page: DEFAULT_PAGE }),
+    setFilters: (next: Record<string, string>) =>
+      applyState({ filters: next, page: DEFAULT_PAGE }),
     setFilter: (key: string, value: string) =>
       applyState({ filters: { ...filters, [key]: value }, page: DEFAULT_PAGE }),
     setSort: (field: string) => {
       const cycled = nextSortCycle(field, sorting, defaultSort);
-      applyState({ sort: cycled.field, direction: cycled.direction, page: DEFAULT_PAGE });
+      applyState({ sortBy: cycled.field, sortOrder: cycled.direction, page: DEFAULT_PAGE });
     },
     setSorting: (field: string | null, direction: SortDirection | null) =>
-      applyState({ sort: field, direction, page: DEFAULT_PAGE }),
+      applyState({ sortBy: field, sortOrder: direction, page: DEFAULT_PAGE }),
     setPage: (value: number) => applyState({ page: value }),
     setPageSize: (value: number) => applyState({ pageSize: value, page: DEFAULT_PAGE }),
     refresh: load,

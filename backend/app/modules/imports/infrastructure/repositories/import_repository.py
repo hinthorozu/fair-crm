@@ -13,6 +13,15 @@ from app.modules.imports.infrastructure.persistence.mappers import (
 )
 from app.modules.imports.infrastructure.persistence.models import ImportBatchModel, ImportRowModel
 
+IMPORT_BATCH_SORT_FIELDS = {
+    "created_at": ImportBatchModel.created_at,
+    "updated_at": ImportBatchModel.updated_at,
+    "file_name": ImportBatchModel.file_name,
+    "status": ImportBatchModel.status,
+    "total_rows": ImportBatchModel.total_rows,
+    "completed_at": ImportBatchModel.completed_at,
+}
+
 
 class SqlAlchemyImportBatchRepository:
     def __init__(self, session: Session) -> None:
@@ -49,6 +58,26 @@ class SqlAlchemyImportBatchRepository:
         self._session.flush()
         self._session.refresh(model)
         return batch_model_to_entity(model)
+
+    def list_paginated(
+        self,
+        organization_id: UUID,
+        *,
+        page: int,
+        page_size: int,
+        sort_by: str = "created_at",
+        sort_dir: str = "desc",
+    ) -> tuple[list[ImportBatch], int]:
+        query = self._session.query(ImportBatchModel).filter(
+            ImportBatchModel.organization_id == organization_id
+        )
+        total = query.count()
+        sort_column = IMPORT_BATCH_SORT_FIELDS.get(sort_by, ImportBatchModel.created_at)
+        ordered = sort_column.desc() if sort_dir == "desc" else sort_column.asc()
+        models = (
+            query.order_by(ordered).offset((page - 1) * page_size).limit(page_size).all()
+        )
+        return [batch_model_to_entity(m) for m in models], total
 
 
 class SqlAlchemyImportRowRepository:

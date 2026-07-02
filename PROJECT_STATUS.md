@@ -4,8 +4,8 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Version** | v0.8.3 (Universal Server-Side DataTable) |
-| **Last updated** | 2026-07-01 (Sprint 09.0 started) |
+| **Current Version** | v0.9.3 (Admin Database Backup Workspace) |
+| **Last updated** | 2026-07-02 (Sprint 09.2.3 — Universal DataTable Sorting) |
 | **Constitution** | [PROJECT_CONSTITUTION.md](PROJECT_CONSTITUTION.md) |
 | **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
 | **Product Vision** | [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) |
@@ -16,8 +16,11 @@
 
 | Check | Status |
 |-------|--------|
-| Backend tests | **173 PASS** |
+| Backend tests | **198 PASS** |
 | Frontend build | **PASS** |
+| Migration `0010_data_integration` | **APPLIED** (PostgreSQL) |
+| Migration `0011_system_backups` | **APPLIED** (PostgreSQL) |
+| Runtime verification (Sprint 09.2.2) | **PASS** — migration, reset-dev, Swagger, live API, live UI |
 | Legacy UMCRM dev migration | **APPLIED** (115 fairs, 28,155 customers, 29,561 participations) |
 
 ---
@@ -206,19 +209,52 @@ Development priority is **business-value driven** (P0 → P1 → P2), not comple
 
 ## Current Sprint
 
-**Sprint 09.0 — Data Integration & Universal Import Standard**
+**Sprint 09.3 — CSV Source Adapter** (planned)
 
-Status: **In Progress** — Phase 1 (Architecture & documentation)
+Status: **Backlog** — next adapter after Excel foundation.
 
-**Scope (09.0):**
+---
 
-- ADR-016 — Universal Import Standard & Data Integration module naming
-- [docs/import/IMPORT_ARCHITECTURE.md](docs/import/IMPORT_ARCHITECTURE.md) — end-to-end pipeline
-- [docs/import/MERGE_RULES.md](docs/import/MERGE_RULES.md) — conservative merge rules
-- [docs/import/MATCHING_RULES.md](docs/import/MATCHING_RULES.md) — matching & confidence scores
-- Frontend route/menu design: **Veri Entegrasyonu** at `/data-integration`
-- Excel header mode specification (İlk satır başlık / Başlık yok / Başlık satırını ben seçeceğim)
-- **No implementation code in 09.0** — documentation and ADR only
+## Recently Completed
+
+### ✅ Sprint 09.2.2 — Admin Database Backup Workspace
+
+Status: **Completed** (Definition of Done satisfied)
+
+- Shared Python backup engine (`app/shared/database_backup`) — single source for dev scripts and Admin API
+- `system_admin` module — migration `0011_system_backups`, background backup jobs, metadata persistence
+- Admin API `/api/v1/admin/backups/*` (create, list, get, download; restore foundation disabled)
+- Frontend **Admin → System → Database Backups** at `/admin/system/backups`
+- Progress stages: Preparing → Dumping → Compressing → Completed/Failed
+- Permissions: `fair_crm.admin.backups.create|read|download`
+- Runtime DoD: migration `0011`, reset-dev, Swagger, live API backup+download, live UI
+- Backend tests (185) and frontend build PASS
+- ADR-018 — System Administration module foundation
+
+### ✅ Sprint 09.2.1 — Database Backup / Restore Standard (dev utility)
+
+- PowerShell dev scripts delegate to shared Python engine (no duplicated dump logic)
+- `scripts/dev/backup-db.ps1`, `restore-db.ps1`, `list-backups.ps1`, `db-backup-lib.ps1`
+
+### ✅ Sprint 09.2 — Universal Source Adapter Framework
+
+- `SourceAdapter` protocol and `SourceAdapterRegistry`
+- `ExcelSourceAdapter` on formal lifecycle; upload/sheet select via registry
+- Import Engine remains source-agnostic
+- ADR-017 + [SOURCE_ADAPTER_FRAMEWORK.md](docs/import/SOURCE_ADAPTER_FRAMEWORK.md)
+- Background apply job fix (commit before job execution)
+
+### ✅ Sprint 09.1 — Data Integration Workspace & Universal Import Engine
+
+Status: **Completed** (Definition of Done satisfied)
+
+- Backend `data_integration` module — `ImportMapper`, `ImportValidator`, `DuplicateDetector`, `MergeStrategy`, `ImportExecutor`
+- API `/api/v1/data-integration/*` (+ legacy `/api/v1/imports/*` alias)
+- Excel header modes, sheet selection, background apply jobs (`crm_import_jobs`)
+- Migration `0010_data_integration` applied on PostgreSQL
+- Frontend **Veri Entegrasyonu** at `/data-integration`
+- Runtime DoD: reset-dev, Swagger, live API script (4 scenarios), UI smoke
+- Decisions: `participation_only`, `manual_review`
 
 ---
 
@@ -239,8 +275,11 @@ Chronological plan — completed, active, and backlog sprints.
 | 07.1 | Smart Merge Viewer & Cleanup | Completed |
 | 08.0 | Universal Server-Side DataTable Standard | Completed |
 | 08.1 | Detail Page Action Standard | Completed |
-| **09.0** | **Data Integration & Universal Import Standard** | **In Progress** |
-| 09.1 | Data Integration Implementation (Excel + UI migration) | Planned |
+| **09.0** | **Data Integration & Universal Import Standard** | **Completed** |
+| **09.1** | **Data Integration Workspace & Universal Import Engine** | **Completed** |
+| **09.2** | **Universal Source Adapter Framework** | **Completed** |
+| **09.2.2** | **Admin Database Backup Workspace** | **Completed** |
+| 09.3 | CSV Source Adapter | Planned |
 | 10 | Customer Emails | Planned |
 | 11 | Dashboard | Planned |
 | 12 | Reporting | Planned |
@@ -262,6 +301,11 @@ Chronological plan — completed, active, and backlog sprints.
 | 07.1 — Smart Merge Viewer & Cleanup | v0.8.1 | ✅ |
 | 08.1 — Detail Page Action Standard | v0.8.2 | ✅ |
 | 08.0 — Universal Server-Side DataTable | v0.8.3 | ✅ |
+| 09.0 — Data Integration Standard (docs) | v0.8.4 | ✅ |
+| 09.1 — Data Integration Workspace | v0.9.0 | ✅ |
+| 09.2 — Universal Source Adapter Framework | v0.9.1 | ✅ |
+| 09.2.1 — Database Backup / Restore Standard | v0.9.2 | ✅ |
+| 09.2.2 — Admin Database Backup Workspace | v0.9.3 | ✅ |
 
 ---
 

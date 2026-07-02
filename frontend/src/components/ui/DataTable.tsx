@@ -1,5 +1,5 @@
 import React from "react";
-import type { SortDirection } from "../types/listTable";
+import type { SortDirection } from "../../types/listTable";
 
 export interface DataTableColumn<T> {
   id: string;
@@ -38,6 +38,26 @@ export function SortableHeader({
         {indicator}
       </span>
     </button>
+  );
+}
+
+/** Renders a sortable column header or plain text when sorting is unavailable. */
+export function renderSortableHeader(
+  label: React.ReactNode,
+  field: string,
+  sortField: string | null | undefined,
+  sortDirection: SortDirection | null | undefined,
+  onSortChange?: (field: string) => void,
+): React.ReactNode {
+  if (!onSortChange) return label;
+  return (
+    <SortableHeader
+      label={label}
+      field={field}
+      activeField={sortField ?? null}
+      direction={sortDirection ?? null}
+      onSort={onSortChange}
+    />
   );
 }
 

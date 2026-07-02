@@ -1,0 +1,214 @@
+company_id,company_name,issue_type,recommended_action,details
+67,HABERLEŞME TEKNOLOJİLERİ KÜMELENMESİ ,encoding_issue,MANUAL_REVIEW,encoding issue
+135,SMTLİME ELEKTRONİK SAN. VE TİC. A.Ş,encoding_issue,MANUAL_REVIEW,encoding issue
+180,S&AMP;P AFS HAVALANDIRMA,html_entity,NORMALIZE,html entity
+294,BERTELLI&AMP;PARTNERS,html_entity,NORMALIZE,html entity
+704,"SAINT GERMAIN SHUNTONG HANGZHOU TECHNOLOGY CO., LTD.",encoding_issue,MANUAL_REVIEW,encoding issue
+1070,MKS MOTOR VE KONTROL SİSTEMLERİ A.Ş. -  A-OK TÜRKİYE,encoding_issue,MANUAL_REVIEW,encoding issue
+1082,SKS MONOSTAR PANJUR SAN. VE TİC. A. Ş.  / SKS / FERRINI,encoding_issue,MANUAL_REVIEW,encoding issue
+1151,UNİTED GRUP,encoding_issue,MANUAL_REVIEW,encoding issue
+4059,ALFEMO ÇOCUK &amp; GENÇ,html_entity,NORMALIZE,html entity
+4348,SIT DESIGN INTERIOR DESIGN &amp; ARCHITECTURE,html_entity,NORMALIZE,html entity
+4411,M&amp;N FURNITURE TRADING SDN BHD,html_entity,NORMALIZE,html entity
+4626,M&amp;G LOJISTIK,html_entity,NORMALIZE,html entity
+4973,"WENZHOU BONVAN STATIONERY &amp; GIFTS CO., LTD.",html_entity,NORMALIZE,html entity
+5587,"ZHEJIANG ZHUOYI INDUSTRIAL &amp; TRADING CO., LTD.",html_entity,NORMALIZE,html entity
+5619,"CONTEC MEDICAL SYSTEMS CO., LTD.",encoding_issue,MANUAL_REVIEW,encoding issue
+5628,"GUANGZHOU RAINHOME PHARM &amp; TECH CO., LTD.",html_entity,NORMALIZE,html entity
+5644,"MICROCURE&amp;#65288;SUZHOU&amp;#65289;MEDICAL TECHNOLOGY CO., LTD. ",html_entity,NORMALIZE,html entity
+5649,SHANDONG RUYUE MEDICAL TECHNOLOGY CO.&amp;#65292;LTD,html_entity,NORMALIZE,html entity
+5853,"LIFE MEDICAL EQUIPMENT&amp;#65288;GUANGZHOU&amp;#65289;CO., LTD.",html_entity,NORMALIZE,html entity
+6307,JK FILES &amp; ENGINEERING LTD,html_entity,NORMALIZE,html entity
+6323,"JIAXING CHINAFAR STANDARD PARTS CO.,LTD",encoding_issue,MANUAL_REVIEW,encoding issue
+6817,ÖZPINARCI KIDS AYAKKABI &#8211; GÜVEN ÇALISKAN,html_entity,NORMALIZE,html entity
+6987,MANZO AYAKKABI &#8211; SAFA TOSUN,html_entity,NORMALIZE,html entity
+7009,BY GÖZDE AYAKKABI INS. KUYUM VE TARIM ÜRÜNLERI ITH. IHR. SAN. A.S. &#8211; FORZA AYAKKABI,html_entity,NORMALIZE,html entity
+7022,OCOO &#8221;??????&#8221;,html_entity,NORMALIZE,html entity
+7979,SHAOXING ZHAOFENG VELVET CO.&#65292;LTD,html_entity,NORMALIZE,html entity
+8018,"SHAOXING DAOKUAN IMPORT &amp; EXPORT CO., LTD.",html_entity,NORMALIZE,html entity
+8056,GAZI VATKA NONWOVEN &amp; ELYAF,html_entity,NORMALIZE,html entity
+8065,ARLON YARN &amp; FABRIC,html_entity,NORMALIZE,html entity
+8080,"LILUO&#65288;JIAXING&#65289;IMPORT &amp; EXPORT CO,.LTD",html_entity,NORMALIZE,html entity
+8089,SARA TEXTILES &amp; MELVAN TRADING,html_entity,NORMALIZE,html entity
+8098,PLATANO-CUT&amp;BUY,html_entity,NORMALIZE,html entity
+8199,HALINAME &amp; TURQHOUSE,html_entity,NORMALIZE,html entity
+8208,AF&#39;D FABRICS,html_entity,NORMALIZE,html entity
+8212,"SHAOXING&#160;WORTHSHARE&#160;TEXTILE&#160;CO.,LTD",html_entity,NORMALIZE,html entity
+8220,"SHAOXING ALL-CAN IMPORT &amp; EXPORT CO.,LTD",html_entity,NORMALIZE,html entity
+8262,"HANGZHOU KERUIXIN IMPORT &amp; EXPORT CO.,LTD",html_entity,NORMALIZE,html entity
+8348,LORE&#39;S PERDE,html_entity,NORMALIZE,html entity
+8384,WUXISOUTHTEXTILE CO.&#65292; LTD.,html_entity,NORMALIZE,html entity
+8421,"SUZHOU JINYUE TEXTILE IMP&amp;EXP CO.,LTD",html_entity,NORMALIZE,html entity
+8427,"NANTONG SKYLAND INDUSTRIAL &amp; TRADE CO.,LTD.",html_entity,NORMALIZE,html entity
+8482,PROCESS ALUMINIUM &amp; PVC SYSTEMS,html_entity,NORMALIZE,html entity
+8527,ARMAGAN&#39;S,html_entity,NORMALIZE,html entity
+8607,TELA&#39;S DESIGN,html_entity,NORMALIZE,html entity
+8619,"HANGZHOU YUHANG LIGHT INDUSTRY IMPORT&amp;EXPORT CO., LTD.",html_entity,NORMALIZE,html entity
+8620,"ZHEJIANG HUANLONG NEW MATERIAL SCIENCE&amp; TECHNOLOGY CO.,LTD",html_entity,NORMALIZE,html entity
+8680,"TONGXIANG MINGYUAN IMP &amp; EXP CO., LTD",html_entity,NORMALIZE,html entity
+8692,TEKIN&#39;S HOME,html_entity,NORMALIZE,html entity
+8715,MERKEZ KADIFE / FABRIC HILL&#39;S,html_entity,NORMALIZE,html entity
+8730,"SUZHOU LANGYUE IMPORT&amp;EXPORT CO.,LTD.",html_entity,NORMALIZE,html entity
+8751,"SHAOXING NAYU IMP&amp;EXP CO.,LTD",html_entity,NORMALIZE,html entity
+8790,B&amp;G STORE MAGAZACILIK A.S.,html_entity,NORMALIZE,html entity
+9020,MTS Motor Takip Sistemi   Ümit Küçükşahin,encoding_issue,MANUAL_REVIEW,encoding issue
+9061,Borusan Makina ve Güç Sistemleri San.ve Tic.A.Ş  ,encoding_issue,MANUAL_REVIEW,encoding issue
+10469,İSTANBULMAK GIDA MAKİNA  ÜRETİM SATIŞ VE SERVİS SAN. TİC. LTD. ŞTİ.,encoding_issue,MANUAL_REVIEW,encoding issue
+10525,NANMAK MAKİNA SANAYİ VE TİCARET  - EYÜP KÜTÜK,encoding_issue,MANUAL_REVIEW,encoding issue
+10529,OMG GRUP GIDA NAK. İNŞ. TEM. SAN. TİC. LTD.  ŞTİ.,encoding_issue,MANUAL_REVIEW,encoding issue
+10870,COLORS &amp; CARATS DIAM LLC,html_entity,NORMALIZE,html entity
+11606,ABILITIES INDIA PISTONS &amp; RINGS LTD.,html_entity,NORMALIZE,html entity
+11642,EUROTEXSO STEERING OIL SEALS &amp; SPARE PARTS,html_entity,NORMALIZE,html entity
+11645,"WENZHOU B.R.T. IMPS&amp;EXPS CO., LTD",html_entity,NORMALIZE,html entity
+11717,BFP COOLING PARTS CO.LTD,encoding_issue,MANUAL_REVIEW,encoding issue
+11722,"LANGFANG HUIYU MOLD &amp; PLASTIC CO., LTD",html_entity,NORMALIZE,html entity
+11802,BİRLİK CONTA &amp; SILCON GASKET,html_entity,NORMALIZE,html entity
+11853,"NINGBO EBI BEARINGS &amp; AUTO PARTS INDUSTRY CO., LTD.",html_entity,NORMALIZE,html entity
+11877,FAMCO &amp; FA-ME OTOMOTİV SAN.TİC.LTD.ŞTİ.,html_entity,NORMALIZE,html entity
+11894,GAT GmbH &amp; Co. KG,html_entity,NORMALIZE,html entity
+11925,"RUI&#039;AN IVOK AUTO PARTS CO., LTD.",html_entity,NORMALIZE,html entity
+11984,MRS ELECTRONIC GMBH &amp; CO.KG,html_entity,NORMALIZE,html entity
+12099,UYGUN SANAYİ SERVİS &amp; GARAJ EKİPMANLARI,html_entity,NORMALIZE,html entity
+12134,CARTER&amp;CARTER HOLDING INTERNATIONAL LTD,html_entity,NORMALIZE,html entity
+12150,KISTENMACHER AUTO + TECHNIK GMBH &amp; CO. KG,html_entity,NORMALIZE,html entity
+12156,Koyuncuoğlu Oto Klima &amp; EG Makina,html_entity,NORMALIZE,html entity
+12178,"GUANGDONG PUSTAR ADHESIVES&amp;SEALANTS CO.,LTD.",html_entity,NORMALIZE,html entity
+12185,"NANJING CORNUCOPIA TECH.&amp;DEVELOPING CO.,LTD",html_entity,NORMALIZE,html entity
+12219,MQ OILLESS BEARING &amp;  SHUNTIAN MACHINERY,html_entity,NORMALIZE,html entity
+12226,"RUI&#039;AN SOLAR AUTOPARTS CO.,LTD",html_entity,NORMALIZE,html entity
+12233,"QINGDAO QINGTE IMPORT&amp;EXPORT CO., LTD.",html_entity,NORMALIZE,html entity
+12262,GHAURI TYRE &amp; TUBE (Pvt). LTD.,html_entity,NORMALIZE,html entity
+12278,Emirates Key &amp; Diagnostic Tools,html_entity,NORMALIZE,html entity
+12331,QINGHE YUANDONG RUBBER&amp;PLASTIC PRODUCTS FACTORY,html_entity,NORMALIZE,html entity
+12353,"HEFEI HAO CHI IMP &amp; EXP CO.,LTD",html_entity,NORMALIZE,html entity
+12355,NINGBO TUOPU IMP&amp;EXP.CORP,html_entity,NORMALIZE,html entity
+12754,KOBOLD Ölçüm Araçları Limited Şirketi,encoding_issue,MANUAL_REVIEW,encoding issue
+12765,MV Endüstriyel Ölçüm Cihazları Anonim Şirketi,encoding_issue,MANUAL_REVIEW,encoding issue
+13753,B&amp;B DENTAL S.R.L.,html_entity,NORMALIZE,html entity
+14145,RITTER IMPLANTS GMBH&amp;CO KG,html_entity,NORMALIZE,html entity
+14264,ZHENGZHOU&ensp;HUAER ELECTRO-OPTİCS,html_entity,NORMALIZE,html entity
+15345,N &amp; FS HANDMADE SHOES DESIGNER HOME FATİH ŞENİPEK,html_entity,NORMALIZE,html entity
+15376,STAMATIOU ANTONIA (PRIVATE &#8211; PERSONAL),html_entity,NORMALIZE,html entity
+15389,ZAKRAD PRODUKCJI OBUWIA &#8221;AGDA&#8221; EDWARD MOSKALA,html_entity,NORMALIZE,html entity
+17796,TRMotor Güç Sistemleri A.Ş.,encoding_issue,MANUAL_REVIEW,encoding issue
+21679,TSE - TÜRK STANDARDLARI ENSTITÜSÜ,encoding_issue,MANUAL_REVIEW,encoding issue
+21716,CSM AJANS &amp; YAYINCILIK CÜNEYT HIÇDÖNMEZ,html_entity,NORMALIZE,html entity
+21764,B&amp;G ETIKET AMBALAJ MAKINA VE MALZ. HIZMETLERI - BERKAY UÇAR,html_entity,NORMALIZE,html entity
+21811,DOOSAN ELECTRONIC MACHINERY &amp; EQUIPMENT,html_entity,NORMALIZE,html entity
+22312,"LIAONING ZHANHONGTU MACHINERY &amp; EQUIPMENT CO., LTD.",html_entity,NORMALIZE,html entity
+23262,EMX MOTORLU TASITLAR SAN. TIC.&nbsp;A.S.,html_entity,NORMALIZE,html entity
+23429,BAUSANO &amp; FIGLI S.P.A.,html_entity,NORMALIZE,html entity
+23807,Cen&amp;Kav,html_entity,NORMALIZE,html entity
+23863,G.E.T. Gasto &amp; Event GmbH,html_entity,NORMALIZE,html entity
+23864,G.E.T. Gastro &amp; Event GmbH,html_entity,NORMALIZE,html entity
+24230,DİMASSİ MASA &amp; SANDALYE,html_entity,NORMALIZE,html entity
+24252,BM YATAK TEKSTİL SANAYİ VE TİCARET LİMİTED ŞİRKETİ / BED &amp; MORE,html_entity,NORMALIZE,html entity
+24457,FALCON YATÇILIK SAN  VE TİC.A.Ş,encoding_issue,MANUAL_REVIEW,encoding issue
+25160,RST Ölçü Kontrol Enstrümanlar,encoding_issue,MANUAL_REVIEW,encoding issue
+25490,"HANGZHOU XINCHEN IMP.&amp; EXP. CO., LTD.",html_entity,NORMALIZE,html entity
+25499,"HEBEI HONDE INDUSTRIAL TRADE IMP&amp;EXP CO., LTD.",html_entity,NORMALIZE,html entity
+25705,CERTILOOP YEŞİL DÖNÜŞÜM SERTİFİKASYON HİZMETLERİ A.Ş,encoding_issue,MANUAL_REVIEW,encoding issue
+25757,Metronik Ölçü Kontrol ve Termoeleman San. Ve Tic.,encoding_issue,MANUAL_REVIEW,encoding issue
+25886,Jumo Ölçü Sist. Ve Otom. San. Ve Tic. Ltd. Şti.,encoding_issue,MANUAL_REVIEW,encoding issue
+25897,Tesla Ölçü Kontrol Sistemleri ve Çevre Teknolojileri Ltd.,encoding_issue,MANUAL_REVIEW,encoding issue
+25951,CHROME MASTER PASLANMAZ METAL  SAN. TİC. LTD. ŞTİ.,encoding_issue,MANUAL_REVIEW,encoding issue
+26009,İDM  MEKATRONİK SAN. TİC. LTD. ŞTİ.,encoding_issue,MANUAL_REVIEW,encoding issue
+26012,İNTERMET METAL VE  MAKİNA SAN. TİC. LTD. ŞTİ.,encoding_issue,MANUAL_REVIEW,encoding issue
+26100,YİBER  ELEKTRONİK SAN. TİC. LTD. ŞTİ.,encoding_issue,MANUAL_REVIEW,encoding issue
+26170,Global Seamless Tubes &amp; Pipes Pvt. Ltd.,html_entity,NORMALIZE,html entity
+26175,"Jiangsu Listrong Mechanical &amp; Electrical Co.,Ltd ",html_entity,NORMALIZE,html entity
+26180,"TAIYUAN HUAXINCHENG M&amp;E EQUIPMENT CO.,LTD",html_entity,NORMALIZE,html entity
+26377,JP ENDÜSTRIYEL MUTFAK MAKINA VE EKIPMANLARI SAN.&#xA;TIC.LTD.STI.,html_entity,NORMALIZE,html entity
+26463,ÖZMET A.Ş. (Öztiryakiler Madeni E&#x15F;ya San. ve Tic. A.Ş),html_entity,NORMALIZE,html entity
+26586,"TAIZHOU HORIZON NEW MATERIALS CO., LTD.",encoding_issue,MANUAL_REVIEW,encoding issue
+26809,"GUANGDONG ZONCENWAY ELECTRIC TECHNOLOGY CO.,LTD.",encoding_issue,MANUAL_REVIEW,encoding issue
+26926,"ZHONGSHAN DIPPERS ELECTRIC  CO., LTD.",encoding_issue,MANUAL_REVIEW,encoding issue
+26963,"ZHEJIANG HUAYI SUPPLY CHAIN MANAGEMENT CO,LTD",encoding_issue,MANUAL_REVIEW,encoding issue
+26983,"ZHEJIANG DAWEI ELECTRONIC CO., LTD.",encoding_issue,MANUAL_REVIEW,encoding issue
+27038,"CHONGQING SHIELD GEAR &amp; TRANSMISSION CO.,LTD",html_entity,NORMALIZE,html entity
+27071,"RUIAN COP.IMP &amp; EXP. TRADE CO., LTD",html_entity,NORMALIZE,html entity
+27073,"LIAOCHENG TONGWANG IMP &amp; EXP CO., LTD.",html_entity,NORMALIZE,html entity
+27174,GHANDHARA TYRE &amp; RUBBER COMPANY LIMITED,html_entity,NORMALIZE,html entity
+27202,MEYER GLITZA FRESE GMBH &amp; CO. KG,html_entity,NORMALIZE,html entity
+27264,MULTIPARTS EUROPE LTD. &amp; Zhejiang ODM Transmission,html_entity,NORMALIZE,html entity
+27317,"TAIZHOU MAIDIWEN M&amp;E CO.,LTD",html_entity,NORMALIZE,html entity
+27318,"RUIAN RUISHEN IMPORT&amp;EXPORT TRADING CO., LTD.",html_entity,NORMALIZE,html entity
+27319,"WENZHOU RIYI ELECTROMECHANICAL TECHNOLOGY CO ., LTD",encoding_issue,MANUAL_REVIEW,encoding issue
+27346,EMIRATES KEYS &amp; DIAGNOSTIC TOOLS,html_entity,NORMALIZE,html entity
+27354,"CHANGZHOU CHANGZHENG IMPORT &amp; EXPORT CO., LTD",html_entity,NORMALIZE,html entity
+27380,"XINZHIHE INDUSTRY&amp;TRADE CO.,LTD",html_entity,NORMALIZE,html entity
+27389,"TONGCHI AUTO AIR CONDITIONER MANUFACTURING CO., LTD.",encoding_issue,MANUAL_REVIEW,encoding issue
+27390,"HEFEI HAOCHI IMPORT &amp; EXPORT CO., LTD.",html_entity,NORMALIZE,html entity
+27477,AMETEK AEROSPACE &amp;DEFENSE,html_entity,NORMALIZE,html entity
+27572,B&amp;W TEK INC.,html_entity,NORMALIZE,html entity
+27661,"CHANAKYA AEROSPACE, DEFENCE &amp; MARITIME REVIEW",html_entity,NORMALIZE,html entity
+27753,E&amp;C ANECHOİC CHAMBERS N.V,html_entity,NORMALIZE,html entity
+27834,FRANZ BİNDER GMBH &amp; CO.,html_entity,NORMALIZE,html entity
+27942,IDEX &amp; NAVDEX 2025,html_entity,NORMALIZE,html entity
+27948,INDO AEROSPACE 2024 EXPO &amp; FORUM,html_entity,NORMALIZE,html entity
+27949,INDO DEFENCE 2024 EXPO &amp; FORUM,html_entity,NORMALIZE,html entity
+27950,INDO MARINE 2024 EXPO &amp; FORUM,html_entity,NORMALIZE,html entity
+27956,INSTİTUT DR. FOERSTER GMBH &amp; CO. KG,html_entity,NORMALIZE,html entity
+27964,IRIDIUM SERVICES &amp; LOGISTIC CONSULTANCY,html_entity,NORMALIZE,html entity
+28001,"KARBON COMPOSİTES &amp; TECHNOLOGY CO., LTD",html_entity,NORMALIZE,html entity
+28064,LMB FAN &amp; MOTORS,html_entity,NORMALIZE,html entity
+28257,PİC WİRE &amp; CABLE,html_entity,NORMALIZE,html entity
+28297,RAFI GMBH &amp; CO. KG,html_entity,NORMALIZE,html entity
+28311,RESEARCH &amp; DEVELOPMENT CENTER KAZAKHSTAN ENGINEERING LLC,html_entity,NORMALIZE,html entity
+28434,SPACE MACHINE &amp; ENGINEERING,html_entity,NORMALIZE,html entity
+28567,UK DEFENCE &amp; SECURİTY EXPORTS,html_entity,NORMALIZE,html entity
+28631,"WUHAN HUACHENG TEXTILE&amp;GARMENTS CO., LTD.",html_entity,NORMALIZE,html entity
+28967,AKTAN MISR TEXTILE &amp; DYEING S.A.E,html_entity,NORMALIZE,html entity
+29024,HNF KİMYA SANAYİ VE TİCARET LTD. &amp; ZSCHİMMER-SCHWARZ LEFATEX,html_entity,NORMALIZE,html entity
+29559,"ANPING SHENGJIA HARDWARE &#038; MESH CO., LTD.",html_entity,NORMALIZE,html entity
+29560,SHANDONG WEIMA EQUIPMENT SCIENCE &#038; TECHNOLOGY CORPORATION LIMITED,html_entity,NORMALIZE,html entity
+29883,TUBEBOX  AMBALAJ SAN.TİC.LTD.ŞTİ.,encoding_issue,MANUAL_REVIEW,encoding issue
+30209,"CHONGQİNG QİHAO IMPORT &AMP; EXPORT CO., LTD.",html_entity,NORMALIZE,html entity
+30260,ALBAJES COMPANY FOR NATURAL HERBS &AMP; HONEY PRODUCTION,html_entity,NORMALIZE,html entity
+30630,"JİANGSU GIANT ALLY IMP. & EXP. CO., LTD",encoding_issue,MANUAL_REVIEW,encoding issue
+30810,KOREA AGRO-FiSHERiES &AMP; FOOD TRADE CORPORATiON (AT),html_entity,NORMALIZE,html entity
+31063,"TAİZHOU HOPO MOULD &AMP; PLASTİC TECHNOLOGY CO.,LTD",html_entity,NORMALIZE,html entity
+31097,"YUYAO LVDAO PLASTİC&AMP;RUBBER MACHİNERY CO.,LTD.",html_entity,NORMALIZE,html entity
+31112,"TAİZHOU HUANGYAN ZHİLİAN MOULD &AMP; PLASTİC CO., LTD.",html_entity,NORMALIZE,html entity
+31123,CERTİLOOP YEŞiL DÖNÜŞÜM SERTiFiKASYON HiZMETLERi A.Ş.,encoding_issue,MANUAL_REVIEW,encoding issue
+31156,"SHAOXİNG TONY IMPORT &AMP; EXPORT CO., LTD.",html_entity,NORMALIZE,html entity
+31179,"TAİZHOU HUANGYAN YUNTİAN MOULD&AMP;PLASTİC CO.,LTD",html_entity,NORMALIZE,html entity
+31202,BEGRA GRANULATE GMBH &AMP; CO. KG,html_entity,NORMALIZE,html entity
+31216,"ZHEJİANG RONGXİN MOULD &AMP; PLASTİC CO.,LTD",html_entity,NORMALIZE,html entity
+31226,"ZHOUSHAN HOOSO IMP&AMP;EXP CO.,LTD.",html_entity,NORMALIZE,html entity
+31227,"LAİWU HUAYA POLYMER SCİ.&AMP;TECH. CO., LTD.",html_entity,NORMALIZE,html entity
+31236,"RUİAN POLYPRİNT IMPORT&AMP;EXPORT CO., LTD.",html_entity,NORMALIZE,html entity
+31256,"TAİZHOU HUANGYAN AİSAİLİ PLASTİC&AMP;MOULD CO.,LTD",html_entity,NORMALIZE,html entity
+31285,TAİZHOU HUANGYAN BİLE MOLD &AMP; PLASTİC CO.,html_entity,NORMALIZE,html entity
+31445,"YANGZHOU M&AMP;G TEXTİLES CO., LTD.",html_entity,NORMALIZE,html entity
+31485,SAURER TECHNOLOGİES GMBH &AMP; CO. KG TWİSTİNG SOLUTİONS,html_entity,NORMALIZE,html entity
+31550,PAHSA TRAILER &amp; CARAVAN,html_entity,NORMALIZE,html entity
+31695,"NINGBO DAFA CHEMICAL FIBER CO.,LTD",encoding_issue,MANUAL_REVIEW,encoding issue
+31705,"ZHEJIANG XIANGXI IMPORT&amp;EXPORT CO.,LTD",html_entity,NORMALIZE,html entity
+31754,"QINGDAO DEYUANCHANG TEXTILE TECHNOLOGY CO., LTD&amp;#8194;",html_entity,NORMALIZE,html entity
+31883,"QINGDAO KSL MACHINERY SCIENCE &amp; TECHNOLOGY CO., LTD",html_entity,NORMALIZE,html entity
+31941,"JIANGSU SUYU IMPORT&amp;EXPORT TRADING CO.,LTD ",html_entity,NORMALIZE,html entity
+31956,METAL MAKİNE-HİDROLİK&amp;PNÖMATİK,html_entity,NORMALIZE,html entity
+31965,PLANT &amp; EQUIPMENTS,html_entity,NORMALIZE,html entity
+31971,"SHENYANG HUAYUE BRILLIANT MACHINERY &amp; EQUIPMENT CO., LTD",html_entity,NORMALIZE,html entity
+32041,"ELITE MEDICAL (NANJING) CO., LTD.",encoding_issue,MANUAL_REVIEW,encoding issue
+32056,"ZHEJIANG J&amp;J MOBILITY CO., LTD.",html_entity,NORMALIZE,html entity
+32157,"JINAN GOLD MARK CNC MACHINERY CO.,LTD",encoding_issue,MANUAL_REVIEW,encoding issue
+32165,"HANN KUEN MACHINERY &amp;#65286; HARDWARE CO., LTD.",html_entity,NORMALIZE,html entity
+32276,SARIÇAM ELEKTRİK &AMP; PANO,html_entity,NORMALIZE,html entity
+32462,KHUSH KHULQ DUSTOOR CARPETS &AMP; MANUFACTURERS,html_entity,NORMALIZE,html entity
+32755,"ANJ INTERNATİONAL EQUİPMENTS &AMP; ACCESSORİES CO., LTD.",html_entity,NORMALIZE,html entity
+32801,"TAİZHOU HUANGYAN XUSHİ IMPORT&AMP;EXPORT CO ., LTD.",html_entity,NORMALIZE,html entity
+32827,RİVER &amp; SEA CARAVAN MEHMET SAİT ARSLAN,html_entity,NORMALIZE,html entity
+32889,"HANGZHOU HENGHANG IMPORT &amp; EXPORT CO., LTD.",html_entity,NORMALIZE,html entity
+33212,"CHANGZHOU HOPEFINDER POLYMER SCI.&amp;TECH.CO., LTD.",html_entity,NORMALIZE,html entity
+33214,LUC &amp; BEL,html_entity,NORMALIZE,html entity
+33275,"ZHEJIANG HENGDIAN INNUOVO IMP.&amp; EXP.CO., LTD.",html_entity,NORMALIZE,html entity
+33582,Giztek Endüstri ve Tesisat Sistemleri Sanayi Ticaret Murat Küçükkökdiken,encoding_issue,MANUAL_REVIEW,encoding issue
+33716,Türkçüler Yapı Malzemeleri ve İnşaat Limited Şirketi,encoding_issue,MANUAL_REVIEW,encoding issue
+33747,İzo-Par İzolasyon Parke - Tülin Güç,encoding_issue,MANUAL_REVIEW,encoding issue
+33779,Ölçü İnşaat Taahhüt Kırtasiye Ticaret Limited Şirketi,encoding_issue,MANUAL_REVIEW,encoding issue
+33841,Öçal Uysal Uysal Yapı,encoding_issue,MANUAL_REVIEW,encoding issue
+34440,Esa Ölçüm ve Test Cihazları Elektronik Sanayi ve Tic. Ltd. Şti.,encoding_issue,MANUAL_REVIEW,encoding issue
+34479,Üç Yıldız Teknik Hırdavat San. Tic. Ltd. Şti.,encoding_issue,MANUAL_REVIEW,encoding issue
+34505,BAUSCH&AMP;LOMB,html_entity,NORMALIZE,html entity

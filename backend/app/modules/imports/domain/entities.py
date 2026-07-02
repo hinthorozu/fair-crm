@@ -4,8 +4,11 @@ from typing import Any, Optional
 from uuid import UUID, uuid4
 
 from app.modules.imports.domain.value_objects import (
+    ExcelHeaderMode,
     ImportBatchStatus,
     ImportDecision,
+    ImportJobStatus,
+    ImportJobType,
     ImportRowStatus,
     ImportSourceType,
     ImportSuggestedAction,
@@ -32,6 +35,10 @@ class ImportBatch:
     column_mapping_json: Optional[dict[str, Any]]
     raw_preview_json: Optional[dict[str, Any]]
     has_header_row: Optional[bool]
+    header_mode: Optional[ExcelHeaderMode]
+    header_row_index: Optional[int]
+    selected_sheet_name: Optional[str]
+    stored_file_content: Optional[bytes]
     created_at: datetime
     updated_at: datetime
     completed_at: Optional[datetime]
@@ -47,8 +54,10 @@ class ImportBatch:
         source_type: ImportSourceType = ImportSourceType.EXCEL,
         total_rows: int = 0,
         raw_preview_json: dict[str, Any] | None = None,
+        stored_file_content: bytes | None = None,
         now: datetime,
     ) -> "ImportBatch":
+        sheet_name = raw_preview_json.get("sheet_name") if raw_preview_json else None
         return cls(
             id=uuid4(),
             organization_id=organization_id,
@@ -68,6 +77,10 @@ class ImportBatch:
             column_mapping_json=None,
             raw_preview_json=raw_preview_json,
             has_header_row=None,
+            header_mode=None,
+            header_row_index=None,
+            selected_sheet_name=sheet_name,
+            stored_file_content=stored_file_content,
             created_at=now,
             updated_at=now,
             completed_at=None,
@@ -103,16 +116,36 @@ class ImportBatch:
             column_mapping_json=None,
             raw_preview_json=None,
             has_header_row=None,
+            header_mode=None,
+            header_row_index=None,
+            selected_sheet_name=None,
+            stored_file_content=None,
             created_at=now,
             updated_at=now,
             completed_at=None,
             notes=None,
         )
 
-    def mark_mapped(self, *, mapping: dict[str, Any], has_header_row: bool, now: datetime) -> None:
+    def mark_mapped(
+        self,
+        *,
+        mapping: dict[str, Any],
+        has_header_row: bool,
+        header_mode: ExcelHeaderMode | None = None,
+        header_row_index: int | None = None,
+        now: datetime,
+    ) -> None:
         self.column_mapping_json = mapping
         self.has_header_row = has_header_row
+        self.header_mode = header_mode
+        self.header_row_index = header_row_index
         self.status = ImportBatchStatus.MAPPED
+        self.updated_at = now
+
+    def set_sheet(self, *, sheet_name: str, raw_preview_json: dict[str, Any], now: datetime) -> None:
+        self.selected_sheet_name = sheet_name
+        self.raw_preview_json = raw_preview_json
+        self.total_rows = raw_preview_json.get("total_rows", 0)
         self.updated_at = now
 
     def mark_analyzed(self, *, now: datetime) -> None:

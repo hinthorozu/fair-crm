@@ -1,0 +1,29 @@
+{
+  "generated_at": "2026-07-01T15:55:35.703261+00:00",
+  "source": "C:\\Users\\hinthorozu\\Desktop\\withdata_u7409970_umycrm.sql",
+  "input": {
+    "companies": 29321,
+    "emails": 40240,
+    "fairs": 115,
+    "relations": 29562
+  },
+  "stats": {
+    "dropped_placeholder_phone": 28,
+    "phones_dropped_empty": 73402,
+    "phones_duplicate_merged": 3,
+    "dropped_placeholder_website": 2,
+    "dropped_invalid_website": 224,
+    "websites_normalized": 6650,
+    "websites_dropped_empty": 39468,
+    "websites_duplicate_merged": 0,
+    "dropped_empty_email": 0,
+    "dropped_placeholder_email": 0,
+    "dropped_invalid_email": 43,
+    "emails_duplicate_merged": 462,
+    "manual_review_companies": 1470,
+    "fair_dates_nullified": 128,
+    "manual_review_fairs": 7,
+    "relation_orphans_dropped": 0,
+    "duplicate_relations_dropped": 1
+  }
+}

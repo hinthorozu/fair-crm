@@ -8,23 +8,45 @@ interface ModalProps {
   size?: "default" | "lg";
 }
 
+const FOCUSABLE_SELECTOR =
+  'textarea, input:not([type="hidden"]), select, button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
+
+function focusInitialElement(body: HTMLElement | null, closeButton: HTMLButtonElement | null) {
+  const firstFocusable = body?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+  if (firstFocusable) {
+    firstFocusable.focus();
+    return;
+  }
+  closeButton?.focus();
+}
+
 export function Modal({ title, onClose, children, size = "default" }: ModalProps) {
   const closeRef = React.useRef<HTMLButtonElement>(null);
-  const dialogRef = React.useRef<HTMLDivElement>(null);
+  const bodyRef = React.useRef<HTMLDivElement>(null);
+  const onCloseRef = React.useRef(onClose);
+  onCloseRef.current = onClose;
 
   React.useEffect(() => {
-    closeRef.current?.focus();
+    focusInitialElement(bodyRef.current, closeRef.current);
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onCloseRef.current();
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, []);
+
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onCloseRef.current();
+    }
+  };
 
   return (
-    <div className="modal-backdrop" onClick={onClose} role="presentation">
+    <div className="modal-backdrop" onClick={handleBackdropClick} role="presentation">
       <div
-        ref={dialogRef}
         className={`modal ${size === "lg" ? "modal-lg" : ""}`.trim()}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
@@ -37,13 +59,15 @@ export function Modal({ title, onClose, children, size = "default" }: ModalProps
             ref={closeRef}
             type="button"
             className="btn icon"
-            onClick={onClose}
+            onClick={() => onCloseRef.current()}
             aria-label={labels.cancel}
           >
             ×
           </button>
         </header>
-        <div className="modal-body">{children}</div>
+        <div ref={bodyRef} className="modal-body">
+          {children}
+        </div>
       </div>
     </div>
   );

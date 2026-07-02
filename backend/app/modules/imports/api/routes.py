@@ -74,7 +74,7 @@ from app.modules.imports.domain.exceptions import (
     InvalidImportFileError,
 )
 
-router = APIRouter(prefix="/imports", tags=["imports"])
+router = APIRouter(tags=["imports"])
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
@@ -210,6 +210,8 @@ def set_column_mapping(
                 batch_id=batch_id,
                 has_header_row=body.has_header_row,
                 mappings=mappings,
+                header_mode=body.header_mode,
+                header_row_index=body.header_row_index,
             )
         )
     except ImportBatchNotFoundError as exc:
@@ -279,12 +281,15 @@ def list_import_rows(
     ] = 25,
     sort: Annotated[
         str | None,
-        Query(validation_alias=AliasChoices("sort", "sort_by")),
+        Query(validation_alias=AliasChoices("sort_by", "sort")),
     ] = None,
     sort_by: Annotated[str | None, Query(include_in_schema=False)] = None,
     direction: Annotated[
         str | None,
-        Query(pattern="^(?i)(asc|desc)$", validation_alias=AliasChoices("direction", "sort_dir")),
+        Query(
+            pattern="^(?i)(asc|desc)$",
+            validation_alias=AliasChoices("sort_order", "sort_dir", "direction"),
+        ),
     ] = None,
     sort_dir: Annotated[str | None, Query(include_in_schema=False)] = None,
     auth: AuthContext = Depends(require_read_permission),

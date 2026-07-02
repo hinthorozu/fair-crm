@@ -24,6 +24,16 @@ class ImportBatchRepository(Protocol):
 
     def update(self, batch: ImportBatch) -> ImportBatch: ...
 
+    def list_paginated(
+        self,
+        organization_id: UUID,
+        *,
+        page: int,
+        page_size: int,
+        sort_by: str = "created_at",
+        sort_dir: str = "desc",
+    ) -> tuple[list[ImportBatch], int]: ...
+
 
 class ImportRowRepository(Protocol):
     def add_many(self, rows: list[ImportRow]) -> list[ImportRow]: ...

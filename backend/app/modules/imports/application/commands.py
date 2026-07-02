@@ -1,9 +1,15 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
 
-from app.modules.imports.domain.value_objects import ImportBatchStatus, ImportDecision, ImportRowStatus, ImportSourceType
+from app.modules.imports.domain.value_objects import (
+    ExcelHeaderMode,
+    ImportBatchStatus,
+    ImportDecision,
+    ImportRowStatus,
+    ImportSourceType,
+)
 
 
 @dataclass(frozen=True)
@@ -33,6 +39,27 @@ class SetColumnMappingCommand:
     batch_id: UUID
     has_header_row: bool
     mappings: dict[str, dict[str, Any]]
+    header_mode: ExcelHeaderMode | None = None
+    header_row_index: int | None = None
+
+
+@dataclass(frozen=True)
+class SelectImportSheetCommand:
+    organization_id: UUID
+    user_id: UUID
+    access_token: str
+    batch_id: UUID
+    sheet_name: str
+    file_content: bytes = b""
+
+
+@dataclass(frozen=True)
+class ListImportBatchesQuery:
+    organization_id: UUID
+    page: int = 1
+    page_size: int = 25
+    sort_by: str = "created_at"
+    sort_dir: str = "desc"
 
 
 @dataclass(frozen=True)
@@ -160,6 +187,8 @@ class UploadRawImportResult:
     suggested_mapping: dict[str, Any]
     status: ImportBatchStatus
     file_name: str
+    available_sheets: list[str] = field(default_factory=list)
+    selected_sheet_name: str | None = None
 
 
 @dataclass

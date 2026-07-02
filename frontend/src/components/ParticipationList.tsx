@@ -7,8 +7,8 @@ import { participationLabels, participationStatusLabels } from "../labels/partic
 import { uiLabels } from "../labels/uiLabels";
 import { labels } from "../labels";
 import { Badge } from "./ui/Badge";
-import { DataTableShell } from "./ui/DataTable";
 import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
+import { UniversalDataTable, type UniversalDataTableColumn } from "./ui/UniversalDataTable";
 import { participationStatusBadgeVariant } from "../utils/badges";
 
 function formatFairDates(start: string | null, end: string | null): string {
@@ -31,77 +31,108 @@ interface CustomerParticipationTableProps {
   onEdit: (item: CustomerParticipationListItem) => void;
   onDelete: (item: CustomerParticipationListItem) => void;
   emptyDueToFilters?: boolean;
+  sortField?: string | null;
+  sortDirection?: "asc" | "desc" | null;
+  onSortChange?: (field: string) => void;
 }
 
-export function CustomerParticipationTable({
-  items,
-  deletingId,
-  onCreate,
-  onEdit,
-  onDelete,
-  emptyDueToFilters,
-}: CustomerParticipationTableProps) {
-  if (items.length === 0) {
-    return (
-      <EmptyState
-        icon={<EmptyStateIcon />}
-        title={emptyDueToFilters ? uiLabels.emptySearchTitle : "Henüz fuar katılımı yok."}
-        description={
-          emptyDueToFilters ? uiLabels.emptySearchDescription : "Bu müşteriyi bir fuara ekleyerek başlayın."
-        }
-        actionLabel={onCreate ? participationLabels.addToFair : undefined}
-        onAction={onCreate}
-      />
-    );
-  }
+function buildCustomerParticipationColumns(
+  props: CustomerParticipationTableProps,
+): UniversalDataTableColumn<CustomerParticipationListItem>[] {
+  const { onEdit, onDelete, deletingId } = props;
+  return [
+    {
+      key: "fair_name",
+      title: participationLabels.fair,
+      sortable: true,
+      render: (item) => <strong>{item.fair_name}</strong>,
+    },
+    {
+      key: "fair_start_date",
+      title: participationLabels.date,
+      sortable: true,
+      render: (item) => formatFairDates(item.fair_start_date, item.fair_end_date),
+    },
+    {
+      key: "hall",
+      title: participationLabels.hall,
+      sortable: true,
+      render: (item) => item.hall ?? "—",
+    },
+    {
+      key: "stand",
+      title: participationLabels.stand,
+      sortable: true,
+      render: (item) => item.stand ?? "—",
+    },
+    {
+      key: "participation_status",
+      title: participationLabels.status,
+      sortable: true,
+      render: (item) => (
+        <Badge variant={participationStatusBadgeVariant(item.participation_status)}>
+          {participationStatusLabels[item.participation_status]}
+        </Badge>
+      ),
+    },
+    {
+      key: "primary_contact_name",
+      title: participationLabels.primaryContact,
+      sortable: true,
+      render: (item) => item.primary_contact_name ?? "—",
+    },
+    {
+      key: "visited_at",
+      title: participationLabels.visitedAt,
+      sortable: true,
+      render: (item) => formatVisitedAt(item.visited_at),
+    },
+    {
+      key: "actions",
+      title: participationLabels.actions,
+      sortable: false,
+      className: "actions",
+      render: (item) => (
+        <>
+          <button type="button" className="btn link" onClick={() => onEdit(item)}>
+            {participationLabels.edit}
+          </button>
+          <button
+            type="button"
+            className="btn link danger"
+            disabled={deletingId === item.id}
+            onClick={() => onDelete(item)}
+          >
+            {deletingId === item.id ? labels.loading : participationLabels.delete}
+          </button>
+        </>
+      ),
+    },
+  ];
+}
+
+export function CustomerParticipationTable(props: CustomerParticipationTableProps) {
+  const { items, onCreate, sortField, sortDirection, onSortChange, emptyDueToFilters } = props;
 
   return (
-    <DataTableShell>
-      <thead>
-        <tr>
-          <th>{participationLabels.fair}</th>
-          <th>{participationLabels.date}</th>
-          <th>{participationLabels.hall}</th>
-          <th>{participationLabels.stand}</th>
-          <th>{participationLabels.status}</th>
-          <th>{participationLabels.primaryContact}</th>
-          <th>{participationLabels.visitedAt}</th>
-          <th>{participationLabels.actions}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {items.map((item) => (
-          <tr key={item.id}>
-            <td>
-              <strong>{item.fair_name}</strong>
-            </td>
-            <td>{formatFairDates(item.fair_start_date, item.fair_end_date)}</td>
-            <td>{item.hall ?? "—"}</td>
-            <td>{item.stand ?? "—"}</td>
-            <td>
-              <Badge variant={participationStatusBadgeVariant(item.participation_status)}>
-                {participationStatusLabels[item.participation_status]}
-              </Badge>
-            </td>
-            <td>{item.primary_contact_name ?? "—"}</td>
-            <td>{formatVisitedAt(item.visited_at)}</td>
-            <td className="actions">
-              <button type="button" className="btn link" onClick={() => onEdit(item)}>
-                {participationLabels.edit}
-              </button>
-              <button
-                type="button"
-                className="btn link danger"
-                disabled={deletingId === item.id}
-                onClick={() => onDelete(item)}
-              >
-                {deletingId === item.id ? labels.loading : participationLabels.delete}
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </DataTableShell>
+    <UniversalDataTable
+      columns={buildCustomerParticipationColumns(props)}
+      items={items}
+      rowKey={(item) => item.id}
+      sorting={{ field: sortField ?? null, direction: sortDirection ?? null }}
+      onSortChange={onSortChange}
+      emptyState={
+        <EmptyState
+          icon={<EmptyStateIcon />}
+          title={emptyDueToFilters ? uiLabels.emptySearchTitle : "Henüz fuar katılımı yok."}
+          description={
+            emptyDueToFilters ? uiLabels.emptySearchDescription : "Bu müşteriyi bir fuara ekleyerek başlayın."
+          }
+          actionLabel={onCreate ? participationLabels.addToFair : undefined}
+          onAction={onCreate}
+        />
+      }
+    />
   );
 }
 
@@ -113,91 +144,130 @@ interface FairParticipantTableProps {
   onDelete: (item: FairParticipantListItem) => void;
   onOpenCustomer?: (customerId: string) => void;
   emptyDueToFilters?: boolean;
+  sortField?: string | null;
+  sortDirection?: "asc" | "desc" | null;
+  onSortChange?: (field: string) => void;
 }
 
-export function FairParticipantTable({
-  items,
-  deletingId,
-  onCreate,
-  onEdit,
-  onDelete,
-  onOpenCustomer,
-  emptyDueToFilters,
-}: FairParticipantTableProps) {
-  if (items.length === 0) {
-    return (
-      <EmptyState
-        icon={<EmptyStateIcon />}
-        title={emptyDueToFilters ? uiLabels.emptySearchTitle : "Henüz katılımcı firma yok."}
-        description={
-          emptyDueToFilters ? uiLabels.emptySearchDescription : "Bu fuara firma ekleyerek başlayın."
-        }
-        actionLabel={onCreate ? participationLabels.addCompany : undefined}
-        onAction={onCreate}
-      />
-    );
-  }
+function buildFairParticipantColumns(
+  props: FairParticipantTableProps,
+): UniversalDataTableColumn<FairParticipantListItem>[] {
+  const { onEdit, onDelete, onOpenCustomer, deletingId } = props;
+  return [
+    {
+      key: "company_name",
+      title: participationLabels.company,
+      sortable: true,
+      render: (item) =>
+        onOpenCustomer ? (
+          <button
+            type="button"
+            className="btn link table-link"
+            onClick={() => onOpenCustomer(item.customer_id)}
+          >
+            <strong>{item.company_name}</strong>
+          </button>
+        ) : (
+          <strong>{item.company_name}</strong>
+        ),
+    },
+    {
+      key: "email",
+      title: labels.email,
+      sortable: true,
+      render: (item) => item.email ?? "—",
+    },
+    {
+      key: "phone",
+      title: labels.phone,
+      sortable: true,
+      render: (item) => item.phone ?? "—",
+    },
+    {
+      key: "country",
+      title: labels.country,
+      sortable: true,
+      render: (item) => item.country ?? "—",
+    },
+    {
+      key: "city",
+      title: labels.city,
+      sortable: true,
+      render: (item) => item.city ?? "—",
+    },
+    {
+      key: "hall",
+      title: participationLabels.hall,
+      sortable: true,
+      render: (item) => item.hall ?? "—",
+    },
+    {
+      key: "stand",
+      title: participationLabels.stand,
+      sortable: true,
+      render: (item) => item.stand ?? "—",
+    },
+    {
+      key: "participation_status",
+      title: participationLabels.status,
+      sortable: true,
+      render: (item) => (
+        <Badge variant={participationStatusBadgeVariant(item.participation_status)}>
+          {participationStatusLabels[item.participation_status]}
+        </Badge>
+      ),
+    },
+    {
+      key: "primary_contact_name",
+      title: participationLabels.primaryContact,
+      sortable: true,
+      render: (item) => item.primary_contact_name ?? "—",
+    },
+    {
+      key: "actions",
+      title: participationLabels.actions,
+      sortable: false,
+      className: "actions",
+      render: (item) => (
+        <>
+          <button type="button" className="btn link" onClick={() => onEdit(item)}>
+            {participationLabels.edit}
+          </button>
+          <button
+            type="button"
+            className="btn link danger"
+            disabled={deletingId === item.id}
+            onClick={() => onDelete(item)}
+          >
+            {deletingId === item.id ? labels.loading : participationLabels.delete}
+          </button>
+        </>
+      ),
+    },
+  ];
+}
+
+export function FairParticipantTable(props: FairParticipantTableProps) {
+  const { items, onCreate, sortField, sortDirection, onSortChange, emptyDueToFilters } = props;
 
   return (
-    <DataTableShell>
-      <thead>
-        <tr>
-          <th>{participationLabels.company}</th>
-          <th>{labels.email}</th>
-          <th>{labels.phone}</th>
-          <th>{labels.country}</th>
-          <th>{labels.city}</th>
-          <th>{participationLabels.hall}</th>
-          <th>{participationLabels.stand}</th>
-          <th>{participationLabels.status}</th>
-          <th>{participationLabels.primaryContact}</th>
-          <th>{participationLabels.actions}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {items.map((item) => (
-          <tr key={item.id}>
-            <td>
-              {onOpenCustomer ? (
-                <button
-                  type="button"
-                  className="btn link table-link"
-                  onClick={() => onOpenCustomer(item.customer_id)}
-                >
-                  <strong>{item.company_name}</strong>
-                </button>
-              ) : (
-                <strong>{item.company_name}</strong>
-              )}
-            </td>
-            <td>{item.email ?? "—"}</td>
-            <td>{item.phone ?? "—"}</td>
-            <td>{item.country ?? "—"}</td>
-            <td>{item.city ?? "—"}</td>
-            <td>{item.hall ?? "—"}</td>
-            <td>{item.stand ?? "—"}</td>
-            <td>
-              <Badge variant={participationStatusBadgeVariant(item.participation_status)}>
-                {participationStatusLabels[item.participation_status]}
-              </Badge>
-            </td>
-            <td>{item.primary_contact_name ?? "—"}</td>
-            <td className="actions">
-              <button type="button" className="btn link" onClick={() => onEdit(item)}>
-                {participationLabels.edit}
-              </button>
-              <button
-                type="button"
-                className="btn link danger"
-                disabled={deletingId === item.id}
-                onClick={() => onDelete(item)}
-              >
-                {deletingId === item.id ? labels.loading : participationLabels.delete}
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </DataTableShell>
+    <UniversalDataTable
+      columns={buildFairParticipantColumns(props)}
+      items={items}
+      rowKey={(item) => item.id}
+      sorting={{ field: sortField ?? null, direction: sortDirection ?? null }}
+      onSortChange={onSortChange}
+      emptyState={
+        <EmptyState
+          icon={<EmptyStateIcon />}
+          title={emptyDueToFilters ? uiLabels.emptySearchTitle : "Henüz katılımcı firma yok."}
+          description={
+            emptyDueToFilters ? uiLabels.emptySearchDescription : "Bu fuara firma ekleyerek başlayın."
+          }
+          actionLabel={onCreate ? participationLabels.addCompany : undefined}
+          onAction={onCreate}
+        />
+      }
+    />
   );
 }

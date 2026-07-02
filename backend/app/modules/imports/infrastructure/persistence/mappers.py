@@ -5,6 +5,7 @@ from app.modules.imports.domain.value_objects import (
     ImportRowStatus,
     ImportSourceType,
     ImportSuggestedAction,
+    ExcelHeaderMode,
 )
 from app.modules.imports.infrastructure.persistence.models import ImportBatchModel, ImportRowModel
 
@@ -29,6 +30,10 @@ def batch_model_to_entity(model: ImportBatchModel) -> ImportBatch:
         column_mapping_json=model.column_mapping_json,
         raw_preview_json=model.raw_preview_json,
         has_header_row=model.has_header_row,
+        header_mode=ExcelHeaderMode(model.header_mode) if model.header_mode else None,
+        header_row_index=model.header_row_index,
+        selected_sheet_name=model.selected_sheet_name,
+        stored_file_content=model.stored_file_content,
         created_at=model.created_at,
         updated_at=model.updated_at,
         completed_at=model.completed_at,
@@ -56,6 +61,10 @@ def batch_entity_to_model(entity: ImportBatch) -> ImportBatchModel:
         column_mapping_json=entity.column_mapping_json,
         raw_preview_json=entity.raw_preview_json,
         has_header_row=entity.has_header_row,
+        header_mode=entity.header_mode.value if entity.header_mode else None,
+        header_row_index=entity.header_row_index,
+        selected_sheet_name=entity.selected_sheet_name,
+        stored_file_content=entity.stored_file_content,
         created_at=entity.created_at,
         updated_at=entity.updated_at,
         completed_at=entity.completed_at,
@@ -80,6 +89,10 @@ def update_batch_model_from_entity(model: ImportBatchModel, entity: ImportBatch)
     model.column_mapping_json = entity.column_mapping_json
     model.raw_preview_json = entity.raw_preview_json
     model.has_header_row = entity.has_header_row
+    model.header_mode = entity.header_mode.value if entity.header_mode else None
+    model.header_row_index = entity.header_row_index
+    model.selected_sheet_name = entity.selected_sheet_name
+    model.stored_file_content = entity.stored_file_content
     model.updated_at = entity.updated_at
     model.completed_at = entity.completed_at
     model.notes = entity.notes

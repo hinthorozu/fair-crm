@@ -4,8 +4,8 @@ import { contactLabels } from "../labels/contactLabels";
 import { uiLabels } from "../labels/uiLabels";
 import { labels } from "../labels";
 import { Badge } from "./ui/Badge";
-import { DataTableShell } from "./ui/DataTable";
 import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
+import { UniversalDataTable, type UniversalDataTableColumn } from "./ui/UniversalDataTable";
 
 interface ContactTableProps {
   items: Contact[];
@@ -14,77 +14,102 @@ interface ContactTableProps {
   onDelete: (contact: Contact) => void;
   onCreate?: () => void;
   emptyDueToFilters?: boolean;
+  sortField?: string | null;
+  sortDirection?: "asc" | "desc" | null;
+  onSortChange?: (field: string) => void;
 }
 
 function formatPhone(contact: Contact): string {
   return contact.mobile_phone || contact.phone || "—";
 }
 
-export function ContactTable({
-  items,
-  deletingId,
-  onEdit,
-  onDelete,
-  onCreate,
-  emptyDueToFilters,
-}: ContactTableProps) {
-  if (items.length === 0) {
-    return (
-      <EmptyState
-        icon={<EmptyStateIcon />}
-        title={emptyDueToFilters ? uiLabels.emptySearchTitle : uiLabels.emptyContactsTitle}
-        description={
-          emptyDueToFilters ? uiLabels.emptySearchDescription : uiLabels.emptyContactsDescription
-        }
-        actionLabel={onCreate ? uiLabels.createNew : undefined}
-        onAction={onCreate}
-      />
-    );
-  }
+function buildContactColumns(props: ContactTableProps): UniversalDataTableColumn<Contact>[] {
+  const { onEdit, onDelete, deletingId } = props;
+  return [
+    {
+      key: "full_name",
+      title: contactLabels.fullName,
+      sortable: true,
+      render: (c) => (
+        <>
+          <strong>{c.full_name}</strong>
+          {c.is_primary && (
+            <Badge variant="success" className="badge-inline">
+              {contactLabels.primaryBadge}
+            </Badge>
+          )}
+        </>
+      ),
+    },
+    {
+      key: "title",
+      title: contactLabels.title,
+      sortable: true,
+      render: (c) => c.title ?? "—",
+    },
+    {
+      key: "department",
+      title: contactLabels.department,
+      sortable: true,
+      render: (c) => c.department ?? "—",
+    },
+    {
+      key: "email",
+      title: contactLabels.email,
+      sortable: true,
+      render: (c) => c.email ?? "—",
+    },
+    {
+      key: "phone",
+      title: contactLabels.phone,
+      sortable: true,
+      render: (c) => formatPhone(c),
+    },
+    {
+      key: "actions",
+      title: contactLabels.actions,
+      sortable: false,
+      className: "actions",
+      render: (c) => (
+        <>
+          <button type="button" className="btn link" onClick={() => onEdit(c)}>
+            {contactLabels.edit}
+          </button>
+          <button
+            type="button"
+            className="btn link danger"
+            disabled={deletingId === c.id}
+            onClick={() => onDelete(c)}
+          >
+            {deletingId === c.id ? labels.loading : contactLabels.delete}
+          </button>
+        </>
+      ),
+    },
+  ];
+}
+
+export function ContactTable(props: ContactTableProps) {
+  const { items, onCreate, sortField, sortDirection, onSortChange, emptyDueToFilters } = props;
 
   return (
-    <DataTableShell>
-      <thead>
-        <tr>
-          <th>{contactLabels.fullName}</th>
-          <th>{contactLabels.title}</th>
-          <th>{contactLabels.department}</th>
-          <th>{contactLabels.email}</th>
-          <th>{contactLabels.phone}</th>
-          <th>{contactLabels.actions}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {items.map((c) => (
-          <tr key={c.id}>
-            <td>
-              <strong>{c.full_name}</strong>
-              {c.is_primary && (
-                <Badge variant="success" className="badge-inline">
-                  {contactLabels.primaryBadge}
-                </Badge>
-              )}
-            </td>
-            <td>{c.title ?? "—"}</td>
-            <td>{c.department ?? "—"}</td>
-            <td>{c.email ?? "—"}</td>
-            <td>{formatPhone(c)}</td>
-            <td className="actions">
-              <button type="button" className="btn link" onClick={() => onEdit(c)}>
-                {contactLabels.edit}
-              </button>
-              <button
-                type="button"
-                className="btn link danger"
-                disabled={deletingId === c.id}
-                onClick={() => onDelete(c)}
-              >
-                {deletingId === c.id ? labels.loading : contactLabels.delete}
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </DataTableShell>
+    <UniversalDataTable
+      columns={buildContactColumns(props)}
+      items={items}
+      rowKey={(c) => c.id}
+      sorting={{ field: sortField ?? null, direction: sortDirection ?? null }}
+      onSortChange={onSortChange}
+      emptyState={
+        <EmptyState
+          icon={<EmptyStateIcon />}
+          title={emptyDueToFilters ? uiLabels.emptySearchTitle : uiLabels.emptyContactsTitle}
+          description={
+            emptyDueToFilters ? uiLabels.emptySearchDescription : uiLabels.emptyContactsDescription
+          }
+          actionLabel={onCreate ? uiLabels.createNew : undefined}
+          onAction={onCreate}
+        />
+      }
+    />
   );
 }

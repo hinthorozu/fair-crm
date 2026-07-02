@@ -24,18 +24,29 @@ export function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   const confirmRef = React.useRef<HTMLButtonElement>(null);
+  const onCancelRef = React.useRef(onCancel);
+  onCancelRef.current = onCancel;
 
   React.useEffect(() => {
     confirmRef.current?.focus();
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
+      if (e.key === "Escape") {
+        onCancelRef.current();
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onCancel]);
+  }, []);
+
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onCancelRef.current();
+    }
+  };
 
   return (
-    <div className="modal-backdrop" onClick={onCancel} role="presentation">
+    <div className="modal-backdrop" onClick={handleBackdropClick} role="presentation">
       <div
         className="modal modal-sm"
         onClick={(e) => e.stopPropagation()}
@@ -50,7 +61,7 @@ export function ConfirmDialog({
         <div className="modal-body">
           <p id="confirm-message" className="confirm-message">{message}</p>
           <div className="form-actions">
-            <button type="button" className="btn secondary" onClick={onCancel} disabled={loading}>
+            <button type="button" className="btn secondary" onClick={() => onCancelRef.current()} disabled={loading}>
               {cancelLabel}
             </button>
             <button

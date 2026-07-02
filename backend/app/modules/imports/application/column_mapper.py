@@ -1,13 +1,10 @@
-"""Manual column mapping for Smart Import Wizard."""
+"""Manual column mapping for Universal Import Engine."""
 
 from typing import Any
 
 from app.modules.imports.domain.exceptions import InvalidColumnMappingError
-from app.modules.imports.domain.services.header_mapping import (
-    HEADER_ALIASES,
-    map_header_to_field,
-    normalize_header,
-)
+from app.modules.imports.domain.services.header_mapping import map_header_to_field, normalize_header
+from app.modules.imports.domain.value_objects import ExcelHeaderMode
 
 WIZARD_MAPPING_FIELDS = frozenset(
     {
@@ -36,24 +33,63 @@ WIZARD_MAPPING_FIELDS = frozenset(
 REJECTED_MAPPING_FIELDS = frozenset({"fair_name"})
 
 
-def _column_letter(index: int) -> str:
-    from openpyxl.utils import get_column_letter
+def header_mode_to_has_header(mode: ExcelHeaderMode) -> bool:
+    return mode != ExcelHeaderMode.NO_HEADER
 
-    return get_column_letter(index + 1)
+
+def resolve_header_mode(
+    *,
+    header_mode: ExcelHeaderMode | None = None,
+    has_header_row: bool | None = None,
+) -> ExcelHeaderMode:
+    if header_mode is not None:
+        return header_mode
+    if has_header_row is False:
+        return ExcelHeaderMode.NO_HEADER
+    return ExcelHeaderMode.FIRST_ROW_HEADER
+
+
+def resolve_header_row_index(
+    mode: ExcelHeaderMode,
+    *,
+    header_row_index: int | None = None,
+) -> int | None:
+    if mode == ExcelHeaderMode.NO_HEADER:
+        return None
+    if mode == ExcelHeaderMode.MANUAL_HEADER_ROW:
+        if header_row_index is None or header_row_index < 0:
+            raise InvalidColumnMappingError("header_row_index is required for manual_header_row mode")
+        return header_row_index
+    return 0
+
+
+def _headers_for_mode(
+    raw_preview: dict[str, Any],
+    mode: ExcelHeaderMode,
+    header_row_index: int | None,
+) -> list[Any]:
+    rows: list[list[Any]] = raw_preview.get("rows") or []
+    if mode == ExcelHeaderMode.NO_HEADER:
+        return []
+    index = header_row_index if header_row_index is not None else 0
+    if index >= len(rows):
+        return []
+    return [str(v) if v is not None else None for v in rows[index]]
 
 
 def suggest_column_mapping(
     raw_preview: dict[str, Any],
     *,
     has_header_row: bool | None = None,
+    header_mode: ExcelHeaderMode | None = None,
 ) -> dict[str, Any]:
-    detected = raw_preview.get("detected_headers") or []
-    auto_header = _detect_has_header(detected)
-    use_header = auto_header if has_header_row is None else has_header_row
+    mode = resolve_header_mode(header_mode=header_mode, has_header_row=has_header_row)
+    header_row_index = resolve_header_row_index(mode)
+    headers = _headers_for_mode(raw_preview, mode, header_row_index)
 
     mappings: dict[str, dict[str, Any]] = {}
-    if use_header and detected:
-        for index, header in enumerate(detected):
+    if mode != ExcelHeaderMode.NO_HEADER and headers:
+        for index, header in enumerate(headers):
             if header is None:
                 continue
             field = map_header_to_field(str(header))
@@ -61,21 +97,11 @@ def suggest_column_mapping(
                 mappings[field] = {"type": "column_index", "value": index}
 
     return {
-        "has_header_row": use_header,
+        "header_mode": mode.value,
+        "has_header_row": header_mode_to_has_header(mode),
+        "header_row_index": header_row_index,
         "mappings": mappings,
     }
-
-
-def _detect_has_header(headers: list[Any]) -> bool:
-    if not headers:
-        return False
-    mapped = 0
-    for header in headers:
-        if header is None:
-            continue
-        if map_header_to_field(str(header)):
-            mapped += 1
-    return mapped >= 2
 
 
 def validate_column_mapping(mapping_config: dict[str, Any]) -> None:
@@ -114,10 +140,23 @@ def apply_column_mapping(
 ) -> list[dict[str, Any]]:
     validate_column_mapping(mapping_config)
     rows: list[list[Any]] = raw_preview.get("rows") or []
-    has_header = bool(mapping_config.get("has_header_row"))
-    mappings: dict[str, dict[str, Any]] = mapping_config.get("mappings") or {}
+    mode = resolve_header_mode(
+        header_mode=ExcelHeaderMode(mapping_config["header_mode"])
+        if mapping_config.get("header_mode")
+        else None,
+        has_header_row=mapping_config.get("has_header_row"),
+    )
+    header_row_index = mapping_config.get("header_row_index")
+    if header_row_index is None and mode != ExcelHeaderMode.NO_HEADER:
+        header_row_index = 0
 
-    data_rows = rows[1:] if has_header and rows else rows
+    if mode == ExcelHeaderMode.NO_HEADER:
+        data_rows = rows
+    else:
+        start = int(header_row_index or 0) + 1
+        data_rows = rows[start:] if start <= len(rows) else []
+
+    mappings: dict[str, dict[str, Any]] = mapping_config.get("mappings") or {}
     mapped_rows: list[dict[str, Any]] = []
 
     for row in data_rows:
@@ -134,14 +173,38 @@ def apply_column_mapping(
     return mapped_rows
 
 
-def build_mapping_field_options(raw_preview: dict[str, Any], has_header_row: bool) -> list[dict[str, Any]]:
+def build_mapping_field_options(
+    raw_preview: dict[str, Any],
+    *,
+    has_header_row: bool | None = None,
+    header_mode: ExcelHeaderMode | None = None,
+    header_row_index: int | None = None,
+) -> list[dict[str, Any]]:
+    mode = resolve_header_mode(header_mode=header_mode, has_header_row=has_header_row)
+    resolved_index = resolve_header_row_index(mode, header_row_index=header_row_index)
+    headers = _headers_for_mode(raw_preview, mode, resolved_index)
     columns = raw_preview.get("columns") or []
-    headers = raw_preview.get("detected_headers") or []
     options: list[dict[str, Any]] = []
+
     for col in columns:
         index = col["index"]
-        label = f"Kolon {col['letter']}"
-        if has_header_row and index < len(headers) and headers[index]:
-            label = f"{headers[index]} ({col['letter']})"
-        options.append({"index": index, "letter": col["letter"], "label": label})
+        letter = col["letter"]
+        sample_values = col.get("sample_values") or []
+        if mode == ExcelHeaderMode.NO_HEADER:
+            samples = ", ".join(str(v) for v in sample_values[:3])
+            label = f"Column {letter}"
+            if samples:
+                label = f"Column {letter} ({samples})"
+        elif index < len(headers) and headers[index]:
+            label = f"{headers[index]} ({letter})"
+        else:
+            label = f"Column {letter}"
+        options.append(
+            {
+                "index": index,
+                "letter": letter,
+                "label": label,
+                "sample_values": sample_values,
+            }
+        )
     return options

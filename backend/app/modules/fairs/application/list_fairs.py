@@ -4,7 +4,17 @@ from app.modules.fairs.application.mappers import list_result_to_dto
 from app.modules.fairs.domain.ports import FairRepository
 
 ALLOWED_SORT_FIELDS = frozenset(
-    {"created_at", "updated_at", "name", "start_date", "city", "country"}
+    {
+        "created_at",
+        "updated_at",
+        "name",
+        "start_date",
+        "city",
+        "country",
+        "organizer",
+        "venue",
+        "status",
+    }
 )
 DEFAULT_SORT_FIELD = "start_date"
 DEFAULT_SORT_DIRECTION = "desc"

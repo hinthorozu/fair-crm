@@ -5,7 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.schemas.list_response import StandardListResponse
-from app.modules.imports.domain.value_objects import ImportBatchStatus, ImportDecision, ImportRowStatus, ImportSourceType
+from app.modules.imports.domain.value_objects import ImportBatchStatus, ImportDecision, ImportRowStatus, ImportSourceType, ExcelHeaderMode
 
 
 class ImportBatchResponse(BaseModel):
@@ -103,7 +103,9 @@ class ColumnMappingSpec(BaseModel):
 
 
 class SetColumnMappingRequest(BaseModel):
-    has_header_row: bool
+    has_header_row: bool = True
+    header_mode: ExcelHeaderMode | None = None
+    header_row_index: int | None = Field(default=None, ge=0)
     mappings: dict[str, ColumnMappingSpec]
 
 
@@ -118,6 +120,8 @@ class UploadRawImportResponse(BaseModel):
     sample_rows: list[list[Any]]
     total_rows: int
     suggested_mapping: dict[str, Any]
+    available_sheets: list[str] = []
+    selected_sheet_name: str | None = None
 
 
 class SetColumnMappingResponse(BaseModel):

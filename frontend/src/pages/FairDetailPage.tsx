@@ -354,6 +354,9 @@ export function FairDetailPage({
             items={participantsTable.items}
             deletingId={deletingId}
             emptyDueToFilters={participantsTable.hasActiveFilters}
+            sortField={participantsTable.sorting.field}
+            sortDirection={participantsTable.sorting.direction}
+            onSortChange={participantsTable.setSort}
             onCreate={openCreateParticipant}
             onEdit={(item) => {
               setEditing(item);

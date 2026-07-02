@@ -1,0 +1,32 @@
+{
+  "generated_at": "2026-07-01T18:06:38.272633+00:00",
+  "meta": {
+    "organization_id": "00000000-0000-4000-8000-000000000010",
+    "cleaned_dir": "C:\\Users\\hinthorozu\\Projects\\KYROX\\fair-crm\\scripts\\legacy\\cleaned",
+    "merge_plan_dir": "C:\\Users\\hinthorozu\\Projects\\KYROX\\fair-crm\\scripts\\legacy\\merge_plan",
+    "limit": null
+  },
+  "apply_stats": {
+    "fairs_created": 0,
+    "fairs_skipped": 115,
+    "customers_created": 0,
+    "customers_skipped": 28155,
+    "participations_created": 0,
+    "participations_skipped": 29561,
+    "activities_created": 0,
+    "activities_skipped": 28155,
+    "failed_records": []
+  },
+  "plan_stats": {
+    "fairs_to_create": 115,
+    "customers_to_create": 28155,
+    "participations_to_create": 29561,
+    "activities_to_create": 28155,
+    "merged_legacy_companies": 1166,
+    "manual_review_records": 1591,
+    "risk_records": 773,
+    "participation_duplicates_skipped": 0,
+    "auto_merge_customers": 1040,
+    "keep_customers": 24751
+  }
+}

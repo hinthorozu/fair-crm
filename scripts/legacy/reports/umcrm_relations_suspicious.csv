@@ -1,0 +1,715 @@
+relation_id,fair_id,company_id,issue_type,recommended_action,details
+,73,32151,duplicate_relation,DROP_DUPLICATE_RELATION,2 rows for same fair-company pair
+,1,88,merge_conflict,MANUAL_REVIEW,duplicate group 'mert elektronik' shares fair 1
+,1,89,merge_conflict,MANUAL_REVIEW,duplicate group 'mert elektronik' shares fair 1
+,1,128,merge_conflict,MANUAL_REVIEW,duplicate group 'sensor yangin sistemleri' shares fair 1
+,1,129,merge_conflict,MANUAL_REVIEW,duplicate group 'sensor yangin sistemleri' shares fair 1
+,60,12301,merge_conflict,MANUAL_REVIEW,duplicate group 'superior conta' shares fair 60
+,60,29971,merge_conflict,MANUAL_REVIEW,duplicate group 'superior conta' shares fair 60
+,2,199,merge_conflict,MANUAL_REVIEW,duplicate group 'sempa pompa makina' shares fair 2
+,2,32313,merge_conflict,MANUAL_REVIEW,duplicate group 'sempa pompa makina' shares fair 2
+,2,300,merge_conflict,MANUAL_REVIEW,duplicate group 'quzhou jinyuan hongtai refrigerant co' shares fair 2
+,2,719,merge_conflict,MANUAL_REVIEW,duplicate group 'quzhou jinyuan hongtai refrigerant co' shares fair 2
+,2,464,merge_conflict,MANUAL_REVIEW,duplicate group 'fimay isi' shares fair 2
+,2,32302,merge_conflict,MANUAL_REVIEW,duplicate group 'fimay isi' shares fair 2
+,2,508,merge_conflict,MANUAL_REVIEW,duplicate group 'istanbul kazan' shares fair 2
+,2,32305,merge_conflict,MANUAL_REVIEW,duplicate group 'istanbul kazan' shares fair 2
+,2,509,merge_conflict,MANUAL_REVIEW,duplicate group 'izowool' shares fair 2
+,2,32353,merge_conflict,MANUAL_REVIEW,duplicate group 'izowool' shares fair 2
+,2,585,merge_conflict,MANUAL_REVIEW,duplicate group 'rival valve' shares fair 2
+,2,32312,merge_conflict,MANUAL_REVIEW,duplicate group 'rival valve' shares fair 2
+,2,711,merge_conflict,MANUAL_REVIEW,duplicate group 'zhejiang daming refrigeration technology co' shares fair 2
+,2,32330,merge_conflict,MANUAL_REVIEW,duplicate group 'zhejiang daming refrigeration technology co' shares fair 2
+,2,716,merge_conflict,MANUAL_REVIEW,duplicate group 'ningbo zentec air conditioning refrigeration co' shares fair 2
+,2,727,merge_conflict,MANUAL_REVIEW,duplicate group 'ningbo zentec air conditioning refrigeration co' shares fair 2
+,2,728,merge_conflict,MANUAL_REVIEW,duplicate group 'ningbo zentec air conditioning refrigeration co' shares fair 2
+,4,845,merge_conflict,MANUAL_REVIEW,duplicate group 'cel mer celik' shares fair 4
+,4,31014,merge_conflict,MANUAL_REVIEW,duplicate group 'cel mer celik' shares fair 4
+,4,850,merge_conflict,MANUAL_REVIEW,duplicate group 'celik metal' shares fair 4
+,4,25028,merge_conflict,MANUAL_REVIEW,duplicate group 'celik metal' shares fair 4
+,9,1367,merge_conflict,MANUAL_REVIEW,duplicate group 'bimbo deri mamulleri otomativ' shares fair 9
+,9,1368,merge_conflict,MANUAL_REVIEW,duplicate group 'bimbo deri mamulleri otomativ' shares fair 9
+,82,21779,merge_conflict,MANUAL_REVIEW,duplicate group 'cagdas kagit ambalaj' shares fair 82
+,82,31325,merge_conflict,MANUAL_REVIEW,duplicate group 'cagdas kagit ambalaj' shares fair 82
+,13,1856,merge_conflict,MANUAL_REVIEW,duplicate group 'kartal hali tekstil' shares fair 13
+,13,31501,merge_conflict,MANUAL_REVIEW,duplicate group 'kartal hali tekstil' shares fair 13
+,13,1858,merge_conflict,MANUAL_REVIEW,duplicate group 'forza iplik' shares fair 13
+,13,32448,merge_conflict,MANUAL_REVIEW,duplicate group 'forza iplik' shares fair 13
+,29,4728,merge_conflict,MANUAL_REVIEW,duplicate group 'forza iplik' shares fair 29
+,29,24124,merge_conflict,MANUAL_REVIEW,duplicate group 'forza iplik' shares fair 29
+,13,1861,merge_conflict,MANUAL_REVIEW,duplicate group 'erdem soft tekstil' shares fair 13
+,13,31463,merge_conflict,MANUAL_REVIEW,duplicate group 'erdem soft tekstil' shares fair 13
+,13,1862,merge_conflict,MANUAL_REVIEW,duplicate group 'eko hali paz' shares fair 13
+,13,31461,merge_conflict,MANUAL_REVIEW,duplicate group 'eko hali paz' shares fair 13
+,13,1863,merge_conflict,MANUAL_REVIEW,duplicate group 'elda hali tekstil' shares fair 13
+,13,31469,merge_conflict,MANUAL_REVIEW,duplicate group 'elda hali tekstil' shares fair 13
+,13,1864,merge_conflict,MANUAL_REVIEW,duplicate group 'hd design hali tekstil ith ihr' shares fair 13
+,13,32455,merge_conflict,MANUAL_REVIEW,duplicate group 'hd design hali tekstil ith ihr' shares fair 13
+,13,1865,merge_conflict,MANUAL_REVIEW,duplicate group 'sark isik hali mobilya turz' shares fair 13
+,13,23674,merge_conflict,MANUAL_REVIEW,duplicate group 'sark isik hali mobilya turz' shares fair 13
+,13,1866,merge_conflict,MANUAL_REVIEW,duplicate group 'tila hali tekstil ith ihr' shares fair 13
+,13,23678,merge_conflict,MANUAL_REVIEW,duplicate group 'tila hali tekstil ith ihr' shares fair 13
+,13,31480,merge_conflict,MANUAL_REVIEW,duplicate group 'tila hali tekstil ith ihr' shares fair 13
+,13,1867,merge_conflict,MANUAL_REVIEW,duplicate group 'ulutas ic dis' shares fair 13
+,13,31491,merge_conflict,MANUAL_REVIEW,duplicate group 'ulutas ic dis' shares fair 13
+,13,1868,merge_conflict,MANUAL_REVIEW,duplicate group 'art carpet' shares fair 13
+,13,32440,merge_conflict,MANUAL_REVIEW,duplicate group 'art carpet' shares fair 13
+,13,1870,merge_conflict,MANUAL_REVIEW,duplicate group 'yaren hali tekstil' shares fair 13
+,13,31495,merge_conflict,MANUAL_REVIEW,duplicate group 'yaren hali tekstil' shares fair 13
+,13,1877,merge_conflict,MANUAL_REVIEW,duplicate group 'este hali' shares fair 13
+,13,31465,merge_conflict,MANUAL_REVIEW,duplicate group 'este hali' shares fair 13
+,13,1880,merge_conflict,MANUAL_REVIEW,duplicate group 'karyun hali tekstil' shares fair 13
+,13,32459,merge_conflict,MANUAL_REVIEW,duplicate group 'karyun hali tekstil' shares fair 13
+,13,1882,merge_conflict,MANUAL_REVIEW,duplicate group 'loomx dokuma tekstil' shares fair 13
+,13,32428,merge_conflict,MANUAL_REVIEW,duplicate group 'loomx dokuma tekstil' shares fair 13
+,13,1884,merge_conflict,MANUAL_REVIEW,duplicate group 'polysan tekstil' shares fair 13
+,13,32492,merge_conflict,MANUAL_REVIEW,duplicate group 'polysan tekstil' shares fair 13
+,13,1885,merge_conflict,MANUAL_REVIEW,duplicate group 'roza hali' shares fair 13
+,13,32472,merge_conflict,MANUAL_REVIEW,duplicate group 'roza hali' shares fair 13
+,13,1886,merge_conflict,MANUAL_REVIEW,duplicate group 'sahan kardesler tekstil hali' shares fair 13
+,13,23673,merge_conflict,MANUAL_REVIEW,duplicate group 'sahan kardesler tekstil hali' shares fair 13
+,13,32474,merge_conflict,MANUAL_REVIEW,duplicate group 'sahan kardesler tekstil hali' shares fair 13
+,13,1888,merge_conflict,MANUAL_REVIEW,duplicate group 'regnum hali ic dis' shares fair 13
+,13,31482,merge_conflict,MANUAL_REVIEW,duplicate group 'regnum hali ic dis' shares fair 13
+,13,1890,merge_conflict,MANUAL_REVIEW,duplicate group 'altuntas hali kilim' shares fair 13
+,13,32439,merge_conflict,MANUAL_REVIEW,duplicate group 'altuntas hali kilim' shares fair 13
+,13,1891,merge_conflict,MANUAL_REVIEW,duplicate group 'vital hali' shares fair 13
+,13,32486,merge_conflict,MANUAL_REVIEW,duplicate group 'vital hali' shares fair 13
+,13,1892,merge_conflict,MANUAL_REVIEW,duplicate group 'guven halicilik pazarlama' shares fair 13
+,13,31517,merge_conflict,MANUAL_REVIEW,duplicate group 'guven halicilik pazarlama' shares fair 13
+,13,1893,merge_conflict,MANUAL_REVIEW,duplicate group 'turkmen hali' shares fair 13
+,13,32482,merge_conflict,MANUAL_REVIEW,duplicate group 'turkmen hali' shares fair 13
+,13,1894,merge_conflict,MANUAL_REVIEW,duplicate group 'byd magazacilik tekstil paz' shares fair 13
+,13,31426,merge_conflict,MANUAL_REVIEW,duplicate group 'byd magazacilik tekstil paz' shares fair 13
+,13,1906,merge_conflict,MANUAL_REVIEW,duplicate group 'mina iplik hali teks' shares fair 13
+,13,23651,merge_conflict,MANUAL_REVIEW,duplicate group 'mina iplik hali teks' shares fair 13
+,13,1915,merge_conflict,MANUAL_REVIEW,duplicate group 'siela hali ic dis' shares fair 13
+,13,23669,merge_conflict,MANUAL_REVIEW,duplicate group 'siela hali ic dis' shares fair 13
+,13,1938,merge_conflict,MANUAL_REVIEW,duplicate group 'siteks tekstil' shares fair 13
+,13,23671,merge_conflict,MANUAL_REVIEW,duplicate group 'siteks tekstil' shares fair 13
+,13,1949,merge_conflict,MANUAL_REVIEW,duplicate group 'tibet hali pazarlama' shares fair 13
+,13,23677,merge_conflict,MANUAL_REVIEW,duplicate group 'tibet hali pazarlama' shares fair 13
+,13,1965,merge_conflict,MANUAL_REVIEW,duplicate group 'ilhan mensucat' shares fair 13
+,13,23631,merge_conflict,MANUAL_REVIEW,duplicate group 'ilhan mensucat' shares fair 13
+,29,4750,merge_conflict,MANUAL_REVIEW,duplicate group 'intesa global tekstil' shares fair 29
+,29,4925,merge_conflict,MANUAL_REVIEW,duplicate group 'intesa global tekstil' shares fair 29
+,13,1967,merge_conflict,MANUAL_REVIEW,duplicate group 'ipek mekik hali teks' shares fair 13
+,13,23633,merge_conflict,MANUAL_REVIEW,duplicate group 'ipek mekik hali teks' shares fair 13
+,13,1968,merge_conflict,MANUAL_REVIEW,duplicate group 'isik kadife testil' shares fair 13
+,13,23630,merge_conflict,MANUAL_REVIEW,duplicate group 'isik kadife testil' shares fair 13
+,13,1978,merge_conflict,MANUAL_REVIEW,duplicate group 'kilimista dokuma' shares fair 13
+,13,23644,merge_conflict,MANUAL_REVIEW,duplicate group 'kilimista dokuma' shares fair 13
+,13,1979,merge_conflict,MANUAL_REVIEW,duplicate group 'kirkit rugs hali kilim dis' shares fair 13
+,13,23645,merge_conflict,MANUAL_REVIEW,duplicate group 'kirkit rugs hali kilim dis' shares fair 13
+,13,1981,merge_conflict,MANUAL_REVIEW,duplicate group 'linea hali' shares fair 13
+,13,32465,merge_conflict,MANUAL_REVIEW,duplicate group 'linea hali' shares fair 13
+,13,1987,merge_conflict,MANUAL_REVIEW,duplicate group 'milat hali' shares fair 13
+,13,23650,merge_conflict,MANUAL_REVIEW,duplicate group 'milat hali' shares fair 13
+,13,1997,merge_conflict,MANUAL_REVIEW,duplicate group 'sinc hali tekstil sirketi' shares fair 13
+,13,23670,merge_conflict,MANUAL_REVIEW,duplicate group 'sinc hali tekstil sirketi' shares fair 13
+,13,2033,merge_conflict,MANUAL_REVIEW,duplicate group 'isbilir hali mobilya ev teks urun' shares fair 13
+,13,23638,merge_conflict,MANUAL_REVIEW,duplicate group 'isbilir hali mobilya ev teks urun' shares fair 13
+,15,2150,merge_conflict,MANUAL_REVIEW,duplicate group 'birsan kapi kilidi aksam paz ith ihr' shares fair 15
+,15,32502,merge_conflict,MANUAL_REVIEW,duplicate group 'birsan kapi kilidi aksam paz ith ihr' shares fair 15
+,16,2226,merge_conflict,MANUAL_REVIEW,duplicate group 'baki ahsap mobilya orman nak' shares fair 16
+,16,32409,merge_conflict,MANUAL_REVIEW,duplicate group 'baki ahsap mobilya orman nak' shares fair 16
+,17,2378,merge_conflict,MANUAL_REVIEW,duplicate group 'winland toroslular cam balkon yapi sist' shares fair 17
+,17,32556,merge_conflict,MANUAL_REVIEW,duplicate group 'winland toroslular cam balkon yapi sist' shares fair 17
+,18,2421,merge_conflict,MANUAL_REVIEW,duplicate group 'altin ates kimya' shares fair 18
+,18,32742,merge_conflict,MANUAL_REVIEW,duplicate group 'altin ates kimya' shares fair 18
+,100,25698,merge_conflict,MANUAL_REVIEW,duplicate group 'feydas makina muhendislik' shares fair 100
+,100,31859,merge_conflict,MANUAL_REVIEW,duplicate group 'feydas makina muhendislik' shares fair 100
+,18,2452,merge_conflict,MANUAL_REVIEW,duplicate group 'wittmann battenfeld plastik mak' shares fair 18
+,18,31109,merge_conflict,MANUAL_REVIEW,duplicate group 'wittmann battenfeld plastik mak' shares fair 18
+,18,2466,merge_conflict,MANUAL_REVIEW,duplicate group 'aksoy plastik makina' shares fair 18
+,18,31113,merge_conflict,MANUAL_REVIEW,duplicate group 'aksoy plastik makina' shares fair 18
+,18,2519,merge_conflict,MANUAL_REVIEW,duplicate group 'dioki petrokimya' shares fair 18
+,18,23458,merge_conflict,MANUAL_REVIEW,duplicate group 'dioki petrokimya' shares fair 18
+,18,2522,merge_conflict,MANUAL_REVIEW,duplicate group 'dizayn makina vida kovan iml' shares fair 18
+,18,2909,merge_conflict,MANUAL_REVIEW,duplicate group 'dizayn makina vida kovan iml' shares fair 18
+,18,2524,merge_conflict,MANUAL_REVIEW,duplicate group 'dms endustri ambalaj makine' shares fair 18
+,18,2829,merge_conflict,MANUAL_REVIEW,duplicate group 'dms endustri ambalaj makine' shares fair 18
+,18,2563,merge_conflict,MANUAL_REVIEW,duplicate group 'fiberflon teknik tekstil' shares fair 18
+,18,23470,merge_conflict,MANUAL_REVIEW,duplicate group 'fiberflon teknik tekstil' shares fair 18
+,18,2566,merge_conflict,MANUAL_REVIEW,duplicate group 'fit plastik ambalaj' shares fair 18
+,18,2567,merge_conflict,MANUAL_REVIEW,duplicate group 'fit plastik ambalaj' shares fair 18
+,18,2580,merge_conflict,MANUAL_REVIEW,duplicate group 'gent polimer kimya uretim' shares fair 18
+,18,2581,merge_conflict,MANUAL_REVIEW,duplicate group 'gent polimer kimya uretim' shares fair 18
+,18,2591,merge_conflict,MANUAL_REVIEW,duplicate group 'haitai pls enj mak ith ihr' shares fair 18
+,18,31135,merge_conflict,MANUAL_REVIEW,duplicate group 'haitai pls enj mak ith ihr' shares fair 18
+,100,26204,merge_conflict,MANUAL_REVIEW,duplicate group 'hastek plas tekn otomasyon sist paz' shares fair 100
+,100,32840,merge_conflict,MANUAL_REVIEW,duplicate group 'hastek plas tekn otomasyon sist paz' shares fair 100
+,18,2612,merge_conflict,MANUAL_REVIEW,duplicate group 'iza makina' shares fair 18
+,18,2790,merge_conflict,MANUAL_REVIEW,duplicate group 'iza makina' shares fair 18
+,18,2627,merge_conflict,MANUAL_REVIEW,duplicate group 'kimflor kimya' shares fair 18
+,18,2628,merge_conflict,MANUAL_REVIEW,duplicate group 'kimflor kimya' shares fair 18
+,18,2630,merge_conflict,MANUAL_REVIEW,duplicate group 'kimpas kimyevi mad paz' shares fair 18
+,18,2801,merge_conflict,MANUAL_REVIEW,duplicate group 'kimpas kimyevi mad paz' shares fair 18
+,18,2631,merge_conflict,MANUAL_REVIEW,duplicate group 'kimteks kimya tekstil urunleri' shares fair 18
+,18,2805,merge_conflict,MANUAL_REVIEW,duplicate group 'kimteks kimya tekstil urunleri' shares fair 18
+,18,2632,merge_conflict,MANUAL_REVIEW,duplicate group 'kimyager kimya' shares fair 18
+,18,2633,merge_conflict,MANUAL_REVIEW,duplicate group 'kimyager kimya' shares fair 18
+,18,2634,merge_conflict,MANUAL_REVIEW,duplicate group 'kiranda plastik kalip mak parc' shares fair 18
+,18,2635,merge_conflict,MANUAL_REVIEW,duplicate group 'kiranda plastik kalip mak parc' shares fair 18
+,18,2662,merge_conflict,MANUAL_REVIEW,duplicate group 'mikrons mikronize mineral endustriyel' shares fair 18
+,18,2663,merge_conflict,MANUAL_REVIEW,duplicate group 'mikrons mikronize mineral endustriyel' shares fair 18
+,18,2664,merge_conflict,MANUAL_REVIEW,duplicate group 'mikrosan makina kalip' shares fair 18
+,18,2665,merge_conflict,MANUAL_REVIEW,duplicate group 'mikrosan makina kalip' shares fair 18
+,18,2666,merge_conflict,MANUAL_REVIEW,duplicate group 'mine plastik end urn sert mad kimya' shares fair 18
+,18,2667,merge_conflict,MANUAL_REVIEW,duplicate group 'mine plastik end urn sert mad kimya' shares fair 18
+,18,2679,merge_conflict,MANUAL_REVIEW,duplicate group 'nigtas' shares fair 18
+,18,2797,merge_conflict,MANUAL_REVIEW,duplicate group 'nigtas' shares fair 18
+,100,25741,merge_conflict,MANUAL_REVIEW,duplicate group 'nordmann rassmann turkey dis' shares fair 100
+,100,31873,merge_conflict,MANUAL_REVIEW,duplicate group 'nordmann rassmann turkey dis' shares fair 100
+,18,2768,merge_conflict,MANUAL_REVIEW,duplicate group 'vizyon vida kovan makina imalat' shares fair 18
+,18,2916,merge_conflict,MANUAL_REVIEW,duplicate group 'vizyon vida kovan makina imalat' shares fair 18
+,18,2770,merge_conflict,MANUAL_REVIEW,duplicate group 'kal der makina met pls imlt' shares fair 18
+,18,31188,merge_conflict,MANUAL_REVIEW,duplicate group 'kal der makina met pls imlt' shares fair 18
+,18,2787,merge_conflict,MANUAL_REVIEW,duplicate group 'dinamik motor reduktor' shares fair 18
+,18,23457,merge_conflict,MANUAL_REVIEW,duplicate group 'dinamik motor reduktor' shares fair 18
+,18,2806,merge_conflict,MANUAL_REVIEW,duplicate group 'nirumand polymer pars engineering' shares fair 18
+,18,31210,merge_conflict,MANUAL_REVIEW,duplicate group 'nirumand polymer pars engineering' shares fair 18
+,18,2821,merge_conflict,MANUAL_REVIEW,duplicate group 'ningbo fulcrum technology co' shares fair 18
+,18,31124,merge_conflict,MANUAL_REVIEW,duplicate group 'ningbo fulcrum technology co' shares fair 18
+,18,2827,merge_conflict,MANUAL_REVIEW,duplicate group 'senmak mak' shares fair 18
+,18,2828,merge_conflict,MANUAL_REVIEW,duplicate group 'senmak mak' shares fair 18
+,67,14444,merge_conflict,MANUAL_REVIEW,duplicate group 'infomak mekatronik' shares fair 67
+,67,29636,merge_conflict,MANUAL_REVIEW,duplicate group 'infomak mekatronik' shares fair 67
+,17,3428,merge_conflict,MANUAL_REVIEW,duplicate group 'yagmurpen pvc yapi elemanlari' shares fair 17
+,17,32557,merge_conflict,MANUAL_REVIEW,duplicate group 'yagmurpen pvc yapi elemanlari' shares fair 17
+,27,3773,merge_conflict,MANUAL_REVIEW,duplicate group 'izmiryildiz orman urun ins taah mak' shares fair 27
+,27,31563,merge_conflict,MANUAL_REVIEW,duplicate group 'izmiryildiz orman urun ins taah mak' shares fair 27
+,28,3869,merge_conflict,MANUAL_REVIEW,duplicate group 'divanev' shares fair 28
+,28,24263,merge_conflict,MANUAL_REVIEW,duplicate group 'divanev' shares fair 28
+,28,3872,merge_conflict,MANUAL_REVIEW,duplicate group 'dizayno mobilya' shares fair 28
+,28,24251,merge_conflict,MANUAL_REVIEW,duplicate group 'dizayno mobilya' shares fair 28
+,28,3875,merge_conflict,MANUAL_REVIEW,duplicate group 'infinity mobilya dis' shares fair 28
+,28,24320,merge_conflict,MANUAL_REVIEW,duplicate group 'infinity mobilya dis' shares fair 28
+,28,3880,merge_conflict,MANUAL_REVIEW,duplicate group 'isler madeni esya gida ins' shares fair 28
+,28,24305,merge_conflict,MANUAL_REVIEW,duplicate group 'isler madeni esya gida ins' shares fair 28
+,28,3898,merge_conflict,MANUAL_REVIEW,duplicate group 'cardiva furniture mehmet basdinc' shares fair 28
+,28,24213,merge_conflict,MANUAL_REVIEW,duplicate group 'cardiva furniture mehmet basdinc' shares fair 28
+,28,3913,merge_conflict,MANUAL_REVIEW,duplicate group 'desen sofa kenan gezici' shares fair 28
+,28,24289,merge_conflict,MANUAL_REVIEW,duplicate group 'desen sofa kenan gezici' shares fair 28
+,28,3916,merge_conflict,MANUAL_REVIEW,duplicate group 'diva turkmen mobilya' shares fair 28
+,28,24262,merge_conflict,MANUAL_REVIEW,duplicate group 'diva turkmen mobilya' shares fair 28
+,28,3976,merge_conflict,MANUAL_REVIEW,duplicate group 'niron grup sanal market iletisim yazilim gida basin yayin turz dis' shares fair 28
+,28,24348,merge_conflict,MANUAL_REVIEW,duplicate group 'niron grup sanal market iletisim yazilim gida basin yayin turz dis' shares fair 28
+,28,3981,merge_conflict,MANUAL_REVIEW,duplicate group 'rivanna mobilya' shares fair 28
+,28,24368,merge_conflict,MANUAL_REVIEW,duplicate group 'rivanna mobilya' shares fair 28
+,28,4003,merge_conflict,MANUAL_REVIEW,duplicate group 'fatih kiral mobilya dekorasyon' shares fair 28
+,28,24276,merge_conflict,MANUAL_REVIEW,duplicate group 'fatih kiral mobilya dekorasyon' shares fair 28
+,50,8148,merge_conflict,MANUAL_REVIEW,duplicate group 'guleser tekstil' shares fair 50
+,50,28863,merge_conflict,MANUAL_REVIEW,duplicate group 'guleser tekstil' shares fair 50
+,28,4030,merge_conflict,MANUAL_REVIEW,duplicate group 'decortie bilisim mobilya reklam' shares fair 28
+,28,24259,merge_conflict,MANUAL_REVIEW,duplicate group 'decortie bilisim mobilya reklam' shares fair 28
+,28,4044,merge_conflict,MANUAL_REVIEW,duplicate group 'ipeks tekstil' shares fair 28
+,28,24323,merge_conflict,MANUAL_REVIEW,duplicate group 'ipeks tekstil' shares fair 28
+,28,4049,merge_conflict,MANUAL_REVIEW,duplicate group 'inegol ada koltuk' shares fair 28
+,28,24302,merge_conflict,MANUAL_REVIEW,duplicate group 'inegol ada koltuk' shares fair 28
+,28,4087,merge_conflict,MANUAL_REVIEW,duplicate group 'basterziler mobilya paz' shares fair 28
+,28,24239,merge_conflict,MANUAL_REVIEW,duplicate group 'basterziler mobilya paz' shares fair 28
+,28,4125,merge_conflict,MANUAL_REVIEW,duplicate group 'cin pa ic dis' shares fair 28
+,28,24256,merge_conflict,MANUAL_REVIEW,duplicate group 'cin pa ic dis' shares fair 28
+,28,4137,merge_conflict,MANUAL_REVIEW,duplicate group 'dogtas' shares fair 28
+,28,24267,merge_conflict,MANUAL_REVIEW,duplicate group 'dogtas' shares fair 28
+,28,4153,merge_conflict,MANUAL_REVIEW,duplicate group 'elizan mobilya' shares fair 28
+,28,24273,merge_conflict,MANUAL_REVIEW,duplicate group 'elizan mobilya' shares fair 28
+,28,4163,merge_conflict,MANUAL_REVIEW,duplicate group 'ersa mobilya' shares fair 28
+,28,4164,merge_conflict,MANUAL_REVIEW,duplicate group 'ersa mobilya' shares fair 28
+,28,4191,merge_conflict,MANUAL_REVIEW,duplicate group 'gumus ev mobilya ev' shares fair 28
+,28,24397,merge_conflict,MANUAL_REVIEW,duplicate group 'gumus ev mobilya ev' shares fair 28
+,28,4216,merge_conflict,MANUAL_REVIEW,duplicate group 'iskemle agac urunleri mobilya tekstil ins tasimacilik' shares fair 28
+,28,24308,merge_conflict,MANUAL_REVIEW,duplicate group 'iskemle agac urunleri mobilya tekstil ins tasimacilik' shares fair 28
+,28,4252,merge_conflict,MANUAL_REVIEW,duplicate group 'nigdeliler ins tas gida mobilya petrol urun dolum' shares fair 28
+,28,24329,merge_conflict,MANUAL_REVIEW,duplicate group 'nigdeliler ins tas gida mobilya petrol urun dolum' shares fair 28
+,28,4304,merge_conflict,MANUAL_REVIEW,duplicate group 'ofisbazaar buro mutfak banyo mod mob paz' shares fair 28
+,28,24417,merge_conflict,MANUAL_REVIEW,duplicate group 'ofisbazaar buro mutfak banyo mod mob paz' shares fair 28
+,28,4307,merge_conflict,MANUAL_REVIEW,duplicate group 'orbis kaplama metal urunleri kimya otom nalb ith ihr' shares fair 28
+,28,4308,merge_conflict,MANUAL_REVIEW,duplicate group 'orbis kaplama metal urunleri kimya otom nalb ith ihr' shares fair 28
+,28,4314,merge_conflict,MANUAL_REVIEW,duplicate group 'sahinler tekstil urun' shares fair 28
+,28,24355,merge_conflict,MANUAL_REVIEW,duplicate group 'sahinler tekstil urun' shares fair 28
+,28,4365,merge_conflict,MANUAL_REVIEW,duplicate group 'sahbazogullari mobilya ev tekstili day tuk mal tas ith ihr' shares fair 28
+,28,24382,merge_conflict,MANUAL_REVIEW,duplicate group 'sahbazogullari mobilya ev tekstili day tuk mal tas ith ihr' shares fair 28
+,28,4367,merge_conflict,MANUAL_REVIEW,duplicate group 'huzuroglu yapi malz' shares fair 28
+,28,24384,merge_conflict,MANUAL_REVIEW,duplicate group 'huzuroglu yapi malz' shares fair 28
+,28,4370,merge_conflict,MANUAL_REVIEW,duplicate group 'dinamik tekstil mobilya elektronik' shares fair 28
+,28,24284,merge_conflict,MANUAL_REVIEW,duplicate group 'dinamik tekstil mobilya elektronik' shares fair 28
+,28,4372,merge_conflict,MANUAL_REVIEW,duplicate group 'ugurlu ev donanimlari' shares fair 28
+,28,24386,merge_conflict,MANUAL_REVIEW,duplicate group 'ugurlu ev donanimlari' shares fair 28
+,28,4426,merge_conflict,MANUAL_REVIEW,duplicate group 'dogus okul yayinlari' shares fair 28
+,28,24268,merge_conflict,MANUAL_REVIEW,duplicate group 'dogus okul yayinlari' shares fair 28
+,28,4461,merge_conflict,MANUAL_REVIEW,duplicate group 'kitle koltuk somya mob orm urun day tuk mallari' shares fair 28
+,28,24411,merge_conflict,MANUAL_REVIEW,duplicate group 'kitle koltuk somya mob orm urun day tuk mallari' shares fair 28
+,28,4469,merge_conflict,MANUAL_REVIEW,duplicate group 'basdinc mobilya' shares fair 28
+,28,24228,merge_conflict,MANUAL_REVIEW,duplicate group 'basdinc mobilya' shares fair 28
+,28,4476,merge_conflict,MANUAL_REVIEW,duplicate group 'divas mobilya orm urun oto ins' shares fair 28
+,28,24264,merge_conflict,MANUAL_REVIEW,duplicate group 'divas mobilya orm urun oto ins' shares fair 28
+,28,4480,merge_conflict,MANUAL_REVIEW,duplicate group 'fiba koltuk mobilya tekstil orman urun' shares fair 28
+,28,24232,merge_conflict,MANUAL_REVIEW,duplicate group 'fiba koltuk mobilya tekstil orman urun' shares fair 28
+,28,4484,merge_conflict,MANUAL_REVIEW,duplicate group 'fatih yildiz celik esya mak mob paz st' shares fair 28
+,28,24217,merge_conflict,MANUAL_REVIEW,duplicate group 'fatih yildiz celik esya mak mob paz st' shares fair 28
+,28,4489,merge_conflict,MANUAL_REVIEW,duplicate group 'infam mobilya' shares fair 28
+,28,24319,merge_conflict,MANUAL_REVIEW,duplicate group 'infam mobilya' shares fair 28
+,28,4491,merge_conflict,MANUAL_REVIEW,duplicate group 'isil mobilya' shares fair 28
+,28,24406,merge_conflict,MANUAL_REVIEW,duplicate group 'isil mobilya' shares fair 28
+,28,4506,merge_conflict,MANUAL_REVIEW,duplicate group 'picasso marnero mob aks ins nak gida' shares fair 28
+,28,24357,merge_conflict,MANUAL_REVIEW,duplicate group 'picasso marnero mob aks ins nak gida' shares fair 28
+,28,4530,merge_conflict,MANUAL_REVIEW,duplicate group 'inegol berkfa kenar bandi mobilya malzemeleri insaat' shares fair 28
+,28,24344,merge_conflict,MANUAL_REVIEW,duplicate group 'inegol berkfa kenar bandi mobilya malzemeleri insaat' shares fair 28
+,28,4544,merge_conflict,MANUAL_REVIEW,duplicate group 'dirilis koltuk mobilya insaat' shares fair 28
+,28,24237,merge_conflict,MANUAL_REVIEW,duplicate group 'dirilis koltuk mobilya insaat' shares fair 28
+,28,4549,merge_conflict,MANUAL_REVIEW,duplicate group 'orion deri' shares fair 28
+,28,24403,merge_conflict,MANUAL_REVIEW,duplicate group 'orion deri' shares fair 28
+,28,4568,merge_conflict,MANUAL_REVIEW,duplicate group 'pier koltuk tekstil mobilya imalat' shares fair 28
+,28,24358,merge_conflict,MANUAL_REVIEW,duplicate group 'pier koltuk tekstil mobilya imalat' shares fair 28
+,28,4575,merge_conflict,MANUAL_REVIEW,duplicate group 'rivista mobilya' shares fair 28
+,28,24369,merge_conflict,MANUAL_REVIEW,duplicate group 'rivista mobilya' shares fair 28
+,28,4592,merge_conflict,MANUAL_REVIEW,duplicate group 'inmob mobilya koltuk nak ins' shares fair 28
+,28,24407,merge_conflict,MANUAL_REVIEW,duplicate group 'inmob mobilya koltuk nak ins' shares fair 28
+,28,4595,merge_conflict,MANUAL_REVIEW,duplicate group 'seba mensucat' shares fair 28
+,28,4596,merge_conflict,MANUAL_REVIEW,duplicate group 'seba mensucat' shares fair 28
+,74,18280,merge_conflict,MANUAL_REVIEW,duplicate group 'seritcioglu izzet ancel seritcioglu' shares fair 74
+,74,28792,merge_conflict,MANUAL_REVIEW,duplicate group 'seritcioglu izzet ancel seritcioglu' shares fair 74
+,81,22328,merge_conflict,MANUAL_REVIEW,duplicate group 'seritcioglu izzet ancel seritcioglu' shares fair 81
+,81,32401,merge_conflict,MANUAL_REVIEW,duplicate group 'seritcioglu izzet ancel seritcioglu' shares fair 81
+,28,4611,merge_conflict,MANUAL_REVIEW,duplicate group 'seskalar mobilya insaat mimarlik' shares fair 28
+,28,24376,merge_conflict,MANUAL_REVIEW,duplicate group 'seskalar mobilya insaat mimarlik' shares fair 28
+,28,4628,merge_conflict,MANUAL_REVIEW,duplicate group 'aga mobilya ins' shares fair 28
+,28,24236,merge_conflict,MANUAL_REVIEW,duplicate group 'aga mobilya ins' shares fair 28
+,28,4638,merge_conflict,MANUAL_REVIEW,duplicate group 'ugur orman ur mob mot arac ins taah nak ic dis' shares fair 28
+,28,24352,merge_conflict,MANUAL_REVIEW,duplicate group 'ugur orman ur mob mot arac ins taah nak ic dis' shares fair 28
+,29,4691,merge_conflict,MANUAL_REVIEW,duplicate group 'arlon iplik' shares fair 29
+,29,31716,merge_conflict,MANUAL_REVIEW,duplicate group 'arlon iplik' shares fair 29
+,29,4748,merge_conflict,MANUAL_REVIEW,duplicate group 'imka iplik tekstil isletmeleri dis' shares fair 29
+,29,4934,merge_conflict,MANUAL_REVIEW,duplicate group 'imka iplik tekstil isletmeleri dis' shares fair 29
+,29,4781,merge_conflict,MANUAL_REVIEW,duplicate group 'imam kayaliogullari otom' shares fair 29
+,29,4921,merge_conflict,MANUAL_REVIEW,duplicate group 'imam kayaliogullari otom' shares fair 29
+,29,4819,merge_conflict,MANUAL_REVIEW,duplicate group 'sirikcioglu mensucat' shares fair 29
+,29,4941,merge_conflict,MANUAL_REVIEW,duplicate group 'sirikcioglu mensucat' shares fair 29
+,50,8169,merge_conflict,MANUAL_REVIEW,duplicate group 'sulekler tekstil' shares fair 50
+,50,28954,merge_conflict,MANUAL_REVIEW,duplicate group 'sulekler tekstil' shares fair 50
+,29,4838,merge_conflict,MANUAL_REVIEW,duplicate group 'iskur tekstil enerji' shares fair 29
+,29,4935,merge_conflict,MANUAL_REVIEW,duplicate group 'iskur tekstil enerji' shares fair 29
+,28,4882,merge_conflict,MANUAL_REVIEW,duplicate group 'in ka kagitcilik kozmetik selcuk bilmis' shares fair 28
+,28,24321,merge_conflict,MANUAL_REVIEW,duplicate group 'in ka kagitcilik kozmetik selcuk bilmis' shares fair 28
+,28,4893,merge_conflict,MANUAL_REVIEW,duplicate group 'pasa koltuk mobilya' shares fair 28
+,28,24353,merge_conflict,MANUAL_REVIEW,duplicate group 'pasa koltuk mobilya' shares fair 28
+,28,4899,merge_conflict,MANUAL_REVIEW,duplicate group 'inegol girisim mobilya tekstil insaat' shares fair 28
+,28,24383,merge_conflict,MANUAL_REVIEW,duplicate group 'inegol girisim mobilya tekstil insaat' shares fair 28
+,29,4938,merge_conflict,MANUAL_REVIEW,duplicate group 'nipas tekstil' shares fair 29
+,29,24109,merge_conflict,MANUAL_REVIEW,duplicate group 'nipas tekstil' shares fair 29
+,77,20587,merge_conflict,MANUAL_REVIEW,duplicate group 'ada kupa seramik ic dis' shares fair 77
+,77,20588,merge_conflict,MANUAL_REVIEW,duplicate group 'ada kupa seramik ic dis' shares fair 77
+,31,5123,merge_conflict,MANUAL_REVIEW,duplicate group 'nita dis' shares fair 31
+,31,24074,merge_conflict,MANUAL_REVIEW,duplicate group 'nita dis' shares fair 31
+,77,20671,merge_conflict,MANUAL_REVIEW,duplicate group 'beray grup ev gerecleri kalip' shares fair 77
+,77,21033,merge_conflict,MANUAL_REVIEW,duplicate group 'beray grup ev gerecleri kalip' shares fair 77
+,77,20698,merge_conflict,MANUAL_REVIEW,duplicate group 'cakmak ev gerecleri' shares fair 77
+,77,30116,merge_conflict,MANUAL_REVIEW,duplicate group 'cakmak ev gerecleri' shares fair 77
+,38,5335,merge_conflict,MANUAL_REVIEW,duplicate group 'miss betty mim ev gerecleri' shares fair 38
+,38,23710,merge_conflict,MANUAL_REVIEW,duplicate group 'miss betty mim ev gerecleri' shares fair 38
+,38,5387,merge_conflict,MANUAL_REVIEW,duplicate group 'safir cam mamulleri ins' shares fair 38
+,38,5388,merge_conflict,MANUAL_REVIEW,duplicate group 'safir cam mamulleri ins' shares fair 38
+,38,5391,merge_conflict,MANUAL_REVIEW,duplicate group 'sahbaz isi' shares fair 38
+,38,23712,merge_conflict,MANUAL_REVIEW,duplicate group 'sahbaz isi' shares fair 38
+,77,21079,merge_conflict,MANUAL_REVIEW,duplicate group 'saray madeni esya' shares fair 77
+,77,26754,merge_conflict,MANUAL_REVIEW,duplicate group 'saray madeni esya' shares fair 77
+,38,5400,merge_conflict,MANUAL_REVIEW,duplicate group 'sencam cam kozmetik imalat' shares fair 38
+,38,23713,merge_conflict,MANUAL_REVIEW,duplicate group 'sencam cam kozmetik imalat' shares fair 38
+,38,5416,merge_conflict,MANUAL_REVIEW,duplicate group 'vinola ankastre mutfak urunleri' shares fair 38
+,38,23717,merge_conflict,MANUAL_REVIEW,duplicate group 'vinola ankastre mutfak urunleri' shares fair 38
+,38,5417,merge_conflict,MANUAL_REVIEW,duplicate group 'vip ahmet ev mutfak gerecleri' shares fair 38
+,38,23718,merge_conflict,MANUAL_REVIEW,duplicate group 'vip ahmet ev mutfak gerecleri' shares fair 38
+,33,5608,merge_conflict,MANUAL_REVIEW,duplicate group 'medispo medikal teknik' shares fair 33
+,33,33199,merge_conflict,MANUAL_REVIEW,duplicate group 'medispo medikal teknik' shares fair 33
+,33,5854,merge_conflict,MANUAL_REVIEW,duplicate group 'life net medikal' shares fair 33
+,33,27004,merge_conflict,MANUAL_REVIEW,duplicate group 'life net medikal' shares fair 33
+,33,5868,merge_conflict,MANUAL_REVIEW,duplicate group 'medikatek saglik urunleri hizm' shares fair 33
+,33,32060,merge_conflict,MANUAL_REVIEW,duplicate group 'medikatek saglik urunleri hizm' shares fair 33
+,33,5869,merge_conflict,MANUAL_REVIEW,duplicate group 'medimed medikal teks sag malz' shares fair 33
+,33,32061,merge_conflict,MANUAL_REVIEW,duplicate group 'medimed medikal teks sag malz' shares fair 33
+,33,5898,merge_conflict,MANUAL_REVIEW,duplicate group 'medikal olusum' shares fair 33
+,33,33235,merge_conflict,MANUAL_REVIEW,duplicate group 'medikal olusum' shares fair 33
+,33,5916,merge_conflict,MANUAL_REVIEW,duplicate group 'newtech medical devices pvt' shares fair 33
+,33,33236,merge_conflict,MANUAL_REVIEW,duplicate group 'newtech medical devices pvt' shares fair 33
+,33,5952,merge_conflict,MANUAL_REVIEW,duplicate group 'polimot lineer hareket sistemleri mekatronik' shares fair 33
+,33,32070,merge_conflict,MANUAL_REVIEW,duplicate group 'polimot lineer hareket sistemleri mekatronik' shares fair 33
+,33,6036,merge_conflict,MANUAL_REVIEW,duplicate group 'vitrosens biyoteknoloji' shares fair 33
+,33,27028,merge_conflict,MANUAL_REVIEW,duplicate group 'vitrosens biyoteknoloji' shares fair 33
+,33,6040,merge_conflict,MANUAL_REVIEW,duplicate group 'dogam medikal kozm gida teks ith ihr' shares fair 33
+,33,33253,merge_conflict,MANUAL_REVIEW,duplicate group 'dogam medikal kozm gida teks ith ihr' shares fair 33
+,88,23042,merge_conflict,MANUAL_REVIEW,duplicate group 'inter abrasiv' shares fair 88
+,88,34444,merge_conflict,MANUAL_REVIEW,duplicate group 'inter abrasiv' shares fair 88
+,35,6239,merge_conflict,MANUAL_REVIEW,duplicate group 'isb baglanti elemanlari' shares fair 35
+,35,25453,merge_conflict,MANUAL_REVIEW,duplicate group 'isb baglanti elemanlari' shares fair 35
+,88,23070,merge_conflict,MANUAL_REVIEW,duplicate group 'made plastik' shares fair 88
+,88,34452,merge_conflict,MANUAL_REVIEW,duplicate group 'made plastik' shares fair 88
+,35,6251,merge_conflict,MANUAL_REVIEW,duplicate group 'mia metal' shares fair 35
+,35,25464,merge_conflict,MANUAL_REVIEW,duplicate group 'mia metal' shares fair 35
+,35,6279,merge_conflict,MANUAL_REVIEW,duplicate group 'sa ra enerji ins' shares fair 35
+,35,25478,merge_conflict,MANUAL_REVIEW,duplicate group 'sa ra enerji ins' shares fair 35
+,35,6296,merge_conflict,MANUAL_REVIEW,duplicate group 'vis vidasan vida' shares fair 35
+,35,26125,merge_conflict,MANUAL_REVIEW,duplicate group 'vis vidasan vida' shares fair 35
+,35,6312,merge_conflict,MANUAL_REVIEW,duplicate group 'simar dis' shares fair 35
+,35,25498,merge_conflict,MANUAL_REVIEW,duplicate group 'simar dis' shares fair 35
+,77,20596,merge_conflict,MANUAL_REVIEW,duplicate group 'airbags plastik paz' shares fair 77
+,77,20597,merge_conflict,MANUAL_REVIEW,duplicate group 'airbags plastik paz' shares fair 77
+,77,30154,merge_conflict,MANUAL_REVIEW,duplicate group 'airbags plastik paz' shares fair 77
+,49,7578,merge_conflict,MANUAL_REVIEW,duplicate group 'akspa tekstil' shares fair 49
+,49,19113,merge_conflict,MANUAL_REVIEW,duplicate group 'akspa tekstil' shares fair 49
+,49,7714,merge_conflict,MANUAL_REVIEW,duplicate group 'jmk tekstil' shares fair 49
+,49,19155,merge_conflict,MANUAL_REVIEW,duplicate group 'jmk tekstil' shares fair 49
+,49,7832,merge_conflict,MANUAL_REVIEW,duplicate group 'seta fabrics tekstil dis' shares fair 49
+,49,19201,merge_conflict,MANUAL_REVIEW,duplicate group 'seta fabrics tekstil dis' shares fair 49
+,49,7853,merge_conflict,MANUAL_REVIEW,duplicate group 'titizler tekstil' shares fair 49
+,49,19211,merge_conflict,MANUAL_REVIEW,duplicate group 'titizler tekstil' shares fair 49
+,49,7863,merge_conflict,MANUAL_REVIEW,duplicate group 'universal tekstil' shares fair 49
+,49,19217,merge_conflict,MANUAL_REVIEW,duplicate group 'universal tekstil' shares fair 49
+,50,8003,merge_conflict,MANUAL_REVIEW,duplicate group 'gurle suni deri' shares fair 50
+,50,28808,merge_conflict,MANUAL_REVIEW,duplicate group 'gurle suni deri' shares fair 50
+,50,8075,merge_conflict,MANUAL_REVIEW,duplicate group 'isik kadife' shares fair 50
+,50,28853,merge_conflict,MANUAL_REVIEW,duplicate group 'isik kadife' shares fair 50
+,13,23621,merge_conflict,MANUAL_REVIEW,duplicate group 'ender nonwovens' shares fair 13
+,13,31462,merge_conflict,MANUAL_REVIEW,duplicate group 'ender nonwovens' shares fair 13
+,50,8341,merge_conflict,MANUAL_REVIEW,duplicate group 'ipekce home kesimoglu' shares fair 50
+,50,8342,merge_conflict,MANUAL_REVIEW,duplicate group 'ipekce home kesimoglu' shares fair 50
+,50,8381,merge_conflict,MANUAL_REVIEW,duplicate group 'sim brode' shares fair 50
+,50,28943,merge_conflict,MANUAL_REVIEW,duplicate group 'sim brode' shares fair 50
+,50,8474,merge_conflict,MANUAL_REVIEW,duplicate group 'hayal life' shares fair 50
+,50,8475,merge_conflict,MANUAL_REVIEW,duplicate group 'hayal life' shares fair 50
+,50,8522,merge_conflict,MANUAL_REVIEW,duplicate group 'finezza home concept' shares fair 50
+,50,28983,merge_conflict,MANUAL_REVIEW,duplicate group 'finezza home concept' shares fair 50
+,50,8590,merge_conflict,MANUAL_REVIEW,duplicate group 'selinay moda tasarim tekstil' shares fair 50
+,50,28936,merge_conflict,MANUAL_REVIEW,duplicate group 'selinay moda tasarim tekstil' shares fair 50
+,50,8650,merge_conflict,MANUAL_REVIEW,duplicate group 'karna home' shares fair 50
+,50,8651,merge_conflict,MANUAL_REVIEW,duplicate group 'karna home' shares fair 50
+,50,8718,merge_conflict,MANUAL_REVIEW,duplicate group 'zorel tekstil' shares fair 50
+,50,29036,merge_conflict,MANUAL_REVIEW,duplicate group 'zorel tekstil' shares fair 50
+,50,8759,merge_conflict,MANUAL_REVIEW,duplicate group 'saheser home' shares fair 50
+,50,28934,merge_conflict,MANUAL_REVIEW,duplicate group 'saheser home' shares fair 50
+,46,8816,merge_conflict,MANUAL_REVIEW,duplicate group 'simurg tasarim danismanlik reklam tekstil' shares fair 46
+,46,8825,merge_conflict,MANUAL_REVIEW,duplicate group 'simurg tasarim danismanlik reklam tekstil' shares fair 46
+,46,8907,merge_conflict,MANUAL_REVIEW,duplicate group 'antebi orme' shares fair 46
+,46,15174,merge_conflict,MANUAL_REVIEW,duplicate group 'antebi orme' shares fair 46
+,88,22936,merge_conflict,MANUAL_REVIEW,duplicate group 'ariteks boyacilik' shares fair 88
+,88,34477,merge_conflict,MANUAL_REVIEW,duplicate group 'ariteks boyacilik' shares fair 88
+,54,9288,merge_conflict,MANUAL_REVIEW,duplicate group 'genser muh mim ins' shares fair 54
+,54,9289,merge_conflict,MANUAL_REVIEW,duplicate group 'genser muh mim ins' shares fair 54
+,54,9293,merge_conflict,MANUAL_REVIEW,duplicate group 'groma gps yazilim mak otomasyon sis' shares fair 54
+,54,9294,merge_conflict,MANUAL_REVIEW,duplicate group 'groma gps yazilim mak otomasyon sis' shares fair 54
+,32,10669,merge_conflict,MANUAL_REVIEW,duplicate group 'sayeste kaucuk lateks kimyevi maddeler' shares fair 32
+,32,31898,merge_conflict,MANUAL_REVIEW,duplicate group 'sayeste kaucuk lateks kimyevi maddeler' shares fair 32
+,66,13776,merge_conflict,MANUAL_REVIEW,duplicate group 'bilkim tibbi urunler' shares fair 66
+,66,29088,merge_conflict,MANUAL_REVIEW,duplicate group 'bilkim tibbi urunler' shares fair 66
+,58,10872,merge_conflict,MANUAL_REVIEW,duplicate group 'dafne kuyumculuk' shares fair 58
+,58,10873,merge_conflict,MANUAL_REVIEW,duplicate group 'dafne kuyumculuk' shares fair 58
+,34,10908,merge_conflict,MANUAL_REVIEW,duplicate group 'arif alacam rulman' shares fair 34
+,34,11125,merge_conflict,MANUAL_REVIEW,duplicate group 'arif alacam rulman' shares fair 34
+,34,10940,merge_conflict,MANUAL_REVIEW,duplicate group 'csp muhendislik' shares fair 34
+,34,11138,merge_conflict,MANUAL_REVIEW,duplicate group 'csp muhendislik' shares fair 34
+,34,10982,merge_conflict,MANUAL_REVIEW,duplicate group 'fkk guney oto lastik takoz' shares fair 34
+,34,11151,merge_conflict,MANUAL_REVIEW,duplicate group 'fkk guney oto lastik takoz' shares fair 34
+,34,11001,merge_conflict,MANUAL_REVIEW,duplicate group 'hansa flex hidrolik' shares fair 34
+,34,11154,merge_conflict,MANUAL_REVIEW,duplicate group 'hansa flex hidrolik' shares fair 34
+,34,11040,merge_conflict,MANUAL_REVIEW,duplicate group 'nevon makina imalat insaat taahhut danismanlik' shares fair 34
+,34,11167,merge_conflict,MANUAL_REVIEW,duplicate group 'nevon makina imalat insaat taahhut danismanlik' shares fair 34
+,34,11095,merge_conflict,MANUAL_REVIEW,duplicate group 'terralab laboratuvar malzemeleri' shares fair 34
+,34,11181,merge_conflict,MANUAL_REVIEW,duplicate group 'terralab laboratuvar malzemeleri' shares fair 34
+,34,11096,merge_conflict,MANUAL_REVIEW,duplicate group 'troya proses makina kimya maden teknolojileri' shares fair 34
+,34,11183,merge_conflict,MANUAL_REVIEW,duplicate group 'troya proses makina kimya maden teknolojileri' shares fair 34
+,60,11666,merge_conflict,MANUAL_REVIEW,duplicate group 'fujian dongnan piston ring manufacturing co' shares fair 60
+,60,27077,merge_conflict,MANUAL_REVIEW,duplicate group 'fujian dongnan piston ring manufacturing co' shares fair 60
+,60,11839,merge_conflict,MANUAL_REVIEW,duplicate group 'delta oto aksami' shares fair 60
+,60,27147,merge_conflict,MANUAL_REVIEW,duplicate group 'delta oto aksami' shares fair 60
+,60,11849,merge_conflict,MANUAL_REVIEW,duplicate group 'jp group' shares fair 60
+,60,11926,merge_conflict,MANUAL_REVIEW,duplicate group 'jp group' shares fair 60
+,60,11884,merge_conflict,MANUAL_REVIEW,duplicate group 'filtorq filtre' shares fair 60
+,60,27168,merge_conflict,MANUAL_REVIEW,duplicate group 'filtorq filtre' shares fair 60
+,60,11934,merge_conflict,MANUAL_REVIEW,duplicate group 'kapimsan otomotiv' shares fair 60
+,60,27192,merge_conflict,MANUAL_REVIEW,duplicate group 'kapimsan otomotiv' shares fair 60
+,60,11943,merge_conflict,MANUAL_REVIEW,duplicate group 'kolas motor' shares fair 60
+,60,29933,merge_conflict,MANUAL_REVIEW,duplicate group 'kolas motor' shares fair 60
+,60,12227,merge_conflict,MANUAL_REVIEW,duplicate group 'ruian city yangyu motor vehicle parts co' shares fair 60
+,60,27393,merge_conflict,MANUAL_REVIEW,duplicate group 'ruian city yangyu motor vehicle parts co' shares fair 60
+,60,12236,merge_conflict,MANUAL_REVIEW,duplicate group 'wenzhou osmark sensor co' shares fair 60
+,60,27322,merge_conflict,MANUAL_REVIEW,duplicate group 'wenzhou osmark sensor co' shares fair 60
+,60,12260,merge_conflict,MANUAL_REVIEW,duplicate group 'fbg auto co' shares fair 60
+,60,27339,merge_conflict,MANUAL_REVIEW,duplicate group 'fbg auto co' shares fair 60
+,60,12378,merge_conflict,MANUAL_REVIEW,duplicate group 'wenzhou dingcheng electronic technology co' shares fair 60
+,60,27403,merge_conflict,MANUAL_REVIEW,duplicate group 'wenzhou dingcheng electronic technology co' shares fair 60
+,60,12387,merge_conflict,MANUAL_REVIEW,duplicate group 'ruian weichuang auto parts co' shares fair 60
+,60,27359,merge_conflict,MANUAL_REVIEW,duplicate group 'ruian weichuang auto parts co' shares fair 60
+,88,23029,merge_conflict,MANUAL_REVIEW,duplicate group 'gurisik yaglama cihazlari' shares fair 88
+,88,34409,merge_conflict,MANUAL_REVIEW,duplicate group 'gurisik yaglama cihazlari' shares fair 88
+,60,12566,merge_conflict,MANUAL_REVIEW,duplicate group 'inci aku' shares fair 60
+,60,29942,merge_conflict,MANUAL_REVIEW,duplicate group 'inci aku' shares fair 60
+,66,13696,merge_conflict,MANUAL_REVIEW,duplicate group '3s medikal' shares fair 66
+,66,29044,merge_conflict,MANUAL_REVIEW,duplicate group '3s medikal' shares fair 66
+,66,13713,merge_conflict,MANUAL_REVIEW,duplicate group 'akdemir group' shares fair 66
+,66,29050,merge_conflict,MANUAL_REVIEW,duplicate group 'akdemir group' shares fair 66
+,66,13714,merge_conflict,MANUAL_REVIEW,duplicate group 'akme dis deposu' shares fair 66
+,66,29051,merge_conflict,MANUAL_REVIEW,duplicate group 'akme dis deposu' shares fair 66
+,66,13721,merge_conflict,MANUAL_REVIEW,duplicate group 'alpay dis deposu' shares fair 66
+,66,29054,merge_conflict,MANUAL_REVIEW,duplicate group 'alpay dis deposu' shares fair 66
+,66,13722,merge_conflict,MANUAL_REVIEW,duplicate group 'alternatif medikal' shares fair 66
+,66,29055,merge_conflict,MANUAL_REVIEW,duplicate group 'alternatif medikal' shares fair 66
+,66,13723,merge_conflict,MANUAL_REVIEW,duplicate group 'anadolu capa dental' shares fair 66
+,66,29056,merge_conflict,MANUAL_REVIEW,duplicate group 'anadolu capa dental' shares fair 66
+,66,13726,merge_conflict,MANUAL_REVIEW,duplicate group 'antalya bora dis deposu' shares fair 66
+,66,29058,merge_conflict,MANUAL_REVIEW,duplicate group 'antalya bora dis deposu' shares fair 66
+,66,13741,merge_conflict,MANUAL_REVIEW,duplicate group 'atilim dis deposu' shares fair 66
+,66,29067,merge_conflict,MANUAL_REVIEW,duplicate group 'atilim dis deposu' shares fair 66
+,66,13742,merge_conflict,MANUAL_REVIEW,duplicate group 'ati ileri teknoloji' shares fair 66
+,66,29068,merge_conflict,MANUAL_REVIEW,duplicate group 'ati ileri teknoloji' shares fair 66
+,66,13745,merge_conflict,MANUAL_REVIEW,duplicate group 'atlas dis deposu' shares fair 66
+,66,29069,merge_conflict,MANUAL_REVIEW,duplicate group 'atlas dis deposu' shares fair 66
+,66,13751,merge_conflict,MANUAL_REVIEW,duplicate group 'aydoganlar dis deposu' shares fair 66
+,66,29073,merge_conflict,MANUAL_REVIEW,duplicate group 'aydoganlar dis deposu' shares fair 66
+,66,13761,merge_conflict,MANUAL_REVIEW,duplicate group 'basmaci dis deposu' shares fair 66
+,66,29080,merge_conflict,MANUAL_REVIEW,duplicate group 'basmaci dis deposu' shares fair 66
+,66,13762,merge_conflict,MANUAL_REVIEW,duplicate group 'basak dental' shares fair 66
+,66,29081,merge_conflict,MANUAL_REVIEW,duplicate group 'basak dental' shares fair 66
+,66,13764,merge_conflict,MANUAL_REVIEW,duplicate group 'bego dis malzemeleri' shares fair 66
+,66,29083,merge_conflict,MANUAL_REVIEW,duplicate group 'bego dis malzemeleri' shares fair 66
+,66,13790,merge_conflict,MANUAL_REVIEW,duplicate group 'bursa dental dis deposu' shares fair 66
+,66,29094,merge_conflict,MANUAL_REVIEW,duplicate group 'bursa dental dis deposu' shares fair 66
+,66,13805,merge_conflict,MANUAL_REVIEW,duplicate group 'crscam teknoloji' shares fair 66
+,66,29099,merge_conflict,MANUAL_REVIEW,duplicate group 'crscam teknoloji' shares fair 66
+,66,13817,merge_conflict,MANUAL_REVIEW,duplicate group 'demo tibbi cihazlar' shares fair 66
+,66,29109,merge_conflict,MANUAL_REVIEW,duplicate group 'demo tibbi cihazlar' shares fair 66
+,66,13845,merge_conflict,MANUAL_REVIEW,duplicate group 'dentx medikal' shares fair 66
+,66,29118,merge_conflict,MANUAL_REVIEW,duplicate group 'dentx medikal' shares fair 66
+,66,13850,merge_conflict,MANUAL_REVIEW,duplicate group 'dio implant' shares fair 66
+,66,29121,merge_conflict,MANUAL_REVIEW,duplicate group 'dio implant' shares fair 66
+,66,13857,merge_conflict,MANUAL_REVIEW,duplicate group 'dm tibbi cihazlar' shares fair 66
+,66,29123,merge_conflict,MANUAL_REVIEW,duplicate group 'dm tibbi cihazlar' shares fair 66
+,66,13879,merge_conflict,MANUAL_REVIEW,duplicate group 'efc medikal' shares fair 66
+,66,29134,merge_conflict,MANUAL_REVIEW,duplicate group 'efc medikal' shares fair 66
+,66,13884,merge_conflict,MANUAL_REVIEW,duplicate group 'eksen medikal tibbi malz gerecleri paz tur ith ihr' shares fair 66
+,66,13885,merge_conflict,MANUAL_REVIEW,duplicate group 'eksen medikal tibbi malz gerecleri paz tur ith ihr' shares fair 66
+,66,13899,merge_conflict,MANUAL_REVIEW,duplicate group 'ergul dental' shares fair 66
+,66,29144,merge_conflict,MANUAL_REVIEW,duplicate group 'ergul dental' shares fair 66
+,66,13907,merge_conflict,MANUAL_REVIEW,duplicate group 'fatih dis deposu' shares fair 66
+,66,29150,merge_conflict,MANUAL_REVIEW,duplicate group 'fatih dis deposu' shares fair 66
+,66,13940,merge_conflict,MANUAL_REVIEW,duplicate group 'guney dis deposu' shares fair 66
+,66,29166,merge_conflict,MANUAL_REVIEW,duplicate group 'guney dis deposu' shares fair 66
+,66,13948,merge_conflict,MANUAL_REVIEW,duplicate group 'hazal dis deposu' shares fair 66
+,66,29171,merge_conflict,MANUAL_REVIEW,duplicate group 'hazal dis deposu' shares fair 66
+,66,13965,merge_conflict,MANUAL_REVIEW,duplicate group 'ilkay dis deposu' shares fair 66
+,66,29180,merge_conflict,MANUAL_REVIEW,duplicate group 'ilkay dis deposu' shares fair 66
+,66,13975,merge_conflict,MANUAL_REVIEW,duplicate group 'ipekyolu dis deposu' shares fair 66
+,66,29183,merge_conflict,MANUAL_REVIEW,duplicate group 'ipekyolu dis deposu' shares fair 66
+,66,14003,merge_conflict,MANUAL_REVIEW,duplicate group 'kral dis deposu' shares fair 66
+,66,29195,merge_conflict,MANUAL_REVIEW,duplicate group 'kral dis deposu' shares fair 66
+,66,14005,merge_conflict,MANUAL_REVIEW,duplicate group 'kristal dis deposu' shares fair 66
+,66,29197,merge_conflict,MANUAL_REVIEW,duplicate group 'kristal dis deposu' shares fair 66
+,66,14021,merge_conflict,MANUAL_REVIEW,duplicate group 'mannas dis deposu' shares fair 66
+,66,29207,merge_conflict,MANUAL_REVIEW,duplicate group 'mannas dis deposu' shares fair 66
+,66,14042,merge_conflict,MANUAL_REVIEW,duplicate group 'mega dis deposu' shares fair 66
+,66,29217,merge_conflict,MANUAL_REVIEW,duplicate group 'mega dis deposu' shares fair 66
+,66,14047,merge_conflict,MANUAL_REVIEW,duplicate group 'melis dis deposu' shares fair 66
+,66,29220,merge_conflict,MANUAL_REVIEW,duplicate group 'melis dis deposu' shares fair 66
+,66,14052,merge_conflict,MANUAL_REVIEW,duplicate group 'metco dental' shares fair 66
+,66,29224,merge_conflict,MANUAL_REVIEW,duplicate group 'metco dental' shares fair 66
+,66,14090,merge_conflict,MANUAL_REVIEW,duplicate group 'o t genc dental' shares fair 66
+,66,29241,merge_conflict,MANUAL_REVIEW,duplicate group 'o t genc dental' shares fair 66
+,66,14093,merge_conflict,MANUAL_REVIEW,duplicate group 'onex dental' shares fair 66
+,66,29242,merge_conflict,MANUAL_REVIEW,duplicate group 'onex dental' shares fair 66
+,66,14095,merge_conflict,MANUAL_REVIEW,duplicate group 'orbone osteogenesis' shares fair 66
+,66,29244,merge_conflict,MANUAL_REVIEW,duplicate group 'orbone osteogenesis' shares fair 66
+,66,14097,merge_conflict,MANUAL_REVIEW,duplicate group 'orhon dis deposu' shares fair 66
+,66,29245,merge_conflict,MANUAL_REVIEW,duplicate group 'orhon dis deposu' shares fair 66
+,66,14099,merge_conflict,MANUAL_REVIEW,duplicate group 'ortho system medikal' shares fair 66
+,66,29246,merge_conflict,MANUAL_REVIEW,duplicate group 'ortho system medikal' shares fair 66
+,66,14140,merge_conflict,MANUAL_REVIEW,duplicate group 'redon teknoloji' shares fair 66
+,66,29266,merge_conflict,MANUAL_REVIEW,duplicate group 'redon teknoloji' shares fair 66
+,66,14167,merge_conflict,MANUAL_REVIEW,duplicate group 'sevenler dis deposu' shares fair 66
+,66,29281,merge_conflict,MANUAL_REVIEW,duplicate group 'sevenler dis deposu' shares fair 66
+,66,14199,merge_conflict,MANUAL_REVIEW,duplicate group 'tek metal' shares fair 66
+,66,29293,merge_conflict,MANUAL_REVIEW,duplicate group 'tek metal' shares fair 66
+,66,14210,merge_conflict,MANUAL_REVIEW,duplicate group 'tolga dis deposu' shares fair 66
+,66,29301,merge_conflict,MANUAL_REVIEW,duplicate group 'tolga dis deposu' shares fair 66
+,66,14212,merge_conflict,MANUAL_REVIEW,duplicate group 'topcu dental' shares fair 66
+,66,29302,merge_conflict,MANUAL_REVIEW,duplicate group 'topcu dental' shares fair 66
+,66,14220,merge_conflict,MANUAL_REVIEW,duplicate group 'turkmedident dis saglik urunleri' shares fair 66
+,66,14223,merge_conflict,MANUAL_REVIEW,duplicate group 'turkmedident dis saglik urunleri' shares fair 66
+,66,14230,merge_conflict,MANUAL_REVIEW,duplicate group 'uncumed dis malzemeleri' shares fair 66
+,66,29314,merge_conflict,MANUAL_REVIEW,duplicate group 'uncumed dis malzemeleri' shares fair 66
+,66,14231,merge_conflict,MANUAL_REVIEW,duplicate group 'unimed tibbi analitik cihazlar' shares fair 66
+,66,14233,merge_conflict,MANUAL_REVIEW,duplicate group 'unimed tibbi analitik cihazlar' shares fair 66
+,66,14237,merge_conflict,MANUAL_REVIEW,duplicate group 'unaldi medikal' shares fair 66
+,66,29318,merge_conflict,MANUAL_REVIEW,duplicate group 'unaldi medikal' shares fair 66
+,66,14254,merge_conflict,MANUAL_REVIEW,duplicate group 'vulcan teknoloji' shares fair 66
+,66,29327,merge_conflict,MANUAL_REVIEW,duplicate group 'vulcan teknoloji' shares fair 66
+,66,14255,merge_conflict,MANUAL_REVIEW,duplicate group 'w h dental' shares fair 66
+,66,29328,merge_conflict,MANUAL_REVIEW,duplicate group 'w h dental' shares fair 66
+,67,14320,merge_conflict,MANUAL_REVIEW,duplicate group 'i mak reduktor' shares fair 67
+,67,29640,merge_conflict,MANUAL_REVIEW,duplicate group 'i mak reduktor' shares fair 67
+,67,14352,merge_conflict,MANUAL_REVIEW,duplicate group 'bibus' shares fair 67
+,67,29583,merge_conflict,MANUAL_REVIEW,duplicate group 'bibus' shares fair 67
+,67,14391,merge_conflict,MANUAL_REVIEW,duplicate group 'els lift' shares fair 67
+,67,14392,merge_conflict,MANUAL_REVIEW,duplicate group 'els lift' shares fair 67
+,67,14406,merge_conflict,MANUAL_REVIEW,duplicate group 'e tarti' shares fair 67
+,67,29600,merge_conflict,MANUAL_REVIEW,duplicate group 'e tarti' shares fair 67
+,67,14565,merge_conflict,MANUAL_REVIEW,duplicate group 'unsal makina' shares fair 67
+,67,29695,merge_conflict,MANUAL_REVIEW,duplicate group 'unsal makina' shares fair 67
+,77,20848,merge_conflict,MANUAL_REVIEW,duplicate group 'hascevher metal' shares fair 77
+,77,26712,merge_conflict,MANUAL_REVIEW,duplicate group 'hascevher metal' shares fair 77
+,4,18010,merge_conflict,MANUAL_REVIEW,duplicate group 'yukselen celik' shares fair 4
+,4,25092,merge_conflict,MANUAL_REVIEW,duplicate group 'yukselen celik' shares fair 4
+,4,17923,merge_conflict,MANUAL_REVIEW,duplicate group 'basatli boru profil' shares fair 4
+,4,31007,merge_conflict,MANUAL_REVIEW,duplicate group 'basatli boru profil' shares fair 4
+,74,18230,merge_conflict,MANUAL_REVIEW,duplicate group 'karadeniz yapistiricilar end urun' shares fair 74
+,74,30217,merge_conflict,MANUAL_REVIEW,duplicate group 'karadeniz yapistiricilar end urun' shares fair 74
+,74,18240,merge_conflict,MANUAL_REVIEW,duplicate group 'lider fuar stant hiz' shares fair 74
+,74,28794,merge_conflict,MANUAL_REVIEW,duplicate group 'lider fuar stant hiz' shares fair 74
+,74,18272,merge_conflict,MANUAL_REVIEW,duplicate group 'simiteks teks' shares fair 74
+,74,28703,merge_conflict,MANUAL_REVIEW,duplicate group 'simiteks teks' shares fair 74
+,74,18279,merge_conflict,MANUAL_REVIEW,duplicate group 'sahin grup metal imalat' shares fair 74
+,74,30867,merge_conflict,MANUAL_REVIEW,duplicate group 'sahin grup metal imalat' shares fair 74
+,75,18491,merge_conflict,MANUAL_REVIEW,duplicate group 'agrozan tarim urunleri gida urunleri ith ihr' shares fair 75
+,75,30268,merge_conflict,MANUAL_REVIEW,duplicate group 'agrozan tarim urunleri gida urunleri ith ihr' shares fair 75
+,75,18529,merge_conflict,MANUAL_REVIEW,duplicate group 'anako yumurta ur gid ihr ith' shares fair 75
+,75,30227,merge_conflict,MANUAL_REVIEW,duplicate group 'anako yumurta ur gid ihr ith' shares fair 75
+,75,18599,merge_conflict,MANUAL_REVIEW,duplicate group 'bilken tarim gida' shares fair 75
+,75,30297,merge_conflict,MANUAL_REVIEW,duplicate group 'bilken tarim gida' shares fair 75
+,75,18600,merge_conflict,MANUAL_REVIEW,duplicate group 'binbogalar tarim ur ins' shares fair 75
+,75,30298,merge_conflict,MANUAL_REVIEW,duplicate group 'binbogalar tarim ur ins' shares fair 75
+,75,18601,merge_conflict,MANUAL_REVIEW,duplicate group 'bitat dis' shares fair 75
+,75,30302,merge_conflict,MANUAL_REVIEW,duplicate group 'bitat dis' shares fair 75
+,75,18615,merge_conflict,MANUAL_REVIEW,duplicate group 'bulvar tarim urunleri muhendislik end gida nak' shares fair 75
+,75,30306,merge_conflict,MANUAL_REVIEW,duplicate group 'bulvar tarim urunleri muhendislik end gida nak' shares fair 75
+,75,18649,merge_conflict,MANUAL_REVIEW,duplicate group 'dicle gida tarim urunleri' shares fair 75
+,75,30320,merge_conflict,MANUAL_REVIEW,duplicate group 'dicle gida tarim urunleri' shares fair 75
+,75,18699,merge_conflict,MANUAL_REVIEW,duplicate group 'file gida' shares fair 75
+,75,30332,merge_conflict,MANUAL_REVIEW,duplicate group 'file gida' shares fair 75
+,75,18766,merge_conflict,MANUAL_REVIEW,duplicate group 'incekara kuruyemis gida' shares fair 75
+,75,30804,merge_conflict,MANUAL_REVIEW,duplicate group 'incekara kuruyemis gida' shares fair 75
+,75,18768,merge_conflict,MANUAL_REVIEW,duplicate group 'isra global gida ic dis' shares fair 75
+,75,30427,merge_conflict,MANUAL_REVIEW,duplicate group 'isra global gida ic dis' shares fair 75
+,75,18771,merge_conflict,MANUAL_REVIEW,duplicate group 'ideal memba sulari enerji mad tar ur pet' shares fair 75
+,75,30346,merge_conflict,MANUAL_REVIEW,duplicate group 'ideal memba sulari enerji mad tar ur pet' shares fair 75
+,75,18802,merge_conflict,MANUAL_REVIEW,duplicate group 'kilikya salgam icecek' shares fair 75
+,75,30402,merge_conflict,MANUAL_REVIEW,duplicate group 'kilikya salgam icecek' shares fair 75
+,75,18924,merge_conflict,MANUAL_REVIEW,duplicate group 'ozmermer flour mills' shares fair 75
+,75,30376,merge_conflict,MANUAL_REVIEW,duplicate group 'ozmermer flour mills' shares fair 75
+,75,19049,merge_conflict,MANUAL_REVIEW,duplicate group 'kontuvari turk' shares fair 75
+,75,30849,merge_conflict,MANUAL_REVIEW,duplicate group 'kontuvari turk' shares fair 75
+,77,20618,merge_conflict,MANUAL_REVIEW,duplicate group 'isik elektronik' shares fair 77
+,77,20802,merge_conflict,MANUAL_REVIEW,duplicate group 'isik elektronik' shares fair 77
+,77,20707,merge_conflict,MANUAL_REVIEW,duplicate group 'cem mutfak esyalari dis' shares fair 77
+,77,26687,merge_conflict,MANUAL_REVIEW,duplicate group 'cem mutfak esyalari dis' shares fair 77
+,77,20783,merge_conflict,MANUAL_REVIEW,duplicate group 'voltaj elektrikli cihazlar' shares fair 77
+,77,30140,merge_conflict,MANUAL_REVIEW,duplicate group 'voltaj elektrikli cihazlar' shares fair 77
+,77,20815,merge_conflict,MANUAL_REVIEW,duplicate group 'gemon gida ic dis' shares fair 77
+,77,21223,merge_conflict,MANUAL_REVIEW,duplicate group 'gemon gida ic dis' shares fair 77
+,77,20864,merge_conflict,MANUAL_REVIEW,duplicate group 'ikiz bakalit boya kalip kimya metal' shares fair 77
+,77,20865,merge_conflict,MANUAL_REVIEW,duplicate group 'ikiz bakalit boya kalip kimya metal' shares fair 77
+,77,20963,merge_conflict,MANUAL_REVIEW,duplicate group 'alp plastik kalip' shares fair 77
+,77,20965,merge_conflict,MANUAL_REVIEW,duplicate group 'alp plastik kalip' shares fair 77
+,77,20992,merge_conflict,MANUAL_REVIEW,duplicate group 'novussi fatih plastik' shares fair 77
+,77,26637,merge_conflict,MANUAL_REVIEW,duplicate group 'novussi fatih plastik' shares fair 77
+,77,21136,merge_conflict,MANUAL_REVIEW,duplicate group 'teknotel krom ev urunleri' shares fair 77
+,77,21137,merge_conflict,MANUAL_REVIEW,duplicate group 'teknotel krom ev urunleri' shares fair 77
+,77,21203,merge_conflict,MANUAL_REVIEW,duplicate group 'zen tek makina kalip plastik' shares fair 77
+,77,26782,merge_conflict,MANUAL_REVIEW,duplicate group 'zen tek makina kalip plastik' shares fair 77
+,73,21542,merge_conflict,MANUAL_REVIEW,duplicate group 'sahinler metal makina endustri' shares fair 73
+,73,32190,merge_conflict,MANUAL_REVIEW,duplicate group 'sahinler metal makina endustri' shares fair 73
+,82,21638,merge_conflict,MANUAL_REVIEW,duplicate group 'basar gida' shares fair 82
+,82,31288,merge_conflict,MANUAL_REVIEW,duplicate group 'basar gida' shares fair 82
+,82,21652,merge_conflict,MANUAL_REVIEW,duplicate group 'plas plastik ambalaj' shares fair 82
+,82,31292,merge_conflict,MANUAL_REVIEW,duplicate group 'plas plastik ambalaj' shares fair 82
+,82,21655,merge_conflict,MANUAL_REVIEW,duplicate group 'caglayan plastik amb ins mob' shares fair 82
+,82,31294,merge_conflict,MANUAL_REVIEW,duplicate group 'caglayan plastik amb ins mob' shares fair 82
+,82,21758,merge_conflict,MANUAL_REVIEW,duplicate group 'basturk cam' shares fair 82
+,82,31317,merge_conflict,MANUAL_REVIEW,duplicate group 'basturk cam' shares fair 82
+,82,21838,merge_conflict,MANUAL_REVIEW,duplicate group 'fimaks plastik' shares fair 82
+,82,31338,merge_conflict,MANUAL_REVIEW,duplicate group 'fimaks plastik' shares fair 82
+,82,21873,merge_conflict,MANUAL_REVIEW,duplicate group 'ideal pak otomatik ambalaj makinalari' shares fair 82
+,82,31348,merge_conflict,MANUAL_REVIEW,duplicate group 'ideal pak otomatik ambalaj makinalari' shares fair 82
+,82,21880,merge_conflict,MANUAL_REVIEW,duplicate group 'iscan dis makina paz' shares fair 82
+,82,31349,merge_conflict,MANUAL_REVIEW,duplicate group 'iscan dis makina paz' shares fair 82
+,82,21952,merge_conflict,MANUAL_REVIEW,duplicate group 'nitroist ambalaj' shares fair 82
+,82,31365,merge_conflict,MANUAL_REVIEW,duplicate group 'nitroist ambalaj' shares fair 82
+,82,22003,merge_conflict,MANUAL_REVIEW,duplicate group 'prizma ambalaj matbaacilik tekstil' shares fair 82
+,82,31378,merge_conflict,MANUAL_REVIEW,duplicate group 'prizma ambalaj matbaacilik tekstil' shares fair 82
+,82,22042,merge_conflict,MANUAL_REVIEW,duplicate group 'simsek ambalaj' shares fair 82
+,82,32693,merge_conflict,MANUAL_REVIEW,duplicate group 'simsek ambalaj' shares fair 82
+,82,22043,merge_conflict,MANUAL_REVIEW,duplicate group 'sinangin matbaacilik amb' shares fair 82
+,82,31384,merge_conflict,MANUAL_REVIEW,duplicate group 'sinangin matbaacilik amb' shares fair 82
+,114,34186,merge_conflict,MANUAL_REVIEW,duplicate group 'izvar ambalaj' shares fair 114
+,114,34748,merge_conflict,MANUAL_REVIEW,duplicate group 'izvar ambalaj' shares fair 114
+,81,22262,merge_conflict,MANUAL_REVIEW,duplicate group 'guangzhou hessan woodworking machinery co' shares fair 81
+,81,22332,merge_conflict,MANUAL_REVIEW,duplicate group 'guangzhou hessan woodworking machinery co' shares fair 81
+,81,22315,merge_conflict,MANUAL_REVIEW,duplicate group 'shandong geelong machinery equipment co' shares fair 81
+,81,22319,merge_conflict,MANUAL_REVIEW,duplicate group 'shandong geelong machinery equipment co' shares fair 81
+,81,22318,merge_conflict,MANUAL_REVIEW,duplicate group 'oli makina' shares fair 81
+,81,22325,merge_conflict,MANUAL_REVIEW,duplicate group 'oli makina' shares fair 81
+,84,22648,merge_conflict,MANUAL_REVIEW,duplicate group 'simge reklam nevzat guven' shares fair 84
+,84,22649,merge_conflict,MANUAL_REVIEW,duplicate group 'simge reklam nevzat guven' shares fair 84
+,85,22648,merge_conflict,MANUAL_REVIEW,duplicate group 'simge reklam nevzat guven' shares fair 85
+,85,22649,merge_conflict,MANUAL_REVIEW,duplicate group 'simge reklam nevzat guven' shares fair 85
+,84,22687,merge_conflict,MANUAL_REVIEW,duplicate group 'vira dijital baski urunleri' shares fair 84
+,84,22689,merge_conflict,MANUAL_REVIEW,duplicate group 'vira dijital baski urunleri' shares fair 84
+,85,22687,merge_conflict,MANUAL_REVIEW,duplicate group 'vira dijital baski urunleri' shares fair 85
+,85,22689,merge_conflict,MANUAL_REVIEW,duplicate group 'vira dijital baski urunleri' shares fair 85
+,88,23127,merge_conflict,MANUAL_REVIEW,duplicate group 'seckin madeni esya' shares fair 88
+,88,34415,merge_conflict,MANUAL_REVIEW,duplicate group 'seckin madeni esya' shares fair 88
+,18,23550,merge_conflict,MANUAL_REVIEW,duplicate group 'sam yapi' shares fair 18
+,18,32763,merge_conflict,MANUAL_REVIEW,duplicate group 'sam yapi' shares fair 18
+,18,23561,merge_conflict,MANUAL_REVIEW,duplicate group 'sisco' shares fair 18
+,18,31163,merge_conflict,MANUAL_REVIEW,duplicate group 'sisco' shares fair 18
+,13,23598,merge_conflict,MANUAL_REVIEW,duplicate group 'abdulkadir ozoglan savan imalati ticareti' shares fair 13
+,13,31521,merge_conflict,MANUAL_REVIEW,duplicate group 'abdulkadir ozoglan savan imalati ticareti' shares fair 13
+,13,23603,merge_conflict,MANUAL_REVIEW,duplicate group 'altinsar tekstil' shares fair 13
+,13,31420,merge_conflict,MANUAL_REVIEW,duplicate group 'altinsar tekstil' shares fair 13
+,13,23614,merge_conflict,MANUAL_REVIEW,duplicate group 'bienna hali dekorasyon ic dis' shares fair 13
+,13,31516,merge_conflict,MANUAL_REVIEW,duplicate group 'bienna hali dekorasyon ic dis' shares fair 13
+,13,23627,merge_conflict,MANUAL_REVIEW,duplicate group 'gulseven hali' shares fair 13
+,13,31440,merge_conflict,MANUAL_REVIEW,duplicate group 'gulseven hali' shares fair 13
+,13,23635,merge_conflict,MANUAL_REVIEW,duplicate group 'islamoglu tekstil dokuma gida turizm' shares fair 13
+,13,31473,merge_conflict,MANUAL_REVIEW,duplicate group 'islamoglu tekstil dokuma gida turizm' shares fair 13
+,13,23653,merge_conflict,MANUAL_REVIEW,duplicate group 'mng halicilik turizm seyahat' shares fair 13
+,13,32467,merge_conflict,MANUAL_REVIEW,duplicate group 'mng halicilik turizm seyahat' shares fair 13
+,13,23676,merge_conflict,MANUAL_REVIEW,duplicate group 'tayba hali teks pvc ima ith ihr' shares fair 13
+,13,31488,merge_conflict,MANUAL_REVIEW,duplicate group 'tayba hali teks pvc ima ith ihr' shares fair 13
+,13,23683,merge_conflict,MANUAL_REVIEW,duplicate group 'vandewiele nv' shares fair 13
+,13,31492,merge_conflict,MANUAL_REVIEW,duplicate group 'vandewiele nv' shares fair 13
+,13,23685,merge_conflict,MANUAL_REVIEW,duplicate group 'vezirsah hali mobilya paz ith ihr' shares fair 13
+,13,32485,merge_conflict,MANUAL_REVIEW,duplicate group 'vezirsah hali mobilya paz ith ihr' shares fair 13
+,13,23688,merge_conflict,MANUAL_REVIEW,duplicate group 'zeki mensucat' shares fair 13
+,13,31497,merge_conflict,MANUAL_REVIEW,duplicate group 'zeki mensucat' shares fair 13
+,91,23983,merge_conflict,MANUAL_REVIEW,duplicate group 'protel' shares fair 91
+,91,23984,merge_conflict,MANUAL_REVIEW,duplicate group 'protel' shares fair 91
+,91,24007,merge_conflict,MANUAL_REVIEW,duplicate group 'sportalya spor malzemeleri' shares fair 91
+,91,24008,merge_conflict,MANUAL_REVIEW,duplicate group 'sportalya spor malzemeleri' shares fair 91
+,91,24041,merge_conflict,MANUAL_REVIEW,duplicate group 'turkyilmaz ozel egitim kurumlari' shares fair 91
+,91,24042,merge_conflict,MANUAL_REVIEW,duplicate group 'turkyilmaz ozel egitim kurumlari' shares fair 91
+,91,24043,merge_conflict,MANUAL_REVIEW,duplicate group 'turkyilmaz ozel egitim kurumlari' shares fair 91
+,98,25362,merge_conflict,MANUAL_REVIEW,duplicate group 'istanbul universitesi' shares fair 98
+,98,25364,merge_conflict,MANUAL_REVIEW,duplicate group 'istanbul universitesi' shares fair 98
+,77,26605,merge_conflict,MANUAL_REVIEW,duplicate group 'anhui light industries international co' shares fair 77
+,77,26972,merge_conflict,MANUAL_REVIEW,duplicate group 'anhui light industries international co' shares fair 77
+,104,27709,merge_conflict,MANUAL_REVIEW,duplicate group 'david brown santasalo uk' shares fair 104
+,104,27710,merge_conflict,MANUAL_REVIEW,duplicate group 'david brown santasalo uk' shares fair 104
+,104,28435,merge_conflict,MANUAL_REVIEW,duplicate group 'spafax international' shares fair 104
+,104,28436,merge_conflict,MANUAL_REVIEW,duplicate group 'spafax international' shares fair 104
+,104,28482,merge_conflict,MANUAL_REVIEW,duplicate group 'te connectivity' shares fair 104
+,104,28483,merge_conflict,MANUAL_REVIEW,duplicate group 'te connectivity' shares fair 104
+,104,28539,merge_conflict,MANUAL_REVIEW,duplicate group 'trident maritime systems' shares fair 104
+,104,28541,merge_conflict,MANUAL_REVIEW,duplicate group 'trident maritime systems' shares fair 104
+,27,31559,merge_conflict,MANUAL_REVIEW,duplicate group 'ulusal kamp karavan federasyonu' shares fair 27
+,27,32829,merge_conflict,MANUAL_REVIEW,duplicate group 'ulusal kamp karavan federasyonu' shares fair 27
+,113,33518,merge_conflict,MANUAL_REVIEW,duplicate group 'canakcilar seramik' shares fair 113
+,113,34030,merge_conflict,MANUAL_REVIEW,duplicate group 'canakcilar seramik' shares fair 113
+,113,33531,merge_conflict,MANUAL_REVIEW,duplicate group 'demir makine' shares fair 113
+,113,33887,merge_conflict,MANUAL_REVIEW,duplicate group 'demir makine' shares fair 113
+,113,33542,merge_conflict,MANUAL_REVIEW,duplicate group 'ege seramik' shares fair 113
+,113,34038,merge_conflict,MANUAL_REVIEW,duplicate group 'ege seramik' shares fair 113
+,113,33598,merge_conflict,MANUAL_REVIEW,duplicate group 'idevit seramik' shares fair 113
+,113,34049,merge_conflict,MANUAL_REVIEW,duplicate group 'idevit seramik' shares fair 113
+,113,33616,merge_conflict,MANUAL_REVIEW,duplicate group 'karo metro seramik' shares fair 113
+,113,34014,merge_conflict,MANUAL_REVIEW,duplicate group 'karo metro seramik' shares fair 113
+,117,35092,merge_conflict,MANUAL_REVIEW,duplicate group 'cin pavilyonu' shares fair 117
+,117,35094,merge_conflict,MANUAL_REVIEW,duplicate group 'cin pavilyonu' shares fair 117

@@ -1,4 +1,4 @@
-/** URL query string helpers for server-side table state (ADR-015). */
+/** URL query string helpers for server-side table state (ADR-015 / ADR-019). */
 
 export function readSearchParams(search?: string): URLSearchParams {
   const raw = search ?? (typeof window !== "undefined" ? window.location.search : "");
@@ -15,8 +15,8 @@ export function getTableStateFromUrl(
     page?: string;
     pageSize?: string;
     search?: string;
-    sort?: string;
-    direction?: string;
+    sortBy?: string;
+    sortOrder?: string;
     filterKeys?: string[];
   },
   search?: string,
@@ -24,24 +24,33 @@ export function getTableStateFromUrl(
   page: number;
   pageSize: number;
   search: string;
-  sort: string | null;
-  direction: "asc" | "desc" | null;
+  sortBy: string | null;
+  sortOrder: "asc" | "desc" | null;
   filters: Record<string, string>;
 } {
   const params = readSearchParams(search);
   const page = Math.max(1, Number(params.get(keys.page ?? "page") ?? 1) || 1);
   const pageSize = Math.max(1, Number(params.get(keys.pageSize ?? "pageSize") ?? 25) || 25);
   const searchValue = params.get(keys.search ?? "search") ?? "";
-  const sort = params.get(keys.sort ?? "sort");
-  const directionRaw = params.get(keys.direction ?? "direction");
-  const direction =
-    directionRaw === "asc" || directionRaw === "desc" ? directionRaw : null;
+  const sortByKey = keys.sortBy ?? "sort_by";
+  const sortOrderKey = keys.sortOrder ?? "sort_order";
+  const sortBy =
+    params.get(sortByKey) ??
+    params.get("sort_by") ??
+    params.get("sort");
+  const sortOrderRaw =
+    params.get(sortOrderKey) ??
+    params.get("sort_order") ??
+    params.get("direction") ??
+    params.get("sort_dir");
+  const sortOrder =
+    sortOrderRaw === "asc" || sortOrderRaw === "desc" ? sortOrderRaw : null;
   const filters: Record<string, string> = {};
   for (const key of keys.filterKeys ?? []) {
     const value = params.get(key);
     if (value) filters[key] = value;
   }
-  return { page, pageSize, search: searchValue, sort, direction, filters };
+  return { page, pageSize, search: searchValue, sortBy, sortOrder, filters };
 }
 
 export function writeTableStateToUrl(
@@ -49,16 +58,16 @@ export function writeTableStateToUrl(
     page: number;
     pageSize: number;
     search: string;
-    sort: string | null;
-    direction: "asc" | "desc" | null;
+    sortBy: string | null;
+    sortOrder: "asc" | "desc" | null;
     filters: Record<string, string | undefined>;
   },
   keys: {
     page?: string;
     pageSize?: string;
     search?: string;
-    sort?: string;
-    direction?: string;
+    sortBy?: string;
+    sortOrder?: string;
     filterKeys?: string[];
   },
   baseParams?: URLSearchParams,
@@ -68,8 +77,8 @@ export function writeTableStateToUrl(
   const pageKey = keys.page ?? "page";
   const pageSizeKey = keys.pageSize ?? "pageSize";
   const searchKey = keys.search ?? "search";
-  const sortKey = keys.sort ?? "sort";
-  const directionKey = keys.direction ?? "direction";
+  const sortByKey = keys.sortBy ?? "sort_by";
+  const sortOrderKey = keys.sortOrder ?? "sort_order";
 
   if (state.page > 1) params.set(pageKey, String(state.page));
   else params.delete(pageKey);
@@ -80,11 +89,16 @@ export function writeTableStateToUrl(
   if (state.search.trim()) params.set(searchKey, state.search.trim());
   else params.delete(searchKey);
 
-  if (state.sort) params.set(sortKey, state.sort);
-  else params.delete(sortKey);
+  if (state.sortBy) params.set(sortByKey, state.sortBy);
+  else params.delete(sortByKey);
 
-  if (state.direction) params.set(directionKey, state.direction);
-  else params.delete(directionKey);
+  if (state.sortOrder) params.set(sortOrderKey, state.sortOrder);
+  else params.delete(sortOrderKey);
+
+  // Remove legacy sort params when writing canonical state.
+  params.delete("sort");
+  params.delete("direction");
+  params.delete("sort_dir");
 
   for (const key of keys.filterKeys ?? []) {
     const value = state.filters[key];

@@ -96,8 +96,8 @@ export async function listImportRows(
     page: params.page,
     pageSize: params.pageSize,
     search: params.search,
-    sort: params.sort,
-    direction: params.direction,
+    sortBy: params.sortBy,
+    sortOrder: params.sortOrder,
     filters: params.filter ? { filter: params.filter } : params.filters,
   });
   const raw = await apiRequest<unknown>(`/api/v1/imports/${batchId}/rows?${query.toString()}`);

@@ -25,6 +25,14 @@ class Settings(BaseSettings):
     dev_user_id: UUID | None = Field(default=None, validation_alias="FAIR_CRM_DEV_USER_ID")
     dev_user_email: str = Field(default="dev@example.com", validation_alias="FAIR_CRM_DEV_USER_EMAIL")
     dev_organization_id: UUID | None = Field(default=None, validation_alias="FAIR_CRM_DEV_ORGANIZATION_ID")
+    postgres_docker_container: str = Field(
+        default="kyrox-postgres-dev",
+        validation_alias="FAIR_CRM_POSTGRES_DOCKER_CONTAINER",
+    )
+    database_restore_enabled: bool = Field(
+        default=False,
+        validation_alias="FAIR_CRM_DATABASE_RESTORE_ENABLED",
+    )
 
 
 @lru_cache

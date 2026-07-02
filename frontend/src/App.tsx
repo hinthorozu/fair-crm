@@ -4,8 +4,15 @@ import { CustomerDetailPage } from "./pages/CustomerDetailPage";
 import { FairsPage } from "./pages/FairsPage";
 import { FairDetailPage } from "./pages/FairDetailPage";
 import { ImportWizardPage } from "./pages/ImportWizardPage";
+import { DataIntegrationImportsPage } from "./pages/DataIntegrationImportsPage";
+import { DatabaseBackupsPage } from "./pages/DatabaseBackupsPage";
+import { DataIntegrationLayout } from "./components/dataIntegration/DataIntegrationLayout";
+import { AdminSystemLayout } from "./components/admin/AdminSystemLayout";
 import { AppLayout } from "./components/layout/AppLayout";
+import { Card } from "./components/ui/Card";
 import { uiLabels } from "./labels/uiLabels";
+import { dataIntegrationLabels } from "./labels/dataIntegrationLabels";
+import { adminLabels } from "./labels/adminLabels";
 import { labels } from "./labels";
 import "./styles.css";
 
@@ -13,6 +20,12 @@ type AppRoute =
   | "/customers"
   | "/fairs"
   | "/fairs/:id"
+  | "/data-integration/imports"
+  | "/data-integration/imports/new"
+  | "/data-integration/imports/fair/:fairId"
+  | "/data-integration/jobs"
+  | "/data-integration/reports"
+  | "/admin/system/backups"
   | "/imports"
   | "/imports/fair/:fairId"
   | "/customers/:id";
@@ -24,6 +37,28 @@ interface ParsedRoute {
 }
 
 function parseRoute(pathname: string): ParsedRoute {
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    if (pathname === "/admin/system/backups" || pathname.startsWith("/admin/system/backups")) {
+      return { route: "/admin/system/backups" };
+    }
+    return { route: "/admin/system/backups" };
+  }
+  if (pathname === "/data-integration" || pathname.startsWith("/data-integration/")) {
+    const fairImport = pathname.match(/^\/data-integration\/imports\/fair\/([^/]+)$/);
+    if (fairImport) {
+      return { route: "/data-integration/imports/fair/:fairId", fairId: fairImport[1] };
+    }
+    if (pathname === "/data-integration/imports/new") {
+      return { route: "/data-integration/imports/new" };
+    }
+    if (pathname === "/data-integration/jobs") {
+      return { route: "/data-integration/jobs" };
+    }
+    if (pathname === "/data-integration/reports") {
+      return { route: "/data-integration/reports" };
+    }
+    return { route: "/data-integration/imports" };
+  }
   if (pathname === "/imports" || pathname.startsWith("/imports/")) {
     const fairImport = pathname.match(/^\/imports\/fair\/([^/]+)$/);
     if (fairImport) {
@@ -73,6 +108,26 @@ function navigate(path: string) {
   window.dispatchEvent(new PopStateEvent("popstate"));
 }
 
+function isDataIntegrationRoute(route: AppRoute): boolean {
+  return route.startsWith("/data-integration");
+}
+
+function isAdminRoute(route: AppRoute): boolean {
+  return route.startsWith("/admin");
+}
+
+function adminSection(route: AppRoute): string {
+  if (route.includes("/backups")) return "backups";
+  return "backups";
+}
+
+function diSection(route: AppRoute): string {
+  if (route.includes("/new") || route.includes("/fair/")) return "new";
+  if (route.includes("/jobs")) return "jobs";
+  if (route.includes("/reports")) return "reports";
+  return "imports";
+}
+
 export function App() {
   const [parsed, setParsed] = React.useState<ParsedRoute>(() =>
     parseRoute(window.location.pathname),
@@ -80,12 +135,27 @@ export function App() {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [customerName, setCustomerName] = React.useState<string | null>(null);
   const [fairName, setFairName] = React.useState<string | null>(null);
+  const [diNotice, setDiNotice] = React.useState<string | null>(null);
+  const [adminNotice, setAdminNotice] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (window.location.pathname === "/") {
+    const path = window.location.pathname;
+    if (path === "/") {
       const next = `/customers${window.location.search}`;
       window.history.replaceState(null, "", next);
       setParsed(parseRoute("/customers"));
+      return;
+    }
+    if (path === "/imports") {
+      window.history.replaceState(null, "", "/data-integration/imports/new");
+      setParsed(parseRoute("/data-integration/imports/new"));
+      return;
+    }
+    const legacyFair = path.match(/^\/imports\/fair\/([^/]+)$/);
+    if (legacyFair) {
+      const next = `/data-integration/imports/fair/${legacyFair[1]}`;
+      window.history.replaceState(null, "", next);
+      setParsed(parseRoute(next));
     }
   }, []);
 
@@ -129,12 +199,19 @@ export function App() {
     setSidebarOpen(false);
   };
 
-  const goToImportWizard = (fairId?: string) => {
-    const path = fairId ? `/imports/fair/${fairId}` : "/imports";
-    navigate(path);
-    setParsed(parseRoute(path));
+  const goToDataIntegration = (subpath = "/data-integration/imports") => {
+    navigate(subpath);
+    setParsed(parseRoute(subpath));
     setSidebarOpen(false);
   };
+
+  const goToImportWizard = (fairId?: string) => {
+    const path = fairId
+      ? `/data-integration/imports/fair/${fairId}`
+      : "/data-integration/imports/new";
+    goToDataIntegration(path);
+  };
+
   const goToFairDetail = (fairId: string) => {
     const path = `/fairs/${fairId}`;
     navigate(path);
@@ -142,8 +219,16 @@ export function App() {
     setSidebarOpen(false);
   };
 
+  const goToAdmin = (subpath = "/admin/system/backups") => {
+    navigate(subpath);
+    setParsed(parseRoute(subpath));
+    setSidebarOpen(false);
+  };
+
   const isCustomersActive = parsed.route === "/customers" || parsed.route === "/customers/:id";
   const isFairsActive = parsed.route === "/fairs" || parsed.route === "/fairs/:id";
+  const isDiActive = isDataIntegrationRoute(parsed.route);
+  const isAdminActive = isAdminRoute(parsed.route);
 
   const breadcrumbs =
     parsed.route === "/customers/:id" && parsed.customerId
@@ -159,17 +244,23 @@ export function App() {
             { label: fairName ?? uiLabels.navFairs, current: true },
           ]
         : parsed.route === "/fairs"
-        ? [
-            { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
-            { label: uiLabels.navFairs, onClick: goToFairs },
-            { label: uiLabels.navFairs, current: true },
-          ]
-        : parsed.route === "/imports"
           ? [
               { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
-              { label: uiLabels.navImports, current: true },
+              { label: uiLabels.navFairs, onClick: goToFairs },
+              { label: uiLabels.navFairs, current: true },
             ]
-          : [{ label: labels.customers, current: true }];
+          : isDiActive
+            ? [
+                { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                { label: uiLabels.navImports, current: true },
+              ]
+            : isAdminActive
+              ? [
+                  { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                  { label: uiLabels.navAdmin, onClick: () => goToAdmin() },
+                  { label: adminLabels.navDatabaseBackups, current: true },
+                ]
+              : [{ label: labels.customers, current: true }];
 
   const navItems = [
     {
@@ -185,12 +276,53 @@ export function App() {
       onClick: (e: React.MouseEvent) => handleNav("/fairs", e),
     },
     {
-      path: "/imports",
+      path: "/data-integration/imports",
       label: uiLabels.navImports,
-      active: parsed.route === "/imports" || parsed.route === "/imports/fair/:fairId",
-      onClick: (e: React.MouseEvent) => handleNav("/imports", e),
+      active: isDiActive,
+      onClick: (e: React.MouseEvent) => handleNav("/data-integration/imports", e),
+    },
+    {
+      path: "/admin/system/backups",
+      label: uiLabels.navAdmin,
+      active: isAdminActive,
+      onClick: (e: React.MouseEvent) => handleNav("/admin/system/backups", e),
     },
   ];
+
+  const renderDataIntegration = () => (
+    <DataIntegrationLayout
+      activeSection={diSection(parsed.route)}
+      onNavigate={(path, e) => handleNav(path, e)}
+      onDisabledClick={() => setDiNotice(dataIntegrationLabels.comingSoonMessage)}
+    >
+      {diNotice && <p className="text-muted">{diNotice}</p>}
+      {parsed.route === "/data-integration/imports" && (
+        <DataIntegrationImportsPage
+          onNewImport={() => goToDataIntegration("/data-integration/imports/new")}
+        />
+      )}
+      {(parsed.route === "/data-integration/imports/new" ||
+        parsed.route === "/data-integration/imports/fair/:fairId") && (
+        <ImportWizardPage preselectedFairId={parsed.fairId} />
+      )}
+      {(parsed.route === "/data-integration/jobs" || parsed.route === "/data-integration/reports") && (
+        <Card>
+          <p>{dataIntegrationLabels.comingSoonMessage}</p>
+        </Card>
+      )}
+    </DataIntegrationLayout>
+  );
+
+  const renderAdminSystem = () => (
+    <AdminSystemLayout
+      activeSection={adminSection(parsed.route)}
+      onNavigate={(path, e) => handleNav(path, e)}
+      onDisabledClick={() => setAdminNotice(adminLabels.comingSoonMessage)}
+    >
+      {adminNotice && <p className="text-muted">{adminNotice}</p>}
+      {parsed.route === "/admin/system/backups" && <DatabaseBackupsPage />}
+    </AdminSystemLayout>
+  );
 
   return (
     <AppLayout
@@ -209,10 +341,8 @@ export function App() {
           onImportParticipants={() => goToImportWizard(parsed.fairId)}
         />
       )}
-      {parsed.route === "/imports" && <ImportWizardPage />}
-      {parsed.route === "/imports/fair/:fairId" && parsed.fairId && (
-        <ImportWizardPage preselectedFairId={parsed.fairId} />
-      )}
+      {isDiActive && renderDataIntegration()}
+      {isAdminActive && renderAdminSystem()}
       {parsed.route === "/customers" && <CustomersPage onOpenDetail={goToCustomerDetail} />}
       {parsed.route === "/customers/:id" && parsed.customerId && (
         <CustomerDetailPage

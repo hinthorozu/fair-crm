@@ -29,6 +29,7 @@ export const labels = {
   website: "Web Sitesi",
   phone: "Telefon",
   email: "E-posta",
+  created_at: "Kayıt Tarihi",
   source: "Kaynak",
   description: "Açıklama",
   normalized_name: "Normalize Ad",

@@ -261,3 +261,92 @@ Sprint 07 delivered Excel import and merge preview. Sprint 09.0 formalizes a sou
 - Existing `/imports` and `/api/v1/imports/*` remain until migration sprint; new work targets Data Integration naming.
 - Import/export/sync **background jobs** share a common job pattern.
 - Backend/API/database naming stays **English**; frontend stays **Turkish** (ADR-006).
+
+## ADR-017 — Universal Source Adapter Framework
+
+Status: Accepted (Sprint 09.2)
+
+**Decision:**
+
+Data Integration adopts a **Universal Source Adapter Framework**. External data sources are pluggable adapters sharing one lifecycle (`Connect → Read → Normalize → Preview`). The **Import Engine** is source-agnostic: mapping, matching, merge, and apply never depend on Excel, scraper, or ERP specifics.
+
+**Adapter registration:**
+
+- `SourceAdapter` protocol — `domain/source_adapter.py`
+- `SourceAdapterRegistry` — resolve adapter by `ImportSourceType` or file extension
+- Excel is the first registered adapter (`ExcelSourceAdapter`); new sources register without engine changes
+
+**Scraper rule:**
+
+One adapter per fair site (e.g. TUYAP, IFM). Each adapter owns URL structure, parsing, and pagination. Output is normalized to the same preview contract as file adapters.
+
+**Non-negotiable:**
+
+- Adapters **never** write CRM domain data
+- Import Engine **never** imports site-specific scraper or ERP logic
+- New source = new adapter + registry entry + tests
+
+**Rationale:**
+
+Sprint 09.1 shipped Excel import under a provisional `ImportAdapter`. Sprint 09.2 formalizes the platform model described in the product vision so CSV, API, scraper, and ERP connectors can ship incrementally.
+
+**Consequences:**
+
+- Canonical doc: [docs/import/SOURCE_ADAPTER_FRAMEWORK.md](import/SOURCE_ADAPTER_FRAMEWORK.md)
+- Upload and sheet selection resolve adapters via registry
+- Background apply jobs use FastAPI `BackgroundTasks` (commit before job runs)
+- Future menu items (Web Scrapers, ERP, CSV/XML) map 1:1 to adapter families
+
+## ADR-018 — System Administration Module Foundation
+
+Status: Accepted (Sprint 09.2.2)
+
+**Decision:**
+
+Fair CRM introduces a **System Administration** module (`system_admin`) as the long-lived home for operational tooling. Sprint 09.2.2 delivers **Database Backups** as the first component; future items (Restore, Background Jobs, Audit Logs, Health Monitoring, Storage, Maintenance Mode, Scheduler, Disaster Recovery) extend the same module without one-off admin pages.
+
+**Architecture:**
+
+- Shared backup engine at `app/shared/database_backup` — no duplicated dump logic between dev scripts and Admin API
+- Backup metadata in PostgreSQL (`system_backups`); files on disk under gitignored `backups/` (`faircrm_backup_YYYYMMDD_HHMMSS.dump`)
+- Background jobs via FastAPI `BackgroundTasks` with stage progress (preparing → dumping → compressing → completed/failed)
+- Admin-only permissions (`fair_crm.admin.backups.*`); download enforces path safety and permission checks
+- **Restore** foundation (`RestoreService`, disabled endpoint, feature flag) — not enabled in this sprint
+
+**Rationale:**
+
+Real customer data requires safe, repeatable snapshots before import/migration. Dev-only scripts (Sprint 09.2.1) proved the workflow; this sprint productizes it as the first System Admin capability with production-grade extensibility.
+
+**Consequences:**
+
+- Admin menu: **Admin → System → Database Backups** (`/admin/system/backups`)
+- API: `/api/v1/admin/backups/*`
+- Dev PowerShell scripts delegate to `python -m app.shared.database_backup`
+- Restore remains disabled until explicitly enabled via configuration
+
+## ADR-019 — Universal Server-Side DataTable Sorting Rule
+
+Status: Accepted (Sprint 09.2.3)
+
+**Decision:**
+
+All Fair CRM list screens using the Universal Server-Side DataTable standard (ADR-015) must expose **server-side sorting on every data column except Actions**. The Actions column is never sortable. This is mandatory — not optional per screen.
+
+**Rules:**
+
+- Frontend: `UniversalDataTable` with column definitions; `sortable: true` on data columns, `sortable: false` on Actions only.
+- Hook: `useServerDataTable.setSort` — asc → desc → default cycle; URL sync via `sort_by` + `sort_order`.
+- Backend: per-entity `ALLOWED_SORT_FIELDS` whitelist; `parse_list_query` + safe fallback for invalid `sort_by` (no HTTP 400).
+- API: canonical query params `sort_by`, `sort_order`; response includes nested `sorting: { field, direction }`.
+- Legacy aliases `sort`, `direction`, `sort_dir` remain accepted for backward compatibility.
+
+**Rationale:**
+
+Partial column sorting and manual `renderSortableHeader` per screen created inconsistent UX and duplicated boilerplate. A single component + column config scales to Admin/System modules and future list screens.
+
+**Consequences:**
+
+- `UniversalDataTable` component replaces manual header wiring.
+- Activities list migrated from timeline to sortable table.
+- Constitution documents the rule under **Universal Server-Side DataTable Standard — Sorting Rule**.
+- Exceptions require a new ADR in this file.

@@ -21,8 +21,8 @@ export async function listActivitiesByCustomer(
     page: params.page,
     pageSize: params.pageSize,
     search: params.search,
-    sort: params.sort,
-    direction: params.direction,
+    sortBy: params.sortBy,
+    sortOrder: params.sortOrder,
     filters: {
       ...(params.activityType ? { activityType: params.activityType } : {}),
       ...params.filters,

@@ -34,6 +34,9 @@ Thumbs.db
 *.log
 scripts/dev/logs/
 
+# Local PostgreSQL backups (dev utility)
+backups/
+
 # Local verification artifacts (do not commit)
 scripts/.dev_state.json
 scripts/_openapi_check.json

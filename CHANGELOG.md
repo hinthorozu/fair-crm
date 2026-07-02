@@ -8,15 +8,54 @@ Format: one version section per completed sprint milestone. Update this file aft
 
 ## Unreleased
 
-- **Product Vision** — [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md): Customer Data Platform direction, business workflow phases (A/B/C), platform map, P0–P2 priorities, philosophy
-- **Sprint 09.0 started** — Data Integration architecture & Universal Import Standard (ADR-016)
-- Docs: [docs/import/IMPORT_ARCHITECTURE.md](docs/import/IMPORT_ARCHITECTURE.md), [MERGE_RULES.md](docs/import/MERGE_RULES.md), [MATCHING_RULES.md](docs/import/MATCHING_RULES.md)
-- Module naming: backend `data_integration`; frontend **Veri Entegrasyonu** at `/data-integration`
-- Excel header mode: İlk satır başlık / Başlık yok (A/B/C…) / Başlık satırını ben seçeceğim
-- Legacy UMCRM migration engine: canonical JSON → KYROX CRM (dev-only)
-- Scripts: `reset_fair_crm_dev_domain.py`, `migrate_umcrm_to_kyrox.py`
-- Full dev import verified: 115 fairs, 28,155 customers, 29,561 participations
-- Documentation: [docs/LEGACY_UMCRM_MIGRATION.md](docs/LEGACY_UMCRM_MIGRATION.md)
+- **Universal Server-Side DataTable Sorting Rule (ADR-019)** — mandatory sortable data columns except Actions
+- `UniversalDataTable` component — column `{ key, title, sortable: true }` auto-manages sort headers
+- Canonical API sort params: `sort_by` + `sort_order` (legacy `sort`/`direction`/`sort_dir` aliases retained)
+- All list screens migrated: Fairs, Customers, Participations, Contacts, Activities, Imports, Admin Backups
+- Backend whitelist tests extended; invalid sort fields fall back safely (no 400)
+- URL sort state on Fairs, Customers, Imports, Backups list pages
+
+## v0.9.3 — Admin Database Backup Workspace
+
+- **System Administration** module foundation (`system_admin`) — first production-grade admin capability
+- Shared backup engine (`app/shared/database_backup`) — used by dev PowerShell scripts and Admin API (no duplicated dump logic)
+- Migration `0011_system_backups` — backup metadata (`system_backups` table)
+- Admin API `/api/v1/admin/backups` — create (202 + background job), list, get, download
+- Restore foundation — `RestoreService`, disabled endpoint (`501`), UI Restore button disabled
+- Frontend **Admin → System → Database Backups** at `/admin/system/backups` with live progress polling
+- Permissions: `fair_crm.admin.backups.create`, `.read`, `.download`
+- Path traversal protection on download; files served from gitignored `backups/` only
+- ADR-018 + runtime DoD: migration, reset-dev, Swagger, live API, live UI
+- Backend tests (185) PASS; frontend build PASS
+
+## v0.9.2 — Database Backup / Restore Standard (dev utility)
+
+- `scripts/dev/backup-db.ps1` — PostgreSQL custom-format backup (`.dump`) with post-backup `pg_restore -l` verification
+- `scripts/dev/restore-db.ps1` — safe restore with `-WhatIf` / `-DryRun` and database-name confirmation
+- `scripts/dev/list-backups.ps1` — list local backups with timestamp and size
+- Reads `DATABASE_URL` from `backend/.env`; stores dumps under gitignored `backups/`
+- PROJECT_CONSTITUTION.md — Development Utilities / Database Safety section
+
+## v0.9.1 — Universal Source Adapter Framework
+
+- **SourceAdapter** protocol and **SourceAdapterRegistry** — pluggable data sources without Import Engine changes
+- **ExcelSourceAdapter** migrated to formal adapter lifecycle (Connect → Read → Normalize → Preview)
+- Upload and sheet selection resolve adapters via registry
+- Background apply job fix — runs after DB commit via FastAPI `BackgroundTasks`
+- ADR-017 + [docs/import/SOURCE_ADAPTER_FRAMEWORK.md](docs/import/SOURCE_ADAPTER_FRAMEWORK.md)
+- Backend tests (180) PASS
+
+## v0.9.0 — Data Integration Workspace & Universal Import Engine
+
+- **Data Integration module** (`data_integration`) — Universal Import Engine with Excel adapter
+- API `/api/v1/data-integration/imports/*` (legacy `/imports/*` retained)
+- Excel header modes: İlk satır başlık / Başlık yok / Başlık satırını ben seçeceğim
+- Sheet selection, import batch list, background apply jobs with progress polling
+- Migration `0010_data_integration` — jobs, templates, batch header fields
+- Frontend **Veri Entegrasyonu** at `/data-integration` (Import İşleri, Yeni Import, Jobs, Reports)
+- Merge decisions extended: `participation_only`, `manual_review`
+- Runtime DoD: migration `0010`, dev reset, Swagger verification, live API script (4 scenarios)
+- Backend tests (176) and frontend build PASS
 
 ---
 

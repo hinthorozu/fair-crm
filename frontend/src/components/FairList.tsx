@@ -4,8 +4,8 @@ import { fairLabels, fairStatusLabels } from "../labels/fairLabels";
 import { uiLabels } from "../labels/uiLabels";
 import { labels } from "../labels";
 import { Badge } from "./ui/Badge";
-import { DataTableShell, SortableHeader } from "./ui/DataTable";
 import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
+import { UniversalDataTable, type UniversalDataTableColumn } from "./ui/UniversalDataTable";
 
 interface FairFiltersProps {
   search: string;
@@ -86,129 +86,121 @@ function fairStatusVariant(status: FairStatus): "warning" | "success" | "neutral
   return map[status] ?? "neutral";
 }
 
-export function FairTable({
-  items,
-  onEdit,
-  onArchive,
-  onRestore,
-  onOpenDetail,
-  onCreate,
-  archivingId,
-  restoringId,
-  sortField,
-  sortDirection,
-  onSortChange,
-  emptyDueToFilters,
-}: FairTableProps) {
-  if (items.length === 0) {
-    return (
-      <EmptyState
-        icon={<EmptyStateIcon />}
-        title={emptyDueToFilters ? uiLabels.emptySearchTitle : fairLabels.noResults}
-        description={emptyDueToFilters ? uiLabels.emptySearchDescription : undefined}
-        actionLabel={onCreate ? uiLabels.createNew : undefined}
-        onAction={onCreate}
-      />
-    );
-  }
+function buildFairColumns(props: FairTableProps): UniversalDataTableColumn<Fair>[] {
+  const { onEdit, onArchive, onRestore, onOpenDetail, archivingId, restoringId } = props;
+  return [
+    {
+      key: "name",
+      title: fairLabels.name,
+      sortable: true,
+      render: (f) => (
+        <>
+          {onOpenDetail ? (
+            <button type="button" className="btn link table-link" onClick={() => onOpenDetail(f.id)}>
+              <strong>{f.name}</strong>
+            </button>
+          ) : (
+            <strong>{f.name}</strong>
+          )}
+          {f.country && <div className="muted">{f.country}</div>}
+        </>
+      ),
+    },
+    {
+      key: "organizer",
+      title: fairLabels.organizer,
+      sortable: true,
+      render: (f) => f.organizer ?? "—",
+    },
+    {
+      key: "venue",
+      title: fairLabels.venue,
+      sortable: true,
+      render: (f) => f.venue ?? "—",
+    },
+    {
+      key: "city",
+      title: labels.city,
+      sortable: true,
+      render: (f) => f.city ?? "—",
+    },
+    {
+      key: "start_date",
+      title: fairLabels.start_date,
+      sortable: true,
+      render: (f) => formatDate(f.start_date),
+    },
+    {
+      key: "status",
+      title: labels.status,
+      sortable: true,
+      render: (f) => (
+        <Badge variant={fairStatusVariant(f.status)}>
+          {fairStatusLabels[f.status] ?? f.status}
+        </Badge>
+      ),
+    },
+    {
+      key: "actions",
+      title: labels.actions,
+      sortable: false,
+      className: "actions",
+      render: (f) => {
+        const isArchived = isArchivedFair(f);
+        return (
+          <>
+            {isArchived && (
+              <button
+                type="button"
+                className="btn link"
+                disabled={restoringId === f.id}
+                onClick={() => onRestore(f)}
+              >
+                {restoringId === f.id ? labels.loading : labels.restore}
+              </button>
+            )}
+            {!isArchived && (
+              <>
+                <button type="button" className="btn link" onClick={() => onEdit(f)}>
+                  {labels.edit}
+                </button>
+                <button
+                  type="button"
+                  className="btn link danger"
+                  disabled={archivingId === f.id}
+                  onClick={() => onArchive(f)}
+                >
+                  {archivingId === f.id ? labels.loading : labels.archive}
+                </button>
+              </>
+            )}
+          </>
+        );
+      },
+    },
+  ];
+}
+
+export function FairTable(props: FairTableProps) {
+  const { items, onCreate, sortField, sortDirection, onSortChange, emptyDueToFilters } = props;
 
   return (
-    <DataTableShell>
-      <thead>
-        <tr>
-          <th>
-            {onSortChange ? (
-              <SortableHeader
-                label={fairLabels.name}
-                field="name"
-                activeField={sortField ?? null}
-                direction={sortDirection ?? null}
-                onSort={onSortChange}
-              />
-            ) : (
-              fairLabels.name
-            )}
-          </th>
-          <th>{fairLabels.organizer}</th>
-          <th>{fairLabels.venue}</th>
-          <th>{labels.city}</th>
-          <th>
-            {onSortChange ? (
-              <SortableHeader
-                label={fairLabels.start_date}
-                field="start_date"
-                activeField={sortField ?? null}
-                direction={sortDirection ?? null}
-                onSort={onSortChange}
-              />
-            ) : (
-              fairLabels.start_date
-            )}
-          </th>
-          <th>{labels.status}</th>
-          <th>{labels.actions}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {items.map((f) => {
-          const isArchived = isArchivedFair(f);
-          return (
-            <tr key={f.id} className={isArchived ? "row-archived" : undefined}>
-              <td>
-                {onOpenDetail ? (
-                  <button
-                    type="button"
-                    className="btn link table-link"
-                    onClick={() => onOpenDetail(f.id)}
-                  >
-                    <strong>{f.name}</strong>
-                  </button>
-                ) : (
-                  <strong>{f.name}</strong>
-                )}
-                {f.country && <div className="muted">{f.country}</div>}
-              </td>
-              <td>{f.organizer ?? "—"}</td>
-              <td>{f.venue ?? "—"}</td>
-              <td>{f.city ?? "—"}</td>
-              <td>{formatDate(f.start_date)}</td>
-              <td>
-                <Badge variant={fairStatusVariant(f.status)}>
-                  {fairStatusLabels[f.status] ?? f.status}
-                </Badge>
-              </td>
-              <td className="actions">
-                {isArchived && (
-                  <button
-                    type="button"
-                    className="btn link"
-                    disabled={restoringId === f.id}
-                    onClick={() => onRestore(f)}
-                  >
-                    {restoringId === f.id ? labels.loading : labels.restore}
-                  </button>
-                )}
-                {!isArchived && (
-                  <>
-                    <button type="button" className="btn link" onClick={() => onEdit(f)}>
-                      {labels.edit}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn link danger"
-                      disabled={archivingId === f.id}
-                      onClick={() => onArchive(f)}
-                    >
-                      {archivingId === f.id ? labels.loading : labels.archive}
-                    </button>
-                  </>
-                )}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </DataTableShell>
+    <UniversalDataTable
+      columns={buildFairColumns(props)}
+      items={items}
+      rowKey={(f) => f.id}
+      sorting={{ field: sortField ?? null, direction: sortDirection ?? null }}
+      onSortChange={onSortChange}
+      emptyState={
+        <EmptyState
+          icon={<EmptyStateIcon />}
+          title={emptyDueToFilters ? uiLabels.emptySearchTitle : fairLabels.noResults}
+          description={emptyDueToFilters ? uiLabels.emptySearchDescription : undefined}
+          actionLabel={onCreate ? uiLabels.createNew : undefined}
+          onAction={onCreate}
+        />
+      }
+    />
   );
 }
 

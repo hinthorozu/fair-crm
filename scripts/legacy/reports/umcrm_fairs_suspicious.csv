@@ -1,0 +1,254 @@
+fair_id,fair_name,start_fair,end_fair,fair_area,fair_website,email_subject,issue_type,recommended_action,details
+1,ISAF - IMEX,2025-10-08 00:00:00,2025-10-11 00:00:00,IFM (CNR),https://www.isaffuari.com,ISAF - IMEX Fuarı,email_subject_present,KEEP,email subject present
+2,ISK-SODEX,2025-10-22 00:00:00,2025-10-25 00:00:00,IFM (CNR),https://www.sodex.com.tr/tr,ISK-SODEX Fuarı,email_subject_present,KEEP,email subject present
+3,KARAVAN SHOW EURASIA,2025-09-23 00:00:00,2025-09-27 00:00:00,IFM (CNR),https://karavanshow.com/katilimci-listesi,KARAVAN Show Eurasia Fuarı,email_subject_present,KEEP,email subject present
+4,METAL EXPO EURASIA İSTANBUL,2025-09-24 00:00:00,2025-09-27 00:00:00,IFM (CNR),https://www.metalexpo.com.tr/katilimci-listesi-2024,METAL EXPO EURASIA İSTANBUL,email_subject_present,KEEP,email subject present
+5,R+T Turkey,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),,,future_start_fair,NULLIFY,future start fair
+5,R+T Turkey,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),,,future_end_fair,NULLIFY,future end fair
+5,R+T Turkey,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),,,empty_fair_website,KEEP,empty fair website
+5,R+T Turkey,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),,,empty_email_subject,KEEP,empty email subject
+6,TINY HOME SHOW,2025-09-23 00:00:00,2025-09-27 00:00:00,IFM (CNR),https://tinyhouse.ist/katilimci-listesi,Tiny Home Show,email_subject_present,KEEP,email subject present
+7,TRADEF,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),,,future_start_fair,NULLIFY,future start fair
+7,TRADEF,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),,,future_end_fair,NULLIFY,future end fair
+7,TRADEF,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),,,empty_fair_website,KEEP,empty fair website
+7,TRADEF,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),,,empty_email_subject,KEEP,empty email subject
+8,EV Charge Show,2025-11-12 00:00:00,2025-11-14 00:00:00,IFM (CNR),https://evchargeshow.com/tr/anasayfa/,EV Charge Show Fuarı,email_subject_present,KEEP,email subject present
+9,Aysaf Ayakkabı Yan Sanayi Fuarı,2025-11-12 00:00:00,2025-11-15 00:00:00,IFM (CNR),https://www.aysafexpo.com,Aysaf Ayakkabı Yan Sanayi Fuarı,email_subject_present,KEEP,email subject present
+10,Peyzaj İstanbul Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.peyzajistanbulfuari.com/ziyaretci-genel-bilgiler/,Peyzaj İstanbul Fuarı,future_start_fair,NULLIFY,future start fair
+10,Peyzaj İstanbul Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.peyzajistanbulfuari.com/ziyaretci-genel-bilgiler/,Peyzaj İstanbul Fuarı,future_end_fair,NULLIFY,future end fair
+10,Peyzaj İstanbul Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.peyzajistanbulfuari.com/ziyaretci-genel-bilgiler/,Peyzaj İstanbul Fuarı,email_subject_present,KEEP,email subject present
+11,Fespa Eurasia,2025-09-24 00:00:00,2025-09-27 00:00:00,IFM (CNR),https://fespaeurasia.com.tr/katilimci-listesi/,Fespa Eurasia,email_subject_present,KEEP,email subject present
+12,Silmo İstanbul Optik Fuarı,2025-11-19 00:00:00,2025-11-22 00:00:00,IFM (CNR),www.silmoistanbul.com/tr/katilimci-listesi/2023,Silmo İstanbul Optik Fuarı,normalize_fair_website,NORMALIZE,normalize fair website
+12,Silmo İstanbul Optik Fuarı,2025-11-19 00:00:00,2025-11-22 00:00:00,IFM (CNR),www.silmoistanbul.com/tr/katilimci-listesi/2023,Silmo İstanbul Optik Fuarı,email_subject_present,KEEP,email subject present
+13,CFE - Carpet and Flooring Expo,2026-01-06 00:00:00,2026-01-09 00:00:00,IFM (CNR),https://www.icfexpo.com/fuar-kunyesi,CFE - Carpet and Flooring Expo,email_subject_present,KEEP,email subject present
+14,AGROSHOW EURASIA FUARI,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.agroeurasia.com/tr/fuar-kunyesi-2023,Agroshow Eurasia Tarım Fuarı,future_start_fair,NULLIFY,future start fair
+14,AGROSHOW EURASIA FUARI,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.agroeurasia.com/tr/fuar-kunyesi-2023,Agroshow Eurasia Tarım Fuarı,future_end_fair,NULLIFY,future end fair
+14,AGROSHOW EURASIA FUARI,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.agroeurasia.com/tr/fuar-kunyesi-2023,Agroshow Eurasia Tarım Fuarı,email_subject_present,KEEP,email subject present
+15,AVRASYA CAM FUARI,2025-11-15 00:00:00,2025-11-18 00:00:00,TÜYAP,https://www.avrasyacamfuari.com,AVRASYA CAM FUARI,email_subject_present,KEEP,email subject present
+16,AVRASYA KAPI FUARI,2025-11-15 00:00:00,2025-11-18 00:00:00,TÜYAP,https://www.avrasyakapifuari.com,AVRASYA KAPI FUARI,email_subject_present,KEEP,email subject present
+17,AVRASYA PENCERE FUARI,2025-11-15 00:00:00,2025-11-18 00:00:00,TÜYAP,https://www.avrasyapencerefuari.com,AVRASYA PENCERE FUARI,email_subject_present,KEEP,email subject present
+18,Plast Eurasia İstanbul,2025-12-03 00:00:00,2025-12-06 00:00:00,TÜYAP,https://plasteurasia.com,Plast Eurasia İstanbul,email_subject_present,KEEP,email subject present
+19,A-TECH,2025-10-02 00:00:00,2025-10-05 00:00:00,IFM (CNR),https://www.atechfuari.com/firmalar,A-TECH Fuarı,email_subject_present,KEEP,email subject present
+20,Depreme Dayanıklı Binalar Zirvesi,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.depremedayaniklibinalar.com,Depreme Dayanıklı Binalar Zirvesi,future_start_fair,NULLIFY,future start fair
+20,Depreme Dayanıklı Binalar Zirvesi,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.depremedayaniklibinalar.com,Depreme Dayanıklı Binalar Zirvesi,future_end_fair,NULLIFY,future end fair
+20,Depreme Dayanıklı Binalar Zirvesi,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.depremedayaniklibinalar.com,Depreme Dayanıklı Binalar Zirvesi,email_subject_present,KEEP,email subject present
+21,Endüstri 4.0 Uygulamaları Zirvesi ve Sergisi,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.endustri40zirvesi.com,Endüstri 4.0 Uygulamaları Zirvesi ve Sergisi,future_start_fair,NULLIFY,future start fair
+21,Endüstri 4.0 Uygulamaları Zirvesi ve Sergisi,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.endustri40zirvesi.com,Endüstri 4.0 Uygulamaları Zirvesi ve Sergisi,future_end_fair,NULLIFY,future end fair
+21,Endüstri 4.0 Uygulamaları Zirvesi ve Sergisi,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.endustri40zirvesi.com,Endüstri 4.0 Uygulamaları Zirvesi ve Sergisi,email_subject_present,KEEP,email subject present
+22,Enerjisini Üreten Fabrikalar Zirvesi ve Sergisi,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.enerjisiniuretenfabrikalar.com,Enerjisini Üreten Fabrikalar Zirvesi ve Sergisi,future_start_fair,NULLIFY,future start fair
+22,Enerjisini Üreten Fabrikalar Zirvesi ve Sergisi,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.enerjisiniuretenfabrikalar.com,Enerjisini Üreten Fabrikalar Zirvesi ve Sergisi,future_end_fair,NULLIFY,future end fair
+22,Enerjisini Üreten Fabrikalar Zirvesi ve Sergisi,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.enerjisiniuretenfabrikalar.com,Enerjisini Üreten Fabrikalar Zirvesi ve Sergisi,email_subject_present,KEEP,email subject present
+23,Proses Zirvesi ve Sergisi,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.proseszirvesi.com,Proses Zirvesi ve Sergisi,future_start_fair,NULLIFY,future start fair
+23,Proses Zirvesi ve Sergisi,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.proseszirvesi.com,Proses Zirvesi ve Sergisi,future_end_fair,NULLIFY,future end fair
+23,Proses Zirvesi ve Sergisi,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.proseszirvesi.com,Proses Zirvesi ve Sergisi,email_subject_present,KEEP,email subject present
+24,Robot Yatırımları Zirvesi ve Sergisi,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.robotyatirimlari.com,Robot Yatırımları Zirvesi ve Sergisi,future_start_fair,NULLIFY,future start fair
+24,Robot Yatırımları Zirvesi ve Sergisi,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.robotyatirimlari.com,Robot Yatırımları Zirvesi ve Sergisi,future_end_fair,NULLIFY,future end fair
+24,Robot Yatırımları Zirvesi ve Sergisi,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.robotyatirimlari.com,Robot Yatırımları Zirvesi ve Sergisi,email_subject_present,KEEP,email subject present
+25,KASTEXPO,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://kastexpo.org/katilimci-listesi/rn,Kastamonu Sanayi ve İş Dünyası Fuarı,future_start_fair,NULLIFY,future start fair
+25,KASTEXPO,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://kastexpo.org/katilimci-listesi/rn,Kastamonu Sanayi ve İş Dünyası Fuarı,future_end_fair,NULLIFY,future end fair
+25,KASTEXPO,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://kastexpo.org/katilimci-listesi/rn,Kastamonu Sanayi ve İş Dünyası Fuarı,email_subject_present,KEEP,email subject present
+26,Souvenir Expo Türkiye,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://souvenirexpoturkiye.com.tr/tr/,Souvenir Expo Turkiye Turistik Hediyelik ve Hatıra Eşya Fuarı,future_start_fair,NULLIFY,future start fair
+26,Souvenir Expo Türkiye,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://souvenirexpoturkiye.com.tr/tr/,Souvenir Expo Turkiye Turistik Hediyelik ve Hatıra Eşya Fuarı,future_end_fair,NULLIFY,future end fair
+26,Souvenir Expo Türkiye,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://souvenirexpoturkiye.com.tr/tr/,Souvenir Expo Turkiye Turistik Hediyelik ve Hatıra Eşya Fuarı,email_subject_present,KEEP,email subject present
+27,KARAVANİST İstanbul,2026-01-10 00:00:00,2026-01-18 00:00:00,TÜYAP,https://www.karavanistfuari.com/fuar-kunyesi,KARAVANİST İstanbul,email_subject_present,KEEP,email subject present
+28,İstanbul Mobilya Fuarı,2026-01-27 00:00:00,2026-01-31 00:00:00,TÜYAP-IFM (CNR),https://istanbulmobilyafuari.com/fuar-kunyesi,İstanbul Mobilya Fuarı,email_subject_present,KEEP,email subject present
+29,Uluslararası İstanbul İplik Fuarı,2026-03-26 00:00:00,2026-03-28 00:00:00,TÜYAP,https://iplikfuari.com/fuar-kunyesi,Uluslararası İstanbul İplik Fuarı,email_subject_present,KEEP,email subject present
+30,İstanbul Kırtasiye Ofis Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.kirtasiyeofisfuari.com/katilimci-listesi?letterFilter=s,İstanbul Kırtasiye Ofis Fuarı,future_start_fair,NULLIFY,future start fair
+30,İstanbul Kırtasiye Ofis Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.kirtasiyeofisfuari.com/katilimci-listesi?letterFilter=s,İstanbul Kırtasiye Ofis Fuarı,future_end_fair,NULLIFY,future end fair
+30,İstanbul Kırtasiye Ofis Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.kirtasiyeofisfuari.com/katilimci-listesi?letterFilter=s,İstanbul Kırtasiye Ofis Fuarı,email_subject_present,KEEP,email subject present
+31,İstanbul Oyuncak Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.istanbuloyuncakfuari.com/katilimci-listesi?page=9,İstanbul Oyuncak Fuarı,future_start_fair,NULLIFY,future start fair
+31,İstanbul Oyuncak Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.istanbuloyuncakfuari.com/katilimci-listesi?page=9,İstanbul Oyuncak Fuarı,future_end_fair,NULLIFY,future end fair
+31,İstanbul Oyuncak Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.istanbuloyuncakfuari.com/katilimci-listesi?page=9,İstanbul Oyuncak Fuarı,email_subject_present,KEEP,email subject present
+32,Kauçuk Avrasya Fuarı,2026-04-15 00:00:00,2026-04-18 00:00:00,TÜYAP,https://kaucukistanbul.com/fuar-kunyesi,Kauçuk Avrasya,email_subject_present,KEEP,email subject present
+33,Expomed Eurasia - Medikal Fuarı,2026-04-16 00:00:00,2026-04-18 00:00:00,TÜYAP,http://www.expomedistanbul.com/katilimci-listesi,Expomed Eurasia - Medikal Fuarı,email_subject_present,KEEP,email subject present
+34,Maden Türkiye Uluslararası Madencilik Fuarı,2026-04-08 00:00:00,2026-04-11 00:00:00,TÜYAP,https://www.madenturkiyefuari.com/katilimci-listesi?page=7,Maden Türkiye Uluslararası Madencilik Fuarı,email_subject_present,KEEP,email subject present
+35,Hardware Eurasia - Avrasya Uluslararası Hırdavat Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.hardwareeurasia.com/katilimci-listesi?page=17,Hardware Eurasia - Avrasya Uluslararası Hırdavat Fuarı,future_start_fair,NULLIFY,future start fair
+35,Hardware Eurasia - Avrasya Uluslararası Hırdavat Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.hardwareeurasia.com/katilimci-listesi?page=17,Hardware Eurasia - Avrasya Uluslararası Hırdavat Fuarı,future_end_fair,NULLIFY,future end fair
+35,Hardware Eurasia - Avrasya Uluslararası Hırdavat Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.hardwareeurasia.com/katilimci-listesi?page=17,Hardware Eurasia - Avrasya Uluslararası Hırdavat Fuarı,email_subject_present,KEEP,email subject present
+36,Fastener Expo Eurasia Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.fastenerexpoeurasia.com/katilimci-listesi?page=1,Fastener Expo Eurasia Fuarı,future_start_fair,NULLIFY,future start fair
+36,Fastener Expo Eurasia Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.fastenerexpoeurasia.com/katilimci-listesi?page=1,Fastener Expo Eurasia Fuarı,future_end_fair,NULLIFY,future end fair
+36,Fastener Expo Eurasia Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.fastenerexpoeurasia.com/katilimci-listesi?page=1,Fastener Expo Eurasia Fuarı,email_subject_present,KEEP,email subject present
+37,Çukurova Kitap Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP Adana,https://www.cukurovakitapfuari.com/katilimci-listesi,Çukurova Kitap Fuarı,future_start_fair,NULLIFY,future start fair
+37,Çukurova Kitap Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP Adana,https://www.cukurovakitapfuari.com/katilimci-listesi,Çukurova Kitap Fuarı,future_end_fair,NULLIFY,future end fair
+37,Çukurova Kitap Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP Adana,https://www.cukurovakitapfuari.com/katilimci-listesi,Çukurova Kitap Fuarı,email_subject_present,KEEP,email subject present
+38,HOST Istanbul Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.hostistanbulfair.com/2024-katilimci-listesi.html,HOST Istanbul Fuarı,future_start_fair,NULLIFY,future start fair
+38,HOST Istanbul Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.hostistanbulfair.com/2024-katilimci-listesi.html,HOST Istanbul Fuarı,future_end_fair,NULLIFY,future end fair
+38,HOST Istanbul Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.hostistanbulfair.com/2024-katilimci-listesi.html,HOST Istanbul Fuarı,email_subject_present,KEEP,email subject present
+39,Bursa Kitap Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP Bursa,https://bursakitapfuari.com/katilimci-listesi,Bursa Kitap Fuarı,future_start_fair,NULLIFY,future start fair
+39,Bursa Kitap Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP Bursa,https://bursakitapfuari.com/katilimci-listesi,Bursa Kitap Fuarı,future_end_fair,NULLIFY,future end fair
+39,Bursa Kitap Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP Bursa,https://bursakitapfuari.com/katilimci-listesi,Bursa Kitap Fuarı,email_subject_present,KEEP,email subject present
+45,Line Expo - İç Giyim ve Çorap Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.linexpo.com.tr/tr/linexpo-2023-522,Line Expo - İç Giyim ve Çorap Fuarı,future_start_fair,NULLIFY,future start fair
+45,Line Expo - İç Giyim ve Çorap Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.linexpo.com.tr/tr/linexpo-2023-522,Line Expo - İç Giyim ve Çorap Fuarı,future_end_fair,NULLIFY,future end fair
+45,Line Expo - İç Giyim ve Çorap Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.linexpo.com.tr/tr/linexpo-2023-522,Line Expo - İç Giyim ve Çorap Fuarı,email_subject_present,KEEP,email subject present
+46,IFCO - Hazır Giyim ve Moda Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.ifco.com.tr/tr/fuar/hakkimizda,IFCO - Hazır Giyim ve Moda Fuarı,future_start_fair,NULLIFY,future start fair
+46,IFCO - Hazır Giyim ve Moda Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.ifco.com.tr/tr/fuar/hakkimizda,IFCO - Hazır Giyim ve Moda Fuarı,future_end_fair,NULLIFY,future end fair
+46,IFCO - Hazır Giyim ve Moda Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.ifco.com.tr/tr/fuar/hakkimizda,IFCO - Hazır Giyim ve Moda Fuarı,email_subject_present,KEEP,email subject present
+47,Bosphorus Boat Show Kara Fuarı,2026-02-15 00:00:00,2026-02-22 00:00:00,IFM (CNR),https://kara.bosphorusboatshow.com/tr/fuar-hakkinda/,Bosphorus Boat Show Kara Fuarı,email_subject_present,KEEP,email subject present
+48,AYMOD - Ayakkabı Moda Fuarı,2025-09-03 00:00:00,2025-09-06 00:00:00,IFM (CNR),https://www.aymod.com,AYMOD - Ayakkabı Moda Fuarı,email_subject_present,KEEP,email subject present
+49,Texhibition İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.texhibitionist.com,Texhibition İstanbul,future_start_fair,NULLIFY,future start fair
+49,Texhibition İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.texhibitionist.com,Texhibition İstanbul,future_end_fair,NULLIFY,future end fair
+49,Texhibition İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.texhibitionist.com,Texhibition İstanbul,email_subject_present,KEEP,email subject present
+50,HOMETEX,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://hometex.com.tr/fuar-kunyesi,HOMETEX Ev Tekstil Fuarı,future_start_fair,NULLIFY,future start fair
+50,HOMETEX,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://hometex.com.tr/fuar-kunyesi,HOMETEX Ev Tekstil Fuarı,future_end_fair,NULLIFY,future end fair
+50,HOMETEX,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://hometex.com.tr/fuar-kunyesi,HOMETEX Ev Tekstil Fuarı,email_subject_present,KEEP,email subject present
+51,Türkiye Arıcılık Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://turkiyearicilikfuari.com/taf2024/,Türkiye Arıcılık Fuarı,future_start_fair,NULLIFY,future start fair
+51,Türkiye Arıcılık Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://turkiyearicilikfuari.com/taf2024/,Türkiye Arıcılık Fuarı,future_end_fair,NULLIFY,future end fair
+51,Türkiye Arıcılık Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://turkiyearicilikfuari.com/taf2024/,Türkiye Arıcılık Fuarı,email_subject_present,KEEP,email subject present
+52,Motobike İstanbul Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://tr.messefrankfurt.com/turkey/tr.html,Motobike İstanbul Fuarı,future_start_fair,NULLIFY,future start fair
+52,Motobike İstanbul Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://tr.messefrankfurt.com/turkey/tr.html,Motobike İstanbul Fuarı,future_end_fair,NULLIFY,future end fair
+52,Motobike İstanbul Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://tr.messefrankfurt.com/turkey/tr.html,Motobike İstanbul Fuarı,email_subject_present,KEEP,email subject present
+53,ICCI - Enerji ve Çevre Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.icci.com.tr/fuar-hakkinda-2/,ICCI - Enerji ve Çevre Fuarı,future_start_fair,NULLIFY,future start fair
+53,ICCI - Enerji ve Çevre Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.icci.com.tr/fuar-hakkinda-2/,ICCI - Enerji ve Çevre Fuarı,future_end_fair,NULLIFY,future end fair
+53,ICCI - Enerji ve Çevre Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.icci.com.tr/fuar-hakkinda-2/,ICCI - Enerji ve Çevre Fuarı,email_subject_present,KEEP,email subject present
+54,SolarEx İstanbul Güneş Enerjisi & Teknolojileri Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://solarexistanbul.com,SolarEx İstanbul Güneş Enerjisi & Teknolojileri Fuarı,future_start_fair,NULLIFY,future start fair
+54,SolarEx İstanbul Güneş Enerjisi & Teknolojileri Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://solarexistanbul.com,SolarEx İstanbul Güneş Enerjisi & Teknolojileri Fuarı,future_end_fair,NULLIFY,future end fair
+54,SolarEx İstanbul Güneş Enerjisi & Teknolojileri Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://solarexistanbul.com,SolarEx İstanbul Güneş Enerjisi & Teknolojileri Fuarı,email_subject_present,KEEP,email subject present
+55,Modeko - İzmir Mobilya Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,Fuar İzmir,https://modekofair.com,Modeko - İzmir Mobilya Fuarı,future_start_fair,NULLIFY,future start fair
+55,Modeko - İzmir Mobilya Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,Fuar İzmir,https://modekofair.com,Modeko - İzmir Mobilya Fuarı,future_end_fair,NULLIFY,future end fair
+55,Modeko - İzmir Mobilya Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,Fuar İzmir,https://modekofair.com,Modeko - İzmir Mobilya Fuarı,email_subject_present,KEEP,email subject present
+56,Yapı Fuarı İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://yapifuari.com.tr/tr/katilimci-listesi,Yapı-Turkeybuild İstanbul,future_start_fair,NULLIFY,future start fair
+56,Yapı Fuarı İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://yapifuari.com.tr/tr/katilimci-listesi,Yapı-Turkeybuild İstanbul,future_end_fair,NULLIFY,future end fair
+56,Yapı Fuarı İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://yapifuari.com.tr/tr/katilimci-listesi,Yapı-Turkeybuild İstanbul,email_subject_present,KEEP,email subject present
+57,IBAKTECH,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://ibaktech.com/exhibitors.htmlrn,IBAKTECH,future_start_fair,NULLIFY,future start fair
+57,IBAKTECH,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://ibaktech.com/exhibitors.htmlrn,IBAKTECH,future_end_fair,NULLIFY,future end fair
+57,IBAKTECH,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://ibaktech.com/exhibitors.htmlrn,IBAKTECH,email_subject_present,KEEP,email subject present
+58,Istanbul Jewelry Show,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.istanbuljewelryshow.com/tr/genel-bakis/istanbul-jewelry-show-hakkinda.html,Istanbul Jewelry Show,future_start_fair,NULLIFY,future start fair
+58,Istanbul Jewelry Show,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.istanbuljewelryshow.com/tr/genel-bakis/istanbul-jewelry-show-hakkinda.html,Istanbul Jewelry Show,future_end_fair,NULLIFY,future end fair
+58,Istanbul Jewelry Show,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.istanbuljewelryshow.com/tr/genel-bakis/istanbul-jewelry-show-hakkinda.html,Istanbul Jewelry Show,email_subject_present,KEEP,email subject present
+59,BusWorld,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://busworldturkey.org/tr/katılımcı-listesi,BusWorld Fuarı,future_start_fair,NULLIFY,future start fair
+59,BusWorld,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://busworldturkey.org/tr/katılımcı-listesi,BusWorld Fuarı,future_end_fair,NULLIFY,future end fair
+59,BusWorld,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://busworldturkey.org/tr/katılımcı-listesi,BusWorld Fuarı,email_subject_present,KEEP,email subject present
+60,Automechanika İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://automechanikaistanbulplus.com/participants?lang=tr,Automechanika İstanbul,future_start_fair,NULLIFY,future start fair
+60,Automechanika İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://automechanikaistanbulplus.com/participants?lang=tr,Automechanika İstanbul,future_end_fair,NULLIFY,future end fair
+60,Automechanika İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://automechanikaistanbulplus.com/participants?lang=tr,Automechanika İstanbul,email_subject_present,KEEP,email subject present
+61,KOMATEK,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.komatekfuar.com/katilimcilar/2024-katilimci-listesi,KOMATEK Fuarı,future_start_fair,NULLIFY,future start fair
+61,KOMATEK,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.komatekfuar.com/katilimcilar/2024-katilimci-listesi,KOMATEK Fuarı,future_end_fair,NULLIFY,future end fair
+61,KOMATEK,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.komatekfuar.com/katilimcilar/2024-katilimci-listesi,KOMATEK Fuarı,email_subject_present,KEEP,email subject present
+62,Uluslararası İstanbul Prohunt Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.istanbulprohunt.com/index.html,Uluslararası İstanbul Prohunt Fuarı,future_start_fair,NULLIFY,future start fair
+62,Uluslararası İstanbul Prohunt Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.istanbulprohunt.com/index.html,Uluslararası İstanbul Prohunt Fuarı,future_end_fair,NULLIFY,future end fair
+62,Uluslararası İstanbul Prohunt Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.istanbulprohunt.com/index.html,Uluslararası İstanbul Prohunt Fuarı,email_subject_present,KEEP,email subject present
+63,MCA World Fair,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.mcaworldfair.com,"MCA World Fair - Ölçüm, Kontrol ve Otomasyon Fuarı",future_start_fair,NULLIFY,future start fair
+63,MCA World Fair,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.mcaworldfair.com,"MCA World Fair - Ölçüm, Kontrol ve Otomasyon Fuarı",future_end_fair,NULLIFY,future end fair
+63,MCA World Fair,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.mcaworldfair.com,"MCA World Fair - Ölçüm, Kontrol ve Otomasyon Fuarı",email_subject_present,KEEP,email subject present
+64,İDMA İstanbul Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.idma.com.tr/exhibitions-info/,İDMA İstanbul Fuarı,future_start_fair,NULLIFY,future start fair
+64,İDMA İstanbul Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.idma.com.tr/exhibitions-info/,İDMA İstanbul Fuarı,future_end_fair,NULLIFY,future end fair
+64,İDMA İstanbul Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.idma.com.tr/exhibitions-info/,İDMA İstanbul Fuarı,email_subject_present,KEEP,email subject present
+65,Paintistanbul & TURKCOAT ,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.turkcoat-paintistanbul.com/fuar-hakkinda/,Paintistanbul & TURKCOAT  Fuarı,future_start_fair,NULLIFY,future start fair
+65,Paintistanbul & TURKCOAT ,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.turkcoat-paintistanbul.com/fuar-hakkinda/,Paintistanbul & TURKCOAT  Fuarı,future_end_fair,NULLIFY,future end fair
+65,Paintistanbul & TURKCOAT ,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.turkcoat-paintistanbul.com/fuar-hakkinda/,Paintistanbul & TURKCOAT  Fuarı,email_subject_present,KEEP,email subject present
+66,IDEX İSTANBUL,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://idex.org.tr/fuar-hakkinda/fuar-kunyesi,IDEX İSTANBUL,future_start_fair,NULLIFY,future start fair
+66,IDEX İSTANBUL,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://idex.org.tr/fuar-hakkinda/fuar-kunyesi,IDEX İSTANBUL,future_end_fair,NULLIFY,future end fair
+66,IDEX İSTANBUL,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://idex.org.tr/fuar-hakkinda/fuar-kunyesi,IDEX İSTANBUL,email_subject_present,KEEP,email subject present
+67,WIN EURASIA,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://platform.win-eurasia.com/participants?new,WIN EURASIA - World of Industry Fuarı,future_start_fair,NULLIFY,future start fair
+67,WIN EURASIA,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://platform.win-eurasia.com/participants?new,WIN EURASIA - World of Industry Fuarı,future_end_fair,NULLIFY,future end fair
+67,WIN EURASIA,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://platform.win-eurasia.com/participants?new,WIN EURASIA - World of Industry Fuarı,email_subject_present,KEEP,email subject present
+68,Beauty Eurasia,2026-09-02 00:00:00,2026-09-04 00:00:00,IFM (CNR),https://beautyeurasia.com/tr/katilimci-listesi,Beauty Eurasia Fuarı,email_subject_present,KEEP,email subject present
+69,F İSTANBUL,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://platform.idos.events/exhibition/exhibitorList?fuarId=57,F İSTANBUL,future_start_fair,NULLIFY,future start fair
+69,F İSTANBUL,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://platform.idos.events/exhibition/exhibitorList?fuarId=57,F İSTANBUL,future_end_fair,NULLIFY,future end fair
+69,F İSTANBUL,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://platform.idos.events/exhibition/exhibitorList?fuarId=57,F İSTANBUL,email_subject_present,KEEP,email subject present
+70,Promosyon Show,2025-09-10 00:00:00,2025-09-13 00:00:00,IFM (CNR),https://www.promosyonshow.com/anasayfa,Promosyon Show Fuarı,email_subject_present,KEEP,email subject present
+72,İbia Expo,2025-09-24 00:00:00,2025-09-27 00:00:00,IFM (CNR),https://ibiaexpo.com/katilimci-listesi,İbia Expo - YATAK YAN SANAYİ VE TEKNOLOJİLERİ FUARI,email_subject_present,KEEP,email subject present
+73,Maktek Avrasya,2026-09-28 00:00:00,2026-10-01 00:00:00,TÜYAP,https://maktekfuari.com/fuar-kunyesi,Maktek Avrasya Fuarı,email_subject_present,KEEP,email subject present
+74,İntermob,2025-09-25 00:00:00,2025-09-28 00:00:00,TÜYAP,https://www.intermobistanbul.com/fuar-kunyesi,İntermob Fuarı,email_subject_present,KEEP,email subject present
+75,World Food İstanbul ,2025-09-02 00:00:00,2025-09-05 00:00:00,TÜYAP,https://worldfood-istanbul.com/tr/worldfood-istanbul-hakkinda,WorldFood İstanbul  Fuarı,email_subject_present,KEEP,email subject present
+76,Ankiros,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.ankiros.com,Ankiros Fuarı,future_start_fair,NULLIFY,future start fair
+76,Ankiros,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.ankiros.com,Ankiros Fuarı,future_end_fair,NULLIFY,future end fair
+76,Ankiros,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.ankiros.com,Ankiros Fuarı,email_subject_present,KEEP,email subject present
+77,Zuchex,2025-09-11 00:00:00,2025-09-14 00:00:00,TÜYAP,https://www.zuchex.com/2024-katilimci-listesi.html,Zuchex Fuarı,email_subject_present,KEEP,email subject present
+78,Kalite '25,2025-09-17 00:00:00,2025-09-20 00:00:00,IFM (CNR),https://kalitefuari.com/kalite-24-katilimci-listesi/,Kalite '25 Fuarı,email_subject_present,KEEP,email subject present
+79,PetZoo Eurasia,2025-10-08 00:00:00,2025-10-11 00:00:00,IFM (CNR),https://petfuari.com/katilimci-listesi?year=2023,PetZoo Eurasia Fuarı,email_subject_present,KEEP,email subject present
+80,Saha Expo,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.sahaexpo.com/tr/katilimci-listesi - https://www.sahaistanbul.org.tr/kume-firmalari/27,Saha Expo Fuarı,future_start_fair,NULLIFY,future start fair
+80,Saha Expo,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.sahaexpo.com/tr/katilimci-listesi - https://www.sahaistanbul.org.tr/kume-firmalari/27,Saha Expo Fuarı,future_end_fair,NULLIFY,future end fair
+80,Saha Expo,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.sahaexpo.com/tr/katilimci-listesi - https://www.sahaistanbul.org.tr/kume-firmalari/27,Saha Expo Fuarı,invalid_fair_website,MANUAL_REVIEW,invalid fair website
+80,Saha Expo,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.sahaexpo.com/tr/katilimci-listesi - https://www.sahaistanbul.org.tr/kume-firmalari/27,Saha Expo Fuarı,email_subject_present,KEEP,email subject present
+81,WoodTech,2025-10-11 00:00:00,2025-10-15 00:00:00,TÜYAP,https://woodtechistanbul.com/fuar-kunyesi,WoodTech İstanbul  Fuarı,email_subject_present,KEEP,email subject present
+82,Avrasya Ambalaj,2025-10-22 00:00:00,2025-10-25 00:00:00,TÜYAP,Food-Tech Eurasia ile aynı liste https://www.packagingfair.com/katilimci-listesi?page=77,Avrasya Ambalaj Fuarı,invalid_fair_website,MANUAL_REVIEW,invalid fair website
+82,Avrasya Ambalaj,2025-10-22 00:00:00,2025-10-25 00:00:00,TÜYAP,Food-Tech Eurasia ile aynı liste https://www.packagingfair.com/katilimci-listesi?page=77,Avrasya Ambalaj Fuarı,email_subject_present,KEEP,email subject present
+83,Food-Tech Eurasia,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,Avrasya Ambalaj ile aynı liste https://www.foodtecheurasia.com/fuar-kunyesi,Food-Tech Eurasia Fuarı,future_start_fair,NULLIFY,future start fair
+83,Food-Tech Eurasia,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,Avrasya Ambalaj ile aynı liste https://www.foodtecheurasia.com/fuar-kunyesi,Food-Tech Eurasia Fuarı,future_end_fair,NULLIFY,future end fair
+83,Food-Tech Eurasia,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,Avrasya Ambalaj ile aynı liste https://www.foodtecheurasia.com/fuar-kunyesi,Food-Tech Eurasia Fuarı,invalid_fair_website,MANUAL_REVIEW,invalid fair website
+83,Food-Tech Eurasia,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,Avrasya Ambalaj ile aynı liste https://www.foodtecheurasia.com/fuar-kunyesi,Food-Tech Eurasia Fuarı,email_subject_present,KEEP,email subject present
+84,Sign İstanbul,2025-10-02 00:00:00,2025-10-05 00:00:00,TÜYAP,PromoGift ile aynı liste https://www.signistanbul.com,Sign İstanbul Fuarı,invalid_fair_website,MANUAL_REVIEW,invalid fair website
+84,Sign İstanbul,2025-10-02 00:00:00,2025-10-05 00:00:00,TÜYAP,PromoGift ile aynı liste https://www.signistanbul.com,Sign İstanbul Fuarı,email_subject_present,KEEP,email subject present
+85,Promo Gift İstanbul,2025-10-02 00:00:00,2025-10-05 00:00:00,TÜYAP,Sign İstanbul ile aynı liste https://www.promogiftistanbul.com,Promo Gift İstanbul Fuarı,invalid_fair_website,MANUAL_REVIEW,invalid fair website
+85,Promo Gift İstanbul,2025-10-02 00:00:00,2025-10-05 00:00:00,TÜYAP,Sign İstanbul ile aynı liste https://www.promogiftistanbul.com,Promo Gift İstanbul Fuarı,email_subject_present,KEEP,email subject present
+86,GROWTECH ANTALYA,2126-01-01 00:00:00,2126-01-01 00:00:00,ANFAŞ,https://www.growtech.com.tr/tr/genel-bakis/contact-team.html,GROWTECH. ANTALYA,future_start_fair,NULLIFY,future start fair
+86,GROWTECH ANTALYA,2126-01-01 00:00:00,2126-01-01 00:00:00,ANFAŞ,https://www.growtech.com.tr/tr/genel-bakis/contact-team.html,GROWTECH. ANTALYA,future_end_fair,NULLIFY,future end fair
+86,GROWTECH ANTALYA,2126-01-01 00:00:00,2126-01-01 00:00:00,ANFAŞ,https://www.growtech.com.tr/tr/genel-bakis/contact-team.html,GROWTECH. ANTALYA,email_subject_present,KEEP,email subject present
+87,Peyzaj İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.peyzajistanbulfuari.com/portfolio-item/katilimci-listesi/,Peyzaj İstanbul Fuarı,future_start_fair,NULLIFY,future start fair
+87,Peyzaj İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.peyzajistanbulfuari.com/portfolio-item/katilimci-listesi/,Peyzaj İstanbul Fuarı,future_end_fair,NULLIFY,future end fair
+87,Peyzaj İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.peyzajistanbulfuari.com/portfolio-item/katilimci-listesi/,Peyzaj İstanbul Fuarı,email_subject_present,KEEP,email subject present
+88,İstanbul Hırdavat Fuarı,2025-11-19 00:00:00,2025-11-22 00:00:00,IFM (CNR),https://www.hardwareeurasia.com/katilimci-listesi?page=17,İstanbul Hırdavat Fuarı,email_subject_present,KEEP,email subject present
+89,Solar Storage,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://solarstoragenx.com,Solar Storage Fuarı,future_start_fair,NULLIFY,future start fair
+89,Solar Storage,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://solarstoragenx.com,Solar Storage Fuarı,future_end_fair,NULLIFY,future end fair
+89,Solar Storage,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://solarstoragenx.com,Solar Storage Fuarı,email_subject_present,KEEP,email subject present
+90,MÜSİAD Expo Ticaret Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://musiadexpo.com/fuar-kunyesi,MÜSİAD Expo Ticaret Fuarı,future_start_fair,NULLIFY,future start fair
+90,MÜSİAD Expo Ticaret Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://musiadexpo.com/fuar-kunyesi,MÜSİAD Expo Ticaret Fuarı,future_end_fair,NULLIFY,future end fair
+90,MÜSİAD Expo Ticaret Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://musiadexpo.com/fuar-kunyesi,MÜSİAD Expo Ticaret Fuarı,email_subject_present,KEEP,email subject present
+91,Atrax,2026-01-06 00:00:00,2026-01-09 00:00:00,IFM (CNR),https://atraxexpo.com/katilimci-listesi/,"Atrax - Eğlence, Park, Spor Rekreason Alanlari Endüstrisi Fuarı",email_subject_present,KEEP,email subject present
+92,Yacht Life | Boat Show 2025,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://yachtlifeboatshow.com/fuar-kunyesi-tekne-fuari/,Yacht Life | Boat Show 2025 Fuarı,future_start_fair,NULLIFY,future start fair
+92,Yacht Life | Boat Show 2025,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://yachtlifeboatshow.com/fuar-kunyesi-tekne-fuari/,Yacht Life | Boat Show 2025 Fuarı,future_end_fair,NULLIFY,future end fair
+92,Yacht Life | Boat Show 2025,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://yachtlifeboatshow.com/fuar-kunyesi-tekne-fuari/,Yacht Life | Boat Show 2025 Fuarı,email_subject_present,KEEP,email subject present
+93,Expomaritt Exposhipping İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.expomaritt.com/tr/anasayfa.html,Expomaritt Exposhipping İstanbul - 18. Uluslararası Denizcilik Fuarı,future_start_fair,NULLIFY,future start fair
+93,Expomaritt Exposhipping İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.expomaritt.com/tr/anasayfa.html,Expomaritt Exposhipping İstanbul - 18. Uluslararası Denizcilik Fuarı,future_end_fair,NULLIFY,future end fair
+93,Expomaritt Exposhipping İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.expomaritt.com/tr/anasayfa.html,Expomaritt Exposhipping İstanbul - 18. Uluslararası Denizcilik Fuarı,email_subject_present,KEEP,email subject present
+94,Emitt,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://emittistanbul.com/tr/katilimci-listesi,Emitt - Doğu Akdeniz Uluslararası Turizm ve Seyahat Fuarı,future_start_fair,NULLIFY,future start fair
+94,Emitt,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://emittistanbul.com/tr/katilimci-listesi,Emitt - Doğu Akdeniz Uluslararası Turizm ve Seyahat Fuarı,future_end_fair,NULLIFY,future end fair
+94,Emitt,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://emittistanbul.com/tr/katilimci-listesi,Emitt - Doğu Akdeniz Uluslararası Turizm ve Seyahat Fuarı,email_subject_present,KEEP,email subject present
+95,Electricity Eurasia,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://electricityeurasia.com/fuar-hakkinda-2/,Electricity Eurasia - Elektrik ve Elektrik Ekipmanları Fuarı,future_start_fair,NULLIFY,future start fair
+95,Electricity Eurasia,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://electricityeurasia.com/fuar-hakkinda-2/,Electricity Eurasia - Elektrik ve Elektrik Ekipmanları Fuarı,future_end_fair,NULLIFY,future end fair
+95,Electricity Eurasia,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://electricityeurasia.com/fuar-hakkinda-2/,Electricity Eurasia - Elektrik ve Elektrik Ekipmanları Fuarı,email_subject_present,KEEP,email subject present
+96,Mobilefest,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.mobilefest.net,Mobilefest Teknoloji Fuarı ve Konferansı,future_start_fair,NULLIFY,future start fair
+96,Mobilefest,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.mobilefest.net,Mobilefest Teknoloji Fuarı ve Konferansı,future_end_fair,NULLIFY,future end fair
+96,Mobilefest,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.mobilefest.net,Mobilefest Teknoloji Fuarı ve Konferansı,email_subject_present,KEEP,email subject present
+97,VIV SELECT TÜRKİYE,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.vivturkey.com/katilimci_listesi.html,VIV SELECT TÜRKİYE - Tavukçuluk ve Teknolojileri Uluslararası İhtisas Fuarı,future_start_fair,NULLIFY,future start fair
+97,VIV SELECT TÜRKİYE,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.vivturkey.com/katilimci_listesi.html,VIV SELECT TÜRKİYE - Tavukçuluk ve Teknolojileri Uluslararası İhtisas Fuarı,future_end_fair,NULLIFY,future end fair
+97,VIV SELECT TÜRKİYE,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.vivturkey.com/katilimci_listesi.html,VIV SELECT TÜRKİYE - Tavukçuluk ve Teknolojileri Uluslararası İhtisas Fuarı,email_subject_present,KEEP,email subject present
+98,İstanbul Eğitim ve Kariyer Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,Lütfi Kırdar,https://unitercih.com/fuar/istanbul-universite-tanitim-gunleri-2/,İstanbul Eğitim ve Kariyer Fuarı,future_start_fair,NULLIFY,future start fair
+98,İstanbul Eğitim ve Kariyer Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,Lütfi Kırdar,https://unitercih.com/fuar/istanbul-universite-tanitim-gunleri-2/,İstanbul Eğitim ve Kariyer Fuarı,future_end_fair,NULLIFY,future end fair
+98,İstanbul Eğitim ve Kariyer Fuarı,2126-01-01 00:00:00,2126-01-01 00:00:00,Lütfi Kırdar,https://unitercih.com/fuar/istanbul-universite-tanitim-gunleri-2/,İstanbul Eğitim ve Kariyer Fuarı,email_subject_present,KEEP,email subject present
+99,Wire - Tube Eurasia ,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.tubeeurasia.com/katilimci-listesi?page=23 https://www.wireeurasia.com/katilimci-listesi?page=23,"Wire - Tube Eurasia - Boru, Profil, Tel, Çelik, Üretimi ve Teknolojisi İhtisas Fuarı",future_start_fair,NULLIFY,future start fair
+99,Wire - Tube Eurasia ,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.tubeeurasia.com/katilimci-listesi?page=23 https://www.wireeurasia.com/katilimci-listesi?page=23,"Wire - Tube Eurasia - Boru, Profil, Tel, Çelik, Üretimi ve Teknolojisi İhtisas Fuarı",future_end_fair,NULLIFY,future end fair
+99,Wire - Tube Eurasia ,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.tubeeurasia.com/katilimci-listesi?page=23 https://www.wireeurasia.com/katilimci-listesi?page=23,"Wire - Tube Eurasia - Boru, Profil, Tel, Çelik, Üretimi ve Teknolojisi İhtisas Fuarı",invalid_fair_website,MANUAL_REVIEW,invalid fair website
+99,Wire - Tube Eurasia ,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.tubeeurasia.com/katilimci-listesi?page=23 https://www.wireeurasia.com/katilimci-listesi?page=23,"Wire - Tube Eurasia - Boru, Profil, Tel, Çelik, Üretimi ve Teknolojisi İhtisas Fuarı",email_subject_present,KEEP,email subject present
+100,RePlast Eurasia,2026-03-26 00:00:00,2026-03-28 00:00:00,TÜYAP,https://www.replasteurasia.com/fuar-kunyesi,RePlast Eurasia - Plastik Geri Dönüşüm Teknolojileri ve Ham Maddeleri Fuarı,email_subject_present,KEEP,email subject present
+101,IFAT Eurasia 2025,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.ifat-eurasia.com/exhibitor-list-2/,IFAT Eurasia 2025 Fuarı,future_start_fair,NULLIFY,future start fair
+101,IFAT Eurasia 2025,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.ifat-eurasia.com/exhibitor-list-2/,IFAT Eurasia 2025 Fuarı,future_end_fair,NULLIFY,future end fair
+101,IFAT Eurasia 2025,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.ifat-eurasia.com/exhibitor-list-2/,IFAT Eurasia 2025 Fuarı,email_subject_present,KEEP,email subject present
+102,Foteg İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://fotegistanbul.com,Foteg İstanbul - Gıda İşleme Teknolojileri Fuarı,future_start_fair,NULLIFY,future start fair
+102,Foteg İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://fotegistanbul.com,Foteg İstanbul - Gıda İşleme Teknolojileri Fuarı,future_end_fair,NULLIFY,future end fair
+102,Foteg İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://fotegistanbul.com,Foteg İstanbul - Gıda İşleme Teknolojileri Fuarı,email_subject_present,KEEP,email subject present
+103,Hostech,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.hostechbytusid.com/fuar-kunyesi,HOSTECH by TUSİD İSTANBUL Fuarı,future_start_fair,NULLIFY,future start fair
+103,Hostech,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.hostechbytusid.com/fuar-kunyesi,HOSTECH by TUSİD İSTANBUL Fuarı,future_end_fair,NULLIFY,future end fair
+103,Hostech,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.hostechbytusid.com/fuar-kunyesi,HOSTECH by TUSİD İSTANBUL Fuarı,email_subject_present,KEEP,email subject present
+104,IDEF,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.idef.com.tr/fuar-kunyesi,"IDEF, Uluslararası Savunma Sanayii Fuarı",future_start_fair,NULLIFY,future start fair
+104,IDEF,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.idef.com.tr/fuar-kunyesi,"IDEF, Uluslararası Savunma Sanayii Fuarı",future_end_fair,NULLIFY,future end fair
+104,IDEF,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.idef.com.tr/fuar-kunyesi,"IDEF, Uluslararası Savunma Sanayii Fuarı",email_subject_present,KEEP,email subject present
+105,Asansör İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.asansoristanbul.com,Asansör İstanbul Fuarı,future_start_fair,NULLIFY,future start fair
+105,Asansör İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.asansoristanbul.com,Asansör İstanbul Fuarı,future_end_fair,NULLIFY,future end fair
+105,Asansör İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://www.asansoristanbul.com,Asansör İstanbul Fuarı,email_subject_present,KEEP,email subject present
+106,Petroleum İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://petroleumistanbul.com.tr/petroleum-istanbul/,Petroleum İstanbul Fuarı,future_start_fair,NULLIFY,future start fair
+106,Petroleum İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://petroleumistanbul.com.tr/petroleum-istanbul/,Petroleum İstanbul Fuarı,future_end_fair,NULLIFY,future end fair
+106,Petroleum İstanbul,2126-01-01 00:00:00,2126-01-01 00:00:00,TÜYAP,https://petroleumistanbul.com.tr/petroleum-istanbul/,Petroleum İstanbul Fuarı,email_subject_present,KEEP,email subject present
+107,PAPER EURASIA,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.papereurasia.com/fuar-kunyesi,Paper Eurasia Fuarı,future_start_fair,NULLIFY,future start fair
+107,PAPER EURASIA,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.papereurasia.com/fuar-kunyesi,Paper Eurasia Fuarı,future_end_fair,NULLIFY,future end fair
+107,PAPER EURASIA,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.papereurasia.com/fuar-kunyesi,Paper Eurasia Fuarı,email_subject_present,KEEP,email subject present
+108,Eurasia Rail,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://eurasiarail.eu/tr/katilimci-listesirn,Eurasia Rail Fuarı,future_start_fair,NULLIFY,future start fair
+108,Eurasia Rail,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://eurasiarail.eu/tr/katilimci-listesirn,Eurasia Rail Fuarı,future_end_fair,NULLIFY,future end fair
+108,Eurasia Rail,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://eurasiarail.eu/tr/katilimci-listesirn,Eurasia Rail Fuarı,email_subject_present,KEEP,email subject present
+109,GarmentTech,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.garmenttech.com.tr/hakkimizda/,GarmentTech Fuarı,future_start_fair,NULLIFY,future start fair
+109,GarmentTech,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.garmenttech.com.tr/hakkimizda/,GarmentTech Fuarı,future_end_fair,NULLIFY,future end fair
+109,GarmentTech,2126-01-01 00:00:00,2126-01-01 00:00:00,IFM (CNR),https://www.garmenttech.com.tr/hakkimizda/,GarmentTech Fuarı,email_subject_present,KEEP,email subject present
+110,ALUEXPO,2025-09-18 00:00:00,2025-09-20 00:00:00,IFM (CNR),https://interactivemap.aluexpo.com,ALUEXPO Fuarı,email_subject_present,KEEP,email subject present
+111,EIF,2025-10-08 00:00:00,2025-10-10 00:00:00,IFM (CNR),https://www.eif2050.com/tr/katilan-firmalar,EIF Dünya Enerji Kongresi ve Fuarı,email_subject_present,KEEP,email subject present
+112,Franchise İstanbul Expo,2026-04-16 00:00:00,2026-04-19 00:00:00,TÜYAP,https://www.franchiseistanbulexpo.com/en,Franchise İstanbul Expo,email_subject_present,KEEP,email subject present
+113,UNICERA İstanbul,2026-11-02 00:00:00,2026-11-06 00:00:00,IFM (CNR),https://unicera.com.tr,UNICERA İstanbul - Seramik Banyo Mutfak Fuarı,email_subject_present,KEEP,email subject present
+114,Adhesives and Bonding Eurasia,2025-11-26 00:00:00,2025-11-28 00:00:00,IFM (CNR),https://adhesivebondingeurasia.com/,Adhesives and Bonding Eurasia Fair,email_subject_present,KEEP,email subject present
+115,Hazır Beton Fuarı ve Zirvesi,2025-11-12 00:00:00,2025-11-15 00:00:00,IFM (CNR),https://betonfuarivekongresi.com/hakkinda,Hazır Beton Fuarı ve Zirvesi,email_subject_present,KEEP,email subject present
+116,ETH Expo,2025-11-26 00:00:00,2025-11-29 00:00:00,IFM (CNR),https://ethexpo.org,ETH Expo - Sağlık & Turizm Fuarı,email_subject_present,KEEP,email subject present
+117,Helal Expo,2025-11-26 00:00:00,2025-11-29 00:00:00,IFM (CNR),https://helalexpo.com.tr,Helal Expo,email_subject_present,KEEP,email subject present
+118,Güzellik & Bakım İstanbul,2026-03-26 00:00:00,2026-03-29 00:00:00,İstanbul Lütfi Kırdar,https://guzellikvebakim.com/hakkimizda/,Güzellik & Bakım İstanbul Fuarı,email_subject_present,KEEP,email subject present
+119,Beauty İstanbul,2026-05-07 00:00:00,2026-05-09 00:00:00,IFM (CNR),https://beauty-istanbul.com/about-istanbul-tr/,Beauty İstanbul Fuarı,email_subject_present,KEEP,email subject present
+120,ITM-HIGHTEXrn,2026-06-09 00:00:00,2026-06-13 00:00:00,TÜYAP,https://www.hightex.com.tr/hightex-2026-exhibitor-list/ / https://www.itmexhibition.com/en/itm-2026-exhibitor-list/rn,Uluslararası Tekstil Makineleri Fuarırn,invalid_fair_website,MANUAL_REVIEW,invalid fair website
+120,ITM-HIGHTEXrn,2026-06-09 00:00:00,2026-06-13 00:00:00,TÜYAP,https://www.hightex.com.tr/hightex-2026-exhibitor-list/ / https://www.itmexhibition.com/en/itm-2026-exhibitor-list/rn,Uluslararası Tekstil Makineleri Fuarırn,email_subject_present,KEEP,email subject present
+121,ELEX EXPO,2026-04-23 00:00:00,2026-04-25 00:00:00,IFM (CNR),https://elesexpo.com/katilimci-listesi/yerli,Elektrik Aydınlatma Enerji Akıllı Teknolojiler Fuar,email_subject_present,KEEP,email subject present

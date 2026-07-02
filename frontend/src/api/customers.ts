@@ -22,8 +22,8 @@ export async function listCustomers(
     page: params.page,
     pageSize: params.pageSize,
     search: params.search,
-    sort: params.sort,
-    direction: params.direction,
+    sortBy: params.sortBy,
+    sortOrder: params.sortOrder,
     filters: {
       ...(params.status ? { status: params.status } : {}),
       ...(params.customer_type ? { customer_type: params.customer_type } : {}),

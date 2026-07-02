@@ -18,9 +18,11 @@ CONTACT_SORT_FIELDS = {
     "updated_at": ContactModel.updated_at,
     "last_name": ContactModel.last_name,
     "first_name": ContactModel.first_name,
+    "full_name": ContactModel.last_name,
     "email": ContactModel.email,
     "department": ContactModel.department,
     "title": ContactModel.title,
+    "phone": ContactModel.phone,
 }
 
 SEARCH_FIELDS = (

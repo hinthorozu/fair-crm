@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from sqlalchemy import or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from app.core.pagination import build_order_clause, build_paginated_meta, normalize_page_params
 from app.modules.contacts.infrastructure.persistence.models import ContactModel
@@ -39,6 +39,10 @@ CUSTOMER_LIST_SORT_FIELDS = {
 FAIR_LIST_SORT_FIELDS = {
     **PARTICIPATION_BASE_SORT_FIELDS,
     "company_name": CustomerModel.display_name,
+    "email": CustomerModel.email,
+    "phone": CustomerModel.phone,
+    "country": CustomerModel.country,
+    "city": CustomerModel.city,
 }
 
 FAIR_PARTICIPANT_SEARCH_FIELDS = (
@@ -138,9 +142,11 @@ class SqlAlchemyParticipationRepository:
         sort_dir: str = "desc",
     ) -> CustomerParticipationListResult:
         page_params = normalize_page_params(page, page_size)
+        contact = aliased(ContactModel)
         query = (
             self._session.query(CustomerFairParticipationModel, FairModel)
             .join(FairModel, CustomerFairParticipationModel.fair_id == FairModel.id)
+            .outerjoin(contact, CustomerFairParticipationModel.primary_contact_id == contact.id)
             .filter(
                 CustomerFairParticipationModel.organization_id == organization_id,
                 CustomerFairParticipationModel.customer_id == customer_id,
@@ -158,7 +164,8 @@ class SqlAlchemyParticipationRepository:
             )
 
         total = query.count()
-        sort_column = CUSTOMER_LIST_SORT_FIELDS.get(sort_by, FairModel.start_date)
+        sort_fields = {**CUSTOMER_LIST_SORT_FIELDS, "primary_contact_name": contact.last_name}
+        sort_column = sort_fields.get(sort_by, FairModel.start_date)
         nulls_last = sort_by == "fair_start_date"
         order = build_order_clause(
             sort_column,
@@ -198,9 +205,11 @@ class SqlAlchemyParticipationRepository:
         sort_dir: str = "asc",
     ) -> FairParticipantListResult:
         page_params = normalize_page_params(page, page_size)
+        contact = aliased(ContactModel)
         query = (
             self._session.query(CustomerFairParticipationModel, CustomerModel)
             .join(CustomerModel, CustomerFairParticipationModel.customer_id == CustomerModel.id)
+            .outerjoin(contact, CustomerFairParticipationModel.primary_contact_id == contact.id)
             .filter(
                 CustomerFairParticipationModel.organization_id == organization_id,
                 CustomerFairParticipationModel.fair_id == fair_id,
@@ -218,7 +227,8 @@ class SqlAlchemyParticipationRepository:
             )
 
         total = query.count()
-        sort_column = FAIR_LIST_SORT_FIELDS.get(sort_by, CustomerModel.display_name)
+        sort_fields = {**FAIR_LIST_SORT_FIELDS, "primary_contact_name": contact.last_name}
+        sort_column = sort_fields.get(sort_by, CustomerModel.display_name)
         order = build_order_clause(
             sort_column,
             sort_dir if sort_dir in ("asc", "desc") else "asc",

@@ -6,7 +6,17 @@ from app.modules.contacts.domain.ports import ContactRepository
 from app.modules.customers.domain.ports import CustomerRepository
 
 ALLOWED_SORT_FIELDS = frozenset(
-    {"created_at", "updated_at", "first_name", "last_name", "email", "department", "title"}
+    {
+        "created_at",
+        "updated_at",
+        "first_name",
+        "last_name",
+        "full_name",
+        "email",
+        "department",
+        "title",
+        "phone",
+    }
 )
 DEFAULT_SORT_FIELD = "first_name"
 DEFAULT_SORT_DIRECTION = "asc"

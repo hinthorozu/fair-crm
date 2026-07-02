@@ -18,6 +18,7 @@ ALLOWED_SORT_FIELDS = frozenset(
         "participation_status",
         "fair_start_date",
         "fair_name",
+        "primary_contact_name",
     }
 )
 DEFAULT_SORT_FIELD = "fair_start_date"

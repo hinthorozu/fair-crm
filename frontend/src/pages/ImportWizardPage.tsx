@@ -9,7 +9,10 @@ import {
   setColumnMapping,
   setImportRowDecision,
   uploadRawImport,
-} from "../api/imports";
+  startImportApplyJob,
+  getImportJob,
+  selectImportSheet,
+} from "../api/dataIntegration";
 import { getFair, listFairs } from "../api/fairs";
 import { listParticipantsByFair } from "../api/participations";
 import { Card } from "../components/ui/Card";
@@ -39,7 +42,9 @@ import type {
   PreviewFilter,
   PreviewSortBy,
   UploadRawImportResponse,
+  ExcelHeaderMode,
 } from "../types/import";
+import { dataIntegrationLabels } from "../labels/dataIntegrationLabels";
 import { WIZARD_MAPPING_FIELDS as MAPPING_FIELDS } from "../types/import";
 import type { Fair } from "../types/fair";
 import { importBatchStatusBadgeVariant, importRowStatusBadgeVariant } from "../utils/importBadges";
@@ -64,6 +69,13 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
   const [selectedFair, setSelectedFair] = React.useState<Fair | null>(null);
   const [participantCount, setParticipantCount] = React.useState<number | null>(null);
   const [hasHeaderRow, setHasHeaderRow] = React.useState(true);
+  const [headerMode, setHeaderMode] = React.useState<ExcelHeaderMode>("first_row_header");
+  const [manualHeaderRow, setManualHeaderRow] = React.useState(1);
+  const [availableSheets, setAvailableSheets] = React.useState<string[]>([]);
+  const [selectedSheet, setSelectedSheet] = React.useState<string>("");
+  const [applyJobId, setApplyJobId] = React.useState<string | null>(null);
+  const [useBackgroundApply, setUseBackgroundApply] = React.useState(true);
+  const [jobStatus, setJobStatus] = React.useState<string | null>(null);
   const [mappings, setMappings] = React.useState<Record<string, number>>({});
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -131,7 +143,12 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
       const result = await uploadRawImport(selectedFairId, selectedFile);
       setBatchId(result.batch_id);
       setUploadPreview(result);
-      setHasHeaderRow(result.suggested_mapping.has_header_row);
+      setAvailableSheets(result.available_sheets ?? []);
+      setSelectedSheet(result.selected_sheet_name ?? result.available_sheets?.[0] ?? "");
+      const mode = result.suggested_mapping.header_mode ?? (result.suggested_mapping.has_header_row ? "first_row_header" : "no_header");
+      setHeaderMode(mode);
+      setHasHeaderRow(mode !== "no_header");
+      setManualHeaderRow((result.suggested_mapping.header_row_index ?? 0) + 1);
       const initial: Record<string, number> = {};
       for (const [k, v] of Object.entries(result.suggested_mapping.mappings)) {
         initial[k] = v.value;
@@ -153,8 +170,10 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
     setLoading(true);
     setError(null);
     try {
-      const payload = {
-        has_header_row: hasHeaderRow,
+      const payload: ColumnMappingPayload = {
+        has_header_row: headerMode !== "no_header",
+        header_mode: headerMode,
+        header_row_index: headerMode === "manual_header_row" ? manualHeaderRow - 1 : headerMode === "first_row_header" ? 0 : null,
         mappings: Object.fromEntries(
           Object.entries(mappings).map(([k, v]) => [k, { type: "column_index" as const, value: v }]),
         ),
@@ -310,10 +329,17 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
     setLoading(true);
     setError(null);
     try {
-      const result = await applyImportBatch(batchId);
-      setApplyResult(result);
-      setBatch(result.batch);
-      setStepIndex(8);
+      if (useBackgroundApply) {
+        const job = await startImportApplyJob(batchId);
+        setApplyJobId(job.job_id);
+        setJobStatus(job.status);
+        setStepIndex(8);
+      } else {
+        const result = await applyImportBatch(batchId);
+        setApplyResult(result);
+        setBatch(result.batch);
+        setStepIndex(8);
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : importLabels.applyError);
     } finally {
@@ -322,13 +348,48 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
     }
   };
 
-  const columnOptions = uploadPreview?.raw_columns.map((col) => {
-    const header =
-      hasHeaderRow && uploadPreview.detected_headers[col.index]
-        ? `${uploadPreview.detected_headers[col.index]} (${col.letter})`
-        : `Kolon ${col.letter}`;
-    return { index: col.index, label: header };
-  }) ?? [];
+  React.useEffect(() => {
+    if (!applyJobId) return;
+    const timer = window.setInterval(async () => {
+      try {
+        const job = await getImportJob(applyJobId);
+        setJobStatus(job.status);
+        if (job.status === "completed" && job.result_json) {
+          window.clearInterval(timer);
+          await refreshBatch(job.batch_id);
+          setApplyResult({
+            batch: batch!,
+            created_rows: Number(job.result_json.created_rows ?? 0),
+            updated_rows: Number(job.result_json.updated_rows ?? 0),
+            skipped_rows: Number(job.result_json.skipped_rows ?? 0),
+            invalid_rows: Number(job.result_json.invalid_rows ?? 0),
+            created_participations: Number(job.result_json.created_participations ?? 0),
+            updated_participations: Number(job.result_json.updated_participations ?? 0),
+            created_contacts: Number(job.result_json.created_contacts ?? 0),
+          });
+        }
+        if (job.status === "failed") {
+          window.clearInterval(timer);
+          setError(job.error_message ?? importLabels.applyError);
+        }
+      } catch {
+        /* polling */
+      }
+    }, 1500);
+    return () => window.clearInterval(timer);
+  }, [applyJobId, batch]);
+
+  const columnOptions =
+    uploadPreview?.raw_columns.map((col) => {
+      if (headerMode === "no_header") {
+        const samples = (col.sample_values as unknown[] | undefined)?.slice(0, 2).join(", ") ?? "";
+        const label = samples ? `Column ${col.letter} (${samples})` : `Column ${col.letter}`;
+        return { index: col.index, label };
+      }
+      const headerVal = uploadPreview.detected_headers[col.index];
+      const header = headerVal ? `${headerVal} (${col.letter})` : `Column ${col.letter}`;
+      return { index: col.index, label: header };
+    }) ?? [];
 
   const renderStepper = () => (
     <div className="wizard-stepper">
@@ -373,6 +434,37 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
         {importLabels.selectFile}
       </button>
       {selectedFile && <p>{selectedFile.name}</p>}
+      {uploadPreview && availableSheets.length > 1 && (
+        <div className="form-field">
+          <label>{dataIntegrationLabels.sheetTitle}</label>
+          <select
+            className="form-select"
+            value={selectedSheet}
+            onChange={async (e) => {
+              const sheet = e.target.value;
+              setSelectedSheet(sheet);
+              if (!batchId) return;
+              try {
+                const res = await selectImportSheet(batchId, sheet);
+                setHasHeaderRow(Boolean(res.suggested_mapping?.has_header_row));
+                const sm = res.suggested_mapping as { header_mode?: ExcelHeaderMode; mappings?: Record<string, { value: number }> };
+                if (sm.header_mode) setHeaderMode(sm.header_mode);
+                const initial: Record<string, number> = {};
+                for (const [k, v] of Object.entries(sm.mappings ?? {})) {
+                  initial[k] = v.value;
+                }
+                setMappings(initial);
+              } catch {
+                /* best effort */
+              }
+            }}
+          >
+            {availableSheets.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+      )}
       {uploadPreview && (
         <DataTableShell>
           <table>
@@ -430,14 +522,51 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
       <p className="text-muted">{importLabels.mappingSubtitle}</p>
       <div className="header-toggle">
         <label>
-          <input type="radio" checked={hasHeaderRow} onChange={() => setHasHeaderRow(true)} />
-          {importLabels.headerYes}
+          <input
+            type="radio"
+            checked={headerMode === "first_row_header"}
+            onChange={() => {
+              setHeaderMode("first_row_header");
+              setHasHeaderRow(true);
+            }}
+          />
+          {dataIntegrationLabels.headerFirstRow}
         </label>
         <label>
-          <input type="radio" checked={!hasHeaderRow} onChange={() => setHasHeaderRow(false)} />
-          {importLabels.headerNo}
+          <input
+            type="radio"
+            checked={headerMode === "no_header"}
+            onChange={() => {
+              setHeaderMode("no_header");
+              setHasHeaderRow(false);
+            }}
+          />
+          {dataIntegrationLabels.headerNoHeader}
+        </label>
+        <label>
+          <input
+            type="radio"
+            checked={headerMode === "manual_header_row"}
+            onChange={() => {
+              setHeaderMode("manual_header_row");
+              setHasHeaderRow(true);
+            }}
+          />
+          {dataIntegrationLabels.headerManualRow}
         </label>
       </div>
+      {headerMode === "manual_header_row" && (
+        <div className="form-field">
+          <label>{dataIntegrationLabels.manualHeaderRowLabel}</label>
+          <input
+            type="number"
+            min={1}
+            className="form-input"
+            value={manualHeaderRow}
+            onChange={(e) => setManualHeaderRow(Number(e.target.value) || 1)}
+          />
+        </div>
+      )}
       <DataTableShell>
         <table>
           <thead>
@@ -548,6 +677,15 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
           <li>Atlanacak: {previewTable.items.filter((r) => r.decision === "skip").length}</li>
         </ul>
       )}
+      <p className="text-muted">{dataIntegrationLabels.applyBackgroundHint}</p>
+      <label>
+        <input
+          type="checkbox"
+          checked={useBackgroundApply}
+          onChange={(e) => setUseBackgroundApply(e.target.checked)}
+        />{" "}
+        {dataIntegrationLabels.applyBackground}
+      </label>
       <button type="button" className="btn btn-primary" onClick={() => setConfirmApply(true)}>
         {importLabels.applyConfirmTitle}
       </button>
@@ -557,6 +695,9 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
   const renderSummary = () => (
     <Card>
       <h3>{importLabels.summaryTitle}</h3>
+      {applyJobId && jobStatus && !applyResult && (
+        <p>{dataIntegrationLabels.jobRunning} ({jobStatus})</p>
+      )}
       {applyResult && (
         <div className="import-summary">
           <div><strong>{importLabels.resultCreated}:</strong> {applyResult.created_rows}</div>
@@ -647,14 +788,15 @@ export function ImportWizardPage({ preselectedFairId }: ImportWizardPageProps) {
         )}
         {currentStep === "apply" && null}
       </div>
-      <ConfirmDialog
-        open={confirmApply}
-        title={importLabels.applyConfirmTitle}
-        message={importLabels.applyConfirmMessage}
-        confirmLabel={importLabels.applyConfirmTitle}
-        onConfirm={() => void handleApply()}
-        onCancel={() => setConfirmApply(false)}
-      />
+      {confirmApply && (
+        <ConfirmDialog
+          title={importLabels.applyConfirmTitle}
+          message={importLabels.applyConfirmMessage}
+          confirmLabel={importLabels.applyConfirmTitle}
+          onConfirm={() => void handleApply()}
+          onCancel={() => setConfirmApply(false)}
+        />
+      )}
     </div>
   );
 }

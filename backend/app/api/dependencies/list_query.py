@@ -47,14 +47,15 @@ def parse_list_query(
     sort_by: str | None = None,
     direction: str | None = None,
     sort_dir: str | None = None,
+    sort_order: str | None = None,
     default_sort: str,
     allowed_sort_fields: frozenset[str],
     default_direction: str = "asc",
 ) -> NormalizedListQuery:
     page_params = normalize_page_params(page, normalize_page_size(page_size))
-    requested_sort = sort or sort_by or default_sort
+    requested_sort = sort_by or sort or default_sort
     sort_field = resolve_sort_field(requested_sort, allowed_sort_fields, default_sort)
-    raw_direction = direction or sort_dir or default_direction
+    raw_direction = sort_order or sort_dir or direction or default_direction
     normalized_direction = normalize_sort_direction(raw_direction)
     normalized_search = search.strip() if search and search.strip() else None
     return NormalizedListQuery(

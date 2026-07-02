@@ -112,6 +112,9 @@ class ApplyImportUseCase:
                 skipped_count += 1
                 continue
 
+            if row.decision == ImportDecision.MANUAL_REVIEW:
+                continue
+
             customer: Customer | None = None
             customer_created = False
             customer_updated = False
@@ -134,6 +137,15 @@ class ApplyImportUseCase:
                 row.mark_applied_update(customer.id, now=now)
                 customer_updated = True
                 updated_count += 1
+            elif row.decision == ImportDecision.PARTICIPATION_ONLY:
+                if row.match_customer_id is None:
+                    continue
+                customer = self._customer_repository.get_by_id(
+                    command.organization_id, row.match_customer_id
+                )
+                if customer is None:
+                    continue
+                row.mark_applied_update(customer.id, now=now)
 
             if customer is None:
                 continue
@@ -149,19 +161,32 @@ class ApplyImportUseCase:
                     row.mark_participation_updated(participation.id, now=now)
                     updated_participations += 1
 
-            contact_created = self._apply_contact(customer, row.normalized_data_json, command, now)
-            if contact_created:
-                created_contacts += 1
+            if row.decision not in (
+                ImportDecision.PARTICIPATION_ONLY,
+                ImportDecision.MANUAL_REVIEW,
+            ):
+                contact_created = self._apply_contact(customer, row.normalized_data_json, command, now)
+                if contact_created:
+                    created_contacts += 1
 
-            action = "created" if customer_created else "updated"
-            self._create_import_activity(
-                command,
-                customer_id=customer.id,
-                batch_id=batch.id,
-                batch_file=batch.file_name,
-                action=action,
-                now=now,
-            )
+                action = "created" if customer_created else "updated"
+                self._create_import_activity(
+                    command,
+                    customer_id=customer.id,
+                    batch_id=batch.id,
+                    batch_file=batch.file_name,
+                    action=action,
+                    now=now,
+                )
+            elif row.decision == ImportDecision.PARTICIPATION_ONLY and fair_id is not None:
+                self._create_import_activity(
+                    command,
+                    customer_id=customer.id,
+                    batch_id=batch.id,
+                    batch_file=batch.file_name,
+                    action="participation_only",
+                    now=now,
+                )
 
         self._row_repository.update_many(rows)
 

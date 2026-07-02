@@ -1,0 +1,67 @@
+{
+  "generated_at": "2026-07-01T15:44:59.721048+00:00",
+  "source": "C:\\Users\\hinthorozu\\Desktop\\withdata_u7409970_umycrm.sql",
+  "dataset": {
+    "companies": 29321,
+    "emails": 40240,
+    "countries": 2,
+    "fairs": 115,
+    "relations": 29562
+  },
+  "issue_counts": {
+    "company_names": {
+      "encoding_issue": 48,
+      "html_entity": 165
+    },
+    "emails": {
+      "case_normalize": 470,
+      "invalid_format": 43,
+      "delimiter_in_email": 1,
+      "duplicate_same_company": 885,
+      "duplicate_cross_company": 8207
+    },
+    "phones": {
+      "empty_phone": 73402,
+      "normalize_format": 3169,
+      "contains_letters": 481,
+      "too_short": 18,
+      "duplicate_same_company": 6,
+      "contains_note": 288,
+      "no_digits": 772,
+      "placeholder": 3
+    },
+    "websites": {
+      "empty_website": 39468,
+      "missing_scheme": 6650,
+      "invalid_website": 224,
+      "looks_like_email": 89,
+      "placeholder": 2,
+      "looks_like_phone": 56
+    },
+    "countries": {},
+    "fairs": {
+      "email_subject_present": 113,
+      "future_start_fair": 64,
+      "future_end_fair": 64,
+      "empty_fair_website": 2,
+      "empty_email_subject": 2,
+      "normalize_fair_website": 1,
+      "invalid_fair_website": 7
+    },
+    "relations": {
+      "duplicate_relation": 2,
+      "merge_conflict": 713
+    }
+  },
+  "action_counts": {
+    "MANUAL_REVIEW": 10156,
+    "NORMALIZE": 10456,
+    "MERGE": 891,
+    "NULLIFY": 113793,
+    "KEEP": 118,
+    "DROP_DUPLICATE_RELATION": 1
+  },
+  "country_distribution": {
+    "Türkiye": 29321
+  }
+}

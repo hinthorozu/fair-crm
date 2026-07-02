@@ -14,8 +14,8 @@ export async function listFairs(params: ListFairsParams = {}): Promise<StandardL
     page: params.page,
     pageSize: params.pageSize,
     search: params.search,
-    sort: params.sort,
-    direction: params.direction,
+    sortBy: params.sortBy,
+    sortOrder: params.sortOrder,
     filters: {
       ...(params.status ? { status: params.status } : {}),
       ...(params.country ? { country: params.country } : {}),

@@ -22,8 +22,8 @@ export async function listParticipationsByCustomer(
     page: params.page,
     pageSize: params.pageSize,
     search: params.search,
-    sort: params.sort,
-    direction: params.direction,
+    sortBy: params.sortBy,
+    sortOrder: params.sortOrder,
     filters: {
       ...(params.participationStatus ? { participationStatus: params.participationStatus } : {}),
       ...params.filters,
@@ -43,8 +43,8 @@ export async function listParticipantsByFair(
     page: params.page,
     pageSize: params.pageSize,
     search: params.search,
-    sort: params.sort,
-    direction: params.direction,
+    sortBy: params.sortBy,
+    sortOrder: params.sortOrder,
     filters: {
       ...(params.participationStatus ? { participationStatus: params.participationStatus } : {}),
       ...params.filters,

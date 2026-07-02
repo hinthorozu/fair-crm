@@ -296,7 +296,7 @@ All list endpoints and list UIs must follow this standard.
 | `page` | `1` | ≥ 1, 1-based |
 | `page_size` | `25` | 1–100 |
 | `sort_by` | module-specific (e.g. `created_at`) | Whitelist allowed columns in repository |
-| `sort_dir` | `desc` | `asc` or `desc` |
+| `sort_order` | `desc` | `asc` or `desc` (aliases: `sort_dir`, `direction`) |
 
 **Response shape** (snake_case):
 
@@ -541,6 +541,34 @@ A new or changed **list screen** is not complete until all of the following are 
 - [ ] `DataTable` / `useServerDataTable` standard compliance
 - [ ] No client-side `sort()` / `filter()` / `slice()` on large datasets fetched from the API
 
+### Universal Server-Side DataTable Standard — Sorting Rule
+
+Every list built on `UniversalDataTable` / `useServerDataTable` must follow this rule (all current and future list screens):
+
+- **Actions / İşlemler column is never sortable** — set `sortable: false` in column definition.
+- **All other displayed data columns are sortable by default** — column config `{ key, title, sortable: true }` is sufficient; `UniversalDataTable` renders sort headers automatically.
+- **Sort cycle** — header click: `asc` → `desc` → clear/default.
+- **Sort indicators** — inactive `↕`, active `↑` / `↓`.
+- **Server-side only** — API query params `sort_by` + `sort_order`; no client-side reordering of API rows.
+- **URL state** — sort persisted in query string (`sort_by`, `sort_order`); survives refresh and shareable links.
+- **Backend whitelist** — each list use case defines `ALLOWED_SORT_FIELDS`; unknown fields fall back to entity default via `resolve_sort_field` / `parse_list_query` (never HTTP 400).
+- **SQL safety** — sort fields mapped to fixed column references in repository; never interpolated from user input.
+- **Computed columns** — sort by underlying DB field when possible (e.g. `full_name` → `last_name`).
+
+**Architectural rule:** No list screen may decide column-by-column whether data columns are sortable. Actions excluded; everything else sortable unless an ADR documents a technical exception.
+
+Applies to: Customers, Fairs, Participations, Contacts, Activities, Import batches, Admin backups, and all future Universal DataTable screens.
+
+**Developer pattern:**
+
+```typescript
+const columns: UniversalDataTableColumn<Fair>[] = [
+  { key: "name", title: "Fuar Adı", sortable: true, render: (row) => row.name },
+  { key: "actions", title: "İşlemler", sortable: false, render: (row) => <Actions row={row} /> },
+];
+<UniversalDataTable table={table} columns={columns} rowKey={(r) => r.id} />
+```
+
 ---
 
 ## Development Workflow
@@ -572,6 +600,48 @@ Phase 3 — Completion
 ```
 
 Also read `README.md`, `ROADMAP.md`, and relevant docs under `docs/` as needed for the sprint.
+
+---
+
+## Development Utilities / Database Safety
+
+Fair CRM dev databases may contain real migrated data (customers, participations, import batches). **Before any destructive import test or bulk data experiment**, create a verified backup.
+
+These utilities are **developer-only CLI helpers** — they delegate to the same shared Python backup engine as the Admin workspace. Product backup/restore is managed via **Admin → System → Database Backups** (`/admin/system/backups`).
+
+### Shared backup engine
+
+| Location | Role |
+|----------|------|
+| `backend/app/shared/database_backup/` | Single implementation for `pg_dump`, verify, checksum, path safety |
+| `python -m app.shared.database_backup` | CLI used by PowerShell scripts |
+| `backend/app/modules/system_admin/` | Admin API, background jobs, metadata (`system_backups`) |
+
+### Backup / restore scripts
+
+Run from the **repository root** (`fair-crm/`):
+
+| Script | Purpose |
+|--------|---------|
+| `.\scripts\dev\backup-db.ps1` | Create a timestamped PostgreSQL custom-format backup (`.dump`) under `backups/` |
+| `.\scripts\dev\list-backups.ps1` | List available backups with date/time and size |
+| `.\scripts\dev\restore-db.ps1 .\backups\<file>.dump` | Restore a backup (requires explicit confirmation) |
+
+**Configuration:** Scripts read `DATABASE_URL` from `backend/.env` (fallback: repo-root `.env`).
+
+**Backup format:** PostgreSQL custom format via `pg_dump -Fc`. Each successful backup is verified with `pg_restore -l`.
+
+**Restore safety:**
+
+- `-WhatIf` / `-DryRun` validates the dump without modifying the database
+- Live restore requires typing the **target database name** to confirm overwrite
+- Uses `pg_restore --clean --if-exists` against the configured dev database only
+
+**Prerequisites:** PostgreSQL client tools (`pg_dump`, `pg_restore`) on PATH, **or** the local Docker Postgres container (`kyrox-postgres-dev` from `docker compose up -d postgres`) when client tools are not installed.
+
+**Policy:** Do not start real-data import tests until a fresh backup exists and `list-backups.ps1` shows it. The `backups/` directory is gitignored — store dumps locally only.
+
+See also: [docs/DEV_RUNTIME.md](docs/DEV_RUNTIME.md) for dev server reset.
 
 ---
 

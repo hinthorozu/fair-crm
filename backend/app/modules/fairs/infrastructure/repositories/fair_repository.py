@@ -32,6 +32,9 @@ FAIR_SORT_FIELDS = {
     "start_date": FairModel.start_date,
     "city": FairModel.city,
     "country": FairModel.country,
+    "organizer": FairModel.organizer,
+    "venue": FairModel.venue,
+    "status": FairModel.status,
 }
 
 

@@ -19,6 +19,11 @@ ALLOWED_SORT_FIELDS = frozenset(
         "stand",
         "participation_status",
         "company_name",
+        "email",
+        "phone",
+        "country",
+        "city",
+        "primary_contact_name",
     }
 )
 DEFAULT_SORT_FIELD = "company_name"

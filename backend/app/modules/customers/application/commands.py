@@ -45,7 +45,7 @@ class ListCustomersQuery:
     search: str | None = None
     page: int = 1
     page_size: int = 25
-    sort_by: str = "company_name"
+    sort_by: str = "name"
     sort_dir: str = "asc"
 
 

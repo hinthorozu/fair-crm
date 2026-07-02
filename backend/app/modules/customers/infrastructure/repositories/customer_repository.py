@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Query, Session
 
 from app.core.pagination import PageParams, build_order_clause, build_paginated_meta, normalize_page_params
@@ -31,11 +31,15 @@ SEARCH_FIELDS = (
 CUSTOMER_SORT_FIELDS = {
     "created_at": CustomerModel.created_at,
     "updated_at": CustomerModel.updated_at,
-    "display_name": CustomerModel.display_name,
-    "company_name": CustomerModel.display_name,
+    "name": func.lower(CustomerModel.display_name),
+    "display_name": func.lower(CustomerModel.display_name),
+    "company_name": func.lower(CustomerModel.display_name),
     "country": CustomerModel.country,
     "city": CustomerModel.city,
     "email": CustomerModel.email,
+    "status": CustomerModel.status,
+    "customer_type": CustomerModel.customer_type,
+    "phone": CustomerModel.phone,
 }
 
 
@@ -147,11 +151,12 @@ class SqlAlchemyCustomerRepository:
         )
 
         total = query.count()
-        sort_column = CUSTOMER_SORT_FIELDS.get(sort_by, CustomerModel.display_name)
+        sort_column = CUSTOMER_SORT_FIELDS.get(sort_by, func.lower(CustomerModel.display_name))
         order = build_order_clause(
             sort_column,
             sort_dir if sort_dir in ("asc", "desc") else "asc",
             tie_breaker=CustomerModel.id,
+            nulls_last=sort_by in ("display_name", "company_name", "name"),
         )
 
         models = (

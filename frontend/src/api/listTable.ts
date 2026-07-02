@@ -90,16 +90,23 @@ export function buildListQueryParams(state: {
   page?: number;
   pageSize?: number;
   search?: string;
+  sortBy?: string | null;
+  sortOrder?: SortDirection | null;
+  /** @deprecated Use sortBy */
   sort?: string | null;
+  /** @deprecated Use sortOrder */
   direction?: SortDirection | null;
   filters?: Record<string, string | undefined>;
 }): URLSearchParams {
   const params = new URLSearchParams();
+  const sortBy = state.sortBy ?? state.sort ?? null;
+  const sortOrder = state.sortOrder ?? state.direction ?? null;
+
   if (state.page) params.set("page", String(state.page));
   if (state.pageSize) params.set("pageSize", String(state.pageSize));
   if (state.search?.trim()) params.set("search", state.search.trim());
-  if (state.sort) params.set("sort", state.sort);
-  if (state.direction) params.set("direction", state.direction);
+  if (sortBy) params.set("sort_by", sortBy);
+  if (sortOrder) params.set("sort_order", sortOrder);
   if (state.filters) {
     for (const [key, value] of Object.entries(state.filters)) {
       if (value !== undefined && value !== "") params.set(key, value);

@@ -11,6 +11,8 @@ from app.modules.customers.application.list_customers import (
     ALLOWED_SORT_FIELDS,
     DEFAULT_SORT_DIRECTION,
     DEFAULT_SORT_FIELD,
+    customer_name_sort_api_field,
+    resolve_customer_list_sort,
 )
 
 from app.core.config import get_settings
@@ -120,12 +122,19 @@ def list_customers(
     ] = 25,
     sort: Annotated[
         str | None,
-        Query(validation_alias=AliasChoices("sort", "sort_by")),
+        Query(validation_alias=AliasChoices("sort_by", "sort")),
     ] = None,
     sort_by: Annotated[str | None, Query(include_in_schema=False)] = None,
+    sort_order: Annotated[
+        str | None,
+        Query(pattern="^(?i)(asc|desc)$"),
+    ] = None,
     direction: Annotated[
         str | None,
-        Query(pattern="^(?i)(asc|desc)$", validation_alias=AliasChoices("direction", "sort_dir")),
+        Query(
+            pattern="^(?i)(asc|desc)$",
+            validation_alias=AliasChoices("sort_dir", "direction"),
+        ),
     ] = None,
     sort_dir: Annotated[str | None, Query(include_in_schema=False)] = None,
     auth: AuthContext = Depends(require_read_permission),
@@ -160,13 +169,13 @@ def list_customers(
         sort_by=sort_by,
         direction=direction,
         sort_dir=sort_dir,
+        sort_order=sort_order or request.query_params.get("sort_order"),
         default_sort=DEFAULT_SORT_FIELD,
         allowed_sort_fields=ALLOWED_SORT_FIELDS,
         default_direction=DEFAULT_SORT_DIRECTION,
     )
-    api_sort_field = list_query.sort_by
-    if api_sort_field == "display_name":
-        api_sort_field = "company_name"
+    resolved_repo_sort = resolve_customer_list_sort(list_query.sort_by)
+    api_sort_field = customer_name_sort_api_field(resolved_repo_sort)
 
     result = use_case.execute(
         ListCustomersQuery(

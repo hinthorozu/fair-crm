@@ -60,7 +60,14 @@ export type PreviewFilter = "all" | "new" | "will_update" | "duplicate" | "inval
 
 export type PreviewSortBy = "confidence" | "company_name" | "status";
 
-export type ImportDecision = "create_new" | "update_existing" | "skip";
+export type ImportDecision =
+  | "create_new"
+  | "update_existing"
+  | "participation_only"
+  | "skip"
+  | "manual_review";
+
+export type ExcelHeaderMode = "first_row_header" | "no_header" | "manual_header_row";
 
 export type BulkDecisionAction =
   | "create_all_new"
@@ -132,13 +139,19 @@ export interface UploadRawImportResponse {
   sample_rows: unknown[][];
   total_rows: number;
   suggested_mapping: {
+    header_mode?: ExcelHeaderMode;
     has_header_row: boolean;
+    header_row_index?: number | null;
     mappings: Record<string, { type: string; value: number }>;
   };
+  available_sheets?: string[];
+  selected_sheet_name?: string | null;
 }
 
 export interface ColumnMappingPayload {
   has_header_row: boolean;
+  header_mode?: ExcelHeaderMode;
+  header_row_index?: number | null;
   mappings: Record<string, { type: "column_index"; value: number }>;
 }
 

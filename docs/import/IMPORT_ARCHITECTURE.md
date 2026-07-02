@@ -3,7 +3,7 @@
 **Module:** Data Integration (`data_integration`)  
 **Frontend label:** Veri Entegrasyonu  
 **Route:** `/data-integration`  
-**Status:** Architecture (Sprint 09.0) — design only; implementation follows in later sprints.
+**Status:** Implemented (Sprint 09.1) — pipeline live; source adapters formalized in Sprint 09.2 ([SOURCE_ADAPTER_FRAMEWORK.md](SOURCE_ADAPTER_FRAMEWORK.md)).
 
 This document defines the **Universal Import Standard** pipeline for KYROX Fair CRM. It extends the existing Import Engine ([IMPORT_ENGINE.md](../IMPORT_ENGINE.md)) and Smart Import Wizard (Sprint 07) into a source-agnostic, preview-first integration platform.
 
