@@ -161,6 +161,19 @@ function Wait-DevPostgresHealthy([int]$TimeoutSec = 120) {
     throw "PostgreSQL did not become healthy within ${TimeoutSec}s. Check: docker compose ps"
 }
 
+function Invoke-DevAlembicUpgrade {
+    Write-DevStep "Applying pending schema migrations (alembic upgrade head)"
+    Push-Location $script:DevRepoRoot
+    try {
+        & python -m alembic upgrade head
+        if ($LASTEXITCODE -ne 0) {
+            throw "alembic upgrade head failed with exit code $LASTEXITCODE"
+        }
+    } finally {
+        Pop-Location
+    }
+}
+
 function Wait-DevRedisHealthy([int]$TimeoutSec = 60) {
     if (-not (Test-ComposeServiceDefined -ServiceName "redis")) {
         Write-Host "Compose service 'redis' not defined - skipping Redis wait."

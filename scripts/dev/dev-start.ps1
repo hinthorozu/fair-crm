@@ -21,6 +21,7 @@ Write-Host "Repository root: $script:DevRepoRoot"
 Test-DockerEngineReady
 Start-DevDockerInfra
 Wait-DevPostgresHealthy
+Invoke-DevAlembicUpgrade
 Wait-DevRedisHealthy
 
 $backendStarted = $false

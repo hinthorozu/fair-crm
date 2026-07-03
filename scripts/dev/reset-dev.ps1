@@ -28,6 +28,7 @@ if (-not (Test-Path $script:DevFrontendDir)) {
 Test-DockerEngineReady
 Start-DevDockerInfra
 Wait-DevPostgresHealthy
+Invoke-DevAlembicUpgrade
 
 Write-DevStep "Stopping stale Fair CRM dev processes"
 $cleared = @(Stop-DevRuntimeProcesses -IncludeAltFrontendPorts)
