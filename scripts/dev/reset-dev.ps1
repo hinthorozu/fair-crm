@@ -9,7 +9,15 @@
 
 .EXAMPLE
   .\scripts\dev\reset-dev.ps1
+
+.EXAMPLE
+  .\scripts\dev\reset-dev.ps1 -SkipPull
 #>
+[CmdletBinding()]
+param(
+    [switch]$SkipPull
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
@@ -25,10 +33,12 @@ if (-not (Test-Path $script:DevFrontendDir)) {
     throw "Frontend directory not found: $script:DevFrontendDir"
 }
 
+Invoke-DevPrepareRepository -SkipPull:$SkipPull
 Test-DockerEngineReady
 Start-DevDockerInfra
 Wait-DevPostgresHealthy
-Invoke-DevAlembicUpgrade
+$alembicStatus = Invoke-DevDatabaseMigrations
+Wait-DevRedisHealthy
 
 Write-DevStep "Stopping stale Fair CRM dev processes"
 $cleared = @(Stop-DevRuntimeProcesses -IncludeAltFrontendPorts)
@@ -106,8 +116,9 @@ if ($escapedPorts.Count -gt 0) {
     throw "Vite escaped to alternate port(s): $($escapedPorts -join ', '). Expected only $($script:DevFrontendPort)."
 }
 
-Show-DevServiceUrls
 Write-Host ""
 Write-Host "Backend PID:  $($backend.Process.Id) (log: $($backend.Log))"
 Write-Host "Frontend PID: $($frontend.Process.Id) (log: $($frontend.Log))"
+
+Show-DevRuntimeSummary -AlembicRevision $alembicStatus.Raw
 Write-Host "Dev runtime reset complete."

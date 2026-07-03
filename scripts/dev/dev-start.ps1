@@ -9,7 +9,15 @@
 
 .EXAMPLE
   .\scripts\dev\dev-start.ps1
+
+.EXAMPLE
+  .\scripts\dev\dev-start.ps1 -SkipPull
 #>
+[CmdletBinding()]
+param(
+    [switch]$SkipPull
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
@@ -18,10 +26,11 @@ $ErrorActionPreference = "Stop"
 Write-DevStep "Fair CRM dev-start (idempotent)"
 Write-Host "Repository root: $script:DevRepoRoot"
 
+Invoke-DevPrepareRepository -SkipPull:$SkipPull
 Test-DockerEngineReady
 Start-DevDockerInfra
 Wait-DevPostgresHealthy
-Invoke-DevAlembicUpgrade
+$alembicStatus = Invoke-DevDatabaseMigrations
 Wait-DevRedisHealthy
 
 $backendStarted = $false
@@ -61,10 +70,11 @@ Write-Host "Runtime port status:" -ForegroundColor Yellow
 Get-DevPortReport -Ports @($script:DevBackendPort, $script:DevFrontendPort) | Format-Table -AutoSize
 
 Show-DevDockerStatus
-Show-DevServiceUrls
 
 Write-Host ""
 if ($backendStarted) { Write-Host "Backend started." } else { Write-Host "Backend reused (already running)." }
 if ($frontendStarted) { Write-Host "Frontend started." } else { Write-Host "Frontend reused (already running)." }
 if ($null -eq $workerProc) { Write-Host "Worker: not configured." } else { Write-Host "Worker launcher PID: $($workerProc.Id)" }
+
+Show-DevRuntimeSummary -AlembicRevision $alembicStatus.Raw
 Write-Host "dev-start complete."

@@ -161,17 +161,234 @@ function Wait-DevPostgresHealthy([int]$TimeoutSec = 120) {
     throw "PostgreSQL did not become healthy within ${TimeoutSec}s. Check: docker compose ps"
 }
 
-function Invoke-DevAlembicUpgrade {
-    Write-DevStep "Applying pending schema migrations (alembic upgrade head)"
+function Get-DevAlembicOutputLines {
+    param([string]$Text)
+    return @($Text -split "`r?`n" | Where-Object {
+            $_ -match '\S' -and
+            $_ -notmatch '^\s*INFO\s+\[' -and
+            $_ -notmatch '^\s*WARNING\s+\[' -and
+            $_ -notmatch '^python(\.exe)?\s*:'
+        })
+}
+
+function Invoke-DevAlembicCommand {
+    param([Parameter(Mandatory)][string[]]$AlembicArgs)
     Push-Location $script:DevRepoRoot
     try {
-        & python -m alembic upgrade head
-        if ($LASTEXITCODE -ne 0) {
-            throw "alembic upgrade head failed with exit code $LASTEXITCODE"
+        $stdoutFile = New-TemporaryFile
+        $stderrFile = New-TemporaryFile
+        try {
+            $proc = Start-Process -FilePath "python" -ArgumentList (@("-m", "alembic") + $AlembicArgs) `
+                -WorkingDirectory $script:DevRepoRoot `
+                -RedirectStandardOutput $stdoutFile.FullName `
+                -RedirectStandardError $stderrFile.FullName `
+                -Wait -PassThru -NoNewWindow
+            $exitCode = $proc.ExitCode
+            $stdout = (Get-Content -LiteralPath $stdoutFile.FullName -Raw -ErrorAction SilentlyContinue)
+            $stderr = (Get-Content -LiteralPath $stderrFile.FullName -Raw -ErrorAction SilentlyContinue)
+            if ($null -eq $stdout) { $stdout = "" }
+            if ($null -eq $stderr) { $stderr = "" }
+            $combined = ($stdout + [Environment]::NewLine + $stderr).Trim()
+            return [pscustomobject]@{
+                Output   = $combined
+                StdOut   = $stdout.Trim()
+                StdErr   = $stderr.Trim()
+                ExitCode = $exitCode
+            }
+        } finally {
+            Remove-Item -LiteralPath $stdoutFile.FullName, $stderrFile.FullName -Force -ErrorAction SilentlyContinue
         }
     } finally {
         Pop-Location
     }
+}
+
+function Get-DevGitBranch {
+    Push-Location $script:DevRepoRoot
+    try {
+        return (git rev-parse --abbrev-ref HEAD).Trim()
+    } finally {
+        Pop-Location
+    }
+}
+
+function Get-DevGitCommit {
+    Push-Location $script:DevRepoRoot
+    try {
+        return (git rev-parse --short HEAD).Trim()
+    } finally {
+        Pop-Location
+    }
+}
+
+function Assert-DevGitWorkingTreeClean {
+    Push-Location $script:DevRepoRoot
+    try {
+        $status = @(git status --porcelain)
+        if ($status.Count -gt 0) {
+            Write-Host ($status -join [Environment]::NewLine)
+            throw "Working tree is not clean. Commit or stash changes before pushing."
+        }
+    } finally {
+        Pop-Location
+    }
+}
+
+function Invoke-DevGitPull {
+    Write-DevStep "Pulling latest changes for current branch"
+    Push-Location $script:DevRepoRoot
+    try {
+        if (-not (Test-Path (Join-Path $script:DevRepoRoot ".git"))) {
+            throw "Not a git repository: $script:DevRepoRoot"
+        }
+
+        $branch = git rev-parse --abbrev-ref HEAD
+        if ($branch -eq "HEAD") {
+            throw "Detached HEAD - checkout a branch before running the dev workflow."
+        }
+
+        git fetch origin 2>&1 | ForEach-Object { Write-Host $_ }
+        if ($LASTEXITCODE -ne 0) {
+            throw "git fetch origin failed with exit code $LASTEXITCODE"
+        }
+
+        $upstream = git rev-parse --abbrev-ref "@{u}" 2>$null
+        if ($LASTEXITCODE -eq 0 -and $upstream) {
+            git pull --ff-only 2>&1 | ForEach-Object { Write-Host $_ }
+        } else {
+            Write-Host "No upstream configured - pulling origin/$branch"
+            git pull --ff-only origin $branch 2>&1 | ForEach-Object { Write-Host $_ }
+        }
+        if ($LASTEXITCODE -ne 0) {
+            throw "git pull failed with exit code $LASTEXITCODE"
+        }
+
+        Write-Host "Git pull complete on branch $branch (commit $(Get-DevGitCommit))."
+    } finally {
+        Pop-Location
+    }
+}
+
+function Get-DevAlembicCurrentRevision {
+    $result = Invoke-DevAlembicCommand -AlembicArgs @("current")
+    if ($result.ExitCode -ne 0) {
+        throw "alembic current failed: $($result.Output)"
+    }
+
+    $line = @(Get-DevAlembicOutputLines -Text $result.StdOut)
+    if ($line.Count -eq 0) {
+        $line = @(Get-DevAlembicOutputLines -Text $result.Output)
+    }
+    $line = $line | Select-Object -First 1
+    if (-not $line) {
+        return [pscustomobject]@{ Revision = "(none)"; IsHead = $false; Raw = "(none)" }
+    }
+
+    $isHead = $line -match '\(head\)'
+    $revision = ($line -replace '\s*\(head\).*$', '').Trim()
+    if (-not $revision) { $revision = $line.Trim() }
+
+    return [pscustomobject]@{
+        Revision = $revision
+        IsHead   = [bool]$isHead
+        Raw      = $line.Trim()
+    }
+}
+
+function Get-DevAlembicHeadRevision {
+    $result = Invoke-DevAlembicCommand -AlembicArgs @("heads")
+    if ($result.ExitCode -ne 0) {
+        throw "alembic heads failed: $($result.Output)"
+    }
+
+    $line = @(Get-DevAlembicOutputLines -Text $result.StdOut)
+    if ($line.Count -eq 0) {
+        $line = @(Get-DevAlembicOutputLines -Text $result.Output)
+    }
+    $line = $line | Select-Object -First 1
+    if ($line -match '^([^\s\(]+)') {
+        return $matches[1].Trim()
+    }
+    return $line.Trim()
+}
+
+function Test-DevAlembicSchemaUpToDate {
+    $current = Get-DevAlembicCurrentRevision
+    $head = Get-DevAlembicHeadRevision
+    $upToDate = $current.IsHead -or ($current.Revision -eq $head)
+    return [pscustomobject]@{
+        UpToDate = $upToDate
+        Current  = $current.Revision
+        Head     = $head
+        Raw      = $current.Raw
+    }
+}
+
+function Invoke-DevAlembicUpgrade {
+    Write-DevStep "Applying pending schema migrations (alembic upgrade head)"
+    $result = Invoke-DevAlembicCommand -AlembicArgs @("upgrade", "head")
+    if ($result.ExitCode -ne 0) {
+        throw "alembic upgrade head failed: $($result.Output)"
+    }
+    $upgradeLines = @(Get-DevAlembicOutputLines -Text $result.StdOut)
+    if ($upgradeLines.Count -gt 0) {
+        Write-Host ($upgradeLines -join [Environment]::NewLine)
+    }
+}
+
+function Invoke-DevDatabaseMigrations {
+    Write-DevStep "Checking current Alembic revision"
+    $before = Get-DevAlembicCurrentRevision
+    $head = Get-DevAlembicHeadRevision
+    Write-Host "Current revision: $($before.Raw)"
+    Write-Host "Head revision:    $head"
+
+    if ($before.Revision -ne $head -and -not $before.IsHead) {
+        Write-Host "Pending migrations detected - upgrade required."
+    } else {
+        Write-Host "Database schema already at head."
+    }
+
+    Invoke-DevAlembicUpgrade
+
+    Write-DevStep "Verifying database schema is up to date"
+    $status = Test-DevAlembicSchemaUpToDate
+    if (-not $status.UpToDate) {
+        throw "Schema verification failed: current=$($status.Current) head=$($status.Head)"
+    }
+
+    Write-Host "Schema verified at head: $($status.Raw)"
+    return $status
+}
+
+function Invoke-DevPrepareRepository {
+    param([switch]$SkipPull)
+
+    if (-not $SkipPull) {
+        Invoke-DevGitPull
+    } else {
+        Write-Host "Skipping git pull (-SkipPull)."
+    }
+}
+
+function Show-DevRuntimeSummary {
+    param([string]$AlembicRevision = "")
+
+    if (-not $AlembicRevision) {
+        try {
+            $AlembicRevision = (Get-DevAlembicCurrentRevision).Raw
+        } catch {
+            $AlembicRevision = "(unknown)"
+        }
+    }
+
+    Write-Host ""
+    Write-Host "=== Dev Runtime Summary ===" -ForegroundColor Cyan
+    Write-Host "Git branch:       $(Get-DevGitBranch)"
+    Write-Host "Git commit:       $(Get-DevGitCommit)"
+    Write-Host "Alembic revision: $AlembicRevision"
+    Write-Host "Backend URL:      http://localhost:$($script:DevBackendPort)"
+    Write-Host "Frontend URL:     http://localhost:$($script:DevFrontendPort)"
 }
 
 function Wait-DevRedisHealthy([int]$TimeoutSec = 60) {
