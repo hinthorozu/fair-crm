@@ -20,7 +20,7 @@ Then restart dev runtime (`.\scripts\dev\reset-dev.ps1`).
 
 ## Why
 
-A `.dump` carries the **schema version at backup time** (e.g. Alembic `0011`). Application code expects **current head** (e.g. `0015`). Missing columns cause API **500** errors.
+A `.dump` carries the **schema version at backup time** (e.g. Alembic `0011`). Application code expects **current head** (e.g. `0017`). Missing columns cause API **500** errors.
 
 ## Symptom
 
