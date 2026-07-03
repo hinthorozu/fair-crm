@@ -37,6 +37,9 @@ scripts/dev/logs/
 # Local PostgreSQL backups (dev utility)
 backups/
 
+# Backend diagnostic output (do not commit)
+backend/migration_verify_counts.txt
+
 # Local verification artifacts (do not commit)
 scripts/.dev_state.json
 scripts/_openapi_check.json
