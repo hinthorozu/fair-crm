@@ -7,6 +7,13 @@ from app.core.pagination import PageParams, build_order_clause, build_paginated_
 from app.modules.customers.domain.entities import Customer
 from app.modules.customers.domain.ports import CustomerListResult
 from app.modules.customers.domain.value_objects import CustomerStatus, CustomerType
+from app.modules.customers.infrastructure.persistence.communication_query_helpers import (
+    email_search_exists,
+    phone_search_exists,
+    primary_email_subquery,
+    primary_phone_subquery,
+    website_search_exists,
+)
 from app.modules.customers.infrastructure.persistence.mappers import (
     entity_to_model,
     model_to_entity,
@@ -23,9 +30,6 @@ SEARCH_FIELDS = (
     CustomerModel.city,
     CustomerModel.district,
     CustomerModel.address,
-    CustomerModel.website,
-    CustomerModel.phone,
-    CustomerModel.email,
 )
 
 CUSTOMER_SORT_FIELDS = {
@@ -36,10 +40,10 @@ CUSTOMER_SORT_FIELDS = {
     "company_name": func.lower(CustomerModel.display_name),
     "country": CustomerModel.country,
     "city": CustomerModel.city,
-    "email": CustomerModel.email,
+    "email": primary_email_subquery(),
     "status": CustomerModel.status,
     "customer_type": CustomerModel.customer_type,
-    "phone": CustomerModel.phone,
+    "phone": primary_phone_subquery(),
 }
 
 
@@ -60,6 +64,7 @@ class SqlAlchemyCustomerRepository:
             .filter(
                 CustomerModel.organization_id == organization_id,
                 CustomerModel.id == customer_id,
+                CustomerModel.status != CustomerStatus.DELETED.value,
                 CustomerModel.deleted_at.is_(None),
             )
             .one_or_none()
@@ -74,6 +79,7 @@ class SqlAlchemyCustomerRepository:
             .filter(
                 CustomerModel.organization_id == organization_id,
                 CustomerModel.id == customer_id,
+                CustomerModel.status != CustomerStatus.DELETED.value,
             )
             .one_or_none()
         )
@@ -108,13 +114,14 @@ class SqlAlchemyCustomerRepository:
         )
 
         if status == CustomerStatus.ARCHIVED:
-            query = query.filter(CustomerModel.deleted_at.isnot(None))
+            query = query.filter(CustomerModel.status == CustomerStatus.ARCHIVED.value)
         elif status is not None:
             query = query.filter(CustomerModel.deleted_at.is_(None))
             query = query.filter(CustomerModel.status == status.value)
         elif include_archived:
-            query = query.filter(CustomerModel.deleted_at.isnot(None))
-        # else: no status filter → return all customers (active + archived)
+            query = query.filter(CustomerModel.status == CustomerStatus.ARCHIVED.value)
+        else:
+            query = query.filter(CustomerModel.status != CustomerStatus.DELETED.value)
 
         if customer_type is not None:
             query = query.filter(CustomerModel.customer_type == customer_type.value)
@@ -122,7 +129,14 @@ class SqlAlchemyCustomerRepository:
             query = query.filter(CustomerModel.country.ilike(country.strip()))
         if search:
             pattern = f"%{search.strip()}%"
-            query = query.filter(or_(*[field.ilike(pattern) for field in SEARCH_FIELDS]))
+            query = query.filter(
+                or_(
+                    *[field.ilike(pattern) for field in SEARCH_FIELDS],
+                    phone_search_exists(pattern),
+                    email_search_exists(pattern),
+                    website_search_exists(pattern),
+                )
+            )
 
         return query
 
@@ -150,7 +164,7 @@ class SqlAlchemyCustomerRepository:
             search=search,
         )
 
-        total = query.count()
+        total = query.with_entities(func.count(CustomerModel.id)).order_by(None).scalar() or 0
         sort_column = CUSTOMER_SORT_FIELDS.get(sort_by, func.lower(CustomerModel.display_name))
         order = build_order_clause(
             sort_column,
@@ -196,6 +210,7 @@ class SqlAlchemyCustomerRepository:
         query = self._session.query(CustomerModel).filter(
             CustomerModel.organization_id == organization_id,
             CustomerModel.normalized_name == normalized_name,
+            CustomerModel.status != CustomerStatus.DELETED.value,
             CustomerModel.deleted_at.is_(None),
         )
         if exclude_id is not None:

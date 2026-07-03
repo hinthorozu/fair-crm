@@ -29,6 +29,7 @@ from app.modules.system_admin.api.schemas import (
     SystemBackupResponse,
 )
 from app.modules.system_admin.application.backup_job_runner import BackupJobCommand
+from app.shared.background_jobs import run_blocking_background_task
 from app.modules.system_admin.application.backup_service import (
     BACKUP_ALLOWED_SORT_FIELDS,
     BACKUP_DEFAULT_SORT_DIRECTION,
@@ -79,6 +80,7 @@ def create_system_backup(
 
     db.commit()
     background_tasks.add_task(
+        run_blocking_background_task,
         job_runner.run_backup,
         BackupJobCommand(organization_id=auth.organization_id, backup_id=result.backup_id),
     )

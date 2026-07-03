@@ -55,6 +55,16 @@ class _Participation:
         self.participation_status = kwargs.get("participation_status")
 
 
+def _customer_communication_kwargs(customer):
+    if customer is None:
+        return {}
+    return {
+        "customer_phone": getattr(customer, "phone", None),
+        "customer_email": getattr(customer, "email", None),
+        "customer_website": getattr(customer, "website", None),
+    }
+
+
 def test_merge_preview_create_new_shows_will_add():
     data = {"company_name": "ABC Makina", "email": "info@abc.com", "hall": "3", "stand": "A12"}
     preview = build_merge_preview(
@@ -81,6 +91,7 @@ def test_merge_preview_update_fill_empty():
         participation=None,
         contact=None,
         fair_id=uuid4(),
+        **_customer_communication_kwargs(customer),
     )
     customer_fields = preview["groups"][0]["fields"]
     email = next(f for f in customer_fields if f["field_key"] == "email")
@@ -125,6 +136,7 @@ def test_merge_preview_email_union():
         participation=None,
         contact=None,
         fair_id=uuid4(),
+        **_customer_communication_kwargs(customer),
     )
     email = next(f for f in preview["groups"][0]["fields"] if f["field_key"] == "email")
     assert email["outcome"] == "will_update"

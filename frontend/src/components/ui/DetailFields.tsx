@@ -54,3 +54,53 @@ export function DetailWebsite({ value }: { value: string | null | undefined }) {
     </a>
   );
 }
+
+function DetailPrimaryBadge() {
+  return <span className="detail-primary-badge">Primary</span>;
+}
+
+export function DetailPhoneList({ items }: { items: { id: string; phone: string; is_primary: boolean }[] }) {
+  if (!items.length) return <>—</>;
+  return (
+    <ul className="detail-collection-list">
+      {items.map((item) => (
+        <li key={item.id} className="detail-collection-item">
+          <DetailPhone value={item.phone} />
+          {item.is_primary ? <DetailPrimaryBadge /> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function DetailEmailList({ items }: { items: { id: string; email: string; is_primary: boolean }[] }) {
+  if (!items.length) return <>—</>;
+  return (
+    <ul className="detail-collection-list">
+      {items.map((item) => (
+        <li key={item.id} className="detail-collection-item">
+          <DetailEmail value={item.email} />
+          {item.is_primary ? <DetailPrimaryBadge /> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function DetailWebsiteList({
+  items,
+}: {
+  items: { id: string; website: string; is_primary: boolean }[];
+}) {
+  if (!items.length) return <>—</>;
+  return (
+    <ul className="detail-collection-list">
+      {items.map((item) => (
+        <li key={item.id} className="detail-collection-item">
+          <DetailWebsite value={item.website} />
+          {item.is_primary ? <DetailPrimaryBadge /> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}

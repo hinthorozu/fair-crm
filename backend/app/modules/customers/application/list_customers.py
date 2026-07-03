@@ -2,6 +2,9 @@ from app.core.pagination import normalize_page_params, normalize_sort_direction
 from app.modules.customers.application.commands import CustomerListResultDto, ListCustomersQuery
 from app.modules.customers.application.mappers import list_result_to_dto
 from app.modules.customers.domain.ports import CustomerRepository
+from app.modules.customers.infrastructure.repositories.customer_communication_repository import (
+    SqlAlchemyCustomerCommunicationRepository,
+)
 
 # Customer name column aliases — all sort by visible display_name (case-insensitive in repo).
 CUSTOMER_NAME_SORT_ALIASES = frozenset({"name", "company_name", "display_name"})
@@ -40,8 +43,13 @@ def customer_name_sort_api_field(resolved_db_sort: str) -> str:
 
 
 class ListCustomersUseCase:
-    def __init__(self, repository: CustomerRepository) -> None:
+    def __init__(
+        self,
+        repository: CustomerRepository,
+        communication_repository: SqlAlchemyCustomerCommunicationRepository,
+    ) -> None:
         self._repository = repository
+        self._communication_repository = communication_repository
 
     def execute(self, query: ListCustomersQuery) -> CustomerListResultDto:
         page_params = normalize_page_params(query.page, query.page_size)
@@ -61,4 +69,6 @@ class ListCustomersUseCase:
             sort_by=sort_by,
             sort_dir=sort_dir,
         )
-        return list_result_to_dto(result)
+        customer_ids = [item.id for item in result.items]
+        summaries = self._communication_repository.load_list_summaries(customer_ids)
+        return list_result_to_dto(result, communication_summaries=summaries)

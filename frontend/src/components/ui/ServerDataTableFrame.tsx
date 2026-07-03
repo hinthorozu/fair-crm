@@ -9,6 +9,8 @@ interface ServerDataTableFrameProps<T> {
   children: React.ReactNode;
   skeletonCols?: number;
   skeletonRows?: number;
+  /** When false, pagination is omitted (e.g. when rendered inside `toolbar`). */
+  showPagination?: boolean;
 }
 
 export function ServerDataTableFrame<T>({
@@ -17,10 +19,25 @@ export function ServerDataTableFrame<T>({
   children,
   skeletonCols = 6,
   skeletonRows = 6,
+  showPagination = true,
 }: ServerDataTableFrameProps<T>) {
   return (
-    <>
-      {toolbar}
+    <div className="server-data-table-frame">
+      <div className="server-data-table-toolbar-panel">
+        {toolbar}
+        {showPagination ? (
+          <PaginationBar
+            className="server-data-table-pagination"
+            page={table.pagination.page}
+            pageSize={table.pagination.pageSize}
+            total={table.pagination.totalItems}
+            totalPages={table.pagination.totalPages}
+            loading={table.loading}
+            onPageChange={table.setPage}
+            onPageSizeChange={table.setPageSize}
+          />
+        ) : null}
+      </div>
       {table.error && (
         <div className="banner error">
           {table.error}
@@ -29,20 +46,15 @@ export function ServerDataTableFrame<T>({
           </button>
         </div>
       )}
-      <PaginationBar
-        page={table.pagination.page}
-        pageSize={table.pagination.pageSize}
-        total={table.pagination.totalItems}
-        totalPages={table.pagination.totalPages}
-        loading={table.loading}
-        onPageChange={table.setPage}
-        onPageSizeChange={table.setPageSize}
-      />
-      {table.loading ? (
-        <TableSkeleton rows={skeletonRows} cols={skeletonCols} />
-      ) : (
-        children
-      )}
-    </>
+      <div className="server-data-table-body">
+        {table.loading ? (
+          <div className="table-wrap table-skeleton-wrap">
+            <TableSkeleton rows={skeletonRows} cols={skeletonCols} />
+          </div>
+        ) : (
+          children
+        )}
+      </div>
+    </div>
   );
 }

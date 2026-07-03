@@ -223,12 +223,25 @@ export function useServerDataTable<T>({
     if (!urlSync) return;
     const onPopState = () => {
       const state = getTableStateFromUrl({ filterKeys });
-      setSearchState(state.search);
-      setDebouncedSearch(state.search);
-      setPageState(state.page);
-      setPageSizeState(state.pageSize);
-      setSorting({ field: state.sortBy, direction: state.sortOrder });
-      setFiltersState((prev) => ({ ...prev, ...state.filters }));
+      setSearchState((prev) => (prev === state.search ? prev : state.search));
+      setDebouncedSearch((prev) => (prev === state.search ? prev : state.search));
+      setPageState((prev) => (prev === state.page ? prev : state.page));
+      setPageSizeState((prev) => (prev === state.pageSize ? prev : state.pageSize));
+      setSorting((prev) =>
+        prev.field === state.sortBy && prev.direction === state.sortOrder
+          ? prev
+          : { field: state.sortBy, direction: state.sortOrder },
+      );
+      setFiltersState((prev) => {
+        const next = { ...prev, ...state.filters };
+        const keys = new Set([...Object.keys(prev), ...Object.keys(next), ...filterKeys]);
+        for (const key of keys) {
+          if ((prev[key] ?? "") !== (next[key] ?? "")) {
+            return next;
+          }
+        }
+        return prev;
+      });
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);

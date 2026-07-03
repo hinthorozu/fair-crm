@@ -4,6 +4,8 @@ from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.client import HttpAuditAdapter
 from app.integrations.kyrox_core.ports import AuthorizationPort
 from app.modules.customers.application.commands import CustomerResult, UpdateCustomerCommand
+from app.modules.customers.application.communication_resolver import resolve_update_communications
+from app.modules.customers.application.customer_communication_sync import CustomerCommunicationSyncService
 from app.modules.customers.application.mappers import customer_to_result
 from app.modules.customers.domain.exceptions import CustomerNotFoundError
 from app.modules.customers.domain.ports import CustomerRepository
@@ -15,10 +17,12 @@ class UpdateCustomerUseCase:
     def __init__(
         self,
         repository: CustomerRepository,
+        communication_sync: CustomerCommunicationSyncService,
         authorization: AuthorizationPort,
         audit: HttpAuditAdapter,
     ) -> None:
         self._repository = repository
+        self._communication_sync = communication_sync
         self._authorization = authorization
         self._audit = audit
 
@@ -35,6 +39,10 @@ class UpdateCustomerUseCase:
         if customer is None:
             raise CustomerNotFoundError("Customer not found")
 
+        phones, emails, websites, sync_phone, sync_email, sync_website = resolve_update_communications(
+            command
+        )
+
         now = datetime.now(tz=UTC)
         customer.update_fields(
             display_name=command.display_name,
@@ -42,9 +50,6 @@ class UpdateCustomerUseCase:
             trade_name=command.trade_name,
             customer_type=command.customer_type,
             status=command.status,
-            website=command.website,
-            phone=command.phone,
-            email=command.email,
             tax_number=command.tax_number,
             tax_office=command.tax_office,
             country=command.country,
@@ -57,6 +62,18 @@ class UpdateCustomerUseCase:
         )
 
         saved = self._repository.update(customer)
+        communications = self._communication_sync.sync_from_value_lists(
+            organization_id=command.organization_id,
+            customer_id=saved.id,
+            now=now,
+            phones=phones,
+            emails=emails,
+            websites=websites,
+            sync_phone=sync_phone,
+            sync_email=sync_email,
+            sync_website=sync_website,
+        )
+        saved = self._repository.get_by_id(command.organization_id, saved.id) or saved
 
         self._audit.record_event(
             organization_id=command.organization_id,
@@ -68,4 +85,4 @@ class UpdateCustomerUseCase:
             metadata={"user_id": str(command.user_id)},
         )
 
-        return customer_to_result(saved)
+        return customer_to_result(saved, communications=communications)

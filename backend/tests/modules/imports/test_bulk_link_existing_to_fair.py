@@ -40,9 +40,6 @@ def _create_customer(db_session, organization_id, *, display_name: str) -> Custo
     customer = Customer.create(
         organization_id=organization_id,
         display_name=display_name,
-        website=None,
-        phone=None,
-        email=None,
         tax_number=None,
         country=None,
         city=None,

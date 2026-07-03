@@ -5,7 +5,6 @@ import pytest
 from app.modules.customers.domain.entities import Customer
 from app.modules.customers.domain.exceptions import (
     CustomerAlreadyArchivedError,
-    InvalidCustomerEmailError,
     InvalidCustomerNameError,
 )
 from app.modules.customers.domain.value_objects import CustomerStatus, CustomerType
@@ -32,27 +31,6 @@ def test_empty_display_name_raises():
         )
 
 
-def test_invalid_email_raises():
-    with pytest.raises(InvalidCustomerEmailError, match="Invalid email address: not-an-email"):
-        Customer.create(
-            organization_id=__import__("uuid").uuid4(),
-            display_name="Acme",
-            email="not-an-email",
-            now=datetime.now(tz=UTC),
-        )
-
-
-def test_multi_email_normalized_on_create():
-    now = datetime.now(tz=UTC)
-    customer = Customer.create(
-        organization_id=__import__("uuid").uuid4(),
-        display_name="Acme",
-        email="info@abc.com ; sales@abc.com, info@abc.com",
-        now=now,
-    )
-    assert customer.email == "info@abc.com;sales@abc.com"
-
-
 def test_archive_customer():
     now = datetime.now(tz=UTC)
     customer = Customer.create(
@@ -62,6 +40,18 @@ def test_archive_customer():
     )
     customer.archive(now=now)
     assert customer.status == CustomerStatus.ARCHIVED
+    assert customer.deleted_at is not None
+
+
+def test_mark_deleted_customer():
+    now = datetime.now(tz=UTC)
+    customer = Customer.create(
+        organization_id=__import__("uuid").uuid4(),
+        display_name="Acme",
+        now=now,
+    )
+    customer.mark_deleted(now=now)
+    assert customer.status == CustomerStatus.DELETED
     assert customer.deleted_at is not None
 
 

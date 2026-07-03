@@ -186,7 +186,7 @@ export function DataIntegrationImportsPage({
         setAnalyzingBatchId(null);
       }
     },
-    [table],
+    [table.refresh],
   );
 
   const handleConfirmDelete = React.useCallback(async () => {

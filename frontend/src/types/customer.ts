@@ -12,6 +12,42 @@ export type CustomerStatus = "lead" | "active" | "inactive" | "archived";
 
 export type CustomerSource = "manual" | "excel" | "scraper";
 
+export interface CustomerPhone {
+  id: string;
+  phone: string;
+  is_primary: boolean;
+  created_at: string;
+}
+
+export interface CustomerEmail {
+  id: string;
+  email: string;
+  is_primary: boolean;
+  created_at: string;
+}
+
+export interface CustomerWebsite {
+  id: string;
+  website: string;
+  is_primary: boolean;
+  created_at: string;
+}
+
+export interface CustomerPhoneInput {
+  phone: string;
+  is_primary: boolean;
+}
+
+export interface CustomerEmailInput {
+  email: string;
+  is_primary: boolean;
+}
+
+export interface CustomerWebsiteInput {
+  website: string;
+  is_primary: boolean;
+}
+
 export interface Customer {
   id: string;
   organization_id: string;
@@ -35,6 +71,12 @@ export interface Customer {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  phones?: CustomerPhone[];
+  emails?: CustomerEmail[];
+  websites?: CustomerWebsite[];
+  phone_extra_count?: number;
+  email_extra_count?: number;
+  website_extra_count?: number;
 }
 
 export interface CustomerListResponse {
@@ -51,8 +93,14 @@ export interface CreateCustomerPayload {
   trade_name?: string | null;
   customer_type?: CustomerType;
   status?: CustomerStatus;
+  phones?: CustomerPhoneInput[];
+  emails?: CustomerEmailInput[];
+  websites?: CustomerWebsiteInput[];
+  /** @deprecated Use phones[] — kept for backward-compatible API clients */
   website?: string | null;
+  /** @deprecated Use phones[] */
   phone?: string | null;
+  /** @deprecated Use emails[] */
   email?: string | null;
   country?: string | null;
   city?: string | null;

@@ -25,6 +25,8 @@ def _ensure_customer_for_contact(
     customer = customer_repository.get_by_id_including_archived(organization_id, customer_id)
     if customer is None:
         raise CustomerNotFoundForContactError("Customer not found")
+    if customer.is_merge_deleted():
+        raise CustomerArchivedForContactError("Customer is deleted")
     if customer.is_archived():
         raise CustomerArchivedForContactError("Customer is archived")
     return customer

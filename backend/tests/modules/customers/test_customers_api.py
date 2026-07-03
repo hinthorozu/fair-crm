@@ -1,6 +1,37 @@
 from tests.conftest_helpers import pagination_from
 
 
+def test_list_customers_does_not_run_duplicate_grouping(client, auth_headers, monkeypatch):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("duplicate grouping must not run during customer list")
+
+    monkeypatch.setattr(
+        "app.modules.customers.application.customer_field_grouping.analyze_customer_groups_by_field",
+        forbidden,
+    )
+
+    response = client.get("/api/v1/customers?page=1&pageSize=25&sort_by=name&sort_order=asc", headers=auth_headers)
+    assert response.status_code == 200
+    assert "items" in response.json()
+
+
+def test_create_customer_does_not_run_duplicate_grouping(client, auth_headers, monkeypatch):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("duplicate grouping must not run during customer create")
+
+    monkeypatch.setattr(
+        "app.modules.customers.application.customer_field_grouping.analyze_customer_groups_by_field",
+        forbidden,
+    )
+
+    response = client.post(
+        "/api/v1/customers",
+        json={"display_name": "No Duplicate Analysis Co"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 201
+
+
 def test_health(client):
     response = client.get("/health")
     assert response.status_code == 200

@@ -40,6 +40,7 @@ from app.modules.imports.api.dependencies import (
     require_read_permission,
 )
 from app.modules.data_integration.application.import_job_runner import ImportJobRunner
+from app.shared.background_jobs import run_blocking_background_task
 from app.modules.data_integration.api.schemas import StartImportJobResponse
 from app.modules.imports.api.schemas import (
     AnalyzeImportResponse,
@@ -710,7 +711,7 @@ def apply_bulk_decision_job(
     except ForbiddenError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     db.commit()
-    background_tasks.add_task(job_runner.run_bulk_decision, result.bulk_command)
+    background_tasks.add_task(run_blocking_background_task, job_runner.run_bulk_decision, result.bulk_command)
     return StartImportJobResponse(
         job_id=result.job_id,
         batch_id=result.batch_id,

@@ -180,6 +180,9 @@ def build_merge_preview(
     row: ImportRow,
     *,
     customer: Customer | None,
+    customer_phone: str | None = None,
+    customer_email: str | None = None,
+    customer_website: str | None = None,
     participation: CustomerFairParticipation | None,
     contact: Contact | None,
     fair_id: UUID | None,
@@ -204,11 +207,17 @@ def build_merge_preview(
     customer_fields: list[dict[str, Any]] = []
     for db_key, in_key, label in CUSTOMER_FIELDS:
         if db_key == "phone":
-            db_val = customer.phone if customer else None
+            db_val = customer_phone if customer else None
             in_val = _customer_incoming_phone(data)
         elif db_key == "display_name":
             db_val = customer.display_name if customer else None
             in_val = data.get("company_name")
+        elif db_key == "email":
+            db_val = customer_email if customer else None
+            in_val = data.get(in_key)
+        elif db_key == "website":
+            db_val = customer_website if customer else None
+            in_val = data.get(in_key)
         else:
             db_val = getattr(customer, db_key, None) if customer else None
             in_val = data.get(in_key)
@@ -218,7 +227,7 @@ def build_merge_preview(
                 crm, imp, res, outcome = _scalar_merge_preview(None, in_val, is_create=True, is_skipped=False)
             else:
                 crm, imp, res, outcome = _merge_email_preview(
-                    customer.email if customer else None,
+                    customer_email if customer else None,
                     in_val,
                 )
         else:

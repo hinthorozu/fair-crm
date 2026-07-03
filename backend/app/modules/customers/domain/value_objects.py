@@ -17,6 +17,7 @@ class CustomerStatus(StrEnum):
     ACTIVE = "active"
     INACTIVE = "inactive"
     ARCHIVED = "archived"
+    DELETED = "deleted"
 
 
 class CustomerSource(StrEnum):

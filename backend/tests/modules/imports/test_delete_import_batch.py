@@ -159,3 +159,45 @@ def test_delete_not_found(client, auth_headers):
         headers=auth_headers,
     )
     assert delete.status_code == 404
+
+
+def test_delete_allowed_with_stale_queued_apply_job(client, auth_headers, db_session, organization_id):
+    """Orphan queued apply jobs (batch no longer applying) must not block delete."""
+    fair_id = _fair_id(client, auth_headers)
+    batch_id = _upload_batch(client, auth_headers, fair_id)
+    batch_uuid = UUID(batch_id)
+
+    now = datetime.now(tz=UTC)
+    job = ImportJob.create_apply_job(
+        organization_id=organization_id,
+        batch_id=batch_uuid,
+        progress_total=1,
+        now=now,
+    )
+    db_session.add(
+        ImportJobModel(
+            id=job.id,
+            organization_id=job.organization_id,
+            batch_id=job.batch_id,
+            job_type=job.job_type.value,
+            status=job.status.value,
+            progress_processed=job.progress_processed,
+            progress_total=job.progress_total,
+            result_json=job.result_json,
+            error_message=job.error_message,
+            created_at=job.created_at,
+            updated_at=job.updated_at,
+            started_at=job.started_at,
+            completed_at=job.completed_at,
+        )
+    )
+    batch = db_session.get(ImportBatchModel, batch_uuid)
+    batch.status = "analyzed"
+    db_session.commit()
+
+    delete = client.delete(
+        f"/api/v1/data-integration/imports/{batch_id}",
+        headers=auth_headers,
+    )
+    assert delete.status_code == 200
+    assert delete.json()["deleted"] is True

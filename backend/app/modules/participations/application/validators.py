@@ -25,6 +25,8 @@ def ensure_customer_for_participation(
     customer = customer_repository.get_by_id_including_archived(organization_id, customer_id)
     if customer is None:
         raise CustomerNotFoundForParticipationError("Customer not found")
+    if customer.is_merge_deleted():
+        raise CustomerArchivedForParticipationError("Customer is deleted")
     if customer.is_archived():
         raise CustomerArchivedForParticipationError("Customer is archived")
     return customer

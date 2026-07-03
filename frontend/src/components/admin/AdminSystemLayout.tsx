@@ -14,11 +14,19 @@ export function AdminSystemLayout({
   onNavigate,
   onDisabledClick,
 }: AdminSystemLayoutProps) {
-  const primaryItems = [
+  const systemItems = [
     {
       id: "backups",
       label: adminLabels.navDatabaseBackups,
       path: "/admin/system/backups",
+    },
+  ];
+
+  const dataOperationItems = [
+    {
+      id: "data-operations",
+      label: adminLabels.navDataOperations,
+      path: "/admin/data-operations",
     },
   ];
 
@@ -28,7 +36,7 @@ export function AdminSystemLayout({
         <p className="admin-subnav-group">{adminLabels.moduleTitle}</p>
         <h2 className="admin-subnav-title">{adminLabels.systemTitle}</h2>
         <nav>
-          {primaryItems.map((item) => (
+          {systemItems.map((item) => (
             <a
               key={item.id}
               href={item.path}
@@ -47,6 +55,20 @@ export function AdminSystemLayout({
             >
               {item.label} 🚧
             </button>
+          ))}
+        </nav>
+
+        <h2 className="admin-subnav-title admin-subnav-title-secondary">{adminLabels.navDataOperations}</h2>
+        <nav>
+          {dataOperationItems.map((item) => (
+            <a
+              key={item.id}
+              href={item.path}
+              className={`admin-subnav-link ${activeSection === item.id ? "active" : ""}`}
+              onClick={(e) => onNavigate(item.path, e)}
+            >
+              {item.label}
+            </a>
           ))}
         </nav>
       </aside>

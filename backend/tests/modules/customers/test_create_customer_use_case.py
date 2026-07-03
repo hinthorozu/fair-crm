@@ -4,17 +4,28 @@ from uuid import uuid4
 import pytest
 
 from app.modules.customers.application.commands import CreateCustomerCommand
+from app.modules.customers.application.customer_communication_sync import CustomerCommunicationSyncService
 from app.modules.customers.application.create_customer import CreateCustomerUseCase
 from app.modules.customers.domain.entities import Customer
+from app.modules.customers.infrastructure.repositories.customer_communication_repository import (
+    SqlAlchemyCustomerCommunicationRepository,
+)
 from app.modules.customers.infrastructure.repositories.customer_repository import (
     SqlAlchemyCustomerRepository,
 )
 from tests.conftest import AllowAllAuthorization, NoOpAudit
 
 
-def test_create_customer_use_case(db_session, organization_id):
+def _create_use_case(db_session) -> CreateCustomerUseCase:
     repo = SqlAlchemyCustomerRepository(db_session)
-    use_case = CreateCustomerUseCase(repo, AllowAllAuthorization(), NoOpAudit())
+    communication_sync = CustomerCommunicationSyncService(
+        SqlAlchemyCustomerCommunicationRepository(db_session)
+    )
+    return CreateCustomerUseCase(repo, communication_sync, AllowAllAuthorization(), NoOpAudit())
+
+
+def test_create_customer_use_case(db_session, organization_id):
+    use_case = _create_use_case(db_session)
 
     result = use_case.execute(
         CreateCustomerCommand(
@@ -36,7 +47,10 @@ def test_create_customer_forbidden(db_session, organization_id):
     from tests.conftest import DenyAllAuthorization
 
     repo = SqlAlchemyCustomerRepository(db_session)
-    use_case = CreateCustomerUseCase(repo, DenyAllAuthorization(), NoOpAudit())
+    communication_sync = CustomerCommunicationSyncService(
+        SqlAlchemyCustomerCommunicationRepository(db_session)
+    )
+    use_case = CreateCustomerUseCase(repo, communication_sync, DenyAllAuthorization(), NoOpAudit())
 
     from app.core.exceptions import ForbiddenError
 

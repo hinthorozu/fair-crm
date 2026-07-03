@@ -11,6 +11,12 @@ from app.modules.activities.domain.ports import ActivityRepository
 from app.modules.activities.domain.value_objects import ActivitySource, ActivityStatus, ActivityType
 from app.modules.contacts.domain.entities import Contact
 from app.modules.contacts.domain.ports import ContactRepository
+from app.modules.customers.application.communication_parsing import (
+    emails_from_scalar,
+    phones_from_scalar,
+    websites_from_scalar,
+)
+from app.modules.customers.application.customer_communication_sync import CustomerCommunicationSyncService
 from app.modules.customers.domain.entities import Customer
 from app.modules.customers.domain.ports import CustomerRepository
 from app.modules.customers.domain.value_objects import CustomerSource
@@ -76,6 +82,7 @@ class ApplyImportUseCase:
         batch_repository: ImportBatchRepository,
         row_repository: ImportRowRepository,
         customer_repository: CustomerRepository,
+        communication_sync: CustomerCommunicationSyncService,
         contact_repository: ContactRepository,
         activity_repository: ActivityRepository,
         participation_repository: SqlAlchemyParticipationRepository,
@@ -85,6 +92,7 @@ class ApplyImportUseCase:
         self._batch_repository = batch_repository
         self._row_repository = row_repository
         self._customer_repository = customer_repository
+        self._communication_sync = communication_sync
         self._contact_repository = contact_repository
         self._activity_repository = activity_repository
         self._participation_repository = participation_repository
@@ -225,7 +233,7 @@ class ApplyImportUseCase:
             )
             if customer is None:
                 return counters
-            self._update_customer_from_row(customer, row.normalized_data_json, now)
+            self._update_customer_from_row(customer, row.normalized_data_json, command, now)
             customer = self._customer_repository.update(customer)
             counters.updated_customer_id = customer.id
             counters.updated = 1
@@ -304,9 +312,6 @@ class ApplyImportUseCase:
         customer = Customer.create(
             organization_id=command.organization_id,
             display_name=str(data.get("company_name") or "").strip(),
-            website=data.get("website"),
-            phone=data.get("phone") or data.get("mobile_phone"),
-            email=data.get("email"),
             tax_number=data.get("tax_number"),
             country=data.get("country"),
             city=data.get("city"),
@@ -315,25 +320,84 @@ class ApplyImportUseCase:
             source=CustomerSource.EXCEL,
             now=now,
         )
-        return self._customer_repository.add(customer)
+        saved = self._customer_repository.add(customer)
+        self._sync_import_communications(
+            saved.id,
+            command.organization_id,
+            data,
+            now,
+            merge=False,
+        )
+        return saved
 
     def _update_customer_from_row(
         self,
         customer: Customer,
         data: dict[str, Any],
+        command: ApplyImportCommand,
         now: datetime,
     ) -> None:
-        merged_email = _merge_email_fields(customer.email, data.get("email"))
         customer.update_fields(
-            website=_fill_if_empty(customer.website, data.get("website")),
-            phone=_fill_if_empty(customer.phone, data.get("phone") or data.get("mobile_phone")),
-            email=merged_email,
             tax_number=_fill_if_empty(customer.tax_number, data.get("tax_number")),
             country=_fill_if_empty(customer.country, data.get("country")),
             city=_fill_if_empty(customer.city, data.get("city")),
             address=_fill_if_empty(customer.address, data.get("address")),
             description=customer.description,
             now=now,
+        )
+        self._sync_import_communications(
+            customer.id,
+            command.organization_id,
+            data,
+            now,
+            merge=True,
+        )
+
+    def _sync_import_communications(
+        self,
+        customer_id: UUID,
+        organization_id: UUID,
+        data: dict[str, Any],
+        now: datetime,
+        *,
+        merge: bool,
+    ) -> None:
+        phones: list[str] = []
+        emails: list[str] = []
+        websites: list[str] = []
+
+        if merge:
+            existing = self._communication_sync.load_for_customer(customer_id)
+            phones = [item.phone for item in existing.phones]
+            emails = [item.email for item in existing.emails]
+            websites = [item.website for item in existing.websites]
+
+        incoming_phone = data.get("phone") or data.get("mobile_phone")
+        if incoming_phone and not phones:
+            phones = phones_from_scalar(str(incoming_phone))
+
+        incoming_email = data.get("email")
+        if incoming_email:
+            if not emails:
+                emails = emails_from_scalar(str(incoming_email))
+            else:
+                merged_scalar = _merge_email_fields(";".join(emails), str(incoming_email))
+                emails = emails_from_scalar(merged_scalar) if merged_scalar else emails
+
+        incoming_website = data.get("website")
+        if incoming_website and not websites:
+            websites = websites_from_scalar(str(incoming_website))
+
+        self._communication_sync.sync_from_value_lists(
+            organization_id=organization_id,
+            customer_id=customer_id,
+            now=now,
+            phones=phones,
+            emails=emails,
+            websites=websites,
+            sync_phone=True,
+            sync_email=True,
+            sync_website=True,
         )
 
     def _apply_participation(

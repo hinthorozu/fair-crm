@@ -28,7 +28,8 @@ import {
 } from "../components/ActivityForm";
 import { ActivityTable } from "../components/ActivityList";
 import { ContactForm, contactToFormValues, type ContactFormValues } from "../components/ContactForm";
-import { CustomerForm, customerToFormValues, type CustomerFormValues } from "../components/CustomerForm";
+import { CustomerForm, customerToFormValues } from "../components/CustomerForm";
+import type { CreateCustomerPayload } from "../types/customer";
 import { ContactTable } from "../components/ContactList";
 import {
   CustomerParticipationTable,
@@ -48,10 +49,10 @@ import { TabPanel, Tabs } from "../components/ui/Tabs";
 import { Badge } from "../components/ui/Badge";
 import { Card } from "../components/ui/Card";
 import {
-  DetailEmail,
-  DetailPhone,
+  DetailEmailList,
+  DetailPhoneList,
   DetailValue,
-  DetailWebsite,
+  DetailWebsiteList,
 } from "../components/ui/DetailFields";
 import { activityLabels } from "../labels/activityLabels";
 import { contactLabels } from "../labels/contactLabels";
@@ -351,7 +352,7 @@ export function CustomerDetailPage({
     }
   };
 
-  const handleUpdateCustomer = async (values: CustomerFormValues) => {
+  const handleUpdateCustomer = async (values: CreateCustomerPayload) => {
     await updateCustomer(customerId, values);
     setModal(null);
     await loadCustomer();
@@ -524,19 +525,19 @@ export function CustomerDetailPage({
             <div>
               <dt>{labels.phone}</dt>
               <dd>
-                <DetailPhone value={customer.phone} />
+                <DetailPhoneList items={customer.phones ?? []} />
               </dd>
             </div>
             <div>
               <dt>{labels.email}</dt>
               <dd>
-                <DetailEmail value={customer.email} />
+                <DetailEmailList items={customer.emails ?? []} />
               </dd>
             </div>
             <div>
               <dt>{labels.website}</dt>
               <dd>
-                <DetailWebsite value={customer.website} />
+                <DetailWebsiteList items={customer.websites ?? []} />
               </dd>
             </div>
             <div>

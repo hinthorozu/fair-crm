@@ -423,18 +423,13 @@ def test_empty_incoming_does_not_overwrite_db(client, auth_headers, db_session, 
 
 
 def test_email_merge_canonical_format(client, auth_headers, db_session, organization_id):
-    from datetime import UTC, datetime
+    from tests.conftest_customer_helpers import create_test_customer
 
-    repo = SqlAlchemyCustomerRepository(db_session)
-    now = datetime.now(tz=UTC)
-    customer = repo.add(
-        Customer.create(
-            organization_id=organization_id,
-            display_name="Email Merge Co",
-            email="a@co.com",
-            source=CustomerSource.MANUAL,
-            now=now,
-        )
+    customer = create_test_customer(
+        db_session,
+        organization_id,
+        display_name="Email Merge Co",
+        email="a@co.com",
     )
     fair_id = _create_fair(client, auth_headers)
     upload = _upload_wizard(

@@ -21,6 +21,10 @@ from app.modules.customers.application.get_customer import GetCustomerUseCase
 from app.modules.customers.application.list_customers import ListCustomersUseCase
 from app.modules.customers.application.restore_customer import RestoreCustomerUseCase
 from app.modules.customers.application.update_customer import UpdateCustomerUseCase
+from app.modules.customers.application.customer_communication_sync import CustomerCommunicationSyncService
+from app.modules.customers.infrastructure.repositories.customer_communication_repository import (
+    SqlAlchemyCustomerCommunicationRepository,
+)
 from app.modules.customers.infrastructure.repositories.customer_repository import (
     SqlAlchemyCustomerRepository,
 )
@@ -78,32 +82,58 @@ def require_read_permission(
     return auth
 
 
+def get_customer_communication_repository(
+    db: Session = Depends(get_db),
+) -> SqlAlchemyCustomerCommunicationRepository:
+    return SqlAlchemyCustomerCommunicationRepository(db)
+
+
+def get_customer_communication_sync_service(
+    communication_repository: SqlAlchemyCustomerCommunicationRepository = Depends(
+        get_customer_communication_repository
+    ),
+) -> CustomerCommunicationSyncService:
+    return CustomerCommunicationSyncService(communication_repository)
+
+
 def get_create_customer_use_case(
     repository: SqlAlchemyCustomerRepository = Depends(get_customer_repository),
+    communication_sync: CustomerCommunicationSyncService = Depends(
+        get_customer_communication_sync_service
+    ),
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
 ) -> CreateCustomerUseCase:
-    return CreateCustomerUseCase(repository, authorization, audit)
+    return CreateCustomerUseCase(repository, communication_sync, authorization, audit)
 
 
 def get_get_customer_use_case(
     repository: SqlAlchemyCustomerRepository = Depends(get_customer_repository),
+    communication_sync: CustomerCommunicationSyncService = Depends(
+        get_customer_communication_sync_service
+    ),
 ) -> GetCustomerUseCase:
-    return GetCustomerUseCase(repository)
+    return GetCustomerUseCase(repository, communication_sync)
 
 
 def get_list_customers_use_case(
     repository: SqlAlchemyCustomerRepository = Depends(get_customer_repository),
+    communication_repository: SqlAlchemyCustomerCommunicationRepository = Depends(
+        get_customer_communication_repository
+    ),
 ) -> ListCustomersUseCase:
-    return ListCustomersUseCase(repository)
+    return ListCustomersUseCase(repository, communication_repository)
 
 
 def get_update_customer_use_case(
     repository: SqlAlchemyCustomerRepository = Depends(get_customer_repository),
+    communication_sync: CustomerCommunicationSyncService = Depends(
+        get_customer_communication_sync_service
+    ),
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
 ) -> UpdateCustomerUseCase:
-    return UpdateCustomerUseCase(repository, authorization, audit)
+    return UpdateCustomerUseCase(repository, communication_sync, authorization, audit)
 
 
 def get_archive_customer_use_case(

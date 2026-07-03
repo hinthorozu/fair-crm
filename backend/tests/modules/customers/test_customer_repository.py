@@ -102,3 +102,20 @@ def test_list_archived_customers(db_session, organization_id):
     assert len(archived_list.items) == 1
     assert archived_list.items[0].id == archived.id
     assert archived_list.items[0].status == CustomerStatus.ARCHIVED
+
+
+def test_list_hides_merge_deleted_customers(db_session, organization_id):
+    from datetime import UTC, datetime
+
+    from app.modules.customers.domain.value_objects import CustomerStatus
+
+    repo = SqlAlchemyCustomerRepository(db_session)
+    active = _seed_customer(db_session, organization_id, "Active Customer")
+    deleted = _seed_customer(db_session, organization_id, "Deleted Customer")
+    deleted.mark_deleted(now=datetime.now(tz=UTC))
+    repo.update(deleted)
+
+    default_list = repo.list_by_organization(organization_id)
+    default_ids = {item.id for item in default_list.items}
+    assert active.id in default_ids
+    assert deleted.id not in default_ids

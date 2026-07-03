@@ -4,6 +4,8 @@ from uuid import UUID
 
 from app.modules.contacts.domain.entities import Contact
 from app.modules.contacts.domain.ports import ContactRepository
+from app.modules.customers.application.communication_parsing import api_scalar_fields_from_communications
+from app.modules.customers.application.customer_communication_sync import CustomerCommunicationSyncService
 from app.modules.customers.domain.entities import Customer
 from app.modules.customers.domain.ports import CustomerRepository
 from app.modules.imports.domain.entities import ImportBatch, ImportRow
@@ -18,10 +20,12 @@ class MergePreviewBuilder:
     def __init__(
         self,
         customer_repository: CustomerRepository,
+        communication_sync: CustomerCommunicationSyncService,
         participation_repository: SqlAlchemyParticipationRepository,
         contact_repository: ContactRepository,
     ) -> None:
         self._customer_repository = customer_repository
+        self._communication_sync = communication_sync
         self._participation_repository = participation_repository
         self._contact_repository = contact_repository
 
@@ -34,9 +38,17 @@ class MergePreviewBuilder:
         customer: Customer | None = None
         participation: CustomerFairParticipation | None = None
         contact: Contact | None = None
+        customer_phone: str | None = None
+        customer_email: str | None = None
+        customer_website: str | None = None
 
         if row.match_customer_id:
             customer = self._customer_repository.get_by_id(organization_id, row.match_customer_id)
+            if customer:
+                communications = self._communication_sync.load_for_customer(customer.id)
+                customer_phone, customer_email, customer_website, _, _, _ = (
+                    api_scalar_fields_from_communications(communications)
+                )
 
         if batch.fair_id and customer:
             participation = self._participation_repository.get_active_by_customer_and_fair(
@@ -57,6 +69,9 @@ class MergePreviewBuilder:
         return build_merge_preview(
             row,
             customer=customer,
+            customer_phone=customer_phone,
+            customer_email=customer_email,
+            customer_website=customer_website,
             participation=participation,
             contact=contact,
             fair_id=batch.fair_id,

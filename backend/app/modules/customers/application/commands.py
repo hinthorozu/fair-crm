@@ -7,6 +7,24 @@ from app.modules.customers.domain.value_objects import CustomerSource, CustomerS
 
 
 @dataclass(frozen=True)
+class CustomerPhoneInput:
+    phone: str
+    is_primary: bool = False
+
+
+@dataclass(frozen=True)
+class CustomerEmailInput:
+    email: str
+    is_primary: bool = False
+
+
+@dataclass(frozen=True)
+class CustomerWebsiteInput:
+    website: str
+    is_primary: bool = False
+
+
+@dataclass(frozen=True)
 class CreateCustomerCommand:
     organization_id: UUID
     access_token: str
@@ -27,6 +45,9 @@ class CreateCustomerCommand:
     address: Optional[str] = None
     description: Optional[str] = None
     source: CustomerSource = CustomerSource.MANUAL
+    phones: Optional[list[CustomerPhoneInput]] = None
+    emails: Optional[list[CustomerEmailInput]] = None
+    websites: Optional[list[CustomerWebsiteInput]] = None
 
 
 @dataclass(frozen=True)
@@ -55,6 +76,7 @@ class UpdateCustomerCommand:
     customer_id: UUID
     access_token: str
     user_id: UUID
+    fields_set: frozenset[str] = frozenset()
     display_name: Optional[str] = None
     legal_name: Optional[str] = None
     trade_name: Optional[str] = None
@@ -71,6 +93,9 @@ class UpdateCustomerCommand:
     address: Optional[str] = None
     description: Optional[str] = None
     source: Optional[CustomerSource] = None
+    phones: Optional[list[CustomerPhoneInput]] = None
+    emails: Optional[list[CustomerEmailInput]] = None
+    websites: Optional[list[CustomerWebsiteInput]] = None
 
 
 @dataclass(frozen=True)
@@ -87,6 +112,30 @@ class RestoreCustomerCommand:
     customer_id: UUID
     access_token: str
     user_id: UUID
+
+
+@dataclass(frozen=True)
+class CustomerPhoneResult:
+    id: UUID
+    phone: str
+    is_primary: bool
+    created_at: datetime
+
+
+@dataclass(frozen=True)
+class CustomerEmailResult:
+    id: UUID
+    email: str
+    is_primary: bool
+    created_at: datetime
+
+
+@dataclass(frozen=True)
+class CustomerWebsiteResult:
+    id: UUID
+    website: str
+    is_primary: bool
+    created_at: datetime
 
 
 @dataclass(frozen=True)
@@ -114,6 +163,12 @@ class CustomerResult:
     updated_at: datetime
     deleted_at: Optional[datetime]
     possible_duplicates: list[UUID] | None = None
+    phones: list[CustomerPhoneResult] | None = None
+    emails: list[CustomerEmailResult] | None = None
+    websites: list[CustomerWebsiteResult] | None = None
+    phone_extra_count: int = 0
+    email_extra_count: int = 0
+    website_extra_count: int = 0
 
 
 @dataclass(frozen=True)

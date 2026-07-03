@@ -2,6 +2,7 @@ from uuid import UUID
 
 from app.core.pagination import build_paginated_meta, normalize_page_params, normalize_sort_direction
 from app.modules.contacts.infrastructure.repositories.contact_repository import SqlAlchemyContactRepository
+from app.modules.customers.application.customer_communication_sync import CustomerCommunicationSyncService
 from app.modules.customers.domain.ports import CustomerRepository
 from app.modules.imports.application.commands import ImportRowListResult, ListImportRowsQuery
 from app.modules.imports.application.mappers import row_to_result
@@ -28,6 +29,7 @@ class ListImportRowsUseCase:
         batch_repository: ImportBatchRepository,
         row_repository: ImportRowRepository,
         customer_repository: CustomerRepository,
+        communication_sync: CustomerCommunicationSyncService,
         participation_repository: SqlAlchemyParticipationRepository,
         contact_repository: SqlAlchemyContactRepository,
     ) -> None:
@@ -36,6 +38,7 @@ class ListImportRowsUseCase:
         self._customer_repository = customer_repository
         self._preview_builder = MergePreviewBuilder(
             customer_repository,
+            communication_sync,
             participation_repository,
             contact_repository,
         )

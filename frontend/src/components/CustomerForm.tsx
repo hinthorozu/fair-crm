@@ -1,15 +1,36 @@
 import React from "react";
-import type { Customer, CreateCustomerPayload, CustomerStatus, CustomerType } from "../types/customer";
+import type { CreateCustomerPayload, Customer, CustomerStatus, CustomerType } from "../types/customer";
 import {
   customerSourceLabels,
   customerStatusLabels,
   customerTypeLabels,
   labels,
 } from "../labels";
-import { emailPlaceholder, validateMultiEmailInput } from "../utils/email";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
+import { CustomerCommunicationFieldList } from "./CustomerCommunicationFieldList";
+import {
+  type CommunicationFormItem,
+  customerToCommunicationForm,
+  formValuesToCustomerPayload,
+  validateCommunicationEmails,
+} from "../utils/customerCommunicationForm";
 
-export type CustomerFormValues = CreateCustomerPayload;
+export interface CustomerFormValues {
+  display_name: string;
+  legal_name: string | null;
+  trade_name: string | null;
+  customer_type: CustomerType;
+  status: CustomerStatus;
+  country: string | null;
+  city: string | null;
+  district: string | null;
+  address: string | null;
+  description: string | null;
+  source: CreateCustomerPayload["source"];
+  phones: CommunicationFormItem[];
+  emails: CommunicationFormItem[];
+  websites: CommunicationFormItem[];
+}
 
 const emptyForm = (): CustomerFormValues => ({
   display_name: "",
@@ -21,14 +42,15 @@ const emptyForm = (): CustomerFormValues => ({
   city: "",
   district: "",
   address: "",
-  website: "",
-  phone: "",
-  email: "",
   source: "manual",
   description: "",
+  phones: [],
+  emails: [],
+  websites: [],
 });
 
 export function customerToFormValues(customer: Customer): CustomerFormValues {
+  const communications = customerToCommunicationForm(customer);
   return {
     display_name: customer.display_name,
     legal_name: customer.legal_name ?? "",
@@ -39,11 +61,11 @@ export function customerToFormValues(customer: Customer): CustomerFormValues {
     city: customer.city ?? "",
     district: customer.district ?? "",
     address: customer.address ?? "",
-    website: customer.website ?? "",
-    phone: customer.phone ?? "",
-    email: customer.email ?? "",
     source: customer.source,
     description: customer.description ?? "",
+    phones: communications.phones,
+    emails: communications.emails,
+    websites: communications.websites,
   };
 }
 
@@ -56,7 +78,7 @@ const sourceOptions = Object.keys(customerSourceLabels) as Array<"manual" | "exc
 interface CustomerFormProps {
   initial?: CustomerFormValues;
   submitLabel: string;
-  onSubmit: (values: CustomerFormValues) => Promise<void>;
+  onSubmit: (values: CreateCustomerPayload) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -74,7 +96,7 @@ export function CustomerForm({ initial, submitLabel, onSubmit, onCancel }: Custo
     setError(null);
   }, [initial]);
 
-  const set = (field: keyof CustomerFormValues, value: string) => {
+  const set = <K extends keyof CustomerFormValues>(field: K, value: CustomerFormValues[K]) => {
     setValues((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -84,7 +106,7 @@ export function CustomerForm({ initial, submitLabel, onSubmit, onCancel }: Custo
       setError("Müşteri adı zorunludur.");
       return;
     }
-    const emailError = validateMultiEmailInput(values.email ?? "");
+    const emailError = validateCommunicationEmails(values.emails);
     if (emailError) {
       setError(emailError);
       return;
@@ -92,7 +114,7 @@ export function CustomerForm({ initial, submitLabel, onSubmit, onCancel }: Custo
     setSaving(true);
     setError(null);
     try {
-      await onSubmit({
+      const payload = formValuesToCustomerPayload({
         ...values,
         display_name: values.display_name.trim(),
         legal_name: values.legal_name?.trim() || null,
@@ -101,11 +123,9 @@ export function CustomerForm({ initial, submitLabel, onSubmit, onCancel }: Custo
         city: values.city?.trim() || null,
         district: values.district?.trim() || null,
         address: values.address?.trim() || null,
-        website: values.website?.trim() || null,
-        phone: values.phone?.trim() || null,
-        email: values.email?.trim() || null,
         description: values.description?.trim() || null,
       });
+      await onSubmit(payload);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kayıt başarısız.");
     } finally {
@@ -134,7 +154,7 @@ export function CustomerForm({ initial, submitLabel, onSubmit, onCancel }: Custo
         <Field label={labels.customer_type}>
           <select
             value={values.customer_type}
-            onChange={(e) => set("customer_type", e.target.value)}
+            onChange={(e) => set("customer_type", e.target.value as CustomerType)}
           >
             {typeOptions.map((t) => (
               <option key={t} value={t}>
@@ -144,7 +164,10 @@ export function CustomerForm({ initial, submitLabel, onSubmit, onCancel }: Custo
           </select>
         </Field>
         <Field label={labels.status}>
-          <select value={values.status} onChange={(e) => set("status", e.target.value)}>
+          <select
+            value={values.status}
+            onChange={(e) => set("status", e.target.value as CustomerStatus)}
+          >
             {statusOptions.map((s) => (
               <option key={s} value={s}>
                 {customerStatusLabels[s]}
@@ -153,7 +176,10 @@ export function CustomerForm({ initial, submitLabel, onSubmit, onCancel }: Custo
           </select>
         </Field>
         <Field label={labels.source}>
-          <select value={values.source} onChange={(e) => set("source", e.target.value)}>
+          <select
+            value={values.source}
+            onChange={(e) => set("source", e.target.value as CustomerFormValues["source"])}
+          >
             {sourceOptions.map((s) => (
               <option key={s} value={s}>
                 {customerSourceLabels[s]}
@@ -170,20 +196,25 @@ export function CustomerForm({ initial, submitLabel, onSubmit, onCancel }: Custo
         <Field label={labels.district}>
           <input value={values.district ?? ""} onChange={(e) => set("district", e.target.value)} />
         </Field>
-        <Field label={labels.website}>
-          <input value={values.website ?? ""} onChange={(e) => set("website", e.target.value)} />
-        </Field>
-        <Field label={labels.phone}>
-          <input value={values.phone ?? ""} onChange={(e) => set("phone", e.target.value)} />
-        </Field>
-        <Field label={labels.email}>
-          <input
-            type="text"
-            value={values.email ?? ""}
-            onChange={(e) => set("email", e.target.value)}
-            placeholder={emailPlaceholder}
-          />
-        </Field>
+
+        <CustomerCommunicationFieldList
+          sectionLabel={labels.phone}
+          items={values.phones}
+          onChange={(phones) => set("phones", phones)}
+          inputType="tel"
+        />
+        <CustomerCommunicationFieldList
+          sectionLabel={labels.email}
+          items={values.emails}
+          onChange={(emails) => set("emails", emails)}
+          inputType="email"
+        />
+        <CustomerCommunicationFieldList
+          sectionLabel={labels.website}
+          items={values.websites}
+          onChange={(websites) => set("websites", websites)}
+        />
+
         <Field label={labels.address} className="span-2">
           <textarea
             rows={2}

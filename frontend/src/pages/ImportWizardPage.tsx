@@ -406,6 +406,15 @@ export function ImportWizardPage({
     () => previewTable.items.map((row) => row.id),
     [previewTable.items],
   );
+
+  const prevPageSizeRef = React.useRef(previewTable.pagination.pageSize);
+  React.useEffect(() => {
+    if (prevPageSizeRef.current !== previewTable.pagination.pageSize) {
+      prevPageSizeRef.current = previewTable.pagination.pageSize;
+      setSelectedRowIds(new Set());
+    }
+  }, [previewTable.pagination.pageSize]);
+
   const allPageRowsSelected =
     pageRowIds.length > 0 && pageRowIds.every((id) => selectedRowIds.has(id));
   const somePageRowsSelected = pageRowIds.some((id) => selectedRowIds.has(id));

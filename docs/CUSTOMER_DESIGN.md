@@ -420,7 +420,7 @@ Read via Core settings **public API** (`GET /organizations/{id}/settings/{key}`)
 
 **Status:** Completed — see [FUAR_CRM_REFERENCE_ANALYSIS.md](FUAR_CRM_REFERENCE_ANALYSIS.md).
 
-Key gaps vs current design: multi-phone/email child tables deferred; legacy uses `company_name` → fair-crm `display_name`. **Address fields (`district`, `address`, `description`) incorporated in Phase 2.**
+Key gaps vs current design: legacy uses `company_name` → fair-crm `display_name`. **Address fields (`district`, `address`, `description`) incorporated in Phase 2.** Multi-value phone/email/website child tables implemented in migration `0020`; performance indexes deferred — see [CUSTOMER_COMMUNICATION_PERFORMANCE.md](CUSTOMER_COMMUNICATION_PERFORMANCE.md).
 
 ---
 

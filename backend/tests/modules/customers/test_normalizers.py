@@ -12,6 +12,13 @@ def test_turkish_company_name_normalization():
     assert normalize_company_name("Sinan Elektronik A.Ş.") == "SINAN ELEKTRONIK"
 
 
+def test_company_name_normalization_strips_ltd_and_sti_suffixes():
+    assert normalize_company_name("A.R.T. YAYINCILIK LTD.") == "A R T YAYINCILIK"
+    assert normalize_company_name("A.R.T. YAYINCILIK LTD. ŞTİ.") == "A R T YAYINCILIK"
+    assert normalize_company_name("Example Trading LIMITED") == "EXAMPLE TRADING"
+    assert normalize_company_name("Example Trading LTD STI") == "EXAMPLE TRADING"
+
+
 def test_compute_normalized_name_prefers_legal_name():
     assert compute_normalized_name(
         display_name="Display Co",

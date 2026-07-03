@@ -85,7 +85,7 @@ def test_apply_selected_rows_with_decisions(client, auth_headers):
 
     row_a = rows[0]["id"]
     decision = client.patch(
-        f"/api/v1/data-integration/imports/{batch_id}/rows/{row_a}/decision",
+        f"/api/v1/imports/{batch_id}/rows/{row_a}/decision",
         headers=auth_headers,
         json={"decision": "create_new"},
     )
@@ -136,7 +136,7 @@ def test_apply_filter_scope_processes_all_decided_rows(client, auth_headers):
 
     for row in rows:
         resp = client.patch(
-            f"/api/v1/data-integration/imports/{batch_id}/rows/{row['id']}/decision",
+            f"/api/v1/imports/{batch_id}/rows/{row['id']}/decision",
             headers=auth_headers,
             json={"decision": "skip"},
         )

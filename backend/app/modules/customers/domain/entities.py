@@ -6,25 +6,10 @@ from uuid import UUID, uuid4
 from app.modules.customers.domain.exceptions import (
     CustomerAlreadyArchivedError,
     CustomerNotArchivedError,
-    InvalidCustomerEmailError,
     InvalidCustomerNameError,
 )
-from app.modules.customers.domain.services.normalizers import (
-    compute_normalized_name,
-    normalize_email_list,
-    normalize_phone,
-    normalize_website,
-)
+from app.modules.customers.domain.services.normalizers import compute_normalized_name
 from app.modules.customers.domain.value_objects import CustomerSource, CustomerStatus, CustomerType
-
-
-def _normalize_and_validate_email(email: Optional[str]) -> Optional[str]:
-    if email is None:
-        return None
-    try:
-        return normalize_email_list(email)
-    except ValueError as exc:
-        raise InvalidCustomerEmailError(str(exc)) from exc
 
 
 @dataclass
@@ -37,9 +22,6 @@ class Customer:
     normalized_name: str
     customer_type: CustomerType
     status: CustomerStatus
-    website: Optional[str]
-    phone: Optional[str]
-    email: Optional[str]
     tax_number: Optional[str]
     tax_office: Optional[str]
     country: Optional[str]
@@ -63,9 +45,6 @@ class Customer:
         trade_name: Optional[str] = None,
         customer_type: CustomerType = CustomerType.LEAD,
         status: CustomerStatus = CustomerStatus.LEAD,
-        website: Optional[str] = None,
-        phone: Optional[str] = None,
-        email: Optional[str] = None,
         tax_number: Optional[str] = None,
         tax_office: Optional[str] = None,
         country: Optional[str] = None,
@@ -80,8 +59,6 @@ class Customer:
         if not trimmed_display:
             raise InvalidCustomerNameError("display_name must not be empty")
 
-        normalized_email = _normalize_and_validate_email(email)
-
         return cls(
             id=uuid4(),
             organization_id=organization_id,
@@ -94,9 +71,6 @@ class Customer:
             ),
             customer_type=customer_type,
             status=status,
-            website=normalize_website(website) if website else None,
-            phone=normalize_phone(phone) if phone else None,
-            email=normalized_email,
             tax_number=tax_number.strip() if tax_number else None,
             tax_office=tax_office.strip() if tax_office else None,
             country=country.strip() if country else None,
@@ -112,7 +86,9 @@ class Customer:
         )
 
     def ensure_mutable(self) -> None:
-        if self.status == CustomerStatus.ARCHIVED or self.deleted_at is not None:
+        if self.status == CustomerStatus.DELETED:
+            raise CustomerAlreadyArchivedError("Customer is deleted")
+        if self.status == CustomerStatus.ARCHIVED:
             raise CustomerAlreadyArchivedError("Customer is archived")
 
     def update_fields(
@@ -123,9 +99,6 @@ class Customer:
         trade_name: Optional[str] = None,
         customer_type: Optional[CustomerType] = None,
         status: Optional[CustomerStatus] = None,
-        website: Optional[str] = None,
-        phone: Optional[str] = None,
-        email: Optional[str] = None,
         tax_number: Optional[str] = None,
         tax_office: Optional[str] = None,
         country: Optional[str] = None,
@@ -157,15 +130,8 @@ class Customer:
 
         if customer_type is not None:
             self.customer_type = customer_type
-        if status is not None and status != CustomerStatus.ARCHIVED:
+        if status is not None and status not in (CustomerStatus.ARCHIVED, CustomerStatus.DELETED):
             self.status = status
-
-        if website is not None:
-            self.website = normalize_website(website) if website else None
-        if phone is not None:
-            self.phone = normalize_phone(phone) if phone else None
-        if email is not None:
-            self.email = _normalize_and_validate_email(email if email else None)
 
         if tax_number is not None:
             self.tax_number = tax_number.strip() if tax_number else None
@@ -187,9 +153,14 @@ class Customer:
         self.updated_at = now
 
     def is_archived(self) -> bool:
-        return self.deleted_at is not None or self.status == CustomerStatus.ARCHIVED
+        return self.status == CustomerStatus.ARCHIVED
+
+    def is_merge_deleted(self) -> bool:
+        return self.status == CustomerStatus.DELETED
 
     def archive(self, *, now: datetime) -> None:
+        if self.status == CustomerStatus.DELETED:
+            return
         if self.status == CustomerStatus.ARCHIVED and self.deleted_at is not None:
             return
         if self.status != CustomerStatus.ARCHIVED:
@@ -198,7 +169,19 @@ class Customer:
         self.deleted_at = now
         self.updated_at = now
 
+    def mark_deleted(self, *, now: datetime) -> None:
+        if self.status == CustomerStatus.DELETED:
+            return
+        if self.status != CustomerStatus.ARCHIVED:
+            self.archived_from_status = self.status
+        self.status = CustomerStatus.DELETED
+        if self.deleted_at is None:
+            self.deleted_at = now
+        self.updated_at = now
+
     def restore(self, *, now: datetime) -> None:
+        if self.is_merge_deleted():
+            raise CustomerNotArchivedError("Customer is deleted")
         if not self.is_archived():
             raise CustomerNotArchivedError("Customer is not archived")
 

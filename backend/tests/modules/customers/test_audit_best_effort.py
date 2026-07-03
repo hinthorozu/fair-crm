@@ -5,7 +5,11 @@ import httpx
 
 from app.integrations.kyrox_core.client import HttpAuditAdapter, KyroxCoreHttpClient
 from app.modules.customers.application.commands import CreateCustomerCommand
+from app.modules.customers.application.customer_communication_sync import CustomerCommunicationSyncService
 from app.modules.customers.application.create_customer import CreateCustomerUseCase
+from app.modules.customers.infrastructure.repositories.customer_communication_repository import (
+    SqlAlchemyCustomerCommunicationRepository,
+)
 from app.modules.customers.infrastructure.repositories.customer_repository import (
     SqlAlchemyCustomerRepository,
 )
@@ -46,7 +50,10 @@ def test_create_customer_succeeds_when_audit_adapter_fails(db_session, organizat
     audit = HttpAuditAdapter(http_client=http)
 
     repo = SqlAlchemyCustomerRepository(db_session)
-    use_case = CreateCustomerUseCase(repo, AllowAllAuthorization(), audit)
+    communication_sync = CustomerCommunicationSyncService(
+        SqlAlchemyCustomerCommunicationRepository(db_session)
+    )
+    use_case = CreateCustomerUseCase(repo, communication_sync, AllowAllAuthorization(), audit)
 
     result = use_case.execute(
         CreateCustomerCommand(

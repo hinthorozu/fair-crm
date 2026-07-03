@@ -61,6 +61,17 @@ class Settings(BaseSettings):
         default=500,
         validation_alias=AliasChoices("IMPORT_ANALYZE_CHUNK_SIZE", "FAIR_CRM_IMPORT_ANALYZE_CHUNK_SIZE"),
     )
+    db_pool_size: int = Field(default=10, validation_alias="FAIR_CRM_DB_POOL_SIZE")
+    db_max_overflow: int = Field(default=20, validation_alias="FAIR_CRM_DB_MAX_OVERFLOW")
+    db_pool_timeout: int = Field(default=30, validation_alias="FAIR_CRM_DB_POOL_TIMEOUT")
+    performance_slow_request_ms: int = Field(
+        default=500,
+        validation_alias="FAIR_CRM_SLOW_REQUEST_MS",
+    )
+    performance_slow_query_ms: int = Field(
+        default=100,
+        validation_alias="FAIR_CRM_SLOW_QUERY_MS",
+    )
 
 
 @lru_cache

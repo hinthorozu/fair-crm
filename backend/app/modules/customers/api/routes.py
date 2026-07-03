@@ -1,6 +1,8 @@
 from typing import Annotated, Optional
 from uuid import UUID
 
+from dataclasses import asdict
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import AliasChoices
@@ -38,6 +40,9 @@ from app.modules.customers.application.archive_customer import ArchiveCustomerUs
 from app.modules.customers.application.commands import (
     ArchiveCustomerCommand,
     CreateCustomerCommand,
+    CustomerEmailInput,
+    CustomerPhoneInput,
+    CustomerWebsiteInput,
     GetCustomerQuery,
     ListCustomersQuery,
     RestoreCustomerCommand,
@@ -71,8 +76,71 @@ def _access_token(credentials: HTTPAuthorizationCredentials | None) -> str:
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
 
+def _map_phone_inputs(items) -> list[CustomerPhoneInput] | None:
+    if items is None:
+        return None
+    return [CustomerPhoneInput(phone=item.phone, is_primary=item.is_primary) for item in items]
+
+
+def _map_email_inputs(items) -> list[CustomerEmailInput] | None:
+    if items is None:
+        return None
+    return [CustomerEmailInput(email=item.email, is_primary=item.is_primary) for item in items]
+
+
+def _map_website_inputs(items) -> list[CustomerWebsiteInput] | None:
+    if items is None:
+        return None
+    return [CustomerWebsiteInput(website=item.website, is_primary=item.is_primary) for item in items]
+
+
+def _create_command(auth: AuthContext, access_token: str, body: CreateCustomerRequest) -> CreateCustomerCommand:
+    data = body.model_dump()
+    data.pop("phones", None)
+    data.pop("emails", None)
+    data.pop("websites", None)
+    return CreateCustomerCommand(
+        organization_id=auth.organization_id,
+        access_token=access_token,
+        user_id=auth.user_id,
+        phones=_map_phone_inputs(body.phones),
+        emails=_map_email_inputs(body.emails),
+        websites=_map_website_inputs(body.websites),
+        **data,
+    )
+
+
+def _update_command(
+    auth: AuthContext,
+    access_token: str,
+    customer_id: UUID,
+    body: UpdateCustomerRequest,
+    fields: dict,
+) -> UpdateCustomerCommand:
+    return UpdateCustomerCommand(
+        organization_id=auth.organization_id,
+        customer_id=customer_id,
+        access_token=access_token,
+        user_id=auth.user_id,
+        fields_set=frozenset(fields.keys()),
+        **{
+            **fields,
+            "phones": _map_phone_inputs(body.phones) if "phones" in fields else None,
+            "emails": _map_email_inputs(body.emails) if "emails" in fields else None,
+            "websites": _map_website_inputs(body.websites) if "websites" in fields else None,
+        },
+    )
+
+
 def _to_response(result) -> CustomerResponse:
-    return CustomerResponse.model_validate(result.__dict__)
+    data = asdict(result)
+    if data.get("phones") is None:
+        data["phones"] = []
+    if data.get("emails") is None:
+        data["emails"] = []
+    if data.get("websites") is None:
+        data["websites"] = []
+    return CustomerResponse.model_validate(data)
 
 
 @router.post(
@@ -89,12 +157,7 @@ def create_customer(
 ) -> CustomerResponse:
     try:
         result = use_case.execute(
-            CreateCustomerCommand(
-                organization_id=auth.organization_id,
-                access_token=_access_token(credentials),
-                user_id=auth.user_id,
-                **body.model_dump(),
-            )
+            _create_command(auth, _access_token(credentials), body)
         )
     except InvalidCustomerNameError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -277,14 +340,9 @@ def update_customer(
     use_case: UpdateCustomerUseCase = Depends(get_update_customer_use_case),
 ) -> CustomerResponse:
     try:
+        fields = body.model_dump(exclude_unset=True)
         result = use_case.execute(
-            UpdateCustomerCommand(
-                organization_id=auth.organization_id,
-                customer_id=customer_id,
-                access_token=_access_token(credentials),
-                user_id=auth.user_id,
-                **body.model_dump(exclude_unset=True),
-            )
+            _update_command(auth, _access_token(credentials), customer_id, body, fields)
         )
     except CustomerNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

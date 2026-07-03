@@ -7,6 +7,7 @@ from app.modules.fairs.api.routes import router as fairs_router
 from app.modules.data_integration.api.routes import router as data_integration_router
 from app.modules.imports.api.routes import router as imports_router
 from app.modules.system_admin.api.routes import router as system_admin_router
+from app.modules.system_admin.api.data_operation_routes import router as data_operations_router
 from app.modules.participations.api.routes import (
     customer_participations_router,
     fair_participants_router,
@@ -27,3 +28,4 @@ api_v1_router.include_router(imports_router, prefix="/imports")
 api_v1_router.include_router(imports_router, prefix="/data-integration/imports")
 api_v1_router.include_router(data_integration_router)
 api_v1_router.include_router(system_admin_router)
+api_v1_router.include_router(data_operations_router)

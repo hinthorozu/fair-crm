@@ -681,3 +681,61 @@ Decision Queue screens require row-by-row dropdown changes for large batches. Us
 3. **`errors[]`** — real execution failures only (DB, validation, constraint, unexpected exception).
 4. Frontend shows ✅ processed, ℹ not processed, ⚠ failed with row details only for execution errors.
 
+---
+
+## ADR-030: Internal Customer Cleanup Utility
+
+**Status:** Accepted  
+**Date:** 2026-07-03  
+**Detail:** [CUSTOMER_CLEANUP_ARCHITECTURE.md](CUSTOMER_CLEANUP_ARCHITECTURE.md)
+
+**Context:**
+
+Master DB accumulated duplicate customers from migration and imports. A one-time internal cleanup may be needed before taking a clean backup. This is **not** a tenant-facing product module.
+
+**Decision:**
+
+1. **Internal maintenance workflow only** — future CLI/script; no tenant UI, no Cleanup Queue platform.
+2. **Import flow untouched.**
+3. **No schema implementation yet** — no migration `0016`, no cleanup/suppression tables, no `crm_customers` merge/delete columns, no merge event table.
+4. **Future option** — an Excel Import-like review UI may be considered later; not committed.
+5. **Design principles (when implemented)** — operator-driven merge; fair participation must not be lost; no automatic merge.
+
+**Out of scope:**
+
+Tenant screens, Cleanup Queue platform, suppression persistence, continuous data quality, broad REST API, automatic merge, merge undo.
+
+**Consequences:**
+
+- No customer-cleanup code or DB migration until explicitly scoped.
+- When a maintenance tool exists, operators run it with backup before/after.
+
+---
+
+## ADR-031: Defer communication-table indexes until Phase 2 performance review
+
+**Status:** Accepted — deferred work  
+**Date:** 2026-07-03  
+**Detail:** [CUSTOMER_COMMUNICATION_PERFORMANCE.md](CUSTOMER_COMMUNICATION_PERFORMANCE.md)
+
+**Context:**
+
+Customer phone, email, and website data moved to child tables (`crm_customer_phones`, `crm_customer_emails`, `crm_customer_websites`) in migration `0020`. Import, duplicate analysis, and merge flows will increasingly query these tables. The current dataset is small and matching/merge rules are still evolving.
+
+**Decision:**
+
+1. **Do not add indexes now** on normalized phone, email, or domain values.
+2. **No schema migration** for performance until the Phase 2 Performance Review is triggered.
+3. **Document future work** — triggers, `EXPLAIN ANALYZE` targets, and candidate indexes live in `CUSTOMER_COMMUNICATION_PERFORMANCE.md`.
+
+**Triggers for Phase 2 review:**
+
+- Customer count > 100,000
+- Import batch > 50,000 rows
+- Duplicate analysis or merge becomes slow
+
+**Consequences:**
+
+- Phase 1 ships without extra communication indexes; acceptable at current scale.
+- Before large-scale production load, run the documented review and add indexes only with measured justification.
+

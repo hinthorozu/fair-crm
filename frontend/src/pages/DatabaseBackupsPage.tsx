@@ -311,7 +311,7 @@ export function DatabaseBackupsPage() {
       })();
     }, 1500);
     return () => window.clearInterval(timer);
-  }, [pollingIds, table]);
+  }, [pollingIds, table.refresh]);
 
   const closeCreateModal = React.useCallback(() => {
     setShowCreateModal(false);

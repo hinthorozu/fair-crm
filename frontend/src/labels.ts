@@ -37,6 +37,11 @@ export const labels = {
   tax_number: "Vergi No",
   tax_office: "Vergi Dairesi",
   refresh: "Yenile",
+  add: "Ekle",
+  remove: "Kaldır",
+  primary: "Birincil",
+  markPrimary: "Birincil yap",
+  communicationEmpty: "Henüz kayıt yok.",
 } as const;
 
 export const paginationLabels = {

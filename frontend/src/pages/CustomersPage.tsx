@@ -8,7 +8,8 @@ import {
   ApiError,
   formatApiErrorMessage,
 } from "../api/customers";
-import { CustomerForm, customerToFormValues, type CustomerFormValues } from "../components/CustomerForm";
+import { CustomerForm, customerToFormValues } from "../components/CustomerForm";
+import type { CreateCustomerPayload } from "../types/customer";
 import { CustomerFilters, CustomerTable } from "../components/CustomerList";
 import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
@@ -45,13 +46,13 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
     urlPath: "/customers",
   });
 
-  const handleCreate = async (values: CustomerFormValues) => {
+  const handleCreate = async (values: CreateCustomerPayload) => {
     await createCustomer(values);
     setModal(null);
     await table.refresh();
   };
 
-  const handleUpdate = async (values: CustomerFormValues) => {
+  const handleUpdate = async (values: CreateCustomerPayload) => {
     if (!editing) return;
     await updateCustomer(editing.id, values);
     setModal(null);

@@ -14,6 +14,10 @@ from app.integrations.kyrox_core.dev_bypass import AllowAllAuthorizationAdapter,
 from app.integrations.kyrox_core.ports import AuthorizationPort
 from app.modules.activities.infrastructure.repositories.activity_repository import SqlAlchemyActivityRepository
 from app.modules.contacts.infrastructure.repositories.contact_repository import SqlAlchemyContactRepository
+from app.modules.customers.application.customer_communication_sync import CustomerCommunicationSyncService
+from app.modules.customers.infrastructure.repositories.customer_communication_repository import (
+    SqlAlchemyCustomerCommunicationRepository,
+)
 from app.modules.customers.infrastructure.repositories.customer_repository import SqlAlchemyCustomerRepository
 from app.modules.data_integration.application.engine.import_executor import ImportExecutor
 from app.modules.data_integration.domain.entities import ImportJob
@@ -29,6 +33,10 @@ from app.modules.imports.infrastructure.repositories.import_repository import (
 from app.modules.participations.infrastructure.repositories.participation_repository import (
     SqlAlchemyParticipationRepository,
 )
+
+
+def _communication_sync(db: Session) -> CustomerCommunicationSyncService:
+    return CustomerCommunicationSyncService(SqlAlchemyCustomerCommunicationRepository(db))
 
 
 @dataclass(frozen=True)
@@ -166,6 +174,7 @@ class ImportJobRunner:
                 batch_repo,
                 row_repo,
                 SqlAlchemyCustomerRepository(db),
+                _communication_sync(db),
                 SqlAlchemyContactRepository(db),
                 SqlAlchemyActivityRepository(db),
                 SqlAlchemyParticipationRepository(db),
@@ -309,6 +318,7 @@ class ImportJobRunner:
                 batch_repo,
                 row_repo,
                 SqlAlchemyCustomerRepository(db),
+                _communication_sync(db),
                 SqlAlchemyContactRepository(db),
                 SqlAlchemyActivityRepository(db),
                 SqlAlchemyParticipationRepository(db),

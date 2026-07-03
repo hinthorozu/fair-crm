@@ -20,6 +20,10 @@ from app.modules.activities.infrastructure.repositories.activity_repository impo
 from app.modules.contacts.infrastructure.repositories.contact_repository import (
     SqlAlchemyContactRepository,
 )
+from app.modules.customers.application.customer_communication_sync import CustomerCommunicationSyncService
+from app.modules.customers.infrastructure.repositories.customer_communication_repository import (
+    SqlAlchemyCustomerCommunicationRepository,
+)
 from app.modules.customers.infrastructure.repositories.customer_repository import (
     SqlAlchemyCustomerRepository,
 )
@@ -186,10 +190,12 @@ def get_list_import_rows_use_case(
     row_repository: SqlAlchemyImportRowRepository = Depends(get_import_row_repository),
     db: Session = Depends(get_db),
 ) -> ListImportRowsUseCase:
+    comm_repo = SqlAlchemyCustomerCommunicationRepository(db)
     return ListImportRowsUseCase(
         batch_repository,
         row_repository,
         SqlAlchemyCustomerRepository(db),
+        CustomerCommunicationSyncService(comm_repo),
         SqlAlchemyParticipationRepository(db),
         SqlAlchemyContactRepository(db),
     )
@@ -202,10 +208,12 @@ def get_apply_import_use_case(
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
 ) -> ApplyImportUseCase:
+    comm_repo = SqlAlchemyCustomerCommunicationRepository(db)
     return ApplyImportUseCase(
         batch_repository,
         row_repository,
         SqlAlchemyCustomerRepository(db),
+        CustomerCommunicationSyncService(comm_repo),
         SqlAlchemyContactRepository(db),
         SqlAlchemyActivityRepository(db),
         SqlAlchemyParticipationRepository(db),
@@ -221,10 +229,12 @@ def get_set_row_decision_use_case(
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
 ) -> SetImportRowDecisionUseCase:
+    comm_repo = SqlAlchemyCustomerCommunicationRepository(db)
     return SetImportRowDecisionUseCase(
         batch_repository,
         row_repository,
         SqlAlchemyCustomerRepository(db),
+        CustomerCommunicationSyncService(comm_repo),
         SqlAlchemyParticipationRepository(db),
         SqlAlchemyContactRepository(db),
         authorization,

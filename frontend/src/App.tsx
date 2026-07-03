@@ -6,6 +6,8 @@ import { FairDetailPage } from "./pages/FairDetailPage";
 import { ImportWizardPage } from "./pages/ImportWizardPage";
 import { DataIntegrationImportsPage } from "./pages/DataIntegrationImportsPage";
 import { DatabaseBackupsPage } from "./pages/DatabaseBackupsPage";
+import { DataOperationsPage } from "./pages/DataOperationsPage";
+import { DataOperationRunResultPage } from "./pages/DataOperationRunResultPage";
 import { DataIntegrationLayout } from "./components/dataIntegration/DataIntegrationLayout";
 import { AdminSystemLayout } from "./components/admin/AdminSystemLayout";
 import { AppLayout } from "./components/layout/AppLayout";
@@ -27,6 +29,8 @@ type AppRoute =
   | "/data-integration/jobs"
   | "/data-integration/reports"
   | "/admin/system/backups"
+  | "/admin/data-operations"
+  | "/admin/data-operations/runs/:runId"
   | "/imports"
   | "/imports/fair/:fairId"
   | "/customers/:id";
@@ -36,10 +40,30 @@ interface ParsedRoute {
   customerId?: string;
   fairId?: string;
   batchId?: string;
+  dataOperationRunId?: string;
+  dataOperationKey?: string;
 }
 
-function parseRoute(pathname: string): ParsedRoute {
+function parseRoute(location: string): ParsedRoute {
+  const { pathname, search } = splitPath(location);
+  const searchParams = new URLSearchParams(search);
+  const dataOperationKey = searchParams.get("operation") ?? undefined;
+
   if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    if (pathname === "/admin/data-operations" || pathname === "/admin/data-operations/") {
+      return { route: "/admin/data-operations" };
+    }
+    const dataOpRun = pathname.match(/^\/admin\/data-operations\/runs\/([^/]+)$/);
+    if (dataOpRun) {
+      return {
+        route: "/admin/data-operations/runs/:runId",
+        dataOperationRunId: dataOpRun[1],
+        dataOperationKey,
+      };
+    }
+    if (pathname.startsWith("/admin/data-operations")) {
+      return { route: "/admin/data-operations" };
+    }
     if (pathname === "/admin/system/backups" || pathname.startsWith("/admin/system/backups")) {
       return { route: "/admin/system/backups" };
     }
@@ -123,6 +147,8 @@ function isAdminRoute(route: AppRoute): boolean {
 }
 
 function adminSection(route: AppRoute): string {
+  if (route.includes("/data-operations/runs/")) return "data-operations";
+  if (route.includes("/data-operations")) return "data-operations";
   if (route.includes("/backups")) return "backups";
   return "backups";
 }
@@ -136,7 +162,7 @@ function diSection(route: AppRoute): string {
 
 export function App() {
   const [parsed, setParsed] = React.useState<ParsedRoute>(() =>
-    parseRoute(window.location.pathname),
+    parseRoute(`${window.location.pathname}${window.location.search}`),
   );
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [customerName, setCustomerName] = React.useState<string | null>(null);
@@ -167,7 +193,7 @@ export function App() {
 
   React.useEffect(() => {
     const onPopState = () => {
-      setParsed(parseRoute(window.location.pathname));
+      setParsed(parseRoute(`${window.location.pathname}${window.location.search}`));
       setSidebarOpen(false);
     };
     window.addEventListener("popstate", onPopState);
@@ -176,10 +202,10 @@ export function App() {
 
   const handleNav = (path: string, e: React.MouseEvent) => {
     e.preventDefault();
-    const { pathname } = splitPath(path);
-    navigate(pathname);
-    setParsed(parseRoute(pathname));
+    navigate(path);
+    setParsed(parseRoute(path));
     setSidebarOpen(false);
+    const { pathname } = splitPath(path);
     if (pathname === "/customers") setCustomerName(null);
     if (pathname === "/fairs") setFairName(null);
   };
@@ -264,7 +290,15 @@ export function App() {
               ? [
                   { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
                   { label: uiLabels.navAdmin, onClick: () => goToAdmin() },
-                  { label: adminLabels.navDatabaseBackups, current: true },
+                  {
+                    label:
+                      parsed.route === "/admin/data-operations/runs/:runId"
+                        ? adminLabels.dataOpAnalyzeResultTitle
+                        : parsed.route === "/admin/data-operations"
+                          ? adminLabels.navDataOperations
+                          : adminLabels.navDatabaseBackups,
+                    current: true,
+                  },
                 ]
               : [{ label: labels.customers, current: true }];
 
@@ -339,6 +373,22 @@ export function App() {
     >
       {adminNotice && <p className="text-muted">{adminNotice}</p>}
       {parsed.route === "/admin/system/backups" && <DatabaseBackupsPage />}
+      {parsed.route === "/admin/data-operations" && (
+        <DataOperationsPage
+          onOpenResult={(runId, operationKey) =>
+            goToAdmin(
+              `/admin/data-operations/runs/${runId}?operation=${encodeURIComponent(operationKey)}`,
+            )
+          }
+        />
+      )}
+      {parsed.route === "/admin/data-operations/runs/:runId" && parsed.dataOperationRunId && (
+        <DataOperationRunResultPage
+          runId={parsed.dataOperationRunId}
+          operationKey={parsed.dataOperationKey}
+          onBack={() => goToAdmin("/admin/data-operations")}
+        />
+      )}
     </AdminSystemLayout>
   );
 

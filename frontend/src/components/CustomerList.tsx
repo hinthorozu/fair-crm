@@ -6,6 +6,7 @@ import { Badge } from "./ui/Badge";
 import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
 import { UniversalDataTable, type UniversalDataTableColumn } from "./ui/UniversalDataTable";
 import { customerStatusBadgeVariant } from "../utils/badges";
+import { CommunicationListCell } from "./CommunicationListCell";
 
 interface CustomerFiltersProps {
   search: string;
@@ -145,7 +146,17 @@ function buildCustomerColumns(props: CustomerTableProps): UniversalDataTableColu
       key: "phone",
       title: labels.phone,
       sortable: true,
-      render: (c) => c.phone ?? "—",
+      render: (c) => (
+        <CommunicationListCell value={c.phone} extraCount={c.phone_extra_count ?? 0} />
+      ),
+    },
+    {
+      key: "email",
+      title: labels.email,
+      sortable: true,
+      render: (c) => (
+        <CommunicationListCell value={c.email} extraCount={c.email_extra_count ?? 0} />
+      ),
     },
     {
       key: "created_at",
@@ -196,6 +207,239 @@ function buildCustomerColumns(props: CustomerTableProps): UniversalDataTableColu
           </>
         );
       },
+    },
+  ];
+}
+
+export function buildAnalysisCustomerColumns(
+  columnTitles: {
+    companyName: string;
+    legalName: string;
+    tradeName: string;
+    customerType: string;
+    status: string;
+    phone: string;
+    email: string;
+    website: string;
+    city: string;
+    country: string;
+    createdAt: string;
+    updatedAt: string;
+  },
+): UniversalDataTableColumn<Customer>[] {
+  return [
+    {
+      key: "name",
+      title: columnTitles.companyName,
+      sortable: true,
+      render: (c) => <strong>{c.display_name}</strong>,
+    },
+    {
+      key: "legal_name",
+      title: columnTitles.legalName,
+      sortable: true,
+      render: (c) => c.legal_name ?? "—",
+    },
+    {
+      key: "trade_name",
+      title: columnTitles.tradeName,
+      sortable: true,
+      render: (c) => c.trade_name ?? "—",
+    },
+    {
+      key: "customer_type",
+      title: columnTitles.customerType,
+      sortable: true,
+      render: (c) => customerTypeLabels[c.customer_type] ?? c.customer_type,
+    },
+    {
+      key: "status",
+      title: columnTitles.status,
+      sortable: true,
+      render: (c) => (
+        <Badge variant={customerStatusBadgeVariant(c.status)}>
+          {customerStatusLabels[c.status] ?? c.status}
+        </Badge>
+      ),
+    },
+    {
+      key: "phone",
+      title: columnTitles.phone,
+      sortable: true,
+      render: (c) => c.phone ?? "—",
+    },
+    {
+      key: "email",
+      title: columnTitles.email,
+      sortable: true,
+      render: (c) => c.email ?? "—",
+    },
+    {
+      key: "website",
+      title: columnTitles.website,
+      sortable: true,
+      render: (c) => c.website ?? "—",
+    },
+    {
+      key: "city",
+      title: columnTitles.city,
+      sortable: true,
+      render: (c) => c.city ?? "—",
+    },
+    {
+      key: "country",
+      title: columnTitles.country,
+      sortable: true,
+      render: (c) => c.country ?? "—",
+    },
+    {
+      key: "created_at",
+      title: columnTitles.createdAt,
+      sortable: true,
+      render: (c) => formatDateTime(c.created_at),
+    },
+    {
+      key: "updated_at",
+      title: columnTitles.updatedAt,
+      sortable: true,
+      render: (c) => formatDateTime(c.updated_at),
+    },
+  ];
+}
+
+export interface DuplicateDatasetCustomerRow {
+  id: string;
+  display_name: string;
+  legal_name: string | null;
+  trade_name: string | null;
+  customer_type: string;
+  status: string;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  city: string | null;
+  country: string | null;
+  created_at: string;
+  updated_at: string;
+  group_key: string;
+  group_by: string | null;
+  fair_count: number;
+  first_fair: string | null;
+}
+
+export function buildDuplicateCustomerColumns(
+  columnTitles: {
+    groupKey: string;
+    groupBy: string;
+    companyName: string;
+    legalName: string;
+    tradeName: string;
+    status: string;
+    phone: string;
+    email: string;
+    website: string;
+    city: string;
+    country: string;
+    fairCount: string;
+    firstFair: string;
+    createdAt: string;
+    updatedAt: string;
+  },
+): UniversalDataTableColumn<DuplicateDatasetCustomerRow>[] {
+  return [
+    {
+      key: "group_key",
+      title: columnTitles.groupKey,
+      sortable: true,
+      render: (row) => <code>{row.group_key}</code>,
+    },
+    {
+      key: "group_by",
+      title: columnTitles.groupBy,
+      sortable: true,
+      render: (row) => row.group_by ?? "—",
+    },
+    {
+      key: "name",
+      title: columnTitles.companyName,
+      sortable: true,
+      render: (row) => <strong>{row.display_name}</strong>,
+    },
+    {
+      key: "legal_name",
+      title: columnTitles.legalName,
+      sortable: true,
+      render: (row) => row.legal_name ?? "—",
+    },
+    {
+      key: "trade_name",
+      title: columnTitles.tradeName,
+      sortable: true,
+      render: (row) => row.trade_name ?? "—",
+    },
+    {
+      key: "phone",
+      title: columnTitles.phone,
+      sortable: true,
+      render: (row) => row.phone ?? "—",
+    },
+    {
+      key: "email",
+      title: columnTitles.email,
+      sortable: true,
+      render: (row) => row.email ?? "—",
+    },
+    {
+      key: "website",
+      title: columnTitles.website,
+      sortable: true,
+      render: (row) => row.website ?? "—",
+    },
+    {
+      key: "city",
+      title: columnTitles.city,
+      sortable: true,
+      render: (row) => row.city ?? "—",
+    },
+    {
+      key: "country",
+      title: columnTitles.country,
+      sortable: true,
+      render: (row) => row.country ?? "—",
+    },
+    {
+      key: "fair_count",
+      title: columnTitles.fairCount,
+      sortable: true,
+      render: (row) => String(row.fair_count),
+    },
+    {
+      key: "first_fair",
+      title: columnTitles.firstFair,
+      sortable: true,
+      render: (row) => row.first_fair ?? "—",
+    },
+    {
+      key: "status",
+      title: columnTitles.status,
+      sortable: true,
+      render: (row) => (
+        <Badge variant={customerStatusBadgeVariant(row.status as CustomerStatus)}>
+          {customerStatusLabels[row.status as CustomerStatus] ?? row.status}
+        </Badge>
+      ),
+    },
+    {
+      key: "created_at",
+      title: columnTitles.createdAt,
+      sortable: true,
+      render: (row) => formatDateTime(row.created_at),
+    },
+    {
+      key: "updated_at",
+      title: columnTitles.updatedAt,
+      sortable: true,
+      render: (row) => formatDateTime(row.updated_at),
     },
   ];
 }

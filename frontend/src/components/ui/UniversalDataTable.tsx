@@ -1,8 +1,10 @@
 import React from "react";
 import { DataTable } from "./DataTable";
 import { ServerDataTableFrame } from "./ServerDataTableFrame";
+import type { ServerDataTableRowSelectionController } from "../../hooks/useServerDataTableRowSelection";
 import type { ServerDataTableController } from "../../hooks/useServerDataTable";
 import type { SortDirection } from "../../types/listTable";
+import { buildUniversalDataTableSelectionColumn } from "./UniversalDataTableSelection";
 
 /** Column definition for Universal Server-Side DataTable (ADR-019). */
 export interface UniversalDataTableColumn<T> {
@@ -14,6 +16,15 @@ export interface UniversalDataTableColumn<T> {
   sortField?: string;
   render: (row: T) => React.ReactNode;
   className?: string;
+  /** Responsive stacked-row label; defaults to `title` when it is a string. */
+  dataLabel?: string;
+}
+
+export interface UniversalDataTableRowSelectionConfig<T> {
+  controller: ServerDataTableRowSelectionController;
+  title: string;
+  selectAllAriaLabel: string;
+  rowAriaLabel: (row: T) => string;
 }
 
 interface UniversalDataTableBaseProps<T> {
@@ -39,6 +50,9 @@ interface UniversalDataTableServerProps<T> extends UniversalDataTableBaseProps<T
   table: ServerDataTableController<T>;
   toolbar?: React.ReactNode;
   skeletonCols?: number;
+  showPagination?: boolean;
+  /** Optional row selection (ADR-029); prepends a Selection column. */
+  rowSelection?: UniversalDataTableRowSelectionConfig<T>;
   items?: never;
   sorting?: never;
   onSortChange?: never;
@@ -59,8 +73,24 @@ function mapColumns<T>(columns: UniversalDataTableColumn<T>[]) {
     sortField: column.sortField ?? column.key,
     render: column.render,
     className: column.className,
-    dataLabel: typeof column.title === "string" ? column.title : undefined,
+    dataLabel:
+      column.dataLabel ?? (typeof column.title === "string" ? column.title : undefined),
   }));
+}
+
+function withSelectionColumn<T extends { id: string }>(
+  columns: UniversalDataTableColumn<T>[],
+  rowSelection: UniversalDataTableRowSelectionConfig<T> | undefined,
+): UniversalDataTableColumn<T>[] {
+  if (!rowSelection) return columns;
+  return [
+    buildUniversalDataTableSelectionColumn(rowSelection.controller, {
+      title: rowSelection.title,
+      selectAllAriaLabel: rowSelection.selectAllAriaLabel,
+      rowAriaLabel: rowSelection.rowAriaLabel,
+    }),
+    ...columns,
+  ];
 }
 
 /**
@@ -71,21 +101,24 @@ export function UniversalDataTable<T>(props: UniversalDataTableProps<T>) {
   const { columns, rowKey, emptyState, className } = props;
 
   if ("table" in props && props.table) {
-    const { table, toolbar, skeletonCols } = props;
-    const dataColumns = columns.filter((column) => column.sortable !== false).length;
+    const { table, toolbar, skeletonCols, rowSelection, showPagination } = props;
+    const resolvedColumns = withSelectionColumn(columns, rowSelection);
+    const dataColumns = resolvedColumns.filter((column) => column.sortable !== false).length;
+    const selectionColCount = rowSelection ? 1 : 0;
     const showEmpty = !table.loading && !table.error && table.items.length === 0;
 
     return (
       <ServerDataTableFrame
         table={table}
         toolbar={toolbar}
-        skeletonCols={skeletonCols ?? Math.max(dataColumns + 1, 4)}
+        showPagination={showPagination}
+        skeletonCols={skeletonCols ?? Math.max(dataColumns + selectionColCount + 1, 4)}
       >
         {showEmpty && emptyState ? (
           emptyState
         ) : (
           <DataTable
-            columns={mapColumns(columns)}
+            columns={mapColumns(resolvedColumns)}
             data={table.items}
             rowKey={rowKey}
             sorting={table.sorting}
@@ -103,23 +136,27 @@ export function UniversalDataTable<T>(props: UniversalDataTableProps<T>) {
   }
 
   return (
-    <DataTable
-      columns={mapColumns(columns)}
-      data={items}
-      rowKey={rowKey}
-      sorting={
-        sorting?.field && sorting.direction
-          ? { field: sorting.field, direction: sorting.direction }
-          : sorting?.field
-            ? { field: sorting.field, direction: sorting.direction ?? "asc" }
-            : null
-      }
-      loading={loading}
-      error={error}
-      onSortChange={onSortChange}
-      onRetry={onRetry}
-      emptyState={emptyState}
-      className={className}
-    />
+    <div className="server-data-table-frame">
+      <div className="server-data-table-body">
+        <DataTable
+          columns={mapColumns(columns)}
+          data={items}
+          rowKey={rowKey}
+          sorting={
+            sorting?.field && sorting.direction
+              ? { field: sorting.field, direction: sorting.direction }
+              : sorting?.field
+                ? { field: sorting.field, direction: sorting.direction ?? "asc" }
+                : null
+          }
+          loading={loading}
+          error={error}
+          onSortChange={onSortChange}
+          onRetry={onRetry}
+          emptyState={emptyState}
+          className={className}
+        />
+      </div>
+    </div>
   );
 }

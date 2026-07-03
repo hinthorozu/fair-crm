@@ -45,6 +45,7 @@ from app.modules.data_integration.application.start_import_analyze_job import (
     StartImportAnalyzeJobCommand,
     StartImportAnalyzeJobUseCase,
 )
+from app.shared.background_jobs import run_blocking_background_task
 from app.modules.imports.domain.exceptions import (
     ImportApplyInProgressError,
     ImportAnalyzeInProgressError,
@@ -182,7 +183,7 @@ def start_import_analyze_job(
     except ForbiddenError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     db.commit()
-    background_tasks.add_task(job_runner.run_analyze, result.analyze_command)
+    background_tasks.add_task(run_blocking_background_task, job_runner.run_analyze, result.analyze_command)
     return StartImportJobResponse(
         job_id=result.job_id,
         batch_id=result.batch_id,
@@ -225,7 +226,7 @@ def start_import_apply_job(
     except ForbiddenError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     db.commit()
-    background_tasks.add_task(job_runner.run_apply, result.apply_command)
+    background_tasks.add_task(run_blocking_background_task, job_runner.run_apply, result.apply_command)
     return StartImportJobResponse(
         job_id=result.job_id,
         batch_id=result.batch_id,

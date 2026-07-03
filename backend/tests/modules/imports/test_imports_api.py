@@ -9,11 +9,8 @@ from openpyxl import Workbook
 from tests.conftest_helpers import pagination_from
 from tests.modules.imports.import_decision_helpers import apply_import_decisions
 
+from tests.conftest_customer_helpers import create_test_customer
 from app.modules.customers.domain.entities import Customer
-from app.modules.customers.domain.value_objects import CustomerSource, CustomerStatus, CustomerType
-from app.modules.customers.infrastructure.repositories.customer_repository import (
-    SqlAlchemyCustomerRepository,
-)
 from app.modules.imports.domain.services.company_name_normalizer import normalize_import_company_name
 from app.modules.imports.domain.services.header_mapping import map_header_to_field
 
@@ -47,20 +44,16 @@ def _create_customer(
     phone: str | None = None,
     country: str | None = None,
 ) -> Customer:
-    from datetime import UTC, datetime
+    from app.modules.customers.domain.entities import Customer
 
-    repo = SqlAlchemyCustomerRepository(db_session)
-    now = datetime.now(tz=UTC)
-    customer = Customer.create(
-        organization_id=organization_id,
+    return create_test_customer(
+        db_session,
+        organization_id,
         display_name=display_name,
         email=email,
         phone=phone,
         country=country,
-        source=CustomerSource.MANUAL,
-        now=now,
     )
-    return repo.add(customer)
 
 
 def test_upload_xlsx_creates_batch(client, auth_headers):

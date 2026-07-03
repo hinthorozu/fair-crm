@@ -13,9 +13,6 @@ def model_to_entity(model: CustomerModel) -> Customer:
         normalized_name=model.normalized_name,
         customer_type=CustomerType(model.customer_type),
         status=CustomerStatus(model.status),
-        website=model.website,
-        phone=model.phone,
-        email=model.email,
         tax_number=model.tax_number,
         tax_office=model.tax_office,
         country=model.country,
@@ -43,9 +40,6 @@ def entity_to_model(customer: Customer) -> CustomerModel:
         normalized_name=customer.normalized_name,
         customer_type=customer.customer_type.value,
         status=customer.status.value,
-        website=customer.website,
-        phone=customer.phone,
-        email=customer.email,
         tax_number=customer.tax_number,
         tax_office=customer.tax_office,
         country=customer.country,
@@ -70,9 +64,6 @@ def update_model_from_entity(model: CustomerModel, customer: Customer) -> None:
     model.normalized_name = customer.normalized_name
     model.customer_type = customer.customer_type.value
     model.status = customer.status.value
-    model.website = customer.website
-    model.phone = customer.phone
-    model.email = customer.email
     model.tax_number = customer.tax_number
     model.tax_office = customer.tax_office
     model.country = customer.country

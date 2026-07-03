@@ -5,6 +5,12 @@ from sqlalchemy.orm import Session, aliased
 
 from app.core.pagination import build_order_clause, build_paginated_meta, normalize_page_params
 from app.modules.contacts.infrastructure.persistence.models import ContactModel
+from app.modules.customers.infrastructure.persistence.communication_query_helpers import (
+    email_search_exists,
+    phone_search_exists,
+    primary_email_subquery,
+    primary_phone_subquery,
+)
 from app.modules.customers.infrastructure.persistence.models import CustomerModel
 from app.modules.fairs.infrastructure.persistence.models import FairModel
 from app.modules.participations.domain.entities import CustomerFairParticipation
@@ -39,16 +45,14 @@ CUSTOMER_LIST_SORT_FIELDS = {
 FAIR_LIST_SORT_FIELDS = {
     **PARTICIPATION_BASE_SORT_FIELDS,
     "company_name": CustomerModel.display_name,
-    "email": CustomerModel.email,
-    "phone": CustomerModel.phone,
+    "email": primary_email_subquery(),
+    "phone": primary_phone_subquery(),
     "country": CustomerModel.country,
     "city": CustomerModel.city,
 }
 
 FAIR_PARTICIPANT_SEARCH_FIELDS = (
     CustomerModel.display_name,
-    CustomerModel.email,
-    CustomerModel.phone,
     CustomerModel.country,
     CustomerModel.city,
     CustomerFairParticipationModel.hall,
@@ -223,8 +227,15 @@ class SqlAlchemyParticipationRepository:
     ) -> FairParticipantListResult:
         page_params = normalize_page_params(page, page_size)
         contact = aliased(ContactModel)
+        primary_phone = primary_phone_subquery()
+        primary_email = primary_email_subquery()
         query = (
-            self._session.query(CustomerFairParticipationModel, CustomerModel)
+            self._session.query(
+                CustomerFairParticipationModel,
+                CustomerModel,
+                primary_phone,
+                primary_email,
+            )
             .join(CustomerModel, CustomerFairParticipationModel.customer_id == CustomerModel.id)
             .outerjoin(contact, CustomerFairParticipationModel.primary_contact_id == contact.id)
             .filter(
@@ -240,7 +251,11 @@ class SqlAlchemyParticipationRepository:
         if search:
             pattern = f"%{search.strip()}%"
             query = query.filter(
-                or_(*[field.ilike(pattern) for field in FAIR_PARTICIPANT_SEARCH_FIELDS])
+                or_(
+                    *[field.ilike(pattern) for field in FAIR_PARTICIPANT_SEARCH_FIELDS],
+                    phone_search_exists(pattern),
+                    email_search_exists(pattern),
+                )
             )
 
         total = query.count()
@@ -256,12 +271,12 @@ class SqlAlchemyParticipationRepository:
             FairParticipantRow(
                 participation=model_to_entity(part_model),
                 company_name=customer_model.display_name,
-                email=customer_model.email,
-                phone=customer_model.phone,
+                email=primary_email_value,
+                phone=primary_phone_value,
                 country=customer_model.country,
                 city=customer_model.city,
             )
-            for part_model, customer_model in rows
+            for part_model, customer_model, primary_phone_value, primary_email_value in rows
         ]
         meta = build_paginated_meta(page_params.page, page_params.page_size, total)
         return FairParticipantListResult(

@@ -10,6 +10,7 @@ export interface PaginationBarProps {
   loading?: boolean;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
+  className?: string;
 }
 
 export function PaginationBar({
@@ -20,6 +21,7 @@ export function PaginationBar({
   loading = false,
   onPageChange,
   onPageSizeChange,
+  className,
 }: PaginationBarProps) {
   const safeTotalPages = totalPages > 0 ? totalPages : total > 0 ? 1 : 0;
   const displayTotal = Number.isFinite(total) ? total : 0;
@@ -27,7 +29,10 @@ export function PaginationBar({
   const canGoNext = safeTotalPages > 0 && page < safeTotalPages && !loading;
 
   return (
-    <div className="pagination-bar" aria-label={paginationLabels.ariaLabel}>
+    <div
+      className={["pagination-bar", className].filter(Boolean).join(" ")}
+      aria-label={paginationLabels.ariaLabel}
+    >
       <div className="pagination-info">
         <span>
           {paginationLabels.pageOf(page, safeTotalPages || 1)}
