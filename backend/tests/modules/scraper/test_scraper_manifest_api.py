@@ -1,0 +1,57 @@
+"""Tests for scraper manifest API endpoints."""
+
+from fastapi.testclient import TestClient
+
+from app.modules.scraper.types.scraper_site import ScraperSiteKey
+
+
+def test_list_scraper_manifests_endpoint_returns_adapter_list_format(client: TestClient):
+    response = client.get("/api/v1/scraper/manifests")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 2
+    assert len(payload["items"]) == 2
+
+    keys = {item["adapter_key"] for item in payload["items"]}
+    assert keys == {ScraperSiteKey.TUYAP_OLD, ScraperSiteKey.TUYAP_NEW}
+
+    new_item = next(item for item in payload["items"] if item["adapter_key"] == ScraperSiteKey.TUYAP_NEW)
+    assert new_item["display_name"] == "TÜYAP (New)"
+    assert "platform" not in new_item
+    assert "supported_sites" not in new_item
+    assert "supports" not in new_item
+    assert new_item["status"] == "stable"
+    assert new_item["version"] == "1.0.0"
+    assert new_item["last_verified"] == "2026-07-04"
+    assert "view" in new_item["actions_available"]
+    assert "run" in new_item["actions_available"]
+
+    features = {feature["key"]: feature for feature in new_item["features"]}
+    assert features["list_scraping"] == {"key": "list_scraping", "label": "List", "enabled": True}
+    assert features["detail_scraping"]["enabled"] is True
+    assert features["website"]["enabled"] is True
+
+
+def test_get_scraper_manifest_endpoint(client: TestClient):
+    response = client.get(f"/api/v1/scraper/manifests/{ScraperSiteKey.TUYAP_NEW}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["adapter_key"] == ScraperSiteKey.TUYAP_NEW
+    assert payload["display_name"] == "TÜYAP (New)"
+    assert payload["status"] == "stable"
+    assert payload["scraper_version"] == "1.0"
+    assert payload["target_site_version"] == "unknown"
+    assert payload["last_verified"] == "2026-07-04"
+    assert payload["supported_sites"] == ["foodistexpo.com", "foodist.tuyap.online"]
+    assert payload["supports"]["detail_scraping"] is True
+    assert payload["output"]["excel"] is True
+    assert payload["browser"]["requires_playwright"] is True
+
+
+def test_get_scraper_manifest_not_found(client: TestClient):
+    response = client.get("/api/v1/scraper/manifests/unknown")
+
+    assert response.status_code == 404
+    assert "No scraper manifest" in response.json()["detail"]

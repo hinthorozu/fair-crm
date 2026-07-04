@@ -1,5 +1,6 @@
 import React from "react";
-import { getFair, archiveFair, updateFair } from "../api/fairs";
+import { getFair, archiveFair, updateFair, runFairScraper } from "../api/fairs";
+import { getScraperRun, listAdapters, listScraperRuns } from "../api/scraper";
 import {
   createParticipation,
   deleteParticipation,
@@ -19,12 +20,13 @@ import {
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { LoadingState } from "../components/ui/LoadingState";
 import { Modal } from "../components/ui/Modal";
-import { FairForm, fairToFormValues, type FairFormValues } from "../components/FairForm";
+import { FairForm, fairToFormValues } from "../components/FairForm";
 import { PageHeader, type PageHeaderAction } from "../components/ui/PageHeader";
 import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { TabPanel, Tabs } from "../components/ui/Tabs";
 import { Badge } from "../components/ui/Badge";
 import { Card } from "../components/ui/Card";
+import { SectionHeader } from "../components/ui/SectionHeader";
 import {
   DetailDate,
   DetailValue,
@@ -37,7 +39,9 @@ import { importLabels } from "../labels/importLabels";
 import { uiLabels } from "../labels/uiLabels";
 import { labels } from "../labels";
 import type { Customer } from "../types/customer";
-import type { Fair } from "../types/fair";
+import type { CreateFairPayload, Fair } from "../types/fair";
+import type { AdapterListItem } from "../types/scraper";
+import { formatAdapterOptionLabel } from "../utils/fairIntegration";
 import type { FairParticipantListItem } from "../types/participation";
 import { DEFAULT_PAGE } from "../types/listTable";
 import {
@@ -83,6 +87,10 @@ export function FairDetailPage({
   const [confirmDelete, setConfirmDelete] = React.useState<FairParticipantListItem | null>(null);
   const [confirmArchive, setConfirmArchive] = React.useState(false);
   const [participantCount, setParticipantCount] = React.useState(0);
+  const [adapters, setAdapters] = React.useState<AdapterListItem[]>([]);
+  const [runningScraper, setRunningScraper] = React.useState(false);
+  const [runSuccess, setRunSuccess] = React.useState<string | null>(null);
+  const [lastImportAt, setLastImportAt] = React.useState<string | null>(null);
 
   const detailPath = `/fairs/${fairId}`;
 
@@ -105,6 +113,18 @@ export function FairDetailPage({
     [detailPath],
   );
 
+  const loadLastImport = React.useCallback(async (id: string) => {
+    try {
+      const response = await listScraperRuns({ fair_id: id, limit: 20 });
+      const latestCompleted = response.items.find(
+        (run) => run.status === "completed" && run.finished_at,
+      );
+      setLastImportAt(latestCompleted?.finished_at ?? null);
+    } catch {
+      // best-effort
+    }
+  }, []);
+
   const loadFair = React.useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -112,12 +132,13 @@ export function FairDetailPage({
       const data = await getFair(fairId);
       setFair(data);
       onFairLoaded?.(data.name);
+      void loadLastImport(fairId);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Fuar yüklenemedi.");
     } finally {
       setLoading(false);
     }
-  }, [fairId, onFairLoaded]);
+  }, [fairId, loadLastImport, onFairLoaded]);
 
   const loadCustomersForForm = React.useCallback(async () => {
     try {
@@ -131,6 +152,14 @@ export function FairDetailPage({
   React.useEffect(() => {
     void loadFair();
   }, [loadFair]);
+
+  React.useEffect(() => {
+    void listAdapters()
+      .then((response) => setAdapters(response.items))
+      .catch(() => {
+        // Adapter labels fall back to adapter_key on detail view.
+      });
+  }, []);
 
   React.useEffect(() => {
     const onPopState = () => setActiveTabState(tabFromUrl());
@@ -191,6 +220,62 @@ export function FairDetailPage({
 
   const participantTotal = participantCount;
 
+  const handleUpdateFair = async (values: CreateFairPayload) => {
+    await updateFair(fairId, values);
+    setModal(null);
+    await loadFair();
+  };
+
+  const adapterDisplay = React.useMemo(() => {
+    if (!fair?.adapter_key) return null;
+    const match = adapters.find((adapter) => adapter.adapter_key === fair.adapter_key);
+    if (match) {
+      return formatAdapterOptionLabel(match.display_name, match.adapter_key);
+    }
+    return fair.adapter_key;
+  }, [adapters, fair?.adapter_key]);
+
+  const scraperConfigDisplay = React.useMemo(() => {
+    if (!fair?.scraper_config || Object.keys(fair.scraper_config).length === 0) {
+      return null;
+    }
+    return JSON.stringify(fair.scraper_config, null, 2);
+  }, [fair?.scraper_config]);
+
+  const canRunScraper =
+    Boolean(fair?.adapter_key?.trim() && fair?.source_url?.trim()) &&
+    fair?.status !== "archived" &&
+    fair?.deleted_at == null;
+
+  const pollScraperRun = React.useCallback(async (runId: string) => {
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 2000));
+      const run = await getScraperRun(runId);
+      if (run.status === "completed") {
+        setLastImportAt(run.finished_at);
+        return;
+      }
+      if (run.status === "failed") {
+        throw new ApiError(run.error_message || fairLabels.runScraperError, 500);
+      }
+    }
+  }, []);
+
+  const handleRunScraper = async () => {
+    setRunningScraper(true);
+    setRunSuccess(null);
+    setError(null);
+    try {
+      const run = await runFairScraper(fairId);
+      setRunSuccess(fairLabels.runScraperSuccess);
+      await pollScraperRun(run.id);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : fairLabels.runScraperError);
+    } finally {
+      setRunningScraper(false);
+    }
+  };
+
   const tabItems = [
     { id: "overview" as const, label: uiLabels.tabOverview },
     {
@@ -214,12 +299,6 @@ export function FairDetailPage({
       </div>
     );
   }
-
-  const handleUpdateFair = async (values: FairFormValues) => {
-    await updateFair(fairId, values);
-    setModal(null);
-    await loadFair();
-  };
 
   const handleArchiveFair = async () => {
     setArchiving(true);
@@ -298,6 +377,7 @@ export function FairDetailPage({
 
       <Tabs items={tabItems} active={activeTab} onChange={setActiveTab} />
 
+      {runSuccess && <div className="banner success">{runSuccess}</div>}
       {error && <div className="banner error">{error}</div>}
 
       <TabPanel id="panel-fair-overview" labelledBy="tab-overview" active={activeTab === "overview"}>
@@ -357,6 +437,48 @@ export function FairDetailPage({
               <dt>{labels.description}</dt>
               <dd className="detail-multiline">
                 <DetailValue value={fair.description} />
+              </dd>
+            </div>
+          </dl>
+        </Card>
+
+        <Card className="detail-card-spaced">
+          <SectionHeader
+            title={fairLabels.dataIntegration}
+            actions={
+              <button
+                type="button"
+                className="btn primary"
+                disabled={!canRunScraper || runningScraper}
+                onClick={() => void handleRunScraper()}
+              >
+                {runningScraper ? fairLabels.runScraperRunning : fairLabels.runScraper}
+              </button>
+            }
+          />
+          <dl className="detail-grid">
+            <div>
+              <dt>{fairLabels.adapter}</dt>
+              <dd>
+                <DetailValue value={adapterDisplay} />
+              </dd>
+            </div>
+            <div>
+              <dt>{fairLabels.sourceUrl}</dt>
+              <dd>
+                <DetailWebsite value={fair.source_url} />
+              </dd>
+            </div>
+            <div>
+              <dt>{fairLabels.lastImport}</dt>
+              <dd>
+                <DetailDate value={lastImportAt} />
+              </dd>
+            </div>
+            <div className="full-width">
+              <dt>{fairLabels.scraperConfig}</dt>
+              <dd className="detail-multiline">
+                <DetailValue value={scraperConfigDisplay} />
               </dd>
             </div>
           </dl>

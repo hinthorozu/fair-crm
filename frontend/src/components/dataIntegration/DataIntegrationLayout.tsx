@@ -28,6 +28,7 @@ export function DataIntegrationLayout({
     { id: "new", label: dataIntegrationLabels.navNewImport, path: "/data-integration/imports/new" },
     { id: "jobs", label: dataIntegrationLabels.navJobs, path: "/data-integration/jobs" },
     { id: "reports", label: dataIntegrationLabels.navReports, path: "/data-integration/reports" },
+    { id: "adapters", label: dataIntegrationLabels.navAdapters, path: "/data-integration/adapters" },
   ];
 
   return (

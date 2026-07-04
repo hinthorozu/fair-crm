@@ -72,6 +72,25 @@ class Settings(BaseSettings):
         default=100,
         validation_alias="FAIR_CRM_SLOW_QUERY_MS",
     )
+    scraper_browser_headless: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("SCRAPER_BROWSER_HEADLESS", "FAIR_CRM_SCRAPER_BROWSER_HEADLESS"),
+    )
+    scraper_browser_timeout_ms: int = Field(
+        default=30_000,
+        validation_alias=AliasChoices("SCRAPER_BROWSER_TIMEOUT_MS", "FAIR_CRM_SCRAPER_BROWSER_TIMEOUT_MS"),
+    )
+    scraper_browser_user_agent: str = Field(
+        default=(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+        ),
+        validation_alias=AliasChoices("SCRAPER_BROWSER_USER_AGENT", "FAIR_CRM_SCRAPER_BROWSER_USER_AGENT"),
+    )
+    scraper_browser_channel: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("SCRAPER_BROWSER_CHANNEL", "FAIR_CRM_SCRAPER_BROWSER_CHANNEL"),
+    )
 
 
 @lru_cache

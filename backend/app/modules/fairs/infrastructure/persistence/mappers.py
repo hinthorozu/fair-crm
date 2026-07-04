@@ -24,6 +24,9 @@ def model_to_entity(model: FairModel) -> Fair:
         archived_from_status=(
             FairStatus(model.archived_from_status) if model.archived_from_status else None
         ),
+        adapter_key=model.adapter_key,
+        source_url=model.source_url,
+        scraper_config=model.scraper_config,
     )
 
 
@@ -48,6 +51,9 @@ def entity_to_model(fair: Fair) -> FairModel:
         archived_from_status=(
             fair.archived_from_status.value if fair.archived_from_status else None
         ),
+        adapter_key=fair.adapter_key,
+        source_url=fair.source_url,
+        scraper_config=fair.scraper_config,
     )
 
 
@@ -68,3 +74,6 @@ def update_model_from_entity(model: FairModel, fair: Fair) -> None:
     model.archived_from_status = (
         fair.archived_from_status.value if fair.archived_from_status else None
     )
+    model.adapter_key = fair.adapter_key
+    model.source_url = fair.source_url
+    model.scraper_config = fair.scraper_config

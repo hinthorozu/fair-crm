@@ -13,6 +13,9 @@ export interface Fair {
   website: string | null;
   status: FairStatus;
   description: string | null;
+  adapter_key: string | null;
+  source_url: string | null;
+  scraper_config: Record<string, unknown> | null;
   normalized_name: string;
   created_at: string;
   updated_at: string;
@@ -38,6 +41,9 @@ export interface CreateFairPayload {
   website?: string | null;
   status?: FairStatus;
   description?: string | null;
+  adapter_key?: string | null;
+  source_url?: string | null;
+  scraper_config?: Record<string, unknown> | null;
 }
 
 export type UpdateFairPayload = Partial<CreateFairPayload>;

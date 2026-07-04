@@ -1,0 +1,9 @@
+total=490
+email_filled=1
+phone_filled=183
+website_any=490
+website_real=0
+empty_name=0
+dup_names=0
+website_top=[('https://fonts.googleapis.com', 490)]
+sample_real_websites=[]

@@ -1,21 +1,38 @@
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Optional
+from typing import Any, Optional
 from uuid import UUID, uuid4
 
 from app.modules.fairs.domain.exceptions import (
     FairAlreadyArchivedError,
     FairNotArchivedError,
+    InvalidFairAdapterConfigError,
     InvalidFairDateRangeError,
     InvalidFairNameError,
+    InvalidFairSourceUrlError,
 )
-from app.modules.fairs.domain.services.normalizers import compute_normalized_name, normalize_website
+from app.modules.fairs.domain.services.normalizers import (
+    compute_normalized_name,
+    normalize_adapter_key,
+    normalize_source_url,
+    normalize_website,
+)
 from app.modules.fairs.domain.value_objects import FairStatus
 
 
 def _validate_date_range(start_date: Optional[date], end_date: Optional[date]) -> None:
     if start_date and end_date and end_date < start_date:
         raise InvalidFairDateRangeError("end_date must not be before start_date")
+
+
+def _validate_adapter_fields(
+    adapter_key: Optional[str],
+    source_url: Optional[str],
+) -> None:
+    if adapter_key and not source_url:
+        raise InvalidFairAdapterConfigError("source_url is required when adapter_key is set")
+    if source_url:
+        normalize_source_url(source_url)
 
 
 @dataclass
@@ -37,6 +54,9 @@ class Fair:
     updated_at: datetime
     deleted_at: Optional[datetime]
     archived_from_status: Optional[FairStatus] = None
+    adapter_key: Optional[str] = None
+    source_url: Optional[str] = None
+    scraper_config: Optional[dict[str, Any]] = None
 
     @classmethod
     def create(
@@ -53,6 +73,9 @@ class Fair:
         website: Optional[str] = None,
         status: FairStatus = FairStatus.PLANNED,
         description: Optional[str] = None,
+        adapter_key: Optional[str] = None,
+        source_url: Optional[str] = None,
+        scraper_config: Optional[dict[str, Any]] = None,
         now: datetime,
     ) -> "Fair":
         trimmed_name = name.strip()
@@ -60,6 +83,10 @@ class Fair:
             raise InvalidFairNameError("name must not be empty")
 
         _validate_date_range(start_date, end_date)
+
+        normalized_adapter_key = normalize_adapter_key(adapter_key)
+        normalized_source_url = normalize_source_url(source_url) if source_url else None
+        _validate_adapter_fields(normalized_adapter_key, normalized_source_url)
 
         return cls(
             id=uuid4(),
@@ -79,6 +106,9 @@ class Fair:
             updated_at=now,
             deleted_at=None,
             archived_from_status=None,
+            adapter_key=normalized_adapter_key,
+            source_url=normalized_source_url,
+            scraper_config=scraper_config,
         )
 
     def ensure_mutable(self) -> None:
@@ -98,6 +128,9 @@ class Fair:
         website: Optional[str] = None,
         status: Optional[FairStatus] = None,
         description: Optional[str] = None,
+        adapter_key: Optional[str] = None,
+        source_url: Optional[str] = None,
+        scraper_config: Optional[dict[str, Any]] = None,
         now: datetime,
         clear_start_date: bool = False,
         clear_end_date: bool = False,
@@ -134,6 +167,15 @@ class Fair:
             self.status = status
         if description is not None:
             self.description = description.strip() if description else None
+
+        if adapter_key is not None:
+            self.adapter_key = normalize_adapter_key(adapter_key)
+        if source_url is not None:
+            self.source_url = normalize_source_url(source_url) if source_url else None
+        if scraper_config is not None:
+            self.scraper_config = scraper_config
+
+        _validate_adapter_fields(self.adapter_key, self.source_url)
 
         self.updated_at = now
 

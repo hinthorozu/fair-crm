@@ -19,8 +19,14 @@ from app.modules.fairs.application.create_fair import CreateFairUseCase
 from app.modules.fairs.application.get_fair import GetFairUseCase
 from app.modules.fairs.application.list_fairs import ListFairsUseCase
 from app.modules.fairs.application.restore_fair import RestoreFairUseCase
+from app.modules.fairs.application.run_fair_scraper import RunFairScraperUseCase
 from app.modules.fairs.application.update_fair import UpdateFairUseCase
 from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
+from app.modules.scraper.application.fair_scraper_job_runner import FairScraperJobRunner
+from app.modules.scraper.services.scraper_run_history_service import (
+    ScraperRunHistoryService,
+    create_run_history_service,
+)
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -117,3 +123,21 @@ def get_restore_fair_use_case(
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
 ) -> RestoreFairUseCase:
     return RestoreFairUseCase(repository, authorization, audit)
+
+
+def get_scraper_run_history_service(db: Session = Depends(get_db)) -> ScraperRunHistoryService:
+    return create_run_history_service(db)
+
+
+_fair_scraper_job_runner = FairScraperJobRunner()
+
+
+def get_fair_scraper_job_runner() -> FairScraperJobRunner:
+    return _fair_scraper_job_runner
+
+
+def get_run_fair_scraper_use_case(
+    repository: SqlAlchemyFairRepository = Depends(get_fair_repository),
+    run_history_service: ScraperRunHistoryService = Depends(get_scraper_run_history_service),
+) -> RunFairScraperUseCase:
+    return RunFairScraperUseCase(repository, run_history_service)

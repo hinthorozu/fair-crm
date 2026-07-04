@@ -13,3 +13,8 @@ class ScraperContext:
     list_url: str | None = None
     options: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def url(self) -> str | None:
+        """Target exhibitor list URL (alias for ``list_url``)."""
+        return self.list_url

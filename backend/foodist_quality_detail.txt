@@ -1,0 +1,9 @@
+with_website=172
+without_website=318
+valid_with_website=144
+invalid_with_website=28
+parser_accuracy_among_filled=100.0%
+validation_rate_among_filled=83.7%
+missing_country_count=1
+missing_country_samples=['BR BRAVO NUTS COMPANY Ürdün']
+invalid_website_samples=[('ADY GRUP GIDA SANAYİ VE TİCARET LİMİTED ŞİRKETİ', 'https://www.natyyror.com.tr', False), ('AGROZAN TARIM ÜRN.GIDA ÜRN.İTH.İHR.SAN.TİC.LTD.ŞTİ.', 'https://www.agrozan.com', False), ('AKTÜRK SAĞLIK GIDA ELK.NAK.SAN.VE TİC.LTD.ŞTİ.', 'https://www.akturgroup.com.tr', False), ('AROMSA', 'https://www.aromsa.com/tr', False), ('AROMSA BESİN AROMA VE KATKI MAD.SAN. VE TİC.A.Ş', 'https://www.aromsa.com/', False), ('BAOTOU XINGUANGYUAN TRADING CO., LTD', 'https://www.btsxgy.com', False), ('DALY GIDA KİMYA İLAÇ AMBALAJ SANAYİ VE TİCARET LİMİTED ŞİRKETİ', 'https://www.dalygida.com', False), ('DEĞİRMENCİ GIDA SAN. VE TİC. LTD. ŞTİ', 'https://www.goksenhelva.com', False), ('USLU TARIM ÜRÜNLERİ VE İNŞAAT MALZEMELERİ SAN. VE TİC. LTD. ŞTİ.', 'https://www.uslufindik.com.tr', False), ('SEYRAN GIDA SAN.TIC.A.S.', 'https://www.seyran.com.tr', False)]

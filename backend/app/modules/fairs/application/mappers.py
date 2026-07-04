@@ -21,6 +21,9 @@ def fair_to_result(fair: Fair) -> FairResult:
         created_at=fair.created_at,
         updated_at=fair.updated_at,
         deleted_at=fair.deleted_at,
+        adapter_key=fair.adapter_key,
+        source_url=fair.source_url,
+        scraper_config=fair.scraper_config,
     )
 
 

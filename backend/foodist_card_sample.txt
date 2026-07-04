@@ -1,0 +1,37 @@
+count=12
+href=brand/2a-akuzum-otomotiv-as
+2A 2A AKÜZÜM OTOMOTİV A.Ş. Türkı̇ye Detaylı İncele Salon: 12 Stant: 1232A
+---
+href=brand/44-beydag-peynircilik-gida-sanayi-tic-as
+44 BEYDAĞ PEYNİRCİLİK GIDA SANAYİ TİC. A.Ş. Türkı̇ye Detaylı İncele Salon: 8 Stant: 819B
+---
+href=brand/4el-gida-san-ve-tic-ltd-sti
+4EL GIDA SAN. VE TİC. LTD. ŞTİ. Türkı̇ye Markalar Torita Tortillas Detaylı İncele Salon: 7 Stant: 761B
+---
+href=brand/aaksular-gida-ticve-san-as
+A.AKSULAR GIDA TİC.VE SAN. A.Ş. Türkı̇ye Markalar aly Detaylı İncele Salon: 8 Stant: 835
+---
+href=brand/abdurrahman-tatlici-gida-san-ve-tic-ltd-sti
+ABDURRAHMAN TATLICI GIDA SAN. VE TİC. LTD. ŞTİ. Türkı̇ye Markalar TADIBU Detaylı İncele Salon: 3 Stant: 302A
+---
+href=brand/abey-gida-turizm-ve-dis-tic-as
+AB ABEY GIDA TURİZM VE DIŞ TİC. A.Ş. Türkı̇ye Detaylı İncele Salon: 11 Stant: 1103B
+---
+href=brand/acemoglu-gida-sanayi-ve-ticaret-anonim-sirketi
+ACEMOĞLU GIDA SANAYİ VE TİCARET ANONİM ŞİRKETİ Türkı̇ye Markalar ÖNCÜ Temsilcilikler ÖNCÜ GMBH Detaylı İncele Salon: 7 Stant: 731A
+---
+href=brand/ada-food-gida-sanayi-ve-ticaret-as
+ADA FOOD GIDA SANAYİ VE TİCARET A.Ş. Türkı̇ye Markalar ADA PURE, DOLCEZZA, PASTA ROSSO, INO, ADA Detaylı İncele Salon: 7 Stant: 701A
+---
+href=brand/adalilar-kuruyemis-anonim-sirketi
+AD ADALILAR KURUYEMİŞ ANONİM ŞİRKETİ Türkı̇ye Detaylı İncele Salon: 3 Stant: 317
+---
+href=brand/ady-grup-gida-sanayi-ve-ticaret-limited-sirketi
+ADY GRUP GIDA SANAYİ VE TİCARET LİMİTED ŞİRKETİ Türkı̇ye Detaylı İncele Salon: 10 Stant: 1006B
+---
+href=brand/agro-seeds-gida-sanve-ticltdsti
+AG AGRO SEEDS GIDA SAN.VE TİC.LTD.ŞTİ. Türkı̇ye Detaylı İncele Salon: 3 Stant: 318C
+---
+href=brand/agroder-hububat-bakliyat-gida-san-ic-ve-dis-tic-ltd-sti
+AGRODER HUBUBAT BAKLİYAT GIDA SAN. İÇ VE DIŞ TİC. LTD. ŞTİ. Türkı̇ye Markalar KOOP Detaylı İncele Salon: 8 Stant: 819A
+---

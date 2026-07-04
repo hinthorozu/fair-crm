@@ -5,6 +5,8 @@ from enum import StrEnum
 
 class ScraperSiteKey(StrEnum):
     TUYAP = "tuyap"
+    TUYAP_OLD = "tuyap_old"
+    TUYAP_NEW = "tuyap_new"
     IFM = "ifm"
     HANNOVER = "hannover"
     CANTON = "canton"

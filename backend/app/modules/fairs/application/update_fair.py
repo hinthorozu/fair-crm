@@ -47,6 +47,9 @@ class UpdateFairUseCase:
             website=command.website,
             status=command.status,
             description=command.description,
+            adapter_key=command.adapter_key,
+            source_url=command.source_url,
+            scraper_config=command.scraper_config,
             now=now,
         )
 

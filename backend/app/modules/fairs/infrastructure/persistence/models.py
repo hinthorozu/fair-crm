@@ -1,10 +1,15 @@
 from datetime import date, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import Date, DateTime, String, Text, Uuid
+from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.types import JSON
 
 from app.db.base import Base
+
+JsonType = JSON().with_variant(SQLiteJSON(), "sqlite")
 
 
 class FairModel(Base):
@@ -27,3 +32,6 @@ class FairModel(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     archived_from_status: Mapped[str | None] = mapped_column(String(32))
+    adapter_key: Mapped[str | None] = mapped_column(String(100), index=True)
+    source_url: Mapped[str | None] = mapped_column(Text())
+    scraper_config: Mapped[dict[str, Any] | None] = mapped_column(JsonType)

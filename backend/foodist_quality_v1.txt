@@ -1,0 +1,13 @@
+total=490
+country_populated=489
+country_in_company_name=0
+company_name_nonempty=490
+duplicate_names=0
+website_filled=172
+bad_website_count=0
+website_valid_true=144
+website_valid_false=346
+detail_scraped=490
+hall_and_stand_filled=490
+top_websites=[('', 318), ('https://WWW.ALHAMWI.COM.UA', 2), ('https://www.bilken.com.tr', 2), ('https://www.turkmenmakarna.com', 2), ('https://www.monteida.com', 2)]
+excel_headers=['company_name', 'normalized_company_name', 'country', 'city', 'hall', 'stand', 'website', 'email', 'phone', 'address', 'category', 'description', 'source_url', 'detail_scraped', 'website_valid']

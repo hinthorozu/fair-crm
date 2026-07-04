@@ -1,0 +1,13 @@
+JSON exists: yes (C:\Users\hinthorozu\Projects\KYROX\fair-crm\backend\foodist_handoff.json)
+Total records (canonical_rows): 490
+Email filled: 1
+Website filled: 490
+Phone filled: 183
+Empty company_name: 0
+Duplicate company_name count: 0
+Excel exists: yes (C:\Users\hinthorozu\Projects\KYROX\fair-crm\backend\foodist_companies.xlsx)
+Excel rows (excl header): 490
+Excel columns: ['company_name', 'normalized_company_name', 'country', 'city', 'hall', 'stand', 'website', 'email', 'phone', 'address', 'category', 'description', 'source_url']
+Log exists: yes
+Log ERROR/Traceback lines: 0
+Log WARNING lines: 0

@@ -16,6 +16,23 @@ export const fairLabels = {
   venue: "Mekan",
   start_date: "Başlangıç Tarihi",
   end_date: "Bitiş Tarihi",
+  dataIntegration: "Veri Entegrasyonu",
+  adapter: "Adapter",
+  sourceUrl: "Source URL",
+  scraperConfig: "Scraper Config",
+  lastImport: "Son Import",
+  adapterNone: "Adapter seçilmedi",
+  adapterSearchPlaceholder: "Adapter ara…",
+  adapterNoResults: "Adapter bulunamadı.",
+  adapterLoadError: "Adapter listesi yüklenemedi.",
+  sourceUrlRequired: "Adapter seçildiğinde Source URL zorunludur.",
+  sourceUrlInvalid: "Source URL geçerli bir http veya https adresi olmalıdır.",
+  scraperConfigInvalid: "Scraper Config geçerli bir JSON nesnesi olmalıdır.",
+  scraperConfigPlaceholder: '{"pagination": {"page_size": 50}}',
+  runScraper: "Çalıştır",
+  runScraperSuccess: "Adapter çalıştırması başlatıldı.",
+  runScraperError: "Adapter çalıştırılamadı.",
+  runScraperRunning: "Çalışıyor…",
 } as const;
 
 export const fairStatusLabels: Record<string, string> = {

@@ -1,0 +1,243 @@
+"""Background scraper execution for fair-linked runs."""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Any
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from app.core.config import get_settings
+from app.db.session import SessionLocal
+from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
+from app.modules.scraper.adapters import register_builtin_adapters
+from app.modules.scraper.core.browser_service import BrowserConfig, BrowserService, create_browser_service
+from app.modules.scraper.core.scraper_registry import ScraperAdapterRegistry
+from app.modules.scraper.core.scraper_run_logger import CappedWarningRunLogger, DbScraperRunLogger, ScraperRunLogger
+from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportExporter, ScraperImportHandoff
+from app.modules.scraper.infrastructure.handoff_storage import write_handoff_json
+from app.modules.scraper.normalizers.company_normalizer import CompanyNormalizer
+from app.modules.scraper.services.scraper_run_history_service import (
+    ScraperRunHistoryService,
+    create_run_history_service,
+)
+from app.modules.scraper.services.scraper_run_log_service import create_run_log_service
+from app.modules.scraper.types.scraper_context import ScraperContext
+from app.modules.scraper.types.scraper_result import ScraperResult
+from app.modules.scraper.validators.website_validator import clear_validation_cache
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class FairScraperJobCommand:
+    run_id: UUID
+    organization_id: UUID
+    fair_id: UUID
+
+
+def _fair_year_from_start_date(start_date) -> int | None:
+    return start_date.year if start_date is not None else None
+
+
+def _build_scraper_context(
+    *,
+    fair_id: UUID,
+    source_url: str,
+    fair_name: str,
+    fair_year: int | None,
+    scraper_config: dict[str, Any] | None,
+    run_logger: ScraperRunLogger,
+) -> ScraperContext:
+    metadata: dict[str, Any] = {"fair_name": fair_name}
+    if fair_year is not None:
+        metadata["fair_year"] = fair_year
+
+    options: dict[str, Any] = dict(scraper_config or {})
+    options["run_logger"] = run_logger
+
+    return ScraperContext(
+        fair_id=fair_id,
+        list_url=source_url,
+        options=options,
+        metadata=metadata,
+    )
+
+
+async def _scrape_and_export(
+    *,
+    adapter_key: str,
+    context: ScraperContext,
+    fair_name: str,
+    fair_year: int | None,
+    source_url: str,
+    run_logger: ScraperRunLogger,
+    browser: BrowserService,
+) -> ScraperImportHandoff:
+    registry = ScraperAdapterRegistry()
+    register_builtin_adapters(registry, browser=browser)
+    adapter = registry.get(adapter_key)
+    normalizer = CompanyNormalizer()
+
+    raw_rows = await adapter.scrape_async(context)
+    normalized, warnings = normalizer.normalize_many(raw_rows)
+    for warning in warnings:
+        run_logger.warning("detail_scrape_progress", warning)
+
+    result = ScraperResult(
+        site_key=adapter.site_key,
+        fair_id=context.fair_id,
+        companies=normalized,
+        raw_count=len(raw_rows),
+        normalized_count=len(normalized),
+        errors=[],
+        warnings=warnings,
+        metadata={"adapter": adapter.display_name, **context.metadata},
+        scraped_at=datetime.now(UTC),
+    )
+    return ScraperImportExporter().export(
+        result,
+        fair_name=fair_name,
+        fair_year=fair_year,
+        source_url=source_url,
+    )
+
+
+class FairScraperJobRunner:
+    def __init__(
+        self,
+        session_factory: Callable[[], Session] | None = None,
+        scrape_executor: Callable[..., ScraperImportHandoff] | None = None,
+    ) -> None:
+        self._session_factory = session_factory or SessionLocal
+        self._scrape_executor = scrape_executor
+
+    def run_fair_scraper(self, command: FairScraperJobCommand) -> None:
+        db = self._session_factory()
+        run_logger: ScraperRunLogger | None = None
+        try:
+            fair_repo = SqlAlchemyFairRepository(db)
+            fair = fair_repo.get_by_id(command.organization_id, command.fair_id)
+            if fair is None:
+                logger.warning("Fair not found for scraper run id=%s fair_id=%s", command.run_id, command.fair_id)
+                return
+
+            adapter_key = (fair.adapter_key or "").strip()
+            source_url = (fair.source_url or "").strip()
+            if not adapter_key or not source_url:
+                self._fail_run(db, command.run_id, "Adapter or source URL is not configured")
+                return
+
+            history_service = create_run_history_service(db)
+            log_service = create_run_log_service(db)
+            run_logger = CappedWarningRunLogger(
+                DbScraperRunLogger(command.run_id, log_service, db),
+            )
+            fair_year = _fair_year_from_start_date(fair.start_date)
+            context = _build_scraper_context(
+                fair_id=fair.id,
+                source_url=source_url,
+                fair_name=fair.name,
+                fair_year=fair_year,
+                scraper_config=fair.scraper_config,
+                run_logger=run_logger,
+            )
+            run_logger.info(
+                "started",
+                f"{adapter_key} adapter çalışıyor",
+                metadata={"adapter_key": adapter_key, "url": source_url, "fair_id": str(fair.id)},
+            )
+            db.commit()
+
+            clear_validation_cache()
+            if self._scrape_executor is not None:
+                handoff = self._scrape_executor(
+                    adapter_key=adapter_key,
+                    context=context,
+                    fair_name=fair.name,
+                    fair_year=fair_year,
+                    source_url=source_url,
+                    run_logger=run_logger,
+                )
+            else:
+                handoff = asyncio.run(
+                    self._execute_with_browser(
+                        adapter_key=adapter_key,
+                        context=context,
+                        fair_name=fair.name,
+                        fair_year=fair_year,
+                        source_url=source_url,
+                        run_logger=run_logger,
+                    )
+                )
+
+            output_path = write_handoff_json(
+                handoff,
+                command.run_id,
+                adapter_key=adapter_key,
+                fair_id=fair.id,
+                source_url=source_url,
+                run_logger=run_logger,
+            )
+            if isinstance(run_logger, CappedWarningRunLogger):
+                run_logger.flush_suppressed_warnings()
+            total_rows = len(handoff.canonical_rows or [])
+            run_logger.success(
+                "completed",
+                f"{total_rows} kayıt tamamlandı",
+                metadata={"total_rows": total_rows},
+            )
+            history_service.complete_run(
+                command.run_id,
+                handoff=handoff,
+                output_json_path=output_path,
+            )
+            db.commit()
+            logger.info("Completed fair scraper run id=%s rows=%s", command.run_id, total_rows)
+        except Exception as exc:
+            logger.exception("Fair scraper run failed id=%s", command.run_id)
+            if run_logger is not None:
+                if isinstance(run_logger, CappedWarningRunLogger):
+                    run_logger.flush_suppressed_warnings()
+                run_logger.error("failed", str(exc))
+            self._fail_run(db, command.run_id, str(exc))
+        finally:
+            db.close()
+
+    async def _execute_with_browser(
+        self,
+        *,
+        adapter_key: str,
+        context: ScraperContext,
+        fair_name: str,
+        fair_year: int | None,
+        source_url: str,
+        run_logger: ScraperRunLogger,
+    ) -> ScraperImportHandoff:
+        settings = get_settings()
+        browser_config = BrowserConfig.from_settings(settings)
+        browser = create_browser_service(browser_config)
+        async with browser:
+            return await _scrape_and_export(
+                adapter_key=adapter_key,
+                context=context,
+                fair_name=fair_name,
+                fair_year=fair_year,
+                source_url=source_url,
+                run_logger=run_logger,
+                browser=browser,
+            )
+
+    def _fail_run(self, db: Session, run_id: UUID, error_message: str) -> None:
+        try:
+            history_service = create_run_history_service(db)
+            history_service.fail_run(run_id, error_message=error_message)
+            db.commit()
+        except Exception:
+            logger.exception("Failed to record scraper run failure id=%s", run_id)
+            db.rollback()

@@ -3,6 +3,7 @@ import { apiRequest, ApiError, formatApiErrorMessage } from "./client";
 import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
 import type { StandardListResponse } from "../types/listTable";
 import type { CreateFairPayload, Fair, UpdateFairPayload, FairStatus } from "../types/fair";
+import type { ScraperRun } from "../types/scraper";
 
 export interface ListFairsParams extends Partial<ServerTableFetchParams> {
   status?: FairStatus;
@@ -47,6 +48,12 @@ export function updateFair(id: string, payload: UpdateFairPayload): Promise<Fair
 export function archiveFair(id: string): Promise<Fair> {
   return apiRequest<Fair>(`/api/v1/fairs/${id}`, {
     method: "DELETE",
+  });
+}
+
+export function runFairScraper(fairId: string): Promise<ScraperRun> {
+  return apiRequest<ScraperRun>(`/api/v1/fairs/${encodeURIComponent(fairId)}/run`, {
+    method: "POST",
   });
 }
 

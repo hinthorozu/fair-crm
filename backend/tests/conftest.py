@@ -65,6 +65,9 @@ from app.modules.participations.api.dependencies import (
 from app.modules.participations.infrastructure.persistence.models import (  # noqa: F401
     CustomerFairParticipationModel,
 )
+from app.modules.scraper.infrastructure.persistence.models import ScraperRunHistoryModel  # noqa: F401
+from app.modules.scraper.infrastructure.persistence.models import ScraperRunLogModel  # noqa: F401
+from app.modules.scraper.infrastructure.persistence.models import ScraperAdapterModel  # noqa: F401
 
 
 class AllowAllAuthorization(AuthorizationPort):

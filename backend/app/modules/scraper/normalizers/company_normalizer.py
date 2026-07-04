@@ -18,6 +18,10 @@ class CompanyNormalizer:
         company_name = _clean(raw.company_name)
         if not company_name:
             return None
+        metadata = dict(raw.metadata) if raw.metadata else {}
+        if raw.extra_fields:
+            metadata.update(raw.extra_fields)
+
         return NormalizedCompanyDto(
             company_name=company_name,
             email=_clean(raw.email),
@@ -39,7 +43,7 @@ class CompanyNormalizer:
             hall=_clean(raw.hall),
             stand=_clean(raw.stand),
             source_url=_clean(raw.source_url),
-            metadata=dict(raw.metadata) if raw.metadata else None,
+            metadata=metadata or None,
         )
 
     def normalize_many(self, rows: list[RawCompanyDto]) -> tuple[list[NormalizedCompanyDto], list[str]]:

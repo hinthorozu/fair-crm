@@ -1,5 +1,8 @@
 import re
 import unicodedata
+from urllib.parse import urlparse
+
+from app.modules.fairs.domain.exceptions import InvalidFairSourceUrlError
 
 TURKISH_CHAR_MAP = str.maketrans(
     {
@@ -46,3 +49,22 @@ def normalize_website(value: str) -> str:
 
 def compute_normalized_name(*, name: str) -> str:
     return normalize_fair_name(name)
+
+
+def normalize_adapter_key(value: str | None) -> str | None:
+    if value is None:
+        return None
+    text = value.strip().lower()
+    return text or None
+
+
+def normalize_source_url(value: str | None) -> str | None:
+    if value is None:
+        return None
+    text = value.strip()
+    if not text:
+        return None
+    parsed = urlparse(text)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise InvalidFairSourceUrlError("source_url must be a valid http or https URL")
+    return text

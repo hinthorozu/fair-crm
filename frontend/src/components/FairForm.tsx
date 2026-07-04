@@ -1,10 +1,18 @@
 import React from "react";
-import type { Fair, CreateFairPayload, FairStatus } from "../types/fair";
+import type { CreateFairPayload, Fair, FairStatus } from "../types/fair";
 import { fairLabels, fairStatusLabels } from "../labels/fairLabels";
 import { labels } from "../labels";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
+import { AdapterSelect } from "./AdapterSelect";
+import {
+  isValidSourceUrl,
+  parseScraperConfigJson,
+  scraperConfigToJsonText,
+} from "../utils/fairIntegration";
 
-export type FairFormValues = CreateFairPayload;
+export type FairFormValues = CreateFairPayload & {
+  scraper_config_json: string;
+};
 
 const emptyForm = (): FairFormValues => ({
   name: "",
@@ -17,6 +25,9 @@ const emptyForm = (): FairFormValues => ({
   website: "",
   status: "planned",
   description: "",
+  adapter_key: "",
+  source_url: "",
+  scraper_config_json: "",
 });
 
 export function fairToFormValues(fair: Fair): FairFormValues {
@@ -31,6 +42,9 @@ export function fairToFormValues(fair: Fair): FairFormValues {
     website: fair.website ?? "",
     status: fair.status === "archived" ? "planned" : fair.status,
     description: fair.description ?? "",
+    adapter_key: fair.adapter_key ?? "",
+    source_url: fair.source_url ?? "",
+    scraper_config_json: scraperConfigToJsonText(fair.scraper_config),
   };
 }
 
@@ -41,7 +55,7 @@ const statusOptions: FairStatus[] = ["planned", "active", "completed", "cancelle
 interface FairFormProps {
   initial?: FairFormValues;
   submitLabel: string;
-  onSubmit: (values: FairFormValues) => Promise<void>;
+  onSubmit: (values: CreateFairPayload) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -63,17 +77,44 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
     setValues((prev) => ({ ...prev, [field]: value }));
   };
 
+  const adapterSelected = Boolean(values.adapter_key?.trim());
+  const sourceUrlRequired = adapterSelected;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!values.name.trim()) {
       setError(fairLabels.nameRequired);
       return;
     }
+
+    const adapterKey = values.adapter_key?.trim() || null;
+    const sourceUrlRaw = values.source_url?.trim() ?? "";
+    const sourceUrl = sourceUrlRaw || null;
+
+    if (adapterKey && !sourceUrl) {
+      setError(fairLabels.sourceUrlRequired);
+      return;
+    }
+    if (sourceUrl && !isValidSourceUrl(sourceUrl)) {
+      setError(fairLabels.sourceUrlInvalid);
+      return;
+    }
+
+    let scraperConfig: Record<string, unknown> | null = null;
+    try {
+      scraperConfig = parseScraperConfigJson(
+        values.scraper_config_json,
+        fairLabels.scraperConfigInvalid,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : fairLabels.scraperConfigInvalid);
+      return;
+    }
+
     setSaving(true);
     setError(null);
     try {
       await onSubmit({
-        ...values,
         name: values.name.trim(),
         organizer: values.organizer?.trim() || null,
         venue: values.venue?.trim() || null,
@@ -83,6 +124,10 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
         end_date: values.end_date?.trim() || null,
         website: values.website?.trim() || null,
         description: values.description?.trim() || null,
+        status: values.status,
+        adapter_key: adapterKey,
+        source_url: sourceUrl,
+        scraper_config: scraperConfig,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kayıt başarısız.");
@@ -146,6 +191,35 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
             rows={3}
             value={values.description ?? ""}
             onChange={(e) => set("description", e.target.value)}
+          />
+        </Field>
+      </div>
+
+      <h3 className="section-title form-section-heading">{fairLabels.dataIntegration}</h3>
+
+      <div className="form-grid">
+        <Field label={fairLabels.adapter} className="span-2">
+          <AdapterSelect
+            value={values.adapter_key ?? ""}
+            onChange={(adapterKey) => set("adapter_key", adapterKey)}
+          />
+        </Field>
+        <Field label={fairLabels.sourceUrl} required={sourceUrlRequired} className="span-2">
+          <input
+            type="text"
+            value={values.source_url ?? ""}
+            onChange={(e) => set("source_url", e.target.value)}
+            placeholder="https://"
+            required={sourceUrlRequired}
+          />
+        </Field>
+        <Field label={fairLabels.scraperConfig} className="span-2">
+          <textarea
+            rows={4}
+            value={values.scraper_config_json}
+            onChange={(e) => set("scraper_config_json", e.target.value)}
+            placeholder={fairLabels.scraperConfigPlaceholder}
+            spellCheck={false}
           />
         </Field>
       </div>

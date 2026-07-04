@@ -7,6 +7,7 @@ export const dataIntegrationLabels = {
   navTemplates: "Mapping Şablonları",
   navJobs: "İşler",
   navReports: "Raporlar",
+  navAdapters: "Adapter Yönetimi",
   comingSoon: "Yakında",
   comingSoonMessage: "Bu özellik yakında kullanıma sunulacak.",
   importsTitle: "Import İşleri",
@@ -43,7 +44,6 @@ export const dataIntegrationLabels = {
 };
 
 export const DISABLED_NAV_ITEMS = [
-  { id: "scrapers", label: "Web Scrapers" },
   { id: "export", label: "Export İşleri" },
   { id: "api", label: "API Entegrasyonları" },
   { id: "erp", label: "ERP Entegrasyonları" },

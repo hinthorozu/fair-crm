@@ -8,14 +8,14 @@ import {
   ApiError,
   formatApiErrorMessage,
 } from "../api/fairs";
-import { FairForm, fairToFormValues, type FairFormValues } from "../components/FairForm";
+import { FairForm, fairToFormValues } from "../components/FairForm";
 import { FairFilters, FairTable } from "../components/FairList";
 import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { Modal } from "../components/ui/Modal";
 import { PageHeader } from "../components/ui/PageHeader";
 import { useServerDataTable } from "../hooks/useServerDataTable";
-import type { Fair, FairStatus } from "../types/fair";
+import type { CreateFairPayload, Fair, FairStatus } from "../types/fair";
 import { fairLabels } from "../labels/fairLabels";
 import { labels } from "../labels";
 
@@ -48,13 +48,13 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
     urlPath: "/fairs",
   });
 
-  const handleCreate = async (values: FairFormValues) => {
+  const handleCreate = async (values: CreateFairPayload) => {
     await createFair(values);
     setModal(null);
     await table.refresh();
   };
 
-  const handleUpdate = async (values: FairFormValues) => {
+  const handleUpdate = async (values: CreateFairPayload) => {
     if (!editing) return;
     await updateFair(editing.id, values);
     setModal(null);

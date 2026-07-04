@@ -34,5 +34,8 @@ _default_registry: ScraperAdapterRegistry | None = None
 def get_scraper_adapter_registry() -> ScraperAdapterRegistry:
     global _default_registry
     if _default_registry is None:
+        from app.modules.scraper.adapters import register_builtin_adapters
+
         _default_registry = ScraperAdapterRegistry()
+        register_builtin_adapters(_default_registry)
     return _default_registry

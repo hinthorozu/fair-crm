@@ -5,6 +5,7 @@ import { FairsPage } from "./pages/FairsPage";
 import { FairDetailPage } from "./pages/FairDetailPage";
 import { ImportWizardPage } from "./pages/ImportWizardPage";
 import { DataIntegrationImportsPage } from "./pages/DataIntegrationImportsPage";
+import { AdapterManagementPage } from "./pages/AdapterManagementPage";
 import { DatabaseBackupsPage } from "./pages/DatabaseBackupsPage";
 import { DataOperationsPage } from "./pages/DataOperationsPage";
 import { DataOperationRunResultPage } from "./pages/DataOperationRunResultPage";
@@ -28,6 +29,7 @@ type AppRoute =
   | "/data-integration/imports/continue/:batchId"
   | "/data-integration/jobs"
   | "/data-integration/reports"
+  | "/data-integration/adapters"
   | "/admin/system/backups"
   | "/admin/data-operations"
   | "/admin/data-operations/runs/:runId"
@@ -86,6 +88,9 @@ function parseRoute(location: string): ParsedRoute {
     }
     if (pathname === "/data-integration/reports") {
       return { route: "/data-integration/reports" };
+    }
+    if (pathname === "/data-integration/adapters") {
+      return { route: "/data-integration/adapters" };
     }
     return { route: "/data-integration/imports" };
   }
@@ -154,6 +159,7 @@ function adminSection(route: AppRoute): string {
 }
 
 function diSection(route: AppRoute): string {
+  if (route.includes("/adapters")) return "adapters";
   if (route.includes("/new") || route.includes("/fair/")) return "new";
   if (route.includes("/jobs")) return "jobs";
   if (route.includes("/reports")) return "reports";
@@ -361,6 +367,9 @@ export function App() {
         <Card>
           <p>{dataIntegrationLabels.comingSoonMessage}</p>
         </Card>
+      )}
+      {parsed.route === "/data-integration/adapters" && (
+        <AdapterManagementPage onOpenFair={goToFairDetail} />
       )}
     </DataIntegrationLayout>
   );

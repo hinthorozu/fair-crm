@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Optional
+from typing import Any, Optional
 from uuid import UUID
 
 from app.modules.fairs.domain.value_objects import FairStatus
@@ -21,6 +21,9 @@ class CreateFairCommand:
     website: Optional[str] = None
     status: FairStatus = FairStatus.PLANNED
     description: Optional[str] = None
+    adapter_key: Optional[str] = None
+    source_url: Optional[str] = None
+    scraper_config: Optional[dict[str, Any]] = None
 
 
 @dataclass(frozen=True)
@@ -58,6 +61,9 @@ class UpdateFairCommand:
     website: Optional[str] = None
     status: Optional[FairStatus] = None
     description: Optional[str] = None
+    adapter_key: Optional[str] = None
+    source_url: Optional[str] = None
+    scraper_config: Optional[dict[str, Any]] = None
 
 
 @dataclass(frozen=True)
@@ -94,6 +100,9 @@ class FairResult:
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime]
+    adapter_key: Optional[str] = None
+    source_url: Optional[str] = None
+    scraper_config: Optional[dict[str, Any]] = None
 
 
 @dataclass(frozen=True)

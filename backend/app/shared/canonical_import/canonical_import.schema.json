@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fair-crm.local/schemas/canonical-import/v1",
+  "title": "CanonicalImportDocument",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source", "metadata", "rows"],
+  "properties": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["scraper", "excel", "csv", "api"]
+        },
+        "adapter_key": { "type": ["string", "null"] },
+        "fair_id": { "type": ["string", "null"], "format": "uuid" },
+        "run_id": { "type": ["string", "null"], "format": "uuid" },
+        "source_url": { "type": ["string", "null"] }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["created_at", "row_count"],
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "row_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["company_name", "normalized_company_name", "emails", "phones", "raw"],
+        "properties": {
+          "external_id": { "type": ["string", "null"] },
+          "company_name": { "type": "string", "minLength": 1 },
+          "normalized_company_name": { "type": "string", "minLength": 1 },
+          "website": { "type": ["string", "null"] },
+          "emails": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "phones": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "country": { "type": ["string", "null"] },
+          "city": { "type": ["string", "null"] },
+          "hall": { "type": ["string", "null"] },
+          "stand": { "type": ["string", "null"] },
+          "raw": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  }
+}

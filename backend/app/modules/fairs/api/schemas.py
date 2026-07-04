@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Optional
+from typing import Any, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -20,6 +20,9 @@ class CreateFairRequest(BaseModel):
     website: Optional[str] = Field(default=None, max_length=255)
     status: FairStatus = FairStatus.PLANNED
     description: Optional[str] = Field(default=None, max_length=5000)
+    adapter_key: Optional[str] = Field(default=None, max_length=100)
+    source_url: Optional[str] = Field(default=None, max_length=5000)
+    scraper_config: Optional[dict[str, Any]] = None
 
 
 class UpdateFairRequest(BaseModel):
@@ -33,6 +36,9 @@ class UpdateFairRequest(BaseModel):
     website: Optional[str] = Field(default=None, max_length=255)
     status: Optional[FairStatus] = None
     description: Optional[str] = Field(default=None, max_length=5000)
+    adapter_key: Optional[str] = Field(default=None, max_length=100)
+    source_url: Optional[str] = Field(default=None, max_length=5000)
+    scraper_config: Optional[dict[str, Any]] = None
 
 
 class FairResponse(BaseModel):
@@ -54,6 +60,9 @@ class FairResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime]
+    adapter_key: Optional[str] = None
+    source_url: Optional[str] = None
+    scraper_config: Optional[dict[str, Any]] = None
 
 
 class FairListResponse(StandardListResponse[FairResponse]):

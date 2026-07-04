@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import AliasChoices
 
@@ -20,9 +20,11 @@ from app.modules.fairs.api.dependencies import (
     get_archive_fair_use_case,
     get_auth_context,
     get_create_fair_use_case,
+    get_fair_scraper_job_runner,
     get_get_fair_use_case,
     get_list_fairs_use_case,
     get_restore_fair_use_case,
+    get_run_fair_scraper_use_case,
     get_update_fair_use_case,
     require_read_permission,
 )
@@ -46,15 +48,25 @@ from app.modules.fairs.application.create_fair import CreateFairUseCase
 from app.modules.fairs.application.get_fair import GetFairUseCase
 from app.modules.fairs.application.list_fairs import ListFairsUseCase
 from app.modules.fairs.application.restore_fair import RestoreFairUseCase
+from app.modules.fairs.application.run_fair_scraper import RunFairScraperCommand, RunFairScraperUseCase
 from app.modules.fairs.application.update_fair import UpdateFairUseCase
 from app.modules.fairs.domain.exceptions import (
     FairAlreadyArchivedError,
     FairNotArchivedError,
     FairNotFoundError,
+    FairScraperNotConfiguredError,
+    InvalidFairAdapterConfigError,
     InvalidFairDateRangeError,
     InvalidFairNameError,
+    InvalidFairSourceUrlError,
 )
 from app.modules.fairs.domain.value_objects import FairStatus
+from app.modules.scraper.api.schemas import ScraperRunHistoryResponse
+from app.modules.scraper.application.fair_scraper_job_runner import FairScraperJobCommand, FairScraperJobRunner
+from app.shared.background_jobs import run_blocking_background_task
+from sqlalchemy.orm import Session
+
+from app.db.session import get_db
 
 router = APIRouter(prefix="/fairs", tags=["fairs"])
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -100,6 +112,10 @@ def create_fair(
     except InvalidFairNameError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except InvalidFairDateRangeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except InvalidFairAdapterConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except InvalidFairSourceUrlError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _to_response(result)
 
@@ -288,7 +304,55 @@ def update_fair(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except InvalidFairDateRangeError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except InvalidFairAdapterConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except InvalidFairSourceUrlError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _to_response(result)
+
+
+@router.post(
+    "/{fair_id}/run",
+    response_model=ScraperRunHistoryResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    responses={
+        400: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+    },
+)
+def run_fair_scraper(
+    fair_id: UUID,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(get_auth_context),
+    use_case: RunFairScraperUseCase = Depends(get_run_fair_scraper_use_case),
+    job_runner: FairScraperJobRunner = Depends(get_fair_scraper_job_runner),
+) -> ScraperRunHistoryResponse:
+    try:
+        run = use_case.execute(
+            RunFairScraperCommand(
+                organization_id=auth.organization_id,
+                fair_id=fair_id,
+            )
+        )
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except FairNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except FairScraperNotConfiguredError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    db.commit()
+    background_tasks.add_task(
+        run_blocking_background_task,
+        job_runner.run_fair_scraper,
+        FairScraperJobCommand(
+            run_id=run.id,
+            organization_id=auth.organization_id,
+            fair_id=fair_id,
+        ),
+    )
+    return ScraperRunHistoryResponse.from_entity(run)
 
 
 @router.delete(

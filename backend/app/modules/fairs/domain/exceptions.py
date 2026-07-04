@@ -20,3 +20,15 @@ class InvalidFairNameError(FairDomainError):
 
 class InvalidFairDateRangeError(FairDomainError):
     pass
+
+
+class InvalidFairAdapterConfigError(FairDomainError):
+    pass
+
+
+class FairScraperNotConfiguredError(FairDomainError):
+    pass
+
+
+class InvalidFairSourceUrlError(FairDomainError):
+    pass

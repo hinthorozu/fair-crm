@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+            <link rel="preconnect" href="https://cdn.mytuyap.com">
+        <link rel="preconnect" href="https://cdn.mytuyap.com" crossorigin>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <title>Foodist İstanbul</title>
+
+    <link rel="shortcut icon" href="https://cdn.mytuyap.com/cfe/favicon.png.webp"/>
+
+    <style>
+        :root {
+            --body-font: "Poppins", sans-serif;
+            --heading-font: "Poppins", sans-serif;
+            --theme-color: #e6301d;
+            --theme-color2: #9e190b;
+            --theme-gradient: #55565a;
+            --theme-bg-light: #a5a5a51f;
+            --color-dark: #231f20;
+            --color-gray: #F6F6F6;
+            --body-text-color: #757F95;
+            --color-white: #ffffff;
+            --hero-overlay: rgb(5, 3, 17);
+            --slider-arrow-bg: rgba(140, 82, 255, .2);
+            --box-shadow: 0 0 40px 5px rgb(0 0 0 / 5%);
+            --box-shadow2: 0 0 15px rgba(0, 0, 0, 0.17);
+            --transition: all .5s ease-in-out;
+            --transition2: all .3s ease-in-out;
+            --border-info-color: rgba(0, 0, 0, 0.08);
+            --border-info-color2: rgba(0, 0, 0, 0.05);
+            --border-white-color: rgba(255, 255, 255, 0.08);
+            --border-white-color2: rgba(255, 255, 255, 0.05);
+            --footer-bg: #171925;
+            --footer-bg2: #00134C;
+            --footer-text-color: #F5FAFF;
+        }
+    </style>
+
+    <style>@keyframes scroller{0%{bottom:34px}5%{top:4px}32%{bottom:4px}66%{top:34px;bottom:4px}to{top:4px;bottom:34px}}@media (prefers-reduced-motion:no-preference){:root{scroll-behavior:smooth}}p{margin-bottom:1rem;margin:0}ul ul{margin-bottom:0}a{color:rgba(var(--bs-link-color-rgb),var(--bs-link-opacity,1));color:var(--color-dark);display:inline-block;outline:0;text-decoration:none}img{vertical-align:middle;max-width:100%;height:auto}iframe{border:0}li{list-style:none}.partner-logo{display:flex;justify-content:space-between}@media (max-width:1200px){.partner-logo{display:contents;text-align:center}}.theme-btn i{margin-left:10px}#scroll-top{position:fixed;bottom:-20px;right:30px;font-size:20px;border:0;outline:0;border-radius:50px;color:var(--color-white);background-color:var(--theme-color);width:50px;height:50px;line-height:50px;text-align:center;box-shadow:var(--box-shadow2);opacity:0;visibility:hidden;z-index:1}#scroll-top i,.theme-btn i{transform:rotate(-35deg)}@media all and (max-width:1199px){.navbar::before{width:93%}.nav-right{margin-left:25px!important}.navbar .nav-item .nav-link{margin-right:15px}}@media all and (max-width:991px){.navbar{position:absolute;width:100%;height:auto;background:var(--color-white)}.navbar::before{display:none}.navbar-brand img{width:130px}.navbar-collapse{max-height:100%;overflow:hidden;overflow-y:auto;padding:0 20px;margin-bottom:10px;background-color:#fff;border-radius:15px}.navbar-toggler{padding:0;border:0}.navbar .dropdown-toggle::after{float:right;margin-top:2.5px}.navbar .nav-item .nav-link{color:var(--color-dark);font-weight:700;margin-right:0}.mobile-menu-right{margin:0 12px;display:flex;justify-content:space-between;align-items:center;gap:20px}.mobile-menu-right .nav-right-link{background:0 0;border:0;font-size:20px;color:var(--color-dark)}.navbar-toggler-mobile-icon{font-size:25px;color:var(--color-dark);font-weight:500}.navbar .dropdown-menu{border-radius:15px;border:0}.nav-right{display:none}}@media all and (max-width:991px){.navbar .nav-item .dropdown-menu .dropdown-item{color:var(--color-dark)}.navbar .nav-item .dropdown-submenu .dropdown-menu{margin:0 17px;opacity:unset;visibility:unset}.navbar .nav-item .dropdown-submenu a::after{top:3px}.main{margin-top:0}}@media all and (max-width:1000px){.hero-date{display:block}.hero-date .date-content span{font-size:36px!important}.font-small,.hero-date h1{font-size:40px!important}.hero-single .hero-content p{font-size:18px!important}}@media all and (max-width:1199px){.hero-single .hero-content .hero-title{font-size:37px}.hero-slider.owl-theme .owl-nav .owl-next,.hero-slider.owl-theme .owl-nav .owl-prev{top:unset;bottom:70px!important}.hero-slider.owl-theme .owl-nav .owl-prev{left:unset;right:120px}.hero-slider.owl-theme .owl-nav .owl-next{right:40px}}@media all and (max-width:991px){.font-small{font-size:22px!important}.hero-date h1{font-size:27px;min-width:90px}.hero-single .hero-content .hero-title{font-size:22px}.hero-single .hero-content p{font-size:14px}.hero-scroll-box{left:20px;bottom:80px}.theme-btn{font-size:12px}}@media all and (max-width:767px){.hero-single .hero-content .hero-btn{gap:1rem}}@media all and (max-width:991px){.event-countdown.ec-1{margin-top:0}}@media all and (max-width:767px){.event-countdown .time span:first-child{font-size:22px}.event-countdown.ec-1{padding-top:30px;padding-bottom:30px}.event-countdown .time-wrap{gap:10px}}@media all and (max-width:991px){.home-2 .navbar{background:0 0}.home-2 .hero-single{padding-top:320px;padding-bottom:150px}.home-2 .mobile-menu-right .nav-right-link,.home-2 .navbar-toggler-mobile-icon{color:var(--color-white)}.home-2 .event-countdown.ec-1 .time-wrap{gap:2px}.home-2 .event-countdown.ec-1{padding-top:20px;padding-bottom:20px}}.hero-slider video{width:100%;height:100%;position:absolute;object-fit:cover;z-index:0;top:0}@media all and (max-width:1000px){.about-area{margin-top:0}}@media all and (max-width:1200px){.logo-date-area{display:none}}@media (max-width:1000px){.online-bilet-fixed{display:none}}.owl-nav button{background:0 0!important;border:0!important;outline:0!important;position:relative}@media (prefers-reduced-motion:no-preference){:root{scroll-behavior:smooth}}@media (min-width:1200px){h1{font-size:2.5rem}}@media (min-width:576px){.container{max-width:540px}}@media (min-width:768px){.container{max-width:720px}}@media (min-width:992px){.container{max-width:960px}}@media (min-width:1200px){.container{max-width:1140px}}@media (min-width:992px){.col-lg-7{flex:0 0 auto;width:58.33333333%}}@media (min-width:992px){.navbar-expand-lg{flex-wrap:nowrap;justify-content:flex-start}.navbar-expand-lg .navbar-nav{flex-direction:row}.navbar-expand-lg .navbar-nav .dropdown-menu{position:absolute}.navbar-expand-lg .navbar-nav .nav-link{padding-right:var(--bs-navbar-nav-link-padding-x);padding-left:var(--bs-navbar-nav-link-padding-x)}.navbar-expand-lg .navbar-collapse{display:flex!important;flex-basis:auto}.navbar-expand-lg .navbar-toggler{display:none}}@media (min-width:1200px){.container{max-width:1310px}}@media all and (max-width:1199px){.navbar::before{width:93%}.nav-right{margin-left:25px!important}.navbar .nav-item .nav-link{margin-right:15px}}@media all and (min-width:992px){.navbar .nav-item .nav-link{margin-right:25px;padding:25px 0;font-size:17px;font-weight:500;color:var(--color-dark);text-transform:capitalize}.navbar .nav-item:last-child .nav-link{margin-right:0}.navbar .nav-item .dropdown-menu{display:block;padding:10px;margin-top:0;left:-15px;border-radius:15px;border:0;background:var(--color-white);width:fit-content;box-shadow:var(--box-shadow);opacity:0;visibility:hidden}.navbar .nav-item .dropdown-menu .dropdown-item{font-size:16px;padding:6px 15px;font-weight:500;color:var(--color-dark);position:relative;overflow:hidden;border-radius:10px;text-transform:capitalize;z-index:1}.navbar .nav-item .nav-link{position:relative}.navbar .nav-item .nav-link::before{content:"";position:absolute;left:0;bottom:20px;width:0;height:2px;border-radius:50px}.navbar .dropdown-menu-end{right:0;left:auto}.navbar .dropdown-menu.fade-down{top:80%;transform:rotateX(-75deg);transform-origin:0 0}.nav-right,.navbar #main_nav{justify-content:end}.nav-right{display:flex;align-items:center;gap:28px;margin-left:45px;padding:3px 0}.nav-right-link{position:relative;font-size:16px;color:var(--color-dark);font-weight:400;font-family:var(--heading-font)}}@media all and (max-width:991px){.navbar{position:absolute;width:100%;height:auto;background:var(--color-white)}.navbar::before{display:none}.navbar-brand img{width:130px}.navbar-collapse{max-height:100%;overflow:hidden;overflow-y:auto;padding:0 20px;margin-bottom:10px;background-color:#fff;border-radius:15px}.navbar-toggler{padding:0;border:0}.navbar .dropdown-toggle::after{float:right;margin-top:2.5px}.navbar .nav-item .nav-link{color:var(--color-dark);font-weight:700;margin-right:0}.mobile-menu-right{margin:0 12px;display:flex;justify-content:space-between;align-items:center;gap:20px}.mobile-menu-right .nav-right-link{background:0 0;border:0;font-size:20px;color:var(--color-dark)}.navbar-toggler-mobile-icon{font-size:25px;color:var(--color-dark);font-weight:500}.navbar .dropdown-menu{border-radius:15px;border:0}.nav-right{display:none}}@media all and (max-width:991px){.navbar .nav-item .dropdown-menu .dropdown-item{color:var(--color-dark)}.navbar .nav-item .dropdown-submenu .dropdown-menu{margin:0 17px;opacity:unset;visibility:unset}.navbar .nav-item .dropdown-submenu a::after{top:3px}.main{margin-top:0}}.hero-section{position:relative;background:#000}.hero-scroll-box{position:absolute;left:55px;bottom:50px;z-index:2}.hero-scroll{width:30px;height:60px;border:3px solid var(--color-white);border-radius:15px;position:relative}.hero-scroll .scroller{width:16px;border-radius:8px;background-color:var(--color-white);position:absolute;top:4px;left:4px;bottom:34px;animation:scroller 1500ms ease-out infinite}@media all and (max-width:1000px){.hero-date{display:block}.hero-date .date-content span{font-size:36px!important}.font-small,.hero-date h1{font-size:40px!important}.hero-single .hero-content p{font-size:18px!important}}@media all and (max-width:1199px){.hero-single .hero-content .hero-title{font-size:37px}.hero-slider.owl-theme .owl-nav .owl-next,.hero-slider.owl-theme .owl-nav .owl-prev{top:unset;bottom:70px!important}.hero-slider.owl-theme .owl-nav .owl-prev{left:unset;right:120px}.hero-slider.owl-theme .owl-nav .owl-next{right:40px}}.font-small{font-size:50px!important}@media all and (max-width:991px){.font-small{font-size:22px!important}.hero-date h1{font-size:27px;min-width:90px}.hero-single .hero-content .hero-title{font-size:22px}.hero-single .hero-content p{font-size:14px}.hero-scroll-box{left:20px;bottom:80px}.theme-btn{font-size:12px}}@media all and (max-width:767px){.hero-single .hero-content .hero-btn{gap:1rem}}.event-countdown{position:relative}.event-countdown .time-wrap{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:18px}.event-countdown .time{border-radius:15px;padding:14px 10px;text-align:center}.event-countdown .time span{display:block}.event-countdown .time span:first-child{color:var(--color-white);font-weight:700;font-size:38px;line-height:1}.event-countdown .time .unit{color:var(--color-white);font-weight:500}.event-countdown .divider{display:none}.event-countdown.ec-1{background:var(--theme-gradient);width:fit-content;margin-left:auto;margin-top:-135px;position:relative;padding:20px 70px 20px 20px;z-index:1}.event-countdown.ec-1 .event-countdown-text{position:absolute;right:0;top:0;background:var(--color-white);width:50px;height:100%;display:flex;align-items:center;justify-content:center}.event-countdown.ec-1 .event-countdown-text span{writing-mode:vertical-lr;color:var(--theme-color2);text-transform:uppercase;font-weight:700;letter-spacing:1px}@media all and (max-width:991px){.event-countdown.ec-1{margin-top:0}}@media all and (max-width:767px){.event-countdown .time span:first-child{font-size:22px}.event-countdown.ec-1{padding-top:30px;padding-bottom:30px}.event-countdown .time-wrap{gap:10px}}@media all and (min-width:992px){.home-2 .nav-right .nav-right-link,.home-2 .navbar .nav-item .nav-link{color:var(--color-white)}}@media all and (max-width:991px){.home-2 .navbar{background:0 0}.home-2 .hero-single{padding-top:320px;padding-bottom:150px}.home-2 .mobile-menu-right .nav-right-link,.home-2 .navbar-toggler-mobile-icon{color:var(--color-white)}.home-2 .event-countdown.ec-1 .time-wrap{gap:2px}.home-2 .event-countdown.ec-1{padding-top:20px;padding-bottom:20px}}@media all and (max-width:1200px){.logo-date-area{display:none}}@media (max-width:1000px){.online-bilet-fixed{display:none}}@media (max-width:1000px){.prev-arrow{transform:translateX(-32px)}.next-arrow{transform:none}}@media (prefers-reduced-motion:no-preference){:root{scroll-behavior:smooth}}strong{font-weight:bolder}.mb-3{margin-bottom:1rem!important}@media all and (max-width:1199px){.navbar::before{width:93%}.nav-right{margin-left:25px!important}.navbar .nav-item .nav-link{margin-right:15px}}@media all and (max-width:991px){.navbar{position:absolute;width:100%;height:auto;background:var(--color-white)}.navbar::before{display:none}.navbar-brand img{width:130px}.navbar-collapse{max-height:100%;overflow:hidden;overflow-y:auto;padding:0 20px;margin-bottom:10px;background-color:#fff;border-radius:15px}.navbar-toggler{padding:0;border:0}.navbar .dropdown-toggle::after{float:right;margin-top:2.5px}.navbar .nav-item .nav-link{color:var(--color-dark);font-weight:700;margin-right:0}.mobile-menu-right{margin:0 12px;display:flex;justify-content:space-between;align-items:center;gap:20px}.mobile-menu-right .nav-right-link{background:0 0;border:0;font-size:20px;color:var(--color-dark)}.navbar-toggler-mobile-icon{font-size:25px;color:var(--color-dark);font-weight:500}.navbar .dropdown-menu{border-radius:15px;border:0}.nav-right{display:none}}@media all and (max-width:991px){.navbar .nav-item .dropdown-menu .dropdown-item{color:var(--color-dark)}.navbar .nav-item .dropdown-submenu .dropdown-menu{margin:0 17px;opacity:unset;visibility:unset}.navbar .nav-item .dropdown-submenu a::after{top:3px}.main{margin-top:0}}.blog-single .blog-single-content img{border-radius:15px}@media all and (max-width:991px){.breadcrumb{padding-top:85px!important;padding-left:30px}}@media all and (max-width:1200px){.logo-date-area{display:none}}@media (max-width:1000px){.online-bilet-fixed{display:none}}@media (prefers-reduced-motion:no-preference){:root{scroll-behavior:smooth}}@media (min-width:1200px){h1{font-size:2.5rem}}ol,ul{padding-left:2rem;margin-bottom:1rem}ol{margin-top:0}@media (min-width:576px){.container{max-width:540px}}@media (min-width:768px){.container{max-width:720px}}@media (min-width:992px){.container{max-width:960px}}@media (min-width:1200px){.container{max-width:1140px}}@media (min-width:992px){.col-lg-8{flex:0 0 auto;width:66.66666667%}}@media (min-width:992px){.navbar-expand-lg{flex-wrap:nowrap;justify-content:flex-start}.navbar-expand-lg .navbar-nav{flex-direction:row}.navbar-expand-lg .navbar-nav .dropdown-menu{position:absolute}.navbar-expand-lg .navbar-nav .nav-link{padding-right:var(--bs-navbar-nav-link-padding-x);padding-left:var(--bs-navbar-nav-link-padding-x)}.navbar-expand-lg .navbar-collapse{display:flex!important;flex-basis:auto}.navbar-expand-lg .navbar-toggler{display:none}}.breadcrumb{--bs-breadcrumb-padding-x:0;--bs-breadcrumb-padding-y:0;--bs-breadcrumb-margin-bottom:1rem;--bs-breadcrumb-bg: ;--bs-breadcrumb-border-radius: ;--bs-breadcrumb-divider-color:var(--bs-secondary-color);--bs-breadcrumb-item-padding-x:0.5rem;--bs-breadcrumb-item-active-color:var(--bs-secondary-color);display:flex;flex-wrap:wrap;padding:var(--bs-breadcrumb-padding-y) var(--bs-breadcrumb-padding-x);margin-bottom:var(--bs-breadcrumb-margin-bottom);font-size:var(--bs-breadcrumb-font-size);list-style:none;background-color:var(--bs-breadcrumb-bg);border-radius:var(--bs-breadcrumb-border-radius)}.breadcrumb-item+.breadcrumb-item{padding-left:var(--bs-breadcrumb-item-padding-x)}.breadcrumb-item+.breadcrumb-item::before{float:left;padding-right:var(--bs-breadcrumb-item-padding-x);color:var(--bs-breadcrumb-divider-color);content:var(--bs-breadcrumb-divider, "/")}.justify-content-center{justify-content:center!important}ul{margin:0;padding:0}h1{margin-bottom:.5rem;font-size:calc(1.375rem + 1.5vw)}.mt-60{margin-top:60px}.mb-20{margin-bottom:20px}.mb-60{margin-bottom:60px}@media (min-width:1200px){.container{max-width:1310px}}@media all and (max-width:1199px){.navbar::before{width:93%}.nav-right{margin-left:25px!important}.navbar .nav-item .nav-link{margin-right:15px}}.nav-item .dropdown-submenu .dropdown-toggle{margin-right:20px}@media all and (min-width:992px){.navbar .nav-item .nav-link{margin-right:25px;padding:25px 0;font-size:17px;font-weight:500;color:var(--color-dark);text-transform:capitalize}.navbar .nav-item:last-child .nav-link{margin-right:0}.navbar .nav-item .dropdown-menu{display:block;padding:10px;margin-top:0;left:-15px;border-radius:15px;border:0;background:var(--color-white);width:fit-content;box-shadow:var(--box-shadow);opacity:0;visibility:hidden}.navbar .nav-item .dropdown-menu .dropdown-item{font-size:16px;padding:6px 15px;font-weight:500;color:var(--color-dark);position:relative;overflow:hidden;border-radius:10px;text-transform:capitalize;z-index:1}.navbar .nav-item .nav-link{position:relative}.navbar .nav-item .nav-link::before{content:"";position:absolute;left:0;bottom:20px;width:0;height:2px;border-radius:50px}.navbar .dropdown-menu-end{right:0;left:auto}.navbar .dropdown-menu.fade-down{top:80%;transform:rotateX(-75deg);transform-origin:0 0}.nav-right,.navbar #main_nav{justify-content:end}.nav-right{display:flex;align-items:center;gap:28px;margin-left:45px;padding:3px 0}.nav-right-link{position:relative;font-size:16px;color:var(--color-dark);font-weight:400;font-family:var(--heading-font)}}.navbar .nav-item .dropdown-submenu .dropdown-menu::before{display:none}@media all and (max-width:991px){.navbar{position:absolute;width:100%;height:auto;background:var(--color-white)}.navbar::before{display:none}.navbar-brand img{width:130px}.navbar-collapse{max-height:100%;overflow:hidden;overflow-y:auto;padding:0 20px;margin-bottom:10px;background-color:#fff;border-radius:15px}.navbar-toggler{padding:0;border:0}.navbar .dropdown-toggle::after{float:right;margin-top:2.5px}.navbar .nav-item .nav-link{color:var(--color-dark);font-weight:700;margin-right:0}.mobile-menu-right{margin:0 12px;display:flex;justify-content:space-between;align-items:center;gap:20px}.mobile-menu-right .nav-right-link{background:0 0;border:0;font-size:20px;color:var(--color-dark)}.navbar-toggler-mobile-icon{font-size:25px;color:var(--color-dark);font-weight:500}.navbar .dropdown-menu{border-radius:15px;border:0}.nav-right{display:none}}.blog-single,.navbar .nav-item .dropdown-submenu{position:relative}.navbar .nav-item .dropdown-submenu a::after{transform:rotate(-90deg);margin-right:10px;font-weight:600}.navbar .nav-item .dropdown-submenu .dropdown-menu{top:120%;left:100%;opacity:0;visibility:hidden}@media all and (max-width:991px){.navbar .nav-item .dropdown-menu .dropdown-item{color:var(--color-dark)}.navbar .nav-item .dropdown-submenu .dropdown-menu{margin:0 17px;opacity:unset;visibility:unset}.navbar .nav-item .dropdown-submenu a::after{top:3px}.main{margin-top:0}}.blog-single .blog-thumb-img{margin-bottom:20px}.blog-single .blog-details-title{font-size:34px;color:var(--color-dark)}@media all and (max-width:991px){.breadcrumb{padding-top:85px!important;padding-left:30px}}.breadcrumb{padding-top:18px}.breadcrumb-item.active{color:var(--theme-color);font-weight:700}@media all and (max-width:1200px){.logo-date-area{display:none}}@media (max-width:1000px){.online-bilet-fixed{display:none}}@media (prefers-reduced-motion:no-preference){:root{scroll-behavior:smooth}}body{font-size:var(--bs-body-font-size);font-weight:var(--bs-body-font-weight);line-height:var(--bs-body-line-height);text-align:var(--bs-body-text-align);background-color:var(--bs-body-bg);-webkit-text-size-adjust:100%}.py-120{padding:120px 0}@media all and (max-width:1199px){.navbar::before{width:93%}.nav-right{margin-left:25px!important}.navbar .nav-item .nav-link{margin-right:15px}}@media all and (max-width:991px){.navbar{position:absolute;width:100%;height:auto;background:var(--color-white)}.navbar::before{display:none}.navbar-brand img{width:130px}.navbar-collapse{max-height:100%;overflow:hidden;overflow-y:auto;padding:0 20px;margin-bottom:10px;background-color:#fff;border-radius:15px}.navbar-toggler{padding:0;border:0}.navbar .dropdown-toggle::after{float:right;margin-top:2.5px}.navbar .nav-item .nav-link{color:var(--color-dark);font-weight:700;margin-right:0}.mobile-menu-right{margin:0 12px;display:flex;justify-content:space-between;align-items:center;gap:20px}.mobile-menu-right .nav-right-link{background:0 0;border:0;font-size:20px;color:var(--color-dark)}.navbar-toggler-mobile-icon{font-size:25px;color:var(--color-dark);font-weight:500}.navbar .dropdown-menu{border-radius:15px;border:0}.nav-right{display:none}.navbar .nav-item .dropdown-menu .dropdown-item{color:var(--color-dark)}.main{margin-top:0}}@media all and (max-width:1000px){.hero-date{display:block}.hero-date .date-content span{font-size:36px!important}.hero-date h1{font-size:40px!important}.hero-single .hero-content p{font-size:18px!important}}@media all and (max-width:1199px){.hero-single .hero-content .hero-title{font-size:37px}.hero-slider.owl-theme .owl-nav .owl-next,.hero-slider.owl-theme .owl-nav .owl-prev{top:unset;bottom:70px!important}.hero-slider.owl-theme .owl-nav .owl-prev{left:unset;right:120px}.hero-slider.owl-theme .owl-nav .owl-next{right:40px}}@media all and (max-width:991px){.hero-date h1{font-size:27px;min-width:90px}.hero-single .hero-content .hero-title{font-size:22px}.hero-single .hero-content p{font-size:14px}.theme-btn{font-size:12px}}@media all and (max-width:767px){.hero-single .hero-content .hero-btn{gap:1rem}}.about-area{position:relative;display:block}.about-left{display:block;margin-right:50px}.about-img,.about-left{position:relative}.about-img img{border-radius:50%;border:10px solid var(--color-white);box-shadow:var(--box-shadow)}.about-img .img-3{position:absolute;right:-30px;top:-30px;width:200px;box-shadow:none}@media all and (max-width:767px){.about-left{margin-right:0}.about-img{width:90%}.about-img .img-3{width:140px}}.home-2 .navbar-brand img{width:190px}@media all and (max-width:991px){.home-2 .navbar{background:0 0}.home-2 .hero-single{padding-top:320px;padding-bottom:150px}.home-2 .mobile-menu-right .nav-right-link,.home-2 .navbar-toggler-mobile-icon{color:var(--color-white)}}.about-area{margin-top:60px}@media all and (max-width:1000px){.about-area .about-img{margin-bottom:60px}.about-area{margin-top:0}}@media all and (max-width:1200px){.logo-date-area{display:none}}@media (max-width:1000px){.online-bilet-fixed{display:none}}:root{--bs-blue:#0d6efd;--bs-indigo:#6610f2;--bs-purple:#6f42c1;--bs-pink:#d63384;--bs-red:#dc3545;--bs-orange:#fd7e14;--bs-yellow:#ffc107;--bs-green:#198754;--bs-teal:#20c997;--bs-cyan:#0dcaf0;--bs-black:#000;--bs-white:#fff;--bs-gray:#6c757d;--bs-gray-dark:#343a40;--bs-gray-100:#f8f9fa;--bs-gray-200:#e9ecef;--bs-gray-300:#dee2e6;--bs-gray-400:#ced4da;--bs-gray-500:#adb5bd;--bs-gray-600:#6c757d;--bs-gray-700:#495057;--bs-gray-800:#343a40;--bs-gray-900:#212529;--bs-primary:#0d6efd;--bs-secondary:#6c757d;--bs-success:#198754;--bs-info:#0dcaf0;--bs-warning:#ffc107;--bs-danger:#dc3545;--bs-light:#f8f9fa;--bs-dark:#212529;--bs-primary-rgb:13,110,253;--bs-secondary-rgb:108,117,125;--bs-success-rgb:25,135,84;--bs-info-rgb:13,202,240;--bs-warning-rgb:255,193,7;--bs-danger-rgb:220,53,69;--bs-light-rgb:248,249,250;--bs-dark-rgb:33,37,41;--bs-primary-text-emphasis:#052c65;--bs-secondary-text-emphasis:#2b2f32;--bs-success-text-emphasis:#0a3622;--bs-info-text-emphasis:#055160;--bs-warning-text-emphasis:#664d03;--bs-danger-text-emphasis:#58151c;--bs-light-text-emphasis:#495057;--bs-dark-text-emphasis:#495057;--bs-primary-bg-subtle:#cfe2ff;--bs-secondary-bg-subtle:#e2e3e5;--bs-success-bg-subtle:#d1e7dd;--bs-info-bg-subtle:#cff4fc;--bs-warning-bg-subtle:#fff3cd;--bs-danger-bg-subtle:#f8d7da;--bs-light-bg-subtle:#fcfcfd;--bs-dark-bg-subtle:#ced4da;--bs-primary-border-subtle:#9ec5fe;--bs-secondary-border-subtle:#c4c8cb;--bs-success-border-subtle:#a3cfbb;--bs-info-border-subtle:#9eeaf9;--bs-warning-border-subtle:#ffe69c;--bs-danger-border-subtle:#f1aeb5;--bs-light-border-subtle:#e9ecef;--bs-dark-border-subtle:#adb5bd;--bs-white-rgb:255,255,255;--bs-black-rgb:0,0,0;--bs-font-sans-serif:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue","Noto Sans","Liberation Sans",Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";--bs-font-monospace:SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;--bs-gradient:linear-gradient(180deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));--bs-body-font-family:var(--bs-font-sans-serif);--bs-body-font-size:1rem;--bs-body-font-weight:400;--bs-body-line-height:1.5;--bs-body-color:#212529;--bs-body-color-rgb:33,37,41;--bs-body-bg:#fff;--bs-body-bg-rgb:255,255,255;--bs-emphasis-color:#000;--bs-emphasis-color-rgb:0,0,0;--bs-secondary-color:rgba(33, 37, 41, 0.75);--bs-secondary-color-rgb:33,37,41;--bs-secondary-bg:#e9ecef;--bs-secondary-bg-rgb:233,236,239;--bs-tertiary-color:rgba(33, 37, 41, 0.5);--bs-tertiary-color-rgb:33,37,41;--bs-tertiary-bg:#f8f9fa;--bs-tertiary-bg-rgb:248,249,250;--bs-heading-color:inherit;--bs-link-color:#0d6efd;--bs-link-color-rgb:13,110,253;--bs-link-decoration:underline;--bs-link-hover-color:#0a58ca;--bs-link-hover-color-rgb:10,88,202;--bs-code-color:#d63384;--bs-highlight-color:#212529;--bs-highlight-bg:#fff3cd;--bs-border-width:1px;--bs-border-style:solid;--bs-border-color:#dee2e6;--bs-border-color-translucent:rgba(0, 0, 0, 0.175);--bs-border-radius:0.375rem;--bs-border-radius-sm:0.25rem;--bs-border-radius-lg:0.5rem;--bs-border-radius-xl:1rem;--bs-border-radius-xxl:2rem;--bs-border-radius-2xl:var(--bs-border-radius-xxl);--bs-border-radius-pill:50rem;--bs-box-shadow:0 0.5rem 1rem rgba(0, 0, 0, 0.15);--bs-box-shadow-sm:0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);--bs-box-shadow-lg:0 1rem 3rem rgba(0, 0, 0, 0.175);--bs-box-shadow-inset:inset 0 1px 2px rgba(0, 0, 0, 0.075);--bs-focus-ring-width:0.25rem;--bs-focus-ring-opacity:0.25;--bs-focus-ring-color:rgba(13, 110, 253, 0.25);--bs-form-valid-color:#198754;--bs-form-valid-border-color:#198754;--bs-form-invalid-color:#dc3545;--bs-form-invalid-border-color:#dc3545}::after,::before{box-sizing:border-box}@media (prefers-reduced-motion:no-preference){:root{scroll-behavior:smooth}}@media (min-width:1200px){h1{font-size:2.5rem}}button{border-radius:0;text-transform:none}button,input,textarea{margin:0;font-family:inherit;font-size:inherit;line-height:inherit}[type=button],button{-webkit-appearance:button}::-moz-focus-inner{padding:0;border-style:none}textarea{resize:vertical}::-webkit-datetime-edit-day-field,::-webkit-datetime-edit-fields-wrapper,::-webkit-datetime-edit-hour-field,::-webkit-datetime-edit-minute,::-webkit-datetime-edit-month-field,::-webkit-datetime-edit-text,::-webkit-datetime-edit-year-field{padding:0}::-webkit-inner-spin-button{height:auto}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-color-swatch-wrapper{padding:0}::-webkit-file-upload-button{font:inherit;-webkit-appearance:button}::file-selector-button{font:inherit;-webkit-appearance:button}.container{--bs-gutter-x:1.5rem;--bs-gutter-y:0;width:100%;padding-right:calc(var(--bs-gutter-x)*.5);padding-left:calc(var(--bs-gutter-x)*.5);margin-right:auto;margin-left:auto}@media (min-width:576px){.container{max-width:540px}}@media (min-width:768px){.container{max-width:720px}}@media (min-width:992px){.container{max-width:960px}}@media (min-width:1200px){.container{max-width:1140px}}:root{--bs-breakpoint-xs:0;--bs-breakpoint-sm:576px;--bs-breakpoint-md:768px;--bs-breakpoint-lg:992px;--bs-breakpoint-xl:1200px;--bs-breakpoint-xxl:1400px}.row{--bs-gutter-x:1.5rem;--bs-gutter-y:0;display:flex;flex-wrap:wrap;margin-top:calc(-1*var(--bs-gutter-y));margin-right:calc(-.5*var(--bs-gutter-x));margin-left:calc(-.5*var(--bs-gutter-x))}.row>*{flex-shrink:0;width:100%;max-width:100%;padding-right:calc(var(--bs-gutter-x)*.5);padding-left:calc(var(--bs-gutter-x)*.5);margin-top:var(--bs-gutter-y)}@media (min-width:992px){.col-lg-7{flex:0 0 auto;width:58.33333333%}}.collapse:not(.show){display:none}.dropdown{position:relative}.dropdown-toggle{white-space:nowrap}.dropdown-toggle::after{display:inline-block;margin-left:.255em;vertical-align:.255em;content:"";border-top:.3em solid;border-right:.3em solid transparent;border-bottom:0;border-left:.3em solid transparent}.dropdown-menu{--bs-dropdown-zindex:1000;--bs-dropdown-min-width:10rem;--bs-dropdown-padding-x:0;--bs-dropdown-padding-y:0.5rem;--bs-dropdown-spacer:0.125rem;--bs-dropdown-font-size:1rem;--bs-dropdown-color:var(--bs-body-color);--bs-dropdown-bg:var(--bs-body-bg);--bs-dropdown-border-color:var(--bs-border-color-translucent);--bs-dropdown-border-radius:var(--bs-border-radius);--bs-dropdown-border-width:var(--bs-border-width);--bs-dropdown-inner-border-radius:calc(var(--bs-border-radius) - var(--bs-border-width));--bs-dropdown-divider-bg:var(--bs-border-color-translucent);--bs-dropdown-divider-margin-y:0.5rem;--bs-dropdown-box-shadow:var(--bs-box-shadow);--bs-dropdown-link-color:var(--bs-body-color);--bs-dropdown-link-hover-color:var(--bs-body-color);--bs-dropdown-link-hover-bg:var(--bs-tertiary-bg);--bs-dropdown-link-active-color:#fff;--bs-dropdown-link-active-bg:#0d6efd;--bs-dropdown-link-disabled-color:var(--bs-tertiary-color);--bs-dropdown-item-padding-x:1rem;--bs-dropdown-item-padding-y:0.25rem;--bs-dropdown-header-color:#6c757d;--bs-dropdown-header-padding-x:1rem;--bs-dropdown-header-padding-y:0.5rem;position:absolute;z-index:var(--bs-dropdown-zindex);display:none;min-width:var(--bs-dropdown-min-width);padding:var(--bs-dropdown-padding-y) var(--bs-dropdown-padding-x);margin:0;font-size:var(--bs-dropdown-font-size);color:var(--bs-dropdown-color);text-align:left;list-style:none;background-color:var(--bs-dropdown-bg);background-clip:padding-box;border:var(--bs-dropdown-border-width) solid var(--bs-dropdown-border-color);border-radius:var(--bs-dropdown-border-radius)}.dropdown-menu-end{--bs-position:end}.dropdown-item,.nav-link{display:block;text-decoration:none;border:0}.dropdown-item{width:100%;padding:var(--bs-dropdown-item-padding-y) var(--bs-dropdown-item-padding-x);clear:both;font-weight:400;color:var(--bs-dropdown-link-color);text-align:inherit;white-space:nowrap;background-color:transparent;border-radius:var(--bs-dropdown-item-border-radius,0)}.nav-link{padding:var(--bs-nav-link-padding-y) var(--bs-nav-link-padding-x);font-size:var(--bs-nav-link-font-size);font-weight:var(--bs-nav-link-font-weight);color:var(--bs-nav-link-color);background:0 0}.navbar,.navbar>.container{display:flex;align-items:center;justify-content:space-between}.navbar{--bs-navbar-padding-x:0;--bs-navbar-padding-y:0.5rem;--bs-navbar-color:rgba(var(--bs-emphasis-color-rgb), 0.65);--bs-navbar-hover-color:rgba(var(--bs-emphasis-color-rgb), 0.8);--bs-navbar-disabled-color:rgba(var(--bs-emphasis-color-rgb), 0.3);--bs-navbar-active-color:rgba(var(--bs-emphasis-color-rgb), 1);--bs-navbar-brand-padding-y:0.3125rem;--bs-navbar-brand-margin-end:1rem;--bs-navbar-brand-font-size:1.25rem;--bs-navbar-brand-color:rgba(var(--bs-emphasis-color-rgb), 1);--bs-navbar-brand-hover-color:rgba(var(--bs-emphasis-color-rgb), 1);--bs-navbar-nav-link-padding-x:0.5rem;--bs-navbar-toggler-padding-y:0.25rem;--bs-navbar-toggler-padding-x:0.75rem;--bs-navbar-toggler-font-size:1.25rem;--bs-navbar-toggler-icon-bg:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%2833, 37, 41, 0.75%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");--bs-navbar-toggler-border-color:rgba(var(--bs-emphasis-color-rgb), 0.15);--bs-navbar-toggler-border-radius:var(--bs-border-radius);--bs-navbar-toggler-focus-width:0.25rem;flex-wrap:wrap;padding:var(--bs-navbar-padding-y) var(--bs-navbar-padding-x)}.navbar>.container{flex-wrap:inherit}.navbar-brand{padding-top:var(--bs-navbar-brand-padding-y);padding-bottom:var(--bs-navbar-brand-padding-y);margin-right:var(--bs-navbar-brand-margin-end);font-size:var(--bs-navbar-brand-font-size);color:var(--bs-navbar-brand-color);text-decoration:none;white-space:nowrap}.navbar-nav{--bs-nav-link-padding-x:0;--bs-nav-link-padding-y:0.5rem;--bs-nav-link-font-weight: ;--bs-nav-link-color:var(--bs-navbar-color);--bs-nav-link-hover-color:var(--bs-navbar-hover-color);--bs-nav-link-disabled-color:var(--bs-navbar-disabled-color);display:flex;flex-direction:column;padding-left:0;margin-bottom:0;list-style:none}.navbar-nav .dropdown-menu{position:static}.navbar-collapse{flex-basis:100%;flex-grow:1;align-items:center}.navbar-toggler{padding:var(--bs-navbar-toggler-padding-y) var(--bs-navbar-toggler-padding-x);font-size:var(--bs-navbar-toggler-font-size);line-height:1;color:var(--bs-navbar-color);background-color:transparent;border:var(--bs-border-width) solid var(--bs-navbar-toggler-border-color);border-radius:var(--bs-navbar-toggler-border-radius)}@media (min-width:992px){.navbar-expand-lg{flex-wrap:nowrap;justify-content:flex-start}.navbar-expand-lg .navbar-nav{flex-direction:row}.navbar-expand-lg .navbar-nav .dropdown-menu{position:absolute}.navbar-expand-lg .navbar-nav .nav-link{padding-right:var(--bs-navbar-nav-link-padding-x);padding-left:var(--bs-navbar-nav-link-padding-x)}.navbar-expand-lg .navbar-collapse{display:flex!important;flex-basis:auto}.navbar-expand-lg .navbar-toggler{display:none}}.d-block{display:block!important}.position-relative{position:relative!important}.align-items-center{align-items:center!important}*,:after,:before{box-sizing:inherit}*{scroll-behavior:inherit!important}body,html{height:auto;width:100%;margin:0;padding:0;overflow-x:hidden;box-sizing:border-box}body{font-family:var(--body-font);font-style:normal;font-size:16px;font-weight:400;color:var(--body-text-color);line-height:1.8}h1{color:var(--color-dark);margin:0;font-weight:600;font-family:var(--heading-font);line-height:1.2;font-size:40px}::-moz-placeholder{color:#999;font-size:16px;opacity:1}.position-relative{z-index:1}.theme-btn{font-size:16px;color:var(--color-white);padding:10px 24px;text-transform:capitalize;position:relative;border-radius:50px;font-weight:500;text-align:center;vertical-align:middle;overflow:hidden;border:0;background:var(--theme-gradient);box-shadow:var(--box-shadow);z-index:1}.theme-btn::before{content:"";height:300px;width:300px;background:var(--theme-color2);border-radius:50%;position:absolute;top:50%;left:50%;transform:translateY(-50%) translateX(-50%) scale(0);z-index:-1}.theme-btn2{background:var(--color-white);color:var(--body-font)}.theme-btn2::before{background:var(--theme-color)}@media (min-width:1200px){.container{max-width:1310px}}.header-top-social a{font-size:16px;text-align:center;margin-left:14px}.header,.navbar{position:relative}.navbar{background:0 0;padding-top:0;padding-bottom:0;z-index:243;font-family:var(--heading-font)}.header{box-shadow:var(--box-shadow2)}.header-bg,.navbar::before{position:absolute;left:0;top:0;width:100%}.header-bg{z-index:3}.header-bg img{width:100%;max-height:190px}.navbar::before{content:"";height:100%;background:var(--color-white)}.home-2 .navbar .navbar-brand .logo-display{display:block}.home-2 .navbar .navbar-brand .logo-scrolled,.logo-display{display:none}.navbar-toggler-mobile-icon{display:inline-block;width:inherit;height:inherit}.navbar-brand{margin-right:0}.navbar-brand img{width:170px}.navbar .dropdown-toggle::after{display:inline-block;margin-left:5px;vertical-align:baseline;font-family:"Font Awesome 6 Pro";content:"";font-weight:600;border:0;font-size:14px}@media all and (max-width:1199px){.navbar::before{width:93%}.nav-right{margin-left:25px!important}.navbar .nav-item .nav-link{margin-right:15px}}@media all and (min-width:992px){.navbar .nav-item .nav-link{margin-right:25px;padding:25px 0;font-size:17px;font-weight:500;color:var(--color-dark);text-transform:capitalize}.navbar .nav-item:last-child .nav-link{margin-right:0}.navbar .nav-item .dropdown-menu{display:block;padding:10px;margin-top:0;left:-15px;border-radius:15px;border:0;background:var(--color-white);width:fit-content;box-shadow:var(--box-shadow);opacity:0;visibility:hidden}.navbar .nav-item .dropdown-menu .dropdown-item{font-size:16px;padding:6px 15px;font-weight:500;color:var(--color-dark);position:relative;overflow:hidden;border-radius:10px;text-transform:capitalize;z-index:1}.navbar .nav-item .nav-link{position:relative}.navbar .nav-item .nav-link::before{content:"";position:absolute;left:0;bottom:20px;width:0;height:2px;border-radius:50px}.navbar .dropdown-menu-end{right:0;left:auto}.navbar .dropdown-menu.fade-down{top:80%;transform:rotateX(-75deg);transform-origin:0 0}.nav-right,.navbar #main_nav{justify-content:end}.nav-right{display:flex;align-items:center;gap:28px;margin-left:45px;padding:3px 0}.nav-right-link{position:relative;font-size:16px;color:var(--color-dark);font-weight:400;font-family:var(--heading-font)}}.mobile-menu-right{display:none}@media all and (max-width:991px){.navbar{position:absolute;width:100%;height:auto;background:var(--color-white)}.navbar::before{display:none}.navbar-brand img{width:130px}.navbar-collapse{max-height:100%;overflow:hidden;overflow-y:auto;padding:0 20px;margin-bottom:10px;background-color:#fff;border-radius:15px}.navbar-toggler{padding:0;border:0}.navbar .dropdown-toggle::after{float:right;margin-top:2.5px}.navbar .nav-item .nav-link{color:var(--color-dark);font-weight:700;margin-right:0}.mobile-menu-right{margin:0 12px;display:flex;justify-content:space-between;align-items:center;gap:20px}.mobile-menu-right .nav-right-link{background:0 0;border:0;font-size:20px;color:var(--color-dark)}.navbar-toggler-mobile-icon{font-size:25px;color:var(--color-dark);font-weight:500}.navbar .dropdown-menu{border-radius:15px;border:0}.nav-right{display:none}.navbar .nav-item .dropdown-menu .dropdown-item{color:var(--color-dark)}.main{margin-top:0}}.hero-date,.hero-single{display:flex;align-items:center}.hero-single{padding-top:150px;padding-bottom:160px;background-position:center!important;background-size:cover!important;background-repeat:no-repeat!important;justify-content:center;position:relative;z-index:1}.hero-single::before{content:"";position:absolute;width:100%;height:100%;left:-.5px;top:0;background:rgb(5 3 17/27%);opacity:.7;z-index:-1}.hero-single .hero-content{height:100%;background-color:#231f20de;padding:30px;border-radius:30px}.hero-date{gap:15px}@media all and (max-width:1000px){.hero-date{display:block}.hero-date .date-content span{font-size:36px!important}.hero-date h1{font-size:40px!important}.hero-single .hero-content p{font-size:18px!important}}.hero-date h1{color:#fff;font-size:90px;font-weight:700}.hero-date .date-content span{font-size:20px;font-weight:500}.hero-date .date-content p,.hero-date .date-content span{color:var(--color-white);text-transform:uppercase;letter-spacing:1px}.hero-single .hero-content .hero-title{color:var(--color-white);font-size:60px;font-weight:700;margin:20px 0;line-height:normal}.hero-single .hero-content p{color:var(--color-white);font-size:20px;line-height:30px;font-weight:400;margin-bottom:20px}.hero-single .hero-content .hero-btn{gap:1rem;display:flex;margin-top:35px;justify-content:start}.hero-slider.owl-theme .owl-nav{margin-top:0}.hero-slider{min-height:800px;height:100vh;overflow:hidden;display:block}.hero-slider .hero-single{min-height:800px;height:100vh}.hero-slider.owl-theme .owl-nav [class*=owl-]{color:var(--color-white);font-size:25px;margin:0;padding:0;background:var(--slider-arrow-bg);display:inline-block;height:55px;width:55px;line-height:55px;border-radius:50px;text-align:center}.hero-slider.owl-theme .owl-nav .owl-prev{left:40px}.hero-slider.owl-theme .owl-nav .owl-next{right:40px}.hero-slider.owl-theme .owl-nav .owl-next,.hero-slider.owl-theme .owl-nav .owl-prev{position:absolute;top:50%;transform:translate(0,-50%)}.hero-slider.owl-theme .owl-dots{position:absolute;text-align:center;bottom:40px;left:50%;transform:translateX(-50%);display:flex;align-items:center}@media all and (max-width:1199px){.hero-single .hero-content .hero-title{font-size:37px}.hero-slider.owl-theme .owl-nav .owl-next,.hero-slider.owl-theme .owl-nav .owl-prev{top:unset;bottom:70px!important}.hero-slider.owl-theme .owl-nav .owl-prev{left:unset;right:120px}.hero-slider.owl-theme .owl-nav .owl-next{right:40px}}@media all and (max-width:991px){.hero-date h1{font-size:27px;min-width:90px}.hero-single .hero-content .hero-title{font-size:22px}.hero-single .hero-content p{font-size:14px}.theme-btn{font-size:12px}}@media all and (max-width:767px){.hero-single .hero-content .hero-btn{gap:1rem}}.home-2 .header{background:0 0}.home-2 .navbar::before{display:none}.home-2 .main{margin-top:-9rem}.home-2 .hero-single{padding-top:220px;padding-bottom:120px}.home-2 .hero-single::before{opacity:.85}@media all and (min-width:992px){.home-2 .nav-right .nav-right-link,.home-2 .navbar .nav-item .nav-link{color:var(--color-white)}}@media all and (max-width:991px){.home-2 .navbar{background:0 0}.home-2 .hero-single{padding-top:320px;padding-bottom:150px}.home-2 .mobile-menu-right .nav-right-link,.home-2 .navbar-toggler-mobile-icon{color:var(--color-white)}}.hero-slider .container{z-index:1}.logo-area{display:flex;gap:16px;align-items:center;max-width:50%}.logo-date-area{padding-left:16px;border-left:2px solid #e6e6e6}.home-2 .logo-date-area,.home-2 .top-bar a,.online-bilet-fixed a{color:#fff}.top-bar{position:relative;z-index:99999}.home-2 .top-bar .dropdown-item{color:#000}@media all and (max-width:1200px){.logo-date-area{display:none}}@media (max-width:1000px){.online-bilet-fixed{display:none}}.grecaptcha-badge{visibility:hidden!important}.online-bilet-fixed{position:fixed;transform:translateY(-50%) rotate(-90deg);right:-50px;top:50%;background-color:red;padding:10px 18px 18px;border-radius:12px;z-index:999999}.owl-nav{position:absolute;top:50%;transform:translateY(-50%);width:100%;display:flex;justify-content:space-between;z-index:10}.custom-arrow{color:var(--theme-color);width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px}.prev-arrow{transform:translateX(-80px)}.next-arrow{transform:translateX(80px)}@media (max-width:1000px){.prev-arrow{transform:translateX(-32px)}.next-arrow{transform:none}}.owl-carousel:not(.owl-loaded){display:block}.owl-carousel:not(.owl-loaded)>*:not(:first-child){display:none}.event-countdown[data-countdown]{min-height:95px}@media all and (max-width:767px){.event-countdown[data-countdown]{min-height:79px}}</style>
+
+    <link rel="preload" as="style" class="async-css" href="https://cdn.mytuyap.com/assets/css/bootstrap.min.css">
+    <link rel="preload" as="style" class="async-css" href="https://cdn.mytuyap.com/assets/css/owl.carousel.min.css">
+    <link rel="preload" as="style" class="async-css" href="https://cdn.mytuyap.com/assets/css/fontawesome-subset.min.css?v=1.0.6">
+    <link rel="preload" as="style" class="async-css" href="https://cdn.mytuyap.com/assets/css/animate.min.css">
+    <link rel="preload" as="style" class="async-css" href="https://cdn.mytuyap.com/assets/css/magnific-popup.min.css">
+    <link rel="preload" as="style" class="async-css" href="https://cdn.mytuyap.com/assets/css/style.css?v1.0.29">
+    <script>
+        (function () {
+            var links = document.querySelectorAll('link.async-css'), left = links.length, flipped = false;
+            function flip() {
+                if (flipped) return;
+                flipped = true;
+                for (var i = 0; i < links.length; i++) links[i].rel = 'stylesheet';
+            }
+            function one() { if (--left <= 0) flip(); }
+            for (var i = 0; i < links.length; i++) {
+                links[i].addEventListener('load', one, { once: true });
+                links[i].addEventListener('error', one, { once: true }); // biri düşerse diğerleri bekletilmesin
+            }
+            if (document.readyState === 'complete') flip();
+            else window.addEventListener('load', flip, { once: true });
+        })();
+    </script>
+    <noscript>
+        <link rel="stylesheet" href="https://cdn.mytuyap.com/assets/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://cdn.mytuyap.com/assets/css/owl.carousel.min.css">
+        <link rel="stylesheet" href="https://cdn.mytuyap.com/assets/css/fontawesome-subset.min.css?v=1.0.6">
+        <link rel="stylesheet" href="https://cdn.mytuyap.com/assets/css/animate.min.css">
+        <link rel="stylesheet" href="https://cdn.mytuyap.com/assets/css/magnific-popup.min.css">
+        <link rel="stylesheet" href="https://cdn.mytuyap.com/assets/css/style.css?v1.0.27">
+    </noscript>
+
+    
+    
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="description" content="FOODIST- İstanbul Gıda ve İçecek Ürünleri Fuarı">
+    <meta name="keywords" content="">
+        <link rel="canonical" href="https://www.foodistexpo.com/brand/44-beydag-peynircilik-gida-sanayi-tic-as">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.foodistexpo.com/brand/44-beydag-peynircilik-gida-sanayi-tic-as">
+    <meta property="og:title" content="Foodist İstanbul">
+    <meta property="og:description" content="FOODIST- İstanbul Gıda ve İçecek Ürünleri Fuarı">
+    <meta property="og:image" content="http://tuyap.com.tr/packagingfair/packagingfair/uploads/news/ambalaj25_weblogo_tr.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Foodist İstanbul">
+    <meta name="twitter:description" content="FOODIST- İstanbul Gıda ve İçecek Ürünleri Fuarı">
+    <meta name="twitter:image" content="http://tuyap.com.tr/packagingfair/packagingfair/uploads/news/ambalaj25_weblogo_tr.jpg">
+    <meta name="google-site-verification" content="lV7Snj-oFEsld2BIkZPeH42TuY-7w6z7L19DPHca9jk">
+    <meta name="csrf-token" content="xlq9pswYrIBfyooFrMyr75j8P5ie9P7iPabQ2Iy0" data-cache-bypass="true">
+    <meta name="recaptcha-key" content="6LdTmewqAAAAAEu5fTBzRTEbxI1kpsllGoO-b-2R">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    
+    
+
+            <script>
+            window.InsiderQueue = window.InsiderQueue || [];
+        </script>
+
+        <script async src="https://tuyap.api.useinsider.com/ins.js?id=10008674"></script>
+
+    
+
+    <link rel="preload" as="style"
+          href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Roboto:wght@100;300;400;500;700;900&display=swap">
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Roboto:wght@100;300;400;500;700;900&display=swap"
+          media="print" onload="this.media='all'">
+    <noscript>
+        <link rel="stylesheet"
+              href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Roboto:wght@100;300;400;500;700;900&display=swap">
+    </noscript>
+</head>
+        <body>
+        
+        <script type="text/javascript">var selectLang = 'TR';</script><script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-NVV2H5MD');</script>
+
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe
+src="https://www.googletagmanager.com/ns.html?id=GTM-NVV2H5MD"
+height="0" width="0"
+style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+                <script>
+            window.InsiderQueue.push({
+                type: 'currency',
+                value: 'TRY'
+            });
+
+            window.InsiderQueue.push({
+                type: 'custom_event',
+                value: [{
+                    event_name: 'domain_visit',
+                    event_parameters: {
+                        "custom": {
+                            "domain": window.location.hostname
+                        }
+                    }
+                }]
+            });
+
+            
+            window.InsiderQueue.push({
+                type: 'other',
+                value: {
+                    name: 'brand/44-beydag-peynircilik-gida-sanayi-tic-as',
+                    custom: {
+                        page_url: 'https://www.foodistexpo.com/brand/44-beydag-peynircilik-gida-sanayi-tic-as',
+                        page_path: 'brand/44-beydag-peynircilik-gida-sanayi-tic-as'
+                    }
+                }
+            });
+
+            window.InsiderQueue.push({
+                type: 'init'
+            });
+                    </script>
+        
+        <!-- Ad Banner -->
+<!-- Ad Banner End -->
+
+<!-- header area -->
+<header class="header">
+            <div class="top-bar">
+            <div class="container">
+                <div class="nav-right">
+                    <div id="participant-portal-container">
+                        <!-- Katılımcı ise portal butonu JavaScript ile eklenecek -->
+                    </div>
+                    <div id="auth-container">
+                        <!-- Login durumu JavaScript ile yüklenecek -->
+                    </div>
+
+
+                    <div class="dropdown">
+                        <a href="#" class="top-lang dropdown-toggle nav-right-link" data-bs-toggle="dropdown">
+                            <i class="fal fa-globe"></i> TR
+                        </a>
+
+                        <ul class="dropdown-menu dropdown-menu-end">
+                                                                                                                            <li>
+                                    <a class="dropdown-item" href="https://www.foodistexpo.com/en/brand/44-beydag-peynircilik-gida-sanayi-tic-as">
+                                        English
+                                    </a>
+                                </li>
+                                                    </ul>
+                    </div>
+                    <div class="header-top-social">
+                        
+                        
+                                                    <a href="https://x.com/Foodistexpo" target="_blank"><i class="fab fa-x-twitter"></i></a>
+                        
+                                                    <a href="https://www.instagram.com/foodist_istanbul" target="_blank"><i
+                                    class="fab fa-instagram"></i></a>
+                        
+                                                    <a href="https://www.linkedin.com/showcase/foodistexpo/" target="_blank"><i class="fab fa-linkedin"></i></a>
+                        
+                                            </div>
+                </div>
+            </div>
+        </div>
+        <div class="main-navigation">
+        <nav class="navbar navbar-expand-lg">
+            <div class="container position-relative">
+                <div class="logo-area">
+                    <a href="/" class="navbar-brand"
+                       onclick="handleLogoClick(event)">
+                                                    <img src="https://cdn.mytuyap.com/foodistexpo/img/logo/foodist-logo-beyaz.svg" alt="logo" class="logo-display" width="190"
+                                 height="75">
+                            <img src="https://cdn.mytuyap.com/foodistexpo/img/logo/foodist-logo-renkli.svg" alt="logo" class="logo-scrolled" width="190"
+                                 height="75" loading="lazy">
+                                            </a>
+                    <div class="logo-date-area">
+                        <span class="d-block"><i
+                                class="fal fa-calendar-days"></i> 1-4 Eylül 2026</span>
+                        <span class="d-block"><i class="far fa-location-dot"></i> TÜYAP Fuar ve Kongre Merkezi</span>
+                    </div>
+                </div>
+
+                <div class="mobile-menu-right">
+                    <div class="dropdown">
+                        <a href="#" class="top-lang nav-right-link" data-bs-toggle="dropdown" aria-label="Dil seçimi"><i
+                                class="fal fa-globe"></i></a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                                                                                                                            <li>
+                                    <a class="dropdown-item" href="https://www.foodistexpo.com/en/brand/44-beydag-peynircilik-gida-sanayi-tic-as">
+                                        English
+                                    </a>
+                                </li>
+                                                    </ul>
+                    </div>
+                    <div id="mobile-auth-container">
+                        <!-- Mobil login durumu JavaScript ile yüklenecek -->
+                    </div>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#main_nav" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-mobile-icon"><i class="far fa-bars"></i></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse" id="main_nav">
+                    <ul class="navbar-nav">
+                                                    <li class="nav-item dropdown">
+                                <a class="nav-link  dropdown-toggle "
+                                   href="/fuar-hakkinda"
+                                    data-bs-toggle="dropdown"  >
+                                    Hakkında
+                                </a>
+                                                                    <ul class="dropdown-menu fade-down">
+                                                                                                                                    <li>
+                                                    <a class="dropdown-item"
+                                                       href="/fuar-hakkinda">
+                                                        Fuar Hakkında
+                                                    </a>
+                                                </li>
+                                                                                                                                                                                <li>
+                                                    <a class="dropdown-item"
+                                                       href="/ulasim">
+                                                        Fuar Merkezi &amp; Ulaşım
+                                                    </a>
+                                                </li>
+                                                                                                                                                                                <li>
+                                                    <a class="dropdown-item"
+                                                       href="/konaklama">
+                                                        Konaklama
+                                                    </a>
+                                                </li>
+                                                                                                                                                                                <li>
+                                                    <a class="dropdown-item"
+                                                       href="/fuar-proje-ekibi">
+                                                        Ekibimize Ulaşın
+                                                    </a>
+                                                </li>
+                                                                                                                                                                                <li>
+                                                    <a class="dropdown-item"
+                                                       href="/blog/foodist-istanbul-gida-fuari-2026">
+                                                        Neden Foodist İstanbul Gıda Fuarı?
+                                                    </a>
+                                                </li>
+                                                                                                                        </ul>
+                                                            </li>
+                                                    <li class="nav-item dropdown">
+                                <a class="nav-link  dropdown-toggle "
+                                   href="/neden-katilimci-olmalisiniz"
+                                    data-bs-toggle="dropdown"  >
+                                    Katılımcı
+                                </a>
+                                                                    <ul class="dropdown-menu fade-down">
+                                                                                                                                    <li>
+                                                    <a class="dropdown-item"
+                                                       href="/katilim-formu">
+                                                        Stant Alanı Kirala
+                                                    </a>
+                                                </li>
+                                                                                                                                                                                <li>
+                                                    <a class="dropdown-item"
+                                                       href="/neden-katilimci-olmalisiniz">
+                                                        Neden Katılmalısınız?
+                                                    </a>
+                                                </li>
+                                                                                                                                                                                <li>
+                                                    <a class="dropdown-item"
+                                                       href="/hizmetler">
+                                                        Hizmetler
+                                                    </a>
+                                                </li>
+                                                                                                                                                                                <li>
+                                                    <a class="dropdown-item"
+                                                       href="/katilimci-sss">
+                                                        Katılımcı SSS
+                                                    </a>
+                                                </li>
+                                                                                                                        </ul>
+                                                            </li>
+                                                    <li class="nav-item dropdown">
+                                <a class="nav-link  dropdown-toggle "
+                                   href="/neden-ziyaret-etmelisiniz"
+                                    data-bs-toggle="dropdown"  >
+                                    Ziyaretçi
+                                </a>
+                                                                    <ul class="dropdown-menu fade-down">
+                                                                                                                                    <li>
+                                                    <a class="dropdown-item"
+                                                       href="/e-bilet">
+                                                        Bilet
+                                                    </a>
+                                                </li>
+                                                                                                                                                                                <li>
+                                                    <a class="dropdown-item"
+                                                       href="/neden-ziyaret-etmelisiniz">
+                                                        Neden Ziyaret Etmelisiniz?
+                                                    </a>
+                                                </li>
+                                                                                                                                                                                <li>
+                                                    <a class="dropdown-item"
+                                                       href="/sikca-sorulan-sorular">
+                                                        Ziyaretçi SSS
+                                                    </a>
+                                                </li>
+                                                                                                                        </ul>
+                                                            </li>
+                                                    <li class="nav-item dropdown">
+                                <a class="nav-link  dropdown-toggle "
+                                   href="/katilimci-listesi"
+                                    data-bs-toggle="dropdown"  >
+                                    Katılımcılar &amp; Ürünler
+                                </a>
+                                                                    <ul class="dropdown-menu fade-down">
+                                                                                                                                    <li>
+                                                    <a class="dropdown-item"
+                                                       href="/katilimci-listesi">
+                                                        Katılımcı Listesi
+                                                    </a>
+                                                </li>
+                                                                                                                                                                                <li>
+                                                    <a class="dropdown-item"
+                                                       href="/urun-listesi">
+                                                        Ürün Listesi
+                                                    </a>
+                                                </li>
+                                                                                                                                                                                <li>
+                                                    <a class="dropdown-item"
+                                                       href="/cevre-ulasim-krokisi">
+                                                        Yerleşim Planı
+                                                    </a>
+                                                </li>
+                                                                                                                        </ul>
+                                                            </li>
+                                                    <li class="nav-item dropdown">
+                                <a class="nav-link  dropdown-toggle "
+                                   href="/sektor-gundem"
+                                    data-bs-toggle="dropdown"  >
+                                    Medya
+                                </a>
+                                                                    <ul class="dropdown-menu fade-down">
+                                                                                                                                    <li>
+                                                    <a class="dropdown-item"
+                                                       href="/sektor-gundem">
+                                                        Sektör Gündem
+                                                    </a>
+                                                </li>
+                                                                                                                                                                                <li>
+                                                    <a class="dropdown-item"
+                                                       href="/basin">
+                                                        Basın Akreditasyonu
+                                                    </a>
+                                                </li>
+                                                                                                                                                                                <li>
+                                                    <a class="dropdown-item"
+                                                       href="/basin#nav-press-releases">
+                                                        Basın Bültenleri
+                                                    </a>
+                                                </li>
+                                                                                                                                                                                <li>
+                                                    <a class="dropdown-item"
+                                                       href="/basin#nav-media-kit">
+                                                        Medya Materyalleri
+                                                    </a>
+                                                </li>
+                                                                                                                                                                                <li>
+                                                    <a class="dropdown-item"
+                                                       href="/medya-partnerleri">
+                                                        Medya Partnerleri
+                                                    </a>
+                                                </li>
+                                                                                                                        </ul>
+                                                            </li>
+                        
+                                            </ul>
+                </div>
+            </div>
+        </nav>
+    </div>
+</header>
+<!-- header area end -->
+
+<script>
+    // AuthManager sayfa yüklendiğinde otomatik başlayacak
+
+    function setCookie(name, value, days = 1) {
+        const expirationDate = new Date();
+        expirationDate.setDate(expirationDate.getDate() + days);
+        const encodedValue = encodeURIComponent(value);
+        document.cookie = `${name}=${encodedValue}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`;
+    }
+
+    function redirectToLogin(e) {
+        e.preventDefault();
+        const currentUrl = window.location.href;
+        setCookie('login_redirect_slug', currentUrl, 7);
+        window.location.href = 'https://auth.tuyap.com.tr/oauth/authorize?client_id=4&redirect_uri=https://www.foodistexpo.com/callback&response_type=code&scope=&prompt=consent&FuarId=3382';
+    }
+
+    function handleLogoClick(e, isLoggedIn) {
+        if (isLoggedIn) {
+            e.preventDefault();
+            const homeUrl = '/';
+            const separator = homeUrl.includes('?') ? '&' : '?';
+            window.location.href = homeUrl + separator + 'cb=' + Date.now();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('authStatusUpdated', function(event) {
+            updateAuthUI(event.detail);
+        });
+
+        if (window.AuthManager && window.AuthManager.isInitialized) {
+            updateAuthUI(window.AuthManager.getAuthData());
+        }
+    });
+
+    let retryCount = 0;
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('login')) {
+        const checkLoginStatus = () => {
+            if (window.AuthManager && window.AuthManager.isLoggedIn()) {
+                return;
+            }
+
+            if (retryCount < 3) {
+                retryCount++;
+                setTimeout(() => {
+                    window.AuthManager.refresh().then(() => {
+                        if (!window.AuthManager.isLoggedIn()) {
+                            checkLoginStatus();
+                        }
+                    });
+                }, 3000);
+            }
+        };
+
+        document.addEventListener('authStatusUpdated', checkLoginStatus);
+    }
+
+    function updateAuthUI(authData) {
+        const authContainer = document.getElementById('auth-container');
+        const mobileAuthContainer = document.getElementById('mobile-auth-container');
+
+        if (authData.isLoggedIn && authData.user) {
+            // Login olmuş kullanıcı için desktop menü
+            authContainer.innerHTML = `
+                <div class="dropdown">
+                    <a href="#" class="top-lang dropdown-toggle nav-right-link" data-bs-toggle="dropdown">
+                        <i class="far fa-user"></i> ${authData.user.name}
+                    </a>
+
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a href="/dashboard/profilim" class="dropdown-item">
+                                <i class="far fa-user me-2"></i>Profilim
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/dashboard/biletlerim" class="dropdown-item">
+                                <i class="fas fa-ticket-alt me-2"></i>Biletlerim
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/dashboard/favorilerim" class="dropdown-item">
+                                <i class="fas fa-heart me-2"></i>Favorilerim
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/dashboard/onerilenlerim" class="dropdown-item">
+                                <i class="fas fa-star me-2"></i>Öneriler
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/dashboard/mesajlarim" class="dropdown-item">
+                                <i class="fas fa-comments me-2"></i>Mesajlarım
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://auth.tuyap.com.tr/login" target="_blank" class="dropdown-item">
+                                <i class="fas fa-cog me-2"></i>Hesap Ayarları
+                            </a>
+                        </li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li>
+                            <a href="https://www.foodistexpo.com/logout" class="dropdown-item text-danger">
+                                <i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            `;
+
+            // Login olmuş kullanıcı için mobil menü
+            mobileAuthContainer.innerHTML = `
+                <div class="dropdown">
+                    <a href="#" class="top-lang dropdown-toggle nav-right-link" data-bs-toggle="dropdown">
+                        <i class="far fa-user"></i>
+                    </a>
+
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a href="/dashboard/profilim" class="dropdown-item">
+                                <i class="far fa-user me-2"></i>Profilim
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/dashboard/biletlerim" class="dropdown-item">
+                                <i class="fas fa-ticket-alt me-2"></i>Biletlerim
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/dashboard/favorilerim" class="dropdown-item">
+                                <i class="fas fa-heart me-2"></i>Favorilerim
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/dashboard/onerilenlerim" class="dropdown-item">
+                                <i class="fas fa-star me-2"></i>Öneriler
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/dashboard/mesajlarim" class="dropdown-item">
+                                <i class="fas fa-comments me-2"></i>Mesajlarım
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://auth.tuyap.com.tr/login" target="_blank" class="dropdown-item">
+                                <i class="fas fa-cog me-2"></i>Hesap Ayarları
+                            </a>
+                        </li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li>
+                            <a href="https://www.foodistexpo.com/logout" class="dropdown-item text-danger">
+                                <i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            `;
+        } else {
+            // Login olmamış kullanıcı için desktop menü
+            authContainer.innerHTML = `
+                <a href="#" onclick="redirectToLogin(event)" class="nav-right-link">
+                    <i class="far fa-user"></i> Giriş Yap
+                </a>
+            `;
+
+            // Login olmamış kullanıcı için mobil menü
+            mobileAuthContainer.innerHTML = `
+                <a href="https://auth.tuyap.com.tr/oauth/authorize?client_id=4&redirect_uri=https://www.foodistexpo.com/callback&response_type=code&scope=&prompt=consent&FuarId=3382"
+                   rel="nofollow" class="nav-right-link" aria-label="Giriş Yap">
+                    <i class="far fa-user"></i>
+                </a>
+            `;
+        }
+
+        // Logo click handler'ını güncelle
+        const logoLink = document.querySelector('.navbar-brand');
+        if (logoLink) {
+            logoLink.onclick = function(e) {
+                handleLogoClick(e, authData.isLoggedIn);
+            };
+        }
+    }
+</script>
+
+
+            <main class="main">
+        <div class="site-breadcrumb" style="background: url(https://cdn.mytuyap.com/assets/img/breadcrumb/01.jpg.webp)">
+            <div class="container">
+                <ol class="breadcrumb container company-detail">
+                    <li class="breadcrumb-item"><a href="/tr"><i
+                                class="fal fa-home"></i> Anasayfa</a>
+                    <li class="breadcrumb-item"><a
+                            href="/katilimci-listesi"> Katılımcı Listesi</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">44 BEYDAĞ PEYNİRCİLİK GIDA SANAYİ TİC. A.Ş.</li>
+                </ol>
+            </div>
+        </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const paragraphs = document.querySelectorAll('.schedule-detail-info p');
+
+                paragraphs.forEach(function (paragraph) {
+                    const fullText = paragraph.textContent;
+
+                    if (fullText.length > 600) {
+                        const shortText = fullText.substring(0, 600) + '...';
+
+                        paragraph.innerHTML = `
+                            <span class="short-text">${shortText}</span>
+                            <span class="full-text" style="display: none;">${fullText}</span>
+                            <p class="read-more-btn" style="cursor:pointer; font-weight:bold;">  <i class="fa fa-arrow-right"></i> Daha Fazla Göster </p>
+                            <p class="read-less-btn" style="cursor:pointer; font-weight:bold; display:none;"><i class="fa fa-arrow-left"></i> Daha Az Göster</p>
+                        `;
+
+                        const readMoreBtn = paragraph.querySelector('.read-more-btn');
+                        const readLessBtn = paragraph.querySelector('.read-less-btn');
+                        const shortTextSpan = paragraph.querySelector('.short-text');
+                        const fullTextSpan = paragraph.querySelector('.full-text');
+
+                        readMoreBtn.addEventListener('click', function () {
+                            shortTextSpan.style.display = 'none';
+                            fullTextSpan.style.display = 'inline';
+                            readMoreBtn.style.display = 'none';
+                            readLessBtn.style.display = 'block';
+                        });
+
+                        readLessBtn.addEventListener('click', function () {
+                            shortTextSpan.style.display = 'inline';
+                            fullTextSpan.style.display = 'none';
+                            readMoreBtn.style.display = 'block';
+                            readLessBtn.style.display = 'none';
+                        });
+                    }
+                });
+
+                const productItems = document.querySelectorAll('.products .product-item');
+                const showMoreProductsBtn = document.getElementById('show-more-products');
+                const showLessProductsBtn = document.getElementById('show-less-products');
+
+                if (productItems.length > 4) {
+                    for (let i = 4; i < productItems.length; i++) {
+                        productItems[i].style.display = 'none';
+                        productItems[i].classList.add('hidden-product');
+                    }
+
+                    if (showMoreProductsBtn) {
+                        showMoreProductsBtn.style.display = 'block';
+                    }
+                } else {
+                    if (showMoreProductsBtn) {
+                        showMoreProductsBtn.style.display = 'none';
+                    }
+                    if (showLessProductsBtn) {
+                        showLessProductsBtn.style.display = 'none';
+                    }
+                }
+
+                if (showMoreProductsBtn) {
+                    showMoreProductsBtn.addEventListener('click', function () {
+                        const hiddenProducts = document.querySelectorAll('.hidden-product');
+                        hiddenProducts.forEach(product => {
+                            product.style.display = 'block';
+                        });
+                        showMoreProductsBtn.style.display = 'none';
+                        if (showLessProductsBtn) {
+                            showLessProductsBtn.style.display = 'inline-block';
+                        }
+                    });
+                }
+
+                if (showLessProductsBtn) {
+                    showLessProductsBtn.addEventListener('click', function () {
+                        const hiddenProducts = document.querySelectorAll('.hidden-product');
+                        hiddenProducts.forEach(product => {
+                            product.style.display = 'none';
+                        });
+                        showLessProductsBtn.style.display = 'none';
+                        if (showMoreProductsBtn) {
+                            showMoreProductsBtn.style.display = 'inline-block';
+                        }
+                    });
+                }
+            });
+        </script>
+
+        <div class="schedule-single mt-60 pb-60">
+            <div class="container">
+                <div class="schedule-single-wrap">
+                    <div class="row g-4">
+                        <div class="col-xl-8 col-lg-8">
+                            <div class="schedule-detail">
+                                <div class="schedule-detail-img mb-30 d-flex">
+                                    <div class="bg-white company-logo-container">
+                                                                                    <img src="https://docs.tuyap.online/KBF/Resim3382/167369.jpg"
+                                                 alt="44 BEYDAĞ PEYNİRCİLİK GIDA SANAYİ TİC. A.Ş."
+                                                 class="company-logo" width="150" height="auto">
+                                                                            </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center">
+                                            <h1 class="mb-20 company-title">44 BEYDAĞ PEYNİRCİLİK GIDA SANAYİ TİC. A.Ş.
+                                                                                            </h1>
+                                                                                            <button class="message-send-btn message-send-btn-large ms-3"
+                                                        data-firma-id="167369"
+                                                        data-company-name="44 BEYDAĞ PEYNİRCİLİK GIDA SANAYİ TİC. A.Ş."
+                                                        data-logged-in="false"
+                                                        title="Mesaj Gönder">
+                                                    <i class="fas fa-envelope"></i>
+                                                </button>
+                                                <button class="favorite-btn favorite-btn-large ms-3"
+                                                        data-item-id="167369"
+                                                        data-item-type="4"
+                                                        title="Favorilere Ekle">
+                                                    <i class="far fa-heart"></i>
+                                                </button>
+                                                                                    </div>
+                                        <span> <i class="fa fa-globe"></i> Türkı̇ye</span>
+                                    </div>
+                                </div>
+
+                                                                    <div class="widget d-lg-none mb-4">
+                                        <h4 class="widget-title">Konum Bilgisi</h4>
+                                        <div class="schedule-list">
+                                            <ul>
+                                                                                                    <li><i class="far fa-building"></i> Salon
+                                                        : 8</li>
+                                                                                                                                                    <li><i class="far fa-map-marker"></i> Stant
+                                                        : 819B</li>
+                                                                                            </ul>
+                                        </div>
+                                    </div>
+                                
+                                <div class="schedule-detail-info">
+                                                                            <p class="mb-20">Gemlik bölgesindeki tesislerimizde gerçekleştirdiğimiz zeytin ve zeytinyağı üretimiyle, ürün portföyümüzü destekleyen güçlü bir değer oluşturuyor; kalite ve izlenebilirlik standartlarımızı üretimden tedarike kadar tüm süreçlere entegre ediyoruz.</p>
+                                                                    </div>
+                            </div>
+
+                            
+                            
+                            <!-- Temsilcilikler -->
+                            
+                                                            <div class="widget">
+                                    <h4 class="widget-title">Ürünler</h4>
+                                    <div class="products row g-4" data-wow-delay=".25s">
+                                                                                    <div class="product-item col-md-6 col-lg-6 h-100">
+                                                <button class="favorite-btn favorite-btn-small"
+                                                        data-item-id="187665"
+                                                        data-item-type="2"
+                                                        title="Favorilere Ekle">
+                                                    <i class="far fa-heart"></i>
+                                                </button>
+                                                <a href="/product-detail/biberli-yesil-zeytin" class="w-100">
+                                                    <div class="brand-header">
+                                                        <img src="https://docs.tuyap.online/FDOCS/177056.jpeg"
+                                                             alt="Biberli Yeşil Zeytin" width="200"
+                                                             height="auto">
+                                                    </div>
+                                                    <div class="brand-main">
+                                                        <h2 class="brand-product-title">Biberli Yeşil Zeytin
+                                                            ̇</h2>
+                                                        <p>Organik ve sağlıklı ürünler</p>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                                                                    <div class="product-item col-md-6 col-lg-6 h-100">
+                                                <button class="favorite-btn favorite-btn-small"
+                                                        data-item-id="187668"
+                                                        data-item-type="2"
+                                                        title="Favorilere Ekle">
+                                                    <i class="far fa-heart"></i>
+                                                </button>
+                                                <a href="/product-detail/naturel-sizma-zeytinyagi" class="w-100">
+                                                    <div class="brand-header">
+                                                        <img src="https://docs.tuyap.online/FDOCS/177051.jpeg"
+                                                             alt="Naturel Sızma Zeytinyağı" width="200"
+                                                             height="auto">
+                                                    </div>
+                                                    <div class="brand-main">
+                                                        <h2 class="brand-product-title">Naturel Sızma Zeytinyağı
+                                                            ̇</h2>
+                                                        <p>Organik ve sağlıklı ürünler</p>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                                                                    <div class="product-item col-md-6 col-lg-6 h-100">
+                                                <button class="favorite-btn favorite-btn-small"
+                                                        data-item-id="187669"
+                                                        data-item-type="2"
+                                                        title="Favorilere Ekle">
+                                                    <i class="far fa-heart"></i>
+                                                </button>
+                                                <a href="/product-detail/siyah-zeytin" class="w-100">
+                                                    <div class="brand-header">
+                                                        <img src="https://docs.tuyap.online/FDOCS/177052.jpeg"
+                                                             alt="Siyah Zeytin" width="200"
+                                                             height="auto">
+                                                    </div>
+                                                    <div class="brand-main">
+                                                        <h2 class="brand-product-title">Siyah Zeytin
+                                                            ̇</h2>
+                                                        <p>Organik ve sağlıklı ürünler</p>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                                                                    <div class="product-item col-md-6 col-lg-6 h-100">
+                                                <button class="favorite-btn favorite-btn-small"
+                                                        data-item-id="187670"
+                                                        data-item-type="2"
+                                                        title="Favorilere Ekle">
+                                                    <i class="far fa-heart"></i>
+                                                </button>
+                                                <a href="/product-detail/500-ml-sikma-naturel-sizma-zeytinyagi" class="w-100">
+                                                    <div class="brand-header">
+                                                        <img src="https://docs.tuyap.online/FDOCS/177053.jpeg"
+                                                             alt="500 ml Sıkma Naturel Sızma Zeytinyağı" width="200"
+                                                             height="auto">
+                                                    </div>
+                                                    <div class="brand-main">
+                                                        <h2 class="brand-product-title">500 ml Sıkma Naturel Sızma Zeytinyağı
+                                                            ̇</h2>
+                                                        <p>Organik ve sağlıklı ürünler</p>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                                                                    <div class="product-item col-md-6 col-lg-6 h-100">
+                                                <button class="favorite-btn favorite-btn-small"
+                                                        data-item-id="187671"
+                                                        data-item-type="2"
+                                                        title="Favorilere Ekle">
+                                                    <i class="far fa-heart"></i>
+                                                </button>
+                                                <a href="/product-detail/izgara-yesil-zeytin" class="w-100">
+                                                    <div class="brand-header">
+                                                        <img src="https://docs.tuyap.online/FDOCS/177054.jpeg"
+                                                             alt="Izgara Yeşil Zeytin" width="200"
+                                                             height="auto">
+                                                    </div>
+                                                    <div class="brand-main">
+                                                        <h2 class="brand-product-title">Izgara Yeşil Zeytin
+                                                            ̇</h2>
+                                                        <p>Organik ve sağlıklı ürünler</p>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                                                                    <div class="product-item col-md-6 col-lg-6 h-100">
+                                                <button class="favorite-btn favorite-btn-small"
+                                                        data-item-id="187672"
+                                                        data-item-type="2"
+                                                        title="Favorilere Ekle">
+                                                    <i class="far fa-heart"></i>
+                                                </button>
+                                                <a href="/product-detail/kirma-yesil-zeytin" class="w-100">
+                                                    <div class="brand-header">
+                                                        <img src="https://docs.tuyap.online/FDOCS/177055.jpeg"
+                                                             alt="Kırma Yeşil Zeytin" width="200"
+                                                             height="auto">
+                                                    </div>
+                                                    <div class="brand-main">
+                                                        <h2 class="brand-product-title">Kırma Yeşil Zeytin
+                                                            ̇</h2>
+                                                        <p>Organik ve sağlıklı ürünler</p>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                                                            </div>
+
+                                    <div class="mt-4">
+                                        <a href="javascript:void(0)" id="show-more-products" class="read-more-btn"
+                                           style="display: none; font-weight: bold; cursor: pointer;">
+                                            <i class="fa fa-arrow-down"></i> Daha Fazla Ürün Göster
+                                        </a>
+                                        <a href="javascript:void(0)" id="show-less-products" class="read-less-btn"
+                                           style="display: none; font-weight: bold; cursor: pointer;">
+                                            <i class="fa fa-arrow-up"></i> Daha Az Ürün Göster
+                                        </a>
+                                    </div>
+                                </div>
+                                                    </div>
+
+                        <div class="col-xl-4 col-lg-4">
+                            <div class="schedule-sidebar">
+                                                                    <div class="widget d-none d-lg-block">
+                                        <h4 class="widget-title">Konum Bilgisi</h4>
+                                        <div class="schedule-list">
+                                            <ul>
+                                                                                                                                                            <li><i class="far fa-building"></i> Salon: 8</li>
+                                                        <li><i class="far fa-map-marker"></i> Stant: 819B</li>
+                                                                                                                                                </ul>
+                                        </div>
+                                    </div>
+                                
+                                <div class="widget">
+                                    <h4 class="widget-title">İletişim</h4>
+                                    <div class="schedule-list">
+                                        <ul>
+                                                                                            <li><i class="far fa-phone"></i> +905355706844</li>
+                                                                                                                                        <li><i class="far fa-location-dot"></i> Mega Center No:1 C19 Blok No: 149 B Bayrampaşa/İstanbul
+                                                </li>
+                                                                                                                                        <li><i class="far fa-globe"></i>
+                                                    <a href="https://44beydaggida.com/"
+                                                       target="_blank">
+                                                        https://44beydaggida.com/
+                                                    </a>
+                                                </li>
+                                                                                    </ul>
+
+                                                                                    <div class="social">
+                                                                                                                                                                                                    <a href="https://www.instagram.com/44beydaggida/" target="_blank"><i
+                                                            class="fab fa-instagram"></i></a>
+                                                                                                                                                                                                                                                                                            </div>
+                                                                            </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 ps-3">
+                        <a href="/katilimci-listesi" class="back-to-list-link"
+                           style="display: inline-block; font-weight: bold; color: #333; text-decoration: none;">
+                            <i class="fa fa-arrow-left"></i> Katılımcı Listesine Geri Dön
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    
+    <div class="message-popup-overlay" id="messagePopupOverlay" data-product-info-text="ürünü hakkında bilgi almak istiyorum.">
+    <div class="message-popup">
+        <div class="message-popup-header">
+            <h4 class="message-popup-title">
+                <i class="fas fa-envelope me-2"></i>
+                Firmaya Mesaj Gönder
+            </h4>
+            <button type="button" class="message-popup-close" id="messagePopupClose">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="message-popup-body">
+            <p class="message-popup-company-name" id="messagePopupCompanyName"></p>
+            <form id="messageForm">
+                <input type="hidden" id="messageFirmaId" name="firma_id" value="">
+                <div class="form-group">
+                    <label for="messageTextarea">Mesajınız</label>
+                    <textarea
+                        id="messageTextarea"
+                        name="mesaj"
+                        class="form-control"
+                        rows="5"
+                        maxlength="1000"
+                        placeholder="Mesajınızı buraya yazın..."
+                        required
+                    ></textarea>
+                    <small class="message-char-count">
+                        <span id="messageCharCount">0</span>/1000
+                    </small>
+                </div>
+                <div class="message-popup-footer">
+                    <button type="button" class="btn btn-secondary" id="messagePopupCancel">
+                        Vazgeç
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="messageSubmitBtn">
+                        <span class="btn-text">Gönder</span>
+                        <span class="btn-loading" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i> Gönderiliyor...
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+        <div class="message-popup-result" id="messagePopupResult" style="display: none;">
+            <div class="result-icon"></div>
+            <p class="result-message"></p>
+            <button type="button" class="btn btn-primary" id="messagePopupOk">Tamam</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.message-popup-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.message-popup-overlay.active {
+    display: flex;
+}
+
+.message-popup {
+    background: #fff;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    animation: messagePopupSlideIn 0.3s ease;
+}
+
+@keyframes messagePopupSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: var(--theme-color);
+    color: #fff;
+}
+
+.message-popup-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: white;
+}
+
+.message-popup-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.message-popup-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.message-popup-body {
+    padding: 20px;
+}
+
+.message-popup-company-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.message-popup-body .form-group {
+    margin-bottom: 15px;
+}
+
+.message-popup-body label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #555;
+}
+
+.message-popup-body textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    resize: vertical;
+    font-size: 0.95rem;
+    transition: border-color 0.2s;
+}
+
+.message-popup-body textarea:focus {
+    outline: none;
+    border-color: var(--theme-color, #667eea);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.message-char-count {
+    display: block;
+    text-align: right;
+    color: #888;
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+.message-popup-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.message-popup-footer .btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.message-popup-footer .btn-secondary {
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    color: #666;
+}
+
+.message-popup-footer .btn-secondary:hover {
+    background: #e5e5e5;
+}
+
+.message-popup-footer .btn-primary {
+    background: var(--theme-color);
+    border: none;
+    color: #fff;
+}
+
+.message-popup-footer .btn-primary:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+}
+
+.message-popup-footer .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.message-popup-result {
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.message-popup-result .result-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 1.5rem;
+}
+
+.message-popup-result.success .result-icon {
+    background: #d4edda;
+    color: #28a745;
+}
+
+.message-popup-result.success .result-icon::before {
+    content: '\f00c';
+    font-family: 'Font Awesome 5 Pro', 'Font Awesome 5 Free';
+    font-weight: 900;
+}
+
+.message-popup-result.error .result-icon {
+    background: #f8d7da;
+    color: #dc3545;
+}
+
+.message-popup-result.error .result-icon::before {
+    content: '\f00d';
+    font-family: 'Font Awesome 5 Pro', 'Font Awesome 5 Free';
+    font-weight: 900;
+}
+
+.message-popup-result .result-message {
+    font-size: 1rem;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.message-popup-result .btn-primary {
+    background: var(--theme-color);
+    border: none;
+    color: #fff;
+    padding: 10px 30px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.message-popup-result .btn-primary:hover {
+    opacity: 0.85;
+}
+
+/* Mesaj gönder butonu */
+.message-send-btn {
+    background: #fff;
+    border: 2px solid #999;
+    color: #999;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.message-send-btn-large {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+}
+
+.message-send-btn:hover {
+    transform: scale(1.1);
+    border-color: var(--theme-color);
+    color: var(--theme-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.message-send-btn i {
+    font-size: 0.9rem;
+}
+
+@media (max-width: 576px) {
+    .message-popup {
+        max-width: 100%;
+        margin: 10px;
+    }
+
+    .message-popup-header {
+        padding: 12px 15px;
+    }
+
+    .message-popup-body {
+        padding: 15px;
+    }
+
+    .message-popup-footer {
+        flex-direction: column;
+    }
+
+    .message-popup-footer .btn {
+        width: 100%;
+    }
+}
+</style>
+
+                    <footer class="footer-area">
+    <div class="footer-widget">
+        <div class="container">
+            <div class="row footer-widget-wrapper pt-100 pb-70">
+                <div class="col-md-6 col-lg-4">
+                    <div class="footer-widget-box about-us">
+                        <a href="#" class="footer-logo">
+                                                            <img src="https://cdn.mytuyap.com/foodistexpo/img/logo/foodist-logo-beyaz.svg" alt="logo" loading="lazy" width="220" height="87">
+                                                    </a>
+                        <p class="mb-3">
+                            Tüyap’ın fuarcılık sektöründeki 46 yıllık tecrübesi ve ALZ Fuar’ın gıda sektöründe deneyimi ile TGP’nin tüm sektörü bir araya getiren birleştirici gücüyle şekillenen FOODIST İSTANBUL, sektörün global vitrini olacak. 
+                        </p>
+
+                        <ul class="footer-contact">
+                                                            <li><a href="/cdn-cgi/l/email-protection#e1878e8e85889295a1878e8e858892958499918ecf828e8c"><i class="far fa-envelope"></i>  <span class="__cf_email__" data-cfemail="8ee8e1e1eae7fdfacee8e1e1eae7fdfaebf6fee1a0ede1e3">[email&#160;protected]</span></a></li>
+                                                    </ul>
+
+                        <img class="footer-logo-sponsor" src="https://cdn.mytuyap.com/foodistexpo/img/logo/footer-logo.png.webp" alt="footer logo" width="362" height="82" loading="lazy">
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-2">
+                    <div class="footer-widget-box list">
+                        <h2 class="footer-widget-title">Hakkında</h2>
+                        <ul class="footer-list">
+                                                            <li><a class="dropdown-item" href="/fuar-hakkinda">Fuar Hakkında</a></li>
+                                <li><a class="dropdown-item" href="/ulasim">Fuar Merkezi & Ulaşım</a></li>
+                                                                    <li><a class="dropdown-item" href="/konaklama">Konaklama</a></li>
+                                                                <li><a class="dropdown-item" href="/iletisim">Ekibimize Ulaşın</a></li>
+                            
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="footer-widget-box list">
+                        <h2 class="footer-widget-title">Ziyaretçiler</h2>
+                        <ul class="footer-list social">
+                                                                                                <li><a class="dropdown-item" href="/e-bilet">Bilet</a></li>
+                                                                <li><a class="dropdown-item" href="/neden-ziyaret-etmelisiniz">Neden Ziyaret
+                                        Etmelisiniz?</a></li>
+                                <li><a class="dropdown-item" href="/sikca-sorulan-sorular">Ziyaretçi SSS</a>
+                                </li>
+                                                    </ul>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="footer-widget-box list">
+                        <h2 class="footer-widget-title">Bizi Takip Edin</h2>
+                        <div class="footer-newsletter">
+                            <div class="subscribe-form">
+                                <form id="newsletter-form" method="POST" action="https://www.foodistexpo.com/newsletter/subscribe">
+                                    <input type="hidden" name="_token" value="xlq9pswYrIBfyooFrMyr75j8P5ie9P7iPabQ2Iy0" autocomplete="off">                                    <div class="form-group">
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            class="form-control"
+                                            placeholder="E-Posta"
+                                            required
+                                        >
+                                        <button class="theme-btn" type="submit" id="newsletterButton">
+                                            <span class="far fa-paper-plane" id="buttonIconNews"></span>
+                                            <span id="buttonTextNews">Abone Ol</span>
+                                        </button>
+                                    </div>
+                                    <input type="hidden" name="recaptcha_token_news" id="recaptcha_token_news">
+                                </form>
+                            </div>
+                            <div class="sidebar-social">
+                                
+                                                                    <a href="https://x.com/Foodistexpo" target="_blank" aria-label="X (Twitter)"><i class="fab fa-x-twitter"></i></a>
+                                
+                                                                    <a href="https://www.instagram.com/foodist_istanbul" target="_blank" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                                
+                                                                    <a href="https://www.linkedin.com/showcase/foodistexpo/" target="_blank" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
+                                
+                                
+                                                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="copyright">
+            <div class="row">
+                <div class="col-md-6 align-self-center">
+                    <p class="copyright-text">
+                        © Copyright 2025 foodistexpo.com Tüm Hakları Saklıdır.
+                    </p>
+                </div>
+                <div class="col-md-6 align-self-center">
+                    <ul class="footer-menu">
+                        <li><a href="gizlilik-beyani">Gizlilik Beyanı</a></li>
+                        <li><a href="kisisel-verilerin-korunmasi">Kişisel Verilerin Korunması</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<a href="#" id="scroll-top"><i class="far fa-arrow-up"></i></a>
+
+<div class="online-bilet-fixed" id="online-ticket-fix">
+    <a href="/e-bilet"> Online Bilet Al</a>
+</div>
+        
+
+        <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script defer src="https://cdn.mytuyap.com/assets/js/jquery-3.7.1.min.js"></script>
+        <script defer src="https://cdn.mytuyap.com/assets/js/bootstrap.bundle.min.js"></script>
+        <script defer src="https://cdn.mytuyap.com/assets/js/csrf-helper.js"></script>
+        <script defer src="https://cdn.mytuyap.com/assets/js/auth-manager.js"></script>
+        <script defer src="https://cdn.mytuyap.com/assets/js/participant-portal.js?v=1.0.2"></script>
+        <script defer src="https://cdn.mytuyap.com/assets/js/favorites.js"></script>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const lazyVideos = document.querySelectorAll('.lazy-video-container');
+
+                if ('IntersectionObserver' in window) {
+                    const videoObserver = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                const container = entry.target;
+                                const videoElement = container.querySelector('.lazy-video');
+                                const videoSrc = container.dataset.videoSrc;
+
+                                if (videoSrc && videoElement && !videoElement.src) {
+                                    videoElement.src = videoSrc;
+                                    videoElement.setAttribute('loading', 'lazy');
+                                    videoElement.setAttribute('playsinline', '');
+                                    videoElement.play().catch(e => console.log('Video oynatılamadı:', e));
+                                    videoObserver.unobserve(container);
+                                }
+                            }
+                        });
+                    }, {
+                        rootMargin: '200px 0px',
+                        threshold: 0.01
+                    });
+
+                    lazyVideos.forEach(container => {
+                        videoObserver.observe(container);
+                    });
+                }
+            });
+        </script>
+
+        <script>
+            window.recaptchaRequested = false;
+            function loadReCAPTCHA() {
+                if (window.recaptchaRequested) return;
+                window.recaptchaRequested = true;
+
+                var script = document.createElement('script');
+                script.src = 'https://www.google.com/recaptcha/api.js?render=6LdTmewqAAAAAEu5fTBzRTEbxI1kpsllGoO-b-2R';
+                script.defer = true;
+                document.body.appendChild(script);
+            }
+
+            document.addEventListener('focusin', function (e) {
+                if (e.target.matches('input, textarea, select')) {
+                    loadReCAPTCHA();
+                }
+            }, {capture: true});
+
+            function loadNonCriticalScripts() {
+                // async=false: paralel indirme + sıralı çalıştırma (eski iç içe callback şelalesi yerine)
+                [
+                    'https://cdn.mytuyap.com/assets/js/owl.carousel.min.js',
+                    'https://cdn.mytuyap.com/assets/js/countdown.min.js',
+                    'https://cdn.mytuyap.com/assets/js/modernizr.min.js',
+                    'https://cdn.mytuyap.com/assets/js/imagesloaded.pkgd.min.js',
+                    'https://cdn.mytuyap.com/assets/js/jquery.magnific-popup.min.js',
+                    'https://cdn.mytuyap.com/assets/js/isotope.pkgd.min.js',
+                    'https://cdn.mytuyap.com/assets/js/jquery.appear.min.js',
+                    'https://cdn.mytuyap.com/assets/js/jquery.easing.min.js',
+                    'https://cdn.mytuyap.com/assets/js/counter-up.js',
+                    'https://cdn.mytuyap.com/assets/js/wow.min.js',
+                    'https://cdn.mytuyap.com/assets/js/main.js?1.0.15'
+                ].forEach(function (src) {
+                    var script = document.createElement('script');
+                    script.src = src;
+                    script.async = false;
+                    document.body.appendChild(script);
+                });
+
+                document.removeEventListener('mousemove', handleScriptInteraction);
+                document.removeEventListener('scroll', handleScriptInteraction);
+                document.removeEventListener('touchstart', handleScriptInteraction);
+            }
+
+            function handleScriptInteraction() {
+                if (window.scriptsAreLoading) return;
+                window.scriptsAreLoading = true;
+
+                loadNonCriticalScripts();
+            }
+
+            window.translations = Object.assign(window.translations || {}, {
+                productGroups: "Ürün Grubu",
+                country: "Ülke",
+                salon: "Salon Numarası",
+            });
+
+            window.scriptsAreLoading = false;
+
+            document.addEventListener('mousemove', handleScriptInteraction, {once: true, capture: true});
+            document.addEventListener('scroll', handleScriptInteraction, {once: true, capture: true});
+            document.addEventListener('touchstart', handleScriptInteraction, {once: true, capture: true});
+
+            document.addEventListener('DOMContentLoaded', function () {
+                setTimeout(handleScriptInteraction, 10);
+            });
+        </script>
+
+        
+            <script defer src="https://cdn.mytuyap.com/assets/js/favorites.js"></script>
+    <script defer src="https://cdn.mytuyap.com/assets/js/message.js"></script>
+
+
+        <template id="delayed-third-party">
+            <script type="text/javascript">var selectLang = 'TR';</script><script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-NVV2H5MD');</script>
+
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe
+src="https://www.googletagmanager.com/ns.html?id=GTM-NVV2H5MD"
+height="0" width="0"
+style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+<meta name="facebook-domain-verification" content="9tsjuymm669e0r8xooeac1mnc32nq0" />
+            <script src="https://bundles.efilli.com/foodistexpo.com.prod.js"></script>
+        </template>
+        <script>
+            (function () {
+                var fired = false;
+                var events = ['mousemove', 'scroll', 'touchstart', 'keydown', 'click'];
+
+                function loadDelayedThirdParty() {
+                    if (fired) return;
+                    fired = true;
+                    events.forEach(function (ev) {
+                        window.removeEventListener(ev, loadDelayedThirdParty, {capture: true});
+                    });
+
+                    var tpl = document.getElementById('delayed-third-party');
+                    if (!tpl) return;
+
+                    Array.prototype.forEach.call(tpl.content.childNodes, function (node) {
+                        if (node.nodeType !== 1) return; // yalnızca element düğümleri (whitespace/yorum atla)
+                        if (node.tagName === 'SCRIPT') {
+                            var s = document.createElement('script');
+                            for (var i = 0; i < node.attributes.length; i++) {
+                                s.setAttribute(node.attributes[i].name, node.attributes[i].value);
+                            }
+                            if (node.src) {
+                                s.src = node.src;
+                            } else {
+                                s.textContent = node.textContent;
+                            }
+                            document.head.appendChild(s);
+                        } else {
+                            document.head.appendChild(node.cloneNode(true));
+                        }
+                    });
+                }
+
+                events.forEach(function (ev) {
+                    window.addEventListener(ev, loadDelayedThirdParty, {once: true, capture: true, passive: true});
+                });
+
+                setTimeout(loadDelayedThirdParty, 4000);
+            })();
+        </script>
+
+        
+        </body>
+</html>

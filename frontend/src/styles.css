@@ -345,6 +345,14 @@ textarea:focus-visible,
   padding: 0;
 }
 
+.detail-card-spaced {
+  margin-top: 1rem;
+}
+
+.customer-form .form-section-heading {
+  margin: 1.25rem 0 0.75rem;
+}
+
 .detail-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -3207,4 +3215,297 @@ textarea:hover {
 .merge-result-value {
   font-size: 0.75rem;
   margin-top: 0.25rem;
+}
+
+/* ── Adapter Yönetimi ── */
+.adapter-management-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.adapter-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.adapter-summary-card {
+  padding: 0.75rem 1rem;
+  min-width: 0;
+}
+
+.adapter-summary-label {
+  margin: 0 0 0.2rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.adapter-summary-value {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.adapter-table-card {
+  padding: 0.75rem 1rem;
+}
+
+.adapter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.adapter-search-input {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.adapter-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.adapter-status-filter {
+  min-width: 10rem;
+}
+
+.adapter-table-error {
+  margin: 0 0 0.75rem;
+}
+
+.adapter-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.adapter-name-primary {
+  font-weight: 600;
+}
+
+.adapter-name-secondary {
+  font-size: 0.8rem;
+}
+
+.adapter-col-features {
+  min-width: 14rem;
+}
+
+.adapter-feature-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.adapter-feature-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+  border: 1px solid transparent;
+}
+
+.adapter-feature-badge.enabled {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 25%, transparent);
+}
+
+.adapter-feature-badge.disabled {
+  color: var(--muted);
+  background: var(--surface-muted, #f1f5f9);
+  border-color: var(--border);
+}
+
+.adapter-list-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 1200;
+}
+
+.drawer-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 1201;
+  display: flex;
+  flex-direction: column;
+  width: min(100vw, 34rem);
+  max-width: 100%;
+  height: 100vh;
+  background: var(--surface, #fff);
+  border-left: 1px solid var(--border);
+  box-shadow: -8px 0 24px rgba(15, 23, 42, 0.12);
+}
+
+.drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.drawer-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.drawer-subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+}
+
+.drawer-body {
+  flex: 1;
+  overflow: auto;
+  padding: 0.75rem 1rem 1rem;
+}
+
+.drawer-body .tabs {
+  margin-bottom: 0.75rem;
+}
+
+.adapter-manifest-fields {
+  margin-top: 0.25rem;
+}
+
+.adapter-runs-table .table-wrap {
+  margin-top: 0.25rem;
+}
+
+.adapter-console {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.adapter-console-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.adapter-console-run-select {
+  min-width: min(100%, 18rem);
+}
+
+.adapter-console-polling {
+  font-size: 0.85rem;
+}
+
+.adapter-console-log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 28rem;
+  overflow: auto;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: #0f172a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.adapter-console-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.adapter-console-time {
+  color: #94a3b8;
+  flex: 0 0 auto;
+}
+
+.adapter-console-step {
+  color: #cbd5e1;
+  flex: 0 0 auto;
+}
+
+.adapter-console-message {
+  color: #f8fafc;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.adapter-console-info .adapter-console-step,
+.adapter-console-info .adapter-console-message {
+  color: #e2e8f0;
+}
+
+.adapter-console-warning .adapter-console-step,
+.adapter-console-warning .adapter-console-message {
+  color: #fbbf24;
+}
+
+.adapter-console-error .adapter-console-step,
+.adapter-console-error .adapter-console-message {
+  color: #f87171;
+}
+
+.adapter-console-success .adapter-console-step,
+.adapter-console-success .adapter-console-message {
+  color: #4ade80;
+}
+
+@media (max-width: 1100px) {
+  .adapter-summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .adapter-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .adapter-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .adapter-toolbar-actions {
+    width: 100%;
+  }
+
+  .adapter-toolbar-actions .btn,
+  .adapter-status-filter,
+  .adapter-console-run-select {
+    width: 100%;
+  }
+
+  .drawer-panel {
+    width: 100vw;
+  }
+}
+
+@media (max-width: 480px) {
+  .adapter-summary-grid {
+    grid-template-columns: 1fr;
+  }
 }
