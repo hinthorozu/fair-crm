@@ -88,6 +88,49 @@ class ImportBatch:
         )
 
     @classmethod
+    def create_from_canonical(
+        cls,
+        *,
+        organization_id: UUID,
+        fair_id: UUID,
+        source_type: ImportSourceType,
+        file_name: str,
+        total_rows: int,
+        valid_rows: int,
+        invalid_rows: int,
+        raw_preview_json: dict[str, Any],
+        now: datetime,
+    ) -> "ImportBatch":
+        return cls(
+            id=uuid4(),
+            organization_id=organization_id,
+            fair_id=fair_id,
+            source_type=source_type,
+            file_name=file_name,
+            status=ImportBatchStatus.RECEIVED,
+            total_rows=total_rows,
+            valid_rows=valid_rows,
+            invalid_rows=invalid_rows,
+            duplicate_rows=0,
+            created_rows=0,
+            updated_rows=0,
+            skipped_rows=0,
+            created_participations=0,
+            updated_participations=0,
+            column_mapping_json=None,
+            raw_preview_json=raw_preview_json,
+            has_header_row=None,
+            header_mode=None,
+            header_row_index=None,
+            selected_sheet_name=None,
+            stored_file_content=None,
+            created_at=now,
+            updated_at=now,
+            completed_at=None,
+            notes=None,
+        )
+
+    @classmethod
     def create_legacy(
         cls,
         *,

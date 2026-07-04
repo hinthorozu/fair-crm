@@ -32,6 +32,15 @@ class UploadRawImportCommand:
 
 
 @dataclass(frozen=True)
+class CreateImportBatchFromCanonicalCommand:
+    organization_id: UUID
+    user_id: UUID
+    access_token: str
+    document: dict[str, Any]
+    fair_id: UUID | None = None
+
+
+@dataclass(frozen=True)
 class SetColumnMappingCommand:
     organization_id: UUID
     user_id: UUID
@@ -204,6 +213,12 @@ class ImportBatchResult:
     has_header_row: Optional[bool] = None
     header_row_index: Optional[int] = None
     column_mapping_json: Optional[dict[str, Any]] = None
+
+
+@dataclass(frozen=True)
+class CreateImportBatchFromCanonicalResult:
+    batch: ImportBatchResult
+    row_count: int
 
 
 @dataclass

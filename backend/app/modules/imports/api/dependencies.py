@@ -41,6 +41,9 @@ from app.modules.imports.application.get_import_batch import GetImportBatchUseCa
 from app.modules.imports.application.get_mapping_preview import GetMappingPreviewUseCase
 from app.modules.imports.application.list_import_rows import ListImportRowsUseCase
 from app.modules.imports.application.configure_import_header import ConfigureImportHeaderUseCase
+from app.modules.imports.application.create_import_batch_from_canonical import (
+    CreateImportBatchFromCanonicalUseCase,
+)
 from app.modules.imports.application.set_column_mapping import SetColumnMappingUseCase
 from app.modules.imports.application.set_row_decision import SetImportRowDecisionUseCase
 from app.modules.imports.application.upload_import import UploadCustomerImportUseCase
@@ -140,6 +143,22 @@ def get_upload_raw_import_use_case(
 ) -> UploadRawImportUseCase:
     return UploadRawImportUseCase(
         batch_repository,
+        SqlAlchemyFairRepository(db),
+        authorization,
+        audit,
+    )
+
+
+def get_create_import_batch_from_canonical_use_case(
+    batch_repository: SqlAlchemyImportBatchRepository = Depends(get_import_batch_repository),
+    row_repository: SqlAlchemyImportRowRepository = Depends(get_import_row_repository),
+    db: Session = Depends(get_db),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
+) -> CreateImportBatchFromCanonicalUseCase:
+    return CreateImportBatchFromCanonicalUseCase(
+        batch_repository,
+        row_repository,
         SqlAlchemyFairRepository(db),
         authorization,
         audit,

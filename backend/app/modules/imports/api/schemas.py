@@ -298,3 +298,8 @@ class ApplyImportResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     detail: str
+
+
+class CreateImportBatchFromCanonicalResponse(BaseModel):
+    batch: ImportBatchResponse
+    row_count: int

@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
@@ -26,6 +26,7 @@ from app.modules.imports.api.dependencies import (
     get_auth_context,
     get_bulk_row_decision_use_case,
     get_configure_import_header_use_case,
+    get_create_import_batch_from_canonical_use_case,
     get_delete_import_batch_use_case,
     get_get_import_batch_use_case,
     get_job_runner,
@@ -57,6 +58,7 @@ from app.modules.imports.api.schemas import (
     DeleteImportBatchResponse,
     ConfigureImportHeaderRequest,
     ConfigureImportHeaderResponse,
+    CreateImportBatchFromCanonicalResponse,
     ErrorResponse,
     ImportBatchResponse,
     ImportRowFilterCountsResponse,
@@ -86,6 +88,7 @@ from app.modules.imports.application.commands import (
     ApplyImportCommand,
     BulkRowDecisionCommand,
     ConfigureImportHeaderCommand,
+    CreateImportBatchFromCanonicalCommand,
     DeleteImportBatchCommand,
     GetImportBatchQuery,
     PreviewBulkDecisionQuery,
@@ -97,6 +100,9 @@ from app.modules.imports.application.commands import (
     UploadRawImportCommand,
 )
 from app.modules.imports.application.configure_import_header import ConfigureImportHeaderUseCase
+from app.modules.imports.application.create_import_batch_from_canonical import (
+    CreateImportBatchFromCanonicalUseCase,
+)
 from app.modules.imports.application.get_mapping_preview import GetMappingPreviewUseCase
 from app.modules.imports.application.get_import_batch import GetImportBatchUseCase
 from app.modules.imports.application.list_import_rows import ListImportRowsUseCase
@@ -113,6 +119,7 @@ from app.modules.imports.domain.exceptions import (
     ImportBatchNotFoundError,
     ImportBulkActionInProgressError,
     ImportRowNotFoundError,
+    InvalidCanonicalImportError,
     InvalidColumnMappingError,
     InvalidImportDecisionError,
     InvalidImportFileError,
@@ -176,6 +183,42 @@ async def upload_raw_import(
     except ForbiddenError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     return UploadRawImportResponse.model_validate(result.__dict__)
+
+
+@router.post(
+    "/from-canonical",
+    response_model=CreateImportBatchFromCanonicalResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={400: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    summary="Create import batch from canonical JSON handoff (no CRM writes)",
+)
+def create_import_batch_from_canonical(
+    body: dict[str, Any],
+    auth: AuthContext = Depends(get_auth_context),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case: CreateImportBatchFromCanonicalUseCase = Depends(get_create_import_batch_from_canonical_use_case),
+) -> CreateImportBatchFromCanonicalResponse:
+    try:
+        result = use_case.execute(
+            CreateImportBatchFromCanonicalCommand(
+                organization_id=auth.organization_id,
+                user_id=auth.user_id,
+                access_token=_access_token(credentials),
+                document=body,
+            )
+        )
+    except InvalidCanonicalImportError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except FairRequiredError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except FairNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    return CreateImportBatchFromCanonicalResponse(
+        batch=_batch_response(result.batch),
+        row_count=result.row_count,
+    )
 
 
 @router.post(

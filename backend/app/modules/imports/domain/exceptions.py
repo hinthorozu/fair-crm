@@ -10,6 +10,10 @@ class InvalidImportFileError(Exception):
     pass
 
 
+class InvalidCanonicalImportError(Exception):
+    """Canonical import document failed schema validation."""
+
+
 class ImportBatchAlreadyAppliedError(Exception):
     pass
 

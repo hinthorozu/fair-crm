@@ -5,6 +5,8 @@ class ImportSourceType(StrEnum):
     """Import origin — only Excel is implemented in v1; others reserved for adapters."""
 
     EXCEL = "excel"
+    CSV = "csv"
+    API = "api"
     PDF = "pdf"
     SCRAPER = "scraper"
     DATABASE = "database"
@@ -13,6 +15,7 @@ class ImportSourceType(StrEnum):
 
 
 class ImportBatchStatus(StrEnum):
+    RECEIVED = "received"
     UPLOADED = "uploaded"
     SHEET_SELECTED = "sheet_selected"
     HEADER_CONFIGURED = "header_configured"
