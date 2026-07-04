@@ -16,6 +16,21 @@ Read these files before any new implementation sprint or architecture-sensitive 
 
 For local runtime or verification tasks, also read `docs/DEV_RUNTIME.md`. For import, merge, scraper, or data integration tasks, read the relevant files under `docs/import/` and `docs/architecture/`.
 
+## Current Product State
+
+FAIR CRM is active in development. It is not in the original Sprint 1.0 Customer-only phase.
+
+Current delivery snapshot:
+
+- Customer/Fair/Participation foundation modules exist.
+- Adapter Management is completed.
+- Linked Fairs are completed.
+- Fair -> Adapter relationship is completed.
+- Adapter CRUD is completed.
+- Run v2 + JSON Handoff is completed.
+- Current technical target: Canonical Import Schema.
+- Next target: Import Batch / Preview / Duplicate / Merge pipeline.
+
 ## Repository Boundary
 
 - Work only inside this `fair-crm` repository unless the user explicitly asks otherwise.

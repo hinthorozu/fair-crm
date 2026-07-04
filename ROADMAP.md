@@ -1,70 +1,68 @@
-# FAIR CRM Roadmap
+﻿# FAIR CRM Roadmap
 
-## Current Phase
+This document summarizes the active FAIR CRM product direction. Detailed sprint history and quality status live in [PROJECT_STATUS.md](PROJECT_STATUS.md), which is the canonical project-status document.
 
-FAIR CRM Integration Preparation
+## Current State
 
-The KYROX Core platform baseline is completed and frozen at `v0.4.0`. FAIR CRM development starts as the first product implementation on top of that platform.
+FAIR CRM is active in development. It is no longer in the initial Sprint 1.0 Customer-only phase.
 
-## Milestone: Sprint 1.0.0 — Product Foundation & Customer Module
+Completed or present product foundations:
 
-Goal: establish the FAIR CRM repository structure and design the first business aggregate.
+- Customer module
+- Fair module
+- Customer/Fair Participation foundation
+- Adapter Management
+- Linked Fairs
+- Fair -> Adapter relationship
+- Adapter CRUD
+- Run v2 + JSON Handoff
 
-### Phase 1 — Design
+Current technical target:
 
-- [x] Analyze old `fuar-crm` repository as a reference only — [docs/FUAR_CRM_REFERENCE_ANALYSIS.md](docs/FUAR_CRM_REFERENCE_ANALYSIS.md)
-- [x] Define target FAIR CRM architecture — [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- [x] Define product module boundaries — [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) §6
-- [x] Design Customer aggregate — [docs/CUSTOMER_DESIGN.md](docs/CUSTOMER_DESIGN.md)
-- [x] Design Customer normalization and duplicate-detection strategy — [docs/CUSTOMER_DESIGN.md](docs/CUSTOMER_DESIGN.md) §5
-- [x] Define integration points with KYROX Core — [docs/INTEGRATION_WITH_CORE.md](docs/INTEGRATION_WITH_CORE.md) *(revised: public API integration; Core gaps documented)*
+- Canonical Import Schema
 
-### Phase 2 — Implementation
+Next target:
 
-- [x] Create backend module structure
-- [x] Implement Customer domain
-- [x] Implement Customer application use cases
-- [x] Implement Customer persistence
-- [x] Add migration
-- [x] Add Customer API
-- [x] Add tests
+- Import Batch / Preview / Duplicate / Merge pipeline
 
-## Milestone: Sprint 1.1.0 — Contact Module
+## Platform Dependency
 
-- [ ] Contact domain
-- [ ] Contact/customer association
-- [ ] Contact role and communication fields
-- [ ] Contact API
+FAIR CRM consumes KYROX Core as an independent reusable platform service.
 
-## Milestone: Sprint 1.2.0 — Fair Module
+| Dependency | Status |
+|------------|--------|
+| KYROX Core baseline | v0.4.0+ |
+| Product authorization check API | Available |
+| Audit event write API | Available |
+| FAIR CRM permission seeds | Available in Core migration `20260701_0025` |
+| Integration model | Public HTTP APIs only |
 
-- [ ] Fair domain
-- [ ] Fair dates and location
-- [ ] Organizer relation
-- [ ] Fair API
+FAIR CRM must not import Core Python modules, share the Core database, or mount Core routers.
 
-## Milestone: Sprint 1.3.0 — Fair Participation
+## Active Roadmap
 
-- [ ] Customer participation in fairs
-- [ ] Hall / stand metadata
-- [ ] Exhibitor status lifecycle
-- [ ] Participation API
+| Target | Status | Notes |
+|--------|--------|-------|
+| Customer/Fair/Participation foundation | Completed | Core CRM foundations exist |
+| Adapter Management | Completed | Adapter CRUD and management workflow available |
+| Linked Fairs | Completed | Fair linkage workflow available |
+| Fair -> Adapter relationship | Completed | Fair-specific adapter association available |
+| Run v2 + JSON Handoff | Completed | Adapter run output can hand off structured JSON |
+| Canonical Import Schema | Current technical target | Normalize handoff payloads into a stable import contract |
+| Import Batch / Preview / Duplicate / Merge | Next target | Build the preview-first import decision pipeline |
 
-## Milestone: Sprint 1.4.0 — Import Pipeline
+## Historical Milestones
 
-- [ ] Import batches
-- [ ] Import rows
-- [ ] Import preview
-- [ ] Duplicate detection
-- [ ] Merge decisions
-- [ ] Excel import adapter
+The original Sprint 1.0 through Sprint 1.5 plan below is historical. It described the early product bootstrap sequence and should not be treated as the live roadmap.
 
-## Milestone: Sprint 1.5.0 — Scraper Integration
-
-- [ ] Scraper source registry
-- [ ] Scraper run tracking
-- [ ] Extracted row normalization
-- [ ] Import handoff
+| Historical milestone | Original focus | Current interpretation |
+|----------------------|----------------|------------------------|
+| Sprint 1.0.0 | Product foundation and Customer module | Superseded by current project status |
+| Sprint 1.1.0 | Contact module | Track through PROJECT_STATUS.md |
+| Sprint 1.2.0 | Fair module | Foundation exists |
+| Sprint 1.3.0 | Fair Participation | Foundation exists |
+| Sprint 1.4.0 | Import Pipeline | Reframed as Canonical Import Schema, then Import Batch / Preview / Duplicate / Merge |
+| Sprint 1.5.0 | Scraper Integration | Reframed through Adapter Management and Run v2 + JSON Handoff |
 
 ## Deferred
 
@@ -74,3 +72,5 @@ Goal: establish the FAIR CRM repository structure and design the first business 
 - External email provider integration
 - WhatsApp integration
 - Full reporting module
+
+Before starting new work, read [PROJECT_CONSTITUTION.md](PROJECT_CONSTITUTION.md), [PROJECT_STATUS.md](PROJECT_STATUS.md), [CHANGELOG.md](CHANGELOG.md), [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md), and [docs/DECISIONS.md](docs/DECISIONS.md).
