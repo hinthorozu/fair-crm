@@ -68,6 +68,7 @@ from app.modules.participations.infrastructure.persistence.models import (  # no
 from app.modules.scraper.infrastructure.persistence.models import ScraperRunHistoryModel  # noqa: F401
 from app.modules.scraper.infrastructure.persistence.models import ScraperRunLogModel  # noqa: F401
 from app.modules.scraper.infrastructure.persistence.models import ScraperAdapterModel  # noqa: F401
+from app.modules.scraper.infrastructure.persistence.models import ScraperRegistryAdapterHideModel  # noqa: F401
 
 
 class AllowAllAuthorization(AuthorizationPort):

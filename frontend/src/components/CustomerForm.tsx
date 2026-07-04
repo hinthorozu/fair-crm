@@ -26,6 +26,10 @@ export interface CustomerFormValues {
   district: string | null;
   address: string | null;
   description: string | null;
+  instagram_url: string | null;
+  facebook_url: string | null;
+  linkedin_url: string | null;
+  youtube_url: string | null;
   source: CreateCustomerPayload["source"];
   phones: CommunicationFormItem[];
   emails: CommunicationFormItem[];
@@ -44,6 +48,10 @@ const emptyForm = (): CustomerFormValues => ({
   address: "",
   source: "manual",
   description: "",
+  instagram_url: "",
+  facebook_url: "",
+  linkedin_url: "",
+  youtube_url: "",
   phones: [],
   emails: [],
   websites: [],
@@ -63,6 +71,10 @@ export function customerToFormValues(customer: Customer): CustomerFormValues {
     address: customer.address ?? "",
     source: customer.source,
     description: customer.description ?? "",
+    instagram_url: customer.instagram_url ?? "",
+    facebook_url: customer.facebook_url ?? "",
+    linkedin_url: customer.linkedin_url ?? "",
+    youtube_url: customer.youtube_url ?? "",
     phones: communications.phones,
     emails: communications.emails,
     websites: communications.websites,
@@ -124,6 +136,10 @@ export function CustomerForm({ initial, submitLabel, onSubmit, onCancel }: Custo
         district: values.district?.trim() || null,
         address: values.address?.trim() || null,
         description: values.description?.trim() || null,
+        instagram_url: values.instagram_url?.trim() || null,
+        facebook_url: values.facebook_url?.trim() || null,
+        linkedin_url: values.linkedin_url?.trim() || null,
+        youtube_url: values.youtube_url?.trim() || null,
       });
       await onSubmit(payload);
     } catch (err) {
@@ -214,6 +230,39 @@ export function CustomerForm({ initial, submitLabel, onSubmit, onCancel }: Custo
           items={values.websites}
           onChange={(websites) => set("websites", websites)}
         />
+
+        <Field label={labels.instagram}>
+          <input
+            type="url"
+            value={values.instagram_url ?? ""}
+            onChange={(e) => set("instagram_url", e.target.value)}
+            placeholder="https://instagram.com/..."
+          />
+        </Field>
+        <Field label={labels.facebook}>
+          <input
+            type="url"
+            value={values.facebook_url ?? ""}
+            onChange={(e) => set("facebook_url", e.target.value)}
+            placeholder="https://facebook.com/..."
+          />
+        </Field>
+        <Field label={labels.linkedin}>
+          <input
+            type="url"
+            value={values.linkedin_url ?? ""}
+            onChange={(e) => set("linkedin_url", e.target.value)}
+            placeholder="https://linkedin.com/..."
+          />
+        </Field>
+        <Field label={labels.youtube}>
+          <input
+            type="url"
+            value={values.youtube_url ?? ""}
+            onChange={(e) => set("youtube_url", e.target.value)}
+            placeholder="https://youtube.com/..."
+          />
+        </Field>
 
         <Field label={labels.address} className="span-2">
           <textarea

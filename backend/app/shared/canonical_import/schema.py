@@ -53,6 +53,10 @@ class CanonicalImportRow(BaseModel):
     city: str | None = None
     hall: str | None = None
     stand: str | None = None
+    instagram_url: str | None = None
+    facebook_url: str | None = None
+    linkedin_url: str | None = None
+    youtube_url: str | None = None
     raw: dict[str, Any] = Field(default_factory=dict)
 
 

@@ -20,6 +20,10 @@ def model_to_entity(model: CustomerModel) -> Customer:
         district=model.district,
         address=model.address,
         description=model.description,
+        instagram_url=model.instagram_url,
+        facebook_url=model.facebook_url,
+        linkedin_url=model.linkedin_url,
+        youtube_url=model.youtube_url,
         source=CustomerSource(model.source),
         created_at=model.created_at,
         updated_at=model.updated_at,
@@ -47,6 +51,10 @@ def entity_to_model(customer: Customer) -> CustomerModel:
         district=customer.district,
         address=customer.address,
         description=customer.description,
+        instagram_url=customer.instagram_url,
+        facebook_url=customer.facebook_url,
+        linkedin_url=customer.linkedin_url,
+        youtube_url=customer.youtube_url,
         source=customer.source.value,
         created_at=customer.created_at,
         updated_at=customer.updated_at,
@@ -71,6 +79,10 @@ def update_model_from_entity(model: CustomerModel, customer: Customer) -> None:
     model.district = customer.district
     model.address = customer.address
     model.description = customer.description
+    model.instagram_url = customer.instagram_url
+    model.facebook_url = customer.facebook_url
+    model.linkedin_url = customer.linkedin_url
+    model.youtube_url = customer.youtube_url
     model.source = customer.source.value
     model.updated_at = customer.updated_at
     model.deleted_at = customer.deleted_at

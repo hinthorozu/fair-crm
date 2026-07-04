@@ -10,7 +10,6 @@ def test_update_adapter_manifest_success(client: TestClient, auth_headers):
         f"/api/v1/scraper/adapters/{ScraperSiteKey.TUYAP_NEW}/manifest",
         json={
             "display_name": "TÜYAP Updated",
-            "status": "experimental",
             "version": "1.2.3",
             "last_verified": "2026-07-04",
             "supported_sites": ["foodistexpo.com", "example.test"],
@@ -25,7 +24,7 @@ def test_update_adapter_manifest_success(client: TestClient, auth_headers):
     body = response.json()
     assert body["adapter_key"] == ScraperSiteKey.TUYAP_NEW
     assert body["display_name"] == "TÜYAP Updated"
-    assert body["status"] == "experimental"
+    assert "status" not in body
     assert body["version"] == "1.2.3"
     assert body["notes"] == "Updated manifest notes"
     assert body["supported_sites"] == ["foodistexpo.com", "example.test"]
@@ -41,6 +40,7 @@ def test_update_adapter_manifest_success(client: TestClient, auth_headers):
     manifest_body = manifest.json()
     assert manifest_body["display_name"] == "TÜYAP Updated"
     assert manifest_body["notes"] == "Updated manifest notes"
+    assert "status" not in manifest_body
 
 
 def test_update_adapter_manifest_clears_notes(client: TestClient, auth_headers):
@@ -76,10 +76,10 @@ def test_update_adapter_manifest_rejects_adapter_key_change(client: TestClient, 
     assert response.status_code == 422
 
 
-def test_update_adapter_manifest_rejects_invalid_status(client: TestClient, auth_headers):
+def test_update_adapter_manifest_rejects_status_field(client: TestClient, auth_headers):
     response = client.patch(
         f"/api/v1/scraper/adapters/{ScraperSiteKey.TUYAP_NEW}/manifest",
-        json={"status": "invalid-status"},
+        json={"status": "experimental"},
         headers=auth_headers,
     )
     assert response.status_code == 422
@@ -93,3 +93,40 @@ def test_update_adapter_manifest_accepts_supported_sites_string(client: TestClie
     )
     assert response.status_code == 200
     assert response.json()["supported_sites"] == ["site-a.test", "site-b.test", "site-c.test"]
+
+
+def test_get_manifest_returns_default_requested_fields(client: TestClient, auth_headers):
+    response = client.get(
+        f"/api/v1/scraper/manifests/{ScraperSiteKey.TUYAP_NEW}",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert "status" not in body
+    assert body["requested_fields"] == [
+        "customerName",
+        "phone",
+        "email",
+        "address",
+        "website",
+        "hall",
+        "stand",
+    ]
+
+
+def test_update_adapter_manifest_persists_requested_fields(client: TestClient, auth_headers):
+    adapter = ScraperSiteKey.TUYAP_NEW
+    response = client.patch(
+        f"/api/v1/scraper/adapters/{adapter}/manifest",
+        json={"requested_fields": ["customerName", "website", "instagram"]},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    assert response.json()["requested_fields"] == ["customerName", "website", "instagram"]
+
+    manifest = client.get(
+        f"/api/v1/scraper/manifests/{adapter}",
+        headers=auth_headers,
+    )
+    assert manifest.status_code == 200
+    assert manifest.json()["requested_fields"] == ["customerName", "website", "instagram"]

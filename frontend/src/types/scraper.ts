@@ -1,6 +1,6 @@
-export type AdapterStatus = "stable" | "experimental" | "deprecated";
+export type AdapterEngineType = "static" | "dynamic";
 
-export type ScraperRunStatus = "running" | "completed" | "failed";
+export type ScraperRunStatus = "running" | "completed" | "failed" | "cancelled";
 
 export type ScraperRunLogLevel = "info" | "warning" | "error" | "success";
 
@@ -13,8 +13,9 @@ export interface AdapterFeature {
 export interface AdapterListItem {
   id: string | null;
   adapter_key: string;
+  engine_key: string;
+  engine_type: AdapterEngineType;
   display_name: string;
-  status: AdapterStatus | string;
   version: string;
   features: AdapterFeature[];
   last_verified: string | null;
@@ -27,9 +28,10 @@ export interface AdapterListItem {
 export interface AdapterDetail {
   id: string | null;
   adapter_key: string;
+  engine_key: string;
+  engine_type: AdapterEngineType;
   name: string;
   description: string | null;
-  status: AdapterStatus | string;
   version: string;
   manifest: Record<string, unknown> | null;
   is_active: boolean;
@@ -42,25 +44,54 @@ export interface AdapterDetail {
   updated_at: string | null;
 }
 
+export interface AdapterDeletePreviewActiveRun {
+  id: string;
+  fair_name: string | null;
+  input_url: string | null;
+  started_at: string;
+}
+
+export interface AdapterDeletePreview {
+  adapter_key: string;
+  display_name: string;
+  linked_fairs_count: number;
+  affected_fairs: string[];
+  active_runs_count: number;
+  active_runs: AdapterDeletePreviewActiveRun[];
+}
+
+export interface AdapterEngine {
+  engine_key: string;
+  display_name: string;
+  engine_type: AdapterEngineType;
+  version: string;
+  supported_sites: string[];
+  features: AdapterFeature[];
+  actions_available: string[];
+  is_runnable: boolean;
+}
+
+export interface AdapterEngineListResponse {
+  items: AdapterEngine[];
+  total: number;
+}
+
 export interface AdapterListResponse {
   items: AdapterListItem[];
   total: number;
 }
 
 export interface CreateAdapterPayload {
-  adapter_key: string;
   name: string;
   description?: string | null;
-  status?: AdapterStatus;
-  version?: string | null;
-  manifest?: Record<string, unknown> | null;
+  engine_key?: string | null;
+  requested_fields?: RequestedOutputField[];
   is_active?: boolean;
 }
 
 export interface UpdateAdapterPayload {
   name?: string;
   description?: string | null;
-  status?: AdapterStatus;
   version?: string | null;
   manifest?: Record<string, unknown> | null;
   is_active?: boolean;
@@ -68,7 +99,6 @@ export interface UpdateAdapterPayload {
 
 export interface UpdateAdapterManifestPayload {
   display_name?: string;
-  status?: AdapterStatus;
   version?: string;
   last_verified?: string | null;
   supported_sites?: string[] | string;
@@ -76,13 +106,25 @@ export interface UpdateAdapterManifestPayload {
   output?: { json_handoff?: boolean; excel?: boolean };
   browser?: { requires_js?: boolean; requires_playwright?: boolean };
   supports?: Partial<ScraperSupports>;
+  requested_fields?: RequestedOutputField[];
 }
+
+export type RequestedOutputField =
+  | "customerName"
+  | "phone"
+  | "email"
+  | "address"
+  | "website"
+  | "hall"
+  | "stand"
+  | "instagram"
+  | "facebook"
+  | "linkedin"
+  | "youtube"
+  | "notes";
 
 export interface ScraperDashboardSummary {
   total_adapters: number;
-  stable_count: number;
-  experimental_count: number;
-  deprecated_count: number;
   last_run_adapter: string | null;
   failed_scraper_count: number;
 }
@@ -117,12 +159,12 @@ export interface ScraperManifest {
   supports: ScraperSupports;
   output: { json_handoff: boolean; excel: boolean };
   browser: { requires_js: boolean; requires_playwright: boolean };
-  status: string;
   author: string;
   notes: string;
   scraper_version: string;
   target_site_version: string;
   last_verified: string | null;
+  requested_fields?: RequestedOutputField[];
 }
 
 export interface ScraperRun {

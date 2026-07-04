@@ -80,6 +80,7 @@ class ScraperAdapterModel(Base):
     id: Mapped[UUID] = mapped_column(Uuid(), primary_key=True, default=uuid4)
     organization_id: Mapped[UUID] = mapped_column(Uuid(), nullable=False, index=True)
     adapter_key: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    engine_key: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text(), nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, index=True, default="experimental")
@@ -90,3 +91,12 @@ class ScraperAdapterModel(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ScraperRegistryAdapterHideModel(Base):
+    __tablename__ = "scraper_registry_adapter_hides"
+
+    id: Mapped[UUID] = mapped_column(Uuid(), primary_key=True, default=uuid4)
+    organization_id: Mapped[UUID] = mapped_column(Uuid(), nullable=False, index=True)
+    adapter_key: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

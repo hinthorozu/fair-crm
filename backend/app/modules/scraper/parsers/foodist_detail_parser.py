@@ -8,7 +8,7 @@ from html import unescape
 
 from bs4 import BeautifulSoup, Tag
 
-from app.modules.scraper.parsers.foodist_list_parser import SALON_PATTERN, STANT_PATTERN, _resolve_country_token
+from app.modules.scraper.parsers.foodist_list_parser import _resolve_country_token
 from app.modules.scraper.parsers.website_filters import (
     extract_social_urls,
     is_company_website,
@@ -32,6 +32,12 @@ DESCRIPTION_PATTERN = re.compile(
     r"(?:Açıklama|Description)\s*:?\s*(.+?)(?:\.(?=\s*(?:Website|Site|Mail|Call)\b)|\.(?=\s*$)|$)",
     re.IGNORECASE,
 )
+DETAIL_SALON_PATTERN = re.compile(r"Salon\s*:\s*([A-Za-z0-9]+)", re.IGNORECASE)
+DETAIL_STANT_PATTERN = re.compile(r"Stant\s*:\s*([A-Za-z0-9\-\/]+)", re.IGNORECASE)
+LABELED_FIELD_LINE_PATTERN = re.compile(
+    r"^(?:Kategori|Category|Adres|Address|Telefon|Phone|E-posta|Email)\s*:",
+    re.IGNORECASE,
+)
 
 DETAIL_CONTAINER_SELECTORS: tuple[str, ...] = (
     "table.company-info",
@@ -42,8 +48,6 @@ DETAIL_CONTAINER_SELECTORS: tuple[str, ...] = (
     ".schedule-detail",
     ".company-detail",
     ".schedule-detail-info",
-    "[class*='company-info']",
-    "[class*='contact-info']",
     ".schedule-sidebar .schedule-list",
     ".schedule-sidebar",
 )
@@ -82,9 +86,12 @@ def parse_foodist_detail_html(html: str) -> FoodistDetailInfo:
     emails = _extract_emails(email_source_html, text)
     phones = _extract_phones(email_source_html, text, container=container)
     websites = _extract_websites_from_container(container)
-    social_urls = _extract_social_urls_from_container(container)
-    hall, stand = _extract_hall_stand(text)
+    social_urls = _extract_social_urls_from_container(container, soup=soup)
+    hall, stand = _extract_hall_stand(container, text)
     country = _extract_country_from_container(container, text)
+    description = _extract_company_description(soup)
+    if description is None:
+        description = _extract_labeled_value(text, DESCRIPTION_PATTERN)
 
     return FoodistDetailInfo(
         website=websites[0] if websites else None,
@@ -93,7 +100,7 @@ def parse_foodist_detail_html(html: str) -> FoodistDetailInfo:
         email=emails[0] if emails else None,
         address=_extract_address(container, text),
         category=_extract_labeled_value(text, CATEGORY_PATTERN),
-        description=_extract_labeled_value(text, DESCRIPTION_PATTERN),
+        description=description,
         hall=hall,
         stand=stand,
         country=country,
@@ -148,20 +155,58 @@ def _extract_websites_from_container(container: Tag | None) -> list[str]:
     return [primary, *[url for url in company_websites if url != primary]]
 
 
-def _extract_social_urls_from_container(container: Tag | None) -> dict[str, str]:
-    if container is None:
-        return {}
-
+def _extract_social_urls_from_container(container: Tag | None, *, soup: BeautifulSoup | None = None) -> dict[str, str]:
     hrefs: list[str] = []
-    for anchor in container.find_all("a", href=True):
-        href = anchor.get("href")
-        if not href:
-            continue
-        normalized = normalize_website_url(str(href).strip())
-        if normalized is not None:
-            hrefs.append(normalized)
+    sources: list[Tag] = []
+    if container is not None:
+        sources.append(container)
+    if soup is not None and soup.body is not None:
+        sidebar = soup.body.select_one(".schedule-sidebar")
+        if sidebar is not None and sidebar not in sources:
+            sources.append(sidebar)
+        detail_info = soup.body.select_one(".schedule-detail-info")
+        if detail_info is not None and detail_info not in sources:
+            sources.append(detail_info)
+
+    for source in sources:
+        for anchor in source.find_all("a", href=True):
+            href = anchor.get("href")
+            if not href:
+                continue
+            normalized = normalize_website_url(str(href).strip())
+            if normalized is not None:
+                hrefs.append(normalized)
+        for social_block in source.select(".social"):
+            for anchor in social_block.find_all("a", href=True):
+                href = anchor.get("href")
+                if not href:
+                    continue
+                normalized = normalize_website_url(str(href).strip())
+                if normalized is not None:
+                    hrefs.append(normalized)
 
     return extract_social_urls(hrefs)
+
+
+def _extract_company_description(soup: BeautifulSoup) -> str | None:
+    if soup.body is None:
+        return None
+    info = soup.body.select_one(".schedule-detail-info")
+    if info is None:
+        return None
+
+    info_text = _tag_to_text(info)
+    labeled = _extract_labeled_value(info_text, DESCRIPTION_PATTERN)
+    if labeled:
+        return labeled
+
+    paragraphs: list[str] = []
+    for paragraph in info.find_all("p"):
+        text = paragraph.get_text(" ", strip=True)
+        if not text or LABELED_FIELD_LINE_PATTERN.match(text):
+            continue
+        paragraphs.append(text)
+    return "\n".join(paragraphs) if paragraphs else None
 
 
 def _tag_to_text(tag: Tag) -> str:
@@ -266,13 +311,43 @@ def _extract_icon_list_item_text(container: Tag, *, icon_names: tuple[str, ...])
     return None
 
 
-def _extract_hall_stand(text: str) -> tuple[str | None, str | None]:
-    hall_match = SALON_PATTERN.search(text)
-    stand_match = STANT_PATTERN.search(text)
-    return (
-        hall_match.group(1) if hall_match else None,
-        stand_match.group(1) if stand_match else None,
-    )
+def _extract_hall_stand(container: Tag | None, text: str) -> tuple[str | None, str | None]:
+    hall: str | None = None
+    stand: str | None = None
+
+    if container is not None:
+        for list_item in container.find_all("li"):
+            item_text = _tag_to_text(list_item)
+            if not item_text:
+                continue
+            icon_classes = " ".join(
+                cls
+                for icon in list_item.find_all("i")
+                for cls in (icon.get("class") or [])
+            ).lower()
+            if "fa-building" in icon_classes and hall is None:
+                hall = _extract_icon_labeled_value(item_text, ("Salon", "Hall"))
+            if "map-marker" in icon_classes and stand is None:
+                stand = _extract_icon_labeled_value(item_text, ("Stant", "Stand"))
+
+    if hall is None:
+        hall_match = DETAIL_SALON_PATTERN.search(text)
+        hall = hall_match.group(1) if hall_match else None
+    if stand is None:
+        stand_match = DETAIL_STANT_PATTERN.search(text)
+        stand = stand_match.group(1) if stand_match else None
+
+    return hall, stand
+
+
+def _extract_icon_labeled_value(text: str, labels: tuple[str, ...]) -> str | None:
+    for label in labels:
+        match = re.search(rf"{label}\s*:\s*(.+)", text, re.IGNORECASE)
+        if match:
+            value = match.group(1).strip()
+            if value:
+                return value
+    return None
 
 
 def _extract_country_from_container(container: Tag | None, text: str) -> str | None:

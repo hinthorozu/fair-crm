@@ -10,6 +10,7 @@ from app.modules.customers.domain.exceptions import (
 )
 from app.modules.customers.domain.services.normalizers import compute_normalized_name
 from app.modules.customers.domain.value_objects import CustomerSource, CustomerStatus, CustomerType
+from app.shared.url_normalization import normalize_optional_url
 
 
 @dataclass
@@ -34,6 +35,10 @@ class Customer:
     updated_at: datetime
     deleted_at: Optional[datetime]
     archived_from_status: Optional[CustomerStatus] = None
+    instagram_url: Optional[str] = None
+    facebook_url: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    youtube_url: Optional[str] = None
 
     @classmethod
     def create(
@@ -52,6 +57,10 @@ class Customer:
         district: Optional[str] = None,
         address: Optional[str] = None,
         description: Optional[str] = None,
+        instagram_url: Optional[str] = None,
+        facebook_url: Optional[str] = None,
+        linkedin_url: Optional[str] = None,
+        youtube_url: Optional[str] = None,
         source: CustomerSource = CustomerSource.MANUAL,
         now: datetime,
     ) -> "Customer":
@@ -78,6 +87,10 @@ class Customer:
             district=district.strip() if district else None,
             address=address.strip() if address else None,
             description=description.strip() if description else None,
+            instagram_url=normalize_optional_url(instagram_url),
+            facebook_url=normalize_optional_url(facebook_url),
+            linkedin_url=normalize_optional_url(linkedin_url),
+            youtube_url=normalize_optional_url(youtube_url),
             source=source,
             created_at=now,
             updated_at=now,
@@ -106,6 +119,10 @@ class Customer:
         district: Optional[str] = None,
         address: Optional[str] = None,
         description: Optional[str] = None,
+        instagram_url: Optional[str] = None,
+        facebook_url: Optional[str] = None,
+        linkedin_url: Optional[str] = None,
+        youtube_url: Optional[str] = None,
         source: Optional[CustomerSource] = None,
         now: datetime,
     ) -> None:
@@ -147,6 +164,14 @@ class Customer:
             self.address = address.strip() if address else None
         if description is not None:
             self.description = description.strip() if description else None
+        if instagram_url is not None:
+            self.instagram_url = normalize_optional_url(instagram_url)
+        if facebook_url is not None:
+            self.facebook_url = normalize_optional_url(facebook_url)
+        if linkedin_url is not None:
+            self.linkedin_url = normalize_optional_url(linkedin_url)
+        if youtube_url is not None:
+            self.youtube_url = normalize_optional_url(youtube_url)
         if source is not None:
             self.source = source
 

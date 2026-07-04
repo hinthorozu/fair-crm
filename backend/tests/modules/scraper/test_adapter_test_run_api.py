@@ -54,6 +54,8 @@ def test_run_adapter_test_starts_run_and_streams_logs(client, auth_headers, db_s
             organization_id=organization_id,
             adapter_key=ScraperSiteKey.TUYAP_NEW,
             input_url="https://foodist.test/brands",
+            output_json=True,
+            output_excel=True,
         )
     )
     db_session.expire_all()
@@ -90,6 +92,56 @@ def test_run_adapter_test_rejects_invalid_url(client, auth_headers):
         headers=auth_headers,
     )
     assert response.status_code == 400
+
+
+def test_run_adapter_test_rejects_invalid_max_pages(client, auth_headers):
+    response = client.post(
+        f"/api/v1/scraper/adapters/{ScraperSiteKey.TUYAP_NEW}/test-run",
+        json={"input_url": "https://foodist.test/brands", "max_pages": 0},
+        headers=auth_headers,
+    )
+    assert response.status_code == 422
+
+
+def test_run_adapter_test_passes_max_pages_to_job_runner(client, auth_headers, db_session, organization_id):
+    captured: dict[str, object] = {}
+
+    def _capturing_executor(**kwargs) -> ScraperImportHandoff:
+        captured["context"] = kwargs.get("context")
+        return _sample_handoff()
+
+    mock_runner = AdapterTestRunJobRunner(
+        session_factory=lambda: db_session,
+        scrape_executor=_capturing_executor,
+    )
+    previous_runner = scraper_dependencies._adapter_test_run_job_runner
+    scraper_dependencies._adapter_test_run_job_runner = mock_runner
+    try:
+        response = client.post(
+            f"/api/v1/scraper/adapters/{ScraperSiteKey.TUYAP_NEW}/test-run",
+            json={"input_url": "https://foodist.test/brands", "max_pages": 3},
+            headers=auth_headers,
+        )
+    finally:
+        scraper_dependencies._adapter_test_run_job_runner = previous_runner
+
+    assert response.status_code == 202
+    run_id = UUID(response.json()["id"])
+    mock_runner.run_adapter_test(
+        AdapterTestRunJobCommand(
+            run_id=run_id,
+            organization_id=organization_id,
+            adapter_key=ScraperSiteKey.TUYAP_NEW,
+            input_url="https://foodist.test/brands",
+            output_json=True,
+            output_excel=False,
+            max_pages=3,
+        )
+    )
+
+    context = captured.get("context")
+    assert context is not None
+    assert context.options.get("max_pages") == 3
 
 
 def test_run_adapter_test_unknown_adapter(client, auth_headers):

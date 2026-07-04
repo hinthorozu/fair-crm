@@ -20,6 +20,7 @@ from app.modules.scraper.core.browser_service import BrowserConfig, BrowserServi
 from app.modules.scraper.core.playwright_availability import PlaywrightBrowserNotInstalledError
 from app.modules.scraper.core.scraper_registry import ScraperAdapterRegistry
 from app.modules.scraper.core.scraper_run_logger import CappedWarningRunLogger, DbScraperRunLogger, ScraperRunLogger
+from app.modules.scraper.domain.requested_output_fields import filter_handoff_by_requested_fields
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportExporter, ScraperImportHandoff
 from app.modules.scraper.infrastructure.handoff_storage import write_handoff_json
 from app.modules.scraper.normalizers.company_normalizer import CompanyNormalizer
@@ -27,6 +28,7 @@ from app.modules.scraper.services.scraper_run_history_service import (
     ScraperRunHistoryService,
     create_run_history_service,
 )
+from app.modules.scraper.services.adapter_instance_resolver import resolve_engine_key, resolve_requested_fields
 from app.modules.scraper.services.scraper_run_log_service import create_run_log_service
 from app.modules.scraper.types.scraper_context import ScraperContext
 from app.modules.scraper.types.scraper_result import ScraperResult
@@ -54,6 +56,7 @@ def _build_scraper_context(
     fair_year: int | None,
     scraper_config: dict[str, Any] | None,
     run_logger: ScraperRunLogger,
+    requested_fields: list[str] | None = None,
 ) -> ScraperContext:
     metadata: dict[str, Any] = {"fair_name": fair_name}
     if fair_year is not None:
@@ -61,6 +64,8 @@ def _build_scraper_context(
 
     options: dict[str, Any] = dict(scraper_config or {})
     options["run_logger"] = run_logger
+    if requested_fields is not None:
+        options["requested_fields"] = requested_fields
 
     return ScraperContext(
         fair_id=fair_id,
@@ -72,7 +77,8 @@ def _build_scraper_context(
 
 async def _scrape_and_export(
     *,
-    adapter_key: str,
+    instance_key: str,
+    engine_key: str | None = None,
     context: ScraperContext,
     fair_name: str,
     fair_year: int | None,
@@ -80,9 +86,10 @@ async def _scrape_and_export(
     run_logger: ScraperRunLogger,
     browser: BrowserService,
 ) -> ScraperImportHandoff:
+    resolved_engine_key = (engine_key or instance_key).strip().lower()
     registry = ScraperAdapterRegistry()
     register_builtin_adapters(registry, browser=browser)
-    adapter = registry.get(adapter_key)
+    adapter = registry.get(resolved_engine_key)
     normalizer = CompanyNormalizer()
 
     raw_rows = await adapter.scrape_async(context)
@@ -101,12 +108,14 @@ async def _scrape_and_export(
         metadata={"adapter": adapter.display_name, **context.metadata},
         scraped_at=datetime.now(UTC),
     )
-    return ScraperImportExporter().export(
+    handoff = ScraperImportExporter().export(
         result,
         fair_name=fair_name,
         fair_year=fair_year,
         source_url=source_url,
     )
+    requested_fields = context.options.get("requested_fields")
+    return filter_handoff_by_requested_fields(handoff, requested_fields)
 
 
 class FairScraperJobRunner:
@@ -139,6 +148,8 @@ class FairScraperJobRunner:
             run_logger = CappedWarningRunLogger(
                 DbScraperRunLogger(command.run_id, log_service, db),
             )
+            engine_key = resolve_engine_key(db, command.organization_id, adapter_key)
+            requested_fields = resolve_requested_fields(db, command.organization_id, adapter_key)
             fair_year = _fair_year_from_start_date(fair.start_date)
             context = _build_scraper_context(
                 fair_id=fair.id,
@@ -147,6 +158,7 @@ class FairScraperJobRunner:
                 fair_year=fair_year,
                 scraper_config=fair.scraper_config,
                 run_logger=run_logger,
+                requested_fields=requested_fields,
             )
             run_logger.info(
                 "started",
@@ -158,7 +170,8 @@ class FairScraperJobRunner:
             clear_validation_cache()
             if self._scrape_executor is not None:
                 handoff = self._scrape_executor(
-                    adapter_key=adapter_key,
+                    instance_key=adapter_key,
+                    engine_key=engine_key,
                     context=context,
                     fair_name=fair.name,
                     fair_year=fair_year,
@@ -168,7 +181,8 @@ class FairScraperJobRunner:
             else:
                 handoff = asyncio.run(
                     self._execute_with_browser(
-                        adapter_key=adapter_key,
+                        instance_key=adapter_key,
+                        engine_key=engine_key,
                         context=context,
                         fair_name=fair.name,
                         fair_year=fair_year,
@@ -220,7 +234,8 @@ class FairScraperJobRunner:
     async def _execute_with_browser(
         self,
         *,
-        adapter_key: str,
+        instance_key: str,
+        engine_key: str,
         context: ScraperContext,
         fair_name: str,
         fair_year: int | None,
@@ -232,7 +247,8 @@ class FairScraperJobRunner:
         browser = create_browser_service(browser_config)
         async with browser:
             return await _scrape_and_export(
-                adapter_key=adapter_key,
+                instance_key=instance_key,
+                engine_key=engine_key,
                 context=context,
                 fair_name=fair_name,
                 fair_year=fair_year,

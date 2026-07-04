@@ -25,6 +25,14 @@ CANONICAL_FIELDS = frozenset(
         "notes",
         "hall",
         "stand",
+        "instagram",
+        "facebook",
+        "linkedin",
+        "youtube",
+        "instagram_url",
+        "facebook_url",
+        "linkedin_url",
+        "youtube_url",
     }
 )
 
@@ -58,6 +66,14 @@ HEADER_ALIASES: dict[str, str] = {
     "notlar": "notes",
     "salon": "hall",
     "stand": "stand",
+    "instagram": "instagram",
+    "facebook": "facebook",
+    "linkedin": "linkedin",
+    "youtube": "youtube",
+    "instagram url": "instagram_url",
+    "facebook url": "facebook_url",
+    "linkedin url": "linkedin_url",
+    "youtube url": "youtube_url",
 }
 
 for field in CANONICAL_FIELDS:

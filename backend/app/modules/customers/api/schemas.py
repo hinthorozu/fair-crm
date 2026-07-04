@@ -45,6 +45,10 @@ class CreateCustomerRequest(BaseModel):
     district: Optional[str] = Field(default=None, max_length=100)
     address: Optional[str] = Field(default=None, max_length=2000)
     description: Optional[str] = Field(default=None, max_length=5000)
+    instagram_url: Optional[str] = Field(default=None, max_length=512)
+    facebook_url: Optional[str] = Field(default=None, max_length=512)
+    linkedin_url: Optional[str] = Field(default=None, max_length=512)
+    youtube_url: Optional[str] = Field(default=None, max_length=512)
     source: CustomerSource = CustomerSource.MANUAL
     phones: Optional[list[CustomerPhoneInputSchema]] = None
     emails: Optional[list[CustomerEmailInputSchema]] = None
@@ -72,6 +76,10 @@ class UpdateCustomerRequest(BaseModel):
     district: Optional[str] = Field(default=None, max_length=100)
     address: Optional[str] = Field(default=None, max_length=2000)
     description: Optional[str] = Field(default=None, max_length=5000)
+    instagram_url: Optional[str] = Field(default=None, max_length=512)
+    facebook_url: Optional[str] = Field(default=None, max_length=512)
+    linkedin_url: Optional[str] = Field(default=None, max_length=512)
+    youtube_url: Optional[str] = Field(default=None, max_length=512)
     source: Optional[CustomerSource] = None
     phones: Optional[list[CustomerPhoneInputSchema]] = None
     emails: Optional[list[CustomerEmailInputSchema]] = None
@@ -126,6 +134,10 @@ class CustomerResponse(BaseModel):
     district: Optional[str]
     address: Optional[str]
     description: Optional[str]
+    instagram_url: Optional[str]
+    facebook_url: Optional[str]
+    linkedin_url: Optional[str]
+    youtube_url: Optional[str]
     source: CustomerSource
     created_at: datetime
     updated_at: datetime

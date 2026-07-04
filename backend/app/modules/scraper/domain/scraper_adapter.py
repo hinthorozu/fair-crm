@@ -15,6 +15,23 @@ from app.modules.scraper.domain.scraper_adapter_exceptions import (
 from app.modules.scraper.manifests.scraper_manifest import ScraperStatus
 
 ADAPTER_KEY_PATTERN = re.compile(r"^[a-z0-9_]+$")
+_TURKISH_CHAR_MAP = str.maketrans(
+    {
+        "ç": "c",
+        "ğ": "g",
+        "ı": "i",
+        "ö": "o",
+        "ş": "s",
+        "ü": "u",
+        "Ç": "c",
+        "Ğ": "g",
+        "İ": "i",
+        "I": "i",
+        "Ö": "o",
+        "Ş": "s",
+        "Ü": "u",
+    }
+)
 
 
 def normalize_adapter_key(value: str) -> str:
@@ -24,11 +41,36 @@ def normalize_adapter_key(value: str) -> str:
     return key
 
 
+def slugify_adapter_key(name: str) -> str:
+    """Build a URL-safe adapter key slug from a human-readable adapter name."""
+    text = name.strip().translate(_TURKISH_CHAR_MAP).lower()
+    text = re.sub(r"[^a-z0-9]+", "_", text)
+    text = re.sub(r"_+", "_", text).strip("_")
+    if not text or not ADAPTER_KEY_PATTERN.fullmatch(text):
+        raise InvalidAdapterNameError("name must produce a valid adapter key")
+    return text[:100].rstrip("_")
+
+
+def allocate_adapter_key(base_key: str, reserved_keys: set[str]) -> str:
+    """Return ``base_key`` or append a numeric suffix until unused."""
+    normalized_base = normalize_adapter_key(base_key)
+    if normalized_base not in reserved_keys:
+        return normalized_base
+    for suffix in range(2, 1000):
+        candidate = f"{normalized_base}_{suffix}"
+        if len(candidate) > 100:
+            raise InvalidAdapterKeyError("Could not allocate a unique adapter key")
+        if candidate not in reserved_keys:
+            return candidate
+    raise InvalidAdapterKeyError("Could not allocate a unique adapter key")
+
+
 @dataclass
 class ScraperAdapter:
     id: UUID
     organization_id: UUID
     adapter_key: str
+    engine_key: str
     name: str
     description: str | None
     status: ScraperStatus
@@ -47,6 +89,7 @@ class ScraperAdapter:
         organization_id: UUID,
         adapter_key: str,
         name: str,
+        engine_key: str | None = None,
         description: str | None = None,
         status: ScraperStatus = ScraperStatus.EXPERIMENTAL,
         version: str | None = None,
@@ -56,6 +99,7 @@ class ScraperAdapter:
         now: datetime,
     ) -> ScraperAdapter:
         normalized_key = normalize_adapter_key(adapter_key)
+        normalized_engine = normalize_adapter_key(engine_key or adapter_key)
         trimmed_name = name.strip()
         if not trimmed_name:
             raise InvalidAdapterNameError("name must not be empty")
@@ -64,6 +108,7 @@ class ScraperAdapter:
             id=uuid4(),
             organization_id=organization_id,
             adapter_key=normalized_key,
+            engine_key=normalized_engine,
             name=trimmed_name,
             description=description.strip() if description else None,
             status=status,
@@ -112,10 +157,5 @@ class ScraperAdapter:
         self.updated_at = now
 
     def deactivate(self, *, now: datetime) -> None:
-        self.is_active = False
-        self.updated_at = now
-
-    def soft_delete(self, *, now: datetime) -> None:
-        self.deleted_at = now
         self.is_active = False
         self.updated_at = now

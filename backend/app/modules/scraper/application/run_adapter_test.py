@@ -5,10 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
+from sqlalchemy.orm import Session
+
 from app.modules.fairs.domain.exceptions import InvalidFairSourceUrlError
 from app.modules.fairs.domain.services.normalizers import normalize_source_url
-from app.modules.scraper.core.manifest_registry import ManifestRegistry, get_manifest_registry
+from app.modules.scraper.domain.adapter_engine import AdapterEngineType
 from app.modules.scraper.domain.scraper_run_history import ScraperRunHistory
+from app.modules.scraper.services.adapter_engine_service import AdapterEngineService, create_adapter_engine_service
+from app.modules.scraper.services.adapter_instance_resolver import resolve_engine_key
 from app.modules.scraper.services.scraper_run_history_service import ScraperRunHistoryService
 
 
@@ -23,21 +27,29 @@ class AdapterNotRegisteredError(LookupError):
     pass
 
 
+class DynamicAdapterEngineNotRunnableError(ValueError):
+    pass
+
+
 class RunAdapterTestUseCase:
     def __init__(
         self,
         run_history_service: ScraperRunHistoryService,
-        manifest_registry: ManifestRegistry | None = None,
+        session: Session,
+        engine_service: AdapterEngineService | None = None,
     ) -> None:
         self._run_history_service = run_history_service
-        self._manifest_registry = manifest_registry or get_manifest_registry()
+        self._session = session
+        self._engine_service = engine_service or create_adapter_engine_service()
 
     def execute(self, command: RunAdapterTestCommand) -> ScraperRunHistory:
         normalized_key = command.adapter_key.strip().lower()
-        try:
-            self._manifest_registry.get(normalized_key)
-        except KeyError as exc:
-            raise AdapterNotRegisteredError(f"Adapter not found: {command.adapter_key}") from exc
+        engine_key = resolve_engine_key(self._session, command.organization_id, normalized_key)
+        engine = self._engine_service.get_engine(engine_key)
+        if engine.engine_type != AdapterEngineType.STATIC:
+            raise DynamicAdapterEngineNotRunnableError(
+                f"Dynamic adapter engine is not runnable yet: {engine_key}"
+            )
 
         try:
             source_url = normalize_source_url(command.input_url)

@@ -9,16 +9,18 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.modules.scraper.domain.adapter_engine import AdapterEngineType
 from app.modules.scraper.domain.scraper_run_history import ScraperRunHistory, ScraperRunStatus
 from app.modules.scraper.domain.scraper_run_log import ScraperRunLog, ScraperRunLogLevel
 from app.modules.scraper.domain.adapter_linked_fair import AdapterLinkedFair
-from app.modules.scraper.manifests.scraper_manifest import ScraperManifest, ScraperStatus
+from app.modules.scraper.manifests.scraper_manifest import ScraperManifest
 from app.modules.scraper.services.scraper_dashboard_service import (
     build_adapter_features,
     resolve_actions_available,
 )
 
 if TYPE_CHECKING:
+    from app.modules.scraper.services.adapter_engine_service import AdapterEngineView
     from app.modules.scraper.services.scraper_adapter_service import ManagedAdapterView
 
 
@@ -52,16 +54,55 @@ class ScraperManifestResponse(BaseModel):
     supports: ScraperSupportsResponse
     output: ScraperOutputResponse
     browser: ScraperBrowserResponse
-    status: str
     author: str
     notes: str
     scraper_version: str
     target_site_version: str
     last_verified: str | None = None
+    engine_type: AdapterEngineType = AdapterEngineType.STATIC
+    requested_fields: list[str] = Field(default_factory=list)
 
     @classmethod
-    def from_manifest(cls, manifest: ScraperManifest) -> ScraperManifestResponse:
-        return cls(**manifest.to_dict())
+    def from_manifest(
+        cls,
+        manifest: ScraperManifest,
+        *,
+        requested_fields: list[str] | None = None,
+    ) -> ScraperManifestResponse:
+        payload = manifest.to_dict()
+        payload.pop("status", None)
+        if requested_fields is not None:
+            payload["requested_fields"] = requested_fields
+        return cls(**payload)
+
+
+class AdapterEngineResponse(BaseModel):
+    engine_key: str
+    display_name: str
+    engine_type: AdapterEngineType
+    version: str
+    supported_sites: list[str] = Field(default_factory=list)
+    features: list[AdapterFeatureResponse] = Field(default_factory=list)
+    actions_available: list[str] = Field(default_factory=list)
+    is_runnable: bool = True
+
+    @classmethod
+    def from_view(cls, view: "AdapterEngineView") -> AdapterEngineResponse:
+        return cls(
+            engine_key=view.engine_key,
+            display_name=view.display_name,
+            engine_type=view.engine_type,
+            version=view.version,
+            supported_sites=list(view.supported_sites),
+            features=[AdapterFeatureResponse(**feature) for feature in view.features],
+            actions_available=view.actions_available,
+            is_runnable=view.is_runnable,
+        )
+
+
+class AdapterEngineListResponse(BaseModel):
+    items: list[AdapterEngineResponse] = Field(default_factory=list)
+    total: int
 
 
 class AdapterFeatureResponse(BaseModel):
@@ -72,8 +113,9 @@ class AdapterFeatureResponse(BaseModel):
 
 class AdapterListItemResponse(BaseModel):
     adapter_key: str
+    engine_key: str
+    engine_type: AdapterEngineType
     display_name: str
-    status: str
     version: str
     features: list[AdapterFeatureResponse] = Field(default_factory=list)
     last_verified: str | None = None
@@ -87,8 +129,9 @@ class AdapterListItemResponse(BaseModel):
     def from_manifest(cls, manifest: ScraperManifest) -> AdapterListItemResponse:
         return cls(
             adapter_key=manifest.adapter_key,
+            engine_key=manifest.adapter_key,
+            engine_type=manifest.engine_type,
             display_name=manifest.display_name,
-            status=manifest.status.value,
             version=manifest.version,
             features=[AdapterFeatureResponse(**feature) for feature in build_adapter_features(manifest)],
             last_verified=manifest.last_verified,
@@ -101,9 +144,10 @@ class AdapterListItemResponse(BaseModel):
         return cls(
             id=view.id,
             adapter_key=view.adapter_key,
+            engine_key=view.engine_key,
+            engine_type=AdapterEngineType(view.engine_type),
             display_name=view.display_name,
             description=view.description,
-            status=view.status,
             version=view.version,
             features=[AdapterFeatureResponse(**feature) for feature in view.features],
             last_verified=view.last_verified,
@@ -120,9 +164,6 @@ class ScraperManifestListResponse(BaseModel):
 
 class ScraperDashboardSummaryResponse(BaseModel):
     total_adapters: int
-    stable_count: int
-    experimental_count: int
-    deprecated_count: int
     last_run_adapter: str | None = None
     failed_scraper_count: int = 0
 
@@ -224,6 +265,9 @@ class ScraperRunLogListResponse(BaseModel):
 
 class AdapterTestRunRequest(BaseModel):
     input_url: str = Field(min_length=1, max_length=2048)
+    output_json: bool | None = None
+    output_excel: bool | None = None
+    max_pages: int | None = Field(default=None, ge=1)
 
 
 class AdapterLinkedFairResponse(BaseModel):
@@ -254,19 +298,17 @@ class AdapterLinkedFairListResponse(BaseModel):
 
 
 class CreateAdapterRequest(BaseModel):
-    adapter_key: str = Field(..., min_length=1, max_length=100)
     name: str = Field(..., min_length=1, max_length=255)
     description: str | None = Field(default=None, max_length=5000)
-    status: ScraperStatus = ScraperStatus.EXPERIMENTAL
-    version: str | None = Field(default=None, max_length=50)
-    manifest: dict[str, Any] | None = None
+    engine_key: str | None = Field(default=None, max_length=100)
+    requested_fields: list[str] | None = None
+    adapter_key: str | None = Field(default=None, max_length=100)
     is_active: bool = True
 
 
 class UpdateAdapterRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = Field(default=None, max_length=5000)
-    status: ScraperStatus | None = None
     version: str | None = Field(default=None, max_length=50)
     manifest: dict[str, Any] | None = None
     is_active: bool | None = None
@@ -298,7 +340,6 @@ class UpdateAdapterManifestRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     display_name: str | None = Field(default=None, min_length=1, max_length=255)
-    status: ScraperStatus | None = None
     version: str | None = Field(default=None, max_length=50)
     last_verified: str | None = Field(default=None, max_length=32)
     supported_sites: list[str] | str | None = None
@@ -306,14 +347,16 @@ class UpdateAdapterManifestRequest(BaseModel):
     output: ScraperOutputUpdateRequest | None = None
     browser: ScraperBrowserUpdateRequest | None = None
     supports: ScraperSupportsUpdateRequest | None = None
+    requested_fields: list[str] | None = None
 
 
 class AdapterDetailResponse(BaseModel):
     id: UUID | None = None
     adapter_key: str
+    engine_key: str
+    engine_type: AdapterEngineType
     name: str
     description: str | None = None
-    status: str
     version: str
     manifest: dict[str, Any] | None = None
     is_active: bool = True
@@ -330,9 +373,10 @@ class AdapterDetailResponse(BaseModel):
         return cls(
             id=view.id,
             adapter_key=view.adapter_key,
+            engine_key=view.engine_key,
+            engine_type=AdapterEngineType(view.engine_type),
             name=view.display_name,
             description=view.description,
-            status=view.status,
             version=view.version,
             manifest=view.manifest,
             is_active=view.is_active,
@@ -344,6 +388,22 @@ class AdapterDetailResponse(BaseModel):
             created_at=view.created_at,
             updated_at=view.updated_at,
         )
+
+
+class AdapterDeletePreviewActiveRunResponse(BaseModel):
+    id: UUID
+    fair_name: str | None = None
+    input_url: str | None = None
+    started_at: datetime
+
+
+class AdapterDeletePreviewResponse(BaseModel):
+    adapter_key: str
+    display_name: str
+    linked_fairs_count: int
+    affected_fairs: list[str] = Field(default_factory=list)
+    active_runs_count: int
+    active_runs: list[AdapterDeletePreviewActiveRunResponse] = Field(default_factory=list)
 
 
 class AdapterListResponse(BaseModel):

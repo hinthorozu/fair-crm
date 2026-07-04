@@ -2,6 +2,7 @@
 
 from app.modules.scraper.dto.normalized_company_dto import NormalizedCompanyDto
 from app.modules.scraper.dto.raw_company_dto import RawCompanyDto
+from app.modules.imports.domain.services.social_url_fields import SOCIAL_URL_FIELD_PAIRS, resolve_social_url
 
 
 def _clean(value: str | None) -> str | None:
@@ -21,6 +22,14 @@ class CompanyNormalizer:
         metadata = dict(raw.metadata) if raw.metadata else {}
         if raw.extra_fields:
             metadata.update(raw.extra_fields)
+
+        social_urls = {
+            url_key: resolve_social_url(metadata, url_key=url_key, short_key=short_key)
+            for url_key, short_key in SOCIAL_URL_FIELD_PAIRS
+        }
+        for url_key, _short_key in SOCIAL_URL_FIELD_PAIRS:
+            metadata.pop(url_key, None)
+            metadata.pop(_short_key, None)
 
         return NormalizedCompanyDto(
             company_name=company_name,
@@ -42,6 +51,10 @@ class CompanyNormalizer:
             notes=_clean(raw.notes),
             hall=_clean(raw.hall),
             stand=_clean(raw.stand),
+            instagram_url=social_urls["instagram_url"],
+            facebook_url=social_urls["facebook_url"],
+            linkedin_url=social_urls["linkedin_url"],
+            youtube_url=social_urls["youtube_url"],
             source_url=_clean(raw.source_url),
             metadata=metadata or None,
         )

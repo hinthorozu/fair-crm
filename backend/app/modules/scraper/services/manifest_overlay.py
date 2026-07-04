@@ -115,6 +115,7 @@ def build_manifest_overlay_patch(
     output: dict[str, bool] | None = None,
     browser: dict[str, bool] | None = None,
     supports: dict[str, bool] | None = None,
+    requested_fields: list[str] | None = None,
 ) -> dict[str, Any]:
     overlay = dict(existing or {})
     if supported_sites is not None:
@@ -125,6 +126,8 @@ def build_manifest_overlay_patch(
         overlay["browser"] = _merge_mapping(overlay.get("browser") or {}, browser)
     if supports is not None:
         overlay["supports"] = _merge_mapping(overlay.get("supports") or {}, supports)
+    if requested_fields is not None:
+        overlay["requested_fields"] = list(requested_fields)
     return overlay
 
 

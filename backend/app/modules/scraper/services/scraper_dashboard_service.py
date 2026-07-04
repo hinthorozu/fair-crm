@@ -5,35 +5,31 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from app.modules.scraper.core.scraper_manager import ScraperManager
-from app.modules.scraper.manifests.scraper_manifest import ScraperManifest, ScraperStatus
+from app.modules.scraper.domain.requested_output_fields import (
+    REQUESTED_OUTPUT_FIELD_KEYS,
+    output_field_capabilities_from_supports,
+)
+from app.modules.scraper.manifests.scraper_manifest import ScraperManifest
 
 if TYPE_CHECKING:
     from app.modules.scraper.services.scraper_run_history_service import ScraperRunHistoryService
 
-FEATURE_DEFINITIONS: tuple[tuple[str, str], ...] = (
-    ("list_scraping", "List"),
-    ("detail_scraping", "Detail"),
-    ("pagination", "Pagination"),
-    ("website", "Website"),
-    ("email", "Email"),
-    ("phone", "Phone"),
-)
-
 
 def build_adapter_features(manifest: ScraperManifest) -> list[dict[str, str | bool]]:
+    capabilities = output_field_capabilities_from_supports(manifest.supports)
     return [
         {
             "key": key,
-            "label": label,
-            "enabled": bool(getattr(manifest.supports, key)),
+            "label": key,
+            "enabled": capabilities[key],
         }
-        for key, label in FEATURE_DEFINITIONS
+        for key in REQUESTED_OUTPUT_FIELD_KEYS
     ]
 
 
 def resolve_actions_available(manifest: ScraperManifest) -> list[str]:
     actions = ["view"]
-    if manifest.status != ScraperStatus.DEPRECATED and manifest.supports.list_scraping:
+    if manifest.supports.list_scraping:
         actions.append("run")
     return actions
 
@@ -44,15 +40,8 @@ def build_dashboard_summary(
     last_run_adapter: str | None = None,
     failed_scraper_count: int = 0,
 ) -> dict[str, int | str | None]:
-    stable_count = sum(1 for manifest in manifests if manifest.status == ScraperStatus.STABLE)
-    experimental_count = sum(1 for manifest in manifests if manifest.status == ScraperStatus.EXPERIMENTAL)
-    deprecated_count = sum(1 for manifest in manifests if manifest.status == ScraperStatus.DEPRECATED)
-
     return {
         "total_adapters": len(manifests),
-        "stable_count": stable_count,
-        "experimental_count": experimental_count,
-        "deprecated_count": deprecated_count,
         "last_run_adapter": last_run_adapter,
         "failed_scraper_count": failed_scraper_count,
     }

@@ -386,3 +386,23 @@ def test_customer_invalid_multi_email_rejected(client, auth_headers):
     )
     assert response.status_code == 400
     assert "Invalid email address: sales@@abc.com" in response.json()["detail"]
+
+
+def test_create_customer_with_social_urls(client, auth_headers):
+    response = client.post(
+        "/api/v1/customers",
+        json={
+            "display_name": "Social Brand A.Ş.",
+            "instagram_url": "instagram.com/socialbrand",
+            "facebook_url": "https://facebook.com/socialbrand",
+            "linkedin_url": "linkedin.com/company/socialbrand",
+            "youtube_url": "youtube.com/@socialbrand",
+        },
+        headers=auth_headers,
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["instagram_url"] == "https://instagram.com/socialbrand"
+    assert body["facebook_url"] == "https://facebook.com/socialbrand"
+    assert body["linkedin_url"] == "https://linkedin.com/company/socialbrand"
+    assert body["youtube_url"] == "https://youtube.com/@socialbrand"

@@ -19,3 +19,7 @@ class InvalidAdapterKeyError(ScraperAdapterDomainError):
 
 class InvalidAdapterNameError(ScraperAdapterDomainError):
     pass
+
+
+class AdapterEngineNotFoundError(ScraperAdapterDomainError):
+    pass

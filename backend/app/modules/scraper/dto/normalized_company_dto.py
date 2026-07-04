@@ -29,6 +29,10 @@ class NormalizedCompanyDto:
     notes: str | None = None
     hall: str | None = None
     stand: str | None = None
+    instagram_url: str | None = None
+    facebook_url: str | None = None
+    linkedin_url: str | None = None
+    youtube_url: str | None = None
     source_url: str | None = None
     metadata: dict[str, Any] | None = None
 
@@ -54,6 +58,10 @@ class NormalizedCompanyDto:
             "notes": self.notes,
             "hall": self.hall,
             "stand": self.stand,
+            "instagram_url": self.instagram_url,
+            "facebook_url": self.facebook_url,
+            "linkedin_url": self.linkedin_url,
+            "youtube_url": self.youtube_url,
         }
         row = {key: value for key, value in values.items() if value}
         unknown = set(row) - CANONICAL_FIELDS

@@ -10,6 +10,7 @@ def model_to_entity(model: ScraperAdapterModel) -> ScraperAdapter:
         id=model.id,
         organization_id=model.organization_id,
         adapter_key=model.adapter_key,
+        engine_key=model.engine_key,
         name=model.name,
         description=model.description,
         status=ScraperStatus(model.status),
@@ -28,6 +29,7 @@ def entity_to_model(adapter: ScraperAdapter) -> ScraperAdapterModel:
         id=adapter.id,
         organization_id=adapter.organization_id,
         adapter_key=adapter.adapter_key,
+        engine_key=adapter.engine_key,
         name=adapter.name,
         description=adapter.description,
         status=adapter.status.value,
@@ -43,6 +45,7 @@ def entity_to_model(adapter: ScraperAdapter) -> ScraperAdapterModel:
 
 def update_model_from_entity(model: ScraperAdapterModel, adapter: ScraperAdapter) -> None:
     model.name = adapter.name
+    model.engine_key = adapter.engine_key
     model.description = adapter.description
     model.status = adapter.status.value
     model.version = adapter.version

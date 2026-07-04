@@ -52,6 +52,7 @@ import {
   DetailEmailList,
   DetailPhoneList,
   DetailValue,
+  DetailWebsite,
   DetailWebsiteList,
 } from "../components/ui/DetailFields";
 import { activityLabels } from "../labels/activityLabels";
@@ -540,6 +541,38 @@ export function CustomerDetailPage({
                 <DetailWebsiteList items={customer.websites ?? []} />
               </dd>
             </div>
+            {customer.instagram_url ? (
+              <div>
+                <dt>{labels.instagram}</dt>
+                <dd>
+                  <DetailWebsite value={customer.instagram_url} />
+                </dd>
+              </div>
+            ) : null}
+            {customer.facebook_url ? (
+              <div>
+                <dt>{labels.facebook}</dt>
+                <dd>
+                  <DetailWebsite value={customer.facebook_url} />
+                </dd>
+              </div>
+            ) : null}
+            {customer.linkedin_url ? (
+              <div>
+                <dt>{labels.linkedin}</dt>
+                <dd>
+                  <DetailWebsite value={customer.linkedin_url} />
+                </dd>
+              </div>
+            ) : null}
+            {customer.youtube_url ? (
+              <div>
+                <dt>{labels.youtube}</dt>
+                <dd>
+                  <DetailWebsite value={customer.youtube_url} />
+                </dd>
+              </div>
+            ) : null}
             <div>
               <dt>{labels.source}</dt>
               <dd>{customerSourceLabels[customer.source] ?? customer.source}</dd>

@@ -165,6 +165,41 @@ def test_foodist_detail_parser_parses_real_foodist_sidebar_html():
     assert detail.country == "Türkiye"
 
 
+def test_foodist_detail_parser_parses_company_description_from_schedule_detail_info():
+    html = """
+    <html><body>
+      <div class="schedule-single-wrap">
+        <div class="schedule-detail-info">
+          <p class="mb-20">Gemlik bölgesindeki tesislerimizde üretim yapıyoruz.</p>
+        </div>
+      </div>
+    </body></html>
+    """
+    detail = parse_foodist_detail_html(html)
+
+    assert detail.description == "Gemlik bölgesindeki tesislerimizde üretim yapıyoruz."
+
+
+def test_foodist_detail_parser_parses_hall_stand_with_spaced_colon():
+    html = """
+    <html><body>
+      <div class="schedule-sidebar">
+        <div class="widget">
+          <h4 class="widget-title">Konum Bilgisi</h4>
+          <ul>
+            <li><i class="far fa-building"></i> Salon : 8</li>
+            <li><i class="far fa-map-marker"></i> Stant : 819B</li>
+          </ul>
+        </div>
+      </div>
+    </body></html>
+    """
+    detail = parse_foodist_detail_html(html)
+
+    assert detail.hall == "8"
+    assert detail.stand == "819B"
+
+
 def test_foodist_detail_parser_parses_saved_detail_fixture():
     from pathlib import Path
 
@@ -177,6 +212,8 @@ def test_foodist_detail_parser_parses_saved_detail_fixture():
     assert detail.hall == "8"
     assert detail.stand == "819B"
     assert detail.country == "Türkiye"
+    assert detail.instagram_url == "https://www.instagram.com/44beydaggida/"
+    assert "Gemlik" in (detail.description or "")
 
 
 def test_foodist_detail_parser_leaves_website_empty_without_detail_container():

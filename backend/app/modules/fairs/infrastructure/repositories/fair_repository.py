@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import or_
@@ -165,3 +166,34 @@ class SqlAlchemyFairRepository:
             total=meta.total,
             total_pages=meta.total_pages,
         )
+
+    def list_linked_to_adapter(self, organization_id: UUID, adapter_key: str) -> list[Fair]:
+        normalized_key = adapter_key.strip().lower()
+        models = (
+            self._session.query(FairModel)
+            .filter(
+                FairModel.organization_id == organization_id,
+                FairModel.deleted_at.is_(None),
+                FairModel.adapter_key == normalized_key,
+            )
+            .order_by(FairModel.name.asc())
+            .all()
+        )
+        return [model_to_entity(model) for model in models]
+
+    def unlink_adapter_key(self, organization_id: UUID, adapter_key: str, *, now: datetime) -> int:
+        normalized_key = adapter_key.strip().lower()
+        updated = (
+            self._session.query(FairModel)
+            .filter(
+                FairModel.organization_id == organization_id,
+                FairModel.deleted_at.is_(None),
+                FairModel.adapter_key == normalized_key,
+            )
+            .update(
+                {"adapter_key": None, "updated_at": now},
+                synchronize_session=False,
+            )
+        )
+        self._session.flush()
+        return int(updated or 0)

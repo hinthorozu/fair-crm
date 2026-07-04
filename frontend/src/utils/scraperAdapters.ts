@@ -4,8 +4,9 @@ export function adapterDetailToListItem(detail: AdapterDetail): AdapterListItem 
   return {
     id: detail.id,
     adapter_key: detail.adapter_key,
+    engine_key: detail.engine_key,
+    engine_type: detail.engine_type,
     display_name: detail.name,
-    status: detail.status,
     version: detail.version,
     features: detail.features,
     last_verified: detail.last_verified,

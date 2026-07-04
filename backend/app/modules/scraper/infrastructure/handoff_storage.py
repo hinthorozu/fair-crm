@@ -76,12 +76,13 @@ def write_handoff_excel_file(
     handoff: ScraperImportHandoff,
     run_id: UUID,
     *,
+    requested_fields: list[str] | None = None,
     base_dir: Path | None = None,
     run_logger: ScraperRunLogger | None = None,
 ) -> str:
     path = resolve_handoff_excel_path(run_id, base_dir=base_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
-    resolved_path = write_handoff_excel(handoff, str(path))
+    resolved_path = write_handoff_excel(handoff, str(path), requested_fields=requested_fields)
     resolved = str(resolved_path)
     if run_logger is not None:
         run_logger.info("export_excel", "Excel üretildi", metadata={"path": resolved})

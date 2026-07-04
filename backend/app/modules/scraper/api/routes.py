@@ -1,5 +1,7 @@
 """HTTP routes for Adapter Yönetimi (adapter manifest discovery and dashboard)."""
 
+from dataclasses import replace
+from pathlib import Path
 from typing import Annotated
 from uuid import UUID
 
@@ -11,11 +13,13 @@ from app.db.session import get_db
 from app.shared.background_jobs import run_blocking_background_task
 
 from app.modules.scraper.api.dependencies import (
+    get_adapter_engine_service,
     get_adapter_linked_fair_service,
     get_adapter_test_run_job_runner,
     get_auth_context,
     get_default_scraper_dashboard_service,
     get_default_scraper_manager,
+    get_delete_adapter_use_case,
     get_run_adapter_test_use_case,
     get_scraper_adapter_service,
     get_scraper_run_history_service,
@@ -23,6 +27,10 @@ from app.modules.scraper.api.dependencies import (
 )
 from app.modules.scraper.api.schemas import (
     AdapterDetailResponse,
+    AdapterDeletePreviewResponse,
+    AdapterDeletePreviewActiveRunResponse,
+    AdapterEngineListResponse,
+    AdapterEngineResponse,
     AdapterLinkedFairListResponse,
     AdapterLinkedFairResponse,
     AdapterListItemResponse,
@@ -44,20 +52,25 @@ from app.integrations.kyrox_core.auth import AuthContext
 from app.core.config import get_settings
 from app.modules.scraper.core.browser_service import BrowserConfig
 from app.modules.scraper.core.playwright_availability import playwright_browser_unavailable_message
+from app.modules.scraper.services.adapter_engine_service import AdapterEngineService
 from app.modules.scraper.services.adapter_linked_fair_service import AdapterLinkedFairService
 from app.modules.scraper.services.scraper_adapter_service import ScraperAdapterService
 from app.modules.scraper.services.scraper_run_history_service import ScraperRunHistoryService
 from app.modules.scraper.services.scraper_run_log_service import ScraperRunLogService
+from app.modules.scraper.services.adapter_instance_resolver import resolve_output_formats
+from app.modules.scraper.application.delete_adapter import DeleteAdapterUseCase
 from app.modules.scraper.application.adapter_test_run_job_runner import (
     AdapterTestRunJobCommand,
     AdapterTestRunJobRunner,
 )
 from app.modules.scraper.application.run_adapter_test import (
     AdapterNotRegisteredError,
+    DynamicAdapterEngineNotRunnableError,
     RunAdapterTestCommand,
     RunAdapterTestUseCase,
 )
 from app.modules.scraper.domain.scraper_adapter_exceptions import (
+    AdapterEngineNotFoundError,
     AdapterNotFoundError,
     DuplicateAdapterKeyError,
     InvalidAdapterKeyError,
@@ -81,7 +94,21 @@ def _adapter_http_errors(exc: Exception) -> HTTPException:
         return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
     if isinstance(exc, AdapterNotFoundError):
         return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, AdapterEngineNotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     raise exc
+
+
+@router.get(
+    "/engines",
+    response_model=AdapterEngineListResponse,
+    summary="Adapter engine listesi",
+)
+def list_adapter_engines(
+    engine_service: Annotated[AdapterEngineService, Depends(get_adapter_engine_service)],
+) -> AdapterEngineListResponse:
+    items = [AdapterEngineResponse.from_view(view) for view in engine_service.list_engines()]
+    return AdapterEngineListResponse(items=items, total=len(items))
 
 
 @router.get(
@@ -114,15 +141,14 @@ def create_adapter(
     try:
         view = adapter_service.create_adapter(
             auth.organization_id,
-            adapter_key=body.adapter_key,
             name=body.name,
             description=body.description,
-            status=body.status,
-            version=body.version,
-            manifest=body.manifest,
+            engine_key=body.engine_key,
+            requested_fields=body.requested_fields,
+            adapter_key=body.adapter_key,
             is_active=body.is_active,
         )
-    except (DuplicateAdapterKeyError, InvalidAdapterKeyError, InvalidAdapterNameError) as exc:
+    except (DuplicateAdapterKeyError, InvalidAdapterKeyError, InvalidAdapterNameError, AdapterEngineNotFoundError) as exc:
         raise _adapter_http_errors(exc) from exc
     return AdapterDetailResponse.from_managed_view(view)
 
@@ -194,7 +220,8 @@ def update_adapter_manifest(
         raise _adapter_http_errors(exc) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    return ScraperManifestResponse.from_manifest(merged)
+    requested_fields = adapter_service.resolve_requested_fields(auth.organization_id, adapter)
+    return ScraperManifestResponse.from_manifest(merged, requested_fields=requested_fields)
 
 
 @router.post(
@@ -229,6 +256,56 @@ def deactivate_adapter(
     except (AdapterNotFoundError, InvalidAdapterKeyError) as exc:
         raise _adapter_http_errors(exc) from exc
     return AdapterDetailResponse.from_managed_view(view)
+
+
+@router.get(
+    "/adapters/{adapter}/delete-preview",
+    response_model=AdapterDeletePreviewResponse,
+    summary="Adapter silme önizlemesi",
+)
+def get_adapter_delete_preview(
+    adapter: str,
+    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    use_case: Annotated[DeleteAdapterUseCase, Depends(get_delete_adapter_use_case)],
+) -> AdapterDeletePreviewResponse:
+    try:
+        preview = use_case.get_delete_preview(auth.organization_id, adapter)
+    except (AdapterNotFoundError, InvalidAdapterKeyError) as exc:
+        raise _adapter_http_errors(exc) from exc
+    return AdapterDeletePreviewResponse(
+        adapter_key=preview.adapter_key,
+        display_name=preview.display_name,
+        linked_fairs_count=preview.linked_fairs_count,
+        affected_fairs=list(preview.affected_fairs),
+        active_runs_count=preview.active_runs_count,
+        active_runs=[
+            AdapterDeletePreviewActiveRunResponse(
+                id=run.id,
+                fair_name=run.fair_name,
+                input_url=run.input_url,
+                started_at=run.started_at,
+            )
+            for run in preview.active_runs
+        ],
+    )
+
+
+@router.delete(
+    "/adapters/{adapter}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Adapter sil",
+)
+def delete_adapter(
+    adapter: str,
+    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    db: Annotated[Session, Depends(get_db)],
+    use_case: Annotated[DeleteAdapterUseCase, Depends(get_delete_adapter_use_case)],
+) -> None:
+    try:
+        use_case.execute(auth.organization_id, adapter)
+    except (AdapterNotFoundError, InvalidAdapterKeyError) as exc:
+        raise _adapter_http_errors(exc) from exc
+    db.commit()
 
 
 @router.get(
@@ -277,7 +354,8 @@ def get_scraper_manifest(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc
-    return ScraperManifestResponse.from_manifest(manifest)
+    requested_fields = adapter_service.resolve_requested_fields(auth.organization_id, adapter)
+    return ScraperManifestResponse.from_manifest(manifest, requested_fields=requested_fields)
 
 
 @router.get(
@@ -327,11 +405,20 @@ def run_adapter_test(
                 input_url=body.input_url,
             )
         )
-    except AdapterNotRegisteredError as exc:
+    except (AdapterNotRegisteredError, AdapterEngineNotFoundError) as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    except ValueError as exc:
+    except (ValueError, DynamicAdapterEngineNotRunnableError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     db.commit()
+    output_formats = resolve_output_formats(
+        db,
+        auth.organization_id,
+        run.adapter_key,
+        output_json_override=body.output_json,
+        output_excel_override=body.output_excel,
+    )
+    if not output_formats.json_handoff and not output_formats.excel:
+        output_formats = replace(output_formats, json_handoff=True)
     background_tasks.add_task(
         run_blocking_background_task,
         job_runner.run_adapter_test,
@@ -340,6 +427,9 @@ def run_adapter_test(
             organization_id=auth.organization_id,
             adapter_key=run.adapter_key,
             input_url=run.input_url or body.input_url.strip(),
+            output_json=output_formats.json_handoff,
+            output_excel=output_formats.excel,
+            max_pages=body.max_pages,
         ),
     )
     return ScraperRunHistoryResponse.from_entity(run)
@@ -405,13 +495,21 @@ def list_scraper_run_logs(
     json_path = resolve_handoff_path(run_id)
     excel_path = resolve_handoff_excel_path(run_id)
     outputs_ready = run.status == ScraperRunStatus.COMPLETED
+
+    def _artifact_available(default_path: Path, stored_path: str | None) -> bool:
+        if default_path.is_file():
+            return True
+        if stored_path:
+            return Path(stored_path).is_file()
+        return False
+
     return ScraperRunLogListResponse(
         items=items,
         total=run_log_service.count_logs(run_id),
         run_status=run.status,
         total_rows=run.total_rows,
-        output_json_available=outputs_ready and json_path.is_file(),
-        output_excel_available=outputs_ready and excel_path.is_file(),
+        output_json_available=outputs_ready and _artifact_available(json_path, run.output_json_path),
+        output_excel_available=outputs_ready and _artifact_available(excel_path, run.output_excel_path),
     )
 
 
@@ -467,6 +565,10 @@ def download_scraper_run_excel(
             detail="Test çıktısı henüz hazır değil.",
         )
     path = resolve_handoff_excel_path(run_id)
+    if not path.is_file() and run.output_excel_path:
+        candidate = Path(run.output_excel_path)
+        if candidate.is_file():
+            path = candidate
     if not path.is_file():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

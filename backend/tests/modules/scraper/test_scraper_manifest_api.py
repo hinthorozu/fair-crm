@@ -21,16 +21,20 @@ def test_list_scraper_manifests_endpoint_returns_adapter_list_format(client: Tes
     assert "platform" not in new_item
     assert "supported_sites" not in new_item
     assert "supports" not in new_item
-    assert new_item["status"] == "stable"
+    assert "status" not in new_item
     assert new_item["version"] == "1.0.0"
     assert new_item["last_verified"] == "2026-07-04"
     assert "view" in new_item["actions_available"]
     assert "run" in new_item["actions_available"]
 
     features = {feature["key"]: feature for feature in new_item["features"]}
-    assert features["list_scraping"] == {"key": "list_scraping", "label": "List", "enabled": True}
-    assert features["detail_scraping"]["enabled"] is True
+    assert features["customerName"]["enabled"] is True
+    assert features["instagram"]["enabled"] is True
+    assert features["facebook"]["enabled"] is True
+    assert features["linkedin"]["enabled"] is True
     assert features["website"]["enabled"] is True
+    assert features["phone"]["enabled"] is True
+    assert features["notes"]["enabled"] is True
 
 
 def test_get_scraper_manifest_endpoint(client: TestClient, auth_headers):
@@ -40,7 +44,7 @@ def test_get_scraper_manifest_endpoint(client: TestClient, auth_headers):
     payload = response.json()
     assert payload["adapter_key"] == ScraperSiteKey.TUYAP_NEW
     assert payload["display_name"] == "TÜYAP (New)"
-    assert payload["status"] == "stable"
+    assert "status" not in payload
     assert payload["scraper_version"] == "1.0"
     assert payload["target_site_version"] == "unknown"
     assert payload["last_verified"] == "2026-07-04"

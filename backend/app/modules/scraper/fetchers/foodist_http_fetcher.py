@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import re
-from html import unescape
 from urllib.parse import urljoin
 
 import httpx
+
+from app.modules.scraper.parsers.foodist_list_extract import extract_list_text_from_brand_link_html
 
 BRAND_LINK_PATTERN = re.compile(
     r'<a[^>]+href=["\']([^"\']*brand/[^"\']+)["\'][^>]*>(.*?)</a>',
@@ -33,7 +34,7 @@ def extract_list_items(html: str, *, base_url: str) -> list[dict[str, str]]:
     items: list[dict[str, str]] = []
     for href, inner_html in BRAND_LINK_PATTERN.findall(html):
         detail_url = urljoin(base_url, href.strip())
-        list_text = _html_fragment_to_text(inner_html)
+        list_text = extract_list_text_from_brand_link_html(inner_html)
         if not list_text or "brand/" not in detail_url:
             continue
         items.append({"detail_url": detail_url, "list_text": list_text})
@@ -54,6 +55,3 @@ def discover_pagination_urls(html: str, *, base_url: str) -> list[str]:
     return normalized
 
 
-def _html_fragment_to_text(fragment: str) -> str:
-    plain = re.sub(r"<[^>]+>", " ", fragment)
-    return " ".join(unescape(plain).split())

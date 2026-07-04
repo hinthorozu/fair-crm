@@ -10,6 +10,7 @@ from urllib.parse import urljoin
 
 from app.modules.scraper.core.browser_service import BrowserService
 from app.modules.scraper.core.scraper_run_logger import ScraperRunLogger, resolve_run_logger
+from app.modules.scraper.domain.requested_output_fields import needs_detail_scrape, resolve_requested_fields_from_context
 from app.modules.scraper.dto.raw_company_dto import RawCompanyDto
 from app.modules.scraper.fetchers.foodist_http_fetcher import (
     discover_pagination_urls,
@@ -179,8 +180,8 @@ class TuyapNewAdapter:
         )
         run_log.info(
             "pagination_found",
-            f"{pages_scraped} sayfa bulundu",
-            metadata={"page_count": pages_scraped, "via": "http"},
+            self._pagination_summary_message(pages_scraped, max_pages),
+            metadata=self._pagination_summary_metadata(pages_scraped, max_pages, via="http"),
         )
 
         if self._resolve_scrape_detail(context):
@@ -377,8 +378,8 @@ class TuyapNewAdapter:
         )
         run_log.info(
             "pagination_found",
-            f"{pages_scraped} sayfa bulundu",
-            metadata={"page_count": pages_scraped, "via": "browser"},
+            self._pagination_summary_message(pages_scraped, max_pages),
+            metadata=self._pagination_summary_metadata(pages_scraped, max_pages, via="browser"),
         )
 
         if self._resolve_scrape_detail(context):
@@ -446,6 +447,8 @@ class TuyapNewAdapter:
     def _resolve_scrape_detail(context: ScraperContext) -> bool:
         if "scrape_detail" in context.options:
             return bool(context.options.get("scrape_detail"))
+        if "requested_fields" in context.options:
+            return needs_detail_scrape(resolve_requested_fields_from_context(context))
         return True
 
     @staticmethod
@@ -484,6 +487,7 @@ class TuyapNewAdapter:
             country=row.country or detail.country,
             hall=row.hall or detail.hall,
             stand=row.stand or detail.stand,
+            notes=row.notes or detail.description,
             extra_fields=extra_fields,
             metadata=metadata,
         )
@@ -512,6 +516,24 @@ class TuyapNewAdapter:
             context=context,
             seen_detail_urls=seen_detail_urls,
         )
+
+    @staticmethod
+    def _pagination_summary_message(pages_scraped: int, max_pages: int | None) -> str:
+        if max_pages is not None:
+            return f"{pages_scraped}/{max_pages} liste sayfası tarandı (max_pages={max_pages})"
+        return f"{pages_scraped} liste sayfası tarandı"
+
+    @staticmethod
+    def _pagination_summary_metadata(
+        pages_scraped: int,
+        max_pages: int | None,
+        *,
+        via: str,
+    ) -> dict[str, object]:
+        metadata: dict[str, object] = {"page_count": pages_scraped, "via": via}
+        if max_pages is not None:
+            metadata["max_pages"] = max_pages
+        return metadata
 
     @staticmethod
     def _resolve_max_pages(context: ScraperContext) -> int | None:
@@ -564,15 +586,27 @@ class TuyapNewAdapter:
         return f"""
         () => {{
             const links = Array.from(document.querySelectorAll({BRAND_LIST_LINK_SELECTOR!r}));
-            return links.map((link) => {{
-                const container = link.closest("li, article, .list-group-item, [class*='brand'], [class*='exhibitor']")
+            const normalize = (value) => (value || "").replace(/\\s+/g, " ").trim();
+            const extractListText = (link) => {{
+                const container = link.querySelector(".brand-container") || link;
+                const infoEl = container.querySelector(".brand-info");
+                const locationEl = container.querySelector(".brand-location-info");
+                const parts = [infoEl, locationEl]
+                    .filter(Boolean)
+                    .map((el) => normalize(el.textContent));
+                if (parts.length > 0) {{
+                    return parts.join(" ");
+                }}
+                const fallbackContainer = link.closest("li, article, .list-group-item, [class*='brand'], [class*='exhibitor']")
                     || link.parentElement
                     || link;
+                return normalize(fallbackContainer.textContent || link.textContent || "");
+            }};
+            return links.map((link) => {{
                 const href = link.href || "";
-                const listText = (container.textContent || link.textContent || "").replace(/\\s+/g, " ").trim();
                 return {{
                     detail_url: href,
-                    list_text: listText,
+                    list_text: extractListText(link),
                 }};
             }}).filter((row) => row.detail_url.includes("brand/") && row.list_text);
         }}

@@ -22,17 +22,9 @@ import type {
   CreateAdapterPayload,
   ScraperDashboardSummary,
   ScraperRun,
-  UpdateAdapterPayload,
 } from "../types/scraper";
-import {
-  adapterStatusBadgeVariant,
-  adapterStatusLabel,
-  formatAdapterStatusFilter,
-} from "../utils/scraperBadges";
 import { formatDetailDate } from "../components/ui/DetailFields";
 import { adapterDetailToListItem, mergeAdapterListItem } from "../utils/scraperAdapters";
-
-type StatusFilter = "all" | "stable" | "experimental" | "deprecated";
 
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return "—";
@@ -65,19 +57,9 @@ function buildAdapterColumns(handlers: {
         <div className="adapter-name-cell">
           <span className="adapter-name-primary">{adapter.display_name}</span>
           <span className="adapter-name-secondary text-muted">{adapter.adapter_key}</span>
-        </div>
-      ),
-    },
-    {
-      key: "status",
-      title: scraperLabels.colStatus,
-      sortable: true,
-      render: (adapter) => (
-        <div className="adapter-status-cell">
-          <Badge variant={adapterStatusBadgeVariant(adapter.status)}>
-            {adapterStatusLabel(adapter.status)}
-          </Badge>
-          {!adapter.is_active ? <Badge variant="neutral">{scraperLabels.inactiveBadge}</Badge> : null}
+          {!adapter.is_active ? (
+            <Badge variant="neutral">{scraperLabels.inactiveBadge}</Badge>
+          ) : null}
         </div>
       ),
     },
@@ -138,8 +120,6 @@ function SummaryCards({
 }) {
   const cards = [
     { label: scraperLabels.summaryTotal, value: summary.total_adapters.toLocaleString("tr-TR") },
-    { label: scraperLabels.summaryStable, value: summary.stable_count.toLocaleString("tr-TR") },
-    { label: scraperLabels.summaryExperimental, value: summary.experimental_count.toLocaleString("tr-TR") },
     { label: scraperLabels.summaryLastRun, value: lastRunLabel },
     { label: scraperLabels.summaryLastError, value: summary.failed_scraper_count.toLocaleString("tr-TR") },
   ];
@@ -167,7 +147,6 @@ export function AdapterManagementPage({
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [search, setSearch] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all");
   const [showCreateModal, setShowCreateModal] = React.useState(false);
   const [formSaving, setFormSaving] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
@@ -235,14 +214,13 @@ export function AdapterManagementPage({
   const filteredAdapters = React.useMemo(() => {
     const query = search.trim().toLowerCase();
     return adapters.filter((adapter) => {
-      if (statusFilter !== "all" && adapter.status !== statusFilter) return false;
       if (!query) return true;
       return (
         adapter.display_name.toLowerCase().includes(query) ||
         adapter.adapter_key.toLowerCase().includes(query)
       );
     });
-  }, [adapters, search, statusFilter]);
+  }, [adapters, search]);
 
   const lastRunLabel = React.useMemo(() => {
     if (!summary?.last_run_adapter) return "—";
@@ -258,14 +236,13 @@ export function AdapterManagementPage({
   );
 
   const handleCreate = React.useCallback(
-    async (payload: CreateAdapterPayload | UpdateAdapterPayload) => {
+    async (payload: CreateAdapterPayload) => {
       setFormSaving(true);
       setFormError(null);
       try {
-        const created = await createAdapter(payload as CreateAdapterPayload);
+        const created = await createAdapter(payload);
         const listItem = adapterDetailToListItem(created);
         setAdapters((current) => mergeAdapterListItem(current, listItem));
-        setStatusFilter("all");
         setSearch("");
         setShowCreateModal(false);
         setFormError(null);
@@ -336,17 +313,6 @@ export function AdapterManagementPage({
             aria-label={scraperLabels.searchPlaceholder}
           />
           <div className="adapter-toolbar-actions">
-            <select
-              className="adapter-status-filter"
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-              aria-label={scraperLabels.colStatus}
-            >
-              <option value="all">{scraperLabels.filterStatusAll}</option>
-              <option value="stable">{formatAdapterStatusFilter("stable")}</option>
-              <option value="experimental">{formatAdapterStatusFilter("experimental")}</option>
-              <option value="deprecated">{formatAdapterStatusFilter("deprecated")}</option>
-            </select>
             <button type="button" className="btn secondary" onClick={() => void loadData()} disabled={loading}>
               {labels.refresh}
             </button>
@@ -379,7 +345,6 @@ export function AdapterManagementPage({
 
       {showCreateModal ? (
         <AdapterFormModal
-          mode="create"
           saving={formSaving}
           error={formError}
           onClose={() => {

@@ -16,6 +16,8 @@ const POLL_INTERVAL_MS = 2000;
 interface AdapterRunLogConsoleProps {
   adapterKey: string;
   focusRunId?: string | null;
+  outputJson?: boolean;
+  outputExcel?: boolean;
 }
 
 function formatConsoleTime(value: string): string {
@@ -27,8 +29,14 @@ function formatStepLabel(step: string): string {
   return step.replace(/_/g, " ");
 }
 
-export function AdapterRunLogConsole({ adapterKey, focusRunId }: AdapterRunLogConsoleProps) {
+export function AdapterRunLogConsole({
+  adapterKey,
+  focusRunId,
+  outputJson = true,
+  outputExcel = false,
+}: AdapterRunLogConsoleProps) {
   const [inputUrl, setInputUrl] = React.useState("");
+  const [maxPagesInput, setMaxPagesInput] = React.useState("");
   const [activeRunId, setActiveRunId] = React.useState<string | null>(null);
   const [logs, setLogs] = React.useState<ScraperRunLog[]>([]);
   const [runStatus, setRunStatus] = React.useState<string | null>(null);
@@ -104,6 +112,13 @@ export function AdapterRunLogConsole({ adapterKey, focusRunId }: AdapterRunLogCo
   }, [selectedRunId, runStatus, loadLogs]);
 
   React.useEffect(() => {
+    if (!selectedRunId || runStatus !== "completed") {
+      return;
+    }
+    void loadLogs(selectedRunId, true);
+  }, [selectedRunId, runStatus, loadLogs]);
+
+  React.useEffect(() => {
     if (!consoleRef.current) return;
     consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
   }, [logs]);
@@ -114,6 +129,16 @@ export function AdapterRunLogConsole({ adapterKey, focusRunId }: AdapterRunLogCo
       setError(scraperLabels.testUrlRequired);
       return;
     }
+    const trimmedMaxPages = maxPagesInput.trim();
+    let maxPages: number | undefined;
+    if (trimmedMaxPages) {
+      const parsed = Number.parseInt(trimmedMaxPages, 10);
+      if (!Number.isFinite(parsed) || parsed < 1) {
+        setError(scraperLabels.testMaxPagesInvalid);
+        return;
+      }
+      maxPages = parsed;
+    }
     setRunning(true);
     setError(null);
     setLogs([]);
@@ -121,7 +146,11 @@ export function AdapterRunLogConsole({ adapterKey, focusRunId }: AdapterRunLogCo
     resetOutputs();
     lastLogIdRef.current = null;
     try {
-      const run = await runAdapterTest(adapterKey, url);
+      const run = await runAdapterTest(adapterKey, url, {
+        outputJson,
+        outputExcel,
+        maxPages,
+      });
       setActiveRunId(run.id);
     } catch (err) {
       setRunStatus(null);
@@ -129,7 +158,7 @@ export function AdapterRunLogConsole({ adapterKey, focusRunId }: AdapterRunLogCo
     } finally {
       setRunning(false);
     }
-  }, [adapterKey, inputUrl, resetOutputs]);
+  }, [adapterKey, inputUrl, maxPagesInput, outputExcel, outputJson, resetOutputs]);
 
   const handleOutputAction = React.useCallback(
     async (action: "download" | "open", kind: "json" | "excel") => {
@@ -187,6 +216,22 @@ export function AdapterRunLogConsole({ adapterKey, focusRunId }: AdapterRunLogCo
             {running || runStatus === "running" ? scraperLabels.testRunning : scraperLabels.testRun}
           </button>
         </div>
+        <label className="adapter-console-url-label" htmlFor="adapter-test-max-pages">
+          {scraperLabels.testMaxPagesLabel}
+        </label>
+        <input
+          id="adapter-test-max-pages"
+          className="input adapter-console-max-pages-input"
+          type="number"
+          min={1}
+          step={1}
+          inputMode="numeric"
+          placeholder={scraperLabels.testMaxPagesPlaceholder}
+          value={maxPagesInput}
+          disabled={running || runStatus === "running"}
+          onChange={(event) => setMaxPagesInput(event.target.value)}
+        />
+        <p className="form-hint">{scraperLabels.testMaxPagesHint}</p>
       </div>
 
       {runStatus ? (

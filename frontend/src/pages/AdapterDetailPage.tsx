@@ -1,15 +1,23 @@
 import React from "react";
-import { getAdapter, getScraperManifest, listScraperRuns, updateAdapterManifest } from "../api/scraper";
+import {
+  deleteAdapter,
+  getAdapter,
+  getAdapterDeletePreview,
+  getScraperManifest,
+  listScraperRuns,
+  updateAdapterManifest,
+} from "../api/scraper";
 import { ApiError } from "../api/client";
 import {
   AdapterDetailContent,
   type AdapterDetailTab,
 } from "../components/scraper/AdapterDetailContent";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { LoadingState } from "../components/ui/LoadingState";
 import { PageHeader, type PageHeaderAction } from "../components/ui/PageHeader";
 import { scraperLabels } from "../labels/scraperLabels";
 import { uiLabels } from "../labels/uiLabels";
-import type { AdapterListItem, ScraperManifest, ScraperRun } from "../types/scraper";
+import type { AdapterDeletePreview, AdapterListItem, ScraperManifest, ScraperRun } from "../types/scraper";
 import {
   formStateToPayload,
   manifestToFormState,
@@ -25,13 +33,14 @@ interface AdapterDetailPageProps {
   onAdapterLoaded?: (displayName: string) => void;
 }
 
-const VALID_TABS: AdapterDetailTab[] = ["general", "manifest", "runs", "console", "fairs"];
-const EDITABLE_TABS: AdapterDetailTab[] = ["general", "manifest"];
+const VALID_TABS: AdapterDetailTab[] = ["manifest", "runs", "console", "fairs"];
+const EDITABLE_TABS: AdapterDetailTab[] = ["manifest"];
 
 function tabFromUrl(): AdapterDetailTab {
   const tab = readSearchParams().get("tab");
+  if (tab === "general") return "manifest";
   if (tab && VALID_TABS.includes(tab as AdapterDetailTab)) return tab as AdapterDetailTab;
-  return "general";
+  return "manifest";
 }
 
 function resolveSaveError(err: unknown): string {
@@ -81,6 +90,9 @@ export function AdapterDetailPage({
   const [isEditing, setIsEditing] = React.useState(false);
   const [draft, setDraft] = React.useState<AdapterEditFormState | null>(null);
   const [saving, setSaving] = React.useState(false);
+  const [deletePreview, setDeletePreview] = React.useState<AdapterDeletePreview | null>(null);
+  const [deletePreviewLoading, setDeletePreviewLoading] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
 
   const onAdapterLoadedRef = React.useRef(onAdapterLoaded);
   onAdapterLoadedRef.current = onAdapterLoaded;
@@ -94,7 +106,7 @@ export function AdapterDetailPage({
     (tab: AdapterDetailTab) => {
       setActiveTabState(tab);
       const params = readSearchParams();
-      if (tab === "general") params.delete("tab");
+      if (tab === "manifest") params.delete("tab");
       else params.set("tab", tab);
       navigateWithSearch(detailPath, buildLocationSearch(params));
     },
@@ -203,6 +215,38 @@ export function AdapterDetailPage({
     [],
   );
 
+  const openDeleteConfirm = React.useCallback(async () => {
+    setDeletePreviewLoading(true);
+    setError(null);
+    try {
+      const preview = await getAdapterDeletePreview(adapterKey);
+      setDeletePreview(preview);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : scraperLabels.deleteAdapterError);
+    } finally {
+      setDeletePreviewLoading(false);
+    }
+  }, [adapterKey]);
+
+  const closeDeleteConfirm = React.useCallback(() => {
+    if (deleting) return;
+    setDeletePreview(null);
+  }, [deleting]);
+
+  const handleDeleteAdapter = React.useCallback(async () => {
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteAdapter(adapterKey);
+      setDeletePreview(null);
+      onBack();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : scraperLabels.deleteAdapterError);
+    } finally {
+      setDeleting(false);
+    }
+  }, [adapterKey, onBack]);
+
   if (loading) {
     return <LoadingState />;
   }
@@ -240,11 +284,19 @@ export function AdapterDetailPage({
       ]
     : [
         {
+          id: "delete",
+          label: scraperLabels.deleteAdapter,
+          variant: "danger",
+          onClick: () => void openDeleteConfirm(),
+          disabled: isEditing || deletePreviewLoading || deleting,
+          loading: deletePreviewLoading,
+        },
+        {
           id: "edit",
           label: uiLabels.detailEdit,
           variant: "primary",
           onClick: startEdit,
-          disabled: !isEditableTab || manifestLoading || !manifest,
+          disabled: !isEditableTab || manifestLoading || !manifest || deletePreviewLoading || deleting,
         },
       ];
 
@@ -272,6 +324,18 @@ export function AdapterDetailPage({
         draft={draft}
         onDraftChange={handleDraftChange}
       />
+
+      {deletePreview ? (
+        <ConfirmDialog
+          title={scraperLabels.deleteAdapterTitle}
+          message={scraperLabels.buildDeleteAdapterMessage(deletePreview)}
+          confirmLabel={scraperLabels.deleteAdapterConfirmLabel}
+          variant="danger"
+          loading={deleting}
+          onCancel={closeDeleteConfirm}
+          onConfirm={() => void handleDeleteAdapter()}
+        />
+      ) : null}
     </div>
   );
 }

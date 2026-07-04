@@ -18,9 +18,9 @@ def test_build_dashboard_summary_from_manifests():
     summary = build_dashboard_summary(manifests)
 
     assert summary["total_adapters"] == 2
-    assert summary["stable_count"] == 1
-    assert summary["experimental_count"] == 1
-    assert summary["deprecated_count"] == 0
+    assert "stable_count" not in summary
+    assert "experimental_count" not in summary
+    assert "deprecated_count" not in summary
     assert summary["last_run_adapter"] is None
     assert summary["failed_scraper_count"] == 0
 
@@ -41,9 +41,12 @@ def test_build_adapter_features_from_manifest():
     features = build_adapter_features(TUYAP_NEW_MANIFEST)
     by_key = {feature["key"]: feature for feature in features}
 
-    assert by_key["list_scraping"] == {"key": "list_scraping", "label": "List", "enabled": True}
-    assert by_key["detail_scraping"]["enabled"] is True
-    assert by_key["phone"]["label"] == "Phone"
+    assert by_key["customerName"] == {"key": "customerName", "label": "customerName", "enabled": True}
+    assert by_key["phone"]["enabled"] is True
+    assert by_key["website"]["enabled"] is True
+    assert by_key["instagram"]["enabled"] is True
+    assert by_key["hall"]["enabled"] is True
+    assert "list_scraping" not in by_key
 
 
 def test_dashboard_service_uses_manager_manifests():
@@ -58,4 +61,3 @@ def test_dashboard_service_uses_manager_manifests():
     manifests = service.list_manifests()
 
     assert summary["total_adapters"] == len(manifests)
-    assert summary["stable_count"] + summary["experimental_count"] + summary["deprecated_count"] == len(manifests)

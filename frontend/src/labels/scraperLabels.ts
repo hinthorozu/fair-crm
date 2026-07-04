@@ -3,18 +3,11 @@ export const scraperLabels = {
   pageSubtitle: "Adapter kayıtlarını yönetin, test edin ve çalıştırın.",
   backToAdapters: "Adapter listesine dön",
   summaryTotal: "Toplam Adapter",
-  summaryStable: "Stable",
-  summaryExperimental: "Experimental",
   summaryLastRun: "Son Çalışan",
   summaryLastError: "Son Hata",
   searchPlaceholder: "Adapter ara…",
-  filterStatusAll: "Tüm durumlar",
-  filterStatusStable: "Stable",
-  filterStatusExperimental: "Experimental",
-  filterStatusDeprecated: "Deprecated",
   newAdapter: "Yeni Adapter",
   colAdapter: "Adapter",
-  colStatus: "Status",
   colVersion: "Version",
   colFeatures: "Features",
   colLastRun: "Last Run",
@@ -29,7 +22,15 @@ export const scraperLabels = {
   formAdapterKey: "Adapter Key",
   formAdapterKeyPlaceholder: "ornek_adapter",
   formAdapterName: "Adapter Adı",
+  formAdapterNameRequired: "Adapter adı zorunludur.",
   formDescription: "Açıklama",
+  formEngine: "Engine",
+  formEngineDynamic: "Dynamic",
+  formEngineDynamicHint:
+    "Dynamic adapter henüz scrape edilemez. Regex/JSON/selector yapılandırması ileride eklenecek.",
+  formEngineLoading: "Engine listesi yükleniyor…",
+  formEngineLoadError: "Engine listesi yüklenemedi.",
+  formRequestedFieldsRequired: "En az bir çıktı alanı seçilmelidir.",
   formManifestJson: "Manifest JSON",
   formManifestPlaceholder: '{"supports": {"list_scraping": true}}',
   formCreate: "Oluştur",
@@ -43,7 +44,6 @@ export const scraperLabels = {
   runSoon: "Çalıştırma yakında kullanıma sunulacak.",
   emptyAdapters: "Henüz adapter bulunamadı.",
   loadError: "Adapter verileri yüklenemedi.",
-  drawerTabGeneral: "Genel",
   drawerTabManifest: "Manifest",
   drawerTabRunHistory: "Run History",
   drawerTabTestConsole: "Test",
@@ -55,7 +55,11 @@ export const scraperLabels = {
   linkedFairColLastImport: "Son Import",
   linkedFairOpenFair: "Fuarı Aç",
   linkedFairsEmpty: "Bu adapter henüz herhangi bir fuarda kullanılmıyor.",
-  manifestSupports: "Desteklenen özellikler",
+  manifestOutputFields: "Çıktı Alanları",
+  manifestOutputFieldsHint:
+    "Scraper çıktısına dahil edilecek alanları seçin. Engine desteklemiyorsa alan seçilemez.",
+  fieldSupported: "Destekleniyor",
+  fieldNotSupported: "Desteklenmiyor",
   manifestOutput: "Çıktı",
   manifestBrowser: "Tarayıcı",
   manifestSites: "Desteklenen siteler",
@@ -67,6 +71,11 @@ export const scraperLabels = {
   testUrlLabel: "Taranacak URL",
   testUrlPlaceholder: "https://ornek.com/katilimci-listesi",
   testUrlRequired: "Lütfen taranacak URL girin.",
+  testMaxPagesLabel: "Max Bakılacak Sayfa Sayısı",
+  testMaxPagesPlaceholder: "Örn. 3",
+  testMaxPagesHint:
+    "Test için kaç liste sayfası taranacağını sınırlar. Boş bırakılırsa tüm sayfalar taranır.",
+  testMaxPagesInvalid: "Max bakılacak sayfa sayısı en az 1 olmalıdır.",
   testRun: "Çalıştır",
   testRunning: "Çalışıyor…",
   testRunError: "Test çalıştırması başlatılamadı.",
@@ -81,19 +90,68 @@ export const scraperLabels = {
   testOutputExcelDownload: "Excel indir",
   testOutputExcelOpen: "Excel aç",
   testOutputDownloadError: "Çıktı dosyası indirilemedi.",
-  statusStable: "Stable",
-  statusExperimental: "Experimental",
-  statusDeprecated: "Deprecated",
   runStatusRunning: "Çalışıyor",
   runStatusCompleted: "Tamamlandı",
   runStatusFailed: "Başarısız",
+  runStatusCancelled: "İptal edildi",
+  deleteAdapter: "Adapter Sil",
+  deleteAdapterTitle: "Adapter silinsin mi?",
+  deleteAdapterError: "Adapter silinemedi.",
+  deleteAdapterConfirmLabel: "Sil",
+  buildDeleteAdapterMessage: (preview: {
+    display_name: string;
+    adapter_key: string;
+    linked_fairs_count: number;
+    active_runs_count: number;
+  }) => {
+    const lines = [
+      `"${preview.display_name}" (${preview.adapter_key}) adapter'ı silinecek. Bu işlem geri alınamaz.`,
+    ];
+    if (preview.linked_fairs_count > 0) {
+      lines.push(
+        `Bu adapter ${preview.linked_fairs_count.toLocaleString("tr-TR")} fuara bağlı. Silerseniz bu fuarların adapter ilişkisi kaldırılacak.`,
+      );
+    }
+    if (preview.active_runs_count > 0) {
+      lines.push(
+        `Bu adapter ile çalışan ${preview.active_runs_count.toLocaleString("tr-TR")} aktif iş var. Silerseniz bu işler iptal edilecek.`,
+      );
+    }
+    lines.push("Devam etmek istiyor musunuz?");
+    return lines.join("\n\n");
+  },
 };
 
+/** @deprecated Use OUTPUT_FIELD_LABELS via getOutputFieldLabel() for output field keys. */
 export const FEATURE_SHORT_LABELS: Record<string, string> = {
-  list_scraping: "List",
-  detail_scraping: "Detail",
-  pagination: "Page",
+  customerName: "Firma",
+  phone: "Tel",
+  email: "E-posta",
+  address: "Adres",
   website: "Web",
-  email: "Mail",
-  phone: "Phone",
+  hall: "Salon",
+  stand: "Stand",
+  instagram: "IG",
+  facebook: "FB",
+  linkedin: "LI",
+  youtube: "YT",
+  notes: "Not",
 };
+
+export const OUTPUT_FIELD_LABELS: Record<string, string> = {
+  customerName: "Firma Adı",
+  phone: "Telefon",
+  email: "E-posta",
+  address: "Adres",
+  website: "Web Sitesi",
+  hall: "Salon",
+  stand: "Stand",
+  instagram: "Instagram",
+  facebook: "Facebook",
+  linkedin: "LinkedIn",
+  youtube: "YouTube",
+  notes: "Notlar",
+};
+
+/** @deprecated Use OUTPUT_FIELD_LABELS instead. */
+export const REQUESTED_FIELD_LABELS = OUTPUT_FIELD_LABELS;

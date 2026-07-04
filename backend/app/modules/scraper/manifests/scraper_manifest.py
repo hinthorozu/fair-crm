@@ -7,6 +7,9 @@ from enum import StrEnum
 from typing import Any
 
 
+from app.modules.scraper.domain.adapter_engine import AdapterEngineType
+
+
 class ScraperStatus(StrEnum):
     STABLE = "stable"
     EXPERIMENTAL = "experimental"
@@ -55,8 +58,10 @@ class ScraperManifest:
     scraper_version: str = "1.0"
     target_site_version: str = "unknown"
     last_verified: str | None = None
+    engine_type: AdapterEngineType = AdapterEngineType.STATIC
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
         payload["status"] = self.status.value
+        payload["engine_type"] = self.engine_type.value
         return payload

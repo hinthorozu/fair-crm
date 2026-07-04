@@ -67,6 +67,10 @@ export interface Customer {
   district: string | null;
   address: string | null;
   description: string | null;
+  instagram_url: string | null;
+  facebook_url: string | null;
+  linkedin_url: string | null;
+  youtube_url: string | null;
   source: CustomerSource;
   created_at: string;
   updated_at: string;
@@ -107,6 +111,10 @@ export interface CreateCustomerPayload {
   district?: string | null;
   address?: string | null;
   description?: string | null;
+  instagram_url?: string | null;
+  facebook_url?: string | null;
+  linkedin_url?: string | null;
+  youtube_url?: string | null;
   source?: CustomerSource;
 }
 

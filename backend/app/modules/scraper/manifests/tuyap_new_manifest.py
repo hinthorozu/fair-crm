@@ -25,7 +25,7 @@ TUYAP_NEW_MANIFEST = ScraperManifest(
         email=True,
         phone=True,
         address=True,
-        category=True,
+        category=False,
         description=True,
     ),
     output=ScraperOutput(

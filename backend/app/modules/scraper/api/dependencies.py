@@ -27,11 +27,16 @@ from app.modules.scraper.services.adapter_linked_fair_service import (
     AdapterLinkedFairService,
     create_adapter_linked_fair_service,
 )
+from app.modules.scraper.services.adapter_engine_service import (
+    AdapterEngineService,
+    create_adapter_engine_service,
+)
 from app.modules.scraper.services.scraper_adapter_service import (
     ScraperAdapterService,
     create_scraper_adapter_service,
 )
 from app.modules.scraper.infrastructure.repositories.scraper_adapter_repository import ScraperAdapterRepository
+from app.modules.scraper.application.delete_adapter import DeleteAdapterUseCase
 from app.modules.scraper.application.adapter_test_run_job_runner import (
     AdapterTestRunJobCommand,
     AdapterTestRunJobRunner,
@@ -83,6 +88,10 @@ def get_adapter_linked_fair_service(db: Session = Depends(get_db)) -> AdapterLin
     return create_adapter_linked_fair_service(db)
 
 
+def get_adapter_engine_service() -> AdapterEngineService:
+    return create_adapter_engine_service()
+
+
 def get_scraper_adapter_service(
     db: Session = Depends(get_db),
     manager: ScraperManager = Depends(get_default_scraper_manager),
@@ -123,4 +132,11 @@ def get_adapter_test_run_job_runner() -> AdapterTestRunJobRunner:
 def get_run_adapter_test_use_case(
     db: Session = Depends(get_db),
 ) -> RunAdapterTestUseCase:
-    return RunAdapterTestUseCase(create_run_history_service(db))
+    return RunAdapterTestUseCase(create_run_history_service(db), db)
+
+
+def get_delete_adapter_use_case(
+    db: Session = Depends(get_db),
+    adapter_service: ScraperAdapterService = Depends(get_scraper_adapter_service),
+) -> DeleteAdapterUseCase:
+    return DeleteAdapterUseCase(db, adapter_service=adapter_service)

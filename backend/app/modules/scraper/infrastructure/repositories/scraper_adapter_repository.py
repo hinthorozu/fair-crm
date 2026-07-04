@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -74,3 +74,14 @@ class ScraperAdapterRepository:
             .order_by(ScraperAdapterModel.adapter_key.asc())
         )
         return [model_to_entity(model) for model in self._session.scalars(stmt).all()]
+
+    def hard_delete_by_key(self, organization_id: UUID, adapter_key: str) -> int:
+        normalized_key = adapter_key.strip().lower()
+        result = self._session.execute(
+            delete(ScraperAdapterModel).where(
+                ScraperAdapterModel.organization_id == organization_id,
+                ScraperAdapterModel.adapter_key == normalized_key,
+            )
+        )
+        self._session.flush()
+        return int(result.rowcount or 0)

@@ -3403,6 +3403,32 @@ textarea:hover {
   gap: 0.35rem;
 }
 
+.output-fields-list .output-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.output-fields-list .output-field-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.output-field-support {
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.output-field-support.supported {
+  color: var(--color-success, #15803d);
+}
+
+.output-field-support.unsupported {
+  color: var(--color-muted, #6b7280);
+}
+
 .adapter-manifest-edit .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -3436,6 +3462,10 @@ textarea:hover {
 .adapter-console-url-input {
   flex: 1 1 16rem;
   min-width: 0;
+}
+
+.adapter-console-max-pages-input {
+  max-width: 8rem;
 }
 
 .adapter-console-status {

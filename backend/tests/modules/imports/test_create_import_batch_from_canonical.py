@@ -144,3 +144,35 @@ def test_create_import_batch_from_canonical_rejects_unknown_fair(client, auth_he
 
     response = client.post("/api/v1/imports/from-canonical", headers=auth_headers, json=payload)
     assert response.status_code == 404
+
+
+def test_create_import_batch_from_canonical_maps_social_urls(client, auth_headers):
+    fair_id = _create_fair(client, auth_headers, name="Social Import Fair")
+    rows = [
+        {
+            "external_id": None,
+            "company_name": "Social Import Co",
+            "normalized_company_name": "social import co",
+            "website": None,
+            "emails": [],
+            "phones": [],
+            "country": "Türkiye",
+            "city": None,
+            "hall": None,
+            "stand": None,
+            "instagram_url": "https://instagram.com/socialimport",
+            "facebook_url": None,
+            "linkedin_url": "https://linkedin.com/company/socialimport",
+            "youtube_url": None,
+            "raw": {},
+        }
+    ]
+    payload = _canonical_payload(fair_id=fair_id, rows=rows)
+    response = client.post("/api/v1/imports/from-canonical", headers=auth_headers, json=payload)
+    assert response.status_code == 201
+
+    batch_id = response.json()["batch"]["id"]
+    rows_response = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers)
+    normalized = rows_response.json()["items"][0]["normalized_data_json"]
+    assert normalized["instagram_url"] == "https://instagram.com/socialimport"
+    assert normalized["linkedin_url"] == "https://linkedin.com/company/socialimport"

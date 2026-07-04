@@ -7,9 +7,11 @@ import type {
   ScraperRun,
   ScraperRunListResponse,
   ScraperRunLogListResponse,
+  AdapterDeletePreview,
   AdapterLinkedFairListResponse,
   AdapterListResponse,
   AdapterDetail,
+  AdapterEngineListResponse,
   CreateAdapterPayload,
   UpdateAdapterPayload,
   UpdateAdapterManifestPayload,
@@ -25,6 +27,10 @@ export async function getScraperManifests(): Promise<ScraperManifestListResponse
 
 export async function listAdapters(): Promise<AdapterListResponse> {
   return apiRequest<AdapterListResponse>("/api/v1/scraper/adapters");
+}
+
+export async function listAdapterEngines(): Promise<AdapterEngineListResponse> {
+  return apiRequest<AdapterEngineListResponse>("/api/v1/scraper/engines");
 }
 
 export async function getAdapter(adapterKey: string): Promise<AdapterDetail> {
@@ -54,6 +60,18 @@ export async function activateAdapter(adapterKey: string): Promise<AdapterDetail
 export async function deactivateAdapter(adapterKey: string): Promise<AdapterDetail> {
   return apiRequest<AdapterDetail>(`/api/v1/scraper/adapters/${encodeURIComponent(adapterKey)}/deactivate`, {
     method: "POST",
+  });
+}
+
+export async function getAdapterDeletePreview(adapterKey: string): Promise<AdapterDeletePreview> {
+  return apiRequest<AdapterDeletePreview>(
+    `/api/v1/scraper/adapters/${encodeURIComponent(adapterKey)}/delete-preview`,
+  );
+}
+
+export async function deleteAdapter(adapterKey: string): Promise<void> {
+  await apiRequest<void>(`/api/v1/scraper/adapters/${encodeURIComponent(adapterKey)}`, {
+    method: "DELETE",
   });
 }
 
@@ -104,12 +122,31 @@ export async function listScraperRunLogs(
   );
 }
 
-export async function runAdapterTest(adapterKey: string, inputUrl: string): Promise<ScraperRun> {
+export async function runAdapterTest(
+  adapterKey: string,
+  inputUrl: string,
+  options?: { outputJson?: boolean; outputExcel?: boolean; maxPages?: number },
+): Promise<ScraperRun> {
+  const body: {
+    input_url: string;
+    output_json?: boolean;
+    output_excel?: boolean;
+    max_pages?: number;
+  } = { input_url: inputUrl };
+  if (options?.outputJson !== undefined) {
+    body.output_json = options.outputJson;
+  }
+  if (options?.outputExcel !== undefined) {
+    body.output_excel = options.outputExcel;
+  }
+  if (options?.maxPages !== undefined) {
+    body.max_pages = options.maxPages;
+  }
   return apiRequest<ScraperRun>(
     `/api/v1/scraper/adapters/${encodeURIComponent(adapterKey)}/test-run`,
     {
       method: "POST",
-      body: JSON.stringify({ input_url: inputUrl }),
+      body: JSON.stringify(body),
     },
   );
 }

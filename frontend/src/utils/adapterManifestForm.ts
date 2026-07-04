@@ -1,17 +1,22 @@
 import type {
-  AdapterStatus,
+  RequestedOutputField,
   ScraperManifest,
-  ScraperSupports,
   UpdateAdapterManifestPayload,
 } from "../types/scraper";
+import {
+  DEFAULT_REQUESTED_FIELDS,
+  OUTPUT_FIELD_KEYS,
+} from "./outputFieldDefinitions";
+
+export type { RequestedOutputField };
+export { DEFAULT_REQUESTED_FIELDS, OUTPUT_FIELD_KEYS as REQUESTED_FIELD_KEYS };
 
 export interface AdapterEditFormState {
   display_name: string;
-  status: AdapterStatus;
   version: string;
   last_verified: string;
   notes: string;
-  supports: ScraperSupports;
+  requested_fields: RequestedOutputField[];
   supported_sites: string;
   output_json_handoff: boolean;
   output_excel: boolean;
@@ -19,34 +24,20 @@ export interface AdapterEditFormState {
   browser_requires_playwright: boolean;
 }
 
-export const SUPPORT_KEYS: (keyof ScraperSupports)[] = [
-  "list_scraping",
-  "detail_scraping",
-  "pagination",
-  "website",
-  "email",
-  "phone",
-  "address",
-  "category",
-  "description",
-];
-
 export function manifestToFormState(manifest: ScraperManifest): AdapterEditFormState {
-  const normalizedStatus = manifest.status.toLowerCase();
-  const status: AdapterStatus =
-    normalizedStatus === "stable" ||
-    normalizedStatus === "experimental" ||
-    normalizedStatus === "deprecated"
-      ? normalizedStatus
-      : "stable";
+  const requestedFields =
+    manifest.requested_fields && manifest.requested_fields.length > 0
+      ? manifest.requested_fields.filter((field): field is RequestedOutputField =>
+          OUTPUT_FIELD_KEYS.includes(field as RequestedOutputField),
+        )
+      : [...DEFAULT_REQUESTED_FIELDS];
 
   return {
     display_name: manifest.display_name,
-    status,
     version: manifest.version,
     last_verified: manifest.last_verified ?? "",
     notes: manifest.notes ?? "",
-    supports: { ...manifest.supports },
+    requested_fields: requestedFields,
     supported_sites: manifest.supported_sites.join("\n"),
     output_json_handoff: manifest.output.json_handoff,
     output_excel: manifest.output.excel,
@@ -58,7 +49,6 @@ export function manifestToFormState(manifest: ScraperManifest): AdapterEditFormS
 export function formStateToPayload(values: AdapterEditFormState): UpdateAdapterManifestPayload {
   return {
     display_name: values.display_name.trim(),
-    status: values.status,
     version: values.version.trim(),
     last_verified: values.last_verified.trim() || null,
     notes: values.notes,
@@ -71,6 +61,6 @@ export function formStateToPayload(values: AdapterEditFormState): UpdateAdapterM
       requires_js: values.browser_requires_js,
       requires_playwright: values.browser_requires_playwright,
     },
-    supports: values.supports,
+    requested_fields: values.requested_fields,
   };
 }

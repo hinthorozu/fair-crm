@@ -44,6 +44,10 @@ class CreateCustomerCommand:
     district: Optional[str] = None
     address: Optional[str] = None
     description: Optional[str] = None
+    instagram_url: Optional[str] = None
+    facebook_url: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    youtube_url: Optional[str] = None
     source: CustomerSource = CustomerSource.MANUAL
     phones: Optional[list[CustomerPhoneInput]] = None
     emails: Optional[list[CustomerEmailInput]] = None
@@ -92,6 +96,10 @@ class UpdateCustomerCommand:
     district: Optional[str] = None
     address: Optional[str] = None
     description: Optional[str] = None
+    instagram_url: Optional[str] = None
+    facebook_url: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    youtube_url: Optional[str] = None
     source: Optional[CustomerSource] = None
     phones: Optional[list[CustomerPhoneInput]] = None
     emails: Optional[list[CustomerEmailInput]] = None
@@ -158,6 +166,10 @@ class CustomerResult:
     district: Optional[str]
     address: Optional[str]
     description: Optional[str]
+    instagram_url: Optional[str]
+    facebook_url: Optional[str]
+    linkedin_url: Optional[str]
+    youtube_url: Optional[str]
     source: CustomerSource
     created_at: datetime
     updated_at: datetime

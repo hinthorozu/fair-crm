@@ -8,6 +8,7 @@ from uuid import UUID
 
 from app.modules.imports.domain.entities import ImportBatch, ImportRow
 from app.modules.imports.domain.value_objects import ImportRowStatus, ImportSourceType
+from app.modules.imports.domain.services.social_url_fields import social_urls_from_mapping
 from app.shared.canonical_import.schema import CanonicalImportDocument, CanonicalImportRow
 
 CANONICAL_TO_IMPORT_SOURCE: dict[str, ImportSourceType] = {
@@ -46,7 +47,7 @@ def build_batch_preview_json(document: CanonicalImportDocument) -> dict[str, Any
 def canonical_row_to_normalized(row: CanonicalImportRow) -> dict[str, Any]:
     emails = list(row.emails)
     phones = list(row.phones)
-    return {
+    normalized = {
         "company_name": row.company_name,
         "normalized_company_name": row.normalized_company_name,
         "website": row.website,
@@ -59,7 +60,19 @@ def canonical_row_to_normalized(row: CanonicalImportRow) -> dict[str, Any]:
         "hall": row.hall,
         "stand": row.stand,
         "external_id": row.external_id,
+        "instagram_url": row.instagram_url,
+        "facebook_url": row.facebook_url,
+        "linkedin_url": row.linkedin_url,
+        "youtube_url": row.youtube_url,
     }
+    normalized.update(
+        {
+            key: value
+            for key, value in social_urls_from_mapping(row.raw).items()
+            if value is not None and normalized.get(key) is None
+        }
+    )
+    return normalized
 
 
 def build_import_rows_from_canonical(

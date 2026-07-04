@@ -32,7 +32,9 @@ from app.modules.participations.domain.value_objects import ParticipationStatus
 from app.modules.participations.infrastructure.repositories.participation_repository import (
     SqlAlchemyParticipationRepository,
 )
+from app.modules.imports.domain.services.social_url_fields import social_urls_from_mapping
 from app.shared.email import normalize_email_field
+from app.shared.url_normalization import normalize_optional_url
 
 PERMISSION_APPLY = "fair_crm.imports.apply"
 
@@ -74,6 +76,11 @@ def _fill_if_empty(current: str | None, incoming: str | None) -> str | None:
     if incoming and str(incoming).strip():
         return str(incoming).strip()
     return current
+
+
+def _import_social_url(data: dict[str, Any], url_key: str) -> str | None:
+    urls = social_urls_from_mapping(data)
+    return normalize_optional_url(urls.get(url_key))
 
 
 class ApplyImportUseCase:
@@ -317,6 +324,10 @@ class ApplyImportUseCase:
             city=data.get("city"),
             address=data.get("address"),
             description=None,
+            instagram_url=_import_social_url(data, "instagram_url"),
+            facebook_url=_import_social_url(data, "facebook_url"),
+            linkedin_url=_import_social_url(data, "linkedin_url"),
+            youtube_url=_import_social_url(data, "youtube_url"),
             source=CustomerSource.EXCEL,
             now=now,
         )
@@ -343,6 +354,10 @@ class ApplyImportUseCase:
             city=_fill_if_empty(customer.city, data.get("city")),
             address=_fill_if_empty(customer.address, data.get("address")),
             description=customer.description,
+            instagram_url=_fill_if_empty(customer.instagram_url, _import_social_url(data, "instagram_url")),
+            facebook_url=_fill_if_empty(customer.facebook_url, _import_social_url(data, "facebook_url")),
+            linkedin_url=_fill_if_empty(customer.linkedin_url, _import_social_url(data, "linkedin_url")),
+            youtube_url=_fill_if_empty(customer.youtube_url, _import_social_url(data, "youtube_url")),
             now=now,
         )
         self._sync_import_communications(

@@ -23,6 +23,7 @@ DETAIL_HTML = """
     <p>E-posta: info@alpha.test</p>
     <p>Açıklama: Demo açıklama.</p>
     <a href="https://www.alpha.test">Site</a>
+    <a href="https://www.facebook.com/alpha">Facebook</a>
     <a href="https://www.instagram.com/alpha">Instagram</a>
     <a href="https://www.linkedin.com/company/alpha">LinkedIn</a>
   </div>
@@ -63,6 +64,23 @@ def _mock_browser(*, detail_html: str | None = DETAIL_HTML, detail_error: bool =
     )
     browser.html = AsyncMock(side_effect=html)
     return browser
+
+
+def test_requested_fields_list_only_skips_detail_scrape():
+    browser = _mock_browser()
+    adapter = TuyapNewAdapter(browser=browser)
+
+    context = ScraperContext(
+        fair_id=uuid4(),
+        list_url=START_URL,
+        options={"requested_fields": ["customerName", "hall", "stand"]},
+    )
+    rows = adapter.scrape(context)
+
+    assert len(rows) == 1
+    browser.html.assert_not_awaited()
+    goto_urls = [call.args[0] for call in browser.goto.await_args_list]
+    assert DETAIL_URL not in goto_urls
 
 
 def test_scrape_detail_false_does_not_fetch_detail_html():
@@ -121,6 +139,28 @@ def test_scrape_detail_true_merges_detail_fields():
     assert row.metadata.get("website_valid") is True
     assert row.extra_fields["instagram_url"] == "https://www.instagram.com/alpha"
     assert row.extra_fields["linkedin_url"] == "https://www.linkedin.com/company/alpha"
+    assert row.extra_fields["facebook_url"] == "https://www.facebook.com/alpha"
+    assert row.notes == "Demo açıklama."
+
+
+def test_requested_fields_instagram_only_triggers_detail_scrape():
+    browser = _mock_browser()
+    adapter = TuyapNewAdapter(browser=browser)
+
+    context = ScraperContext(
+        fair_id=uuid4(),
+        list_url=START_URL,
+        options={"requested_fields": ["customerName", "instagram"]},
+    )
+    with patch(
+        "app.modules.scraper.adapters.tuyap_new_adapter.validate_website_url",
+        return_value=True,
+    ):
+        rows = adapter.scrape(context)
+
+    assert len(rows) == 1
+    browser.html.assert_awaited_once()
+    assert rows[0].extra_fields.get("instagram_url") == "https://www.instagram.com/alpha"
 
 
 def test_scrape_detail_error_keeps_list_data():

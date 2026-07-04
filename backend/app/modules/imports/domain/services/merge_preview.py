@@ -10,6 +10,7 @@ from app.modules.customers.domain.entities import Customer
 from app.modules.imports.domain.entities import ImportBatch, ImportRow
 from app.modules.imports.domain.value_objects import ImportDecision, ImportRowStatus
 from app.modules.participations.domain.entities import CustomerFairParticipation
+from app.modules.imports.domain.services.social_url_fields import social_urls_from_mapping
 from app.shared.email import normalize_email_field
 
 MergeOutcome = Literal[
@@ -32,6 +33,10 @@ CUSTOMER_FIELDS: list[tuple[str, str, str]] = [
     ("city", "city", "Şehir"),
     ("address", "address", "Adres"),
     ("tax_number", "tax_number", "Vergi No"),
+    ("instagram_url", "instagram_url", "Instagram"),
+    ("facebook_url", "facebook_url", "Facebook"),
+    ("linkedin_url", "linkedin_url", "LinkedIn"),
+    ("youtube_url", "youtube_url", "YouTube"),
 ]
 
 PARTICIPATION_FIELDS: list[tuple[str, str, str]] = [
@@ -188,6 +193,7 @@ def build_merge_preview(
     fair_id: UUID | None,
 ) -> dict[str, Any]:
     data = row.normalized_data_json or {}
+    import_social_urls = social_urls_from_mapping(data)
     decision = effective_decision_for_preview(row)
     is_skipped = decision == ImportDecision.SKIP or row.status == ImportRowStatus.INVALID
     is_create = (
@@ -218,6 +224,9 @@ def build_merge_preview(
         elif db_key == "website":
             db_val = customer_website if customer else None
             in_val = data.get(in_key)
+        elif db_key.endswith("_url"):
+            db_val = getattr(customer, db_key, None) if customer else None
+            in_val = import_social_urls.get(db_key) or data.get(in_key)
         else:
             db_val = getattr(customer, db_key, None) if customer else None
             in_val = data.get(in_key)

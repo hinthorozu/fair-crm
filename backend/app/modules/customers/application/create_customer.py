@@ -52,6 +52,10 @@ class CreateCustomerUseCase:
             district=command.district,
             address=command.address,
             description=command.description,
+            instagram_url=command.instagram_url,
+            facebook_url=command.facebook_url,
+            linkedin_url=command.linkedin_url,
+            youtube_url=command.youtube_url,
             source=command.source,
             now=now,
         )

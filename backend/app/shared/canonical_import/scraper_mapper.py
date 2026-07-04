@@ -7,6 +7,10 @@ from typing import Any
 from uuid import UUID
 
 from app.modules.imports.domain.services.company_name_normalizer import normalize_import_company_name
+from app.modules.imports.domain.services.social_url_fields import (
+    SOCIAL_URL_FIELD_PAIRS,
+    resolve_social_url,
+)
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
 from app.shared.canonical_import.schema import (
     CanonicalImportDocument,
@@ -26,6 +30,14 @@ _ROW_TOP_LEVEL_FIELDS = frozenset(
         "city",
         "hall",
         "stand",
+        "instagram_url",
+        "facebook_url",
+        "linkedin_url",
+        "youtube_url",
+        "instagram",
+        "facebook",
+        "linkedin",
+        "youtube",
         *_EMAIL_FIELDS,
         *_PHONE_FIELDS,
     }
@@ -67,6 +79,11 @@ def _build_raw_payload(
 
 def _map_row(canonical_row: dict[str, str], row_metadata: dict[str, Any]) -> CanonicalImportRow:
     company_name = _clean_str(canonical_row.get("company_name")) or ""
+    combined = {**row_metadata, **canonical_row}
+    social_urls = {
+        url_key: resolve_social_url(combined, url_key=url_key, short_key=short_key)
+        for url_key, short_key in SOCIAL_URL_FIELD_PAIRS
+    }
     return CanonicalImportRow(
         external_id=_clean_str(row_metadata.get("external_id")),
         company_name=company_name,
@@ -78,6 +95,10 @@ def _map_row(canonical_row: dict[str, str], row_metadata: dict[str, Any]) -> Can
         city=_clean_str(canonical_row.get("city")),
         hall=_clean_str(canonical_row.get("hall")),
         stand=_clean_str(canonical_row.get("stand")),
+        instagram_url=social_urls["instagram_url"],
+        facebook_url=social_urls["facebook_url"],
+        linkedin_url=social_urls["linkedin_url"],
+        youtube_url=social_urls["youtube_url"],
         raw=_build_raw_payload(canonical_row, row_metadata),
     )
 
