@@ -19,7 +19,7 @@ def _sample_document(*, row_count: int = 1) -> CanonicalImportDocument:
     rows = [
         CanonicalImportRow(
             company_name="ABC LTD",
-            normalized_company_name="abc ltd",
+            normalized_company_name="abc",
             website="https://abc.com",
             emails=["info@abc.com"],
             phones=["+902121112233"],
@@ -83,5 +83,36 @@ def test_validate_canonical_import_rejects_empty_company_name():
     document = _sample_document()
     payload = document.model_dump(mode="json")
     payload["rows"][0]["company_name"] = ""
+    with pytest.raises(CanonicalImportValidationError):
+        validate_canonical_import(payload)
+
+
+def test_validate_canonical_import_rejects_emails_as_string():
+    document = _sample_document()
+    payload = document.model_dump(mode="json")
+    payload["rows"][0]["emails"] = "info@abc.com"
+    with pytest.raises(CanonicalImportValidationError):
+        validate_canonical_import(payload)
+
+
+def test_validate_canonical_import_rejects_phones_as_string():
+    document = _sample_document()
+    payload = document.model_dump(mode="json")
+    payload["rows"][0]["phones"] = "+902121112233"
+    with pytest.raises(CanonicalImportValidationError):
+        validate_canonical_import(payload)
+
+
+def test_validate_canonical_import_accepts_empty_rows():
+    document = _sample_document(row_count=0)
+    validated = validate_canonical_import(document.model_dump(mode="json"))
+    assert validated.rows == []
+    assert validated.metadata.row_count == 0
+
+
+def test_validate_canonical_import_rejects_unknown_source_type():
+    document = _sample_document()
+    payload = document.model_dump(mode="json")
+    payload["source"]["type"] = "unknown"
     with pytest.raises(CanonicalImportValidationError):
         validate_canonical_import(payload)
