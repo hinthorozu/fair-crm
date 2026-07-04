@@ -32,7 +32,15 @@ from app.modules.scraper.services.scraper_adapter_service import (
     create_scraper_adapter_service,
 )
 from app.modules.scraper.infrastructure.repositories.scraper_adapter_repository import ScraperAdapterRepository
-from app.modules.scraper.services.scraper_service import ScraperService
+from app.modules.scraper.application.adapter_test_run_job_runner import (
+    AdapterTestRunJobCommand,
+    AdapterTestRunJobRunner,
+)
+from app.modules.scraper.application.run_adapter_test import (
+    AdapterNotRegisteredError,
+    RunAdapterTestCommand,
+    RunAdapterTestUseCase,
+)
 
 
 @lru_cache
@@ -103,3 +111,16 @@ def get_scraper_service(
     manager: ScraperManager | None = None,
 ) -> ScraperService:
     return ScraperService(manager or get_scraper_manager())
+
+
+_adapter_test_run_job_runner = AdapterTestRunJobRunner()
+
+
+def get_adapter_test_run_job_runner() -> AdapterTestRunJobRunner:
+    return _adapter_test_run_job_runner
+
+
+def get_run_adapter_test_use_case(
+    db: Session = Depends(get_db),
+) -> RunAdapterTestUseCase:
+    return RunAdapterTestUseCase(create_run_history_service(db))

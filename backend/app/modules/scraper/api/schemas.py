@@ -217,6 +217,13 @@ class ScraperRunLogListResponse(BaseModel):
     items: list[ScraperRunLogResponse] = Field(default_factory=list)
     total: int
     run_status: ScraperRunStatus
+    total_rows: int = 0
+    output_json_available: bool = False
+    output_excel_available: bool = False
+
+
+class AdapterTestRunRequest(BaseModel):
+    input_url: str = Field(min_length=1, max_length=2048)
 
 
 class AdapterLinkedFairResponse(BaseModel):

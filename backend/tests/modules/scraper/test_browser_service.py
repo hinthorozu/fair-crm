@@ -1,8 +1,11 @@
 """Tests for shared Playwright BrowserService."""
 
+from unittest.mock import patch
+
 import pytest
 
 from app.modules.scraper.core.browser_service import BrowserConfig, BrowserService, create_browser_service
+from app.modules.scraper.core.playwright_availability import PlaywrightBrowserNotInstalledError
 
 
 def _browser_config_for_tests() -> BrowserConfig:
@@ -20,6 +23,17 @@ def test_create_browser_service_factory():
     config = BrowserConfig(headless=True, timeout_ms=5_000, user_agent="TestAgent/1.0")
     service = create_browser_service(config)
     assert service.config == config
+
+
+@pytest.mark.asyncio
+async def test_browser_service_launch_raises_when_playwright_browser_missing():
+    service = BrowserService(BrowserConfig(headless=True))
+    with patch(
+        "app.modules.scraper.core.browser_service.ensure_playwright_browser_installed",
+        side_effect=PlaywrightBrowserNotInstalledError(),
+    ):
+        with pytest.raises(PlaywrightBrowserNotInstalledError, match="python -m playwright install"):
+            await service.launch()
 
 
 @pytest.mark.asyncio

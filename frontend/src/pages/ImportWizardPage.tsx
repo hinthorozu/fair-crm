@@ -840,24 +840,6 @@ export function ImportWizardPage({
     </Card>
   );
 
-  const renderSource = () => (
-    <Card>
-      <h3>{importLabels.sourceTitle}</h3>
-      <div className="source-grid">
-        <button type="button" className="source-card active" onClick={() => setStepIndex(1)}>
-          <strong>{importLabels.sourceExcel}</strong>
-          <Badge variant="success">Aktif</Badge>
-        </button>
-        {["PDF", "Scraper", "Veritabanı"].map((label) => (
-          <div key={label} className="source-card disabled">
-            <strong>{label}</strong>
-            <Badge variant="neutral">{importLabels.sourceSoon}</Badge>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-
   const renderUpload = () => (
     <Card>
       <h3>{importLabels.uploadTitle}</h3>

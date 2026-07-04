@@ -1,14 +1,20 @@
 import React from "react";
-import { getAdapter, listScraperRuns } from "../api/scraper";
+import { getAdapter, getScraperManifest, listScraperRuns, updateAdapterManifest } from "../api/scraper";
 import { ApiError } from "../api/client";
 import {
   AdapterDetailContent,
   type AdapterDetailTab,
 } from "../components/scraper/AdapterDetailContent";
 import { LoadingState } from "../components/ui/LoadingState";
-import { PageHeader } from "../components/ui/PageHeader";
+import { PageHeader, type PageHeaderAction } from "../components/ui/PageHeader";
 import { scraperLabels } from "../labels/scraperLabels";
-import type { AdapterListItem, ScraperRun } from "../types/scraper";
+import { uiLabels } from "../labels/uiLabels";
+import type { AdapterListItem, ScraperManifest, ScraperRun } from "../types/scraper";
+import {
+  formStateToPayload,
+  manifestToFormState,
+  type AdapterEditFormState,
+} from "../utils/adapterManifestForm";
 import { adapterDetailToListItem } from "../utils/scraperAdapters";
 import { buildLocationSearch, navigateWithSearch, readSearchParams } from "../utils/urlState";
 
@@ -20,11 +26,41 @@ interface AdapterDetailPageProps {
 }
 
 const VALID_TABS: AdapterDetailTab[] = ["general", "manifest", "runs", "console", "fairs"];
+const EDITABLE_TABS: AdapterDetailTab[] = ["general", "manifest"];
 
 function tabFromUrl(): AdapterDetailTab {
   const tab = readSearchParams().get("tab");
   if (tab && VALID_TABS.includes(tab as AdapterDetailTab)) return tab as AdapterDetailTab;
   return "general";
+}
+
+function resolveSaveError(err: unknown): string {
+  if (!(err instanceof ApiError)) {
+    return scraperLabels.manifestSaveError;
+  }
+
+  const body = err.body;
+  if (typeof body === "object" && body !== null && "detail" in body) {
+    const detail = (body as { detail: unknown }).detail;
+    if (typeof detail === "string" && detail.trim()) {
+      return detail;
+    }
+    if (Array.isArray(detail)) {
+      const messages = detail
+        .map((item) => {
+          if (typeof item === "object" && item !== null && "msg" in item) {
+            return String((item as { msg: unknown }).msg);
+          }
+          return null;
+        })
+        .filter((message): message is string => Boolean(message));
+      if (messages.length > 0) {
+        return messages.join(" ");
+      }
+    }
+  }
+
+  return err.message || scraperLabels.manifestSaveError;
 }
 
 export function AdapterDetailPage({
@@ -35,10 +71,24 @@ export function AdapterDetailPage({
 }: AdapterDetailPageProps) {
   const detailPath = `/data-integration/adapters/${encodeURIComponent(adapterKey)}`;
   const [adapterItem, setAdapterItem] = React.useState<AdapterListItem | null>(null);
+  const [manifest, setManifest] = React.useState<ScraperManifest | null>(null);
   const [runs, setRuns] = React.useState<ScraperRun[]>([]);
   const [activeTab, setActiveTabState] = React.useState<AdapterDetailTab>(tabFromUrl);
   const [loading, setLoading] = React.useState(true);
+  const [manifestLoading, setManifestLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [manifestError, setManifestError] = React.useState<string | null>(null);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState<AdapterEditFormState | null>(null);
+  const [saving, setSaving] = React.useState(false);
+
+  const onAdapterLoadedRef = React.useRef(onAdapterLoaded);
+  onAdapterLoadedRef.current = onAdapterLoaded;
+
+  const draftRef = React.useRef<AdapterEditFormState | null>(null);
+  draftRef.current = draft;
+
+  const isEditableTab = EDITABLE_TABS.includes(activeTab);
 
   const setActiveTab = React.useCallback(
     (tab: AdapterDetailTab) => {
@@ -51,39 +101,107 @@ export function AdapterDetailPage({
     [detailPath],
   );
 
-  React.useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
+  const loadDetail = React.useCallback(async (options?: { showPageLoader?: boolean }) => {
+    const showPageLoader = options?.showPageLoader ?? true;
+    if (showPageLoader) {
+      setLoading(true);
+    }
+    setManifestLoading(true);
     setError(null);
-    void (async () => {
-      try {
-        const [detail, runList] = await Promise.all([
-          getAdapter(adapterKey),
-          listScraperRuns({ limit: 200 }),
-        ]);
-        if (cancelled) return;
-        const item = adapterDetailToListItem(detail);
-        setAdapterItem(item);
-        onAdapterLoaded?.(item.display_name);
-        setRuns(runList.items);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof ApiError ? err.message : scraperLabels.loadError);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+    setManifestError(null);
+    try {
+      const [detail, runList, manifestData] = await Promise.all([
+        getAdapter(adapterKey),
+        listScraperRuns({ limit: 200 }),
+        getScraperManifest(adapterKey),
+      ]);
+      const item = adapterDetailToListItem(detail);
+      setAdapterItem(item);
+      setRuns(runList.items);
+      setManifest(manifestData);
+      onAdapterLoadedRef.current?.(item.display_name);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : scraperLabels.loadError;
+      setError(message);
+      setManifestError(message);
+    } finally {
+      if (showPageLoader) {
+        setLoading(false);
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [adapterKey, onAdapterLoaded]);
+      setManifestLoading(false);
+    }
+  }, [adapterKey]);
+
+  React.useEffect(() => {
+    setIsEditing(false);
+    setDraft(null);
+    void loadDetail({ showPageLoader: true });
+  }, [adapterKey, loadDetail]);
 
   React.useEffect(() => {
     const onPopState = () => setActiveTabState(tabFromUrl());
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
+
+  const startEdit = React.useCallback(() => {
+    if (!manifest) return;
+    setDraft(manifestToFormState(manifest));
+    setIsEditing(true);
+    setError(null);
+  }, [manifest]);
+
+  const cancelEdit = React.useCallback(() => {
+    setIsEditing(false);
+    setDraft(null);
+    setError(null);
+  }, []);
+
+  const refreshAdapterItem = React.useCallback(async () => {
+    const detail = await getAdapter(adapterKey).catch(() => null);
+    if (detail) {
+      const item = adapterDetailToListItem(detail);
+      setAdapterItem(item);
+      onAdapterLoadedRef.current?.(item.display_name);
+    }
+  }, [adapterKey]);
+
+  const refreshSavedData = React.useCallback(async () => {
+    await refreshAdapterItem();
+  }, [refreshAdapterItem]);
+
+  const saveEdit = React.useCallback(async () => {
+    const currentDraft = draftRef.current;
+    if (!currentDraft) {
+      setError(scraperLabels.manifestSaveError);
+      return;
+    }
+    if (!currentDraft.display_name.trim()) {
+      setError(scraperLabels.formAdapterName + " boş olamaz.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      const savedManifest = await updateAdapterManifest(adapterKey, formStateToPayload(currentDraft));
+      setManifest(savedManifest);
+      await refreshSavedData();
+      setIsEditing(false);
+      setDraft(null);
+    } catch (err) {
+      setError(resolveSaveError(err));
+    } finally {
+      setSaving(false);
+    }
+  }, [adapterKey, refreshSavedData]);
+
+  const handleDraftChange = React.useCallback(
+    (updater: (current: AdapterEditFormState) => AdapterEditFormState) => {
+      setDraft((current) => (current ? updater(current) : current));
+    },
+    [],
+  );
 
   if (loading) {
     return <LoadingState />;
@@ -100,23 +218,59 @@ export function AdapterDetailPage({
     );
   }
 
+  const headerTitle = isEditing && draft ? draft.display_name : adapterItem.display_name;
+
+  const headerActions: PageHeaderAction[] = isEditing
+    ? [
+        {
+          id: "cancel",
+          label: scraperLabels.formCancel,
+          variant: "secondary",
+          onClick: cancelEdit,
+          disabled: saving,
+        },
+        {
+          id: "save",
+          label: scraperLabels.formSave,
+          variant: "primary",
+          onClick: () => void saveEdit(),
+          loading: saving,
+          disabled: saving,
+        },
+      ]
+    : [
+        {
+          id: "edit",
+          label: uiLabels.detailEdit,
+          variant: "primary",
+          onClick: startEdit,
+          disabled: !isEditableTab || manifestLoading || !manifest,
+        },
+      ];
+
   return (
     <div className="page adapter-detail-page">
       <PageHeader
-        title={adapterItem.display_name}
+        title={headerTitle}
         subtitle={adapterKey}
         breadcrumbs={[{ label: scraperLabels.backToAdapters, onClick: onBack }]}
+        actions={headerActions}
       />
 
       {error ? <div className="banner error">{error}</div> : null}
 
       <AdapterDetailContent
         adapterKey={adapterKey}
-        adapterItem={adapterItem}
         runs={runs}
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onOpenFair={onOpenFair}
+        manifest={manifest}
+        manifestLoading={manifestLoading}
+        manifestError={manifestError}
+        isEditing={isEditing}
+        draft={draft}
+        onDraftChange={handleDraftChange}
       />
     </div>
   );

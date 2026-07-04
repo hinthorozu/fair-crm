@@ -12,6 +12,7 @@ from app.core.exceptions import ForbiddenError, UnauthorizedError
 from app.core.logging import setup_logging
 from app.core.request_timing import RequestTimingMiddleware
 from app.integrations.kyrox_core.dev_bypass import log_dev_bypass_startup_warning
+from app.modules.scraper.core.playwright_availability import log_playwright_browser_startup_check
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,7 @@ def create_app() -> FastAPI:
 
     app.include_router(api_v1_router)
     log_dev_bypass_startup_warning()
+    log_playwright_browser_startup_check()
 
     @app.exception_handler(UnauthorizedError)
     async def unauthorized_handler(request: Request, exc: UnauthorizedError) -> JSONResponse:

@@ -16,7 +16,7 @@ from app.modules.scraper.services.scraper_run_history_service import ScraperRunH
 from app.modules.scraper.types.scraper_site import ScraperSiteKey
 
 
-def _seed_fair(db_session, organization_id, *, name: str) -> FairModel:
+def _seed_fair(db_session, organization_id, *, name: str, adapter_key: str | None = None, source_url: str | None = None) -> FairModel:
     now = datetime.now(UTC)
     fair = FairModel(
         id=uuid4(),
@@ -32,6 +32,8 @@ def _seed_fair(db_session, organization_id, *, name: str) -> FairModel:
         status=FairStatus.ACTIVE.value,
         description=None,
         normalized_name=compute_normalized_name(name=name),
+        adapter_key=adapter_key,
+        source_url=source_url,
         created_at=now,
         updated_at=now,
         deleted_at=None,
@@ -40,6 +42,24 @@ def _seed_fair(db_session, organization_id, *, name: str) -> FairModel:
     db_session.add(fair)
     db_session.flush()
     return fair
+
+
+def test_list_linked_fairs_from_fair_adapter_key(db_session, organization_id):
+    fair = _seed_fair(
+        db_session,
+        organization_id,
+        name="Foodist Expo",
+        adapter_key=ScraperSiteKey.TUYAP_NEW,
+        source_url="https://foodist.test/list",
+    )
+
+    service = AdapterLinkedFairService(db_session)
+    fairs = service.list_linked_fairs(organization_id, ScraperSiteKey.TUYAP_NEW)
+
+    assert len(fairs) == 1
+    assert fairs[0].id == fair.id
+    assert fairs[0].name == "Foodist Expo"
+    assert fairs[0].source_url == "https://foodist.test/list"
 
 
 def test_list_linked_fairs_from_run_history(db_session, organization_id):

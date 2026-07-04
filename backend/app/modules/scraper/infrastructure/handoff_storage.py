@@ -8,6 +8,7 @@ from typing import Any
 from uuid import UUID
 
 from app.modules.scraper.core.scraper_run_logger import ScraperRunLogger
+from app.modules.scraper.exporters.scraper_excel_exporter import write_handoff_excel
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
 from app.shared.canonical_import.scraper_mapper import scraper_handoff_to_canonical
 from app.shared.canonical_import.validator import validate_canonical_import
@@ -19,6 +20,11 @@ DEFAULT_HANDOFF_DIR = _BACKEND_ROOT / "data" / "scraper-handoff"
 def resolve_handoff_path(run_id: UUID, *, base_dir: Path | None = None) -> Path:
     directory = base_dir or DEFAULT_HANDOFF_DIR
     return directory / f"{run_id}.json"
+
+
+def resolve_handoff_excel_path(run_id: UUID, *, base_dir: Path | None = None) -> Path:
+    directory = base_dir or DEFAULT_HANDOFF_DIR
+    return directory / f"{run_id}.xlsx"
 
 
 def serialize_handoff_to_canonical_json(
@@ -63,4 +69,20 @@ def write_handoff_json(
     resolved = str(path.resolve())
     if run_logger is not None:
         run_logger.info("export_json", "JSON üretildi", metadata={"path": resolved})
+    return resolved
+
+
+def write_handoff_excel_file(
+    handoff: ScraperImportHandoff,
+    run_id: UUID,
+    *,
+    base_dir: Path | None = None,
+    run_logger: ScraperRunLogger | None = None,
+) -> str:
+    path = resolve_handoff_excel_path(run_id, base_dir=base_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    resolved_path = write_handoff_excel(handoff, str(path))
+    resolved = str(resolved_path)
+    if run_logger is not None:
+        run_logger.info("export_excel", "Excel üretildi", metadata={"path": resolved})
     return resolved

@@ -21,8 +21,8 @@ BRAND_A_URL = "https://foodist.tuyap.online/brand/alpha"
 BRAND_B_URL = "https://foodist.tuyap.online/brand/beta"
 
 
-def _context(*, max_pages: int | None = None) -> ScraperContext:
-    options = {}
+def _context(*, max_pages: int | None = None, scrape_detail: bool = False) -> ScraperContext:
+    options: dict[str, object] = {"scrape_detail": scrape_detail}
     if max_pages is not None:
         options["max_pages"] = max_pages
     return ScraperContext(fair_id=uuid4(), list_url=START_URL, options=options)

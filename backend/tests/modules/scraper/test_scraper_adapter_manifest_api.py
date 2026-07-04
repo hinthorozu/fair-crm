@@ -38,7 +38,33 @@ def test_update_adapter_manifest_success(client: TestClient, auth_headers):
         headers=auth_headers,
     )
     assert manifest.status_code == 200
-    assert manifest.json()["display_name"] == "TÜYAP Updated"
+    manifest_body = manifest.json()
+    assert manifest_body["display_name"] == "TÜYAP Updated"
+    assert manifest_body["notes"] == "Updated manifest notes"
+
+
+def test_update_adapter_manifest_clears_notes(client: TestClient, auth_headers):
+    adapter = ScraperSiteKey.TUYAP_NEW
+    client.patch(
+        f"/api/v1/scraper/adapters/{adapter}/manifest",
+        json={"notes": "Temporary notes"},
+        headers=auth_headers,
+    )
+
+    cleared = client.patch(
+        f"/api/v1/scraper/adapters/{adapter}/manifest",
+        json={"notes": ""},
+        headers=auth_headers,
+    )
+    assert cleared.status_code == 200
+    assert cleared.json()["notes"] == ""
+
+    manifest = client.get(
+        f"/api/v1/scraper/manifests/{adapter}",
+        headers=auth_headers,
+    )
+    assert manifest.status_code == 200
+    assert manifest.json()["notes"] == ""
 
 
 def test_update_adapter_manifest_rejects_adapter_key_change(client: TestClient, auth_headers):

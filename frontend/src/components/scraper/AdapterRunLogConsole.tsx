@@ -1,14 +1,21 @@
 import React from "react";
-import { listScraperRunLogs } from "../../api/scraper";
+import {
+  downloadScraperRunOutput,
+  listScraperRunLogs,
+  openScraperRunOutput,
+  runAdapterTest,
+} from "../../api/scraper";
+import { ApiError } from "../../api/client";
+import { Badge } from "../ui/Badge";
 import { scraperLabels } from "../../labels/scraperLabels";
-import type { ScraperRun, ScraperRunLog } from "../../types/scraper";
+import { runStatusBadgeVariant, runStatusLabel } from "../../utils/scraperBadges";
+import type { ScraperRunLog } from "../../types/scraper";
 
 const POLL_INTERVAL_MS = 2000;
 
 interface AdapterRunLogConsoleProps {
-  runs: ScraperRun[];
-  selectedRunId: string | null;
-  onSelectRunId: (runId: string) => void;
+  adapterKey: string;
+  focusRunId?: string | null;
 }
 
 function formatConsoleTime(value: string): string {
@@ -20,18 +27,29 @@ function formatStepLabel(step: string): string {
   return step.replace(/_/g, " ");
 }
 
-export function AdapterRunLogConsole({
-  runs,
-  selectedRunId,
-  onSelectRunId,
-}: AdapterRunLogConsoleProps) {
+export function AdapterRunLogConsole({ adapterKey, focusRunId }: AdapterRunLogConsoleProps) {
+  const [inputUrl, setInputUrl] = React.useState("");
+  const [activeRunId, setActiveRunId] = React.useState<string | null>(null);
   const [logs, setLogs] = React.useState<ScraperRunLog[]>([]);
   const [runStatus, setRunStatus] = React.useState<string | null>(null);
+  const [totalRows, setTotalRows] = React.useState(0);
+  const [outputJsonAvailable, setOutputJsonAvailable] = React.useState(false);
+  const [outputExcelAvailable, setOutputExcelAvailable] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const [running, setRunning] = React.useState(false);
   const [polling, setPolling] = React.useState(false);
+  const [outputLoading, setOutputLoading] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const lastLogIdRef = React.useRef<string | null>(null);
   const consoleRef = React.useRef<HTMLDivElement>(null);
+
+  const selectedRunId = activeRunId ?? focusRunId ?? null;
+
+  const resetOutputs = React.useCallback(() => {
+    setTotalRows(0);
+    setOutputJsonAvailable(false);
+    setOutputExcelAvailable(false);
+  }, []);
 
   const loadLogs = React.useCallback(async (runId: string, incremental: boolean) => {
     setLoading(!incremental);
@@ -42,6 +60,9 @@ export function AdapterRunLogConsole({
         limit: 500,
       });
       setRunStatus(response.run_status);
+      setTotalRows(response.total_rows);
+      setOutputJsonAvailable(response.output_json_available);
+      setOutputExcelAvailable(response.output_excel_available);
       if (incremental && lastLogIdRef.current) {
         if (response.items.length > 0) {
           setLogs((current) => [...current, ...response.items]);
@@ -62,12 +83,13 @@ export function AdapterRunLogConsole({
     if (!selectedRunId) {
       setLogs([]);
       setRunStatus(null);
+      resetOutputs();
       lastLogIdRef.current = null;
       return;
     }
     lastLogIdRef.current = null;
     void loadLogs(selectedRunId, false);
-  }, [selectedRunId, loadLogs]);
+  }, [selectedRunId, loadLogs, resetOutputs]);
 
   React.useEffect(() => {
     if (!selectedRunId || runStatus !== "running") {
@@ -86,42 +108,163 @@ export function AdapterRunLogConsole({
     consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
   }, [logs]);
 
+  const handleRun = React.useCallback(async () => {
+    const url = inputUrl.trim();
+    if (!url) {
+      setError(scraperLabels.testUrlRequired);
+      return;
+    }
+    setRunning(true);
+    setError(null);
+    setLogs([]);
+    setRunStatus("running");
+    resetOutputs();
+    lastLogIdRef.current = null;
+    try {
+      const run = await runAdapterTest(adapterKey, url);
+      setActiveRunId(run.id);
+    } catch (err) {
+      setRunStatus(null);
+      setError(err instanceof ApiError ? err.message : scraperLabels.testRunError);
+    } finally {
+      setRunning(false);
+    }
+  }, [adapterKey, inputUrl, resetOutputs]);
+
+  const handleOutputAction = React.useCallback(
+    async (action: "download" | "open", kind: "json" | "excel") => {
+      if (!selectedRunId) return;
+      const actionKey = `${action}-${kind}`;
+      setOutputLoading(actionKey);
+      setError(null);
+      try {
+        const fileName = kind === "json" ? `${selectedRunId}.json` : `${selectedRunId}.xlsx`;
+        if (action === "download") {
+          await downloadScraperRunOutput(selectedRunId, kind, fileName);
+        } else {
+          await openScraperRunOutput(selectedRunId, kind);
+        }
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : scraperLabels.testOutputDownloadError);
+      } finally {
+        setOutputLoading(null);
+      }
+    },
+    [selectedRunId],
+  );
+
+  const showOutputs =
+    runStatus === "completed" && (outputJsonAvailable || outputExcelAvailable || totalRows > 0);
+
   return (
     <div className="adapter-console">
-      <div className="adapter-console-toolbar">
-        <select
-          className="adapter-console-run-select"
-          value={selectedRunId ?? ""}
-          onChange={(event) => onSelectRunId(event.target.value)}
-          aria-label={scraperLabels.consoleSelectRun}
-        >
-          <option value="">{scraperLabels.consoleSelectRun}</option>
-          {runs.map((run) => (
-            <option key={run.id} value={run.id}>
-              {new Date(run.started_at).toLocaleString("tr-TR")} — {run.status}
-            </option>
-          ))}
-        </select>
-        {polling ? <span className="text-muted adapter-console-polling">{scraperLabels.consolePolling}</span> : null}
+      <div className="adapter-console-form">
+        <label className="adapter-console-url-label" htmlFor="adapter-test-url">
+          {scraperLabels.testUrlLabel}
+        </label>
+        <div className="adapter-console-url-row">
+          <input
+            id="adapter-test-url"
+            className="input adapter-console-url-input"
+            type="url"
+            placeholder={scraperLabels.testUrlPlaceholder}
+            value={inputUrl}
+            disabled={running || runStatus === "running"}
+            onChange={(event) => setInputUrl(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void handleRun();
+              }
+            }}
+          />
+          <button
+            type="button"
+            className="btn primary"
+            disabled={running || runStatus === "running" || !inputUrl.trim()}
+            onClick={() => void handleRun()}
+          >
+            {running || runStatus === "running" ? scraperLabels.testRunning : scraperLabels.testRun}
+          </button>
+        </div>
       </div>
+
+      {runStatus ? (
+        <div className="adapter-console-status">
+          <span className="text-muted">{scraperLabels.testStatusLabel}</span>
+          <Badge variant={runStatusBadgeVariant(runStatus)}>{runStatusLabel(runStatus)}</Badge>
+          {polling ? <span className="text-muted adapter-console-polling">{scraperLabels.consolePolling}</span> : null}
+        </div>
+      ) : null}
+
+      {showOutputs ? (
+        <div className="adapter-console-outputs">
+          <p className="adapter-console-output-summary">{scraperLabels.testOutputRecordCount(totalRows)}</p>
+          <div className="adapter-console-output-links">
+            {outputJsonAvailable ? (
+              <div className="adapter-console-output-group">
+                <span className="adapter-console-output-label">JSON</span>
+                <button
+                  type="button"
+                  className="btn link"
+                  disabled={outputLoading !== null}
+                  onClick={() => void handleOutputAction("download", "json")}
+                >
+                  {outputLoading === "download-json" ? "…" : scraperLabels.testOutputJsonDownload}
+                </button>
+                <button
+                  type="button"
+                  className="btn link"
+                  disabled={outputLoading !== null}
+                  onClick={() => void handleOutputAction("open", "json")}
+                >
+                  {outputLoading === "open-json" ? "…" : scraperLabels.testOutputJsonOpen}
+                </button>
+              </div>
+            ) : null}
+            {outputExcelAvailable ? (
+              <div className="adapter-console-output-group">
+                <span className="adapter-console-output-label">Excel</span>
+                <button
+                  type="button"
+                  className="btn link"
+                  disabled={outputLoading !== null}
+                  onClick={() => void handleOutputAction("download", "excel")}
+                >
+                  {outputLoading === "download-excel" ? "…" : scraperLabels.testOutputExcelDownload}
+                </button>
+                <button
+                  type="button"
+                  className="btn link"
+                  disabled={outputLoading !== null}
+                  onClick={() => void handleOutputAction("open", "excel")}
+                >
+                  {outputLoading === "open-excel" ? "…" : scraperLabels.testOutputExcelOpen}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       {error ? <p className="text-danger">{error}</p> : null}
 
-      {!selectedRunId ? (
-        <p className="text-muted">{scraperLabels.consoleEmpty}</p>
-      ) : (
-        <div ref={consoleRef} className="adapter-console-log" aria-live="polite">
-          {loading && logs.length === 0 ? <p className="text-muted">Yükleniyor…</p> : null}
-          {logs.map((log) => (
-            <div key={log.id} className={`adapter-console-line adapter-console-${log.level}`}>
-              <span className="adapter-console-time">{formatConsoleTime(log.created_at)}</span>
-              <span className="adapter-console-step">[{formatStepLabel(log.step)}]</span>
-              <span className="adapter-console-message">{log.message}</span>
-            </div>
-          ))}
-          {!loading && logs.length === 0 ? <p className="text-muted">{scraperLabels.consoleEmpty}</p> : null}
-        </div>
-      )}
+      <div ref={consoleRef} className="adapter-console-log" aria-live="polite">
+        {!selectedRunId ? (
+          <p className="text-muted">{scraperLabels.testConsoleHint}</p>
+        ) : null}
+        {loading && logs.length === 0 ? <p className="text-muted">Yükleniyor…</p> : null}
+        {logs.map((log) => (
+          <div key={log.id} className={`adapter-console-line adapter-console-${log.level}`}>
+            <span className="adapter-console-time">{formatConsoleTime(log.created_at)}</span>
+            <span className="adapter-console-step">[{formatStepLabel(log.step)}]</span>
+            <span className="adapter-console-message">{log.message}</span>
+          </div>
+        ))}
+        {selectedRunId && !loading && logs.length === 0 && runStatus === "running" ? (
+          <p className="text-muted">{scraperLabels.testWaitingLogs}</p>
+        ) : null}
+      </div>
     </div>
   );
 }

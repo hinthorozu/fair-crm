@@ -1,4 +1,5 @@
-import { apiRequest } from "./client";
+import { apiRequest, ApiError, fetchWithTimeout } from "./client";
+import { buildApiHeaders, config } from "../config";
 import type {
   ScraperDashboardResponse,
   ScraperManifest,
@@ -103,8 +104,64 @@ export async function listScraperRunLogs(
   );
 }
 
+export async function runAdapterTest(adapterKey: string, inputUrl: string): Promise<ScraperRun> {
+  return apiRequest<ScraperRun>(
+    `/api/v1/scraper/adapters/${encodeURIComponent(adapterKey)}/test-run`,
+    {
+      method: "POST",
+      body: JSON.stringify({ input_url: inputUrl }),
+    },
+  );
+}
+
 export async function getAdapterLinkedFairs(adapterKey: string): Promise<AdapterLinkedFairListResponse> {
   return apiRequest<AdapterLinkedFairListResponse>(
     `/api/v1/scraper/adapters/${encodeURIComponent(adapterKey)}/fairs`,
   );
+}
+
+type ScraperRunOutputKind = "json" | "excel";
+
+async function fetchScraperRunOutput(runId: string, kind: ScraperRunOutputKind): Promise<Blob> {
+  const response = await fetchWithTimeout(
+    `${config.apiBaseUrl}/api/v1/scraper/runs/${encodeURIComponent(runId)}/output/${kind}`,
+    {
+      headers: buildApiHeaders({}),
+    },
+  );
+  if (!response.ok) {
+    const text = await response.text();
+    let detail = `HTTP ${response.status}`;
+    try {
+      const data = JSON.parse(text) as { detail?: string };
+      if (data.detail) detail = data.detail;
+    } catch {
+      if (text) detail = text;
+    }
+    throw new ApiError(detail, response.status);
+  }
+  return response.blob();
+}
+
+export async function downloadScraperRunOutput(
+  runId: string,
+  kind: ScraperRunOutputKind,
+  fileName: string,
+): Promise<void> {
+  const blob = await fetchScraperRunOutput(runId, kind);
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(objectUrl);
+}
+
+export async function openScraperRunOutput(runId: string, kind: ScraperRunOutputKind): Promise<void> {
+  const blob = await fetchScraperRunOutput(runId, kind);
+  const objectUrl = URL.createObjectURL(blob);
+  window.open(objectUrl, "_blank", "noopener,noreferrer");
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
 }

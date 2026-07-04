@@ -4,12 +4,10 @@ import {
   activateAdapter,
   createAdapter,
   deactivateAdapter,
-  getAdapter,
   getScraperDashboard,
   getScraperManifests,
   listAdapters,
   listScraperRuns,
-  updateAdapter,
 } from "../api/scraper";
 import { AdapterFormModal } from "../components/scraper/AdapterFormModal";
 import { AdapterFeatureBadges } from "../components/scraper/AdapterFeatureBadges";
@@ -20,7 +18,6 @@ import { UniversalDataTable, type UniversalDataTableColumn } from "../components
 import { labels } from "../labels";
 import { scraperLabels } from "../labels/scraperLabels";
 import type {
-  AdapterDetail,
   AdapterListItem,
   CreateAdapterPayload,
   ScraperDashboardSummary,
@@ -55,7 +52,6 @@ function buildLastRunMap(runs: ScraperRun[]): Map<string, ScraperRun> {
 
 function buildAdapterColumns(handlers: {
   onOpenDetail: (adapter: AdapterListItem) => void;
-  onEdit: (adapter: AdapterListItem) => void;
   onToggleActive: (adapter: AdapterListItem) => void;
   togglingKey: string | null;
   lastRunMap: Map<string, ScraperRun>;
@@ -119,9 +115,6 @@ function buildAdapterColumns(handlers: {
           <button type="button" className="btn btn-sm secondary" onClick={() => handlers.onOpenDetail(adapter)}>
             {scraperLabels.actionDetail}
           </button>
-          <button type="button" className="btn btn-sm secondary" onClick={() => handlers.onEdit(adapter)}>
-            {scraperLabels.actionEdit}
-          </button>
           <button
             type="button"
             className="btn btn-sm secondary"
@@ -129,9 +122,6 @@ function buildAdapterColumns(handlers: {
             onClick={() => handlers.onToggleActive(adapter)}
           >
             {adapter.is_active ? scraperLabels.actionDeactivate : scraperLabels.actionActivate}
-          </button>
-          <button type="button" className="btn btn-sm primary" disabled title={scraperLabels.runSoon}>
-            {scraperLabels.actionRun}
           </button>
         </div>
       ),
@@ -179,7 +169,6 @@ export function AdapterManagementPage({
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all");
   const [showCreateModal, setShowCreateModal] = React.useState(false);
-  const [editAdapter, setEditAdapter] = React.useState<AdapterDetail | null>(null);
   const [formSaving, setFormSaving] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
   const [togglingKey, setTogglingKey] = React.useState<string | null>(null);
@@ -268,16 +257,6 @@ export function AdapterManagementPage({
     [onOpenDetail],
   );
 
-  const openEdit = React.useCallback(async (adapter: AdapterListItem) => {
-    setFormError(null);
-    try {
-      const detail = await getAdapter(adapter.adapter_key);
-      setEditAdapter(detail);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : scraperLabels.loadError);
-    }
-  }, []);
-
   const handleCreate = React.useCallback(
     async (payload: CreateAdapterPayload | UpdateAdapterPayload) => {
       setFormSaving(true);
@@ -304,32 +283,6 @@ export function AdapterManagementPage({
       }
     },
     [refreshAdapters],
-  );
-
-  const handleUpdate = React.useCallback(
-    async (payload: CreateAdapterPayload | UpdateAdapterPayload) => {
-      if (!editAdapter) return;
-      setFormSaving(true);
-      setFormError(null);
-      try {
-        const updated = await updateAdapter(editAdapter.adapter_key, payload as UpdateAdapterPayload);
-        setAdapters((current) => mergeAdapterListItem(current, adapterDetailToListItem(updated)));
-        setEditAdapter(null);
-        setFormError(null);
-        try {
-          await refreshAdapters();
-        } catch {
-          // Keep optimistic list item from PATCH response.
-        }
-      } catch (err) {
-        const message = err instanceof ApiError ? err.message : scraperLabels.saveError;
-        setFormError(message);
-        throw err instanceof Error ? err : new Error(message);
-      } finally {
-        setFormSaving(false);
-      }
-    },
-    [editAdapter, refreshAdapters],
   );
 
   const handleToggleActive = React.useCallback(
@@ -359,12 +312,11 @@ export function AdapterManagementPage({
     () =>
       buildAdapterColumns({
         onOpenDetail: openDetail,
-        onEdit: (adapter) => void openEdit(adapter),
         onToggleActive: (adapter) => void handleToggleActive(adapter),
         togglingKey,
         lastRunMap,
       }),
-    [openDetail, openEdit, handleToggleActive, togglingKey, lastRunMap],
+    [openDetail, handleToggleActive, togglingKey, lastRunMap],
   );
 
   return (
@@ -435,20 +387,6 @@ export function AdapterManagementPage({
             setFormError(null);
           }}
           onSubmit={handleCreate}
-        />
-      ) : null}
-
-      {editAdapter ? (
-        <AdapterFormModal
-          mode="edit"
-          initialAdapter={editAdapter}
-          saving={formSaving}
-          error={formError}
-          onClose={() => {
-            setEditAdapter(null);
-            setFormError(null);
-          }}
-          onSubmit={handleUpdate}
         />
       ) : null}
     </div>

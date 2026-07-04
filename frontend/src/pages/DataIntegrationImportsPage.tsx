@@ -19,7 +19,6 @@ import { importBatchStatusBadgeVariant } from "../utils/importBadges";
 import { canResumeDecisions, canResumeSetup } from "../utils/importResume";
 
 interface DataIntegrationImportsPageProps {
-  onNewImport: () => void;
   onOpenBatch?: (batchId: string) => void;
   onContinueBatch?: (batchId: string) => void;
 }
@@ -144,7 +143,6 @@ const IMPORT_COLUMNS = (
 ];
 
 export function DataIntegrationImportsPage({
-  onNewImport,
   onOpenBatch,
   onContinueBatch,
 }: DataIntegrationImportsPageProps) {
@@ -229,11 +227,7 @@ export function DataIntegrationImportsPage({
 
   return (
     <div>
-      <PageHeader
-        title={dataIntegrationLabels.importsTitle}
-        subtitle={dataIntegrationLabels.moduleSubtitle}
-        actions={[{ id: "new-import", label: dataIntegrationLabels.newImport, onClick: onNewImport, variant: "primary" }]}
-      />
+      <PageHeader title={dataIntegrationLabels.importsTitle} subtitle={dataIntegrationLabels.importsSubtitle} />
 
       {successMessage && <p className="import-toast success">{successMessage}</p>}
 

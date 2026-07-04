@@ -167,6 +167,7 @@ def auth_headers(user_id: UUID, organization_id: UUID) -> dict[str, str]:
 @pytest.fixture
 def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setenv("FAIR_CRM_DEV_BYPASS_CORE", "false")
+    monkeypatch.setenv("SCRAPER_BROWSER_CHANNEL", "msedge")
     get_settings.cache_clear()
 
     def override_get_db() -> Generator[Session, None, None]:

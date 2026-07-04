@@ -4,7 +4,21 @@ Development auto-start standard: use **`dev-start.ps1`** after Windows or Docker
 
 ## Quick start (recommended)
 
-From the **repository root** (`fair-crm/`):
+Yeni bir makinede ilk kurulum:
+
+```powershell
+.\scripts\dev\setup-dev.ps1
+```
+
+Python/npm/Playwright eksiklerini kontrol eder; gerekiyorsa `pip install`, `npm install` ve `playwright install chromium` calistirir. Python, Node.js veya PostgreSQL otomatik kurulmaz.
+
+Sadece rapor icin:
+
+```powershell
+.\scripts\dev\setup-dev.ps1 -CheckOnly
+```
+
+Ardindan runtime baslatma:
 
 ```powershell
 .\scripts\dev\dev-start.ps1
@@ -36,6 +50,7 @@ Kills listeners on backend `8001` and frontend `5173`–`5177`, then starts fres
 
 | Script | Purpose |
 |--------|---------|
+| `setup-dev.ps1` | New-machine bootstrap: check/install Python deps, npm deps, Playwright; verify .env and PostgreSQL |
 | `dev-start.ps1` | Docker infra up + wait for Postgres (+ Redis if defined) + start backend/frontend if not healthy |
 | `dev-stop.ps1` | Stop backend, frontend, optional worker; Docker infra optional via `-StopInfra` |
 | `reset-dev.ps1` | Force kill stale listeners and restart backend + frontend |
@@ -105,6 +120,8 @@ scripts/dev/logs/frontend-5173.log
 - Node.js 16+ with `npm install` in `frontend/`
 - Migrations applied: `alembic upgrade head`
 - Optional: KYROX Core for full auth; dev bypass works with `FAIR_CRM_DEV_BYPASS_CORE`
+
+`setup-dev.ps1` bu maddelerin cogu icin kontrol ve kurulum adimlarini otomatiklestirir (Python/Node/PostgreSQL kurulumu haric).
 
 ## Manual start (without scripts)
 

@@ -1,7 +1,7 @@
 export const importLabels = {
   imports: "İçe Aktarma",
-  wizardTitle: "Akıllı İçe Aktarma",
-  wizardSubtitle: "Adım adım güvenli veri aktarımı",
+  wizardTitle: "Excel Import",
+  wizardSubtitle: "Excel (.xlsx) dosyası yükleyerek içe aktarma başlatın.",
   stepSource: "Kaynak",
   stepUpload: "Yükle",
   stepFair: "Fuar Seçimi",

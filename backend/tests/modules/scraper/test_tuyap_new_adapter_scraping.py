@@ -21,8 +21,8 @@ FOODIST_EXAMPLE_TEXT = (
 FOODIST_DETAIL_URL = "https://foodist.tuyap.online/brand/2a-akuzum-otomotiv"
 
 
-def _context(*, url: str | None = "https://foodist.tuyap.online/brands") -> ScraperContext:
-    return ScraperContext(fair_id=uuid4(), list_url=url)
+def _context(*, url: str | None = "https://foodist.tuyap.online/brands", scrape_detail: bool = False) -> ScraperContext:
+    return ScraperContext(fair_id=uuid4(), list_url=url, options={"scrape_detail": scrape_detail})
 
 
 def _mock_browser(*, items_exist: bool = True, list_items: list[dict[str, str]] | None = None) -> MagicMock:

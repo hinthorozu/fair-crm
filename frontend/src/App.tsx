@@ -392,7 +392,6 @@ export function App() {
       {diNotice && <p className="text-muted">{diNotice}</p>}
       {parsed.route === "/data-integration/imports" && (
         <DataIntegrationImportsPage
-          onNewImport={() => goToDataIntegration("/data-integration/imports/new")}
           onContinueBatch={(batchId) => goToDataIntegration(`/data-integration/imports/continue/${batchId}`)}
         />
       )}

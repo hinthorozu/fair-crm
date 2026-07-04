@@ -122,6 +122,63 @@ def test_foodist_detail_parser_extracts_social_links_without_using_as_website():
     assert all("facebook.com" not in url for url in detail.websites)
 
 
+def test_foodist_detail_parser_parses_real_foodist_sidebar_html():
+    html = """
+    <html><body>
+      <div class="schedule-single-wrap">
+        <div class="schedule-detail">
+          <span><i class="fa fa-globe"></i> Türkiye</span>
+        </div>
+        <div class="schedule-sidebar">
+          <div class="widget">
+            <h4 class="widget-title">Konum Bilgisi</h4>
+            <div class="schedule-list">
+              <ul>
+                <li><i class="far fa-building"></i> Salon: 3</li>
+                <li><i class="far fa-map-marker"></i> Stant: 308A</li>
+              </ul>
+            </div>
+          </div>
+          <div class="widget">
+            <h4 class="widget-title">İletişim</h4>
+            <div class="schedule-list">
+              <ul>
+                <li><i class="far fa-phone"></i> +905462770043</li>
+                <li><i class="far fa-location-dot"></i> Organize Sanayi Bölgesi No: 12 İstanbul</li>
+                <li><i class="far fa-globe"></i>
+                  <a href="https://www.ahugida.com.tr" target="_blank">https://www.ahugida.com.tr</a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </body></html>
+    """
+    detail = parse_foodist_detail_html(html)
+
+    assert detail.phone == "+905462770043"
+    assert detail.website == "https://www.ahugida.com.tr"
+    assert detail.address == "Organize Sanayi Bölgesi No: 12 İstanbul"
+    assert detail.hall == "3"
+    assert detail.stand == "308A"
+    assert detail.country == "Türkiye"
+
+
+def test_foodist_detail_parser_parses_saved_detail_fixture():
+    from pathlib import Path
+
+    html = Path(__file__).resolve().parents[3].joinpath("detail_full.html").read_text(encoding="utf-8")
+    detail = parse_foodist_detail_html(html)
+
+    assert detail.phone == "+905355706844"
+    assert detail.website == "https://44beydaggida.com/"
+    assert "Bayrampaşa" in (detail.address or "")
+    assert detail.hall == "8"
+    assert detail.stand == "819B"
+    assert detail.country == "Türkiye"
+
+
 def test_foodist_detail_parser_leaves_website_empty_without_detail_container():
     html = """
     <html><head>

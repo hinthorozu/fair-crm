@@ -4,18 +4,27 @@ import json
 from uuid import uuid4
 
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
-from app.modules.scraper.infrastructure.handoff_storage import resolve_handoff_path, write_handoff_json
+from app.modules.scraper.infrastructure.handoff_storage import (
+    resolve_handoff_excel_path,
+    resolve_handoff_path,
+    write_handoff_excel_file,
+    write_handoff_json,
+)
 from app.modules.scraper.types.scraper_site import ScraperSiteKey
 from app.shared.canonical_import.validator import validate_canonical_import
 
 
-def test_write_handoff_json_creates_canonical_file(tmp_path):
-    run_id = uuid4()
-    handoff = ScraperImportHandoff(
+def _sample_handoff() -> ScraperImportHandoff:
+    return ScraperImportHandoff(
         canonical_rows=[{"company_name": "Alpha", "website": "", "email": "a@alpha.test", "phone": "111"}],
         row_metadata=[{"source_url": "https://example.test/alpha"}],
         metadata={"source_url": "https://example.test/list"},
     )
+
+
+def test_write_handoff_json_creates_canonical_file(tmp_path):
+    run_id = uuid4()
+    handoff = _sample_handoff()
 
     path = write_handoff_json(
         handoff,
@@ -34,3 +43,13 @@ def test_write_handoff_json_creates_canonical_file(tmp_path):
     assert validated.metadata.row_count == 1
     assert validated.rows[0].company_name == "Alpha"
     assert validated.rows[0].emails == ["a@alpha.test"]
+
+
+def test_write_handoff_excel_file_creates_xlsx(tmp_path):
+    run_id = uuid4()
+    handoff = _sample_handoff()
+
+    path = write_handoff_excel_file(handoff, run_id, base_dir=tmp_path)
+
+    assert path == str(resolve_handoff_excel_path(run_id, base_dir=tmp_path).resolve())
+    assert resolve_handoff_excel_path(run_id, base_dir=tmp_path).is_file()

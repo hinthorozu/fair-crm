@@ -1,4 +1,4 @@
-"""Resolve CRM fairs linked to an adapter via scraper run history."""
+"""Resolve CRM fairs linked to an adapter via fair.adapter_key and run history."""
 
 from __future__ import annotations
 
@@ -41,9 +41,18 @@ class AdapterLinkedFairService:
 
     def list_linked_fairs(self, organization_id: UUID, adapter_key: str) -> list[AdapterLinkedFair]:
         self._manifest_registry.get(adapter_key)
+        normalized_key = adapter_key.strip().lower()
 
-        aggregates = self._aggregate_runs_by_fair_name(adapter_key)
-        if not aggregates:
+        aggregates = self._aggregate_runs_by_fair_name(normalized_key)
+        linked_fair_models = self._session.scalars(
+            select(FairModel).where(
+                FairModel.organization_id == organization_id,
+                FairModel.deleted_at.is_(None),
+                FairModel.adapter_key == normalized_key,
+            )
+        ).all()
+
+        if not linked_fair_models and not aggregates:
             return []
 
         fair_models = self._session.scalars(
@@ -57,10 +66,30 @@ class AdapterLinkedFairService:
         matched_fair_ids: list[UUID] = []
         results: list[AdapterLinkedFair] = []
         matched_keys: set[str] = set()
+        seen_fair_ids: set[UUID] = set()
+
+        for fair_model in linked_fair_models:
+            aggregate = aggregates.get(fair_model.normalized_name)
+            matched_keys.add(fair_model.normalized_name)
+            seen_fair_ids.add(fair_model.id)
+            matched_fair_ids.append(fair_model.id)
+            results.append(
+                AdapterLinkedFair(
+                    id=fair_model.id,
+                    name=fair_model.name,
+                    venue=fair_model.venue,
+                    city=fair_model.city,
+                    status=fair_model.status,
+                    source_url=fair_model.source_url or (aggregate.source_url if aggregate else None),
+                    last_import_at=aggregate.last_run_at if aggregate else None,
+                )
+            )
 
         for normalized_name, aggregate in aggregates.items():
             fair_model = fair_by_normalized.get(normalized_name)
             if fair_model is None:
+                continue
+            if fair_model.id in seen_fair_ids:
                 continue
             matched_keys.add(normalized_name)
             matched_fair_ids.append(fair_model.id)

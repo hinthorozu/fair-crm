@@ -1,0 +1,28 @@
+{
+  "source": {
+    "type": "scraper",
+    "adapter_key": "tuyap_new",
+    "fair_id": null,
+    "run_id": "a6825140-8be2-4dce-a44c-272b1a2ff2f9",
+    "source_url": "https://foodist.test/brands"
+  },
+  "metadata": {
+    "created_at": "2026-07-04T16:10:36.624901Z",
+    "row_count": 1
+  },
+  "rows": [
+    {
+      "external_id": null,
+      "company_name": "Demo Co",
+      "normalized_company_name": "demo",
+      "website": null,
+      "emails": [],
+      "phones": [],
+      "country": null,
+      "city": null,
+      "hall": null,
+      "stand": null,
+      "raw": {}
+    }
+  ]
+}

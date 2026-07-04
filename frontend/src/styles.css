@@ -3420,6 +3420,31 @@ textarea:hover {
   gap: 0.75rem;
 }
 
+.adapter-console-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.adapter-console-url-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.adapter-console-url-input {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.adapter-console-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .adapter-console-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -3490,6 +3515,39 @@ textarea:hover {
 .adapter-console-success .adapter-console-step,
 .adapter-console-success .adapter-console-message {
   color: #4ade80;
+}
+
+.adapter-console-outputs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-subtle, #334155);
+  border-radius: 0.5rem;
+  background: var(--surface-raised, rgba(15, 23, 42, 0.4));
+}
+
+.adapter-console-output-summary {
+  margin: 0;
+  font-weight: 600;
+}
+
+.adapter-console-output-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.adapter-console-output-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.adapter-console-output-label {
+  font-size: 0.875rem;
+  color: var(--text-muted, #94a3b8);
+  min-width: 2.75rem;
 }
 
 @media (max-width: 1100px) {

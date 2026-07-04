@@ -7,6 +7,13 @@ from typing import Any
 
 from playwright.async_api import Browser, BrowserContext, Page, Playwright, async_playwright
 
+from app.modules.scraper.core.playwright_availability import (
+    PlaywrightBrowserNotInstalledError,
+    build_chromium_launch_options,
+    ensure_playwright_browser_installed,
+    looks_like_missing_playwright_browser,
+)
+
 DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
@@ -57,11 +64,15 @@ class BrowserService:
     async def launch(self) -> None:
         if self._browser is not None:
             return
+        ensure_playwright_browser_installed(self._config)
         self._playwright = await async_playwright().start()
-        launch_options: dict[str, Any] = {"headless": self._config.headless}
-        if self._config.channel:
-            launch_options["channel"] = self._config.channel
-        self._browser = await self._playwright.chromium.launch(**launch_options)
+        launch_options = build_chromium_launch_options(self._playwright, self._config)
+        try:
+            self._browser = await self._playwright.chromium.launch(**launch_options)
+        except Exception as exc:
+            if looks_like_missing_playwright_browser(exc):
+                raise PlaywrightBrowserNotInstalledError() from exc
+            raise
         self._context = await self._browser.new_context(user_agent=self._config.user_agent)
 
     async def close(self) -> None:

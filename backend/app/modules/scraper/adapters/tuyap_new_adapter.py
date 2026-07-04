@@ -444,7 +444,9 @@ class TuyapNewAdapter:
 
     @staticmethod
     def _resolve_scrape_detail(context: ScraperContext) -> bool:
-        return bool(context.options.get("scrape_detail", False))
+        if "scrape_detail" in context.options:
+            return bool(context.options.get("scrape_detail"))
+        return True
 
     @staticmethod
     def _merge_detail_into_dto(row: RawCompanyDto, detail: FoodistDetailInfo) -> RawCompanyDto:
@@ -479,6 +481,9 @@ class TuyapNewAdapter:
             phone=row.phone or detail.phone,
             email=row.email or detail.email,
             address=row.address or detail.address,
+            country=row.country or detail.country,
+            hall=row.hall or detail.hall,
+            stand=row.stand or detail.stand,
             extra_fields=extra_fields,
             metadata=metadata,
         )

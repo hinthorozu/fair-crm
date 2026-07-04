@@ -101,7 +101,7 @@ def merge_manifest_with_record(base: ScraperManifest, record: ScraperAdapter | N
         browser=browser,
         status=record.status,
         author=base.author,
-        notes=record.description if record.description is not None else base.notes,
+        notes=record.description if record.description is not None else ("" if record is not None else base.notes),
         scraper_version=base.scraper_version,
         target_site_version=base.target_site_version,
         last_verified=last_verified,

@@ -8,6 +8,7 @@ from html import unescape
 
 from bs4 import BeautifulSoup, Tag
 
+from app.modules.scraper.parsers.foodist_list_parser import SALON_PATTERN, STANT_PATTERN, _resolve_country_token
 from app.modules.scraper.parsers.website_filters import (
     extract_social_urls,
     is_company_website,
@@ -59,6 +60,9 @@ class FoodistDetailInfo:
     address: str | None = None
     category: str | None = None
     description: str | None = None
+    hall: str | None = None
+    stand: str | None = None
+    country: str | None = None
     instagram_url: str | None = None
     linkedin_url: str | None = None
     facebook_url: str | None = None
@@ -74,19 +78,25 @@ def parse_foodist_detail_html(html: str) -> FoodistDetailInfo:
     container_text = _tag_to_text(container) if container is not None else ""
 
     text = container_text or _html_to_text(html)
-    emails = _extract_emails(container_html or html, text)
-    phones = _extract_phones(container_html or html, text)
+    email_source_html = container_html if container is not None else html
+    emails = _extract_emails(email_source_html, text)
+    phones = _extract_phones(email_source_html, text, container=container)
     websites = _extract_websites_from_container(container)
     social_urls = _extract_social_urls_from_container(container)
+    hall, stand = _extract_hall_stand(text)
+    country = _extract_country_from_container(container, text)
 
     return FoodistDetailInfo(
         website=websites[0] if websites else None,
         websites=tuple(websites),
         phone=phones[0] if phones else None,
         email=emails[0] if emails else None,
-        address=_extract_labeled_value(text, ADDRESS_PATTERN),
+        address=_extract_address(container, text),
         category=_extract_labeled_value(text, CATEGORY_PATTERN),
         description=_extract_labeled_value(text, DESCRIPTION_PATTERN),
+        hall=hall,
+        stand=stand,
+        country=country,
         instagram_url=social_urls.get("instagram_url"),
         linkedin_url=social_urls.get("linkedin_url"),
         facebook_url=social_urls.get("facebook_url"),
@@ -184,12 +194,26 @@ def _extract_emails(html: str, text: str) -> list[str]:
             seen.add(email)
             found.append(email)
 
+    for match in re.finditer(r"""data-cfemail=["']([^"']+)["']""", html, re.IGNORECASE):
+        email = _decode_cfemail(match.group(1))
+        if email and email not in seen:
+            seen.add(email)
+            found.append(email)
+
     return found
 
 
-def _extract_phones(html: str, text: str) -> list[str]:
+def _extract_phones(html: str, text: str, *, container: Tag | None = None) -> list[str]:
     found: list[str] = []
     seen: set[str] = set()
+
+    if container is not None:
+        icon_phone = _extract_icon_list_item_text(container, icon_names=("fa-phone",))
+        if icon_phone:
+            phone = _normalize_phone(icon_phone)
+            if phone and len(re.sub(r"\D", "", phone)) >= 10 and phone not in seen:
+                seen.add(phone)
+                found.append(phone)
 
     for match in re.finditer(r"""href=["']tel:([^"']+)["']""", html, re.IGNORECASE):
         phone = _normalize_phone(match.group(1))
@@ -208,6 +232,91 @@ def _extract_phones(html: str, text: str) -> list[str]:
             found.append(phone)
 
     return found
+
+
+def _extract_address(container: Tag | None, text: str) -> str | None:
+    if container is not None:
+        icon_address = _extract_icon_list_item_text(
+            container,
+            icon_names=("fa-location-dot",),
+        )
+        if icon_address:
+            return icon_address
+
+    return _extract_labeled_value(text, ADDRESS_PATTERN)
+
+
+def _extract_icon_list_item_text(container: Tag, *, icon_names: tuple[str, ...]) -> str | None:
+    for list_item in container.find_all("li"):
+        icon = list_item.find(
+            "i",
+            class_=lambda value: bool(
+                value
+                and any(
+                    icon_name in (value if isinstance(value, list) else [value])
+                    for icon_name in icon_names
+                )
+            ),
+        )
+        if icon is None:
+            continue
+        text = _tag_to_text(list_item)
+        if text:
+            return text
+    return None
+
+
+def _extract_hall_stand(text: str) -> tuple[str | None, str | None]:
+    hall_match = SALON_PATTERN.search(text)
+    stand_match = STANT_PATTERN.search(text)
+    return (
+        hall_match.group(1) if hall_match else None,
+        stand_match.group(1) if stand_match else None,
+    )
+
+
+def _extract_country_from_container(container: Tag | None, text: str) -> str | None:
+    if container is not None:
+        for span in container.find_all("span"):
+            icon = span.find(
+                "i",
+                class_=lambda value: bool(
+                    value
+                    and any(
+                        "globe" in cls
+                        for cls in (value if isinstance(value, list) else [value])
+                    )
+                ),
+            )
+            if icon is None:
+                continue
+            country_text = _tag_to_text(span).strip()
+            if not country_text:
+                continue
+            country = _resolve_country_token(country_text)
+            if country:
+                return country
+
+    for token in text.split():
+        country = _resolve_country_token(token)
+        if country:
+            return country
+    return None
+
+
+def _decode_cfemail(encoded: str) -> str | None:
+    try:
+        key = int(encoded[:2], 16)
+    except (ValueError, IndexError):
+        return None
+    chars: list[str] = []
+    for index in range(2, len(encoded), 2):
+        try:
+            chars.append(chr(int(encoded[index : index + 2], 16) ^ key))
+        except ValueError:
+            return None
+    email = "".join(chars).strip().lower()
+    return email or None
 
 
 def _extract_labeled_value(text: str, pattern: re.Pattern[str]) -> str | None:

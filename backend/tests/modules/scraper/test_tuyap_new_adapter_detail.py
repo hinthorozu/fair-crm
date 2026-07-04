@@ -30,11 +30,14 @@ DETAIL_HTML = """
 """
 
 
-def _context(*, scrape_detail: bool = False) -> ScraperContext:
+def _context(*, scrape_detail: bool | None = None) -> ScraperContext:
+    options: dict[str, bool] = {}
+    if scrape_detail is not None:
+        options["scrape_detail"] = scrape_detail
     return ScraperContext(
         fair_id=uuid4(),
         list_url=START_URL,
-        options={"scrape_detail": scrape_detail},
+        options=options,
     )
 
 
@@ -76,6 +79,21 @@ def test_scrape_detail_false_does_not_fetch_detail_html():
     assert rows[0].metadata.get("detail_scraped") is None
 
 
+def test_scrape_detail_defaults_to_true():
+    browser = _mock_browser()
+    adapter = TuyapNewAdapter(browser=browser)
+
+    with patch(
+        "app.modules.scraper.adapters.tuyap_new_adapter.validate_website_url",
+        return_value=True,
+    ):
+        rows = adapter.scrape(_context())
+
+    assert len(rows) == 1
+    assert rows[0].metadata.get("detail_scraped") is True
+    browser.html.assert_awaited_once()
+
+
 def test_scrape_detail_true_merges_detail_fields():
     browser = _mock_browser()
     adapter = TuyapNewAdapter(browser=browser)
@@ -84,7 +102,7 @@ def test_scrape_detail_true_merges_detail_fields():
         "app.modules.scraper.adapters.tuyap_new_adapter.validate_website_url",
         return_value=True,
     ):
-        rows = adapter.scrape(_context(scrape_detail=True))
+        rows = adapter.scrape(_context())
 
     assert len(rows) == 1
     row = rows[0]
@@ -109,7 +127,7 @@ def test_scrape_detail_error_keeps_list_data():
     browser = _mock_browser(detail_error=True)
     adapter = TuyapNewAdapter(browser=browser)
 
-    rows = adapter.scrape(_context(scrape_detail=True))
+    rows = adapter.scrape(_context())
 
     assert len(rows) == 1
     row = rows[0]

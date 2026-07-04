@@ -3,13 +3,20 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from fastapi.responses import FileResponse
+from sqlalchemy.orm import Session
+
+from app.db.session import get_db
+from app.shared.background_jobs import run_blocking_background_task
 
 from app.modules.scraper.api.dependencies import (
     get_adapter_linked_fair_service,
+    get_adapter_test_run_job_runner,
     get_auth_context,
     get_default_scraper_dashboard_service,
     get_default_scraper_manager,
+    get_run_adapter_test_use_case,
     get_scraper_adapter_service,
     get_scraper_run_history_service,
     get_scraper_run_log_service,
@@ -20,6 +27,7 @@ from app.modules.scraper.api.schemas import (
     AdapterLinkedFairResponse,
     AdapterListItemResponse,
     AdapterListResponse,
+    AdapterTestRunRequest,
     CreateAdapterRequest,
     UpdateAdapterRequest,
     UpdateAdapterManifestRequest,
@@ -33,15 +41,32 @@ from app.modules.scraper.api.schemas import (
     ScraperRunLogResponse,
 )
 from app.integrations.kyrox_core.auth import AuthContext
+from app.core.config import get_settings
+from app.modules.scraper.core.browser_service import BrowserConfig
+from app.modules.scraper.core.playwright_availability import playwright_browser_unavailable_message
 from app.modules.scraper.services.adapter_linked_fair_service import AdapterLinkedFairService
 from app.modules.scraper.services.scraper_adapter_service import ScraperAdapterService
 from app.modules.scraper.services.scraper_run_history_service import ScraperRunHistoryService
 from app.modules.scraper.services.scraper_run_log_service import ScraperRunLogService
+from app.modules.scraper.application.adapter_test_run_job_runner import (
+    AdapterTestRunJobCommand,
+    AdapterTestRunJobRunner,
+)
+from app.modules.scraper.application.run_adapter_test import (
+    AdapterNotRegisteredError,
+    RunAdapterTestCommand,
+    RunAdapterTestUseCase,
+)
 from app.modules.scraper.domain.scraper_adapter_exceptions import (
     AdapterNotFoundError,
     DuplicateAdapterKeyError,
     InvalidAdapterKeyError,
     InvalidAdapterNameError,
+)
+from app.modules.scraper.domain.scraper_run_history import ScraperRunStatus
+from app.modules.scraper.infrastructure.handoff_storage import (
+    resolve_handoff_excel_path,
+    resolve_handoff_path,
 )
 from app.modules.scraper.core.scraper_manager import ScraperManager
 from app.modules.scraper.services.scraper_dashboard_service import ScraperDashboardService
@@ -276,6 +301,50 @@ def list_adapter_linked_fairs(
     return AdapterLinkedFairListResponse(items=items, total=len(items))
 
 
+@router.post(
+    "/adapters/{adapter}/test-run",
+    response_model=ScraperRunHistoryResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Adapter test çalıştırması başlat",
+)
+def run_adapter_test(
+    adapter: str,
+    body: AdapterTestRunRequest,
+    background_tasks: BackgroundTasks,
+    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    db: Annotated[Session, Depends(get_db)],
+    use_case: Annotated[RunAdapterTestUseCase, Depends(get_run_adapter_test_use_case)],
+    job_runner: Annotated[AdapterTestRunJobRunner, Depends(get_adapter_test_run_job_runner)],
+) -> ScraperRunHistoryResponse:
+    unavailable = playwright_browser_unavailable_message(BrowserConfig.from_settings(get_settings()))
+    if unavailable:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=unavailable)
+    try:
+        run = use_case.execute(
+            RunAdapterTestCommand(
+                organization_id=auth.organization_id,
+                adapter_key=adapter,
+                input_url=body.input_url,
+            )
+        )
+    except AdapterNotRegisteredError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    db.commit()
+    background_tasks.add_task(
+        run_blocking_background_task,
+        job_runner.run_adapter_test,
+        AdapterTestRunJobCommand(
+            run_id=run.id,
+            organization_id=auth.organization_id,
+            adapter_key=run.adapter_key,
+            input_url=run.input_url or body.input_url.strip(),
+        ),
+    )
+    return ScraperRunHistoryResponse.from_entity(run)
+
+
 @router.get(
     "/runs",
     response_model=ScraperRunHistoryListResponse,
@@ -333,8 +402,78 @@ def list_scraper_run_logs(
         )
     logs = run_log_service.list_logs(run_id, after_id=after_id, limit=limit)
     items = [ScraperRunLogResponse.from_entity(log) for log in logs]
+    json_path = resolve_handoff_path(run_id)
+    excel_path = resolve_handoff_excel_path(run_id)
+    outputs_ready = run.status == ScraperRunStatus.COMPLETED
     return ScraperRunLogListResponse(
         items=items,
         total=run_log_service.count_logs(run_id),
         run_status=run.status,
+        total_rows=run.total_rows,
+        output_json_available=outputs_ready and json_path.is_file(),
+        output_excel_available=outputs_ready and excel_path.is_file(),
+    )
+
+
+@router.get(
+    "/runs/{run_id}/output/json",
+    summary="Adapter test JSON çıktısı",
+)
+def download_scraper_run_json(
+    run_id: UUID,
+    run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
+) -> FileResponse:
+    run = run_history_service.get_run(run_id)
+    if run is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Scraper run not found: {run_id}",
+        )
+    if run.status != ScraperRunStatus.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Test çıktısı henüz hazır değil.",
+        )
+    path = resolve_handoff_path(run_id)
+    if not path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="JSON çıktı dosyası bulunamadı.",
+        )
+    return FileResponse(
+        path=path,
+        media_type="application/json",
+        filename=f"{run_id}.json",
+    )
+
+
+@router.get(
+    "/runs/{run_id}/output/excel",
+    summary="Adapter test Excel çıktısı",
+)
+def download_scraper_run_excel(
+    run_id: UUID,
+    run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
+) -> FileResponse:
+    run = run_history_service.get_run(run_id)
+    if run is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Scraper run not found: {run_id}",
+        )
+    if run.status != ScraperRunStatus.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Test çıktısı henüz hazır değil.",
+        )
+    path = resolve_handoff_excel_path(run_id)
+    if not path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Excel çıktı dosyası bulunamadı.",
+        )
+    return FileResponse(
+        path=path,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename=f"{run_id}.xlsx",
     )

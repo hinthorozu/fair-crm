@@ -17,6 +17,7 @@ from app.db.session import SessionLocal
 from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
 from app.modules.scraper.adapters import register_builtin_adapters
 from app.modules.scraper.core.browser_service import BrowserConfig, BrowserService, create_browser_service
+from app.modules.scraper.core.playwright_availability import PlaywrightBrowserNotInstalledError
 from app.modules.scraper.core.scraper_registry import ScraperAdapterRegistry
 from app.modules.scraper.core.scraper_run_logger import CappedWarningRunLogger, DbScraperRunLogger, ScraperRunLogger
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportExporter, ScraperImportHandoff
@@ -199,6 +200,13 @@ class FairScraperJobRunner:
             )
             db.commit()
             logger.info("Completed fair scraper run id=%s rows=%s", command.run_id, total_rows)
+        except PlaywrightBrowserNotInstalledError as exc:
+            logger.warning("%s", exc)
+            if run_logger is not None:
+                if isinstance(run_logger, CappedWarningRunLogger):
+                    run_logger.flush_suppressed_warnings()
+                run_logger.error("failed", str(exc))
+            self._fail_run(db, command.run_id, str(exc))
         except Exception as exc:
             logger.exception("Fair scraper run failed id=%s", command.run_id)
             if run_logger is not None:

@@ -15,6 +15,46 @@ from app.modules.scraper.services.scraper_run_history_service import ScraperRunH
 from app.modules.scraper.types.scraper_site import ScraperSiteKey
 
 
+def test_list_adapter_linked_fairs_from_fair_adapter_key(
+    client: TestClient, db_session, organization_id, auth_headers
+):
+    now = datetime.now(UTC)
+    fair = FairModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        name="Foodist Expo",
+        organizer=None,
+        venue="TÜYAP",
+        city="İstanbul",
+        country="Türkiye",
+        start_date=None,
+        end_date=None,
+        website=None,
+        status=FairStatus.ACTIVE.value,
+        description=None,
+        normalized_name=compute_normalized_name(name="Foodist Expo"),
+        adapter_key=ScraperSiteKey.TUYAP_NEW,
+        source_url="https://foodist.test/list",
+        created_at=now,
+        updated_at=now,
+        deleted_at=None,
+        archived_from_status=None,
+    )
+    db_session.add(fair)
+    db_session.flush()
+
+    response = client.get(
+        f"/api/v1/scraper/adapters/{ScraperSiteKey.TUYAP_NEW}/fairs",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 1
+    assert payload["items"][0]["name"] == "Foodist Expo"
+    assert payload["items"][0]["source_url"] == "https://foodist.test/list"
+
+
 def test_list_adapter_linked_fairs_endpoint(client: TestClient, db_session, organization_id, auth_headers):
     now = datetime.now(UTC)
     fair = FairModel(

@@ -110,6 +110,30 @@ def test_run_fair_scraper_not_found(client, auth_headers):
     assert response.status_code == 404
 
 
+def test_run_fair_scraper_returns_503_when_playwright_browser_missing(client, auth_headers, monkeypatch):
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={
+            "name": "Missing Browser Fair",
+            "adapter_key": ScraperSiteKey.TUYAP_NEW,
+            "source_url": "https://foodist.test/brands",
+        },
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 201
+    fair_id = create_response.json()["id"]
+
+    monkeypatch.setattr(
+        "app.modules.scraper.core.playwright_availability.is_playwright_browser_installed",
+        lambda config=None: False,
+    )
+    response = client.post(f"/api/v1/fairs/{fair_id}/run", headers=auth_headers)
+    assert response.status_code == 503
+    assert response.json()["detail"] == (
+        "Playwright browser kurulu değil. Local için: python -m playwright install"
+    )
+
+
 def test_list_scraper_runs_filter_by_fair_id(client, auth_headers, db_session):
     create_response = client.post(
         "/api/v1/fairs",

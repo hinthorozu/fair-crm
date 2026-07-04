@@ -1,8 +1,7 @@
 export const dataIntegrationLabels = {
   moduleTitle: "Veri Entegrasyonu",
-  moduleSubtitle: "Universal Import Engine — güvenli veri aktarımı",
   navImports: "Import İşleri",
-  navNewImport: "Yeni Import",
+  navNewImport: "Excel Import",
   navHistory: "Import Geçmişi",
   navTemplates: "Mapping Şablonları",
   navJobs: "İşler",
@@ -11,6 +10,7 @@ export const dataIntegrationLabels = {
   comingSoon: "Yakında",
   comingSoonMessage: "Bu özellik yakında kullanıma sunulacak.",
   importsTitle: "Import İşleri",
+  importsSubtitle: "Excel, scraper ve diğer kaynaklardan oluşan tüm import işlerinin geçmişi.",
   importsEmpty: "Henüz import işi yok.",
   newImport: "Yeni Import",
   colFile: "Dosya",

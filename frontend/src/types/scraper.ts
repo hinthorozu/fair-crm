@@ -170,6 +170,9 @@ export interface ScraperRunLogListResponse {
   items: ScraperRunLog[];
   total: number;
   run_status: ScraperRunStatus;
+  total_rows: number;
+  output_json_available: boolean;
+  output_excel_available: boolean;
 }
 
 export interface AdapterLinkedFair {

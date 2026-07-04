@@ -63,6 +63,8 @@ from app.modules.fairs.domain.exceptions import (
 from app.modules.fairs.domain.value_objects import FairStatus
 from app.modules.scraper.api.schemas import ScraperRunHistoryResponse
 from app.modules.scraper.application.fair_scraper_job_runner import FairScraperJobCommand, FairScraperJobRunner
+from app.modules.scraper.core.browser_service import BrowserConfig
+from app.modules.scraper.core.playwright_availability import playwright_browser_unavailable_message
 from app.shared.background_jobs import run_blocking_background_task
 from sqlalchemy.orm import Session
 
@@ -329,6 +331,9 @@ def run_fair_scraper(
     use_case: RunFairScraperUseCase = Depends(get_run_fair_scraper_use_case),
     job_runner: FairScraperJobRunner = Depends(get_fair_scraper_job_runner),
 ) -> ScraperRunHistoryResponse:
+    unavailable = playwright_browser_unavailable_message(BrowserConfig.from_settings(get_settings()))
+    if unavailable:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=unavailable)
     try:
         run = use_case.execute(
             RunFairScraperCommand(
