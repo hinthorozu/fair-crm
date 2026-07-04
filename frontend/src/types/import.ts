@@ -2,6 +2,8 @@ import type { StandardListResponse } from "./listTable";
 
 export type ImportSourceType =
   | "excel"
+  | "csv"
+  | "api"
   | "pdf"
   | "scraper"
   | "database"

@@ -61,6 +61,13 @@ const IMPORT_COLUMNS = (
     ),
   },
   {
+    key: "source_type",
+    title: dataIntegrationLabels.colType,
+    sortable: false,
+    render: (batch) =>
+      dataIntegrationLabels.importSourceTypeLabels[batch.source_type] ?? batch.source_type,
+  },
+  {
     key: "status",
     title: dataIntegrationLabels.colStatus,
     sortable: true,
