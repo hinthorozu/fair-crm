@@ -1,6 +1,7 @@
 export const scraperLabels = {
   pageTitle: "Adapter Yönetimi",
   pageSubtitle: "Adapter kayıtlarını yönetin, test edin ve çalıştırın.",
+  backToAdapters: "Adapter listesine dön",
   summaryTotal: "Toplam Adapter",
   summaryStable: "Stable",
   summaryExperimental: "Experimental",

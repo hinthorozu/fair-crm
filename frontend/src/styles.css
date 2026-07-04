@@ -3391,6 +3391,25 @@ textarea:hover {
   margin-top: 0.25rem;
 }
 
+.adapter-manifest-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+.adapter-manifest-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.adapter-manifest-edit .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
 .adapter-runs-table .table-wrap {
   margin-top: 0.25rem;
 }

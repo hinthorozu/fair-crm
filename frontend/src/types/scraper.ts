@@ -66,6 +66,18 @@ export interface UpdateAdapterPayload {
   is_active?: boolean;
 }
 
+export interface UpdateAdapterManifestPayload {
+  display_name?: string;
+  status?: AdapterStatus;
+  version?: string;
+  last_verified?: string | null;
+  supported_sites?: string[] | string;
+  notes?: string | null;
+  output?: { json_handoff?: boolean; excel?: boolean };
+  browser?: { requires_js?: boolean; requires_playwright?: boolean };
+  supports?: Partial<ScraperSupports>;
+}
+
 export interface ScraperDashboardSummary {
   total_adapters: number;
   stable_count: number;

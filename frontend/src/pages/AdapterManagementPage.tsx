@@ -11,7 +11,6 @@ import {
   listScraperRuns,
   updateAdapter,
 } from "../api/scraper";
-import { AdapterDetailDrawer } from "../components/scraper/AdapterDetailDrawer";
 import { AdapterFormModal } from "../components/scraper/AdapterFormModal";
 import { AdapterFeatureBadges } from "../components/scraper/AdapterFeatureBadges";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -37,25 +36,6 @@ import { formatDetailDate } from "../components/ui/DetailFields";
 import { adapterDetailToListItem, mergeAdapterListItem } from "../utils/scraperAdapters";
 
 type StatusFilter = "all" | "stable" | "experimental" | "deprecated";
-
-function readAdapterFromUrl(): string | null {
-  return new URLSearchParams(window.location.search).get("adapter");
-}
-
-function writeAdapterToUrl(adapterKey: string | null) {
-  const params = new URLSearchParams(window.location.search);
-  if (adapterKey) {
-    params.set("adapter", adapterKey);
-  } else {
-    params.delete("adapter");
-  }
-  const qs = params.toString();
-  const next = `/data-integration/adapters${qs ? `?${qs}` : ""}`;
-  if (`${window.location.pathname}${window.location.search}` !== next) {
-    window.history.pushState(null, "", next);
-    window.dispatchEvent(new PopStateEvent("popstate"));
-  }
-}
 
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return "—";
@@ -186,7 +166,11 @@ function SummaryCards({
   );
 }
 
-export function AdapterManagementPage({ onOpenFair }: { onOpenFair?: (fairId: string) => void }) {
+export function AdapterManagementPage({
+  onOpenDetail,
+}: {
+  onOpenDetail?: (adapterKey: string) => void;
+}) {
   const [summary, setSummary] = React.useState<ScraperDashboardSummary | null>(null);
   const [adapters, setAdapters] = React.useState<AdapterListItem[]>([]);
   const [runs, setRuns] = React.useState<ScraperRun[]>([]);
@@ -194,7 +178,6 @@ export function AdapterManagementPage({ onOpenFair }: { onOpenFair?: (fairId: st
   const [error, setError] = React.useState<string | null>(null);
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all");
-  const [selectedAdapterKey, setSelectedAdapterKey] = React.useState<string | null>(() => readAdapterFromUrl());
   const [showCreateModal, setShowCreateModal] = React.useState(false);
   const [editAdapter, setEditAdapter] = React.useState<AdapterDetail | null>(null);
   const [formSaving, setFormSaving] = React.useState(false);
@@ -258,12 +241,6 @@ export function AdapterManagementPage({ onOpenFair }: { onOpenFair?: (fairId: st
     void loadData();
   }, [loadData]);
 
-  React.useEffect(() => {
-    const onPopState = () => setSelectedAdapterKey(readAdapterFromUrl());
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, []);
-
   const lastRunMap = React.useMemo(() => buildLastRunMap(runs), [runs]);
 
   const filteredAdapters = React.useMemo(() => {
@@ -278,26 +255,18 @@ export function AdapterManagementPage({ onOpenFair }: { onOpenFair?: (fairId: st
     });
   }, [adapters, search, statusFilter]);
 
-  const selectedAdapter = React.useMemo(
-    () => adapters.find((adapter) => adapter.adapter_key === selectedAdapterKey) ?? null,
-    [adapters, selectedAdapterKey],
-  );
-
   const lastRunLabel = React.useMemo(() => {
     if (!summary?.last_run_adapter) return "—";
     const match = adapters.find((adapter) => adapter.adapter_key === summary.last_run_adapter);
     return match?.display_name ?? summary.last_run_adapter;
   }, [summary, adapters]);
 
-  const openDetail = React.useCallback((adapter: AdapterListItem) => {
-    setSelectedAdapterKey(adapter.adapter_key);
-    writeAdapterToUrl(adapter.adapter_key);
-  }, []);
-
-  const closeDetail = React.useCallback(() => {
-    setSelectedAdapterKey(null);
-    writeAdapterToUrl(null);
-  }, []);
+  const openDetail = React.useCallback(
+    (adapter: AdapterListItem) => {
+      onOpenDetail?.(adapter.adapter_key);
+    },
+    [onOpenDetail],
+  );
 
   const openEdit = React.useCallback(async (adapter: AdapterListItem) => {
     setFormError(null);
@@ -455,16 +424,6 @@ export function AdapterManagementPage({ onOpenFair }: { onOpenFair?: (fairId: st
           className="adapter-table"
         />
       </div>
-
-      {selectedAdapterKey ? (
-        <AdapterDetailDrawer
-          adapterKey={selectedAdapterKey}
-          adapterItem={selectedAdapter}
-          runs={runs}
-          onClose={closeDetail}
-          onOpenFair={onOpenFair}
-        />
-      ) : null}
 
       {showCreateModal ? (
         <AdapterFormModal

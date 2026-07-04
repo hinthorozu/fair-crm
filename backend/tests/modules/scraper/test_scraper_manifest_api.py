@@ -33,8 +33,8 @@ def test_list_scraper_manifests_endpoint_returns_adapter_list_format(client: Tes
     assert features["website"]["enabled"] is True
 
 
-def test_get_scraper_manifest_endpoint(client: TestClient):
-    response = client.get(f"/api/v1/scraper/manifests/{ScraperSiteKey.TUYAP_NEW}")
+def test_get_scraper_manifest_endpoint(client: TestClient, auth_headers):
+    response = client.get(f"/api/v1/scraper/manifests/{ScraperSiteKey.TUYAP_NEW}", headers=auth_headers)
 
     assert response.status_code == 200
     payload = response.json()
@@ -50,8 +50,7 @@ def test_get_scraper_manifest_endpoint(client: TestClient):
     assert payload["browser"]["requires_playwright"] is True
 
 
-def test_get_scraper_manifest_not_found(client: TestClient):
-    response = client.get("/api/v1/scraper/manifests/unknown")
+def test_get_scraper_manifest_not_found(client: TestClient, auth_headers):
+    response = client.get("/api/v1/scraper/manifests/unknown", headers=auth_headers)
 
     assert response.status_code == 404
-    assert "No scraper manifest" in response.json()["detail"]

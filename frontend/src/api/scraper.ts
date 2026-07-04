@@ -11,6 +11,7 @@ import type {
   AdapterDetail,
   CreateAdapterPayload,
   UpdateAdapterPayload,
+  UpdateAdapterManifestPayload,
 } from "../types/scraper";
 
 export async function getScraperDashboard(): Promise<ScraperDashboardResponse> {
@@ -53,6 +54,19 @@ export async function deactivateAdapter(adapterKey: string): Promise<AdapterDeta
   return apiRequest<AdapterDetail>(`/api/v1/scraper/adapters/${encodeURIComponent(adapterKey)}/deactivate`, {
     method: "POST",
   });
+}
+
+export async function updateAdapterManifest(
+  adapterKey: string,
+  payload: UpdateAdapterManifestPayload,
+): Promise<ScraperManifest> {
+  return apiRequest<ScraperManifest>(
+    `/api/v1/scraper/adapters/${encodeURIComponent(adapterKey)}/manifest`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export async function getScraperManifest(adapterKey: string): Promise<ScraperManifest> {

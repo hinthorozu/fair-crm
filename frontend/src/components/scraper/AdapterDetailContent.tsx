@@ -1,8 +1,8 @@
 import React from "react";
 import { getScraperManifest } from "../../api/scraper";
-import { Drawer } from "../ui/Drawer";
 import { Tabs, TabPanel } from "../ui/Tabs";
 import { Badge } from "../ui/Badge";
+import { Card } from "../ui/Card";
 import { DetailValue, formatDetailDate } from "../ui/DetailFields";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../ui/UniversalDataTable";
 import { AdapterFeatureBadges } from "./AdapterFeatureBadges";
@@ -17,13 +17,14 @@ import {
 } from "../../utils/scraperBadges";
 import type { AdapterListItem, ScraperManifest, ScraperRun } from "../../types/scraper";
 
-type DrawerTab = "general" | "manifest" | "runs" | "console" | "fairs";
+export type AdapterDetailTab = "general" | "manifest" | "runs" | "console" | "fairs";
 
-interface AdapterDetailDrawerProps {
+export interface AdapterDetailContentProps {
   adapterKey: string;
   adapterItem: AdapterListItem | null;
   runs: ScraperRun[];
-  onClose: () => void;
+  activeTab: AdapterDetailTab;
+  onTabChange: (tab: AdapterDetailTab) => void;
   onOpenFair?: (fairId: string) => void;
 }
 
@@ -136,14 +137,14 @@ function ManifestDetails({ manifest }: { manifest: ScraperManifest }) {
   );
 }
 
-export function AdapterDetailDrawer({
+export function AdapterDetailContent({
   adapterKey,
   adapterItem,
   runs,
-  onClose,
+  activeTab,
+  onTabChange,
   onOpenFair,
-}: AdapterDetailDrawerProps) {
-  const [activeTab, setActiveTab] = React.useState<DrawerTab>("general");
+}: AdapterDetailContentProps) {
   const [manifest, setManifest] = React.useState<ScraperManifest | null>(null);
   const [manifestLoading, setManifestLoading] = React.useState(true);
   const [manifestError, setManifestError] = React.useState<string | null>(null);
@@ -175,18 +176,18 @@ export function AdapterDetailDrawer({
     };
   }, [adapterKey]);
 
-  const openRunInConsole = React.useCallback((runId: string) => {
-    setSelectedRunId(runId);
-    setActiveTab("console");
-  }, []);
+  const openRunInConsole = React.useCallback(
+    (runId: string) => {
+      setSelectedRunId(runId);
+      onTabChange("console");
+    },
+    [onTabChange],
+  );
 
   const runColumns = React.useMemo(() => buildRunColumns(openRunInConsole), [openRunInConsole]);
 
-  const title = adapterItem?.display_name ?? adapterKey;
-  const subtitle = adapterKey;
-
   return (
-    <Drawer title={title} subtitle={subtitle} onClose={onClose}>
+    <>
       <Tabs
         items={[
           { id: "general", label: scraperLabels.drawerTabGeneral },
@@ -196,61 +197,71 @@ export function AdapterDetailDrawer({
           { id: "fairs", label: scraperLabels.drawerTabLinkedFairs },
         ]}
         active={activeTab}
-        onChange={setActiveTab}
+        onChange={onTabChange}
       />
 
       <TabPanel id="panel-general" labelledBy="tab-general" active={activeTab === "general"}>
-        {manifestLoading ? <p className="text-muted">Yükleniyor…</p> : null}
-        {manifestError ? <p className="text-danger">{manifestError}</p> : null}
-        {manifest ? (
-          <dl className="detail-grid">
-            <ManifestField label="Adapter" value={<DetailValue value={manifest.display_name} />} />
-            <ManifestField
-              label="Status"
-              value={
-                <Badge variant={adapterStatusBadgeVariant(manifest.status)}>
-                  {adapterStatusLabel(manifest.status)}
-                </Badge>
-              }
-            />
-            <ManifestField label="Version" value={<DetailValue value={manifest.version} />} />
-            <ManifestField label="Last Verified" value={formatDetailDate(manifest.last_verified)} />
-            <ManifestField
-              label={scraperLabels.colFeatures}
-              value={<AdapterFeatureBadges features={adapterItem?.features ?? []} />}
-            />
-            <ManifestField label="Notes" value={<DetailValue value={manifest.notes} />} />
-          </dl>
-        ) : null}
+        <Card>
+          {manifestLoading ? <p className="text-muted">Yükleniyor…</p> : null}
+          {manifestError ? <p className="text-danger">{manifestError}</p> : null}
+          {manifest ? (
+            <dl className="detail-grid">
+              <ManifestField label="Adapter" value={<DetailValue value={manifest.display_name} />} />
+              <ManifestField
+                label="Status"
+                value={
+                  <Badge variant={adapterStatusBadgeVariant(manifest.status)}>
+                    {adapterStatusLabel(manifest.status)}
+                  </Badge>
+                }
+              />
+              <ManifestField label="Version" value={<DetailValue value={manifest.version} />} />
+              <ManifestField label="Last Verified" value={formatDetailDate(manifest.last_verified)} />
+              <ManifestField
+                label={scraperLabels.colFeatures}
+                value={<AdapterFeatureBadges features={adapterItem?.features ?? []} />}
+              />
+              <ManifestField label="Notes" value={<DetailValue value={manifest.notes} />} />
+            </dl>
+          ) : null}
+        </Card>
       </TabPanel>
 
       <TabPanel id="panel-manifest" labelledBy="tab-manifest" active={activeTab === "manifest"}>
-        {manifestLoading ? <p className="text-muted">Yükleniyor…</p> : null}
-        {manifestError ? <p className="text-danger">{manifestError}</p> : null}
-        {manifest ? <ManifestDetails manifest={manifest} /> : null}
+        <Card>
+          {manifestLoading ? <p className="text-muted">Yükleniyor…</p> : null}
+          {manifestError ? <p className="text-danger">{manifestError}</p> : null}
+          {manifest ? <ManifestDetails manifest={manifest} /> : null}
+        </Card>
       </TabPanel>
 
       <TabPanel id="panel-runs" labelledBy="tab-runs" active={activeTab === "runs"}>
-        <UniversalDataTable
-          items={adapterRuns}
-          columns={runColumns}
-          rowKey={(run) => run.id}
-          emptyState={<p className="text-muted">{scraperLabels.runsEmpty}</p>}
-          className="adapter-runs-table"
-        />
+        <Card>
+          <UniversalDataTable
+            items={adapterRuns}
+            columns={runColumns}
+            rowKey={(run) => run.id}
+            emptyState={<p className="text-muted">{scraperLabels.runsEmpty}</p>}
+            className="adapter-runs-table"
+          />
+        </Card>
       </TabPanel>
 
       <TabPanel id="panel-console" labelledBy="tab-console" active={activeTab === "console"}>
-        <AdapterRunLogConsole
-          runs={adapterRuns}
-          selectedRunId={selectedRunId}
-          onSelectRunId={setSelectedRunId}
-        />
+        <Card>
+          <AdapterRunLogConsole
+            runs={adapterRuns}
+            selectedRunId={selectedRunId}
+            onSelectRunId={setSelectedRunId}
+          />
+        </Card>
       </TabPanel>
 
       <TabPanel id="panel-fairs" labelledBy="tab-fairs" active={activeTab === "fairs"}>
-        <AdapterLinkedFairsTab adapterKey={adapterKey} active={activeTab === "fairs"} onOpenFair={onOpenFair} />
+        <Card>
+          <AdapterLinkedFairsTab adapterKey={adapterKey} active={activeTab === "fairs"} onOpenFair={onOpenFair} />
+        </Card>
       </TabPanel>
-    </Drawer>
+    </>
   );
 }

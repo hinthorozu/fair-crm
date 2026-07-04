@@ -22,6 +22,7 @@ from app.modules.scraper.api.schemas import (
     AdapterListResponse,
     CreateAdapterRequest,
     UpdateAdapterRequest,
+    UpdateAdapterManifestRequest,
     ScraperDashboardResponse,
     ScraperDashboardSummaryResponse,
     ScraperManifestListResponse,
@@ -140,6 +141,37 @@ def update_adapter(
     return AdapterDetailResponse.from_managed_view(view)
 
 
+@router.patch(
+    "/adapters/{adapter}/manifest",
+    response_model=ScraperManifestResponse,
+    summary="Adapter manifest güncelle",
+)
+def update_adapter_manifest(
+    adapter: str,
+    body: UpdateAdapterManifestRequest,
+    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    adapter_service: Annotated[ScraperAdapterService, Depends(get_scraper_adapter_service)],
+) -> ScraperManifestResponse:
+    payload = body.model_dump(exclude_unset=True)
+    if body.output is not None:
+        payload["output"] = body.output.model_dump(exclude_unset=True)
+    if body.browser is not None:
+        payload["browser"] = body.browser.model_dump(exclude_unset=True)
+    if body.supports is not None:
+        payload["supports"] = body.supports.model_dump(exclude_unset=True)
+    try:
+        merged = adapter_service.update_adapter_manifest(
+            auth.organization_id,
+            adapter,
+            payload,
+        )
+    except (AdapterNotFoundError, InvalidAdapterKeyError, InvalidAdapterNameError) as exc:
+        raise _adapter_http_errors(exc) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return ScraperManifestResponse.from_manifest(merged)
+
+
 @router.post(
     "/adapters/{adapter}/activate",
     response_model=AdapterDetailResponse,
@@ -208,10 +240,13 @@ def list_scraper_manifests(
 )
 def get_scraper_manifest(
     adapter: str,
-    manager: Annotated[ScraperManager, Depends(get_default_scraper_manager)],
+    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    adapter_service: Annotated[ScraperAdapterService, Depends(get_scraper_adapter_service)],
 ) -> ScraperManifestResponse:
     try:
-        manifest = manager.get_manifest(adapter)
+        manifest = adapter_service.get_merged_manifest(auth.organization_id, adapter)
+    except (AdapterNotFoundError, InvalidAdapterKeyError) as exc:
+        raise _adapter_http_errors(exc) from exc
     except KeyError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

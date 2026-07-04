@@ -17,6 +17,11 @@ from app.modules.scraper.infrastructure.repositories.scraper_adapter_repository 
     ScraperAdapterRepository,
 )
 from app.modules.scraper.manifests.scraper_manifest import ScraperManifest, ScraperStatus
+from app.modules.scraper.services.manifest_overlay import (
+    build_manifest_overlay_patch,
+    merge_manifest_with_record,
+    parse_last_verified,
+)
 from app.modules.scraper.services.scraper_dashboard_service import (
     build_adapter_features,
     resolve_actions_available,
@@ -109,6 +114,53 @@ class ScraperAdapterService:
         registry_manifest = self._try_get_manifest(saved.adapter_key)
         return self._merge_view(registry_manifest, saved) if registry_manifest else self._view_from_record(saved)
 
+    def get_merged_manifest(self, organization_id: UUID, adapter_key: str) -> ScraperManifest:
+        normalized_key = normalize_adapter_key(adapter_key)
+        registry_manifest = self._try_get_manifest(normalized_key)
+        if registry_manifest is None:
+            raise AdapterNotFoundError(f"Adapter not found: {adapter_key}")
+        record = self._repository.get_by_key(organization_id, normalized_key)
+        return merge_manifest_with_record(registry_manifest, record)
+
+    def update_adapter_manifest(
+        self,
+        organization_id: UUID,
+        adapter_key: str,
+        updates: dict[str, Any],
+    ) -> ScraperManifest:
+        normalized_key = normalize_adapter_key(adapter_key)
+        registry_manifest = self._try_get_manifest(normalized_key)
+        if registry_manifest is None:
+            raise AdapterNotFoundError(f"Adapter not found: {adapter_key}")
+
+        record = self._get_or_create_overlay(organization_id, normalized_key)
+        now = datetime.now(tz=UTC)
+
+        update_kwargs: dict[str, Any] = {"now": now}
+        if "display_name" in updates:
+            update_kwargs["name"] = updates["display_name"]
+        if "notes" in updates:
+            update_kwargs["description"] = updates["notes"]
+        if "status" in updates:
+            update_kwargs["status"] = updates["status"]
+        if "version" in updates:
+            update_kwargs["version"] = updates["version"]
+        if "last_verified" in updates:
+            update_kwargs["last_verified_at"] = parse_last_verified(updates["last_verified"])
+
+        if any(key in updates for key in ("supported_sites", "output", "browser", "supports")):
+            update_kwargs["manifest"] = build_manifest_overlay_patch(
+                record.manifest,
+                supported_sites=updates.get("supported_sites"),
+                output=updates.get("output"),
+                browser=updates.get("browser"),
+                supports=updates.get("supports"),
+            )
+
+        record.update_fields(**update_kwargs)
+        saved = self._repository.update(record)
+        return merge_manifest_with_record(registry_manifest, saved)
+
     def update_adapter(
         self,
         organization_id: UUID,
@@ -198,29 +250,26 @@ class ScraperAdapterService:
                 raise AdapterNotFoundError("Adapter not found")
             return self._view_from_record(record, manifest=None)
 
-        display_name = record.name if record is not None else manifest.display_name
-        status = record.status.value if record is not None else manifest.status.value
-        version = record.version if record is not None and record.version else manifest.version
-        description = record.description if record is not None else manifest.notes or None
+        merged = merge_manifest_with_record(manifest, record)
+        display_name = merged.display_name
+        status = merged.status.value
+        version = merged.version
+        description = merged.notes or None
         is_active = record.is_active if record is not None else True
         manifest_json = record.manifest if record is not None else None
         last_verified_at = record.last_verified_at if record is not None else None
-        last_verified = (
-            last_verified_at.date().isoformat()
-            if last_verified_at is not None
-            else manifest.last_verified
-        )
+        last_verified = merged.last_verified
 
         return ManagedAdapterView(
             id=record.id if record is not None else None,
-            adapter_key=manifest.adapter_key,
+            adapter_key=merged.adapter_key,
             display_name=display_name,
             description=description,
             status=status,
             version=version,
-            features=build_adapter_features(manifest),
+            features=build_adapter_features(merged),
             last_verified=last_verified,
-            actions_available=resolve_actions_available(manifest),
+            actions_available=resolve_actions_available(merged),
             is_active=is_active,
             manifest=manifest_json,
             last_verified_at=last_verified_at,

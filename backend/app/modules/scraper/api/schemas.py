@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.modules.scraper.domain.scraper_run_history import ScraperRunHistory, ScraperRunStatus
 from app.modules.scraper.domain.scraper_run_log import ScraperRunLog, ScraperRunLogLevel
@@ -263,6 +263,42 @@ class UpdateAdapterRequest(BaseModel):
     version: str | None = Field(default=None, max_length=50)
     manifest: dict[str, Any] | None = None
     is_active: bool | None = None
+
+
+class ScraperOutputUpdateRequest(BaseModel):
+    json_handoff: bool | None = None
+    excel: bool | None = None
+
+
+class ScraperBrowserUpdateRequest(BaseModel):
+    requires_js: bool | None = None
+    requires_playwright: bool | None = None
+
+
+class ScraperSupportsUpdateRequest(BaseModel):
+    list_scraping: bool | None = None
+    detail_scraping: bool | None = None
+    pagination: bool | None = None
+    website: bool | None = None
+    email: bool | None = None
+    phone: bool | None = None
+    address: bool | None = None
+    category: bool | None = None
+    description: bool | None = None
+
+
+class UpdateAdapterManifestRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    display_name: str | None = Field(default=None, min_length=1, max_length=255)
+    status: ScraperStatus | None = None
+    version: str | None = Field(default=None, max_length=50)
+    last_verified: str | None = Field(default=None, max_length=32)
+    supported_sites: list[str] | str | None = None
+    notes: str | None = Field(default=None, max_length=5000)
+    output: ScraperOutputUpdateRequest | None = None
+    browser: ScraperBrowserUpdateRequest | None = None
+    supports: ScraperSupportsUpdateRequest | None = None
 
 
 class AdapterDetailResponse(BaseModel):

@@ -6,6 +6,7 @@ import { FairDetailPage } from "./pages/FairDetailPage";
 import { ImportWizardPage } from "./pages/ImportWizardPage";
 import { DataIntegrationImportsPage } from "./pages/DataIntegrationImportsPage";
 import { AdapterManagementPage } from "./pages/AdapterManagementPage";
+import { AdapterDetailPage } from "./pages/AdapterDetailPage";
 import { DatabaseBackupsPage } from "./pages/DatabaseBackupsPage";
 import { DataOperationsPage } from "./pages/DataOperationsPage";
 import { DataOperationRunResultPage } from "./pages/DataOperationRunResultPage";
@@ -17,6 +18,7 @@ import { uiLabels } from "./labels/uiLabels";
 import { dataIntegrationLabels } from "./labels/dataIntegrationLabels";
 import { adminLabels } from "./labels/adminLabels";
 import { labels } from "./labels";
+import { scraperLabels } from "./labels/scraperLabels";
 import "./styles.css";
 
 type AppRoute =
@@ -30,6 +32,7 @@ type AppRoute =
   | "/data-integration/jobs"
   | "/data-integration/reports"
   | "/data-integration/adapters"
+  | "/data-integration/adapters/:adapterKey"
   | "/admin/system/backups"
   | "/admin/data-operations"
   | "/admin/data-operations/runs/:runId"
@@ -44,6 +47,7 @@ interface ParsedRoute {
   batchId?: string;
   dataOperationRunId?: string;
   dataOperationKey?: string;
+  adapterKey?: string;
 }
 
 function parseRoute(location: string): ParsedRoute {
@@ -89,7 +93,14 @@ function parseRoute(location: string): ParsedRoute {
     if (pathname === "/data-integration/reports") {
       return { route: "/data-integration/reports" };
     }
-    if (pathname === "/data-integration/adapters") {
+    const adapterDetail = pathname.match(/^\/data-integration\/adapters\/([^/]+)$/);
+    if (adapterDetail) {
+      return {
+        route: "/data-integration/adapters/:adapterKey",
+        adapterKey: decodeURIComponent(adapterDetail[1]),
+      };
+    }
+    if (pathname === "/data-integration/adapters" || pathname === "/data-integration/adapters/") {
       return { route: "/data-integration/adapters" };
     }
     return { route: "/data-integration/imports" };
@@ -173,6 +184,7 @@ export function App() {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [customerName, setCustomerName] = React.useState<string | null>(null);
   const [fairName, setFairName] = React.useState<string | null>(null);
+  const [adapterName, setAdapterName] = React.useState<string | null>(null);
   const [diNotice, setDiNotice] = React.useState<string | null>(null);
   const [adminNotice, setAdminNotice] = React.useState<string | null>(null);
 
@@ -195,6 +207,14 @@ export function App() {
       window.history.replaceState(null, "", next);
       setParsed(parseRoute(next));
     }
+    if (path === "/data-integration/adapters" || path === "/data-integration/adapters/") {
+      const legacyAdapter = new URLSearchParams(window.location.search).get("adapter");
+      if (legacyAdapter) {
+        const next = `/data-integration/adapters/${encodeURIComponent(legacyAdapter)}`;
+        window.history.replaceState(null, "", next);
+        setParsed(parseRoute(next));
+      }
+    }
   }, []);
 
   React.useEffect(() => {
@@ -214,6 +234,7 @@ export function App() {
     const { pathname } = splitPath(path);
     if (pathname === "/customers") setCustomerName(null);
     if (pathname === "/fairs") setFairName(null);
+    if (!pathname.match(/^\/data-integration\/adapters\/[^/]+$/)) setAdapterName(null);
   };
 
   const goToCustomerDetail = (customerId: string) => {
@@ -257,6 +278,20 @@ export function App() {
     setSidebarOpen(false);
   };
 
+  const goToAdapters = () => {
+    navigate("/data-integration/adapters");
+    setParsed({ route: "/data-integration/adapters" });
+    setAdapterName(null);
+    setSidebarOpen(false);
+  };
+
+  const goToAdapterDetail = (adapterKey: string) => {
+    const path = `/data-integration/adapters/${encodeURIComponent(adapterKey)}`;
+    navigate(path);
+    setParsed(parseRoute(path));
+    setSidebarOpen(false);
+  };
+
   const goToAdmin = (subpath = "/admin/system/backups") => {
     navigate(subpath);
     setParsed(parseRoute(subpath));
@@ -287,7 +322,20 @@ export function App() {
               { label: uiLabels.navFairs, onClick: goToFairs },
               { label: uiLabels.navFairs, current: true },
             ]
-          : isDiActive
+          : parsed.route === "/data-integration/adapters/:adapterKey" && parsed.adapterKey
+            ? [
+                { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
+                { label: scraperLabels.pageTitle, onClick: goToAdapters },
+                { label: adapterName ?? parsed.adapterKey, current: true },
+              ]
+            : parsed.route === "/data-integration/adapters"
+              ? [
+                  { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                  { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
+                  { label: scraperLabels.pageTitle, current: true },
+                ]
+              : isDiActive
             ? [
                 { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
                 { label: uiLabels.navImports, current: true },
@@ -369,7 +417,15 @@ export function App() {
         </Card>
       )}
       {parsed.route === "/data-integration/adapters" && (
-        <AdapterManagementPage onOpenFair={goToFairDetail} />
+        <AdapterManagementPage onOpenDetail={goToAdapterDetail} />
+      )}
+      {parsed.route === "/data-integration/adapters/:adapterKey" && parsed.adapterKey && (
+        <AdapterDetailPage
+          adapterKey={parsed.adapterKey}
+          onBack={goToAdapters}
+          onOpenFair={goToFairDetail}
+          onAdapterLoaded={setAdapterName}
+        />
       )}
     </DataIntegrationLayout>
   );
