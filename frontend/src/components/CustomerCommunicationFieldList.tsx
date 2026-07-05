@@ -2,6 +2,7 @@ import React from "react";
 import type { CommunicationFormItem } from "../utils/customerCommunicationForm";
 import { createCommunicationItem, ensureSinglePrimary } from "../utils/customerCommunicationForm";
 import { labels } from "../labels";
+import { TextInput } from "./ui/form";
 
 interface CustomerCommunicationFieldListProps {
   sectionLabel: string;
@@ -18,6 +19,8 @@ export function CustomerCommunicationFieldList({
   inputType = "text",
   placeholder,
 }: CustomerCommunicationFieldListProps) {
+  const fieldId = React.useId();
+
   const updateItems = (next: CommunicationFormItem[]) => {
     onChange(ensureSinglePrimary(next));
   };
@@ -49,31 +52,32 @@ export function CustomerCommunicationFieldList({
       <legend className="communication-field-legend">{sectionLabel}</legend>
 
       {items.length === 0 ? (
-        <p className="communication-field-empty muted">{labels.communicationEmpty}</p>
+        <p className="communication-field-empty">{labels.communicationEmpty}</p>
       ) : (
         <ul className="communication-field-list">
-          {items.map((item) => (
+          {items.map((item, index) => (
             <li key={item.id} className="communication-field-row">
               <label className="communication-field-primary">
                 <input
                   type="radio"
-                  name={`${sectionLabel}-primary`}
+                  name={`${fieldId}-primary`}
                   checked={item.is_primary}
                   onChange={() => setPrimary(item.id)}
                   aria-label={`${labels.markPrimary} ${sectionLabel}`}
                 />
                 <span>{labels.primary}</span>
               </label>
-              <input
+              <TextInput
+                id={`${fieldId}-${index}`}
                 type={inputType}
                 className="communication-field-input"
                 value={item.value}
                 placeholder={placeholder}
-                onChange={(e) => setValue(item.id, e.target.value)}
+                onChange={(event) => setValue(item.id, event.target.value)}
               />
               <button
                 type="button"
-                className="btn secondary communication-field-remove"
+                className="btn secondary btn-sm communication-field-remove"
                 onClick={() => removeItem(item.id)}
               >
                 {labels.remove}
@@ -83,7 +87,7 @@ export function CustomerCommunicationFieldList({
         </ul>
       )}
 
-      <button type="button" className="btn secondary communication-field-add" onClick={addItem}>
+      <button type="button" className="btn secondary btn-sm communication-field-add" onClick={addItem}>
         {labels.add} {sectionLabel}
       </button>
     </fieldset>

@@ -5,6 +5,15 @@ import { labels } from "../labels";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 import { AdapterSelect } from "./AdapterSelect";
 import {
+  FormActions,
+  FormField,
+  FormGrid,
+  FormSection,
+  SelectInput,
+  TextareaInput,
+  TextInput,
+} from "./ui/form";
+import {
   isValidSourceUrl,
   parseScraperConfigJson,
   scraperConfigToJsonText,
@@ -80,8 +89,8 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
   const adapterSelected = Boolean(values.adapter_key?.trim());
   const sourceUrlRequired = adapterSelected;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!values.name.trim()) {
       setError(fairLabels.nameRequired);
       return;
@@ -137,123 +146,168 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
   };
 
   return (
-    <form className="customer-form" onSubmit={handleSubmit}>
-      {error && <div className="banner error">{error}</div>}
+    <form className="fair-form" onSubmit={(event) => void handleSubmit(event)}>
+      {error ? <div className="banner error form-form-alert">{error}</div> : null}
 
-      <div className="form-grid">
-        <Field label={fairLabels.name} required>
-          <input
-            value={values.name}
-            onChange={(e) => set("name", e.target.value)}
-            required
-          />
-        </Field>
-        <Field label={fairLabels.organizer}>
-          <input value={values.organizer ?? ""} onChange={(e) => set("organizer", e.target.value)} />
-        </Field>
-        <Field label={fairLabels.venue}>
-          <input value={values.venue ?? ""} onChange={(e) => set("venue", e.target.value)} />
-        </Field>
-        <Field label={labels.status}>
-          <select value={values.status} onChange={(e) => set("status", e.target.value)}>
-            {statusOptions.map((s) => (
-              <option key={s} value={s}>
-                {fairStatusLabels[s]}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label={labels.country}>
-          <input value={values.country ?? ""} onChange={(e) => set("country", e.target.value)} />
-        </Field>
-        <Field label={labels.city}>
-          <input value={values.city ?? ""} onChange={(e) => set("city", e.target.value)} />
-        </Field>
-        <Field label={fairLabels.start_date}>
-          <input
-            type="date"
-            value={values.start_date ?? ""}
-            onChange={(e) => set("start_date", e.target.value)}
-          />
-        </Field>
-        <Field label={fairLabels.end_date}>
-          <input
-            type="date"
-            value={values.end_date ?? ""}
-            onChange={(e) => set("end_date", e.target.value)}
-          />
-        </Field>
-        <Field label={labels.website}>
-          <input value={values.website ?? ""} onChange={(e) => set("website", e.target.value)} />
-        </Field>
-        <Field label={labels.description} className="span-2">
-          <textarea
-            rows={3}
-            value={values.description ?? ""}
-            onChange={(e) => set("description", e.target.value)}
-          />
-        </Field>
-      </div>
+      <FormSection title={fairLabels.fairSectionInfo}>
+        <FormGrid>
+          <FormField label={fairLabels.name} htmlFor="fair-name" required fullWidth>
+            <TextInput
+              id="fair-name"
+              value={values.name}
+              onChange={(event) => set("name", event.target.value)}
+              required
+            />
+          </FormField>
 
-      <h3 className="section-title form-section-heading">{fairLabels.dataIntegration}</h3>
+          <FormField label={labels.status} htmlFor="fair-status">
+            <SelectInput
+              id="fair-status"
+              value={values.status}
+              onChange={(event) => set("status", event.target.value)}
+            >
+              {statusOptions.map((option) => (
+                <option key={option} value={option}>
+                  {fairStatusLabels[option]}
+                </option>
+              ))}
+            </SelectInput>
+          </FormField>
+        </FormGrid>
+      </FormSection>
 
-      <div className="form-grid">
-        <Field label={fairLabels.adapter} className="span-2">
-          <AdapterSelect
-            value={values.adapter_key ?? ""}
-            onChange={(adapterKey) => set("adapter_key", adapterKey)}
-          />
-        </Field>
-        <Field label={fairLabels.sourceUrl} required={sourceUrlRequired} className="span-2">
-          <input
-            type="text"
-            value={values.source_url ?? ""}
-            onChange={(e) => set("source_url", e.target.value)}
-            placeholder="https://"
+      <FormSection title={fairLabels.fairSectionScheduleLocation}>
+        <FormGrid>
+          <FormField label={fairLabels.start_date} htmlFor="fair-start-date">
+            <TextInput
+              id="fair-start-date"
+              type="date"
+              value={values.start_date ?? ""}
+              onChange={(event) => set("start_date", event.target.value)}
+            />
+          </FormField>
+
+          <FormField label={fairLabels.end_date} htmlFor="fair-end-date">
+            <TextInput
+              id="fair-end-date"
+              type="date"
+              value={values.end_date ?? ""}
+              onChange={(event) => set("end_date", event.target.value)}
+            />
+          </FormField>
+
+          <FormField label={labels.country} htmlFor="fair-country">
+            <TextInput
+              id="fair-country"
+              value={values.country ?? ""}
+              onChange={(event) => set("country", event.target.value)}
+            />
+          </FormField>
+
+          <FormField label={labels.city} htmlFor="fair-city">
+            <TextInput
+              id="fair-city"
+              value={values.city ?? ""}
+              onChange={(event) => set("city", event.target.value)}
+            />
+          </FormField>
+
+          <FormField label={fairLabels.venue} htmlFor="fair-venue" fullWidth>
+            <TextInput
+              id="fair-venue"
+              value={values.venue ?? ""}
+              onChange={(event) => set("venue", event.target.value)}
+            />
+          </FormField>
+        </FormGrid>
+      </FormSection>
+
+      <FormSection title={fairLabels.fairSectionOrganization}>
+        <FormGrid>
+          <FormField label={fairLabels.organizer} htmlFor="fair-organizer">
+            <TextInput
+              id="fair-organizer"
+              value={values.organizer ?? ""}
+              onChange={(event) => set("organizer", event.target.value)}
+            />
+          </FormField>
+
+          <FormField label={labels.website} htmlFor="fair-website">
+            <TextInput
+              id="fair-website"
+              type="url"
+              value={values.website ?? ""}
+              onChange={(event) => set("website", event.target.value)}
+              placeholder="https://"
+            />
+          </FormField>
+        </FormGrid>
+      </FormSection>
+
+      <FormSection title={fairLabels.fairSectionDetails}>
+        <FormGrid>
+          <FormField label={labels.description} htmlFor="fair-description" fullWidth>
+            <TextareaInput
+              id="fair-description"
+              rows={3}
+              value={values.description ?? ""}
+              onChange={(event) => set("description", event.target.value)}
+            />
+          </FormField>
+        </FormGrid>
+      </FormSection>
+
+      <FormSection title={fairLabels.dataIntegration}>
+        <FormGrid>
+          <FormField label={fairLabels.adapter} htmlFor="fair-adapter" fullWidth>
+            <AdapterSelect
+              id="fair-adapter"
+              value={values.adapter_key ?? ""}
+              onChange={(adapterKey) => set("adapter_key", adapterKey)}
+            />
+          </FormField>
+
+          <FormField
+            label={fairLabels.sourceUrl}
+            htmlFor="fair-source-url"
             required={sourceUrlRequired}
-          />
-        </Field>
-        <Field label={fairLabels.scraperConfig} className="span-2">
-          <textarea
-            rows={4}
-            value={values.scraper_config_json}
-            onChange={(e) => set("scraper_config_json", e.target.value)}
-            placeholder={fairLabels.scraperConfigPlaceholder}
-            spellCheck={false}
-          />
-        </Field>
-      </div>
+            fullWidth
+          >
+            <TextInput
+              id="fair-source-url"
+              type="text"
+              value={values.source_url ?? ""}
+              onChange={(event) => set("source_url", event.target.value)}
+              placeholder="https://"
+              required={sourceUrlRequired}
+            />
+          </FormField>
 
-      <div className="form-actions">
-        <button type="button" className="btn secondary" onClick={handleCancel} disabled={saving}>
-          {labels.cancel}
-        </button>
-        <button type="submit" className="btn primary" disabled={saving}>
-          {saving ? labels.loading : submitLabel}
-        </button>
-      </div>
+          <FormField
+            label={fairLabels.scraperConfig}
+            htmlFor="fair-scraper-config"
+            hint={fairLabels.scraperConfigPlaceholder}
+            fullWidth
+          >
+            <TextareaInput
+              id="fair-scraper-config"
+              rows={4}
+              value={values.scraper_config_json}
+              onChange={(event) => set("scraper_config_json", event.target.value)}
+              placeholder={fairLabels.scraperConfigPlaceholder}
+              spellCheck={false}
+            />
+          </FormField>
+        </FormGrid>
+      </FormSection>
+
+      <FormActions
+        onCancel={handleCancel}
+        cancelLabel={labels.cancel}
+        submitLabel={submitLabel}
+        saving={saving}
+        savingLabel={labels.loading}
+      />
     </form>
-  );
-}
-
-function Field({
-  label,
-  children,
-  required,
-  className,
-}: {
-  label: string;
-  children: React.ReactNode;
-  required?: boolean;
-  className?: string;
-}) {
-  return (
-    <label className={`field ${className ?? ""}`}>
-      <span>
-        {label}
-        {required && " *"}
-      </span>
-      {children}
-    </label>
   );
 }

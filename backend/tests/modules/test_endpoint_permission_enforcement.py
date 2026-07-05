@@ -22,6 +22,9 @@ from app.modules.scraper.api.dependencies import (
     get_authorization_adapter as get_scraper_authorization_adapter,
 )
 from app.modules.smtp.api.dependencies import get_authorization_adapter as get_smtp_authorization_adapter
+from app.modules.mail_templates.api.dependencies import (
+    get_authorization_adapter as get_mail_templates_authorization_adapter,
+)
 from app.modules.system_admin.api.dependencies import get_authorization_adapter as get_system_admin_authorization_adapter
 from app.modules.scraper.types.scraper_site import ScraperSiteKey
 
@@ -348,6 +351,143 @@ def test_smtp_test_mail_denied_returns_403(client: TestClient, auth_headers: dic
 def test_dev_bypass_token_rejected_on_smtp_list(client: TestClient, organization_id: UUID) -> None:
     response = client.get(
         "/api/v1/smtp/accounts",
+        headers={
+            "Authorization": "Bearer dev-bypass",
+            "X-Organization-Id": str(organization_id),
+        },
+    )
+    assert response.status_code == 401
+
+
+def _mail_template_payload(**overrides):
+    payload = {
+        "name": "Welcome Email",
+        "key": "welcome_email",
+        "subject": "Hello {{ name }}",
+        "body_html": "<p>Hello {{ name }}</p>",
+        "body_text": "Hello {{ name }}",
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_mail_templates_read_denied_returns_403(client: TestClient, auth_headers: dict[str, str]) -> None:
+    client.app.dependency_overrides[get_mail_templates_authorization_adapter] = lambda: SelectiveAuthorization(
+        denied={"fair_crm.mail_templates.read"}
+    )
+    try:
+        response = client.get("/api/v1/mail-templates", headers=auth_headers)
+        assert response.status_code == 403
+    finally:
+        client.app.dependency_overrides.pop(get_mail_templates_authorization_adapter, None)
+
+
+def test_mail_templates_create_denied_returns_403(client: TestClient, auth_headers: dict[str, str]) -> None:
+    client.app.dependency_overrides[get_mail_templates_authorization_adapter] = lambda: SelectiveAuthorization(
+        denied={"fair_crm.mail_templates.create"}
+    )
+    try:
+        response = client.post(
+            "/api/v1/mail-templates",
+            json=_mail_template_payload(),
+            headers=auth_headers,
+        )
+        assert response.status_code == 403
+    finally:
+        client.app.dependency_overrides.pop(get_mail_templates_authorization_adapter, None)
+
+
+def test_mail_templates_update_denied_returns_403(client: TestClient, auth_headers: dict[str, str]) -> None:
+    create_response = client.post(
+        "/api/v1/mail-templates",
+        json=_mail_template_payload(key="perm_update"),
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 201
+    template_id = create_response.json()["id"]
+
+    client.app.dependency_overrides[get_mail_templates_authorization_adapter] = lambda: SelectiveAuthorization(
+        denied={"fair_crm.mail_templates.update"}
+    )
+    try:
+        response = client.patch(
+            f"/api/v1/mail-templates/{template_id}",
+            json={"name": "Denied Update"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 403
+    finally:
+        client.app.dependency_overrides.pop(get_mail_templates_authorization_adapter, None)
+
+
+def test_mail_templates_delete_denied_returns_403(client: TestClient, auth_headers: dict[str, str]) -> None:
+    create_response = client.post(
+        "/api/v1/mail-templates",
+        json=_mail_template_payload(key="perm_delete"),
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 201
+    template_id = create_response.json()["id"]
+
+    client.app.dependency_overrides[get_mail_templates_authorization_adapter] = lambda: SelectiveAuthorization(
+        denied={"fair_crm.mail_templates.delete"}
+    )
+    try:
+        response = client.delete(f"/api/v1/mail-templates/{template_id}", headers=auth_headers)
+        assert response.status_code == 403
+    finally:
+        client.app.dependency_overrides.pop(get_mail_templates_authorization_adapter, None)
+
+
+def test_mail_templates_render_denied_returns_403(client: TestClient, auth_headers: dict[str, str]) -> None:
+    create_response = client.post(
+        "/api/v1/mail-templates",
+        json=_mail_template_payload(key="perm_render"),
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 201
+    template_id = create_response.json()["id"]
+
+    client.app.dependency_overrides[get_mail_templates_authorization_adapter] = lambda: SelectiveAuthorization(
+        denied={"fair_crm.mail_templates.render"}
+    )
+    try:
+        response = client.post(
+            f"/api/v1/mail-templates/{template_id}/render",
+            json={"variables": {"name": "Ada"}},
+            headers=auth_headers,
+        )
+        assert response.status_code == 403
+    finally:
+        client.app.dependency_overrides.pop(get_mail_templates_authorization_adapter, None)
+
+
+def test_mail_templates_test_send_denied_returns_403(client: TestClient, auth_headers: dict[str, str]) -> None:
+    create_response = client.post(
+        "/api/v1/mail-templates",
+        json=_mail_template_payload(key="perm_test_send"),
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 201
+    template_id = create_response.json()["id"]
+
+    client.app.dependency_overrides[get_mail_templates_authorization_adapter] = lambda: SelectiveAuthorization(
+        denied={"fair_crm.mail_templates.test_send"}
+    )
+    try:
+        response = client.post(
+            f"/api/v1/mail-templates/{template_id}/test-email",
+            json={"to_email": "test@example.com", "variables": {"name": "Ada"}},
+            headers=auth_headers,
+        )
+        assert response.status_code == 403
+    finally:
+        client.app.dependency_overrides.pop(get_mail_templates_authorization_adapter, None)
+
+
+def test_dev_bypass_token_rejected_on_mail_templates_list(client: TestClient, organization_id: UUID) -> None:
+    response = client.get(
+        "/api/v1/mail-templates",
         headers={
             "Authorization": "Bearer dev-bypass",
             "X-Organization-Id": str(organization_id),

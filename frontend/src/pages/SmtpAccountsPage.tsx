@@ -11,7 +11,7 @@ import {
 import { SmtpAccountForm } from "../components/smtp/SmtpAccountForm";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
-import { Modal } from "../components/ui/Modal";
+import { FormModal } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Badge } from "../components/ui/Badge";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
@@ -22,7 +22,7 @@ import {
   getGrantedPermissions,
 } from "../permissions/smtpPermissions";
 import type { SmtpAccount } from "../types/smtp";
-import { responseContainsPassword, smtpPasswordSet } from "../utils/smtpForm";
+import { responseContainsPassword, smtpPasswordSet, formatSmtpTestMailError } from "../utils/smtpForm";
 
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return "—";
@@ -166,7 +166,8 @@ export function SmtpAccountsPage() {
       const result = await sendTestSmtpMail(editing.id, { recipient });
       setTestMailSuccess(result.message || adminLabels.smtpTestMailSuccess);
     } catch (err) {
-      setTestMailError(err instanceof ApiError ? err.message : adminLabels.smtpTestMailError);
+      const rawMessage = err instanceof ApiError ? err.message : adminLabels.smtpTestMailError;
+      setTestMailError(formatSmtpTestMailError(rawMessage));
     } finally {
       setTestMailRunning(false);
     }
@@ -341,7 +342,7 @@ export function SmtpAccountsPage() {
       />
 
       {modal === "create" ? (
-        <Modal title={adminLabels.smtpNewAccount} onClose={closeModal} size="lg">
+        <FormModal title={adminLabels.smtpNewAccount} onClose={closeModal}>
           <SmtpAccountForm
             mode="create"
             saving={formSaving}
@@ -352,11 +353,11 @@ export function SmtpAccountsPage() {
             onSubmitCreate={handleCreate}
             onSubmitUpdate={handleUpdate}
           />
-        </Modal>
+        </FormModal>
       ) : null}
 
       {modal === "edit" && editing ? (
-        <Modal title={adminLabels.smtpEditAccount} onClose={closeModal} size="lg">
+        <FormModal title={adminLabels.smtpEditAccount} onClose={closeModal}>
           <SmtpAccountForm
             mode="edit"
             initial={editing}
@@ -370,7 +371,7 @@ export function SmtpAccountsPage() {
             onSubmitUpdate={handleUpdate}
             onTestMail={canUpdate ? handleTestMail : undefined}
           />
-        </Modal>
+        </FormModal>
       ) : null}
 
       {deleteTarget ? (

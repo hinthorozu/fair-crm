@@ -500,7 +500,8 @@ class ApplyImportUseCase:
                 mobile_phone=_fill_if_empty(
                     existing.mobile_phone, data.get("contact_mobile_phone")
                 ),
-                notes=existing.notes,
+                linkedin=_fill_if_empty(existing.linkedin, data.get("contact_linkedin")),
+                notes=_fill_if_empty(existing.notes, data.get("contact_notes")),
                 now=now,
             )
             self._contact_repository.update(existing)
@@ -516,7 +517,8 @@ class ApplyImportUseCase:
             email=data.get("contact_email"),
             phone=data.get("contact_phone"),
             mobile_phone=data.get("contact_mobile_phone"),
-            notes=None,
+            linkedin=data.get("contact_linkedin"),
+            notes=data.get("contact_notes"),
             now=now,
         )
         self._contact_repository.add(contact)

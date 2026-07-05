@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 from uuid import UUID, uuid4
 
 from app.modules.activities.domain.exceptions import (
@@ -52,6 +52,7 @@ class Activity:
     status: str
     source: str
     is_active: bool
+    metadata_json: Optional[dict[str, Any]]
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime]
@@ -71,6 +72,7 @@ class Activity:
         status: str,
         source: str = ActivitySource.MANUAL,
         is_active: bool = True,
+        metadata_json: Optional[dict[str, Any]] = None,
         now: datetime,
     ) -> "Activity":
         trimmed_subject = subject.strip()
@@ -94,6 +96,7 @@ class Activity:
             status=validated_status,
             source=validated_source,
             is_active=is_active,
+            metadata_json=metadata_json,
             created_at=now,
             updated_at=now,
             deleted_at=None,

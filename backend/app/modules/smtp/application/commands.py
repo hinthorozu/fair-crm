@@ -81,6 +81,12 @@ class SendTestSmtpMailCommand:
 class SendTestSmtpMailResult:
     success: bool
     message: str
+    debug_error_type: str | None = None
+    debug_error_message: str | None = None
+    smtp_host: str | None = None
+    smtp_port: int | None = None
+    encryption_type: SmtpEncryptionType | None = None
+    config_warnings: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -100,6 +106,7 @@ class SmtpAccountResult:
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime]
+    config_warnings: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

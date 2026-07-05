@@ -6,6 +6,7 @@ import pytest
 
 from app.modules.contacts.domain.entities import Contact
 from app.modules.imports.domain.services.contact_import import (
+    build_contact_import_warnings,
     find_existing_contact_for_import,
     has_contact_import_fields,
     resolve_contact_identity,
@@ -17,6 +18,8 @@ def test_has_contact_import_fields_requires_nonempty_value():
     assert has_contact_import_fields({"contact_first_name": "  "}) is False
     assert has_contact_import_fields({"contact_email": "a@b.com"}) is True
     assert has_contact_import_fields({"contact_phone": "5551234567"}) is True
+    assert has_contact_import_fields({"contact_linkedin": "https://linkedin.com/in/x"}) is True
+    assert has_contact_import_fields({"contact_notes": "VIP contact"}) is True
 
 
 def test_resolve_contact_identity_splits_yetkili_adi():
@@ -39,6 +42,30 @@ def test_resolve_contact_identity_defaults_when_only_phone():
     first, last = resolve_contact_identity({"contact_phone": "5551234567"})
     assert first == "Yetkili"
     assert last == "—"
+
+
+def test_build_contact_import_warnings_name_without_contact_channel():
+    warnings = build_contact_import_warnings({"contact_first_name": "Ali Veli"})
+    assert any("e-posta veya telefon yok" in warning for warning in warnings)
+
+
+def test_build_contact_import_warnings_single_word_name():
+    warnings = build_contact_import_warnings({"contact_first_name": "Ali"})
+    assert any("Tek kelimelik" in warning for warning in warnings)
+
+
+def test_build_contact_import_warnings_invalid_email():
+    warnings = build_contact_import_warnings({"contact_email": "not-an-email"})
+    assert any("geçersiz" in warning.lower() for warning in warnings)
+
+
+def test_build_contact_import_warnings_short_phone():
+    warnings = build_contact_import_warnings({"contact_phone": "123"})
+    assert any("telefon" in warning.lower() for warning in warnings)
+
+
+def test_build_contact_import_warnings_empty_when_no_contact_fields():
+    assert build_contact_import_warnings({"company_name": "Co"}) == []
 
 
 class _FakeContactRepository:

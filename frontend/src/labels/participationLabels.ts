@@ -52,4 +52,8 @@ export const participationLabels = {
   selectCompany: "Firma seçin",
   selectContact: "Kişi seçin (opsiyonel)",
   noContact: "— Kişi seçilmedi —",
+  participationSectionInfo: "Katılım Bilgileri",
+  participationSectionSchedule: "Zamanlama",
+  participationSectionRelations: "İlişkiler",
+  participationSectionDetails: "Detaylar",
 } as const;

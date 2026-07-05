@@ -16,6 +16,7 @@ def model_to_entity(model: ActivityModel) -> Activity:
         status=model.status,
         source=model.source,
         is_active=model.is_active,
+        metadata_json=model.metadata_json,
         created_at=model.created_at,
         updated_at=model.updated_at,
         deleted_at=model.deleted_at,
@@ -36,6 +37,7 @@ def entity_to_model(activity: Activity) -> ActivityModel:
         status=activity.status,
         source=activity.source,
         is_active=activity.is_active,
+        metadata_json=activity.metadata_json,
         created_at=activity.created_at,
         updated_at=activity.updated_at,
         deleted_at=activity.deleted_at,
@@ -52,5 +54,6 @@ def update_model_from_entity(model: ActivityModel, activity: Activity) -> None:
     model.status = activity.status
     model.source = activity.source
     model.is_active = activity.is_active
+    model.metadata_json = activity.metadata_json
     model.updated_at = activity.updated_at
     model.deleted_at = activity.deleted_at

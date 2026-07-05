@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 from contextlib import contextmanager
+from unittest.mock import patch
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -22,6 +23,12 @@ from app.modules.participations.api.dependencies import (
 from app.modules.scraper.api.dependencies import get_authorization_adapter as get_scraper_authorization_adapter
 from app.modules.scraper.types.scraper_site import ScraperSiteKey
 from app.modules.smtp.api.dependencies import get_authorization_adapter as get_smtp_authorization_adapter
+from app.modules.mail_templates.api.dependencies import (
+    get_authorization_adapter as get_mail_templates_authorization_adapter,
+)
+from app.modules.fair_emails.api.dependencies import (
+    get_authorization_adapter as get_fair_emails_authorization_adapter,
+)
 from app.modules.system_admin.api.dependencies import get_authorization_adapter as get_system_admin_authorization_adapter
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -48,6 +55,8 @@ AUTH_DEPENDENCIES = (
     get_participation_authorization_adapter,
     get_scraper_authorization_adapter,
     get_smtp_authorization_adapter,
+    get_mail_templates_authorization_adapter,
+    get_fair_emails_authorization_adapter,
     get_system_admin_authorization_adapter,
 )
 
@@ -260,6 +269,314 @@ def test_role_matrix_smtp_create(
             headers=auth_headers,
         )
     expected = 201 if _role_has(role_slug, "fair_crm.smtp.create") else 403
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_smtp_update(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    create = client.post(
+        "/api/v1/smtp/accounts",
+        json={
+            "name": f"Matrix Update Target {role_slug}",
+            "from_email": "noreply@example.com",
+            "host": "smtp.example.com",
+            "port": 587,
+        },
+        headers=auth_headers,
+    )
+    assert create.status_code == 201
+    account_id = create.json()["id"]
+
+    with install_role_matrix_auth(client, role_slug):
+        response = client.patch(
+            f"/api/v1/smtp/accounts/{account_id}",
+            json={"name": f"Matrix Updated {role_slug}"},
+            headers=auth_headers,
+        )
+    expected = 200 if _role_has(role_slug, "fair_crm.smtp.update") else 403
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_smtp_delete(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    create = client.post(
+        "/api/v1/smtp/accounts",
+        json={
+            "name": f"Matrix Delete Target {role_slug}",
+            "from_email": "noreply@example.com",
+            "host": "smtp.example.com",
+            "port": 587,
+        },
+        headers=auth_headers,
+    )
+    assert create.status_code == 201
+    account_id = create.json()["id"]
+
+    with install_role_matrix_auth(client, role_slug):
+        response = client.delete(
+            f"/api/v1/smtp/accounts/{account_id}",
+            headers=auth_headers,
+        )
+    expected = 200 if _role_has(role_slug, "fair_crm.smtp.delete") else 403
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+@patch("app.modules.smtp.application.send_test_smtp_mail.send_smtp_message")
+def test_role_matrix_smtp_test_mail(
+    mock_send,
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    create = client.post(
+        "/api/v1/smtp/accounts",
+        json={
+            "name": f"Matrix Test Mail Target {role_slug}",
+            "from_email": "noreply@example.com",
+            "host": "smtp.example.com",
+            "port": 587,
+            "password": "secret-password",
+        },
+        headers=auth_headers,
+    )
+    assert create.status_code == 201
+    account_id = create.json()["id"]
+
+    with install_role_matrix_auth(client, role_slug):
+        response = client.post(
+            f"/api/v1/smtp/accounts/{account_id}/test",
+            json={"recipient": "admin@example.com"},
+            headers=auth_headers,
+        )
+    expected = 200 if _role_has(role_slug, "fair_crm.smtp.update") else 403
+    assert response.status_code == expected
+    if expected == 200:
+        mock_send.assert_called_once()
+    else:
+        mock_send.assert_not_called()
+
+
+def _mail_template_payload(**overrides):
+    payload = {
+        "name": "Welcome Email",
+        "key": "welcome_email",
+        "subject": "Hello {{ name }}",
+        "body_html": "<p>Hello {{ name }}</p>",
+        "body_text": "Hello {{ name }}",
+    }
+    payload.update(overrides)
+    return payload
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_mail_templates_read(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    with install_role_matrix_auth(client, role_slug):
+        response = client.get("/api/v1/mail-templates", headers=auth_headers)
+    expected = 200 if _role_has(role_slug, "fair_crm.mail_templates.read") else 403
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_mail_templates_create(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    with install_role_matrix_auth(client, role_slug):
+        response = client.post(
+            "/api/v1/mail-templates",
+            json=_mail_template_payload(key=f"create_{role_slug}"),
+            headers=auth_headers,
+        )
+    expected = 201 if _role_has(role_slug, "fair_crm.mail_templates.create") else 403
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_mail_templates_update(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    create_response = client.post(
+        "/api/v1/mail-templates",
+        json=_mail_template_payload(key="update_target"),
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 201
+    template_id = create_response.json()["id"]
+
+    with install_role_matrix_auth(client, role_slug):
+        response = client.patch(
+            f"/api/v1/mail-templates/{template_id}",
+            json={"name": "Updated Name"},
+            headers=auth_headers,
+        )
+    expected = 200 if _role_has(role_slug, "fair_crm.mail_templates.update") else 403
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_mail_templates_delete(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    create_response = client.post(
+        "/api/v1/mail-templates",
+        json=_mail_template_payload(key="delete_target"),
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 201
+    template_id = create_response.json()["id"]
+
+    with install_role_matrix_auth(client, role_slug):
+        response = client.delete(
+            f"/api/v1/mail-templates/{template_id}",
+            headers=auth_headers,
+        )
+    expected = 200 if _role_has(role_slug, "fair_crm.mail_templates.delete") else 403
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_mail_templates_render(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    create_response = client.post(
+        "/api/v1/mail-templates",
+        json=_mail_template_payload(key="render_target"),
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 201
+    template_id = create_response.json()["id"]
+
+    with install_role_matrix_auth(client, role_slug):
+        response = client.post(
+            f"/api/v1/mail-templates/{template_id}/render",
+            json={"variables": {"name": "Ada"}},
+            headers=auth_headers,
+        )
+    expected = 200 if _role_has(role_slug, "fair_crm.mail_templates.render") else 403
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_mail_templates_test_send(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    create_response = client.post(
+        "/api/v1/mail-templates",
+        json=_mail_template_payload(key="test_send_target"),
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 201
+    template_id = create_response.json()["id"]
+
+    with install_role_matrix_auth(client, role_slug):
+        response = client.post(
+            f"/api/v1/mail-templates/{template_id}/test-email",
+            json={"to_email": "test@example.com", "variables": {"name": "Ada"}},
+            headers=auth_headers,
+        )
+    expected = 200 if _role_has(role_slug, "fair_crm.mail_templates.test_send") else 403
+    if expected == 200:
+        assert response.status_code in {200, 400}
+    else:
+        assert response.status_code == 403
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_fair_emails_preview(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    create = client.post(
+        "/api/v1/fairs",
+        json={"name": f"Matrix Bulk Email Fair {role_slug}", "status": "active"},
+        headers=auth_headers,
+    )
+    assert create.status_code == 201
+    fair_id = create.json()["id"]
+
+    with install_role_matrix_auth(client, role_slug):
+        response = client.post(
+            f"/api/v1/fairs/{fair_id}/bulk-email/preview-recipients",
+            json={"recipient_options": {"include_customer_emails": True, "include_contact_emails": False}},
+            headers=auth_headers,
+        )
+    expected = 200 if _role_has(role_slug, "fair_crm.fair_emails.preview") else 403
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_fair_emails_send(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    create = client.post(
+        "/api/v1/fairs",
+        json={"name": f"Matrix Bulk Email Send Fair {role_slug}", "status": "active"},
+        headers=auth_headers,
+    )
+    assert create.status_code == 201
+    fair_id = create.json()["id"]
+
+    with install_role_matrix_auth(client, role_slug):
+        response = client.post(
+            f"/api/v1/fairs/{fair_id}/bulk-email/send",
+            json={
+                "template_id": str(uuid4()),
+                "recipient_options": {"include_customer_emails": True, "include_contact_emails": False},
+            },
+            headers=auth_headers,
+        )
+    expected = 200 if _role_has(role_slug, "fair_crm.fair_emails.send") else 403
+    if expected == 200:
+        assert response.status_code in {200, 404, 400}
+    else:
+        assert response.status_code == 403
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_fair_emails_batch_logs(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    create = client.post(
+        "/api/v1/fairs",
+        json={"name": f"Matrix Bulk Email Logs Fair {role_slug}", "status": "active"},
+        headers=auth_headers,
+    )
+    assert create.status_code == 201
+    fair_id = create.json()["id"]
+
+    with install_role_matrix_auth(client, role_slug):
+        response = client.get(
+            f"/api/v1/fairs/{fair_id}/bulk-email/batches",
+            headers=auth_headers,
+        )
+    expected = 200 if _role_has(role_slug, "fair_crm.fair_emails.preview") else 403
     assert response.status_code == expected
 
 

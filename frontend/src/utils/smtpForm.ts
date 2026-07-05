@@ -1,3 +1,4 @@
+import { adminLabels } from "../labels/adminLabels";
 import type {
   CreateSmtpAccountPayload,
   SmtpAccount,
@@ -11,6 +12,9 @@ export const SMTP_ENCRYPTION_TYPES: SmtpEncryptionType[] = [
   "tls",
   "starttls",
 ];
+
+const SSL_PORT = 465;
+const STARTTLS_PORT = 587;
 
 export interface SmtpAccountFormValues {
   name: string;
@@ -57,6 +61,59 @@ export function smtpAccountToFormValues(account: SmtpAccount): SmtpAccountFormVa
 
 export function smtpPasswordSet(account: Pick<SmtpAccount, "password_set" | "has_password">): boolean {
   return account.password_set ?? account.has_password ?? false;
+}
+
+export function getSmtpPortEncryptionHints(
+  portValue: string,
+  encryptionType: SmtpEncryptionType,
+): string[] {
+  const port = Number(portValue);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    return [];
+  }
+
+  const hints = new Set<string>();
+
+  if (encryptionType === "ssl") {
+    hints.add(adminLabels.smtpHintSslPort);
+    if (port !== SSL_PORT) {
+      hints.add(adminLabels.smtpHintUseSslOn465);
+    }
+  }
+
+  if (encryptionType === "starttls") {
+    hints.add(adminLabels.smtpHintStarttlsPort);
+    if (port !== STARTTLS_PORT) {
+      hints.add(adminLabels.smtpHintUseStarttlsOn587);
+    }
+  }
+
+  if (port === STARTTLS_PORT && encryptionType === "ssl") {
+    hints.add(adminLabels.smtpHintUseStarttlsOn587);
+  }
+
+  if (port === SSL_PORT && encryptionType === "starttls") {
+    hints.add(adminLabels.smtpHintUseSslOn465);
+  }
+
+  return Array.from(hints);
+}
+
+export function formatSmtpTestMailError(message: string): string {
+  const normalized = message.toLowerCase();
+  if (normalized.includes("wrong_version_number")) {
+    return (
+      "SMTP SSL bağlantı hatası: Şifreleme türü ile port uyumsuz olabilir. " +
+      "SSL için 465, STARTTLS için 587 deneyin."
+    );
+  }
+  if (
+    normalized.includes("smtp connection failed:") ||
+    normalized.includes("smtp delivery failed:")
+  ) {
+    return adminLabels.smtpTestMailError;
+  }
+  return message;
 }
 
 export function validateSmtpFormValues(values: SmtpAccountFormValues): string | null {

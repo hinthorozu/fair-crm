@@ -43,7 +43,7 @@ import {
 } from "../components/ParticipationForm";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { LoadingState } from "../components/ui/LoadingState";
-import { Modal } from "../components/ui/Modal";
+import { FormModal } from "../components/ui/form";
 import { PageHeader, type PageHeaderAction } from "../components/ui/PageHeader";
 import { TabPanel, Tabs } from "../components/ui/Tabs";
 import { Badge } from "../components/ui/Badge";
@@ -748,50 +748,50 @@ export function CustomerDetailPage({
       </TabPanel>
 
       {modal === "edit-customer" && (
-        <Modal title={labels.editCustomer} onClose={closeModal} size="lg">
+        <FormModal title={labels.editCustomer} onClose={closeModal} size="lg">
           <CustomerForm
             initial={customerToFormValues(customer)}
             submitLabel={labels.save}
             onCancel={closeModal}
             onSubmit={handleUpdateCustomer}
           />
-        </Modal>
+        </FormModal>
       )}
 
       {modal === "create-contact" && (
-        <Modal title={contactLabels.newContact} onClose={closeModal}>
+        <FormModal title={contactLabels.newContact} onClose={closeModal}>
           <ContactForm
             submitLabel={contactLabels.save}
             onCancel={closeModal}
             onSubmit={handleCreateContact}
           />
-        </Modal>
+        </FormModal>
       )}
 
       {modal === "edit-contact" && editingContact && (
-        <Modal title={contactLabels.editContact} onClose={closeModal}>
+        <FormModal title={contactLabels.editContact} onClose={closeModal}>
           <ContactForm
             initial={contactToFormValues(editingContact)}
             submitLabel={contactLabels.save}
             onCancel={closeModal}
             onSubmit={handleUpdateContact}
           />
-        </Modal>
+        </FormModal>
       )}
 
       {modal === "create-activity" && (
-        <Modal title={activityLabels.newActivity} onClose={closeModal} size="lg">
+        <FormModal title={activityLabels.newActivity} onClose={closeModal}>
           <ActivityForm
             contacts={contactsForForm}
             submitLabel={activityLabels.save}
             onCancel={closeModal}
             onSubmit={handleCreateActivity}
           />
-        </Modal>
+        </FormModal>
       )}
 
       {modal === "edit-activity" && editingActivity && (
-        <Modal title={activityLabels.editActivity} onClose={closeModal} size="lg">
+        <FormModal title={activityLabels.editActivity} onClose={closeModal}>
           <ActivityForm
             contacts={contactsForForm}
             initial={activityToFormValues(editingActivity)}
@@ -799,11 +799,11 @@ export function CustomerDetailPage({
             onCancel={closeModal}
             onSubmit={handleUpdateActivity}
           />
-        </Modal>
+        </FormModal>
       )}
 
       {modal === "create-participation" && (
-        <Modal title={participationLabels.newParticipation} onClose={closeModal} size="lg">
+        <FormModal title={participationLabels.newParticipation} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="customer"
             fairs={fairs}
@@ -812,11 +812,11 @@ export function CustomerDetailPage({
             onCancel={closeModal}
             onSubmit={handleCreateParticipation}
           />
-        </Modal>
+        </FormModal>
       )}
 
       {modal === "edit-participation" && editingParticipation && participationFormInitial && (
-        <Modal title={participationLabels.editParticipation} onClose={closeModal} size="lg">
+        <FormModal title={participationLabels.editParticipation} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="customer"
             fairs={fairs}
@@ -826,7 +826,7 @@ export function CustomerDetailPage({
             onCancel={closeModal}
             onSubmit={handleUpdateParticipation}
           />
-        </Modal>
+        </FormModal>
       )}
 
       {confirm?.type === "contact" && (

@@ -67,6 +67,7 @@ export interface MergeEntityGroup {
 export interface MergePreview {
   groups: MergeEntityGroup[];
   summary_lines: string[];
+  contact_warnings?: string[];
 }
 
 export interface ImportRowFilterCounts {

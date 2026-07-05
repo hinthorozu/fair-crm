@@ -11,7 +11,10 @@ from app.modules.activities.infrastructure.persistence.mappers import (
     model_to_entity,
     update_model_from_entity,
 )
+from app.modules.activities.domain.value_objects import ActivitySource
 from app.modules.activities.infrastructure.persistence.models import ActivityModel
+
+FAIR_BULK_EMAIL_ACTIVITY_SOURCE = "fair_bulk_email"
 
 ACTIVITY_SORT_FIELDS = {
     "created_at": ActivityModel.created_at,
@@ -41,6 +44,26 @@ class SqlAlchemyActivityRepository:
         self._session.flush()
         self._session.refresh(model)
         return model_to_entity(model)
+
+    def exists_fair_bulk_email_outbox(self, organization_id: UUID, outbox_id: UUID) -> bool:
+        outbox_id_text = str(outbox_id)
+        models = (
+            self._session.query(ActivityModel)
+            .filter(
+                ActivityModel.organization_id == organization_id,
+                ActivityModel.source == ActivitySource.EMAIL_AUTOMATION,
+                ActivityModel.deleted_at.is_(None),
+                ActivityModel.metadata_json.isnot(None),
+            )
+            .all()
+        )
+        for model in models:
+            metadata = model.metadata_json or {}
+            if metadata.get("source") != FAIR_BULK_EMAIL_ACTIVITY_SOURCE:
+                continue
+            if metadata.get("outbox_id") == outbox_id_text:
+                return True
+        return False
 
     def get_by_id(self, organization_id: UUID, activity_id: UUID) -> Activity | None:
         model = (

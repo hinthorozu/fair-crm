@@ -11,6 +11,8 @@ import { ScraperRunHistoryPage } from "./pages/ScraperRunHistoryPage";
 import { ScraperTestPage } from "./pages/ScraperTestPage";
 import { DatabaseBackupsPage } from "./pages/DatabaseBackupsPage";
 import { SmtpAccountsPage } from "./pages/SmtpAccountsPage";
+import { MailTemplatesPage } from "./pages/MailTemplatesPage";
+import { MailOperationsPage } from "./pages/MailOperationsPage";
 import { DataOperationsPage } from "./pages/DataOperationsPage";
 import { DataOperationRunResultPage } from "./pages/DataOperationRunResultPage";
 import { DataIntegrationLayout } from "./components/dataIntegration/DataIntegrationLayout";
@@ -45,7 +47,9 @@ type AppRoute =
   | "/data-integration/run-history"
   | "/data-integration/scraper-test"
   | "/admin/system/backups"
-  | "/admin/system/smtp"
+  | "/admin/smtp-operations/accounts"
+  | "/admin/smtp-operations/templates"
+  | "/admin/smtp-operations/mail-operations"
   | "/admin/data-operations"
   | "/admin/data-operations/runs/:runId"
   | "/imports"
@@ -82,8 +86,23 @@ function parseRoute(location: string): ParsedRoute {
     if (pathname.startsWith("/admin/data-operations")) {
       return { route: "/admin/data-operations" };
     }
-    if (pathname === "/admin/system/smtp" || pathname.startsWith("/admin/system/smtp")) {
-      return { route: "/admin/system/smtp" };
+    if (
+      pathname === "/admin/smtp-operations/accounts" ||
+      pathname.startsWith("/admin/smtp-operations/accounts/")
+    ) {
+      return { route: "/admin/smtp-operations/accounts" };
+    }
+    if (
+      pathname === "/admin/smtp-operations/templates" ||
+      pathname.startsWith("/admin/smtp-operations/templates/")
+    ) {
+      return { route: "/admin/smtp-operations/templates" };
+    }
+    if (
+      pathname === "/admin/smtp-operations/mail-operations" ||
+      pathname.startsWith("/admin/smtp-operations/mail-operations/")
+    ) {
+      return { route: "/admin/smtp-operations/mail-operations" };
     }
     if (pathname === "/admin/system/backups" || pathname.startsWith("/admin/system/backups")) {
       return { route: "/admin/system/backups" };
@@ -186,7 +205,9 @@ function isAdminRoute(route: AppRoute): boolean {
 function adminSection(route: AppRoute): string {
   if (route.includes("/data-operations/runs/")) return "data-operations";
   if (route.includes("/data-operations")) return "data-operations";
-  if (route.includes("/smtp")) return "smtp";
+  if (route.includes("/smtp-operations/templates")) return "mail-templates";
+  if (route.includes("/smtp-operations/mail-operations")) return "mail-operations";
+  if (route.includes("/smtp-operations/accounts")) return "smtp";
   if (route.includes("/backups")) return "backups";
   return "backups";
 }
@@ -408,9 +429,13 @@ export function App() {
                     label:
                       parsed.route === "/admin/data-operations/runs/:runId"
                         ? adminLabels.dataOpAnalyzeResultTitle
-                        : parsed.route === "/admin/system/smtp"
+                        : parsed.route === "/admin/smtp-operations/accounts"
                           ? adminLabels.navSmtpAccounts
-                          : parsed.route === "/admin/data-operations"
+                          : parsed.route === "/admin/smtp-operations/templates"
+                            ? adminLabels.navMailTemplates
+                            : parsed.route === "/admin/smtp-operations/mail-operations"
+                              ? adminLabels.navMailOperations
+                            : parsed.route === "/admin/data-operations"
                           ? adminLabels.navDataOperations
                           : adminLabels.navDatabaseBackups,
                     current: true,
@@ -521,7 +546,9 @@ export function App() {
     >
       {adminNotice && <p className="text-muted">{adminNotice}</p>}
       {parsed.route === "/admin/system/backups" && <DatabaseBackupsPage />}
-      {parsed.route === "/admin/system/smtp" && <SmtpAccountsPage />}
+      {parsed.route === "/admin/smtp-operations/accounts" && <SmtpAccountsPage />}
+      {parsed.route === "/admin/smtp-operations/templates" && <MailTemplatesPage />}
+      {parsed.route === "/admin/smtp-operations/mail-operations" && <MailOperationsPage />}
       {parsed.route === "/admin/data-operations" && (
         <DataOperationsPage
           onOpenResult={(runId, operationKey) =>

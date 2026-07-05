@@ -17,9 +17,11 @@ import {
   formValuesToUpdatePayload,
   type ParticipationFormValues,
 } from "../components/ParticipationForm";
+import { FairBulkEmailWizard } from "../components/fairs/FairBulkEmailWizard";
+import { FairBulkEmailBatchLogs } from "../components/fairs/FairBulkEmailBatchLogs";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { LoadingState } from "../components/ui/LoadingState";
-import { Modal } from "../components/ui/Modal";
+import { FormModal } from "../components/ui/form";
 import { FairForm, fairToFormValues } from "../components/FairForm";
 import { PageHeader, type PageHeaderAction } from "../components/ui/PageHeader";
 import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
@@ -40,10 +42,15 @@ import { uiLabels } from "../labels/uiLabels";
 import { labels } from "../labels";
 import type { Customer } from "../types/customer";
 import type { CreateFairPayload, Fair } from "../types/fair";
+import type { SendBulkEmailResponse } from "../types/fairBulkEmail";
 import type { AdapterListItem } from "../types/scraper";
 import { formatAdapterOptionLabel } from "../utils/fairIntegration";
 import type { FairParticipantListItem } from "../types/participation";
 import { DEFAULT_PAGE } from "../types/listTable";
+import {
+  canPerformFairEmailAction,
+  getGrantedFairEmailPermissions,
+} from "../permissions/fairEmailPermissions";
 import {
   buildLocationSearch,
   navigateWithSearch,
@@ -82,7 +89,7 @@ export function FairDetailPage({
   const [activeTab, setActiveTabState] = React.useState<TabId>(tabFromUrl);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [modal, setModal] = React.useState<"edit-fair" | "create" | "edit" | null>(null);
+  const [modal, setModal] = React.useState<"edit-fair" | "create" | "edit" | "bulk-email" | null>(null);
   const [editing, setEditing] = React.useState<FairParticipantListItem | null>(null);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [archiving, setArchiving] = React.useState(false);
@@ -93,6 +100,8 @@ export function FairDetailPage({
   const [runningScraper, setRunningScraper] = React.useState(false);
   const [runSuccess, setRunSuccess] = React.useState<string | null>(null);
   const [lastImportAt, setLastImportAt] = React.useState<string | null>(null);
+  const [logsRefreshToken, setLogsRefreshToken] = React.useState(0);
+  const [highlightBatchId, setHighlightBatchId] = React.useState<string | null>(null);
 
   const detailPath = `/fairs/${fairId}`;
 
@@ -192,6 +201,13 @@ export function FairDetailPage({
   const closeConfirmDelete = React.useCallback(() => setConfirmDelete(null), []);
   const closeConfirmArchive = React.useCallback(() => setConfirmArchive(false), []);
 
+  const handleBulkEmailSent = React.useCallback((result: SendBulkEmailResponse) => {
+    setRunSuccess(result.message || fairLabels.bulkEmailSuccess);
+    setLogsRefreshToken((value) => value + 1);
+    setHighlightBatchId(result.batch_id);
+    setModal(null);
+  }, []);
+
   const handleCreate = async (values: ParticipationFormValues) => {
     await createParticipation(formValuesToCreatePayload(values, "fair", fairId));
     setModal(null);
@@ -243,6 +259,10 @@ export function FairDetailPage({
     }
     return JSON.stringify(fair.scraper_config, null, 2);
   }, [fair?.scraper_config]);
+
+  const fairEmailPermissions = React.useMemo(() => getGrantedFairEmailPermissions(), []);
+  const canPreviewFairEmail = canPerformFairEmailAction(fairEmailPermissions, "preview");
+  const canSendFairEmail = canPerformFairEmailAction(fairEmailPermissions, "send");
 
   const canRunScraper =
     Boolean(fair?.adapter_key?.trim() && fair?.source_url?.trim()) &&
@@ -502,6 +522,38 @@ export function FairDetailPage({
             </div>
           </dl>
         </Card>
+
+        <Card className="detail-card-spaced">
+          <SectionHeader
+            title={fairLabels.bulkEmailCardTitle}
+            actions={
+              canPreviewFairEmail ? (
+                <button
+                  type="button"
+                  className="btn primary"
+                  disabled={isArchived}
+                  onClick={() => setModal("bulk-email")}
+                >
+                  {fairLabels.bulkEmailStartAction}
+                </button>
+              ) : undefined
+            }
+          />
+          {canPreviewFairEmail ? (
+            <p className="text-muted">{fairLabels.bulkEmailCardDescription}</p>
+          ) : (
+            <div className="banner warning">{fairLabels.bulkEmailPermissionPreviewDeniedDebug}</div>
+          )}
+        </Card>
+
+        <Card className="detail-card-spaced">
+          <FairBulkEmailBatchLogs
+            fairId={fairId}
+            canView={canPreviewFairEmail}
+            refreshToken={logsRefreshToken}
+            highlightBatchId={highlightBatchId}
+          />
+        </Card>
       </TabPanel>
 
       <TabPanel id="panel-participants" labelledBy="tab-participants" active={activeTab === "participants"}>
@@ -547,18 +599,18 @@ export function FairDetailPage({
       </TabPanel>
 
       {modal === "edit-fair" && (
-        <Modal title={fairLabels.editFair} onClose={closeModal} size="lg">
+        <FormModal title={fairLabels.editFair} onClose={closeModal} size="lg">
           <FairForm
             initial={fairToFormValues(fair)}
             submitLabel={labels.save}
             onCancel={closeModal}
             onSubmit={handleUpdateFair}
           />
-        </Modal>
+        </FormModal>
       )}
 
       {modal === "create" && (
-        <Modal title={participationLabels.newParticipant} onClose={closeModal} size="lg">
+        <FormModal title={participationLabels.newParticipant} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="fair"
             customers={customers}
@@ -566,11 +618,11 @@ export function FairDetailPage({
             onCancel={closeModal}
             onSubmit={handleCreate}
           />
-        </Modal>
+        </FormModal>
       )}
 
       {modal === "edit" && editing && (
-        <Modal title={participationLabels.editParticipant} onClose={closeModal} size="lg">
+        <FormModal title={participationLabels.editParticipant} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="fair"
             customers={customers}
@@ -579,7 +631,19 @@ export function FairDetailPage({
             onCancel={closeModal}
             onSubmit={handleUpdate}
           />
-        </Modal>
+        </FormModal>
+      )}
+
+      {modal === "bulk-email" && (
+        <FormModal title={fairLabels.bulkEmailModalTitle} onClose={closeModal} size="lg">
+          <FairBulkEmailWizard
+            fair={fair}
+            canPreview={canPreviewFairEmail}
+            canSend={canSendFairEmail}
+            onCancel={closeModal}
+            onSent={handleBulkEmailSent}
+          />
+        </FormModal>
       )}
 
       {confirmDelete && (

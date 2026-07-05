@@ -98,3 +98,30 @@ describe("responseContainsPassword", () => {
     expect(responseContainsPassword({ id: "1", has_password: true })).toBe(false);
   });
 });
+
+describe("getSmtpPortEncryptionHints", () => {
+  it("warns when ssl is used with port 587", async () => {
+    const { getSmtpPortEncryptionHints } = await import("./smtpForm");
+    const hints = getSmtpPortEncryptionHints("587", "ssl");
+    expect(hints.some((hint) => hint.includes("465"))).toBe(true);
+    expect(hints.some((hint) => hint.includes("starttls"))).toBe(true);
+  });
+
+  it("does not warn for starttls on port 587", async () => {
+    const { getSmtpPortEncryptionHints } = await import("./smtpForm");
+    expect(getSmtpPortEncryptionHints("587", "starttls").some((hint) => hint.includes("465"))).toBe(
+      false,
+    );
+  });
+});
+
+describe("formatSmtpTestMailError", () => {
+  it("maps raw ssl wrong version errors to a friendly message", async () => {
+    const { formatSmtpTestMailError } = await import("./smtpForm");
+    expect(
+      formatSmtpTestMailError(
+        "SMTP connection failed: [SSL: WRONG_VERSION_NUMBER] wrong version number (_ssl.c:1082)",
+      ),
+    ).toContain("SSL için 465");
+  });
+});

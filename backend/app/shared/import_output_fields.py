@@ -31,8 +31,14 @@ IMPORT_OUTPUT_FIELD_DEFINITIONS: tuple[ImportOutputFieldDefinition, ...] = (
 # Excel Import-only fields (not scraper output fields).
 EXCEL_IMPORT_EXTRA_FIELD_DEFINITIONS: tuple[ImportOutputFieldDefinition, ...] = (
     ImportOutputFieldDefinition("contact_first_name", "contact_first_name", "Yetkili Adı"),
+    ImportOutputFieldDefinition("contact_last_name", "contact_last_name", "Yetkili Soyadı"),
+    ImportOutputFieldDefinition("contact_title", "contact_title", "Yetkili Ünvan"),
+    ImportOutputFieldDefinition("contact_department", "contact_department", "Yetkili Departman"),
     ImportOutputFieldDefinition("contact_email", "contact_email", "Yetkili E-posta"),
     ImportOutputFieldDefinition("contact_phone", "contact_phone", "Yetkili Telefon"),
+    ImportOutputFieldDefinition("contact_mobile_phone", "contact_mobile_phone", "Yetkili Cep Telefonu"),
+    ImportOutputFieldDefinition("contact_linkedin", "contact_linkedin", "Yetkili LinkedIn"),
+    ImportOutputFieldDefinition("contact_notes", "contact_notes", "Yetkili Notu"),
     ImportOutputFieldDefinition("country", "country", "Ülke"),
     ImportOutputFieldDefinition("city", "city", "Şehir"),
     ImportOutputFieldDefinition("tax_number", "tax_number", "Vergi No"),
@@ -58,10 +64,6 @@ EXCEL_IMPORT_EXTRA_MAPPING_FIELDS: frozenset[str] = frozenset(
 LEGACY_IMPORT_MAPPING_FIELDS: frozenset[str] = frozenset(
     {
         "mobile_phone",
-        "contact_last_name",
-        "contact_title",
-        "contact_department",
-        "contact_mobile_phone",
         "instagram",
         "facebook",
         "linkedin",

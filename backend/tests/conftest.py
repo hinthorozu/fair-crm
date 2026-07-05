@@ -47,6 +47,13 @@ from app.modules.system_admin.api.dependencies import get_authorization_adapter 
 from app.modules.scraper.api.dependencies import get_authorization_adapter as get_scraper_authorization_adapter
 from app.modules.smtp.api.dependencies import get_authorization_adapter as get_smtp_authorization_adapter
 from app.modules.smtp.api.dependencies import get_audit_adapter as get_smtp_audit_adapter
+from app.modules.mail_templates.api.dependencies import (
+    get_authorization_adapter as get_mail_templates_authorization_adapter,
+)
+from app.modules.mail_send_operations.api.dependencies import (
+    get_authorization_adapter as get_mail_send_operations_authorization_adapter,
+)
+from app.modules.mail_templates.api.dependencies import get_audit_adapter as get_mail_templates_audit_adapter
 from app.modules.system_admin.application.backup_job_runner import BackupJobRunner
 from app.modules.system_admin.application.data_operation_job_runner import DataOperationJobRunner
 from app.modules.data_integration.infrastructure.persistence.models import ImportJobModel  # noqa: F401
@@ -73,6 +80,15 @@ from app.modules.scraper.infrastructure.persistence.models import ScraperRunLogM
 from app.modules.scraper.infrastructure.persistence.models import ScraperAdapterModel  # noqa: F401
 from app.modules.scraper.infrastructure.persistence.models import ScraperRegistryAdapterHideModel  # noqa: F401
 from app.modules.smtp.infrastructure.persistence.models import SmtpAccountModel  # noqa: F401
+from app.modules.mail_templates.infrastructure.persistence.models import MailTemplateModel  # noqa: F401
+from app.modules.fair_emails.infrastructure.persistence.models import (  # noqa: F401
+    FairEmailBatchModel,
+    FairEmailOutboxModel,
+)
+from app.modules.mail_send_operations.infrastructure.persistence.models import MailSendOperationModel  # noqa: F401
+from app.modules.fair_emails.api.dependencies import (
+    get_authorization_adapter as get_fair_emails_authorization_adapter,
+)
 
 
 class AllowAllAuthorization(AuthorizationPort):
@@ -177,7 +193,7 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> TestClient:
 
     def override_get_db() -> Generator[Session, None, None]:
         yield db_session
-        db_session.flush()
+        db_session.commit()
 
     app = create_app()
     app.dependency_overrides[get_db] = override_get_db
@@ -199,6 +215,10 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     app.dependency_overrides[get_scraper_authorization_adapter] = lambda: AllowAllAuthorization()
     app.dependency_overrides[get_smtp_authorization_adapter] = lambda: AllowAllAuthorization()
     app.dependency_overrides[get_smtp_audit_adapter] = lambda: NoOpAudit()
+    app.dependency_overrides[get_mail_templates_authorization_adapter] = lambda: AllowAllAuthorization()
+    app.dependency_overrides[get_mail_templates_audit_adapter] = lambda: NoOpAudit()
+    app.dependency_overrides[get_mail_send_operations_authorization_adapter] = lambda: AllowAllAuthorization()
+    app.dependency_overrides[get_fair_emails_authorization_adapter] = lambda: AllowAllAuthorization()
 
     import app.modules.data_integration.api.dependencies as data_integration_dependencies
     import app.modules.imports.api.dependencies as imports_dependencies
@@ -211,5 +231,9 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     system_admin_dependencies._data_operation_job_runner = DataOperationJobRunner(
         session_factory=lambda: db_session
     )
+
+    from app.modules.fair_emails.application import process_batch as fair_email_process_batch
+
+    fair_email_process_batch.configure_batch_session_factory(lambda: db_session)
 
     return TestClient(app)

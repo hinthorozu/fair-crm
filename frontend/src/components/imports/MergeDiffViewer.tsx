@@ -22,6 +22,23 @@ function sortMergeGroups(groups: MergePreview["groups"]): MergePreview["groups"]
   );
 }
 
+function contactSummaryLine(preview: MergePreview): string | null {
+  const contactGroup = preview.groups.find((group) => group.entity === "contact");
+  if (!contactGroup?.fields.length) {
+    return null;
+  }
+  const byKey = Object.fromEntries(contactGroup.fields.map((field) => [field.field_key, field]));
+  const name = byKey.contact_name?.import_value ?? byKey.contact_name?.crm_value;
+  const email = byKey.contact_email?.import_value ?? byKey.contact_email?.crm_value;
+  const phone =
+    byKey.contact_phone?.import_value ??
+    byKey.contact_mobile_phone?.import_value ??
+    byKey.contact_phone?.crm_value ??
+    byKey.contact_mobile_phone?.crm_value;
+  const parts = [name, email, phone].filter(Boolean);
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
 interface MergeDiffViewerProps {
   row: ImportRow;
   expanded?: boolean;
@@ -34,6 +51,7 @@ export function MergeDiffViewer({ row, expanded: controlledExpanded, onExpandedC
   const expanded = isControlled ? controlledExpanded : uncontrolledExpanded;
   const preview: MergePreview | null | undefined = row.merge_preview;
   const companyName = str(row.normalized_data_json.company_name as string | undefined);
+  const contactSummary = preview ? contactSummaryLine(preview) : null;
 
   const toggleExpanded = () => {
     const next = !expanded;
@@ -59,7 +77,12 @@ export function MergeDiffViewer({ row, expanded: controlledExpanded, onExpandedC
     <div className="merge-diff-row">
       <button type="button" className="merge-diff-toggle" onClick={toggleExpanded}>
         <span className="merge-diff-chevron">{expanded ? "▼" : "▶"}</span>
-        <strong>{companyName}</strong>
+        <span className="merge-diff-toggle-text">
+          <strong>{companyName}</strong>
+          {contactSummary ? (
+            <span className="merge-contact-summary text-muted">Yetkili: {contactSummary}</span>
+          ) : null}
+        </span>
       </button>
       {expanded && (
         <div className="merge-diff-body">
@@ -73,6 +96,13 @@ export function MergeDiffViewer({ row, expanded: controlledExpanded, onExpandedC
               </ul>
             </div>
           )}
+          {preview.contact_warnings && preview.contact_warnings.length > 0 ? (
+            <ul className="merge-contact-warnings">
+              {preview.contact_warnings.map((warning) => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+          ) : null}
           {sortMergeGroups(preview.groups).map((group) => (
             <div key={group.entity} className="merge-entity-group">
               <h4>{mergeEntityLabels[group.entity] ?? group.entity_label}</h4>

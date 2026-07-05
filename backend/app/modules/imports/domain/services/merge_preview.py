@@ -57,8 +57,13 @@ CONTACT_FIELDS: list[tuple[str, str, str]] = [
 
 WIZARD_CONTACT_PREVIEW_FIELDS: list[tuple[str, str]] = [
     ("contact_name", "Yetkili Adı"),
+    ("contact_title", "Ünvan"),
+    ("contact_department", "Departman"),
     ("contact_email", "Yetkili E-posta"),
     ("contact_phone", "Yetkili Telefon"),
+    ("contact_mobile_phone", "Cep Telefonu"),
+    ("contact_linkedin", "LinkedIn"),
+    ("contact_notes", "Not"),
 ]
 
 _PLACEHOLDER_CONTACT_LAST_NAME = "—"
@@ -166,11 +171,13 @@ def _has_contact_fields(data: dict[str, Any]) -> bool:
 
 
 def _contact_import_display_name(data: dict[str, Any]) -> str | None:
-    first = _display(data.get("contact_first_name"))
-    last = _display(data.get("contact_last_name"))
-    if first and last:
-        return f"{first} {last}"
-    return first or last
+    from app.modules.imports.domain.services.contact_import import resolve_contact_identity
+
+    first, last = resolve_contact_identity(data)
+    if last == _PLACEHOLDER_CONTACT_LAST_NAME:
+        return first or None
+    combined = f"{first} {last}".strip()
+    return combined or None
 
 
 def _contact_crm_display_name(contact: Contact | None) -> str | None:
@@ -199,8 +206,25 @@ def _build_wizard_contact_preview_fields(
     contact_fields: list[dict[str, Any]] = []
     preview_sources: list[tuple[str, str | None, str | None]] = [
         ("contact_name", _contact_crm_display_name(contact), _contact_import_display_name(data)),
+        ("contact_title", getattr(contact, "title", None) if contact else None, data.get("contact_title")),
+        (
+            "contact_department",
+            getattr(contact, "department", None) if contact else None,
+            data.get("contact_department"),
+        ),
         ("contact_email", contact.email if contact else None, data.get("contact_email")),
-        ("contact_phone", contact.phone if contact else None, _contact_import_phone(data)),
+        ("contact_phone", contact.phone if contact else None, data.get("contact_phone")),
+        (
+            "contact_mobile_phone",
+            getattr(contact, "mobile_phone", None) if contact else None,
+            data.get("contact_mobile_phone"),
+        ),
+        (
+            "contact_linkedin",
+            getattr(contact, "linkedin", None) if contact else None,
+            data.get("contact_linkedin"),
+        ),
+        ("contact_notes", getattr(contact, "notes", None) if contact else None, data.get("contact_notes")),
     ]
     label_by_key = dict(WIZARD_CONTACT_PREVIEW_FIELDS)
 
@@ -351,13 +375,13 @@ def build_merge_preview(
             }
         )
 
-    if _has_contact_fields(data) and applies:
+    if _has_contact_fields(data):
         contact_fields = _build_wizard_contact_preview_fields(
             data,
             contact,
             is_create=is_create,
             is_update=is_update,
-            is_skipped=is_skipped,
+            is_skipped=is_skipped or not applies,
         )
         if contact_fields:
             groups.append(
@@ -408,7 +432,14 @@ def build_merge_preview(
         )
 
     summary_lines = _build_summary_lines(groups, is_skipped=is_skipped)
-    return {"groups": groups, "summary_lines": summary_lines}
+    from app.modules.imports.domain.services.contact_import import build_contact_import_warnings
+
+    contact_warnings = build_contact_import_warnings(data) if _has_contact_fields(data) else []
+    return {
+        "groups": groups,
+        "summary_lines": summary_lines,
+        "contact_warnings": contact_warnings,
+    }
 
 
 def _build_summary_lines(groups: list[dict[str, Any]], *, is_skipped: bool) -> list[str]:

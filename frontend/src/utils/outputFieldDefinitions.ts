@@ -43,8 +43,14 @@ export const IMPORT_OUTPUT_FIELD_DEFINITIONS: ImportOutputFieldDefinition[] = [
 /** Excel Import-only fields (broader than scraper output). */
 export const EXCEL_IMPORT_EXTRA_FIELD_DEFINITIONS = [
   { canonicalKey: "contact_first_name", label: "Yetkili Adı" },
+  { canonicalKey: "contact_last_name", label: "Yetkili Soyadı" },
+  { canonicalKey: "contact_title", label: "Yetkili Ünvan" },
+  { canonicalKey: "contact_department", label: "Yetkili Departman" },
   { canonicalKey: "contact_email", label: "Yetkili E-posta" },
   { canonicalKey: "contact_phone", label: "Yetkili Telefon" },
+  { canonicalKey: "contact_mobile_phone", label: "Yetkili Cep Telefonu" },
+  { canonicalKey: "contact_linkedin", label: "Yetkili LinkedIn" },
+  { canonicalKey: "contact_notes", label: "Yetkili Notu" },
   { canonicalKey: "country", label: "Ülke" },
   { canonicalKey: "city", label: "Şehir" },
   { canonicalKey: "tax_number", label: "Vergi No" },

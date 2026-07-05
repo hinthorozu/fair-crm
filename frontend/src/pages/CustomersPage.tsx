@@ -13,7 +13,7 @@ import type { CreateCustomerPayload } from "../types/customer";
 import { CustomerFilters, CustomerTable } from "../components/CustomerList";
 import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
-import { Modal } from "../components/ui/Modal";
+import { FormModal } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import type { Customer, CustomerStatus, CustomerType } from "../types/customer";
@@ -153,24 +153,24 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
       {success && <div className="banner success">{success}</div>}
 
       {modal === "create" && (
-        <Modal title={labels.newCustomer} onClose={closeModal} size="lg">
+        <FormModal title={labels.newCustomer} onClose={closeModal} size="lg">
           <CustomerForm
             submitLabel={labels.save}
             onCancel={closeModal}
             onSubmit={handleCreate}
           />
-        </Modal>
+        </FormModal>
       )}
 
       {modal === "edit" && editing && (
-        <Modal title={labels.editCustomer} onClose={closeModal} size="lg">
+        <FormModal title={labels.editCustomer} onClose={closeModal} size="lg">
           <CustomerForm
             initial={customerToFormValues(editing)}
             submitLabel={labels.save}
             onCancel={closeModal}
             onSubmit={handleUpdate}
           />
-        </Modal>
+        </FormModal>
       )}
 
       {confirm?.type === "archive" && (

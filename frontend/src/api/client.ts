@@ -94,10 +94,14 @@ export async function apiRequest<T>(
   }
 
   if (!response.ok) {
-    const detail =
-      typeof data === "object" && data !== null && "detail" in data
-        ? String((data as { detail: unknown }).detail)
-        : `HTTP ${response.status}`;
+    let detail = `HTTP ${response.status}`;
+    if (typeof data === "object" && data !== null) {
+      if ("message" in data && data.message) {
+        detail = String(data.message);
+      } else if ("detail" in data && data.detail) {
+        detail = String(data.detail);
+      }
+    }
     throw new ApiError(detail, response.status, data);
   }
 

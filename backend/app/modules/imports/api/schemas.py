@@ -59,6 +59,7 @@ class MergeEntityGroupResponse(BaseModel):
 class MergePreviewResponse(BaseModel):
     groups: list[MergeEntityGroupResponse]
     summary_lines: list[str]
+    contact_warnings: list[str] = Field(default_factory=list)
 
 
 class ImportRowResponse(BaseModel):

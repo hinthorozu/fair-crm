@@ -232,3 +232,32 @@ def test_merge_preview_contact_shows_crm_values_on_update():
     email_field = next(f for f in contact_group["fields"] if f["field_key"] == "contact_email")
     assert email_field["crm_value"] == "ali@example.com"
     assert email_field["outcome"] == "same"
+
+
+def test_merge_preview_contact_warnings_for_single_name():
+    data = {"company_name": "Co", "contact_first_name": "Ali"}
+    preview = build_merge_preview(
+        _row(data),
+        customer=None,
+        participation=None,
+        contact=None,
+        fair_id=uuid4(),
+    )
+    assert any("Tek kelimelik" in warning for warning in preview["contact_warnings"])
+
+
+def test_merge_preview_shows_contact_when_row_skipped():
+    data = {
+        "company_name": "Co",
+        "contact_first_name": "Ali",
+        "contact_email": "ali@example.com",
+    }
+    preview = build_merge_preview(
+        _row(data, decision=ImportDecision.SKIP, status=ImportRowStatus.INVALID),
+        customer=None,
+        participation=None,
+        contact=None,
+        fair_id=uuid4(),
+    )
+    contact_group = next(g for g in preview["groups"] if g["entity"] == "contact")
+    assert contact_group["fields"][0]["outcome"] == "skipped"

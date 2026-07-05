@@ -177,6 +177,9 @@ def test_map_header_aliases():
     assert map_header_to_field("Instagram") == "instagram_url"
     assert map_header_to_field("Stand No") == "stand"
     assert map_header_to_field("Not") == "notes"
+    assert map_header_to_field("Ad Soyad") == "contact_first_name"
+    assert map_header_to_field("Yetkili LinkedIn") == "contact_linkedin"
+    assert map_header_to_field("Kişi Notu") == "contact_notes"
 
 
 def test_multi_email_validation_in_import(client, auth_headers):

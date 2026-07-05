@@ -140,6 +140,51 @@ export function NavIconChevronRight(props: IconProps) {
   );
 }
 
+export function NavIconDatabase(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+      <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
+    </IconBase>
+  );
+}
+
+export function NavIconMail(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="M22 7l-10 7L2 7" />
+    </IconBase>
+  );
+}
+
+export function NavIconTemplate(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+    </IconBase>
+  );
+}
+
+export function NavIconDataOperations(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />
+    </IconBase>
+  );
+}
+
+export function NavIconSettings(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+    </IconBase>
+  );
+}
+
 const DI_NAV_ICONS: Record<string, React.ComponentType<IconProps>> = {
   imports: NavIconImports,
   new: NavIconNewImport,
@@ -152,5 +197,25 @@ const DI_NAV_ICONS: Record<string, React.ComponentType<IconProps>> = {
 
 export function DataIntegrationNavIcon({ id }: { id: string }) {
   const Icon = DI_NAV_ICONS[id] ?? NavIconImports;
+  return <Icon />;
+}
+
+const ADMIN_NAV_ICONS: Record<string, React.ComponentType<IconProps>> = {
+  backups: NavIconDatabase,
+  smtp: NavIconMail,
+  "mail-templates": NavIconTemplate,
+  "mail-operations": NavIconRunHistory,
+  "data-operations": NavIconDataOperations,
+  "background-jobs": NavIconJobs,
+  "audit-logs": NavIconReports,
+  health: NavIconSettings,
+  storage: NavIconDatabase,
+  maintenance: NavIconSettings,
+  scheduler: NavIconJobs,
+  "disaster-recovery": NavIconDatabase,
+};
+
+export function AdminNavIcon({ id }: { id: string }) {
+  const Icon = ADMIN_NAV_ICONS[id] ?? NavIconAdmin;
   return <Icon />;
 }

@@ -7,6 +7,7 @@ import type {
   FairParticipantListItem,
   ParticipationStatus,
 } from "../types/participation";
+import { labels } from "../labels";
 import {
   isoToLocalDatetime,
   localDatetimeToIso,
@@ -17,6 +18,15 @@ import {
   participationStatusOptions,
 } from "../labels/participationLabels";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
+import {
+  FormActions,
+  FormField,
+  FormGrid,
+  FormSection,
+  SelectInput,
+  TextareaInput,
+  TextInput,
+} from "./ui/form";
 
 export interface ParticipationFormValues {
   fair_id: string;
@@ -132,8 +142,8 @@ export function ParticipationForm({
     setValues((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (mode === "customer" && !values.fair_id) {
       setError(participationLabels.selectFair);
       return;
@@ -154,113 +164,147 @@ export function ParticipationForm({
   };
 
   return (
-    <form className="form-stack" onSubmit={(e) => void handleSubmit(e)}>
-      {error && <div className="banner error">{error}</div>}
+    <form className="participation-form" onSubmit={(event) => void handleSubmit(event)}>
+      {error ? <div className="banner error form-form-alert">{error}</div> : null}
 
-      {mode === "customer" && (
-        <label className="form-field">
-          <span>{participationLabels.fair} *</span>
-          <select
-            value={values.fair_id}
-            onChange={(e) => set("fair_id", e.target.value)}
-            required
+      <FormSection title={participationLabels.participationSectionInfo}>
+        <FormGrid>
+          {mode === "customer" ? (
+            <FormField label={participationLabels.fair} htmlFor="participation-fair" required fullWidth>
+              <SelectInput
+                id="participation-fair"
+                value={values.fair_id}
+                onChange={(event) => set("fair_id", event.target.value)}
+                required
+              >
+                <option value="">{participationLabels.selectFair}</option>
+                {fairs.map((fair) => (
+                  <option key={fair.id} value={fair.id}>
+                    {fair.name}
+                  </option>
+                ))}
+              </SelectInput>
+            </FormField>
+          ) : null}
+
+          {mode === "fair" ? (
+            <FormField
+              label={participationLabels.company}
+              htmlFor="participation-company"
+              required
+              fullWidth
+            >
+              <SelectInput
+                id="participation-company"
+                value={values.customer_id}
+                onChange={(event) => set("customer_id", event.target.value)}
+                required
+              >
+                <option value="">{participationLabels.selectCompany}</option>
+                {customers.map((customer) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.display_name}
+                  </option>
+                ))}
+              </SelectInput>
+            </FormField>
+          ) : null}
+
+          <FormField label={participationLabels.hall} htmlFor="participation-hall">
+            <TextInput
+              id="participation-hall"
+              value={values.hall}
+              onChange={(event) => set("hall", event.target.value)}
+            />
+          </FormField>
+
+          <FormField label={participationLabels.stand} htmlFor="participation-stand">
+            <TextInput
+              id="participation-stand"
+              value={values.stand}
+              onChange={(event) => set("stand", event.target.value)}
+            />
+          </FormField>
+
+          <FormField
+            label={participationLabels.participationStatus}
+            htmlFor="participation-status"
           >
-            <option value="">{participationLabels.selectFair}</option>
-            {fairs.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
+            <SelectInput
+              id="participation-status"
+              value={values.participation_status}
+              onChange={(event) =>
+                set("participation_status", event.target.value as ParticipationStatus)
+              }
+            >
+              {participationStatusOptions.map((option) => (
+                <option key={option} value={option}>
+                  {participationStatusLabels[option]}
+                </option>
+              ))}
+            </SelectInput>
+          </FormField>
+        </FormGrid>
+      </FormSection>
 
-      {mode === "fair" && (
-        <label className="form-field">
-          <span>{participationLabels.company} *</span>
-          <select
-            value={values.customer_id}
-            onChange={(e) => set("customer_id", e.target.value)}
-            required
-          >
-            <option value="">{participationLabels.selectCompany}</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.display_name}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
+      <FormSection title={participationLabels.participationSectionSchedule}>
+        <FormGrid>
+          <FormField label={participationLabels.visitedAt} htmlFor="participation-visited-at">
+            <TextInput
+              id="participation-visited-at"
+              type="datetime-local"
+              value={values.visited_at}
+              onChange={(event) => set("visited_at", event.target.value)}
+            />
+          </FormField>
+        </FormGrid>
+      </FormSection>
 
-      <div className="form-row">
-        <label className="form-field">
-          <span>{participationLabels.hall}</span>
-          <input value={values.hall} onChange={(e) => set("hall", e.target.value)} />
-        </label>
-        <label className="form-field">
-          <span>{participationLabels.stand}</span>
-          <input value={values.stand} onChange={(e) => set("stand", e.target.value)} />
-        </label>
-      </div>
+      {contacts.length > 0 ? (
+        <FormSection title={participationLabels.participationSectionRelations}>
+          <FormGrid>
+            <FormField
+              label={participationLabels.primaryContact}
+              htmlFor="participation-primary-contact"
+              fullWidth
+            >
+              <SelectInput
+                id="participation-primary-contact"
+                value={values.primary_contact_id}
+                onChange={(event) => set("primary_contact_id", event.target.value)}
+              >
+                <option value="">{participationLabels.noContact}</option>
+                {contacts.map((contact) => (
+                  <option key={contact.id} value={contact.id}>
+                    {contact.full_name}
+                  </option>
+                ))}
+              </SelectInput>
+            </FormField>
+          </FormGrid>
+        </FormSection>
+      ) : null}
 
-      <label className="form-field">
-        <span>{participationLabels.participationStatus}</span>
-        <select
-          value={values.participation_status}
-          onChange={(e) => set("participation_status", e.target.value)}
-        >
-          {participationStatusOptions.map((s) => (
-            <option key={s} value={s}>
-              {participationStatusLabels[s]}
-            </option>
-          ))}
-        </select>
-      </label>
+      <FormSection title={participationLabels.participationSectionDetails}>
+        <FormGrid>
+          <FormField label={participationLabels.notes} htmlFor="participation-notes" fullWidth>
+            <TextareaInput
+              id="participation-notes"
+              rows={3}
+              value={values.notes}
+              onChange={(event) => set("notes", event.target.value)}
+            />
+          </FormField>
+        </FormGrid>
+      </FormSection>
 
-      {contacts.length > 0 && (
-        <label className="form-field">
-          <span>{participationLabels.primaryContact}</span>
-          <select
-            value={values.primary_contact_id}
-            onChange={(e) => set("primary_contact_id", e.target.value)}
-          >
-            <option value="">{participationLabels.noContact}</option>
-            {contacts.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.full_name}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-
-      <label className="form-field">
-        <span>{participationLabels.visitedAt}</span>
-        <input
-          type="datetime-local"
-          value={values.visited_at}
-          onChange={(e) => set("visited_at", e.target.value)}
-        />
-      </label>
-
-      <label className="form-field">
-        <span>{participationLabels.notes}</span>
-        <textarea
-          rows={3}
-          value={values.notes}
-          onChange={(e) => set("notes", e.target.value)}
-        />
-      </label>
-
-      <div className="form-actions">
-        <button type="button" className="btn secondary" onClick={handleCancel} disabled={saving}>
-          İptal
-        </button>
-        <button type="submit" className="btn primary" disabled={saving}>
-          {saving ? "Kaydediliyor…" : submitLabel}
-        </button>
-      </div>
+      <FormActions
+        onCancel={handleCancel}
+        cancelLabel={labels.cancel}
+        submitLabel={submitLabel}
+        saving={saving}
+        savingLabel={labels.loading}
+      />
     </form>
   );
 }

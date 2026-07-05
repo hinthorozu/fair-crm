@@ -11,6 +11,15 @@ import {
   activityTypeOptions,
 } from "../labels/activityLabels";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
+import {
+  FormActions,
+  FormField,
+  FormGrid,
+  FormSection,
+  SelectInput,
+  TextareaInput,
+  TextInput,
+} from "./ui/form";
 
 export type ActivityFormValues = Omit<CreateActivityPayload, "customer_id">;
 
@@ -93,8 +102,8 @@ export function ActivityForm({
     setValues((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!values.subject.trim()) {
       setError(activityLabels.subjectRequired);
       return;
@@ -124,115 +133,131 @@ export function ActivityForm({
   };
 
   return (
-    <form className="form-grid" onSubmit={(e) => void handleSubmit(e)}>
-      {error && <div className="banner error">{error}</div>}
+    <form className="activity-form" onSubmit={(event) => void handleSubmit(event)}>
+      {error ? <div className="banner error form-form-alert">{error}</div> : null}
 
-      <label>
-        {activityLabels.type}
-        <select
-          value={values.type}
-          onChange={(e) => set("type", e.target.value as ActivityType)}
-          required
-        >
-          {activityTypeOptions.map((t) => (
-            <option key={t} value={t}>
-              {activityTypeLabels[t]}
-            </option>
-          ))}
-        </select>
-      </label>
+      <FormSection title={activityLabels.activitySectionInfo}>
+        <FormGrid>
+          <FormField label={activityLabels.type} htmlFor="activity-type" required>
+            <SelectInput
+              id="activity-type"
+              value={values.type}
+              onChange={(event) => set("type", event.target.value as ActivityType)}
+              required
+            >
+              {activityTypeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {activityTypeLabels[option]}
+                </option>
+              ))}
+            </SelectInput>
+          </FormField>
 
-      <label>
-        {activityLabels.subject}
-        <input
-          type="text"
-          value={values.subject}
-          onChange={(e) => set("subject", e.target.value)}
-          required
-          maxLength={500}
-        />
-      </label>
+          <FormField label={activityLabels.status} htmlFor="activity-status" required>
+            <SelectInput
+              id="activity-status"
+              value={values.status}
+              onChange={(event) => set("status", event.target.value as ActivityStatus)}
+              required
+            >
+              {activityStatusOptions.map((option) => (
+                <option key={option} value={option}>
+                  {activityStatusLabels[option]}
+                </option>
+              ))}
+            </SelectInput>
+          </FormField>
 
-      <label>
-        {activityLabels.description}
-        <textarea
-          value={values.description ?? ""}
-          onChange={(e) => set("description", e.target.value)}
-          rows={3}
-        />
-      </label>
+          <FormField label={activityLabels.subject} htmlFor="activity-subject" required fullWidth>
+            <TextInput
+              id="activity-subject"
+              type="text"
+              value={values.subject}
+              onChange={(event) => set("subject", event.target.value)}
+              required
+              maxLength={500}
+            />
+          </FormField>
 
-      <label>
-        {activityLabels.activityDate}
-        <input
-          type="datetime-local"
-          value={values.activity_date}
-          onChange={(e) => set("activity_date", e.target.value)}
-          required
-        />
-      </label>
+          <FormField label={activityLabels.source} htmlFor="activity-source">
+            <SelectInput
+              id="activity-source"
+              value={values.source ?? "manual"}
+              onChange={(event) =>
+                set("source", event.target.value as ActivityFormValues["source"])
+              }
+            >
+              {activitySourceOptions.map((option) => (
+                <option key={option} value={option}>
+                  {activitySourceLabels[option]}
+                </option>
+              ))}
+            </SelectInput>
+          </FormField>
+        </FormGrid>
+      </FormSection>
 
-      <label>
-        {activityLabels.followUpDate}
-        <input
-          type="datetime-local"
-          value={values.follow_up_date ?? ""}
-          onChange={(e) => set("follow_up_date", e.target.value)}
-        />
-      </label>
+      <FormSection title={activityLabels.activitySectionSchedule}>
+        <FormGrid>
+          <FormField label={activityLabels.activityDate} htmlFor="activity-date" required>
+            <TextInput
+              id="activity-date"
+              type="datetime-local"
+              value={values.activity_date}
+              onChange={(event) => set("activity_date", event.target.value)}
+              required
+            />
+          </FormField>
 
-      <label>
-        {activityLabels.status}
-        <select
-          value={values.status}
-          onChange={(e) => set("status", e.target.value as ActivityStatus)}
-          required
-        >
-          {activityStatusOptions.map((s) => (
-            <option key={s} value={s}>
-              {activityStatusLabels[s]}
-            </option>
-          ))}
-        </select>
-      </label>
+          <FormField label={activityLabels.followUpDate} htmlFor="activity-follow-up-date">
+            <TextInput
+              id="activity-follow-up-date"
+              type="datetime-local"
+              value={values.follow_up_date ?? ""}
+              onChange={(event) => set("follow_up_date", event.target.value)}
+            />
+          </FormField>
+        </FormGrid>
+      </FormSection>
 
-      <label>
-        {activityLabels.source}
-        <select
-          value={values.source ?? "manual"}
-          onChange={(e) => set("source", e.target.value as ActivityFormValues["source"])}
-        >
-          {activitySourceOptions.map((s) => (
-            <option key={s} value={s}>
-              {activitySourceLabels[s]}
-            </option>
-          ))}
-        </select>
-      </label>
+      <FormSection title={activityLabels.activitySectionRelations}>
+        <FormGrid>
+          <FormField label={activityLabels.contact} htmlFor="activity-contact" fullWidth>
+            <SelectInput
+              id="activity-contact"
+              value={values.contact_id ?? ""}
+              onChange={(event) => set("contact_id", event.target.value || null)}
+            >
+              <option value="">{activityLabels.noContact}</option>
+              {contacts.map((contact) => (
+                <option key={contact.id} value={contact.id}>
+                  {contact.full_name}
+                </option>
+              ))}
+            </SelectInput>
+          </FormField>
+        </FormGrid>
+      </FormSection>
 
-      <label>
-        {activityLabels.contact}
-        <select
-          value={values.contact_id ?? ""}
-          onChange={(e) => set("contact_id", e.target.value || null)}
-        >
-          <option value="">{activityLabels.noContact}</option>
-          {contacts.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.full_name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <FormSection title={activityLabels.activitySectionDetails}>
+        <FormGrid>
+          <FormField label={activityLabels.description} htmlFor="activity-description" fullWidth>
+            <TextareaInput
+              id="activity-description"
+              rows={3}
+              value={values.description ?? ""}
+              onChange={(event) => set("description", event.target.value)}
+            />
+          </FormField>
+        </FormGrid>
+      </FormSection>
 
-      <div className="form-actions">
-        <button type="button" className="btn secondary" onClick={handleCancel} disabled={saving}>
-          {activityLabels.cancel}
-        </button>
-        <button type="submit" className="btn primary" disabled={saving}>
-          {saving ? "..." : submitLabel}
-        </button>
-      </div>
+      <FormActions
+        onCancel={handleCancel}
+        cancelLabel={activityLabels.cancel}
+        submitLabel={submitLabel}
+        saving={saving}
+      />
     </form>
   );
 }

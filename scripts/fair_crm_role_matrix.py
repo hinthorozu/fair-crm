@@ -43,6 +43,14 @@ ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.smtp.create",
     "fair_crm.smtp.update",
     "fair_crm.smtp.delete",
+    "fair_crm.mail_templates.read",
+    "fair_crm.mail_templates.create",
+    "fair_crm.mail_templates.update",
+    "fair_crm.mail_templates.delete",
+    "fair_crm.mail_templates.render",
+    "fair_crm.mail_templates.test_send",
+    "fair_crm.fair_emails.preview",
+    "fair_crm.fair_emails.send",
     "fair_crm.admin.backups.read",
     "fair_crm.admin.backups.create",
     "fair_crm.admin.backups.download",
@@ -60,6 +68,12 @@ ADMIN_ONLY_PERMISSIONS: frozenset[str] = frozenset(
         "fair_crm.smtp.create",
         "fair_crm.smtp.update",
         "fair_crm.smtp.delete",
+        "fair_crm.mail_templates.create",
+        "fair_crm.mail_templates.update",
+        "fair_crm.mail_templates.delete",
+        "fair_crm.mail_templates.render",
+        "fair_crm.mail_templates.test_send",
+        "fair_crm.fair_emails.send",
         "fair_crm.scraper.create",
         "fair_crm.scraper.update",
         "fair_crm.scraper.delete",
@@ -92,6 +106,8 @@ _MANAGER_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.activities.update",
     "fair_crm.activities.delete",
     "fair_crm.smtp.read",
+    "fair_crm.mail_templates.read",
+    "fair_crm.fair_emails.preview",
     "fair_crm.scraper.read",
     "fair_crm.scraper.run",
     "fair_crm.scraper.download",
@@ -113,6 +129,8 @@ _SALES_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.activities.create",
     "fair_crm.activities.update",
     "fair_crm.smtp.read",
+    "fair_crm.mail_templates.read",
+    "fair_crm.fair_emails.preview",
 )
 
 _VIEWER_PERMISSIONS: tuple[str, ...] = (
@@ -124,6 +142,8 @@ _VIEWER_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.activities.read",
     "fair_crm.scraper.read",
     "fair_crm.smtp.read",
+    "fair_crm.mail_templates.read",
+    "fair_crm.fair_emails.preview",
 )
 
 _SCRAPER_OPERATOR_PERMISSIONS: tuple[str, ...] = (

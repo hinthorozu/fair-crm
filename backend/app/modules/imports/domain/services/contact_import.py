@@ -8,7 +8,7 @@ from uuid import UUID
 from app.modules.contacts.domain.entities import Contact
 from app.modules.contacts.domain.ports import ContactRepository
 from app.modules.contacts.domain.services.normalizers import normalize_email, normalize_phone
-from app.shared.email import normalize_email_field
+from app.shared.email import is_valid_email_address, normalize_email_field
 
 CONTACT_IMPORT_FIELD_KEYS = (
     "contact_first_name",
@@ -18,6 +18,8 @@ CONTACT_IMPORT_FIELD_KEYS = (
     "contact_email",
     "contact_phone",
     "contact_mobile_phone",
+    "contact_linkedin",
+    "contact_notes",
 )
 
 _PLACEHOLDER_LAST_NAME = "—"
@@ -116,3 +118,36 @@ def find_existing_contact_for_import(
             last_name.strip().lower(),
         )
     return None
+
+
+def build_contact_import_warnings(data: dict[str, Any]) -> list[str]:
+    """Non-blocking preview warnings for mapped contact columns."""
+    if not has_contact_import_fields(data):
+        return []
+
+    warnings: list[str] = []
+    first_raw = str(data.get("contact_first_name") or "").strip()
+    last_raw = str(data.get("contact_last_name") or "").strip()
+    has_name = bool(first_raw or last_raw)
+    email_raw = data.get("contact_email")
+    phone_raw = data.get("contact_phone") or data.get("contact_mobile_phone")
+
+    if has_name and not _is_nonempty(email_raw) and not _is_nonempty(phone_raw):
+        warnings.append("Yetkili adı var ancak e-posta veya telefon yok.")
+
+    if first_raw and not last_raw and " " not in first_raw:
+        warnings.append(
+            "Tek kelimelik yetkili adı; kayıtta soyad alanı yer tutucu ile tamamlanacak."
+        )
+
+    if _is_nonempty(email_raw):
+        email_text = str(email_raw).strip().replace(",", ";").split(";")[0].strip().lower()
+        if not is_valid_email_address(email_text):
+            warnings.append("Yetkili e-posta adresi geçersiz görünüyor.")
+
+    if _is_nonempty(phone_raw):
+        digits = "".join(ch for ch in str(phone_raw) if ch.isdigit())
+        if len(digits) < 7:
+            warnings.append("Yetkili telefon numarası çok kısa veya hatalı görünüyor.")
+
+    return warnings

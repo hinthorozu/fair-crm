@@ -1,5 +1,6 @@
 from app.modules.smtp.application.commands import SmtpAccountResult
 from app.modules.smtp.domain.entities import SmtpAccount
+from app.modules.smtp.domain.smtp_config_validation import smtp_config_warnings
 
 
 def smtp_account_to_result(account: SmtpAccount) -> SmtpAccountResult:
@@ -19,4 +20,5 @@ def smtp_account_to_result(account: SmtpAccount) -> SmtpAccountResult:
         created_at=account.created_at,
         updated_at=account.updated_at,
         deleted_at=account.deleted_at,
+        config_warnings=tuple(smtp_config_warnings(account.port, account.encryption_type)),
     )

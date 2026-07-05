@@ -773,6 +773,75 @@ def test_reimport_same_yetkili_email_does_not_duplicate_contact(client, auth_hea
     assert contacts_after_second["items"][0]["email"] == "ayse@reimport.com"
 
 
+def test_apply_contact_extended_fields_and_preview_warnings(client, auth_headers):
+    fair_id = _create_fair(client, auth_headers, "Extended Contact Fair")
+    upload = _upload_wizard(
+        client,
+        auth_headers,
+        fair_id,
+        [
+            "Firma Adı",
+            "Ad Soyad",
+            "Ünvan",
+            "Yetkili E-posta",
+            "Yetkili LinkedIn",
+            "Yetkili Notu",
+        ],
+        [
+            [
+                "Extended Contact Co",
+                "Ayşe Yılmaz",
+                "Satın Alma Müdürü",
+                "ayse@extended.com",
+                "https://linkedin.com/in/ayse",
+                "VIP yetkili",
+            ]
+        ],
+    )
+    batch_id = upload.json()["batch_id"]
+    _set_mapping(
+        client,
+        auth_headers,
+        batch_id,
+        True,
+        {
+            "company_name": {"type": "column_index", "value": 0},
+            "contact_first_name": {"type": "column_index", "value": 1},
+            "contact_title": {"type": "column_index", "value": 2},
+            "contact_email": {"type": "column_index", "value": 3},
+            "contact_linkedin": {"type": "column_index", "value": 4},
+            "contact_notes": {"type": "column_index", "value": 5},
+        },
+    )
+    _analyze(client, auth_headers, batch_id)
+    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    merge_preview = rows[0]["merge_preview"]
+    assert merge_preview["contact_warnings"] == []
+    contact_group = next(g for g in merge_preview["groups"] if g["entity"] == "contact")
+    field_keys = {field["field_key"] for field in contact_group["fields"]}
+    assert "contact_name" in field_keys
+    assert "contact_title" in field_keys
+    assert "contact_linkedin" in field_keys
+    assert "contact_notes" in field_keys
+
+    client.patch(
+        f"/api/v1/imports/{batch_id}/rows/{rows[0]['id']}/decision",
+        headers=auth_headers,
+        json={"decision": "create_new"},
+    )
+    apply_import_decisions(client, auth_headers, batch_id, row_ids=[rows[0]["id"]])
+    customers = client.get("/api/v1/customers?search=Extended+Contact+Co", headers=auth_headers).json()["items"]
+    customer_id = customers[0]["id"]
+    contacts = client.get(f"/api/v1/customers/{customer_id}/contacts", headers=auth_headers).json()
+    assert pagination_from(contacts)["totalItems"] == 1
+    contact = contacts["items"][0]
+    assert contact["first_name"] == "Ayşe"
+    assert contact["last_name"] == "Yılmaz"
+    assert contact["title"] == "Satın Alma Müdürü"
+    assert contact["linkedin"] == "https://linkedin.com/in/ayse"
+    assert contact["notes"] == "VIP yetkili"
+
+
 def test_rows_filter_and_search(client, auth_headers):
     fair_id = _create_fair(client, auth_headers, "Filter Fair")
     upload = _upload_wizard(

@@ -32,6 +32,8 @@ def normalize_row_data(raw: dict[str, Any]) -> dict[str, Any]:
         "contact_email": _clean_str(raw.get("contact_email")),
         "contact_phone": _clean_str(raw.get("contact_phone")),
         "contact_mobile_phone": _clean_str(raw.get("contact_mobile_phone")),
+        "contact_linkedin": _clean_str(raw.get("contact_linkedin")),
+        "contact_notes": _clean_str(raw.get("contact_notes")),
         "notes": _clean_str(raw.get("notes")),
         "fair_name": _clean_str(raw.get("fair_name")),
         "hall": _clean_str(raw.get("hall")),

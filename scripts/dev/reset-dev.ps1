@@ -61,6 +61,25 @@ $backend = Start-DevBackend
 Write-DevStep "Starting frontend on port $script:DevFrontendPort (strictPort)"
 $frontend = Start-DevFrontend
 
+function Test-MailTemplateTestEmailOpenApi([int]$Port) {
+    try {
+        $openapi = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/openapi.json" -TimeoutSec 10
+        $path = "/api/v1/mail-templates/{template_id}/test-email"
+        if (-not $openapi.paths.PSObject.Properties.Name.Contains($path)) {
+            Write-Warning "OpenAPI missing mail template test-email route at $path"
+            return $false
+        }
+        if (-not $openapi.paths.$path.post) {
+            Write-Warning "OpenAPI missing POST on mail template test-email route"
+            return $false
+        }
+        return $true
+    } catch {
+        Write-Warning "Mail template test-email OpenAPI verification failed: $($_.Exception.Message)"
+        return $false
+    }
+}
+
 function Test-ParticipantsSearchOpenApi([int]$Port) {
     try {
         $openapi = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/openapi.json" -TimeoutSec 10
@@ -87,6 +106,7 @@ $frontendUrl = "http://127.0.0.1:$($script:DevFrontendPort)/"
 $backendOk = Wait-DevHttpOk -Urls @($backendHealth)
 $swaggerOk = Wait-DevHttpOk -Urls @($swaggerUrl)
 $openapiOk = Test-ParticipantsSearchOpenApi -Port $script:DevBackendPort
+$mailTemplateTestEmailOk = Test-MailTemplateTestEmailOpenApi -Port $script:DevBackendPort
 $frontendOk = Wait-DevHttpOk -Urls @($frontendUrl, "$frontendUrl/index.html")
 
 $escapedPorts = @()
@@ -108,6 +128,9 @@ if (-not $swaggerOk) {
 }
 if (-not $openapiOk) {
     throw "Backend OpenAPI on port $($script:DevBackendPort) is missing Sprint 08.0 list params. A stale uvicorn worker may still be serving old code."
+}
+if (-not $mailTemplateTestEmailOk) {
+    throw "Backend OpenAPI on port $($script:DevBackendPort) is missing mail template test-email route. Restart backend with .\scripts\dev\reset-dev.ps1"
 }
 if (-not $frontendOk) {
     throw "Frontend failed to start on port $($script:DevFrontendPort). See $($frontend.Log) and $($frontend.ErrLog)"

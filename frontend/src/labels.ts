@@ -46,6 +46,11 @@ export const labels = {
   primary: "Birincil",
   markPrimary: "Birincil yap",
   communicationEmpty: "Henüz kayıt yok.",
+  customerSectionGeneral: "Genel Bilgiler",
+  customerSectionLocation: "Lokasyon",
+  customerSectionContact: "İletişim Bilgileri",
+  customerSectionSocial: "Sosyal Medya",
+  customerSectionNotes: "Notlar",
 } as const;
 
 export const paginationLabels = {

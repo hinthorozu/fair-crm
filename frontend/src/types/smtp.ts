@@ -15,6 +15,7 @@ export interface SmtpAccount {
   password_set: boolean;
   /** @deprecated use password_set */
   has_password?: boolean;
+  config_warnings?: string[];
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
@@ -45,6 +46,8 @@ export interface SendTestSmtpMailResponse {
   success: boolean;
   message: string;
 }
+
+export interface UpdateSmtpAccountPayload {
   name?: string;
   from_email?: string;
   from_name?: string | null;

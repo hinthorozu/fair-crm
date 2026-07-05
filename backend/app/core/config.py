@@ -95,6 +95,10 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("SCRAPER_BROWSER_CHANNEL", "FAIR_CRM_SCRAPER_BROWSER_CHANNEL"),
     )
+    smtp_debug_response: bool = Field(
+        default=False,
+        validation_alias="FAIR_CRM_SMTP_DEBUG_RESPONSE",
+    )
 
 
 @lru_cache

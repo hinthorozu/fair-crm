@@ -22,9 +22,11 @@ from app.modules.smtp.application.list_smtp_accounts import ListSmtpAccountsUseC
 from app.modules.smtp.application.set_default_smtp_account import SetDefaultSmtpAccountUseCase
 from app.modules.smtp.application.send_test_smtp_mail import SendTestSmtpMailUseCase
 from app.modules.smtp.application.update_smtp_account import UpdateSmtpAccountUseCase
-from app.modules.smtp.infrastructure.repositories.smtp_account_repository import (
-    SqlAlchemySmtpAccountRepository,
+from app.modules.mail_send_operations.application.mail_send_operation_service import MailSendOperationService
+from app.modules.mail_send_operations.infrastructure.repositories.mail_send_operation_repository import (
+    SqlAlchemyMailSendOperationRepository,
 )
+from app.modules.smtp.infrastructure.repositories.smtp_account_repository import SqlAlchemySmtpAccountRepository
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -33,6 +35,18 @@ PERMISSION_READ = "fair_crm.smtp.read"
 
 def get_smtp_account_repository(db: Session = Depends(get_db)) -> SqlAlchemySmtpAccountRepository:
     return SqlAlchemySmtpAccountRepository(db)
+
+
+def get_mail_send_operation_repository(
+    db: Session = Depends(get_db),
+) -> SqlAlchemyMailSendOperationRepository:
+    return SqlAlchemyMailSendOperationRepository(db)
+
+
+def get_mail_send_operation_service(
+    repository: SqlAlchemyMailSendOperationRepository = Depends(get_mail_send_operation_repository),
+) -> MailSendOperationService:
+    return MailSendOperationService(repository)
 
 
 def get_authorization_adapter() -> AuthorizationPort:
@@ -127,5 +141,6 @@ def get_send_test_smtp_mail_use_case(
     repository: SqlAlchemySmtpAccountRepository = Depends(get_smtp_account_repository),
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
+    mail_send_operations: MailSendOperationService = Depends(get_mail_send_operation_service),
 ) -> SendTestSmtpMailUseCase:
-    return SendTestSmtpMailUseCase(repository, authorization, audit)
+    return SendTestSmtpMailUseCase(repository, authorization, audit, mail_send_operations)

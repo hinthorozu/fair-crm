@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
+from typing import Optional
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.modules.smtp.domain.value_objects import SmtpEncryptionType
@@ -40,6 +42,12 @@ class SendTestSmtpMailRequest(BaseModel):
 class SendTestSmtpMailResponse(BaseModel):
     success: bool
     message: str
+    debug_error_type: Optional[str] = None
+    debug_error_message: Optional[str] = None
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    encryption_type: Optional[SmtpEncryptionType] = None
+    config_warnings: list[str] = Field(default_factory=list)
 
 
 class SmtpAccountResponse(BaseModel):
@@ -60,6 +68,7 @@ class SmtpAccountResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime] = None
+    config_warnings: list[str] = Field(default_factory=list)
 
 
 class SmtpAccountListResponse(BaseModel):

@@ -3,6 +3,15 @@ import type { Contact, CreateContactPayload } from "../types/contact";
 import { contactLabels } from "../labels/contactLabels";
 import { emailPlaceholder, validateMultiEmailInput } from "../utils/email";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
+import {
+  CheckboxField,
+  FormActions,
+  FormField,
+  FormGrid,
+  FormSection,
+  TextareaInput,
+  TextInput,
+} from "./ui/form";
 
 export type ContactFormValues = Omit<CreateContactPayload, "customer_id">;
 
@@ -63,8 +72,8 @@ export function ContactForm({ initial, submitLabel, onSubmit, onCancel }: Contac
     setValues((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!values.first_name.trim()) {
       setError(contactLabels.firstNameRequired);
       return;
@@ -101,100 +110,129 @@ export function ContactForm({ initial, submitLabel, onSubmit, onCancel }: Contac
   };
 
   return (
-    <form className="form-grid" onSubmit={(e) => void handleSubmit(e)}>
-      {error && <div className="banner error">{error}</div>}
+    <form className="contact-form" onSubmit={(event) => void handleSubmit(event)}>
+      {error ? <div className="banner error form-form-alert">{error}</div> : null}
 
-      <label>
-        {contactLabels.firstName} *
-        <input
-          value={values.first_name}
-          onChange={(e) => set("first_name", e.target.value)}
-          required
-        />
-      </label>
+      <FormSection title={contactLabels.contactSectionPerson}>
+        <FormGrid>
+          <FormField label={contactLabels.firstName} htmlFor="contact-first-name" required>
+            <TextInput
+              id="contact-first-name"
+              value={values.first_name}
+              onChange={(event) => set("first_name", event.target.value)}
+              required
+            />
+          </FormField>
 
-      <label>
-        {contactLabels.lastName} *
-        <input
-          value={values.last_name}
-          onChange={(e) => set("last_name", e.target.value)}
-          required
-        />
-      </label>
+          <FormField label={contactLabels.lastName} htmlFor="contact-last-name" required>
+            <TextInput
+              id="contact-last-name"
+              value={values.last_name}
+              onChange={(event) => set("last_name", event.target.value)}
+              required
+            />
+          </FormField>
 
-      <label>
-        {contactLabels.title}
-        <input value={values.title ?? ""} onChange={(e) => set("title", e.target.value)} />
-      </label>
+          <FormField label={contactLabels.title} htmlFor="contact-title">
+            <TextInput
+              id="contact-title"
+              value={values.title ?? ""}
+              onChange={(event) => set("title", event.target.value)}
+            />
+          </FormField>
 
-      <label>
-        {contactLabels.department}
-        <input value={values.department ?? ""} onChange={(e) => set("department", e.target.value)} />
-      </label>
+          <FormField label={contactLabels.department} htmlFor="contact-department">
+            <TextInput
+              id="contact-department"
+              value={values.department ?? ""}
+              onChange={(event) => set("department", event.target.value)}
+            />
+          </FormField>
+        </FormGrid>
+      </FormSection>
 
-      <label>
-        {contactLabels.email}
-        <input
-          type="text"
-          value={values.email ?? ""}
-          onChange={(e) => set("email", e.target.value)}
-          placeholder={emailPlaceholder}
-        />
-      </label>
+      <FormSection title={contactLabels.contactSectionContact}>
+        <FormGrid>
+          <FormField
+            label={contactLabels.email}
+            htmlFor="contact-email"
+            hint={emailPlaceholder}
+            fullWidth
+          >
+            <TextInput
+              id="contact-email"
+              type="text"
+              value={values.email ?? ""}
+              onChange={(event) => set("email", event.target.value)}
+              placeholder={emailPlaceholder}
+            />
+          </FormField>
 
-      <label>
-        {contactLabels.phone}
-        <input value={values.phone ?? ""} onChange={(e) => set("phone", e.target.value)} />
-      </label>
+          <FormField label={contactLabels.phone} htmlFor="contact-phone">
+            <TextInput
+              id="contact-phone"
+              type="tel"
+              value={values.phone ?? ""}
+              onChange={(event) => set("phone", event.target.value)}
+            />
+          </FormField>
 
-      <label>
-        {contactLabels.mobilePhone}
-        <input
-          value={values.mobile_phone ?? ""}
-          onChange={(e) => set("mobile_phone", e.target.value)}
-        />
-      </label>
+          <FormField label={contactLabels.mobilePhone} htmlFor="contact-mobile-phone">
+            <TextInput
+              id="contact-mobile-phone"
+              type="tel"
+              value={values.mobile_phone ?? ""}
+              onChange={(event) => set("mobile_phone", event.target.value)}
+            />
+          </FormField>
+        </FormGrid>
+      </FormSection>
 
-      <label className="full-width">
-        {contactLabels.linkedin}
-        <input value={values.linkedin ?? ""} onChange={(e) => set("linkedin", e.target.value)} />
-      </label>
+      <FormSection title={contactLabels.contactSectionSocial}>
+        <FormGrid>
+          <FormField label={contactLabels.linkedin} htmlFor="contact-linkedin" fullWidth>
+            <TextInput
+              id="contact-linkedin"
+              type="url"
+              value={values.linkedin ?? ""}
+              onChange={(event) => set("linkedin", event.target.value)}
+              placeholder="https://linkedin.com/in/..."
+            />
+          </FormField>
+        </FormGrid>
+      </FormSection>
 
-      <label className="full-width">
-        {contactLabels.notes}
-        <textarea
-          rows={3}
-          value={values.notes ?? ""}
-          onChange={(e) => set("notes", e.target.value)}
-        />
-      </label>
+      <FormSection title={contactLabels.contactSectionStatus}>
+        <FormGrid>
+          <CheckboxField
+            id="contact-is-primary"
+            label={contactLabels.isPrimary}
+            checked={values.is_primary ?? false}
+            onChange={(checked) => set("is_primary", checked)}
+          />
+          <CheckboxField
+            id="contact-is-active"
+            label={contactLabels.isActive}
+            checked={values.is_active ?? true}
+            onChange={(checked) => set("is_active", checked)}
+          />
+          <FormField label={contactLabels.notes} htmlFor="contact-notes" fullWidth>
+            <TextareaInput
+              id="contact-notes"
+              rows={3}
+              value={values.notes ?? ""}
+              onChange={(event) => set("notes", event.target.value)}
+            />
+          </FormField>
+        </FormGrid>
+      </FormSection>
 
-      <label className="checkbox-label">
-        <input
-          type="checkbox"
-          checked={values.is_primary ?? false}
-          onChange={(e) => set("is_primary", e.target.checked)}
-        />
-        {contactLabels.isPrimary}
-      </label>
-
-      <label className="checkbox-label">
-        <input
-          type="checkbox"
-          checked={values.is_active ?? true}
-          onChange={(e) => set("is_active", e.target.checked)}
-        />
-        {contactLabels.isActive}
-      </label>
-
-      <div className="form-actions full-width">
-        <button type="button" className="btn secondary" onClick={handleCancel} disabled={saving}>
-          {contactLabels.cancel}
-        </button>
-        <button type="submit" className="btn primary" disabled={saving}>
-          {saving ? "…" : submitLabel}
-        </button>
-      </div>
+      <FormActions
+        onCancel={handleCancel}
+        cancelLabel={contactLabels.cancel}
+        submitLabel={submitLabel}
+        saving={saving}
+      />
     </form>
   );
 }

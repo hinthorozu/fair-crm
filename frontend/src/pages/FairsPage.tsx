@@ -12,7 +12,7 @@ import { FairForm, fairToFormValues } from "../components/FairForm";
 import { FairFilters, FairTable } from "../components/FairList";
 import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
-import { Modal } from "../components/ui/Modal";
+import { FormModal } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import type { CreateFairPayload, Fair, FairStatus } from "../types/fair";
@@ -153,24 +153,24 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
       {success && <div className="banner success">{success}</div>}
 
       {modal === "create" && (
-        <Modal title={fairLabels.newFair} onClose={closeModal} size="lg">
+        <FormModal title={fairLabels.newFair} onClose={closeModal} size="lg">
           <FairForm
             submitLabel={labels.save}
             onCancel={closeModal}
             onSubmit={handleCreate}
           />
-        </Modal>
+        </FormModal>
       )}
 
       {modal === "edit" && editing && (
-        <Modal title={fairLabels.editFair} onClose={closeModal} size="lg">
+        <FormModal title={fairLabels.editFair} onClose={closeModal} size="lg">
           <FairForm
             initial={fairToFormValues(editing)}
             submitLabel={labels.save}
             onCancel={closeModal}
             onSubmit={handleUpdate}
           />
-        </Modal>
+        </FormModal>
       )}
 
       {confirm?.type === "archive" && (

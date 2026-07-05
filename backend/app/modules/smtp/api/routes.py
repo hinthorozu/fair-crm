@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.config import get_settings
@@ -40,6 +41,7 @@ from app.modules.smtp.application.delete_smtp_account import DeleteSmtpAccountUs
 from app.modules.smtp.application.get_smtp_account import GetSmtpAccountUseCase
 from app.modules.smtp.application.list_smtp_accounts import ListSmtpAccountsUseCase
 from app.modules.smtp.application.send_test_smtp_mail import SendTestSmtpMailUseCase
+from app.modules.smtp.application.smtp_test_debug import smtp_debug_response_enabled
 from app.modules.smtp.application.set_default_smtp_account import SetDefaultSmtpAccountUseCase
 from app.modules.smtp.application.update_smtp_account import UpdateSmtpAccountUseCase
 from app.modules.smtp.domain.exceptions import (
@@ -52,7 +54,6 @@ from app.modules.smtp.domain.exceptions import (
     SmtpAccountAlreadyDeletedError,
     SmtpAccountNotDefaultEligibleError,
     SmtpAccountNotFoundError,
-    SmtpMailDeliveryError,
 )
 
 router = APIRouter(prefix="/smtp/accounts", tags=["smtp"])
@@ -70,7 +71,28 @@ def _access_token(credentials: HTTPAuthorizationCredentials | None) -> str:
 
 
 def _to_response(result) -> SmtpAccountResponse:
-    return SmtpAccountResponse.model_validate(result.__dict__)
+    data = result.__dict__.copy()
+    data["config_warnings"] = list(data.get("config_warnings") or ())
+    return SmtpAccountResponse.model_validate(data)
+
+
+def _to_test_mail_response(result) -> SendTestSmtpMailResponse:
+    data = {
+        "success": result.success,
+        "message": result.message,
+        "config_warnings": list(result.config_warnings or ()),
+    }
+    if smtp_debug_response_enabled():
+        data.update(
+            {
+                "debug_error_type": result.debug_error_type,
+                "debug_error_message": result.debug_error_message,
+                "smtp_host": result.smtp_host,
+                "smtp_port": result.smtp_port,
+                "encryption_type": result.encryption_type,
+            }
+        )
+    return SendTestSmtpMailResponse.model_validate(data)
 
 
 @router.post(
@@ -253,9 +275,13 @@ def send_test_smtp_mail(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except (InvalidSmtpTestRecipientError, SmtpAccountAlreadyDeletedError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except SmtpMailDeliveryError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return SendTestSmtpMailResponse(success=result.success, message=result.message)
+    response = _to_test_mail_response(result)
+    if not result.success:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content=response.model_dump(exclude_none=True),
+        )
+    return response
 
 
 @router.delete(
