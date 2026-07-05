@@ -470,20 +470,29 @@ class ApplyImportUseCase:
         command: ApplyImportCommand,
         now: datetime,
     ) -> bool:
-        first_name = data.get("contact_first_name")
-        last_name = data.get("contact_last_name")
-        if not first_name or not last_name:
+        from app.modules.imports.domain.services.contact_import import (
+            find_existing_contact_for_import,
+            has_contact_import_fields,
+            resolve_contact_identity,
+        )
+
+        if not has_contact_import_fields(data):
             return False
 
-        existing = self._contact_repository.find_by_customer_and_name(
-            command.organization_id,
-            customer.id,
-            str(first_name).strip().lower(),
-            str(last_name).strip().lower(),
+        first_name, last_name = resolve_contact_identity(data)
+        existing = find_existing_contact_for_import(
+            self._contact_repository,
+            organization_id=command.organization_id,
+            customer_id=customer.id,
+            data=data,
         )
 
         if existing:
+            filled_first = _fill_if_empty(existing.first_name, first_name)
+            filled_last = _fill_if_empty(existing.last_name, last_name)
             existing.update_fields(
+                first_name=filled_first if filled_first != existing.first_name else None,
+                last_name=filled_last if filled_last != existing.last_name else None,
                 title=_fill_if_empty(existing.title, data.get("contact_title")),
                 department=_fill_if_empty(existing.department, data.get("contact_department")),
                 email=_merge_email_fields(existing.email, data.get("contact_email")),
@@ -500,8 +509,8 @@ class ApplyImportUseCase:
         contact = Contact.create(
             organization_id=command.organization_id,
             customer_id=customer.id,
-            first_name=str(first_name),
-            last_name=str(last_name),
+            first_name=first_name,
+            last_name=last_name,
             title=data.get("contact_title"),
             department=data.get("contact_department"),
             email=data.get("contact_email"),

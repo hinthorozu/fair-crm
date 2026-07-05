@@ -170,6 +170,8 @@ def test_merge_preview_entity_groups():
         "company_name": "Co",
         "contact_first_name": "Ali",
         "contact_last_name": "Veli",
+        "contact_email": "ali@example.com",
+        "contact_phone": "5551234567",
         "hall": "1",
     }
     preview = build_merge_preview(
@@ -179,7 +181,54 @@ def test_merge_preview_entity_groups():
         contact=None,
         fair_id=uuid4(),
     )
-    entities = {g["entity"] for g in preview["groups"]}
+    entities = [g["entity"] for g in preview["groups"]]
     assert "customer" in entities
     assert "participation" in entities
     assert "contact" in entities
+    assert entities.index("contact") < entities.index("participation")
+
+    contact_group = next(g for g in preview["groups"] if g["entity"] == "contact")
+    assert contact_group["entity_label"] == "Yetkili Kişi"
+    labels = {field["label"] for field in contact_group["fields"]}
+    assert "Yetkili Adı" in labels
+    assert "Yetkili E-posta" in labels
+    assert "Yetkili Telefon" in labels
+    name_field = next(f for f in contact_group["fields"] if f["field_key"] == "contact_name")
+    assert name_field["import_value"] == "Ali Veli"
+    assert name_field["outcome"] == "new"
+
+
+def test_merge_preview_contact_shows_crm_values_on_update():
+    from datetime import UTC, datetime
+
+    data = {
+        "company_name": "Co",
+        "contact_first_name": "Ali",
+        "contact_email": "ali@example.com",
+    }
+    existing_contact = type(
+        "Contact",
+        (),
+        {
+            "first_name": "Ali",
+            "last_name": "Veli",
+            "full_name": "Ali Veli",
+            "email": "ali@example.com",
+            "phone": "905551234567",
+            "title": None,
+        },
+    )()
+    customer = _Customer(display_name="Co")
+    preview = build_merge_preview(
+        _row(data, match_customer_id=uuid4(), decision=ImportDecision.UPDATE_EXISTING),
+        customer=customer,
+        participation=None,
+        contact=existing_contact,
+        fair_id=uuid4(),
+    )
+    contact_group = next(g for g in preview["groups"] if g["entity"] == "contact")
+    name_field = next(f for f in contact_group["fields"] if f["field_key"] == "contact_name")
+    assert name_field["crm_value"] == "Ali Veli"
+    email_field = next(f for f in contact_group["fields"] if f["field_key"] == "contact_email")
+    assert email_field["crm_value"] == "ali@example.com"
+    assert email_field["outcome"] == "same"

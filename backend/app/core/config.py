@@ -15,6 +15,10 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/fair_crm"
     jwt_secret_key: str = "change-me-in-production-use-a-long-random-string"
+    smtp_secret_encryption_key: str | None = Field(
+        default=None,
+        validation_alias="FAIR_CRM_SMTP_SECRET_ENCRYPTION_KEY",
+    )
     jwt_algorithm: str = "HS256"
     kyrox_core_base_url: str = "http://localhost:8000"
     app_env: str = "development"

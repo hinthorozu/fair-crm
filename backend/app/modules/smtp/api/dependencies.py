@@ -20,6 +20,7 @@ from app.modules.smtp.application.delete_smtp_account import DeleteSmtpAccountUs
 from app.modules.smtp.application.get_smtp_account import GetSmtpAccountUseCase
 from app.modules.smtp.application.list_smtp_accounts import ListSmtpAccountsUseCase
 from app.modules.smtp.application.set_default_smtp_account import SetDefaultSmtpAccountUseCase
+from app.modules.smtp.application.send_test_smtp_mail import SendTestSmtpMailUseCase
 from app.modules.smtp.application.update_smtp_account import UpdateSmtpAccountUseCase
 from app.modules.smtp.infrastructure.repositories.smtp_account_repository import (
     SqlAlchemySmtpAccountRepository,
@@ -120,3 +121,11 @@ def get_delete_smtp_account_use_case(
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
 ) -> DeleteSmtpAccountUseCase:
     return DeleteSmtpAccountUseCase(repository, authorization, audit)
+
+
+def get_send_test_smtp_mail_use_case(
+    repository: SqlAlchemySmtpAccountRepository = Depends(get_smtp_account_repository),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
+) -> SendTestSmtpMailUseCase:
+    return SendTestSmtpMailUseCase(repository, authorization, audit)

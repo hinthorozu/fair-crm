@@ -42,6 +42,20 @@ class ContactRepository(Protocol):
         last_name_lower: str,
     ) -> Contact | None: ...
 
+    def find_by_customer_and_email(
+        self,
+        organization_id: UUID,
+        customer_id: UUID,
+        email_normalized: str,
+    ) -> Contact | None: ...
+
+    def find_by_customer_and_phone(
+        self,
+        organization_id: UUID,
+        customer_id: UUID,
+        phone_normalized: str,
+    ) -> Contact | None: ...
+
     def clear_primary_for_customer(
         self,
         organization_id: UUID,

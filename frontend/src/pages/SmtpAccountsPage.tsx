@@ -3,6 +3,7 @@ import {
   createSmtpAccount,
   deleteSmtpAccount,
   listSmtpAccounts,
+  sendTestSmtpMail,
   setDefaultSmtpAccount,
   updateSmtpAccount,
   ApiError,
@@ -21,7 +22,7 @@ import {
   getGrantedPermissions,
 } from "../permissions/smtpPermissions";
 import type { SmtpAccount } from "../types/smtp";
-import { responseContainsPassword } from "../utils/smtpForm";
+import { responseContainsPassword, smtpPasswordSet } from "../utils/smtpForm";
 
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return "—";
@@ -47,6 +48,9 @@ export function SmtpAccountsPage() {
   const [editing, setEditing] = React.useState<SmtpAccount | null>(null);
   const [formSaving, setFormSaving] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
+  const [testMailRunning, setTestMailRunning] = React.useState(false);
+  const [testMailError, setTestMailError] = React.useState<string | null>(null);
+  const [testMailSuccess, setTestMailSuccess] = React.useState<string | null>(null);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [settingDefaultId, setSettingDefaultId] = React.useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<SmtpAccount | null>(null);
@@ -92,6 +96,8 @@ export function SmtpAccountsPage() {
   const openEdit = (account: SmtpAccount) => {
     setEditing(account);
     setFormError(null);
+    setTestMailError(null);
+    setTestMailSuccess(null);
     setModal("edit");
   };
 
@@ -99,6 +105,8 @@ export function SmtpAccountsPage() {
     setModal(null);
     setEditing(null);
     setFormError(null);
+    setTestMailError(null);
+    setTestMailSuccess(null);
   }, []);
 
   const handleCreate = async (payload: Parameters<typeof createSmtpAccount>[0]) => {
@@ -146,6 +154,21 @@ export function SmtpAccountsPage() {
       setError(err instanceof ApiError ? err.message : adminLabels.smtpSetDefaultError);
     } finally {
       setSettingDefaultId(null);
+    }
+  };
+
+  const handleTestMail = async (recipient: string) => {
+    if (!editing || !canUpdate) return;
+    setTestMailRunning(true);
+    setTestMailError(null);
+    setTestMailSuccess(null);
+    try {
+      const result = await sendTestSmtpMail(editing.id, { recipient });
+      setTestMailSuccess(result.message || adminLabels.smtpTestMailSuccess);
+    } catch (err) {
+      setTestMailError(err instanceof ApiError ? err.message : adminLabels.smtpTestMailError);
+    } finally {
+      setTestMailRunning(false);
     }
   };
 
@@ -219,11 +242,13 @@ export function SmtpAccountsPage() {
           ),
       },
       {
-        key: "has_password",
+        key: "password_set",
         title: adminLabels.smtpColHasPassword,
         sortable: true,
         render: (account) =>
-          account.has_password ? adminLabels.smtpPasswordConfigured : adminLabels.smtpPasswordMissing,
+          smtpPasswordSet(account)
+            ? adminLabels.smtpPasswordConfigured
+            : adminLabels.smtpPasswordMissing,
       },
       {
         key: "updated_at",
@@ -321,6 +346,8 @@ export function SmtpAccountsPage() {
             mode="create"
             saving={formSaving}
             error={formError}
+            testError={null}
+            testSuccess={null}
             onCancel={closeModal}
             onSubmitCreate={handleCreate}
             onSubmitUpdate={handleUpdate}
@@ -334,10 +361,14 @@ export function SmtpAccountsPage() {
             mode="edit"
             initial={editing}
             saving={formSaving}
+            testing={testMailRunning}
             error={formError}
+            testError={testMailError}
+            testSuccess={testMailSuccess}
             onCancel={closeModal}
             onSubmitCreate={handleCreate}
             onSubmitUpdate={handleUpdate}
+            onTestMail={canUpdate ? handleTestMail : undefined}
           />
         </Modal>
       ) : null}

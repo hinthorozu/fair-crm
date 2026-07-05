@@ -33,6 +33,15 @@ class UpdateSmtpAccountRequest(BaseModel):
     is_active: Optional[bool] = None
 
 
+class SendTestSmtpMailRequest(BaseModel):
+    recipient: str = Field(..., min_length=3, max_length=255)
+
+
+class SendTestSmtpMailResponse(BaseModel):
+    success: bool
+    message: str
+
+
 class SmtpAccountResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -47,7 +56,7 @@ class SmtpAccountResponse(BaseModel):
     encryption_type: SmtpEncryptionType
     is_default: bool
     is_active: bool
-    has_password: bool
+    password_set: bool
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime] = None

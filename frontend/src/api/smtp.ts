@@ -4,6 +4,8 @@ import type {
   SmtpAccount,
   SmtpAccountListResponse,
   UpdateSmtpAccountPayload,
+  SendTestSmtpMailPayload,
+  SendTestSmtpMailResponse,
 } from "../types/smtp";
 
 export { ApiError };
@@ -39,5 +41,18 @@ export function setDefaultSmtpAccount(accountId: string): Promise<SmtpAccount> {
   return apiRequest<SmtpAccount>(
     `/api/v1/smtp/accounts/${encodeURIComponent(accountId)}/set-default`,
     { method: "POST" },
+  );
+}
+
+export function sendTestSmtpMail(
+  accountId: string,
+  payload: SendTestSmtpMailPayload,
+): Promise<SendTestSmtpMailResponse> {
+  return apiRequest<SendTestSmtpMailResponse>(
+    `/api/v1/smtp/accounts/${encodeURIComponent(accountId)}/test`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
   );
 }

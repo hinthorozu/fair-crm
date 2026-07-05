@@ -231,8 +231,8 @@ export type WizardStepId = (typeof WIZARD_STEPS)[number]["id"];
 
 export const mergeEntityLabels: Record<string, string> = {
   customer: "Müşteri",
+  contact: "Yetkili Kişi",
   participation: "Fuar Katılımı",
-  contact: "İletişim Kişisi",
 };
 
 export const mergeOutcomeLabels: Record<string, string> = {

@@ -32,3 +32,11 @@ class InvalidSmtpAccountPortError(SmtpAccountError):
 
 class InvalidSmtpEncryptionTypeError(SmtpAccountError):
     pass
+
+
+class SmtpMailDeliveryError(SmtpAccountError):
+    pass
+
+
+class InvalidSmtpTestRecipientError(SmtpAccountError):
+    pass

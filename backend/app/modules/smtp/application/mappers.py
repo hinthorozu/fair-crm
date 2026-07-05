@@ -15,7 +15,7 @@ def smtp_account_to_result(account: SmtpAccount) -> SmtpAccountResult:
         encryption_type=account.encryption_type,
         is_default=account.is_default,
         is_active=account.is_active,
-        has_password=bool(account.password),
+        password_set=bool(account.password),
         created_at=account.created_at,
         updated_at=account.updated_at,
         deleted_at=account.deleted_at,

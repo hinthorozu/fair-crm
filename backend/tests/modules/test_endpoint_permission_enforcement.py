@@ -246,6 +246,116 @@ def test_smtp_read_denied_returns_403(client: TestClient, auth_headers: dict[str
         client.app.dependency_overrides.pop(get_smtp_authorization_adapter, None)
 
 
+def test_smtp_create_denied_returns_403(client: TestClient, auth_headers: dict[str, str]) -> None:
+    client.app.dependency_overrides[get_smtp_authorization_adapter] = lambda: SelectiveAuthorization(
+        denied={"fair_crm.smtp.create"}
+    )
+    try:
+        response = client.post(
+            "/api/v1/smtp/accounts",
+            json={
+                "name": "Denied SMTP",
+                "from_email": "noreply@example.com",
+                "host": "smtp.example.com",
+                "port": 587,
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 403
+    finally:
+        client.app.dependency_overrides.pop(get_smtp_authorization_adapter, None)
+
+
+def test_smtp_update_denied_returns_403(client: TestClient, auth_headers: dict[str, str]) -> None:
+    create = client.post(
+        "/api/v1/smtp/accounts",
+        json={
+            "name": "Patch Target",
+            "from_email": "noreply@example.com",
+            "host": "smtp.example.com",
+            "port": 587,
+        },
+        headers=auth_headers,
+    )
+    assert create.status_code == 201
+    account_id = create.json()["id"]
+
+    client.app.dependency_overrides[get_smtp_authorization_adapter] = lambda: SelectiveAuthorization(
+        denied={"fair_crm.smtp.update"}
+    )
+    try:
+        response = client.patch(
+            f"/api/v1/smtp/accounts/{account_id}",
+            json={"name": "Denied Rename"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 403
+    finally:
+        client.app.dependency_overrides.pop(get_smtp_authorization_adapter, None)
+
+
+def test_smtp_delete_denied_returns_403(client: TestClient, auth_headers: dict[str, str]) -> None:
+    create = client.post(
+        "/api/v1/smtp/accounts",
+        json={
+            "name": "Delete Target",
+            "from_email": "noreply@example.com",
+            "host": "smtp.example.com",
+            "port": 587,
+        },
+        headers=auth_headers,
+    )
+    account_id = create.json()["id"]
+
+    client.app.dependency_overrides[get_smtp_authorization_adapter] = lambda: SelectiveAuthorization(
+        denied={"fair_crm.smtp.delete"}
+    )
+    try:
+        response = client.delete(f"/api/v1/smtp/accounts/{account_id}", headers=auth_headers)
+        assert response.status_code == 403
+    finally:
+        client.app.dependency_overrides.pop(get_smtp_authorization_adapter, None)
+
+
+def test_smtp_test_mail_denied_returns_403(client: TestClient, auth_headers: dict[str, str]) -> None:
+    create = client.post(
+        "/api/v1/smtp/accounts",
+        json={
+            "name": "Test Target",
+            "from_email": "noreply@example.com",
+            "host": "smtp.example.com",
+            "port": 587,
+            "password": "secret",
+        },
+        headers=auth_headers,
+    )
+    account_id = create.json()["id"]
+
+    client.app.dependency_overrides[get_smtp_authorization_adapter] = lambda: SelectiveAuthorization(
+        denied={"fair_crm.smtp.update"}
+    )
+    try:
+        response = client.post(
+            f"/api/v1/smtp/accounts/{account_id}/test",
+            json={"recipient": "admin@example.com"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 403
+    finally:
+        client.app.dependency_overrides.pop(get_smtp_authorization_adapter, None)
+
+
+def test_dev_bypass_token_rejected_on_smtp_list(client: TestClient, organization_id: UUID) -> None:
+    response = client.get(
+        "/api/v1/smtp/accounts",
+        headers={
+            "Authorization": "Bearer dev-bypass",
+            "X-Organization-Id": str(organization_id),
+        },
+    )
+    assert response.status_code == 401
+
+
 def test_admin_backups_read_denied_returns_403(client: TestClient, auth_headers: dict[str, str]) -> None:
     client.app.dependency_overrides[get_system_admin_authorization_adapter] = lambda: SelectiveAuthorization(
         denied={"fair_crm.admin.backups.read"}

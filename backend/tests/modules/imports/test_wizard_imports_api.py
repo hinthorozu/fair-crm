@@ -616,6 +616,163 @@ def test_apply_creates_contact_wizard(client, auth_headers):
     assert any(a["source"] == "import" for a in activities)
 
 
+def test_apply_yetkili_fields_separate_from_company_communications(client, auth_headers):
+    """Yetkili Adı/E-posta/Telefon (UI fields) persist to contact, not company comms."""
+    fair_id = _create_fair(client, auth_headers, "Yetkili Fields Fair")
+    upload = _upload_wizard(
+        client,
+        auth_headers,
+        fair_id,
+        [
+            "Firma Adı",
+            "Telefon",
+            "E-posta",
+            "Website",
+            "Yetkili Adı",
+            "Yetkili E-posta",
+            "Yetkili Telefon",
+        ],
+        [
+            [
+                "Yetkili Import Co",
+                "2121112233",
+                "info@yetkilico.com",
+                "https://yetkilico.com",
+                "Ali Veli",
+                "ali.person@yetkilico.com",
+                "5554443322",
+            ]
+        ],
+    )
+    batch_id = upload.json()["batch_id"]
+    _set_mapping(
+        client,
+        auth_headers,
+        batch_id,
+        True,
+        {
+            "company_name": {"type": "column_index", "value": 0},
+            "phone": {"type": "column_index", "value": 1},
+            "email": {"type": "column_index", "value": 2},
+            "website": {"type": "column_index", "value": 3},
+            "contact_first_name": {"type": "column_index", "value": 4},
+            "contact_email": {"type": "column_index", "value": 5},
+            "contact_phone": {"type": "column_index", "value": 6},
+        },
+    )
+    _analyze(client, auth_headers, batch_id)
+    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    assert any(g["entity"] == "contact" for g in rows[0]["merge_preview"]["groups"])
+    client.patch(
+        f"/api/v1/imports/{batch_id}/rows/{rows[0]['id']}/decision",
+        headers=auth_headers,
+        json={"decision": "create_new"},
+    )
+    apply_import_decisions(client, auth_headers, batch_id, row_ids=[rows[0]["id"]])
+
+    customers = client.get(
+        "/api/v1/customers?search=Yetkili+Import+Co", headers=auth_headers
+    ).json()["items"]
+    assert len(customers) == 1
+    customer_id = customers[0]["id"]
+    assert customers[0]["phone"] == "902121112233"
+    assert customers[0]["email"] == "info@yetkilico.com"
+    assert customers[0]["website"] == "yetkilico.com"
+
+    contacts = client.get(f"/api/v1/customers/{customer_id}/contacts", headers=auth_headers).json()
+    assert pagination_from(contacts)["totalItems"] == 1
+    contact = contacts["items"][0]
+    assert contact["first_name"] == "Ali"
+    assert contact["last_name"] == "Veli"
+    assert contact["email"] == "ali.person@yetkilico.com"
+    assert contact["phone"] == "905554443322"
+    assert contact["phone"] != customers[0]["phone"]
+    assert contact["email"] != customers[0]["email"]
+
+
+def test_apply_yetkili_fields_empty_does_not_create_contact(client, auth_headers):
+    fair_id = _create_fair(client, auth_headers, "No Contact Fair")
+    upload = _upload_wizard(
+        client,
+        auth_headers,
+        fair_id,
+        ["Firma Adı", "Telefon", "E-posta"],
+        [["Solo Company", "2120000000", "solo@company.com"]],
+    )
+    batch_id = upload.json()["batch_id"]
+    _set_mapping(
+        client,
+        auth_headers,
+        batch_id,
+        True,
+        {
+            "company_name": {"type": "column_index", "value": 0},
+            "phone": {"type": "column_index", "value": 1},
+            "email": {"type": "column_index", "value": 2},
+        },
+    )
+    _analyze(client, auth_headers, batch_id)
+    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    assert not any(
+        g["entity"] == "contact" for g in (rows[0].get("merge_preview") or {}).get("groups", [])
+    )
+    client.patch(
+        f"/api/v1/imports/{batch_id}/rows/{rows[0]['id']}/decision",
+        headers=auth_headers,
+        json={"decision": "create_new"},
+    )
+    apply_import_decisions(client, auth_headers, batch_id, row_ids=[rows[0]["id"]])
+
+    customers = client.get("/api/v1/customers?search=Solo+Company", headers=auth_headers).json()["items"]
+    customer_id = customers[0]["id"]
+    contacts = client.get(f"/api/v1/customers/{customer_id}/contacts", headers=auth_headers).json()
+    assert pagination_from(contacts)["totalItems"] == 0
+
+
+def test_reimport_same_yetkili_email_does_not_duplicate_contact(client, auth_headers):
+    fair_id = _create_fair(client, auth_headers, "Reimport Contact Fair")
+    headers = ["Firma Adı", "Telefon", "Yetkili Adı", "Yetkili E-posta", "Yetkili Telefon"]
+    row = ["Reimport Co", "2123334455", "Ayşe Yılmaz", "ayse@reimport.com", "5551112233"]
+    mapping = {
+        "company_name": {"type": "column_index", "value": 0},
+        "phone": {"type": "column_index", "value": 1},
+        "contact_first_name": {"type": "column_index", "value": 2},
+        "contact_email": {"type": "column_index", "value": 3},
+        "contact_phone": {"type": "column_index", "value": 4},
+    }
+
+    def import_and_apply(*, decision: str):
+        upload = _upload_wizard(client, auth_headers, fair_id, headers, [row])
+        batch_id = upload.json()["batch_id"]
+        _set_mapping(client, auth_headers, batch_id, True, mapping)
+        _analyze(client, auth_headers, batch_id)
+        rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+        client.patch(
+            f"/api/v1/imports/{batch_id}/rows/{rows[0]['id']}/decision",
+            headers=auth_headers,
+            json={"decision": decision},
+        )
+        apply_import_decisions(client, auth_headers, batch_id, row_ids=[rows[0]["id"]])
+        return rows[0]
+
+    import_and_apply(decision="create_new")
+    customers = client.get("/api/v1/customers?search=Reimport+Co", headers=auth_headers).json()["items"]
+    assert len(customers) == 1
+    customer_id = customers[0]["id"]
+    contacts_after_first = client.get(
+        f"/api/v1/customers/{customer_id}/contacts", headers=auth_headers
+    ).json()
+    assert pagination_from(contacts_after_first)["totalItems"] == 1
+
+    second_row = import_and_apply(decision="update_existing")
+    assert second_row["match_customer_id"] == customer_id
+    contacts_after_second = client.get(
+        f"/api/v1/customers/{customer_id}/contacts", headers=auth_headers
+    ).json()
+    assert pagination_from(contacts_after_second)["totalItems"] == 1
+    assert contacts_after_second["items"][0]["email"] == "ayse@reimport.com"
+
+
 def test_rows_filter_and_search(client, auth_headers):
     fair_id = _create_fair(client, auth_headers, "Filter Fair")
     upload = _upload_wizard(

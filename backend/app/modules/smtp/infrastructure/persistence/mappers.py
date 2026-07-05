@@ -1,6 +1,7 @@
 from app.modules.smtp.domain.entities import SmtpAccount
 from app.modules.smtp.domain.value_objects import SmtpEncryptionType
 from app.modules.smtp.infrastructure.persistence.models import SmtpAccountModel
+from app.shared.secret_encryption import decrypt_secret, encrypt_secret
 
 
 def model_to_entity(model: SmtpAccountModel) -> SmtpAccount:
@@ -13,7 +14,7 @@ def model_to_entity(model: SmtpAccountModel) -> SmtpAccount:
         host=model.host,
         port=model.port,
         username=model.username,
-        password=model.password,
+        password=decrypt_secret(model.password),
         encryption_type=SmtpEncryptionType(model.encryption_type),
         is_default=model.is_default,
         is_active=model.is_active,
@@ -33,7 +34,7 @@ def entity_to_model(account: SmtpAccount) -> SmtpAccountModel:
         host=account.host,
         port=account.port,
         username=account.username,
-        password=account.password,
+        password=encrypt_secret(account.password),
         encryption_type=account.encryption_type.value,
         is_default=account.is_default,
         is_active=account.is_active,
@@ -50,7 +51,7 @@ def update_model_from_entity(model: SmtpAccountModel, account: SmtpAccount) -> N
     model.host = account.host
     model.port = account.port
     model.username = account.username
-    model.password = account.password
+    model.password = encrypt_secret(account.password)
     model.encryption_type = account.encryption_type.value
     model.is_default = account.is_default
     model.is_active = account.is_active

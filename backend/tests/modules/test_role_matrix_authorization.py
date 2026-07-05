@@ -230,6 +230,39 @@ def test_role_matrix_dev_bypass_rejected(
     assert response.status_code == 401
 
 
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_smtp_read(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    with install_role_matrix_auth(client, role_slug):
+        response = client.get("/api/v1/smtp/accounts", headers=auth_headers)
+    expected = 200 if _role_has(role_slug, "fair_crm.smtp.read") else 403
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_smtp_create(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    with install_role_matrix_auth(client, role_slug):
+        response = client.post(
+            "/api/v1/smtp/accounts",
+            json={
+                "name": "Matrix SMTP",
+                "from_email": "noreply@example.com",
+                "host": "smtp.example.com",
+                "port": 587,
+            },
+            headers=auth_headers,
+        )
+    expected = 201 if _role_has(role_slug, "fair_crm.smtp.create") else 403
+    assert response.status_code == expected
+
+
 def test_owner_retains_full_fair_crm_access() -> None:
     owner_perms = permissions_for_role("owner")
     for code in ADMIN_ONLY_PERMISSIONS:

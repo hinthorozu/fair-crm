@@ -12,6 +12,7 @@ from app.modules.smtp.api.dependencies import (
     get_delete_smtp_account_use_case,
     get_get_smtp_account_use_case,
     get_list_smtp_accounts_use_case,
+    get_send_test_smtp_mail_use_case,
     get_set_default_smtp_account_use_case,
     get_update_smtp_account_use_case,
     require_read_permission,
@@ -19,6 +20,8 @@ from app.modules.smtp.api.dependencies import (
 from app.modules.smtp.api.schemas import (
     CreateSmtpAccountRequest,
     ErrorResponse,
+    SendTestSmtpMailRequest,
+    SendTestSmtpMailResponse,
     SmtpAccountListResponse,
     SmtpAccountResponse,
     UpdateSmtpAccountRequest,
@@ -29,12 +32,14 @@ from app.modules.smtp.application.commands import (
     GetSmtpAccountQuery,
     ListSmtpAccountsQuery,
     SetDefaultSmtpAccountCommand,
+    SendTestSmtpMailCommand,
     UpdateSmtpAccountCommand,
 )
 from app.modules.smtp.application.create_smtp_account import CreateSmtpAccountUseCase
 from app.modules.smtp.application.delete_smtp_account import DeleteSmtpAccountUseCase
 from app.modules.smtp.application.get_smtp_account import GetSmtpAccountUseCase
 from app.modules.smtp.application.list_smtp_accounts import ListSmtpAccountsUseCase
+from app.modules.smtp.application.send_test_smtp_mail import SendTestSmtpMailUseCase
 from app.modules.smtp.application.set_default_smtp_account import SetDefaultSmtpAccountUseCase
 from app.modules.smtp.application.update_smtp_account import UpdateSmtpAccountUseCase
 from app.modules.smtp.domain.exceptions import (
@@ -43,9 +48,11 @@ from app.modules.smtp.domain.exceptions import (
     InvalidSmtpAccountNameError,
     InvalidSmtpAccountPortError,
     InvalidSmtpEncryptionTypeError,
+    InvalidSmtpTestRecipientError,
     SmtpAccountAlreadyDeletedError,
     SmtpAccountNotDefaultEligibleError,
     SmtpAccountNotFoundError,
+    SmtpMailDeliveryError,
 )
 
 router = APIRouter(prefix="/smtp/accounts", tags=["smtp"])
@@ -212,6 +219,43 @@ def set_default_smtp_account(
     except (SmtpAccountAlreadyDeletedError, SmtpAccountNotDefaultEligibleError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _to_response(result)
+
+
+@router.post(
+    "/{account_id}/test",
+    response_model=SendTestSmtpMailResponse,
+    responses={
+        400: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+    },
+)
+def send_test_smtp_mail(
+    account_id: UUID,
+    body: SendTestSmtpMailRequest,
+    auth: AuthContext = Depends(get_auth_context),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case: SendTestSmtpMailUseCase = Depends(get_send_test_smtp_mail_use_case),
+) -> SendTestSmtpMailResponse:
+    try:
+        result = use_case.execute(
+            SendTestSmtpMailCommand(
+                organization_id=auth.organization_id,
+                account_id=account_id,
+                access_token=_access_token(credentials),
+                user_id=auth.user_id,
+                recipient=body.recipient,
+            )
+        )
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except SmtpAccountNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (InvalidSmtpTestRecipientError, SmtpAccountAlreadyDeletedError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except SmtpMailDeliveryError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return SendTestSmtpMailResponse(success=result.success, message=result.message)
 
 
 @router.delete(

@@ -55,6 +55,14 @@ CONTACT_FIELDS: list[tuple[str, str, str]] = [
     ("phone", "contact_phone", "Telefon"),
 ]
 
+WIZARD_CONTACT_PREVIEW_FIELDS: list[tuple[str, str]] = [
+    ("contact_name", "Yetkili Adı"),
+    ("contact_email", "Yetkili E-posta"),
+    ("contact_phone", "Yetkili Telefon"),
+]
+
+_PLACEHOLDER_CONTACT_LAST_NAME = "—"
+
 OUTCOME_LABELS: dict[str, str] = {
     "same": "Aynı",
     "new": "Yeni",
@@ -152,16 +160,75 @@ def _customer_incoming_phone(data: dict[str, Any]) -> str | None:
 
 
 def _has_contact_fields(data: dict[str, Any]) -> bool:
-    keys = (
-        "contact_first_name",
-        "contact_last_name",
-        "contact_title",
-        "contact_department",
-        "contact_email",
-        "contact_phone",
-        "contact_mobile_phone",
-    )
-    return any(not _is_empty(data.get(k)) for k in keys)
+    from app.modules.imports.domain.services.contact_import import has_contact_import_fields
+
+    return has_contact_import_fields(data)
+
+
+def _contact_import_display_name(data: dict[str, Any]) -> str | None:
+    first = _display(data.get("contact_first_name"))
+    last = _display(data.get("contact_last_name"))
+    if first and last:
+        return f"{first} {last}"
+    return first or last
+
+
+def _contact_crm_display_name(contact: Contact | None) -> str | None:
+    if contact is None:
+        return None
+    first = contact.first_name.strip()
+    last = contact.last_name.strip()
+    if last == _PLACEHOLDER_CONTACT_LAST_NAME:
+        return first or None
+    combined = f"{first} {last}".strip()
+    return combined or None
+
+
+def _contact_import_phone(data: dict[str, Any]) -> str | None:
+    return _display(data.get("contact_phone")) or _display(data.get("contact_mobile_phone"))
+
+
+def _build_wizard_contact_preview_fields(
+    data: dict[str, Any],
+    contact: Contact | None,
+    *,
+    is_create: bool,
+    is_update: bool,
+    is_skipped: bool,
+) -> list[dict[str, Any]]:
+    contact_fields: list[dict[str, Any]] = []
+    preview_sources: list[tuple[str, str | None, str | None]] = [
+        ("contact_name", _contact_crm_display_name(contact), _contact_import_display_name(data)),
+        ("contact_email", contact.email if contact else None, data.get("contact_email")),
+        ("contact_phone", contact.phone if contact else None, _contact_import_phone(data)),
+    ]
+    label_by_key = dict(WIZARD_CONTACT_PREVIEW_FIELDS)
+
+    for field_key, db_val, in_val in preview_sources:
+        label = label_by_key[field_key]
+        if field_key == "contact_email" and contact and is_update:
+            crm, imp, res, outcome = _merge_email_preview(contact.email, in_val)
+        else:
+            crm, imp, res, outcome = _scalar_merge_preview(
+                db_val,
+                in_val,
+                is_create=is_create or contact is None,
+                is_skipped=is_skipped,
+            )
+        if _is_empty(in_val) and _is_empty(db_val) and outcome == "empty":
+            continue
+        contact_fields.append(
+            {
+                "field_key": field_key,
+                "label": label,
+                "crm_value": crm,
+                "import_value": imp,
+                "result_value": res,
+                "outcome": outcome,
+                "outcome_label": OUTCOME_LABELS[outcome],
+            }
+        )
+    return contact_fields
 
 
 def _participation_status_label(status: Any) -> str | None:
@@ -284,6 +351,23 @@ def build_merge_preview(
             }
         )
 
+    if _has_contact_fields(data) and applies:
+        contact_fields = _build_wizard_contact_preview_fields(
+            data,
+            contact,
+            is_create=is_create,
+            is_update=is_update,
+            is_skipped=is_skipped,
+        )
+        if contact_fields:
+            groups.append(
+                {
+                    "entity": "contact",
+                    "entity_label": "Yetkili Kişi",
+                    "fields": contact_fields,
+                }
+            )
+
     if fair_id is not None and applies:
         participation_fields: list[dict[str, Any]] = []
         for db_key, in_key, label in PARTICIPATION_FIELDS:
@@ -323,39 +407,6 @@ def build_merge_preview(
             }
         )
 
-    if _has_contact_fields(data) and applies:
-        contact_fields: list[dict[str, Any]] = []
-        for db_key, in_key, label in CONTACT_FIELDS:
-            db_val = getattr(contact, db_key, None) if contact else None
-            in_val = data.get(in_key)
-            if db_key == "email" and contact and is_update:
-                crm, imp, res, outcome = _merge_email_preview(contact.email, in_val)
-            else:
-                crm, imp, res, outcome = _scalar_merge_preview(
-                    db_val,
-                    in_val,
-                    is_create=is_create or contact is None,
-                    is_skipped=is_skipped,
-                )
-            contact_fields.append(
-                {
-                    "field_key": in_key,
-                    "label": label,
-                    "crm_value": crm,
-                    "import_value": imp,
-                    "result_value": res,
-                    "outcome": outcome,
-                    "outcome_label": OUTCOME_LABELS[outcome],
-                }
-            )
-        groups.append(
-            {
-                "entity": "contact",
-                "entity_label": "İletişim Kişisi",
-                "fields": contact_fields,
-            }
-        )
-
     summary_lines = _build_summary_lines(groups, is_skipped=is_skipped)
     return {"groups": groups, "summary_lines": summary_lines}
 
@@ -370,12 +421,12 @@ def _build_summary_lines(groups: list[dict[str, Any]], *, is_skipped: bool) -> l
             label = field["label"]
             outcome = field["outcome"]
             if outcome in ("new", "will_add"):
-                if label.lower() == "email":
+                if "e-posta" in label.lower() or label.lower() == "email":
                     lines.append("✓ E-posta eklenecek")
                 else:
                     lines.append(f"✓ {label} eklenecek")
             elif outcome == "will_update":
-                if label.lower() == "email":
+                if "e-posta" in label.lower() or label.lower() == "email":
                     lines.append("✓ E-posta güncellenecek (birleştirme)")
                 else:
                     lines.append(f"✓ {label} güncellenecek")

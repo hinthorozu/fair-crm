@@ -121,6 +121,11 @@ export const adminLabels = {
   smtpFieldEncryption: "Şifreleme türü",
   smtpFieldIsDefault: "Varsayılan SMTP hesabı",
   smtpFieldIsActive: "Aktif",
+  smtpFieldTestRecipient: "Test mail alıcısı",
+  smtpActionTestMail: "Test Et",
+  smtpTestMailSuccess: "Test e-postası gönderildi.",
+  smtpTestMailError: "Test e-postası gönderilemedi.",
+  smtpTestMailSending: "Test mail gönderiliyor…",
 
   dataOperationsTitle: "Data Operations",
   dataOperationsSubtitle: "Tek seferlik veya talep üzerine veri bakım işlemleri (yalnızca sistem yöneticileri)",

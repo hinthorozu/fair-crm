@@ -55,6 +55,10 @@ export function smtpAccountToFormValues(account: SmtpAccount): SmtpAccountFormVa
   };
 }
 
+export function smtpPasswordSet(account: Pick<SmtpAccount, "password_set" | "has_password">): boolean {
+  return account.password_set ?? account.has_password ?? false;
+}
+
 export function validateSmtpFormValues(values: SmtpAccountFormValues): string | null {
   if (!values.name.trim()) {
     return "SMTP adı zorunludur.";

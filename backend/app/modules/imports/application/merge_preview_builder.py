@@ -9,6 +9,10 @@ from app.modules.customers.application.customer_communication_sync import Custom
 from app.modules.customers.domain.entities import Customer
 from app.modules.customers.domain.ports import CustomerRepository
 from app.modules.imports.domain.entities import ImportBatch, ImportRow
+from app.modules.imports.domain.services.contact_import import (
+    find_existing_contact_for_import,
+    has_contact_import_fields,
+)
 from app.modules.imports.domain.services.merge_preview import build_merge_preview
 from app.modules.participations.domain.entities import CustomerFairParticipation
 from app.modules.participations.infrastructure.repositories.participation_repository import (
@@ -56,14 +60,12 @@ class MergePreviewBuilder:
             )
 
         data = row.normalized_data_json or {}
-        first_name = data.get("contact_first_name")
-        last_name = data.get("contact_last_name")
-        if customer and first_name and last_name:
-            contact = self._contact_repository.find_by_customer_and_name(
-                organization_id,
-                customer.id,
-                str(first_name).strip().lower(),
-                str(last_name).strip().lower(),
+        if customer and has_contact_import_fields(data):
+            contact = find_existing_contact_for_import(
+                self._contact_repository,
+                organization_id=organization_id,
+                customer_id=customer.id,
+                data=data,
             )
 
         return build_merge_preview(

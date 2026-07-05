@@ -12,7 +12,9 @@ export interface SmtpAccount {
   encryption_type: SmtpEncryptionType;
   is_default: boolean;
   is_active: boolean;
-  has_password: boolean;
+  password_set: boolean;
+  /** @deprecated use password_set */
+  has_password?: boolean;
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
@@ -35,7 +37,14 @@ export interface CreateSmtpAccountPayload {
   is_active: boolean;
 }
 
-export interface UpdateSmtpAccountPayload {
+export interface SendTestSmtpMailPayload {
+  recipient: string;
+}
+
+export interface SendTestSmtpMailResponse {
+  success: boolean;
+  message: string;
+}
   name?: string;
   from_email?: string;
   from_name?: string | null;

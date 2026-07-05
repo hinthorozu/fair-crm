@@ -69,6 +69,21 @@ class DeleteSmtpAccountCommand:
 
 
 @dataclass(frozen=True)
+class SendTestSmtpMailCommand:
+    organization_id: UUID
+    account_id: UUID
+    access_token: str
+    user_id: UUID
+    recipient: str
+
+
+@dataclass(frozen=True)
+class SendTestSmtpMailResult:
+    success: bool
+    message: str
+
+
+@dataclass(frozen=True)
 class SmtpAccountResult:
     id: UUID
     organization_id: UUID
@@ -81,7 +96,7 @@ class SmtpAccountResult:
     encryption_type: SmtpEncryptionType
     is_default: bool
     is_active: bool
-    has_password: bool
+    password_set: bool
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime]

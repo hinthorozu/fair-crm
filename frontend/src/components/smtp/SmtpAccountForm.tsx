@@ -9,6 +9,7 @@ import {
   buildCreateSmtpPayload,
   buildUpdateSmtpPayload,
   smtpAccountToFormValues,
+  smtpPasswordSet,
   validateSmtpFormValues,
   type SmtpAccountFormValues,
 } from "../../utils/smtpForm";
@@ -17,26 +18,35 @@ interface SmtpAccountFormProps {
   mode: "create" | "edit";
   initial?: SmtpAccount | null;
   saving: boolean;
+  testing?: boolean;
   error: string | null;
+  testError: string | null;
+  testSuccess: string | null;
   onCancel: () => void;
   onSubmitCreate: (payload: ReturnType<typeof buildCreateSmtpPayload>) => Promise<void>;
   onSubmitUpdate: (payload: ReturnType<typeof buildUpdateSmtpPayload>) => Promise<void>;
+  onTestMail?: (recipient: string) => Promise<void>;
 }
 
 export function SmtpAccountForm({
   mode,
   initial = null,
   saving,
+  testing = false,
   error,
+  testError,
+  testSuccess,
   onCancel,
   onSubmitCreate,
   onSubmitUpdate,
+  onTestMail,
 }: SmtpAccountFormProps) {
   const baseline = React.useMemo(
     () => (initial ? smtpAccountToFormValues(initial) : EMPTY_SMTP_FORM_VALUES),
     [initial],
   );
   const [values, setValues] = React.useState<SmtpAccountFormValues>(baseline);
+  const [testRecipient, setTestRecipient] = React.useState("");
   const [localError, setLocalError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -134,7 +144,7 @@ export function SmtpAccountForm({
 
       <label className="form-field">
         <span>{adminLabels.smtpFieldPassword}</span>
-        {mode === "edit" && initial?.has_password ? (
+        {mode === "edit" && initial && smtpPasswordSet(initial) ? (
           <p className="text-muted smtp-password-hint">{adminLabels.smtpPasswordConfiguredHint}</p>
         ) : null}
         <input
@@ -181,6 +191,30 @@ export function SmtpAccountForm({
       </label>
 
       {(localError || error) && <p className="form-error">{localError ?? error}</p>}
+
+      {mode === "edit" && onTestMail ? (
+        <div className="smtp-test-mail-panel">
+          <label className="form-field">
+            <span>{adminLabels.smtpFieldTestRecipient}</span>
+            <input
+              type="email"
+              value={testRecipient}
+              onChange={(event) => setTestRecipient(event.target.value)}
+              placeholder="admin@example.com"
+            />
+          </label>
+          {testError ? <p className="form-error">{testError}</p> : null}
+          {testSuccess ? <p className="form-success">{testSuccess}</p> : null}
+          <button
+            type="button"
+            className="btn secondary"
+            disabled={testing || saving || !testRecipient.trim()}
+            onClick={() => void onTestMail(testRecipient.trim())}
+          >
+            {testing ? adminLabels.smtpTestMailSending : adminLabels.smtpActionTestMail}
+          </button>
+        </div>
+      ) : null}
 
       <div className="form-actions">
         <button type="button" className="btn secondary" onClick={handleCancel} disabled={saving}>

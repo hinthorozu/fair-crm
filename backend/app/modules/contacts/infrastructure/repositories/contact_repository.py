@@ -143,6 +143,64 @@ class SqlAlchemyContactRepository:
                 return model_to_entity(model)
         return None
 
+    def find_by_customer_and_email(
+        self,
+        organization_id: UUID,
+        customer_id: UUID,
+        email_normalized: str,
+    ) -> Contact | None:
+        from app.modules.contacts.domain.services.normalizers import normalize_email
+
+        target = email_normalized.strip().lower()
+        models = (
+            self._session.query(ContactModel)
+            .filter(
+                ContactModel.organization_id == organization_id,
+                ContactModel.customer_id == customer_id,
+                ContactModel.deleted_at.is_(None),
+                ContactModel.email.isnot(None),
+            )
+            .all()
+        )
+        for model in models:
+            try:
+                normalized = normalize_email(model.email)
+            except ValueError:
+                normalized = model.email.strip().lower()
+            if normalized == target:
+                return model_to_entity(model)
+        return None
+
+    def find_by_customer_and_phone(
+        self,
+        organization_id: UUID,
+        customer_id: UUID,
+        phone_normalized: str,
+    ) -> Contact | None:
+        from app.modules.contacts.domain.services.normalizers import normalize_phone
+
+        target = phone_normalized.strip()
+        models = (
+            self._session.query(ContactModel)
+            .filter(
+                ContactModel.organization_id == organization_id,
+                ContactModel.customer_id == customer_id,
+                ContactModel.deleted_at.is_(None),
+            )
+            .all()
+        )
+        for model in models:
+            for raw in (model.phone, model.mobile_phone):
+                if not raw:
+                    continue
+                try:
+                    normalized = normalize_phone(raw)
+                except ValueError:
+                    normalized = raw.strip()
+                if normalized == target:
+                    return model_to_entity(model)
+        return None
+
     def clear_primary_for_customer(
         self,
         organization_id: UUID,

@@ -36,7 +36,7 @@ def test_create_smtp_account(client, auth_headers, organization_id):
     assert body["name"] == "Outbound Mail"
     assert body["organization_id"] == str(organization_id)
     assert body["is_default"] is True
-    assert body["has_password"] is True
+    assert body["password_set"] is True
     assert "password" not in body
 
 
@@ -86,7 +86,7 @@ def test_list_response_does_not_include_password(client, auth_headers):
     assert response.status_code == 200
     for item in response.json()["items"]:
         assert "password" not in item
-        assert item["has_password"] is True
+        assert item["password_set"] is True
 
 
 def test_update_password_empty_keeps_existing(client, auth_headers, db_session):
@@ -100,11 +100,14 @@ def test_update_password_empty_keeps_existing(client, auth_headers, db_session):
     )
     assert update_response.status_code == 200
     assert update_response.json()["name"] == "Renamed SMTP"
-    assert update_response.json()["has_password"] is True
+    assert update_response.json()["password_set"] is True
 
     model = db_session.get(SmtpAccountModel, UUID(account_id))
     assert model is not None
-    assert model.password == "keep-me"
+    from app.shared.secret_encryption import decrypt_secret, is_encrypted_secret
+
+    assert is_encrypted_secret(model.password)
+    assert decrypt_secret(model.password) == "keep-me"
 
 
 def test_update_password_replaces_existing(client, auth_headers, db_session):
@@ -120,7 +123,10 @@ def test_update_password_replaces_existing(client, auth_headers, db_session):
 
     model = db_session.get(SmtpAccountModel, UUID(account_id))
     assert model is not None
-    assert model.password == "new-secret"
+    from app.shared.secret_encryption import decrypt_secret, is_encrypted_secret
+
+    assert is_encrypted_secret(model.password)
+    assert decrypt_secret(model.password) == "new-secret"
 
 
 def test_set_default_rejects_inactive_account(client, auth_headers):
@@ -200,4 +206,4 @@ def test_get_smtp_account_detail(client, auth_headers):
     body = get_response.json()
     assert body["id"] == account_id
     assert "password" not in body
-    assert body["has_password"] is True
+    assert body["password_set"] is True

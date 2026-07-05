@@ -9,6 +9,19 @@ function str(v: string | null | undefined): string {
   return v;
 }
 
+const MERGE_GROUP_ORDER: Record<string, number> = {
+  customer: 0,
+  contact: 1,
+  participation: 2,
+};
+
+function sortMergeGroups(groups: MergePreview["groups"]): MergePreview["groups"] {
+  return [...groups].sort(
+    (left, right) =>
+      (MERGE_GROUP_ORDER[left.entity] ?? 99) - (MERGE_GROUP_ORDER[right.entity] ?? 99),
+  );
+}
+
 interface MergeDiffViewerProps {
   row: ImportRow;
   expanded?: boolean;
@@ -60,7 +73,7 @@ export function MergeDiffViewer({ row, expanded: controlledExpanded, onExpandedC
               </ul>
             </div>
           )}
-          {preview.groups.map((group) => (
+          {sortMergeGroups(preview.groups).map((group) => (
             <div key={group.entity} className="merge-entity-group">
               <h4>{mergeEntityLabels[group.entity] ?? group.entity_label}</h4>
               <table className="merge-diff-table">
