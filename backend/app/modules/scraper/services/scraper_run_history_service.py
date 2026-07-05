@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
 
 from app.modules.scraper.domain.scraper_run_history import ScraperRunHistory, ScraperRunStatus
+from app.modules.scraper.domain.scraper_run_source import ScraperRunSource
+from app.modules.scraper.domain.scraper_run_history_filters import ScraperRunHistoryListFilters
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
 from app.modules.scraper.infrastructure.repositories.scraper_run_history_repository import (
+    ScraperRunHistoryListRow,
     ScraperRunHistoryRepository,
 )
 
@@ -62,6 +66,7 @@ class ScraperRunHistoryService:
         organization_id: UUID | None = None,
         fair_id: UUID | None = None,
         started_at: datetime | None = None,
+        run_source: ScraperRunSource = ScraperRunSource.MANUAL_TEST,
     ) -> ScraperRunHistory:
         started = started_at or datetime.now(UTC)
         return self._repository.add(
@@ -89,6 +94,8 @@ class ScraperRunHistoryService:
                 error_message=None,
                 output_json_path=None,
                 output_excel_path=None,
+                run_source=run_source,
+                import_batch_id=None,
             )
         )
 
@@ -100,6 +107,7 @@ class ScraperRunHistoryService:
         finished_at: datetime | None = None,
         output_json_path: str | None = None,
         output_excel_path: str | None = None,
+        import_batch_id: UUID | None = None,
     ) -> ScraperRunHistory:
         existing = self._repository.get_by_id(run_id)
         if existing is None:
@@ -109,21 +117,15 @@ class ScraperRunHistoryService:
         finished = finished_at or datetime.now(UTC)
         metrics = compute_handoff_metrics(handoff)
         return self._repository.update(
-            ScraperRunHistory(
-                id=existing.id,
-                adapter_key=existing.adapter_key,
+            replace(
+                existing,
                 status=ScraperRunStatus.COMPLETED,
-                started_at=existing.started_at,
                 finished_at=finished,
                 duration_ms=duration_ms_between(existing.started_at, finished),
-                organization_id=existing.organization_id,
-                fair_id=existing.fair_id,
-                input_url=existing.input_url,
-                fair_name=existing.fair_name,
-                fair_year=existing.fair_year,
                 error_message=None,
                 output_json_path=output_json_path,
                 output_excel_path=output_excel_path,
+                import_batch_id=import_batch_id if import_batch_id is not None else existing.import_batch_id,
                 **metrics,
             )
         )
@@ -144,18 +146,11 @@ class ScraperRunHistoryService:
             return existing
         finished = finished_at or datetime.now(UTC)
         return self._repository.update(
-            ScraperRunHistory(
-                id=existing.id,
-                adapter_key=existing.adapter_key,
+            replace(
+                existing,
                 status=ScraperRunStatus.FAILED,
-                started_at=existing.started_at,
                 finished_at=finished,
                 duration_ms=duration_ms_between(existing.started_at, finished),
-                organization_id=existing.organization_id,
-                fair_id=existing.fair_id,
-                input_url=existing.input_url,
-                fair_name=existing.fair_name,
-                fair_year=existing.fair_year,
                 total_rows=0,
                 website_count=0,
                 email_count=0,
@@ -185,6 +180,8 @@ class ScraperRunHistoryService:
         fair_id: UUID | None = None,
         output_json_path: str | None = None,
         output_excel_path: str | None = None,
+        run_source: ScraperRunSource = ScraperRunSource.MANUAL_TEST,
+        import_batch_id: UUID | None = None,
     ) -> ScraperRunHistory:
         finished = finished_at or datetime.now(UTC)
         metrics = compute_handoff_metrics(handoff)
@@ -204,6 +201,8 @@ class ScraperRunHistoryService:
                 error_message=None,
                 output_json_path=output_json_path,
                 output_excel_path=output_excel_path,
+                run_source=run_source,
+                import_batch_id=import_batch_id,
                 **metrics,
             )
         )
@@ -222,6 +221,7 @@ class ScraperRunHistoryService:
         finished_at: datetime | None = None,
         output_json_path: str | None = None,
         output_excel_path: str | None = None,
+        run_source: ScraperRunSource = ScraperRunSource.MANUAL_TEST,
     ) -> ScraperRunHistory:
         finished = finished_at or datetime.now(UTC)
         return self._repository.add(
@@ -249,6 +249,8 @@ class ScraperRunHistoryService:
                 error_message=error_message,
                 output_json_path=output_json_path,
                 output_excel_path=output_excel_path,
+                run_source=run_source,
+                import_batch_id=None,
             )
         )
 
@@ -258,14 +260,38 @@ class ScraperRunHistoryService:
         limit: int = 50,
         offset: int = 0,
         fair_id: UUID | None = None,
+        filters: ScraperRunHistoryListFilters | None = None,
     ) -> list[ScraperRunHistory]:
-        return self._repository.list_runs(limit=limit, offset=offset, fair_id=fair_id)
+        return self._repository.list_runs(limit=limit, offset=offset, fair_id=fair_id, filters=filters)
+
+    def list_run_rows(
+        self,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+        fair_id: UUID | None = None,
+        filters: ScraperRunHistoryListFilters | None = None,
+    ) -> list[ScraperRunHistoryListRow]:
+        return self._repository.list_run_rows(limit=limit, offset=offset, fair_id=fair_id, filters=filters)
 
     def get_run(self, run_id: UUID) -> ScraperRunHistory | None:
         return self._repository.get_by_id(run_id)
 
-    def count_runs(self, *, fair_id: UUID | None = None) -> int:
-        return self._repository.count_runs(fair_id=fair_id)
+    def get_run_row(
+        self,
+        run_id: UUID,
+        *,
+        organization_id: UUID | None = None,
+    ) -> ScraperRunHistoryListRow | None:
+        return self._repository.get_run_row_by_id(run_id, organization_id=organization_id)
+
+    def count_runs(
+        self,
+        *,
+        fair_id: UUID | None = None,
+        filters: ScraperRunHistoryListFilters | None = None,
+    ) -> int:
+        return self._repository.count_runs(fair_id=fair_id, filters=filters)
 
     def get_latest_completed_for_fair(self, fair_id: UUID) -> ScraperRunHistory | None:
         return self._repository.get_latest_completed_for_fair(fair_id)
@@ -306,30 +332,12 @@ class ScraperRunHistoryService:
             return existing
         finished = finished_at or datetime.now(UTC)
         return self._repository.update(
-            ScraperRunHistory(
-                id=existing.id,
-                adapter_key=existing.adapter_key,
+            replace(
+                existing,
                 status=ScraperRunStatus.CANCELLED,
-                started_at=existing.started_at,
                 finished_at=finished,
                 duration_ms=duration_ms_between(existing.started_at, finished),
-                organization_id=existing.organization_id,
-                fair_id=existing.fair_id,
-                input_url=existing.input_url,
-                fair_name=existing.fair_name,
-                fair_year=existing.fair_year,
-                total_rows=existing.total_rows,
-                website_count=existing.website_count,
-                email_count=existing.email_count,
-                phone_count=existing.phone_count,
-                instagram_count=existing.instagram_count,
-                linkedin_count=existing.linkedin_count,
-                facebook_count=existing.facebook_count,
-                youtube_count=existing.youtube_count,
-                x_count=existing.x_count,
                 error_message=reason,
-                output_json_path=existing.output_json_path,
-                output_excel_path=existing.output_excel_path,
             )
         )
 

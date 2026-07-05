@@ -11,6 +11,7 @@ from app.modules.customers.infrastructure.persistence.communication_models impor
     CustomerWebsiteModel,
 )
 from app.modules.customers.infrastructure.persistence.models import CustomerModel  # noqa: F401
+from app.modules.smtp.infrastructure.persistence.models import SmtpAccountModel  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

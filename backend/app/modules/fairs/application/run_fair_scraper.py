@@ -5,9 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from app.modules.fairs.domain.exceptions import FairNotFoundError, FairScraperNotConfiguredError
+from app.modules.fairs.domain.exceptions import (
+    FairNotFoundError,
+    FairScraperAdapterNotConfiguredError,
+    FairScraperUrlNotConfiguredError,
+)
 from app.modules.fairs.domain.ports import FairRepository
 from app.modules.scraper.domain.scraper_run_history import ScraperRunHistory
+from app.modules.scraper.domain.scraper_run_source import ScraperRunSource
 from app.modules.scraper.services.scraper_run_history_service import ScraperRunHistoryService
 
 
@@ -33,10 +38,10 @@ class RunFairScraperUseCase:
 
         adapter_key = (fair.adapter_key or "").strip()
         source_url = (fair.source_url or "").strip()
-        if not adapter_key or not source_url:
-            raise FairScraperNotConfiguredError(
-                "Adapter and source URL must be configured before running the scraper"
-            )
+        if not adapter_key:
+            raise FairScraperAdapterNotConfiguredError("Bu fuara bağlı scraper adapter bulunamadı.")
+        if not source_url:
+            raise FairScraperUrlNotConfiguredError("Bu fuar için scraper URL tanımlı değil.")
 
         fair_year = fair.start_date.year if fair.start_date is not None else None
         return self._run_history_service.start_run(
@@ -46,4 +51,5 @@ class RunFairScraperUseCase:
             fair_year=fair_year,
             organization_id=fair.organization_id,
             fair_id=fair.id,
+            run_source=ScraperRunSource.FAIR_AUTOMATION,
         )

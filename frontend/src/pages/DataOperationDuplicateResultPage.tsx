@@ -250,11 +250,6 @@ export function DataOperationDuplicateResultPage({
 
   React.useEffect(() => {
     if (!runReady || selectedGroupKey) return;
-    refreshDuplicateGroups();
-  }, [runReady, selectedGroupKey, refreshDuplicateGroups]);
-
-  React.useEffect(() => {
-    if (!runReady || selectedGroupKey) return;
     const onPageShow = () => refreshDuplicateGroups();
     window.addEventListener("pageshow", onPageShow);
     return () => window.removeEventListener("pageshow", onPageShow);

@@ -11,18 +11,30 @@ function str(v: string | null | undefined): string {
 
 interface MergeDiffViewerProps {
   row: ImportRow;
-  defaultExpanded?: boolean;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
-export function MergeDiffViewer({ row, defaultExpanded = false }: MergeDiffViewerProps) {
-  const [expanded, setExpanded] = React.useState(defaultExpanded);
+export function MergeDiffViewer({ row, expanded: controlledExpanded, onExpandedChange }: MergeDiffViewerProps) {
+  const [uncontrolledExpanded, setUncontrolledExpanded] = React.useState(false);
+  const isControlled = controlledExpanded !== undefined;
+  const expanded = isControlled ? controlledExpanded : uncontrolledExpanded;
   const preview: MergePreview | null | undefined = row.merge_preview;
   const companyName = str(row.normalized_data_json.company_name as string | undefined);
+
+  const toggleExpanded = () => {
+    const next = !expanded;
+    if (isControlled) {
+      onExpandedChange?.(next);
+      return;
+    }
+    setUncontrolledExpanded(next);
+  };
 
   if (!preview?.groups?.length) {
     return (
       <div className="merge-diff-row">
-        <button type="button" className="merge-diff-toggle" onClick={() => setExpanded((v) => !v)}>
+        <button type="button" className="merge-diff-toggle" onClick={toggleExpanded}>
           <strong>{companyName}</strong>
           <span className="text-muted"> — Birleştirme önizlemesi yok</span>
         </button>
@@ -32,7 +44,7 @@ export function MergeDiffViewer({ row, defaultExpanded = false }: MergeDiffViewe
 
   return (
     <div className="merge-diff-row">
-      <button type="button" className="merge-diff-toggle" onClick={() => setExpanded((v) => !v)}>
+      <button type="button" className="merge-diff-toggle" onClick={toggleExpanded}>
         <span className="merge-diff-chevron">{expanded ? "▼" : "▶"}</span>
         <strong>{companyName}</strong>
       </button>

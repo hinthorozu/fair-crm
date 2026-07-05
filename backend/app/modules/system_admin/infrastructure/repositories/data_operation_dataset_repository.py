@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import and_, func, or_
+from sqlalchemy import and_, asc, desc, func, or_
 from sqlalchemy.orm import Query, Session
 
 from app.core.pagination import build_order_clause, normalize_page_params
@@ -92,6 +92,8 @@ class DuplicateDatasetRowInput:
     group_key: str
     fair_count: int
     first_fair_name: str | None
+    match_score: int | None = None
+    duplicate_reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -237,8 +239,8 @@ class SqlAlchemyDataOperationDatasetRepository:
                         entity_id=row.customer_id,
                         duplicate_group_key=row.group_key,
                         group_by=group_by,
-                        match_score=None,
-                        duplicate_reason=None,
+                        match_score=row.match_score,
+                        duplicate_reason=row.duplicate_reason,
                         fair_count=row.fair_count,
                         first_fair_name=row.first_fair_name,
                         created_at=now,
@@ -589,11 +591,40 @@ class SqlAlchemyDataOperationDatasetRepository:
         run_id: UUID,
         organization_id: UUID,
         duplicate_group_key: str | None = None,
+        duplicate_group_keys: list[str] | None = None,
         status: CustomerStatus | None = None,
         customer_type: CustomerType | None = None,
         country: str | None = None,
         search: str | None = None,
     ) -> list[tuple[SystemDataOperationDatasetRowModel, CustomerModel]]:
+        query = self._duplicate_dataset_member_models_query(
+            run_id=run_id,
+            organization_id=organization_id,
+            duplicate_group_key=duplicate_group_key,
+            duplicate_group_keys=duplicate_group_keys,
+            status=status,
+            customer_type=customer_type,
+            country=country,
+            search=search,
+        )
+        return query.order_by(
+            SystemDataOperationDatasetRowModel.duplicate_group_key.asc(),
+            CustomerModel.display_name.asc(),
+            CustomerModel.id.asc(),
+        ).all()
+
+    def _duplicate_dataset_member_models_query(
+        self,
+        *,
+        run_id: UUID,
+        organization_id: UUID,
+        duplicate_group_key: str | None = None,
+        duplicate_group_keys: list[str] | None = None,
+        status: CustomerStatus | None = None,
+        customer_type: CustomerType | None = None,
+        country: str | None = None,
+        search: str | None = None,
+    ) -> Query:
         query = (
             self._session.query(SystemDataOperationDatasetRowModel, CustomerModel)
             .join(
@@ -615,6 +646,10 @@ class SqlAlchemyDataOperationDatasetRepository:
             query = query.filter(
                 SystemDataOperationDatasetRowModel.duplicate_group_key == duplicate_group_key
             )
+        if duplicate_group_keys is not None:
+            query = query.filter(
+                SystemDataOperationDatasetRowModel.duplicate_group_key.in_(duplicate_group_keys)
+            )
         if status is not None:
             query = query.filter(CustomerModel.status == status.value)
         if customer_type is not None:
@@ -631,11 +666,294 @@ class SqlAlchemyDataOperationDatasetRepository:
                     website_search_exists(pattern),
                 )
             )
-        return query.order_by(
-            SystemDataOperationDatasetRowModel.duplicate_group_key.asc(),
-            CustomerModel.display_name.asc(),
-            CustomerModel.id.asc(),
+        return query
+
+    def _duplicate_group_member_projection_query(
+        self,
+        *,
+        run_id: UUID,
+        organization_id: UUID,
+        duplicate_group_keys: list[str] | None = None,
+        matching_group_keys=None,
+    ):
+        query = (
+            self._session.query(
+                SystemDataOperationDatasetRowModel.duplicate_group_key.label("group_key"),
+                SystemDataOperationDatasetRowModel.group_by.label("group_by"),
+                CustomerModel.id.label("customer_id"),
+                CustomerModel.display_name.label("display_name"),
+                CustomerModel.created_at.label("created_at"),
+            )
+            .join(
+                CustomerModel,
+                and_(
+                    CustomerModel.id == SystemDataOperationDatasetRowModel.entity_id,
+                    CustomerModel.organization_id == organization_id,
+                ),
+            )
+            .filter(
+                SystemDataOperationDatasetRowModel.run_id == run_id,
+                SystemDataOperationDatasetRowModel.organization_id == organization_id,
+                SystemDataOperationDatasetRowModel.entity_kind == "customer",
+                SystemDataOperationDatasetRowModel.duplicate_group_key.isnot(None),
+                CustomerModel.status != CustomerStatus.DELETED.value,
+            )
+        )
+        if duplicate_group_keys is not None:
+            query = query.filter(
+                SystemDataOperationDatasetRowModel.duplicate_group_key.in_(duplicate_group_keys)
+            )
+        if matching_group_keys is not None:
+            query = query.filter(
+                SystemDataOperationDatasetRowModel.duplicate_group_key.in_(matching_group_keys)
+            )
+        return query
+
+    def _matching_duplicate_group_keys_select(
+        self,
+        *,
+        run_id: UUID,
+        organization_id: UUID,
+        search: str,
+    ):
+        pattern = f"%{search.strip()}%"
+        base_filters = (
+            SystemDataOperationDatasetRowModel.run_id == run_id,
+            SystemDataOperationDatasetRowModel.organization_id == organization_id,
+            SystemDataOperationDatasetRowModel.entity_kind == "customer",
+            SystemDataOperationDatasetRowModel.duplicate_group_key.isnot(None),
+            CustomerModel.status != CustomerStatus.DELETED.value,
+        )
+        member_keys = (
+            self._session.query(SystemDataOperationDatasetRowModel.duplicate_group_key)
+            .join(
+                CustomerModel,
+                and_(
+                    CustomerModel.id == SystemDataOperationDatasetRowModel.entity_id,
+                    CustomerModel.organization_id == organization_id,
+                ),
+            )
+            .filter(
+                *base_filters,
+                or_(
+                    SystemDataOperationDatasetRowModel.duplicate_group_key.ilike(pattern),
+                    *[field.ilike(pattern) for field in DATASET_DUPLICATE_SEARCH_FIELDS],
+                    phone_search_exists(pattern),
+                    email_search_exists(pattern),
+                    website_search_exists(pattern),
+                ),
+            )
+        )
+        fair_keys = (
+            self._session.query(SystemDataOperationDatasetRowModel.duplicate_group_key)
+            .join(
+                CustomerModel,
+                and_(
+                    CustomerModel.id == SystemDataOperationDatasetRowModel.entity_id,
+                    CustomerModel.organization_id == organization_id,
+                ),
+            )
+            .join(
+                CustomerFairParticipationModel,
+                and_(
+                    CustomerFairParticipationModel.customer_id == CustomerModel.id,
+                    CustomerFairParticipationModel.organization_id == organization_id,
+                    CustomerFairParticipationModel.deleted_at.is_(None),
+                ),
+            )
+            .join(FairModel, FairModel.id == CustomerFairParticipationModel.fair_id)
+            .filter(*base_filters, FairModel.name.ilike(pattern))
+        )
+        return member_keys.union(fair_keys)
+
+    def _duplicate_group_fair_count_subquery(
+        self,
+        *,
+        run_id: UUID,
+        organization_id: UUID,
+    ):
+        return (
+            self._session.query(
+                SystemDataOperationDatasetRowModel.duplicate_group_key.label("group_key"),
+                func.count(func.distinct(FairModel.id)).label("fair_count"),
+            )
+            .join(
+                CustomerModel,
+                and_(
+                    CustomerModel.id == SystemDataOperationDatasetRowModel.entity_id,
+                    CustomerModel.organization_id == organization_id,
+                ),
+            )
+            .join(
+                CustomerFairParticipationModel,
+                and_(
+                    CustomerFairParticipationModel.customer_id == CustomerModel.id,
+                    CustomerFairParticipationModel.organization_id == organization_id,
+                    CustomerFairParticipationModel.deleted_at.is_(None),
+                ),
+            )
+            .join(FairModel, FairModel.id == CustomerFairParticipationModel.fair_id)
+            .filter(
+                SystemDataOperationDatasetRowModel.run_id == run_id,
+                SystemDataOperationDatasetRowModel.organization_id == organization_id,
+                SystemDataOperationDatasetRowModel.entity_kind == "customer",
+                SystemDataOperationDatasetRowModel.duplicate_group_key.isnot(None),
+                CustomerModel.status != CustomerStatus.DELETED.value,
+            )
+            .group_by(SystemDataOperationDatasetRowModel.duplicate_group_key)
+            .subquery("duplicate_group_fair_counts")
+        )
+
+    def _duplicate_group_aggregates_query(
+        self,
+        *,
+        run_id: UUID,
+        organization_id: UUID,
+        search: str | None = None,
+    ):
+        matching_group_keys = None
+        if search and search.strip():
+            matching_group_keys = self._matching_duplicate_group_keys_select(
+                run_id=run_id,
+                organization_id=organization_id,
+                search=search,
+            )
+        members = self._duplicate_group_member_projection_query(
+            run_id=run_id,
+            organization_id=organization_id,
+            matching_group_keys=matching_group_keys,
+        ).subquery("duplicate_group_members")
+        aggregates = (
+            self._session.query(
+                members.c.group_key.label("group_key"),
+                func.min(members.c.group_by).label("group_by"),
+                func.count(func.distinct(members.c.customer_id)).label("customer_count"),
+                func.min(members.c.created_at).label("created_at_min"),
+                func.max(members.c.created_at).label("created_at_max"),
+            )
+            .group_by(members.c.group_key)
+            .having(func.count(func.distinct(members.c.customer_id)) >= 2)
+            .subquery("duplicate_group_aggregates")
+        )
+        fair_counts = self._duplicate_group_fair_count_subquery(
+            run_id=run_id,
+            organization_id=organization_id,
+        )
+        return self._session.query(
+            aggregates.c.group_key,
+            aggregates.c.group_by,
+            aggregates.c.customer_count,
+            aggregates.c.created_at_min,
+            aggregates.c.created_at_max,
+            func.coalesce(fair_counts.c.fair_count, 0).label("fair_count"),
+        ).outerjoin(fair_counts, fair_counts.c.group_key == aggregates.c.group_key)
+
+    def _load_participation_counts_by_customer(
+        self,
+        *,
+        organization_id: UUID,
+        customer_ids: list[UUID],
+    ) -> dict[UUID, int]:
+        if not customer_ids:
+            return {}
+        rows = (
+            self._session.query(
+                CustomerFairParticipationModel.customer_id,
+                func.count(CustomerFairParticipationModel.id),
+            )
+            .filter(
+                CustomerFairParticipationModel.organization_id == organization_id,
+                CustomerFairParticipationModel.customer_id.in_(customer_ids),
+                CustomerFairParticipationModel.deleted_at.is_(None),
+            )
+            .group_by(CustomerFairParticipationModel.customer_id)
+            .all()
+        )
+        return {customer_id: count for customer_id, count in rows}
+
+    def _compute_suggested_winner_by_group(
+        self,
+        *,
+        run_id: UUID,
+        organization_id: UUID,
+        group_keys: list[str] | None = None,
+    ) -> dict[str, tuple[UUID, str]]:
+        rows = self._duplicate_group_member_projection_query(
+            run_id=run_id,
+            organization_id=organization_id,
+            duplicate_group_keys=group_keys,
         ).all()
+        grouped: dict[str, list[GroupMemberSnapshot]] = defaultdict(list)
+        customer_ids: list[UUID] = []
+        for row in rows:
+            grouped[row.group_key].append(
+                GroupMemberSnapshot(
+                    customer_id=row.customer_id,
+                    company_name=row.display_name,
+                    created_at=row.created_at,
+                )
+            )
+            customer_ids.append(row.customer_id)
+        participation_counts = self._load_participation_counts_by_customer(
+            organization_id=organization_id,
+            customer_ids=list(set(customer_ids)),
+        )
+        winners: dict[str, tuple[UUID, str]] = {}
+        for group_key, snapshots in grouped.items():
+            if len(snapshots) < 2:
+                continue
+            winner_id = pick_suggested_winner_customer(snapshots, participation_counts)
+            winner_name = next(
+                snapshot.company_name
+                for snapshot in snapshots
+                if snapshot.customer_id == winner_id
+            )
+            winners[group_key] = (winner_id, winner_name)
+        return winners
+
+    def _duplicate_group_aggregate_order(
+        self,
+        subquery,
+        *,
+        sort_by: str,
+        sort_dir: str,
+    ) -> tuple:
+        reverse = sort_dir == "desc"
+        tie_breaker = asc(subquery.c.group_key)
+        sort_columns = {
+            "group_key": subquery.c.group_key,
+            "duplicate_group_key": subquery.c.group_key,
+            "duplicate_group": subquery.c.group_key,
+            "group_by": subquery.c.group_by,
+            "customer_count": subquery.c.customer_count,
+            "created_at_min": subquery.c.created_at_min,
+            "created_at": subquery.c.created_at_min,
+            "created_at_max": subquery.c.created_at_max,
+            "fair_count": subquery.c.fair_count,
+        }
+        column = sort_columns.get(sort_by, subquery.c.group_key)
+        primary = desc(column) if reverse else asc(column)
+        return (primary, tie_breaker)
+
+    def _summaries_for_group_keys(
+        self,
+        *,
+        run_id: UUID,
+        organization_id: UUID,
+        group_keys: list[str],
+    ) -> dict[str, DatasetDuplicateGroupSummary]:
+        if not group_keys:
+            return {}
+        member_rows = self._duplicate_dataset_member_rows(
+            run_id=run_id,
+            organization_id=organization_id,
+            duplicate_group_keys=group_keys,
+        )
+        summaries = self._build_duplicate_group_summaries(
+            member_rows,
+            organization_id=organization_id,
+        )
+        return {summary.group_key: summary for summary in summaries}
 
     def _load_live_participations_by_customer(
         self,
@@ -760,53 +1078,72 @@ class SqlAlchemyDataOperationDatasetRepository:
         sort_by: str = "duplicate_group_key",
         sort_dir: str = "asc",
     ) -> DatasetDuplicateGroupListResult:
-        member_rows = self._duplicate_dataset_member_rows(
+        page_params = normalize_page_params(page, page_size)
+        aggregates_subquery = self._duplicate_group_aggregates_query(
             run_id=run_id,
             organization_id=organization_id,
-        )
-        summaries = self._build_duplicate_group_summaries(member_rows, organization_id=organization_id)
-
-        if search and search.strip():
-            pattern = search.strip().casefold()
-            summaries = [
-                summary
-                for summary in summaries
-                if pattern in summary.group_key.casefold()
-                or pattern in summary.suggested_winner_company_name.casefold()
-                or any(pattern in name.casefold() for name in summary.customer_names)
-                or any(pattern in fair_name.casefold() for fair_name in summary.fair_names)
-            ]
-
-        reverse = sort_dir == "desc"
-        run_group_by = member_rows[0][0].group_by if member_rows else None
-
-        def sort_value(summary: DatasetDuplicateGroupSummary):
-            if sort_by in ("group_key", "duplicate_group_key", "duplicate_group"):
-                return summary.group_key.casefold()
-            if sort_by == "group_by":
-                return summary.group_by
-            if sort_by == "customer_count":
-                return summary.customer_count
-            if sort_by == "fair_count":
-                return summary.fair_count
-            if sort_by in ("created_at_min", "created_at"):
-                return summary.created_at_min.timestamp()
-            if sort_by == "created_at_max":
-                return summary.created_at_max.timestamp()
-            if sort_by in ("suggested_winner_company_name", "suggested_winner"):
-                return summary.suggested_winner_company_name.casefold()
-            return summary.group_key.casefold()
-
-        summaries.sort(key=sort_value, reverse=reverse)
-
-        page_params = normalize_page_params(page, page_size)
-        total = len(summaries)
+            search=search,
+        ).subquery("duplicate_group_page_source")
+        totals = self._session.query(
+            func.count(),
+            func.coalesce(func.sum(aggregates_subquery.c.customer_count), 0),
+        ).one()
+        total = int(totals[0] or 0)
         total_pages = (total + page_params.page_size - 1) // page_params.page_size if total else 0
-        start = page_params.offset
-        end = start + page_params.page_size
-        live_customers = sum(summary.customer_count for summary in summaries)
+        live_customers = int(totals[1] or 0)
+        run_group_by = (
+            self._session.query(SystemDataOperationDatasetRowModel.group_by)
+            .filter(
+                SystemDataOperationDatasetRowModel.run_id == run_id,
+                SystemDataOperationDatasetRowModel.organization_id == organization_id,
+                SystemDataOperationDatasetRowModel.group_by.isnot(None),
+            )
+            .limit(1)
+            .scalar()
+        )
+
+        if sort_by in ("suggested_winner_company_name", "suggested_winner"):
+            all_group_keys = [
+                row.group_key
+                for row in self._session.query(aggregates_subquery.c.group_key).all()
+            ]
+            winner_by_group = self._compute_suggested_winner_by_group(
+                run_id=run_id,
+                organization_id=organization_id,
+                group_keys=all_group_keys,
+            )
+            aggregate_rows = self._session.query(aggregates_subquery).all()
+            reverse = sort_dir == "desc"
+            aggregate_rows.sort(
+                key=lambda row: winner_by_group.get(row.group_key, ("", ""))[1].casefold(),
+                reverse=reverse,
+            )
+            page_rows = aggregate_rows[page_params.offset : page_params.offset + page_params.page_size]
+        else:
+            page_rows = (
+                self._session.query(aggregates_subquery)
+                .order_by(
+                    *self._duplicate_group_aggregate_order(
+                        aggregates_subquery,
+                        sort_by=sort_by,
+                        sort_dir=sort_dir,
+                    )
+                )
+                .offset(page_params.offset)
+                .limit(page_params.page_size)
+                .all()
+            )
+
+        page_group_keys = [row.group_key for row in page_rows]
+        summaries_by_key = self._summaries_for_group_keys(
+            run_id=run_id,
+            organization_id=organization_id,
+            group_keys=page_group_keys,
+        )
+        items = [summaries_by_key[group_key] for group_key in page_group_keys if group_key in summaries_by_key]
+
         return DatasetDuplicateGroupListResult(
-            items=summaries[start:end],
+            items=items,
             page=page_params.page,
             page_size=page_params.page_size,
             total=total,

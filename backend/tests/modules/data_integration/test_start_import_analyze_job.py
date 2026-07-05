@@ -70,3 +70,30 @@ def test_start_analyze_job_rejects_when_org_has_active_job():
                 batch_id=batch.id,
             )
         )
+
+
+def test_start_analyze_job_allows_decision_required_batch():
+    org_id = uuid4()
+    batch = _batch(status=ImportBatchStatus.DECISION_REQUIRED)
+    batch.organization_id = org_id
+
+    batch_repo = MagicMock()
+    batch_repo.get_by_id.return_value = batch
+    job_repo = MagicMock()
+    job_repo.has_active_analyze_job.return_value = False
+    job_repo.get_active_analyze_job_for_batch.return_value = None
+    job_repo.add.side_effect = lambda job: job
+    auth = MagicMock()
+    auth.check_permission.return_value = True
+
+    use_case = StartImportAnalyzeJobUseCase(batch_repo, job_repo, auth)
+    result = use_case.execute(
+        StartImportAnalyzeJobCommand(
+            organization_id=org_id,
+            user_id=uuid4(),
+            access_token="token",
+            batch_id=batch.id,
+        )
+    )
+    assert result.batch_id == batch.id
+    batch_repo.update.assert_called_once()

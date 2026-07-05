@@ -18,6 +18,8 @@ interface AdapterRunLogConsoleProps {
   focusRunId?: string | null;
   outputJson?: boolean;
   outputExcel?: boolean;
+  showOutputOptions?: boolean;
+  hideRunForm?: boolean;
 }
 
 function formatConsoleTime(value: string): string {
@@ -32,11 +34,15 @@ function formatStepLabel(step: string): string {
 export function AdapterRunLogConsole({
   adapterKey,
   focusRunId,
-  outputJson = true,
-  outputExcel = false,
+  outputJson: outputJsonDefault = true,
+  outputExcel: outputExcelDefault = false,
+  showOutputOptions = false,
+  hideRunForm = false,
 }: AdapterRunLogConsoleProps) {
   const [inputUrl, setInputUrl] = React.useState("");
   const [maxPagesInput, setMaxPagesInput] = React.useState("");
+  const [outputJson, setOutputJson] = React.useState(outputJsonDefault);
+  const [outputExcel, setOutputExcel] = React.useState(outputExcelDefault);
   const [activeRunId, setActiveRunId] = React.useState<string | null>(null);
   const [logs, setLogs] = React.useState<ScraperRunLog[]>([]);
   const [runStatus, setRunStatus] = React.useState<string | null>(null);
@@ -50,6 +56,11 @@ export function AdapterRunLogConsole({
   const [error, setError] = React.useState<string | null>(null);
   const lastLogIdRef = React.useRef<string | null>(null);
   const consoleRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    setOutputJson(outputJsonDefault);
+    setOutputExcel(outputExcelDefault);
+  }, [adapterKey, outputJsonDefault, outputExcelDefault]);
 
   const selectedRunId = activeRunId ?? focusRunId ?? null;
 
@@ -187,52 +198,79 @@ export function AdapterRunLogConsole({
 
   return (
     <div className="adapter-console">
-      <div className="adapter-console-form">
-        <label className="adapter-console-url-label" htmlFor="adapter-test-url">
-          {scraperLabels.testUrlLabel}
-        </label>
-        <div className="adapter-console-url-row">
+      {!hideRunForm ? (
+        <div className="adapter-console-form">
+          <label className="adapter-console-url-label" htmlFor="adapter-test-url">
+            {scraperLabels.testUrlLabel}
+          </label>
+          <div className="adapter-console-url-row">
+            <input
+              id="adapter-test-url"
+              className="input adapter-console-url-input"
+              type="url"
+              placeholder={scraperLabels.testUrlPlaceholder}
+              value={inputUrl}
+              disabled={running || runStatus === "running"}
+              onChange={(event) => setInputUrl(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void handleRun();
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="btn primary"
+              disabled={running || runStatus === "running" || !inputUrl.trim() || !adapterKey}
+              onClick={() => void handleRun()}
+            >
+              {running || runStatus === "running" ? scraperLabels.testRunning : scraperLabels.testRun}
+            </button>
+          </div>
+          <label className="adapter-console-url-label" htmlFor="adapter-test-max-pages">
+            {scraperLabels.testMaxPagesLabel}
+          </label>
           <input
-            id="adapter-test-url"
-            className="input adapter-console-url-input"
-            type="url"
-            placeholder={scraperLabels.testUrlPlaceholder}
-            value={inputUrl}
+            id="adapter-test-max-pages"
+            className="input adapter-console-max-pages-input"
+            type="number"
+            min={1}
+            step={1}
+            inputMode="numeric"
+            placeholder={scraperLabels.testMaxPagesPlaceholder}
+            value={maxPagesInput}
             disabled={running || runStatus === "running"}
-            onChange={(event) => setInputUrl(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                void handleRun();
-              }
-            }}
+            onChange={(event) => setMaxPagesInput(event.target.value)}
           />
-          <button
-            type="button"
-            className="btn primary"
-            disabled={running || runStatus === "running" || !inputUrl.trim()}
-            onClick={() => void handleRun()}
-          >
-            {running || runStatus === "running" ? scraperLabels.testRunning : scraperLabels.testRun}
-          </button>
+          <p className="form-hint">{scraperLabels.testMaxPagesHint}</p>
+          {showOutputOptions ? (
+            <div className="adapter-console-output-options">
+              <span className="adapter-console-url-label">{scraperLabels.testOutputFormatsLabel}</span>
+              <div className="adapter-manifest-checkboxes">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={outputJson}
+                    disabled={running || runStatus === "running"}
+                    onChange={(event) => setOutputJson(event.target.checked)}
+                  />{" "}
+                  JSON
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={outputExcel}
+                    disabled={running || runStatus === "running"}
+                    onChange={(event) => setOutputExcel(event.target.checked)}
+                  />{" "}
+                  Excel
+                </label>
+              </div>
+            </div>
+          ) : null}
         </div>
-        <label className="adapter-console-url-label" htmlFor="adapter-test-max-pages">
-          {scraperLabels.testMaxPagesLabel}
-        </label>
-        <input
-          id="adapter-test-max-pages"
-          className="input adapter-console-max-pages-input"
-          type="number"
-          min={1}
-          step={1}
-          inputMode="numeric"
-          placeholder={scraperLabels.testMaxPagesPlaceholder}
-          value={maxPagesInput}
-          disabled={running || runStatus === "running"}
-          onChange={(event) => setMaxPagesInput(event.target.value)}
-        />
-        <p className="form-hint">{scraperLabels.testMaxPagesHint}</p>
-      </div>
+      ) : null}
 
       {runStatus ? (
         <div className="adapter-console-status">

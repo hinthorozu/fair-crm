@@ -238,24 +238,4 @@ export interface SetImportRowDecisionPayload {
   match_customer_id?: string;
 }
 
-export const WIZARD_MAPPING_FIELDS: { key: string; label: string; required?: boolean }[] = [
-  { key: "company_name", label: "Firma Adı", required: true },
-  { key: "email", label: "E-posta" },
-  { key: "phone", label: "Telefon" },
-  { key: "mobile_phone", label: "Cep Telefonu" },
-  { key: "website", label: "Web Sitesi" },
-  { key: "country", label: "Ülke" },
-  { key: "city", label: "Şehir" },
-  { key: "address", label: "Adres" },
-  { key: "tax_number", label: "Vergi No" },
-  { key: "contact_first_name", label: "Yetkili Adı" },
-  { key: "contact_last_name", label: "Yetkili Soyadı" },
-  { key: "contact_title", label: "Yetkili Ünvanı" },
-  { key: "contact_department", label: "Departman" },
-  { key: "contact_email", label: "Yetkili E-posta" },
-  { key: "contact_phone", label: "Yetkili Telefon" },
-  { key: "contact_mobile_phone", label: "Yetkili Cep" },
-  { key: "notes", label: "Notlar" },
-  { key: "hall", label: "Salon" },
-  { key: "stand", label: "Stand" },
-];
+export { WIZARD_MAPPING_FIELDS } from "../utils/outputFieldDefinitions";

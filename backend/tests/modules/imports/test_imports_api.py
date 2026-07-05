@@ -174,6 +174,9 @@ def test_map_header_aliases():
     assert map_header_to_field("Firma Adı") == "company_name"
     assert map_header_to_field("EMAIL") == "email"
     assert map_header_to_field("company_name") == "company_name"
+    assert map_header_to_field("Instagram") == "instagram_url"
+    assert map_header_to_field("Stand No") == "stand"
+    assert map_header_to_field("Not") == "notes"
 
 
 def test_multi_email_validation_in_import(client, auth_headers):
@@ -325,6 +328,48 @@ def test_apply_creates_customer(client, auth_headers):
     customers = client.get("/api/v1/customers?search=Created", headers=auth_headers)
     assert customers.status_code == 200
     assert pagination_from(customers.json())["totalItems"] >= 1
+
+
+def test_apply_creates_customer_with_social_urls_from_excel(client, auth_headers):
+    response = upload_xlsx(
+        client,
+        auth_headers,
+        ["Firma Adı", "Instagram", "Facebook", "LinkedIn", "YouTube"],
+        [
+            [
+                "Social Excel Co",
+                "https://instagram.com/socialexcel",
+                "https://facebook.com/socialexcel",
+                "https://linkedin.com/company/socialexcel",
+                "https://youtube.com/@socialexcel",
+            ]
+        ],
+    )
+    assert response.status_code == 201
+    batch_id = response.json()["id"]
+    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    assert rows[0]["status"] == "ready_to_create"
+    normalized = rows[0]["normalized_data_json"]
+    assert normalized["instagram_url"] == "https://instagram.com/socialexcel"
+    assert normalized["facebook_url"] == "https://facebook.com/socialexcel"
+
+    row_id = rows[0]["id"]
+    client.patch(
+        f"/api/v1/imports/{batch_id}/rows/{row_id}/decision",
+        headers=auth_headers,
+        json={"decision": "create_new"},
+    )
+    apply_import_decisions(client, auth_headers, batch_id, row_ids=[row_id])
+
+    customers = client.get("/api/v1/customers?search=Social+Excel", headers=auth_headers)
+    assert customers.status_code == 200
+    items = customers.json()["items"]
+    assert len(items) >= 1
+    customer = next(item for item in items if item["display_name"] == "Social Excel Co")
+    assert customer["instagram_url"] == "https://instagram.com/socialexcel"
+    assert customer["facebook_url"] == "https://facebook.com/socialexcel"
+    assert customer["linkedin_url"] == "https://linkedin.com/company/socialexcel"
+    assert customer["youtube_url"] == "https://youtube.com/@socialexcel"
 
 
 def test_apply_updates_existing_empty_fields_only(client, auth_headers, db_session, organization_id):

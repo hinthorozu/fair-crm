@@ -17,6 +17,67 @@ export const OUTPUT_FIELD_KEYS: RequestedOutputField[] = [
   "notes",
 ];
 
+export interface ImportOutputFieldDefinition {
+  outputKey: RequestedOutputField;
+  canonicalKey: string;
+  label: string;
+  required?: boolean;
+}
+
+/** Shared field list for scraper output fields (and Excel import common fields). */
+export const IMPORT_OUTPUT_FIELD_DEFINITIONS: ImportOutputFieldDefinition[] = [
+  { outputKey: "customerName", canonicalKey: "company_name", label: "Firma Adı", required: true },
+  { outputKey: "phone", canonicalKey: "phone", label: "Telefon" },
+  { outputKey: "email", canonicalKey: "email", label: "E-posta" },
+  { outputKey: "address", canonicalKey: "address", label: "Adres" },
+  { outputKey: "website", canonicalKey: "website", label: "Website" },
+  { outputKey: "hall", canonicalKey: "hall", label: "Salon / Hall" },
+  { outputKey: "stand", canonicalKey: "stand", label: "Stand" },
+  { outputKey: "instagram", canonicalKey: "instagram_url", label: "Instagram" },
+  { outputKey: "facebook", canonicalKey: "facebook_url", label: "Facebook" },
+  { outputKey: "linkedin", canonicalKey: "linkedin_url", label: "LinkedIn" },
+  { outputKey: "youtube", canonicalKey: "youtube_url", label: "YouTube" },
+  { outputKey: "notes", canonicalKey: "notes", label: "Not" },
+];
+
+/** Excel Import-only fields (broader than scraper output). */
+export const EXCEL_IMPORT_EXTRA_FIELD_DEFINITIONS = [
+  { canonicalKey: "contact_first_name", label: "Yetkili Adı" },
+  { canonicalKey: "contact_email", label: "Yetkili E-posta" },
+  { canonicalKey: "contact_phone", label: "Yetkili Telefon" },
+  { canonicalKey: "country", label: "Ülke" },
+  { canonicalKey: "city", label: "Şehir" },
+  { canonicalKey: "tax_number", label: "Vergi No" },
+] as const;
+
+export const OUTPUT_KEY_TO_CANONICAL: Record<RequestedOutputField, string> = Object.fromEntries(
+  IMPORT_OUTPUT_FIELD_DEFINITIONS.map((field) => [field.outputKey, field.canonicalKey]),
+) as Record<RequestedOutputField, string>;
+
+export const WIZARD_MAPPING_FIELDS = [
+  ...IMPORT_OUTPUT_FIELD_DEFINITIONS.map((field) => ({
+    key: field.canonicalKey,
+    label: field.label,
+    required: field.required,
+  })),
+  ...EXCEL_IMPORT_EXTRA_FIELD_DEFINITIONS.map((field) => ({
+    key: field.canonicalKey,
+    label: field.label,
+  })),
+];
+
+export const GRID_MAPPING_FIELD_OPTIONS = [
+  { value: "", label: "Kullanma" },
+  ...IMPORT_OUTPUT_FIELD_DEFINITIONS.map((field) => ({
+    value: field.canonicalKey,
+    label: field.label,
+  })),
+  ...EXCEL_IMPORT_EXTRA_FIELD_DEFINITIONS.map((field) => ({
+    value: field.canonicalKey,
+    label: field.label,
+  })),
+] as const;
+
 export const DEFAULT_REQUESTED_FIELDS: RequestedOutputField[] = [
   "customerName",
   "phone",

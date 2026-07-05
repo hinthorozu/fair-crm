@@ -22,10 +22,11 @@ from app.modules.customers.infrastructure.repositories.customer_repository impor
 from app.modules.data_integration.application.engine.import_executor import ImportExecutor
 from app.modules.data_integration.domain.entities import ImportJob
 from app.modules.data_integration.infrastructure.repositories.job_repository import SqlAlchemyImportJobRepository
+from app.modules.imports.application.analyze_canonical_import import AnalyzeCanonicalImportUseCase
 from app.modules.imports.application.analyze_import import AnalyzeImportUseCase
 from app.modules.imports.application.apply_import import ApplyImportUseCase
 from app.modules.imports.application.commands import AnalyzeImportCommand, ApplyImportCommand
-from app.modules.imports.domain.value_objects import ImportJobStatus
+from app.modules.imports.domain.value_objects import ImportJobStatus, ImportSourceType
 from app.modules.imports.infrastructure.repositories.import_repository import (
     SqlAlchemyImportBatchRepository,
     SqlAlchemyImportRowRepository,
@@ -71,6 +72,13 @@ class ImportJobRunner:
     def __init__(self, session_factory: Callable[[], Session] | None = None) -> None:
         self._session_factory = session_factory or SessionLocal
 
+    @staticmethod
+    def _uses_canonical_analyze(batch) -> bool:
+        if batch.source_type == ImportSourceType.SCRAPER:
+            return True
+        preview = batch.raw_preview_json or {}
+        return isinstance(preview, dict) and "canonical_source" in preview
+
     def run_apply(self, command: ApplyJobCommand) -> None:
         """Run apply job synchronously (call from FastAPI BackgroundTasks after DB commit)."""
         self._run_apply(command)
@@ -103,23 +111,41 @@ class ImportJobRunner:
 
             authorization: AuthorizationPort = AllowAllAuthorizationAdapter()
             audit = NoOpAuditAdapter() if dev_bypass_enabled() else HttpAuditAdapter()
-            analyze_use_case = AnalyzeImportUseCase(
-                batch_repo,
-                SqlAlchemyImportRowRepository(db),
-                SqlAlchemyCustomerRepository(db),
-                SqlAlchemyParticipationRepository(db),
-                authorization,
-                audit,
-            )
-            result = analyze_use_case.execute(
-                AnalyzeImportCommand(
+            if batch is not None and self._uses_canonical_analyze(batch):
+                analyze_use_case = AnalyzeCanonicalImportUseCase(
+                    batch_repo,
+                    SqlAlchemyImportRowRepository(db),
+                    SqlAlchemyCustomerRepository(db),
+                    SqlAlchemyParticipationRepository(db),
+                    authorization,
+                    audit,
+                )
+                result = analyze_use_case.execute(
                     organization_id=command.organization_id,
+                    batch_id=command.batch_id,
                     user_id=command.user_id,
                     access_token=command.access_token,
-                    batch_id=command.batch_id,
+                    skip_permission_check=True,
                     from_background_job=True,
                 )
-            )
+            else:
+                analyze_use_case = AnalyzeImportUseCase(
+                    batch_repo,
+                    SqlAlchemyImportRowRepository(db),
+                    SqlAlchemyCustomerRepository(db),
+                    SqlAlchemyParticipationRepository(db),
+                    authorization,
+                    audit,
+                )
+                result = analyze_use_case.execute(
+                    AnalyzeImportCommand(
+                        organization_id=command.organization_id,
+                        user_id=command.user_id,
+                        access_token=command.access_token,
+                        batch_id=command.batch_id,
+                        from_background_job=True,
+                    )
+                )
 
             job = job_repo.get_by_id(command.organization_id, command.job_id)
             if job:

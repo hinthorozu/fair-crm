@@ -1,5 +1,8 @@
 import { apiRequest, ApiError, fetchWithTimeout } from "./client";
 import { buildApiHeaders, config } from "../config";
+import { parseContentDispositionFileName, triggerBlobDownload, buildDownloadRequestHeaders } from "../utils/downloadBlob";
+import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
+import type { StandardListResponse } from "../types/listTable";
 import type {
   ScraperDashboardResponse,
   ScraperManifest,
@@ -15,6 +18,8 @@ import type {
   CreateAdapterPayload,
   UpdateAdapterPayload,
   UpdateAdapterManifestPayload,
+  ScraperRunStatus,
+  AdapterEngineType,
 } from "../types/scraper";
 
 export async function getScraperDashboard(): Promise<ScraperDashboardResponse> {
@@ -96,13 +101,63 @@ export async function listScraperRuns(params?: {
   limit?: number;
   offset?: number;
   fair_id?: string;
+  adapter_key?: string;
+  adapter_id?: string;
+  status?: ScraperRunStatus;
+  engine_type?: AdapterEngineType;
+  date_from?: string;
+  date_to?: string;
+  q?: string;
+  url?: string;
 }): Promise<ScraperRunListResponse> {
   const search = new URLSearchParams();
   if (params?.limit != null) search.set("limit", String(params.limit));
   if (params?.offset != null) search.set("offset", String(params.offset));
   if (params?.fair_id) search.set("fair_id", params.fair_id);
+  if (params?.adapter_key) search.set("adapter_key", params.adapter_key);
+  if (params?.adapter_id) search.set("adapter_id", params.adapter_id);
+  if (params?.status) search.set("status", params.status);
+  if (params?.engine_type) search.set("engine_type", params.engine_type);
+  if (params?.date_from) search.set("date_from", params.date_from);
+  if (params?.date_to) search.set("date_to", params.date_to);
+  if (params?.q) search.set("q", params.q);
+  if (params?.url) search.set("url", params.url);
   const qs = search.toString();
   return apiRequest<ScraperRunListResponse>(`/api/v1/scraper/runs${qs ? `?${qs}` : ""}`);
+}
+
+export async function listScraperRunsTable(
+  params: ServerTableFetchParams,
+): Promise<StandardListResponse<ScraperRun>> {
+  const limit = params.pageSize;
+  const offset = (params.page - 1) * params.pageSize;
+  const response = await listScraperRuns({
+    limit,
+    offset,
+    adapter_key: params.filters.adapter_key || undefined,
+    status: (params.filters.status as ScraperRunStatus | undefined) || undefined,
+    engine_type: (params.filters.engine_type as AdapterEngineType | undefined) || undefined,
+    date_from: params.filters.date_from || undefined,
+    date_to: params.filters.date_to || undefined,
+    q: params.search || params.filters.url || undefined,
+  });
+  const totalPages = Math.max(1, Math.ceil(response.total / limit));
+  return {
+    items: response.items,
+    pagination: {
+      page: params.page,
+      pageSize: limit,
+      totalItems: response.total,
+      totalPages,
+      hasNext: params.page < totalPages,
+      hasPrevious: params.page > 1,
+    },
+    sorting: {
+      field: params.sortBy ?? "started_at",
+      direction: params.sortOrder ?? "desc",
+    },
+    filters: params.filters,
+  };
 }
 
 export async function getScraperRun(runId: string): Promise<ScraperRun> {
@@ -159,13 +214,23 @@ export async function getAdapterLinkedFairs(adapterKey: string): Promise<Adapter
 
 type ScraperRunOutputKind = "json" | "excel";
 
-async function fetchScraperRunOutput(runId: string, kind: ScraperRunOutputKind): Promise<Blob> {
-  const response = await fetchWithTimeout(
-    `${config.apiBaseUrl}/api/v1/scraper/runs/${encodeURIComponent(runId)}/output/${kind}`,
-    {
-      headers: buildApiHeaders({}),
-    },
-  );
+const SCRAPER_OUTPUT_MIME: Record<ScraperRunOutputKind, string> = {
+  json: "application/json",
+  excel: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+};
+
+function scraperRunOutputUrl(runId: string, kind: ScraperRunOutputKind): string {
+  return `${config.apiBaseUrl}/api/v1/scraper/runs/${encodeURIComponent(runId)}/output/${kind}`;
+}
+
+function buildScraperDownloadHeaders(): HeadersInit {
+  return buildDownloadRequestHeaders(buildApiHeaders({}));
+}
+
+async function fetchScraperRunOutput(runId: string, kind: ScraperRunOutputKind): Promise<Response> {
+  const response = await fetchWithTimeout(scraperRunOutputUrl(runId, kind), {
+    headers: buildScraperDownloadHeaders(),
+  });
   if (!response.ok) {
     const text = await response.text();
     let detail = `HTTP ${response.status}`;
@@ -177,7 +242,7 @@ async function fetchScraperRunOutput(runId: string, kind: ScraperRunOutputKind):
     }
     throw new ApiError(detail, response.status);
   }
-  return response.blob();
+  return response;
 }
 
 export async function downloadScraperRunOutput(
@@ -185,19 +250,23 @@ export async function downloadScraperRunOutput(
   kind: ScraperRunOutputKind,
   fileName: string,
 ): Promise<void> {
-  const blob = await fetchScraperRunOutput(runId, kind);
-  const objectUrl = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = objectUrl;
-  anchor.download = fileName;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(objectUrl);
+  const response = await fetchScraperRunOutput(runId, kind);
+  const rawBlob = await response.blob();
+  const mimeType = SCRAPER_OUTPUT_MIME[kind];
+  const blob =
+    rawBlob.type && rawBlob.type !== "application/octet-stream"
+      ? rawBlob
+      : new Blob([rawBlob], { type: mimeType });
+  const resolvedFileName = parseContentDispositionFileName(
+    response.headers.get("Content-Disposition"),
+    fileName,
+  );
+  triggerBlobDownload(blob, resolvedFileName);
 }
 
 export async function openScraperRunOutput(runId: string, kind: ScraperRunOutputKind): Promise<void> {
-  const blob = await fetchScraperRunOutput(runId, kind);
+  const response = await fetchScraperRunOutput(runId, kind);
+  const blob = await response.blob();
   const objectUrl = URL.createObjectURL(blob);
   window.open(objectUrl, "_blank", "noopener,noreferrer");
   window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);

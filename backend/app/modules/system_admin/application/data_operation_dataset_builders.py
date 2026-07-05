@@ -131,6 +131,8 @@ def build_duplicate_customer_groups_dataset(
                 group_key=row.group_key,
                 fair_count=row.fair_count,
                 first_fair_name=row.first_fair_name,
+                match_score=row.match_score,
+                duplicate_reason=row.duplicate_reason,
             )
             for row in member_rows
         ],

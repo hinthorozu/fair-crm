@@ -1,5 +1,5 @@
 import { buildApiHeaders, config } from "../config";
-import { apiRequest, ApiError, fetchWithTimeout } from "./client";
+import { apiRequest, ApiError, fetchWithTimeout, DUPLICATE_GROUPS_LIST_TIMEOUT_MS } from "./client";
 import { normalizeStandardListResponse, buildListQueryParams } from "./listTable";
 import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
 import type { StandardListResponse } from "../types/listTable";
@@ -178,6 +178,8 @@ export async function listDataOperationDuplicateGroups(
   });
   const raw = await apiRequest<unknown>(
     `/api/v1/admin/data-operations/runs/${runId}/dataset/duplicate-groups?${qs.toString()}`,
+    undefined,
+    DUPLICATE_GROUPS_LIST_TIMEOUT_MS,
   );
   return normalizeStandardListResponse<DuplicateDatasetGroup>(raw);
 }

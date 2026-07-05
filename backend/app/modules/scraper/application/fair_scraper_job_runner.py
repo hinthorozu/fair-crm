@@ -22,13 +22,18 @@ from app.modules.scraper.core.scraper_registry import ScraperAdapterRegistry
 from app.modules.scraper.core.scraper_run_logger import CappedWarningRunLogger, DbScraperRunLogger, ScraperRunLogger
 from app.modules.scraper.domain.requested_output_fields import filter_handoff_by_requested_fields
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportExporter, ScraperImportHandoff
-from app.modules.scraper.infrastructure.handoff_storage import write_handoff_json
+from app.modules.scraper.infrastructure.handoff_storage import write_handoff_excel_file, write_handoff_json
 from app.modules.scraper.normalizers.company_normalizer import CompanyNormalizer
 from app.modules.scraper.services.scraper_run_history_service import (
     ScraperRunHistoryService,
     create_run_history_service,
 )
-from app.modules.scraper.services.adapter_instance_resolver import resolve_engine_key, resolve_requested_fields
+from app.modules.scraper.application.fair_scraper_import_automation import create_and_analyze_import_batch_from_handoff
+from app.modules.scraper.services.adapter_instance_resolver import (
+    resolve_engine_key,
+    resolve_output_formats,
+    resolve_requested_fields,
+)
 from app.modules.scraper.services.scraper_run_log_service import create_run_log_service
 from app.modules.scraper.types.scraper_context import ScraperContext
 from app.modules.scraper.types.scraper_result import ScraperResult
@@ -42,6 +47,8 @@ class FairScraperJobCommand:
     run_id: UUID
     organization_id: UUID
     fair_id: UUID
+    user_id: UUID
+    access_token: str = ""
 
 
 def _fair_year_from_start_date(start_date) -> int | None:
@@ -150,6 +157,7 @@ class FairScraperJobRunner:
             )
             engine_key = resolve_engine_key(db, command.organization_id, adapter_key)
             requested_fields = resolve_requested_fields(db, command.organization_id, adapter_key)
+            output_formats = resolve_output_formats(db, command.organization_id, adapter_key)
             fair_year = _fair_year_from_start_date(fair.start_date)
             context = _build_scraper_context(
                 fair_id=fair.id,
@@ -191,26 +199,73 @@ class FairScraperJobRunner:
                     )
                 )
 
-            output_path = write_handoff_json(
-                handoff,
-                command.run_id,
-                adapter_key=adapter_key,
-                fair_id=fair.id,
-                source_url=source_url,
-                run_logger=run_logger,
-            )
+            output_json_path: str | None = None
+            output_excel_path: str | None = None
+            if output_formats.json_handoff:
+                output_json_path = write_handoff_json(
+                    handoff,
+                    command.run_id,
+                    adapter_key=adapter_key,
+                    fair_id=fair.id,
+                    source_url=source_url,
+                    run_logger=run_logger,
+                )
+            if output_formats.excel:
+                output_excel_path = write_handoff_excel_file(
+                    handoff,
+                    command.run_id,
+                    adapter_key=adapter_key,
+                    fair_id=fair.id,
+                    source_url=source_url,
+                    requested_fields=requested_fields,
+                    run_logger=run_logger,
+                )
             if isinstance(run_logger, CappedWarningRunLogger):
                 run_logger.flush_suppressed_warnings()
             total_rows = len(handoff.canonical_rows or [])
+            import_batch_id = None
+            if total_rows > 0:
+                try:
+                    import_batch_id = create_and_analyze_import_batch_from_handoff(
+                        db,
+                        organization_id=command.organization_id,
+                        fair_id=fair.id,
+                        run_id=command.run_id,
+                        handoff=handoff,
+                        adapter_key=adapter_key,
+                        source_url=source_url,
+                        user_id=command.user_id,
+                        access_token=command.access_token,
+                    )
+                    run_logger.info(
+                        "import_batch_created",
+                        "Import batch hazırlandı",
+                        metadata={"import_batch_id": str(import_batch_id), "total_rows": total_rows},
+                    )
+                except Exception as exc:
+                    logger.exception("Failed to create import batch for fair scraper run id=%s", command.run_id)
+                    if isinstance(run_logger, CappedWarningRunLogger):
+                        run_logger.flush_suppressed_warnings()
+                    run_logger.error("import_batch_failed", str(exc))
+                    self._fail_run(db, command.run_id, f"Import batch oluşturulamadı: {exc}")
+                    return
+            else:
+                run_logger.warning(
+                    "no_rows",
+                    "Scraper tamamlandı ancak kayıt bulunamadı; import batch oluşturulmadı.",
+                    metadata={"total_rows": 0},
+                )
             run_logger.success(
                 "completed",
                 f"{total_rows} kayıt tamamlandı",
-                metadata={"total_rows": total_rows},
+                metadata={"total_rows": total_rows, "import_batch_id": str(import_batch_id) if import_batch_id else None},
             )
             history_service.complete_run(
                 command.run_id,
                 handoff=handoff,
-                output_json_path=output_path,
+                output_json_path=output_json_path,
+                output_excel_path=output_excel_path,
+                import_batch_id=import_batch_id,
             )
             db.commit()
             logger.info("Completed fair scraper run id=%s rows=%s", command.run_id, total_rows)

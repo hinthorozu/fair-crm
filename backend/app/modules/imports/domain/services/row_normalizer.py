@@ -1,6 +1,7 @@
 from typing import Any
 
 from app.modules.imports.domain.services.company_name_normalizer import normalize_import_company_name
+from app.modules.imports.domain.services.social_url_fields import social_urls_from_mapping
 
 
 def _clean_str(value: Any) -> str | None:
@@ -36,4 +37,9 @@ def normalize_row_data(raw: dict[str, Any]) -> dict[str, Any]:
         "hall": _clean_str(raw.get("hall")),
         "stand": _clean_str(raw.get("stand")),
     }
+    social_urls = social_urls_from_mapping(raw)
+    normalized["instagram_url"] = social_urls["instagram_url"]
+    normalized["facebook_url"] = social_urls["facebook_url"]
+    normalized["linkedin_url"] = social_urls["linkedin_url"]
+    normalized["youtube_url"] = social_urls["youtube_url"]
     return normalized

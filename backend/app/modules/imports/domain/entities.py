@@ -243,6 +243,7 @@ class ImportBatch:
 
     def mark_decision_required(self, *, now: datetime) -> None:
         self.status = ImportBatchStatus.DECISION_REQUIRED
+        self.notes = None
         self.updated_at = now
 
     def mark_analysis_failed(self, *, now: datetime, notes: str | None = None) -> None:

@@ -20,6 +20,11 @@ export function AdminSystemLayout({
       label: adminLabels.navDatabaseBackups,
       path: "/admin/system/backups",
     },
+    {
+      id: "smtp",
+      label: adminLabels.navSmtpAccounts,
+      path: "/admin/system/smtp",
+    },
   ];
 
   const dataOperationItems = [

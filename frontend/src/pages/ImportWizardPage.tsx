@@ -53,6 +53,7 @@ import { WIZARD_MAPPING_FIELDS as MAPPING_FIELDS } from "../types/import";
 import type { Fair } from "../types/fair";
 import { importBatchStatusBadgeVariant, importRowStatusBadgeVariant } from "../utils/importBadges";
 import { formatMatchConfidence, getImportMatchStatus } from "../utils/importMatchStatus";
+import { getEffectiveImportDecision } from "../utils/importDecision";
 import {
   canResumeDecisions,
   canResumeSetup,
@@ -140,6 +141,7 @@ export function ImportWizardPage({
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [mappingColumns, setMappingColumns] = React.useState<MappingColumnPreview[]>([]);
   const [showAllSamples, setShowAllSamples] = React.useState(false);
+  const [expandedRowIds, setExpandedRowIds] = React.useState<Set<string>>(() => new Set());
 
   const currentStep = activeSteps[stepIndex]?.id ?? "upload";
   const isPreviewStep = currentStep === "decisions";
@@ -407,6 +409,47 @@ export function ImportWizardPage({
     [previewTable.items],
   );
 
+  const expandScopeKey = React.useMemo(
+    () =>
+      [
+        previewTable.pagination.page,
+        previewTable.pagination.pageSize,
+        previewFilter,
+        previewTable.search,
+        previewTable.sorting.field,
+        previewTable.sorting.direction,
+      ].join("|"),
+    [
+      previewTable.pagination.page,
+      previewTable.pagination.pageSize,
+      previewFilter,
+      previewTable.search,
+      previewTable.sorting.field,
+      previewTable.sorting.direction,
+    ],
+  );
+
+  React.useEffect(() => {
+    setExpandedRowIds(new Set());
+  }, [expandScopeKey]);
+
+  const expandAllOnPage = () => {
+    setExpandedRowIds(new Set(pageRowIds));
+  };
+
+  const collapseAllOnPage = () => {
+    setExpandedRowIds(new Set());
+  };
+
+  const handleRowExpandedChange = (rowId: string, expanded: boolean) => {
+    setExpandedRowIds((prev) => {
+      const next = new Set(prev);
+      if (expanded) next.add(rowId);
+      else next.delete(rowId);
+      return next;
+    });
+  };
+
   const prevPageSizeRef = React.useRef(previewTable.pagination.pageSize);
   React.useEffect(() => {
     if (prevPageSizeRef.current !== previewTable.pagination.pageSize) {
@@ -553,6 +596,26 @@ export function ImportWizardPage({
           <option value="desc">Azalan</option>
         </select>
       </div>
+      {isPreviewStep && (
+        <div className="preview-expand-actions">
+          <button
+            type="button"
+            className="btn btn-sm btn-secondary"
+            disabled={previewTable.loading || pageRowIds.length === 0}
+            onClick={expandAllOnPage}
+          >
+            {importLabels.expandAllOnPage}
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm btn-secondary"
+            disabled={previewTable.loading || expandedRowIds.size === 0}
+            onClick={collapseAllOnPage}
+          >
+            {importLabels.collapseAllOnPage}
+          </button>
+        </div>
+      )}
     </div>
   );
 
@@ -712,7 +775,7 @@ export function ImportWizardPage({
               {editable && (
                 <select
                   className="form-select merge-decision-select"
-                  value={row.decision ?? ""}
+                  value={getEffectiveImportDecision(row)}
                   onChange={(e) => void handleDecision(row, e.target.value as ImportDecision)}
                 >
                   <option value="">—</option>
@@ -722,7 +785,11 @@ export function ImportWizardPage({
                 </select>
               )}
             </div>
-            <MergeDiffViewer row={row} />
+            <MergeDiffViewer
+              row={row}
+              expanded={expandedRowIds.has(row.id)}
+              onExpandedChange={(expanded) => handleRowExpandedChange(row.id, expanded)}
+            />
             {row.validation_errors_json?.length ? (
               <p className="form-error">{row.validation_errors_json.join("; ")}</p>
             ) : null}

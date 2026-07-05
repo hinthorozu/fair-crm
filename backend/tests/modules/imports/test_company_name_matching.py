@@ -94,9 +94,11 @@ def test_confidence_bands():
     assert strong is not None
     assert strong.confidence >= MATCH_SCORE_STRONG
 
-    # Partial overlap should land in possible or weak band, not strong
     partial = score_company_name_pair("ABC GIDA SANAYI", "ABC MAKINA SANAYI")
     assert partial is None or partial.confidence < MATCH_SCORE_POSSIBLE
+
+    assert score_company_name_pair("ABC", "ABC KIMYA") is None
+    assert score_company_name_pair("SDK Teknoloji Mimarlık", "SDK Yazılım Hizmetleri") is None
 
 
 def test_find_customer_match_explanation_stored():

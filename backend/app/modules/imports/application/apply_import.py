@@ -26,6 +26,7 @@ from app.modules.imports.domain.exceptions import ImportBatchAlreadyAppliedError
 from app.modules.imports.domain.entities import ImportBatch, ImportRow
 from app.modules.imports.domain.ports import ImportBatchRepository, ImportRowRepository
 from app.modules.imports.domain.batch_status import is_batch_terminal
+from app.modules.imports.domain.services.merge_preview import default_decision_for_row
 from app.modules.imports.domain.value_objects import ImportDecision, ImportRowStatus
 from app.modules.participations.domain.entities import CustomerFairParticipation
 from app.modules.participations.domain.value_objects import ParticipationStatus
@@ -208,10 +209,11 @@ class ApplyImportUseCase:
         now: datetime,
     ) -> RowApplyCounters:
         counters = RowApplyCounters()
-        if row.decision is None:
+        decision = row.decision or default_decision_for_row(row)
+        if decision is None:
             return counters
 
-        if row.decision == ImportDecision.SKIP:
+        if decision == ImportDecision.SKIP:
             counters.skipped = 1
             counters.applied = True
             return counters
@@ -221,18 +223,18 @@ class ApplyImportUseCase:
 
         fair_id = batch.fair_id
 
-        if row.decision == ImportDecision.MANUAL_REVIEW:
+        if decision == ImportDecision.MANUAL_REVIEW:
             return counters
 
         customer: Customer | None = None
         customer_created = False
 
-        if row.decision == ImportDecision.CREATE_NEW:
+        if decision == ImportDecision.CREATE_NEW:
             customer = self._create_customer(row.normalized_data_json, command, now)
             counters.created_customer_id = customer.id
             customer_created = True
             counters.created = 1
-        elif row.decision == ImportDecision.UPDATE_EXISTING:
+        elif decision == ImportDecision.UPDATE_EXISTING:
             if row.match_customer_id is None:
                 return counters
             customer = self._customer_repository.get_by_id(
@@ -244,7 +246,7 @@ class ApplyImportUseCase:
             customer = self._customer_repository.update(customer)
             counters.updated_customer_id = customer.id
             counters.updated = 1
-        elif row.decision == ImportDecision.PARTICIPATION_ONLY:
+        elif decision == ImportDecision.PARTICIPATION_ONLY:
             if row.match_customer_id is None:
                 return counters
             customer = self._customer_repository.get_by_id(
@@ -269,7 +271,7 @@ class ApplyImportUseCase:
                 counters.updated_participation_id = participation.id
                 counters.updated_participations = 1
 
-        if row.decision not in (
+        if decision not in (
             ImportDecision.PARTICIPATION_ONLY,
             ImportDecision.MANUAL_REVIEW,
         ):
@@ -286,7 +288,7 @@ class ApplyImportUseCase:
                 action=action,
                 now=now,
             )
-        elif row.decision == ImportDecision.PARTICIPATION_ONLY and fair_id is not None:
+        elif decision == ImportDecision.PARTICIPATION_ONLY and fair_id is not None:
             self._create_import_activity(
                 command,
                 customer_id=customer.id,

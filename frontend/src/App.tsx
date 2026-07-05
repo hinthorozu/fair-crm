@@ -7,12 +7,21 @@ import { ImportWizardPage } from "./pages/ImportWizardPage";
 import { DataIntegrationImportsPage } from "./pages/DataIntegrationImportsPage";
 import { AdapterManagementPage } from "./pages/AdapterManagementPage";
 import { AdapterDetailPage } from "./pages/AdapterDetailPage";
+import { ScraperRunHistoryPage } from "./pages/ScraperRunHistoryPage";
+import { ScraperTestPage } from "./pages/ScraperTestPage";
 import { DatabaseBackupsPage } from "./pages/DatabaseBackupsPage";
+import { SmtpAccountsPage } from "./pages/SmtpAccountsPage";
 import { DataOperationsPage } from "./pages/DataOperationsPage";
 import { DataOperationRunResultPage } from "./pages/DataOperationRunResultPage";
 import { DataIntegrationLayout } from "./components/dataIntegration/DataIntegrationLayout";
 import { AdminSystemLayout } from "./components/admin/AdminSystemLayout";
 import { AppLayout } from "./components/layout/AppLayout";
+import {
+  NavIconAdmin,
+  NavIconCustomers,
+  NavIconDataIntegration,
+  NavIconFairs,
+} from "./components/layout/NavIcons";
 import { Card } from "./components/ui/Card";
 import { uiLabels } from "./labels/uiLabels";
 import { dataIntegrationLabels } from "./labels/dataIntegrationLabels";
@@ -33,7 +42,10 @@ type AppRoute =
   | "/data-integration/reports"
   | "/data-integration/adapters"
   | "/data-integration/adapters/:adapterKey"
+  | "/data-integration/run-history"
+  | "/data-integration/scraper-test"
   | "/admin/system/backups"
+  | "/admin/system/smtp"
   | "/admin/data-operations"
   | "/admin/data-operations/runs/:runId"
   | "/imports"
@@ -70,6 +82,9 @@ function parseRoute(location: string): ParsedRoute {
     if (pathname.startsWith("/admin/data-operations")) {
       return { route: "/admin/data-operations" };
     }
+    if (pathname === "/admin/system/smtp" || pathname.startsWith("/admin/system/smtp")) {
+      return { route: "/admin/system/smtp" };
+    }
     if (pathname === "/admin/system/backups" || pathname.startsWith("/admin/system/backups")) {
       return { route: "/admin/system/backups" };
     }
@@ -92,6 +107,12 @@ function parseRoute(location: string): ParsedRoute {
     }
     if (pathname === "/data-integration/reports") {
       return { route: "/data-integration/reports" };
+    }
+    if (pathname === "/data-integration/run-history" || pathname === "/data-integration/run-history/") {
+      return { route: "/data-integration/run-history" };
+    }
+    if (pathname === "/data-integration/scraper-test" || pathname === "/data-integration/scraper-test/") {
+      return { route: "/data-integration/scraper-test" };
     }
     const adapterDetail = pathname.match(/^\/data-integration\/adapters\/([^/]+)$/);
     if (adapterDetail) {
@@ -165,11 +186,14 @@ function isAdminRoute(route: AppRoute): boolean {
 function adminSection(route: AppRoute): string {
   if (route.includes("/data-operations/runs/")) return "data-operations";
   if (route.includes("/data-operations")) return "data-operations";
+  if (route.includes("/smtp")) return "smtp";
   if (route.includes("/backups")) return "backups";
   return "backups";
 }
 
 function diSection(route: AppRoute): string {
+  if (route.includes("/scraper-test")) return "scraper-test";
+  if (route.includes("/run-history")) return "run-history";
   if (route.includes("/adapters")) return "adapters";
   if (route.includes("/new") || route.includes("/fair/")) return "new";
   if (route.includes("/jobs")) return "jobs";
@@ -292,6 +316,30 @@ export function App() {
     setSidebarOpen(false);
   };
 
+  const goToRunHistory = (adapterKey?: string) => {
+    const path = adapterKey
+      ? `/data-integration/run-history?adapter_key=${encodeURIComponent(adapterKey)}`
+      : "/data-integration/run-history";
+    navigate(path);
+    setParsed(parseRoute(path));
+    setSidebarOpen(false);
+  };
+
+  const goToScraperTest = (adapterKey?: string, runId?: string) => {
+    const params = new URLSearchParams();
+    if (adapterKey) params.set("adapter_key", adapterKey);
+    if (runId) params.set("run", runId);
+    const qs = params.toString();
+    const path = `/data-integration/scraper-test${qs ? `?${qs}` : ""}`;
+    navigate(path);
+    setParsed(parseRoute(path));
+    setSidebarOpen(false);
+  };
+
+  const goToAdapterRunDetail = (adapterKey: string, runId: string) => {
+    goToScraperTest(adapterKey, runId);
+  };
+
   const goToAdmin = (subpath = "/admin/system/backups") => {
     navigate(subpath);
     setParsed(parseRoute(subpath));
@@ -335,7 +383,19 @@ export function App() {
                   { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
                   { label: scraperLabels.pageTitle, current: true },
                 ]
-              : isDiActive
+              : parsed.route === "/data-integration/scraper-test"
+              ? [
+                  { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                  { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
+                  { label: scraperLabels.testPageTitle, current: true },
+                ]
+            : parsed.route === "/data-integration/run-history"
+              ? [
+                  { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                  { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
+                  { label: scraperLabels.runHistoryTitle, current: true },
+                ]
+            : isDiActive
             ? [
                 { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
                 { label: uiLabels.navImports, current: true },
@@ -348,7 +408,9 @@ export function App() {
                     label:
                       parsed.route === "/admin/data-operations/runs/:runId"
                         ? adminLabels.dataOpAnalyzeResultTitle
-                        : parsed.route === "/admin/data-operations"
+                        : parsed.route === "/admin/system/smtp"
+                          ? adminLabels.navSmtpAccounts
+                          : parsed.route === "/admin/data-operations"
                           ? adminLabels.navDataOperations
                           : adminLabels.navDatabaseBackups,
                     current: true,
@@ -360,24 +422,28 @@ export function App() {
     {
       path: "/customers",
       label: uiLabels.navCustomers,
+      icon: <NavIconCustomers />,
       active: isCustomersActive,
       onClick: (e: React.MouseEvent) => handleNav("/customers", e),
     },
     {
       path: "/fairs",
       label: uiLabels.navFairs,
+      icon: <NavIconFairs />,
       active: isFairsActive,
       onClick: (e: React.MouseEvent) => handleNav("/fairs", e),
     },
     {
       path: "/data-integration/imports",
       label: uiLabels.navImports,
+      icon: <NavIconDataIntegration />,
       active: isDiActive,
       onClick: (e: React.MouseEvent) => handleNav("/data-integration/imports", e),
     },
     {
       path: "/admin/system/backups",
       label: uiLabels.navAdmin,
+      icon: <NavIconAdmin />,
       active: isAdminActive,
       onClick: (e: React.MouseEvent) => handleNav("/admin/system/backups", e),
     },
@@ -424,6 +490,24 @@ export function App() {
           onBack={goToAdapters}
           onOpenFair={goToFairDetail}
           onAdapterLoaded={setAdapterName}
+          onViewAllRuns={goToRunHistory}
+          onOpenScraperTest={goToScraperTest}
+        />
+      )}
+      {parsed.route === "/data-integration/run-history" && (
+        <ScraperRunHistoryPage
+          initialAdapterKey={new URLSearchParams(window.location.search).get("adapter_key") ?? undefined}
+          onOpenAdapter={goToAdapterDetail}
+          onOpenRunDetail={goToAdapterRunDetail}
+          onOpenImportBatch={(batchId) =>
+            goToDataIntegration(`/data-integration/imports/continue/${batchId}`)
+          }
+        />
+      )}
+      {parsed.route === "/data-integration/scraper-test" && (
+        <ScraperTestPage
+          initialAdapterKey={new URLSearchParams(window.location.search).get("adapter_key") ?? undefined}
+          focusRunId={new URLSearchParams(window.location.search).get("run")}
         />
       )}
     </DataIntegrationLayout>
@@ -437,6 +521,7 @@ export function App() {
     >
       {adminNotice && <p className="text-muted">{adminNotice}</p>}
       {parsed.route === "/admin/system/backups" && <DatabaseBackupsPage />}
+      {parsed.route === "/admin/system/smtp" && <SmtpAccountsPage />}
       {parsed.route === "/admin/data-operations" && (
         <DataOperationsPage
           onOpenResult={(runId, operationKey) =>
@@ -471,6 +556,9 @@ export function App() {
           onFairLoaded={setFairName}
           onOpenCustomer={goToCustomerDetail}
           onImportParticipants={() => goToImportWizard(parsed.fairId)}
+          onOpenImportDecisions={(batchId) =>
+            goToDataIntegration(`/data-integration/imports/continue/${batchId}`)
+          }
         />
       )}
       {isDiActive && renderDataIntegration()}

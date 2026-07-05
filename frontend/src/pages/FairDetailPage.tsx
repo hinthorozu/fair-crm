@@ -56,6 +56,7 @@ interface FairDetailPageProps {
   onFairLoaded?: (name: string) => void;
   onOpenCustomer?: (customerId: string) => void;
   onImportParticipants?: () => void;
+  onOpenImportDecisions?: (batchId: string) => void;
 }
 
 type TabId = "overview" | "participants";
@@ -74,6 +75,7 @@ export function FairDetailPage({
   onFairLoaded,
   onOpenCustomer,
   onImportParticipants,
+  onOpenImportDecisions,
 }: FairDetailPageProps) {
   const [fair, setFair] = React.useState<Fair | null>(null);
   const [customers, setCustomers] = React.useState<Customer[]>([]);
@@ -247,19 +249,26 @@ export function FairDetailPage({
     fair?.status !== "archived" &&
     fair?.deleted_at == null;
 
-  const pollScraperRun = React.useCallback(async (runId: string) => {
-    for (let attempt = 0; attempt < 60; attempt += 1) {
-      await new Promise((resolve) => window.setTimeout(resolve, 2000));
-      const run = await getScraperRun(runId);
-      if (run.status === "completed") {
-        setLastImportAt(run.finished_at);
-        return;
+  const pollScraperRun = React.useCallback(
+    async (runId: string): Promise<{ importBatchId: string | null; totalRows: number }> => {
+      for (let attempt = 0; attempt < 90; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 2000));
+        const run = await getScraperRun(runId);
+        if (run.status === "completed") {
+          setLastImportAt(run.finished_at);
+          return {
+            importBatchId: run.import_batch_id ?? null,
+            totalRows: run.total_rows ?? 0,
+          };
+        }
+        if (run.status === "failed") {
+          throw new ApiError(run.error_message || fairLabels.runScraperError, 500);
+        }
       }
-      if (run.status === "failed") {
-        throw new ApiError(run.error_message || fairLabels.runScraperError, 500);
-      }
-    }
-  }, []);
+      throw new ApiError(fairLabels.runScraperError, 504);
+    },
+    [],
+  );
 
   const handleRunScraper = async () => {
     setRunningScraper(true);
@@ -267,8 +276,18 @@ export function FairDetailPage({
     setError(null);
     try {
       const run = await runFairScraper(fairId);
+      setRunSuccess(fairLabels.runScraperRunning);
+      const result = await pollScraperRun(run.id);
+      if (result.importBatchId && onOpenImportDecisions) {
+        setRunSuccess(fairLabels.runScraperComplete);
+        onOpenImportDecisions(result.importBatchId);
+        return;
+      }
+      if (result.totalRows === 0) {
+        setRunSuccess(fairLabels.runScraperNoRows);
+        return;
+      }
       setRunSuccess(fairLabels.runScraperSuccess);
-      await pollScraperRun(run.id);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : fairLabels.runScraperError);
     } finally {

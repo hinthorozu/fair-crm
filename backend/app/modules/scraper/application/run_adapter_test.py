@@ -9,8 +9,9 @@ from sqlalchemy.orm import Session
 
 from app.modules.fairs.domain.exceptions import InvalidFairSourceUrlError
 from app.modules.fairs.domain.services.normalizers import normalize_source_url
+from app.modules.scraper.core.manifest_registry import get_manifest_registry
 from app.modules.scraper.domain.adapter_engine import AdapterEngineType
-from app.modules.scraper.domain.scraper_run_history import ScraperRunHistory
+from app.modules.scraper.domain.scraper_run_source import ScraperRunSource
 from app.modules.scraper.services.adapter_engine_service import AdapterEngineService, create_adapter_engine_service
 from app.modules.scraper.services.adapter_instance_resolver import resolve_engine_key
 from app.modules.scraper.services.scraper_run_history_service import ScraperRunHistoryService
@@ -45,8 +46,8 @@ class RunAdapterTestUseCase:
     def execute(self, command: RunAdapterTestCommand) -> ScraperRunHistory:
         normalized_key = command.adapter_key.strip().lower()
         engine_key = resolve_engine_key(self._session, command.organization_id, normalized_key)
-        engine = self._engine_service.get_engine(engine_key)
-        if engine.engine_type != AdapterEngineType.STATIC:
+        engine_type = self._resolve_engine_type(engine_key)
+        if engine_type != AdapterEngineType.STATIC:
             raise DynamicAdapterEngineNotRunnableError(
                 f"Dynamic adapter engine is not runnable yet: {engine_key}"
             )
@@ -65,4 +66,12 @@ class RunAdapterTestUseCase:
             fair_year=None,
             organization_id=command.organization_id,
             fair_id=None,
+            run_source=ScraperRunSource.MANUAL_TEST,
         )
+
+    def _resolve_engine_type(self, engine_key: str) -> AdapterEngineType:
+        registry = get_manifest_registry()
+        try:
+            return registry.get(engine_key.strip().lower()).engine_type
+        except KeyError:
+            return AdapterEngineType.DYNAMIC

@@ -3,6 +3,8 @@ import { buildApiHeaders, config } from "../config";
 export const API_REQUEST_TIMEOUT_MS = 30_000;
 /** Import analyze can process large batches against full CRM — allow longer than default list calls. */
 export const ANALYZE_IMPORT_TIMEOUT_MS = 120_000;
+/** Duplicate group listing may aggregate large completed analysis datasets. */
+export const DUPLICATE_GROUPS_LIST_TIMEOUT_MS = 60_000;
 
 export class ApiError extends Error {
   constructor(

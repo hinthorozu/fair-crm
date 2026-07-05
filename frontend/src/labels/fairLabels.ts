@@ -29,10 +29,12 @@ export const fairLabels = {
   sourceUrlInvalid: "Source URL geçerli bir http veya https adresi olmalıdır.",
   scraperConfigInvalid: "Scraper Config geçerli bir JSON nesnesi olmalıdır.",
   scraperConfigPlaceholder: '{"pagination": {"page_size": 50}}',
-  runScraper: "Çalıştır",
-  runScraperSuccess: "Adapter çalıştırması başlatıldı.",
-  runScraperError: "Adapter çalıştırılamadı.",
-  runScraperRunning: "Çalışıyor…",
+  runScraper: "Scraper Çalıştır ve Import Hazırla",
+  runScraperSuccess: "Scraper çalıştırması başlatıldı.",
+  runScraperComplete: "Import karar ekranına yönlendiriliyorsunuz…",
+  runScraperNoRows: "Scraper tamamlandı ancak kayıt bulunamadı.",
+  runScraperError: "Scraper çalıştırılamadı.",
+  runScraperRunning: "Scraper çalışıyor…",
 } as const;
 
 export const fairStatusLabels: Record<string, string> = {

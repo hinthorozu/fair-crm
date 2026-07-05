@@ -14,6 +14,7 @@ from app.modules.participations.api.routes import (
     router as participations_router,
 )
 from app.modules.scraper.api.routes import router as scraper_router
+from app.modules.smtp.api.routes import router as smtp_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
 api_v1_router.include_router(customer_activities_router)
@@ -31,3 +32,4 @@ api_v1_router.include_router(data_integration_router)
 api_v1_router.include_router(system_admin_router)
 api_v1_router.include_router(data_operations_router)
 api_v1_router.include_router(scraper_router)
+api_v1_router.include_router(smtp_router)

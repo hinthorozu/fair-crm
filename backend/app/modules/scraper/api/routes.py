@@ -1,6 +1,7 @@
 """HTTP routes for Adapter Yönetimi (adapter manifest discovery and dashboard)."""
 
 from dataclasses import replace
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
 from uuid import UUID
@@ -76,15 +77,65 @@ from app.modules.scraper.domain.scraper_adapter_exceptions import (
     InvalidAdapterKeyError,
     InvalidAdapterNameError,
 )
+from app.modules.scraper.domain.adapter_engine import AdapterEngineType
 from app.modules.scraper.domain.scraper_run_history import ScraperRunStatus
+from app.modules.scraper.domain.scraper_run_history_filters import ScraperRunHistoryListFilters
 from app.modules.scraper.infrastructure.handoff_storage import (
     resolve_handoff_excel_path,
     resolve_handoff_path,
 )
 from app.modules.scraper.core.scraper_manager import ScraperManager
 from app.modules.scraper.services.scraper_dashboard_service import ScraperDashboardService
+from app.modules.scraper.services.scraper_run_history_list_builder import build_run_history_list_item
 
 router = APIRouter(prefix="/scraper", tags=["Adapter Yönetimi"])
+
+
+def _parse_run_status(value: str | None) -> ScraperRunStatus | None:
+    if not value:
+        return None
+    try:
+        return ScraperRunStatus(value.strip().lower())
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid run status: {value}",
+        ) from exc
+
+
+def _parse_datetime(value: str | None, *, end_of_day: bool = False) -> datetime | None:
+    if not value:
+        return None
+    text = value.strip()
+    try:
+        if len(text) == 10:
+            parsed = datetime.fromisoformat(text)
+            if end_of_day:
+                parsed = parsed.replace(hour=23, minute=59, second=59, microsecond=999999)
+            return parsed.replace(tzinfo=UTC)
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=UTC)
+        return parsed.astimezone(UTC)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid datetime: {value}",
+        ) from exc
+
+
+def _resolve_engine_keys(
+    engine_service: AdapterEngineService,
+    engine_type: AdapterEngineType | None,
+) -> tuple[str, ...] | None:
+    if engine_type is None:
+        return None
+    keys = tuple(
+        engine.engine_key
+        for engine in engine_service.list_engines()
+        if engine.engine_type == engine_type
+    )
+    return keys or ("__no_engine_match__",)
 
 
 def _adapter_http_errors(exc: Exception) -> HTTPException:
@@ -441,16 +492,42 @@ def run_adapter_test(
     summary="Adapter çalıştırma geçmişi",
 )
 def list_scraper_runs(
+    auth: Annotated[AuthContext, Depends(get_auth_context)],
     run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
+    engine_service: Annotated[AdapterEngineService, Depends(get_adapter_engine_service)],
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
     fair_id: UUID | None = None,
+    adapter_key: str | None = None,
+    adapter_id: UUID | None = None,
+    status_filter: Annotated[str | None, Query(alias="status")] = None,
+    engine_type: AdapterEngineType | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    q: str | None = None,
+    url: str | None = None,
 ) -> ScraperRunHistoryListResponse:
-    runs = run_history_service.list_runs(limit=limit, offset=offset, fair_id=fair_id)
-    items = [ScraperRunHistoryResponse.from_entity(run) for run in runs]
+    filters = ScraperRunHistoryListFilters(
+        organization_id=auth.organization_id,
+        adapter_key=adapter_key,
+        adapter_id=adapter_id,
+        status=_parse_run_status(status_filter),
+        engine_keys=_resolve_engine_keys(engine_service, engine_type),
+        date_from=_parse_datetime(date_from),
+        date_to=_parse_datetime(date_to, end_of_day=True),
+        url_query=(url or q or "").strip() or None,
+        fair_id=fair_id,
+    )
+    rows = run_history_service.list_run_rows(limit=limit, offset=offset, filters=filters)
+    items = [
+        ScraperRunHistoryResponse.from_list_item(
+            build_run_history_list_item(row, engine_service=engine_service)
+        )
+        for row in rows
+    ]
     return ScraperRunHistoryListResponse(
         items=items,
-        total=run_history_service.count_runs(fair_id=fair_id),
+        total=run_history_service.count_runs(filters=filters),
     )
 
 
@@ -461,15 +538,19 @@ def list_scraper_runs(
 )
 def get_scraper_run(
     run_id: UUID,
+    auth: Annotated[AuthContext, Depends(get_auth_context)],
     run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
+    engine_service: Annotated[AdapterEngineService, Depends(get_adapter_engine_service)],
 ) -> ScraperRunHistoryResponse:
-    run = run_history_service.get_run(run_id)
-    if run is None:
+    row = run_history_service.get_run_row(run_id, organization_id=auth.organization_id)
+    if row is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Scraper run not found: {run_id}",
         )
-    return ScraperRunHistoryResponse.from_entity(run)
+    return ScraperRunHistoryResponse.from_list_item(
+        build_run_history_list_item(row, engine_service=engine_service)
+    )
 
 
 @router.get(

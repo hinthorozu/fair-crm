@@ -1,5 +1,5 @@
 import React from "react";
-import { GRID_MAPPING_FIELD_OPTIONS } from "../../labels/importLabels";
+import { GRID_MAPPING_FIELD_OPTIONS } from "../../utils/outputFieldDefinitions";
 
 export interface ExcelGridColumn {
   index: number;

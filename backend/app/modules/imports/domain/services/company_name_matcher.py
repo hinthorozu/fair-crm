@@ -17,12 +17,15 @@ from app.modules.imports.domain.services.company_name_normalizer import (
 MATCH_SCORE_MIN = 70
 MATCH_SCORE_STRONG = 95
 MATCH_SCORE_POSSIBLE = 85
+SHORT_HUB_TOKEN_MAX_LEN = 4
 
 EXPLANATION_NORMALIZED_EXACT = "normalized_exact"
 EXPLANATION_TOKEN_OVERLAP_HIGH = "token_overlap_high"
 EXPLANATION_LEGAL_SUFFIX_IGNORED = "legal_suffix_ignored"
 EXPLANATION_ABBREVIATION_NORMALIZED = "abbreviation_normalized"
 EXPLANATION_STRING_SIMILARITY = "string_similarity_high"
+EXPLANATION_SHORT_HUB_BLOCKED = "short_single_token_hub_blocked"
+EXPLANATION_DISTINCTIVE_OVERLAP_REQUIRED = "distinctive_token_overlap_required"
 
 
 @dataclass(frozen=True)
@@ -81,6 +84,40 @@ def _distinctive_tail_mismatch(core_a: list[str], core_b: list[str]) -> bool:
     return bool(tail_a and tail_b and not (tail_a & tail_b))
 
 
+def is_short_single_token_hub(core: list[str]) -> bool:
+    """Single core token with length <= SHORT_HUB_TOKEN_MAX_LEN (e.g. ABC, SDK)."""
+    return len(core) == 1 and len(core[0]) <= SHORT_HUB_TOKEN_MAX_LEN
+
+
+def _short_hub_blocks_match(core_q: list[str], core_c: list[str]) -> bool:
+    """Short single-token names must not fuzzy-match longer multi-token company names."""
+    if is_short_single_token_hub(core_q) and len(core_c) > 1:
+        return True
+    if is_short_single_token_hub(core_c) and len(core_q) > 1:
+        return True
+    return False
+
+
+def _insufficient_distinctive_overlap(
+    core_q: list[str],
+    core_c: list[str],
+    set_q: set[str],
+    set_c: set[str],
+) -> bool:
+    """Multi-token names need shared distinctive tokens beyond a lone prefix token."""
+    shared = set_q & set_c
+    if not shared:
+        return True
+    if len(core_q) < 2 or len(core_c) < 2:
+        return False
+    if set_q <= set_c or set_c <= set_q:
+        return len(shared) < 2 and len(min(set_q, set_c, key=len)) < 2
+    if len(shared) >= 2:
+        return False
+    only = next(iter(shared))
+    return bool(core_q and core_c and core_q[0] == core_c[0] == only)
+
+
 def score_company_name_pair(query: str, candidate: str) -> CompanyNameMatchScore | None:
     """Score import company name against CRM customer name. Returns None if below MIN threshold."""
     norm_q = normalize_import_company_name(query)
@@ -98,6 +135,9 @@ def score_company_name_pair(query: str, candidate: str) -> CompanyNameMatchScore
     core_q = core_tokens(tokens_q)
     core_c = core_tokens(tokens_c)
 
+    if _short_hub_blocks_match(core_q, core_c):
+        return None
+
     if _first_token_blocks_match(core_q, core_c):
         return None
 
@@ -108,6 +148,9 @@ def score_company_name_pair(query: str, candidate: str) -> CompanyNameMatchScore
     set_c = canonical_token_set(core_c)
 
     if _sector_only_overlap(set_q, set_c):
+        return None
+
+    if _insufficient_distinctive_overlap(core_q, core_c, set_q, set_c):
         return None
 
     jaccard = _jaccard(set_q, set_c)
@@ -132,8 +175,13 @@ def score_company_name_pair(query: str, candidate: str) -> CompanyNameMatchScore
 
     score = max(jaccard * 100, overlap * 98, seq_core * 100, seq_full * 95)
 
-    # Subset boost: shorter distinctive name fully contained in longer
-    if set_q and set_c and (set_q <= set_c or set_c <= set_q):
+    smaller, larger = (set_q, set_c) if len(set_q) <= len(set_c) else (set_c, set_q)
+    if (
+        smaller
+        and larger
+        and smaller <= larger
+        and not is_short_single_token_hub(list(smaller))
+    ):
         score = max(score, 93.0)
 
     confidence = int(round(min(score, 100)))

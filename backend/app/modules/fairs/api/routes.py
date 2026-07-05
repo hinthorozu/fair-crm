@@ -54,7 +54,9 @@ from app.modules.fairs.domain.exceptions import (
     FairAlreadyArchivedError,
     FairNotArchivedError,
     FairNotFoundError,
+    FairScraperAdapterNotConfiguredError,
     FairScraperNotConfiguredError,
+    FairScraperUrlNotConfiguredError,
     InvalidFairAdapterConfigError,
     InvalidFairDateRangeError,
     InvalidFairNameError,
@@ -328,6 +330,7 @@ def run_fair_scraper(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     auth: AuthContext = Depends(get_auth_context),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     use_case: RunFairScraperUseCase = Depends(get_run_fair_scraper_use_case),
     job_runner: FairScraperJobRunner = Depends(get_fair_scraper_job_runner),
 ) -> ScraperRunHistoryResponse:
@@ -345,9 +348,10 @@ def run_fair_scraper(
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     except FairNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except FairScraperNotConfiguredError as exc:
+    except (FairScraperAdapterNotConfiguredError, FairScraperUrlNotConfiguredError, FairScraperNotConfiguredError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     db.commit()
+    access_token = _access_token(credentials)
     background_tasks.add_task(
         run_blocking_background_task,
         job_runner.run_fair_scraper,
@@ -355,9 +359,43 @@ def run_fair_scraper(
             run_id=run.id,
             organization_id=auth.organization_id,
             fair_id=fair_id,
+            user_id=auth.user_id,
+            access_token=access_token,
         ),
     )
     return ScraperRunHistoryResponse.from_entity(run)
+
+
+@router.post(
+    "/{fair_id}/scraper-runs",
+    response_model=ScraperRunHistoryResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    responses={
+        400: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+    },
+    include_in_schema=True,
+)
+def run_fair_scraper_alias(
+    fair_id: UUID,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(get_auth_context),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case: RunFairScraperUseCase = Depends(get_run_fair_scraper_use_case),
+    job_runner: FairScraperJobRunner = Depends(get_fair_scraper_job_runner),
+) -> ScraperRunHistoryResponse:
+    """Alias for fair automation scraper run (same as POST /fairs/{id}/run)."""
+    return run_fair_scraper(
+        fair_id=fair_id,
+        background_tasks=background_tasks,
+        db=db,
+        auth=auth,
+        credentials=credentials,
+        use_case=use_case,
+        job_runner=job_runner,
+    )
 
 
 @router.delete(

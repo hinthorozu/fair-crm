@@ -133,6 +133,8 @@ class AdapterTestRunJobRunner:
                 output_excel_path = write_handoff_excel_file(
                     handoff,
                     command.run_id,
+                    adapter_key=command.adapter_key,
+                    source_url=command.input_url,
                     requested_fields=requested_fields,
                     run_logger=run_logger,
                 )

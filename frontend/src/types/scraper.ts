@@ -191,6 +191,18 @@ export interface ScraperRun {
   error_message: string | null;
   output_json_path: string | null;
   output_excel_path: string | null;
+  adapter_name?: string | null;
+  engine_key?: string | null;
+  engine_type?: AdapterEngineType | null;
+  output_json_available?: boolean;
+  output_excel_available?: boolean;
+  json_download_url?: string | null;
+  json_view_url?: string | null;
+  excel_download_url?: string | null;
+  excel_view_url?: string | null;
+  run_source?: "fair_automation" | "manual_test";
+  import_batch_id?: string | null;
+  import_batch_url?: string | null;
 }
 
 export interface ScraperRunListResponse {

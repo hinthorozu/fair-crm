@@ -30,5 +30,13 @@ class FairScraperNotConfiguredError(FairDomainError):
     pass
 
 
+class FairScraperAdapterNotConfiguredError(FairScraperNotConfiguredError):
+    pass
+
+
+class FairScraperUrlNotConfiguredError(FairScraperNotConfiguredError):
+    pass
+
+
 class InvalidFairSourceUrlError(FairDomainError):
     pass

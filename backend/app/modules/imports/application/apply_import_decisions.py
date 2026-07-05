@@ -11,7 +11,7 @@ from app.modules.imports.domain.exceptions import ImportBatchAlreadyAppliedError
 from app.modules.imports.domain.entities import ImportRow
 from app.modules.imports.domain.ports import ImportBatchRepository, ImportRowRepository
 from app.modules.imports.domain.batch_status import is_batch_terminal
-from app.modules.imports.domain.services.merge_preview import row_matches_filter
+from app.modules.imports.domain.services.merge_preview import default_decision_for_row, row_matches_filter
 from app.modules.imports.domain.value_objects import ImportDecision
 
 PERMISSION_APPLY = "fair_crm.imports.apply"
@@ -91,11 +91,12 @@ class ApplyImportDecisionsUseCase:
         now = datetime.now(tz=UTC)
 
         for row in target_rows:
-            if row.decision is None:
+            decision = row.decision or default_decision_for_row(row)
+            if decision is None:
                 result.not_processed_count += 1
                 continue
 
-            if row.decision == ImportDecision.MANUAL_REVIEW:
+            if decision == ImportDecision.MANUAL_REVIEW:
                 result.not_processed_count += 1
                 continue
 

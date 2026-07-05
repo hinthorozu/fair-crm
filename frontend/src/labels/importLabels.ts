@@ -127,6 +127,8 @@ export const importLabels = {
   previewSortConfidence: "Güven skoru",
   previewSortCompany: "Firma",
   previewSortStatus: "Durum",
+  expandAllOnPage: "Tümünü Aç",
+  collapseAllOnPage: "Tümünü Kapat",
   mergeDiffTitle: "Birleştirme Detayı",
   mappingCrmField: "CRM Alanı",
   mappingSourceColumn: "Kaynak Kolonu",
@@ -160,20 +162,9 @@ export const importBatchStatusLabels: Record<string, string> = {
   applied: "Tamamlandı",
 };
 
-export const GRID_MAPPING_FIELD_OPTIONS = [
-  { value: "", label: "Kullanma" },
-  { value: "company_name", label: "Firma Adı" },
-  { value: "phone", label: "Telefon" },
-  { value: "email", label: "E-posta" },
-  { value: "website", label: "Website" },
-  { value: "contact_first_name", label: "Yetkili Adı" },
-  { value: "country", label: "Ülke" },
-  { value: "city", label: "Şehir" },
-  { value: "address", label: "Adres" },
-  { value: "stand", label: "Stand No" },
-  { value: "hall", label: "Salon / Hall" },
-  { value: "notes", label: "Not" },
-] as const;
+import { GRID_MAPPING_FIELD_OPTIONS } from "../utils/outputFieldDefinitions";
+
+export { GRID_MAPPING_FIELD_OPTIONS };
 
 export const importRowStatusLabels: Record<string, string> = {
   pending: "Bekliyor",

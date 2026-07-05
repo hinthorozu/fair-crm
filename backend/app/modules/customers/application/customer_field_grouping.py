@@ -38,6 +38,8 @@ class FieldGroupMemberRow:
     group_key: str
     fair_count: int
     first_fair_name: str | None
+    match_score: int | None = None
+    duplicate_reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -195,17 +197,37 @@ def analyze_customer_groups_by_field(
         )
 
     buckets: dict[str, dict[UUID, CustomerModel]] = defaultdict(dict)
+    customer_bucket_keys: dict[UUID, str] = {}
     for model in models:
         comm = communications.get(model.id)
         for key in grouping_keys_for_customer(group_by, model, comm):
             buckets[key][model.id] = model
+            customer_bucket_keys[model.id] = key
 
+    merge_events = ()
     if group_by == "company_name" and company_name_fuzzy_matching:
         from app.modules.customers.application.duplicate_company_name_grouping import (
             merge_similar_company_name_buckets,
         )
 
-        buckets = merge_similar_company_name_buckets(buckets)
+        pre_merge_sizes = {key: len(members) for key, members in buckets.items()}
+        merge_result = merge_similar_company_name_buckets(buckets)
+        buckets = merge_result.buckets
+        merge_events = merge_result.merge_events
+
+        bucket_merge_info: dict[str, tuple[int, str, str]] = {}
+        for event in merge_events:
+            for bucket_key in (event.left_bucket_key, event.right_bucket_key):
+                existing = bucket_merge_info.get(bucket_key)
+                if existing is None or event.score > existing[0]:
+                    bucket_merge_info[bucket_key] = (
+                        event.score,
+                        event.rule,
+                        f"fuzzy:{event.left_bucket_key}<>{event.right_bucket_key}",
+                    )
+    else:
+        pre_merge_sizes = {key: len(members) for key, members in buckets.items()}
+        bucket_merge_info = {}
 
     member_rows: list[FieldGroupMemberRow] = []
     group_count = 0
@@ -218,12 +240,31 @@ def analyze_customer_groups_by_field(
             key=lambda model: (model.display_name.lower(), str(model.id)),
         )
         for model in members:
+            original_key = customer_bucket_keys.get(model.id, group_key)
+            match_score: int | None = None
+            duplicate_reason: str | None = None
+            if group_by == "company_name":
+                fuzzy_info = bucket_merge_info.get(original_key)
+                if fuzzy_info is not None:
+                    match_score, duplicate_reason, _ = fuzzy_info
+                elif pre_merge_sizes.get(original_key, 0) >= 2 and original_key == group_key:
+                    match_score = 100
+                    duplicate_reason = "exact_normalized"
+                elif original_key != group_key:
+                    match_score = 100
+                    duplicate_reason = f"exact_normalized:{original_key}"
+            elif pre_merge_sizes.get(original_key, 0) >= 2:
+                match_score = 100
+                duplicate_reason = f"exact_{group_by}"
+
             member_rows.append(
                 FieldGroupMemberRow(
                     customer_id=model.id,
                     group_key=group_key,
                     fair_count=fair_counts.get(model.id, 0),
                     first_fair_name=first_fair_names.get(model.id),
+                    match_score=match_score,
+                    duplicate_reason=duplicate_reason,
                 )
             )
 

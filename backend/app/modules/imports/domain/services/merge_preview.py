@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
@@ -169,16 +170,29 @@ def _participation_status_label(status: Any) -> str | None:
     return str(status.value if hasattr(status, "value") else status)
 
 
-def effective_decision_for_preview(row: ImportRow) -> ImportDecision | None:
-    if row.decision is not None:
-        return row.decision
+def default_decision_for_row(row: ImportRow) -> ImportDecision | None:
     if row.status == ImportRowStatus.INVALID:
         return ImportDecision.SKIP
+    if row.match_customer_id is not None:
+        return ImportDecision.UPDATE_EXISTING
     if row.status == ImportRowStatus.READY_TO_CREATE:
         return ImportDecision.CREATE_NEW
     if row.status in (ImportRowStatus.READY_TO_UPDATE, ImportRowStatus.POSSIBLE_DUPLICATE):
         return ImportDecision.UPDATE_EXISTING
     return None
+
+
+def assign_default_decision(row: ImportRow, *, now: datetime) -> None:
+    decision = default_decision_for_row(row)
+    if decision is not None:
+        row.decision = decision
+        row.updated_at = now
+
+
+def effective_decision_for_preview(row: ImportRow) -> ImportDecision | None:
+    if row.decision is not None:
+        return row.decision
+    return default_decision_for_row(row)
 
 
 def build_merge_preview(

@@ -30,6 +30,7 @@ from app.modules.imports.domain.exceptions import (
 from app.modules.imports.domain.import_limits import ImportLimits
 from app.modules.imports.domain.ports import ImportBatchRepository, ImportRowRepository
 from app.modules.imports.domain.services.duplicate_detector import CustomerMatchIndex
+from app.modules.imports.domain.services.merge_preview import assign_default_decision
 from app.modules.imports.domain.value_objects import ImportBatchStatus, ImportRowStatus
 from app.modules.participations.infrastructure.repositories.participation_repository import (
     SqlAlchemyParticipationRepository,
@@ -232,4 +233,5 @@ class AnalyzeImportUseCase:
                     now=now,
                 )
             )
+            assign_default_decision(rows[-1], now=now)
         return rows

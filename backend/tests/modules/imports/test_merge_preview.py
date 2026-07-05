@@ -143,6 +143,28 @@ def test_merge_preview_email_union():
     assert "b@co.com" in (email["result_value"] or "")
 
 
+def test_merge_preview_update_without_explicit_decision():
+    data = {"company_name": "ABC Makina", "email": "info@abc.com", "website": "www.abc.com"}
+    customer = _Customer(display_name="ABC Makina", email=None, website=None, address="İstanbul")
+    customer_id = uuid4()
+    preview = build_merge_preview(
+        _row(
+            data,
+            status=ImportRowStatus.READY_TO_UPDATE,
+            match_customer_id=customer_id,
+        ),
+        customer=customer,
+        participation=None,
+        contact=None,
+        fair_id=uuid4(),
+        **_customer_communication_kwargs(customer),
+    )
+    email = next(f for f in preview["groups"][0]["fields"] if f["field_key"] == "email")
+    assert email["crm_value"] is None
+    assert email["import_value"] == "info@abc.com"
+    assert email["outcome"] == "will_add"
+
+
 def test_merge_preview_entity_groups():
     data = {
         "company_name": "Co",

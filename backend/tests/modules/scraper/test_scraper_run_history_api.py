@@ -19,7 +19,7 @@ def _sample_handoff() -> ScraperImportHandoff:
     )
 
 
-def test_list_scraper_runs_returns_recorded_runs(client: TestClient, db_session):
+def test_list_scraper_runs_returns_recorded_runs(client: TestClient, db_session, auth_headers):
     service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
     run = service.record_completed_run(
         adapter_key=ScraperSiteKey.TUYAP_NEW,
@@ -32,7 +32,7 @@ def test_list_scraper_runs_returns_recorded_runs(client: TestClient, db_session)
     )
     db_session.flush()
 
-    response = client.get("/api/v1/scraper/runs")
+    response = client.get("/api/v1/scraper/runs", headers=auth_headers)
 
     assert response.status_code == 200
     payload = response.json()
@@ -47,7 +47,7 @@ def test_list_scraper_runs_returns_recorded_runs(client: TestClient, db_session)
     assert item["instagram_count"] == 1
 
 
-def test_get_scraper_run_by_id(client: TestClient, db_session):
+def test_get_scraper_run_by_id(client: TestClient, db_session, auth_headers):
     service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
     run = service.record_failed_run(
         adapter_key=ScraperSiteKey.TUYAP_NEW,
@@ -59,7 +59,7 @@ def test_get_scraper_run_by_id(client: TestClient, db_session):
     )
     db_session.flush()
 
-    response = client.get(f"/api/v1/scraper/runs/{run.id}")
+    response = client.get(f"/api/v1/scraper/runs/{run.id}", headers=auth_headers)
 
     assert response.status_code == 200
     payload = response.json()
@@ -68,8 +68,11 @@ def test_get_scraper_run_by_id(client: TestClient, db_session):
     assert payload["total_rows"] == 0
 
 
-def test_get_scraper_run_not_found(client: TestClient):
-    response = client.get("/api/v1/scraper/runs/00000000-0000-0000-0000-000000000001")
+def test_get_scraper_run_not_found(client: TestClient, auth_headers):
+    response = client.get(
+        "/api/v1/scraper/runs/00000000-0000-0000-0000-000000000001",
+        headers=auth_headers,
+    )
 
     assert response.status_code == 404
 
@@ -100,3 +103,67 @@ def test_dashboard_summary_uses_run_history(client: TestClient, db_session):
     summary = response.json()["summary"]
     assert summary["last_run_adapter"] == ScraperSiteKey.TUYAP_NEW
     assert summary["failed_scraper_count"] == 1
+
+
+def test_list_scraper_runs_filters_by_adapter_key(client: TestClient, db_session, auth_headers):
+    service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
+    service.record_completed_run(
+        adapter_key=ScraperSiteKey.TUYAP_NEW,
+        started_at=datetime.now(UTC),
+        input_url="https://new.test",
+        fair_name="Foodist",
+        fair_year=2026,
+        handoff=_sample_handoff(),
+    )
+    service.record_completed_run(
+        adapter_key=ScraperSiteKey.TUYAP_OLD,
+        started_at=datetime.now(UTC),
+        input_url="https://old.test",
+        fair_name="Old",
+        fair_year=2024,
+        handoff=_sample_handoff(),
+    )
+    db_session.flush()
+
+    response = client.get(
+        "/api/v1/scraper/runs",
+        params={"adapter_key": ScraperSiteKey.TUYAP_NEW},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 1
+    assert payload["items"][0]["adapter_key"] == ScraperSiteKey.TUYAP_NEW
+
+
+def test_list_scraper_runs_filters_by_status(client: TestClient, db_session, auth_headers):
+    service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
+    service.record_failed_run(
+        adapter_key=ScraperSiteKey.TUYAP_NEW,
+        started_at=datetime.now(UTC),
+        input_url="https://failed.test",
+        fair_name="Foodist",
+        fair_year=2026,
+        error_message="timeout",
+    )
+    service.record_completed_run(
+        adapter_key=ScraperSiteKey.TUYAP_NEW,
+        started_at=datetime.now(UTC),
+        input_url="https://ok.test",
+        fair_name="Foodist",
+        fair_year=2026,
+        handoff=_sample_handoff(),
+    )
+    db_session.flush()
+
+    response = client.get(
+        "/api/v1/scraper/runs",
+        params={"status": "failed"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 1
+    assert payload["items"][0]["status"] == "failed"

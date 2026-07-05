@@ -7,6 +7,8 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
+from app.modules.scraper.domain.scraper_run_source import ScraperRunSource
+
 
 class ScraperRunStatus(StrEnum):
     RUNNING = "running"
@@ -40,3 +42,5 @@ class ScraperRunHistory:
     error_message: str | None
     output_json_path: str | None
     output_excel_path: str | None
+    run_source: ScraperRunSource = ScraperRunSource.MANUAL_TEST
+    import_batch_id: UUID | None = None

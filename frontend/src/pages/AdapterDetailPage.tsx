@@ -31,14 +31,16 @@ interface AdapterDetailPageProps {
   onBack: () => void;
   onOpenFair?: (fairId: string) => void;
   onAdapterLoaded?: (displayName: string) => void;
+  onViewAllRuns?: (adapterKey: string) => void;
+  onOpenScraperTest?: (adapterKey: string, runId?: string) => void;
 }
 
-const VALID_TABS: AdapterDetailTab[] = ["manifest", "runs", "console", "fairs"];
+const VALID_TABS: AdapterDetailTab[] = ["manifest", "runs", "fairs"];
 const EDITABLE_TABS: AdapterDetailTab[] = ["manifest"];
 
 function tabFromUrl(): AdapterDetailTab {
   const tab = readSearchParams().get("tab");
-  if (tab === "general") return "manifest";
+  if (tab === "general" || tab === "console") return "manifest";
   if (tab && VALID_TABS.includes(tab as AdapterDetailTab)) return tab as AdapterDetailTab;
   return "manifest";
 }
@@ -77,6 +79,8 @@ export function AdapterDetailPage({
   onBack,
   onOpenFair,
   onAdapterLoaded,
+  onViewAllRuns,
+  onOpenScraperTest,
 }: AdapterDetailPageProps) {
   const detailPath = `/data-integration/adapters/${encodeURIComponent(adapterKey)}`;
   const [adapterItem, setAdapterItem] = React.useState<AdapterListItem | null>(null);
@@ -124,7 +128,7 @@ export function AdapterDetailPage({
     try {
       const [detail, runList, manifestData] = await Promise.all([
         getAdapter(adapterKey),
-        listScraperRuns({ limit: 200 }),
+        listScraperRuns({ adapter_key: adapterKey, limit: 5 }),
         getScraperManifest(adapterKey),
       ]);
       const item = adapterDetailToListItem(detail);
@@ -149,6 +153,13 @@ export function AdapterDetailPage({
     setDraft(null);
     void loadDetail({ showPageLoader: true });
   }, [adapterKey, loadDetail]);
+
+  React.useEffect(() => {
+    const params = readSearchParams();
+    if (params.get("tab") === "console" || params.get("run")) {
+      onOpenScraperTest?.(adapterKey, params.get("run") ?? undefined);
+    }
+  }, [adapterKey, onOpenScraperTest]);
 
   React.useEffect(() => {
     const onPopState = () => setActiveTabState(tabFromUrl());
@@ -284,6 +295,13 @@ export function AdapterDetailPage({
       ]
     : [
         {
+          id: "test",
+          label: scraperLabels.openInScraperTest,
+          variant: "secondary",
+          onClick: () => onOpenScraperTest?.(adapterKey),
+          disabled: !onOpenScraperTest || isEditing || deletePreviewLoading || deleting,
+        },
+        {
           id: "delete",
           label: scraperLabels.deleteAdapter,
           variant: "danger",
@@ -317,6 +335,8 @@ export function AdapterDetailPage({
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onOpenFair={onOpenFair}
+        onViewAllRuns={onViewAllRuns}
+        onOpenScraperTest={onOpenScraperTest}
         manifest={manifest}
         manifestLoading={manifestLoading}
         manifestError={manifestError}

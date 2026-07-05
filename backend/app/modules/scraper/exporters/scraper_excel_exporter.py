@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from uuid import UUID
 
 from openpyxl import Workbook
 
@@ -12,6 +13,8 @@ from app.modules.scraper.domain.requested_output_fields import (
     normalize_requested_fields,
 )
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
+from app.shared.canonical_import.schema import CanonicalImportRow
+from app.shared.canonical_import.scraper_mapper import scraper_handoff_to_canonical
 
 EXCEL_COLUMNS: tuple[str, ...] = (
     "company_name",
@@ -60,39 +63,63 @@ def excel_columns_for_requested_fields(requested_fields: list[str] | None) -> tu
     return tuple(columns)
 
 
+def _resolve_adapter_key(handoff: ScraperImportHandoff, adapter_key: str | None) -> str:
+    if adapter_key:
+        return adapter_key.strip()
+    metadata = handoff.metadata or {}
+    resolved = metadata.get("source_site") or metadata.get("adapter_key") or metadata.get("adapter_name")
+    if resolved:
+        return str(resolved).strip()
+    return "tuyap_new"
+
+
+def _canonical_import_row_to_excel_dict(row: CanonicalImportRow) -> dict[str, str]:
+    """Map canonical import row to Excel cells (same values as JSON export)."""
+    raw = row.raw or {}
+    return {
+        "company_name": row.company_name,
+        "normalized_company_name": row.normalized_company_name,
+        "country": row.country or "",
+        "city": row.city or "",
+        "hall": row.hall or "",
+        "stand": row.stand or "",
+        "website": row.website or "",
+        "email": row.emails[0] if row.emails else "",
+        "phone": row.phones[0] if row.phones else "",
+        "address": str(raw.get("address") or ""),
+        "category": str(raw.get("category") or ""),
+        "description": str(raw.get("description") or raw.get("notes") or ""),
+        "source_url": str(raw.get("source_url") or ""),
+        "detail_scraped": _format_bool(raw.get("detail_scraped")),
+        "website_valid": _format_bool(raw.get("website_valid")),
+        "instagram_url": row.instagram_url or "",
+        "facebook_url": row.facebook_url or "",
+        "linkedin_url": row.linkedin_url or "",
+        "youtube_url": row.youtube_url or "",
+        "x_url": str(raw.get("x_url") or ""),
+    }
+
+
 def build_excel_rows(
     handoff: ScraperImportHandoff,
     *,
     columns: tuple[str, ...] | None = None,
+    adapter_key: str | None = None,
+    run_id: UUID | None = None,
+    fair_id: UUID | None = None,
+    source_url: str | None = None,
 ) -> list[dict[str, str]]:
     selected_columns = columns or EXCEL_COLUMNS
+    document = scraper_handoff_to_canonical(
+        handoff,
+        adapter_key=_resolve_adapter_key(handoff, adapter_key),
+        run_id=run_id,
+        fair_id=fair_id,
+        source_url=source_url,
+    )
     rows: list[dict[str, str]] = []
-    row_metadata = handoff.row_metadata or []
-
-    for index, canonical in enumerate(handoff.canonical_rows):
-        meta = row_metadata[index] if index < len(row_metadata) else {}
-        full_row = {
-            "company_name": canonical.get("company_name", ""),
-            "normalized_company_name": canonical.get("company_name", ""),
-            "country": canonical.get("country", ""),
-            "city": canonical.get("city", ""),
-            "hall": canonical.get("hall", ""),
-            "stand": canonical.get("stand", ""),
-            "website": canonical.get("website", ""),
-            "email": canonical.get("email", ""),
-            "phone": canonical.get("phone", ""),
-            "address": canonical.get("address", ""),
-            "category": str(meta.get("category", "")),
-            "description": str(meta.get("description", "")),
-            "source_url": str(meta.get("source_url", "")),
-            "detail_scraped": _format_bool(meta.get("detail_scraped")),
-            "website_valid": _format_bool(meta.get("website_valid")),
-            "instagram_url": str(meta.get("instagram_url", "")),
-            "linkedin_url": str(meta.get("linkedin_url", "")),
-            "facebook_url": str(meta.get("facebook_url", "")),
-            "youtube_url": str(meta.get("youtube_url", "")),
-            "x_url": str(meta.get("x_url", "")),
-        }
+    for row in document.rows:
+        full_row = _canonical_import_row_to_excel_dict(row)
         rows.append({column: full_row.get(column, "") for column in selected_columns})
     return rows
 
@@ -110,6 +137,10 @@ def write_handoff_excel(
     output_path: str,
     *,
     requested_fields: list[str] | None = None,
+    adapter_key: str | None = None,
+    run_id: UUID | None = None,
+    fair_id: UUID | None = None,
+    source_url: str | None = None,
 ) -> Path:
     path = Path(output_path)
     if requested_fields is None:
@@ -123,7 +154,14 @@ def write_handoff_excel(
     sheet.title = "companies"
 
     sheet.append(list(columns))
-    for row in build_excel_rows(handoff, columns=columns):
+    for row in build_excel_rows(
+        handoff,
+        columns=columns,
+        adapter_key=adapter_key,
+        run_id=run_id,
+        fair_id=fair_id,
+        source_url=source_url,
+    ):
         sheet.append([row.get(column, "") for column in columns])
 
     workbook.save(path)

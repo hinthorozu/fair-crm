@@ -64,12 +64,15 @@ HEADER_ALIASES: dict[str, str] = {
     "yetkili telefon": "contact_phone",
     "yetkili cep telefonu": "contact_mobile_phone",
     "notlar": "notes",
+    "not": "notes",
     "salon": "hall",
+    "salon / hall": "hall",
     "stand": "stand",
-    "instagram": "instagram",
-    "facebook": "facebook",
-    "linkedin": "linkedin",
-    "youtube": "youtube",
+    "stand no": "stand",
+    "instagram": "instagram_url",
+    "facebook": "facebook_url",
+    "linkedin": "linkedin_url",
+    "youtube": "youtube_url",
     "instagram url": "instagram_url",
     "facebook url": "facebook_url",
     "linkedin url": "linkedin_url",
@@ -77,8 +80,8 @@ HEADER_ALIASES: dict[str, str] = {
 }
 
 for field in CANONICAL_FIELDS:
-    HEADER_ALIASES[field] = field
-    HEADER_ALIASES[field.replace("_", " ")] = field
+    HEADER_ALIASES.setdefault(field, field)
+    HEADER_ALIASES.setdefault(field.replace("_", " "), field)
 
 
 def normalize_header(value: str) -> str:

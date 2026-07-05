@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.modules.scraper.domain.adapter_engine import AdapterEngineType
 from app.modules.scraper.domain.scraper_run_history import ScraperRunHistory, ScraperRunStatus
+from app.modules.scraper.domain.scraper_run_source import ScraperRunSource
 from app.modules.scraper.domain.scraper_run_log import ScraperRunLog, ScraperRunLogLevel
 from app.modules.scraper.domain.adapter_linked_fair import AdapterLinkedFair
 from app.modules.scraper.manifests.scraper_manifest import ScraperManifest
@@ -197,9 +198,24 @@ class ScraperRunHistoryResponse(BaseModel):
     error_message: str | None = None
     output_json_path: str | None = None
     output_excel_path: str | None = None
+    adapter_name: str | None = None
+    engine_key: str | None = None
+    engine_type: AdapterEngineType | None = None
+    output_json_available: bool = False
+    output_excel_available: bool = False
+    json_download_url: str | None = None
+    json_view_url: str | None = None
+    excel_download_url: str | None = None
+    excel_view_url: str | None = None
+    run_source: ScraperRunSource = ScraperRunSource.MANUAL_TEST
+    import_batch_id: UUID | None = None
+    import_batch_url: str | None = None
 
     @classmethod
-    def from_entity(cls, run: ScraperRunHistory) -> ScraperRunHistoryResponse:
+    def from_entity(cls, run: ScraperRunHistory, **extra: Any) -> ScraperRunHistoryResponse:
+        import_batch_url = None
+        if run.import_batch_id is not None:
+            import_batch_url = f"/data-integration/imports/continue/{run.import_batch_id}"
         return cls(
             id=run.id,
             adapter_key=run.adapter_key,
@@ -224,6 +240,26 @@ class ScraperRunHistoryResponse(BaseModel):
             error_message=run.error_message,
             output_json_path=run.output_json_path,
             output_excel_path=run.output_excel_path,
+            run_source=run.run_source,
+            import_batch_id=run.import_batch_id,
+            import_batch_url=import_batch_url,
+            **extra,
+        )
+
+    @classmethod
+    def from_list_item(cls, item: dict[str, Any]) -> ScraperRunHistoryResponse:
+        run = item["run"]
+        return cls.from_entity(
+            run,
+            adapter_name=item.get("adapter_name"),
+            engine_key=item.get("engine_key"),
+            engine_type=item.get("engine_type"),
+            output_json_available=item.get("output_json_available", False),
+            output_excel_available=item.get("output_excel_available", False),
+            json_download_url=item.get("json_download_url"),
+            json_view_url=item.get("json_view_url"),
+            excel_download_url=item.get("excel_download_url"),
+            excel_view_url=item.get("excel_view_url"),
         )
 
 

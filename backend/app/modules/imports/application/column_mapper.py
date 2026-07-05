@@ -7,31 +7,10 @@ from openpyxl.utils import get_column_letter
 
 from app.modules.imports.domain.exceptions import InvalidColumnMappingError
 from app.modules.imports.domain.services.header_mapping import map_header_to_field, normalize_header
-from app.modules.imports.domain.batch_status import GRID_MAPPING_FIELDS
 from app.modules.imports.domain.value_objects import ExcelHeaderMode
-
-WIZARD_MAPPING_FIELDS = frozenset(
-    {
-        "company_name",
-        "email",
-        "phone",
-        "mobile_phone",
-        "website",
-        "country",
-        "city",
-        "address",
-        "tax_number",
-        "contact_first_name",
-        "contact_last_name",
-        "contact_title",
-        "contact_department",
-        "contact_email",
-        "contact_phone",
-        "contact_mobile_phone",
-        "notes",
-        "hall",
-        "stand",
-    }
+from app.shared.import_output_fields import (
+    GRID_MAPPING_FIELDS,
+    WIZARD_MAPPING_FIELDS,
 )
 
 REJECTED_MAPPING_FIELDS = frozenset({"fair_name"})
@@ -121,7 +100,7 @@ def suggest_column_mapping(
             if header is None:
                 continue
             field = map_header_to_field(str(header))
-            if field and field in WIZARD_MAPPING_FIELDS and field not in mappings:
+            if field and field in GRID_MAPPING_FIELDS and field not in mappings:
                 mappings[field] = {"type": "column_index", "value": index}
 
     return {

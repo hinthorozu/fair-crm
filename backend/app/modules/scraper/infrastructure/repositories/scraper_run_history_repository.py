@@ -2,13 +2,23 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import delete, desc, func, select
+from sqlalchemy import and_, delete, desc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.modules.scraper.domain.scraper_run_history import ScraperRunHistory, ScraperRunStatus
-from app.modules.scraper.infrastructure.persistence.models import ScraperRunHistoryModel
+from app.modules.scraper.domain.scraper_run_source import ScraperRunSource
+from app.modules.scraper.domain.scraper_run_history_filters import ScraperRunHistoryListFilters
+from app.modules.scraper.infrastructure.persistence.models import ScraperAdapterModel, ScraperRunHistoryModel
+
+
+@dataclass(frozen=True)
+class ScraperRunHistoryListRow:
+    run: ScraperRunHistory
+    adapter_name: str | None
+    adapter_engine_key: str | None
 
 
 def _to_entity(model: ScraperRunHistoryModel) -> ScraperRunHistory:
@@ -36,6 +46,8 @@ def _to_entity(model: ScraperRunHistoryModel) -> ScraperRunHistory:
         error_message=model.error_message,
         output_json_path=model.output_json_path,
         output_excel_path=model.output_excel_path,
+        run_source=ScraperRunSource(model.run_source),
+        import_batch_id=model.import_batch_id,
     )
 
 
@@ -68,6 +80,8 @@ class ScraperRunHistoryRepository:
             error_message=run.error_message,
             output_json_path=run.output_json_path,
             output_excel_path=run.output_excel_path,
+            run_source=run.run_source.value,
+            import_batch_id=run.import_batch_id,
         )
         self._session.add(model)
         self._session.flush()
@@ -99,14 +113,59 @@ class ScraperRunHistoryRepository:
         model.error_message = run.error_message
         model.output_json_path = run.output_json_path
         model.output_excel_path = run.output_excel_path
+        model.run_source = run.run_source.value
+        model.import_batch_id = run.import_batch_id
         self._session.flush()
         return _to_entity(model)
 
     def get_by_id(self, run_id: UUID) -> ScraperRunHistory | None:
-        model = self._session.get(ScraperRunHistoryModel, run_id)
-        if model is None:
+        row = self.get_run_row_by_id(run_id)
+        if row is None:
             return None
-        return _to_entity(model)
+        return row.run
+
+    def get_run_row_by_id(
+        self,
+        run_id: UUID,
+        *,
+        organization_id: UUID | None = None,
+    ) -> ScraperRunHistoryListRow | None:
+        stmt = (
+            select(
+                ScraperRunHistoryModel,
+                ScraperAdapterModel.name,
+                ScraperAdapterModel.engine_key,
+            )
+            .outerjoin(
+                ScraperAdapterModel,
+                and_(
+                    ScraperAdapterModel.adapter_key == ScraperRunHistoryModel.adapter_key,
+                    ScraperAdapterModel.deleted_at.is_(None),
+                    *(
+                        [ScraperAdapterModel.organization_id == organization_id]
+                        if organization_id is not None
+                        else []
+                    ),
+                ),
+            )
+            .where(ScraperRunHistoryModel.id == run_id)
+        )
+        if organization_id is not None:
+            stmt = stmt.where(
+                or_(
+                    ScraperRunHistoryModel.organization_id == organization_id,
+                    ScraperRunHistoryModel.organization_id.is_(None),
+                )
+            )
+        row = self._session.execute(stmt).first()
+        if row is None:
+            return None
+        model, adapter_name, adapter_engine_key = row
+        return ScraperRunHistoryListRow(
+            run=_to_entity(model),
+            adapter_name=adapter_name,
+            adapter_engine_key=adapter_engine_key,
+        )
 
     def list_runs(
         self,
@@ -114,18 +173,135 @@ class ScraperRunHistoryRepository:
         limit: int = 50,
         offset: int = 0,
         fair_id: UUID | None = None,
+        filters: ScraperRunHistoryListFilters | None = None,
     ) -> list[ScraperRunHistory]:
-        stmt = select(ScraperRunHistoryModel).order_by(desc(ScraperRunHistoryModel.started_at))
-        if fair_id is not None:
-            stmt = stmt.where(ScraperRunHistoryModel.fair_id == fair_id)
-        stmt = stmt.limit(limit).offset(offset)
-        return [_to_entity(model) for model in self._session.scalars(stmt).all()]
+        rows = self.list_run_rows(limit=limit, offset=offset, fair_id=fair_id, filters=filters)
+        return [row.run for row in rows]
 
-    def count_runs(self, *, fair_id: UUID | None = None) -> int:
-        stmt = select(func.count()).select_from(ScraperRunHistoryModel)
-        if fair_id is not None:
-            stmt = stmt.where(ScraperRunHistoryModel.fair_id == fair_id)
+    def list_run_rows(
+        self,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+        fair_id: UUID | None = None,
+        filters: ScraperRunHistoryListFilters | None = None,
+    ) -> list[ScraperRunHistoryListRow]:
+        resolved_filters = filters or ScraperRunHistoryListFilters()
+        if fair_id is not None and resolved_filters.fair_id is None:
+            resolved_filters = ScraperRunHistoryListFilters(
+                organization_id=resolved_filters.organization_id,
+                adapter_key=resolved_filters.adapter_key,
+                adapter_id=resolved_filters.adapter_id,
+                status=resolved_filters.status,
+                engine_keys=resolved_filters.engine_keys,
+                date_from=resolved_filters.date_from,
+                date_to=resolved_filters.date_to,
+                url_query=resolved_filters.url_query,
+                fair_id=fair_id,
+            )
+
+        stmt = (
+            select(
+                ScraperRunHistoryModel,
+                ScraperAdapterModel.name,
+                ScraperAdapterModel.engine_key,
+            )
+            .outerjoin(
+                ScraperAdapterModel,
+                and_(
+                    ScraperAdapterModel.adapter_key == ScraperRunHistoryModel.adapter_key,
+                    ScraperAdapterModel.deleted_at.is_(None),
+                    *(
+                        [ScraperAdapterModel.organization_id == resolved_filters.organization_id]
+                        if resolved_filters.organization_id is not None
+                        else []
+                    ),
+                ),
+            )
+            .order_by(desc(ScraperRunHistoryModel.started_at))
+        )
+        stmt = self._apply_run_filters(stmt, resolved_filters)
+        stmt = stmt.limit(limit).offset(offset)
+        return [
+            ScraperRunHistoryListRow(
+                run=_to_entity(model),
+                adapter_name=adapter_name,
+                adapter_engine_key=adapter_engine_key,
+            )
+            for model, adapter_name, adapter_engine_key in self._session.execute(stmt).all()
+        ]
+
+    def count_runs(
+        self,
+        *,
+        fair_id: UUID | None = None,
+        filters: ScraperRunHistoryListFilters | None = None,
+    ) -> int:
+        resolved_filters = filters or ScraperRunHistoryListFilters()
+        if fair_id is not None and resolved_filters.fair_id is None:
+            resolved_filters = ScraperRunHistoryListFilters(
+                organization_id=resolved_filters.organization_id,
+                adapter_key=resolved_filters.adapter_key,
+                adapter_id=resolved_filters.adapter_id,
+                status=resolved_filters.status,
+                engine_keys=resolved_filters.engine_keys,
+                date_from=resolved_filters.date_from,
+                date_to=resolved_filters.date_to,
+                url_query=resolved_filters.url_query,
+                fair_id=fair_id,
+            )
+
+        stmt = (
+            select(func.count())
+            .select_from(ScraperRunHistoryModel)
+            .outerjoin(
+                ScraperAdapterModel,
+                and_(
+                    ScraperAdapterModel.adapter_key == ScraperRunHistoryModel.adapter_key,
+                    ScraperAdapterModel.deleted_at.is_(None),
+                    *(
+                        [ScraperAdapterModel.organization_id == resolved_filters.organization_id]
+                        if resolved_filters.organization_id is not None
+                        else []
+                    ),
+                ),
+            )
+        )
+        stmt = self._apply_run_filters(stmt, resolved_filters)
         return int(self._session.scalar(stmt) or 0)
+
+    def _apply_run_filters(self, stmt, filters: ScraperRunHistoryListFilters):
+        if filters.organization_id is not None:
+            stmt = stmt.where(
+                or_(
+                    ScraperRunHistoryModel.organization_id == filters.organization_id,
+                    ScraperRunHistoryModel.organization_id.is_(None),
+                )
+            )
+        if filters.adapter_key:
+            normalized_key = filters.adapter_key.strip().lower()
+            stmt = stmt.where(ScraperRunHistoryModel.adapter_key == normalized_key)
+        if filters.adapter_id is not None:
+            stmt = stmt.where(ScraperAdapterModel.id == filters.adapter_id)
+        if filters.status is not None:
+            stmt = stmt.where(ScraperRunHistoryModel.status == filters.status.value)
+        if filters.engine_keys:
+            engine_keys = tuple(key.strip().lower() for key in filters.engine_keys if key.strip())
+            if engine_keys:
+                stmt = stmt.where(
+                    func.coalesce(ScraperAdapterModel.engine_key, ScraperRunHistoryModel.adapter_key).in_(
+                        engine_keys
+                    )
+                )
+        if filters.date_from is not None:
+            stmt = stmt.where(ScraperRunHistoryModel.started_at >= filters.date_from)
+        if filters.date_to is not None:
+            stmt = stmt.where(ScraperRunHistoryModel.started_at <= filters.date_to)
+        if filters.url_query:
+            stmt = stmt.where(ScraperRunHistoryModel.input_url.ilike(f"%{filters.url_query.strip()}%"))
+        if filters.fair_id is not None:
+            stmt = stmt.where(ScraperRunHistoryModel.fair_id == filters.fair_id)
+        return stmt
 
     def count_failed(self) -> int:
         stmt = (

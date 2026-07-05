@@ -47,6 +47,13 @@ class ScraperRunHistoryModel(Base):
     error_message: Mapped[str | None] = mapped_column(Text(), nullable=True)
     output_json_path: Mapped[str | None] = mapped_column(Text(), nullable=True)
     output_excel_path: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    run_source: Mapped[str] = mapped_column(String(32), nullable=False, default="manual_test", index=True)
+    import_batch_id: Mapped[UUID | None] = mapped_column(
+        Uuid(),
+        ForeignKey("crm_import_batches.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     logs: Mapped[list["ScraperRunLogModel"]] = relationship(
         "ScraperRunLogModel",

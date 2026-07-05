@@ -27,6 +27,10 @@ function canAnalyze(status: string): boolean {
   return status === "mapping_completed" || status === "mapped" || status === "analysis_failed";
 }
 
+function canReanalyze(status: string): boolean {
+  return status === "decision_required" || status === "analyzed" || status === "previewed";
+}
+
 function showContinue(status: string): boolean {
   return canResumeSetup(status) || canResumeDecisions(status);
 }
@@ -43,7 +47,7 @@ const IMPORT_COLUMNS = (
   handlers: {
     onOpenBatch?: (batchId: string) => void;
     onContinueBatch?: (batchId: string) => void;
-    onAnalyze?: (batch: ImportBatch) => void;
+    onAnalyze?: (batch: ImportBatch, options?: { reanalyze?: boolean }) => void;
     onDelete?: (batch: ImportBatch) => void;
     analyzingBatchId?: string | null;
     deletingBatchId?: string | null;
@@ -108,7 +112,21 @@ const IMPORT_COLUMNS = (
             disabled={handlers.analyzingBatchId === batch.id}
             onClick={() => handlers.onAnalyze?.(batch)}
           >
-            {handlers.analyzingBatchId === batch.id ? "Analiz ediliyor…" : "Analiz Yap"}
+            {handlers.analyzingBatchId === batch.id
+              ? dataIntegrationLabels.analyzeBatchRunning
+              : dataIntegrationLabels.analyzeBatch}
+          </button>
+        )}
+        {canReanalyze(batch.status) && (
+          <button
+            type="button"
+            className="btn btn-sm btn-secondary"
+            disabled={handlers.analyzingBatchId === batch.id}
+            onClick={() => handlers.onAnalyze?.(batch, { reanalyze: true })}
+          >
+            {handlers.analyzingBatchId === batch.id
+              ? dataIntegrationLabels.reanalyzeBatchRunning
+              : dataIntegrationLabels.reanalyzeBatch}
           </button>
         )}
         {isOperationInProgress(batch.status) && (
@@ -166,8 +184,9 @@ export function DataIntegrationImportsPage({
   }, [successMessage]);
 
   const handleAnalyze = React.useCallback(
-    async (batch: ImportBatch) => {
+    async (batch: ImportBatch, options?: { reanalyze?: boolean }) => {
       setActionError(null);
+      setSuccessMessage(null);
       setAnalyzingBatchId(batch.id);
       try {
         const job = await startImportAnalyzeJob(batch.id);
@@ -176,16 +195,21 @@ export function DataIntegrationImportsPage({
           const status = await getImportJob(job.job_id);
           if (status.status === "completed") {
             await table.refresh();
+            if (options?.reanalyze) {
+              setSuccessMessage(dataIntegrationLabels.reanalyzeBatchSuccess);
+            }
             return;
           }
           if (status.status === "failed") {
-            throw new ApiError(status.error_message ?? "Analiz başarısız", 500, status);
+            throw new ApiError(status.error_message ?? dataIntegrationLabels.analyzeBatchFailed, 500, status);
           }
           await new Promise((r) => window.setTimeout(r, 800));
         }
-        throw new ApiError("Analiz zaman aşımına uğradı", 504);
+        throw new ApiError(dataIntegrationLabels.analyzeBatchTimeout, 504);
       } catch (err) {
-        setActionError(err instanceof ApiError ? err.message : "Analiz başlatılamadı");
+        setActionError(
+          err instanceof ApiError ? err.message : dataIntegrationLabels.analyzeBatchFailed,
+        );
         await table.refresh();
       } finally {
         setAnalyzingBatchId(null);
@@ -217,7 +241,7 @@ export function DataIntegrationImportsPage({
       IMPORT_COLUMNS({
         onOpenBatch: handleOpen,
         onContinueBatch: handleOpen,
-        onAnalyze: (batch) => void handleAnalyze(batch),
+        onAnalyze: (batch, options) => void handleAnalyze(batch, options),
         onDelete: setBatchToDelete,
         analyzingBatchId,
         deletingBatchId,

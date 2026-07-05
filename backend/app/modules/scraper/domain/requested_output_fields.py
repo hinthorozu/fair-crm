@@ -38,20 +38,9 @@ OPTIONAL_DEFAULT_OFF_FIELDS: frozenset[str] = frozenset(
 )
 
 # Maps requested output key -> canonical handoff row key.
-FIELD_TO_CANONICAL: dict[str, str] = {
-    "customerName": "company_name",
-    "phone": "phone",
-    "email": "email",
-    "address": "address",
-    "website": "website",
-    "hall": "hall",
-    "stand": "stand",
-    "notes": "notes",
-    "instagram": "instagram_url",
-    "facebook": "facebook_url",
-    "linkedin": "linkedin_url",
-    "youtube": "youtube_url",
-}
+from app.shared.import_output_fields import OUTPUT_KEY_TO_CANONICAL
+
+FIELD_TO_CANONICAL: dict[str, str] = OUTPUT_KEY_TO_CANONICAL
 
 # Maps requested output key -> row_metadata key for social URLs.
 FIELD_TO_METADATA: dict[str, str] = {

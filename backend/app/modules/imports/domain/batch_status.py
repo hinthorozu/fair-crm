@@ -1,6 +1,7 @@
 """Import batch status helpers — lifecycle transitions and legacy aliases."""
 
 from app.modules.imports.domain.value_objects import ImportBatchStatus
+from app.shared.import_output_fields import GRID_MAPPING_FIELDS
 
 # Legacy DB values normalized on read/write paths
 _LEGACY_STATUS_ALIASES: dict[str, ImportBatchStatus] = {
@@ -9,21 +10,7 @@ _LEGACY_STATUS_ALIASES: dict[str, ImportBatchStatus] = {
 }
 
 # Sprint grid mapping dropdown fields (company_name only required for analyze)
-GRID_MAPPING_FIELDS: frozenset[str] = frozenset(
-    {
-        "company_name",
-        "phone",
-        "email",
-        "website",
-        "contact_first_name",
-        "country",
-        "city",
-        "address",
-        "stand",
-        "hall",
-        "notes",
-    }
-)
+# Re-exported from shared import_output_fields for backward compatibility.
 
 TERMINAL_BATCH_STATUSES: frozenset[ImportBatchStatus] = frozenset(
     {
@@ -56,9 +43,16 @@ def is_batch_terminal(status: ImportBatchStatus | str) -> bool:
 
 def can_start_analyze(status: ImportBatchStatus | str) -> bool:
     normalized = normalize_batch_status(status)
-    return normalized in (
+    if normalized in (
         ImportBatchStatus.MAPPING_COMPLETED,
         ImportBatchStatus.ANALYSIS_FAILED,
+        ImportBatchStatus.RECEIVED,
+    ):
+        return True
+    return normalized in (
+        ImportBatchStatus.ANALYZED,
+        ImportBatchStatus.DECISION_REQUIRED,
+        ImportBatchStatus.PREVIEWED,
     )
 
 

@@ -14,6 +14,7 @@ from uuid import UUID
 
 from app.modules.customers.domain.entities import Customer
 from app.modules.imports.domain.entities import ImportBatch, ImportRow
+from app.modules.imports.domain.services.company_name_normalizer import normalize_import_company_name
 from app.modules.imports.domain.services.duplicate_detector import (
     BATCH_DUPLICATE_REASON,
     MATCH_TYPE_EXACT,
@@ -105,6 +106,8 @@ def apply_participation_and_status(
 
         normalized_key = row.normalized.get("normalized_company_name") or ""
         raw_name = row.normalized.get("company_name") or ""
+        if not normalized_key and raw_name:
+            normalized_key = normalize_import_company_name(raw_name)
         match = find_customer_match(normalized_key, customer_index, raw_company_name=raw_name)
 
         if match is None:

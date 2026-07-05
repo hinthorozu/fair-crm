@@ -492,11 +492,15 @@ def test_analyze_customer_groups_by_company_name_fuzzy_flag_controls_similarity_
     )
     db_session.flush()
 
+    from app.modules.customers.application.duplicate_company_name_grouping import (
+        CompanyNameBucketMergeResult,
+    )
+
     merge_calls: list[bool] = []
 
     def spy_merge(buckets):
         merge_calls.append(True)
-        return buckets
+        return CompanyNameBucketMergeResult(buckets=buckets, merge_events=())
 
     monkeypatch.setattr(
         "app.modules.customers.application.duplicate_company_name_grouping.merge_similar_company_name_buckets",

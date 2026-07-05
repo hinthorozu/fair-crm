@@ -4,7 +4,6 @@ import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { DetailValue, formatDetailDate } from "../ui/DetailFields";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../ui/UniversalDataTable";
-import { AdapterRunLogConsole } from "./AdapterRunLogConsole";
 import { AdapterLinkedFairsTab } from "./AdapterLinkedFairsTab";
 import { scraperLabels } from "../../labels/scraperLabels";
 import {
@@ -22,7 +21,7 @@ import {
   toggleRequestedFieldSelection,
 } from "./OutputFieldsSection";
 
-export type AdapterDetailTab = "manifest" | "runs" | "console" | "fairs";
+export type AdapterDetailTab = "manifest" | "runs" | "fairs";
 
 export interface AdapterDetailContentProps {
   adapterKey: string;
@@ -30,6 +29,8 @@ export interface AdapterDetailContentProps {
   activeTab: AdapterDetailTab;
   onTabChange: (tab: AdapterDetailTab) => void;
   onOpenFair?: (fairId: string) => void;
+  onViewAllRuns?: (adapterKey: string) => void;
+  onOpenScraperTest?: (adapterKey: string, runId?: string) => void;
   manifest: ScraperManifest | null;
   manifestLoading: boolean;
   manifestError: string | null;
@@ -316,6 +317,8 @@ export function AdapterDetailContent({
   activeTab,
   onTabChange,
   onOpenFair,
+  onViewAllRuns,
+  onOpenScraperTest,
   manifest,
   manifestLoading,
   manifestError,
@@ -323,22 +326,19 @@ export function AdapterDetailContent({
   draft,
   onDraftChange,
 }: AdapterDetailContentProps) {
-  const [selectedRunId, setSelectedRunId] = React.useState<string | null>(null);
-
   const adapterRuns = React.useMemo(
-    () => runs.filter((run) => run.adapter_key === adapterKey),
+    () => runs.filter((run) => run.adapter_key === adapterKey).slice(0, 5),
     [runs, adapterKey],
   );
 
-  const openRunInConsole = React.useCallback(
+  const openRunInTest = React.useCallback(
     (runId: string) => {
-      setSelectedRunId(runId);
-      onTabChange("console");
+      onOpenScraperTest?.(adapterKey, runId);
     },
-    [onTabChange],
+    [adapterKey, onOpenScraperTest],
   );
 
-  const runColumns = React.useMemo(() => buildRunColumns(openRunInConsole), [openRunInConsole]);
+  const runColumns = React.useMemo(() => buildRunColumns(openRunInTest), [openRunInTest]);
 
   return (
     <>
@@ -346,7 +346,6 @@ export function AdapterDetailContent({
         items={[
           { id: "manifest", label: scraperLabels.drawerTabManifest },
           { id: "runs", label: scraperLabels.drawerTabRunHistory, badge: adapterRuns.length },
-          { id: "console", label: scraperLabels.drawerTabTestConsole },
           { id: "fairs", label: scraperLabels.drawerTabLinkedFairs },
         ]}
         active={activeTab}
@@ -370,23 +369,27 @@ export function AdapterDetailContent({
 
       <TabPanel id="panel-runs" labelledBy="tab-runs" active={activeTab === "runs"}>
         <Card>
+          <div className="adapter-runs-summary-header">
+            <p className="text-muted">{scraperLabels.runRecentSummary}</p>
+            <div className="adapter-runs-summary-actions">
+              {onOpenScraperTest ? (
+                <button type="button" className="btn link" onClick={() => onOpenScraperTest(adapterKey)}>
+                  {scraperLabels.openScraperTestForAdapter}
+                </button>
+              ) : null}
+              {onViewAllRuns ? (
+                <button type="button" className="btn link" onClick={() => onViewAllRuns(adapterKey)}>
+                  {scraperLabels.runViewAllHistory}
+                </button>
+              ) : null}
+            </div>
+          </div>
           <UniversalDataTable
             items={adapterRuns}
             columns={runColumns}
             rowKey={(run) => run.id}
             emptyState={<p className="text-muted">{scraperLabels.runsEmpty}</p>}
             className="adapter-runs-table"
-          />
-        </Card>
-      </TabPanel>
-
-      <TabPanel id="panel-console" labelledBy="tab-console" active={activeTab === "console"}>
-        <Card>
-          <AdapterRunLogConsole
-            adapterKey={adapterKey}
-            focusRunId={selectedRunId}
-            outputJson={manifest?.output.json_handoff ?? true}
-            outputExcel={manifest?.output.excel ?? false}
           />
         </Card>
       </TabPanel>
