@@ -5,8 +5,8 @@ from fastapi.testclient import TestClient
 from app.modules.scraper.types.scraper_site import ScraperSiteKey
 
 
-def test_list_scraper_manifests_endpoint_returns_adapter_list_format(client: TestClient):
-    response = client.get("/api/v1/scraper/manifests")
+def test_list_scraper_manifests_endpoint_returns_adapter_list_format(client: TestClient, auth_headers):
+    response = client.get("/api/v1/scraper/manifests", headers=auth_headers)
 
     assert response.status_code == 200
     payload = response.json()

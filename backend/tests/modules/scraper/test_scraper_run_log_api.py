@@ -2,6 +2,8 @@
 
 from datetime import UTC, datetime
 
+from uuid import UUID
+
 from fastapi.testclient import TestClient
 
 from app.modules.scraper.domain.scraper_run_log import ScraperRunLogLevel
@@ -15,7 +17,7 @@ from app.modules.scraper.services.scraper_run_log_service import ScraperRunLogSe
 from app.modules.scraper.types.scraper_site import ScraperSiteKey
 
 
-def _seed_run_with_logs(db_session):
+def _seed_run_with_logs(db_session, organization_id: UUID):
     history = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
     logs = ScraperRunLogService(ScraperRunLogRepository(db_session))
     run = history.start_run(
@@ -23,6 +25,7 @@ def _seed_run_with_logs(db_session):
         input_url="https://foodist.test/list",
         fair_name="Foodist Expo",
         fair_year=2026,
+        organization_id=organization_id,
         started_at=datetime.now(UTC),
     )
     first = logs.append_log(
@@ -48,10 +51,10 @@ def _seed_run_with_logs(db_session):
     return run, first, second
 
 
-def test_list_run_logs_returns_ordered_items(client: TestClient, db_session):
-    run, first, second = _seed_run_with_logs(db_session)
+def test_list_run_logs_returns_ordered_items(client: TestClient, db_session, organization_id, auth_headers):
+    run, first, second = _seed_run_with_logs(db_session, organization_id)
 
-    response = client.get(f"/api/v1/scraper/runs/{run.id}/logs")
+    response = client.get(f"/api/v1/scraper/runs/{run.id}/logs", headers=auth_headers)
 
     assert response.status_code == 200
     payload = response.json()
@@ -63,10 +66,14 @@ def test_list_run_logs_returns_ordered_items(client: TestClient, db_session):
     assert payload["items"][1]["level"] == "success"
 
 
-def test_list_run_logs_supports_after_id(client: TestClient, db_session):
-    run, first, _second = _seed_run_with_logs(db_session)
+def test_list_run_logs_supports_after_id(client: TestClient, db_session, organization_id, auth_headers):
+    run, first, _second = _seed_run_with_logs(db_session, organization_id)
 
-    response = client.get(f"/api/v1/scraper/runs/{run.id}/logs", params={"after_id": str(first.id)})
+    response = client.get(
+        f"/api/v1/scraper/runs/{run.id}/logs",
+        params={"after_id": str(first.id)},
+        headers=auth_headers,
+    )
 
     assert response.status_code == 200
     payload = response.json()
@@ -74,13 +81,16 @@ def test_list_run_logs_supports_after_id(client: TestClient, db_session):
     assert payload["items"][0]["step"] == "completed"
 
 
-def test_list_run_logs_not_found_for_unknown_run(client: TestClient):
-    response = client.get("/api/v1/scraper/runs/00000000-0000-0000-0000-000000000001/logs")
+def test_list_run_logs_not_found_for_unknown_run(client: TestClient, auth_headers):
+    response = client.get(
+        "/api/v1/scraper/runs/00000000-0000-0000-0000-000000000001/logs",
+        headers=auth_headers,
+    )
 
     assert response.status_code == 404
 
 
-def test_failed_run_logs_include_error_level(client: TestClient, db_session):
+def test_failed_run_logs_include_error_level(client: TestClient, db_session, organization_id, auth_headers):
     history = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
     logs = ScraperRunLogService(ScraperRunLogRepository(db_session))
     run = history.start_run(
@@ -88,6 +98,7 @@ def test_failed_run_logs_include_error_level(client: TestClient, db_session):
         input_url="https://foodist.test/list",
         fair_name="Foodist Expo",
         fair_year=2026,
+        organization_id=organization_id,
     )
     logs.append_log(
         run_id=run.id,
@@ -98,7 +109,7 @@ def test_failed_run_logs_include_error_level(client: TestClient, db_session):
     history.fail_run(run.id, error_message="Detail page okunamadı: https://foodist.test/brand/x")
     db_session.flush()
 
-    response = client.get(f"/api/v1/scraper/runs/{run.id}/logs")
+    response = client.get(f"/api/v1/scraper/runs/{run.id}/logs", headers=auth_headers)
 
     assert response.status_code == 200
     payload = response.json()

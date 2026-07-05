@@ -61,11 +61,11 @@ class ScraperDashboardService:
     def list_manifests(self) -> list[ScraperManifest]:
         return self._manager.list_manifests()
 
-    def build_summary(self) -> dict[str, int | str | None]:
+    def build_summary(self, organization_id: UUID) -> dict[str, int | str | None]:
         manifests = self.list_manifests()
         if self._run_history_service is None:
             return build_dashboard_summary(manifests)
-        run_stats = self._run_history_service.get_dashboard_run_stats()
+        run_stats = self._run_history_service.get_dashboard_run_stats(organization_id)
         return build_dashboard_summary(
             manifests,
             last_run_adapter=run_stats["last_run_adapter"],  # type: ignore[arg-type]

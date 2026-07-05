@@ -19,7 +19,7 @@ def _sample_handoff() -> ScraperImportHandoff:
     )
 
 
-def test_list_scraper_runs_returns_recorded_runs(client: TestClient, db_session, auth_headers):
+def test_list_scraper_runs_returns_recorded_runs(client: TestClient, db_session, auth_headers, organization_id):
     service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
     run = service.record_completed_run(
         adapter_key=ScraperSiteKey.TUYAP_NEW,
@@ -27,6 +27,7 @@ def test_list_scraper_runs_returns_recorded_runs(client: TestClient, db_session,
         input_url="https://foodist.test/list",
         fair_name="Foodist Expo",
         fair_year=2026,
+        organization_id=organization_id,
         handoff=_sample_handoff(),
         output_json_path="/tmp/handoff.json",
     )
@@ -47,7 +48,7 @@ def test_list_scraper_runs_returns_recorded_runs(client: TestClient, db_session,
     assert item["instagram_count"] == 1
 
 
-def test_get_scraper_run_by_id(client: TestClient, db_session, auth_headers):
+def test_get_scraper_run_by_id(client: TestClient, db_session, auth_headers, organization_id):
     service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
     run = service.record_failed_run(
         adapter_key=ScraperSiteKey.TUYAP_NEW,
@@ -55,6 +56,7 @@ def test_get_scraper_run_by_id(client: TestClient, db_session, auth_headers):
         input_url="https://foodist.test/list",
         fair_name="Foodist Expo",
         fair_year=2026,
+        organization_id=organization_id,
         error_message="timeout",
     )
     db_session.flush()
@@ -77,7 +79,7 @@ def test_get_scraper_run_not_found(client: TestClient, auth_headers):
     assert response.status_code == 404
 
 
-def test_dashboard_summary_uses_run_history(client: TestClient, db_session):
+def test_dashboard_summary_uses_run_history(client: TestClient, db_session, auth_headers, organization_id):
     service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
     service.record_failed_run(
         adapter_key=ScraperSiteKey.TUYAP_OLD,
@@ -85,6 +87,7 @@ def test_dashboard_summary_uses_run_history(client: TestClient, db_session):
         input_url="https://old.test",
         fair_name="Old",
         fair_year=2024,
+        organization_id=organization_id,
         error_message="old failure",
     )
     service.record_completed_run(
@@ -93,11 +96,12 @@ def test_dashboard_summary_uses_run_history(client: TestClient, db_session):
         input_url="https://new.test",
         fair_name="Foodist",
         fair_year=2026,
+        organization_id=organization_id,
         handoff=_sample_handoff(),
     )
     db_session.flush()
 
-    response = client.get("/api/v1/scraper/dashboard")
+    response = client.get("/api/v1/scraper/dashboard", headers=auth_headers)
 
     assert response.status_code == 200
     summary = response.json()["summary"]
@@ -105,7 +109,7 @@ def test_dashboard_summary_uses_run_history(client: TestClient, db_session):
     assert summary["failed_scraper_count"] == 1
 
 
-def test_list_scraper_runs_filters_by_adapter_key(client: TestClient, db_session, auth_headers):
+def test_list_scraper_runs_filters_by_adapter_key(client: TestClient, db_session, auth_headers, organization_id):
     service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
     service.record_completed_run(
         adapter_key=ScraperSiteKey.TUYAP_NEW,
@@ -113,6 +117,7 @@ def test_list_scraper_runs_filters_by_adapter_key(client: TestClient, db_session
         input_url="https://new.test",
         fair_name="Foodist",
         fair_year=2026,
+        organization_id=organization_id,
         handoff=_sample_handoff(),
     )
     service.record_completed_run(
@@ -121,6 +126,7 @@ def test_list_scraper_runs_filters_by_adapter_key(client: TestClient, db_session
         input_url="https://old.test",
         fair_name="Old",
         fair_year=2024,
+        organization_id=organization_id,
         handoff=_sample_handoff(),
     )
     db_session.flush()
@@ -137,7 +143,7 @@ def test_list_scraper_runs_filters_by_adapter_key(client: TestClient, db_session
     assert payload["items"][0]["adapter_key"] == ScraperSiteKey.TUYAP_NEW
 
 
-def test_list_scraper_runs_filters_by_status(client: TestClient, db_session, auth_headers):
+def test_list_scraper_runs_filters_by_status(client: TestClient, db_session, auth_headers, organization_id):
     service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
     service.record_failed_run(
         adapter_key=ScraperSiteKey.TUYAP_NEW,
@@ -145,6 +151,7 @@ def test_list_scraper_runs_filters_by_status(client: TestClient, db_session, aut
         input_url="https://failed.test",
         fair_name="Foodist",
         fair_year=2026,
+        organization_id=organization_id,
         error_message="timeout",
     )
     service.record_completed_run(
@@ -153,6 +160,7 @@ def test_list_scraper_runs_filters_by_status(client: TestClient, db_session, aut
         input_url="https://ok.test",
         fair_name="Foodist",
         fair_year=2026,
+        organization_id=organization_id,
         handoff=_sample_handoff(),
     )
     db_session.flush()

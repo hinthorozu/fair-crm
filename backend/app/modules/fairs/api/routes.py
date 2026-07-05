@@ -27,6 +27,7 @@ from app.modules.fairs.api.dependencies import (
     get_run_fair_scraper_use_case,
     get_update_fair_use_case,
     require_read_permission,
+    require_scraper_run_permission,
 )
 from app.modules.fairs.api.schemas import (
     CreateFairRequest,
@@ -329,7 +330,7 @@ def run_fair_scraper(
     fair_id: UUID,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    auth: AuthContext = Depends(get_auth_context),
+    auth: AuthContext = Depends(require_scraper_run_permission),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     use_case: RunFairScraperUseCase = Depends(get_run_fair_scraper_use_case),
     job_runner: FairScraperJobRunner = Depends(get_fair_scraper_job_runner),
@@ -381,7 +382,7 @@ def run_fair_scraper_alias(
     fair_id: UUID,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    auth: AuthContext = Depends(get_auth_context),
+    auth: AuthContext = Depends(require_scraper_run_permission),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     use_case: RunFairScraperUseCase = Depends(get_run_fair_scraper_use_case),
     job_runner: FairScraperJobRunner = Depends(get_fair_scraper_job_runner),

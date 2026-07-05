@@ -68,7 +68,7 @@ def test_run_adapter_test_starts_run_and_streams_logs(client, auth_headers, db_s
     assert completed.output_json_path is not None
     assert completed.output_excel_path is not None
 
-    logs_response = client.get(f"/api/v1/scraper/runs/{run_id}/logs")
+    logs_response = client.get(f"/api/v1/scraper/runs/{run_id}/logs", headers=auth_headers)
     assert logs_response.status_code == 200
     logs_payload = logs_response.json()
     assert len(logs_payload["items"]) >= 1
@@ -76,11 +76,11 @@ def test_run_adapter_test_starts_run_and_streams_logs(client, auth_headers, db_s
     assert logs_payload["output_json_available"] is True
     assert logs_payload["output_excel_available"] is True
 
-    json_response = client.get(f"/api/v1/scraper/runs/{run_id}/output/json")
+    json_response = client.get(f"/api/v1/scraper/runs/{run_id}/output/json", headers=auth_headers)
     assert json_response.status_code == 200
     assert json_response.headers["content-type"].startswith("application/json")
 
-    excel_response = client.get(f"/api/v1/scraper/runs/{run_id}/output/excel")
+    excel_response = client.get(f"/api/v1/scraper/runs/{run_id}/output/excel", headers=auth_headers)
     assert excel_response.status_code == 200
     assert "spreadsheetml" in excel_response.headers["content-type"]
 

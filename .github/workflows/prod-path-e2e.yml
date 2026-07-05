@@ -1,0 +1,100 @@
+name: Prod-Path E2E
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "backend/**"
+      - "scripts/**"
+      - "docs/CI_PROD_PATH_E2E.md"
+      - ".github/workflows/prod-path-e2e.yml"
+
+jobs:
+  prod-path-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      FAIR_CRM_DEV_BYPASS_CORE: "false"
+      KYROX_CORE_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kyrox_core
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/fair_crm
+      KYROX_CORE_BASE_URL: http://127.0.0.1:8000
+      FAIR_CRM_BASE_URL: http://127.0.0.1:8001
+      APP_ENV: test
+
+    steps:
+      - name: Checkout fair-crm
+        uses: actions/checkout@v4
+
+      - name: Checkout kyrox-core
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/kyrox-core
+          path: kyrox-core
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r backend/requirements.txt
+          pip install -r kyrox-core/backend/requirements.txt
+          pip install httpx psycopg2-binary argon2-cffi
+
+      - name: Prepare databases
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE kyrox_core;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE fair_crm;"
+          cd kyrox-core
+          PYTHONPATH=backend python -m alembic -c alembic.ini upgrade head
+          cd ..
+          PYTHONPATH=backend python -m alembic -c alembic.ini upgrade head
+
+      - name: Start KYROX Core
+        working-directory: kyrox-core/backend
+        run: |
+          nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 > /tmp/core.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8000/api/v1/health && break
+            sleep 2
+          done
+
+      - name: Start Fair CRM
+        working-directory: backend
+        env:
+          FAIR_CRM_DEV_BYPASS_CORE: "false"
+        run: |
+          nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 8001 > /tmp/fair.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8001/health && break
+            sleep 2
+          done
+
+      - name: Prod-path E2E gate
+        env:
+          KYROX_CORE_ROOT: ${{ github.workspace }}/kyrox-core
+        run: python scripts/e2e_validation.py --ci
+
+      - name: Upload E2E report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-validation-report
+          path: scripts/e2e_validation_report.json

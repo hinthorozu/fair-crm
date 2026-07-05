@@ -31,6 +31,7 @@ from app.modules.scraper.services.scraper_run_history_service import (
 bearer_scheme = HTTPBearer(auto_error=False)
 
 PERMISSION_READ = "fair_crm.fairs.read"
+PERMISSION_SCRAPER_RUN = "fair_crm.scraper.run"
 
 
 def get_fair_repository(db: Session = Depends(get_db)) -> SqlAlchemyFairRepository:
@@ -75,6 +76,25 @@ def require_read_permission(
         organization_id=auth.organization_id,
         user_id=auth.user_id,
         permission_code=PERMISSION_READ,
+        access_token=credentials.credentials,
+    ):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+    return auth
+
+
+def require_scraper_run_permission(
+    auth: AuthContext = Depends(get_auth_context),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> AuthContext:
+    if dev_bypass_enabled():
+        return auth
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    if not authorization.check_permission(
+        organization_id=auth.organization_id,
+        user_id=auth.user_id,
+        permission_code=PERMISSION_SCRAPER_RUN,
         access_token=credentials.credentials,
     ):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")

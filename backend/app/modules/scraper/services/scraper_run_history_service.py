@@ -274,7 +274,18 @@ class ScraperRunHistoryService:
     ) -> list[ScraperRunHistoryListRow]:
         return self._repository.list_run_rows(limit=limit, offset=offset, fair_id=fair_id, filters=filters)
 
+    def get_run_for_organization(
+        self,
+        run_id: UUID,
+        organization_id: UUID,
+    ) -> ScraperRunHistory | None:
+        row = self.get_run_row(run_id, organization_id=organization_id)
+        if row is None:
+            return None
+        return row.run
+
     def get_run(self, run_id: UUID) -> ScraperRunHistory | None:
+        """Internal/background use only — not for tenant-scoped API access."""
         return self._repository.get_by_id(run_id)
 
     def get_run_row(
@@ -364,11 +375,11 @@ class ScraperRunHistoryService:
             organization_id=organization_id,
         )
 
-    def get_dashboard_run_stats(self) -> dict[str, int | str | None]:
-        latest = self._repository.get_latest()
+    def get_dashboard_run_stats(self, organization_id: UUID) -> dict[str, int | str | None]:
+        latest = self._repository.get_latest_for_organization(organization_id)
         return {
             "last_run_adapter": latest.adapter_key if latest is not None else None,
-            "failed_scraper_count": self._repository.count_failed(),
+            "failed_scraper_count": self._repository.count_failed_for_organization(organization_id),
         }
 
 

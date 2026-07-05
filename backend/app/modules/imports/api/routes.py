@@ -424,6 +424,7 @@ def configure_import_header(
 )
 def analyze_import_batch(
     batch_id: UUID,
+    auth: AuthContext = Depends(get_auth_context),
 ) -> AnalyzeImportResponse:
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,

@@ -78,11 +78,33 @@ Kills listeners on backend `8001` and frontend `5173`–`5177`, then starts fres
 
 ## Validation
 
+Dev auto-start smoke:
+
 ```powershell
 .\scripts\dev\verify-dev-auto-start.ps1
 ```
 
-Runs health checks, 5× idempotency, port collision (healthy + unhealthy), and `docker compose restart postgres`. Windows reboot must be confirmed manually — see [DEV_AUTO_START_COMPLETION.md](DEV_AUTO_START_COMPLETION.md).
+Prod-path auth/RBAC gate (bypass kapalı, Core + Fair CRM ayakta olmalı):
+
+```powershell
+.\scripts\run-prod-path-e2e.ps1
+# veya
+python scripts/e2e_validation.py --prod-path
+```
+
+Detaylar: [CI_PROD_PATH_E2E.md](CI_PROD_PATH_E2E.md)
+
+## Handover / memory docs (2026-07-05)
+
+Uzun aradan sonra veya yeni geliştirici için:
+
+| Doc | Purpose |
+|-----|---------|
+| [PROJECT_SNAPSHOT_2026-07-05.md](PROJECT_SNAPSHOT_2026-07-05.md) | O günkü durum — ilk okuma |
+| [DEV_RESTART_GUIDE.md](DEV_RESTART_GUIDE.md) | Makineyi ayağa kaldır |
+| [AUTH_RBAC_HANDOVER.md](AUTH_RBAC_HANDOVER.md) | Auth/RBAC hattı |
+| [ARCHITECTURE_STATUS.md](ARCHITECTURE_STATUS.md) | Mimari özet |
+| [KNOWN_DECISIONS.md](KNOWN_DECISIONS.md) | Kritik kararlar, dokunma listesi |
 
 ## After Windows restart
 

@@ -44,6 +44,7 @@ from app.modules.data_integration.api.dependencies import (
 )
 from app.modules.data_integration.application.import_job_runner import ImportJobRunner
 from app.modules.system_admin.api.dependencies import get_authorization_adapter as get_system_admin_authorization_adapter
+from app.modules.scraper.api.dependencies import get_authorization_adapter as get_scraper_authorization_adapter
 from app.modules.smtp.api.dependencies import get_authorization_adapter as get_smtp_authorization_adapter
 from app.modules.smtp.api.dependencies import get_audit_adapter as get_smtp_audit_adapter
 from app.modules.system_admin.application.backup_job_runner import BackupJobRunner
@@ -195,6 +196,7 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     app.dependency_overrides[get_data_integration_authorization_adapter] = lambda: AllowAllAuthorization()
     app.dependency_overrides[get_data_integration_audit_adapter] = lambda: NoOpAudit()
     app.dependency_overrides[get_system_admin_authorization_adapter] = lambda: AllowAllAuthorization()
+    app.dependency_overrides[get_scraper_authorization_adapter] = lambda: AllowAllAuthorization()
     app.dependency_overrides[get_smtp_authorization_adapter] = lambda: AllowAllAuthorization()
     app.dependency_overrides[get_smtp_audit_adapter] = lambda: NoOpAudit()
 

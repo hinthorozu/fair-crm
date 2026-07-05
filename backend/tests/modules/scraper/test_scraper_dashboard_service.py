@@ -1,5 +1,7 @@
 """Tests for adapter management dashboard service."""
 
+from uuid import uuid4
+
 from app.modules.scraper.core.manifest_registry import get_manifest_registry
 from app.modules.scraper.core.scraper_manager import ScraperManager
 from app.modules.scraper.core.scraper_registry import get_scraper_adapter_registry
@@ -57,7 +59,7 @@ def test_dashboard_service_uses_manager_manifests():
     )
     service = ScraperDashboardService(manager)
 
-    summary = service.build_summary()
+    summary = service.build_summary(uuid4())
     manifests = service.list_manifests()
 
     assert summary["total_adapters"] == len(manifests)

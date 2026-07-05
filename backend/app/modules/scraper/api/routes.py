@@ -17,7 +17,6 @@ from app.modules.scraper.api.dependencies import (
     get_adapter_engine_service,
     get_adapter_linked_fair_service,
     get_adapter_test_run_job_runner,
-    get_auth_context,
     get_default_scraper_dashboard_service,
     get_default_scraper_manager,
     get_delete_adapter_use_case,
@@ -25,6 +24,12 @@ from app.modules.scraper.api.dependencies import (
     get_scraper_adapter_service,
     get_scraper_run_history_service,
     get_scraper_run_log_service,
+    require_create_permission,
+    require_delete_permission,
+    require_download_permission,
+    require_read_permission,
+    require_run_permission,
+    require_update_permission,
 )
 from app.modules.scraper.api.schemas import (
     AdapterDetailResponse,
@@ -78,7 +83,7 @@ from app.modules.scraper.domain.scraper_adapter_exceptions import (
     InvalidAdapterNameError,
 )
 from app.modules.scraper.domain.adapter_engine import AdapterEngineType
-from app.modules.scraper.domain.scraper_run_history import ScraperRunStatus
+from app.modules.scraper.domain.scraper_run_history import ScraperRunHistory, ScraperRunStatus
 from app.modules.scraper.domain.scraper_run_history_filters import ScraperRunHistoryListFilters
 from app.modules.scraper.infrastructure.handoff_storage import (
     resolve_handoff_excel_path,
@@ -150,14 +155,30 @@ def _adapter_http_errors(exc: Exception) -> HTTPException:
     raise exc
 
 
+def _get_org_scoped_run(
+    run_history_service: ScraperRunHistoryService,
+    run_id: UUID,
+    organization_id: UUID,
+) -> ScraperRunHistory:
+    run = run_history_service.get_run_for_organization(run_id, organization_id)
+    if run is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Scraper run not found: {run_id}",
+        )
+    return run
+
+
 @router.get(
     "/engines",
     response_model=AdapterEngineListResponse,
     summary="Adapter engine listesi",
 )
 def list_adapter_engines(
+    auth: Annotated[AuthContext, Depends(require_read_permission)],
     engine_service: Annotated[AdapterEngineService, Depends(get_adapter_engine_service)],
 ) -> AdapterEngineListResponse:
+    _ = auth
     items = [AdapterEngineResponse.from_view(view) for view in engine_service.list_engines()]
     return AdapterEngineListResponse(items=items, total=len(items))
 
@@ -168,7 +189,7 @@ def list_adapter_engines(
     summary="Adapter kayıt listesi",
 )
 def list_adapters(
-    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    auth: Annotated[AuthContext, Depends(require_read_permission)],
     adapter_service: Annotated[ScraperAdapterService, Depends(get_scraper_adapter_service)],
 ) -> AdapterListResponse:
     items = [
@@ -186,7 +207,7 @@ def list_adapters(
 )
 def create_adapter(
     body: CreateAdapterRequest,
-    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    auth: Annotated[AuthContext, Depends(require_create_permission)],
     adapter_service: Annotated[ScraperAdapterService, Depends(get_scraper_adapter_service)],
 ) -> AdapterDetailResponse:
     try:
@@ -211,7 +232,7 @@ def create_adapter(
 )
 def get_adapter(
     adapter: str,
-    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    auth: Annotated[AuthContext, Depends(require_read_permission)],
     adapter_service: Annotated[ScraperAdapterService, Depends(get_scraper_adapter_service)],
 ) -> AdapterDetailResponse:
     try:
@@ -229,7 +250,7 @@ def get_adapter(
 def update_adapter(
     adapter: str,
     body: UpdateAdapterRequest,
-    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    auth: Annotated[AuthContext, Depends(require_update_permission)],
     adapter_service: Annotated[ScraperAdapterService, Depends(get_scraper_adapter_service)],
 ) -> AdapterDetailResponse:
     try:
@@ -251,7 +272,7 @@ def update_adapter(
 def update_adapter_manifest(
     adapter: str,
     body: UpdateAdapterManifestRequest,
-    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    auth: Annotated[AuthContext, Depends(require_update_permission)],
     adapter_service: Annotated[ScraperAdapterService, Depends(get_scraper_adapter_service)],
 ) -> ScraperManifestResponse:
     payload = body.model_dump(exclude_unset=True)
@@ -282,7 +303,7 @@ def update_adapter_manifest(
 )
 def activate_adapter(
     adapter: str,
-    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    auth: Annotated[AuthContext, Depends(require_update_permission)],
     adapter_service: Annotated[ScraperAdapterService, Depends(get_scraper_adapter_service)],
 ) -> AdapterDetailResponse:
     try:
@@ -299,7 +320,7 @@ def activate_adapter(
 )
 def deactivate_adapter(
     adapter: str,
-    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    auth: Annotated[AuthContext, Depends(require_update_permission)],
     adapter_service: Annotated[ScraperAdapterService, Depends(get_scraper_adapter_service)],
 ) -> AdapterDetailResponse:
     try:
@@ -316,7 +337,7 @@ def deactivate_adapter(
 )
 def get_adapter_delete_preview(
     adapter: str,
-    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    auth: Annotated[AuthContext, Depends(require_read_permission)],
     use_case: Annotated[DeleteAdapterUseCase, Depends(get_delete_adapter_use_case)],
 ) -> AdapterDeletePreviewResponse:
     try:
@@ -348,7 +369,7 @@ def get_adapter_delete_preview(
 )
 def delete_adapter(
     adapter: str,
-    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    auth: Annotated[AuthContext, Depends(require_delete_permission)],
     db: Annotated[Session, Depends(get_db)],
     use_case: Annotated[DeleteAdapterUseCase, Depends(get_delete_adapter_use_case)],
 ) -> None:
@@ -365,11 +386,12 @@ def delete_adapter(
     summary="Adapter yönetimi dashboard",
 )
 def get_scraper_dashboard(
+    auth: Annotated[AuthContext, Depends(require_read_permission)],
     dashboard_service: Annotated[ScraperDashboardService, Depends(get_default_scraper_dashboard_service)],
 ) -> ScraperDashboardResponse:
     manifests = dashboard_service.list_manifests()
     adapters = [AdapterListItemResponse.from_manifest(manifest) for manifest in manifests]
-    summary = ScraperDashboardSummaryResponse(**dashboard_service.build_summary())
+    summary = ScraperDashboardSummaryResponse(**dashboard_service.build_summary(auth.organization_id))
     return ScraperDashboardResponse(summary=summary, adapters=adapters)
 
 
@@ -379,8 +401,10 @@ def get_scraper_dashboard(
     summary="Adapter listesi",
 )
 def list_scraper_manifests(
+    auth: Annotated[AuthContext, Depends(require_read_permission)],
     manager: Annotated[ScraperManager, Depends(get_default_scraper_manager)],
 ) -> ScraperManifestListResponse:
+    _ = auth
     manifests = manager.list_manifests()
     items = [AdapterListItemResponse.from_manifest(manifest) for manifest in manifests]
     return ScraperManifestListResponse(items=items, total=len(items))
@@ -393,7 +417,7 @@ def list_scraper_manifests(
 )
 def get_scraper_manifest(
     adapter: str,
-    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    auth: Annotated[AuthContext, Depends(require_read_permission)],
     adapter_service: Annotated[ScraperAdapterService, Depends(get_scraper_adapter_service)],
 ) -> ScraperManifestResponse:
     try:
@@ -416,7 +440,7 @@ def get_scraper_manifest(
 )
 def list_adapter_linked_fairs(
     adapter: str,
-    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    auth: Annotated[AuthContext, Depends(require_read_permission)],
     linked_fair_service: Annotated[AdapterLinkedFairService, Depends(get_adapter_linked_fair_service)],
 ) -> AdapterLinkedFairListResponse:
     try:
@@ -440,7 +464,7 @@ def run_adapter_test(
     adapter: str,
     body: AdapterTestRunRequest,
     background_tasks: BackgroundTasks,
-    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    auth: Annotated[AuthContext, Depends(require_run_permission)],
     db: Annotated[Session, Depends(get_db)],
     use_case: Annotated[RunAdapterTestUseCase, Depends(get_run_adapter_test_use_case)],
     job_runner: Annotated[AdapterTestRunJobRunner, Depends(get_adapter_test_run_job_runner)],
@@ -492,7 +516,7 @@ def run_adapter_test(
     summary="Adapter çalıştırma geçmişi",
 )
 def list_scraper_runs(
-    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    auth: Annotated[AuthContext, Depends(require_read_permission)],
     run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
     engine_service: Annotated[AdapterEngineService, Depends(get_adapter_engine_service)],
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
@@ -538,7 +562,7 @@ def list_scraper_runs(
 )
 def get_scraper_run(
     run_id: UUID,
-    auth: Annotated[AuthContext, Depends(get_auth_context)],
+    auth: Annotated[AuthContext, Depends(require_read_permission)],
     run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
     engine_service: Annotated[AdapterEngineService, Depends(get_adapter_engine_service)],
 ) -> ScraperRunHistoryResponse:
@@ -560,17 +584,13 @@ def get_scraper_run(
 )
 def list_scraper_run_logs(
     run_id: UUID,
+    auth: Annotated[AuthContext, Depends(require_read_permission)],
     run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
     run_log_service: Annotated[ScraperRunLogService, Depends(get_scraper_run_log_service)],
     after_id: UUID | None = None,
     limit: Annotated[int, Query(ge=1, le=2000)] = 500,
 ) -> ScraperRunLogListResponse:
-    run = run_history_service.get_run(run_id)
-    if run is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Scraper run not found: {run_id}",
-        )
+    run = _get_org_scoped_run(run_history_service, run_id, auth.organization_id)
     logs = run_log_service.list_logs(run_id, after_id=after_id, limit=limit)
     items = [ScraperRunLogResponse.from_entity(log) for log in logs]
     json_path = resolve_handoff_path(run_id)
@@ -600,14 +620,10 @@ def list_scraper_run_logs(
 )
 def download_scraper_run_json(
     run_id: UUID,
+    auth: Annotated[AuthContext, Depends(require_download_permission)],
     run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
 ) -> FileResponse:
-    run = run_history_service.get_run(run_id)
-    if run is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Scraper run not found: {run_id}",
-        )
+    run = _get_org_scoped_run(run_history_service, run_id, auth.organization_id)
     if run.status != ScraperRunStatus.COMPLETED:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -632,14 +648,10 @@ def download_scraper_run_json(
 )
 def download_scraper_run_excel(
     run_id: UUID,
+    auth: Annotated[AuthContext, Depends(require_download_permission)],
     run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
 ) -> FileResponse:
-    run = run_history_service.get_run(run_id)
-    if run is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Scraper run not found: {run_id}",
-        )
+    run = _get_org_scoped_run(run_history_service, run_id, auth.organization_id)
     if run.status != ScraperRunStatus.COMPLETED:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

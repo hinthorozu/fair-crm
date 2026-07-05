@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import and_, delete, desc, func, or_, select
+from sqlalchemy import and_, delete, desc, func, select
 from sqlalchemy.orm import Session
 
 from app.modules.scraper.domain.scraper_run_history import ScraperRunHistory, ScraperRunStatus
@@ -151,12 +151,7 @@ class ScraperRunHistoryRepository:
             .where(ScraperRunHistoryModel.id == run_id)
         )
         if organization_id is not None:
-            stmt = stmt.where(
-                or_(
-                    ScraperRunHistoryModel.organization_id == organization_id,
-                    ScraperRunHistoryModel.organization_id.is_(None),
-                )
-            )
+            stmt = stmt.where(ScraperRunHistoryModel.organization_id == organization_id)
         row = self._session.execute(stmt).first()
         if row is None:
             return None
@@ -272,12 +267,7 @@ class ScraperRunHistoryRepository:
 
     def _apply_run_filters(self, stmt, filters: ScraperRunHistoryListFilters):
         if filters.organization_id is not None:
-            stmt = stmt.where(
-                or_(
-                    ScraperRunHistoryModel.organization_id == filters.organization_id,
-                    ScraperRunHistoryModel.organization_id.is_(None),
-                )
-            )
+            stmt = stmt.where(ScraperRunHistoryModel.organization_id == filters.organization_id)
         if filters.adapter_key:
             normalized_key = filters.adapter_key.strip().lower()
             stmt = stmt.where(ScraperRunHistoryModel.adapter_key == normalized_key)
@@ -310,6 +300,29 @@ class ScraperRunHistoryRepository:
             .where(ScraperRunHistoryModel.status == ScraperRunStatus.FAILED.value)
         )
         return int(self._session.scalar(stmt) or 0)
+
+    def count_failed_for_organization(self, organization_id: UUID) -> int:
+        stmt = (
+            select(func.count())
+            .select_from(ScraperRunHistoryModel)
+            .where(
+                ScraperRunHistoryModel.organization_id == organization_id,
+                ScraperRunHistoryModel.status == ScraperRunStatus.FAILED.value,
+            )
+        )
+        return int(self._session.scalar(stmt) or 0)
+
+    def get_latest_for_organization(self, organization_id: UUID) -> ScraperRunHistory | None:
+        stmt = (
+            select(ScraperRunHistoryModel)
+            .where(ScraperRunHistoryModel.organization_id == organization_id)
+            .order_by(desc(ScraperRunHistoryModel.started_at))
+            .limit(1)
+        )
+        model = self._session.scalars(stmt).first()
+        if model is None:
+            return None
+        return _to_entity(model)
 
     def get_latest(self, *, fair_id: UUID | None = None) -> ScraperRunHistory | None:
         stmt = select(ScraperRunHistoryModel).order_by(desc(ScraperRunHistoryModel.started_at)).limit(1)

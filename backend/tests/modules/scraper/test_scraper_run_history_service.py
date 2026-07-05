@@ -1,6 +1,7 @@
 """Tests for scraper run history service."""
 
 from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
 from app.modules.scraper.domain.scraper_run_history import ScraperRunStatus
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
@@ -117,6 +118,7 @@ def test_record_failed_run_persists_error(db_session):
 
 
 def test_dashboard_run_stats_use_latest_and_failed_count(db_session):
+    org_id = uuid4()
     service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
     base = datetime.now(UTC)
 
@@ -126,6 +128,7 @@ def test_dashboard_run_stats_use_latest_and_failed_count(db_session):
         input_url="https://old.test",
         fair_name="Old Fair",
         fair_year=2024,
+        organization_id=org_id,
         handoff=_sample_handoff(),
     )
     service.record_failed_run(
@@ -134,6 +137,7 @@ def test_dashboard_run_stats_use_latest_and_failed_count(db_session):
         input_url="https://new.test",
         fair_name="Foodist",
         fair_year=2025,
+        organization_id=org_id,
         error_message="boom",
     )
     service.record_completed_run(
@@ -142,11 +146,55 @@ def test_dashboard_run_stats_use_latest_and_failed_count(db_session):
         input_url="https://new.test",
         fair_name="Foodist",
         fair_year=2026,
+        organization_id=org_id,
         handoff=_sample_handoff(),
     )
     db_session.flush()
 
-    stats = service.get_dashboard_run_stats()
+    stats = service.get_dashboard_run_stats(org_id)
 
     assert stats["last_run_adapter"] == ScraperSiteKey.TUYAP_NEW
     assert stats["failed_scraper_count"] == 1
+
+
+def test_dashboard_run_stats_are_organization_scoped(db_session):
+    org_a = uuid4()
+    org_b = uuid4()
+    service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
+    base = datetime.now(UTC)
+    service.record_failed_run(
+        adapter_key=ScraperSiteKey.TUYAP_NEW,
+        started_at=base - timedelta(minutes=5),
+        input_url="https://new.test",
+        fair_name="Foodist",
+        fair_year=2025,
+        organization_id=org_a,
+        error_message="boom",
+    )
+    service.record_completed_run(
+        adapter_key=ScraperSiteKey.TUYAP_NEW,
+        started_at=base,
+        input_url="https://new.test",
+        fair_name="Foodist",
+        fair_year=2026,
+        organization_id=org_a,
+        handoff=_sample_handoff(),
+    )
+    service.record_completed_run(
+        adapter_key=ScraperSiteKey.TUYAP_OLD,
+        started_at=base,
+        input_url="https://old.test",
+        fair_name="Old",
+        fair_year=2026,
+        organization_id=org_b,
+        handoff=_sample_handoff(),
+    )
+    db_session.flush()
+
+    stats_a = service.get_dashboard_run_stats(org_a)
+    stats_b = service.get_dashboard_run_stats(org_b)
+
+    assert stats_a["last_run_adapter"] == ScraperSiteKey.TUYAP_NEW
+    assert stats_a["failed_scraper_count"] == 1
+    assert stats_b["last_run_adapter"] == ScraperSiteKey.TUYAP_OLD
+    assert stats_b["failed_scraper_count"] == 0

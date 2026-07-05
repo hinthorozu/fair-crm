@@ -19,6 +19,8 @@ from app.modules.system_admin.api.dependencies import (
     get_get_backup_use_case,
     get_list_backups_use_case,
     get_restore_service,
+    require_admin_create_permission,
+    require_admin_download_permission,
     require_admin_read_permission,
 )
 from app.modules.system_admin.api.schemas import (
@@ -59,7 +61,7 @@ def create_system_backup(
     body: CreateSystemBackupRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    auth: AuthContext = Depends(require_admin_read_permission),
+    auth: AuthContext = Depends(require_admin_create_permission),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     use_case=Depends(get_create_backup_use_case),
     job_runner=Depends(get_backup_job_runner),
@@ -189,7 +191,7 @@ def get_system_backup(
 )
 def download_system_backup(
     backup_id: UUID,
-    auth: AuthContext = Depends(require_admin_read_permission),
+    auth: AuthContext = Depends(require_admin_download_permission),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     use_case=Depends(get_download_backup_use_case),
 ):

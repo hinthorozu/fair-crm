@@ -5,8 +5,8 @@ from fastapi.testclient import TestClient
 from app.modules.scraper.types.scraper_site import ScraperSiteKey
 
 
-def test_scraper_dashboard_summary_counts(client: TestClient):
-    response = client.get("/api/v1/scraper/dashboard")
+def test_scraper_dashboard_summary_counts(client: TestClient, auth_headers):
+    response = client.get("/api/v1/scraper/dashboard", headers=auth_headers)
 
     assert response.status_code == 200
     payload = response.json()
@@ -20,9 +20,9 @@ def test_scraper_dashboard_summary_counts(client: TestClient):
     assert summary["failed_scraper_count"] == 0
 
 
-def test_scraper_dashboard_adapters_match_manifest_list_format(client: TestClient):
-    dashboard = client.get("/api/v1/scraper/dashboard").json()
-    manifests = client.get("/api/v1/scraper/manifests").json()
+def test_scraper_dashboard_adapters_match_manifest_list_format(client: TestClient, auth_headers):
+    dashboard = client.get("/api/v1/scraper/dashboard", headers=auth_headers).json()
+    manifests = client.get("/api/v1/scraper/manifests", headers=auth_headers).json()
 
     assert dashboard["adapters"] == manifests["items"]
     assert len(dashboard["adapters"]) == 2
@@ -37,8 +37,8 @@ def test_scraper_dashboard_adapters_match_manifest_list_format(client: TestClien
     assert tuyap_old["actions_available"] == ["view", "run"]
 
 
-def test_scraper_dashboard_adapter_list_columns(client: TestClient):
-    response = client.get("/api/v1/scraper/dashboard")
+def test_scraper_dashboard_adapter_list_columns(client: TestClient, auth_headers):
+    response = client.get("/api/v1/scraper/dashboard", headers=auth_headers)
     adapter = response.json()["adapters"][0]
 
     expected_keys = {
@@ -73,8 +73,8 @@ def test_scraper_dashboard_adapter_list_columns(client: TestClient):
     assert all({"key", "label", "enabled"}.issubset(feature.keys()) for feature in adapter["features"])
 
 
-def test_adapter_list_features_reflect_manifest_supports(client: TestClient):
-    response = client.get("/api/v1/scraper/manifests")
+def test_adapter_list_features_reflect_manifest_supports(client: TestClient, auth_headers):
+    response = client.get("/api/v1/scraper/manifests", headers=auth_headers)
     old_item = next(
         item for item in response.json()["items"] if item["adapter_key"] == ScraperSiteKey.TUYAP_OLD
     )
