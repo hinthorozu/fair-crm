@@ -39,6 +39,7 @@ backups/
 
 # Backend diagnostic output (do not commit)
 backend/migration_verify_counts.txt
+backend/data/scraper-handoff/
 
 # Local verification artifacts (do not commit)
 scripts/.dev_state.json
