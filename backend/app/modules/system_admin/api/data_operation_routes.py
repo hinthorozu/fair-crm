@@ -137,6 +137,10 @@ def _duplicate_item_to_response(
         group_by=item.group_by,
         fair_count=item.fair_count,
         first_fair=item.first_fair_name,
+        match_score=item.match_score,
+        duplicate_reason=item.duplicate_reason,
+        match_explanation=item.match_explanation,
+        merge_classification=item.merge_classification,
     )
 
 
@@ -151,6 +155,12 @@ def _duplicate_group_to_response(summary: DatasetDuplicateGroupSummary) -> Dupli
         suggested_winner_company_name=summary.suggested_winner_company_name,
         created_at_min=summary.created_at_min,
         created_at_max=summary.created_at_max,
+        min_match_score=summary.min_match_score,
+        max_match_score=summary.max_match_score,
+        merge_classification=summary.merge_classification,
+        review_tier=summary.review_tier,
+        requires_manual_review=summary.requires_manual_review,
+        match_explanation_summary=summary.match_explanation_summary,
     )
 
 
@@ -183,6 +193,10 @@ def _duplicate_group_customer_to_response(
             )
             for participation in item.participations
         ],
+        match_score=item.match_score,
+        duplicate_reason=item.duplicate_reason,
+        match_explanation=item.match_explanation,
+        merge_classification=item.merge_classification,
     )
 
 
@@ -202,6 +216,12 @@ def _duplicate_group_detail_to_response(
             for item in detail.customers
         ],
         merge_policy=DUPLICATE_MERGE_POLICY,
+        min_match_score=detail.min_match_score,
+        max_match_score=detail.max_match_score,
+        merge_classification=detail.merge_classification,
+        review_tier=detail.review_tier,
+        requires_manual_review=detail.requires_manual_review,
+        match_explanation_summary=detail.match_explanation_summary,
     )
 
 
@@ -343,6 +363,8 @@ def _merge_statistics_to_response(statistics) -> DuplicateGroupMergePreviewStati
 def _merge_execute_to_response(
     result: DuplicateGroupMergeExecuteResult,
     db: Session,
+    *,
+    audit_log_id: UUID | None = None,
 ) -> DuplicateGroupMergeExecuteResponse:
     comm_repo = SqlAlchemyCustomerCommunicationRepository(db)
     communications = comm_repo.load_for_customer(result.surviving_customer.id)
@@ -353,6 +375,7 @@ def _merge_execute_to_response(
         surviving_customer=customer_to_response(surviving_result),
         customers_deleted=result.customers_deleted,
         statistics=_merge_statistics_to_response(result.statistics),
+        audit_log_id=audit_log_id,
     )
 
 
@@ -944,6 +967,7 @@ def execute_duplicate_group_merge(
 ) -> DuplicateGroupMergeExecuteResponse:
     savepoint = db.begin_nested()
     result: DuplicateGroupMergeExecuteResult | None = None
+    audit_log_id: UUID | None = None
     try:
         result = use_case.execute(
             organization_id=auth.organization_id,
@@ -957,7 +981,7 @@ def execute_duplicate_group_merge(
             selected_phone_ids=body.selected_phone_ids,
             selected_website_ids=body.selected_website_ids,
         )
-        audit_recorder.record(
+        audit_record = audit_recorder.record(
             organization_id=auth.organization_id,
             executed_by_user_id=auth.user_id,
             executed_by_user_email=auth.email,
@@ -968,6 +992,7 @@ def execute_duplicate_group_merge(
             selected_phone_ids=body.selected_phone_ids,
             selected_website_ids=body.selected_website_ids,
         )
+        audit_log_id = audit_record.id
         savepoint.commit()
     except ForbiddenError as exc:
         savepoint.rollback()
@@ -1007,7 +1032,7 @@ def execute_duplicate_group_merge(
 
     assert result is not None
     try:
-        return _merge_execute_to_response(result, db)
+        return _merge_execute_to_response(result, db, audit_log_id=audit_log_id)
     except Exception as exc:
         existing = _safe_idempotent_merge_execute_result(
             db,

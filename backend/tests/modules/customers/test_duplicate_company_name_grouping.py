@@ -113,3 +113,18 @@ def test_sdk_same_line_with_legal_suffix_merges():
 
     assert len(result.buckets) == 1
     assert len(result.merge_events) == 1
+
+
+def test_anadolu_distinct_sectors_stay_separate():
+    gida = _model("ANADOLU GIDA")
+    makina = _model("ANADOLU MAKINA")
+    buckets = {
+        "ANADOLU GIDA": {gida.id: gida},
+        "ANADOLU MAKINA": {makina.id: makina},
+    }
+
+    result = merge_similar_company_name_buckets(buckets)
+
+    assert len(result.buckets) == 2
+    assert len(result.merge_events) == 0
+    assert score_company_name_pair("ANADOLU GIDA", "ANADOLU MAKINA") is None

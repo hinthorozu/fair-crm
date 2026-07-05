@@ -111,6 +111,10 @@ class DuplicateDatasetCustomerResponse(BaseModel):
     group_by: str | None = None
     fair_count: int
     first_fair: str | None = None
+    match_score: int | None = None
+    duplicate_reason: str | None = None
+    match_explanation: str | None = None
+    merge_classification: str | None = None
 
 
 class DuplicateDatasetGroupResponse(BaseModel):
@@ -123,6 +127,12 @@ class DuplicateDatasetGroupResponse(BaseModel):
     suggested_winner_company_name: str
     created_at_min: datetime
     created_at_max: datetime
+    min_match_score: int | None = None
+    max_match_score: int | None = None
+    merge_classification: str | None = None
+    review_tier: str | None = None
+    requires_manual_review: bool = False
+    match_explanation_summary: str | None = None
 
 
 class DuplicateGroupParticipationResponse(BaseModel):
@@ -148,6 +158,10 @@ class DuplicateGroupCustomerDetailResponse(BaseModel):
     status: str
     created_at: datetime
     participations: list[DuplicateGroupParticipationResponse]
+    match_score: int | None = None
+    duplicate_reason: str | None = None
+    match_explanation: str | None = None
+    merge_classification: str | None = None
 
 
 class DuplicateDatasetGroupDetailResponse(BaseModel):
@@ -155,6 +169,12 @@ class DuplicateDatasetGroupDetailResponse(BaseModel):
     group_by: str
     customers: list[DuplicateGroupCustomerDetailResponse]
     merge_policy: str
+    min_match_score: int | None = None
+    max_match_score: int | None = None
+    merge_classification: str | None = None
+    review_tier: str | None = None
+    requires_manual_review: bool = False
+    match_explanation_summary: str | None = None
 
 
 class DuplicateGroupScalarSelectionsRequest(BaseModel):
@@ -245,3 +265,4 @@ class DuplicateGroupMergeExecuteResponse(BaseModel):
     surviving_customer: CustomerResponse
     customers_deleted: list[UUID]
     statistics: DuplicateGroupMergePreviewStatisticsResponse
+    audit_log_id: UUID | None = None

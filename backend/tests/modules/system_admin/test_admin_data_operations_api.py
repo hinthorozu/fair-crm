@@ -162,6 +162,11 @@ def test_run_and_poll_duplicate_customer_analysis_dataset(client, auth_headers, 
     groups = {item["group_key"] for item in data["items"]}
     assert len(groups) == 1
     assert all(item["group_by"] == "email" for item in data["items"])
+    for item in data["items"]:
+        assert item["merge_classification"] == "strong_duplicate"
+        assert item["duplicate_reason"] == "exact_email"
+        assert item["match_explanation"] == "Exact email address match"
+        assert item["match_score"] == 100
 
     group_listing = client.get(
         f"/api/v1/admin/data-operations/runs/{run_id}/dataset/duplicate-groups",
@@ -177,6 +182,11 @@ def test_run_and_poll_duplicate_customer_analysis_dataset(client, auth_headers, 
     assert group["group_key"] == "dup@example.com"
     assert group["created_at_min"]
     assert group["created_at_max"]
+    assert group["merge_classification"] == "strong_duplicate"
+    assert group["review_tier"] == "ready"
+    assert group["requires_manual_review"] is False
+    assert group["min_match_score"] == 100
+    assert group["max_match_score"] == 100
 
     group_key = group["group_key"]
     detail = client.get(
@@ -189,12 +199,78 @@ def test_run_and_poll_duplicate_customer_analysis_dataset(client, auth_headers, 
     assert detail_body["group_by"] == "email"
     assert len(detail_body["customers"]) == 2
     assert detail_body["merge_policy"]
+    assert detail_body["merge_classification"] == "strong_duplicate"
+    assert detail_body["requires_manual_review"] is False
     for customer in detail_body["customers"]:
         assert "phones" in customer
         assert "emails" in customer
         assert "websites" in customer
         assert len(customer["emails"]) == 1
         assert customer["emails"][0]["email"] == "dup@example.com"
+
+
+def test_duplicate_customer_analysis_company_name_exposes_match_metadata(
+    client, auth_headers, db_session, organization_id
+):
+    now = datetime.now(tz=UTC)
+    first_id = uuid4()
+    second_id = uuid4()
+    db_session.add_all(
+        [
+            CustomerModel(
+                id=first_id,
+                organization_id=organization_id,
+                display_name="A.R.T. YAYINCILIK LTD.",
+                normalized_name="a r t yayincilik ltd",
+                customer_type=CustomerType.LEAD.value,
+                status=CustomerStatus.ACTIVE.value,
+                source="manual",
+                created_at=now,
+                updated_at=now,
+            ),
+            CustomerModel(
+                id=second_id,
+                organization_id=organization_id,
+                display_name="A.R.T. YAYINCILIK LTD. ŞTİ.",
+                normalized_name="a r t yayincilik",
+                customer_type=CustomerType.LEAD.value,
+                status=CustomerStatus.ACTIVE.value,
+                source="manual",
+                created_at=now,
+                updated_at=now,
+            ),
+        ]
+    )
+    db_session.flush()
+
+    create = client.post(
+        "/api/v1/admin/data-operations/duplicate_customer_analysis/run",
+        headers=auth_headers,
+        json={"group_by": "company_name"},
+    )
+    assert create.status_code == 202
+    run_id = create.json()["id"]
+
+    groups = client.get(
+        f"/api/v1/admin/data-operations/runs/{run_id}/dataset/duplicate-groups",
+        headers=auth_headers,
+    )
+    assert groups.status_code == 200
+    group = groups.json()["items"][0]
+    assert group["group_by"] == "company_name"
+    assert group["customer_count"] == 2
+    assert group["merge_classification"] == "strong_duplicate"
+    assert group["requires_manual_review"] is False
+    assert group["min_match_score"] == 100
+
+    listing = client.get(
+        f"/api/v1/admin/data-operations/runs/{run_id}/dataset/duplicate-customers",
+        headers=auth_headers,
+    )
+    assert listing.status_code == 200
+    for item in listing.json()["items"]:
+        assert item["match_score"] == 100
+        assert item["merge_classification"] == "strong_duplicate"
 
 
 def test_duplicate_customer_analysis_email_customer_in_multiple_groups(
@@ -431,6 +507,113 @@ def test_duplicate_group_merge_preview_endpoint(client, auth_headers, db_session
     assert body["merged_customer"]["display_name"] == "Dup Co A"
     assert body["customers_to_archive"] == [str(second_id)]
     assert body["participation_summary"]["total_participation_rows"] == 0
+    assert not any(w["code"] == "manual_review_required" for w in body["warnings"])
+
+
+def test_duplicate_group_merge_preview_warns_when_manual_review_required(
+    client, auth_headers, db_session, organization_id
+):
+    from app.modules.customers.infrastructure.persistence.communication_models import CustomerEmailModel
+    from app.modules.system_admin.infrastructure.persistence.models import SystemDataOperationDatasetRowModel
+
+    now = datetime.now(tz=UTC)
+    first_id = uuid4()
+    second_id = uuid4()
+    email_one = uuid4()
+    email_two = uuid4()
+    db_session.add_all(
+        [
+            CustomerModel(
+                id=first_id,
+                organization_id=organization_id,
+                display_name="Dup Co A",
+                normalized_name="dup co a",
+                customer_type=CustomerType.LEAD.value,
+                status=CustomerStatus.ACTIVE.value,
+                source="manual",
+                created_at=now,
+                updated_at=now,
+            ),
+            CustomerModel(
+                id=second_id,
+                organization_id=organization_id,
+                display_name="Dup Co B",
+                normalized_name="dup co b",
+                customer_type=CustomerType.LEAD.value,
+                status=CustomerStatus.ACTIVE.value,
+                source="manual",
+                created_at=now,
+                updated_at=now,
+            ),
+        ]
+    )
+    db_session.flush()
+    db_session.add_all(
+        [
+            CustomerEmailModel(
+                id=email_one,
+                organization_id=organization_id,
+                customer_id=first_id,
+                email="dup@example.com",
+                is_primary=True,
+                created_at=now,
+            ),
+            CustomerEmailModel(
+                id=email_two,
+                organization_id=organization_id,
+                customer_id=second_id,
+                email="dup@example.com",
+                is_primary=True,
+                created_at=now,
+            ),
+        ]
+    )
+    db_session.flush()
+
+    create = client.post(
+        "/api/v1/admin/data-operations/duplicate_customer_analysis/run",
+        headers=auth_headers,
+        json={"group_by": "email"},
+    )
+    assert create.status_code == 202
+    run_id = create.json()["id"]
+    group_key = "dup@example.com"
+
+    dataset_rows = (
+        db_session.query(SystemDataOperationDatasetRowModel)
+        .filter(SystemDataOperationDatasetRowModel.run_id == UUID(run_id))
+        .all()
+    )
+    assert len(dataset_rows) == 2
+    for row in dataset_rows:
+        row.match_score = 75
+        row.duplicate_reason = "token_overlap_high"
+    db_session.flush()
+
+    preview = client.post(
+        f"/api/v1/admin/data-operations/duplicate-groups/{group_key}/merge-preview",
+        headers=auth_headers,
+        json={
+            "run_id": run_id,
+            "surviving_customer_id": str(first_id),
+            "scalar_selections": {
+                "company_name": str(first_id),
+                "legal_name": str(first_id),
+                "trade_name": str(first_id),
+                "city": str(first_id),
+                "country": str(first_id),
+            },
+            "selected_email_ids": [str(email_one), str(email_two)],
+            "selected_phone_ids": [],
+            "selected_website_ids": [],
+        },
+    )
+    assert preview.status_code == 200
+    warnings = preview.json()["warnings"]
+    manual_warnings = [item for item in warnings if item["code"] == "manual_review_required"]
+    assert len(manual_warnings) == 1
+    assert manual_warnings[0]["severity"] == "warning"
+    assert "manual review" in manual_warnings[0]["message"].lower()
 
 
 def test_duplicate_group_merge_preview_returns_400_for_foreign_communication_id(
@@ -656,6 +839,7 @@ def test_duplicate_group_merge_execute_endpoint(client, auth_headers, db_session
     assert audit_log.reconstruction_json["surviving_customer"]["display_name"] == "Dup Co A"
     assert len(audit_log.reconstruction_json["final_communications"]["emails"]) == 1
     assert audit_log.executed_at is not None
+    assert body["audit_log_id"] == str(audit_log.id)
     assert execute.headers.get("access-control-allow-origin") == "http://localhost:5173"
 
     groups_after = client.get(

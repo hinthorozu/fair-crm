@@ -108,6 +108,43 @@ def grouping_keys_for_customer(
     return []
 
 
+def _company_name_for_matching(model: CustomerModel) -> str:
+    if model.legal_name and model.legal_name.strip():
+        return model.legal_name.strip()
+    return model.display_name.strip()
+
+
+def _enrich_company_name_group_member_scores(
+    members: list[CustomerModel],
+) -> dict[UUID, tuple[int | None, str | None]]:
+    from app.modules.imports.domain.services.company_name_matcher import (
+        format_match_explanation,
+        score_company_name_pair,
+    )
+
+    if len(members) < 2:
+        return {}
+
+    anchor = max(members, key=lambda model: len(_company_name_for_matching(model)))
+    anchor_name = _company_name_for_matching(anchor)
+    enriched: dict[UUID, tuple[int | None, str | None]] = {}
+
+    for model in members:
+        if model.id == anchor.id:
+            enriched[model.id] = (100, "group_anchor")
+            continue
+        name = _company_name_for_matching(model)
+        match = score_company_name_pair(anchor_name, name)
+        if match is None:
+            enriched[model.id] = (None, "transitive_group_member")
+        else:
+            enriched[model.id] = (
+                match.confidence,
+                format_match_explanation(match.explanations),
+            )
+    return enriched
+
+
 def _load_fair_metadata(session: Session) -> tuple[dict[UUID, int], dict[UUID, str | None]]:
     fair_counts: dict[UUID, int] = {
         customer_id: count
@@ -239,6 +276,12 @@ def analyze_customer_groups_by_field(
             members_by_id.values(),
             key=lambda model: (model.display_name.lower(), str(model.id)),
         )
+        group_rows: list[FieldGroupMemberRow] = []
+        enriched_scores = (
+            _enrich_company_name_group_member_scores(members)
+            if group_by == "company_name" and company_name_fuzzy_matching
+            else {}
+        )
         for model in members:
             original_key = customer_bucket_keys.get(model.id, group_key)
             match_score: int | None = None
@@ -253,11 +296,19 @@ def analyze_customer_groups_by_field(
                 elif original_key != group_key:
                     match_score = 100
                     duplicate_reason = f"exact_normalized:{original_key}"
+                enriched = enriched_scores.get(model.id)
+                if enriched is not None:
+                    enriched_score, enriched_reason = enriched
+                    if match_score is None or (
+                        enriched_score is not None and enriched_score < (match_score or 101)
+                    ):
+                        match_score = enriched_score
+                        duplicate_reason = enriched_reason
             elif pre_merge_sizes.get(original_key, 0) >= 2:
                 match_score = 100
                 duplicate_reason = f"exact_{group_by}"
 
-            member_rows.append(
+            group_rows.append(
                 FieldGroupMemberRow(
                     customer_id=model.id,
                     group_key=group_key,
@@ -267,6 +318,7 @@ def analyze_customer_groups_by_field(
                     duplicate_reason=duplicate_reason,
                 )
             )
+        member_rows.extend(group_rows)
 
     summary = FieldGroupAnalysisSummary(
         dataset_kind="duplicate_customer_groups",

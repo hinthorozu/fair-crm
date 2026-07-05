@@ -565,20 +565,60 @@ def _build_duplicate_group_merge_preview(
         selected_website_ids=tuple(selected_website_ids),
     )
 
-    return build_duplicate_group_merge_preview(
+    preview = build_duplicate_group_merge_preview(
         group_key=detail.group_key,
         group_by=detail.group_by,
         members=members,
         communications_by_customer=communications_by_customer,
         selection=selection,
     )
+    return preview, detail
 
 
-def _finalize_duplicate_group_merge_preview(preview):
+def _append_duplicate_match_review_warnings(preview, detail):
+    from dataclasses import replace
+
+    from app.modules.customers.application.duplicate_group_merge import MergePreviewIssue
+    from app.modules.customers.application.duplicate_merge_classification import (
+        GroupMatchSummary,
+        manual_review_warning_message,
+    )
+
+    if not detail.requires_manual_review:
+        return preview
+    summary = GroupMatchSummary(
+        min_match_score=detail.min_match_score,
+        max_match_score=detail.max_match_score,
+        merge_classification=detail.merge_classification or "manual_review",
+        review_tier=detail.review_tier or "needs_review",
+        requires_manual_review=True,
+        match_explanation_summary=detail.match_explanation_summary or "",
+    )
+    message = manual_review_warning_message(summary)
+    if message is None:
+        return preview
+    if any(issue.code == "manual_review_required" for issue in preview.warnings):
+        return preview
+    return replace(
+        preview,
+        warnings=[
+            *preview.warnings,
+            MergePreviewIssue(
+                code="manual_review_required",
+                message=message,
+                severity="warning",
+            ),
+        ],
+    )
+
+
+def _finalize_duplicate_group_merge_preview(preview, *, detail=None):
     from app.modules.customers.application.duplicate_group_merge import (
         raise_for_invalid_merge_selection,
     )
 
+    if detail is not None:
+        preview = _append_duplicate_match_review_warnings(preview, detail)
     raise_for_invalid_merge_selection(preview.validation_errors)
     return preview
 
@@ -618,8 +658,7 @@ class PreviewDuplicateGroupMergeUseCase:
         ):
             raise ForbiddenError("Admin permission required")
 
-        return _finalize_duplicate_group_merge_preview(
-            _build_duplicate_group_merge_preview(
+        preview, detail = _build_duplicate_group_merge_preview(
                 run_repository=self._run_repository,
                 dataset_repository=self._dataset_repository,
                 communication_repository=self._communication_repository,
@@ -632,7 +671,7 @@ class PreviewDuplicateGroupMergeUseCase:
                 selected_phone_ids=selected_phone_ids,
                 selected_website_ids=selected_website_ids,
             )
-        )
+        return _finalize_duplicate_group_merge_preview(preview, detail=detail)
 
 
 class ExecuteDuplicateGroupMergeUseCase:
@@ -686,7 +725,7 @@ class ExecuteDuplicateGroupMergeUseCase:
         if existing is not None:
             return existing
 
-        preview = _build_duplicate_group_merge_preview(
+        preview, detail = _build_duplicate_group_merge_preview(
             run_repository=self._run_repository,
             dataset_repository=self._dataset_repository,
             communication_repository=self._communication_repository,
@@ -699,6 +738,7 @@ class ExecuteDuplicateGroupMergeUseCase:
             selected_phone_ids=selected_phone_ids,
             selected_website_ids=selected_website_ids,
         )
+        preview = _append_duplicate_match_review_warnings(preview, detail)
 
         from app.modules.customers.application.duplicate_group_merge import (
             raise_for_invalid_merge_selection,

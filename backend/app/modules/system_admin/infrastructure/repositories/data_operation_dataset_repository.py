@@ -26,6 +26,11 @@ from app.modules.customers.infrastructure.persistence.communication_query_helper
 from app.modules.customers.infrastructure.persistence.models import CustomerModel
 from app.modules.fairs.infrastructure.persistence.models import FairModel
 from app.modules.participations.infrastructure.persistence.models import CustomerFairParticipationModel
+from app.modules.customers.application.duplicate_merge_classification import (
+    classify_duplicate_match,
+    humanize_duplicate_reason,
+    summarize_group_match,
+)
 from app.modules.system_admin.application.duplicate_group_review import (
     GroupMemberSnapshot,
     pick_suggested_winner_customer,
@@ -103,6 +108,10 @@ class DatasetDuplicateCustomerItem:
     group_by: str | None
     fair_count: int
     first_fair_name: str | None
+    match_score: int | None = None
+    duplicate_reason: str | None = None
+    match_explanation: str | None = None
+    merge_classification: str | None = None
 
 
 @dataclass(frozen=True)
@@ -134,6 +143,12 @@ class DatasetDuplicateGroupSummary:
     created_at_min: datetime
     created_at_max: datetime
     customer_names: list[str]
+    min_match_score: int | None = None
+    max_match_score: int | None = None
+    merge_classification: str | None = None
+    review_tier: str | None = None
+    requires_manual_review: bool = False
+    match_explanation_summary: str | None = None
 
 
 @dataclass(frozen=True)
@@ -152,6 +167,10 @@ class DatasetDuplicateGroupListResult:
 class DuplicateGroupCustomerDetail:
     customer: Customer
     participations: list[DuplicateGroupParticipationDetail]
+    match_score: int | None = None
+    duplicate_reason: str | None = None
+    match_explanation: str | None = None
+    merge_classification: str | None = None
 
 
 @dataclass(frozen=True)
@@ -159,6 +178,12 @@ class DatasetDuplicateGroupDetail:
     group_key: str
     group_by: str
     customers: list[DuplicateGroupCustomerDetail]
+    min_match_score: int | None = None
+    max_match_score: int | None = None
+    merge_classification: str | None = None
+    review_tier: str | None = None
+    requires_manual_review: bool = False
+    match_explanation_summary: str | None = None
 
 
 DATASET_DUPLICATE_SORT_FIELDS = {
@@ -175,6 +200,29 @@ DATASET_DUPLICATE_SEARCH_FIELDS = DATASET_CUSTOMER_SEARCH_FIELDS + (
     SystemDataOperationDatasetRowModel.duplicate_group_key,
     SystemDataOperationDatasetRowModel.first_fair_name,
 )
+
+
+def _duplicate_customer_item_from_row(
+    dataset_row: SystemDataOperationDatasetRowModel,
+    customer_model: CustomerModel,
+) -> DatasetDuplicateCustomerItem:
+    match_score = dataset_row.match_score
+    duplicate_reason = dataset_row.duplicate_reason
+    merge_classification = classify_duplicate_match(
+        match_score=match_score,
+        duplicate_reason=duplicate_reason,
+    )
+    return DatasetDuplicateCustomerItem(
+        customer=model_to_entity(customer_model),
+        group_key=dataset_row.duplicate_group_key or "",
+        group_by=dataset_row.group_by,
+        fair_count=dataset_row.fair_count or 0,
+        first_fair_name=dataset_row.first_fair_name,
+        match_score=match_score,
+        duplicate_reason=duplicate_reason,
+        match_explanation=humanize_duplicate_reason(duplicate_reason),
+        merge_classification=merge_classification,
+    )
 
 
 class SqlAlchemyDataOperationDatasetRepository:
@@ -346,13 +394,7 @@ class SqlAlchemyDataOperationDatasetRepository:
         total_pages = (total + page_params.page_size - 1) // page_params.page_size if total else 0
         return DatasetDuplicateCustomerListResult(
             items=[
-                DatasetDuplicateCustomerItem(
-                    customer=model_to_entity(customer_model),
-                    group_key=dataset_row.duplicate_group_key or "",
-                    group_by=dataset_row.group_by,
-                    fair_count=dataset_row.fair_count or 0,
-                    first_fair_name=dataset_row.first_fair_name,
-                )
+                _duplicate_customer_item_from_row(dataset_row, customer_model)
                 for dataset_row, customer_model in rows
             ],
             page=page_params.page,
@@ -402,13 +444,7 @@ class SqlAlchemyDataOperationDatasetRepository:
         )
         rows = query.order_by(*order).all()
         return [
-            DatasetDuplicateCustomerItem(
-                customer=model_to_entity(customer_model),
-                group_key=dataset_row.duplicate_group_key or "",
-                group_by=dataset_row.group_by,
-                fair_count=dataset_row.fair_count or 0,
-                first_fair_name=dataset_row.first_fair_name,
-            )
+            _duplicate_customer_item_from_row(dataset_row, customer_model)
             for dataset_row, customer_model in rows
         ]
 
@@ -1051,6 +1087,15 @@ class SqlAlchemyDataOperationDatasetRepository:
                     fair_names_set[participation.fair_name] = None
             fair_names = sorted(fair_names_set.keys())
             customer_names = sorted({customer_model.display_name for customer_model in members})
+            group_dataset_rows = [
+                dataset_row
+                for dataset_row, customer_model in member_rows
+                if dataset_row.duplicate_group_key == group_key
+            ]
+            group_match = summarize_group_match(
+                match_scores=[row.match_score for row in group_dataset_rows],
+                duplicate_reasons=[row.duplicate_reason for row in group_dataset_rows],
+            )
             summaries.append(
                 DatasetDuplicateGroupSummary(
                     group_key=group_key,
@@ -1063,6 +1108,12 @@ class SqlAlchemyDataOperationDatasetRepository:
                     created_at_min=min(created_times),
                     created_at_max=max(created_times),
                     customer_names=customer_names,
+                    min_match_score=group_match.min_match_score,
+                    max_match_score=group_match.max_match_score,
+                    merge_classification=group_match.merge_classification,
+                    review_tier=group_match.review_tier,
+                    requires_manual_review=group_match.requires_manual_review,
+                    match_explanation_summary=group_match.match_explanation_summary,
                 )
             )
         return summaries
@@ -1183,18 +1234,38 @@ class SqlAlchemyDataOperationDatasetRepository:
         )
         seen_customer_ids: set[UUID] = set()
         customers: list[DuplicateGroupCustomerDetail] = []
-        for _, customer_model in member_rows:
+        group_dataset_rows: list[SystemDataOperationDatasetRowModel] = []
+        for dataset_row, customer_model in member_rows:
+            group_dataset_rows.append(dataset_row)
             if customer_model.id in seen_customer_ids:
                 continue
             seen_customer_ids.add(customer_model.id)
+            merge_classification = classify_duplicate_match(
+                match_score=dataset_row.match_score,
+                duplicate_reason=dataset_row.duplicate_reason,
+            )
             customers.append(
                 DuplicateGroupCustomerDetail(
                     customer=model_to_entity(customer_model),
                     participations=participations_by_customer.get(customer_model.id, []),
+                    match_score=dataset_row.match_score,
+                    duplicate_reason=dataset_row.duplicate_reason,
+                    match_explanation=humanize_duplicate_reason(dataset_row.duplicate_reason),
+                    merge_classification=merge_classification,
                 )
             )
+        group_match = summarize_group_match(
+            match_scores=[row.match_score for row in group_dataset_rows],
+            duplicate_reasons=[row.duplicate_reason for row in group_dataset_rows],
+        )
         return DatasetDuplicateGroupDetail(
             group_key=group_key,
             group_by=group_by,
             customers=customers,
+            min_match_score=group_match.min_match_score,
+            max_match_score=group_match.max_match_score,
+            merge_classification=group_match.merge_classification,
+            review_tier=group_match.review_tier,
+            requires_manual_review=group_match.requires_manual_review,
+            match_explanation_summary=group_match.match_explanation_summary,
         )
