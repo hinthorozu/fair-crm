@@ -89,23 +89,23 @@ Backend tamamlanmadan frontend'e geçilmemeli. API sözleşmesi (response alanla
 
 ## Backend İşleri
 
-- [ ] To-Do model / entity tasarla.
-- [ ] To-Do tablo migration dosyasını oluştur.
-- [ ] `organization_id` zorunlu olacak şekilde organizasyon izolasyonu kur.
-- [ ] `title`, `status`, `priority`, `category`, `created_by` alanlarını zorunlu yap.
-- [ ] `description`, `deadline`, `assignee_user_id`, `archived_at`, `completed_at` alanlarını opsiyonel yap.
-- [ ] Status enum değerlerini ekle:
+- [x] To-Do model / entity tasarla.
+- [x] To-Do tablo migration dosyasını oluştur.
+- [x] `organization_id` zorunlu olacak şekilde organizasyon izolasyonu kur.
+- [x] `title`, `status`, `priority`, `category`, `created_by` alanlarını zorunlu yap.
+- [x] `description`, `deadline`, `assignee_user_id`, `archived_at`, `completed_at` alanlarını opsiyonel yap.
+- [x] Status enum değerlerini ekle:
   - `todo`
   - `in_progress`
   - `done`
   - `cancelled`
   - `archived`
-- [ ] Priority enum değerlerini ekle:
+- [x] Priority enum değerlerini ekle:
   - `low`
   - `normal`
   - `high`
   - `urgent`
-- [ ] Category enum değerlerini ekle (DB/API ASCII slug; TR label frontend'de):
+- [x] Category enum değerlerini ekle (DB/API ASCII slug; TR label frontend'de):
   - `arama`
   - `toplu_mail`
   - `sms`
@@ -118,10 +118,10 @@ Backend tamamlanmadan frontend'e geçilmemeli. API sözleşmesi (response alanla
   - `genel_gorev`
   - `stand_tasarim`
   - `diger`
-- [ ] Varsayılan priority değerini `normal` yap.
-- [ ] Varsayılan category değerini `genel_gorev` yap.
-- [ ] CRUD servislerini yaz.
-- [ ] Listeleme endpoint'ine filtreleri ekle:
+- [x] Varsayılan priority değerini `normal` yap.
+- [x] Varsayılan category değerini `genel_gorev` yap.
+- [x] CRUD servislerini yaz.
+- [x] Listeleme endpoint'ine filtreleri ekle:
   - `status`
   - `priority`
   - `category`
@@ -130,12 +130,12 @@ Backend tamamlanmadan frontend'e geçilmemeli. API sözleşmesi (response alanla
   - `is_overdue`
   - `include_archived`
   - `search`
-- [ ] `complete` aksiyonunu ekle.
-- [ ] `archive` aksiyonunu ekle.
-- [ ] Admin / owner için gerçek delete davranışını ekle.
-- [ ] Normal silme davranışında archive mantığını koru.
-- [ ] Overdue / gecikmiş hesaplamasını backend response içinde veya frontend'in hesaplayabileceği şekilde destekle.
-- [ ] Permission kontrollerini ekle:
+- [x] `complete` aksiyonunu ekle.
+- [x] `archive` aksiyonunu ekle.
+- [x] Admin / owner için gerçek delete davranışını ekle.
+- [x] Normal silme davranışında archive mantığını koru.
+- [x] Overdue / gecikmiş hesaplamasını backend response içinde veya frontend'in hesaplayabileceği şekilde destekle.
+- [x] Permission kontrollerini ekle:
   - `fair_crm.todos.read`
   - `fair_crm.todos.create`
   - `fair_crm.todos.update`
@@ -146,20 +146,20 @@ Backend tamamlanmadan frontend'e geçilmemeli. API sözleşmesi (response alanla
 
 ## API İşleri
 
-- [ ] `GET /todos` endpoint'i.
-- [ ] `GET /todos/{id}` endpoint'i.
-- [ ] `POST /todos` endpoint'i.
-- [ ] `PATCH /todos/{id}` endpoint'i.
-- [ ] `POST /todos/{id}/complete` endpoint'i.
-- [ ] `POST /todos/{id}/archive` endpoint'i.
-- [ ] `DELETE /todos/{id}` endpoint'i.
+- [x] `GET /todos` endpoint'i.
+- [x] `GET /todos/{id}` endpoint'i.
+- [x] `POST /todos` endpoint'i.
+- [x] `PATCH /todos/{id}` endpoint'i.
+- [x] `POST /todos/{id}/complete` endpoint'i.
+- [x] `POST /todos/{id}/archive` endpoint'i.
+- [x] `DELETE /todos/{id}` endpoint'i.
 
 ---
 
 ## Frontend İşleri
 
-- [ ] To-Do ana liste ekranı oluştur.
-- [ ] Liste ekranında şu kolonları göster:
+- [x] To-Do ana liste ekranı oluştur.
+- [x] Liste ekranında şu kolonları göster:
   - Başlık
   - Durum
   - Öncelik
@@ -169,15 +169,15 @@ Backend tamamlanmadan frontend'e geçilmemeli. API sözleşmesi (response alanla
   - Oluşturan kişi
   - Sorumlu kişi
   - Güncelleme tarihi
-- [ ] To-Do oluşturma formu oluştur.
-- [ ] To-Do düzenleme formu oluştur.
-- [ ] To-Do detay ekranı oluştur.
-- [ ] Sorumlu kişi alanını opsiyonel yap.
-- [ ] Category dropdown değerlerini ekle.
-- [ ] Priority dropdown değerlerini ekle.
-- [ ] Status dropdown değerlerini ekle.
-- [ ] Deadline geçmiş ve tamamlanmamış işlerde `gecikmiş` etiketi göster.
-- [ ] Liste filtrelerini ekle:
+- [x] To-Do oluşturma formu oluştur.
+- [x] To-Do düzenleme formu oluştur.
+- [x] To-Do detay ekranı oluştur.
+- [x] Sorumlu kişi alanını opsiyonel yap.
+- [x] Category dropdown değerlerini ekle.
+- [x] Priority dropdown değerlerini ekle.
+- [x] Status dropdown değerlerini ekle.
+- [x] Deadline geçmiş ve tamamlanmamış işlerde `gecikmiş` etiketi göster.
+- [x] Liste filtrelerini ekle:
   - Durum
   - Öncelik
   - Kategori
@@ -186,32 +186,32 @@ Backend tamamlanmadan frontend'e geçilmemeli. API sözleşmesi (response alanla
   - Gecikmiş mi?
   - Arşivlenenler dahil mi?
   - Arama
-- [ ] Tamamlandı yap aksiyonu ekle.
-- [ ] Arşivle aksiyonu ekle.
-- [ ] Admin / owner kullanıcılar için gerçek delete aksiyonunu göster.
-- [ ] Yetkisi olmayan kullanıcıya delete aksiyonunu gösterme.
+- [x] Tamamlandı yap aksiyonu ekle.
+- [x] Arşivle aksiyonu ekle.
+- [x] Admin / owner kullanıcılar için gerçek delete aksiyonunu göster.
+- [x] Yetkisi olmayan kullanıcıya delete aksiyonunu gösterme.
 
 ---
 
 ## Test İşleri
 
-- [ ] Organizasyon izolasyonu testi.
-- [ ] To-Do oluşturma testi.
-- [ ] To-Do listeleme testi.
-- [ ] To-Do detay testi.
-- [ ] To-Do güncelleme testi.
-- [ ] To-Do tamamlandı yapma testi.
-- [ ] To-Do arşivleme testi.
-- [ ] Admin / owner gerçek delete testi.
-- [ ] Yetkisiz delete engelleme testi.
-- [ ] Sorumlu kişi boş bırakılabiliyor testi.
-- [ ] Deadline geçmiş ve tamamlanmamış kayıt için gecikmiş etiketi testi.
-- [ ] `done` durumundaki kayıt için gecikmiş etiketi gösterilmemesi testi.
-- [ ] Category enum doğrulama testi.
-- [ ] Priority enum doğrulama testi.
-- [ ] Status enum doğrulama testi.
-- [ ] Liste filtreleri testi.
-- [ ] Search testi.
+- [x] Organizasyon izolasyonu testi.
+- [x] To-Do oluşturma testi.
+- [x] To-Do listeleme testi.
+- [x] To-Do detay testi.
+- [x] To-Do güncelleme testi.
+- [x] To-Do tamamlandı yapma testi.
+- [x] To-Do arşivleme testi.
+- [x] Admin / owner gerçek delete testi.
+- [x] Yetkisiz delete engelleme testi.
+- [x] Sorumlu kişi boş bırakılabiliyor testi.
+- [x] Deadline geçmiş ve tamamlanmamış kayıt için gecikmiş etiketi testi.
+- [x] `done` durumundaki kayıt için gecikmiş etiketi gösterilmemesi testi.
+- [x] Category enum doğrulama testi.
+- [x] Priority enum doğrulama testi.
+- [x] Status enum doğrulama testi.
+- [x] Liste filtreleri testi.
+- [x] Search testi.
 
 ---
 
@@ -226,3 +226,27 @@ Backend tamamlanmadan frontend'e geçilmemeli. API sözleşmesi (response alanla
 - [ ] Müşteri detayından To-Do güncelleme.
 - [ ] Job / action engine.
 - [ ] To-Do'dan otomatik aksiyon üretme.
+
+---
+
+## Faz 1 Completion Note
+
+**Tamamlanma tarihi:** 2026-07-06
+
+**Kapanış commit'leri:**
+
+- `41f5154` — docs: add organization-based todo module scope
+- `752126b` — docs: add todo implementation plan and decisions
+- `9a375bc` — feat: add todo backend crud foundation
+- `484c479` — feat: add todo actions filters and role matrix
+- `e389458` — feat: add todo frontend page and navigation
+
+**Özet:**
+
+- Görevler menüsü ana sidebar'a eklendi.
+- Route: `/todos`
+- Backend CRUD + complete/archive/delete çalışıyor.
+- Role matrix eklendi.
+- Frontend build başarılı.
+- Kullanıcı smoke test yaptı: görev ekleme ve silme çalıştı.
+- Faz 1 tamamlandı.
