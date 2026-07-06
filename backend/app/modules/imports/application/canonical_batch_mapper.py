@@ -106,7 +106,7 @@ def build_import_batch_from_canonical(
     document: CanonicalImportDocument,
     *,
     organization_id: UUID,
-    fair_id: UUID,
+    fair_id: UUID | None,
     now: datetime,
 ) -> ImportBatch:
     row_count = len(document.rows)

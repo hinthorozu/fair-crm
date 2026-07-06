@@ -10,6 +10,10 @@ from app.integrations.kyrox_core.dev_bypass import NoOpAuditAdapter, dev_bypass_
 from app.integrations.kyrox_core.ports import AuthorizationPort
 from app.modules.customers.domain.ports import CustomerRepository
 from app.modules.imports.application.commands import AnalyzeImportResult
+from app.modules.imports.application.enrichment_import_matching import (
+    apply_enrichment_customer_id_matches,
+    resolve_adapter_key_from_batch_preview,
+)
 from app.modules.imports.application.import_row_builder import ValidatedRow, apply_participation_and_status
 from app.modules.imports.application.mappers import batch_to_result
 from app.modules.imports.domain.entities import ImportRow
@@ -31,6 +35,7 @@ from app.modules.imports.domain.value_objects import ImportBatchStatus, ImportRo
 from app.modules.participations.infrastructure.repositories.participation_repository import (
     SqlAlchemyParticipationRepository,
 )
+from app.modules.scraper.domain.enrichment_adapter import is_customer_contact_enrichment_adapter
 
 
 class AnalyzeCanonicalImportUseCase:
@@ -100,6 +105,7 @@ class AnalyzeCanonicalImportUseCase:
         customers = self._customer_repository.list_all_active(organization_id)
         customer_index = CustomerMatchIndex.build(customers)
         fair_id = batch.fair_id
+        adapter_key = resolve_adapter_key_from_batch_preview(batch.raw_preview_json)
         participation_by_customer: dict[UUID, UUID] = {}
         if fair_id is not None:
             participation_by_customer = self._participation_repository.map_active_customer_ids_for_fair(
@@ -123,12 +129,19 @@ class AnalyzeCanonicalImportUseCase:
                     status=ImportRowStatus.INVALID if row.status == ImportRowStatus.INVALID else ImportRowStatus.VALID,
                 )
             )
-        matched = apply_participation_and_status(
-            validated_rows=validated_rows,
-            customer_index=customer_index,
-            fair_id=fair_id,
-            participation_by_customer=participation_by_customer or None,
-        )
+        if is_customer_contact_enrichment_adapter(adapter_key):
+            matched = apply_enrichment_customer_id_matches(
+                validated_rows=validated_rows,
+                organization_id=organization_id,
+                customer_repository=self._customer_repository,
+            )
+        else:
+            matched = apply_participation_and_status(
+                validated_rows=validated_rows,
+                customer_index=customer_index,
+                fair_id=fair_id,
+                participation_by_customer=participation_by_customer or None,
+            )
 
         updated_rows: list[ImportRow] = []
         for existing, (validated_row, match_fields) in zip(existing_rows, matched, strict=True):

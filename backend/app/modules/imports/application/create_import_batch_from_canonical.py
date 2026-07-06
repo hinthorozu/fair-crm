@@ -21,6 +21,7 @@ from app.modules.imports.application.commands import (
 from app.modules.imports.application.mappers import batch_to_result
 from app.modules.imports.domain.exceptions import FairRequiredError, InvalidCanonicalImportError
 from app.modules.imports.domain.ports import ImportBatchRepository, ImportRowRepository
+from app.modules.scraper.domain.enrichment_adapter import is_customer_contact_enrichment_adapter
 from app.shared.canonical_import.validator import (
     CanonicalImportValidationError,
     validate_canonical_import,
@@ -62,12 +63,15 @@ class CreateImportBatchFromCanonicalUseCase:
             raise InvalidCanonicalImportError(str(exc)) from exc
 
         fair_id = command.fair_id or validated.source.fair_id
-        if fair_id is None:
+        adapter_key = (validated.source.adapter_key or "").strip()
+        is_enrichment = is_customer_contact_enrichment_adapter(adapter_key)
+        if fair_id is None and not is_enrichment:
             raise FairRequiredError("fair_id is required (source.fair_id or request body)")
 
-        fair = self._fair_repository.get_by_id(command.organization_id, fair_id)
-        if fair is None:
-            raise FairNotFoundError("Fair not found")
+        if fair_id is not None:
+            fair = self._fair_repository.get_by_id(command.organization_id, fair_id)
+            if fair is None:
+                raise FairNotFoundError("Fair not found")
 
         now = datetime.now(tz=UTC)
         batch = build_import_batch_from_canonical(

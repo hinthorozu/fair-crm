@@ -92,7 +92,7 @@ class ImportBatch:
         cls,
         *,
         organization_id: UUID,
-        fair_id: UUID,
+        fair_id: UUID | None,
         source_type: ImportSourceType,
         file_name: str,
         total_rows: int,
