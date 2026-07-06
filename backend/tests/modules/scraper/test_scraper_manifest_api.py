@@ -10,11 +10,15 @@ def test_list_scraper_manifests_endpoint_returns_adapter_list_format(client: Tes
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["total"] == 2
-    assert len(payload["items"]) == 2
+    assert payload["total"] == 3
+    assert len(payload["items"]) == 3
 
     keys = {item["adapter_key"] for item in payload["items"]}
-    assert keys == {ScraperSiteKey.TUYAP_OLD, ScraperSiteKey.TUYAP_NEW}
+    assert keys == {
+        ScraperSiteKey.TUYAP_OLD,
+        ScraperSiteKey.TUYAP_NEW,
+        ScraperSiteKey.CUSTOMER_CONTACT_ENRICHMENT,
+    }
 
     new_item = next(item for item in payload["items"] if item["adapter_key"] == ScraperSiteKey.TUYAP_NEW)
     assert new_item["display_name"] == "TÜYAP (New)"

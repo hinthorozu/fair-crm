@@ -20,6 +20,7 @@ import type {
   UpdateAdapterManifestPayload,
   ScraperRunStatus,
   AdapterEngineType,
+  EnrichmentRunPayload,
 } from "../types/scraper";
 
 export async function getScraperDashboard(): Promise<ScraperDashboardResponse> {
@@ -174,6 +175,19 @@ export async function listScraperRunLogs(
   const qs = search.toString();
   return apiRequest<ScraperRunLogListResponse>(
     `/api/v1/scraper/runs/${encodeURIComponent(runId)}/logs${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export async function runCustomerContactEnrichment(
+  adapterKey: string,
+  payload: EnrichmentRunPayload,
+): Promise<ScraperRun> {
+  return apiRequest<ScraperRun>(
+    `/api/v1/scraper/adapters/${encodeURIComponent(adapterKey)}/enrichment-run`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
   );
 }
 

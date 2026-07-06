@@ -8,6 +8,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -20,7 +21,9 @@ from app.modules.scraper.api.dependencies import (
     get_default_scraper_dashboard_service,
     get_default_scraper_manager,
     get_delete_adapter_use_case,
+    get_enrichment_run_job_runner,
     get_run_adapter_test_use_case,
+    get_run_enrichment_use_case,
     get_scraper_adapter_service,
     get_scraper_run_history_service,
     get_scraper_run_log_service,
@@ -31,6 +34,7 @@ from app.modules.scraper.api.dependencies import (
     require_run_permission,
     require_update_permission,
 )
+from app.modules.scraper.api.dependencies import bearer_scheme
 from app.modules.scraper.api.schemas import (
     AdapterDetailResponse,
     AdapterDeletePreviewResponse,
@@ -42,6 +46,7 @@ from app.modules.scraper.api.schemas import (
     AdapterListItemResponse,
     AdapterListResponse,
     AdapterTestRunRequest,
+    EnrichmentRunRequest,
     CreateAdapterRequest,
     UpdateAdapterRequest,
     UpdateAdapterManifestRequest,
@@ -69,12 +74,22 @@ from app.modules.scraper.application.adapter_test_run_job_runner import (
     AdapterTestRunJobCommand,
     AdapterTestRunJobRunner,
 )
+from app.modules.scraper.application.enrichment_run_job_runner import (
+    EnrichmentRunJobCommand,
+    EnrichmentRunJobRunner,
+)
 from app.modules.scraper.application.run_adapter_test import (
     AdapterNotRegisteredError,
     DynamicAdapterEngineNotRunnableError,
     RunAdapterTestCommand,
     RunAdapterTestUseCase,
 )
+from app.modules.scraper.application.run_enrichment import (
+    EnrichmentAdapterNotSupportedError,
+    RunEnrichmentCommand,
+    RunEnrichmentUseCase,
+)
+from app.modules.scraper.domain.enrichment_adapter import is_customer_contact_enrichment_adapter
 from app.modules.scraper.domain.scraper_adapter_exceptions import (
     AdapterEngineNotFoundError,
     AdapterNotFoundError,
@@ -92,8 +107,25 @@ from app.modules.scraper.infrastructure.handoff_storage import (
 from app.modules.scraper.core.scraper_manager import ScraperManager
 from app.modules.scraper.services.scraper_dashboard_service import ScraperDashboardService
 from app.modules.scraper.services.scraper_run_history_list_builder import build_run_history_list_item
+from app.modules.scraper.services.enrichment_run_summary_loader import load_enrichment_summary_for_run
+from app.modules.scraper.types.scraper_site import ScraperSiteKey
 
 router = APIRouter(prefix="/scraper", tags=["Adapter Yönetimi"])
+
+
+def _build_run_history_response(
+    row,
+    *,
+    engine_service: AdapterEngineService,
+    run_log_service: ScraperRunLogService | None = None,
+) -> ScraperRunHistoryResponse:
+    item = build_run_history_list_item(row, engine_service=engine_service)
+    enrichment_summary = None
+    if run_log_service is not None and is_customer_contact_enrichment_adapter(item["run"].adapter_key):
+        enrichment_summary = load_enrichment_summary_for_run(run_log_service, item["run"].id)
+    return ScraperRunHistoryResponse.from_list_item(
+        {**item, "enrichment_summary": enrichment_summary} if enrichment_summary is not None else item
+    )
 
 
 def _parse_run_status(value: str | None) -> ScraperRunStatus | None:
@@ -216,6 +248,11 @@ def create_adapter(
             name=body.name,
             description=body.description,
             engine_key=body.engine_key,
+            version=body.version,
+            last_verified=body.last_verified,
+            supported_sites=body.supported_sites,
+            output=body.output.model_dump(exclude_unset=True) if body.output is not None else None,
+            browser=body.browser.model_dump(exclude_unset=True) if body.browser is not None else None,
             requested_fields=body.requested_fields,
             adapter_key=body.adapter_key,
             is_active=body.is_active,
@@ -510,6 +547,57 @@ def run_adapter_test(
     return ScraperRunHistoryResponse.from_entity(run)
 
 
+@router.post(
+    "/adapters/{adapter}/enrichment-run",
+    response_model=ScraperRunHistoryResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Müşteri iletişim zenginleştirme çalıştırması başlat",
+)
+def run_customer_contact_enrichment(
+    adapter: str,
+    body: EnrichmentRunRequest,
+    background_tasks: BackgroundTasks,
+    auth: Annotated[AuthContext, Depends(require_run_permission)],
+    db: Annotated[Session, Depends(get_db)],
+    use_case: Annotated[RunEnrichmentUseCase, Depends(get_run_enrichment_use_case)],
+    job_runner: Annotated[EnrichmentRunJobRunner, Depends(get_enrichment_run_job_runner)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)] = None,
+) -> ScraperRunHistoryResponse:
+    if adapter.strip().lower() != ScraperSiteKey.CUSTOMER_CONTACT_ENRICHMENT:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Enrichment run is only available for {ScraperSiteKey.CUSTOMER_CONTACT_ENRICHMENT}",
+        )
+    try:
+        run = use_case.execute(
+            RunEnrichmentCommand(
+                organization_id=auth.organization_id,
+                adapter_key=adapter,
+                limit=body.limit,
+            )
+        )
+    except EnrichmentAdapterNotSupportedError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    db.commit()
+    access_token = credentials.credentials if credentials is not None else ""
+    background_tasks.add_task(
+        run_blocking_background_task,
+        job_runner.run_enrichment,
+        EnrichmentRunJobCommand(
+            run_id=run.id,
+            organization_id=auth.organization_id,
+            adapter_key=run.adapter_key,
+            user_id=auth.user_id,
+            access_token=access_token,
+            limit=body.limit,
+            requested_fields=body.requested_fields,
+            dry_run=body.dry_run,
+            max_pages=body.max_pages or 10,
+        ),
+    )
+    return ScraperRunHistoryResponse.from_entity(run)
+
+
 @router.get(
     "/runs",
     response_model=ScraperRunHistoryListResponse,
@@ -564,6 +652,7 @@ def get_scraper_run(
     run_id: UUID,
     auth: Annotated[AuthContext, Depends(require_read_permission)],
     run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
+    run_log_service: Annotated[ScraperRunLogService, Depends(get_scraper_run_log_service)],
     engine_service: Annotated[AdapterEngineService, Depends(get_adapter_engine_service)],
 ) -> ScraperRunHistoryResponse:
     row = run_history_service.get_run_row(run_id, organization_id=auth.organization_id)
@@ -572,8 +661,10 @@ def get_scraper_run(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Scraper run not found: {run_id}",
         )
-    return ScraperRunHistoryResponse.from_list_item(
-        build_run_history_list_item(row, engine_service=engine_service)
+    return _build_run_history_response(
+        row,
+        engine_service=engine_service,
+        run_log_service=run_log_service,
     )
 
 

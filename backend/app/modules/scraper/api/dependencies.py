@@ -108,11 +108,13 @@ from app.modules.scraper.application.adapter_test_run_job_runner import (
     AdapterTestRunJobCommand,
     AdapterTestRunJobRunner,
 )
+from app.modules.scraper.application.enrichment_run_job_runner import EnrichmentRunJobRunner
 from app.modules.scraper.application.run_adapter_test import (
     AdapterNotRegisteredError,
     RunAdapterTestCommand,
     RunAdapterTestUseCase,
 )
+from app.modules.scraper.application.run_enrichment import RunEnrichmentUseCase
 
 
 @lru_cache
@@ -200,6 +202,19 @@ def get_run_adapter_test_use_case(
     db: Session = Depends(get_db),
 ) -> RunAdapterTestUseCase:
     return RunAdapterTestUseCase(create_run_history_service(db), db)
+
+
+_enrichment_run_job_runner = EnrichmentRunJobRunner()
+
+
+def get_enrichment_run_job_runner() -> EnrichmentRunJobRunner:
+    return _enrichment_run_job_runner
+
+
+def get_run_enrichment_use_case(
+    db: Session = Depends(get_db),
+) -> RunEnrichmentUseCase:
+    return RunEnrichmentUseCase(create_run_history_service(db), db)
 
 
 def get_delete_adapter_use_case(

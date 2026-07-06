@@ -7,6 +7,7 @@ class ScraperSiteKey(StrEnum):
     TUYAP = "tuyap"
     TUYAP_OLD = "tuyap_old"
     TUYAP_NEW = "tuyap_new"
+    CUSTOMER_CONTACT_ENRICHMENT = "customer_contact_enrichment"
     IFM = "ifm"
     HANNOVER = "hannover"
     CANTON = "canton"

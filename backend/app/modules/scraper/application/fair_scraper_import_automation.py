@@ -23,6 +23,7 @@ from app.modules.imports.infrastructure.repositories.import_repository import (
 from app.modules.participations.infrastructure.repositories.participation_repository import (
     SqlAlchemyParticipationRepository,
 )
+from app.modules.scraper.domain.enrichment_adapter import is_customer_contact_enrichment_adapter
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
 from app.modules.scraper.infrastructure.handoff_storage import serialize_handoff_to_canonical_json
 from app.shared.canonical_import.validator import CanonicalImportValidationError, validate_canonical_import
@@ -33,7 +34,7 @@ def create_and_analyze_import_batch_from_handoff(
     db: Session,
     *,
     organization_id: UUID,
-    fair_id: UUID,
+    fair_id: UUID | None,
     run_id: UUID,
     handoff: ScraperImportHandoff,
     adapter_key: str,
@@ -42,9 +43,13 @@ def create_and_analyze_import_batch_from_handoff(
     access_token: str = "",
 ) -> UUID:
     """Persist canonical scraper handoff as import batch and run CRM matching."""
-    fair = SqlAlchemyFairRepository(db).get_by_id(organization_id, fair_id)
-    if fair is None:
-        raise InvalidCanonicalImportError("Fair not found for import automation")
+    is_enrichment = is_customer_contact_enrichment_adapter(adapter_key)
+    if fair_id is not None:
+        fair = SqlAlchemyFairRepository(db).get_by_id(organization_id, fair_id)
+        if fair is None:
+            raise InvalidCanonicalImportError("Fair not found for import automation")
+    elif not is_enrichment:
+        raise InvalidCanonicalImportError("fair_id is required for scraper import automation")
 
     document_dict = serialize_handoff_to_canonical_json(
         handoff,

@@ -12,7 +12,7 @@ def test_scraper_dashboard_summary_counts(client: TestClient, auth_headers):
     payload = response.json()
     summary = payload["summary"]
 
-    assert summary["total_adapters"] == 2
+    assert summary["total_adapters"] == 3
     assert "stable_count" not in summary
     assert "experimental_count" not in summary
     assert "deprecated_count" not in summary
@@ -25,7 +25,7 @@ def test_scraper_dashboard_adapters_match_manifest_list_format(client: TestClien
     manifests = client.get("/api/v1/scraper/manifests", headers=auth_headers).json()
 
     assert dashboard["adapters"] == manifests["items"]
-    assert len(dashboard["adapters"]) == 2
+    assert len(dashboard["adapters"]) == 3
 
     tuyap_new = next(item for item in dashboard["adapters"] if item["adapter_key"] == ScraperSiteKey.TUYAP_NEW)
     tuyap_old = next(item for item in dashboard["adapters"] if item["adapter_key"] == ScraperSiteKey.TUYAP_OLD)
@@ -84,9 +84,11 @@ def test_adapter_list_features_reflect_manifest_supports(client: TestClient, aut
     assert features["hall"] is True
     assert features["stand"] is True
     assert features["email"] is True
-    assert features["instagram"] is False
-    assert features["facebook"] is False
-    assert features["linkedin"] is False
-    assert features["website"] is False
-    assert features["phone"] is False
-    assert features["notes"] is False
+    assert features["website"] is True
+    assert features["phone"] is True
+    assert features["address"] is True
+    assert features["instagram"] is True
+    assert features["facebook"] is True
+    assert features["linkedin"] is True
+    assert features["youtube"] is True
+    assert features["notes"] is True

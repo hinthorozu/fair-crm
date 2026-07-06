@@ -10,6 +10,7 @@ from app.modules.scraper.domain.requested_output_fields import (
     output_field_capabilities_from_supports,
 )
 from app.modules.scraper.manifests.scraper_manifest import ScraperManifest
+from app.modules.scraper.types.scraper_site import ScraperSiteKey
 
 if TYPE_CHECKING:
     from app.modules.scraper.services.scraper_run_history_service import ScraperRunHistoryService
@@ -27,10 +28,15 @@ def build_adapter_features(manifest: ScraperManifest) -> list[dict[str, str | bo
     ]
 
 
+
+
 def resolve_actions_available(manifest: ScraperManifest) -> list[str]:
     actions = ["view"]
     if manifest.supports.list_scraping:
         actions.append("run")
+    if manifest.adapter_key == ScraperSiteKey.CUSTOMER_CONTACT_ENRICHMENT:
+        if "run" not in actions:
+            actions.append("run")
     return actions
 
 
