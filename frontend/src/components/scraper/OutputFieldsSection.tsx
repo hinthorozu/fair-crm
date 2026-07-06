@@ -1,15 +1,21 @@
 import { scraperLabels } from "../../labels/scraperLabels";
 import type { RequestedOutputField, ScraperSupports } from "../../types/scraper";
 import {
-  DEFAULT_REQUESTED_FIELDS,
   OUTPUT_FIELD_KEYS,
-  capabilitiesFromEngineFeatures,
+  defaultRequestedFieldsForCapabilities,
   engineOutputFieldCapabilities,
+  filterRequestedFieldsByCapabilities,
   getOutputFieldLabel,
+  hydrateRequestedFieldsForEngineChange,
   toggleRequestedFieldSelection,
 } from "../../utils/outputFieldDefinitions";
 
-export { toggleRequestedFieldSelection };
+export {
+  defaultRequestedFieldsForCapabilities,
+  filterRequestedFieldsByCapabilities,
+  hydrateRequestedFieldsForEngineChange,
+  toggleRequestedFieldSelection,
+};
 
 interface OutputFieldsSectionProps {
   requestedFields: RequestedOutputField[];
@@ -25,7 +31,13 @@ export function OutputFieldsSection({
   readOnly = false,
   onChange,
 }: OutputFieldsSectionProps) {
-  const selected = new Set(requestedFields.length > 0 ? requestedFields : DEFAULT_REQUESTED_FIELDS);
+  const effectiveSelected = filterRequestedFieldsByCapabilities(
+    requestedFields.length > 0
+      ? requestedFields
+      : defaultRequestedFieldsForCapabilities(capabilities),
+    capabilities,
+  );
+  const selected = new Set(effectiveSelected);
   const showSupport = capabilities !== null;
 
   return (
@@ -41,7 +53,7 @@ export function OutputFieldsSection({
               <label className="output-field-label">
                 <input
                   type="checkbox"
-                  checked={selected.has(key)}
+                  checked={supported && selected.has(key)}
                   disabled={disabled}
                   onChange={(event) => onChange?.(key, event.target.checked)}
                 />{" "}
@@ -68,23 +80,4 @@ export function outputFieldCapabilitiesFromSupports(
   supports: ScraperSupports,
 ): Record<RequestedOutputField, boolean> {
   return engineOutputFieldCapabilities(supports);
-}
-
-export function filterRequestedFieldsByCapabilities(
-  fields: RequestedOutputField[],
-  capabilities: Record<RequestedOutputField, boolean> | null,
-): RequestedOutputField[] {
-  if (capabilities === null) {
-    return fields;
-  }
-  return fields.filter((field) => capabilities[field]);
-}
-
-export function defaultRequestedFieldsForCapabilities(
-  capabilities: Record<RequestedOutputField, boolean> | null,
-): RequestedOutputField[] {
-  if (capabilities === null) {
-    return [...DEFAULT_REQUESTED_FIELDS];
-  }
-  return DEFAULT_REQUESTED_FIELDS.filter((field) => capabilities[field]);
 }

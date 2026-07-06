@@ -20,10 +20,13 @@ import { uiLabels } from "../labels/uiLabels";
 import type { AdapterDeletePreview, AdapterListItem, ScraperManifest, ScraperRun } from "../types/scraper";
 import {
   formStateToPayload,
+  manifestCapabilities,
   manifestToFormState,
-  type AdapterEditFormState,
+  validateAdapterFormState,
+  type AdapterFormState,
 } from "../utils/adapterManifestForm";
 import { adapterDetailToListItem } from "../utils/scraperAdapters";
+import { isCustomerContactEnrichmentAdapter } from "../utils/enrichmentAdapter";
 import { buildLocationSearch, navigateWithSearch, readSearchParams } from "../utils/urlState";
 
 interface AdapterDetailPageProps {
@@ -35,13 +38,21 @@ interface AdapterDetailPageProps {
   onOpenScraperTest?: (adapterKey: string, runId?: string) => void;
 }
 
-const VALID_TABS: AdapterDetailTab[] = ["manifest", "runs", "fairs"];
+const BASE_TABS: AdapterDetailTab[] = ["manifest", "runs", "fairs"];
 const EDITABLE_TABS: AdapterDetailTab[] = ["manifest"];
 
-function tabFromUrl(): AdapterDetailTab {
+function validTabsForAdapter(adapterKey: string): AdapterDetailTab[] {
+  if (isCustomerContactEnrichmentAdapter(adapterKey)) {
+    return ["manifest", "run", "runs", "fairs"];
+  }
+  return BASE_TABS;
+}
+
+function tabFromUrl(adapterKey: string): AdapterDetailTab {
   const tab = readSearchParams().get("tab");
   if (tab === "general" || tab === "console") return "manifest";
-  if (tab && VALID_TABS.includes(tab as AdapterDetailTab)) return tab as AdapterDetailTab;
+  const validTabs = validTabsForAdapter(adapterKey);
+  if (tab && validTabs.includes(tab as AdapterDetailTab)) return tab as AdapterDetailTab;
   return "manifest";
 }
 
@@ -86,13 +97,13 @@ export function AdapterDetailPage({
   const [adapterItem, setAdapterItem] = React.useState<AdapterListItem | null>(null);
   const [manifest, setManifest] = React.useState<ScraperManifest | null>(null);
   const [runs, setRuns] = React.useState<ScraperRun[]>([]);
-  const [activeTab, setActiveTabState] = React.useState<AdapterDetailTab>(tabFromUrl);
+  const [activeTab, setActiveTabState] = React.useState<AdapterDetailTab>(() => tabFromUrl(adapterKey));
   const [loading, setLoading] = React.useState(true);
   const [manifestLoading, setManifestLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [manifestError, setManifestError] = React.useState<string | null>(null);
   const [isEditing, setIsEditing] = React.useState(false);
-  const [draft, setDraft] = React.useState<AdapterEditFormState | null>(null);
+  const [draft, setDraft] = React.useState<AdapterFormState | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [deletePreview, setDeletePreview] = React.useState<AdapterDeletePreview | null>(null);
   const [deletePreviewLoading, setDeletePreviewLoading] = React.useState(false);
@@ -101,7 +112,7 @@ export function AdapterDetailPage({
   const onAdapterLoadedRef = React.useRef(onAdapterLoaded);
   onAdapterLoadedRef.current = onAdapterLoaded;
 
-  const draftRef = React.useRef<AdapterEditFormState | null>(null);
+  const draftRef = React.useRef<AdapterFormState | null>(null);
   draftRef.current = draft;
 
   const isEditableTab = EDITABLE_TABS.includes(activeTab);
@@ -161,11 +172,17 @@ export function AdapterDetailPage({
     }
   }, [adapterKey, onOpenScraperTest]);
 
+  const isEnrichmentAdapter = isCustomerContactEnrichmentAdapter(adapterKey);
+
   React.useEffect(() => {
-    const onPopState = () => setActiveTabState(tabFromUrl());
+    setActiveTabState(tabFromUrl(adapterKey));
+  }, [adapterKey]);
+
+  React.useEffect(() => {
+    const onPopState = () => setActiveTabState(tabFromUrl(adapterKey));
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, []);
+  }, [adapterKey]);
 
   const startEdit = React.useCallback(() => {
     if (!manifest) return;
@@ -200,14 +217,32 @@ export function AdapterDetailPage({
       return;
     }
     if (!currentDraft.display_name.trim()) {
-      setError(scraperLabels.formAdapterName + " boş olamaz.");
+      setError(scraperLabels.formAdapterNameRequired);
+      return;
+    }
+
+    const validationError = validateAdapterFormState(
+      currentDraft,
+      manifest ? manifestCapabilities(manifest) : null,
+    );
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
     setSaving(true);
     setError(null);
     try {
-      const savedManifest = await updateAdapterManifest(adapterKey, formStateToPayload(currentDraft));
+      const payload = formStateToPayload(
+        currentDraft,
+        manifest ? manifestCapabilities(manifest) : null,
+      );
+      if (!payload.requested_fields || payload.requested_fields.length === 0) {
+        setError(scraperLabels.formRequestedFieldsRequired);
+        setSaving(false);
+        return;
+      }
+      const savedManifest = await updateAdapterManifest(adapterKey, payload);
       setManifest(savedManifest);
       await refreshSavedData();
       setIsEditing(false);
@@ -217,10 +252,10 @@ export function AdapterDetailPage({
     } finally {
       setSaving(false);
     }
-  }, [adapterKey, refreshSavedData]);
+  }, [adapterKey, manifest, refreshSavedData]);
 
   const handleDraftChange = React.useCallback(
-    (updater: (current: AdapterEditFormState) => AdapterEditFormState) => {
+    (updater: (current: AdapterFormState) => AdapterFormState) => {
       setDraft((current) => (current ? updater(current) : current));
     },
     [],
@@ -294,13 +329,25 @@ export function AdapterDetailPage({
         },
       ]
     : [
-        {
-          id: "test",
-          label: scraperLabels.openInScraperTest,
-          variant: "secondary",
-          onClick: () => onOpenScraperTest?.(adapterKey),
-          disabled: !onOpenScraperTest || isEditing || deletePreviewLoading || deleting,
-        },
+        ...(isEnrichmentAdapter
+          ? [
+              {
+                id: "run",
+                label: scraperLabels.enrichmentRunAction,
+                variant: "secondary" as const,
+                onClick: () => setActiveTab("run"),
+                disabled: isEditing || deletePreviewLoading || deleting,
+              },
+            ]
+          : [
+              {
+                id: "test",
+                label: scraperLabels.openInScraperTest,
+                variant: "secondary" as const,
+                onClick: () => onOpenScraperTest?.(adapterKey),
+                disabled: !onOpenScraperTest || isEditing || deletePreviewLoading || deleting,
+              },
+            ]),
         {
           id: "delete",
           label: scraperLabels.deleteAdapter,
@@ -337,6 +384,7 @@ export function AdapterDetailPage({
         onOpenFair={onOpenFair}
         onViewAllRuns={onViewAllRuns}
         onOpenScraperTest={onOpenScraperTest}
+        onRunsChanged={() => void loadDetail({ showPageLoader: false })}
         manifest={manifest}
         manifestLoading={manifestLoading}
         manifestError={manifestError}

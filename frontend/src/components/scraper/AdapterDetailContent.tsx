@@ -2,26 +2,24 @@ import React from "react";
 import { Tabs, TabPanel } from "../ui/Tabs";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
-import { DetailValue, formatDetailDate } from "../ui/DetailFields";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../ui/UniversalDataTable";
 import { AdapterLinkedFairsTab } from "./AdapterLinkedFairsTab";
+import { AdapterForm } from "./AdapterForm";
 import { scraperLabels } from "../../labels/scraperLabels";
 import {
   runStatusBadgeVariant,
   runStatusLabel,
 } from "../../utils/scraperBadges";
-import type { ScraperManifest, ScraperRun, RequestedOutputField } from "../../types/scraper";
+import type { ScraperManifest, ScraperRun } from "../../types/scraper";
 import {
-  DEFAULT_REQUESTED_FIELDS,
-  type AdapterEditFormState,
+  manifestCapabilities,
+  manifestToFormState,
+  type AdapterFormState,
 } from "../../utils/adapterManifestForm";
-import {
-  OutputFieldsSection,
-  outputFieldCapabilitiesFromSupports,
-  toggleRequestedFieldSelection,
-} from "./OutputFieldsSection";
+import { EnrichmentRunPanel } from "./EnrichmentRunPanel";
+import { isCustomerContactEnrichmentAdapter } from "../../utils/enrichmentAdapter";
 
-export type AdapterDetailTab = "manifest" | "runs" | "fairs";
+export type AdapterDetailTab = "manifest" | "run" | "runs" | "fairs";
 
 export interface AdapterDetailContentProps {
   adapterKey: string;
@@ -31,12 +29,13 @@ export interface AdapterDetailContentProps {
   onOpenFair?: (fairId: string) => void;
   onViewAllRuns?: (adapterKey: string) => void;
   onOpenScraperTest?: (adapterKey: string, runId?: string) => void;
+  onRunsChanged?: () => void;
   manifest: ScraperManifest | null;
   manifestLoading: boolean;
   manifestError: string | null;
   isEditing: boolean;
-  draft: AdapterEditFormState | null;
-  onDraftChange: (updater: (current: AdapterEditFormState) => AdapterEditFormState) => void;
+  draft: AdapterFormState | null;
+  onDraftChange: (updater: (current: AdapterFormState) => AdapterFormState) => void;
 }
 
 function formatDateTime(value: string | null | undefined): string {
@@ -52,15 +51,6 @@ function formatDurationMs(value: number | null | undefined): string {
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
   return rest > 0 ? `${minutes}m ${rest}s` : `${minutes}m`;
-}
-
-function ManifestField({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <>
-      <dt>{label}</dt>
-      <dd>{value}</dd>
-    </>
-  );
 }
 
 function buildRunColumns(onSelectRun: (runId: string) => void): UniversalDataTableColumn<ScraperRun>[] {
@@ -98,52 +88,6 @@ function buildRunColumns(onSelectRun: (runId: string) => void): UniversalDataTab
   ];
 }
 
-function ManifestDetailsView({ manifest }: { manifest: ScraperManifest }) {
-  return (
-    <dl className="detail-grid adapter-manifest-fields">
-      <ManifestField label="Adapter Key" value={<DetailValue value={manifest.adapter_key} />} />
-      <ManifestField label="Display Name" value={<DetailValue value={manifest.display_name} />} />
-      <ManifestField label="Version" value={<DetailValue value={manifest.version} />} />
-      <ManifestField label="Author" value={<DetailValue value={manifest.author} />} />
-      <ManifestField label="Scraper Version" value={<DetailValue value={manifest.scraper_version} />} />
-      <ManifestField label="Last Verified" value={formatDetailDate(manifest.last_verified)} />
-      <ManifestField
-        label={scraperLabels.manifestSites}
-        value={
-          manifest.supported_sites.length ? (
-            <ul className="detail-collection-list">
-              {manifest.supported_sites.map((site) => (
-                <li key={site}>{site}</li>
-              ))}
-            </ul>
-          ) : (
-            "—"
-          )
-        }
-      />
-      <ManifestField label="Notes" value={<DetailValue value={manifest.notes} />} />
-      <ManifestField
-        label={scraperLabels.manifestOutput}
-        value={`JSON: ${manifest.output.json_handoff ? "Evet" : "Hayır"}, Excel: ${manifest.output.excel ? "Evet" : "Hayır"}`}
-      />
-      <ManifestField
-        label={scraperLabels.manifestBrowser}
-        value={`JS: ${manifest.browser.requires_js ? "Evet" : "Hayır"}, Playwright: ${manifest.browser.requires_playwright ? "Evet" : "Hayır"}`}
-      />
-      <ManifestField
-        label={scraperLabels.manifestOutputFields}
-        value={
-          <OutputFieldsSection
-            requestedFields={manifest.requested_fields ?? DEFAULT_REQUESTED_FIELDS}
-            capabilities={outputFieldCapabilitiesFromSupports(manifest.supports)}
-            readOnly
-          />
-        }
-      />
-    </dl>
-  );
-}
-
 function ManifestTabPanel({
   manifest,
   isEditing,
@@ -152,163 +96,37 @@ function ManifestTabPanel({
 }: {
   manifest: ScraperManifest;
   isEditing: boolean;
-  draft: AdapterEditFormState | null;
+  draft: AdapterFormState | null;
   onDraftChange: AdapterDetailContentProps["onDraftChange"];
 }) {
-  if (isEditing && draft) {
-    const toggleRequestedField = (field: RequestedOutputField, enabled: boolean) => {
-      onDraftChange((current) => ({
-        ...current,
-        requested_fields: toggleRequestedFieldSelection(current.requested_fields, field, enabled),
-      }));
-    };
+  const capabilities = manifestCapabilities(manifest);
+  const metadata = {
+    adapter_key: manifest.adapter_key,
+    author: manifest.author,
+    scraper_version: manifest.scraper_version,
+  };
 
+  if (isEditing && draft) {
     return (
-      <dl className="detail-grid adapter-manifest-fields">
-        <ManifestField label="Adapter Key" value={<DetailValue value={manifest.adapter_key} />} />
-        <ManifestField
-          label={scraperLabels.formAdapterName}
-          value={
-            <input
-              className="input"
-              value={draft.display_name}
-              onChange={(event) =>
-                onDraftChange((current) => ({ ...current, display_name: event.target.value }))
-              }
-            />
-          }
-        />
-        <ManifestField
-          label={scraperLabels.colVersion}
-          value={
-            <input
-              className="input"
-              value={draft.version}
-              onChange={(event) =>
-                onDraftChange((current) => ({ ...current, version: event.target.value }))
-              }
-            />
-          }
-        />
-        <ManifestField
-          label={scraperLabels.colLastVerified}
-          value={
-            <input
-              className="input"
-              type="date"
-              value={draft.last_verified}
-              onChange={(event) =>
-                onDraftChange((current) => ({ ...current, last_verified: event.target.value }))
-              }
-            />
-          }
-        />
-        <ManifestField label="Author" value={<DetailValue value={manifest.author} />} />
-        <ManifestField label="Scraper Version" value={<DetailValue value={manifest.scraper_version} />} />
-        <ManifestField
-          label={scraperLabels.manifestSites}
-          value={
-            <textarea
-              className="input"
-              rows={3}
-              value={draft.supported_sites}
-              onChange={(event) =>
-                onDraftChange((current) => ({ ...current, supported_sites: event.target.value }))
-              }
-            />
-          }
-        />
-        <ManifestField
-          label={scraperLabels.manifestNotes}
-          value={
-            <textarea
-              className="input"
-              rows={3}
-              value={draft.notes}
-              onChange={(event) =>
-                onDraftChange((current) => ({ ...current, notes: event.target.value }))
-              }
-            />
-          }
-        />
-        <ManifestField
-          label={scraperLabels.manifestOutput}
-          value={
-            <div className="adapter-manifest-checkboxes">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={draft.output_json_handoff}
-                  onChange={(event) =>
-                    onDraftChange((current) => ({
-                      ...current,
-                      output_json_handoff: event.target.checked,
-                    }))
-                  }
-                />{" "}
-                JSON Handoff
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={draft.output_excel}
-                  onChange={(event) =>
-                    onDraftChange((current) => ({ ...current, output_excel: event.target.checked }))
-                  }
-                />{" "}
-                Excel
-              </label>
-            </div>
-          }
-        />
-        <ManifestField
-          label={scraperLabels.manifestBrowser}
-          value={
-            <div className="adapter-manifest-checkboxes">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={draft.browser_requires_js}
-                  onChange={(event) =>
-                    onDraftChange((current) => ({
-                      ...current,
-                      browser_requires_js: event.target.checked,
-                    }))
-                  }
-                />{" "}
-                JS
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={draft.browser_requires_playwright}
-                  onChange={(event) =>
-                    onDraftChange((current) => ({
-                      ...current,
-                      browser_requires_playwright: event.target.checked,
-                    }))
-                  }
-                />{" "}
-                Playwright
-              </label>
-            </div>
-          }
-        />
-        <ManifestField
-          label={scraperLabels.manifestOutputFields}
-          value={
-            <OutputFieldsSection
-              requestedFields={draft.requested_fields}
-              capabilities={outputFieldCapabilitiesFromSupports(manifest.supports)}
-              onChange={toggleRequestedField}
-            />
-          }
-        />
-      </dl>
+      <AdapterForm
+        mode="edit"
+        values={draft}
+        onChange={onDraftChange}
+        capabilities={capabilities}
+        metadata={metadata}
+      />
     );
   }
 
-  return <ManifestDetailsView manifest={manifest} />;
+  return (
+    <AdapterForm
+      mode="readOnly"
+      values={manifestToFormState(manifest)}
+      onChange={() => undefined}
+      capabilities={capabilities}
+      metadata={metadata}
+    />
+  );
 }
 
 export function AdapterDetailContent({
@@ -319,6 +137,7 @@ export function AdapterDetailContent({
   onOpenFair,
   onViewAllRuns,
   onOpenScraperTest,
+  onRunsChanged,
   manifest,
   manifestLoading,
   manifestError,
@@ -339,12 +158,16 @@ export function AdapterDetailContent({
   );
 
   const runColumns = React.useMemo(() => buildRunColumns(openRunInTest), [openRunInTest]);
+  const isEnrichmentAdapter = isCustomerContactEnrichmentAdapter(adapterKey);
 
   return (
     <>
       <Tabs
         items={[
           { id: "manifest", label: scraperLabels.drawerTabManifest },
+          ...(isEnrichmentAdapter
+            ? [{ id: "run" as const, label: scraperLabels.enrichmentRunTab }]
+            : []),
           { id: "runs", label: scraperLabels.drawerTabRunHistory, badge: adapterRuns.length },
           { id: "fairs", label: scraperLabels.drawerTabLinkedFairs },
         ]}
@@ -367,12 +190,28 @@ export function AdapterDetailContent({
         </Card>
       </TabPanel>
 
+      {isEnrichmentAdapter ? (
+        <TabPanel id="panel-run" labelledBy="tab-run" active={activeTab === "run"}>
+          <Card>
+            {manifest ? (
+              <EnrichmentRunPanel
+                adapterKey={adapterKey}
+                manifest={manifest}
+                onRunFinished={onRunsChanged}
+              />
+            ) : (
+              <p className="text-muted">Yükleniyor…</p>
+            )}
+          </Card>
+        </TabPanel>
+      ) : null}
+
       <TabPanel id="panel-runs" labelledBy="tab-runs" active={activeTab === "runs"}>
         <Card>
           <div className="adapter-runs-summary-header">
             <p className="text-muted">{scraperLabels.runRecentSummary}</p>
             <div className="adapter-runs-summary-actions">
-              {onOpenScraperTest ? (
+              {!isEnrichmentAdapter && onOpenScraperTest ? (
                 <button type="button" className="btn link" onClick={() => onOpenScraperTest(adapterKey)}>
                   {scraperLabels.openScraperTestForAdapter}
                 </button>

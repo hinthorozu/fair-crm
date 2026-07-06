@@ -210,6 +210,7 @@ class ScraperRunHistoryResponse(BaseModel):
     run_source: ScraperRunSource = ScraperRunSource.MANUAL_TEST
     import_batch_id: UUID | None = None
     import_batch_url: str | None = None
+    enrichment_summary: dict[str, Any] | None = None
 
     @classmethod
     def from_entity(cls, run: ScraperRunHistory, **extra: Any) -> ScraperRunHistoryResponse:
@@ -243,7 +244,8 @@ class ScraperRunHistoryResponse(BaseModel):
             run_source=run.run_source,
             import_batch_id=run.import_batch_id,
             import_batch_url=import_batch_url,
-            **extra,
+            enrichment_summary=extra.get("enrichment_summary"),
+            **{k: v for k, v in extra.items() if k != "enrichment_summary"},
         )
 
     @classmethod
@@ -260,6 +262,7 @@ class ScraperRunHistoryResponse(BaseModel):
             json_view_url=item.get("json_view_url"),
             excel_download_url=item.get("excel_download_url"),
             excel_view_url=item.get("excel_view_url"),
+            enrichment_summary=item.get("enrichment_summary"),
         )
 
 
@@ -306,6 +309,13 @@ class AdapterTestRunRequest(BaseModel):
     max_pages: int | None = Field(default=None, ge=1)
 
 
+class EnrichmentRunRequest(BaseModel):
+    limit: int | None = Field(default=50, ge=1, le=500)
+    requested_fields: list[str] | None = None
+    dry_run: bool = False
+    max_pages: int | None = Field(default=10, ge=1, le=10)
+
+
 class AdapterLinkedFairResponse(BaseModel):
     id: UUID | None = None
     name: str
@@ -337,6 +347,11 @@ class CreateAdapterRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     description: str | None = Field(default=None, max_length=5000)
     engine_key: str | None = Field(default=None, max_length=100)
+    version: str | None = Field(default=None, max_length=50)
+    last_verified: str | None = Field(default=None, max_length=32)
+    supported_sites: list[str] | str | None = None
+    output: ScraperOutputUpdateRequest | None = None
+    browser: ScraperBrowserUpdateRequest | None = None
     requested_fields: list[str] | None = None
     adapter_key: str | None = Field(default=None, max_length=100)
     is_active: bool = True

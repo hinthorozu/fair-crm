@@ -22,7 +22,9 @@ from app.modules.scraper.domain.scraper_adapter_exceptions import (
 )
 from app.modules.scraper.domain.requested_output_fields import (
     normalize_requested_fields,
+    output_field_capabilities_from_supports,
     requested_fields_from_overlay,
+    resolve_requested_fields_for_manifest,
 )
 from app.modules.scraper.infrastructure.repositories.scraper_adapter_repository import (
     ScraperAdapterRepository,
@@ -33,6 +35,7 @@ from app.modules.scraper.infrastructure.repositories.scraper_registry_adapter_hi
 from app.modules.scraper.manifests.scraper_manifest import ScraperManifest, ScraperStatus
 from app.modules.scraper.services.adapter_engine_service import AdapterEngineService, create_adapter_engine_service
 from app.modules.scraper.services.manifest_overlay import (
+    apply_manifest_ui_defaults,
     build_manifest_overlay_patch,
     merge_manifest_with_record,
     parse_last_verified,
@@ -123,6 +126,10 @@ class ScraperAdapterService:
         adapter_key: str | None = None,
         status: ScraperStatus = ScraperStatus.EXPERIMENTAL,
         version: str | None = None,
+        last_verified: str | None = None,
+        supported_sites: list[str] | str | None = None,
+        output: dict[str, bool] | None = None,
+        browser: dict[str, bool] | None = None,
         manifest: dict[str, Any] | None = None,
         is_active: bool = True,
     ) -> ManagedAdapterView:
@@ -144,8 +151,25 @@ class ScraperAdapterService:
             raise DuplicateAdapterKeyError(f"Adapter key already exists for organization: {normalized_key}")
 
         manifest_payload = dict(manifest or {})
+        engine_manifest = self._try_get_manifest(normalized_engine)
+        capabilities = (
+            output_field_capabilities_from_supports(engine_manifest.supports)
+            if engine_manifest is not None
+            else None
+        )
+        normalized_requested_fields = None
         if requested_fields is not None:
-            manifest_payload["requested_fields"] = normalize_requested_fields(requested_fields)
+            normalized_requested_fields = normalize_requested_fields(
+                requested_fields,
+                capabilities=capabilities,
+            )
+        manifest_payload = build_manifest_overlay_patch(
+            manifest_payload,
+            supported_sites=supported_sites,
+            output=output,
+            browser=browser,
+            requested_fields=normalized_requested_fields,
+        )
 
         self._repository.hard_delete_by_key(organization_id, normalized_key)
         self._hide_repository.remove_hide(organization_id, normalized_key)
@@ -161,6 +185,7 @@ class ScraperAdapterService:
             version=version,
             manifest=manifest_payload or None,
             is_active=is_active,
+            last_verified_at=parse_last_verified(last_verified),
             now=now,
         )
         saved = self._repository.add(adapter)
@@ -182,12 +207,20 @@ class ScraperAdapterService:
         engine_manifest = self._resolve_engine_manifest(record, normalized_key)
         if engine_manifest is None:
             raise AdapterNotFoundError(f"Adapter not found: {adapter_key}")
-        return merge_manifest_with_record(engine_manifest, record)
+        merged = merge_manifest_with_record(engine_manifest, record)
+        return apply_manifest_ui_defaults(merged, record.manifest if record is not None else None)
 
     def resolve_requested_fields(self, organization_id: UUID, adapter_key: str) -> list[str]:
         normalized_key = normalize_adapter_key(adapter_key)
         record = self._repository.get_by_key(organization_id, normalized_key)
-        return requested_fields_from_overlay(record.manifest if record is not None else None)
+        engine_manifest = self._resolve_engine_manifest(record, normalized_key)
+        if engine_manifest is None:
+            return requested_fields_from_overlay(record.manifest if record is not None else None)
+        merged = merge_manifest_with_record(engine_manifest, record)
+        return resolve_requested_fields_for_manifest(
+            record.manifest if record is not None else None,
+            merged.supports,
+        )
 
     def update_adapter_manifest(
         self,
@@ -218,9 +251,28 @@ class ScraperAdapterService:
             key in updates
             for key in ("supported_sites", "output", "browser", "supports", "requested_fields")
         ):
+            merged = merge_manifest_with_record(engine_manifest, record)
+            supports_for_caps = merged.supports
+            supports_patch = updates.get("supports")
+            if isinstance(supports_patch, dict):
+                from dataclasses import asdict, replace
+
+                supports_for_caps = replace(
+                    supports_for_caps,
+                    **{
+                        key: value
+                        for key, value in supports_patch.items()
+                        if value is not None
+                    },
+                )
+            capabilities = output_field_capabilities_from_supports(supports_for_caps)
+
             requested_fields = updates.get("requested_fields")
             if requested_fields is not None:
-                requested_fields = normalize_requested_fields(requested_fields)
+                requested_fields = normalize_requested_fields(
+                    requested_fields,
+                    capabilities=capabilities,
+                )
             update_kwargs["manifest"] = build_manifest_overlay_patch(
                 record.manifest,
                 supported_sites=updates.get("supported_sites"),
@@ -232,7 +284,8 @@ class ScraperAdapterService:
 
         record.update_fields(**update_kwargs)
         saved = self._repository.update(record)
-        return merge_manifest_with_record(engine_manifest, saved)
+        merged = merge_manifest_with_record(engine_manifest, saved)
+        return apply_manifest_ui_defaults(merged, saved.manifest)
 
     def update_adapter(
         self,

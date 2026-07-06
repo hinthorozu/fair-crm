@@ -85,6 +85,11 @@ export interface CreateAdapterPayload {
   name: string;
   description?: string | null;
   engine_key?: string | null;
+  version?: string | null;
+  last_verified?: string | null;
+  supported_sites?: string[] | string;
+  output?: { json_handoff?: boolean; excel?: boolean };
+  browser?: { requires_js?: boolean; requires_playwright?: boolean };
   requested_fields?: RequestedOutputField[];
   is_active?: boolean;
 }
@@ -200,9 +205,29 @@ export interface ScraperRun {
   json_view_url?: string | null;
   excel_download_url?: string | null;
   excel_view_url?: string | null;
-  run_source?: "fair_automation" | "manual_test";
+  run_source?: "fair_automation" | "manual_test" | "enrichment";
   import_batch_id?: string | null;
   import_batch_url?: string | null;
+  enrichment_summary?: EnrichmentRunSummary | null;
+}
+
+export interface EnrichmentRunSummary {
+  customers_scanned: number;
+  emails_found: number;
+  not_found: number;
+  failed: number;
+  found: number;
+  import_rows: number;
+  dry_run: boolean;
+  import_batch_created: boolean;
+  import_batch_id: string | null;
+}
+
+export interface EnrichmentRunPayload {
+  limit?: number;
+  requested_fields?: RequestedOutputField[];
+  dry_run?: boolean;
+  max_pages?: number;
 }
 
 export interface ScraperRunListResponse {
