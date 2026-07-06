@@ -63,6 +63,21 @@ def _merge_mapping(base: dict[str, Any], patch: dict[str, Any] | None) -> dict[s
     return merged
 
 
+def apply_manifest_ui_defaults(
+    manifest: ScraperManifest,
+    overlay: dict[str, Any] | None,
+) -> ScraperManifest:
+    """Apply contract defaults for output/browser toggles when instance overlay has no explicit patch."""
+    overlay = overlay or {}
+    output = manifest.output
+    browser = manifest.browser
+    if "output" not in overlay:
+        output = replace(output, json_handoff=True, excel=True)
+    if "browser" not in overlay:
+        browser = replace(browser, requires_js=True, requires_playwright=True)
+    return replace(manifest, output=output, browser=browser)
+
+
 def merge_manifest_with_record(base: ScraperManifest, record: ScraperAdapter | None) -> ScraperManifest:
     if record is None:
         return base

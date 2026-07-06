@@ -11,8 +11,12 @@ from dataclasses import dataclass
 from app.modules.scraper.core.manifest_registry import ManifestRegistry, get_manifest_registry
 from app.modules.scraper.domain.scraper_adapter import normalize_adapter_key
 from app.modules.scraper.domain.scraper_adapter_exceptions import AdapterEngineNotFoundError
-from app.modules.scraper.domain.requested_output_fields import requested_fields_from_overlay
+from app.modules.scraper.domain.requested_output_fields import (
+    requested_fields_from_overlay,
+    resolve_requested_fields_for_manifest,
+)
 from app.modules.scraper.infrastructure.repositories.scraper_adapter_repository import ScraperAdapterRepository
+from app.modules.scraper.services.manifest_overlay import merge_manifest_with_record
 
 
 @dataclass(frozen=True)
@@ -62,14 +66,35 @@ def resolve_requested_fields(
     session: Session,
     organization_id: UUID,
     instance_key: str,
+    *,
+    manifest_registry: ManifestRegistry | None = None,
 ) -> list[str]:
     """Load user-selected output fields from adapter instance overlay (or defaults)."""
     normalized_instance = normalize_adapter_key(instance_key)
     repository = ScraperAdapterRepository(session)
     record = repository.get_by_key(organization_id, normalized_instance)
-    if record is None:
-        return requested_fields_from_overlay(None)
-    return requested_fields_from_overlay(record.manifest)
+    registry = manifest_registry or get_manifest_registry()
+
+    base_manifest = None
+    if record is not None:
+        try:
+            base_manifest = registry.get(record.engine_key)
+        except KeyError:
+            base_manifest = None
+    if base_manifest is None:
+        try:
+            base_manifest = registry.get(normalized_instance)
+        except KeyError:
+            base_manifest = None
+
+    if base_manifest is None:
+        return requested_fields_from_overlay(record.manifest if record is not None else None)
+
+    merged = merge_manifest_with_record(base_manifest, record)
+    return resolve_requested_fields_for_manifest(
+        record.manifest if record is not None else None,
+        merged.supports,
+    )
 
 
 def resolve_engine_key(

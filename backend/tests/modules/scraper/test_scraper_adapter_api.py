@@ -6,6 +6,48 @@ from app.modules.scraper.domain.adapter_engine import AdapterEngineType
 from app.modules.scraper.types.scraper_site import ScraperSiteKey
 
 
+def test_create_adapter_tuyap_old_requested_fields_persist(client: TestClient, auth_headers):
+    response = client.post(
+        "/api/v1/scraper/adapters",
+        json={
+            "name": "Istanbul Kitap Old",
+            "engine_key": ScraperSiteKey.TUYAP_OLD,
+            "requested_fields": [
+                "customerName",
+                "phone",
+                "address",
+                "website",
+                "hall",
+                "stand",
+                "notes",
+            ],
+        },
+        headers=auth_headers,
+    )
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["engine_key"] == ScraperSiteKey.TUYAP_OLD
+    assert body["manifest"]["requested_fields"] == [
+        "customerName",
+        "phone",
+        "address",
+        "website",
+        "hall",
+        "stand",
+        "notes",
+    ]
+
+    engines = client.get("/api/v1/scraper/engines", headers=auth_headers)
+    assert engines.status_code == 200
+    old_engine = next(
+        item for item in engines.json()["items"] if item["engine_key"] == ScraperSiteKey.TUYAP_OLD
+    )
+    features = {feature["key"]: feature["enabled"] for feature in old_engine["features"]}
+    assert features["email"] is True
+    assert features["instagram"] is True
+    assert features["notes"] is True
+
+
 def test_create_adapter_tuyap_new_name_with_static_engine(client: TestClient, auth_headers):
     """Regression: Turkish name slug must not 500 when engine_key is tuyap_new."""
     response = client.post(
@@ -24,7 +66,7 @@ def test_create_adapter_tuyap_new_name_with_static_engine(client: TestClient, au
     assert body["engine_type"] == AdapterEngineType.STATIC.value
     assert body["name"] == "Tüyap NEW"
     assert body["id"] is not None
-    assert body["manifest"]["requested_fields"] == ["customerName", "website", "email"]
+    assert body["manifest"]["requested_fields"] == ["customerName", "email", "website"]
 
 
 def test_create_adapter_with_auto_key_from_name(client: TestClient, auth_headers):

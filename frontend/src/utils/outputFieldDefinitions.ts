@@ -84,15 +84,7 @@ export const GRID_MAPPING_FIELD_OPTIONS = [
   })),
 ] as const;
 
-export const DEFAULT_REQUESTED_FIELDS: RequestedOutputField[] = [
-  "customerName",
-  "phone",
-  "email",
-  "address",
-  "website",
-  "hall",
-  "stand",
-];
+export const DEFAULT_REQUESTED_FIELDS: RequestedOutputField[] = [...OUTPUT_FIELD_KEYS];
 
 export function getOutputFieldLabel(key: RequestedOutputField): string {
   return OUTPUT_FIELD_LABELS[key] ?? key;
@@ -130,6 +122,31 @@ export function capabilitiesFromEngineFeatures(
     },
     {} as Record<RequestedOutputField, boolean>,
   );
+}
+
+export function defaultRequestedFieldsForCapabilities(
+  capabilities: Record<RequestedOutputField, boolean> | null,
+): RequestedOutputField[] {
+  if (capabilities === null) {
+    return [...OUTPUT_FIELD_KEYS];
+  }
+  return OUTPUT_FIELD_KEYS.filter((field) => capabilities[field]);
+}
+
+export function filterRequestedFieldsByCapabilities(
+  fields: RequestedOutputField[],
+  capabilities: Record<RequestedOutputField, boolean> | null,
+): RequestedOutputField[] {
+  if (capabilities === null) {
+    return OUTPUT_FIELD_KEYS.filter((field) => fields.includes(field));
+  }
+  return OUTPUT_FIELD_KEYS.filter((field) => fields.includes(field) && capabilities[field]);
+}
+
+export function hydrateRequestedFieldsForEngineChange(
+  capabilities: Record<RequestedOutputField, boolean> | null,
+): RequestedOutputField[] {
+  return defaultRequestedFieldsForCapabilities(capabilities);
 }
 
 export function toggleRequestedFieldSelection(

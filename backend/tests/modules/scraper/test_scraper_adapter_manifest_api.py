@@ -111,6 +111,34 @@ def test_get_manifest_returns_default_requested_fields(client: TestClient, auth_
         "website",
         "hall",
         "stand",
+        "instagram",
+        "facebook",
+        "linkedin",
+        "youtube",
+        "notes",
+    ]
+
+
+def test_get_manifest_tuyap_old_default_requested_fields_match_tuyap_new(client: TestClient, auth_headers):
+    response = client.get(
+        f"/api/v1/scraper/manifests/{ScraperSiteKey.TUYAP_OLD}",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["requested_fields"] == [
+        "customerName",
+        "phone",
+        "email",
+        "address",
+        "website",
+        "hall",
+        "stand",
+        "instagram",
+        "facebook",
+        "linkedin",
+        "youtube",
+        "notes",
     ]
 
 
@@ -130,3 +158,14 @@ def test_update_adapter_manifest_persists_requested_fields(client: TestClient, a
     )
     assert manifest.status_code == 200
     assert manifest.json()["requested_fields"] == ["customerName", "website", "instagram"]
+
+
+def test_update_adapter_manifest_tuyap_old_persists_supported_fields(client: TestClient, auth_headers):
+    adapter = ScraperSiteKey.TUYAP_OLD
+    response = client.patch(
+        f"/api/v1/scraper/adapters/{adapter}/manifest",
+        json={"requested_fields": ["customerName", "email", "instagram", "notes"]},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    assert response.json()["requested_fields"] == ["customerName", "email", "instagram", "notes"]

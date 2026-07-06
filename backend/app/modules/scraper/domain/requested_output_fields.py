@@ -23,19 +23,10 @@ REQUESTED_OUTPUT_FIELD_KEYS: tuple[str, ...] = (
     "notes",
 )
 
-DEFAULT_REQUESTED_FIELDS: tuple[str, ...] = (
-    "customerName",
-    "phone",
-    "email",
-    "address",
-    "website",
-    "hall",
-    "stand",
-)
+DEFAULT_REQUESTED_FIELDS: tuple[str, ...] = REQUESTED_OUTPUT_FIELD_KEYS
 
-OPTIONAL_DEFAULT_OFF_FIELDS: frozenset[str] = frozenset(
-    {"instagram", "facebook", "linkedin", "youtube", "notes"}
-)
+# Legacy alias; all standard fields are default-on per scraper output field contract.
+OPTIONAL_DEFAULT_OFF_FIELDS: frozenset[str] = frozenset()
 
 # Maps requested output key -> canonical handoff row key.
 from app.shared.import_output_fields import OUTPUT_KEY_TO_CANONICAL
@@ -58,6 +49,22 @@ DETAIL_PAGE_FIELDS: frozenset[str] = frozenset(
 
 _VALID_FIELDS: frozenset[str] = frozenset(REQUESTED_OUTPUT_FIELD_KEYS)
 
+# Always kept in handoff rows even when not user-requested (matching / identity).
+_HANDOFF_PRESERVE_CANONICAL_KEYS: frozenset[str] = frozenset({"company_name"})
+
+# Always kept in row metadata (enrichment customer_id matching, traceability).
+_HANDOFF_PRESERVE_METADATA_KEYS: frozenset[str] = frozenset(
+    {
+        "external_id",
+        "customer_id",
+        "enrichment_status",
+        "source_url",
+        "email_source_url",
+        "phone_source_url",
+        "address_source_url",
+    }
+)
+
 
 def output_field_capabilities_from_supports(supports: Any) -> dict[str, bool]:
     """Map legacy manifest ``ScraperSupports`` flags to standard output field keys."""
@@ -77,10 +84,87 @@ def output_field_capabilities_from_supports(supports: Any) -> dict[str, bool]:
     }
 
 
-def normalize_requested_fields(value: list[str] | tuple[str, ...] | None) -> list[str]:
+def default_requested_fields_for_capabilities(
+    capabilities: dict[str, bool] | None,
+) -> list[str]:
+    if capabilities is None:
+        return list(DEFAULT_REQUESTED_FIELDS)
+    if _is_enrichment_capabilities(capabilities):
+        from app.modules.scraper.domain.enrichment_adapter import DEFAULT_ENRICHMENT_REQUESTED_FIELDS
+
+        return [
+            field
+            for field in DEFAULT_ENRICHMENT_REQUESTED_FIELDS
+            if capabilities.get(field)
+        ] or [
+            field
+            for field in ("email", "phone", "address", "instagram", "facebook", "linkedin", "youtube")
+            if capabilities.get(field)
+        ]
+    return [field for field in REQUESTED_OUTPUT_FIELD_KEYS if capabilities.get(field)]
+
+
+def _is_enrichment_capabilities(capabilities: dict[str, bool]) -> bool:
+    return (
+        capabilities.get("email")
+        and not capabilities.get("customerName")
+        and not capabilities.get("website")
+        and not capabilities.get("hall")
+    )
+
+
+def filter_requested_fields_by_capabilities(
+    fields: list[str],
+    capabilities: dict[str, bool] | None,
+) -> list[str]:
+    if capabilities is None:
+        return [field for field in REQUESTED_OUTPUT_FIELD_KEYS if field in fields]
+    return [
+        field
+        for field in REQUESTED_OUTPUT_FIELD_KEYS
+        if field in fields and capabilities.get(field)
+    ]
+
+
+def resolve_requested_fields_for_manifest(
+    overlay: dict[str, Any] | None,
+    supports: Any,
+) -> list[str]:
+    """Resolve stored or default requested fields, filtered by engine capabilities."""
+    capabilities = output_field_capabilities_from_supports(supports)
+    if not overlay:
+        return default_requested_fields_for_capabilities(capabilities)
+
+    raw = overlay.get("requested_fields")
+    if raw is None:
+        return default_requested_fields_for_capabilities(capabilities)
+    if not isinstance(raw, (list, tuple)):
+        return default_requested_fields_for_capabilities(capabilities)
+
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in raw:
+        key = str(item).strip()
+        if not key or key not in _VALID_FIELDS or key in seen:
+            continue
+        seen.add(key)
+        normalized.append(key)
+
+    if not normalized:
+        return default_requested_fields_for_capabilities(capabilities)
+
+    filtered = filter_requested_fields_by_capabilities(normalized, capabilities)
+    return filtered or default_requested_fields_for_capabilities(capabilities)
+
+
+def normalize_requested_fields(
+    value: list[str] | tuple[str, ...] | None,
+    *,
+    capabilities: dict[str, bool] | None = None,
+) -> list[str]:
     """Return a de-duplicated ordered list of valid requested field keys."""
     if not value:
-        return list(DEFAULT_REQUESTED_FIELDS)
+        return default_requested_fields_for_capabilities(capabilities)
 
     normalized: list[str] = []
     seen: set[str] = set()
@@ -90,7 +174,12 @@ def normalize_requested_fields(value: list[str] | tuple[str, ...] | None) -> lis
             continue
         seen.add(key)
         normalized.append(key)
-    return normalized or list(DEFAULT_REQUESTED_FIELDS)
+
+    if not normalized:
+        return default_requested_fields_for_capabilities(capabilities)
+
+    filtered = filter_requested_fields_by_capabilities(normalized, capabilities)
+    return filtered or default_requested_fields_for_capabilities(capabilities)
 
 
 def requested_fields_from_overlay(overlay: dict[str, Any] | None) -> list[str]:
@@ -142,10 +231,29 @@ def filter_handoff_by_requested_fields(
     filtered_metadata: list[dict[str, Any]] = []
 
     for index, row in enumerate(handoff.canonical_rows or []):
-        filtered_rows.append({key: value for key, value in row.items() if key in canonical_keys})
+        filtered_rows.append(
+            {
+                key: value
+                for key, value in row.items()
+                if key in canonical_keys or key in _HANDOFF_PRESERVE_CANONICAL_KEYS
+            }
+        )
 
         source_meta = row_metadata[index] if index < len(row_metadata) else {}
         filtered_meta: dict[str, Any] = {}
+        for meta_key in _HANDOFF_PRESERVE_METADATA_KEYS:
+            value = source_meta.get(meta_key)
+            if value is None:
+                continue
+            text = str(value).strip()
+            if text:
+                filtered_meta[meta_key] = text
+        for meta_key, value in source_meta.items():
+            if not meta_key.endswith("_source_url") or meta_key in filtered_meta:
+                continue
+            text = str(value).strip()
+            if text:
+                filtered_meta[meta_key] = text
         for meta_key in metadata_keys:
             value = source_meta.get(meta_key)
             if value is None:
