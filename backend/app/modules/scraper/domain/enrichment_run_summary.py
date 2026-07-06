@@ -18,6 +18,7 @@ def build_enrichment_run_summary(
     return {
         "customers_scanned": len(results),
         "emails_found": sum(1 for result in results if result.emails),
+        "phones_found": sum(1 for result in results if result.phones),
         "not_found": sum(1 for result in results if result.status == "not_found"),
         "failed": sum(1 for result in results if result.status == "failed"),
         "found": sum(1 for result in results if result.status == "found"),

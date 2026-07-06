@@ -13,7 +13,10 @@ from app.modules.imports.domain.services.contact_import import (
     find_existing_contact_for_import,
     has_contact_import_fields,
 )
+from app.modules.imports.application.batch_display_metadata import resolve_adapter_key_from_batch
+from app.modules.imports.domain.services.enrichment_merge_sources import extract_enrichment_field_sources
 from app.modules.imports.domain.services.merge_preview import build_merge_preview
+from app.modules.scraper.domain.enrichment_adapter import is_customer_contact_enrichment_adapter
 from app.modules.participations.domain.entities import CustomerFairParticipation
 from app.modules.participations.infrastructure.repositories.participation_repository import (
     SqlAlchemyParticipationRepository,
@@ -77,4 +80,9 @@ class MergePreviewBuilder:
             participation=participation,
             contact=contact,
             fair_id=batch.fair_id,
+            field_source_urls=(
+                extract_enrichment_field_sources(row.raw_data_json)
+                if is_customer_contact_enrichment_adapter(resolve_adapter_key_from_batch(batch))
+                else None
+            ),
         )

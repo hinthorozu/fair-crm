@@ -56,6 +56,7 @@ export interface MergeFieldPreview {
   result_value: string | null;
   outcome: MergeOutcome;
   outcome_label: string;
+  source_url?: string | null;
 }
 
 export interface MergeEntityGroup {

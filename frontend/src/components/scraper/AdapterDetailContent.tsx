@@ -29,6 +29,7 @@ export interface AdapterDetailContentProps {
   onOpenFair?: (fairId: string) => void;
   onViewAllRuns?: (adapterKey: string) => void;
   onOpenScraperTest?: (adapterKey: string, runId?: string) => void;
+  onOpenRunDetail?: (adapterKey: string, runId: string) => void;
   onRunsChanged?: () => void;
   manifest: ScraperManifest | null;
   manifestLoading: boolean;
@@ -137,6 +138,7 @@ export function AdapterDetailContent({
   onOpenFair,
   onViewAllRuns,
   onOpenScraperTest,
+  onOpenRunDetail,
   onRunsChanged,
   manifest,
   manifestLoading,
@@ -150,15 +152,20 @@ export function AdapterDetailContent({
     [runs, adapterKey],
   );
 
-  const openRunInTest = React.useCallback(
+  const isEnrichmentAdapter = isCustomerContactEnrichmentAdapter(adapterKey);
+
+  const openRunDetail = React.useCallback(
     (runId: string) => {
+      if (isEnrichmentAdapter && onOpenRunDetail) {
+        onOpenRunDetail(adapterKey, runId);
+        return;
+      }
       onOpenScraperTest?.(adapterKey, runId);
     },
-    [adapterKey, onOpenScraperTest],
+    [adapterKey, isEnrichmentAdapter, onOpenRunDetail, onOpenScraperTest],
   );
 
-  const runColumns = React.useMemo(() => buildRunColumns(openRunInTest), [openRunInTest]);
-  const isEnrichmentAdapter = isCustomerContactEnrichmentAdapter(adapterKey);
+  const runColumns = React.useMemo(() => buildRunColumns(openRunDetail), [openRunDetail]);
 
   return (
     <>
@@ -198,6 +205,7 @@ export function AdapterDetailContent({
                 adapterKey={adapterKey}
                 manifest={manifest}
                 onRunFinished={onRunsChanged}
+                onOpenRunDetail={onOpenRunDetail}
               />
             ) : (
               <p className="text-muted">Yükleniyor…</p>

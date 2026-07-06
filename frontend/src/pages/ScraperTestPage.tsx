@@ -8,6 +8,8 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { scraperLabels } from "../labels/scraperLabels";
 import type { AdapterListItem } from "../types/scraper";
 import { readSearchParams } from "../utils/urlState";
+import { isCustomerContactEnrichmentAdapter } from "../utils/enrichmentAdapter";
+import { buildEnrichmentRunDetailPath } from "../utils/enrichmentRunRouting";
 
 interface ScraperTestPageProps {
   initialAdapterKey?: string;
@@ -37,7 +39,12 @@ export function ScraperTestPage({ initialAdapterKey, focusRunId }: ScraperTestPa
 
   React.useEffect(() => {
     void listAdapters()
-      .then((response) => setAdapters(response.items))
+      .then((response) => {
+        const items = response.items.filter(
+          (adapter) => !isCustomerContactEnrichmentAdapter(adapter.adapter_key),
+        );
+        setAdapters(items);
+      })
       .catch((err) => {
         setError(err instanceof ApiError ? err.message : scraperLabels.loadError);
       })
@@ -60,6 +67,21 @@ export function ScraperTestPage({ initialAdapterKey, focusRunId }: ScraperTestPa
         setOutputExcel(false);
       });
   }, [selectedAdapterKey]);
+
+  React.useEffect(() => {
+    const params = readPageParams();
+    const adapterFromUrl = params.adapterKey ?? initialAdapterKey;
+    const runFromUrl = params.runId ?? focusRunId ?? undefined;
+    if (adapterFromUrl && isCustomerContactEnrichmentAdapter(adapterFromUrl) && runFromUrl) {
+      window.location.replace(buildEnrichmentRunDetailPath(runFromUrl, adapterFromUrl));
+      return;
+    }
+    if (adapterFromUrl && isCustomerContactEnrichmentAdapter(adapterFromUrl)) {
+      setSelectedAdapterKey("");
+      setResolvedFocusRunId(null);
+      return;
+    }
+  }, [focusRunId, initialAdapterKey]);
 
   React.useEffect(() => {
     const onPopState = () => {

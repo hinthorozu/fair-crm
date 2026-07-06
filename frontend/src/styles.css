@@ -4053,6 +4053,12 @@ textarea.form-control-textarea {
   margin-top: 0.25rem;
 }
 
+.merge-field-source {
+  font-size: 0.75rem;
+  margin-top: 0.35rem;
+  line-height: 1.4;
+}
+
 /* ── Adapter Yönetimi ── */
 .adapter-management-page {
   display: flex;
@@ -4288,6 +4294,61 @@ textarea.form-control-textarea {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 0.75rem;
+}
+
+.enrichment-run-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.enrichment-run-actions,
+.enrichment-state-reset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+}
+
+.enrichment-panel-divider {
+  margin: 1rem 0;
+  border: 0;
+  border-top: 1px solid var(--border-color, #e2e8f0);
+}
+
+.enrichment-state-reset-panel h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.enrichment-state-reset-info {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.875rem;
+}
+
+.enrichment-state-reset-info li + li {
+  margin-top: 0.25rem;
+}
+
+.enrichment-run-summary {
+  margin-top: 0.5rem;
+}
+
+.enrichment-run-detail-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.enrichment-run-detail-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.enrichment-run-detail-import-link {
+  margin: 0 0 1rem;
 }
 
 .scraper-test-form {

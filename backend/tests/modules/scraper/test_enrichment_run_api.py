@@ -9,6 +9,7 @@ from app.modules.scraper.application.enrichment_run_job_runner import (
 )
 from app.modules.scraper.dto.enrichment_result_dto import EnrichmentResultDto, SourcedValue
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
+from app.modules.scraper.services.enrichment_run_executor import EnrichmentRunExecution
 from app.modules.scraper.services.enrichment_run_summary_loader import load_enrichment_summary_for_run
 from app.modules.scraper.services.scraper_run_history_service import ScraperRunHistoryService
 from app.modules.scraper.services.scraper_run_log_service import create_run_log_service
@@ -42,7 +43,7 @@ def _mock_executor(_session, _organization_id, **kwargs):
             status="not_found",
         ),
     ]
-    return results, _sample_handoff()
+    return EnrichmentRunExecution(results=results, handoff=_sample_handoff())
 
 
 def test_enrichment_run_starts_and_completes_with_summary(

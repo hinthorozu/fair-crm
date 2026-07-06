@@ -50,6 +50,7 @@ class MergeFieldPreviewResponse(BaseModel):
     result_value: Optional[str] = None
     outcome: str
     outcome_label: str
+    source_url: Optional[str] = None
 
 
 class MergeEntityGroupResponse(BaseModel):

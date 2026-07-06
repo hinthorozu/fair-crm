@@ -79,6 +79,7 @@ from app.modules.scraper.infrastructure.persistence.models import ScraperRunHist
 from app.modules.scraper.infrastructure.persistence.models import ScraperRunLogModel  # noqa: F401
 from app.modules.scraper.infrastructure.persistence.models import ScraperAdapterModel  # noqa: F401
 from app.modules.scraper.infrastructure.persistence.models import ScraperRegistryAdapterHideModel  # noqa: F401
+from app.modules.scraper.infrastructure.persistence.models import CustomerEnrichmentStateModel  # noqa: F401
 from app.modules.smtp.infrastructure.persistence.models import SmtpAccountModel  # noqa: F401
 from app.modules.mail_templates.infrastructure.persistence.models import MailTemplateModel  # noqa: F401
 from app.modules.fair_emails.infrastructure.persistence.models import (  # noqa: F401
@@ -86,7 +87,11 @@ from app.modules.fair_emails.infrastructure.persistence.models import (  # noqa:
     FairEmailOutboxModel,
 )
 from app.modules.mail_send_operations.infrastructure.persistence.models import MailSendOperationModel  # noqa: F401
-from app.modules.todos.infrastructure.persistence.models import TodoModel  # noqa: F401
+from app.modules.todos.infrastructure.persistence.models import (  # noqa: F401
+    TodoModel,
+    TodoOutcomeDefinitionModel,
+    TodoWorklistStateModel,
+)
 from app.modules.fair_emails.api.dependencies import (
     get_authorization_adapter as get_fair_emails_authorization_adapter,
 )

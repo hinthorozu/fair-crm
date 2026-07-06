@@ -8,7 +8,11 @@ from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
 
-from app.modules.scraper.domain.scraper_run_history import ScraperRunHistory, ScraperRunStatus
+from app.modules.scraper.domain.scraper_run_history import (
+    ACTIVE_SCRAPER_RUN_STATUSES,
+    ScraperRunHistory,
+    ScraperRunStatus,
+)
 from app.modules.scraper.domain.scraper_run_source import ScraperRunSource
 from app.modules.scraper.domain.scraper_run_history_filters import ScraperRunHistoryListFilters
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
@@ -96,6 +100,11 @@ class ScraperRunHistoryService:
                 output_excel_path=None,
                 run_source=run_source,
                 import_batch_id=None,
+                cancel_requested_by=None,
+                cancel_requested_at=None,
+                last_heartbeat_at=started,
+                progress_current=0,
+                progress_total=None,
             )
         )
 
@@ -113,6 +122,8 @@ class ScraperRunHistoryService:
         if existing is None:
             raise KeyError(f"Scraper run not found: {run_id}")
         if existing.status == ScraperRunStatus.CANCELLED:
+            return existing
+        if existing.status in {ScraperRunStatus.CANCEL_REQUESTED, ScraperRunStatus.CANCELLING}:
             return existing
         finished = finished_at or datetime.now(UTC)
         metrics = compute_handoff_metrics(handoff)
@@ -143,6 +154,8 @@ class ScraperRunHistoryService:
         if existing is None:
             raise KeyError(f"Scraper run not found: {run_id}")
         if existing.status == ScraperRunStatus.CANCELLED:
+            return existing
+        if existing.status in {ScraperRunStatus.CANCEL_REQUESTED, ScraperRunStatus.CANCELLING}:
             return existing
         finished = finished_at or datetime.now(UTC)
         return self._repository.update(
@@ -329,11 +342,117 @@ class ScraperRunHistoryService:
             organization_id=organization_id,
         )
 
+    def request_cancel(
+        self,
+        run_id: UUID,
+        *,
+        organization_id: UUID,
+        requested_by: UUID,
+        requested_at: datetime | None = None,
+    ) -> ScraperRunHistory:
+        existing = self._repository.get_by_id(run_id)
+        if existing is None or existing.organization_id != organization_id:
+            raise KeyError(f"Scraper run not found: {run_id}")
+        if existing.status in {
+            ScraperRunStatus.CANCELLED,
+            ScraperRunStatus.COMPLETED,
+            ScraperRunStatus.FAILED,
+        }:
+            return existing
+        if existing.status in {ScraperRunStatus.CANCEL_REQUESTED, ScraperRunStatus.CANCELLING}:
+            return existing
+        if existing.status != ScraperRunStatus.RUNNING:
+            return existing
+        requested = requested_at or datetime.now(UTC)
+        return self._repository.update(
+            replace(
+                existing,
+                status=ScraperRunStatus.CANCEL_REQUESTED,
+                cancel_requested_by=requested_by,
+                cancel_requested_at=requested,
+            )
+        )
+
+    def mark_cancelling(self, run_id: UUID) -> ScraperRunHistory:
+        existing = self._repository.get_by_id(run_id)
+        if existing is None:
+            raise KeyError(f"Scraper run not found: {run_id}")
+        if existing.status == ScraperRunStatus.CANCELLED:
+            return existing
+        if existing.status not in {ScraperRunStatus.CANCEL_REQUESTED, ScraperRunStatus.CANCELLING}:
+            return existing
+        return self._repository.update(
+            replace(
+                existing,
+                status=ScraperRunStatus.CANCELLING,
+            )
+        )
+
+    def touch_heartbeat(
+        self,
+        run_id: UUID,
+        *,
+        progress_current: int | None = None,
+        progress_total: int | None = None,
+        heartbeat_at: datetime | None = None,
+    ) -> ScraperRunHistory | None:
+        existing = self._repository.get_by_id(run_id)
+        if existing is None:
+            return None
+        if existing.status not in ACTIVE_SCRAPER_RUN_STATUSES:
+            return existing
+        now = heartbeat_at or datetime.now(UTC)
+        updates: dict[str, object] = {"last_heartbeat_at": now}
+        if progress_current is not None:
+            updates["progress_current"] = progress_current
+        if progress_total is not None:
+            updates["progress_total"] = progress_total
+        return self._repository.update(replace(existing, **updates))
+
+    def complete_cancelled_run(
+        self,
+        run_id: UUID,
+        *,
+        handoff: ScraperImportHandoff | None = None,
+        finished_at: datetime | None = None,
+        output_json_path: str | None = None,
+        import_batch_id: UUID | None = None,
+    ) -> ScraperRunHistory:
+        existing = self._repository.get_by_id(run_id)
+        if existing is None:
+            raise KeyError(f"Scraper run not found: {run_id}")
+        if existing.status == ScraperRunStatus.CANCELLED:
+            return existing
+        finished = finished_at or datetime.now(UTC)
+        metrics = compute_handoff_metrics(handoff) if handoff is not None else {
+            "total_rows": 0,
+            "website_count": 0,
+            "email_count": 0,
+            "phone_count": 0,
+            "instagram_count": 0,
+            "linkedin_count": 0,
+            "facebook_count": 0,
+            "youtube_count": 0,
+            "x_count": 0,
+        }
+        return self._repository.update(
+            replace(
+                existing,
+                status=ScraperRunStatus.CANCELLED,
+                finished_at=finished,
+                duration_ms=duration_ms_between(existing.started_at, finished),
+                error_message=None,
+                output_json_path=output_json_path if output_json_path is not None else existing.output_json_path,
+                import_batch_id=import_batch_id if import_batch_id is not None else existing.import_batch_id,
+                **metrics,
+            )
+        )
+
     def cancel_run(
         self,
         run_id: UUID,
         *,
-        reason: str,
+        reason: str | None = None,
         finished_at: datetime | None = None,
     ) -> ScraperRunHistory:
         existing = self._repository.get_by_id(run_id)

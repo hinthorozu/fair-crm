@@ -47,6 +47,8 @@ from app.modules.scraper.api.schemas import (
     AdapterListResponse,
     AdapterTestRunRequest,
     EnrichmentRunRequest,
+    EnrichmentStateResetRequest,
+    EnrichmentStateResetResponse,
     CreateAdapterRequest,
     UpdateAdapterRequest,
     UpdateAdapterManifestRequest,
@@ -55,6 +57,7 @@ from app.modules.scraper.api.schemas import (
     ScraperManifestListResponse,
     ScraperManifestResponse,
     ScraperRunHistoryListResponse,
+    ScraperRunCancelResponse,
     ScraperRunHistoryResponse,
     ScraperRunLogListResponse,
     ScraperRunLogResponse,
@@ -99,6 +102,7 @@ from app.modules.scraper.domain.scraper_adapter_exceptions import (
 )
 from app.modules.scraper.domain.adapter_engine import AdapterEngineType
 from app.modules.scraper.domain.scraper_run_history import ScraperRunHistory, ScraperRunStatus
+from app.modules.scraper.domain.scraper_run_log import ScraperRunLogLevel
 from app.modules.scraper.domain.scraper_run_history_filters import ScraperRunHistoryListFilters
 from app.modules.scraper.infrastructure.handoff_storage import (
     resolve_handoff_excel_path,
@@ -598,6 +602,32 @@ def run_customer_contact_enrichment(
     return ScraperRunHistoryResponse.from_entity(run)
 
 
+@router.post(
+    "/enrichment-state/reset",
+    response_model=EnrichmentStateResetResponse,
+    summary="Müşteri iletişim zenginleştirme durumunu sıfırla",
+)
+def reset_customer_enrichment_state(
+    body: EnrichmentStateResetRequest,
+    auth: Annotated[AuthContext, Depends(require_run_permission)],
+    db: Annotated[Session, Depends(get_db)],
+) -> EnrichmentStateResetResponse:
+    from app.modules.scraper.services.customer_enrichment_state_service import reset_enrichment_states
+
+    if not body.reset_all and not body.customer_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="customer_ids veya reset_all belirtilmelidir",
+        )
+    deleted = reset_enrichment_states(
+        db,
+        organization_id=auth.organization_id,
+        customer_ids=None if body.reset_all else body.customer_ids,
+    )
+    db.commit()
+    return EnrichmentStateResetResponse(deleted_count=deleted)
+
+
 @router.get(
     "/runs",
     response_model=ScraperRunHistoryListResponse,
@@ -665,6 +695,52 @@ def get_scraper_run(
         row,
         engine_service=engine_service,
         run_log_service=run_log_service,
+    )
+
+
+@router.post(
+    "/runs/{run_id}/cancel",
+    response_model=ScraperRunCancelResponse,
+    summary="Uzun süren adapter çalıştırmasını güvenli durdur",
+)
+def cancel_scraper_run(
+    run_id: UUID,
+    auth: Annotated[AuthContext, Depends(require_run_permission)],
+    db: Annotated[Session, Depends(get_db)],
+    run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
+    run_log_service: Annotated[ScraperRunLogService, Depends(get_scraper_run_log_service)],
+) -> ScraperRunCancelResponse:
+    run = _get_org_scoped_run(run_history_service, run_id, auth.organization_id)
+    if run.status not in {ScraperRunStatus.RUNNING, ScraperRunStatus.CANCEL_REQUESTED}:
+        return ScraperRunCancelResponse(
+            job_id=run.id,
+            status=run.status,
+            cancel_requested_at=run.cancel_requested_at,
+            message="İş zaten durdurulmuş veya tamamlanmış.",
+        )
+    updated = run_history_service.request_cancel(
+        run_id,
+        organization_id=auth.organization_id,
+        requested_by=auth.user_id,
+    )
+    run_log_service.append_log(
+        run_id=run_id,
+        level=ScraperRunLogLevel.INFO,
+        step="cancel_requested",
+        message="İptal isteği alındı. İş güvenli noktada durdurulacak.",
+        metadata={
+            "cancel_requested_by": str(auth.user_id),
+            "cancel_requested_at": (
+                updated.cancel_requested_at.isoformat() if updated.cancel_requested_at is not None else None
+            ),
+        },
+    )
+    db.commit()
+    return ScraperRunCancelResponse(
+        job_id=updated.id,
+        status=updated.status,
+        cancel_requested_at=updated.cancel_requested_at,
+        message="İptal isteği alındı. İş güvenli noktada durdurulacak.",
     )
 
 

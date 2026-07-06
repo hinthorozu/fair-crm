@@ -206,6 +206,7 @@ class ImportJobRunner:
                 SqlAlchemyParticipationRepository(db),
                 authorization,
                 audit,
+                db,
             )
 
             to_update: list = []
@@ -350,6 +351,7 @@ class ImportJobRunner:
                 SqlAlchemyParticipationRepository(db),
                 authorization,
                 audit,
+                db,
             )
             executor = ImportExecutor(apply_use_case)
             result = executor.execute(

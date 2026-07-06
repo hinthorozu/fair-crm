@@ -9,6 +9,7 @@ from app.modules.todos.domain.exceptions import (
     InvalidTodoStatusError,
     InvalidTodoStatusTransitionError,
     InvalidTodoTitleError,
+    TodoSourceFairChangeNotAllowedError,
 )
 from app.modules.todos.domain.value_objects import TodoCategory, TodoPriority, TodoStatus
 
@@ -53,6 +54,7 @@ class Todo:
     category: str
     deadline: Optional[datetime]
     assignee_user_id: Optional[UUID]
+    source_fair_id: Optional[UUID]
     created_by: UUID
     updated_by: Optional[UUID]
     archived_at: Optional[datetime]
@@ -73,6 +75,7 @@ class Todo:
         category: str = TodoCategory.GENEL_GOREV,
         deadline: Optional[datetime] = None,
         assignee_user_id: Optional[UUID] = None,
+        source_fair_id: Optional[UUID] = None,
         now: datetime,
     ) -> "Todo":
         trimmed_title = title.strip()
@@ -89,6 +92,7 @@ class Todo:
             category=_validate_category(category),
             deadline=deadline,
             assignee_user_id=assignee_user_id,
+            source_fair_id=source_fair_id,
             created_by=created_by,
             updated_by=None,
             archived_at=None,
@@ -112,6 +116,9 @@ class Todo:
         set_description: bool = False,
         set_deadline: bool = False,
         set_assignee_user_id: bool = False,
+        source_fair_id: Optional[UUID] = None,
+        set_source_fair_id: bool = False,
+        has_worklist_states: bool = False,
     ) -> None:
         if title is not None:
             trimmed = title.strip()
@@ -142,8 +149,32 @@ class Todo:
         if set_assignee_user_id:
             self.assignee_user_id = assignee_user_id
 
+        if set_source_fair_id:
+            self.ensure_source_fair_change_allowed(
+                new_source_fair_id=source_fair_id,
+                has_worklist_states=has_worklist_states,
+            )
+            self.source_fair_id = source_fair_id
+
         self.updated_by = updated_by
         self.updated_at = now
+
+    def ensure_source_fair_change_allowed(
+        self,
+        *,
+        new_source_fair_id: Optional[UUID],
+        has_worklist_states: bool,
+    ) -> None:
+        if new_source_fair_id == self.source_fair_id:
+            return
+        if self.status == TodoStatus.DONE:
+            raise TodoSourceFairChangeNotAllowedError(
+                "source_fair_id cannot change on a completed todo"
+            )
+        if has_worklist_states:
+            raise TodoSourceFairChangeNotAllowedError(
+                "source_fair_id cannot change after worklist state exists"
+            )
 
     def complete(self, *, now: datetime, updated_by: UUID) -> None:
         self.status = TodoStatus.DONE

@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import logging
+import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -20,9 +23,25 @@ from app.modules.scraper.services.enrichment_candidate_service import (
     EnrichmentCandidate,
     list_enrichment_candidates,
 )
+from app.modules.scraper.services.customer_enrichment_state_service import record_scan_result
 from app.modules.scraper.services.enrichment_customer_run_logger import EnrichmentCustomerRunLogger
+from app.modules.scraper.services.scraper_run_cancellation import RunCancelChecker
 from app.modules.scraper.types.scraper_result import ScraperResult
 from app.modules.scraper.types.scraper_site import ScraperSiteKey
+
+logger = logging.getLogger(__name__)
+
+CANDIDATES_QUERY_SLOW_WARNING_MS = 10_000
+
+
+@dataclass(frozen=True)
+class EnrichmentRunExecution:
+    results: list[EnrichmentResultDto]
+    handoff: ScraperImportHandoff
+    cancelled: bool = False
+    processed_count: int = 0
+    total_candidates: int = 0
+    last_processed_customer_id: UUID | None = None
 
 
 def build_handoff_from_enrichment_results(
@@ -63,21 +82,104 @@ def execute_enrichment_run(
     requested_fields: list[str],
     max_pages: int = 10,
     fetcher: Callable[[str], str] | None = None,
-) -> tuple[list[EnrichmentResultDto], ScraperImportHandoff]:
-    candidates = list_enrichment_candidates(session, organization_id, limit=limit)
-    results: list[EnrichmentResultDto] = []
-    for candidate in candidates:
-        results.append(
-            enrich_customer_website(
-                candidate,
-                requested_fields=requested_fields,
-                max_pages=max_pages,
-                fetcher=fetcher,
-                run_id=run_id,
-                run_logger=run_logger,
-            )
+    customer_ids: list[UUID] | None = None,
+    cancel_checker: RunCancelChecker | None = None,
+) -> EnrichmentRunExecution:
+    def _cancelled_execution(
+        results: list[EnrichmentResultDto],
+        *,
+        total_candidates: int,
+        last_processed_customer_id: UUID | None,
+    ) -> EnrichmentRunExecution:
+        raw_rows = enrichment_results_to_raw_companies(results, requested_fields=requested_fields)
+        handoff = build_handoff_from_enrichment_results(
+            raw_rows,
+            requested_fields=requested_fields,
+        )
+        return EnrichmentRunExecution(
+            results=results,
+            handoff=handoff,
+            cancelled=True,
+            processed_count=len(results),
+            total_candidates=total_candidates,
+            last_processed_customer_id=last_processed_customer_id,
         )
 
+    query_started_at = time.perf_counter()
+    if customer_ids:
+        from app.modules.scraper.services.single_customer_enrichment_service import (
+            list_enrichment_candidates_for_customer_ids,
+        )
+
+        candidates = list_enrichment_candidates_for_customer_ids(
+            session,
+            organization_id,
+            customer_ids,
+        )
+    else:
+        candidates = list_enrichment_candidates(session, organization_id, limit=limit)
+    duration_ms = int((time.perf_counter() - query_started_at) * 1000)
+    candidate_count = len(candidates)
+    if run_logger is not None:
+        finished_metadata = {
+            "duration_ms": duration_ms,
+            "candidates_count": candidate_count,
+            "limit": limit,
+            "customer_ids_filter": [str(item) for item in customer_ids or []],
+        }
+        run_logger.info(
+            "candidates_query_finished",
+            f"Aday sorgusu tamamlandı ({duration_ms} ms, {candidate_count} aday)",
+            metadata=finished_metadata,
+        )
+        if duration_ms >= CANDIDATES_QUERY_SLOW_WARNING_MS:
+            run_logger.warning(
+                "candidates_query_slow",
+                f"Aday sorgusu beklenenden uzun sürdü ({duration_ms} ms)",
+                metadata=finished_metadata,
+            )
+        run_logger.info(
+            "candidates_loaded",
+            f"{candidate_count} aday müşteri bulundu",
+            metadata={"candidate_count": candidate_count, "limit": limit, "duration_ms": duration_ms},
+        )
+    elif duration_ms >= CANDIDATES_QUERY_SLOW_WARNING_MS:
+        logger.warning(
+            "Enrichment candidate query slow org=%s duration_ms=%s candidates=%s",
+            organization_id,
+            duration_ms,
+            candidate_count,
+        )
+
+    if cancel_checker is not None and cancel_checker.is_cancel_requested():
+        return _cancelled_execution([], total_candidates=candidate_count, last_processed_customer_id=None)
+
+    results: list[EnrichmentResultDto] = []
+    last_processed_customer_id: UUID | None = None
+    for candidate in candidates:
+        if cancel_checker is not None and cancel_checker.is_cancel_requested():
+            break
+        result = enrich_customer_website(
+            candidate,
+            requested_fields=requested_fields,
+            max_pages=max_pages,
+            fetcher=fetcher,
+            run_id=run_id,
+            run_logger=run_logger,
+        )
+        results.append(result)
+        last_processed_customer_id = candidate.customer_id
+        if run_id is not None:
+            record_scan_result(
+                session,
+                organization_id=organization_id,
+                run_id=run_id,
+                result=result,
+            )
+        if cancel_checker is not None and cancel_checker.is_cancel_requested():
+            break
+
+    cancelled = cancel_checker is not None and cancel_checker.is_cancel_requested()
     raw_rows = enrichment_results_to_raw_companies(results, requested_fields=requested_fields)
     handoff = build_handoff_from_enrichment_results(
         raw_rows,
@@ -110,4 +212,11 @@ def execute_enrichment_run(
             else:
                 event_logger.handoff_row_skipped(reason=result.status)
 
-    return results, handoff
+    return EnrichmentRunExecution(
+        results=results,
+        handoff=handoff,
+        cancelled=cancelled,
+        processed_count=len(results),
+        total_candidates=candidate_count,
+        last_processed_customer_id=last_processed_customer_id,
+    )

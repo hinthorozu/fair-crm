@@ -1,6 +1,12 @@
 export type AdapterEngineType = "static" | "dynamic";
 
-export type ScraperRunStatus = "running" | "completed" | "failed" | "cancelled";
+export type ScraperRunStatus =
+  | "running"
+  | "cancel_requested"
+  | "cancelling"
+  | "completed"
+  | "failed"
+  | "cancelled";
 
 export type ScraperRunLogLevel = "info" | "warning" | "error" | "success";
 
@@ -209,11 +215,24 @@ export interface ScraperRun {
   import_batch_id?: string | null;
   import_batch_url?: string | null;
   enrichment_summary?: EnrichmentRunSummary | null;
+  cancel_requested_by?: string | null;
+  cancel_requested_at?: string | null;
+  last_heartbeat_at?: string | null;
+  progress_current?: number | null;
+  progress_total?: number | null;
+}
+
+export interface ScraperRunCancelResponse {
+  job_id: string;
+  status: ScraperRunStatus;
+  cancel_requested_at: string | null;
+  message: string;
 }
 
 export interface EnrichmentRunSummary {
   customers_scanned: number;
   emails_found: number;
+  phones_found?: number;
   not_found: number;
   failed: number;
   found: number;
@@ -228,6 +247,15 @@ export interface EnrichmentRunPayload {
   requested_fields?: RequestedOutputField[];
   dry_run?: boolean;
   max_pages?: number;
+}
+
+export interface EnrichmentStateResetPayload {
+  customer_ids?: string[];
+  reset_all?: boolean;
+}
+
+export interface EnrichmentStateResetResponse {
+  deleted_count: number;
 }
 
 export interface ScraperRunListResponse {

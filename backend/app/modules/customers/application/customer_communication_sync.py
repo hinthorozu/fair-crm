@@ -40,12 +40,18 @@ class CustomerCommunicationSyncService:
                 now=now,
             )
         if sync_email:
+            normalized_emails = emails or []
             self._repository.replace_emails(
                 organization_id=organization_id,
                 customer_id=customer_id,
-                emails=emails or [],
+                emails=normalized_emails,
                 now=now,
             )
+            if not normalized_emails:
+                self._reset_enrichment_state_if_customer_has_no_email(
+                    organization_id=organization_id,
+                    customer_id=customer_id,
+                )
         if sync_website:
             self._repository.replace_websites(
                 organization_id=organization_id,
@@ -83,3 +89,19 @@ class CustomerCommunicationSyncService:
 
     def load_for_customer(self, customer_id: UUID) -> CustomerCommunications:
         return self._repository.load_for_customer(customer_id)
+
+    def _reset_enrichment_state_if_customer_has_no_email(
+        self,
+        *,
+        organization_id: UUID,
+        customer_id: UUID,
+    ) -> None:
+        from app.modules.scraper.services.customer_enrichment_state_service import (
+            reset_enrichment_state_if_customer_has_no_email,
+        )
+
+        reset_enrichment_state_if_customer_has_no_email(
+            self._repository.session,
+            organization_id=organization_id,
+            customer_id=customer_id,
+        )

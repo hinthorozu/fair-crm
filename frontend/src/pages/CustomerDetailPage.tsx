@@ -41,6 +41,7 @@ import {
   participationToFormValues,
   type ParticipationFormValues,
 } from "../components/ParticipationForm";
+import { CustomerContactEnrichmentTab } from "../components/customers/CustomerContactEnrichmentTab";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { LoadingState } from "../components/ui/LoadingState";
 import { FormModal } from "../components/ui/form";
@@ -58,8 +59,9 @@ import {
 import { activityLabels } from "../labels/activityLabels";
 import { contactLabels } from "../labels/contactLabels";
 import { customerStatusLabels, customerTypeLabels, customerSourceLabels, labels } from "../labels";
-import { uiLabels } from "../labels/uiLabels";
+import { customerEnrichmentLabels } from "../labels/customerEnrichmentLabels";
 import { participationLabels } from "../labels/participationLabels";
+import { uiLabels } from "../labels/uiLabels";
 import type { Activity } from "../types/activity";
 import type { Customer } from "../types/customer";
 import type { Contact } from "../types/contact";
@@ -78,11 +80,12 @@ interface CustomerDetailPageProps {
   customerId: string;
   onBack: () => void;
   onCustomerLoaded?: (name: string) => void;
+  onOpenImportBatch?: (batchId: string) => void;
 }
 
-type TabId = "overview" | "contacts" | "activities" | "participations";
+type TabId = "overview" | "contacts" | "activities" | "participations" | "enrichment";
 
-const VALID_TABS: TabId[] = ["overview", "contacts", "activities", "participations"];
+const VALID_TABS: TabId[] = ["overview", "contacts", "activities", "participations", "enrichment"];
 
 function tabFromUrl(): TabId {
   const tab = readSearchParams().get("tab");
@@ -101,6 +104,7 @@ export function CustomerDetailPage({
   customerId,
   onBack,
   onCustomerLoaded,
+  onOpenImportBatch,
 }: CustomerDetailPageProps) {
   const [customer, setCustomer] = React.useState<Customer | null>(null);
   const [contactsForForm, setContactsForForm] = React.useState<Contact[]>([]);
@@ -419,6 +423,7 @@ export function CustomerDetailPage({
       label: uiLabels.tabFairParticipations,
       badge: participationsTotal > 0 ? participationsTotal : undefined,
     },
+    { id: "enrichment" as const, label: customerEnrichmentLabels.tabTitle },
   ];
 
   if (loading) {
@@ -745,6 +750,18 @@ export function CustomerDetailPage({
             onDelete={(item) => setConfirm({ type: "participation", item })}
           />
         </ServerDataTableFrame>
+      </TabPanel>
+
+      <TabPanel
+        id="panel-enrichment"
+        labelledBy="tab-enrichment"
+        active={activeTab === "enrichment"}
+      >
+        <CustomerContactEnrichmentTab
+          customerId={customerId}
+          disabled={isArchived}
+          onOpenImportBatch={onOpenImportBatch}
+        />
       </TabPanel>
 
       {modal === "edit-customer" && (

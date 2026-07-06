@@ -36,6 +36,7 @@ interface AdapterDetailPageProps {
   onAdapterLoaded?: (displayName: string) => void;
   onViewAllRuns?: (adapterKey: string) => void;
   onOpenScraperTest?: (adapterKey: string, runId?: string) => void;
+  onOpenRunDetail?: (adapterKey: string, runId: string) => void;
 }
 
 const BASE_TABS: AdapterDetailTab[] = ["manifest", "runs", "fairs"];
@@ -92,6 +93,7 @@ export function AdapterDetailPage({
   onAdapterLoaded,
   onViewAllRuns,
   onOpenScraperTest,
+  onOpenRunDetail,
 }: AdapterDetailPageProps) {
   const detailPath = `/data-integration/adapters/${encodeURIComponent(adapterKey)}`;
   const [adapterItem, setAdapterItem] = React.useState<AdapterListItem | null>(null);
@@ -165,14 +167,29 @@ export function AdapterDetailPage({
     void loadDetail({ showPageLoader: true });
   }, [adapterKey, loadDetail]);
 
+  const isEnrichmentAdapter = isCustomerContactEnrichmentAdapter(adapterKey);
+
   React.useEffect(() => {
     const params = readSearchParams();
-    if (params.get("tab") === "console" || params.get("run")) {
-      onOpenScraperTest?.(adapterKey, params.get("run") ?? undefined);
+    const legacyRunId = params.get("run");
+    if (params.get("tab") === "console") {
+      if (isEnrichmentAdapter) {
+        setActiveTab("run");
+        params.delete("tab");
+        navigateWithSearch(detailPath, buildLocationSearch(params));
+      } else {
+        onOpenScraperTest?.(adapterKey);
+      }
+      return;
     }
-  }, [adapterKey, onOpenScraperTest]);
-
-  const isEnrichmentAdapter = isCustomerContactEnrichmentAdapter(adapterKey);
+    if (legacyRunId) {
+      if (isEnrichmentAdapter && onOpenRunDetail) {
+        onOpenRunDetail(adapterKey, legacyRunId);
+      } else {
+        onOpenScraperTest?.(adapterKey, legacyRunId);
+      }
+    }
+  }, [adapterKey, detailPath, isEnrichmentAdapter, onOpenRunDetail, onOpenScraperTest, setActiveTab]);
 
   React.useEffect(() => {
     setActiveTabState(tabFromUrl(adapterKey));
@@ -384,6 +401,7 @@ export function AdapterDetailPage({
         onOpenFair={onOpenFair}
         onViewAllRuns={onViewAllRuns}
         onOpenScraperTest={onOpenScraperTest}
+        onOpenRunDetail={onOpenRunDetail}
         onRunsChanged={() => void loadDetail({ showPageLoader: false })}
         manifest={manifest}
         manifestLoading={manifestLoading}

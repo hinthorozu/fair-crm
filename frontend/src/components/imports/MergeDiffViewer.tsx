@@ -1,7 +1,8 @@
 import React from "react";
 import { Badge } from "../../components/ui/Badge";
+import { DetailWebsite } from "../../components/ui/DetailFields";
 import type { ImportRow, MergeFieldPreview, MergeOutcome, MergePreview } from "../../types/import";
-import { mergeEntityLabels, mergeOutcomeLabels } from "../../labels/importLabels";
+import { mergeEntityLabels, mergeFieldSourceLabel, mergeOutcomeLabels } from "../../labels/importLabels";
 import { mergeOutcomeBadgeVariant } from "../../utils/importBadges";
 
 function str(v: string | null | undefined): string {
@@ -120,7 +121,15 @@ export function MergeDiffViewer({ row, expanded: controlledExpanded, onExpandedC
                     <tr key={field.field_key}>
                       <td>{field.label}</td>
                       <td>{str(field.crm_value)}</td>
-                      <td>{str(field.import_value)}</td>
+                      <td>
+                        <div>{str(field.import_value)}</div>
+                        {field.source_url ? (
+                          <div className="merge-field-source text-muted">
+                            <span>{mergeFieldSourceLabel}: </span>
+                            <DetailWebsite value={field.source_url} />
+                          </div>
+                        ) : null}
+                      </td>
                       <td>
                         <OutcomeBadge outcome={field.outcome} label={field.outcome_label} />
                         {field.result_value && field.outcome !== "same" && field.outcome !== "empty" && (

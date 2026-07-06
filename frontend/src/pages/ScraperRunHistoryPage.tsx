@@ -20,6 +20,7 @@ interface ScraperRunHistoryPageProps {
 function runSourceLabel(value: ScraperRun["run_source"]): string {
   if (value === "fair_automation") return scraperLabels.runSourceFairAutomation;
   if (value === "manual_test") return scraperLabels.runSourceManualTest;
+  if (value === "enrichment") return scraperLabels.runSourceEnrichment;
   return "—";
 }
 
@@ -286,6 +287,17 @@ export function ScraperRunHistoryPage({
       .then((response) => setAdapters(response.items))
       .catch(() => setAdapters([]));
   }, []);
+
+  React.useEffect(() => {
+    const hasRunning = table.items.some((run) => run.status === "running");
+    if (!hasRunning) {
+      return;
+    }
+    const interval = window.setInterval(() => {
+      void table.refresh();
+    }, 3000);
+    return () => window.clearInterval(interval);
+  }, [table.items, table.refresh]);
 
   const handleDownload = React.useCallback(async (run: ScraperRun, kind: "json" | "excel") => {
     const key = `${run.id}:${kind}`;

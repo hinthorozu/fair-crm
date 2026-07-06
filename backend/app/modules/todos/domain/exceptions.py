@@ -24,3 +24,31 @@ class InvalidTodoCategoryError(TodoDomainError):
 
 class InvalidTodoStatusTransitionError(TodoDomainError):
     pass
+
+
+class InvalidWorklistPrimaryStatusError(TodoDomainError):
+    pass
+
+
+class InvalidOutcomeCodeError(TodoDomainError):
+    pass
+
+
+class InvalidOutcomeNameError(TodoDomainError):
+    pass
+
+
+class InvalidOutcomePrimaryWorklistStatusError(TodoDomainError):
+    pass
+
+
+class TodoOutcomeDefinitionNotFoundError(TodoDomainError):
+    pass
+
+
+class TodoWorklistStateNotFoundError(TodoDomainError):
+    pass
+
+
+class TodoSourceFairChangeNotAllowedError(TodoDomainError):
+    pass

@@ -296,6 +296,7 @@ def build_merge_preview(
     participation: CustomerFairParticipation | None,
     contact: Contact | None,
     fair_id: UUID | None,
+    field_source_urls: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     data = row.normalized_data_json or {}
     import_social_urls = social_urls_from_mapping(data)
@@ -354,17 +355,20 @@ def build_merge_preview(
 
         if _is_empty(in_val) and _is_empty(db_val) and outcome == "empty" and not applies:
             continue
-        customer_fields.append(
-            {
-                "field_key": in_key,
-                "label": label,
-                "crm_value": crm,
-                "import_value": imp,
-                "result_value": res,
-                "outcome": outcome,
-                "outcome_label": OUTCOME_LABELS[outcome],
-            }
-        )
+        field_entry: dict[str, Any] = {
+            "field_key": in_key,
+            "label": label,
+            "crm_value": crm,
+            "import_value": imp,
+            "result_value": res,
+            "outcome": outcome,
+            "outcome_label": OUTCOME_LABELS[outcome],
+        }
+        if field_source_urls:
+            source_url = field_source_urls.get(in_key)
+            if source_url:
+                field_entry["source_url"] = source_url
+        customer_fields.append(field_entry)
 
     if customer_fields:
         groups.append(

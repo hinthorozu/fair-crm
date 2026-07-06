@@ -54,6 +54,11 @@ class ScraperRunHistoryModel(Base):
         nullable=True,
         index=True,
     )
+    cancel_requested_by: Mapped[UUID | None] = mapped_column(Uuid(), nullable=True)
+    cancel_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    progress_current: Mapped[int | None] = mapped_column(Integer(), nullable=True)
+    progress_total: Mapped[int | None] = mapped_column(Integer(), nullable=True)
 
     logs: Mapped[list["ScraperRunLogModel"]] = relationship(
         "ScraperRunLogModel",
@@ -107,3 +112,30 @@ class ScraperRegistryAdapterHideModel(Base):
     organization_id: Mapped[UUID] = mapped_column(Uuid(), nullable=False, index=True)
     adapter_key: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class CustomerEnrichmentStateModel(Base):
+    __tablename__ = "crm_customer_enrichment_states"
+
+    id: Mapped[UUID] = mapped_column(Uuid(), primary_key=True, default=uuid4)
+    organization_id: Mapped[UUID] = mapped_column(Uuid(), nullable=False, index=True)
+    customer_id: Mapped[UUID] = mapped_column(
+        Uuid(),
+        ForeignKey("crm_customers.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    website: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    last_enrichment_run_id: Mapped[UUID | None] = mapped_column(
+        Uuid(),
+        ForeignKey("scraper_run_history.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    last_email_scan_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_email_scan_status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    last_email_found: Mapped[str | None] = mapped_column(String(320), nullable=True)
+    last_source_url: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    retry_after: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

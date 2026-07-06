@@ -8,6 +8,7 @@ import type {
   ScraperManifest,
   ScraperManifestListResponse,
   ScraperRun,
+  ScraperRunCancelResponse,
   ScraperRunListResponse,
   ScraperRunLogListResponse,
   AdapterDeletePreview,
@@ -21,6 +22,8 @@ import type {
   ScraperRunStatus,
   AdapterEngineType,
   EnrichmentRunPayload,
+  EnrichmentStateResetPayload,
+  EnrichmentStateResetResponse,
 } from "../types/scraper";
 
 export async function getScraperDashboard(): Promise<ScraperDashboardResponse> {
@@ -165,6 +168,13 @@ export async function getScraperRun(runId: string): Promise<ScraperRun> {
   return apiRequest<ScraperRun>(`/api/v1/scraper/runs/${encodeURIComponent(runId)}`);
 }
 
+export async function cancelScraperRun(runId: string): Promise<ScraperRunCancelResponse> {
+  return apiRequest<ScraperRunCancelResponse>(
+    `/api/v1/scraper/runs/${encodeURIComponent(runId)}/cancel`,
+    { method: "POST" },
+  );
+}
+
 export async function listScraperRunLogs(
   runId: string,
   params?: { after_id?: string; limit?: number },
@@ -189,6 +199,15 @@ export async function runCustomerContactEnrichment(
       body: JSON.stringify(payload),
     },
   );
+}
+
+export async function resetEnrichmentState(
+  payload: EnrichmentStateResetPayload,
+): Promise<EnrichmentStateResetResponse> {
+  return apiRequest<EnrichmentStateResetResponse>("/api/v1/scraper/enrichment-state/reset", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function runAdapterTest(

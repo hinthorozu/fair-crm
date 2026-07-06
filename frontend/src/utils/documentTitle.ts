@@ -70,6 +70,8 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
       );
     case "/data-integration/run-history":
       return scraperLabels.runHistoryTitle;
+    case "/data-integration/runs/:runId":
+      return scraperLabels.enrichmentRunDetailTitle;
     case "/data-integration/scraper-test":
       return scraperLabels.testPageTitle;
     case "/data-integration/jobs":

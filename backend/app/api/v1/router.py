@@ -14,6 +14,9 @@ from app.modules.participations.api.routes import (
     router as participations_router,
 )
 from app.modules.scraper.api.routes import router as scraper_router
+from app.modules.customers.api.contact_enrichment_routes import (
+    router as customer_contact_enrichment_router,
+)
 from app.modules.smtp.api.routes import router as smtp_router
 from app.modules.mail_templates.api.routes import router as mail_templates_router
 from app.modules.mail_send_operations.api.routes import router as mail_send_operations_router
@@ -36,6 +39,7 @@ api_v1_router.include_router(data_integration_router)
 api_v1_router.include_router(system_admin_router)
 api_v1_router.include_router(data_operations_router)
 api_v1_router.include_router(scraper_router)
+api_v1_router.include_router(customer_contact_enrichment_router, prefix="/customers")
 api_v1_router.include_router(smtp_router)
 api_v1_router.include_router(mail_templates_router)
 api_v1_router.include_router(mail_send_operations_router)

@@ -3,6 +3,8 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy.orm import Session
+
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.client import HttpAuditAdapter
 from app.integrations.kyrox_core.ports import AuthorizationPort
@@ -32,6 +34,10 @@ from app.modules.participations.domain.entities import CustomerFairParticipation
 from app.modules.participations.domain.value_objects import ParticipationStatus
 from app.modules.participations.infrastructure.repositories.participation_repository import (
     SqlAlchemyParticipationRepository,
+)
+from app.modules.scraper.services.customer_enrichment_state_service import (
+    is_enrichment_import_batch,
+    record_enrichment_apply_outcome,
 )
 from app.modules.imports.domain.services.social_url_fields import social_urls_from_mapping
 from app.shared.email import normalize_email_field
@@ -96,6 +102,7 @@ class ApplyImportUseCase:
         participation_repository: SqlAlchemyParticipationRepository,
         authorization: AuthorizationPort,
         audit: HttpAuditAdapter,
+        db: Session,
     ) -> None:
         self._batch_repository = batch_repository
         self._row_repository = row_repository
@@ -106,6 +113,7 @@ class ApplyImportUseCase:
         self._participation_repository = participation_repository
         self._authorization = authorization
         self._audit = audit
+        self._db = db
 
     def execute(self, command: ApplyImportCommand) -> ApplyImportResult:
         if not self._authorization.check_permission(
@@ -222,6 +230,10 @@ class ApplyImportUseCase:
             return counters
 
         fair_id = batch.fair_id
+        enrichment_batch = is_enrichment_import_batch(batch)
+        had_email_before = False
+        if enrichment_batch and row.match_customer_id is not None:
+            had_email_before = self._customer_has_email(row.match_customer_id)
 
         if decision == ImportDecision.MANUAL_REVIEW:
             return counters
@@ -299,6 +311,18 @@ class ApplyImportUseCase:
             )
 
         counters.applied = True
+
+        if enrichment_batch and customer is not None:
+            has_email_after = self._customer_has_email(customer.id)
+            email_written = not had_email_before and has_email_after
+            record_enrichment_apply_outcome(
+                self._db,
+                organization_id=command.organization_id,
+                customer_id=customer.id,
+                had_email_before=had_email_before,
+                email_written=email_written,
+            )
+
         return counters
 
     def sync_batch_progress(
@@ -549,3 +573,7 @@ class ApplyImportUseCase:
             now=now,
         )
         self._activity_repository.add(activity)
+
+    def _customer_has_email(self, customer_id: UUID) -> bool:
+        communications = self._communication_sync.load_for_customer(customer_id)
+        return bool(communications.emails)

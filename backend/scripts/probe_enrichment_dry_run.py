@@ -104,7 +104,8 @@ def main() -> int:
         captured: dict[str, object] = {}
 
         def live_executor(db, org_id, **kwargs):
-            results, handoff = execute_enrichment_run(db, org_id, **kwargs)
+            execution = execute_enrichment_run(db, org_id, **kwargs)
+            results, handoff = execution.results, execution.handoff
             captured["results"] = results
             captured["handoff"] = handoff
             return results, handoff

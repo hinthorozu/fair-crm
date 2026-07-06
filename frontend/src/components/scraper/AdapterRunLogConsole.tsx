@@ -9,6 +9,7 @@ import { ApiError } from "../../api/client";
 import { Badge } from "../ui/Badge";
 import { scraperLabels } from "../../labels/scraperLabels";
 import { runStatusBadgeVariant, runStatusLabel } from "../../utils/scraperBadges";
+import { formatScraperLogStepLabel } from "../../utils/scraperLogStepLabels";
 import type { ScraperRunLog } from "../../types/scraper";
 
 const POLL_INTERVAL_MS = 2000;
@@ -20,15 +21,11 @@ interface AdapterRunLogConsoleProps {
   outputExcel?: boolean;
   showOutputOptions?: boolean;
   hideRunForm?: boolean;
+  enrichmentMode?: boolean;
 }
 
 function formatConsoleTime(value: string): string {
   return new Date(value).toLocaleTimeString("tr-TR");
-}
-
-function formatStepLabel(step: string): string {
-  if (step === "browser/open_url") return "Browser";
-  return step.replace(/_/g, " ");
 }
 
 export function AdapterRunLogConsole({
@@ -38,6 +35,7 @@ export function AdapterRunLogConsole({
   outputExcel: outputExcelDefault = false,
   showOutputOptions = false,
   hideRunForm = false,
+  enrichmentMode = false,
 }: AdapterRunLogConsoleProps) {
   const [inputUrl, setInputUrl] = React.useState("");
   const [maxPagesInput, setMaxPagesInput] = React.useState("");
@@ -340,7 +338,7 @@ export function AdapterRunLogConsole({
         {logs.map((log) => (
           <div key={log.id} className={`adapter-console-line adapter-console-${log.level}`}>
             <span className="adapter-console-time">{formatConsoleTime(log.created_at)}</span>
-            <span className="adapter-console-step">[{formatStepLabel(log.step)}]</span>
+            <span className="adapter-console-step">[{formatScraperLogStepLabel(log.step, enrichmentMode)}]</span>
             <span className="adapter-console-message">{log.message}</span>
           </div>
         ))}

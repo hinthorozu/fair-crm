@@ -16,6 +16,14 @@ MAILTO_PATTERN = re.compile(
     r"""mailto:([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})""",
     re.IGNORECASE,
 )
+CFEMAIL_DATA_PATTERN = re.compile(
+    r"""data-cfemail=["']([^"']+)["']""",
+    re.IGNORECASE,
+)
+CFEMAIL_HREF_PATTERN = re.compile(
+    r"""/cdn-cgi/l/email-protection#([0-9a-f]+)""",
+    re.IGNORECASE,
+)
 TEL_PATTERN = re.compile(r"""tel:([+\d\s().\-/]+)""", re.IGNORECASE)
 HREF_PATTERN = re.compile(r"""href=["']([^"']+)["']""", re.IGNORECASE)
 PHONE_TEXT_PATTERN = re.compile(
@@ -33,6 +41,34 @@ JUNK_EMAIL_LOCALPARTS = frozenset(
         "test",
         "sample",
         "mailer-daemon",
+        "youremail",
+        "yourname",
+        "your",
+        "username",
+    }
+)
+
+JUNK_EMAIL_DOMAINS = frozenset(
+    {
+        "example.com",
+        "test.com",
+        "email.com",
+    }
+)
+
+PLACEHOLDER_MAIL_COM_LOCALPARTS = frozenset(
+    {
+        "youremail",
+        "yourname",
+        "your",
+        "suemail",
+        "username",
+        "example",
+        "test",
+        "sample",
+        "name",
+        "email",
+        "mail",
     }
 )
 
@@ -55,12 +91,19 @@ ADDRESS_HINT_PATTERN = re.compile(
 
 def is_junk_email(email: str) -> bool:
     lowered = email.strip().lower()
-    local_part = lowered.split("@", 1)[0]
+    if "@" not in lowered:
+        return True
+    local_part, domain = lowered.split("@", 1)
     if local_part in JUNK_EMAIL_LOCALPARTS:
         return True
     if "@2x" in local_part or local_part.endswith((".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp")):
         return True
-    domain = lowered.rsplit("@", 1)[-1]
+    if domain in JUNK_EMAIL_DOMAINS or domain.endswith(".example.com") or domain.endswith(".test.com"):
+        return True
+    if local_part == "mail" and "example" in domain:
+        return True
+    if domain == "mail.com" and local_part in PLACEHOLDER_MAIL_COM_LOCALPARTS:
+        return True
     tld = domain.rsplit(".", 1)[-1]
     return tld in JUNK_EMAIL_TLD_SUFFIXES
 
@@ -102,6 +145,43 @@ def _append_unique_sourced(
     items.append(SourcedValue(value=value, source_url=source_url))
 
 
+def decode_cfemail(encoded: str) -> str | None:
+    """Decode Cloudflare email-protection hex (data-cfemail / cdn-cgi href)."""
+    cleaned = encoded.strip().lower()
+    if len(cleaned) < 4 or len(cleaned) % 2 != 0:
+        return None
+    if not re.fullmatch(r"[0-9a-f]+", cleaned):
+        return None
+    try:
+        key = int(cleaned[:2], 16)
+    except ValueError:
+        return None
+    chars: list[str] = []
+    for index in range(2, len(cleaned), 2):
+        try:
+            chars.append(chr(int(cleaned[index : index + 2], 16) ^ key))
+        except ValueError:
+            return None
+    email = "".join(chars).strip()
+    return email or None
+
+
+def _append_decoded_email(
+    emails: list[SourcedValue],
+    *,
+    encoded: str,
+    source_url: str,
+    seen: set[str],
+) -> None:
+    decoded = decode_cfemail(encoded)
+    if decoded is None:
+        return
+    email = normalize_email(decoded)
+    if is_junk_email(email):
+        return
+    _append_unique_sourced(emails, value=email, source_url=source_url, seen=seen)
+
+
 def extract_emails(html: str, source_url: str) -> list[SourcedValue]:
     seen: set[str] = set()
     emails: list[SourcedValue] = []
@@ -111,6 +191,12 @@ def extract_emails(html: str, source_url: str) -> list[SourcedValue]:
         if is_junk_email(email):
             continue
         _append_unique_sourced(emails, value=email, source_url=source_url, seen=seen)
+
+    for match in CFEMAIL_DATA_PATTERN.findall(html):
+        _append_decoded_email(emails, encoded=match, source_url=source_url, seen=seen)
+
+    for match in CFEMAIL_HREF_PATTERN.findall(html):
+        _append_decoded_email(emails, encoded=match, source_url=source_url, seen=seen)
 
     for match in EMAIL_PATTERN.findall(html):
         email = normalize_email(match)

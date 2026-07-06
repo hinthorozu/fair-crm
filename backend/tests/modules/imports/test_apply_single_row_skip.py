@@ -58,6 +58,7 @@ def test_finalize_applied_row_deletes_invalid_skip_row():
         MagicMock(),
         MagicMock(),
         MagicMock(),
+        MagicMock(),
     )
     command = ApplyImportCommand(
         organization_id=org_id,

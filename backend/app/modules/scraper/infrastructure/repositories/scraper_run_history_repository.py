@@ -8,7 +8,11 @@ from uuid import UUID
 from sqlalchemy import and_, delete, desc, func, select
 from sqlalchemy.orm import Session
 
-from app.modules.scraper.domain.scraper_run_history import ScraperRunHistory, ScraperRunStatus
+from app.modules.scraper.domain.scraper_run_history import (
+    ACTIVE_SCRAPER_RUN_STATUSES,
+    ScraperRunHistory,
+    ScraperRunStatus,
+)
 from app.modules.scraper.domain.scraper_run_source import ScraperRunSource
 from app.modules.scraper.domain.scraper_run_history_filters import ScraperRunHistoryListFilters
 from app.modules.scraper.infrastructure.persistence.models import ScraperAdapterModel, ScraperRunHistoryModel
@@ -48,6 +52,11 @@ def _to_entity(model: ScraperRunHistoryModel) -> ScraperRunHistory:
         output_excel_path=model.output_excel_path,
         run_source=ScraperRunSource(model.run_source),
         import_batch_id=model.import_batch_id,
+        cancel_requested_by=model.cancel_requested_by,
+        cancel_requested_at=model.cancel_requested_at,
+        last_heartbeat_at=model.last_heartbeat_at,
+        progress_current=model.progress_current,
+        progress_total=model.progress_total,
     )
 
 
@@ -82,6 +91,11 @@ class ScraperRunHistoryRepository:
             output_excel_path=run.output_excel_path,
             run_source=run.run_source.value,
             import_batch_id=run.import_batch_id,
+            cancel_requested_by=run.cancel_requested_by,
+            cancel_requested_at=run.cancel_requested_at,
+            last_heartbeat_at=run.last_heartbeat_at,
+            progress_current=run.progress_current,
+            progress_total=run.progress_total,
         )
         self._session.add(model)
         self._session.flush()
@@ -115,6 +129,11 @@ class ScraperRunHistoryRepository:
         model.output_excel_path = run.output_excel_path
         model.run_source = run.run_source.value
         model.import_batch_id = run.import_batch_id
+        model.cancel_requested_by = run.cancel_requested_by
+        model.cancel_requested_at = run.cancel_requested_at
+        model.last_heartbeat_at = run.last_heartbeat_at
+        model.progress_current = run.progress_current
+        model.progress_total = run.progress_total
         self._session.flush()
         return _to_entity(model)
 
@@ -354,9 +373,10 @@ class ScraperRunHistoryRepository:
         adapter_key: str,
         organization_id: UUID | None = None,
     ) -> list[ScraperRunHistory]:
+        active_statuses = tuple(status.value for status in ACTIVE_SCRAPER_RUN_STATUSES)
         stmt = select(ScraperRunHistoryModel).where(
             ScraperRunHistoryModel.adapter_key == adapter_key,
-            ScraperRunHistoryModel.status == ScraperRunStatus.RUNNING.value,
+            ScraperRunHistoryModel.status.in_(active_statuses),
         )
         if organization_id is not None:
             stmt = stmt.where(ScraperRunHistoryModel.organization_id == organization_id)
@@ -369,12 +389,13 @@ class ScraperRunHistoryRepository:
         adapter_key: str,
         organization_id: UUID | None = None,
     ) -> int:
+        active_statuses = tuple(status.value for status in ACTIVE_SCRAPER_RUN_STATUSES)
         stmt = (
             select(func.count())
             .select_from(ScraperRunHistoryModel)
             .where(
                 ScraperRunHistoryModel.adapter_key == adapter_key,
-                ScraperRunHistoryModel.status == ScraperRunStatus.RUNNING.value,
+                ScraperRunHistoryModel.status.in_(active_statuses),
             )
         )
         if organization_id is not None:

@@ -19,6 +19,9 @@ from app.modules.scraper.services.scraper_dashboard_service import (
     build_adapter_features,
     resolve_actions_available,
 )
+from app.modules.scraper.services.single_customer_enrichment_service import (
+    CustomerContactEnrichmentStateView,
+)
 
 if TYPE_CHECKING:
     from app.modules.scraper.services.adapter_engine_service import AdapterEngineView
@@ -211,6 +214,11 @@ class ScraperRunHistoryResponse(BaseModel):
     import_batch_id: UUID | None = None
     import_batch_url: str | None = None
     enrichment_summary: dict[str, Any] | None = None
+    cancel_requested_by: UUID | None = None
+    cancel_requested_at: datetime | None = None
+    last_heartbeat_at: datetime | None = None
+    progress_current: int | None = None
+    progress_total: int | None = None
 
     @classmethod
     def from_entity(cls, run: ScraperRunHistory, **extra: Any) -> ScraperRunHistoryResponse:
@@ -245,6 +253,11 @@ class ScraperRunHistoryResponse(BaseModel):
             import_batch_id=run.import_batch_id,
             import_batch_url=import_batch_url,
             enrichment_summary=extra.get("enrichment_summary"),
+            cancel_requested_by=run.cancel_requested_by,
+            cancel_requested_at=run.cancel_requested_at,
+            last_heartbeat_at=run.last_heartbeat_at,
+            progress_current=run.progress_current,
+            progress_total=run.progress_total,
             **{k: v for k, v in extra.items() if k != "enrichment_summary"},
         )
 
@@ -264,6 +277,13 @@ class ScraperRunHistoryResponse(BaseModel):
             excel_view_url=item.get("excel_view_url"),
             enrichment_summary=item.get("enrichment_summary"),
         )
+
+
+class ScraperRunCancelResponse(BaseModel):
+    job_id: UUID
+    status: ScraperRunStatus
+    cancel_requested_at: datetime | None = None
+    message: str
 
 
 class ScraperRunHistoryListResponse(BaseModel):
@@ -314,6 +334,66 @@ class EnrichmentRunRequest(BaseModel):
     requested_fields: list[str] | None = None
     dry_run: bool = False
     max_pages: int | None = Field(default=10, ge=1, le=10)
+
+
+class EnrichmentStateResetRequest(BaseModel):
+    customer_ids: list[UUID] | None = None
+    reset_all: bool = False
+
+
+class EnrichmentStateResetResponse(BaseModel):
+    deleted_count: int
+
+
+class CustomerContactEnrichmentRunRequest(BaseModel):
+    dry_run: bool = False
+    requested_fields: list[str] | None = None
+    max_pages: int | None = Field(default=10, ge=1, le=10)
+
+
+class CustomerContactEnrichmentStateResponse(BaseModel):
+    customer_id: UUID
+    status: str
+    last_email_scan_at: datetime | None = None
+    last_email_found: str | None = None
+    last_source_url: str | None = None
+    last_error: str | None = None
+    retry_after: datetime | None = None
+    last_enrichment_run_id: UUID | None = None
+    import_batch_id: UUID | None = None
+    can_run: bool
+    block_code: str | None = None
+    block_message: str | None = None
+    website: str | None = None
+    has_crm_email: bool = False
+    recent_logs: list[ScraperRunLogResponse] = Field(default_factory=list)
+
+    @classmethod
+    def from_view(
+        cls,
+        view: CustomerContactEnrichmentStateView,
+        *,
+        recent_logs: list[ScraperRunLog] | None = None,
+    ) -> CustomerContactEnrichmentStateResponse:
+        return cls(
+            customer_id=view.customer_id,
+            status=view.status,
+            last_email_scan_at=view.last_email_scan_at,
+            last_email_found=view.last_email_found,
+            last_source_url=view.last_source_url,
+            last_error=view.last_error,
+            retry_after=view.retry_after,
+            last_enrichment_run_id=view.last_enrichment_run_id,
+            import_batch_id=view.import_batch_id,
+            can_run=view.can_run,
+            block_code=view.block_code,
+            block_message=view.block_message,
+            website=view.website,
+            has_crm_email=view.has_crm_email,
+            recent_logs=[
+                ScraperRunLogResponse.from_entity(log) for log in (recent_logs or [])
+            ],
+        )
 
 
 class AdapterLinkedFairResponse(BaseModel):

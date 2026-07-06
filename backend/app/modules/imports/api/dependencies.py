@@ -243,6 +243,7 @@ def get_apply_import_use_case(
         SqlAlchemyParticipationRepository(db),
         authorization,
         audit,
+        db,
     )
 
 

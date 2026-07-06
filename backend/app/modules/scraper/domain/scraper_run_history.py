@@ -12,9 +12,20 @@ from app.modules.scraper.domain.scraper_run_source import ScraperRunSource
 
 class ScraperRunStatus(StrEnum):
     RUNNING = "running"
+    CANCEL_REQUESTED = "cancel_requested"
+    CANCELLING = "cancelling"
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELLED = "cancelled"
+
+
+ACTIVE_SCRAPER_RUN_STATUSES = frozenset(
+    {
+        ScraperRunStatus.RUNNING,
+        ScraperRunStatus.CANCEL_REQUESTED,
+        ScraperRunStatus.CANCELLING,
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -44,3 +55,8 @@ class ScraperRunHistory:
     output_excel_path: str | None
     run_source: ScraperRunSource = ScraperRunSource.MANUAL_TEST
     import_batch_id: UUID | None = None
+    cancel_requested_by: UUID | None = None
+    cancel_requested_at: datetime | None = None
+    last_heartbeat_at: datetime | None = None
+    progress_current: int | None = None
+    progress_total: int | None = None

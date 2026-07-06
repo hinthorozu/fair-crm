@@ -235,6 +235,8 @@ export const mergeEntityLabels: Record<string, string> = {
   participation: "Fuar Katılımı",
 };
 
+export const mergeFieldSourceLabel = "Kaynak";
+
 export const mergeOutcomeLabels: Record<string, string> = {
   same: "Aynı",
   new: "Yeni",

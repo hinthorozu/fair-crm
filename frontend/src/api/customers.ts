@@ -7,6 +7,11 @@ import type {
   Customer,
   UpdateCustomerPayload,
 } from "../types/customer";
+import type {
+  CustomerContactEnrichmentRunPayload,
+  CustomerContactEnrichmentState,
+} from "../types/customerEnrichment";
+import type { ScraperRun } from "../types/scraper";
 import type { CustomerStatus, CustomerType } from "../types/customer";
 
 export interface ListCustomersParams extends Partial<ServerTableFetchParams> {
@@ -67,6 +72,27 @@ export function restoreCustomer(id: string): Promise<Customer> {
   return apiRequest<Customer>(`/api/v1/customers/${encodeURIComponent(customerId)}/restore`, {
     method: "POST",
   });
+}
+
+export function getCustomerContactEnrichmentState(
+  customerId: string,
+): Promise<CustomerContactEnrichmentState> {
+  return apiRequest<CustomerContactEnrichmentState>(
+    `/api/v1/customers/${encodeURIComponent(customerId)}/contact-enrichment-state`,
+  );
+}
+
+export function runCustomerContactEnrichment(
+  customerId: string,
+  payload: CustomerContactEnrichmentRunPayload = {},
+): Promise<ScraperRun> {
+  return apiRequest<ScraperRun>(
+    `/api/v1/customers/${encodeURIComponent(customerId)}/contact-enrichment/run`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export { ApiError, formatApiErrorMessage };

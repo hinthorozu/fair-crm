@@ -24,6 +24,10 @@ class SqlAlchemyCustomerCommunicationRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
+    @property
+    def session(self) -> Session:
+        return self._session
+
     def load_for_customer(self, customer_id: UUID) -> CustomerCommunications:
         phones = (
             self._session.query(CustomerPhoneModel)

@@ -8,11 +8,13 @@ import {
   filterEnrichmentRequestedFields,
 } from "../../utils/enrichmentAdapter";
 import { OutputFieldsSection, toggleRequestedFieldSelection } from "./OutputFieldsSection";
+import { EnrichmentStateResetPanel } from "./EnrichmentStateResetPanel";
 
 interface EnrichmentRunPanelProps {
   adapterKey: string;
   manifest: ScraperManifest;
   onRunFinished?: () => void;
+  onOpenRunDetail?: (adapterKey: string, runId: string) => void;
 }
 
 const POLL_INTERVAL_MS = 2000;
@@ -23,7 +25,7 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
-export function EnrichmentRunPanel({ adapterKey, manifest, onRunFinished }: EnrichmentRunPanelProps) {
+export function EnrichmentRunPanel({ adapterKey, manifest, onRunFinished, onOpenRunDetail }: EnrichmentRunPanelProps) {
   const [limit, setLimit] = React.useState(50);
   const [dryRun, setDryRun] = React.useState(false);
   const [requestedFields, setRequestedFields] = React.useState<RequestedOutputField[]>(() =>
@@ -133,9 +135,20 @@ export function EnrichmentRunPanel({ adapterKey, manifest, onRunFinished }: Enri
       {error ? <p className="text-danger">{error}</p> : null}
 
       {activeRun ? (
-        <p className="text-muted">
-          {scraperLabels.enrichmentRunStatus}: {activeRun.status}
-        </p>
+        <div className="enrichment-run-active-meta">
+          <p className="text-muted">
+            {scraperLabels.enrichmentRunStatus}: {activeRun.status}
+          </p>
+          {onOpenRunDetail ? (
+            <button
+              type="button"
+              className="btn link"
+              onClick={() => onOpenRunDetail(adapterKey, activeRun.id)}
+            >
+              {scraperLabels.actionDetail}
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       {summary ? (
@@ -168,6 +181,9 @@ export function EnrichmentRunPanel({ adapterKey, manifest, onRunFinished }: Enri
           ) : null}
         </dl>
       ) : null}
+
+      <hr className="enrichment-panel-divider" />
+      <EnrichmentStateResetPanel />
     </div>
   );
 }

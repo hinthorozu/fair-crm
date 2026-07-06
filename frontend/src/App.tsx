@@ -9,6 +9,7 @@ import { AdapterManagementPage } from "./pages/AdapterManagementPage";
 import { AdapterDetailPage } from "./pages/AdapterDetailPage";
 import { ScraperRunHistoryPage } from "./pages/ScraperRunHistoryPage";
 import { ScraperTestPage } from "./pages/ScraperTestPage";
+import { EnrichmentRunDetailPage } from "./pages/EnrichmentRunDetailPage";
 import { DatabaseBackupsPage } from "./pages/DatabaseBackupsPage";
 import { SmtpAccountsPage } from "./pages/SmtpAccountsPage";
 import { MailTemplatesPage } from "./pages/MailTemplatesPage";
@@ -32,6 +33,8 @@ import { dataIntegrationLabels } from "./labels/dataIntegrationLabels";
 import { adminLabels } from "./labels/adminLabels";
 import { labels } from "./labels";
 import { scraperLabels } from "./labels/scraperLabels";
+import { resolveRunDetailPath } from "./utils/enrichmentRunRouting";
+import { isCustomerContactEnrichmentAdapter } from "./utils/enrichmentAdapter";
 import { useDocumentTitle } from "./hooks/useDocumentTitle";
 import "./styles.css";
 
@@ -49,6 +52,7 @@ type AppRoute =
   | "/data-integration/adapters"
   | "/data-integration/adapters/:adapterKey"
   | "/data-integration/run-history"
+  | "/data-integration/runs/:runId"
   | "/data-integration/scraper-test"
   | "/admin/system/backups"
   | "/admin/smtp-operations/accounts"
@@ -68,6 +72,7 @@ interface ParsedRoute {
   dataOperationRunId?: string;
   dataOperationKey?: string;
   adapterKey?: string;
+  runId?: string;
 }
 
 function parseRoute(location: string): ParsedRoute {
@@ -133,6 +138,14 @@ function parseRoute(location: string): ParsedRoute {
     }
     if (pathname === "/data-integration/run-history" || pathname === "/data-integration/run-history/") {
       return { route: "/data-integration/run-history" };
+    }
+    const runDetail = pathname.match(/^\/data-integration\/runs\/([^/]+)$/);
+    if (runDetail) {
+      return {
+        route: "/data-integration/runs/:runId",
+        runId: decodeURIComponent(runDetail[1]),
+        adapterKey: searchParams.get("adapter_key") ?? undefined,
+      };
     }
     if (pathname === "/data-integration/scraper-test" || pathname === "/data-integration/scraper-test/") {
       return { route: "/data-integration/scraper-test" };
@@ -374,7 +387,10 @@ export function App() {
   };
 
   const goToAdapterRunDetail = (adapterKey: string, runId: string) => {
-    goToScraperTest(adapterKey, runId);
+    const path = resolveRunDetailPath(adapterKey, runId);
+    navigate(path);
+    setParsed(parseRoute(path));
+    setSidebarOpen(false);
   };
 
   const goToAdmin = (subpath = "/admin/system/backups") => {
@@ -426,7 +442,14 @@ export function App() {
                   { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
                   { label: scraperLabels.pageTitle, current: true },
                 ]
-              : parsed.route === "/data-integration/scraper-test"
+              : parsed.route === "/data-integration/runs/:runId"
+              ? [
+                  { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                  { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
+                  { label: scraperLabels.runHistoryTitle, onClick: goToRunHistory },
+                  { label: scraperLabels.enrichmentRunDetailTitle, current: true },
+                ]
+            : parsed.route === "/data-integration/scraper-test"
               ? [
                   { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
                   { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
@@ -559,6 +582,22 @@ export function App() {
           }
         />
       )}
+      {parsed.route === "/data-integration/runs/:runId" && parsed.runId && (
+        <EnrichmentRunDetailPage
+          runId={parsed.runId}
+          adapterKey={parsed.adapterKey}
+          onBack={() => {
+            if (parsed.adapterKey && isCustomerContactEnrichmentAdapter(parsed.adapterKey)) {
+              goToAdapterDetail(parsed.adapterKey);
+              return;
+            }
+            goToRunHistory(parsed.adapterKey);
+          }}
+          onOpenImportBatch={(batchId) =>
+            goToDataIntegration(`/data-integration/imports/continue/${batchId}`)
+          }
+        />
+      )}
       {parsed.route === "/data-integration/scraper-test" && (
         <ScraperTestPage
           initialAdapterKey={new URLSearchParams(window.location.search).get("adapter_key") ?? undefined}
@@ -627,6 +666,9 @@ export function App() {
           customerId={parsed.customerId}
           onBack={goToCustomers}
           onCustomerLoaded={setCustomerName}
+          onOpenImportBatch={(batchId) =>
+            goToDataIntegration(`/data-integration/imports/continue/${batchId}`)
+          }
         />
       )}
     </AppLayout>

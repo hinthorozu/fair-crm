@@ -12,8 +12,17 @@ FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "customer_enrichme
 
 def test_is_junk_email_filters_common_noise():
     assert is_junk_email("noreply@example.com") is True
-    assert is_junk_email("info@example.com") is False
+    assert is_junk_email("info@example.com") is True
+    assert is_junk_email("info@asmedikal.com.tr") is False
+    assert is_junk_email("sales@vector-best.ru") is False
+    assert is_junk_email("contact@company.test") is False
+    assert is_junk_email("iletisim@firma.com.tr") is False
     assert is_junk_email("icon-ada-swabs@2x-1.png") is True
+    assert is_junk_email("youremail@mail.com") is True
+    assert is_junk_email("yourname@mail.com") is True
+    assert is_junk_email("suemail@mail.com") is True
+    assert is_junk_email("mail@example.com") is True
+    assert is_junk_email("info@company.com") is False
 
 
 def test_extract_contacts_from_contact_page_fixture():
@@ -48,6 +57,30 @@ def test_extract_emails_from_home_page_fixture():
 
     assert any(item.value == "info@ornek.com" for item in extracted["emails"])
     assert extracted["social_links"]["instagram"] is not None
+
+
+def test_extract_fakibabatekstil_cloudflare_email_from_fixture():
+    html = (FIXTURES / "fakibabatekstil_home.html").read_text(encoding="utf-8")
+    source_url = "https://fakibabatekstil.com/"
+    extracted = extract_contacts_from_html(
+        html,
+        source_url=source_url,
+        requested_fields={"email", "phone"},
+    )
+
+    emails = extracted["emails"]
+    phones = extracted["phones"]
+
+    assert any(item.value == "info@fakibabatekstil.com" for item in emails)
+    assert all(item.source_url == source_url for item in emails)
+    assert any(item.value.startswith("+90224") or "(0224)" in item.value or item.value.startswith("+90") for item in phones)
+    assert all(item.source_url == source_url for item in phones)
+
+
+def test_decode_cfemail_returns_expected_address():
+    from app.modules.scraper.extractors.contact_extractor import decode_cfemail
+
+    assert decode_cfemail("97fef9f1f8d7f1f6fcfef5f6f5f6e3f2fce4e3fefbb9f4f8fa") == "info@fakibabatekstil.com"
 
 
 def test_extract_ignores_junk_email():
