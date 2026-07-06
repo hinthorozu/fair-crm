@@ -15,6 +15,7 @@ import { MailTemplatesPage } from "./pages/MailTemplatesPage";
 import { MailOperationsPage } from "./pages/MailOperationsPage";
 import { DataOperationsPage } from "./pages/DataOperationsPage";
 import { DataOperationRunResultPage } from "./pages/DataOperationRunResultPage";
+import { TodosPage } from "./pages/TodosPage";
 import { DataIntegrationLayout } from "./components/dataIntegration/DataIntegrationLayout";
 import { AdminSystemLayout } from "./components/admin/AdminSystemLayout";
 import { AppLayout } from "./components/layout/AppLayout";
@@ -23,6 +24,7 @@ import {
   NavIconCustomers,
   NavIconDataIntegration,
   NavIconFairs,
+  NavIconTodos,
 } from "./components/layout/NavIcons";
 import { Card } from "./components/ui/Card";
 import { uiLabels } from "./labels/uiLabels";
@@ -37,6 +39,7 @@ type AppRoute =
   | "/customers"
   | "/fairs"
   | "/fairs/:id"
+  | "/todos"
   | "/data-integration/imports"
   | "/data-integration/imports/new"
   | "/data-integration/imports/fair/:fairId"
@@ -159,6 +162,9 @@ function parseRoute(location: string): ParsedRoute {
       return { route: "/fairs/:id", fairId: fairMatch[1] };
     }
     return { route: "/fairs" };
+  }
+  if (pathname === "/todos" || pathname === "/todos/") {
+    return { route: "/todos" };
   }
   if (pathname === "/customers") {
     return { route: "/customers" };
@@ -379,6 +385,7 @@ export function App() {
 
   const isCustomersActive = parsed.route === "/customers" || parsed.route === "/customers/:id";
   const isFairsActive = parsed.route === "/fairs" || parsed.route === "/fairs/:id";
+  const isTodosActive = parsed.route === "/todos";
   const isDiActive = isDataIntegrationRoute(parsed.route);
   const isAdminActive = isAdminRoute(parsed.route);
 
@@ -401,6 +408,11 @@ export function App() {
               { label: uiLabels.navFairs, onClick: goToFairs },
               { label: uiLabels.navFairs, current: true },
             ]
+          : parsed.route === "/todos"
+            ? [
+                { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                { label: uiLabels.navTodos, current: true },
+              ]
           : parsed.route === "/data-integration/adapters/:adapterKey" && parsed.adapterKey
             ? [
                 { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
@@ -469,6 +481,13 @@ export function App() {
       onClick: (e: React.MouseEvent) => handleNav("/fairs", e),
     },
     {
+      path: "/todos",
+      label: uiLabels.navTodos,
+      icon: <NavIconTodos />,
+      active: isTodosActive,
+      onClick: (e: React.MouseEvent) => handleNav("/todos", e),
+    },
+    {
       path: "/data-integration/imports",
       label: uiLabels.navImports,
       icon: <NavIconDataIntegration />,
@@ -527,6 +546,7 @@ export function App() {
           onAdapterLoaded={setAdapterName}
           onViewAllRuns={goToRunHistory}
           onOpenScraperTest={goToScraperTest}
+          onOpenRunDetail={goToAdapterRunDetail}
         />
       )}
       {parsed.route === "/data-integration/run-history" && (
@@ -600,6 +620,7 @@ export function App() {
       )}
       {isDiActive && renderDataIntegration()}
       {isAdminActive && renderAdminSystem()}
+      {parsed.route === "/todos" && <TodosPage />}
       {parsed.route === "/customers" && <CustomersPage onOpenDetail={goToCustomerDetail} />}
       {parsed.route === "/customers/:id" && parsed.customerId && (
         <CustomerDetailPage

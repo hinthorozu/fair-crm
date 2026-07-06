@@ -8,6 +8,7 @@ export const uiLabels = {
   searchFair: "Fuar ara...",
   navCustomers: "Müşteriler",
   navFairs: "Fuarlar",
+  navTodos: "Görevler",
   navImports: "Veri Entegrasyonu",
   navAdmin: "Admin",
   sidebarCollapse: "Menüyü daralt",

@@ -4,6 +4,7 @@ import { dataIntegrationLabels } from "../labels/dataIntegrationLabels";
 import { fairLabels } from "../labels/fairLabels";
 import { importLabels } from "../labels/importLabels";
 import { scraperLabels } from "../labels/scraperLabels";
+import { todoLabels } from "../labels/todoLabels";
 
 export const DOCUMENT_TITLE_BRAND = labels.appTitle;
 
@@ -49,6 +50,8 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
       return fairLabels.fairs;
     case "/fairs/:id":
       return context.fairName?.trim() || fairLabels.fairs;
+    case "/todos":
+      return todoLabels.pageTitle;
     case "/data-integration/imports":
       return dataIntegrationLabels.importsTitle;
     case "/data-integration/imports/new":
