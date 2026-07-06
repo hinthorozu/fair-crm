@@ -91,6 +91,8 @@ export function formValuesToCustomerPayload(
     phones: CommunicationFormItem[];
     emails: CommunicationFormItem[];
     websites: CommunicationFormItem[];
+    email_allowed: boolean;
+    sms_allowed: boolean;
   },
 ): CreateCustomerPayload {
   const phones = nonEmptyCommunicationItems(values.phones).map((item) => ({
@@ -122,6 +124,8 @@ export function formValuesToCustomerPayload(
     linkedin_url: values.linkedin_url,
     youtube_url: values.youtube_url,
     source: values.source,
+    email_allowed: values.email_allowed,
+    sms_allowed: values.sms_allowed,
     phones,
     emails,
     websites,

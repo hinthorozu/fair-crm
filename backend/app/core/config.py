@@ -99,6 +99,41 @@ class Settings(BaseSettings):
         default=False,
         validation_alias="FAIR_CRM_SMTP_DEBUG_RESPONSE",
     )
+    smtp_connect_timeout_seconds: int = Field(
+        default=10,
+        validation_alias=AliasChoices(
+            "SMTP_CONNECT_TIMEOUT_SECONDS",
+            "FAIR_CRM_SMTP_CONNECT_TIMEOUT_SECONDS",
+        ),
+    )
+    smtp_send_timeout_seconds: int = Field(
+        default=30,
+        validation_alias=AliasChoices(
+            "SMTP_SEND_TIMEOUT_SECONDS",
+            "FAIR_CRM_SMTP_SEND_TIMEOUT_SECONDS",
+        ),
+    )
+    mail_operation_timeout_seconds: int = Field(
+        default=60,
+        validation_alias=AliasChoices(
+            "MAIL_OPERATION_TIMEOUT_SECONDS",
+            "FAIR_CRM_MAIL_OPERATION_TIMEOUT_SECONDS",
+        ),
+    )
+    mail_worker_max_batch_size: int = Field(
+        default=25,
+        validation_alias=AliasChoices(
+            "MAIL_WORKER_MAX_BATCH_SIZE",
+            "FAIR_CRM_MAIL_WORKER_MAX_BATCH_SIZE",
+        ),
+    )
+    mail_sending_timeout_minutes: int = Field(
+        default=15,
+        validation_alias=AliasChoices(
+            "MAIL_SENDING_TIMEOUT_MINUTES",
+            "FAIR_CRM_MAIL_SENDING_TIMEOUT_MINUTES",
+        ),
+    )
 
 
 @lru_cache

@@ -32,6 +32,13 @@ export const contactLabels = {
   contactSectionContact: "İletişim Bilgileri",
   contactSectionSocial: "Sosyal / İş Profili",
   contactSectionStatus: "Durum / Notlar",
+  contactSectionConsent: "İletişim İzinleri",
+  emailSendAllowed: "Email Gönder",
+  smsSendAllowed: "SMS Gönder",
+  customerEmailConsentBlockedHint:
+    "Customer email izni kapalı olduğu için contact'a mail gönderilmez.",
+  customerSmsConsentBlockedHint:
+    "Customer SMS izni kapalı olduğu için contact'a SMS gönderilmez.",
   editContact: "Kişi Düzenle",
   backToCustomers: "Müşterilere Dön",
   customerDetail: "Müşteri Detayı",

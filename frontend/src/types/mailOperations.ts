@@ -1,6 +1,6 @@
 /** Central mail operations list types. */
 
-export type MailOperationStatus = "queued" | "sending" | "sent" | "failed" | "cancelled";
+export type MailOperationStatus = "queued" | "sending" | "sent" | "failed" | "cancelled" | "skipped";
 
 export type MailOperationSourceType =
   | "smtp_test"

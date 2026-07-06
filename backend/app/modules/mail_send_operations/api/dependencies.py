@@ -123,4 +123,5 @@ def get_retry_mail_send_operation_use_case(
         SqlAlchemyFairRepository(db),
         SqlAlchemyCustomerRepository(db),
         authorization,
+        db,
     )

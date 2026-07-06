@@ -21,6 +21,7 @@ STATUS_LABELS: dict[str, str] = {
     MailSendOperationStatus.SENT: "Gönderildi",
     MailSendOperationStatus.FAILED: "Başarısız",
     MailSendOperationStatus.CANCELLED: "İptal Edildi",
+    MailSendOperationStatus.SKIPPED: "Atlandı",
 }
 
 

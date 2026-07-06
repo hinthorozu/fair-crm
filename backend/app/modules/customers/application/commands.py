@@ -49,6 +49,9 @@ class CreateCustomerCommand:
     linkedin_url: Optional[str] = None
     youtube_url: Optional[str] = None
     source: CustomerSource = CustomerSource.MANUAL
+    email_allowed: bool = True
+    sms_allowed: bool = True
+    consent_note: Optional[str] = None
     phones: Optional[list[CustomerPhoneInput]] = None
     emails: Optional[list[CustomerEmailInput]] = None
     websites: Optional[list[CustomerWebsiteInput]] = None
@@ -101,6 +104,9 @@ class UpdateCustomerCommand:
     linkedin_url: Optional[str] = None
     youtube_url: Optional[str] = None
     source: Optional[CustomerSource] = None
+    email_allowed: Optional[bool] = None
+    sms_allowed: Optional[bool] = None
+    consent_note: Optional[str] = None
     phones: Optional[list[CustomerPhoneInput]] = None
     emails: Optional[list[CustomerEmailInput]] = None
     websites: Optional[list[CustomerWebsiteInput]] = None
@@ -171,6 +177,11 @@ class CustomerResult:
     linkedin_url: Optional[str]
     youtube_url: Optional[str]
     source: CustomerSource
+    email_allowed: bool
+    sms_allowed: bool
+    email_unsubscribed_at: Optional[datetime]
+    sms_unsubscribed_at: Optional[datetime]
+    consent_note: Optional[str]
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime]

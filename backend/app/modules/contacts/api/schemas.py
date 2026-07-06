@@ -25,6 +25,9 @@ class CreateContactRequest(BaseModel):
     notes: Optional[str] = Field(default=None, max_length=5000)
     is_primary: bool = False
     is_active: bool = True
+    email_allowed: bool = True
+    sms_allowed: bool = True
+    consent_note: Optional[str] = Field(default=None, max_length=5000)
 
 
 class UpdateContactRequest(BaseModel):
@@ -44,6 +47,9 @@ class UpdateContactRequest(BaseModel):
     notes: Optional[str] = Field(default=None, max_length=5000)
     is_primary: Optional[bool] = None
     is_active: Optional[bool] = None
+    email_allowed: Optional[bool] = None
+    sms_allowed: Optional[bool] = None
+    consent_note: Optional[str] = Field(default=None, max_length=5000)
 
 
 class ContactResponse(BaseModel):
@@ -64,6 +70,11 @@ class ContactResponse(BaseModel):
     notes: Optional[str]
     is_primary: bool
     is_active: bool
+    email_allowed: bool = True
+    sms_allowed: bool = True
+    email_unsubscribed_at: Optional[datetime] = None
+    sms_unsubscribed_at: Optional[datetime] = None
+    consent_note: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime]

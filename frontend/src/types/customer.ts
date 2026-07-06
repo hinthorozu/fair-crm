@@ -72,6 +72,11 @@ export interface Customer {
   linkedin_url: string | null;
   youtube_url: string | null;
   source: CustomerSource;
+  email_allowed: boolean;
+  sms_allowed: boolean;
+  email_unsubscribed_at: string | null;
+  sms_unsubscribed_at: string | null;
+  consent_note: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -116,6 +121,9 @@ export interface CreateCustomerPayload {
   linkedin_url?: string | null;
   youtube_url?: string | null;
   source?: CustomerSource;
+  email_allowed?: boolean;
+  sms_allowed?: boolean;
+  consent_note?: string | null;
 }
 
 export type UpdateCustomerPayload = Partial<CreateCustomerPayload>;

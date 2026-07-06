@@ -57,6 +57,9 @@ class CreateCustomerUseCase:
             linkedin_url=command.linkedin_url,
             youtube_url=command.youtube_url,
             source=command.source,
+            email_allowed=command.email_allowed,
+            sms_allowed=command.sms_allowed,
+            consent_note=command.consent_note,
             now=now,
         )
 

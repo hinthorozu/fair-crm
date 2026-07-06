@@ -179,6 +179,28 @@ class SqlAlchemyFairEmailBatchRepository:
             .all()
         )
 
+    def get_outbox_by_mail_send_operation_id(
+        self,
+        organization_id: UUID,
+        mail_send_operation_id: UUID,
+    ) -> FairEmailOutboxModel | None:
+        return (
+            self._session.query(FairEmailOutboxModel)
+            .filter(
+                FairEmailOutboxModel.organization_id == organization_id,
+                FairEmailOutboxModel.mail_send_operation_id == mail_send_operation_id,
+            )
+            .one_or_none()
+        )
+
+    def prepare_outbox_for_retry(self, outbox_id: UUID) -> None:
+        now = datetime.now(timezone.utc)
+        model = self._session.query(FairEmailOutboxModel).filter(FairEmailOutboxModel.id == outbox_id).one()
+        model.status = "pending"
+        model.error_message = None
+        model.sent_at = None
+        model.updated_at = now
+
     def mark_outbox_sending(self, outbox_id: UUID) -> None:
         now = datetime.now(timezone.utc)
         model = self._session.query(FairEmailOutboxModel).filter(FairEmailOutboxModel.id == outbox_id).one()

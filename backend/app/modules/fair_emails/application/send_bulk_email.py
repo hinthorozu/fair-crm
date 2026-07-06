@@ -125,6 +125,12 @@ class SendFairBulkEmailUseCase:
             batch=batch,
             default_subject=default_subject,
         )
+        self._mail_operation_sync.create_skipped_operations_for_consent(
+            organization_id=command.organization_id,
+            batch=batch,
+            default_subject=default_subject,
+            recipients=preview.recipients,
+        )
 
         self._audit.record_event(
             organization_id=command.organization_id,

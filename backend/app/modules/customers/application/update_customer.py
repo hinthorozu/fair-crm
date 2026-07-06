@@ -60,8 +60,11 @@ class UpdateCustomerUseCase:
             instagram_url=command.instagram_url,
             facebook_url=command.facebook_url,
             linkedin_url=command.linkedin_url,
-            youtube_url=command.youtube_url,
-            source=command.source,
+            youtube_url=command.youtube_url if "youtube_url" in command.fields_set else None,
+            source=command.source if "source" in command.fields_set else None,
+            email_allowed=command.email_allowed if "email_allowed" in command.fields_set else None,
+            sms_allowed=command.sms_allowed if "sms_allowed" in command.fields_set else None,
+            consent_note=command.consent_note if "consent_note" in command.fields_set else None,
             now=now,
         )
 

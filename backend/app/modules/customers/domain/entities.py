@@ -39,6 +39,11 @@ class Customer:
     facebook_url: Optional[str] = None
     linkedin_url: Optional[str] = None
     youtube_url: Optional[str] = None
+    email_allowed: bool = True
+    sms_allowed: bool = True
+    email_unsubscribed_at: Optional[datetime] = None
+    sms_unsubscribed_at: Optional[datetime] = None
+    consent_note: Optional[str] = None
 
     @classmethod
     def create(
@@ -62,6 +67,9 @@ class Customer:
         linkedin_url: Optional[str] = None,
         youtube_url: Optional[str] = None,
         source: CustomerSource = CustomerSource.MANUAL,
+        email_allowed: bool = True,
+        sms_allowed: bool = True,
+        consent_note: Optional[str] = None,
         now: datetime,
     ) -> "Customer":
         trimmed_display = display_name.strip()
@@ -96,6 +104,11 @@ class Customer:
             updated_at=now,
             deleted_at=None,
             archived_from_status=None,
+            email_allowed=email_allowed,
+            sms_allowed=sms_allowed,
+            email_unsubscribed_at=None if email_allowed else now,
+            sms_unsubscribed_at=None if sms_allowed else now,
+            consent_note=consent_note.strip() if consent_note else None,
         )
 
     def ensure_mutable(self) -> None:
@@ -124,6 +137,9 @@ class Customer:
         linkedin_url: Optional[str] = None,
         youtube_url: Optional[str] = None,
         source: Optional[CustomerSource] = None,
+        email_allowed: Optional[bool] = None,
+        sms_allowed: Optional[bool] = None,
+        consent_note: Optional[str] = None,
         now: datetime,
     ) -> None:
         self.ensure_mutable()
@@ -174,6 +190,21 @@ class Customer:
             self.youtube_url = normalize_optional_url(youtube_url)
         if source is not None:
             self.source = source
+
+        if email_allowed is not None:
+            self.email_allowed = email_allowed
+            if email_allowed:
+                self.email_unsubscribed_at = None
+            elif self.email_unsubscribed_at is None:
+                self.email_unsubscribed_at = now
+        if sms_allowed is not None:
+            self.sms_allowed = sms_allowed
+            if sms_allowed:
+                self.sms_unsubscribed_at = None
+            elif self.sms_unsubscribed_at is None:
+                self.sms_unsubscribed_at = now
+        if consent_note is not None:
+            self.consent_note = consent_note.strip() if consent_note else None
 
         self.updated_at = now
 

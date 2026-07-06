@@ -51,6 +51,13 @@ export const labels = {
   customerSectionContact: "İletişim Bilgileri",
   customerSectionSocial: "Sosyal Medya",
   customerSectionNotes: "Notlar",
+  customerSectionConsent: "İletişim İzinleri",
+  emailSendAllowed: "Email Gönder",
+  smsSendAllowed: "SMS Gönder",
+  customerEmailConsentBlockedHint:
+    "Customer email izni kapalı olduğu için contact'a mail gönderilmez.",
+  customerSmsConsentBlockedHint:
+    "Customer SMS izni kapalı olduğu için contact'a SMS gönderilmez.",
 } as const;
 
 export const paginationLabels = {

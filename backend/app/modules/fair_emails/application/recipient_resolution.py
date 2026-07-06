@@ -10,6 +10,7 @@ from app.modules.fair_emails.domain.value_objects import (
     RecipientPreviewResult,
     ResolvedRecipient,
 )
+from app.shared.consent import CONTACT_EMAIL_CONSENT_SKIP, CUSTOMER_EMAIL_CONSENT_SKIP
 
 
 def recipient_key(customer_id: UUID, contact_id: UUID | None, email: str) -> str:
@@ -39,6 +40,12 @@ def resolve_recipients(
         if options.exclude_inactive and not candidate.is_active:
             status = "skip"
             skip_reason = "inactive_record"
+        elif not candidate.customer_email_allowed:
+            status = "skip"
+            skip_reason = CUSTOMER_EMAIL_CONSENT_SKIP
+        elif candidate.source == "contact" and not candidate.contact_email_allowed:
+            status = "skip"
+            skip_reason = CONTACT_EMAIL_CONSENT_SKIP
         elif not candidate.email:
             if options.skip_no_email:
                 status = "skip"

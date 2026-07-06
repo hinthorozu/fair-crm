@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 import smtplib
 import ssl
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from email.message import EmailMessage
 from typing import Any
 from uuid import UUID
@@ -12,7 +14,16 @@ from uuid import UUID
 from app.modules.smtp.domain.entities import SmtpAccount
 from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
 from app.modules.smtp.domain.smtp_error_mapping import map_smtp_exception
+from app.modules.smtp.domain.smtp_timeout_errors import (
+    build_timeout_user_message,
+    is_timeout_related_exception,
+    normalize_timeout_error_code,
+)
 from app.modules.smtp.domain.value_objects import SmtpEncryptionType
+from app.modules.smtp.infrastructure.smtp_timeout_settings import (
+    SmtpTimeoutSettings,
+    get_smtp_timeout_settings,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +66,11 @@ def _log_debug(event: str, account_id: UUID, **fields: Any) -> None:
     logger.debug(" ".join(parts))
 
 
+def _apply_send_timeout(smtp: smtplib.SMTP, send_timeout_seconds: int) -> None:
+    if smtp.sock is not None:
+        smtp.sock.settimeout(send_timeout_seconds)
+
+
 def _login_if_needed(
     smtp: smtplib.SMTP,
     *,
@@ -90,13 +106,149 @@ def _send_message(
     _log_debug("send_message_success", account_id, to_email=recipient)
 
 
-def _raise_delivery_error(exc: BaseException) -> None:
+def _raise_delivery_error(
+    exc: BaseException,
+    *,
+    phase: str,
+    timeout_settings: SmtpTimeoutSettings,
+    operation_timeout: bool = False,
+) -> None:
+    if is_timeout_related_exception(exc) or operation_timeout:
+        delivery_phase = "connect" if phase == "connect" and not operation_timeout else "send"
+        if isinstance(exc, smtplib.SMTPConnectError):
+            delivery_phase = "connect"
+        error_type = normalize_timeout_error_code(phase=delivery_phase)
+        user_message = build_timeout_user_message(
+            phase=delivery_phase,
+            connect_timeout_seconds=timeout_settings.connect_timeout_seconds,
+            send_timeout_seconds=timeout_settings.send_timeout_seconds,
+            operation_timeout_seconds=(
+                timeout_settings.mail_operation_timeout_seconds if operation_timeout else None
+            ),
+        )
+        raw_message = str(exc)
+        raise SmtpMailDeliveryError(
+            user_message,
+            error_type=error_type,
+            raw_message=raw_message,
+        ) from exc
+
     user_message, error_type, raw_message = map_smtp_exception(exc)
     raise SmtpMailDeliveryError(
         user_message,
         error_type=error_type,
         raw_message=raw_message,
     ) from exc
+
+
+def _deliver_smtp_message(
+    account: SmtpAccount,
+    *,
+    recipient: str,
+    subject: str,
+    body: str,
+    body_html: str | None,
+    timeout_settings: SmtpTimeoutSettings,
+) -> None:
+    message = _build_message(
+        account,
+        recipient=recipient,
+        subject=subject,
+        body=body,
+        body_html=body_html,
+    )
+    encryption = account.encryption_type
+    host = account.host.strip()
+    port = account.port
+    username = account.username.strip() if account.username else None
+    password = account.password
+    mode = _connection_mode(encryption)
+    connect_timeout = timeout_settings.connect_timeout_seconds
+    send_timeout = timeout_settings.send_timeout_seconds
+
+    _log_debug(
+        "connection_start",
+        account.id,
+        host=host,
+        port=port,
+        encryption_type=encryption.value,
+        mode=mode,
+        from_email=account.from_email,
+        to_email=recipient,
+        password_set=True,
+        connect_timeout_seconds=connect_timeout,
+        send_timeout_seconds=send_timeout,
+    )
+
+    phase = "connect"
+    try:
+        if encryption in (SmtpEncryptionType.SSL, SmtpEncryptionType.TLS):
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL(host, port, context=context, timeout=connect_timeout) as smtp:
+                phase = "send"
+                _apply_send_timeout(smtp, send_timeout)
+                _log_debug("connection_opened", account.id, mode="ssl", host=host, port=port)
+                _login_if_needed(smtp, username=username, password=password, account_id=account.id)
+                _send_message(smtp, message, account_id=account.id, recipient=recipient)
+                _log_debug("connection_close", account.id, mode="ssl", host=host, port=port)
+            return
+
+        with smtplib.SMTP(host, port, timeout=connect_timeout) as smtp:
+            phase = "send"
+            _apply_send_timeout(smtp, send_timeout)
+            _log_debug("connection_opened", account.id, mode="plain", host=host, port=port)
+            if encryption == SmtpEncryptionType.STARTTLS:
+                _log_debug("starttls_start", account.id, host=host, port=port)
+                context = ssl.create_default_context()
+                smtp.starttls(context=context)
+                _log_debug("starttls_success", account.id, host=host, port=port)
+            _login_if_needed(smtp, username=username, password=password, account_id=account.id)
+            _send_message(smtp, message, account_id=account.id, recipient=recipient)
+            _log_debug("connection_close", account.id, mode=mode, host=host, port=port)
+    except SmtpMailDeliveryError:
+        raise
+    except Exception as exc:
+        logger.warning(
+            "smtp_delivery_failed account_id=%s host=%s port=%s encryption_type=%s "
+            "from_email=%s to_email=%s phase=%s exception_type=%s raw_message=%s",
+            account.id,
+            host,
+            port,
+            encryption.value,
+            account.from_email,
+            recipient,
+            phase,
+            type(exc).__name__,
+            exc,
+        )
+        _raise_delivery_error(
+            exc,
+            phase=phase,
+            timeout_settings=timeout_settings,
+        )
+
+
+def _run_with_operation_timeout(
+    deliver_fn,
+    *,
+    timeout_settings: SmtpTimeoutSettings,
+) -> None:
+    operation_timeout = timeout_settings.mail_operation_timeout_seconds
+    if operation_timeout <= 0:
+        deliver_fn()
+        return
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(deliver_fn)
+        try:
+            future.result(timeout=operation_timeout)
+        except FuturesTimeoutError as exc:
+            _raise_delivery_error(
+                exc,
+                phase="send",
+                timeout_settings=timeout_settings,
+                operation_timeout=True,
+            )
 
 
 def send_smtp_message(
@@ -114,65 +266,16 @@ def send_smtp_message(
             raw_message="SMTP password is not configured",
         )
 
-    message = _build_message(
-        account,
-        recipient=recipient,
-        subject=subject,
-        body=body,
-        body_html=body_html,
-    )
-    encryption = account.encryption_type
-    host = account.host.strip()
-    port = account.port
-    username = account.username.strip() if account.username else None
-    password = account.password
-    mode = _connection_mode(encryption)
+    timeout_settings = get_smtp_timeout_settings()
 
-    _log_debug(
-        "connection_start",
-        account.id,
-        host=host,
-        port=port,
-        encryption_type=encryption.value,
-        mode=mode,
-        from_email=account.from_email,
-        to_email=recipient,
-        password_set=True,
-    )
-
-    try:
-        if encryption in (SmtpEncryptionType.SSL, SmtpEncryptionType.TLS):
-            context = ssl.create_default_context()
-            with smtplib.SMTP_SSL(host, port, context=context, timeout=30) as smtp:
-                _log_debug("connection_opened", account.id, mode="ssl", host=host, port=port)
-                _login_if_needed(smtp, username=username, password=password, account_id=account.id)
-                _send_message(smtp, message, account_id=account.id, recipient=recipient)
-                _log_debug("connection_close", account.id, mode="ssl", host=host, port=port)
-            return
-
-        with smtplib.SMTP(host, port, timeout=30) as smtp:
-            _log_debug("connection_opened", account.id, mode="plain", host=host, port=port)
-            if encryption == SmtpEncryptionType.STARTTLS:
-                _log_debug("starttls_start", account.id, host=host, port=port)
-                context = ssl.create_default_context()
-                smtp.starttls(context=context)
-                _log_debug("starttls_success", account.id, host=host, port=port)
-            _login_if_needed(smtp, username=username, password=password, account_id=account.id)
-            _send_message(smtp, message, account_id=account.id, recipient=recipient)
-            _log_debug("connection_close", account.id, mode=mode, host=host, port=port)
-    except SmtpMailDeliveryError:
-        raise
-    except Exception as exc:
-        logger.warning(
-            "smtp_delivery_failed account_id=%s host=%s port=%s encryption_type=%s "
-            "from_email=%s to_email=%s exception_type=%s raw_message=%s",
-            account.id,
-            host,
-            port,
-            encryption.value,
-            account.from_email,
-            recipient,
-            type(exc).__name__,
-            exc,
+    def deliver() -> None:
+        _deliver_smtp_message(
+            account,
+            recipient=recipient,
+            subject=subject,
+            body=body,
+            body_html=body_html,
+            timeout_settings=timeout_settings,
         )
-        _raise_delivery_error(exc)
+
+    _run_with_operation_timeout(deliver, timeout_settings=timeout_settings)

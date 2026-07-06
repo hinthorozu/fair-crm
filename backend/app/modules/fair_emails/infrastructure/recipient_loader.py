@@ -20,6 +20,7 @@ class ParticipationContext:
     customer_id: UUID
     company_name: str
     customer_active: bool
+    customer_email_allowed: bool
     hall: str | None
     stand: str | None
 
@@ -57,6 +58,7 @@ class FairBulkEmailRecipientLoader:
                 customer_id=customer.id,
                 company_name=customer.display_name,
                 customer_active=customer.deleted_at is None,
+                customer_email_allowed=customer.email_allowed,
                 hall=participation.hall,
                 stand=participation.stand,
             )
@@ -96,6 +98,8 @@ class FairBulkEmailRecipientLoader:
                     participation_id=participation.participation_id,
                     is_active=participation.customer_active,
                     email_valid=is_valid_email_address(email),
+                    customer_email_allowed=participation.customer_email_allowed,
+                    contact_email_allowed=True,
                 )
             )
         return candidates
@@ -137,6 +141,8 @@ class FairBulkEmailRecipientLoader:
                         participation_id=participation.participation_id,
                         is_active=participation.customer_active and contact.is_active,
                         email_valid=True,
+                        customer_email_allowed=participation.customer_email_allowed,
+                        contact_email_allowed=contact.email_allowed,
                     )
                 )
             if contact.email and not iter_valid_emails(contact.email):
@@ -151,6 +157,8 @@ class FairBulkEmailRecipientLoader:
                         participation_id=participation.participation_id,
                         is_active=participation.customer_active and contact.is_active,
                         email_valid=False,
+                        customer_email_allowed=participation.customer_email_allowed,
+                        contact_email_allowed=contact.email_allowed,
                     )
                 )
         return candidates
@@ -177,6 +185,7 @@ class FairBulkEmailRecipientLoader:
             customer_id=customer.id,
             company_name=customer.display_name,
             customer_active=customer.deleted_at is None,
+            customer_email_allowed=customer.email_allowed,
             hall=participation.hall,
             stand=participation.stand,
         )

@@ -764,6 +764,8 @@ export function CustomerDetailPage({
             submitLabel={contactLabels.save}
             onCancel={closeModal}
             onSubmit={handleCreateContact}
+            customerEmailAllowed={customer.email_allowed ?? true}
+            customerSmsAllowed={customer.sms_allowed ?? true}
           />
         </FormModal>
       )}
@@ -775,6 +777,8 @@ export function CustomerDetailPage({
             submitLabel={contactLabels.save}
             onCancel={closeModal}
             onSubmit={handleUpdateContact}
+            customerEmailAllowed={customer.email_allowed ?? true}
+            customerSmsAllowed={customer.sms_allowed ?? true}
           />
         </FormModal>
       )}

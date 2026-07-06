@@ -22,6 +22,8 @@ class RawRecipientCandidate:
     participation_id: UUID
     is_active: bool
     email_valid: bool
+    customer_email_allowed: bool = True
+    contact_email_allowed: bool = True
 
 
 @dataclass(frozen=True)

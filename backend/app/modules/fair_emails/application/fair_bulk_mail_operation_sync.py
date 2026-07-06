@@ -8,12 +8,14 @@ from sqlalchemy.orm import Session
 
 from app.modules.fair_emails.infrastructure.persistence.models import FairEmailOutboxModel
 from app.modules.fair_emails.infrastructure.repositories.fair_email_batch_repository import FairEmailBatchRecord
+from app.modules.fair_emails.domain.value_objects import ResolvedRecipient
 from app.modules.mail_send_operations.application.mail_send_operation_service import MailSendOperationService
 from app.modules.mail_send_operations.domain.value_objects import MailSendOperationStatus, MailSendSourceType
 from app.modules.mail_send_operations.infrastructure.repositories.mail_send_operation_repository import (
     CreateMailSendOperationParams,
     SqlAlchemyMailSendOperationRepository,
 )
+from app.shared.consent import CONSENT_ERROR_CODE, CONSENT_SKIP_MESSAGES, CONSENT_SKIP_REASONS
 
 
 class FairBulkEmailMailOperationSync:
@@ -45,6 +47,46 @@ class FairBulkEmailMailOperationSync:
                 outbox=outbox,
                 default_subject=default_subject,
             )
+
+    def create_skipped_operations_for_consent(
+        self,
+        *,
+        organization_id: UUID,
+        batch: FairEmailBatchRecord,
+        default_subject: str,
+        recipients: list[ResolvedRecipient],
+    ) -> None:
+        for recipient in recipients:
+            if recipient.status != "skip" or recipient.skip_reason not in CONSENT_SKIP_REASONS:
+                continue
+            if not recipient.email:
+                continue
+            error_message = CONSENT_SKIP_MESSAGES.get(
+                recipient.skip_reason or "",
+                "Email consent disabled",
+            )
+            self._mail_service.create_consent_skipped_operation(
+                CreateMailSendOperationParams(
+                    organization_id=organization_id,
+                    source_type=MailSendSourceType.FAIR_BULK_EMAIL,
+                    recipient_email=recipient.email,
+                    recipient_name=recipient.recipient_name or recipient.company_name,
+                    subject=default_subject,
+                    smtp_account_id=batch.smtp_account_id,
+                    template_id=batch.template_id,
+                    fair_id=batch.fair_id,
+                    customer_id=recipient.customer_id,
+                    batch_id=batch.id,
+                    metadata_json={
+                        "contact_id": str(recipient.contact_id) if recipient.contact_id else None,
+                        "recipient_source": recipient.source,
+                        "skip_reason": recipient.skip_reason,
+                    },
+                ),
+                error_code=CONSENT_ERROR_CODE,
+                error_message=error_message,
+            )
+        self._session.flush()
 
     def sync_outbox_sending(self, organization_id: UUID, outbox: FairEmailOutboxModel) -> None:
         operation_id = outbox.mail_send_operation_id
@@ -151,6 +193,14 @@ class FairBulkEmailMailOperationSync:
         default_subject: str,
     ) -> None:
         if outbox.mail_send_operation_id is not None:
+            return
+        existing = self._operation_repository.find_fair_bulk_by_outbox_id(
+            organization_id,
+            outbox.id,
+        )
+        if existing is not None:
+            outbox.mail_send_operation_id = existing.id
+            self._session.flush()
             return
         operation = self._mail_service.create_mail_send_operation(
             CreateMailSendOperationParams(

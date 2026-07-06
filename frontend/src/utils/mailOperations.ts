@@ -27,6 +27,8 @@ export function mailOperationStatusVariant(status: MailOperationStatus): BadgeVa
       return "warning";
     case "cancelled":
       return "neutral";
+    case "skipped":
+      return "neutral";
     default:
       return "default";
   }
@@ -39,30 +41,23 @@ export function mailOperationSourceLabel(
   return record?.source_type_label ?? adminLabels.mailOperationsSourceLabels[source] ?? source;
 }
 
-export function getMailOperationActions(
-  status: MailOperationStatus,
-  sourceType?: MailOperationSourceType,
-): MailOperationActionId[] {
-  const actions = (() => {
-    switch (status) {
-      case "sent":
-        return ["detail", "logs", "copy"];
-      case "failed":
-        return ["detail", "retry", "error_detail", "logs"];
-      case "queued":
-        return ["detail", "cancel", "logs"];
-      case "sending":
-        return ["detail", "logs"];
-      case "cancelled":
-        return ["detail", "logs"];
-      default:
-        return ["detail", "logs"];
-    }
-  })();
-  if (sourceType === "fair_bulk_email") {
-    return actions.filter((action) => action !== "retry");
+export function getMailOperationActions(status: MailOperationStatus): MailOperationActionId[] {
+  switch (status) {
+    case "sent":
+      return ["detail", "logs", "copy"];
+    case "failed":
+      return ["detail", "retry", "error_detail", "logs"];
+    case "queued":
+      return ["detail", "cancel", "logs"];
+    case "sending":
+      return ["detail", "logs"];
+    case "cancelled":
+      return ["detail", "logs"];
+    case "skipped":
+      return ["detail", "logs"];
+    default:
+      return ["detail", "logs"];
   }
-  return actions;
 }
 
 export function mailOperationActionLabel(action: MailOperationActionId): string {

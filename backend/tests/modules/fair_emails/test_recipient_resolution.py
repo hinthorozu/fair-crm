@@ -48,3 +48,52 @@ def test_resolve_recipients_excludes_inactive():
     )
     assert result.recipients[0].status == "skip"
     assert result.recipients[0].skip_reason == "inactive_record"
+
+
+def test_resolve_recipients_customer_email_consent_blocks_all():
+    customer_id = uuid4()
+    result = resolve_recipients(
+        [
+            _candidate(
+                customer_id=customer_id,
+                source="customer",
+                email="info@abc.com",
+                customer_email_allowed=False,
+            ),
+            _candidate(
+                customer_id=customer_id,
+                source="contact",
+                contact_id=uuid4(),
+                email="contact@abc.com",
+                customer_email_allowed=False,
+                contact_email_allowed=True,
+            ),
+        ],
+        RecipientOptions(),
+    )
+    assert all(item.status == "skip" for item in result.recipients)
+    assert result.recipients[0].skip_reason == "customer_email_consent"
+    assert result.recipients[1].skip_reason == "customer_email_consent"
+
+
+def test_resolve_recipients_contact_email_consent_blocks_contact_only():
+    customer_id = uuid4()
+    result = resolve_recipients(
+        [
+            _candidate(customer_id=customer_id, source="customer", email="info@abc.com"),
+            _candidate(
+                customer_id=customer_id,
+                source="contact",
+                contact_id=uuid4(),
+                email="blocked@abc.com",
+                contact_email_allowed=False,
+            ),
+        ],
+        RecipientOptions(),
+    )
+    will_send = [item for item in result.recipients if item.status == "will_send"]
+    skipped = [item for item in result.recipients if item.status == "skip"]
+    assert len(will_send) == 1
+    assert will_send[0].source == "customer"
+    assert len(skipped) == 1
+    assert skipped[0].skip_reason == "contact_email_consent"

@@ -14,6 +14,11 @@ export interface Contact {
   notes: string | null;
   is_primary: boolean;
   is_active: boolean;
+  email_allowed: boolean;
+  sms_allowed: boolean;
+  email_unsubscribed_at: string | null;
+  sms_unsubscribed_at: string | null;
+  consent_note: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -40,6 +45,9 @@ export interface CreateContactPayload {
   notes?: string;
   is_primary?: boolean;
   is_active?: boolean;
+  email_allowed?: boolean;
+  sms_allowed?: boolean;
+  consent_note?: string | null;
 }
 
 export interface UpdateContactPayload {
@@ -54,6 +62,9 @@ export interface UpdateContactPayload {
   notes?: string;
   is_primary?: boolean;
   is_active?: boolean;
+  email_allowed?: boolean;
+  sms_allowed?: boolean;
+  consent_note?: string | null;
 }
 
 export interface ListContactsParams {

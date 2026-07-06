@@ -50,6 +50,9 @@ class CreateCustomerRequest(BaseModel):
     linkedin_url: Optional[str] = Field(default=None, max_length=512)
     youtube_url: Optional[str] = Field(default=None, max_length=512)
     source: CustomerSource = CustomerSource.MANUAL
+    email_allowed: bool = True
+    sms_allowed: bool = True
+    consent_note: Optional[str] = Field(default=None, max_length=5000)
     phones: Optional[list[CustomerPhoneInputSchema]] = None
     emails: Optional[list[CustomerEmailInputSchema]] = None
     websites: Optional[list[CustomerWebsiteInputSchema]] = None
@@ -81,6 +84,9 @@ class UpdateCustomerRequest(BaseModel):
     linkedin_url: Optional[str] = Field(default=None, max_length=512)
     youtube_url: Optional[str] = Field(default=None, max_length=512)
     source: Optional[CustomerSource] = None
+    email_allowed: Optional[bool] = None
+    sms_allowed: Optional[bool] = None
+    consent_note: Optional[str] = Field(default=None, max_length=5000)
     phones: Optional[list[CustomerPhoneInputSchema]] = None
     emails: Optional[list[CustomerEmailInputSchema]] = None
     websites: Optional[list[CustomerWebsiteInputSchema]] = None
@@ -139,6 +145,11 @@ class CustomerResponse(BaseModel):
     linkedin_url: Optional[str]
     youtube_url: Optional[str]
     source: CustomerSource
+    email_allowed: bool = True
+    sms_allowed: bool = True
+    email_unsubscribed_at: Optional[datetime] = None
+    sms_unsubscribed_at: Optional[datetime] = None
+    consent_note: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime]

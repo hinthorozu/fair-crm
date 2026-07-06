@@ -31,6 +31,7 @@ const MAIL_OPERATION_STATUS_OPTIONS: { value: MailOperationStatus | "all"; label
   { value: "sent", label: adminLabels.mailOperationsStatusLabels.sent },
   { value: "failed", label: adminLabels.mailOperationsStatusLabels.failed },
   { value: "cancelled", label: adminLabels.mailOperationsStatusLabels.cancelled },
+  { value: "skipped", label: adminLabels.mailOperationsStatusLabels.skipped },
 ];
 
 const MAIL_OPERATION_SOURCE_OPTIONS: { value: MailOperationSourceType | "all"; label: string }[] = [

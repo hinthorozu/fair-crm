@@ -48,6 +48,9 @@ class UpdateContactUseCase:
             notes=command.notes,
             is_primary=command.is_primary,
             is_active=command.is_active,
+            email_allowed=command.email_allowed,
+            sms_allowed=command.sms_allowed,
+            consent_note=command.consent_note,
             now=now,
         )
 

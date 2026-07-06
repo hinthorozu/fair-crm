@@ -25,6 +25,11 @@ def model_to_entity(model: CustomerModel) -> Customer:
         linkedin_url=model.linkedin_url,
         youtube_url=model.youtube_url,
         source=CustomerSource(model.source),
+        email_allowed=model.email_allowed,
+        sms_allowed=model.sms_allowed,
+        email_unsubscribed_at=model.email_unsubscribed_at,
+        sms_unsubscribed_at=model.sms_unsubscribed_at,
+        consent_note=model.consent_note,
         created_at=model.created_at,
         updated_at=model.updated_at,
         deleted_at=model.deleted_at,
@@ -56,6 +61,11 @@ def entity_to_model(customer: Customer) -> CustomerModel:
         linkedin_url=customer.linkedin_url,
         youtube_url=customer.youtube_url,
         source=customer.source.value,
+        email_allowed=customer.email_allowed,
+        sms_allowed=customer.sms_allowed,
+        email_unsubscribed_at=customer.email_unsubscribed_at,
+        sms_unsubscribed_at=customer.sms_unsubscribed_at,
+        consent_note=customer.consent_note,
         created_at=customer.created_at,
         updated_at=customer.updated_at,
         deleted_at=customer.deleted_at,
@@ -84,6 +94,11 @@ def update_model_from_entity(model: CustomerModel, customer: Customer) -> None:
     model.linkedin_url = customer.linkedin_url
     model.youtube_url = customer.youtube_url
     model.source = customer.source.value
+    model.email_allowed = customer.email_allowed
+    model.sms_allowed = customer.sms_allowed
+    model.email_unsubscribed_at = customer.email_unsubscribed_at
+    model.sms_unsubscribed_at = customer.sms_unsubscribed_at
+    model.consent_note = customer.consent_note
     model.updated_at = customer.updated_at
     model.deleted_at = customer.deleted_at
     model.archived_from_status = (

@@ -27,6 +27,8 @@ const emptyForm = (): ContactFormValues => ({
   notes: "",
   is_primary: false,
   is_active: true,
+  email_allowed: true,
+  sms_allowed: true,
 });
 
 export function contactToFormValues(contact: Contact): ContactFormValues {
@@ -42,6 +44,8 @@ export function contactToFormValues(contact: Contact): ContactFormValues {
     notes: contact.notes ?? "",
     is_primary: contact.is_primary,
     is_active: contact.is_active,
+    email_allowed: contact.email_allowed ?? true,
+    sms_allowed: contact.sms_allowed ?? true,
   };
 }
 
@@ -52,9 +56,18 @@ interface ContactFormProps {
   submitLabel: string;
   onSubmit: (values: ContactFormValues) => Promise<void>;
   onCancel: () => void;
+  customerEmailAllowed?: boolean;
+  customerSmsAllowed?: boolean;
 }
 
-export function ContactForm({ initial, submitLabel, onSubmit, onCancel }: ContactFormProps) {
+export function ContactForm({
+  initial,
+  submitLabel,
+  onSubmit,
+  onCancel,
+  customerEmailAllowed = true,
+  customerSmsAllowed = true,
+}: ContactFormProps) {
   const [values, setValues] = React.useState<ContactFormValues>(initial ?? emptyForm());
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -101,6 +114,8 @@ export function ContactForm({ initial, submitLabel, onSubmit, onCancel }: Contac
         mobile_phone: values.mobile_phone?.trim() || undefined,
         linkedin: values.linkedin?.trim() || undefined,
         notes: values.notes?.trim() || undefined,
+        email_allowed: customerEmailAllowed ? values.email_allowed : false,
+        sms_allowed: customerSmsAllowed ? values.sms_allowed : false,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : contactLabels.createError);
@@ -200,6 +215,31 @@ export function ContactForm({ initial, submitLabel, onSubmit, onCancel }: Contac
             />
           </FormField>
         </FormGrid>
+      </FormSection>
+
+      <FormSection title={contactLabels.contactSectionConsent}>
+        <FormGrid>
+          <CheckboxField
+            id="contact-email-allowed"
+            label={contactLabels.emailSendAllowed}
+            checked={values.email_allowed ?? true}
+            disabled={!customerEmailAllowed}
+            onChange={(checked) => set("email_allowed", checked)}
+          />
+          <CheckboxField
+            id="contact-sms-allowed"
+            label={contactLabels.smsSendAllowed}
+            checked={values.sms_allowed ?? true}
+            disabled={!customerSmsAllowed}
+            onChange={(checked) => set("sms_allowed", checked)}
+          />
+        </FormGrid>
+        {!customerEmailAllowed ? (
+          <p className="form-field-hint">{contactLabels.customerEmailConsentBlockedHint}</p>
+        ) : null}
+        {!customerSmsAllowed ? (
+          <p className="form-field-hint">{contactLabels.customerSmsConsentBlockedHint}</p>
+        ) : null}
       </FormSection>
 
       <FormSection title={contactLabels.contactSectionStatus}>

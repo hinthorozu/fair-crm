@@ -1,8 +1,13 @@
 from dataclasses import dataclass
 from uuid import UUID
 
+from sqlalchemy.orm import Session
+
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.ports import AuthorizationPort
+from app.modules.fair_emails.application.retry_fair_bulk_email_operation import (
+    FairBulkEmailOperationRetryHandler,
+)
 from app.modules.mail_send_operations.application.commands import RetryMailSendOperationCommand
 from app.modules.mail_send_operations.application.list_mail_send_operations import (
     MailSendOperationListItem,
@@ -37,8 +42,6 @@ RETRYABLE_SOURCE_TYPES = frozenset(
     }
 )
 
-FAIR_BULK_RETRY_MESSAGE = "fair_bulk_email source type retry is not supported yet"
-
 
 @dataclass(frozen=True)
 class RetryMailSendOperationResult:
@@ -56,6 +59,7 @@ class RetryMailSendOperationUseCase:
         fair_repository: FairRepository,
         customer_repository: CustomerRepository,
         authorization: AuthorizationPort,
+        session: Session,
     ) -> None:
         self._repository = repository
         self._mail_send_operations = mail_send_operations
@@ -64,6 +68,7 @@ class RetryMailSendOperationUseCase:
         self._fair_repository = fair_repository
         self._customer_repository = customer_repository
         self._authorization = authorization
+        self._session = session
 
     def execute(self, command: RetryMailSendOperationCommand) -> RetryMailSendOperationResult:
         if not self._authorization.check_permission(
@@ -83,9 +88,10 @@ class RetryMailSendOperationUseCase:
                 "Only failed mail send operations can be retried",
             )
 
+        if record.source_type == MailSendSourceType.FAIR_BULK_EMAIL:
+            return self._retry_fair_bulk_email(command, record)
+
         if record.source_type not in RETRYABLE_SOURCE_TYPES:
-            if record.source_type == MailSendSourceType.FAIR_BULK_EMAIL:
-                raise MailSendOperationRetryNotSupportedError(FAIR_BULK_RETRY_MESSAGE)
             raise MailSendOperationRetryNotSupportedError(
                 f"Retry is not supported for source type: {record.source_type}",
             )
@@ -119,6 +125,85 @@ class RetryMailSendOperationUseCase:
             if updated is None:
                 raise MailSendOperationNotFoundError("Mail send operation not found") from None
 
+        return self._build_result(command, updated)
+
+    def _retry_fair_bulk_email(self, command: RetryMailSendOperationCommand, record) -> RetryMailSendOperationResult:
+        handler = FairBulkEmailOperationRetryHandler(self._session)
+        outbox = handler.get_outbox_for_operation(command.organization_id, record.id)
+        if outbox is None:
+            raise MailSendOperationRetryNotSupportedError(
+                "Linked fair bulk email outbox record not found",
+            )
+
+        batch_id = record.batch_id or outbox.batch_id
+        batch = handler.get_batch(command.organization_id, batch_id)
+        if batch is None:
+            raise MailSendOperationRetryNotSupportedError(
+                "Linked fair bulk email batch not found",
+            )
+
+        try:
+            handler.validate_consent(command.organization_id, outbox)
+            account = self._resolve_smtp_account(command.organization_id, record)
+            final_subject, body_text, body_html = handler.build_send_payload(
+                command.organization_id,
+                batch=batch,
+                outbox=outbox,
+            )
+        except SmtpMailDeliveryError as exc:
+            message = exc.args[0] if exc.args else "Mail gönderimi başarısız oldu."
+            handler.sync_outbox_failed(outbox.id, message=message)
+            self._session.flush()
+            return self._complete_failed_retry(command, record, exc)
+
+        handler.prepare_outbox_for_retry(outbox.id)
+        self._session.flush()
+        recipient = record.recipient_email or outbox.email
+
+        def send_fn() -> None:
+            handler.mark_outbox_sending(outbox.id)
+            send_smtp_message(
+                account,
+                recipient=recipient,
+                subject=final_subject,
+                body=body_text,
+                body_html=body_html,
+            )
+
+        try:
+            updated = self._mail_send_operations.execute_retry_synchronous(
+                command.organization_id,
+                record.id,
+                send_fn=send_fn,
+            )
+            self._repository.update_rendered_content(
+                command.organization_id,
+                record.id,
+                subject=final_subject,
+                body_html=body_html,
+                body_text=body_text,
+            )
+            handler.sync_outbox_sent(
+                outbox.id,
+                subject=final_subject,
+                body_html=body_html,
+                body_text=body_text,
+            )
+        except SmtpMailDeliveryError:
+            updated = self._repository.get_by_id(command.organization_id, record.id)
+            if updated is None:
+                raise MailSendOperationNotFoundError("Mail send operation not found") from None
+            message = updated.error_message or "Mail gönderimi başarısız oldu."
+            handler.sync_outbox_failed(outbox.id, message=message)
+
+        self._session.flush()
+        return self._build_result(command, updated)
+
+    def _build_result(
+        self,
+        command: RetryMailSendOperationCommand,
+        updated,
+    ) -> RetryMailSendOperationResult:
         list_item = build_mail_send_operation_list_item(
             command.organization_id,
             updated,
@@ -161,15 +246,7 @@ class RetryMailSendOperationUseCase:
         updated = self._repository.get_by_id(command.organization_id, record.id)
         if updated is None:
             raise MailSendOperationNotFoundError("Mail send operation not found")
-        list_item = build_mail_send_operation_list_item(
-            command.organization_id,
-            updated,
-            smtp_repository=self._smtp_repository,
-            template_repository=self._template_repository,
-            fair_repository=self._fair_repository,
-            customer_repository=self._customer_repository,
-        )
-        return RetryMailSendOperationResult(success=False, operation=list_item)
+        return self._build_result(command, updated)
 
     def _resolve_smtp_account(self, organization_id: UUID, record):
         if record.smtp_account_id is None:

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import DateTime, String, Text, Uuid
+from sqlalchemy import Boolean, DateTime, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -31,6 +31,11 @@ class CustomerModel(Base):
     linkedin_url: Mapped[str | None] = mapped_column(String(512))
     youtube_url: Mapped[str | None] = mapped_column(String(512))
     source: Mapped[str] = mapped_column(String(32), nullable=False, default="manual")
+    email_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    sms_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    email_unsubscribed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    sms_unsubscribed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    consent_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

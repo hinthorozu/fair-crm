@@ -54,6 +54,12 @@ class SqlAlchemyMailSendOperationRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
+    def _apply_worker_row_lock(self, query):
+        bind = self._session.get_bind()
+        if bind.dialect.name == "postgresql":
+            return query.with_for_update(skip_locked=True)
+        return query
+
     def create(self, params: CreateMailSendOperationParams) -> MailSendOperationRecord:
         if params.organization_id is None:
             raise MissingOrganizationIdError("organization_id is required")
@@ -148,6 +154,59 @@ class SqlAlchemyMailSendOperationRepository:
         self._session.flush()
         return self._to_record(model)
 
+    def create_consent_skipped(
+        self,
+        params: CreateMailSendOperationParams,
+        *,
+        error_code: str,
+        error_message: str,
+    ) -> MailSendOperationRecord:
+        if params.organization_id is None:
+            raise MissingOrganizationIdError("organization_id is required")
+
+        now = datetime.now(timezone.utc)
+        priority = priority_for_source(params.source_type)
+        model = MailSendOperationModel(
+            id=uuid4(),
+            organization_id=params.organization_id,
+            source_type=str(params.source_type),
+            status=MailSendOperationStatus.SKIPPED,
+            priority=priority,
+            recipient_email=params.recipient_email.strip(),
+            recipient_name=params.recipient_name,
+            subject=params.subject.strip(),
+            body_html=params.body_html,
+            body_text=params.body_text,
+            smtp_account_id=params.smtp_account_id,
+            template_id=params.template_id,
+            fair_id=params.fair_id,
+            customer_id=params.customer_id,
+            batch_id=params.batch_id,
+            retry_count=0,
+            max_retry_count=params.max_retry_count,
+            error_code=error_code,
+            error_message=error_message,
+            operation_logs=[
+                {
+                    "time": now.isoformat().replace("+00:00", "Z"),
+                    "event": "consent_skipped",
+                    "message": error_message,
+                }
+            ],
+            metadata_json=params.metadata_json,
+            scheduled_at=params.scheduled_at,
+            queued_at=now,
+            sending_started_at=None,
+            sent_at=None,
+            failed_at=None,
+            cancelled_at=None,
+            created_at=now,
+            updated_at=now,
+        )
+        self._session.add(model)
+        self._session.flush()
+        return self._to_record(model)
+
     def get_by_id(self, organization_id: UUID, operation_id: UUID) -> MailSendOperationRecord | None:
         model = (
             self._session.query(MailSendOperationModel)
@@ -186,6 +245,84 @@ class SqlAlchemyMailSendOperationRepository:
             .all()
         )
         return [self._to_record(model) for model in models]
+
+    def list_queued_for_worker(
+        self,
+        *,
+        max_batch_size: int,
+        now: datetime,
+    ) -> list[MailSendOperationRecord]:
+        query = (
+            self._session.query(MailSendOperationModel)
+            .filter(
+                MailSendOperationModel.status == MailSendOperationStatus.QUEUED,
+                or_(
+                    MailSendOperationModel.scheduled_at.is_(None),
+                    MailSendOperationModel.scheduled_at <= now,
+                ),
+            )
+            .order_by(
+                MailSendOperationModel.priority.asc(),
+                MailSendOperationModel.created_at.asc(),
+            )
+            .limit(max_batch_size)
+        )
+        models = self._apply_worker_row_lock(query).all()
+        return [self._to_record(model) for model in models]
+
+    def list_stuck_sending(self, *, cutoff: datetime) -> list[MailSendOperationRecord]:
+        query = self._session.query(MailSendOperationModel).filter(
+            MailSendOperationModel.status == MailSendOperationStatus.SENDING,
+            MailSendOperationModel.sending_started_at.isnot(None),
+            MailSendOperationModel.sending_started_at < cutoff,
+        )
+        models = self._apply_worker_row_lock(query).all()
+        return [self._to_record(model) for model in models]
+
+    def find_fair_bulk_by_outbox_id(
+        self,
+        organization_id: UUID,
+        outbox_id: UUID,
+    ) -> MailSendOperationRecord | None:
+        outbox_key = str(outbox_id)
+        models = (
+            self._session.query(MailSendOperationModel)
+            .filter(
+                MailSendOperationModel.organization_id == organization_id,
+                MailSendOperationModel.source_type == MailSendSourceType.FAIR_BULK_EMAIL,
+            )
+            .order_by(MailSendOperationModel.created_at.asc())
+            .all()
+        )
+        for model in models:
+            metadata = model.metadata_json or {}
+            if metadata.get("outbox_id") == outbox_key:
+                return self._to_record(model)
+        return None
+
+    def try_claim_queued_operation(
+        self,
+        organization_id: UUID,
+        operation_id: UUID,
+        *,
+        now: datetime,
+    ) -> MailSendOperationRecord | None:
+        model = self._apply_worker_row_lock(
+            self._session.query(MailSendOperationModel).filter(
+                MailSendOperationModel.organization_id == organization_id,
+                MailSendOperationModel.id == operation_id,
+                MailSendOperationModel.status == MailSendOperationStatus.QUEUED,
+            )
+        ).one_or_none()
+        if model is None:
+            return None
+        if model.scheduled_at is not None and model.scheduled_at > now:
+            return None
+        model.status = MailSendOperationStatus.SENDING
+        model.sending_started_at = now
+        model.updated_at = now
+        self._session.flush()
+        return self._to_record(model)
 
     def list_paginated(
         self,
@@ -380,6 +517,27 @@ class SqlAlchemyMailSendOperationRepository:
         model.updated_at = timestamp
         self._session.flush()
         return self._to_record(model)
+
+    def append_operation_log_once(
+        self,
+        organization_id: UUID,
+        operation_id: UUID,
+        *,
+        event: str,
+        message: str,
+        at: datetime | None = None,
+    ) -> MailSendOperationRecord:
+        model = self._get_model(organization_id, operation_id)
+        logs = list(model.operation_logs or [])
+        if logs and logs[-1].get("event") == event:
+            return self._to_record(model)
+        return self.append_operation_log(
+            organization_id,
+            operation_id,
+            event=event,
+            message=message,
+            at=at,
+        )
 
     @staticmethod
     def _to_record(model: MailSendOperationModel) -> MailSendOperationRecord:

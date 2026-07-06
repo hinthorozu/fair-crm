@@ -9,6 +9,7 @@ import {
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 import { CustomerCommunicationFieldList } from "./CustomerCommunicationFieldList";
 import {
+  CheckboxField,
   FormActions,
   FormField,
   FormGrid,
@@ -43,6 +44,8 @@ export interface CustomerFormValues {
   phones: CommunicationFormItem[];
   emails: CommunicationFormItem[];
   websites: CommunicationFormItem[];
+  email_allowed: boolean;
+  sms_allowed: boolean;
 }
 
 const emptyForm = (): CustomerFormValues => ({
@@ -64,6 +67,8 @@ const emptyForm = (): CustomerFormValues => ({
   phones: [],
   emails: [],
   websites: [],
+  email_allowed: true,
+  sms_allowed: true,
 });
 
 export function customerToFormValues(customer: Customer): CustomerFormValues {
@@ -87,6 +92,8 @@ export function customerToFormValues(customer: Customer): CustomerFormValues {
     phones: communications.phones,
     emails: communications.emails,
     websites: communications.websites,
+    email_allowed: customer.email_allowed ?? true,
+    sms_allowed: customer.sms_allowed ?? true,
   };
 }
 
@@ -335,6 +342,23 @@ export function CustomerForm({ initial, submitLabel, onCancel, onSubmit }: Custo
               placeholder="https://youtube.com/..."
             />
           </FormField>
+        </FormGrid>
+      </FormSection>
+
+      <FormSection title={labels.customerSectionConsent}>
+        <FormGrid>
+          <CheckboxField
+            id="customer-email-allowed"
+            label={labels.emailSendAllowed}
+            checked={values.email_allowed}
+            onChange={(checked) => set("email_allowed", checked)}
+          />
+          <CheckboxField
+            id="customer-sms-allowed"
+            label={labels.smsSendAllowed}
+            checked={values.sms_allowed}
+            onChange={(checked) => set("sms_allowed", checked)}
+          />
         </FormGrid>
       </FormSection>
 

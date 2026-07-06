@@ -39,6 +39,11 @@ class Contact:
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime]
+    email_allowed: bool = True
+    sms_allowed: bool = True
+    email_unsubscribed_at: Optional[datetime] = None
+    sms_unsubscribed_at: Optional[datetime] = None
+    consent_note: Optional[str] = None
 
     @property
     def full_name(self) -> str:
@@ -61,6 +66,9 @@ class Contact:
         notes: Optional[str] = None,
         is_primary: bool = False,
         is_active: bool = True,
+        email_allowed: bool = True,
+        sms_allowed: bool = True,
+        consent_note: Optional[str] = None,
         now: datetime,
     ) -> "Contact":
         trimmed_first = first_name.strip()
@@ -90,6 +98,11 @@ class Contact:
             created_at=now,
             updated_at=now,
             deleted_at=None,
+            email_allowed=email_allowed,
+            sms_allowed=sms_allowed,
+            email_unsubscribed_at=None if email_allowed else now,
+            sms_unsubscribed_at=None if sms_allowed else now,
+            consent_note=consent_note.strip() if consent_note else None,
         )
 
     def ensure_mutable(self) -> None:
@@ -110,6 +123,9 @@ class Contact:
         notes: Optional[str] = None,
         is_primary: Optional[bool] = None,
         is_active: Optional[bool] = None,
+        email_allowed: Optional[bool] = None,
+        sms_allowed: Optional[bool] = None,
+        consent_note: Optional[str] = None,
         now: datetime,
     ) -> None:
         self.ensure_mutable()
@@ -144,6 +160,21 @@ class Contact:
             self.is_primary = is_primary
         if is_active is not None:
             self.is_active = is_active
+
+        if email_allowed is not None:
+            self.email_allowed = email_allowed
+            if email_allowed:
+                self.email_unsubscribed_at = None
+            elif self.email_unsubscribed_at is None:
+                self.email_unsubscribed_at = now
+        if sms_allowed is not None:
+            self.sms_allowed = sms_allowed
+            if sms_allowed:
+                self.sms_unsubscribed_at = None
+            elif self.sms_unsubscribed_at is None:
+                self.sms_unsubscribed_at = now
+        if consent_note is not None:
+            self.consent_note = consent_note.strip() if consent_note else None
 
         self.updated_at = now
 

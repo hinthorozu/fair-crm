@@ -58,7 +58,7 @@ export function MailOperationActionsMenu({
     onCancel,
   };
 
-  const actions = getMailOperationActions(record.status, record.source_type).filter((action) => {
+  const actions = getMailOperationActions(record.status).filter((action) => {
     const handlerKey = ACTION_HANDLERS[action];
     return Boolean(handlers[handlerKey]);
   });

@@ -169,13 +169,13 @@ def test_retry_unsupported_source_type(client, auth_headers, db_session, organiz
     operation_id = service.record_immediate_failure(
         CreateMailSendOperationParams(
             organization_id=organization_id,
-            source_type=MailSendSourceType.FAIR_BULK_EMAIL,
-            recipient_email="bulk@example.com",
-            subject="Bulk",
-            body_text="Bulk body",
+            source_type=MailSendSourceType.MANUAL_EMAIL,
+            recipient_email="manual@example.com",
+            subject="Manual",
+            body_text="Manual body",
         ),
-        error_code="BatchFailed",
-        error_message="Batch failed",
+        error_code="SendFailed",
+        error_message="Send failed",
     )
 
     response = client.post(
@@ -183,7 +183,7 @@ def test_retry_unsupported_source_type(client, auth_headers, db_session, organiz
         headers=auth_headers,
     )
     assert response.status_code == 400
-    assert "fair_bulk_email" in response.json()["detail"]
+    assert "manual_email" in response.json()["detail"]
 
 
 def test_retry_denied_without_update_permission(client, auth_headers):

@@ -58,6 +58,7 @@ export const adminLabels = {
     sent: "Gönderildi",
     failed: "Başarısız",
     cancelled: "İptal Edildi",
+    skipped: "Atlandı",
   },
   mailOperationsSourceLabels: {
     smtp_test: "SMTP Test",
@@ -70,7 +71,7 @@ export const adminLabels = {
     detail: "Detay",
     logs: "Logları Gör",
     copy: "Kopyala",
-    retry: "Retry",
+    retry: "Tekrar Gönder",
     error_detail: "Hata Detayı",
     cancel: "İptal Et",
   },

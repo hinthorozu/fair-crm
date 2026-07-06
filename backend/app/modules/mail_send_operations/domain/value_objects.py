@@ -17,6 +17,7 @@ class MailSendOperationStatus(StrEnum):
     SENT = "sent"
     FAILED = "failed"
     CANCELLED = "cancelled"
+    SKIPPED = "skipped"
 
 
 MAIL_SEND_SOURCE_PRIORITY: dict[MailSendSourceType, int] = {
