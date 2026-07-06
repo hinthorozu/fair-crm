@@ -1,5 +1,7 @@
 """Tests for TÜYAP scraper adapter prototypes."""
 
+from pathlib import Path
+from unittest.mock import patch
 from uuid import uuid4
 
 from app.modules.scraper.adapters.tuyap_new_adapter import TuyapNewAdapter
@@ -33,16 +35,24 @@ def test_tuyap_adapters_selectable_independently():
     assert new_adapter.display_name == "TÜYAP (New)"
 
 
-def test_tuyap_old_adapter_returns_raw_company_dtos():
+@patch("app.modules.scraper.adapters.tuyap_old_adapter.fetch_html")
+def test_tuyap_old_adapter_returns_raw_company_dtos(mock_fetch_html):
+    fixtures = Path(__file__).resolve().parents[2] / "fixtures" / "tuyap_old"
+    mock_fetch_html.return_value = (fixtures / "list_page.html").read_text(encoding="utf-8")
+
     adapter = TuyapOldAdapter()
-    context = ScraperContext(fair_id=uuid4(), list_url="https://tuyap-old.test/exhibitors")
+    context = ScraperContext(
+        fair_id=uuid4(),
+        list_url="https://istanbulkitapfuari.com/katilimci-listesi",
+        options={"use_http": True, "scrape_detail": False, "max_pages": 1},
+    )
 
     rows = adapter.scrape(context)
 
     assert isinstance(rows, list)
     assert len(rows) >= 1
     assert all(isinstance(row, RawCompanyDto) for row in rows)
-    assert rows[0].company_name.startswith("TÜYAP Old Placeholder")
+    assert rows[0].company_name == "21. YÜZYIL EĞİTİM VE KÜLTÜR VAKFI"
 
 
 def test_tuyap_new_adapter_returns_raw_company_dtos():
@@ -57,15 +67,23 @@ def test_tuyap_new_adapter_returns_raw_company_dtos():
     assert rows[0].company_name.startswith("TÜYAP New Placeholder")
 
 
-def test_scraper_manager_runs_tuyap_adapters_by_site_key():
+@patch("app.modules.scraper.adapters.tuyap_old_adapter.fetch_html")
+def test_scraper_manager_runs_tuyap_adapters_by_site_key(mock_fetch_html):
+    fixtures = Path(__file__).resolve().parents[2] / "fixtures" / "tuyap_old"
+    mock_fetch_html.return_value = (fixtures / "list_page.html").read_text(encoding="utf-8")
+
     registry = ScraperAdapterRegistry()
     registry.register(TuyapOldAdapter())
     registry.register(TuyapNewAdapter())
     manager = ScraperManager(registry, CompanyNormalizer())
-    context = ScraperContext(list_url="https://tuyap.test/list")
+    old_context = ScraperContext(
+        list_url="https://istanbulkitapfuari.com/katilimci-listesi",
+        options={"use_http": True, "scrape_detail": False, "max_pages": 1},
+    )
+    new_context = ScraperContext(list_url="https://tuyap.test/list")
 
-    old_result = manager.run(ScraperSiteKey.TUYAP_OLD, context)
-    new_result = manager.run(ScraperSiteKey.TUYAP_NEW, context)
+    old_result = manager.run(ScraperSiteKey.TUYAP_OLD, old_context)
+    new_result = manager.run(ScraperSiteKey.TUYAP_NEW, new_context)
 
     assert old_result.site_key == ScraperSiteKey.TUYAP_OLD
     assert new_result.site_key == ScraperSiteKey.TUYAP_NEW

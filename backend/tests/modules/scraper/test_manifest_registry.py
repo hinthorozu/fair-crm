@@ -2,12 +2,16 @@
 
 import pytest
 
+from app.modules.scraper.adapters.customer_contact_enrichment_adapter import CustomerContactEnrichmentAdapter
 from app.modules.scraper.adapters.tuyap_new_adapter import TuyapNewAdapter
 from app.modules.scraper.adapters.tuyap_old_adapter import TuyapOldAdapter
 from app.modules.scraper.core.manifest_registry import ManifestRegistry, get_manifest_registry
 from app.modules.scraper.core.scraper_manager import ScraperManager
 from app.modules.scraper.core.scraper_registry import ScraperAdapterRegistry, get_scraper_adapter_registry
 from app.modules.scraper.manifests import register_builtin_manifests
+from app.modules.scraper.manifests.customer_contact_enrichment_manifest import (
+    CUSTOMER_CONTACT_ENRICHMENT_MANIFEST,
+)
 from app.modules.scraper.manifests.scraper_manifest import ScraperStatus
 from app.modules.scraper.manifests.tuyap_new_manifest import TUYAP_NEW_MANIFEST
 from app.modules.scraper.manifests.tuyap_old_manifest import TUYAP_OLD_MANIFEST
@@ -19,16 +23,26 @@ def test_manifest_registers_in_registry():
     registry = ManifestRegistry()
     register_builtin_manifests(registry)
 
-    assert registry.list_adapter_keys() == sorted([ScraperSiteKey.TUYAP_OLD, ScraperSiteKey.TUYAP_NEW])
+    assert registry.list_adapter_keys() == sorted(
+        [
+            ScraperSiteKey.TUYAP_OLD,
+            ScraperSiteKey.TUYAP_NEW,
+            ScraperSiteKey.CUSTOMER_CONTACT_ENRICHMENT,
+        ]
+    )
 
 
 def test_registry_returns_all_builtin_manifests():
     registry = get_manifest_registry()
     manifests = registry.list_manifests()
 
-    assert len(manifests) == 2
+    assert len(manifests) == 3
     keys = {manifest.adapter_key for manifest in manifests}
-    assert keys == {ScraperSiteKey.TUYAP_OLD, ScraperSiteKey.TUYAP_NEW}
+    assert keys == {
+        ScraperSiteKey.TUYAP_OLD,
+        ScraperSiteKey.TUYAP_NEW,
+        ScraperSiteKey.CUSTOMER_CONTACT_ENRICHMENT,
+    }
 
 
 def test_tuyap_new_manifest_matches_adapter():
@@ -54,8 +68,10 @@ def test_tuyap_old_manifest_matches_adapter():
 
     assert manifest.adapter_key == adapter.site_key
     assert manifest.display_name == adapter.display_name
-    assert manifest.status == ScraperStatus.EXPERIMENTAL
-    assert manifest.supports.detail_scraping is False
+    assert manifest.status == ScraperStatus.STABLE
+    assert manifest.supports.detail_scraping is True
+    assert manifest.supports.pagination is True
+    assert manifest.supported_sites == ("istanbulkitapfuari.com",)
 
 
 def test_default_adapter_and_manifest_keys_are_aligned():
@@ -75,9 +91,20 @@ def test_scraper_manager_reads_manifests():
     manifests = manager.list_manifests()
     manifest = manager.get_manifest(ScraperSiteKey.TUYAP_NEW)
 
-    assert len(manifests) == 2
+    assert len(manifests) == 3
     assert manifest.adapter_key == ScraperSiteKey.TUYAP_NEW
     assert manifest.supported_sites == ("foodistexpo.com", "foodist.tuyap.online")
+
+
+def test_customer_contact_enrichment_manifest_matches_adapter():
+    adapter = CustomerContactEnrichmentAdapter()
+    manifest = CUSTOMER_CONTACT_ENRICHMENT_MANIFEST
+
+    assert manifest.adapter_key == adapter.site_key
+    assert manifest.display_name == adapter.display_name
+    assert manifest.supports.email is True
+    assert manifest.supports.website is False
+    assert manifest.supports.list_scraping is False
 
 
 def test_manifest_registry_unknown_key_raises():

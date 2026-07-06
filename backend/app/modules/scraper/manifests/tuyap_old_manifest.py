@@ -12,20 +12,20 @@ from app.modules.scraper.types.scraper_site import ScraperSiteKey
 TUYAP_OLD_MANIFEST = ScraperManifest(
     adapter_key=ScraperSiteKey.TUYAP_OLD,
     display_name="TÜYAP (Old)",
-    version="0.1.0",
+    version="1.0.0",
     supported_sites=(
-        "tuyap.com.tr",
+        "istanbulkitapfuari.com",
     ),
     supports=ScraperSupports(
         list_scraping=True,
-        detail_scraping=False,
-        pagination=False,
-        website=False,
+        detail_scraping=True,
+        pagination=True,
+        website=True,
         email=True,
-        phone=False,
-        address=False,
+        phone=True,
+        address=True,
         category=False,
-        description=False,
+        description=True,
     ),
     output=ScraperOutput(
         json_handoff=True,
@@ -35,10 +35,13 @@ TUYAP_OLD_MANIFEST = ScraperManifest(
         requires_js=False,
         requires_playwright=False,
     ),
-    status=ScraperStatus.EXPERIMENTAL,
+    status=ScraperStatus.STABLE,
     author="KYROX",
-    notes="Legacy TÜYAP portal placeholder adapter. Not production-ready.",
+    notes=(
+        "İstanbul Kitap Fuarı legacy exhibitor list scraping. "
+        "List page includes contact and location; detail page adds Firma Hakkında notes."
+    ),
     scraper_version="1.0",
-    target_site_version="unknown",
-    last_verified="2026-07-04",
+    target_site_version="istanbulkitapfuari.com",
+    last_verified="2026-07-06",
 )
