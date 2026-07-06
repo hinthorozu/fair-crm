@@ -1,9 +1,13 @@
+from datetime import UTC, datetime
+
 from app.modules.todos.application.commands import TodoListResultDto, TodoResult
 from app.modules.todos.domain.entities import Todo
+from app.modules.todos.domain.overdue import is_todo_overdue
 from app.modules.todos.domain.ports import TodoListResult
 
 
-def todo_to_result(todo: Todo) -> TodoResult:
+def todo_to_result(todo: Todo, *, now: datetime | None = None) -> TodoResult:
+    resolved_now = now or datetime.now(tz=UTC)
     return TodoResult(
         id=todo.id,
         organization_id=todo.organization_id,
@@ -20,12 +24,14 @@ def todo_to_result(todo: Todo) -> TodoResult:
         completed_at=todo.completed_at,
         created_at=todo.created_at,
         updated_at=todo.updated_at,
+        is_overdue=is_todo_overdue(todo, now=resolved_now),
     )
 
 
-def list_result_to_dto(result: TodoListResult) -> TodoListResultDto:
+def list_result_to_dto(result: TodoListResult, *, now: datetime | None = None) -> TodoListResultDto:
+    resolved_now = now or datetime.now(tz=UTC)
     return TodoListResultDto(
-        items=[todo_to_result(item) for item in result.items],
+        items=[todo_to_result(item, now=resolved_now) for item in result.items],
         page=result.page,
         page_size=result.page_size,
         total=result.total,

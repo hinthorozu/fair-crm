@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from tests.conftest_helpers import pagination_from
@@ -109,3 +109,74 @@ def test_list_excludes_archived_todos(client, auth_headers, db_session, organiza
 
     get_archived = client.get(f"/api/v1/todos/{archived.id}", headers=auth_headers)
     assert get_archived.status_code == 200
+
+
+def test_complete_todo(client, auth_headers):
+    create_response = _create_todo(
+        client,
+        auth_headers,
+        deadline=(datetime.now(tz=UTC) - timedelta(days=1)).isoformat(),
+    )
+    todo_id = create_response.json()["id"]
+
+    complete_response = client.post(f"/api/v1/todos/{todo_id}/complete", headers=auth_headers)
+    assert complete_response.status_code == 200
+    body = complete_response.json()
+    assert body["status"] == "done"
+    assert body["completed_at"] is not None
+    assert body["is_overdue"] is False
+
+
+def test_archive_todo(client, auth_headers):
+    create_response = _create_todo(client, auth_headers, title="To archive")
+    todo_id = create_response.json()["id"]
+
+    archive_response = client.post(f"/api/v1/todos/{todo_id}/archive", headers=auth_headers)
+    assert archive_response.status_code == 200
+    assert archive_response.json()["status"] == "archived"
+
+    list_response = client.get("/api/v1/todos", headers=auth_headers)
+    assert pagination_from(list_response.json())["totalItems"] == 0
+
+
+def test_delete_todo_returns_204(client, auth_headers):
+    create_response = _create_todo(client, auth_headers)
+    todo_id = create_response.json()["id"]
+
+    delete_response = client.delete(f"/api/v1/todos/{todo_id}", headers=auth_headers)
+    assert delete_response.status_code == 204
+    assert delete_response.content == b""
+
+    get_response = client.get(f"/api/v1/todos/{todo_id}", headers=auth_headers)
+    assert get_response.status_code == 404
+
+
+def test_patch_rejects_done_status(client, auth_headers):
+    create_response = _create_todo(client, auth_headers)
+    todo_id = create_response.json()["id"]
+
+    update_response = client.patch(
+        f"/api/v1/todos/{todo_id}",
+        json={"status": "done"},
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 422
+
+
+def test_response_includes_is_overdue(client, auth_headers):
+    create_response = _create_todo(
+        client,
+        auth_headers,
+        deadline=(datetime.now(tz=UTC) - timedelta(days=1)).isoformat(),
+    )
+    assert create_response.json()["is_overdue"] is True
+
+
+def test_list_filter_by_status(client, auth_headers):
+    _create_todo(client, auth_headers, title="Todo item")
+    _create_todo(client, auth_headers, title="In progress item", status="in_progress")
+
+    list_response = client.get("/api/v1/todos?status=in_progress", headers=auth_headers)
+    body = list_response.json()
+    assert pagination_from(body)["totalItems"] == 1
+    assert body["items"][0]["status"] == "in_progress"

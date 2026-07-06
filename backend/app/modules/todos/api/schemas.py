@@ -15,6 +15,8 @@ TodoStatusField = Literal[
     "archived",
 ]
 
+TodoPatchStatusField = Literal["todo", "in_progress", "cancelled"]
+
 TodoPriorityField = Literal["low", "normal", "high", "urgent"]
 
 TodoCategoryField = Literal[
@@ -46,7 +48,7 @@ class CreateTodoRequest(BaseModel):
 class UpdateTodoRequest(BaseModel):
     title: Optional[str] = Field(default=None, min_length=1, max_length=500)
     description: Optional[str] = Field(default=None, max_length=10000)
-    status: Optional[TodoStatusField] = None
+    status: Optional[TodoPatchStatusField] = None
     priority: Optional[TodoPriorityField] = None
     category: Optional[TodoCategoryField] = None
     deadline: Optional[datetime] = None
@@ -71,6 +73,7 @@ class TodoResponse(BaseModel):
     completed_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
+    is_overdue: bool
 
 
 class TodoListResponse(StandardListResponse[TodoResponse]):

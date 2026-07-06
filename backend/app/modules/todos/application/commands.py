@@ -28,6 +28,13 @@ class GetTodoQuery:
 class ListTodosQuery:
     organization_id: UUID
     search: str | None = None
+    status: str | None = None
+    priority: str | None = None
+    category: str | None = None
+    assignee_user_id: UUID | None = None
+    created_by: UUID | None = None
+    is_overdue: bool | None = None
+    include_archived: bool = False
     page: int = 1
     page_size: int = 25
     sort_by: str = "updated_at"
@@ -53,6 +60,30 @@ class UpdateTodoCommand:
 
 
 @dataclass(frozen=True)
+class CompleteTodoCommand:
+    organization_id: UUID
+    todo_id: UUID
+    access_token: str
+    user_id: UUID
+
+
+@dataclass(frozen=True)
+class ArchiveTodoCommand:
+    organization_id: UUID
+    todo_id: UUID
+    access_token: str
+    user_id: UUID
+
+
+@dataclass(frozen=True)
+class DeleteTodoCommand:
+    organization_id: UUID
+    todo_id: UUID
+    access_token: str
+    user_id: UUID
+
+
+@dataclass(frozen=True)
 class TodoResult:
     id: UUID
     organization_id: UUID
@@ -69,6 +100,7 @@ class TodoResult:
     completed_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
+    is_overdue: bool
 
 
 @dataclass(frozen=True)

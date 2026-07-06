@@ -7,9 +7,18 @@ from app.modules.todos.domain.exceptions import (
     InvalidTodoCategoryError,
     InvalidTodoPriorityError,
     InvalidTodoStatusError,
+    InvalidTodoStatusTransitionError,
     InvalidTodoTitleError,
 )
 from app.modules.todos.domain.value_objects import TodoCategory, TodoPriority, TodoStatus
+
+PATCHABLE_STATUSES = frozenset(
+    {
+        TodoStatus.TODO,
+        TodoStatus.IN_PROGRESS,
+        TodoStatus.CANCELLED,
+    }
+)
 
 
 def _validate_status(value: str) -> str:
@@ -114,7 +123,12 @@ class Todo:
             self.description = description.strip() if description else None
 
         if status is not None:
-            self.status = _validate_status(status)
+            validated = _validate_status(status)
+            if validated not in PATCHABLE_STATUSES:
+                raise InvalidTodoStatusTransitionError(
+                    "status done and archived must use dedicated action endpoints"
+                )
+            self.status = validated
 
         if priority is not None:
             self.priority = _validate_priority(priority)
@@ -128,5 +142,17 @@ class Todo:
         if set_assignee_user_id:
             self.assignee_user_id = assignee_user_id
 
+        self.updated_by = updated_by
+        self.updated_at = now
+
+    def complete(self, *, now: datetime, updated_by: UUID) -> None:
+        self.status = TodoStatus.DONE
+        self.completed_at = now
+        self.updated_by = updated_by
+        self.updated_at = now
+
+    def archive(self, *, now: datetime, updated_by: UUID) -> None:
+        self.status = TodoStatus.ARCHIVED
+        self.archived_at = now
         self.updated_by = updated_by
         self.updated_at = now

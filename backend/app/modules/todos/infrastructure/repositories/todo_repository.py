@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import or_
@@ -27,6 +28,8 @@ SEARCH_FIELDS = (
     TodoModel.title,
     TodoModel.description,
 )
+
+NON_OVERDUE_STATUSES = (TodoStatus.DONE, TodoStatus.ARCHIVED)
 
 
 class SqlAlchemyTodoRepository:
@@ -65,23 +68,73 @@ class SqlAlchemyTodoRepository:
         self._session.refresh(model)
         return model_to_entity(model)
 
+    def delete_by_id(self, organization_id: UUID, todo_id: UUID) -> bool:
+        model = (
+            self._session.query(TodoModel)
+            .filter(
+                TodoModel.organization_id == organization_id,
+                TodoModel.id == todo_id,
+            )
+            .one_or_none()
+        )
+        if model is None:
+            return False
+        self._session.delete(model)
+        self._session.flush()
+        return True
+
     def list_by_organization(
         self,
         organization_id: UUID,
         *,
         search: str | None = None,
+        status: str | None = None,
+        priority: str | None = None,
+        category: str | None = None,
+        assignee_user_id: UUID | None = None,
+        created_by: UUID | None = None,
+        is_overdue: bool | None = None,
+        include_archived: bool = False,
+        now: datetime | None = None,
         page: int = 1,
         page_size: int = 25,
         sort_by: str = "updated_at",
         sort_dir: str = "desc",
-        exclude_archived: bool = True,
     ) -> TodoListResult:
         page_params = normalize_page_params(page, page_size)
         query = self._session.query(TodoModel).filter(
             TodoModel.organization_id == organization_id,
         )
-        if exclude_archived:
+        if not include_archived:
             query = query.filter(TodoModel.status != TodoStatus.ARCHIVED)
+        if status:
+            query = query.filter(TodoModel.status == status.strip())
+        if priority:
+            query = query.filter(TodoModel.priority == priority.strip())
+        if category:
+            query = query.filter(TodoModel.category == category.strip())
+        if assignee_user_id is not None:
+            query = query.filter(TodoModel.assignee_user_id == assignee_user_id)
+        if created_by is not None:
+            query = query.filter(TodoModel.created_by == created_by)
+        if is_overdue is not None:
+            if now is None:
+                raise ValueError("now is required when filtering by is_overdue")
+            overdue_condition = (
+                TodoModel.deadline.isnot(None),
+                TodoModel.deadline < now,
+                TodoModel.status.notin_(NON_OVERDUE_STATUSES),
+            )
+            if is_overdue:
+                query = query.filter(*overdue_condition)
+            else:
+                query = query.filter(
+                    or_(
+                        TodoModel.deadline.is_(None),
+                        TodoModel.deadline >= now,
+                        TodoModel.status.in_(NON_OVERDUE_STATUSES),
+                    )
+                )
         if search:
             pattern = f"%{search.strip()}%"
             query = query.filter(or_(*[field.ilike(pattern) for field in SEARCH_FIELDS]))

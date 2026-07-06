@@ -56,6 +56,11 @@ ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.admin.backups.download",
     "fair_crm.admin.data_operations.read",
     "fair_crm.admin.data_operations.run",
+    "fair_crm.todos.read",
+    "fair_crm.todos.create",
+    "fair_crm.todos.update",
+    "fair_crm.todos.archive",
+    "fair_crm.todos.delete",
 )
 
 ADMIN_ONLY_PERMISSIONS: frozenset[str] = frozenset(
@@ -77,6 +82,7 @@ ADMIN_ONLY_PERMISSIONS: frozenset[str] = frozenset(
         "fair_crm.scraper.create",
         "fair_crm.scraper.update",
         "fair_crm.scraper.delete",
+        "fair_crm.todos.delete",
     }
 )
 
@@ -111,6 +117,10 @@ _MANAGER_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.scraper.read",
     "fair_crm.scraper.run",
     "fair_crm.scraper.download",
+    "fair_crm.todos.read",
+    "fair_crm.todos.create",
+    "fair_crm.todos.update",
+    "fair_crm.todos.archive",
 )
 
 _SALES_PERMISSIONS: tuple[str, ...] = (
@@ -131,6 +141,10 @@ _SALES_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.smtp.read",
     "fair_crm.mail_templates.read",
     "fair_crm.fair_emails.preview",
+    "fair_crm.todos.read",
+    "fair_crm.todos.create",
+    "fair_crm.todos.update",
+    "fair_crm.todos.archive",
 )
 
 _VIEWER_PERMISSIONS: tuple[str, ...] = (
@@ -144,6 +158,7 @@ _VIEWER_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.smtp.read",
     "fair_crm.mail_templates.read",
     "fair_crm.fair_emails.preview",
+    "fair_crm.todos.read",
 )
 
 _SCRAPER_OPERATOR_PERMISSIONS: tuple[str, ...] = (

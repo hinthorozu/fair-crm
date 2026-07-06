@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from app.modules.todos.application.commands import GetTodoQuery, TodoResult
 from app.modules.todos.application.mappers import todo_to_result
 from app.modules.todos.domain.exceptions import TodoNotFoundError
@@ -12,4 +14,5 @@ class GetTodoUseCase:
         todo = self._repository.get_by_id(query.organization_id, query.todo_id)
         if todo is None:
             raise TodoNotFoundError("Todo not found")
-        return todo_to_result(todo)
+        now = datetime.now(tz=UTC)
+        return todo_to_result(todo, now=now)

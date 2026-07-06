@@ -20,3 +20,7 @@ class InvalidTodoPriorityError(TodoDomainError):
 
 class InvalidTodoCategoryError(TodoDomainError):
     pass
+
+
+class InvalidTodoStatusTransitionError(TodoDomainError):
+    pass

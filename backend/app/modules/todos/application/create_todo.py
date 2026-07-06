@@ -56,4 +56,4 @@ class CreateTodoUseCase:
             metadata={"user_id": str(command.user_id)},
         )
 
-        return todo_to_result(saved)
+        return todo_to_result(saved, now=now)

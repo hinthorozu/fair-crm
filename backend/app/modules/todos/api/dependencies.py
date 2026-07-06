@@ -14,7 +14,10 @@ from app.integrations.kyrox_core.dev_bypass import (
     resolve_auth_context,
 )
 from app.integrations.kyrox_core.ports import AuthorizationPort
+from app.modules.todos.application.archive_todo import ArchiveTodoUseCase
+from app.modules.todos.application.complete_todo import CompleteTodoUseCase
 from app.modules.todos.application.create_todo import CreateTodoUseCase
+from app.modules.todos.application.delete_todo import DeleteTodoUseCase
 from app.modules.todos.application.get_todo import GetTodoUseCase
 from app.modules.todos.application.list_todos import ListTodosUseCase
 from app.modules.todos.application.update_todo import UpdateTodoUseCase
@@ -99,3 +102,27 @@ def get_update_todo_use_case(
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
 ) -> UpdateTodoUseCase:
     return UpdateTodoUseCase(repository, authorization, audit)
+
+
+def get_complete_todo_use_case(
+    repository: SqlAlchemyTodoRepository = Depends(get_todo_repository),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
+) -> CompleteTodoUseCase:
+    return CompleteTodoUseCase(repository, authorization, audit)
+
+
+def get_archive_todo_use_case(
+    repository: SqlAlchemyTodoRepository = Depends(get_todo_repository),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
+) -> ArchiveTodoUseCase:
+    return ArchiveTodoUseCase(repository, authorization, audit)
+
+
+def get_delete_todo_use_case(
+    repository: SqlAlchemyTodoRepository = Depends(get_todo_repository),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
+) -> DeleteTodoUseCase:
+    return DeleteTodoUseCase(repository, authorization, audit)
