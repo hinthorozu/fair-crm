@@ -5,6 +5,23 @@ from app.modules.todos.domain.outcome_entities import TodoOutcomeDefinition
 from app.modules.todos.domain.worklist_entities import TodoWorklistState
 
 
+class OutcomeListResult:
+    def __init__(
+        self,
+        *,
+        items: list[TodoOutcomeDefinition],
+        page: int,
+        page_size: int,
+        total: int,
+        total_pages: int,
+    ) -> None:
+        self.items = items
+        self.page = page
+        self.page_size = page_size
+        self.total = total
+        self.total_pages = total_pages
+
+
 class TodoOutcomeDefinitionRepository(Protocol):
     def add(self, outcome: TodoOutcomeDefinition) -> TodoOutcomeDefinition: ...
 
@@ -17,6 +34,20 @@ class TodoOutcomeDefinitionRepository(Protocol):
     ) -> TodoOutcomeDefinition | None: ...
 
     def update(self, outcome: TodoOutcomeDefinition) -> TodoOutcomeDefinition: ...
+
+    def count_by_organization(self, organization_id: UUID) -> int: ...
+
+    def list_by_organization(
+        self,
+        organization_id: UUID,
+        *,
+        is_active: bool | None = None,
+        search: str | None = None,
+        page: int = 1,
+        page_size: int = 100,
+        sort_by: str = "sort_order",
+        sort_dir: str = "asc",
+    ) -> OutcomeListResult: ...
 
 
 class TodoWorklistStateRepository(Protocol):

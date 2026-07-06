@@ -99,6 +99,10 @@ from app.modules.todos.api.dependencies import (
     get_audit_adapter as get_todos_audit_adapter,
     get_authorization_adapter as get_todos_authorization_adapter,
 )
+from app.modules.todos.api.outcome_dependencies import (
+    get_audit_adapter as get_outcome_audit_adapter,
+    get_authorization_adapter as get_outcome_authorization_adapter,
+)
 
 
 class AllowAllAuthorization(AuthorizationPort):
@@ -231,6 +235,8 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     app.dependency_overrides[get_fair_emails_authorization_adapter] = lambda: AllowAllAuthorization()
     app.dependency_overrides[get_todos_authorization_adapter] = lambda: AllowAllAuthorization()
     app.dependency_overrides[get_todos_audit_adapter] = lambda: NoOpAudit()
+    app.dependency_overrides[get_outcome_authorization_adapter] = lambda: AllowAllAuthorization()
+    app.dependency_overrides[get_outcome_audit_adapter] = lambda: NoOpAudit()
 
     import app.modules.data_integration.api.dependencies as data_integration_dependencies
     import app.modules.imports.api.dependencies as imports_dependencies

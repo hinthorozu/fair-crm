@@ -46,6 +46,14 @@ class TodoOutcomeDefinitionNotFoundError(TodoDomainError):
     pass
 
 
+class DuplicateOutcomeCodeError(TodoDomainError):
+    pass
+
+
+class OutcomeCodeImmutableError(TodoDomainError):
+    pass
+
+
 class TodoWorklistStateNotFoundError(TodoDomainError):
     pass
 

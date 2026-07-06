@@ -84,3 +84,45 @@ class TodoOutcomeDefinition:
     def deactivate(self, *, now: datetime) -> None:
         self.is_active = False
         self.updated_at = now
+
+    def reactivate(self, *, now: datetime) -> None:
+        self.is_active = True
+        self.updated_at = now
+
+    def update_fields(
+        self,
+        *,
+        now: datetime,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        set_description: bool = False,
+        primary_worklist_status: Optional[str] = None,
+        requires_action: Optional[bool] = None,
+        marks_data_problem: Optional[bool] = None,
+        sort_order: Optional[int] = None,
+        is_active: Optional[bool] = None,
+    ) -> None:
+        if name is not None:
+            self.name = _validate_name(name)
+
+        if set_description:
+            self.description = description.strip() if description else None
+
+        if primary_worklist_status is not None:
+            self.primary_worklist_status = _validate_primary_worklist_status(
+                primary_worklist_status
+            )
+
+        if requires_action is not None:
+            self.requires_action = requires_action
+
+        if marks_data_problem is not None:
+            self.marks_data_problem = marks_data_problem
+
+        if sort_order is not None:
+            self.sort_order = sort_order
+
+        if is_active is not None:
+            self.is_active = is_active
+
+        self.updated_at = now

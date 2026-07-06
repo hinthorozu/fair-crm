@@ -61,6 +61,49 @@ def test_outcome_definition_deactivate():
     assert outcome.is_active is False
 
 
+def test_outcome_definition_reactivate():
+    now = datetime.now(tz=UTC)
+    outcome = TodoOutcomeDefinition.create(
+        organization_id=uuid4(),
+        name="Ulaşıldı",
+        code="ulasildi",
+        primary_worklist_status=OutcomePrimaryWorklistStatus.CLOSED,
+        now=now,
+    )
+    outcome.deactivate(now=now)
+    later = datetime.now(tz=UTC)
+    outcome.reactivate(now=later)
+    assert outcome.is_active is True
+    assert outcome.updated_at == later
+
+
+def test_outcome_definition_update_fields():
+    now = datetime.now(tz=UTC)
+    outcome = TodoOutcomeDefinition.create(
+        organization_id=uuid4(),
+        name="Tekrar aranacak",
+        code="tekrar_aranacak",
+        primary_worklist_status=OutcomePrimaryWorklistStatus.IN_FOLLOW_UP,
+        now=now,
+    )
+    later = datetime.now(tz=UTC)
+    outcome.update_fields(
+        now=later,
+        name="Acil tekrar aranacak",
+        primary_worklist_status=OutcomePrimaryWorklistStatus.CLOSED,
+        requires_action=True,
+        sort_order=15,
+        set_description=True,
+        description="  VIP müşteri  ",
+    )
+    assert outcome.name == "Acil tekrar aranacak"
+    assert outcome.primary_worklist_status == OutcomePrimaryWorklistStatus.CLOSED
+    assert outcome.requires_action is True
+    assert outcome.sort_order == 15
+    assert outcome.description == "VIP müşteri"
+    assert outcome.updated_at == later
+
+
 def test_todo_source_fair_change_blocked_when_done():
     now = datetime.now(tz=UTC)
     user_id = uuid4()

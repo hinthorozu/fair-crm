@@ -31,6 +31,9 @@ from app.modules.fair_emails.api.dependencies import (
 )
 from app.modules.system_admin.api.dependencies import get_authorization_adapter as get_system_admin_authorization_adapter
 from app.modules.todos.api.dependencies import get_authorization_adapter as get_todos_authorization_adapter
+from app.modules.todos.api.outcome_dependencies import (
+    get_authorization_adapter as get_outcome_authorization_adapter,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SCRIPTS_DIR = REPO_ROOT / "scripts"
@@ -59,6 +62,7 @@ AUTH_DEPENDENCIES = (
     get_mail_templates_authorization_adapter,
     get_fair_emails_authorization_adapter,
     get_todos_authorization_adapter,
+    get_outcome_authorization_adapter,
     get_system_admin_authorization_adapter,
 )
 
@@ -707,4 +711,91 @@ def test_role_matrix_todos_delete(
             headers=auth_headers,
         )
     expected = 204 if _role_has(role_slug, "fair_crm.todos.delete") else 403
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_todo_outcomes_read(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    with install_role_matrix_auth(client, role_slug):
+        response = client.get("/api/v1/todo-outcomes", headers=auth_headers)
+    expected = 200 if _role_has(role_slug, "fair_crm.todos.outcomes.read") else 403
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_todo_outcomes_create(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    with install_role_matrix_auth(client, role_slug):
+        response = client.post(
+            "/api/v1/todo-outcomes",
+            json={
+                "name": f"Matrix Outcome {role_slug}",
+                "code": f"matrix_{role_slug}",
+                "primary_worklist_status": "in_follow_up",
+            },
+            headers=auth_headers,
+        )
+    expected = 201 if _role_has(role_slug, "fair_crm.todos.outcomes.create") else 403
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_todo_outcomes_update(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    create = client.post(
+        "/api/v1/todo-outcomes",
+        json={
+            "name": f"Matrix Update Target {role_slug}",
+            "code": f"matrix_update_{role_slug}",
+            "primary_worklist_status": "in_follow_up",
+        },
+        headers=auth_headers,
+    )
+    assert create.status_code == 201
+    outcome_id = create.json()["id"]
+
+    with install_role_matrix_auth(client, role_slug):
+        response = client.patch(
+            f"/api/v1/todo-outcomes/{outcome_id}",
+            json={"name": "Updated by matrix"},
+            headers=auth_headers,
+        )
+    expected = 200 if _role_has(role_slug, "fair_crm.todos.outcomes.update") else 403
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_todo_outcomes_deactivate(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    create = client.post(
+        "/api/v1/todo-outcomes",
+        json={
+            "name": f"Matrix Deactivate Target {role_slug}",
+            "code": f"matrix_deactivate_{role_slug}",
+            "primary_worklist_status": "closed",
+        },
+        headers=auth_headers,
+    )
+    assert create.status_code == 201
+    outcome_id = create.json()["id"]
+
+    with install_role_matrix_auth(client, role_slug):
+        response = client.post(
+            f"/api/v1/todo-outcomes/{outcome_id}/deactivate",
+            headers=auth_headers,
+        )
+    expected = 200 if _role_has(role_slug, "fair_crm.todos.outcomes.deactivate") else 403
     assert response.status_code == expected
