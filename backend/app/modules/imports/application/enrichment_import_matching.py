@@ -6,6 +6,7 @@ from typing import Any
 from uuid import UUID
 
 from app.modules.customers.domain.ports import CustomerRepository
+from app.modules.imports.application.batch_display_metadata import resolve_adapter_key_from_batch_preview
 from app.modules.imports.application.import_row_builder import ValidatedRow
 from app.modules.imports.domain.value_objects import ImportRowStatus, ImportSuggestedAction
 from app.modules.scraper.domain.enrichment_adapter import MATCH_REASON_ENRICHMENT_CUSTOMER_ID
@@ -67,9 +68,3 @@ def apply_enrichment_customer_id_matches(
 
     return results
 
-
-def resolve_adapter_key_from_batch_preview(raw_preview_json: dict[str, Any] | None) -> str | None:
-    preview = raw_preview_json or {}
-    source = preview.get("canonical_source") or {}
-    adapter_key = source.get("adapter_key")
-    return str(adapter_key).strip() if adapter_key else None

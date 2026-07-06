@@ -14,6 +14,8 @@ class ImportBatchResponse(BaseModel):
     id: UUID
     organization_id: UUID
     fair_id: Optional[UUID] = None
+    fair_name: Optional[str] = None
+    adapter_key: Optional[str] = None
     source_type: ImportSourceType = ImportSourceType.EXCEL
     file_name: str
     status: ImportBatchStatus

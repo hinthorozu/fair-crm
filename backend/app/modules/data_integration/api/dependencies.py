@@ -18,6 +18,7 @@ from app.modules.data_integration.application.select_import_sheet import SelectI
 from app.modules.data_integration.application.start_import_analyze_job import StartImportAnalyzeJobUseCase
 from app.modules.data_integration.application.start_import_apply_job import StartImportApplyJobUseCase
 from app.modules.data_integration.infrastructure.repositories.job_repository import SqlAlchemyImportJobRepository
+from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
 from app.modules.imports.api.dependencies import (
     get_analyze_import_use_case,
     get_apply_import_use_case,
@@ -63,8 +64,13 @@ def get_job_repository(db: Session = Depends(get_db)) -> SqlAlchemyImportJobRepo
 def get_list_import_batches_use_case(
     batch_repository: SqlAlchemyImportBatchRepository = Depends(get_import_batch_repository),
     row_repository: SqlAlchemyImportRowRepository = Depends(get_import_row_repository),
+    db: Session = Depends(get_db),
 ) -> ListImportBatchesUseCase:
-    return ListImportBatchesUseCase(batch_repository, row_repository)
+    return ListImportBatchesUseCase(
+        batch_repository,
+        row_repository,
+        SqlAlchemyFairRepository(db),
+    )
 
 
 def get_select_import_sheet_use_case(

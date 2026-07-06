@@ -116,6 +116,8 @@ export interface ImportBatch {
   id: string;
   organization_id: string;
   fair_id: string | null;
+  fair_name?: string | null;
+  adapter_key?: string | null;
   source_type: ImportSourceType;
   file_name: string;
   status: ImportBatchStatus;

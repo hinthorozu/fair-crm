@@ -213,6 +213,8 @@ class ImportBatchResult:
     has_header_row: Optional[bool] = None
     header_row_index: Optional[int] = None
     column_mapping_json: Optional[dict[str, Any]] = None
+    fair_name: Optional[str] = None
+    adapter_key: Optional[str] = None
 
 
 @dataclass(frozen=True)

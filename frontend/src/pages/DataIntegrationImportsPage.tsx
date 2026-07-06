@@ -43,6 +43,10 @@ function isOperationInProgress(status: string): boolean {
   );
 }
 
+function displayOptionalText(value: string | null | undefined): string {
+  return value && value.trim() ? value : "—";
+}
+
 const IMPORT_COLUMNS = (
   handlers: {
     onOpenBatch?: (batchId: string) => void;
@@ -69,6 +73,18 @@ const IMPORT_COLUMNS = (
     sortable: false,
     render: (batch) =>
       dataIntegrationLabels.importSourceTypeLabels[batch.source_type] ?? batch.source_type,
+  },
+  {
+    key: "fair_name",
+    title: dataIntegrationLabels.colFair,
+    sortable: false,
+    render: (batch) => displayOptionalText(batch.fair_name),
+  },
+  {
+    key: "adapter_key",
+    title: dataIntegrationLabels.colAdapter,
+    sortable: false,
+    render: (batch) => displayOptionalText(batch.adapter_key),
   },
   {
     key: "status",

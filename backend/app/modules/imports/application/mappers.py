@@ -1,3 +1,4 @@
+from app.modules.imports.application.batch_display_metadata import resolve_adapter_key_from_batch
 from app.modules.imports.application.commands import ImportBatchResult, ImportRowResult
 from app.modules.imports.domain.entities import ImportBatch, ImportRow
 from app.modules.imports.domain.value_objects import ImportRowStatus, ImportSourceType
@@ -8,6 +9,7 @@ def batch_to_result(
     rows: list[ImportRow] | None = None,
     *,
     source_type: ImportSourceType | None = None,
+    fair_name: str | None = None,
 ) -> ImportBatchResult:
     ready_to_create = 0
     ready_to_update = 0
@@ -43,6 +45,8 @@ def batch_to_result(
         has_header_row=batch.has_header_row,
         header_row_index=batch.header_row_index,
         column_mapping_json=batch.column_mapping_json,
+        fair_name=fair_name,
+        adapter_key=resolve_adapter_key_from_batch(batch),
     )
 
 

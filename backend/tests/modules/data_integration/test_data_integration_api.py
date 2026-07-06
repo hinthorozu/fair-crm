@@ -280,3 +280,115 @@ def test_apply_job_completes(client, auth_headers):
     assert batch.status_code == 200
     assert batch.json()["created_rows"] >= 1
     assert batch.json()["status"] == "completed"
+
+
+def test_list_import_batches_includes_scraper_fair_name_and_adapter_key(client, auth_headers):
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    fair_res = client.post(
+        "/api/v1/fairs",
+        headers=auth_headers,
+        json={
+            "name": "Scraper Fair Display",
+            "location": "Istanbul",
+            "start_date": "2026-06-01",
+            "end_date": "2026-06-03",
+        },
+    )
+    assert fair_res.status_code == 201
+    fair_id = fair_res.json()["id"]
+    run_id = str(uuid4())
+    payload = {
+        "source": {
+            "type": "scraper",
+            "adapter_key": "tuyap_old",
+            "fair_id": fair_id,
+            "run_id": run_id,
+            "source_url": "https://example.test/list",
+        },
+        "metadata": {
+            "created_at": datetime(2026, 7, 6, 12, 0, tzinfo=UTC).isoformat(),
+            "row_count": 1,
+        },
+        "rows": [
+            {
+                "company_name": "Scraper Co",
+                "normalized_company_name": "scraper co",
+                "emails": [],
+                "phones": [],
+                "raw": {},
+            }
+        ],
+    }
+    create_res = client.post("/api/v1/imports/from-canonical", headers=auth_headers, json=payload)
+    assert create_res.status_code == 201
+    batch_id = create_res.json()["batch"]["id"]
+
+    listing = client.get("/api/v1/data-integration/imports", headers=auth_headers)
+    assert listing.status_code == 200
+    item = next(row for row in listing.json()["items"] if row["id"] == batch_id)
+    assert item["fair_id"] == fair_id
+    assert item["fair_name"] == "Scraper Fair Display"
+    assert item["adapter_key"] == "tuyap_old"
+    assert item["file_name"] == f"tuyap_old-{run_id}.json"
+
+
+def test_list_import_batches_excel_has_null_adapter_key(client, auth_headers):
+    fair_id = _fair_id(client, auth_headers)
+    content = _xlsx([["Acme Ltd", "info@acme.com"]], headers=["Company", "Email"])
+    upload = client.post(
+        "/api/v1/data-integration/imports/upload",
+        headers=auth_headers,
+        data={"fair_id": fair_id},
+        files={"file": ("excel-display.xlsx", content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+    assert upload.status_code == 201
+    batch_id = upload.json()["batch_id"]
+
+    listing = client.get("/api/v1/data-integration/imports", headers=auth_headers)
+    assert listing.status_code == 200
+    item = next(row for row in listing.json()["items"] if row["id"] == batch_id)
+    assert item["adapter_key"] is None
+    assert item["fair_name"] == "DI Fair"
+
+
+def test_list_import_batches_null_fair_id_has_null_fair_name(client, auth_headers):
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    run_id = str(uuid4())
+    payload = {
+        "source": {
+            "type": "scraper",
+            "adapter_key": "customer_contact_enrichment",
+            "fair_id": None,
+            "run_id": run_id,
+            "source_url": "https://example.test/enrichment",
+        },
+        "metadata": {
+            "created_at": datetime(2026, 7, 6, 12, 0, tzinfo=UTC).isoformat(),
+            "row_count": 1,
+        },
+        "rows": [
+            {
+                "external_id": str(uuid4()),
+                "company_name": "Enrichment Co",
+                "normalized_company_name": "enrichment co",
+                "emails": [],
+                "phones": [],
+                "raw": {},
+            }
+        ],
+    }
+    create_res = client.post("/api/v1/imports/from-canonical", headers=auth_headers, json=payload)
+    assert create_res.status_code == 201
+    batch_id = create_res.json()["batch"]["id"]
+
+    listing = client.get("/api/v1/data-integration/imports", headers=auth_headers)
+    assert listing.status_code == 200
+    item = next(row for row in listing.json()["items"] if row["id"] == batch_id)
+    assert item["fair_id"] is None
+    assert item["fair_name"] is None
+    assert item["adapter_key"] == "customer_contact_enrichment"
+

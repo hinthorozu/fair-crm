@@ -18,6 +18,7 @@ export const dataIntegrationLabels = {
   colFile: "Dosya",
   colType: "Tip",
   colFair: "Fuar",
+  colAdapter: "Adapter",
   colStatus: "Durum",
   colRows: "Satır",
   colCreated: "Oluşturulma",

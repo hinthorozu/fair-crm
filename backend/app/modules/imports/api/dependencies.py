@@ -200,8 +200,13 @@ def get_analyze_import_use_case(
 def get_get_import_batch_use_case(
     batch_repository: SqlAlchemyImportBatchRepository = Depends(get_import_batch_repository),
     row_repository: SqlAlchemyImportRowRepository = Depends(get_import_row_repository),
+    db: Session = Depends(get_db),
 ) -> GetImportBatchUseCase:
-    return GetImportBatchUseCase(batch_repository, row_repository)
+    return GetImportBatchUseCase(
+        batch_repository,
+        row_repository,
+        SqlAlchemyFairRepository(db),
+    )
 
 
 def get_list_import_rows_use_case(

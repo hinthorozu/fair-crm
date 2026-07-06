@@ -68,10 +68,12 @@ class CreateImportBatchFromCanonicalUseCase:
         if fair_id is None and not is_enrichment:
             raise FairRequiredError("fair_id is required (source.fair_id or request body)")
 
+        fair_name: str | None = None
         if fair_id is not None:
             fair = self._fair_repository.get_by_id(command.organization_id, fair_id)
             if fair is None:
                 raise FairNotFoundError("Fair not found")
+            fair_name = fair.name
 
         now = datetime.now(tz=UTC)
         batch = build_import_batch_from_canonical(
@@ -108,6 +110,6 @@ class CreateImportBatchFromCanonicalUseCase:
         )
 
         return CreateImportBatchFromCanonicalResult(
-            batch=batch_to_result(saved_batch, saved_rows),
+            batch=batch_to_result(saved_batch, saved_rows, fair_name=fair_name),
             row_count=len(saved_rows),
         )
