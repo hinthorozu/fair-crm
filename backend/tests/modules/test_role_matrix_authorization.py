@@ -117,6 +117,30 @@ def _role_has(role_slug: str, permission_code: str) -> bool:
     return permission_code in permissions_for_role(role_slug)
 
 
+@pytest.fixture
+def isolated_admin_backup_job(monkeypatch: pytest.MonkeyPatch):
+    """Prevent role-matrix auth tests from running real pg_dump or writing backups/."""
+    repo_backups = REPO_ROOT / "backups"
+    before = (
+        {path.name for path in repo_backups.glob("faircrm_backup_*")}
+        if repo_backups.exists()
+        else set()
+    )
+
+    def _noop_run_backup(self, command) -> None:
+        _ = (self, command)
+        return None
+
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_job_runner.BackupJobRunner.run_backup",
+        _noop_run_backup,
+    )
+    yield
+    if repo_backups.exists():
+        after = {path.name for path in repo_backups.glob("faircrm_backup_*")}
+        assert after == before, f"Role-matrix backup test leaked files: {sorted(after - before)}"
+
+
 @pytest.mark.parametrize("role_slug", MATRIX_ROLES)
 def test_role_matrix_customers_read(
     client: TestClient,
@@ -162,6 +186,7 @@ def test_role_matrix_admin_backups_create(
     client: TestClient,
     auth_headers: dict[str, str],
     role_slug: str,
+    isolated_admin_backup_job,
 ) -> None:
     with install_role_matrix_auth(client, role_slug):
         response = client.post(
