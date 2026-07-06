@@ -1,76 +1,296 @@
 ﻿# FAIR CRM Roadmap
 
-This document summarizes the active FAIR CRM product direction. Detailed sprint history and quality status live in [PROJECT_STATUS.md](PROJECT_STATUS.md), which is the canonical project-status document.
+Bu doküman FAIR CRM için yapılan işleri ve bundan sonra yapılacak işleri iki ana başlık altında toplar.
 
-## Current State
+---
 
-FAIR CRM is active in development. It is no longer in the initial Sprint 1.0 Customer-only phase.
+## 1. Yapılmış İşler
 
-Completed or present product foundations:
+### Altyapı / Core
 
-- Customer module
-- Fair module
-- Customer/Fair Participation foundation
-- Adapter Management
-- Linked Fairs
-- Fair -> Adapter relationship
-- Adapter CRUD
-- Run v2 + JSON Handoff
+- Core permission seed sistemi kuruldu.
+- FAIR CRM permission set genişletildi.
+- Dev identity / owner role permission assignment tamamlandı.
+- Auth servis erişilemezken 500 yerine kontrollü 403 dönüşü sağlandı.
+- Alembic migration zinciri toparlandı.
+- Dev reset / seed akışı çalışır hale getirildi.
 
-Current technical target:
+### Müşteri / CRM Temeli
 
-- Canonical Import Schema
+- Müşteri listeleme yapısı kuruldu.
+- Müşteri detay/kart ekranı oluşturuldu.
+- Telefon, email, şehir, ülke gibi özet bilgiler gösteriliyor.
+- Duplicate customer analysis iyileştirildi.
+- Yanlış fuzzy merge sorunları azaltıldı.
+- Firma adı eşleştirme kuralları güçlendirildi.
 
-Next target:
+### Import / Veri Alma
 
-- Import Batch / Preview / Duplicate / Merge pipeline
+- Import altyapısı kuruldu.
+- Fuar katılımcılarından müşteri oluşturma akışı çalışır hale geldi.
+- Import geçmişi / durum takibi temel seviyede var.
+- Import edilen müşteri verileri görev/worklist kaynağı olarak kullanılabilir hale geldi.
 
-## Platform Dependency
+### SMTP / Mail Altyapısı
 
-FAIR CRM consumes KYROX Core as an independent reusable platform service.
+- Ortak SMTP mailer katmanı oluşturuldu.
+- SMTP connect timeout / send timeout / operation timeout eklendi.
+- Timeout hataları normalize edildi.
+- Fair bulk worker’da tek mail hatası batch’i komple düşürmeyecek hale getirildi.
+- Mail event zinciri yazılıyor.
 
-| Dependency | Status |
-|------------|--------|
-| KYROX Core baseline | v0.4.0+ |
-| Product authorization check API | Available |
-| Audit event write API | Available |
-| FAIR CRM permission seeds | Available in Core migration `20260701_0025` |
-| Integration model | Public HTTP APIs only |
+### Dashboard
 
-FAIR CRM must not import Core Python modules, share the Core database, or mount Core routers.
+- Dashboard summary 500 hatası çözüldü.
+- camelCase / snake_case Pydantic uyumsuzluğu düzeltildi.
+- Sayaçlar null-safe hale getirildi.
+- Recent activities fallback eklendi.
+- Dashboard summary endpoint 200 döner hale geldi.
 
-## Active Roadmap
+### Sprint 4 — Görevler Worklist
 
-| Target | Status | Notes |
-|--------|--------|-------|
-| Customer/Fair/Participation foundation | Completed | Core CRM foundations exist |
-| Adapter Management | Completed | Adapter CRUD and management workflow available |
-| Linked Fairs | Completed | Fair linkage workflow available |
-| Fair -> Adapter relationship | Completed | Fair-specific adapter association available |
-| Run v2 + JSON Handoff | Completed | Adapter run output can hand off structured JSON |
-| Canonical Import Schema | Current technical target | Normalize handoff payloads into a stable import contract |
-| Import Batch / Preview / Duplicate / Merge | Next target | Build the preview-first import decision pipeline |
+- Sidebar’a Görevler eklendi.
+- Görev listesi ve detay ekranı yapıldı.
+- Görev oluşturma + kaynak fuar seçimi eklendi.
+- Worklist, fuar katılımcılarından doluyor.
+- Filtreler çalışıyor: Yapılmadı, Takipte, Konu kapandı, Hepsi.
+- Progress kartları çalışıyor: Toplam, Yapılmadı, Takipte, Konu kapandı.
+- Müşteri adına tıklayınca Müşteri işlemi modalı açılıyor.
+- Modalda outcome, not, takip tarihi, action_required ve data_problem kaydediliyor.
+- Kaydet ve sıradakine geç çalışıyor.
+- Liste ve progress yenileniyor.
+- Sağ aksiyon Müşteri Kartı oldu.
+- source_fair_id olmayan görevlerde kullanıcı dostu uyarı gösteriliyor.
+- Çift pagination düzeltildi.
+- Responsive temel kabul yapıldı.
+- Sprint 4 kabul edildi.
+- Referans commit: 9d17010 - fix: repair todo worklist activity modal actions.
 
-## Historical Milestones
+### Sprint 5 — Takipler
 
-The original Sprint 1.0 through Sprint 1.5 plan below is historical. It described the early product bootstrap sequence and should not be treated as the live roadmap.
+- Sidebar’a Takipler eklendi.
+- /follow-ups ekranı yapıldı.
+- Worklist state kayıtları tek takip ekranında toplanıyor.
+- Filtreler çalışıyor: Bugün, Geçmiş, Aksiyon gerekenler, Veri problemi, Hepsi.
+- Müşteri adına tıklayınca işlem modalı açılıyor.
+- Müşteri adına tıklayınca müşteri kartına gidilmiyor.
+- Sağdaki Müşteri Kartı butonu müşteri detayına gidiyor.
+- Sprint 4 modalı reuse edildi.
+- Kayıt sonrası takip listesi yenileniyor.
+- Kaydet ve sıradakine geç, takip listesindeki sıradaki müşteriye geçiyor.
+- Manuel UI demo 13/13 geçti.
 
-| Historical milestone | Original focus | Current interpretation |
-|----------------------|----------------|------------------------|
-| Sprint 1.0.0 | Product foundation and Customer module | Superseded by current project status |
-| Sprint 1.1.0 | Contact module | Track through PROJECT_STATUS.md |
-| Sprint 1.2.0 | Fair module | Foundation exists |
-| Sprint 1.3.0 | Fair Participation | Foundation exists |
-| Sprint 1.4.0 | Import Pipeline | Reframed as Canonical Import Schema, then Import Batch / Preview / Duplicate / Merge |
-| Sprint 1.5.0 | Scraper Integration | Reframed through Adapter Management and Run v2 + JSON Handoff |
+---
 
-## Deferred
+## 2. Yapılacak İşler
 
-- File storage
-- Advanced caching
-- Observability dashboard
-- External email provider integration
-- WhatsApp integration
-- Full reporting module
+### Sprint 5 Kapanış
 
-Before starting new work, read [PROJECT_CONSTITUTION.md](PROJECT_CONSTITUTION.md), [PROJECT_STATUS.md](PROJECT_STATUS.md), [CHANGELOG.md](CHANGELOG.md), [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md), and [docs/DECISIONS.md](docs/DECISIONS.md).
+- Sprint 5 commit + push yapılacak.
+- Build/test özeti alınacak.
+- Sprint 5 resmi kapatılacak.
+- Commit mesajı: feat: add follow-ups screen with worklist activity modal reuse (Sprint 5).
+
+### Responsive Polish
+
+- 390px imports toolbar taşması temizlenecek.
+- 390px scraper run-history toolbar taşması temizlenecek.
+- 390px worklist/customers 10–12px hafif taşma temizlenecek.
+- Mobil toolbar CSS standardı iyileştirilecek.
+- Mobil/tablet kullanımında tablo, toolbar, pagination ve modal davranışı daha da güçlendirilecek.
+
+### Task Engine / Operation Tasks
+
+Görevler sadece fuara bağlı kalmayacak. Uzun vadede görevler operasyon motoruna dönüşecek.
+
+Hedef görev tipleri:
+
+- call_followup
+- bulk_email
+- enrichment
+- data_cleanup
+- reminder
+
+Hedef kaynak tipleri:
+
+- fair
+- multiple_fairs
+- import
+- segment
+- manual_selection
+
+Amaç:
+
+- X fuarındaki müşterileri ara.
+- X, Y, Z fuarlarındaki müşterilere otomatik mail gönder.
+- 1, 2, 3 fuarındaki müşterilerin zenginleştirme çalışmasını yap.
+- Eksik verili müşterileri temizle.
+- Takip tarihi gelenleri otomatik takip listesine düşür.
+- Veri problemi olanları ayrı operasyon listesine al.
+- Mail sonrası dönüş bekleyenlere hatırlatma oluştur.
+
+### Multi-source Görev Kaynağı
+
+Mevcut yapı:
+
+- source_fair_id
+
+Gelecek yapı:
+
+- source_type
+- source_ids
+
+Desteklenecek kaynaklar:
+
+- Tek fuar
+- Çoklu fuar
+- Import
+- Segment
+- Manuel müşteri seçimi
+- Etiketli müşteri grubu
+
+Amaç:
+
+- Görevler sadece tek fuara bağlı kalmayacak.
+- Kullanıcı birden fazla fuardan görev oluşturabilecek.
+- Import edilen müşteri listeleri görev kaynağı olabilecek.
+- Filtrelenmiş müşteri segmentleri görev kaynağı olabilecek.
+- Manuel seçilmiş müşteri listeleri görev kaynağı olabilecek.
+
+### Otomatik Mail Görevleri
+
+Amaç:
+
+- Kullanıcı X, Y, Z fuarlarındaki müşterilere seçilen mail şablonunu gönderebilecek.
+
+Kapsam:
+
+- Görev tipi bulk_email.
+- Tek fuar seçimi.
+- Çoklu fuar seçimi.
+- Segment seçimi.
+- Mail template seçimi.
+- SMTP hesabı seçimi.
+- Gönderim kuyruğu.
+- Başarılı gönderim takibi.
+- Failed gönderim takibi.
+- Timeout takibi.
+- Bounced mail takibi.
+- Mail sonrası otomatik takip görevi oluşturma.
+- Mail aktivitelerini müşteri geçmişine yazma.
+- Mail gönderim durumunu dashboard’da gösterme.
+
+### Zenginleştirme Görevleri
+
+Amaç:
+
+- Kullanıcı 1, 2, 3 fuarındaki müşterilerin zenginleştirme çalışmalarını başlatabilecek.
+
+Kapsam:
+
+- Eksik telefon kontrolü.
+- Eksik email kontrolü.
+- Eksik website kontrolü.
+- Eksik şehir / ülke kontrolü.
+- Hatalı kategori kontrolü.
+- Firma adı normalize.
+- Data problem flag üretme.
+- Zenginleştirme state takibi.
+- Zenginleştirme sonucu müşteri kartına işleme.
+- Zenginleştirme sonucu aktivite geçmişine yazma.
+
+### Veri Temizleme Görevleri
+
+- Duplicate müşteri kontrolü.
+- Eksik email listesi.
+- Eksik telefon listesi.
+- Hatalı ülke / şehir listesi.
+- Hatalı firma adı listesi.
+- Data problem işaretli müşteriler.
+- Normalize edilmesi gereken alanlar.
+- Temizlik sonrası müşteri kartı güncellemesi.
+- Temizlik aktivitelerinin kayıt altına alınması.
+
+### Hatırlatma / Takip Motoru
+
+- Bugünkü takipler.
+- Geciken takipler.
+- Action required olan işler.
+- Mail sonrası geri dönüş beklenenler.
+- Yeniden aranacak müşteriler.
+- Kullanıcı bazlı takip listeleri.
+- Takip tarihi değişince liste güncelleme.
+- Takip tamamlanınca ilgili listeden düşürme.
+
+### Müşteri Timeline / Aktivite Geçmişi
+
+- Müşteri kartında timeline.
+- Worklist aktiviteleri timeline’da görünecek.
+- Takip aktiviteleri timeline’da görünecek.
+- Mail aktiviteleri timeline’da görünecek.
+- Arama/takip notları görünecek.
+- Outcome geçmişi görünecek.
+- Kullanıcı kimin ne zaman işlem yaptığını görebilecek.
+- Takip tarihi değişiklikleri görülebilecek.
+- Action required / data problem değişiklikleri görülebilecek.
+
+### Dashboard / Operasyon Özeti
+
+- Bugünkü takipler.
+- Geciken takipler.
+- Aksiyon gerekenler.
+- Veri problemi olanlar.
+- Açık görevler.
+- Kapanan konular.
+- Mail gönderim durumu.
+- Son aktiviteler.
+- Toplam açık takip.
+- Bugün kapanan işler.
+- Görev bazlı ilerleme.
+- Fuar bazlı durum.
+- Kullanıcı bazlı işlem sayıları.
+- Mail başarısızlıkları.
+- Timeout sayıları.
+
+### UI / UX Kalite
+
+- Modal ve form standartları tüm ekrana yayılacak.
+- DataTable standardı tüm listelerde aynı olacak.
+- Empty state standardı yapılacak.
+- Loading state standardı yapılacak.
+- Error state standardı yapılacak.
+- Türkçe label tutarlılığı sağlanacak.
+- Ana aksiyon / yan aksiyon ayrımı tüm ekranlarda uygulanacak.
+- Mobil/tablet responsive polish devam edecek.
+- Toolbar / pagination standardı netleştirilecek.
+- Sayfa header / breadcrumb davranışı standart hale getirilecek.
+- Form grid davranışı tüm ekranlarda tutarlı olacak.
+- Buton metinleri açık ve kullanıcı dostu olacak.
+
+### Raporlama
+
+- Görev bazlı performans.
+- Fuar bazlı müşteri durumu.
+- Mail gönderim raporu.
+- Outcome dağılımı.
+- Takip dönüşüm oranı.
+- Veri kalitesi raporu.
+- Kullanıcı bazlı işlem raporu.
+- Geciken takip raporu.
+- Kapanan konu raporu.
+- Data problem raporu.
+
+### İleri Aşama
+
+- Segment builder.
+- Etiket sistemi.
+- Otomasyon kuralları.
+- Hatırlatma motoru.
+- Mail kampanya akışı.
+- WhatsApp entegrasyonu.
+- Yetki bazlı UI görünürlüğü.
+- Audit log ekranı.
+- Gelişmiş müşteri segmentasyonu.
+- Otomatik müşteri puanlama.
+- Operasyon bazlı bildirimler.
+- Kullanıcıya özel iş listeleri.
