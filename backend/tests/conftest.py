@@ -86,8 +86,13 @@ from app.modules.fair_emails.infrastructure.persistence.models import (  # noqa:
     FairEmailOutboxModel,
 )
 from app.modules.mail_send_operations.infrastructure.persistence.models import MailSendOperationModel  # noqa: F401
+from app.modules.todos.infrastructure.persistence.models import TodoModel  # noqa: F401
 from app.modules.fair_emails.api.dependencies import (
     get_authorization_adapter as get_fair_emails_authorization_adapter,
+)
+from app.modules.todos.api.dependencies import (
+    get_audit_adapter as get_todos_audit_adapter,
+    get_authorization_adapter as get_todos_authorization_adapter,
 )
 
 
@@ -219,6 +224,8 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     app.dependency_overrides[get_mail_templates_audit_adapter] = lambda: NoOpAudit()
     app.dependency_overrides[get_mail_send_operations_authorization_adapter] = lambda: AllowAllAuthorization()
     app.dependency_overrides[get_fair_emails_authorization_adapter] = lambda: AllowAllAuthorization()
+    app.dependency_overrides[get_todos_authorization_adapter] = lambda: AllowAllAuthorization()
+    app.dependency_overrides[get_todos_audit_adapter] = lambda: NoOpAudit()
 
     import app.modules.data_integration.api.dependencies as data_integration_dependencies
     import app.modules.imports.api.dependencies as imports_dependencies
