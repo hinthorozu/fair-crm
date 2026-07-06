@@ -23,6 +23,14 @@ class WorklistFilter(StrEnum):
     HEPSI = "hepsi"
 
 
+class FollowUpFilter(StrEnum):
+    BUGUN = "bugun"
+    GECMIS = "gecmis"
+    ACTION_REQUIRED = "action_required"
+    DATA_PROBLEM = "data_problem"
+    HEPSI = "hepsi"
+
+
 def resolve_worklist_display_status(
     stored_status: str | None,
 ) -> WorklistDisplayStatus:

@@ -34,6 +34,7 @@ from app.modules.todos.api.outcome_dependencies import (
 )
 from app.modules.todos.application.get_todo_worklist_modal_context import GetTodoWorklistModalContextUseCase
 from app.modules.todos.application.get_todo_worklist_progress import GetTodoWorklistProgressUseCase
+from app.modules.todos.application.list_follow_ups import ListFollowUpsUseCase
 from app.modules.todos.application.list_todo_worklist import ListTodoWorklistUseCase
 from app.modules.todos.application.record_todo_worklist_activity import RecordTodoWorklistActivityUseCase
 from app.modules.todos.infrastructure.repositories.outcome_definition_repository import (
@@ -90,6 +91,14 @@ def get_list_todo_worklist_use_case(
     ),
 ) -> ListTodoWorklistUseCase:
     return ListTodoWorklistUseCase(todo_repository, worklist_query_repository)
+
+
+def get_list_follow_ups_use_case(
+    worklist_query_repository: SqlAlchemyTodoWorklistQueryRepository = Depends(
+        get_worklist_query_repository
+    ),
+) -> ListFollowUpsUseCase:
+    return ListFollowUpsUseCase(worklist_query_repository)
 
 
 def get_todo_worklist_progress_use_case(

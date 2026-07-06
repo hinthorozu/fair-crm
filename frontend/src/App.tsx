@@ -16,6 +16,7 @@ import { MailTemplatesPage } from "./pages/MailTemplatesPage";
 import { MailOperationsPage } from "./pages/MailOperationsPage";
 import { DataOperationsPage } from "./pages/DataOperationsPage";
 import { DataOperationRunResultPage } from "./pages/DataOperationRunResultPage";
+import { FollowUpsPage } from "./pages/FollowUpsPage";
 import { TodoDetailPage } from "./pages/TodoDetailPage";
 import { TodosPage } from "./pages/TodosPage";
 import { DataIntegrationLayout } from "./components/dataIntegration/DataIntegrationLayout";
@@ -26,12 +27,14 @@ import {
   NavIconCustomers,
   NavIconDataIntegration,
   NavIconFairs,
+  NavIconFollowUps,
   NavIconTodos,
 } from "./components/layout/NavIcons";
 import { Card } from "./components/ui/Card";
 import { uiLabels } from "./labels/uiLabels";
 import { dataIntegrationLabels } from "./labels/dataIntegrationLabels";
 import { adminLabels } from "./labels/adminLabels";
+import { followUpLabels } from "./labels/followUpLabels";
 import { labels } from "./labels";
 import { scraperLabels } from "./labels/scraperLabels";
 import { resolveRunDetailPath } from "./utils/enrichmentRunRouting";
@@ -45,6 +48,7 @@ type AppRoute =
   | "/fairs/:id"
   | "/todos"
   | "/todos/:id"
+  | "/follow-ups"
   | "/data-integration/imports"
   | "/data-integration/imports/new"
   | "/data-integration/imports/fair/:fairId"
@@ -178,6 +182,9 @@ function parseRoute(location: string): ParsedRoute {
       return { route: "/fairs/:id", fairId: fairMatch[1] };
     }
     return { route: "/fairs" };
+  }
+  if (pathname === "/follow-ups" || pathname.startsWith("/follow-ups/")) {
+    return { route: "/follow-ups" };
   }
   if (pathname === "/todos" || pathname.startsWith("/todos/")) {
     const todoMatch = pathname.match(/^\/todos\/([^/]+)$/);
@@ -426,6 +433,7 @@ export function App() {
   const isFairsActive = parsed.route === "/fairs" || parsed.route === "/fairs/:id";
   const isTodosActive =
     parsed.route === "/todos" || parsed.route === "/todos/:id";
+  const isFollowUpsActive = parsed.route === "/follow-ups";
   const isDiActive = isDataIntegrationRoute(parsed.route);
   const isAdminActive = isAdminRoute(parsed.route);
 
@@ -458,6 +466,11 @@ export function App() {
             ? [
                 { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
                 { label: uiLabels.navTodos, current: true },
+              ]
+          : parsed.route === "/follow-ups"
+            ? [
+                { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                { label: followUpLabels.pageTitle, current: true },
               ]
           : parsed.route === "/data-integration/adapters/:adapterKey" && parsed.adapterKey
             ? [
@@ -539,6 +552,13 @@ export function App() {
       icon: <NavIconTodos />,
       active: isTodosActive,
       onClick: (e: React.MouseEvent) => handleNav("/todos", e),
+    },
+    {
+      path: "/follow-ups",
+      label: uiLabels.navFollowUps,
+      icon: <NavIconFollowUps />,
+      active: isFollowUpsActive,
+      onClick: (e: React.MouseEvent) => handleNav("/follow-ups", e),
     },
     {
       path: "/data-integration/imports",
@@ -697,6 +717,9 @@ export function App() {
           onTodoLoaded={setTodoTitle}
           onOpenCustomer={goToCustomerDetail}
         />
+      )}
+      {parsed.route === "/follow-ups" && (
+        <FollowUpsPage onOpenCustomer={goToCustomerDetail} />
       )}
       {parsed.route === "/customers" && <CustomersPage onOpenDetail={goToCustomerDetail} />}
       {parsed.route === "/customers/:id" && parsed.customerId && (

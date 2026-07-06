@@ -4,8 +4,9 @@ from uuid import UUID
 
 from app.modules.todos.domain.outcome_entities import TodoOutcomeDefinition
 from app.modules.todos.domain.worklist_entities import TodoWorklistState
-from app.modules.todos.domain.worklist_query import TodoWorklistListResult, TodoWorklistProgress
-from app.modules.todos.domain.worklist_value_objects import WorklistFilter
+from app.modules.todos.domain.follow_up_query import FollowUpListResult
+from app.modules.todos.domain.worklist_query import TodoWorklistListResult, TodoWorklistProgress, TodoWorklistRow
+from app.modules.todos.domain.worklist_value_objects import FollowUpFilter, WorklistFilter
 
 
 class OutcomeListResult:
@@ -102,3 +103,15 @@ class TodoWorklistQueryRepository(Protocol):
         *,
         todo_completed_at: datetime | None,
     ) -> TodoWorklistRow | None: ...
+
+    def list_follow_ups(
+        self,
+        organization_id: UUID,
+        *,
+        follow_up_filter: FollowUpFilter,
+        search: str | None = None,
+        page: int = 1,
+        page_size: int = 25,
+        sort_by: str = "follow_up_at",
+        sort_dir: str = "asc",
+    ) -> FollowUpListResult: ...

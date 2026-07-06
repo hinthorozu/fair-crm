@@ -32,11 +32,21 @@ from app.modules.fair_emails.api.dependencies import (
 )
 from app.modules.system_admin.api.dependencies import get_authorization_adapter as get_system_admin_authorization_adapter
 from app.modules.fairs.infrastructure.persistence.models import FairModel
+from app.modules.customers.infrastructure.persistence.models import CustomerModel
+from app.modules.participations.infrastructure.persistence.models import CustomerFairParticipationModel
 from app.modules.todos.domain.entities import Todo
+from app.modules.todos.domain.worklist_entities import TodoWorklistState
+from app.modules.todos.domain.worklist_value_objects import StoredWorklistPrimaryStatus
 from app.modules.todos.infrastructure.repositories.todo_repository import SqlAlchemyTodoRepository
+from app.modules.todos.infrastructure.repositories.worklist_state_repository import (
+    SqlAlchemyTodoWorklistStateRepository,
+)
 from app.modules.todos.api.dependencies import get_authorization_adapter as get_todos_authorization_adapter
 from app.modules.todos.api.outcome_dependencies import (
     get_authorization_adapter as get_outcome_authorization_adapter,
+)
+from app.modules.dashboard.api.dependencies import (
+    get_authorization_adapter as get_dashboard_authorization_adapter,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -67,6 +77,7 @@ AUTH_DEPENDENCIES = (
     get_fair_emails_authorization_adapter,
     get_todos_authorization_adapter,
     get_outcome_authorization_adapter,
+    get_dashboard_authorization_adapter,
     get_system_admin_authorization_adapter,
 )
 
@@ -863,4 +874,87 @@ def test_role_matrix_todo_worklist_read(
     with install_role_matrix_auth(client, role_slug):
         response = client.get(f"/api/v1/todos/{todo.id}/worklist", headers=auth_headers)
     expected = 200 if _role_has(role_slug, "fair_crm.todos.read") else 403
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_follow_ups_read(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    db_session,
+    organization_id,
+    user_id,
+    role_slug: str,
+) -> None:
+    fair = FairModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        name="Matrix Fair Follow-ups",
+        normalized_name="matrix fair follow-ups",
+        status="planned",
+        created_at=datetime.now(tz=UTC),
+        updated_at=datetime.now(tz=UTC),
+    )
+    db_session.add(fair)
+    db_session.flush()
+    todo = SqlAlchemyTodoRepository(db_session).add(
+        Todo.create(
+            organization_id=organization_id,
+            title=f"Matrix Follow-ups {role_slug}",
+            created_by=user_id,
+            source_fair_id=fair.id,
+            now=datetime.now(tz=UTC),
+        )
+    )
+    customer = CustomerModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        display_name="Follow-up Customer",
+        normalized_name="follow-up customer",
+        customer_type="lead",
+        status="active",
+        source="manual",
+        created_at=datetime.now(tz=UTC),
+        updated_at=datetime.now(tz=UTC),
+    )
+    db_session.add(customer)
+    db_session.flush()
+    participation = CustomerFairParticipationModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        customer_id=customer.id,
+        fair_id=fair.id,
+        participation_status="exhibitor",
+        created_at=datetime.now(tz=UTC),
+        updated_at=datetime.now(tz=UTC),
+    )
+    db_session.add(participation)
+    db_session.flush()
+    SqlAlchemyTodoWorklistStateRepository(db_session).add(
+        TodoWorklistState.create(
+            organization_id=organization_id,
+            todo_id=todo.id,
+            customer_id=customer.id,
+            participation_id=participation.id,
+            primary_status=StoredWorklistPrimaryStatus.IN_FOLLOW_UP,
+            follow_up_at=datetime.now(tz=UTC),
+            now=datetime.now(tz=UTC),
+        )
+    )
+
+    with install_role_matrix_auth(client, role_slug):
+        response = client.get("/api/v1/follow-ups?filter=hepsi", headers=auth_headers)
+    expected = 200 if _role_has(role_slug, "fair_crm.todos.read") else 403
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_dashboard_read(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    with install_role_matrix_auth(client, role_slug):
+        response = client.get("/api/v1/dashboard/summary", headers=auth_headers)
+    expected = 200 if _role_has(role_slug, "fair_crm.dashboard.read") else 403
     assert response.status_code == expected

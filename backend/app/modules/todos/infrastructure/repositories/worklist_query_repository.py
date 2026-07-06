@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import and_, case, func, or_, select
@@ -14,6 +14,7 @@ from app.modules.customers.infrastructure.persistence.communication_query_helper
 )
 from app.modules.customers.infrastructure.persistence.models import CustomerModel
 from app.modules.participations.infrastructure.persistence.models import CustomerFairParticipationModel
+from app.modules.todos.domain.follow_up_query import FollowUpListResult, FollowUpRow
 from app.modules.todos.domain.worklist_query import (
     TodoWorklistListResult,
     TodoWorklistProgress,
@@ -21,8 +22,9 @@ from app.modules.todos.domain.worklist_query import (
     resolve_added_after_completion,
     resolve_row_primary_status,
 )
-from app.modules.todos.domain.worklist_value_objects import StoredWorklistPrimaryStatus, WorklistFilter
+from app.modules.todos.domain.worklist_value_objects import FollowUpFilter, StoredWorklistPrimaryStatus, WorklistFilter
 from app.modules.todos.infrastructure.persistence.models import (
+    TodoModel,
     TodoOutcomeDefinitionModel,
     TodoWorklistStateModel,
 )
@@ -35,6 +37,18 @@ WORKLIST_SORT_FIELDS = {
     "follow_up_at": TodoWorklistStateModel.follow_up_at,
     "primary_status": case(
         (TodoWorklistStateModel.id.is_(None), 0),
+        (TodoWorklistStateModel.primary_status == StoredWorklistPrimaryStatus.IN_FOLLOW_UP, 1),
+        (TodoWorklistStateModel.primary_status == StoredWorklistPrimaryStatus.CLOSED, 2),
+        else_=0,
+    ),
+}
+
+FOLLOW_UP_SORT_FIELDS = {
+    "company_name": CustomerModel.display_name,
+    "todo_title": TodoModel.title,
+    "last_activity_at": TodoWorklistStateModel.last_activity_at,
+    "follow_up_at": TodoWorklistStateModel.follow_up_at,
+    "primary_status": case(
         (TodoWorklistStateModel.primary_status == StoredWorklistPrimaryStatus.IN_FOLLOW_UP, 1),
         (TodoWorklistStateModel.primary_status == StoredWorklistPrimaryStatus.CLOSED, 2),
         else_=0,
@@ -262,3 +276,143 @@ class SqlAlchemyTodoWorklistQueryRepository:
         if row is None:
             return None
         return self._row_from_result(row, todo_completed_at=todo_completed_at)
+
+    def _follow_up_base_query(self, organization_id: UUID):
+        primary_phone = primary_phone_subquery()
+        primary_email = primary_email_subquery()
+        contact_count = _contact_count_subquery(organization_id)
+        return (
+            self._session.query(
+                TodoWorklistStateModel,
+                CustomerModel,
+                TodoModel,
+                TodoOutcomeDefinitionModel,
+                primary_phone,
+                primary_email,
+                contact_count,
+                CustomerFairParticipationModel,
+            )
+            .join(CustomerModel, TodoWorklistStateModel.customer_id == CustomerModel.id)
+            .join(TodoModel, TodoWorklistStateModel.todo_id == TodoModel.id)
+            .outerjoin(
+                TodoOutcomeDefinitionModel,
+                TodoWorklistStateModel.last_outcome_id == TodoOutcomeDefinitionModel.id,
+            )
+            .outerjoin(
+                CustomerFairParticipationModel,
+                TodoWorklistStateModel.participation_id == CustomerFairParticipationModel.id,
+            )
+            .filter(
+                TodoWorklistStateModel.organization_id == organization_id,
+                TodoModel.archived_at.is_(None),
+            )
+        )
+
+    def _apply_follow_up_filter(
+        self,
+        query,
+        follow_up_filter: FollowUpFilter,
+        *,
+        today_start: datetime,
+        tomorrow_start: datetime,
+    ):
+        if follow_up_filter == FollowUpFilter.BUGUN:
+            return query.filter(
+                TodoWorklistStateModel.follow_up_at.isnot(None),
+                TodoWorklistStateModel.follow_up_at >= today_start,
+                TodoWorklistStateModel.follow_up_at < tomorrow_start,
+            )
+        if follow_up_filter == FollowUpFilter.GECMIS:
+            return query.filter(
+                TodoWorklistStateModel.follow_up_at.isnot(None),
+                TodoWorklistStateModel.follow_up_at < today_start,
+            )
+        if follow_up_filter == FollowUpFilter.ACTION_REQUIRED:
+            return query.filter(TodoWorklistStateModel.action_required.is_(True))
+        if follow_up_filter == FollowUpFilter.DATA_PROBLEM:
+            return query.filter(TodoWorklistStateModel.data_problem.is_(True))
+        return query.filter(TodoWorklistStateModel.follow_up_at.isnot(None))
+
+    def _follow_up_row_from_result(self, row) -> FollowUpRow:
+        (
+            state,
+            customer,
+            todo,
+            outcome,
+            phone_summary,
+            email_summary,
+            contact_count,
+            participation,
+        ) = row
+        participation_created_at = participation.created_at if participation is not None else None
+        return FollowUpRow(
+            todo_id=todo.id,
+            todo_title=todo.title,
+            customer_id=customer.id,
+            customer_name=customer.display_name,
+            city=customer.city,
+            country=customer.country,
+            phone_summary=phone_summary,
+            email_summary=email_summary,
+            contact_count=int(contact_count or 0),
+            participation_id=state.participation_id,
+            primary_status=resolve_row_primary_status(state.primary_status),
+            last_outcome_id=state.last_outcome_id,
+            last_outcome_name=outcome.name if outcome is not None else None,
+            last_note_summary=state.last_note_summary,
+            last_activity_at=state.last_activity_at,
+            follow_up_at=state.follow_up_at,
+            action_required=state.action_required,
+            data_problem=state.data_problem,
+            added_after_completion=resolve_added_after_completion(
+                participation_created_at=participation_created_at,
+                todo_completed_at=todo.completed_at,
+            )
+            if participation_created_at is not None
+            else False,
+        )
+
+    def list_follow_ups(
+        self,
+        organization_id: UUID,
+        *,
+        follow_up_filter: FollowUpFilter,
+        search: str | None = None,
+        page: int = 1,
+        page_size: int = 25,
+        sort_by: str = "follow_up_at",
+        sort_dir: str = "asc",
+    ) -> FollowUpListResult:
+        page_params = normalize_page_params(page, page_size)
+        now = datetime.now(tz=UTC)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        tomorrow_start = today_start + timedelta(days=1)
+
+        query = self._follow_up_base_query(organization_id)
+        query = self._apply_follow_up_filter(
+            query,
+            follow_up_filter,
+            today_start=today_start,
+            tomorrow_start=tomorrow_start,
+        )
+        query = self._apply_search(query, search)
+
+        total = query.count()
+        sort_column = FOLLOW_UP_SORT_FIELDS.get(sort_by, TodoWorklistStateModel.follow_up_at)
+        nulls_last = sort_by in {"last_activity_at", "follow_up_at"}
+        order = build_order_clause(
+            sort_column,
+            sort_dir if sort_dir in ("asc", "desc") else "asc",
+            tie_breaker=TodoWorklistStateModel.id,
+            nulls_last=nulls_last,
+        )
+        rows = query.order_by(*order).offset(page_params.offset).limit(page_params.page_size).all()
+        items = [self._follow_up_row_from_result(row) for row in rows]
+        meta = build_paginated_meta(page_params.page, page_params.page_size, total)
+        return FollowUpListResult(
+            items=items,
+            page=meta.page,
+            page_size=meta.page_size,
+            total=meta.total,
+            total_pages=meta.total_pages,
+        )

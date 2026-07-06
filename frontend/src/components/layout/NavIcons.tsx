@@ -52,6 +52,16 @@ export function NavIconTodos(props: IconProps) {
   );
 }
 
+export function NavIconFollowUps(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+      <path d="M8 14h.01M12 14h.01M16 14h.01" />
+    </IconBase>
+  );
+}
+
 export function NavIconDataIntegration(props: IconProps) {
   return (
     <IconBase {...props}>

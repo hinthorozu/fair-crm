@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from app.modules.todos.domain.worklist_value_objects import WorklistFilter
+from app.modules.todos.domain.worklist_value_objects import FollowUpFilter, WorklistFilter
 
 
 @dataclass(frozen=True)
@@ -127,3 +127,46 @@ class TodoWorklistModalContextResult:
     worklist_row: TodoWorklistRowResult | None
     outcomes: list[TodoWorklistModalOutcomeItem]
     recent_activities: list[TodoWorklistModalActivityItem]
+
+
+@dataclass(frozen=True)
+class FollowUpRowResult:
+    todo_id: UUID
+    todo_title: str
+    customer_id: UUID
+    customer_name: str
+    city: Optional[str]
+    country: Optional[str]
+    phone_summary: Optional[str]
+    email_summary: Optional[str]
+    contact_count: int
+    participation_id: Optional[UUID]
+    primary_status: str
+    last_outcome_id: Optional[UUID]
+    last_outcome_name: Optional[str]
+    last_note_summary: Optional[str]
+    last_activity_at: Optional[datetime]
+    follow_up_at: Optional[datetime]
+    action_required: bool
+    data_problem: bool
+    added_after_completion: bool
+
+
+@dataclass(frozen=True)
+class FollowUpListResultDto:
+    items: list[FollowUpRowResult]
+    page: int
+    page_size: int
+    total: int
+    total_pages: int
+
+
+@dataclass(frozen=True)
+class ListFollowUpsQuery:
+    organization_id: UUID
+    follow_up_filter: FollowUpFilter = FollowUpFilter.BUGUN
+    search: str | None = None
+    page: int = 1
+    page_size: int = 25
+    sort_by: str = "follow_up_at"
+    sort_dir: str = "asc"
