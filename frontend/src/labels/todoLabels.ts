@@ -57,6 +57,9 @@ export const todoLabels = {
   fieldCategory: "Kategori",
   fieldDeadline: "Son Tarih",
   fieldAssignee: "Sorumlu (UUID, opsiyonel)",
+  fieldSourceFair: "Kaynak fuar",
+  fieldSourceFairHint: "Çalışma listesi için fuar seçimi gereklidir.",
+  fieldSourceFairPlaceholder: "Fuar seçin",
   titleRequired: "Başlık zorunludur.",
 } as const;
 

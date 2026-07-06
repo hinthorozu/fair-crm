@@ -43,6 +43,7 @@ class CreateTodoRequest(BaseModel):
     category: TodoCategoryField = TodoCategory.GENEL_GOREV
     deadline: Optional[datetime] = None
     assignee_user_id: Optional[UUID] = None
+    source_fair_id: Optional[UUID] = None
 
 
 class UpdateTodoRequest(BaseModel):
@@ -53,6 +54,7 @@ class UpdateTodoRequest(BaseModel):
     category: Optional[TodoCategoryField] = None
     deadline: Optional[datetime] = None
     assignee_user_id: Optional[UUID] = None
+    source_fair_id: Optional[UUID] = None
 
 
 class TodoResponse(BaseModel):
@@ -67,6 +69,7 @@ class TodoResponse(BaseModel):
     category: str
     deadline: Optional[datetime]
     assignee_user_id: Optional[UUID]
+    source_fair_id: Optional[UUID]
     created_by: UUID
     updated_by: Optional[UUID]
     archived_at: Optional[datetime]

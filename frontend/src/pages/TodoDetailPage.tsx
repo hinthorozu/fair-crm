@@ -65,7 +65,10 @@ export function TodoDetailPage({
   const [saving, setSaving] = React.useState(false);
   const [saveSuccess, setSaveSuccess] = React.useState<string | null>(null);
 
+  const hasSourceFair = Boolean(todo?.source_fair_id);
+
   const table = useServerDataTable<TodoWorklistRow>({
+    enabled: hasSourceFair,
     fetchFn: (params) =>
       listTodoWorklist(todoId, {
         page: params.page,
@@ -135,8 +138,9 @@ export function TodoDetailPage({
   }, [todoId, onTodoLoaded]);
 
   React.useEffect(() => {
+    if (!hasSourceFair) return;
     void refreshProgress();
-  }, [refreshProgress]);
+  }, [hasSourceFair, refreshProgress]);
 
   const handleFilterChange = (filter: WorklistFilter) => {
     table.setFilter("filter", filter);
@@ -281,86 +285,95 @@ export function TodoDetailPage({
         ]}
       />
 
-      {progress && (
-        <Card className="todo-worklist-progress">
-          <h3>{todoWorklistLabels.progressTitle}</h3>
-          <div className="todo-worklist-progress-grid">
-            <div>
-              <span className="muted">{todoWorklistLabels.progressTotal}</span>
-              <strong>{progress.total}</strong>
+      {hasSourceFair ? (
+        <>
+          {progress && (
+            <Card className="todo-worklist-progress">
+              <h3>{todoWorklistLabels.progressTitle}</h3>
+              <div className="todo-worklist-progress-grid">
+                <div>
+                  <span className="muted">{todoWorklistLabels.progressTotal}</span>
+                  <strong>{progress.total}</strong>
+                </div>
+                <div>
+                  <span className="muted">{todoWorklistLabels.progressNotStarted}</span>
+                  <strong>{progress.not_started}</strong>
+                </div>
+                <div>
+                  <span className="muted">{todoWorklistLabels.progressInFollowUp}</span>
+                  <strong>{progress.in_follow_up}</strong>
+                </div>
+                <div>
+                  <span className="muted">{todoWorklistLabels.progressClosed}</span>
+                  <strong>{progress.closed}</strong>
+                </div>
+              </div>
+              {progressError && <p className="form-error">{progressError}</p>}
+            </Card>
+          )}
+
+          <section className="todo-worklist-section">
+            <h3>{todoWorklistLabels.worklistTitle}</h3>
+            <div className="todo-worklist-filters">
+              {worklistFilterOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`btn ${worklistFilter === option.value ? "primary" : "secondary"}`}
+                  onClick={() => handleFilterChange(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
-            <div>
-              <span className="muted">{todoWorklistLabels.progressNotStarted}</span>
-              <strong>{progress.not_started}</strong>
-            </div>
-            <div>
-              <span className="muted">{todoWorklistLabels.progressInFollowUp}</span>
-              <strong>{progress.in_follow_up}</strong>
-            </div>
-            <div>
-              <span className="muted">{todoWorklistLabels.progressClosed}</span>
-              <strong>{progress.closed}</strong>
-            </div>
-          </div>
-          {progressError && <p className="form-error">{progressError}</p>}
+
+            <ServerDataTableFrame
+              table={table}
+              skeletonCols={9}
+              toolbar={
+                <div className="filters">
+                  <input
+                    type="search"
+                    className="search-input"
+                    placeholder={todoLabels.searchPlaceholder}
+                    value={table.search}
+                    onChange={(e) => table.setSearch(e.target.value)}
+                  />
+                  <button type="button" className="btn secondary" onClick={() => void table.refresh()}>
+                    {labels.refresh}
+                  </button>
+                </div>
+              }
+            >
+              {table.isEmpty ? (
+                <EmptyState message={todoWorklistLabels.emptyWorklist} />
+              ) : (
+                <UniversalDataTable
+                  table={table}
+                  columns={columns}
+                  rowKey={(row) => row.customer_id}
+                  className={selectedCustomerId ? "todo-worklist-table" : undefined}
+                />
+              )}
+            </ServerDataTableFrame>
+          </section>
+
+          {saveSuccess && <div className="banner success">{saveSuccess}</div>}
+
+          <TodoWorklistActivityPanel
+            context={modalContext}
+            loading={modalLoading}
+            saving={saving}
+            error={saveError}
+            onSave={handleSaveActivity}
+          />
+        </>
+      ) : (
+        <Card className="todo-worklist-missing-fair">
+          <p>{todoWorklistLabels.missingSourceFair}</p>
+          <p className="muted">{todoWorklistLabels.missingSourceFairAction}</p>
         </Card>
       )}
-
-      <section className="todo-worklist-section">
-        <h3>{todoWorklistLabels.worklistTitle}</h3>
-        <div className="todo-worklist-filters">
-          {worklistFilterOptions.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className={`btn ${worklistFilter === option.value ? "primary" : "secondary"}`}
-              onClick={() => handleFilterChange(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-
-        <ServerDataTableFrame
-          table={table}
-          skeletonCols={9}
-          toolbar={
-            <div className="filters">
-              <input
-                type="search"
-                className="search-input"
-                placeholder={todoLabels.searchPlaceholder}
-                value={table.search}
-                onChange={(e) => table.setSearch(e.target.value)}
-              />
-              <button type="button" className="btn secondary" onClick={() => void table.refresh()}>
-                {labels.refresh}
-              </button>
-            </div>
-          }
-        >
-          {table.isEmpty ? (
-            <EmptyState message={todoWorklistLabels.emptyWorklist} />
-          ) : (
-            <UniversalDataTable
-              table={table}
-              columns={columns}
-              rowKey={(row) => row.customer_id}
-              className={selectedCustomerId ? "todo-worklist-table" : undefined}
-            />
-          )}
-        </ServerDataTableFrame>
-      </section>
-
-      {saveSuccess && <div className="banner success">{saveSuccess}</div>}
-
-      <TodoWorklistActivityPanel
-        context={modalContext}
-        loading={modalLoading}
-        saving={saving}
-        error={saveError}
-        onSave={handleSaveActivity}
-      />
     </div>
   );
 }

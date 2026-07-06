@@ -14,6 +14,7 @@ from app.integrations.kyrox_core.dev_bypass import (
     resolve_auth_context,
 )
 from app.integrations.kyrox_core.ports import AuthorizationPort
+from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
 from app.modules.todos.application.archive_todo import ArchiveTodoUseCase
 from app.modules.todos.application.complete_todo import CompleteTodoUseCase
 from app.modules.todos.application.create_todo import CreateTodoUseCase
@@ -22,6 +23,9 @@ from app.modules.todos.application.get_todo import GetTodoUseCase
 from app.modules.todos.application.list_todos import ListTodosUseCase
 from app.modules.todos.application.update_todo import UpdateTodoUseCase
 from app.modules.todos.infrastructure.repositories.todo_repository import SqlAlchemyTodoRepository
+from app.modules.todos.infrastructure.repositories.worklist_state_repository import (
+    SqlAlchemyTodoWorklistStateRepository,
+)
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -76,12 +80,23 @@ def require_read_permission(
     return auth
 
 
+def get_fair_repository(db: Session = Depends(get_db)) -> SqlAlchemyFairRepository:
+    return SqlAlchemyFairRepository(db)
+
+
+def get_worklist_state_repository(
+    db: Session = Depends(get_db),
+) -> SqlAlchemyTodoWorklistStateRepository:
+    return SqlAlchemyTodoWorklistStateRepository(db)
+
+
 def get_create_todo_use_case(
     repository: SqlAlchemyTodoRepository = Depends(get_todo_repository),
+    fair_repository: SqlAlchemyFairRepository = Depends(get_fair_repository),
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
 ) -> CreateTodoUseCase:
-    return CreateTodoUseCase(repository, authorization, audit)
+    return CreateTodoUseCase(repository, fair_repository, authorization, audit)
 
 
 def get_get_todo_use_case(
@@ -98,10 +113,20 @@ def get_list_todos_use_case(
 
 def get_update_todo_use_case(
     repository: SqlAlchemyTodoRepository = Depends(get_todo_repository),
+    fair_repository: SqlAlchemyFairRepository = Depends(get_fair_repository),
+    worklist_state_repository: SqlAlchemyTodoWorklistStateRepository = Depends(
+        get_worklist_state_repository
+    ),
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
 ) -> UpdateTodoUseCase:
-    return UpdateTodoUseCase(repository, authorization, audit)
+    return UpdateTodoUseCase(
+        repository,
+        fair_repository,
+        worklist_state_repository,
+        authorization,
+        audit,
+    )
 
 
 def get_complete_todo_use_case(

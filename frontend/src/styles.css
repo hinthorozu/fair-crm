@@ -4629,6 +4629,18 @@ textarea.form-control-textarea {
   margin-bottom: 1.5rem;
 }
 
+.todo-worklist-missing-fair {
+  margin-top: 1rem;
+}
+
+.todo-worklist-missing-fair p {
+  margin: 0 0 0.5rem;
+}
+
+.todo-worklist-missing-fair p:last-child {
+  margin-bottom: 0;
+}
+
 .todo-worklist-progress-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

@@ -3,6 +3,24 @@ from uuid import uuid4
 
 from tests.conftest_helpers import pagination_from
 
+from app.modules.fairs.infrastructure.persistence.models import FairModel
+
+
+def _seed_fair(db_session, organization_id):
+    now = datetime.now(tz=UTC)
+    fair = FairModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        name="Demo Fair",
+        normalized_name="demo fair",
+        status="planned",
+        created_at=now,
+        updated_at=now,
+    )
+    db_session.add(fair)
+    db_session.flush()
+    return fair
+
 
 def _todo_payload(**overrides):
     payload = {"title": "Test todo"}
@@ -180,3 +198,31 @@ def test_list_filter_by_status(client, auth_headers):
     body = list_response.json()
     assert pagination_from(body)["totalItems"] == 1
     assert body["items"][0]["status"] == "in_progress"
+
+
+def test_create_todo_with_source_fair_id(client, auth_headers, db_session, organization_id):
+    fair = _seed_fair(db_session, organization_id)
+    response = _create_todo(client, auth_headers, source_fair_id=str(fair.id))
+    assert response.status_code == 201
+    body = response.json()
+    assert body["source_fair_id"] == str(fair.id)
+
+
+def test_create_todo_rejects_unknown_source_fair_id(client, auth_headers):
+    response = _create_todo(client, auth_headers, source_fair_id=str(uuid4()))
+    assert response.status_code == 404
+
+
+def test_update_todo_source_fair_id(client, auth_headers, db_session, organization_id):
+    create_response = _create_todo(client, auth_headers, title="Needs fair")
+    todo_id = create_response.json()["id"]
+    assert create_response.json()["source_fair_id"] is None
+
+    fair = _seed_fair(db_session, organization_id)
+    update_response = client.patch(
+        f"/api/v1/todos/{todo_id}",
+        json={"source_fair_id": str(fair.id)},
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["source_fair_id"] == str(fair.id)

@@ -29,6 +29,7 @@ export interface Todo {
   category: TodoCategory;
   deadline: string | null;
   assignee_user_id: string | null;
+  source_fair_id: string | null;
   created_by: string;
   updated_by: string | null;
   archived_at: string | null;
@@ -46,6 +47,7 @@ export interface CreateTodoPayload {
   category?: TodoCategory;
   deadline?: string | null;
   assignee_user_id?: string | null;
+  source_fair_id?: string | null;
 }
 
 export interface UpdateTodoPayload {
@@ -56,4 +58,5 @@ export interface UpdateTodoPayload {
   category?: TodoCategory;
   deadline?: string | null;
   assignee_user_id?: string | null;
+  source_fair_id?: string | null;
 }

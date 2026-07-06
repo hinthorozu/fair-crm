@@ -53,6 +53,7 @@ from app.modules.todos.application.list_todos import (
     ListTodosUseCase,
 )
 from app.modules.todos.application.update_todo import UpdateTodoUseCase
+from app.modules.fairs.domain.exceptions import FairNotFoundError
 from app.modules.todos.domain.exceptions import (
     InvalidTodoCategoryError,
     InvalidTodoPriorityError,
@@ -60,6 +61,7 @@ from app.modules.todos.domain.exceptions import (
     InvalidTodoStatusTransitionError,
     InvalidTodoTitleError,
     TodoNotFoundError,
+    TodoSourceFairChangeNotAllowedError,
 )
 
 router = APIRouter(prefix="/todos", tags=["todos"])
@@ -105,10 +107,13 @@ def create_todo(
                 category=body.category,
                 deadline=body.deadline,
                 assignee_user_id=body.assignee_user_id,
+                source_fair_id=body.source_fair_id,
             )
         )
     except ForbiddenError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except FairNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except InvalidTodoTitleError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except InvalidTodoStatusError as exc:
@@ -272,13 +277,19 @@ def update_todo(
                 category=data.get("category"),
                 deadline=data.get("deadline"),
                 assignee_user_id=data.get("assignee_user_id"),
+                source_fair_id=data.get("source_fair_id"),
                 set_description="description" in data,
                 set_deadline="deadline" in data,
                 set_assignee_user_id="assignee_user_id" in data,
+                set_source_fair_id="source_fair_id" in data,
             )
         )
     except ForbiddenError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except FairNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except TodoSourceFairChangeNotAllowedError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except TodoNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except InvalidTodoTitleError as exc:

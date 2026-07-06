@@ -7,6 +7,7 @@ import {
   listTodos,
   updateTodo,
 } from "../api/todos";
+import { listFairs } from "../api/fairs";
 import { ApiError } from "../api/client";
 import { isoToLocalDatetime, localDatetimeToIso } from "../components/ActivityForm";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
@@ -40,6 +41,7 @@ import {
   canPerformTodoAction,
   getGrantedTodoPermissions,
 } from "../permissions/todoPermissions";
+import type { Fair } from "../types/fair";
 import type {
   CreateTodoPayload,
   Todo,
@@ -62,6 +64,7 @@ interface TodoFormValues {
   category: TodoCategory;
   deadline: string;
   assignee_user_id: string;
+  source_fair_id: string;
 }
 
 const defaultFormValues = (): TodoFormValues => ({
@@ -72,6 +75,7 @@ const defaultFormValues = (): TodoFormValues => ({
   category: "genel_gorev",
   deadline: "",
   assignee_user_id: "",
+  source_fair_id: "",
 });
 
 function todoToFormValues(todo: Todo): TodoFormValues {
@@ -87,6 +91,7 @@ function todoToFormValues(todo: Todo): TodoFormValues {
     category: todo.category,
     deadline: isoToLocalDatetime(todo.deadline),
     assignee_user_id: todo.assignee_user_id ?? "",
+    source_fair_id: todo.source_fair_id ?? "",
   };
 }
 
@@ -99,6 +104,7 @@ function formValuesToCreatePayload(values: TodoFormValues): CreateTodoPayload {
     category: values.category,
     deadline: values.deadline ? localDatetimeToIso(values.deadline) : null,
     assignee_user_id: values.assignee_user_id.trim() || null,
+    source_fair_id: values.source_fair_id.trim() || null,
   };
 }
 
@@ -111,6 +117,7 @@ function formValuesToUpdatePayload(values: TodoFormValues) {
     category: values.category,
     deadline: values.deadline ? localDatetimeToIso(values.deadline) : null,
     assignee_user_id: values.assignee_user_id.trim() || null,
+    source_fair_id: values.source_fair_id.trim() || null,
   };
 }
 
@@ -168,12 +175,13 @@ function canArchiveTodo(todo: Todo): boolean {
 
 interface TodoFormProps {
   initial?: TodoFormValues;
+  fairs: Fair[];
   submitLabel: string;
   onCancel: () => void;
   onSubmit: (values: TodoFormValues) => Promise<void>;
 }
 
-function TodoForm({ initial, submitLabel, onCancel, onSubmit }: TodoFormProps) {
+function TodoForm({ initial, fairs, submitLabel, onCancel, onSubmit }: TodoFormProps) {
   const [values, setValues] = React.useState<TodoFormValues>(initial ?? defaultFormValues());
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -285,6 +293,27 @@ function TodoForm({ initial, submitLabel, onCancel, onSubmit }: TodoFormProps) {
             }
           />
         </FormField>
+        <FormField
+          label={todoLabels.fieldSourceFair}
+          htmlFor="todo-source-fair"
+          fullWidth
+          hint={todoLabels.fieldSourceFairHint}
+        >
+          <SelectInput
+            id="todo-source-fair"
+            value={values.source_fair_id}
+            onChange={(event) =>
+              setValues((prev) => ({ ...prev, source_fair_id: event.target.value }))
+            }
+          >
+            <option value="">{todoLabels.fieldSourceFairPlaceholder}</option>
+            {fairs.map((fair) => (
+              <option key={fair.id} value={fair.id}>
+                {fair.name}
+              </option>
+            ))}
+          </SelectInput>
+        </FormField>
         <FormField label={todoLabels.fieldAssignee} htmlFor="todo-assignee" fullWidth>
           <TextInput
             id="todo-assignee"
@@ -329,6 +358,13 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
   const [editing, setEditing] = React.useState<Todo | null>(null);
   const [confirm, setConfirm] = React.useState<ConfirmAction>(null);
   const [actionLoadingId, setActionLoadingId] = React.useState<string | null>(null);
+  const [fairs, setFairs] = React.useState<Fair[]>([]);
+
+  React.useEffect(() => {
+    listFairs({ pageSize: 100, sortBy: "name", sortOrder: "asc" })
+      .then((result) => setFairs(result.items))
+      .catch(() => setFairs([]));
+  }, []);
 
   const table = useServerDataTable<Todo>({
     fetchFn: (params) =>
@@ -703,6 +739,7 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
       {modal === "create" ? (
         <FormModal title={todoLabels.newTodo} onClose={() => setModal(null)} size="lg">
           <TodoForm
+            fairs={fairs}
             submitLabel={todoLabels.save}
             onCancel={() => setModal(null)}
             onSubmit={handleCreate}
@@ -713,6 +750,7 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
       {modal === "edit" && editing ? (
         <FormModal title={todoLabels.editTodo} onClose={() => setModal(null)} size="lg">
           <TodoForm
+            fairs={fairs}
             initial={todoToFormValues(editing)}
             submitLabel={todoLabels.save}
             onCancel={() => setModal(null)}

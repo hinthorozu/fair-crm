@@ -16,6 +16,7 @@ class CreateTodoCommand:
     category: str = "genel_gorev"
     deadline: Optional[datetime] = None
     assignee_user_id: Optional[UUID] = None
+    source_fair_id: Optional[UUID] = None
 
 
 @dataclass(frozen=True)
@@ -54,9 +55,11 @@ class UpdateTodoCommand:
     category: Optional[str] = None
     deadline: Optional[datetime] = None
     assignee_user_id: Optional[UUID] = None
+    source_fair_id: Optional[UUID] = None
     set_description: bool = False
     set_deadline: bool = False
     set_assignee_user_id: bool = False
+    set_source_fair_id: bool = False
 
 
 @dataclass(frozen=True)
@@ -94,6 +97,7 @@ class TodoResult:
     category: str
     deadline: Optional[datetime]
     assignee_user_id: Optional[UUID]
+    source_fair_id: Optional[UUID]
     created_by: UUID
     updated_by: Optional[UUID]
     archived_at: Optional[datetime]

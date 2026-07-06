@@ -3,8 +3,10 @@ from datetime import UTC, datetime
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.client import HttpAuditAdapter
 from app.integrations.kyrox_core.ports import AuthorizationPort
+from app.modules.fairs.domain.ports import FairRepository
 from app.modules.todos.application.commands import CreateTodoCommand, TodoResult
 from app.modules.todos.application.mappers import todo_to_result
+from app.modules.todos.application.validators import ensure_source_fair_exists
 from app.modules.todos.domain.entities import Todo
 from app.modules.todos.domain.ports import TodoRepository
 
@@ -15,10 +17,12 @@ class CreateTodoUseCase:
     def __init__(
         self,
         repository: TodoRepository,
+        fair_repository: FairRepository,
         authorization: AuthorizationPort,
         audit: HttpAuditAdapter,
     ) -> None:
         self._repository = repository
+        self._fair_repository = fair_repository
         self._authorization = authorization
         self._audit = audit
 
@@ -31,6 +35,13 @@ class CreateTodoUseCase:
         ):
             raise ForbiddenError("Permission denied")
 
+        if command.source_fair_id is not None:
+            ensure_source_fair_exists(
+                self._fair_repository,
+                command.organization_id,
+                command.source_fair_id,
+            )
+
         now = datetime.now(tz=UTC)
         todo = Todo.create(
             organization_id=command.organization_id,
@@ -42,6 +53,7 @@ class CreateTodoUseCase:
             category=command.category,
             deadline=command.deadline,
             assignee_user_id=command.assignee_user_id,
+            source_fair_id=command.source_fair_id,
             now=now,
         )
         saved = self._repository.add(todo)
