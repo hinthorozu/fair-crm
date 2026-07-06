@@ -109,7 +109,12 @@ export function DataTable<T>({
   const direction = sorting?.direction ?? null;
 
   return (
-    <div className={`table-wrap ${loading ? "table-loading" : ""} ${className}`.trim()}>
+    <div
+      className={`table-wrap ${loading ? "table-loading" : ""} ${className}`.trim()}
+      role="region"
+      aria-label="Tablo"
+      tabIndex={0}
+    >
       <table className="data-table">
         <thead>
           <tr>

@@ -23,7 +23,6 @@ import {
 import { FormModal } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Badge, type BadgeVariant } from "../components/ui/Badge";
-import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import {
@@ -625,7 +624,7 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
         }
       />
 
-      <ServerDataTableFrame
+      <UniversalDataTable
         table={table}
         skeletonCols={10}
         toolbar={
@@ -714,25 +713,21 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
             </button>
           </div>
         }
-      >
-        <UniversalDataTable
-          table={table}
-          columns={columns}
-          rowKey={(todo) => todo.id}
-          emptyState={
-            <EmptyState
-              title={
-                table.hasActiveFilters ? todoLabels.emptyFilteredTitle : todoLabels.emptyTitle
-              }
-              description={
-                table.hasActiveFilters
-                  ? todoLabels.emptyFilteredDescription
-                  : todoLabels.emptyDescription
-              }
-            />
-          }
-        />
-      </ServerDataTableFrame>
+        columns={columns}
+        rowKey={(todo) => todo.id}
+        emptyState={
+          <EmptyState
+            title={
+              table.hasActiveFilters ? todoLabels.emptyFilteredTitle : todoLabels.emptyTitle
+            }
+            description={
+              table.hasActiveFilters
+                ? todoLabels.emptyFilteredDescription
+                : todoLabels.emptyDescription
+            }
+          />
+        }
+      />
 
       {success ? <div className="banner success">{success}</div> : null}
 

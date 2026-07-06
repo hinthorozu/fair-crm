@@ -7,10 +7,9 @@ import {
   recordTodoWorklistActivity,
 } from "../api/todoWorklist";
 import { ApiError } from "../api/client";
-import { TodoWorklistActivityPanel } from "../components/todos/TodoWorklistActivityPanel";
+import { TodoWorklistActivityModal } from "../components/todos/TodoWorklistActivityModal";
 import { LoadingState } from "../components/ui/LoadingState";
 import { PageHeader } from "../components/ui/PageHeader";
-import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { Badge } from "../components/ui/Badge";
 import { Card } from "../components/ui/Card";
@@ -58,6 +57,7 @@ export function TodoDetailPage({
   const [todoError, setTodoError] = React.useState<string | null>(null);
   const [progress, setProgress] = React.useState<TodoWorklistProgress | null>(null);
   const [progressError, setProgressError] = React.useState<string | null>(null);
+  const [activityModalOpen, setActivityModalOpen] = React.useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<string | null>(null);
   const [modalContext, setModalContext] = React.useState<TodoWorklistModalContext | null>(null);
   const [modalLoading, setModalLoading] = React.useState(false);
@@ -146,9 +146,18 @@ export function TodoDetailPage({
     table.setFilter("filter", filter);
   };
 
-  const handleSelectCustomer = (row: TodoWorklistRow) => {
+  const closeActivityModal = React.useCallback(() => {
+    setActivityModalOpen(false);
+    setSelectedCustomerId(null);
+    setModalContext(null);
+    setSaveError(null);
+  }, []);
+
+  const handleOpenActivity = (row: TodoWorklistRow) => {
     setSelectedCustomerId(row.customer_id);
+    setActivityModalOpen(true);
     setSaveSuccess(null);
+    setSaveError(null);
     void loadModalContext(row.customer_id);
   };
 
@@ -167,11 +176,8 @@ export function TodoDetailPage({
       if (payload.advance_to_next && result.next_customer_id) {
         setSelectedCustomerId(result.next_customer_id);
         await loadModalContext(result.next_customer_id);
-      } else if (payload.advance_to_next) {
-        setSelectedCustomerId(null);
-        setModalContext(null);
       } else {
-        await loadModalContext(selectedCustomerId);
+        closeActivityModal();
       }
     } catch (err) {
       setSaveError(err instanceof ApiError ? err.message : todoWorklistLabels.saveError);
@@ -190,7 +196,7 @@ export function TodoDetailPage({
           <button
             type="button"
             className="link-button"
-            onClick={() => onOpenCustomer?.(row.customer_id)}
+            onClick={() => handleOpenActivity(row)}
           >
             {row.customer_name}
           </button>
@@ -241,18 +247,19 @@ export function TodoDetailPage({
         key: "actions",
         title: todoWorklistLabels.colActions,
         sortable: false,
+        className: "actions",
         render: (row) => (
           <button
             type="button"
             className="btn secondary small"
-            onClick={() => handleSelectCustomer(row)}
+            onClick={() => onOpenCustomer?.(row.customer_id)}
           >
-            {todoWorklistLabels.openActivity}
+            {todoWorklistLabels.openCustomerCard}
           </button>
         ),
       },
     ],
-    [onOpenCustomer],
+    [onOpenCustomer, handleOpenActivity],
   );
 
   if (loadingTodo) {
@@ -327,7 +334,7 @@ export function TodoDetailPage({
               ))}
             </div>
 
-            <ServerDataTableFrame
+            <UniversalDataTable
               table={table}
               skeletonCols={9}
               toolbar={
@@ -344,27 +351,21 @@ export function TodoDetailPage({
                   </button>
                 </div>
               }
-            >
-              {table.isEmpty ? (
-                <EmptyState message={todoWorklistLabels.emptyWorklist} />
-              ) : (
-                <UniversalDataTable
-                  table={table}
-                  columns={columns}
-                  rowKey={(row) => row.customer_id}
-                  className={selectedCustomerId ? "todo-worklist-table" : undefined}
-                />
-              )}
-            </ServerDataTableFrame>
+              columns={columns}
+              rowKey={(row) => row.customer_id}
+              emptyState={<EmptyState message={todoWorklistLabels.emptyWorklist} />}
+            />
           </section>
 
           {saveSuccess && <div className="banner success">{saveSuccess}</div>}
 
-          <TodoWorklistActivityPanel
+          <TodoWorklistActivityModal
+            open={activityModalOpen}
             context={modalContext}
             loading={modalLoading}
             saving={saving}
             error={saveError}
+            onClose={closeActivityModal}
             onSave={handleSaveActivity}
           />
         </>
