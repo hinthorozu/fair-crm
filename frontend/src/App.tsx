@@ -30,6 +30,7 @@ import { dataIntegrationLabels } from "./labels/dataIntegrationLabels";
 import { adminLabels } from "./labels/adminLabels";
 import { labels } from "./labels";
 import { scraperLabels } from "./labels/scraperLabels";
+import { useDocumentTitle } from "./hooks/useDocumentTitle";
 import "./styles.css";
 
 type AppRoute =
@@ -232,6 +233,15 @@ export function App() {
   const [adapterName, setAdapterName] = React.useState<string | null>(null);
   const [diNotice, setDiNotice] = React.useState<string | null>(null);
   const [adminNotice, setAdminNotice] = React.useState<string | null>(null);
+
+  useDocumentTitle({
+    route: parsed.route,
+    customerName,
+    fairName,
+    adapterName,
+    adapterKey: parsed.adapterKey,
+    dataOperationKey: parsed.dataOperationKey,
+  });
 
   React.useEffect(() => {
     const path = window.location.pathname;
