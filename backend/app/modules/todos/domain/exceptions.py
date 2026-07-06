@@ -64,3 +64,15 @@ class TodoSourceFairChangeNotAllowedError(TodoDomainError):
 
 class TodoMissingSourceFairError(TodoDomainError):
     pass
+
+
+class WorklistCustomerNotInTodoError(TodoDomainError):
+    pass
+
+
+class TodoOutcomeInactiveError(TodoDomainError):
+    pass
+
+
+class InvalidWorklistNoteError(TodoDomainError):
+    pass

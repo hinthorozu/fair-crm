@@ -245,3 +245,20 @@ class SqlAlchemyTodoWorklistQueryRepository:
             in_follow_up=in_follow_up,
             closed=closed,
         )
+
+    def get_row_for_customer(
+        self,
+        organization_id: UUID,
+        todo_id: UUID,
+        source_fair_id: UUID,
+        customer_id: UUID,
+        *,
+        todo_completed_at: datetime | None,
+    ) -> TodoWorklistRow | None:
+        query = self._base_query(organization_id, todo_id, source_fair_id).filter(
+            CustomerFairParticipationModel.customer_id == customer_id,
+        )
+        row = query.one_or_none()
+        if row is None:
+            return None
+        return self._row_from_result(row, todo_completed_at=todo_completed_at)

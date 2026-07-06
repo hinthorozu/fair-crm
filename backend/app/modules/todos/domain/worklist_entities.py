@@ -76,3 +76,28 @@ class TodoWorklistState:
     def update_primary_status(self, *, primary_status: str, now: datetime) -> None:
         self.primary_status = _validate_stored_primary_status(primary_status)
         self.updated_at = now
+
+    def apply_activity_record(
+        self,
+        *,
+        primary_status: str,
+        last_activity_id: UUID,
+        last_outcome_id: UUID,
+        follow_up_at: Optional[datetime],
+        last_note_summary: Optional[str],
+        last_activity_at: datetime,
+        last_actor_user_id: UUID,
+        action_required: bool,
+        data_problem: bool,
+        now: datetime,
+    ) -> None:
+        self.primary_status = _validate_stored_primary_status(primary_status)
+        self.last_activity_id = last_activity_id
+        self.last_outcome_id = last_outcome_id
+        self.follow_up_at = follow_up_at
+        self.last_note_summary = last_note_summary.strip() if last_note_summary else None
+        self.last_activity_at = last_activity_at
+        self.last_actor_user_id = last_actor_user_id
+        self.action_required = action_required
+        self.data_problem = data_problem
+        self.updated_at = now

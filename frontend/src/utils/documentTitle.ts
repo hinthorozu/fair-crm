@@ -16,6 +16,7 @@ export interface DocumentTitleContext {
   search?: string;
   customerName?: string | null;
   fairName?: string | null;
+  todoTitle?: string | null;
   adapterName?: string | null;
   adapterKey?: string | null;
   dataOperationKey?: string | null;
@@ -52,6 +53,8 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
       return context.fairName?.trim() || fairLabels.fairs;
     case "/todos":
       return todoLabels.pageTitle;
+    case "/todos/:id":
+      return context.todoTitle?.trim() || todoLabels.pageTitle;
     case "/data-integration/imports":
       return dataIntegrationLabels.importsTitle;
     case "/data-integration/imports/new":

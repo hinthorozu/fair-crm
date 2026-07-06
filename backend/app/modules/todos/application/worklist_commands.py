@@ -60,3 +60,70 @@ class ListTodoWorklistQuery:
 class GetTodoWorklistProgressQuery:
     organization_id: UUID
     todo_id: UUID
+
+
+@dataclass(frozen=True)
+class GetTodoWorklistModalContextQuery:
+    organization_id: UUID
+    todo_id: UUID
+    customer_id: UUID
+
+
+@dataclass(frozen=True)
+class RecordTodoWorklistActivityCommand:
+    organization_id: UUID
+    access_token: str
+    user_id: UUID
+    todo_id: UUID
+    customer_id: UUID
+    outcome_id: UUID
+    note: str
+    activity_type: str = "call"
+    contact_id: UUID | None = None
+    follow_up_at: datetime | None = None
+    action_required: bool = False
+    data_problem: bool = False
+    advance_to_next: bool = False
+
+
+@dataclass(frozen=True)
+class TodoWorklistActivityResult:
+    activity_id: UUID
+    worklist_row: TodoWorklistRowResult
+    progress: TodoWorklistProgressResult
+    next_customer_id: UUID | None = None
+
+
+@dataclass(frozen=True)
+class TodoWorklistModalOutcomeItem:
+    id: UUID
+    name: str
+    code: str
+    primary_worklist_status: str
+    requires_action: bool
+    marks_data_problem: bool
+
+
+@dataclass(frozen=True)
+class TodoWorklistModalActivityItem:
+    id: UUID
+    subject: str
+    description: str | None
+    activity_date: datetime
+    follow_up_date: datetime | None
+
+
+@dataclass(frozen=True)
+class TodoWorklistModalContextResult:
+    todo_id: UUID
+    todo_title: str
+    customer_id: UUID
+    customer_name: str
+    city: str | None
+    country: str | None
+    phone_summary: str | None
+    email_summary: str | None
+    contact_count: int
+    worklist_row: TodoWorklistRowResult | None
+    outcomes: list[TodoWorklistModalOutcomeItem]
+    recent_activities: list[TodoWorklistModalActivityItem]

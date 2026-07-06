@@ -16,6 +16,7 @@ import { MailTemplatesPage } from "./pages/MailTemplatesPage";
 import { MailOperationsPage } from "./pages/MailOperationsPage";
 import { DataOperationsPage } from "./pages/DataOperationsPage";
 import { DataOperationRunResultPage } from "./pages/DataOperationRunResultPage";
+import { TodoDetailPage } from "./pages/TodoDetailPage";
 import { TodosPage } from "./pages/TodosPage";
 import { DataIntegrationLayout } from "./components/dataIntegration/DataIntegrationLayout";
 import { AdminSystemLayout } from "./components/admin/AdminSystemLayout";
@@ -43,6 +44,7 @@ type AppRoute =
   | "/fairs"
   | "/fairs/:id"
   | "/todos"
+  | "/todos/:id"
   | "/data-integration/imports"
   | "/data-integration/imports/new"
   | "/data-integration/imports/fair/:fairId"
@@ -68,6 +70,7 @@ interface ParsedRoute {
   route: AppRoute;
   customerId?: string;
   fairId?: string;
+  todoId?: string;
   batchId?: string;
   dataOperationRunId?: string;
   dataOperationKey?: string;
@@ -176,7 +179,11 @@ function parseRoute(location: string): ParsedRoute {
     }
     return { route: "/fairs" };
   }
-  if (pathname === "/todos" || pathname === "/todos/") {
+  if (pathname === "/todos" || pathname.startsWith("/todos/")) {
+    const todoMatch = pathname.match(/^\/todos\/([^/]+)$/);
+    if (todoMatch) {
+      return { route: "/todos/:id", todoId: todoMatch[1] };
+    }
     return { route: "/todos" };
   }
   if (pathname === "/customers") {
@@ -249,6 +256,7 @@ export function App() {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [customerName, setCustomerName] = React.useState<string | null>(null);
   const [fairName, setFairName] = React.useState<string | null>(null);
+  const [todoTitle, setTodoTitle] = React.useState<string | null>(null);
   const [adapterName, setAdapterName] = React.useState<string | null>(null);
   const [diNotice, setDiNotice] = React.useState<string | null>(null);
   const [adminNotice, setAdminNotice] = React.useState<string | null>(null);
@@ -257,6 +265,7 @@ export function App() {
     route: parsed.route,
     customerName,
     fairName,
+    todoTitle,
     adapterName,
     adapterKey: parsed.adapterKey,
     dataOperationKey: parsed.dataOperationKey,
@@ -352,6 +361,20 @@ export function App() {
     setSidebarOpen(false);
   };
 
+  const goToTodos = () => {
+    navigate("/todos");
+    setParsed({ route: "/todos" });
+    setTodoTitle(null);
+    setSidebarOpen(false);
+  };
+
+  const goToTodoDetail = (todoId: string) => {
+    const path = `/todos/${todoId}`;
+    navigate(path);
+    setParsed(parseRoute(path));
+    setSidebarOpen(false);
+  };
+
   const goToAdapters = () => {
     navigate("/data-integration/adapters");
     setParsed({ route: "/data-integration/adapters" });
@@ -401,7 +424,8 @@ export function App() {
 
   const isCustomersActive = parsed.route === "/customers" || parsed.route === "/customers/:id";
   const isFairsActive = parsed.route === "/fairs" || parsed.route === "/fairs/:id";
-  const isTodosActive = parsed.route === "/todos";
+  const isTodosActive =
+    parsed.route === "/todos" || parsed.route === "/todos/:id";
   const isDiActive = isDataIntegrationRoute(parsed.route);
   const isAdminActive = isAdminRoute(parsed.route);
 
@@ -424,6 +448,12 @@ export function App() {
               { label: uiLabels.navFairs, onClick: goToFairs },
               { label: uiLabels.navFairs, current: true },
             ]
+          : parsed.route === "/todos/:id" && parsed.todoId
+            ? [
+                { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                { label: uiLabels.navTodos, onClick: goToTodos },
+                { label: todoTitle ?? uiLabels.navTodos, current: true },
+              ]
           : parsed.route === "/todos"
             ? [
                 { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
@@ -659,7 +689,15 @@ export function App() {
       )}
       {isDiActive && renderDataIntegration()}
       {isAdminActive && renderAdminSystem()}
-      {parsed.route === "/todos" && <TodosPage />}
+      {parsed.route === "/todos" && <TodosPage onOpenDetail={goToTodoDetail} />}
+      {parsed.route === "/todos/:id" && parsed.todoId && (
+        <TodoDetailPage
+          todoId={parsed.todoId}
+          onBack={goToTodos}
+          onTodoLoaded={setTodoTitle}
+          onOpenCustomer={goToCustomerDetail}
+        />
+      )}
       {parsed.route === "/customers" && <CustomersPage onOpenDetail={goToCustomerDetail} />}
       {parsed.route === "/customers/:id" && parsed.customerId && (
         <CustomerDetailPage

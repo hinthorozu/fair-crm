@@ -92,3 +92,13 @@ class TodoWorklistQueryRepository(Protocol):
         todo_id: UUID,
         source_fair_id: UUID,
     ) -> TodoWorklistProgress: ...
+
+    def get_row_for_customer(
+        self,
+        organization_id: UUID,
+        todo_id: UUID,
+        source_fair_id: UUID,
+        customer_id: UUID,
+        *,
+        todo_completed_at: datetime | None,
+    ) -> TodoWorklistRow | None: ...

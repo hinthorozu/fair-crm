@@ -6,6 +6,7 @@ export function useDocumentTitle(context: DocumentTitleContext): void {
     route,
     customerName,
     fairName,
+    todoTitle,
     adapterName,
     adapterKey,
     dataOperationKey,

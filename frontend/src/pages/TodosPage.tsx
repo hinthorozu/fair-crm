@@ -312,7 +312,11 @@ function TodoForm({ initial, submitLabel, onCancel, onSubmit }: TodoFormProps) {
   );
 }
 
-export function TodosPage() {
+interface TodosPageProps {
+  onOpenDetail?: (todoId: string) => void;
+}
+
+export function TodosPage({ onOpenDetail }: TodosPageProps) {
   const grantedPermissions = React.useMemo(() => getGrantedTodoPermissions(), []);
   const canRead = canPerformTodoAction(grantedPermissions, "read");
   const canCreate = canPerformTodoAction(grantedPermissions, "create");
@@ -431,7 +435,14 @@ export function TodosPage() {
         key: "title",
         title: todoLabels.colTitle,
         sortField: "title",
-        render: (todo) => <span className="todo-title-cell">{todo.title}</span>,
+        render: (todo) =>
+          onOpenDetail ? (
+            <button type="button" className="link-button" onClick={() => onOpenDetail(todo.id)}>
+              {todo.title}
+            </button>
+          ) : (
+            <span className="todo-title-cell">{todo.title}</span>
+          ),
       },
       {
         key: "status",
@@ -546,7 +557,7 @@ export function TodosPage() {
       },
     ];
     return cols;
-  }, [actionLoadingId, canArchive, canDelete, canUpdate]);
+  }, [actionLoadingId, canArchive, canDelete, canUpdate, onOpenDetail]);
 
   if (!canRead) {
     return (
