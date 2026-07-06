@@ -58,6 +58,7 @@ Current delivery snapshot:
 - Fair context is required for import batches; do not infer `fair_name` from source data.
 - Hall and stand data belong to fair participation records, not Customer or Fair aggregates.
 - Scraper/site-specific logic belongs in scraper adapters and parsers, not in the import engine.
+- Scraper adapter output field / `requested_fields` contract için `docs/import/SOURCE_ADAPTER_FRAMEWORK.md` içindeki “Scraper requested output fields contract” bölümünü oku.
 - Do not change Import Preview, Merge Engine, or Adapter Builder behavior unless the user explicitly scopes that work.
 
 ## Frontend Rules

@@ -101,6 +101,57 @@ The Import Engine does **not** know site-specific rules. Scraper output must be 
 
 ---
 
+## Scraper requested output fields contract
+
+Every scraper adapter exposes the same standard output field checkboxes in the UI. The user selects which fields the run should attempt to extract; the adapter honors that selection end-to-end through scrape, handoff, and export.
+
+### Rules
+
+- Her scraper adapter, standart output field checkbox'larını kullanıcıya seçilebilir sunar.
+- Capability, “bu veri sitede kesin bulunur” demek değildir.
+- Capability, “kullanıcı bu alanı seçebilir ve adapter bu alanı çıkarmayı dener” demektir.
+- `requested_fields`, kullanıcının seçtiği checkbox listesidir.
+- Kullanıcı bir alana çentik koyduysa adapter o alanı çıkarmaya çalışır.
+- Kullanıcı çentik koymadıysa adapter o alan için ekstra arama, detail fetch veya extraction yapmaz.
+- Seçilen alan bulunamazsa boş/null döner; bu hata sayılmaz.
+- Seçilmeyen alan handoff/export çıktısına dahil edilmez.
+- Handoff/export yalnızca `requested_fields` içinde seçilen alanları içerir.
+- `scrape_detail` explicit verilirse detail davranışını override eder.
+- `scrape_detail` verilmemişse detail fetch kararı `requested_fields` üzerinden verilir.
+- Varsayılan detail kuralı backend'de `needs_detail_scrape()` / `DETAIL_PAGE_FIELDS` ile tanımlıdır.
+- Site-specific optimizasyon yapılacaksa bu genel contract'ı bozmayacak şekilde açıkça dokümante edilir.
+- Yeni adapter eklenirken bu contract değişmez; sadece site-specific parser/fetcher değişir.
+- Adapter CRM'e direkt yazmaz; preview/import handoff pipeline'a veri üretir.
+
+### Standart output field'lar
+
+| Key | Typical UI label (TR) |
+|-----|------------------------|
+| `customerName` | Firma Adı |
+| `phone` | Telefon |
+| `email` | E-posta |
+| `address` | Adres |
+| `website` | Website |
+| `hall` | Salon |
+| `stand` | Stand |
+| `instagram` | Instagram |
+| `facebook` | Facebook |
+| `linkedin` | LinkedIn |
+| `youtube` | YouTube |
+| `notes` | Notlar |
+
+### Reference implementation
+
+| Layer | Path |
+|-------|------|
+| Backend contract | `backend/app/modules/scraper/domain/requested_output_fields.py` |
+| Frontend mirror | `frontend/src/utils/outputFieldDefinitions.ts` |
+| Tests | `backend/tests/modules/scraper/test_requested_output_fields.py` |
+| Adapter detail behavior | `backend/tests/modules/scraper/test_tuyap_*_adapter_detail.py` |
+| Capability mapping | `backend/tests/modules/scraper/test_tuyap_*_capabilities.py` |
+
+---
+
 ## ERP adapter standard (future)
 
 ERP connectors (Logo, Mikro, Netsis, SAP) implement `SourceAdapter` with:
