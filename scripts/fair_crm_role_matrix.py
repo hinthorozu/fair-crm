@@ -87,6 +87,9 @@ ADMIN_ONLY_PERMISSIONS: frozenset[str] = frozenset(
         "fair_crm.scraper.update",
         "fair_crm.scraper.delete",
         "fair_crm.todos.delete",
+        "fair_crm.todos.outcomes.create",
+        "fair_crm.todos.outcomes.update",
+        "fair_crm.todos.outcomes.deactivate",
     }
 )
 
@@ -126,9 +129,6 @@ _MANAGER_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.todos.update",
     "fair_crm.todos.archive",
     "fair_crm.todos.outcomes.read",
-    "fair_crm.todos.outcomes.create",
-    "fair_crm.todos.outcomes.update",
-    "fair_crm.todos.outcomes.deactivate",
 )
 
 _SALES_PERMISSIONS: tuple[str, ...] = (

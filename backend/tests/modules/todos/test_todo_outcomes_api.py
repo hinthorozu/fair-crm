@@ -113,13 +113,28 @@ def test_list_active_filter(client, auth_headers):
 
     active_only = client.get(f"{OUTCOMES_BASE}?is_active=true", headers=auth_headers)
     inactive_only = client.get(f"{OUTCOMES_BASE}?is_active=false", headers=auth_headers)
+    all_items = client.get(f"{OUTCOMES_BASE}?is_active=all", headers=auth_headers)
+    default_list = client.get(OUTCOMES_BASE, headers=auth_headers)
 
     assert active_only.status_code == 200
     assert inactive_only.status_code == 200
+    assert all_items.status_code == 200
+    assert default_list.status_code == 200
+
     active_codes = {item["code"] for item in active_only.json()["items"]}
     inactive_codes = {item["code"] for item in inactive_only.json()["items"]}
+    all_codes = {item["code"] for item in all_items.json()["items"]}
+    default_codes = {item["code"] for item in default_list.json()["items"]}
+
     assert "active_filter" not in active_codes
+    assert all(item["is_active"] for item in active_only.json()["items"])
     assert "active_filter" in inactive_codes
+    assert all(not item["is_active"] for item in inactive_only.json()["items"])
+    assert "active_filter" in all_codes
+    assert all_codes == default_codes
+    assert pagination_from(all_items.json())["totalItems"] >= len(active_codes) + len(
+        inactive_codes
+    )
 
 
 def test_get_outcome_not_found(client, auth_headers):
