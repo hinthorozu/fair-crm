@@ -61,7 +61,9 @@ Bu alan ileride arama listesi, WhatsApp gönderimi, SMS gönderimi, toplu mail v
 
 ### 8. Category değerleri
 
-İlk kategori listesi:
+DB/API tarafında ASCII slug kullanılacak. Türkçe karakterli değerler yalnızca frontend UI label olarak gösterilecek (bkz. karar §11).
+
+İlk kategori listesi (slug):
 
 - `arama`
 - `toplu_mail`
@@ -71,14 +73,14 @@ Bu alan ileride arama listesi, WhatsApp gönderimi, SMS gönderimi, toplu mail v
 - `teklif`
 - `veri_temizleme`
 - `import_kontrol`
-- `müşteri_güncelleme`
-- `genel_görev`
+- `musteri_guncelleme`
+- `genel_gorev`
 - `stand_tasarim`
-- `diğer`
+- `diger`
 
 Varsayılan:
 
-- `genel_görev`
+- `genel_gorev`
 
 ---
 
@@ -106,6 +108,58 @@ Varsayılan:
 - `done`
 - `cancelled`
 - `archived`
+
+---
+
+### 11. Category slug'ları DB/API'de ASCII olacak
+
+Category değerleri veritabanı ve API sözleşmesinde ASCII slug olarak saklanır ve taşınır:
+
+- `arama`
+- `toplu_mail`
+- `sms`
+- `whatsapp`
+- `ziyaret`
+- `teklif`
+- `veri_temizleme`
+- `import_kontrol`
+- `musteri_guncelleme`
+- `genel_gorev`
+- `stand_tasarim`
+- `diger`
+
+Türkçe karakterli gösterimler (ör. “Müşteri Güncelleme”, “Genel Görev”, “Diğer”) yalnızca frontend label katmanında (`labels/todoLabels.ts`) kullanılır. Encoding, URL filtreleme ve enum doğrulama risklerini önlemek için backend slug listesi Unicode varyantları kabul etmez.
+
+---
+
+### 12. Assignee / creator isim gösterimi Faz 1'de genişletilmeyecek
+
+Backend yalnızca `assignee_user_id`, `created_by`, `updated_by` UUID alanlarını saklar; response'ta isim zorunlu değildir.
+
+Frontend:
+
+- Mevcut kullanıcı veya uygulama içi üyelik datası varsa isim gösterebilir.
+- Yoksa UUID veya boş gösterim kabul edilir.
+
+Core org-members entegrasyonu (org üye listesi, display name lookup) Faz 1 kapsamı dışında ayrı iş olarak kalır.
+
+---
+
+### 13. Delete ve archive permission rol dağılımı
+
+| Permission | owner | admin | manager | sales | viewer |
+|------------|:-----:|:-----:|:-------:|:-----:|:------:|
+| `fair_crm.todos.read` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `fair_crm.todos.create` | ✓ | ✓ | ✓ | ✓ | — |
+| `fair_crm.todos.update` | ✓ | ✓ | ✓ | ✓ | — |
+| `fair_crm.todos.archive` | ✓ | ✓ | ✓ | ✓ | — |
+| `fair_crm.todos.delete` | ✓ | ✓ | — | — | — |
+
+- **Delete** (`DELETE /todos/{id}`): yalnızca owner ve admin (`fair_crm.todos.delete`).
+- **Archive**: owner, admin, manager, sales (`fair_crm.todos.archive`); normal “sil” UX'i archive akışına yönlendirilir.
+- **Viewer**: yalnızca read; create, update, archive ve delete yetkisi yok.
+
+`scripts/fair_crm_role_matrix.py` bu dağılıma göre güncellenecek.
 
 ---
 

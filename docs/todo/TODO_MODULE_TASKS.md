@@ -8,6 +8,85 @@ Bu fazda sadece bağımsız, organizasyon bazlı To-Do modülü yapılacaktır.
 
 ---
 
+## Implementasyon Sırası / Implementation Plan
+
+Onaylanmış Faz 1 uygulama sırası. Referans modüller: `customers` (liste/filtre/archive), `activities` (entity + CRUD), `smtp` (permission + use case).
+
+### Genel sıra
+
+```text
+1. Backend (domain → migration → repo → use case → API → permission wiring)
+2. Frontend (types/API → liste → form/detay → aksiyonlar → nav)
+3. Test (backend birim/API eşzamanlı; role matrix + frontend build en sonda)
+```
+
+Backend tamamlanmadan frontend'e geçilmemeli. API sözleşmesi (response alanları, filtre parametreleri, permission kodları) netleşmeden UI yazılmamalı.
+
+### Backend sırası
+
+| Adım | İş | Bağımlılık |
+|------|-----|------------|
+| **B1** | Domain: `Todo` entity, `TodoStatus` / `TodoPriority` / `TodoCategory` enum'ları, domain exceptions, repository port | — |
+| **B2** | Alembic migration: `crm_todos` tablosu (`organization_id` index, enum string kolonlar, `archived_at` / `completed_at`, audit alanları) | B1 |
+| **B3** | Infrastructure: SQLAlchemy model + mapper + `SqlAlchemyTodoRepository` (org-scoped sorgular) | B2 |
+| **B4** | Application: commands/DTO/mappers + use case'ler (`Create`, `Get`, `List`, `Update`, `Complete`, `Archive`, `Delete`) | B3 |
+| **B5** | Liste mantığı: filtreler, sayfalama/sıralama | B4 |
+| **B6** | Overdue: response'a `is_overdue` — `deadline < now AND status != done` | B5 |
+| **B7** | API: `schemas`, `dependencies`, `routes`; router kaydı (`/api/v1/todos`) | B4–B6 |
+| **B8** | Permission: use case'lerde `fair_crm.todos.*` kontrolleri + `scripts/fair_crm_role_matrix.py` güncellemesi | B7 |
+
+**B4 iç öncelik:** Create + Get → List + filtreler → Update → Complete / Archive → Delete (yalnızca `fair_crm.todos.delete`).
+
+**Delete vs archive:** UI “sil” davranışı archive endpoint/permission ile; gerçek silme `DELETE /todos/{id}` + `fair_crm.todos.delete` (owner/admin).
+
+### Frontend sırası
+
+| Adım | İş | Bağımlılık |
+|------|-----|------------|
+| **F1** | `types/todo.ts`, `api/todos.ts`, `labels/todoLabels.ts` (TR etiketler, enum map'leri) | B7 |
+| **F2** | `permissions/todoPermissions.ts` (+ unit test) | F1 |
+| **F3** | Ana liste: `TodosPage` — `ServerDataTableFrame`, URL sync, 9 kolon, overdue badge | F1 |
+| **F4** | Liste filtreleri (8 filtre + arama) | F3 |
+| **F5** | Create/Edit form modal | F1 |
+| **F6** | Detay ekranı (`/todos/{id}`) veya genişletilmiş modal | F5 |
+| **F7** | Satır aksiyonları: Tamamla, Arşivle; delete yalnızca permission varsa | F2, F3 |
+| **F8** | Navigasyon: `App.tsx` route, sidebar menü | F3 |
+
+**F3 assignee/creator gösterimi:** Faz 1'de Core org-members entegrasyonu yok; mevcut kullanıcı/üyelik datası varsa isim, yoksa UUID/boş gösterim kabul (bkz. `TODO_MODULE_DECISIONS.md` §12).
+
+### Test sırası
+
+| Aşama | Ne zaman | Kapsam |
+|-------|----------|--------|
+| **T1** | B1 sonrası | Domain/entity: enum validation, complete/archive geçişleri, overdue mantığı |
+| **T2** | B3 sonrası | Repository: org izolasyonu, filtreler, `include_archived`, search |
+| **T3** | B7 sonrası | API integration: CRUD, complete, archive, 403/404 |
+| **T4** | B8 sonrası | Permission: yetkisiz delete, archive yetkisi, org dışı erişim |
+| **T5** | B8 sonrası | `test_role_matrix_authorization.py`: todos permission satırları |
+| **T6** | F7 sonrası | `npm run build`; permission unit testleri |
+| **T7** | Kapanış | Tam pytest suite + manuel smoke |
+
+**Test öncelik:** org izolasyonu → CRUD + enum → complete/archive → overdue → delete yetkisi → filtreler/search → role matrix.
+
+### Önerilen teslim dilimleri (PR)
+
+1. **PR-1:** Backend domain + migration + repo + temel CRUD API + T1–T3
+2. **PR-2:** Complete / archive / delete + filtreler + overdue + permissions + T4–T5
+3. **PR-3:** Frontend liste + formlar + aksiyonlar + nav + T6–T7
+
+### Riskler (özet)
+
+| Risk | Azaltma |
+|------|---------|
+| Core RBAC: yeni permission kodları | `fair_crm_role_matrix.py` + Core permission tanımı (ayrı ticket) |
+| Category encoding | DB/API ASCII slug; TR yalnızca UI label (bkz. karar §11) |
+| Assignee/creator isimleri | Faz 1'de UUID/boş kabul; Core org-members ayrı iş |
+| Delete vs archive UX | UI'da “Arşivle” / “Kalıcı sil” ayrımı |
+| Migration sıra | Branch head'ten sonra `0043_crm_todos` (mevcut `0042` sonrası) |
+| Faz 2 genişlemesi | Faz 1'de customer/fair/import FK eklenmez |
+
+---
+
 ## Backend İşleri
 
 - [ ] To-Do model / entity tasarla.
@@ -26,7 +105,7 @@ Bu fazda sadece bağımsız, organizasyon bazlı To-Do modülü yapılacaktır.
   - `normal`
   - `high`
   - `urgent`
-- [ ] Category enum değerlerini ekle:
+- [ ] Category enum değerlerini ekle (DB/API ASCII slug; TR label frontend'de):
   - `arama`
   - `toplu_mail`
   - `sms`
@@ -35,12 +114,12 @@ Bu fazda sadece bağımsız, organizasyon bazlı To-Do modülü yapılacaktır.
   - `teklif`
   - `veri_temizleme`
   - `import_kontrol`
-  - `müşteri_güncelleme`
-  - `genel_görev`
+  - `musteri_guncelleme`
+  - `genel_gorev`
   - `stand_tasarim`
-  - `diğer`
+  - `diger`
 - [ ] Varsayılan priority değerini `normal` yap.
-- [ ] Varsayılan category değerini `genel_görev` yap.
+- [ ] Varsayılan category değerini `genel_gorev` yap.
 - [ ] CRUD servislerini yaz.
 - [ ] Listeleme endpoint'ine filtreleri ekle:
   - `status`
