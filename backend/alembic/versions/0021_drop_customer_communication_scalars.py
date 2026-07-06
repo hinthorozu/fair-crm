@@ -17,6 +17,29 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def _ensure_alembic_version_column_width() -> None:
+    """Alembic defaults to VARCHAR(32); later revision ids exceed that limit."""
+    bind = op.get_bind()
+    current_len = bind.execute(
+        sa.text(
+            """
+            SELECT character_maximum_length
+            FROM information_schema.columns
+            WHERE table_schema = current_schema()
+              AND table_name = 'alembic_version'
+              AND column_name = 'version_num'
+            """
+        )
+    ).scalar()
+    if current_len is None or current_len < 128:
+        op.execute(
+            sa.text(
+                "ALTER TABLE alembic_version "
+                "ALTER COLUMN version_num TYPE VARCHAR(128)"
+            )
+        )
+
+
 def _split_emails(value: str | None) -> list[str]:
     if not value:
         return []
@@ -150,6 +173,7 @@ def _verify_backfill(connection) -> None:
 
 
 def upgrade() -> None:
+    _ensure_alembic_version_column_width()
     connection = op.get_bind()
     _verify_backfill(connection)
     op.drop_column("crm_customers", "phone")

@@ -11,7 +11,7 @@ from alembic import op
 revision: str = "0044_enrichment_candidate_query_indexes"
 down_revision: Union[str, None] = "0043_crm_todos"
 branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = "0042_crm_customer_enrichment_state"
 
 
 def upgrade() -> None:

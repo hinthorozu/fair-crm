@@ -25,11 +25,11 @@ def main() -> int:
             )
         ).scalar_one()
         print("current_version_num_length", current_len)
-        if current_len is not None and current_len >= 64:
+        if current_len is not None and current_len >= 128:
             print("already wide enough")
             return 0
-        conn.execute(text("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(64)"))
-        print("widened alembic_version.version_num to VARCHAR(64)")
+        conn.execute(text("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(128)"))
+        print("widened alembic_version.version_num to VARCHAR(128)")
     return 0
 
 

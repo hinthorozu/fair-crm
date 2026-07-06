@@ -3,6 +3,8 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+from app.db.alembic_version_compat import ensure_alembic_version_column_width
+
 from app.core.config import get_settings
 from app.db.base import Base
 from app.modules.customers.infrastructure.persistence.communication_models import (  # noqa: F401
@@ -47,6 +49,7 @@ def run_migrations_online() -> None:
         context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
+            ensure_alembic_version_column_width(connection)
             context.run_migrations()
 
 

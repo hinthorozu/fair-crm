@@ -336,7 +336,87 @@ function Invoke-DevAlembicUpgrade {
     }
 }
 
+function Get-DevBackendEnvValue {
+    param([Parameter(Mandatory)][string]$Name)
+
+    $envFile = Join-Path $script:DevBackendDir ".env"
+    if (-not (Test-Path $envFile)) {
+        return $null
+    }
+
+    foreach ($line in Get-Content -LiteralPath $envFile) {
+        if ($line -match '^\s*#' -or $line -notmatch '\S') { continue }
+        if ($line -match "^\s*$([regex]::Escape($Name))\s*=\s*(.+?)\s*$") {
+            return $matches[1].Trim().Trim('"').Trim("'")
+        }
+    }
+
+    return $null
+}
+
+function Get-DevDatabaseConnectionInfo {
+    $databaseUrl = Get-DevBackendEnvValue -Name "DATABASE_URL"
+    if (-not $databaseUrl) {
+        $databaseUrl = "postgresql+psycopg2://postgres:postgres@localhost:5432/fair_crm"
+    }
+
+    if ($databaseUrl -notmatch '^[^:]+://([^:]+):([^@]+)@([^:/]+):(\d+)/([^?]+)$') {
+        throw "Cannot parse DATABASE_URL for dev bootstrap: $databaseUrl"
+    }
+
+    $databaseName = $matches[5]
+    if ($databaseName -notmatch '^[A-Za-z_][A-Za-z0-9_]*$') {
+        throw "Invalid database name in DATABASE_URL: $databaseName"
+    }
+
+    return [pscustomobject]@{
+        User     = $matches[1]
+        Password = $matches[2]
+        Host     = $matches[3]
+        Port     = $matches[4]
+        Database = $databaseName
+    }
+}
+
+function Ensure-DevPostgresDatabase {
+    if (-not (Test-ComposeServiceDefined -ServiceName "postgres")) {
+        Write-Host "Compose service 'postgres' not defined - skipping database ensure."
+        return
+    }
+
+    $conn = Get-DevDatabaseConnectionInfo
+    Write-DevStep "Ensuring PostgreSQL database exists ($($conn.Database))"
+
+    $previousPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        $existsOutput = docker exec $script:DevPostgresContainer `
+            psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$($conn.Database)'" 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to query PostgreSQL for database '$($conn.Database)': $existsOutput"
+        }
+
+        $existsValue = (($existsOutput | Out-String).Trim())
+        if ($existsValue -eq "1") {
+            Write-Host "Database '$($conn.Database)' already exists."
+            return
+        }
+
+        $createOutput = docker exec $script:DevPostgresContainer `
+            psql -U postgres -c "CREATE DATABASE $($conn.Database);" 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "CREATE DATABASE $($conn.Database) failed: $createOutput"
+        }
+
+        Write-Host "Created database '$($conn.Database)'."
+    } finally {
+        $ErrorActionPreference = $previousPreference
+    }
+}
+
 function Invoke-DevDatabaseMigrations {
+    Ensure-DevPostgresDatabase
+
     Write-DevStep "Checking current Alembic revision"
     $before = Get-DevAlembicCurrentRevision
     $head = Get-DevAlembicHeadRevision
