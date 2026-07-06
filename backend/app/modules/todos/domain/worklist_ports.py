@@ -1,8 +1,11 @@
+from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
 from app.modules.todos.domain.outcome_entities import TodoOutcomeDefinition
 from app.modules.todos.domain.worklist_entities import TodoWorklistState
+from app.modules.todos.domain.worklist_query import TodoWorklistListResult, TodoWorklistProgress
+from app.modules.todos.domain.worklist_value_objects import WorklistFilter
 
 
 class OutcomeListResult:
@@ -65,3 +68,27 @@ class TodoWorklistStateRepository(Protocol):
     def exists_for_todo(self, organization_id: UUID, todo_id: UUID) -> bool: ...
 
     def count_by_todo(self, organization_id: UUID, todo_id: UUID) -> int: ...
+
+
+class TodoWorklistQueryRepository(Protocol):
+    def list_for_todo(
+        self,
+        organization_id: UUID,
+        todo_id: UUID,
+        source_fair_id: UUID,
+        *,
+        todo_completed_at: datetime | None,
+        worklist_filter: WorklistFilter,
+        search: str | None = None,
+        page: int = 1,
+        page_size: int = 25,
+        sort_by: str = "company_name",
+        sort_dir: str = "asc",
+    ) -> TodoWorklistListResult: ...
+
+    def progress_for_todo(
+        self,
+        organization_id: UUID,
+        todo_id: UUID,
+        source_fair_id: UUID,
+    ) -> TodoWorklistProgress: ...

@@ -23,6 +23,7 @@ from app.modules.mail_send_operations.api.routes import router as mail_send_oper
 from app.modules.fair_emails.api.routes import router as fair_emails_router
 from app.modules.todos.api.routes import router as todos_router
 from app.modules.todos.api.outcome_routes import router as todo_outcomes_router
+from app.modules.todos.api.worklist_routes import router as todo_worklist_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
 api_v1_router.include_router(customer_activities_router)
@@ -47,3 +48,4 @@ api_v1_router.include_router(mail_send_operations_router)
 api_v1_router.include_router(fair_emails_router)
 api_v1_router.include_router(todos_router)
 api_v1_router.include_router(todo_outcomes_router)
+api_v1_router.include_router(todo_worklist_router)

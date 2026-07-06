@@ -60,3 +60,7 @@ class TodoWorklistStateNotFoundError(TodoDomainError):
 
 class TodoSourceFairChangeNotAllowedError(TodoDomainError):
     pass
+
+
+class TodoMissingSourceFairError(TodoDomainError):
+    pass

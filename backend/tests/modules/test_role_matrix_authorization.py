@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from unittest.mock import patch
 from pathlib import Path
 from uuid import UUID, uuid4
@@ -30,6 +31,9 @@ from app.modules.fair_emails.api.dependencies import (
     get_authorization_adapter as get_fair_emails_authorization_adapter,
 )
 from app.modules.system_admin.api.dependencies import get_authorization_adapter as get_system_admin_authorization_adapter
+from app.modules.fairs.infrastructure.persistence.models import FairModel
+from app.modules.todos.domain.entities import Todo
+from app.modules.todos.infrastructure.repositories.todo_repository import SqlAlchemyTodoRepository
 from app.modules.todos.api.dependencies import get_authorization_adapter as get_todos_authorization_adapter
 from app.modules.todos.api.outcome_dependencies import (
     get_authorization_adapter as get_outcome_authorization_adapter,
@@ -798,4 +802,40 @@ def test_role_matrix_todo_outcomes_deactivate(
             headers=auth_headers,
         )
     expected = 200 if _role_has(role_slug, "fair_crm.todos.outcomes.deactivate") else 403
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_todo_worklist_read(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    db_session,
+    organization_id,
+    user_id,
+    role_slug: str,
+) -> None:
+    fair = FairModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        name="Matrix Fair",
+        normalized_name="matrix fair",
+        status="planned",
+        created_at=datetime.now(tz=UTC),
+        updated_at=datetime.now(tz=UTC),
+    )
+    db_session.add(fair)
+    db_session.flush()
+    todo = SqlAlchemyTodoRepository(db_session).add(
+        Todo.create(
+            organization_id=organization_id,
+            title=f"Matrix Worklist {role_slug}",
+            created_by=user_id,
+            source_fair_id=fair.id,
+            now=datetime.now(tz=UTC),
+        )
+    )
+
+    with install_role_matrix_auth(client, role_slug):
+        response = client.get(f"/api/v1/todos/{todo.id}/worklist", headers=auth_headers)
+    expected = 200 if _role_has(role_slug, "fair_crm.todos.read") else 403
     assert response.status_code == expected

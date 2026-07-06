@@ -10,6 +10,7 @@ from app.modules.todos.domain.exceptions import (
 )
 from app.modules.todos.domain.outcome_entities import TodoOutcomeDefinition
 from app.modules.todos.domain.outcome_value_objects import OutcomePrimaryWorklistStatus
+from app.modules.todos.domain.worklist_query import resolve_added_after_completion
 from app.modules.todos.domain.value_objects import TodoStatus
 from app.modules.todos.domain.worklist_entities import TodoWorklistState
 from app.modules.todos.domain.worklist_value_objects import (
@@ -164,3 +165,22 @@ def test_todo_source_fair_change_allowed_when_open_and_no_state():
     )
     assert todo.source_fair_id == new_fair_id
     assert todo.status == TodoStatus.TODO
+
+
+def test_resolve_added_after_completion():
+    completed_at = datetime(2026, 1, 10, tzinfo=UTC)
+    before = datetime(2026, 1, 9, tzinfo=UTC)
+    after = datetime(2026, 1, 11, tzinfo=UTC)
+
+    assert resolve_added_after_completion(
+        participation_created_at=before,
+        todo_completed_at=completed_at,
+    ) is False
+    assert resolve_added_after_completion(
+        participation_created_at=after,
+        todo_completed_at=completed_at,
+    ) is True
+    assert resolve_added_after_completion(
+        participation_created_at=after,
+        todo_completed_at=None,
+    ) is False
