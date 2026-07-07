@@ -229,10 +229,10 @@ maybe_run_post_check() {
   step "Post-deploy health audit (check-server.sh)"
   if [[ "${EUID}" -ne 0 ]]; then
     REPORT_POST_CHECK="skipped (requires sudo)"
-    warn "Skipping post-deploy check; run sudo bash ${SCRIPT_DIR}/check-server.sh manually"
+    warn "Skipping post-deploy check; run sudo bash ${FAIR_CRM_DIR}/scripts/server/check-server.sh manually"
     return 0
   fi
-  if SKIP_PUBLIC_CHECKS=1 bash "${SCRIPT_DIR}/check-server.sh"; then
+  if SKIP_PUBLIC_CHECKS=1 bash "${FAIR_CRM_DIR}/scripts/server/check-server.sh"; then
     REPORT_POST_CHECK="passed"
   else
     REPORT_POST_CHECK="failed"
