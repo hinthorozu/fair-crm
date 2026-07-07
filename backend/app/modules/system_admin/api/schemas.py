@@ -51,5 +51,32 @@ class RestoreDisabledResponse(BaseModel):
     enabled: bool = False
 
 
+class SystemBackupRestoreJobResponse(BaseModel):
+    id: UUID
+    status: str
+    source_type: str
+    backup_id: UUID | None = None
+    source_file_name: str
+    checksum_sha256: str | None = None
+    notes: str | None = None
+    requested_by_user_id: UUID
+    requested_by_email: str | None = None
+    requested_at: datetime
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    failed_at: datetime | None = None
+    error_message: str | None = None
+    restore_log_path: str | None = None
+    message: str
+    uploaded: bool = False
+    backup_file_name: str | None = None
+    backup_format: str | None = None
+
+
+class DeleteSystemBackupResponse(BaseModel):
+    id: UUID
+    file_name: str
+
+
 class ErrorResponse(BaseModel):
     detail: str

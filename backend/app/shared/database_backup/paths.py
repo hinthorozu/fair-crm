@@ -22,6 +22,22 @@ def get_backups_dir(repo_root: Path | None = None) -> Path:
     return root / "backups"
 
 
+def get_restore_uploads_dir(repo_root: Path | None = None) -> Path:
+    root = repo_root or get_repo_root()
+    return root / "data" / "restore_uploads"
+
+
+def get_restore_logs_dir(repo_root: Path | None = None) -> Path:
+    root = repo_root or get_repo_root()
+    return root / "data" / "restore_logs"
+
+
+def relative_repo_path(path: Path) -> str:
+    repo_root = get_repo_root().resolve()
+    resolved = path.resolve()
+    return str(resolved.relative_to(repo_root)).replace("\\", "/")
+
+
 def generate_backup_filename(
     *,
     backup_format: BackupFormat = BackupFormat.POSTGRESQL_DUMP,

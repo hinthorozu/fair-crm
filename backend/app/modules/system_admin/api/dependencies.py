@@ -16,13 +16,20 @@ from app.integrations.kyrox_core.dev_bypass import (
 )
 from app.integrations.kyrox_core.ports import AuthorizationPort
 from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
+from app.modules.system_admin.application.restore_job_service import (
+    GetRestoreJobUseCase,
+    ListRestoreJobsUseCase,
+)
 from app.modules.system_admin.application.backup_job_runner import BackupJobRunner
 from app.modules.system_admin.application.backup_service import (
     CreateSystemBackupUseCase,
+    DeleteSystemBackupUseCase,
     DownloadSystemBackupUseCase,
     GetSystemBackupUseCase,
     ListSystemBackupsUseCase,
     RestoreService,
+    RestoreSystemBackupFromUploadUseCase,
+    RestoreSystemBackupUseCase,
 )
 from app.modules.customers.infrastructure.repositories.customer_communication_repository import (
     SqlAlchemyCustomerCommunicationRepository,
@@ -49,6 +56,9 @@ from app.modules.system_admin.application.data_operation_service import (
 )
 from app.modules.system_admin.infrastructure.repositories.backup_repository import (
     SqlAlchemySystemBackupRepository,
+)
+from app.modules.system_admin.infrastructure.repositories.restore_job_repository import (
+    SqlAlchemySystemBackupRestoreJobRepository,
 )
 from app.modules.system_admin.infrastructure.repositories.data_operation_dataset_repository import (
     SqlAlchemyDataOperationDatasetRepository,
@@ -141,6 +151,10 @@ def get_backup_repository(db: Session = Depends(get_db)) -> SqlAlchemySystemBack
     return SqlAlchemySystemBackupRepository(db)
 
 
+def get_restore_job_repository(db: Session = Depends(get_db)) -> SqlAlchemySystemBackupRestoreJobRepository:
+    return SqlAlchemySystemBackupRestoreJobRepository(db)
+
+
 _backup_job_runner = BackupJobRunner()
 
 
@@ -178,6 +192,47 @@ def get_download_backup_use_case(
 
 def get_restore_service() -> RestoreService:
     return RestoreService()
+
+
+def get_restore_backup_use_case(
+    repository: SqlAlchemySystemBackupRepository = Depends(get_backup_repository),
+    restore_job_repository: SqlAlchemySystemBackupRestoreJobRepository = Depends(get_restore_job_repository),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
+) -> RestoreSystemBackupUseCase:
+    return RestoreSystemBackupUseCase(repository, restore_job_repository, authorization, audit)
+
+
+def get_restore_backup_from_upload_use_case(
+    restore_job_repository: SqlAlchemySystemBackupRestoreJobRepository = Depends(get_restore_job_repository),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
+) -> RestoreSystemBackupFromUploadUseCase:
+    return RestoreSystemBackupFromUploadUseCase(restore_job_repository, authorization, audit)
+
+
+def get_list_restore_jobs_use_case(
+    restore_job_repository: SqlAlchemySystemBackupRestoreJobRepository = Depends(get_restore_job_repository),
+    backup_repository: SqlAlchemySystemBackupRepository = Depends(get_backup_repository),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+) -> ListRestoreJobsUseCase:
+    return ListRestoreJobsUseCase(restore_job_repository, backup_repository, authorization)
+
+
+def get_get_restore_job_use_case(
+    restore_job_repository: SqlAlchemySystemBackupRestoreJobRepository = Depends(get_restore_job_repository),
+    backup_repository: SqlAlchemySystemBackupRepository = Depends(get_backup_repository),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+) -> GetRestoreJobUseCase:
+    return GetRestoreJobUseCase(restore_job_repository, backup_repository, authorization)
+
+
+def get_delete_backup_use_case(
+    repository: SqlAlchemySystemBackupRepository = Depends(get_backup_repository),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
+) -> DeleteSystemBackupUseCase:
+    return DeleteSystemBackupUseCase(repository, authorization, audit)
 
 
 def get_data_operation_run_repository(db: Session = Depends(get_db)) -> SqlAlchemyDataOperationRunRepository:

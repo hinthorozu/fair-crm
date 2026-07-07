@@ -33,3 +33,30 @@ export interface CreateSystemBackupResponse {
   status: string;
   progress_stage: string;
 }
+
+export interface SystemBackupRestoreJobResponse {
+  id: string;
+  status: "manual_restore_required" | "running" | "completed" | "failed";
+  source_type: "existing_backup" | "uploaded_file";
+  backup_id: string | null;
+  source_file_name: string;
+  checksum_sha256: string | null;
+  notes: string | null;
+  requested_by_user_id: string;
+  requested_by_email: string | null;
+  requested_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  failed_at: string | null;
+  error_message: string | null;
+  restore_log_path: string | null;
+  message: string;
+  uploaded: boolean;
+  backup_file_name: string | null;
+  backup_format: string | null;
+}
+
+export interface DeleteSystemBackupResponse {
+  id: string;
+  file_name: string;
+}

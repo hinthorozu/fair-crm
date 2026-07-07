@@ -15,7 +15,7 @@ def _fake_pg_dump(*, database_url: str, output_path: Path, on_stage=None) -> Bac
         on_stage("dumping")
         on_stage("compressing")
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    payload = b"FAIRCRM_TEST_BACKUP"
+    payload = b"PGDMP" + b"\x00" * 20 + b"FAIRCRM_TEST_BACKUP"
     output_path.write_bytes(payload)
     return BackupRunResult(
         path=output_path,
@@ -72,7 +72,13 @@ def _fake_build_package(self, *, session, organization_id, output_path, on_stage
 def backups_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     root = tmp_path / "repo"
     (root / "backups").mkdir(parents=True)
+    (root / "data" / "restore_uploads").mkdir(parents=True)
+    (root / "data" / "restore_logs").mkdir(parents=True)
     monkeypatch.setattr("app.shared.database_backup.paths.get_repo_root", lambda: root)
+    monkeypatch.setattr("app.modules.system_admin.application.backup_service.get_restore_uploads_dir", lambda repo_root=None: root / "data" / "restore_uploads")
+    monkeypatch.setattr("app.modules.system_admin.application.backup_service.relative_repo_path", lambda path: str(path.resolve().relative_to(root.resolve())).replace("\\", "/"))
+    monkeypatch.setattr("app.shared.database_backup.paths.get_restore_uploads_dir", lambda repo_root=None: root / "data" / "restore_uploads")
+    monkeypatch.setattr("app.shared.database_backup.paths.get_restore_logs_dir", lambda repo_root=None: root / "data" / "restore_logs")
     monkeypatch.setattr(
         "app.modules.system_admin.application.backup_job_runner.pg_dump_custom",
         _fake_pg_dump,
@@ -107,7 +113,7 @@ def test_create_list_and_get_backup(client, auth_headers, backups_root):
     assert detail.json()["status"] == "completed"
     assert detail.json()["backup_format"] == "postgresql_dump"
     assert detail.json()["notes"] == "Sprint 09.2.2 test backup"
-    assert detail.json()["file_size"] == len(b"FAIRCRM_TEST_BACKUP")
+    assert detail.json()["file_size"] == len(b"PGDMP" + b"\x00" * 20 + b"FAIRCRM_TEST_BACKUP")
 
     listing = client.get("/api/v1/admin/backups", headers=auth_headers)
     assert listing.status_code == 200
@@ -164,20 +170,164 @@ def test_download_backup_increments_count(client, auth_headers, backups_root):
 
     download = client.get(f"/api/v1/admin/backups/{backup_id}/download", headers=auth_headers)
     assert download.status_code == 200
-    assert download.content == b"FAIRCRM_TEST_BACKUP"
+    assert download.content.startswith(b"PGDMP")
     assert download.headers.get("content-disposition", "").find(file_name) >= 0
 
     detail = client.get(f"/api/v1/admin/backups/{backup_id}", headers=auth_headers)
     assert detail.json()["download_count"] == 1
 
 
-def test_restore_endpoint_disabled(client, auth_headers, backups_root):
+def test_restore_completed_backup(client, auth_headers, backups_root, monkeypatch):
+    from app.shared.database_backup.engine import BackupVerificationResult
+
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+
     create = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
     backup_id = create.json()["id"]
 
     restore = client.post(f"/api/v1/admin/backups/{backup_id}/restore", headers=auth_headers)
-    assert restore.status_code == 501
-    assert restore.json()["enabled"] is False
+    assert restore.status_code == 202
+    body = restore.json()
+    assert body["status"] == "manual_restore_required"
+    assert body["backup_id"] == backup_id
+    assert body["uploaded"] is False
+    assert body["source_type"] == "existing_backup"
+
+    jobs = client.get("/api/v1/admin/backups/restore-jobs", headers=auth_headers)
+    assert jobs.status_code == 200
+    assert jobs.json()["pagination"]["totalItems"] >= 1
+    assert any(item["id"] == body["id"] for item in jobs.json()["items"])
+
+    detail = client.get(f"/api/v1/admin/backups/restore-jobs/{body['id']}", headers=auth_headers)
+    assert detail.status_code == 200
+    assert detail.json()["status"] == "manual_restore_required"
+    assert detail.json()["source_file_name"]
+
+
+def test_restore_rejects_non_dump_format(client, auth_headers, backups_root):
+    create = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={"backup_format": "postgresql_sql"},
+    )
+    backup_id = create.json()["id"]
+
+    restore = client.post(f"/api/v1/admin/backups/{backup_id}/restore", headers=auth_headers)
+    assert restore.status_code == 400
+    assert "dump" in restore.json()["detail"].lower()
+
+
+def test_restore_from_upload_accepts_custom_dump(client, auth_headers, backups_root, monkeypatch):
+    from app.shared.database_backup.engine import BackupVerificationResult
+
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+
+    payload = b"PGDMP" + b"\x00" * 20 + b"uploaded"
+    files = {"file": ("restore.dump", payload, "application/octet-stream")}
+    restore = client.post(
+        "/api/v1/admin/backups/restore/upload",
+        headers=auth_headers,
+        files=files,
+        data={"notes": "manual upload"},
+    )
+    assert restore.status_code == 202, restore.text
+    body = restore.json()
+    assert body["status"] == "manual_restore_required"
+    assert body["uploaded"] is True
+    assert body["source_file_name"].endswith(".dump")
+    assert body["source_type"] == "uploaded_file"
+    assert body["checksum_sha256"]
+
+
+def test_restore_from_upload_rejects_non_dump(client, auth_headers, backups_root):
+    files = {"file": ("restore.sql", b"SELECT 1;", "application/sql")}
+    restore = client.post(
+        "/api/v1/admin/backups/restore/upload",
+        headers=auth_headers,
+        files=files,
+    )
+    assert restore.status_code == 400
+
+
+def test_delete_backup(client, auth_headers, backups_root):
+    create = client.post("/api/v1/admin/backups", headers=auth_headers, json={"notes": "to delete"})
+    assert create.status_code == 202
+    backup_id = create.json()["id"]
+    file_name = create.json()["file_name"]
+    assert (backups_root / "backups" / file_name).exists()
+
+    delete = client.delete(f"/api/v1/admin/backups/{backup_id}", headers=auth_headers)
+    assert delete.status_code == 200
+    assert delete.json()["id"] == backup_id
+    assert delete.json()["file_name"] == file_name
+    assert not (backups_root / "backups" / file_name).exists()
+
+    detail = client.get(f"/api/v1/admin/backups/{backup_id}", headers=auth_headers)
+    assert detail.status_code == 404
+
+
+def test_restore_job_detail_not_found(client, auth_headers, backups_root):
+    missing = client.get(
+        "/api/v1/admin/backups/restore-jobs/00000000-0000-4000-8000-000000000099",
+        headers=auth_headers,
+    )
+    assert missing.status_code == 404
+
+
+def test_restore_job_maintenance_runner_completes_job(client, auth_headers, backups_root, monkeypatch, db_session):
+    from uuid import UUID
+
+    from app.shared.database_backup.engine import BackupVerificationResult
+    from app.modules.system_admin.application.restore_job_service import (
+        RestoreJobMaintenanceCommand,
+        RestoreJobMaintenanceRunner,
+    )
+
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.pg_restore_custom",
+        lambda **kwargs: None,
+    )
+    monkeypatch.setattr("app.modules.system_admin.application.restore_job_service.get_repo_root", lambda: backups_root)
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.subprocess.run",
+        lambda *args, **kwargs: type("Proc", (), {"returncode": 0, "stdout": "ok", "stderr": ""})(),
+    )
+
+    create = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
+    backup_id = create.json()["id"]
+    restore = client.post(f"/api/v1/admin/backups/{backup_id}/restore", headers=auth_headers)
+    job_id = UUID(restore.json()["id"])
+
+    runner = RestoreJobMaintenanceRunner(session_factory=lambda: db_session)
+    exit_code = runner.run(
+        RestoreJobMaintenanceCommand(
+            job_id=job_id,
+            target_database_url="postgresql://postgres:postgres@localhost:5432/fair_crm",
+            allow_restore=True,
+        )
+    )
+    assert exit_code == 0
+
+    detail = client.get(f"/api/v1/admin/backups/restore-jobs/{str(job_id)}", headers=auth_headers)
+    assert detail.status_code == 200
+    payload = detail.json()
+    assert payload["status"] == "completed"
+    assert payload["restore_log_path"]
+    assert payload["completed_at"]
 
 
 def test_backup_forbidden_without_permission(client, auth_headers, backups_root):

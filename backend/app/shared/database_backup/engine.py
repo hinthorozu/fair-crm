@@ -270,6 +270,14 @@ def pg_dump_custom(
     )
 
 
+def is_custom_pg_dump(dump_path: Path) -> bool:
+    if not dump_path.exists():
+        return False
+    with dump_path.open("rb") as handle:
+        header = handle.read(5)
+    return header == b"PGDMP"
+
+
 def verify_backup_dump(*, database_url: str, dump_path: Path) -> BackupVerificationResult:
     conn = parse_database_url(database_url)
     if not dump_path.exists():

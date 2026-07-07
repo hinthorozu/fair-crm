@@ -37,6 +37,14 @@ scripts/dev/logs/
 # Local PostgreSQL backups (dev utility)
 backups/
 
+# Restore maintenance runtime artifacts (do not commit)
+data/restore_uploads/
+data/restore_logs/
+
+# Local build verification artifacts
+build-check.txt
+build-output.txt
+
 # Backend diagnostic output (do not commit)
 backend/migration_verify_counts.txt
 backend/data/scraper-handoff/

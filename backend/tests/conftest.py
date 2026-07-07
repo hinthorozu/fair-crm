@@ -65,6 +65,7 @@ from app.modules.imports.infrastructure.persistence.models import ImportBatchMod
 from app.modules.system_admin.infrastructure.persistence.models import (  # noqa: F401
     DuplicateGroupMergeAuditLogModel,
     SystemBackupModel,
+    SystemBackupRestoreJobModel,
     SystemDataOperationDatasetRowModel,
     SystemDataOperationRunModel,
 )

@@ -89,6 +89,30 @@ class SystemBackupModel(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class SystemBackupRestoreJobModel(Base):
+    __tablename__ = "system_backup_restore_jobs"
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    organization_id: Mapped[UUID] = mapped_column(Uuid, nullable=False, index=True)
+    source_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    backup_id: Mapped[UUID | None] = mapped_column(Uuid, nullable=True, index=True)
+    uploaded_file_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_file_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    checksum_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    requested_by_user_id: Mapped[UUID] = mapped_column(Uuid, nullable=False)
+    requested_by_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    restore_log_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class DuplicateGroupMergeAuditLogModel(Base):
     __tablename__ = "system_duplicate_group_merge_audit_logs"
 

@@ -3,9 +3,13 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID, uuid4
 
-from app.modules.system_admin.domain.value_objects import SystemBackupStage, SystemBackupStatus
+from app.modules.system_admin.domain.value_objects import (
+    RestoreJobSourceType,
+    RestoreJobStatus,
+    SystemBackupStage,
+    SystemBackupStatus,
+)
 from app.shared.database_backup.formats import BackupFormat
-
 
 @dataclass
 class SystemBackup:
@@ -99,3 +103,82 @@ class SystemBackup:
     def increment_download(self, *, now: datetime) -> None:
         self.download_count += 1
         self.updated_at = now
+
+
+@dataclass
+class SystemBackupRestoreJob:
+    id: UUID
+    organization_id: UUID
+    source_type: RestoreJobSourceType
+    backup_id: UUID | None
+    uploaded_file_path: str | None
+    source_file_name: str
+    checksum_sha256: str | None
+    status: RestoreJobStatus
+    notes: str | None
+    requested_by_user_id: UUID
+    requested_by_email: str | None
+    requested_at: datetime
+    started_at: datetime | None
+    completed_at: datetime | None
+    failed_at: datetime | None
+    error_message: str | None
+    restore_log_path: str | None
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        organization_id: UUID,
+        source_type: RestoreJobSourceType,
+        backup_id: UUID | None,
+        uploaded_file_path: str | None,
+        source_file_name: str,
+        checksum_sha256: str | None,
+        notes: str | None,
+        requested_by_user_id: UUID,
+        requested_by_email: str | None,
+        now: datetime,
+    ) -> "SystemBackupRestoreJob":
+        return cls(
+            id=uuid4(),
+            organization_id=organization_id,
+            source_type=source_type,
+            backup_id=backup_id,
+            uploaded_file_path=uploaded_file_path,
+            source_file_name=source_file_name,
+            checksum_sha256=checksum_sha256,
+            status=RestoreJobStatus.MANUAL_RESTORE_REQUIRED,
+            notes=notes,
+            requested_by_user_id=requested_by_user_id,
+            requested_by_email=requested_by_email,
+            requested_at=now,
+            started_at=None,
+            completed_at=None,
+            failed_at=None,
+            error_message=None,
+            restore_log_path=None,
+            created_at=now,
+            updated_at=now,
+        )
+
+    def mark_running(self, *, now: datetime, restore_log_path: str | None = None) -> None:
+        self.status = RestoreJobStatus.RUNNING
+        self.started_at = now
+        self.updated_at = now
+        if restore_log_path is not None:
+            self.restore_log_path = restore_log_path
+
+    def mark_completed(self, *, now: datetime) -> None:
+        self.status = RestoreJobStatus.COMPLETED
+        self.completed_at = now
+        self.updated_at = now
+        self.error_message = None
+
+    def mark_failed(self, *, error_message: str, now: datetime) -> None:
+        self.status = RestoreJobStatus.FAILED
+        self.failed_at = now
+        self.updated_at = now
+        self.error_message = error_message

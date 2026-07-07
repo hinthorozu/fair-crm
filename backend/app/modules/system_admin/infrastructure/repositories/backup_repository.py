@@ -154,3 +154,15 @@ class SqlAlchemySystemBackupRepository:
             .all()
         )
         return [_to_entity(model) for model in models], total
+
+    def delete(self, organization_id: UUID, backup_id: UUID) -> bool:
+        deleted = (
+            self._session.query(SystemBackupModel)
+            .filter(
+                SystemBackupModel.organization_id == organization_id,
+                SystemBackupModel.id == backup_id,
+            )
+            .delete()
+        )
+        self._session.flush()
+        return deleted > 0

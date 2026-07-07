@@ -1,9 +1,14 @@
 import React from "react";
 import {
   createSystemBackup,
+  deleteSystemBackup,
   downloadSystemBackup,
   getSystemBackup,
+  getRestoreJob,
   listSystemBackupsTable,
+  listRestoreJobsTable,
+  restoreSystemBackup,
+  restoreSystemBackupFromUpload,
   ApiError,
 } from "../api/systemAdmin";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -13,7 +18,7 @@ import { Modal } from "../components/ui/Modal";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { adminLabels } from "../labels/adminLabels";
-import type { BackupFormat, SystemBackup } from "../types/systemBackup";
+import type { BackupFormat, SystemBackup, SystemBackupRestoreJobResponse } from "../types/systemBackup";
 import type { BadgeVariant } from "../components/ui/Badge";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 
@@ -60,11 +65,116 @@ function statusBadgeVariant(status: SystemBackup["status"]): BadgeVariant {
   return "danger";
 }
 
+function restoreJobStatusLabel(status: SystemBackupRestoreJobResponse["status"]): string {
+  if (status === "manual_restore_required") return adminLabels.restoreJobStatusManual;
+  if (status === "running") return adminLabels.restoreJobStatusRunning;
+  if (status === "completed") return adminLabels.restoreJobStatusCompleted;
+  return adminLabels.restoreJobStatusFailed;
+}
+
+function restoreJobStatusBadgeVariant(status: SystemBackupRestoreJobResponse["status"]): BadgeVariant {
+  if (status === "manual_restore_required") return "warning";
+  if (status === "running") return "info";
+  if (status === "completed") return "success";
+  return "danger";
+}
+
+function restoreJobSourceLabel(sourceType: SystemBackupRestoreJobResponse["source_type"]): string {
+  return sourceType === "existing_backup"
+    ? adminLabels.restoreJobSourceExisting
+    : adminLabels.restoreJobSourceUpload;
+}
+
+function restoreJobFileLabel(job: SystemBackupRestoreJobResponse): string {
+  return job.backup_file_name ?? job.source_file_name;
+}
+
+function buildRestoreJobColumns(handlers: {
+  onDetails: (job: SystemBackupRestoreJobResponse) => void;
+}): UniversalDataTableColumn<SystemBackupRestoreJobResponse>[] {
+  return [
+    {
+      key: "status",
+      title: adminLabels.restoreJobColStatus,
+      sortable: true,
+      className: "col-status",
+      render: (job) => (
+        <Badge variant={restoreJobStatusBadgeVariant(job.status)}>{restoreJobStatusLabel(job.status)}</Badge>
+      ),
+    },
+    {
+      key: "source_type",
+      title: adminLabels.restoreJobColSource,
+      sortable: true,
+      className: "col-format",
+      render: (job) => restoreJobSourceLabel(job.source_type),
+    },
+    {
+      key: "source_file_name",
+      title: adminLabels.restoreJobColFile,
+      sortable: true,
+      className: "col-backup-name",
+      render: (job) => (
+        <span className="backup-file-name" title={restoreJobFileLabel(job)}>
+          {restoreJobFileLabel(job)}
+        </span>
+      ),
+    },
+    {
+      key: "requested_at",
+      title: adminLabels.restoreJobColRequestedAt,
+      sortable: true,
+      className: "col-datetime",
+      render: (job) => new Date(job.requested_at).toLocaleString("tr-TR"),
+    },
+    {
+      key: "requested_by_email",
+      title: adminLabels.restoreJobColRequestedBy,
+      sortable: true,
+      className: "col-created-by",
+      render: (job) => job.requested_by_email ?? job.requested_by_user_id.slice(0, 8),
+    },
+    {
+      key: "notes",
+      title: adminLabels.restoreJobColNotes,
+      sortable: true,
+      className: "col-notes",
+      render: (job) => job.notes ?? "—",
+    },
+    {
+      key: "actions",
+      title: adminLabels.colActions,
+      sortable: false,
+      className: "col-actions",
+      render: (job) => (
+        <div className="table-actions backups-table-actions">
+          <button type="button" className="btn link" onClick={() => void handlers.onDetails(job)}>
+            {adminLabels.actionDetails}
+          </button>
+        </div>
+      ),
+    },
+  ];
+}
+
 function formatLabel(format: BackupFormat): string {
   if (format === "postgresql_dump") return adminLabels.formatPostgresqlDumpShort;
   if (format === "postgresql_sql") return adminLabels.formatPostgresqlSqlShort;
   return adminLabels.formatUniversalPackageShort;
 }
+
+function canRestoreBackup(backup: SystemBackup): boolean {
+  return backup.status === "completed" && backup.backup_format === "postgresql_dump";
+}
+
+function restoreDisabledTitle(backup: SystemBackup): string | undefined {
+  if (backup.status !== "completed") return adminLabels.restoreDisabledHint;
+  if (backup.backup_format !== "postgresql_dump") return adminLabels.restoreNotDumpHint;
+  return undefined;
+}
+
+const RESTORE_CONFIRM_TEXT = "RESTORE";
+const DELETE_CONFIRM_TEXT = "DELETE";
 
 function buildBackupColumns(handlers: {
   onDownload: (backup: SystemBackup) => void;
@@ -259,6 +369,224 @@ function CreateBackupModalContent({
   );
 }
 
+interface RestoreBackupConfirmModalProps {
+  backup: SystemBackup;
+  restoring: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
+function RestoreBackupConfirmModal({
+  backup,
+  restoring,
+  error,
+  onCancel,
+  onConfirm,
+}: RestoreBackupConfirmModalProps) {
+  const [confirmText, setConfirmText] = React.useState("");
+  const canConfirm = confirmText === RESTORE_CONFIRM_TEXT;
+
+  return (
+    <Modal title={adminLabels.restoreDatabaseTitle} onClose={onCancel}>
+      <div className="backup-restore-confirm">
+        <p className="text-danger">{adminLabels.restoreWarning}</p>
+        <dl className="detail-list backup-restore-summary">
+          <dt>{adminLabels.colName}</dt>
+          <dd>{backup.file_name}</dd>
+          <dt>{adminLabels.colCreatedAt}</dt>
+          <dd>{new Date(backup.started_at).toLocaleString("tr-TR")}</dd>
+          <dt>{adminLabels.colSize}</dt>
+          <dd>{formatBytes(backup.file_size)}</dd>
+          <dt>{adminLabels.detailChecksum}</dt>
+          <dd className="mono">{backup.checksum ?? "—"}</dd>
+          <dt>{adminLabels.detailFormat}</dt>
+          <dd>{formatLabel(backup.backup_format)}</dd>
+        </dl>
+        <p className="text-muted backup-restore-manual-hint">{adminLabels.restoreJobManualHint}</p>
+        <label className="form-field">
+          <span>{adminLabels.restoreConfirmLabel}</span>
+          <input
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder={adminLabels.restoreConfirmPlaceholder}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </label>
+        {error && <p className="form-error">{error}</p>}
+        <div className="modal-actions">
+          <button type="button" className="btn secondary" onClick={onCancel} disabled={restoring}>
+            {adminLabels.cancel}
+          </button>
+          <button
+            type="button"
+            className="btn danger"
+            disabled={restoring || !canConfirm}
+            onClick={onConfirm}
+          >
+            {restoring ? "…" : adminLabels.restoreDatabaseButton}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+interface DeleteBackupConfirmModalProps {
+  backup: SystemBackup;
+  deleting: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
+function DeleteBackupConfirmModal({
+  backup,
+  deleting,
+  error,
+  onCancel,
+  onConfirm,
+}: DeleteBackupConfirmModalProps) {
+  const [confirmText, setConfirmText] = React.useState("");
+  const canConfirm = confirmText === DELETE_CONFIRM_TEXT;
+
+  return (
+    <Modal title={adminLabels.deleteBackupTitle} onClose={onCancel}>
+      <div className="backup-delete-confirm">
+        <p className="text-danger">{adminLabels.deleteBackupWarning}</p>
+        <p>
+          <strong>{adminLabels.colName}:</strong> {backup.file_name}
+        </p>
+        <label className="form-field">
+          <span>{adminLabels.deleteConfirmLabel}</span>
+          <input
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder={adminLabels.deleteConfirmPlaceholder}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </label>
+        {error && <p className="form-error">{error}</p>}
+        <div className="modal-actions">
+          <button type="button" className="btn secondary" onClick={onCancel} disabled={deleting}>
+            {adminLabels.cancel}
+          </button>
+          <button
+            type="button"
+            className="btn danger"
+            disabled={deleting || !canConfirm}
+            onClick={onConfirm}
+          >
+            {deleting ? "…" : adminLabels.actionDelete}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+interface RestoreFromFileModalProps {
+  notes: string;
+  selectedFile: File | null;
+  acknowledge: boolean;
+  confirmText: string;
+  restoring: boolean;
+  error: string | null;
+  onNotesChange: (value: string) => void;
+  onFileChange: (file: File | null) => void;
+  onAcknowledgeChange: (value: boolean) => void;
+  onConfirmTextChange: (value: string) => void;
+  onCancel: () => void;
+  onSubmit: () => void;
+}
+
+function RestoreFromFileModal({
+  notes,
+  selectedFile,
+  acknowledge,
+  confirmText,
+  restoring,
+  error,
+  onNotesChange,
+  onFileChange,
+  onAcknowledgeChange,
+  onConfirmTextChange,
+  onCancel,
+  onSubmit,
+}: RestoreFromFileModalProps) {
+  const canSubmit =
+    selectedFile != null &&
+    selectedFile.size > 0 &&
+    selectedFile.name.toLowerCase().endsWith(".dump") &&
+    acknowledge &&
+    confirmText === RESTORE_CONFIRM_TEXT;
+
+  return (
+    <Modal title={adminLabels.restoreFromFileTitle} onClose={onCancel}>
+      <div className="backup-restore-upload">
+        <p className="text-danger">{adminLabels.restoreWarning}</p>
+        <label className="form-field">
+          <span>{adminLabels.restoreUploadLabel}</span>
+          <input
+            type="file"
+            accept=".dump"
+            onChange={(e) => onFileChange(e.target.files?.[0] ?? null)}
+          />
+        </label>
+        <p className="text-muted">{adminLabels.restoreUploadHint}</p>
+        {selectedFile && (
+          <p>
+            <strong>{adminLabels.restoreFileSizeLabel}:</strong> {formatBytes(selectedFile.size)}
+          </p>
+        )}
+        <label className="form-field">
+          <span>{adminLabels.notesLabel}</span>
+          <textarea
+            rows={3}
+            value={notes}
+            onChange={(e) => onNotesChange(e.target.value)}
+            placeholder={adminLabels.notesPlaceholder}
+            maxLength={2000}
+          />
+        </label>
+        <label className="backup-restore-acknowledge">
+          <input
+            type="checkbox"
+            checked={acknowledge}
+            onChange={(e) => onAcknowledgeChange(e.target.checked)}
+          />
+          <span>{adminLabels.restoreAcknowledge}</span>
+        </label>
+        <label className="form-field">
+          <span>{adminLabels.restoreConfirmLabel}</span>
+          <input
+            type="text"
+            value={confirmText}
+            onChange={(e) => onConfirmTextChange(e.target.value)}
+            placeholder={adminLabels.restoreConfirmPlaceholder}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </label>
+        <p className="text-muted backup-restore-manual-hint">{adminLabels.restoreJobManualHint}</p>
+        {error && <p className="form-error">{error}</p>}
+        <div className="modal-actions">
+          <button type="button" className="btn secondary" onClick={onCancel} disabled={restoring}>
+            {adminLabels.cancel}
+          </button>
+          <button type="button" className="btn danger" disabled={restoring || !canSubmit} onClick={onSubmit}>
+            {restoring ? "…" : adminLabels.restoreFromFileButton}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 export function DatabaseBackupsPage() {
   const table = useServerDataTable<SystemBackup>({
     fetchFn: listSystemBackupsTable,
@@ -268,6 +596,13 @@ export function DatabaseBackupsPage() {
     urlPath: "/admin/system/backups",
   });
 
+  const restoreJobsTable = useServerDataTable<SystemBackupRestoreJobResponse>({
+    fetchFn: listRestoreJobsTable,
+    defaultSort: { field: "requested_at", direction: "desc" },
+    pageSize: 20,
+    urlSync: false,
+  });
+
   const [notice, setNotice] = React.useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = React.useState(false);
   const [notes, setNotes] = React.useState("");
@@ -275,7 +610,20 @@ export function DatabaseBackupsPage() {
   const [creating, setCreating] = React.useState(false);
   const [createError, setCreateError] = React.useState<string | null>(null);
   const [detailBackup, setDetailBackup] = React.useState<SystemBackup | null>(null);
+  const [restoreTarget, setRestoreTarget] = React.useState<SystemBackup | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<SystemBackup | null>(null);
+  const [showRestoreUploadModal, setShowRestoreUploadModal] = React.useState(false);
+  const [restoreUploadNotes, setRestoreUploadNotes] = React.useState("");
+  const [restoreUploadFile, setRestoreUploadFile] = React.useState<File | null>(null);
+  const [restoreUploadAcknowledge, setRestoreUploadAcknowledge] = React.useState(false);
+  const [restoreUploadConfirmText, setRestoreUploadConfirmText] = React.useState("");
+  const [restoring, setRestoring] = React.useState(false);
+  const [restoreError, setRestoreError] = React.useState<string | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
   const [pollingIds, setPollingIds] = React.useState<Set<string>>(new Set());
+  const [restoreJobPollingIds, setRestoreJobPollingIds] = React.useState<Set<string>>(new Set());
+  const [detailRestoreJob, setDetailRestoreJob] = React.useState<SystemBackupRestoreJobResponse | null>(null);
   const [downloadingId, setDownloadingId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -313,6 +661,43 @@ export function DatabaseBackupsPage() {
     return () => window.clearInterval(timer);
   }, [pollingIds, table.refresh]);
 
+  React.useEffect(() => {
+    const running = new Set(
+      restoreJobsTable.items.filter((item) => item.status === "running").map((item) => item.id),
+    );
+    setRestoreJobPollingIds((prev) => {
+      const next = new Set(prev);
+      for (const id of running) next.add(id);
+      return next;
+    });
+  }, [restoreJobsTable.items]);
+
+  React.useEffect(() => {
+    if (restoreJobPollingIds.size === 0) return;
+    const timer = window.setInterval(() => {
+      void (async () => {
+        let shouldRefresh = false;
+        for (const id of restoreJobPollingIds) {
+          try {
+            const job = await getRestoreJob(id);
+            if (job.status !== "running") {
+              shouldRefresh = true;
+              setRestoreJobPollingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+              });
+            }
+          } catch {
+            /* polling */
+          }
+        }
+        if (shouldRefresh) await restoreJobsTable.refresh();
+      })();
+    }, 1500);
+    return () => window.clearInterval(timer);
+  }, [restoreJobPollingIds, restoreJobsTable.refresh]);
+
   const closeCreateModal = React.useCallback(() => {
     setShowCreateModal(false);
     setBackupFormat("postgresql_dump");
@@ -321,6 +706,76 @@ export function DatabaseBackupsPage() {
   }, []);
 
   const closeDetailModal = React.useCallback(() => setDetailBackup(null), []);
+  const closeRestoreJobDetailModal = React.useCallback(() => setDetailRestoreJob(null), []);
+
+  const closeRestoreConfirm = React.useCallback(() => {
+    setRestoreTarget(null);
+    setRestoreError(null);
+  }, []);
+
+  const closeDeleteConfirm = React.useCallback(() => {
+    setDeleteTarget(null);
+    setDeleteError(null);
+  }, []);
+
+  const closeRestoreUploadModal = React.useCallback(() => {
+    setShowRestoreUploadModal(false);
+    setRestoreUploadNotes("");
+    setRestoreUploadFile(null);
+    setRestoreUploadAcknowledge(false);
+    setRestoreUploadConfirmText("");
+    setRestoreError(null);
+  }, []);
+
+  const handleRestoreBackup = async () => {
+    if (!restoreTarget) return;
+    setRestoring(true);
+    setRestoreError(null);
+    try {
+      await restoreSystemBackup(restoreTarget.id);
+      setRestoreTarget(null);
+      setDetailBackup(null);
+      setNotice(adminLabels.restoreSuccess);
+      await restoreJobsTable.refresh();
+    } catch (err) {
+      setRestoreError(err instanceof ApiError ? err.message : adminLabels.restoreError);
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const handleRestoreFromUpload = async () => {
+    if (!restoreUploadFile) return;
+    setRestoring(true);
+    setRestoreError(null);
+    try {
+      await restoreSystemBackupFromUpload(restoreUploadFile, restoreUploadNotes.trim() || null);
+      closeRestoreUploadModal();
+      setNotice(adminLabels.restoreSuccess);
+      await restoreJobsTable.refresh();
+    } catch (err) {
+      setRestoreError(err instanceof ApiError ? err.message : adminLabels.restoreError);
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const handleDeleteBackup = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteSystemBackup(deleteTarget.id);
+      setDeleteTarget(null);
+      setDetailBackup(null);
+      setNotice(adminLabels.deleteSuccess);
+      await table.refresh();
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.message : adminLabels.deleteError);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleCreateBackup = async () => {
     setCreating(true);
@@ -360,6 +815,14 @@ export function DatabaseBackupsPage() {
     }
   };
 
+  const openRestoreJobDetails = async (job: SystemBackupRestoreJobResponse) => {
+    try {
+      setDetailRestoreJob(await getRestoreJob(job.id));
+    } catch {
+      /* ignore */
+    }
+  };
+
   const columns = React.useMemo(
     () =>
       buildBackupColumns({
@@ -368,6 +831,11 @@ export function DatabaseBackupsPage() {
         downloadingId,
       }),
     [downloadingId],
+  );
+
+  const restoreJobColumns = React.useMemo(
+    () => buildRestoreJobColumns({ onDetails: openRestoreJobDetails }),
+    [],
   );
 
   return (
@@ -381,6 +849,12 @@ export function DatabaseBackupsPage() {
             label: adminLabels.newBackup,
             onClick: () => setShowCreateModal(true),
             variant: "primary",
+          },
+          {
+            id: "restore-from-file",
+            label: adminLabels.restoreFromFile,
+            onClick: () => setShowRestoreUploadModal(true),
+            variant: "secondary",
           },
         ]}
       />
@@ -397,6 +871,24 @@ export function DatabaseBackupsPage() {
           <EmptyState title={adminLabels.backupsEmpty} description={adminLabels.backupsEmptyDescription} />
         }
       />
+
+      <section className="restore-jobs-section">
+        <h2>{adminLabels.restoreJobsTitle}</h2>
+        <p className="text-muted">{adminLabels.restoreJobsSubtitle}</p>
+        <UniversalDataTable
+          table={restoreJobsTable}
+          columns={restoreJobColumns}
+          rowKey={(job) => job.id}
+          skeletonCols={7}
+          className="restore-jobs-table"
+          emptyState={
+            <EmptyState
+              title={adminLabels.restoreJobEmpty}
+              description={adminLabels.restoreJobEmptyDescription}
+            />
+          }
+        />
+      </section>
 
       {showCreateModal && (
         <Modal title={adminLabels.newBackupTitle} onClose={closeCreateModal}>
@@ -457,22 +949,104 @@ export function DatabaseBackupsPage() {
           <div className="backup-detail-actions">
             <button
               type="button"
-              className="btn link disabled-action"
-              disabled
-              title={adminLabels.restoreDisabledHint}
+              className={`btn link${canRestoreBackup(detailBackup) ? "" : " disabled-action"}`}
+              disabled={!canRestoreBackup(detailBackup)}
+              title={restoreDisabledTitle(detailBackup)}
+              onClick={() => setRestoreTarget(detailBackup)}
             >
               {adminLabels.actionRestore}
             </button>
             <button
               type="button"
-              className="btn link disabled-action"
-              disabled
-              title={adminLabels.deleteDisabledHint}
+              className="btn link"
+              onClick={() => setDeleteTarget(detailBackup)}
             >
               {adminLabels.actionDelete}
             </button>
           </div>
         </Modal>
+      )}
+
+      {restoreTarget && (
+        <RestoreBackupConfirmModal
+          backup={restoreTarget}
+          restoring={restoring}
+          error={restoreError}
+          onCancel={closeRestoreConfirm}
+          onConfirm={() => void handleRestoreBackup()}
+        />
+      )}
+
+      {deleteTarget && (
+        <DeleteBackupConfirmModal
+          backup={deleteTarget}
+          deleting={deleting}
+          error={deleteError}
+          onCancel={closeDeleteConfirm}
+          onConfirm={() => void handleDeleteBackup()}
+        />
+      )}
+
+      {detailRestoreJob && (
+        <Modal title={adminLabels.restoreJobDetailsTitle} onClose={closeRestoreJobDetailModal}>
+          <dl className="detail-list">
+            <dt>{adminLabels.restoreJobColStatus}</dt>
+            <dd>
+              <Badge variant={restoreJobStatusBadgeVariant(detailRestoreJob.status)}>
+                {restoreJobStatusLabel(detailRestoreJob.status)}
+              </Badge>
+            </dd>
+            <dt>{adminLabels.restoreJobColSource}</dt>
+            <dd>{restoreJobSourceLabel(detailRestoreJob.source_type)}</dd>
+            <dt>{adminLabels.restoreJobColFile}</dt>
+            <dd>{restoreJobFileLabel(detailRestoreJob)}</dd>
+            <dt>{adminLabels.restoreJobColRequestedAt}</dt>
+            <dd>{new Date(detailRestoreJob.requested_at).toLocaleString("tr-TR")}</dd>
+            <dt>{adminLabels.restoreJobColRequestedBy}</dt>
+            <dd>{detailRestoreJob.requested_by_email ?? detailRestoreJob.requested_by_user_id}</dd>
+            <dt>{adminLabels.restoreJobColNotes}</dt>
+            <dd>{detailRestoreJob.notes ?? "—"}</dd>
+            <dt>{adminLabels.detailChecksum}</dt>
+            <dd className="mono">{detailRestoreJob.checksum_sha256 ?? "—"}</dd>
+            {detailRestoreJob.backup_file_name && (
+              <>
+                <dt>{adminLabels.restoreJobDetailBackupSummary}</dt>
+                <dd>
+                  {detailRestoreJob.backup_file_name}
+                  {detailRestoreJob.backup_format ? ` (${detailRestoreJob.backup_format})` : ""}
+                </dd>
+              </>
+            )}
+            <dt>{adminLabels.restoreJobDetailLogPath}</dt>
+            <dd className="mono">{detailRestoreJob.restore_log_path ?? "—"}</dd>
+            {detailRestoreJob.error_message && (
+              <>
+                <dt>{adminLabels.restoreJobDetailError}</dt>
+                <dd className="form-error">{detailRestoreJob.error_message}</dd>
+              </>
+            )}
+          </dl>
+          {detailRestoreJob.status === "manual_restore_required" && (
+            <p className="text-muted backup-restore-manual-hint">{adminLabels.restoreJobManualHint}</p>
+          )}
+        </Modal>
+      )}
+
+      {showRestoreUploadModal && (
+        <RestoreFromFileModal
+          notes={restoreUploadNotes}
+          selectedFile={restoreUploadFile}
+          acknowledge={restoreUploadAcknowledge}
+          confirmText={restoreUploadConfirmText}
+          restoring={restoring}
+          error={restoreError}
+          onNotesChange={setRestoreUploadNotes}
+          onFileChange={setRestoreUploadFile}
+          onAcknowledgeChange={setRestoreUploadAcknowledge}
+          onConfirmTextChange={setRestoreUploadConfirmText}
+          onCancel={closeRestoreUploadModal}
+          onSubmit={() => void handleRestoreFromUpload()}
+        />
       )}
     </div>
   );

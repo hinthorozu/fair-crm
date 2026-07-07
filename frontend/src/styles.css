@@ -4134,6 +4134,35 @@ textarea.form-control-textarea {
   font-size: 0.75rem;
 }
 
+.restore-jobs-section {
+  margin-top: 2.5rem;
+}
+
+.restore-jobs-section h2 {
+  margin: 0 0 0.25rem;
+}
+
+.backup-restore-summary {
+  margin: 1rem 0;
+}
+
+.backup-restore-manual-hint {
+  font-size: 0.875rem;
+  margin: 0.75rem 0;
+}
+
+.backup-restore-acknowledge {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin: 1rem 0;
+  cursor: pointer;
+}
+
+.backup-restore-acknowledge span {
+  line-height: 1.4;
+}
+
 .detail-list {
   display: grid;
   grid-template-columns: 160px 1fr;
