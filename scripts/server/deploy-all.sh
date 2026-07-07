@@ -3,6 +3,17 @@
 # Application deploy/update for KYROX Core + Fair CRM.
 # Run after bootstrap-server.sh on fresh servers, or alone for updates.
 #
+# Safe deploy contract (backup/restore compatible):
+#   - Git pull + dependency install + frontend build + systemd/nginx reload
+#   - Alembic upgrade head on both databases (required after restore; non-destructive)
+#   - Backend restart via systemd (normal)
+#   - ensure_database only CREATE DATABASE when missing (no drop/truncate/reset)
+#   - Never runs pg_restore, restore jobs, or backup deletion
+#   - Never touches backups/, data/restore_uploads/, or data/restore_logs/
+#   - Never overwrites backend/.env or other .env files (copy-if-missing only)
+#   - Preserves server .env keys such as ALLOW_RESTORE and TARGET_DATABASE_URL
+#   - Does not clear system_backup_restore_jobs or other CRM data tables
+#
 # Usage (on server):
 #   sudo /opt/fair-crm/scripts/server/deploy-all.sh
 #
@@ -44,6 +55,9 @@ PROTECTED_FAIR_CRM_PATHS=(
   "backend/.env"
   "frontend/.env"
   "frontend/.env.production"
+  "backups"
+  "data/restore_uploads"
+  "data/restore_logs"
 )
 PROTECTED_KYROX_CORE_PATHS=(
   "backend/.env"
@@ -115,7 +129,7 @@ run_core_dev_seed() {
     cd "$KYROX_CORE_DIR"
     env DATABASE_URL="$db_url" KYROX_CORE_DATABASE_URL="$db_url" \
       "${KYROX_CORE_DIR}/.venv/bin/python" "$seed_script"
-  )
+  ) || die "Core dev identity seed failed"
   REPORT_CORE_SEED="success (idempotent)"
   print_core_seed_identity_report
 }
@@ -284,7 +298,15 @@ print_final_report() {
   echo "=============================================="
 }
 
+log_deploy_safety_contract() {
+  step "Deploy safety contract (backup/restore compatible)"
+  log "Will run: git pull, pip/npm install, alembic upgrade head, systemd restart"
+  log "Will not: drop/truncate DB, pg_restore, touch backups/ or restore data dirs, overwrite .env"
+}
+
 main() {
+  log_deploy_safety_contract
+
   step "Preflight commands"
   require_linux
   require_cmd git
@@ -324,6 +346,7 @@ main() {
 
   ensure_database "kyrox_core"
   ensure_database "fair_crm"
+  ensure_repo_data_dirs "$FAIR_CRM_DIR"
 
   validate_env_files_required
 
