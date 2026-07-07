@@ -18,6 +18,7 @@ import { DataOperationsPage } from "./pages/DataOperationsPage";
 import { DataOperationRunResultPage } from "./pages/DataOperationRunResultPage";
 import { FollowUpsPage } from "./pages/FollowUpsPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { LoginPage } from "./pages/LoginPage";
 import { TodoDetailPage } from "./pages/TodoDetailPage";
 import { TodosPage } from "./pages/TodosPage";
 import { DataIntegrationLayout } from "./components/dataIntegration/DataIntegrationLayout";
@@ -43,9 +44,11 @@ import { dashboardLabels } from "./labels/dashboardLabels";
 import { resolveRunDetailPath } from "./utils/enrichmentRunRouting";
 import { isCustomerContactEnrichmentAdapter } from "./utils/enrichmentAdapter";
 import { useDocumentTitle } from "./hooks/useDocumentTitle";
+import { useAuth } from "./auth/AuthContext";
 import "./styles.css";
 
 type AppRoute =
+  | "/login"
   | "/dashboard"
   | "/customers"
   | "/fairs"
@@ -197,6 +200,9 @@ function parseRoute(location: string): ParsedRoute {
     }
     return { route: "/todos" };
   }
+  if (pathname === "/login" || pathname === "/login/") {
+    return { route: "/login" };
+  }
   if (pathname === "/dashboard" || pathname === "/") {
     return { route: "/dashboard" };
   }
@@ -261,6 +267,7 @@ function diSection(route: AppRoute): string {
 }
 
 export function App() {
+  const { isAuthenticated, logout } = useAuth();
   const [parsed, setParsed] = React.useState<ParsedRoute>(() =>
     parseRoute(`${window.location.pathname}${window.location.search}`),
   );
@@ -282,7 +289,20 @@ export function App() {
     dataOperationKey: parsed.dataOperationKey,
   });
 
+  React.useLayoutEffect(() => {
+    if (!isAuthenticated && window.location.pathname !== "/login") {
+      window.history.replaceState(null, "", "/login");
+      setParsed({ route: "/login" });
+      return;
+    }
+    if (isAuthenticated && window.location.pathname === "/login") {
+      window.history.replaceState(null, "", "/dashboard");
+      setParsed({ route: "/dashboard" });
+    }
+  }, [isAuthenticated]);
+
   React.useEffect(() => {
+    if (!isAuthenticated) return;
     const path = window.location.pathname;
     if (path === "/") {
       const next = `/dashboard${window.location.search}`;
@@ -438,6 +458,19 @@ export function App() {
     setParsed(parseRoute(subpath));
     setSidebarOpen(false);
   };
+
+  const handleLoginSuccess = React.useCallback(() => {
+    window.history.replaceState(null, "", "/dashboard");
+    setParsed({ route: "/dashboard" });
+    setSidebarOpen(false);
+  }, []);
+
+  const handleLogout = React.useCallback(async () => {
+    await logout();
+    window.history.replaceState(null, "", "/login");
+    setParsed({ route: "/login" });
+    setSidebarOpen(false);
+  }, [logout]);
 
   const isDashboardActive = parsed.route === "/dashboard";
   const isCustomersActive = parsed.route === "/customers" || parsed.route === "/customers/:id";
@@ -712,12 +745,17 @@ export function App() {
     </AdminSystemLayout>
   );
 
+  if (!isAuthenticated) {
+    return <LoginPage onSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <AppLayout
       breadcrumbs={breadcrumbs}
       navItems={navItems}
       sidebarOpen={sidebarOpen}
       onToggleSidebar={() => setSidebarOpen((v) => !v)}
+      onLogout={handleLogout}
     >
       {parsed.route === "/dashboard" && (
         <DashboardPage

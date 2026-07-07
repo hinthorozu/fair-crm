@@ -1,0 +1,18 @@
+export const authLabels = {
+  pageTitle: "Giriş",
+  email: "E-posta",
+  password: "Şifre",
+  submit: "Giriş Yap",
+  submitting: "Giriş yapılıyor…",
+  emailRequired: "E-posta adresi gerekli.",
+  passwordRequired: "Şifre gerekli.",
+  invalidCredentials: "E-posta veya şifre hatalı.",
+  invalidInput: "Geçersiz giriş bilgileri.",
+  loginFailed: "Giriş başarısız. Lütfen tekrar deneyin.",
+  networkError: "Kimlik doğrulama sunucusuna ulaşılamadı. KYROX Core çalışıyor mu?",
+  subtitle: "Devam etmek için hesabınızla giriş yapın.",
+  userMenuLabel: "Kullanıcı menüsü",
+  logout: "Çıkış Yap",
+  loggingOut: "Çıkış yapılıyor…",
+  organization: "Organizasyon",
+};

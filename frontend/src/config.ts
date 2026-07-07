@@ -1,3 +1,5 @@
+import { getAccessToken, getOrganizationId } from "./auth/session";
+
 function envString(value: string | undefined, fallback: string): string {
   const trimmed = value?.trim();
   return trimmed ? trimmed : fallback;
@@ -15,15 +17,26 @@ function resolveAppEnv(): string {
   return envString(import.meta.env.VITE_APP_ENV, import.meta.env.MODE).toLowerCase();
 }
 
-/** Dev bypass is active only when VITE_DEV_BYPASS_ENABLED=true (any build, including production). */
+/** Dev bypass is active on the Vite dev server or when VITE_DEV_BYPASS_ENABLED=true. */
 function resolveDevBypassEnabled(): boolean {
+  if (import.meta.env.DEV) return true;
   return envBool(import.meta.env.VITE_DEV_BYPASS_ENABLED, false);
+}
+
+function resolveCoreBaseUrl(): string {
+  const configured = import.meta.env.VITE_CORE_BASE_URL?.trim();
+  if (configured) return configured;
+  if (import.meta.env.DEV) {
+    return "http://127.0.0.1:5173/kyrox-core";
+  }
+  return "http://127.0.0.1:8000";
 }
 
 export const config = {
   apiBaseUrl: envString(import.meta.env.VITE_API_BASE_URL, "http://127.0.0.1:8001"),
+  coreBaseUrl: resolveCoreBaseUrl(),
   appEnv: resolveAppEnv(),
-  /** True when VITE_DEV_BYPASS_ENABLED=true; production builds are not excluded. */
+  /** True on Vite dev server or when VITE_DEV_BYPASS_ENABLED=true. */
   devBypassEnabled: resolveDevBypassEnabled(),
   devBypassToken: envString(import.meta.env.VITE_DEV_BYPASS_TOKEN, "dev-bypass"),
   organizationId: envString(
@@ -32,13 +45,17 @@ export const config = {
   ),
 };
 
-/** Headers sent on every API request. Dev bypass headers follow VITE_DEV_BYPASS_ENABLED. */
+/** Headers sent on every API request. Session JWT takes priority over dev bypass. */
 export function buildApiHeaders(extra: HeadersInit = {}): HeadersInit {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
 
-  if (config.devBypassEnabled) {
+  const accessToken = getAccessToken();
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+    headers["X-Organization-Id"] = getOrganizationId() ?? config.organizationId;
+  } else if (config.devBypassEnabled) {
     headers.Authorization = `Bearer ${config.devBypassToken}`;
     headers["X-Organization-Id"] = config.organizationId;
   }

@@ -588,6 +588,10 @@ function Start-DevBackend {
     $backendLog = Join-Path $script:DevLogDir "backend-$($script:DevBackendPort).log"
     $backendErr = Join-Path $script:DevLogDir "backend-$($script:DevBackendPort).err.log"
     $backendArgs = @("-m", "uvicorn", "app.main:app", "--reload", "--host", "127.0.0.1", "--port", "$($script:DevBackendPort)")
+    # Avoid inheriting KYROX Core DATABASE_URL into Fair CRM backend process.
+    if (Test-Path Env:DATABASE_URL) {
+        Remove-Item Env:DATABASE_URL
+    }
     $proc = Start-Process -FilePath "python" -ArgumentList $backendArgs -WorkingDirectory $script:DevBackendDir `
         -RedirectStandardOutput $backendLog -RedirectStandardError $backendErr -PassThru -WindowStyle Hidden
     Start-Sleep -Seconds 2

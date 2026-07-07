@@ -1,7 +1,7 @@
 import React from "react";
 import { Breadcrumb, type BreadcrumbItem } from "../ui/Breadcrumb";
 import { labels } from "../../labels";
-import { config } from "../../config";
+import { UserMenu } from "./UserMenu";
 import { usePersistedCollapsed } from "../../hooks/usePersistedCollapsed";
 import { SidebarCollapseButton } from "./SidebarCollapseButton";
 import { withSidebarTooltip, SidebarTooltipTarget } from "./SidebarTooltip";
@@ -20,6 +20,7 @@ interface AppLayoutProps {
   navItems: NavItem[];
   sidebarOpen?: boolean;
   onToggleSidebar?: () => void;
+  onLogout: () => void | Promise<void>;
 }
 
 const MAIN_SIDEBAR_STORAGE_KEY = "fair-crm.sidebar.collapsed";
@@ -30,6 +31,7 @@ export function AppLayout({
   navItems,
   sidebarOpen = false,
   onToggleSidebar,
+  onLogout,
 }: AppLayoutProps) {
   const { collapsed: sidebarCollapsed, toggleCollapsed: toggleSidebarCollapsed } =
     usePersistedCollapsed(MAIN_SIDEBAR_STORAGE_KEY);
@@ -96,7 +98,7 @@ export function AppLayout({
             )}
             {breadcrumbs.length > 0 && <Breadcrumb items={breadcrumbs} />}
           </div>
-          <span className="env-badge">Dev bypass · {config.organizationId.slice(0, 8)}…</span>
+          <UserMenu onLogout={onLogout} />
         </header>
 
         <main className="app-content">{children}</main>

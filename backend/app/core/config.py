@@ -1,19 +1,43 @@
 from functools import lru_cache
+from pathlib import Path
+from typing import Self
 from uuid import UUID
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_BACKEND_ROOT = Path(__file__).resolve().parents[2]
+_ENV_FILE = _BACKEND_ROOT / ".env"
+
+
+def _read_env_file_database_url() -> str | None:
+    if not _ENV_FILE.is_file():
+        return None
+    for line in _ENV_FILE.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        for key in ("FAIR_CRM_DATABASE_URL", "DATABASE_URL"):
+            prefix = f"{key}="
+            if stripped.startswith(prefix):
+                value = stripped[len(prefix) :].strip().strip('"').strip("'")
+                if value:
+                    return value
+    return None
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_ENV_FILE,
         env_file_encoding="utf-8",
         extra="ignore",
         populate_by_name=True,
     )
 
-    database_url: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/fair_crm"
+    database_url: str = Field(
+        default="postgresql+psycopg2://postgres:postgres@localhost:5432/fair_crm",
+        validation_alias=AliasChoices("FAIR_CRM_DATABASE_URL", "DATABASE_URL"),
+    )
     jwt_secret_key: str = "change-me-in-production-use-a-long-random-string"
     smtp_secret_encryption_key: str | None = Field(
         default=None,
@@ -134,6 +158,15 @@ class Settings(BaseSettings):
             "FAIR_CRM_MAIL_SENDING_TIMEOUT_MINUTES",
         ),
     )
+
+    @model_validator(mode="after")
+    def resolve_fair_crm_database_url(self) -> Self:
+        """Prefer backend/.env when shell DATABASE_URL points at KYROX Core."""
+        if "kyrox_core" in self.database_url.lower():
+            file_url = _read_env_file_database_url()
+            if file_url and "fair_crm" in file_url.lower():
+                self.database_url = file_url
+        return self
 
 
 @lru_cache

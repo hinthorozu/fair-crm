@@ -1,4 +1,5 @@
 import { buildApiHeaders, config } from "../config";
+import { getAccessToken, clearSession, notifySessionExpired } from "../auth/session";
 
 export const API_REQUEST_TIMEOUT_MS = 30_000;
 /** Import analyze can process large batches against full CRM — allow longer than default list calls. */
@@ -94,6 +95,10 @@ export async function apiRequest<T>(
   }
 
   if (!response.ok) {
+    if (response.status === 401 && getAccessToken()) {
+      clearSession();
+      notifySessionExpired();
+    }
     let detail = `HTTP ${response.status}`;
     if (typeof data === "object" && data !== null) {
       if ("message" in data && data.message) {

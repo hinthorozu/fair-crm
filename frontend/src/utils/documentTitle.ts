@@ -6,6 +6,7 @@ import { importLabels } from "../labels/importLabels";
 import { scraperLabels } from "../labels/scraperLabels";
 import { followUpLabels } from "../labels/followUpLabels";
 import { dashboardLabels } from "../labels/dashboardLabels";
+import { authLabels } from "../labels/authLabels";
 import { todoLabels } from "../labels/todoLabels";
 
 export const DOCUMENT_TITLE_BRAND = labels.appTitle;
@@ -45,6 +46,8 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
   const operationKey = context.dataOperationKey ?? searchParams.get("operation");
 
   switch (context.route) {
+    case "/login":
+      return authLabels.pageTitle;
     case "/dashboard":
       return dashboardLabels.pageTitle;
     case "/customers":
