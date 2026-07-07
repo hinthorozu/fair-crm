@@ -60,5 +60,46 @@ with `dev@example.com` / `DevPassword123!` and require HTTP 200 + `access_token`
 ## Protected files (never overwritten)
 
 - `docker-compose.yml`, all `.env` files, custom nginx site config
+- `backups/`, `data/restore_uploads/`, `data/restore_logs/` (git pull tolerates local changes; deploy never deletes contents)
 
 See script headers for `SKIP_*` and path override variables.
+
+## Backup / restore coexistence
+
+Restore development and production restore jobs do **not** conflict with the server deploy scripts:
+
+| Script | Role |
+|--------|------|
+| `bootstrap-server.sh` | OS packages, Docker, nginx, Postgres container, env scaffolding — **no** migrations or restore |
+| `deploy-all.sh` | Code update, `alembic upgrade head`, systemd restart — **no** DB reset or restore execution |
+| `scripts/dev/run-restore-job.ps1` | Destructive restore runner (dev); requires `ALLOW_RESTORE=true` and explicit `TARGET_DATABASE_URL` |
+| `scripts/server/run-restore-job.sh` | Same runner on Linux server; **not** called by `deploy-all.sh` |
+
+**After a database restore** (dev or server), always run pending migrations before relying on the API:
+
+```bash
+# deploy-all.sh does this automatically on server:
+python -m alembic upgrade head   # from fair-crm repo root / backend venv
+```
+
+`deploy-all.sh` intentionally:
+
+- Applies **Alembic upgrade head** on Core and Fair CRM (schema catch-up; preserves existing rows including `system_backup_restore_jobs`)
+- Restarts `fair-crm-backend` via systemd
+- **Does not** drop/truncate databases, run `pg_restore`, delete backup files, or overwrite `.env`
+- **Does not** set or clear `ALLOW_RESTORE`, `TARGET_DATABASE_URL`, or other restore guard env vars
+
+Destructive restore remains a separate, explicitly guarded operation:
+
+```bash
+# Dev (Windows)
+$env:ALLOW_RESTORE = "true"
+$env:TARGET_DATABASE_URL = "postgresql+psycopg2://postgres:postgres@localhost:5432/fair_crm"
+.\scripts\dev\run-restore-job.ps1 -RestoreJobId "<job-id>"
+
+# Server (Linux) — manual only; deploy-all.sh never runs this
+export ALLOW_RESTORE=true
+export TARGET_DATABASE_URL='postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/fair_crm'
+sudo -E /opt/fair-crm/scripts/server/run-restore-job.sh <job-id>
+# optional: RESTART_BACKEND=1 sudo -E .../run-restore-job.sh <job-id>
+```

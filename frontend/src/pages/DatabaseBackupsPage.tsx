@@ -17,10 +17,15 @@ import { Badge } from "../components/ui/Badge";
 import { Modal } from "../components/ui/Modal";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { useServerDataTable } from "../hooks/useServerDataTable";
+import { useRestoreJobPolling } from "../hooks/useRestoreJobPolling";
 import { adminLabels } from "../labels/adminLabels";
 import type { BackupFormat, SystemBackup, SystemBackupRestoreJobResponse } from "../types/systemBackup";
 import type { BadgeVariant } from "../components/ui/Badge";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
+import {
+  isTerminalRestoreJobStatus,
+  mapRestoreJobUiStatus,
+} from "../utils/restoreJobStatus";
 
 function formatBytes(bytes: number | null): string {
   if (bytes == null || bytes <= 0) return "—";
@@ -66,16 +71,18 @@ function statusBadgeVariant(status: SystemBackup["status"]): BadgeVariant {
 }
 
 function restoreJobStatusLabel(status: SystemBackupRestoreJobResponse["status"]): string {
-  if (status === "manual_restore_required") return adminLabels.restoreJobStatusManual;
-  if (status === "running") return adminLabels.restoreJobStatusRunning;
-  if (status === "completed") return adminLabels.restoreJobStatusCompleted;
+  const uiStatus = mapRestoreJobUiStatus(status);
+  if (uiStatus === "queued") return adminLabels.restoreJobStatusQueued;
+  if (uiStatus === "running") return adminLabels.restoreJobStatusRunning;
+  if (uiStatus === "succeeded") return adminLabels.restoreJobStatusSucceeded;
   return adminLabels.restoreJobStatusFailed;
 }
 
 function restoreJobStatusBadgeVariant(status: SystemBackupRestoreJobResponse["status"]): BadgeVariant {
-  if (status === "manual_restore_required") return "warning";
-  if (status === "running") return "info";
-  if (status === "completed") return "success";
+  const uiStatus = mapRestoreJobUiStatus(status);
+  if (uiStatus === "queued") return "warning";
+  if (uiStatus === "running") return "info";
+  if (uiStatus === "succeeded") return "success";
   return "danger";
 }
 
@@ -603,7 +610,26 @@ export function DatabaseBackupsPage() {
     urlSync: false,
   });
 
+  const handleRestoreJobTerminal = React.useCallback(
+    (job: SystemBackupRestoreJobResponse) => {
+      void restoreJobsTable.refresh();
+      if (job.status === "completed") {
+        setNotice(adminLabels.restoreJobPollSuccess);
+        setRestorePollError(null);
+      } else if (job.status === "failed") {
+        setNotice(null);
+        setRestorePollError(job.error_message ?? adminLabels.restoreJobPollFailed);
+      }
+    },
+    [restoreJobsTable.refresh],
+  );
+
+  const { trackedJobs, trackRestoreJob, syncRestoreJobsFromList } = useRestoreJobPolling({
+    onTerminal: handleRestoreJobTerminal,
+  });
+
   const [notice, setNotice] = React.useState<string | null>(null);
+  const [restorePollError, setRestorePollError] = React.useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = React.useState(false);
   const [notes, setNotes] = React.useState("");
   const [backupFormat, setBackupFormat] = React.useState<BackupFormat>("postgresql_dump");
@@ -622,9 +648,22 @@ export function DatabaseBackupsPage() {
   const [deleting, setDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<string | null>(null);
   const [pollingIds, setPollingIds] = React.useState<Set<string>>(new Set());
-  const [restoreJobPollingIds, setRestoreJobPollingIds] = React.useState<Set<string>>(new Set());
   const [detailRestoreJob, setDetailRestoreJob] = React.useState<SystemBackupRestoreJobResponse | null>(null);
   const [downloadingId, setDownloadingId] = React.useState<string | null>(null);
+
+  const activeTrackedJobs = React.useMemo(
+    () => [...trackedJobs.values()].filter((job) => !isTerminalRestoreJobStatus(job.status)),
+    [trackedJobs],
+  );
+
+  const visibleDetailRestoreJob = React.useMemo(() => {
+    if (!detailRestoreJob) return null;
+    return trackedJobs.get(detailRestoreJob.id) ?? detailRestoreJob;
+  }, [detailRestoreJob, trackedJobs]);
+
+  React.useEffect(() => {
+    syncRestoreJobsFromList(restoreJobsTable.items);
+  }, [restoreJobsTable.items, syncRestoreJobsFromList]);
 
   React.useEffect(() => {
     const running = new Set(table.items.filter((item) => item.status === "running").map((item) => item.id));
@@ -661,43 +700,6 @@ export function DatabaseBackupsPage() {
     return () => window.clearInterval(timer);
   }, [pollingIds, table.refresh]);
 
-  React.useEffect(() => {
-    const running = new Set(
-      restoreJobsTable.items.filter((item) => item.status === "running").map((item) => item.id),
-    );
-    setRestoreJobPollingIds((prev) => {
-      const next = new Set(prev);
-      for (const id of running) next.add(id);
-      return next;
-    });
-  }, [restoreJobsTable.items]);
-
-  React.useEffect(() => {
-    if (restoreJobPollingIds.size === 0) return;
-    const timer = window.setInterval(() => {
-      void (async () => {
-        let shouldRefresh = false;
-        for (const id of restoreJobPollingIds) {
-          try {
-            const job = await getRestoreJob(id);
-            if (job.status !== "running") {
-              shouldRefresh = true;
-              setRestoreJobPollingIds((prev) => {
-                const next = new Set(prev);
-                next.delete(id);
-                return next;
-              });
-            }
-          } catch {
-            /* polling */
-          }
-        }
-        if (shouldRefresh) await restoreJobsTable.refresh();
-      })();
-    }, 1500);
-    return () => window.clearInterval(timer);
-  }, [restoreJobPollingIds, restoreJobsTable.refresh]);
-
   const closeCreateModal = React.useCallback(() => {
     setShowCreateModal(false);
     setBackupFormat("postgresql_dump");
@@ -731,8 +733,10 @@ export function DatabaseBackupsPage() {
     if (!restoreTarget) return;
     setRestoring(true);
     setRestoreError(null);
+    setRestorePollError(null);
     try {
-      await restoreSystemBackup(restoreTarget.id);
+      const job = await restoreSystemBackup(restoreTarget.id);
+      trackRestoreJob(job);
       setRestoreTarget(null);
       setDetailBackup(null);
       setNotice(adminLabels.restoreSuccess);
@@ -748,8 +752,10 @@ export function DatabaseBackupsPage() {
     if (!restoreUploadFile) return;
     setRestoring(true);
     setRestoreError(null);
+    setRestorePollError(null);
     try {
-      await restoreSystemBackupFromUpload(restoreUploadFile, restoreUploadNotes.trim() || null);
+      const job = await restoreSystemBackupFromUpload(restoreUploadFile, restoreUploadNotes.trim() || null);
+      trackRestoreJob(job);
       closeRestoreUploadModal();
       setNotice(adminLabels.restoreSuccess);
       await restoreJobsTable.refresh();
@@ -817,7 +823,11 @@ export function DatabaseBackupsPage() {
 
   const openRestoreJobDetails = async (job: SystemBackupRestoreJobResponse) => {
     try {
-      setDetailRestoreJob(await getRestoreJob(job.id));
+      const fresh = await getRestoreJob(job.id);
+      setDetailRestoreJob(fresh);
+      if (!isTerminalRestoreJobStatus(fresh.status)) {
+        trackRestoreJob(fresh);
+      }
     } catch {
       /* ignore */
     }
@@ -860,6 +870,23 @@ export function DatabaseBackupsPage() {
       />
 
       {notice && <p className="text-muted">{notice}</p>}
+      {restorePollError && <p className="form-error">{restorePollError}</p>}
+
+      {activeTrackedJobs.length > 0 && (
+        <div className="restore-job-polling-banner" aria-live="polite">
+          <p className="text-muted">{adminLabels.restoreJobTracking}</p>
+          <ul className="restore-job-polling-list">
+            {activeTrackedJobs.map((job) => (
+              <li key={job.id}>
+                <Badge variant={restoreJobStatusBadgeVariant(job.status)}>
+                  {restoreJobStatusLabel(job.status)}
+                </Badge>
+                <span className="backup-file-name">{restoreJobFileLabel(job)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <UniversalDataTable
         table={table}
@@ -987,46 +1014,48 @@ export function DatabaseBackupsPage() {
         />
       )}
 
-      {detailRestoreJob && (
+      {visibleDetailRestoreJob && (
         <Modal title={adminLabels.restoreJobDetailsTitle} onClose={closeRestoreJobDetailModal}>
           <dl className="detail-list">
             <dt>{adminLabels.restoreJobColStatus}</dt>
             <dd>
-              <Badge variant={restoreJobStatusBadgeVariant(detailRestoreJob.status)}>
-                {restoreJobStatusLabel(detailRestoreJob.status)}
+              <Badge variant={restoreJobStatusBadgeVariant(visibleDetailRestoreJob.status)}>
+                {restoreJobStatusLabel(visibleDetailRestoreJob.status)}
               </Badge>
             </dd>
             <dt>{adminLabels.restoreJobColSource}</dt>
-            <dd>{restoreJobSourceLabel(detailRestoreJob.source_type)}</dd>
+            <dd>{restoreJobSourceLabel(visibleDetailRestoreJob.source_type)}</dd>
             <dt>{adminLabels.restoreJobColFile}</dt>
-            <dd>{restoreJobFileLabel(detailRestoreJob)}</dd>
+            <dd>{restoreJobFileLabel(visibleDetailRestoreJob)}</dd>
             <dt>{adminLabels.restoreJobColRequestedAt}</dt>
-            <dd>{new Date(detailRestoreJob.requested_at).toLocaleString("tr-TR")}</dd>
+            <dd>{new Date(visibleDetailRestoreJob.requested_at).toLocaleString("tr-TR")}</dd>
             <dt>{adminLabels.restoreJobColRequestedBy}</dt>
-            <dd>{detailRestoreJob.requested_by_email ?? detailRestoreJob.requested_by_user_id}</dd>
+            <dd>{visibleDetailRestoreJob.requested_by_email ?? visibleDetailRestoreJob.requested_by_user_id}</dd>
             <dt>{adminLabels.restoreJobColNotes}</dt>
-            <dd>{detailRestoreJob.notes ?? "—"}</dd>
+            <dd className="restore-job-notes-preview">
+              {visibleDetailRestoreJob.notes?.trim() ? visibleDetailRestoreJob.notes : "—"}
+            </dd>
             <dt>{adminLabels.detailChecksum}</dt>
-            <dd className="mono">{detailRestoreJob.checksum_sha256 ?? "—"}</dd>
-            {detailRestoreJob.backup_file_name && (
+            <dd className="mono">{visibleDetailRestoreJob.checksum_sha256 ?? "—"}</dd>
+            {visibleDetailRestoreJob.backup_file_name && (
               <>
                 <dt>{adminLabels.restoreJobDetailBackupSummary}</dt>
                 <dd>
-                  {detailRestoreJob.backup_file_name}
-                  {detailRestoreJob.backup_format ? ` (${detailRestoreJob.backup_format})` : ""}
+                  {visibleDetailRestoreJob.backup_file_name}
+                  {visibleDetailRestoreJob.backup_format ? ` (${visibleDetailRestoreJob.backup_format})` : ""}
                 </dd>
               </>
             )}
             <dt>{adminLabels.restoreJobDetailLogPath}</dt>
-            <dd className="mono">{detailRestoreJob.restore_log_path ?? "—"}</dd>
-            {detailRestoreJob.error_message && (
+            <dd className="mono">{visibleDetailRestoreJob.restore_log_path ?? "—"}</dd>
+            {visibleDetailRestoreJob.error_message && (
               <>
                 <dt>{adminLabels.restoreJobDetailError}</dt>
-                <dd className="form-error">{detailRestoreJob.error_message}</dd>
+                <dd className="form-error">{visibleDetailRestoreJob.error_message}</dd>
               </>
             )}
           </dl>
-          {detailRestoreJob.status === "manual_restore_required" && (
+          {mapRestoreJobUiStatus(visibleDetailRestoreJob.status) === "queued" && (
             <p className="text-muted backup-restore-manual-hint">{adminLabels.restoreJobManualHint}</p>
           )}
         </Modal>

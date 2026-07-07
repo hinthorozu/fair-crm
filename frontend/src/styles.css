@@ -4194,6 +4194,16 @@ textarea.form-control-textarea {
   font-size: 0.75rem;
 }
 
+.restore-job-notes-preview {
+  margin: 0;
+  max-height: 14rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
 .restore-jobs-section {
   margin-top: 2.5rem;
 }
@@ -4209,6 +4219,28 @@ textarea.form-control-textarea {
 .backup-restore-manual-hint {
   font-size: 0.875rem;
   margin: 0.75rem 0;
+}
+
+.restore-job-polling-banner {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 0.5rem;
+  background: var(--surface-muted, #f8f9fa);
+}
+
+.restore-job-polling-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.restore-job-polling-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .backup-restore-acknowledge {

@@ -6,6 +6,26 @@ from pathlib import Path
 import pytest
 
 from app.shared.database_backup.engine import BackupRunResult
+from app.shared.database_backup.post_restore_health import PostRestoreHealthResult
+
+
+def _success_post_restore_health(**kwargs) -> PostRestoreHealthResult:
+    return PostRestoreHealthResult(
+        ok=True,
+        migration_result=kwargs.get("migration_result", "success"),
+        customers_count=12,
+        fairs_count=4,
+        contacts_count=7,
+    )
+
+
+def _failed_post_restore_health(**kwargs) -> PostRestoreHealthResult:
+    _ = kwargs
+    return PostRestoreHealthResult(
+        ok=False,
+        migration_result="success",
+        error_message="Missing critical tables: crm_fairs",
+    )
 
 
 def _fake_pg_dump(*, database_url: str, output_path: Path, on_stage=None) -> BackupRunResult:
@@ -306,6 +326,10 @@ def test_restore_job_maintenance_runner_completes_job(client, auth_headers, back
         "app.modules.system_admin.application.restore_job_service.subprocess.run",
         lambda *args, **kwargs: type("Proc", (), {"returncode": 0, "stdout": "ok", "stderr": ""})(),
     )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.run_post_restore_health_check",
+        _success_post_restore_health,
+    )
 
     create = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
     backup_id = create.json()["id"]
@@ -328,6 +352,72 @@ def test_restore_job_maintenance_runner_completes_job(client, auth_headers, back
     assert payload["status"] == "completed"
     assert payload["restore_log_path"]
     assert payload["completed_at"]
+    assert "customers: 12" in (payload["notes"] or "")
+
+    log_path = backups_root / payload["restore_log_path"]
+    assert log_path.exists()
+    log_text = log_path.read_text(encoding="utf-8")
+    assert "Post-restore health check passed" in log_text
+    assert "customers count: 12" in log_text
+
+
+def test_restore_job_health_check_failure_marks_failed(client, auth_headers, backups_root, monkeypatch, db_session):
+    from uuid import UUID
+
+    from app.shared.database_backup.engine import BackupVerificationResult
+    from app.modules.system_admin.application.restore_job_service import (
+        RestoreJobMaintenanceCommand,
+        RestoreJobMaintenanceRunner,
+    )
+
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.pg_restore_custom",
+        lambda **kwargs: None,
+    )
+    monkeypatch.setattr("app.modules.system_admin.application.restore_job_service.get_repo_root", lambda: backups_root)
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.subprocess.run",
+        lambda *args, **kwargs: type("Proc", (), {"returncode": 0, "stdout": "ok", "stderr": ""})(),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.run_post_restore_health_check",
+        _failed_post_restore_health,
+    )
+
+    create = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
+    backup_id = create.json()["id"]
+    restore = client.post(f"/api/v1/admin/backups/{backup_id}/restore", headers=auth_headers)
+    job_id = UUID(restore.json()["id"])
+
+    runner = RestoreJobMaintenanceRunner(session_factory=lambda: db_session)
+    exit_code = runner.run(
+        RestoreJobMaintenanceCommand(
+            job_id=job_id,
+            target_database_url="postgresql://postgres:postgres@localhost:5432/fair_crm",
+            allow_restore=True,
+        )
+    )
+    assert exit_code == 1
+
+    detail = client.get(f"/api/v1/admin/backups/restore-jobs/{str(job_id)}", headers=auth_headers)
+    assert detail.status_code == 200
+    payload = detail.json()
+    assert payload["status"] == "failed"
+    assert payload["restore_log_path"]
+    assert "crm_fairs" in (payload["error_message"] or "")
+
+    log_path = backups_root / payload["restore_log_path"]
+    assert log_path.exists()
+    log_text = log_path.read_text(encoding="utf-8")
+    assert "Post-restore health check FAILED" in log_text
 
 
 def test_backup_forbidden_without_permission(client, auth_headers, backups_root):

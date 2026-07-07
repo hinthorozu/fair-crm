@@ -637,11 +637,28 @@ database_exists() {
 ensure_database() {
   local db_name="$1"
   if database_exists "$db_name"; then
-    log "Database exists: ${db_name}"
+    log "Database exists: ${db_name} (no drop/truncate/reset)"
   else
     log "Creating database: ${db_name}"
     psql_admin_exec "CREATE DATABASE \"${db_name}\";"
   fi
+}
+
+ensure_repo_data_dirs() {
+  local fair_dir="$1"
+  step "Ensure backup/restore data directories exist (create only; never delete contents)"
+  local dir
+  for dir in \
+    "${fair_dir}/backups" \
+    "${fair_dir}/data/restore_uploads" \
+    "${fair_dir}/data/restore_logs"; do
+    if [[ -d "$dir" ]]; then
+      log "Preserving existing data directory: ${dir}"
+    else
+      mkdir -p "$dir"
+      warn "Created empty data directory: ${dir}"
+    fi
+  done
 }
 
 check_database_exists() {

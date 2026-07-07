@@ -29,6 +29,7 @@ from app.shared.database_backup.engine import (
     verify_backup_dump,
 )
 from app.shared.database_backup.paths import get_repo_root, get_restore_logs_dir, get_restore_uploads_dir, relative_repo_path, resolve_backup_path
+from app.shared.database_backup.post_restore_health import run_post_restore_health_check
 
 PERMISSION_READ = "fair_crm.admin.backups.read"
 
@@ -210,6 +211,12 @@ def resolve_restore_job_dump_path(job: SystemBackupRestoreJob) -> Path:
     return candidate
 
 
+def _merge_restore_job_notes(existing: str | None, health_summary: str) -> str:
+    if existing and existing.strip():
+        return f"{existing.strip()}\n\n{health_summary}"
+    return health_summary
+
+
 @dataclass(frozen=True)
 class RestoreJobMaintenanceCommand:
     job_id: UUID
@@ -308,10 +315,20 @@ class RestoreJobMaintenanceRunner:
                 raise DatabaseBackupError(result.stderr or result.stdout or "alembic upgrade head failed")
             _log("Alembic upgrade head completed")
 
+            health = run_post_restore_health_check(
+                database_url=command.target_database_url,
+                migration_result="success",
+            )
+            for line in health.log_lines():
+                _log(line)
+            if not health.ok:
+                raise ValueError(health.error_message or "Post-restore health check failed")
+
             finished = datetime.now(tz=UTC)
             job = repo.get_by_id_global(command.job_id)
             if job is None:
                 return 1
+            job.notes = _merge_restore_job_notes(job.notes, health.summary_text())
             job.mark_completed(now=finished)
             repo.update(job)
             db.commit()

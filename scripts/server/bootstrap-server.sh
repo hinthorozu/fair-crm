@@ -2,6 +2,10 @@
 #
 # Fresh Ubuntu server infrastructure bootstrap for KYROX Core + Fair CRM.
 #
+# Infrastructure only — does not deploy application code, run migrations,
+# restore databases, or touch backup/restore file directories.
+# After restore work, run deploy-all.sh (upgrade head + restart only).
+#
 # Usage:
 #   sudo /opt/fair-crm/scripts/server/bootstrap-server.sh
 #
@@ -73,7 +77,10 @@ ensure_fair_crm_checkout() {
       "docker-compose.yml" \
       "backend/.env" \
       "frontend/.env" \
-      "frontend/.env.production"
+      "frontend/.env.production" \
+      "backups" \
+      "data/restore_uploads" \
+      "data/restore_logs"
     REPORT_REPO="updated (${FAIR_CRM_BRANCH})"
   else
     log "Using current working tree at ${FAIR_CRM_DIR}"
