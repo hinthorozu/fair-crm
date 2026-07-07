@@ -233,6 +233,47 @@ copy_env_if_missing() {
   warn "Created ${target} from example — review secrets and URLs before production use"
 }
 
+ensure_core_backend_env() {
+  local core_dir="${1:-${KYROX_CORE_DIR}}"
+  local backend_env="${core_dir}/backend/.env"
+  local backend_example="${core_dir}/backend/.env.example"
+  local root_env="${core_dir}/.env"
+  local root_example="${core_dir}/.env.example"
+
+  if [[ -f "$backend_env" ]]; then
+    log "Preserving existing Core env: ${backend_env}"
+    return 0
+  fi
+
+  if [[ ! -d "$core_dir" ]]; then
+    warn "Core checkout not present at ${core_dir}; cannot create backend/.env"
+    return 1
+  fi
+
+  mkdir -p "${core_dir}/backend"
+
+  if [[ -f "$backend_example" ]]; then
+    cp "$backend_example" "$backend_env"
+    warn "Created ${backend_env} from backend/.env.example"
+    return 0
+  fi
+
+  if [[ -f "$root_env" ]]; then
+    cp "$root_env" "$backend_env"
+    warn "Created ${backend_env} from legacy ${root_env}"
+    return 0
+  fi
+
+  if [[ -f "$root_example" ]]; then
+    cp "$root_example" "$backend_env"
+    warn "Created ${backend_env} from ${root_example}"
+    return 0
+  fi
+
+  warn "Core env example missing; expected ${backend_example} or ${root_example}"
+  return 1
+}
+
 detect_server_public_url() {
   local configured="${SERVER_PUBLIC_URL:-}"
   if [[ -n "$configured" ]]; then

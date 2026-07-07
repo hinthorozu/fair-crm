@@ -94,11 +94,10 @@ prepare_env_files() {
   copy_env_if_missing "${FAIR_CRM_DIR}/frontend/.env.example" "${FAIR_CRM_DIR}/frontend/.env"
   write_frontend_production_env_if_missing "$FAIR_CRM_DIR"
 
-  if [[ -d "${KYROX_CORE_DIR}/backend" ]]; then
-    copy_env_if_missing "${KYROX_CORE_DIR}/backend/.env.example" "${KYROX_CORE_DIR}/backend/.env"
-    copy_env_if_missing "${KYROX_CORE_DIR}/.env.example" "${KYROX_CORE_DIR}/.env"
+  if [[ -d "${KYROX_CORE_DIR}" ]]; then
+    ensure_core_backend_env "$KYROX_CORE_DIR" || warn "Core backend/.env not created yet (run deploy-all after kyrox-core clone)"
   else
-    warn "Core checkout not present yet at ${KYROX_CORE_DIR}; Core .env is created on first deploy-all run"
+    warn "Core checkout not present yet at ${KYROX_CORE_DIR}; Core backend/.env is created on first deploy-all run"
   fi
 
   REPORT_ENV_FILES="checked (existing files preserved)"

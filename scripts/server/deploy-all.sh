@@ -322,8 +322,7 @@ main() {
 
   clone_or_update_repo "$KYROX_CORE_DIR" "$KYROX_CORE_REPO" "$KYROX_CORE_BRANCH" "${PROTECTED_KYROX_CORE_PATHS[@]}"
 
-  copy_env_if_missing "${KYROX_CORE_DIR}/backend/.env.example" "${KYROX_CORE_DIR}/backend/.env"
-  copy_env_if_missing "${KYROX_CORE_DIR}/.env.example" "${KYROX_CORE_DIR}/.env"
+  ensure_core_backend_env "$KYROX_CORE_DIR" || die "Cannot create Core backend .env at ${KYROX_CORE_DIR}/backend/.env"
 
   if [[ -d "${FAIR_CRM_DIR}/.git" ]]; then
     clone_or_update_repo "$FAIR_CRM_DIR" "$(git -C "$FAIR_CRM_DIR" remote get-url origin)" "$FAIR_CRM_BRANCH" "${PROTECTED_FAIR_CRM_PATHS[@]}"
