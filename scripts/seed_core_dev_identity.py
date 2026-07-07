@@ -335,6 +335,41 @@ def ensure_organization_role(cur, organization_id: str, role_template_id: str, *
     return org_role_id
 
 
+def ensure_dev_user_role_mapping(
+    cur,
+    *,
+    user_id: str,
+    organization_id: str,
+    organization_role_id: str,
+    role_slug: str,
+) -> None:
+    cur.execute(
+        """
+        UPDATE identity_user_roles
+        SET status = 'revoked', revoked_at = %s
+        WHERE user_id = %s
+          AND organization_id = %s
+          AND organization_role_id != %s
+          AND status = 'active'
+          AND revoked_at IS NULL
+        """,
+        (_now(), user_id, organization_id, organization_role_id),
+    )
+    if cur.rowcount:
+        print(
+            f"Revoked {cur.rowcount} stale role assignment(s) for user {user_id} "
+            f"(expected role={role_slug})"
+        )
+
+    ensure_user_role_assignment(
+        cur,
+        user_id=user_id,
+        organization_id=organization_id,
+        organization_role_id=organization_role_id,
+        role_slug=role_slug,
+    )
+
+
 def ensure_user_role_assignment(
     cur,
     *,
@@ -422,7 +457,7 @@ def main() -> int:
                 resolved_user_id = ensure_dev_user(cur, user_id=user_id, email=email)
                 ensure_membership(cur, resolved_user_id, org_id)
                 org_role_id = org_role_ids[role_slug]
-                ensure_user_role_assignment(
+                ensure_dev_user_role_mapping(
                     cur,
                     user_id=resolved_user_id,
                     organization_id=org_id,

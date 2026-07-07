@@ -21,7 +21,7 @@
 #   KYROX_CORE_DIR=/opt/kyrox-core
 #   FAIR_CRM_DIR=/opt/fair-crm
 #   KYROX_CORE_BRANCH=main
-#   FAIR_CRM_BRANCH=feat/dev-auto-start-v1
+#   FAIR_CRM_BRANCH=main
 #   KYROX_CORE_REPO=https://github.com/hinthorozu/kyrox-core.git
 #   DEPLOY_SERVICE_USER=ubuntu
 #   SERVER_PUBLIC_URL=http://203.0.113.10
@@ -41,7 +41,7 @@ KYROX_CORE_DIR="${KYROX_CORE_DIR:-/opt/kyrox-core}"
 FAIR_CRM_DIR="${FAIR_CRM_DIR:-$(cd "${SCRIPT_DIR}/../.." && pwd)}"
 KYROX_CORE_REPO="${KYROX_CORE_REPO:-https://github.com/hinthorozu/kyrox-core.git}"
 KYROX_CORE_BRANCH="${KYROX_CORE_BRANCH:-main}"
-FAIR_CRM_BRANCH="${FAIR_CRM_BRANCH:-feat/dev-auto-start-v1}"
+FAIR_CRM_BRANCH="${FAIR_CRM_BRANCH:-main}"
 DEPLOY_SERVICE_USER="${DEPLOY_SERVICE_USER:-${SUDO_USER:-$(id -un)}}"
 SERVER_PUBLIC_URL="${SERVER_PUBLIC_URL:-$(detect_server_public_url)}"
 
@@ -78,6 +78,7 @@ REPORT_NGINX="skipped"
 REPORT_NGINX_TEST="skipped"
 REPORT_POST_CHECK="skipped"
 REPORT_LOGIN_SMOKE="not run"
+REPORT_BACKUPS_SMOKE="not run"
 REPORT_SAFE_DEPLOY_RESTORE="not run"
 REPORT_FINAL_STATUS="unknown"
 
@@ -123,12 +124,12 @@ run_core_dev_seed() {
     return 0
   fi
 
-  local seed_script="${KYROX_CORE_DIR}/scripts/seed_fair_crm_dev_identity.py"
-  [[ -f "$seed_script" ]] || die "Core dev seed script missing: ${seed_script}"
+  local seed_script="${FAIR_CRM_DIR}/scripts/seed_core_dev_identity.py"
+  [[ -f "$seed_script" ]] || die "Fair CRM Core dev seed script missing: ${seed_script}"
 
   (
-    cd "$KYROX_CORE_DIR"
     env DATABASE_URL="$db_url" KYROX_CORE_DATABASE_URL="$db_url" \
+      PYTHONPATH="${FAIR_CRM_DIR}/scripts:${FAIR_CRM_DIR}" \
       "${KYROX_CORE_DIR}/.venv/bin/python" "$seed_script"
   ) || die "Core dev identity seed failed"
   REPORT_CORE_SEED="success (idempotent)"
@@ -222,6 +223,17 @@ run_login_smoke_deploy() {
   fi
 }
 
+run_admin_backups_smoke_deploy() {
+  step "Admin backups API smoke test (dev owner)"
+  if run_admin_backups_smoke_test "$FAIR_CRM_PORT" "$CORE_PORT" "deploy"; then
+    REPORT_BACKUPS_SMOKE="passed (HTTP 200)"
+    echo "[OK] Admin backups API smoke test passed"
+  else
+    REPORT_BACKUPS_SMOKE="failed"
+    die "Admin backups API smoke test failed (expected HTTP 200 at /api/v1/admin/backups)"
+  fi
+}
+
 maybe_run_post_check() {
   if [[ "${RUN_POST_CHECK:-1}" != "1" ]]; then
     REPORT_POST_CHECK="skipped (RUN_POST_CHECK=0)"
@@ -271,6 +283,8 @@ print_final_report() {
   echo "   scripts/server/check-server.sh"
   echo ""
   echo "2. Core seed: ${REPORT_CORE_SEED}"
+  echo "   script: ${FAIR_CRM_DIR}/scripts/seed_core_dev_identity.py"
+  echo "   python: ${KYROX_CORE_DIR}/.venv/bin/python"
   echo "   email: ${DEV_LOGIN_EMAIL}"
   echo "   password: ${DEV_LOGIN_PASSWORD}"
   echo "   org id: ${DEV_LOGIN_ORG_ID}"
@@ -287,12 +301,13 @@ print_final_report() {
   echo ""
   echo "5. Health: Core ${REPORT_CORE_HEALTH}, Fair CRM ${REPORT_FAIR_HEALTH} (${health_label})"
   echo "6. Login smoke: ${REPORT_LOGIN_SMOKE} (${login_label})"
-  echo "7. Frontend build: ${REPORT_FRONTEND_BUILD}"
-  echo "8. Migrations: Core ${REPORT_CORE_MIGRATION}, Fair CRM ${REPORT_FAIR_MIGRATION}"
-  echo "9. Git commits: kyrox-core=${REPORT_CORE_HASH}, fair-crm=${REPORT_FAIR_HASH}"
-  echo "10. Safe deploy restore: ${REPORT_SAFE_DEPLOY_RESTORE}"
-  echo "11. Post-deploy check: ${REPORT_POST_CHECK}"
-  echo "12. Push: not run by deploy script (manual git push if needed)"
+  echo "7. Admin backups API: ${REPORT_BACKUPS_SMOKE}"
+  echo "8. Frontend build: ${REPORT_FRONTEND_BUILD}"
+  echo "9. Migrations: Core ${REPORT_CORE_MIGRATION}, Fair CRM ${REPORT_FAIR_MIGRATION}"
+  echo "10. Git commits: kyrox-core=${REPORT_CORE_HASH} (${KYROX_CORE_BRANCH}), fair-crm=${REPORT_FAIR_HASH} (${FAIR_CRM_BRANCH})"
+  echo "11. Safe deploy restore: ${REPORT_SAFE_DEPLOY_RESTORE}"
+  echo "12. Post-deploy check: ${REPORT_POST_CHECK}"
+  echo "13. Push: not run by deploy script (manual git push if needed)"
   echo ""
   echo "Core API: http://127.0.0.1:${CORE_PORT}"
   echo "Fair CRM API: http://127.0.0.1:${FAIR_CRM_PORT}"
@@ -319,8 +334,8 @@ main() {
 
   step "Verify target directories"
   mkdir -p "$(dirname "$KYROX_CORE_DIR")" "$(dirname "$FAIR_CRM_DIR")"
-  log "KYROX_CORE_DIR=${KYROX_CORE_DIR}"
-  log "FAIR_CRM_DIR=${FAIR_CRM_DIR}"
+  log "KYROX_CORE_DIR=${KYROX_CORE_DIR} (branch ${KYROX_CORE_BRANCH})"
+  log "FAIR_CRM_DIR=${FAIR_CRM_DIR} (branch ${FAIR_CRM_BRANCH})"
   log "SERVER_PUBLIC_URL=${SERVER_PUBLIC_URL}"
 
   clone_or_update_repo "$KYROX_CORE_DIR" "$KYROX_CORE_REPO" "$KYROX_CORE_BRANCH" "${PROTECTED_KYROX_CORE_PATHS[@]}"
@@ -364,6 +379,9 @@ main() {
     die "kyrox-core alembic upgrade failed"
   fi
 
+  assert_core_migration_meets_seed_minimum \
+    "$KYROX_CORE_DIR" "${KYROX_CORE_DIR}/.venv/bin/python" "$core_db_url"
+
   run_core_dev_seed
 
   if run_alembic_upgrade "$FAIR_CRM_DIR" "${FAIR_CRM_DIR}/backend/.venv/bin/python" "alembic.ini" "$fair_db_url"; then
@@ -394,6 +412,7 @@ main() {
 
   run_health_checks
   run_login_smoke_deploy
+  run_admin_backups_smoke_deploy
   maybe_run_post_check
   print_final_report
 }

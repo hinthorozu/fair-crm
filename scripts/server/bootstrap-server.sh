@@ -11,7 +11,7 @@
 #
 # Fresh Ubuntu (empty server):
 #   sudo apt update && sudo apt install -y git
-#   sudo git clone -b feat/dev-auto-start-v1 https://github.com/hinthorozu/fair-crm.git /opt/fair-crm
+#   sudo git clone -b main https://github.com/hinthorozu/fair-crm.git /opt/fair-crm
 #   sudo bash /opt/fair-crm/scripts/server/bootstrap-server.sh
 #   sudo nano /opt/fair-crm/backend/.env
 #   sudo bash /opt/fair-crm/scripts/server/deploy-all.sh
@@ -20,7 +20,7 @@
 # Optional environment overrides:
 #   FAIR_CRM_DIR=/opt/fair-crm
 #   FAIR_CRM_REPO=https://github.com/hinthorozu/fair-crm.git
-#   FAIR_CRM_BRANCH=feat/dev-auto-start-v1
+#   FAIR_CRM_BRANCH=main
 #   KYROX_CORE_DIR=/opt/kyrox-core
 #   DEPLOY_SERVICE_USER=ubuntu
 #   SERVER_PUBLIC_URL=http://203.0.113.10
@@ -41,7 +41,7 @@ source "${SCRIPT_DIR}/lib/common.sh"
 FAIR_CRM_DIR="${FAIR_CRM_DIR:-/opt/fair-crm}"
 KYROX_CORE_DIR="${KYROX_CORE_DIR:-/opt/kyrox-core}"
 FAIR_CRM_REPO="${FAIR_CRM_REPO:-https://github.com/hinthorozu/fair-crm.git}"
-FAIR_CRM_BRANCH="${FAIR_CRM_BRANCH:-feat/dev-auto-start-v1}"
+FAIR_CRM_BRANCH="${FAIR_CRM_BRANCH:-main}"
 DEPLOY_SERVICE_USER="${DEPLOY_SERVICE_USER:-${SUDO_USER:-$(id -un)}}"
 SERVER_PUBLIC_URL="${SERVER_PUBLIC_URL:-$(detect_server_public_url)}"
 

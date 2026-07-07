@@ -65,11 +65,17 @@ main() {
     check_fail "Frontend build present"
   fi
 
+  check_git_branch "fair-crm" "$FAIR_CRM_DIR" "$EXPECTED_FAIR_CRM_BRANCH"
+  check_git_branch "kyrox-core" "$KYROX_CORE_DIR" "$EXPECTED_KYROX_CORE_BRANCH"
+  check_fair_crm_server_scripts_executable "$FAIR_CRM_DIR"
+
   if [[ -f "${KYROX_CORE_DIR}/backend/.env" && -f "${FAIR_CRM_DIR}/backend/.env" ]]; then
     local core_db_url fair_db_url
     core_db_url="$(resolve_core_db_url)"
     fair_db_url="$(resolve_fair_db_url)"
     check_alembic_at_head "kyrox-core" "$KYROX_CORE_DIR" "${KYROX_CORE_DIR}/.venv/bin/python" "$core_db_url"
+    check_core_migration_meets_seed_minimum \
+      "$KYROX_CORE_DIR" "${KYROX_CORE_DIR}/.venv/bin/python" "$core_db_url"
     check_alembic_at_head "fair-crm" "$FAIR_CRM_DIR" "${FAIR_CRM_DIR}/backend/.venv/bin/python" "$fair_db_url"
   fi
 
@@ -88,6 +94,7 @@ main() {
   fi
   check_http_endpoints "$core_url" "$fair_url" "$public_url"
   run_login_smoke_test "$CORE_PORT" "check"
+  run_admin_backups_smoke_test "$FAIR_CRM_PORT" "$CORE_PORT" "check"
 
   echo ""
   echo "systemd service audit:"

@@ -17,6 +17,10 @@ DEV_LOGIN_EMAIL="${DEV_LOGIN_EMAIL:-dev@example.com}"
 DEV_LOGIN_PASSWORD="${DEV_LOGIN_PASSWORD:-DevPassword123!}"
 DEV_LOGIN_ORG_ID="${DEV_LOGIN_ORG_ID:-00000000-0000-4000-8000-000000000010}"
 
+MIN_CORE_SEED_MIGRATION_REVISION="${MIN_CORE_SEED_MIGRATION_REVISION:-20260701_0029}"
+EXPECTED_FAIR_CRM_BRANCH="${EXPECTED_FAIR_CRM_BRANCH:-${FAIR_CRM_BRANCH:-main}}"
+EXPECTED_KYROX_CORE_BRANCH="${EXPECTED_KYROX_CORE_BRANCH:-${KYROX_CORE_BRANCH:-main}}"
+
 log() {
   echo "${DEPLOY_LOG_PREFIX} $*"
 }
@@ -540,6 +544,206 @@ PY
 
 alembic_pick_revision() {
   tr -d '\r' | grep -oE '[0-9]{8}_[0-9]{4}[^ ]*|[0-9]{4}(_[0-9]{4})?' | tail -n 1
+}
+
+alembic_revision_meets_minimum() {
+  local current="$1"
+  local minimum="$2"
+  [[ -n "$current" && -n "$minimum" ]] || return 1
+  [[ "$current" == "$minimum" || "$current" > "$minimum" ]]
+}
+
+assert_core_migration_meets_seed_minimum() {
+  local project_root="$1"
+  local venv_python="$2"
+  local database_url="$3"
+  local minimum="${4:-$MIN_CORE_SEED_MIGRATION_REVISION}"
+
+  step "Verify Core migration meets seed minimum (${minimum})"
+  local current
+  current="$(alembic_revision_snapshot "$project_root" "$venv_python" "$database_url" "current" | alembic_pick_revision)"
+  [[ -n "$current" ]] || die "Cannot read Core alembic current revision after upgrade"
+
+  if alembic_revision_meets_minimum "$current" "$minimum"; then
+    log "Core migration OK: ${current} (required >= ${minimum})"
+    return 0
+  fi
+
+  die "Core migration ${current} is below required ${minimum} for dev seed. Update kyrox-core main to include migration ${minimum} and re-run deploy."
+}
+
+check_core_migration_meets_seed_minimum() {
+  local project_root="$1"
+  local venv_python="$2"
+  local database_url="$3"
+  local minimum="${4:-$MIN_CORE_SEED_MIGRATION_REVISION}"
+  local current
+
+  current="$(alembic_revision_snapshot "$project_root" "$venv_python" "$database_url" "current" | alembic_pick_revision)"
+  if [[ -z "$current" ]]; then
+    check_fail "Core migration meets seed minimum ${minimum}"
+    return 0
+  fi
+
+  if alembic_revision_meets_minimum "$current" "$minimum"; then
+    check_pass "Core migration meets seed minimum (${current} >= ${minimum})"
+  else
+    check_fail "Core migration meets seed minimum (current=${current}, required>=${minimum})"
+  fi
+}
+
+check_git_branch() {
+  local label="$1"
+  local dir="$2"
+  local expected_branch="$3"
+
+  if [[ ! -d "${dir}/.git" ]]; then
+    check_fail "${label} git branch ${expected_branch}"
+    return 0
+  fi
+
+  local current_branch
+  current_branch="$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+  if [[ "$current_branch" == "$expected_branch" ]]; then
+    check_pass "${label} git branch ${expected_branch}"
+  else
+    check_fail "${label} git branch ${expected_branch} (current=${current_branch:-unknown})"
+  fi
+}
+
+check_fair_crm_server_scripts_executable() {
+  local dir="$1"
+  local rel script_path
+  local -a missing=() not_exec=()
+
+  for rel in "${FAIR_CRM_SERVER_EXECUTABLE_SCRIPTS[@]}"; do
+    script_path="${dir}/${rel}"
+    if [[ ! -f "$script_path" ]]; then
+      missing+=("$rel")
+    elif [[ ! -x "$script_path" ]]; then
+      not_exec+=("$rel")
+    fi
+  done
+
+  if ((${#missing[@]} == 0 && ${#not_exec[@]} == 0)); then
+    check_pass "Server deploy scripts executable"
+    return 0
+  fi
+
+  if ((${#missing[@]} > 0)); then
+    check_fail "Server deploy scripts executable (missing: ${missing[*]})"
+  fi
+  if ((${#not_exec[@]} > 0)); then
+    check_fail "Server deploy scripts executable (not executable: ${not_exec[*]})"
+  fi
+}
+
+fetch_dev_access_token() {
+  local core_port="${1:-8000}"
+  local url="http://127.0.0.1:${core_port}/api/v1/auth/login"
+  local tmp_body tmp_payload tmp_curl_err
+  local http_code curl_rc=0 body_preview parse_detail parse_rc=0
+  local attempt max_attempts=5
+
+  tmp_body="$(mktemp -t dev-access-token-body.XXXXXX)"
+  tmp_payload="$(mktemp -t dev-access-token-payload.XXXXXX)"
+  tmp_curl_err="$(mktemp -t dev-access-token-curl.XXXXXX)"
+
+  export DEV_LOGIN_EMAIL DEV_LOGIN_PASSWORD
+  python3 -c 'import json, os, sys; json.dump({"email": os.environ["DEV_LOGIN_EMAIL"], "password": os.environ["DEV_LOGIN_PASSWORD"]}, sys.stdout)' \
+    >"$tmp_payload"
+
+  for (( attempt=1; attempt<=max_attempts; attempt++ )); do
+    : >"$tmp_body"
+    : >"$tmp_curl_err"
+    curl_rc=0
+    http_code="$(
+      curl -sS -o "$tmp_body" -w '%{http_code}' -X POST "$url" \
+        -H "Content-Type: application/json" \
+        --data-binary "@${tmp_payload}" \
+        --connect-timeout 10 --max-time 30 2>"$tmp_curl_err"
+    )" || curl_rc=$?
+
+    if [[ "$curl_rc" -ne 0 || -z "$http_code" || "$http_code" == "000" || "$http_code" != "200" || ! -s "$tmp_body" ]]; then
+      if [[ "$attempt" -lt "$max_attempts" ]]; then
+        sleep 2
+        continue
+      fi
+      rm -f "$tmp_body" "$tmp_payload" "$tmp_curl_err"
+      return 1
+    fi
+
+    parse_rc=0
+    parse_detail="$(
+      python3 -c '
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    data = json.load(handle)
+token = data.get("access_token")
+if not token:
+    raise SystemExit(1)
+print(token)
+' "$tmp_body" 2>&1
+    )" || parse_rc=$?
+
+    if [[ "$parse_rc" -eq 0 && -n "$parse_detail" ]]; then
+      printf '%s' "$parse_detail"
+      rm -f "$tmp_body" "$tmp_payload" "$tmp_curl_err"
+      return 0
+    fi
+
+    if [[ "$attempt" -lt "$max_attempts" ]]; then
+      sleep 2
+      continue
+    fi
+  done
+
+  rm -f "$tmp_body" "$tmp_payload" "$tmp_curl_err"
+  return 1
+}
+
+run_admin_backups_smoke_test() {
+  local fair_port="${1:-8001}"
+  local core_port="${2:-8000}"
+  local fail_mode="${3:-check}"
+  local token http_code body_preview
+  local url="http://127.0.0.1:${fair_port}/api/v1/admin/backups"
+  local tmp_body tmp_curl_err
+
+  token="$(fetch_dev_access_token "$core_port" 2>/dev/null || true)"
+  if [[ -z "$token" ]]; then
+    if [[ "$fail_mode" != "deploy" ]]; then
+      check_fail "Admin backups API authorized (could not obtain dev access token)"
+    fi
+    return 1
+  fi
+
+  tmp_body="$(mktemp -t admin-backups-body.XXXXXX)"
+  tmp_curl_err="$(mktemp -t admin-backups-curl.XXXXXX)"
+  http_code="$(
+    curl -sS -o "$tmp_body" -w '%{http_code}' -X GET "$url" \
+      -H "Authorization: Bearer ${token}" \
+      -H "X-Organization-Id: ${DEV_LOGIN_ORG_ID}" \
+      --connect-timeout 10 --max-time 30 2>"$tmp_curl_err"
+  )" || http_code="000"
+
+  body_preview="$(tr -d '\n\r' <"$tmp_body" 2>/dev/null | head -c 300)"
+  [[ -n "$body_preview" ]] || body_preview="empty"
+  rm -f "$tmp_body" "$tmp_curl_err"
+
+  if [[ "$http_code" == "200" ]]; then
+    if [[ "$fail_mode" != "deploy" ]]; then
+      check_pass "Admin backups API authorized (HTTP 200)"
+    fi
+    return 0
+  fi
+
+  if [[ "$fail_mode" != "deploy" ]]; then
+    check_fail "Admin backups API authorized (HTTP ${http_code:-000}, body=${body_preview})"
+  fi
+  return 1
 }
 
 check_alembic_at_head() {
