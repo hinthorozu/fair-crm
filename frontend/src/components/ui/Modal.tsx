@@ -8,7 +8,8 @@ interface ModalProps {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
-  size?: "default" | "lg";
+  size?: "default" | "md" | "lg";
+  className?: string;
 }
 
 const FOCUSABLE_SELECTOR =
@@ -41,7 +42,7 @@ function focusInitialElement(body: HTMLElement | null, closeButton: HTMLButtonEl
   closeButton?.focus();
 }
 
-export function Modal({ title, onClose, children, size = "default" }: ModalProps) {
+export function Modal({ title, onClose, children, size = "default", className }: ModalProps) {
   const closeRef = React.useRef<HTMLButtonElement>(null);
   const bodyRef = React.useRef<HTMLDivElement>(null);
   const onCloseRef = React.useRef(onClose);
@@ -80,7 +81,7 @@ export function Modal({ title, onClose, children, size = "default" }: ModalProps
     <>
       <div className="modal-backdrop" role="presentation">
         <div
-          className={`modal ${size === "lg" ? "modal-lg" : ""}`.trim()}
+          className={`modal ${size === "lg" ? "modal-lg" : size === "md" ? "modal-md" : ""} ${className ?? ""}`.trim()}
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-title"

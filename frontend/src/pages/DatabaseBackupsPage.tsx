@@ -280,6 +280,28 @@ function buildBackupColumns(handlers: {
   ];
 }
 
+const BACKUP_FORMAT_OPTIONS: Array<{
+  value: BackupFormat;
+  title: string;
+  description: string;
+}> = [
+  {
+    value: "postgresql_dump",
+    title: adminLabels.formatPostgresqlDump,
+    description: adminLabels.formatPostgresqlDumpDesc,
+  },
+  {
+    value: "postgresql_sql",
+    title: adminLabels.formatPostgresqlSql,
+    description: adminLabels.formatPostgresqlSqlDesc,
+  },
+  {
+    value: "universal_data_package",
+    title: adminLabels.formatUniversalPackage,
+    description: adminLabels.formatUniversalPackageDesc,
+  },
+];
+
 interface CreateBackupModalContentProps {
   notes: string;
   onNotesChange: (value: string) => void;
@@ -309,70 +331,57 @@ function CreateBackupModalContent({
   const handleCancel = useModalFormCancel(onCancel);
 
   return (
-    <>
-      <fieldset className="backup-format-options">
-        <legend>{adminLabels.formatLabel}</legend>
-        <label className="backup-format-option">
-          <input
-            type="radio"
-            name="backup_format"
-            value="postgresql_dump"
-            checked={backupFormat === "postgresql_dump"}
-            onChange={() => onBackupFormatChange("postgresql_dump")}
-          />
-          <span>
-            <strong>{adminLabels.formatPostgresqlDump}</strong>
-            <span className="text-muted">{adminLabels.formatPostgresqlDumpDesc}</span>
-          </span>
-        </label>
-        <label className="backup-format-option">
-          <input
-            type="radio"
-            name="backup_format"
-            value="postgresql_sql"
-            checked={backupFormat === "postgresql_sql"}
-            onChange={() => onBackupFormatChange("postgresql_sql")}
-          />
-          <span>
-            <strong>{adminLabels.formatPostgresqlSql}</strong>
-            <span className="text-muted">{adminLabels.formatPostgresqlSqlDesc}</span>
-          </span>
-        </label>
-        <label className="backup-format-option">
-          <input
-            type="radio"
-            name="backup_format"
-            value="universal_data_package"
-            checked={backupFormat === "universal_data_package"}
-            onChange={() => onBackupFormatChange("universal_data_package")}
-          />
-          <span>
-            <strong>{adminLabels.formatUniversalPackage}</strong>
-            <span className="text-muted">{adminLabels.formatUniversalPackageDesc}</span>
-          </span>
-        </label>
-      </fieldset>
-      <label className="form-field">
-        <span>{adminLabels.notesLabel}</span>
+    <div className="backup-create-modal">
+      <section className="backup-create-modal-section">
+        <p className="form-section-title">{adminLabels.formatLabel}</p>
+        <div className="backup-format-cards" role="radiogroup" aria-label={adminLabels.formatLabel}>
+          {BACKUP_FORMAT_OPTIONS.map((option) => {
+            const selected = backupFormat === option.value;
+            return (
+              <label
+                key={option.value}
+                className={`backup-format-card${selected ? " is-selected" : ""}`}
+              >
+                <input
+                  type="radio"
+                  className="backup-format-card-radio"
+                  name="backup_format"
+                  value={option.value}
+                  checked={selected}
+                  onChange={() => onBackupFormatChange(option.value)}
+                />
+                <span className="backup-format-card-title">{option.title}</span>
+                <span className="backup-format-card-desc field-hint">{option.description}</span>
+              </label>
+            );
+          })}
+        </div>
+      </section>
+
+      <label className="field backup-create-modal-notes">
+        <span className="field-label">{adminLabels.notesLabel}</span>
         <textarea
-          rows={4}
+          className="form-control"
+          rows={3}
           value={notes}
           onChange={(e) => onNotesChange(e.target.value)}
           placeholder={adminLabels.notesPlaceholder}
           maxLength={2000}
         />
+        <span className="field-hint">{adminLabels.notesHint}</span>
       </label>
-      <p className="text-muted">{adminLabels.notesHint}</p>
+
       {createError && <p className="form-error">{createError}</p>}
-      <div className="modal-actions">
+
+      <footer className="backup-create-modal-footer modal-actions">
         <button type="button" className="btn secondary" onClick={handleCancel}>
           {adminLabels.cancel}
         </button>
         <button type="button" className="btn primary" disabled={creating} onClick={onSubmit}>
           {creating ? "…" : adminLabels.startBackup}
         </button>
-      </div>
-    </>
+      </footer>
+    </div>
   );
 }
 
@@ -525,6 +534,17 @@ function RestoreFromFileModal({
   onCancel,
   onSubmit,
 }: RestoreFromFileModalProps) {
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const baseline = React.useMemo(
+    () => ({ notes: "", acknowledge: false, confirmText: "", hasFile: false }),
+    [],
+  );
+  useReportFormDirty(
+    { notes, acknowledge, confirmText, hasFile: selectedFile != null },
+    baseline,
+  );
+  const handleCancel = useModalFormCancel(onCancel);
+
   const canSubmit =
     selectedFile != null &&
     selectedFile.size > 0 &&
@@ -533,26 +553,55 @@ function RestoreFromFileModal({
     confirmText === RESTORE_CONFIRM_TEXT;
 
   return (
-    <Modal title={adminLabels.restoreFromFileTitle} onClose={onCancel}>
-      <div className="backup-restore-upload">
-        <p className="text-danger">{adminLabels.restoreWarning}</p>
-        <label className="form-field">
-          <span>{adminLabels.restoreUploadLabel}</span>
+    <Modal
+      title={adminLabels.restoreFromFileTitle}
+      onClose={onCancel}
+      className="modal-restore-from-file"
+    >
+      <div className="backup-restore-upload-modal">
+        <div className="banner error backup-restore-upload-warning" role="alert">
+          <span className="backup-restore-upload-warning-icon" aria-hidden="true">
+            !
+          </span>
+          <p>{adminLabels.restoreFromFileWarning}</p>
+        </div>
+
+        <div className="field backup-restore-upload-file">
+          <span className="field-label">{adminLabels.restoreUploadLabel}</span>
           <input
+            ref={fileInputRef}
             type="file"
             accept=".dump"
+            className="backup-restore-file-input"
             onChange={(e) => onFileChange(e.target.files?.[0] ?? null)}
           />
-        </label>
-        <p className="text-muted">{adminLabels.restoreUploadHint}</p>
-        {selectedFile && (
-          <p>
-            <strong>{adminLabels.restoreFileSizeLabel}:</strong> {formatBytes(selectedFile.size)}
-          </p>
-        )}
-        <label className="form-field">
-          <span>{adminLabels.notesLabel}</span>
+          <div className="backup-restore-file-picker">
+            <button
+              type="button"
+              className="btn secondary backup-restore-file-button"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {adminLabels.restoreUploadPickButton}
+            </button>
+            <span
+              className={`backup-restore-file-name${selectedFile ? "" : " is-empty"}`}
+              title={selectedFile?.name ?? adminLabels.restoreUploadNoFileSelected}
+            >
+              {selectedFile?.name ?? adminLabels.restoreUploadNoFileSelected}
+            </span>
+          </div>
+          <span className="field-hint">{adminLabels.restoreUploadHint}</span>
+          {selectedFile && (
+            <span className="field-hint">
+              {adminLabels.restoreFileSizeLabel}: {formatBytes(selectedFile.size)}
+            </span>
+          )}
+        </div>
+
+        <label className="field backup-restore-upload-notes">
+          <span className="field-label">{adminLabels.notesLabel}</span>
           <textarea
+            className="form-control"
             rows={3}
             value={notes}
             onChange={(e) => onNotesChange(e.target.value)}
@@ -560,7 +609,8 @@ function RestoreFromFileModal({
             maxLength={2000}
           />
         </label>
-        <label className="backup-restore-acknowledge">
+
+        <label className="restore-confirm-row">
           <input
             type="checkbox"
             checked={acknowledge}
@@ -568,27 +618,36 @@ function RestoreFromFileModal({
           />
           <span>{adminLabels.restoreAcknowledge}</span>
         </label>
-        <label className="form-field">
-          <span>{adminLabels.restoreConfirmLabel}</span>
+
+        <label className="field backup-restore-upload-confirm">
+          <span className="field-label">{adminLabels.restoreConfirmLabel}</span>
           <input
             type="text"
+            className="form-control"
             value={confirmText}
             onChange={(e) => onConfirmTextChange(e.target.value)}
             placeholder={adminLabels.restoreConfirmPlaceholder}
             autoComplete="off"
             spellCheck={false}
           />
+          <span className="field-hint">{adminLabels.restoreConfirmHelp}</span>
         </label>
-        <p className="text-muted backup-restore-manual-hint">{adminLabels.restoreJobManualHint}</p>
+
         {error && <p className="form-error">{error}</p>}
-        <div className="modal-actions">
-          <button type="button" className="btn secondary" onClick={onCancel} disabled={restoring}>
+
+        <footer className="backup-restore-upload-footer modal-actions">
+          <button type="button" className="btn secondary" onClick={handleCancel} disabled={restoring}>
             {adminLabels.cancel}
           </button>
-          <button type="button" className="btn danger" disabled={restoring || !canSubmit} onClick={onSubmit}>
+          <button
+            type="button"
+            className="btn danger backup-restore-upload-submit"
+            disabled={restoring || !canSubmit}
+            onClick={onSubmit}
+          >
             {restoring ? "…" : adminLabels.restoreFromFileButton}
           </button>
-        </div>
+        </footer>
       </div>
     </Modal>
   );
@@ -918,7 +977,12 @@ export function DatabaseBackupsPage() {
       </section>
 
       {showCreateModal && (
-        <Modal title={adminLabels.newBackupTitle} onClose={closeCreateModal}>
+        <Modal
+          title={adminLabels.newBackupTitle}
+          onClose={closeCreateModal}
+          size="md"
+          className="modal-create-backup"
+        >
           <CreateBackupModalContent
             notes={notes}
             onNotesChange={setNotes}

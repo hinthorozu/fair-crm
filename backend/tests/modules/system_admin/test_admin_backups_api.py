@@ -292,6 +292,19 @@ def test_delete_backup(client, auth_headers, backups_root):
     assert detail.status_code == 404
 
 
+def test_list_restore_jobs_empty(client, auth_headers, backups_root):
+    response = client.get(
+        "/api/v1/admin/backups/restore-jobs?page=1&pageSize=20&sort_by=requested_at&sort_order=desc",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["items"] == []
+    assert body["pagination"]["totalItems"] == 0
+    assert body["sorting"]["field"] == "requested_at"
+    assert body["sorting"]["direction"] == "desc"
+
+
 def test_restore_job_detail_not_found(client, auth_headers, backups_root):
     missing = client.get(
         "/api/v1/admin/backups/restore-jobs/00000000-0000-4000-8000-000000000099",
