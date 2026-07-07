@@ -7,11 +7,11 @@ Wants=network-online.target
 Type=simple
 User=@DEPLOY_SERVICE_USER@
 Group=@DEPLOY_SERVICE_USER@
-WorkingDirectory=/opt/kyrox-core/backend
-Environment=PYTHONPATH=/opt/kyrox-core/backend
-EnvironmentFile=-/opt/kyrox-core/backend/.env
-ExecStart=/opt/kyrox-core/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
-Restart=on-failure
+WorkingDirectory=@KYROX_CORE_DIR@/backend
+Environment=PYTHONPATH=@KYROX_CORE_DIR@/backend
+EnvironmentFile=-@KYROX_CORE_DIR@/backend/.env
+ExecStart=@KYROX_CORE_DIR@/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=always
 RestartSec=5
 TimeoutStopSec=30
 

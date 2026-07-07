@@ -8,11 +8,11 @@ Requires=kyrox-core.service
 Type=simple
 User=@DEPLOY_SERVICE_USER@
 Group=@DEPLOY_SERVICE_USER@
-WorkingDirectory=/opt/fair-crm/backend
-Environment=PYTHONPATH=/opt/fair-crm/backend
-EnvironmentFile=-/opt/fair-crm/backend/.env
-ExecStart=/opt/fair-crm/backend/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
-Restart=on-failure
+WorkingDirectory=@FAIR_CRM_DIR@/backend
+Environment=PYTHONPATH=@FAIR_CRM_DIR@/backend
+EnvironmentFile=-@FAIR_CRM_DIR@/backend/.env
+ExecStart=@FAIR_CRM_DIR@/backend/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
+Restart=always
 RestartSec=5
 TimeoutStopSec=30
 

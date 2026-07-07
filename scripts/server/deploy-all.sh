@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
-# One-shot server bootstrap/update for KYROX Core + Fair CRM.
+# Application deploy/update for KYROX Core + Fair CRM.
+# Run after bootstrap-server.sh on fresh servers, or alone for updates.
 #
 # Usage (on server):
 #   sudo /opt/fair-crm/scripts/server/deploy-all.sh
@@ -12,9 +13,12 @@
 #   FAIR_CRM_BRANCH=feat/dev-auto-start-v1
 #   KYROX_CORE_REPO=https://github.com/hinthorozu/kyrox-core.git
 #   DEPLOY_SERVICE_USER=ubuntu
+#   SERVER_PUBLIC_URL=http://203.0.113.10
 #   SKIP_FRONTEND_BUILD=1
 #   SKIP_CORE_DEV_SEED=1
 #   SKIP_SYSTEMD=1
+#   SKIP_NGINX_RELOAD=1
+#   RUN_POST_CHECK=1
 #
 set -euo pipefail
 
@@ -28,6 +32,7 @@ KYROX_CORE_REPO="${KYROX_CORE_REPO:-https://github.com/hinthorozu/kyrox-core.git
 KYROX_CORE_BRANCH="${KYROX_CORE_BRANCH:-main}"
 FAIR_CRM_BRANCH="${FAIR_CRM_BRANCH:-feat/dev-auto-start-v1}"
 DEPLOY_SERVICE_USER="${DEPLOY_SERVICE_USER:-${SUDO_USER:-$(id -un)}}"
+SERVER_PUBLIC_URL="${SERVER_PUBLIC_URL:-$(detect_server_public_url)}"
 
 CORE_PORT="${CORE_PORT:-8000}"
 FAIR_CRM_PORT="${FAIR_CRM_PORT:-8001}"
@@ -55,119 +60,11 @@ REPORT_FAIR_HEALTH="000"
 REPORT_CORE_HASH="n/a"
 REPORT_FAIR_HASH="n/a"
 REPORT_CORE_SEED="not run"
-
-parse_compose_postgres() {
-  local compose_file="$1"
-  COMPOSE_PG_USER="postgres"
-  COMPOSE_PG_PASS="postgres"
-  COMPOSE_PG_PORT="5432"
-
-  [[ -f "$compose_file" ]] || return 0
-
-  local user_line pass_line port_line
-  user_line="$(grep -E 'POSTGRES_USER:' "$compose_file" | head -n 1 || true)"
-  pass_line="$(grep -E 'POSTGRES_PASSWORD:' "$compose_file" | head -n 1 || true)"
-  port_line="$(grep -E '^[[:space:]]*-[[:space:]]*"[0-9]+:5432"' "$compose_file" | head -n 1 || true)"
-
-  if [[ -n "$user_line" ]]; then
-    COMPOSE_PG_USER="$(echo "$user_line" | sed -E 's/.*POSTGRES_USER:[[:space:]]*//; s/[[:space:]]+$//')"
-  fi
-  if [[ -n "$pass_line" ]]; then
-    COMPOSE_PG_PASS="$(echo "$pass_line" | sed -E 's/.*POSTGRES_PASSWORD:[[:space:]]*//; s/[[:space:]]+$//')"
-  fi
-  if [[ -n "$port_line" ]]; then
-    COMPOSE_PG_PORT="$(echo "$port_line" | sed -E 's/.*"([0-9]+):5432".*/\1/')"
-  fi
-}
-
-ensure_postgres_running() {
-  local compose_file="${FAIR_CRM_DIR}/docker-compose.yml"
-  if [[ -f "$compose_file" ]] && command -v docker >/dev/null 2>&1; then
-    step "Ensure Postgres container is up (docker compose; local compose file preserved)"
-    (
-      cd "$FAIR_CRM_DIR"
-      docker compose up -d postgres
-    )
-  fi
-}
-
-psql_admin_exec() {
-  local sql="$1"
-  PGPASSWORD="${PG_PASS}" psql -h "${PG_HOST}" -p "${PG_PORT}" -U "${PG_USER}" -d postgres -v ON_ERROR_STOP=1 -c "$sql"
-}
-
-database_exists() {
-  local db_name="$1"
-  local count
-  count="$(PGPASSWORD="${PG_PASS}" psql -h "${PG_HOST}" -p "${PG_PORT}" -U "${PG_USER}" -d postgres -tAc \
-    "SELECT COUNT(*) FROM pg_database WHERE datname='${db_name}'")"
-  [[ "${count}" == "1" ]]
-}
-
-ensure_database() {
-  local db_name="$1"
-  if database_exists "$db_name"; then
-    log "Database exists: ${db_name}"
-  else
-    log "Creating database: ${db_name}"
-    psql_admin_exec "CREATE DATABASE \"${db_name}\";"
-  fi
-}
-
-resolve_postgres_connection() {
-  step "Resolve PostgreSQL connection settings"
-  parse_compose_postgres "${FAIR_CRM_DIR}/docker-compose.yml"
-
-  PG_HOST="127.0.0.1"
-  PG_PORT="${COMPOSE_PG_PORT}"
-  PG_USER="${COMPOSE_PG_USER}"
-  PG_PASS="${COMPOSE_PG_PASS}"
-
-  local fair_env="${FAIR_CRM_DIR}/backend/.env"
-  local core_env="${KYROX_CORE_DIR}/backend/.env"
-  local fair_db_url core_db_url
-
-  if [[ -f "$fair_env" ]]; then
-    fair_db_url="$(read_env_key "$fair_env" DATABASE_URL || read_env_key "$fair_env" FAIR_CRM_DATABASE_URL || true)"
-  fi
-  if [[ -f "$core_env" ]]; then
-    core_db_url="$(read_env_key "$core_env" DATABASE_URL || read_env_key "$core_env" KYROX_CORE_DATABASE_URL || true)"
-  fi
-
-  if [[ -n "${fair_db_url:-}" ]]; then
-    eval "$(parse_database_url "$fair_db_url")"
-    log "Postgres settings from Fair CRM .env (host=${PG_HOST} port=${PG_PORT} user=${PG_USER})"
-  elif [[ -n "${core_db_url:-}" ]]; then
-    eval "$(parse_database_url "$core_db_url")"
-    log "Postgres settings from Core .env (host=${PG_HOST} port=${PG_PORT} user=${PG_USER})"
-  else
-    log "Postgres settings from docker-compose defaults (host=${PG_HOST} port=${PG_PORT} user=${PG_USER})"
-  fi
-}
-
-validate_env_files() {
-  step "Validate Core and Fair CRM .env files"
-  local core_env="${KYROX_CORE_DIR}/backend/.env"
-  local fair_env="${FAIR_CRM_DIR}/backend/.env"
-
-  [[ -f "$core_env" ]] || die "Missing Core env file: ${core_env} (create manually; deploy will not overwrite)"
-  [[ -f "$fair_env" ]] || die "Missing Fair CRM env file: ${fair_env} (create manually; deploy will not overwrite)"
-
-  local core_jwt fair_jwt fair_core_url
-  core_jwt="$(read_env_key "$core_env" JWT_SECRET_KEY || true)"
-  fair_jwt="$(read_env_key "$fair_env" JWT_SECRET_KEY || true)"
-  fair_core_url="$(read_env_key "$fair_env" KYROX_CORE_BASE_URL || true)"
-
-  [[ -n "$core_jwt" ]] || die "JWT_SECRET_KEY missing in ${core_env}"
-  [[ -n "$fair_jwt" ]] || die "JWT_SECRET_KEY missing in ${fair_env}"
-  [[ "$core_jwt" == "$fair_jwt" ]] || die "JWT_SECRET_KEY mismatch between Core and Fair CRM .env files"
-
-  if [[ -n "$fair_core_url" && "$fair_core_url" != "http://127.0.0.1:8000" && "$fair_core_url" != "http://localhost:8000" ]]; then
-    warn "Fair CRM KYROX_CORE_BASE_URL=${fair_core_url} (expected http://127.0.0.1:8000 on single-host deploy)"
-  else
-    log "Fair CRM KYROX_CORE_BASE_URL OK (${fair_core_url:-http://127.0.0.1:8000})"
-  fi
-}
+REPORT_NGINX="skipped"
+REPORT_NGINX_TEST="skipped"
+REPORT_POST_CHECK="skipped"
+REPORT_LOGIN_SMOKE="not run"
+REPORT_FINAL_STATUS="unknown"
 
 clone_or_update_repo() {
   local dir="$1"
@@ -198,12 +95,6 @@ setup_python_project() {
   pip_install_requirements "$venv_dir" "$requirements"
 }
 
-render_systemd_unit() {
-  local template="$1"
-  local output="$2"
-  sed "s/@DEPLOY_SERVICE_USER@/${DEPLOY_SERVICE_USER}/g" "$template" >"$output"
-}
-
 run_core_dev_seed() {
   step "Seed Core dev identity for Fair CRM"
   local core_env="${KYROX_CORE_DIR}/backend/.env"
@@ -225,7 +116,8 @@ run_core_dev_seed() {
     env DATABASE_URL="$db_url" KYROX_CORE_DATABASE_URL="$db_url" \
       "${KYROX_CORE_DIR}/.venv/bin/python" "$seed_script"
   )
-  REPORT_CORE_SEED="success"
+  REPORT_CORE_SEED="success (idempotent)"
+  print_core_seed_identity_report
 }
 
 manage_systemd_services() {
@@ -236,8 +128,8 @@ manage_systemd_services() {
 
   local tmp_dir
   tmp_dir="$(mktemp -d)"
-  render_systemd_unit "${SCRIPT_DIR}/systemd/kyrox-core.service" "${tmp_dir}/kyrox-core.service"
-  render_systemd_unit "${SCRIPT_DIR}/systemd/fair-crm-backend.service" "${tmp_dir}/fair-crm-backend.service"
+  render_template "${SCRIPT_DIR}/systemd/kyrox-core.service" "${tmp_dir}/kyrox-core.service"
+  render_template "${SCRIPT_DIR}/systemd/fair-crm-backend.service" "${tmp_dir}/fair-crm-backend.service"
 
   install_systemd_unit "${tmp_dir}/kyrox-core.service" "kyrox-core.service"
   install_systemd_unit "${tmp_dir}/fair-crm-backend.service" "fair-crm-backend.service"
@@ -274,35 +166,24 @@ build_frontend() {
   )
   REPORT_FRONTEND_BUILD="success"
 
-  if [[ -d "${FAIR_CRM_DIR}/frontend/dist" ]]; then
-    log "Frontend build output: ${FAIR_CRM_DIR}/frontend/dist"
-    if command -v nginx >/dev/null 2>&1; then
-      if grep -R "frontend/dist" /etc/nginx 2>/dev/null | head -n 1 >/dev/null; then
-        log "nginx config references frontend/dist"
-      else
-        warn "nginx installed but no config referencing frontend/dist found; verify static root manually"
-      fi
-    fi
-  else
+  if [[ ! -d "${FAIR_CRM_DIR}/frontend/dist" ]]; then
     REPORT_FRONTEND_BUILD="failed (dist missing)"
     die "Frontend build did not produce frontend/dist"
   fi
+  log "Frontend build output: ${FAIR_CRM_DIR}/frontend/dist"
 }
 
 run_health_checks() {
   step "Health checks"
   local core_url="http://127.0.0.1:${CORE_PORT}${CORE_HEALTH_PATH}"
   local fair_url="http://127.0.0.1:${FAIR_CRM_PORT}${FAIR_CRM_HEALTH_PATH}"
+  local statuses
 
-  local deadline=$((SECONDS + 60))
-  while (( SECONDS < deadline )); do
-    REPORT_CORE_HEALTH="$(http_status "$core_url")"
-    REPORT_FAIR_HEALTH="$(http_status "$fair_url")"
-    if [[ "$REPORT_CORE_HEALTH" == "200" && "$REPORT_FAIR_HEALTH" == "200" ]]; then
-      break
-    fi
-    sleep 2
-  done
+  if statuses="$(wait_for_http_health "$core_url" "$fair_url" 60)"; then
+    read -r REPORT_CORE_HEALTH REPORT_FAIR_HEALTH <<<"$statuses"
+  else
+    read -r REPORT_CORE_HEALTH REPORT_FAIR_HEALTH <<<"$statuses"
+  fi
 
   if [[ "$REPORT_CORE_HEALTH" != "200" ]]; then
     local legacy_core_health
@@ -315,28 +196,97 @@ run_health_checks() {
   fi
 }
 
+run_login_smoke_deploy() {
+  step "Login smoke test (Core auth)"
+  if run_login_smoke_test "$CORE_PORT" "deploy"; then
+    REPORT_LOGIN_SMOKE="passed (HTTP 200, access_token present)"
+    echo "[OK] Login smoke test passed"
+  else
+    REPORT_LOGIN_SMOKE="failed"
+    die "Login smoke test failed"
+  fi
+}
+
+maybe_run_post_check() {
+  if [[ "${RUN_POST_CHECK:-1}" != "1" ]]; then
+    REPORT_POST_CHECK="skipped (RUN_POST_CHECK=0)"
+    return 0
+  fi
+  step "Post-deploy health audit (check-server.sh)"
+  if [[ "${EUID}" -ne 0 ]]; then
+    REPORT_POST_CHECK="skipped (requires sudo)"
+    warn "Skipping post-deploy check; run sudo ${SCRIPT_DIR}/check-server.sh manually"
+    return 0
+  fi
+  if SKIP_PUBLIC_CHECKS=1 "${SCRIPT_DIR}/check-server.sh"; then
+    REPORT_POST_CHECK="passed"
+  else
+    REPORT_POST_CHECK="failed"
+    die "Post-deploy check-server.sh reported failures"
+  fi
+}
+
 print_final_report() {
+  local health_label login_label
+  if [[ "$REPORT_CORE_HEALTH" == "200" && "$REPORT_FAIR_HEALTH" == "200" ]]; then
+    health_label="passed"
+  else
+    health_label="failed"
+  fi
+  if [[ "$REPORT_LOGIN_SMOKE" == passed* ]]; then
+    login_label="passed"
+  else
+    login_label="${REPORT_LOGIN_SMOKE}"
+  fi
+  if [[ "$REPORT_FRONTEND_BUILD" == "success" ]]; then
+    REPORT_FINAL_STATUS="deploy complete"
+  elif [[ "${DEPLOY_FAILED_STEP:-none}" != "none" ]]; then
+    REPORT_FINAL_STATUS="BROKEN"
+  else
+    REPORT_FINAL_STATUS="see details"
+  fi
+
   echo ""
-  echo "========== DEPLOY REPORT =========="
+  echo "========== DEPLOY ACCEPTANCE REPORT =========="
   echo "Failed step: ${DEPLOY_FAILED_STEP:-none}"
-  echo "Core systemd: ${REPORT_CORE_STATUS}"
-  echo "Fair CRM systemd: ${REPORT_FAIR_STATUS}"
-  echo "Frontend build: ${REPORT_FRONTEND_BUILD}"
-  echo "Core migration: ${REPORT_CORE_MIGRATION}"
-  echo "Fair CRM migration: ${REPORT_FAIR_MIGRATION}"
-  echo "Core dev seed: ${REPORT_CORE_SEED}"
-  echo "Core health (${CORE_HEALTH_PATH}): ${REPORT_CORE_HEALTH}"
-  echo "Fair CRM health (${FAIR_CRM_HEALTH_PATH}): ${REPORT_FAIR_HEALTH}"
-  echo "Git commit kyrox-core: ${REPORT_CORE_HASH}"
-  echo "Git commit fair-crm: ${REPORT_FAIR_HASH}"
-  echo "Core URL: http://127.0.0.1:${CORE_PORT}"
+  echo ""
+  echo "1. Scripts:"
+  echo "   scripts/server/bootstrap-server.sh"
+  echo "   scripts/server/deploy-all.sh"
+  echo "   scripts/server/check-server.sh"
+  echo ""
+  echo "2. Core seed: ${REPORT_CORE_SEED}"
+  echo "   email: ${DEV_LOGIN_EMAIL}"
+  echo "   password: ${DEV_LOGIN_PASSWORD}"
+  echo "   org id: ${DEV_LOGIN_ORG_ID}"
+  echo "   role: owner/admin; permissions: all fair_crm.*"
+  echo ""
+  echo "3. systemd:"
+  print_systemd_service_summary "$SCRIPT_DIR" | sed 's/^/   /'
+  echo ""
+  echo "4. nginx:"
+  echo "   /              -> ${FAIR_CRM_DIR}/frontend/dist"
+  echo "   /api/          -> 127.0.0.1:8001"
+  echo "   /kyrox-core/   -> 127.0.0.1:8000"
+  echo "   nginx -t: ${REPORT_NGINX_TEST}; reload: ${REPORT_NGINX}"
+  echo ""
+  echo "5. Health: Core ${REPORT_CORE_HEALTH}, Fair CRM ${REPORT_FAIR_HEALTH} (${health_label})"
+  echo "6. Login smoke: ${REPORT_LOGIN_SMOKE} (${login_label})"
+  echo "7. Frontend build: ${REPORT_FRONTEND_BUILD}"
+  echo "8. Migrations: Core ${REPORT_CORE_MIGRATION}, Fair CRM ${REPORT_FAIR_MIGRATION}"
+  echo "9. Git commits: kyrox-core=${REPORT_CORE_HASH}, fair-crm=${REPORT_FAIR_HASH}"
+  echo "10. Post-deploy check: ${REPORT_POST_CHECK}"
+  echo "11. Push: not run by deploy script (manual git push if needed)"
+  echo ""
+  echo "Core API: http://127.0.0.1:${CORE_PORT}"
   echo "Fair CRM API: http://127.0.0.1:${FAIR_CRM_PORT}"
-  echo "Frontend dist: ${FAIR_CRM_DIR}/frontend/dist"
-  echo "==================================="
+  echo "Public UI: ${SERVER_PUBLIC_URL}/"
+  echo "=============================================="
 }
 
 main() {
   step "Preflight commands"
+  require_linux
   require_cmd git
   require_cmd python3
   require_cmd curl
@@ -346,8 +296,12 @@ main() {
   mkdir -p "$(dirname "$KYROX_CORE_DIR")" "$(dirname "$FAIR_CRM_DIR")"
   log "KYROX_CORE_DIR=${KYROX_CORE_DIR}"
   log "FAIR_CRM_DIR=${FAIR_CRM_DIR}"
+  log "SERVER_PUBLIC_URL=${SERVER_PUBLIC_URL}"
 
   clone_or_update_repo "$KYROX_CORE_DIR" "$KYROX_CORE_REPO" "$KYROX_CORE_BRANCH" "${PROTECTED_KYROX_CORE_PATHS[@]}"
+
+  copy_env_if_missing "${KYROX_CORE_DIR}/backend/.env.example" "${KYROX_CORE_DIR}/backend/.env"
+  copy_env_if_missing "${KYROX_CORE_DIR}/.env.example" "${KYROX_CORE_DIR}/.env"
 
   if [[ -d "${FAIR_CRM_DIR}/.git" ]]; then
     clone_or_update_repo "$FAIR_CRM_DIR" "$(git -C "$FAIR_CRM_DIR" remote get-url origin)" "$FAIR_CRM_BRANCH" "${PROTECTED_FAIR_CRM_PATHS[@]}"
@@ -361,8 +315,8 @@ main() {
   setup_python_project "kyrox-core" "$KYROX_CORE_DIR" "${KYROX_CORE_DIR}/.venv"
   setup_python_project "fair-crm" "$FAIR_CRM_DIR" "${FAIR_CRM_DIR}/backend/.venv"
 
-  ensure_postgres_running
-  resolve_postgres_connection
+  ensure_postgres_container "$FAIR_CRM_DIR"
+  resolve_postgres_connection "$FAIR_CRM_DIR" "$KYROX_CORE_DIR"
 
   step "PostgreSQL connectivity"
   PGPASSWORD="${PG_PASS}" psql -h "${PG_HOST}" -p "${PG_PORT}" -U "${PG_USER}" -d postgres -c "SELECT 1" >/dev/null \
@@ -371,11 +325,11 @@ main() {
   ensure_database "kyrox_core"
   ensure_database "fair_crm"
 
-  validate_env_files
+  validate_env_files_required
 
   local core_db_url fair_db_url
-  core_db_url="$(read_env_key "${KYROX_CORE_DIR}/backend/.env" DATABASE_URL || read_env_key "${KYROX_CORE_DIR}/backend/.env" KYROX_CORE_DATABASE_URL || echo "postgresql://${PG_USER}:${PG_PASS}@${PG_HOST}:${PG_PORT}/kyrox_core")"
-  fair_db_url="$(read_env_key "${FAIR_CRM_DIR}/backend/.env" DATABASE_URL || read_env_key "${FAIR_CRM_DIR}/backend/.env" FAIR_CRM_DATABASE_URL || echo "postgresql+psycopg2://${PG_USER}:${PG_PASS}@${PG_HOST}:${PG_PORT}/fair_crm")"
+  core_db_url="$(resolve_core_db_url)"
+  fair_db_url="$(resolve_fair_db_url)"
 
   if run_alembic_upgrade "$KYROX_CORE_DIR" "${KYROX_CORE_DIR}/.venv/bin/python" "alembic.ini" "$core_db_url"; then
     REPORT_CORE_MIGRATION="success"
@@ -395,7 +349,26 @@ main() {
 
   manage_systemd_services
   build_frontend
+
+  if [[ "${SKIP_NGINX_RELOAD:-0}" != "1" ]]; then
+    step "Reload nginx"
+    if command -v nginx >/dev/null 2>&1; then
+      if run_root nginx -t >/dev/null 2>&1; then
+        REPORT_NGINX_TEST="ok"
+        run_root systemctl reload nginx
+        REPORT_NGINX="reloaded"
+      else
+        REPORT_NGINX_TEST="failed"
+        die "nginx -t failed before reload"
+      fi
+    else
+      REPORT_NGINX_TEST="skipped (nginx not installed)"
+    fi
+  fi
+
   run_health_checks
+  run_login_smoke_deploy
+  maybe_run_post_check
   print_final_report
 }
 
