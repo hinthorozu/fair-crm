@@ -388,9 +388,8 @@ export function CustomerDetailPage({
     setModal("create-activity");
   };
 
-  const openCreateParticipation = () => {
-    void loadFairsForForm();
-    void loadContactsForForm();
+  const openCreateParticipation = async () => {
+    await Promise.all([loadFairsForForm(), loadContactsForForm()]);
     setEditingParticipation(null);
     setParticipationFormInitial(undefined);
     setModal("create-participation");

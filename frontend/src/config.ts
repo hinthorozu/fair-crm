@@ -11,42 +11,19 @@ function envBool(value: string | undefined, fallback: boolean): boolean {
   return fallback;
 }
 
-const DEV_APP_ENVS = new Set(["development", "local", "test"]);
-
 function resolveAppEnv(): string {
   return envString(import.meta.env.VITE_APP_ENV, import.meta.env.MODE).toLowerCase();
 }
 
-/**
- * Dev bypass is active when:
- * - Vite dev server / non-production build, AND
- * - VITE_APP_ENV (or Vite MODE) is development|local|test, OR
- * - VITE_DEV_BYPASS_ENABLED=true
- *
- * Production builds (`import.meta.env.PROD`) never enable bypass, regardless of env vars.
- */
+/** Dev bypass is active only when VITE_DEV_BYPASS_ENABLED=true (any build, including production). */
 function resolveDevBypassEnabled(): boolean {
-  if (import.meta.env.PROD) {
-    return false;
-  }
-
-  const appEnv = resolveAppEnv();
-  if (DEV_APP_ENVS.has(appEnv)) {
-    return true;
-  }
-
-  const explicit = import.meta.env.VITE_DEV_BYPASS_ENABLED;
-  if (explicit !== undefined && explicit.trim() !== "") {
-    return envBool(explicit, false);
-  }
-
-  return false;
+  return envBool(import.meta.env.VITE_DEV_BYPASS_ENABLED, false);
 }
 
 export const config = {
   apiBaseUrl: envString(import.meta.env.VITE_API_BASE_URL, "http://127.0.0.1:8001"),
   appEnv: resolveAppEnv(),
-  /** True only in non-production builds when dev bypass rules match. */
+  /** True when VITE_DEV_BYPASS_ENABLED=true; production builds are not excluded. */
   devBypassEnabled: resolveDevBypassEnabled(),
   devBypassToken: envString(import.meta.env.VITE_DEV_BYPASS_TOKEN, "dev-bypass"),
   organizationId: envString(
@@ -55,7 +32,7 @@ export const config = {
   ),
 };
 
-/** Headers sent on every API request. Dev bypass headers are omitted in production builds. */
+/** Headers sent on every API request. Dev bypass headers follow VITE_DEV_BYPASS_ENABLED. */
 export function buildApiHeaders(extra: HeadersInit = {}): HeadersInit {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
