@@ -1,0 +1,20 @@
+[Unit]
+Description=Fair CRM Backend API
+After=network-online.target kyrox-core.service docker.service
+Wants=network-online.target
+Requires=kyrox-core.service
+
+[Service]
+Type=simple
+User=@DEPLOY_SERVICE_USER@
+Group=@DEPLOY_SERVICE_USER@
+WorkingDirectory=/opt/fair-crm/backend
+Environment=PYTHONPATH=/opt/fair-crm/backend
+EnvironmentFile=-/opt/fair-crm/backend/.env
+ExecStart=/opt/fair-crm/backend/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
