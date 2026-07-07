@@ -226,6 +226,24 @@ FAIR_CRM_SAFE_DEPLOY_RESTORE_PATHS=(
   "scripts/server/nginx"
 )
 
+FAIR_CRM_SERVER_EXECUTABLE_SCRIPTS=(
+  "scripts/server/bootstrap-server.sh"
+  "scripts/server/deploy-all.sh"
+  "scripts/server/check-server.sh"
+  "scripts/server/run-restore-job.sh"
+)
+
+ensure_fair_crm_server_scripts_executable() {
+  local dir="$1"
+  local rel script_path
+  for rel in "${FAIR_CRM_SERVER_EXECUTABLE_SCRIPTS[@]}"; do
+    script_path="${dir}/${rel}"
+    if [[ -f "$script_path" ]]; then
+      chmod +x "$script_path"
+    fi
+  done
+}
+
 restore_safe_fair_crm_deploy_files() {
   local dir="$1"
   REPORT_SAFE_DEPLOY_RESTORE="${REPORT_SAFE_DEPLOY_RESTORE:-not run}"
@@ -240,24 +258,25 @@ restore_safe_fair_crm_deploy_files() {
   if [[ -z "$dirty" ]]; then
     REPORT_SAFE_DEPLOY_RESTORE="none needed"
     log "No safe deploy file changes to restore"
-    return 0
-  fi
-
-  while IFS= read -r line; do
-    [[ -n "$line" ]] || continue
-    log "Restoring safe deploy path: ${line:3}"
-  done <<< "$dirty"
-
-  if git -C "$dir" checkout HEAD -- "${FAIR_CRM_SAFE_DEPLOY_RESTORE_PATHS[@]}" 2>/dev/null; then
-    :
-  elif git -C "$dir" restore --source=HEAD --worktree --staged -- "${FAIR_CRM_SAFE_DEPLOY_RESTORE_PATHS[@]}" 2>/dev/null; then
-    :
   else
-    die "Failed to restore safe deploy files in ${dir}"
+    while IFS= read -r line; do
+      [[ -n "$line" ]] || continue
+      log "Restoring safe deploy path: ${line:3}"
+    done <<< "$dirty"
+
+    if git -C "$dir" checkout HEAD -- "${FAIR_CRM_SAFE_DEPLOY_RESTORE_PATHS[@]}" 2>/dev/null; then
+      :
+    elif git -C "$dir" restore --source=HEAD --worktree --staged -- "${FAIR_CRM_SAFE_DEPLOY_RESTORE_PATHS[@]}" 2>/dev/null; then
+      :
+    else
+      die "Failed to restore safe deploy files in ${dir}"
+    fi
+
+    REPORT_SAFE_DEPLOY_RESTORE="safe deploy files restored before git pull"
+    log "${REPORT_SAFE_DEPLOY_RESTORE}"
   fi
 
-  REPORT_SAFE_DEPLOY_RESTORE="safe deploy files restored before git pull"
-  log "${REPORT_SAFE_DEPLOY_RESTORE}"
+  ensure_fair_crm_server_scripts_executable "$dir"
 }
 
 copy_env_if_missing() {
