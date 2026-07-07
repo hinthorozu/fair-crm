@@ -7,15 +7,15 @@
 # After restore work, run deploy-all.sh (upgrade head + restart only).
 #
 # Usage:
-#   sudo /opt/fair-crm/scripts/server/bootstrap-server.sh
+#   sudo bash /opt/fair-crm/scripts/server/bootstrap-server.sh
 #
 # Fresh Ubuntu (empty server):
 #   sudo apt update && sudo apt install -y git
 #   sudo git clone -b feat/dev-auto-start-v1 https://github.com/hinthorozu/fair-crm.git /opt/fair-crm
-#   sudo /opt/fair-crm/scripts/server/bootstrap-server.sh
+#   sudo bash /opt/fair-crm/scripts/server/bootstrap-server.sh
 #   sudo nano /opt/fair-crm/backend/.env
-#   sudo /opt/fair-crm/scripts/server/deploy-all.sh
-#   sudo /opt/fair-crm/scripts/server/check-server.sh
+#   sudo bash /opt/fair-crm/scripts/server/deploy-all.sh
+#   sudo bash /opt/fair-crm/scripts/server/check-server.sh
 #
 # Optional environment overrides:
 #   FAIR_CRM_DIR=/opt/fair-crm
@@ -122,8 +122,8 @@ print_bootstrap_report() {
   echo ""
   echo "Next steps:"
   echo "  1) Edit /opt/fair-crm/backend/.env (JWT, DATABASE_URL, KYROX_CORE_BASE_URL)"
-  echo "  2) sudo ${FAIR_CRM_DIR}/scripts/server/deploy-all.sh"
-  echo "  3) sudo ${FAIR_CRM_DIR}/scripts/server/check-server.sh"
+  echo "  2) sudo bash ${FAIR_CRM_DIR}/scripts/server/deploy-all.sh"
+  echo "  3) sudo bash ${FAIR_CRM_DIR}/scripts/server/check-server.sh"
   echo "======================================"
 }
 

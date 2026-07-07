@@ -3,7 +3,7 @@
 # Read-only health audit for an existing KYROX Core + Fair CRM server.
 #
 # Usage:
-#   sudo /opt/fair-crm/scripts/server/check-server.sh
+#   sudo bash /opt/fair-crm/scripts/server/check-server.sh
 #
 # Exit codes:
 #   0 = HEALTHY (or DEGRADED unless CHECK_STRICT=1)
