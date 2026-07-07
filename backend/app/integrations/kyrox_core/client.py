@@ -48,13 +48,22 @@ class HttpAuthorizationAdapter(AuthorizationPort):
     ) -> bool:
         _ = user_id
         path = f"/api/v1/organizations/{organization_id}/authorization/check"
-        response = self._http.request(
-            "POST",
-            path,
-            access_token=access_token,
-            organization_id=organization_id,
-            json={"permission_code": permission_code},
-        )
+        try:
+            response = self._http.request(
+                "POST",
+                path,
+                access_token=access_token,
+                organization_id=organization_id,
+                json={"permission_code": permission_code},
+            )
+        except httpx.RequestError as exc:
+            logger.warning(
+                "Core authorization check unreachable: permission=%s organization_id=%s error=%s",
+                permission_code,
+                organization_id,
+                exc,
+            )
+            raise ForbiddenError("Authorization service unavailable") from exc
         if response.status_code == 403:
             return False
         if response.status_code >= 400:

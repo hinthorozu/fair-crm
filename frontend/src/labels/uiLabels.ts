@@ -7,6 +7,7 @@ export const uiLabels = {
   searchActivity: "Aktivite ara...",
   searchFair: "Fuar ara...",
   navCustomers: "Müşteriler",
+  navDashboard: "Dashboard",
   navFairs: "Fuarlar",
   navTodos: "Görevler",
   navFollowUps: "Takipler",

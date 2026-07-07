@@ -17,6 +17,7 @@ import { MailOperationsPage } from "./pages/MailOperationsPage";
 import { DataOperationsPage } from "./pages/DataOperationsPage";
 import { DataOperationRunResultPage } from "./pages/DataOperationRunResultPage";
 import { FollowUpsPage } from "./pages/FollowUpsPage";
+import { DashboardPage } from "./pages/DashboardPage";
 import { TodoDetailPage } from "./pages/TodoDetailPage";
 import { TodosPage } from "./pages/TodosPage";
 import { DataIntegrationLayout } from "./components/dataIntegration/DataIntegrationLayout";
@@ -25,6 +26,7 @@ import { AppLayout } from "./components/layout/AppLayout";
 import {
   NavIconAdmin,
   NavIconCustomers,
+  NavIconDashboard,
   NavIconDataIntegration,
   NavIconFairs,
   NavIconFollowUps,
@@ -37,12 +39,14 @@ import { adminLabels } from "./labels/adminLabels";
 import { followUpLabels } from "./labels/followUpLabels";
 import { labels } from "./labels";
 import { scraperLabels } from "./labels/scraperLabels";
+import { dashboardLabels } from "./labels/dashboardLabels";
 import { resolveRunDetailPath } from "./utils/enrichmentRunRouting";
 import { isCustomerContactEnrichmentAdapter } from "./utils/enrichmentAdapter";
 import { useDocumentTitle } from "./hooks/useDocumentTitle";
 import "./styles.css";
 
 type AppRoute =
+  | "/dashboard"
   | "/customers"
   | "/fairs"
   | "/fairs/:id"
@@ -193,6 +197,9 @@ function parseRoute(location: string): ParsedRoute {
     }
     return { route: "/todos" };
   }
+  if (pathname === "/dashboard" || pathname === "/") {
+    return { route: "/dashboard" };
+  }
   if (pathname === "/customers") {
     return { route: "/customers" };
   }
@@ -200,10 +207,7 @@ function parseRoute(location: string): ParsedRoute {
   if (customerMatch) {
     return { route: "/customers/:id", customerId: customerMatch[1] };
   }
-  if (pathname === "/") {
-    return { route: "/customers" };
-  }
-  return { route: "/customers" };
+  return { route: "/dashboard" };
 }
 
 function splitPath(path: string): { pathname: string; search: string } {
@@ -281,9 +285,9 @@ export function App() {
   React.useEffect(() => {
     const path = window.location.pathname;
     if (path === "/") {
-      const next = `/customers${window.location.search}`;
+      const next = `/dashboard${window.location.search}`;
       window.history.replaceState(null, "", next);
-      setParsed(parseRoute("/customers"));
+      setParsed(parseRoute("/dashboard"));
       return;
     }
     if (path === "/imports") {
@@ -331,6 +335,12 @@ export function App() {
     const path = `/customers/${customerId}`;
     navigate(path);
     setParsed(parseRoute(path));
+    setSidebarOpen(false);
+  };
+
+  const goToDashboard = () => {
+    navigate("/dashboard");
+    setParsed({ route: "/dashboard" });
     setSidebarOpen(false);
   };
 
@@ -429,6 +439,7 @@ export function App() {
     setSidebarOpen(false);
   };
 
+  const isDashboardActive = parsed.route === "/dashboard";
   const isCustomersActive = parsed.route === "/customers" || parsed.route === "/customers/:id";
   const isFairsActive = parsed.route === "/fairs" || parsed.route === "/fairs/:id";
   const isTodosActive =
@@ -438,80 +449,82 @@ export function App() {
   const isAdminActive = isAdminRoute(parsed.route);
 
   const breadcrumbs =
-    parsed.route === "/customers/:id" && parsed.customerId
+    parsed.route === "/dashboard"
+      ? [{ label: dashboardLabels.pageTitle, current: true }]
+      : parsed.route === "/customers/:id" && parsed.customerId
       ? [
-          { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+          { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
           { label: labels.customers, onClick: goToCustomers },
           { label: customerName ?? uiLabels.navCustomers, current: true },
         ]
       : parsed.route === "/fairs/:id" && parsed.fairId
         ? [
-            { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+            { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
             { label: uiLabels.navFairs, onClick: goToFairs },
             { label: fairName ?? uiLabels.navFairs, current: true },
           ]
         : parsed.route === "/fairs"
           ? [
-              { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+              { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
               { label: uiLabels.navFairs, onClick: goToFairs },
               { label: uiLabels.navFairs, current: true },
             ]
           : parsed.route === "/todos/:id" && parsed.todoId
             ? [
-                { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
                 { label: uiLabels.navTodos, onClick: goToTodos },
                 { label: todoTitle ?? uiLabels.navTodos, current: true },
               ]
           : parsed.route === "/todos"
             ? [
-                { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
                 { label: uiLabels.navTodos, current: true },
               ]
           : parsed.route === "/follow-ups"
             ? [
-                { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
                 { label: followUpLabels.pageTitle, current: true },
               ]
           : parsed.route === "/data-integration/adapters/:adapterKey" && parsed.adapterKey
             ? [
-                { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
                 { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
                 { label: scraperLabels.pageTitle, onClick: goToAdapters },
                 { label: adapterName ?? parsed.adapterKey, current: true },
               ]
             : parsed.route === "/data-integration/adapters"
               ? [
-                  { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                  { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
                   { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
                   { label: scraperLabels.pageTitle, current: true },
                 ]
               : parsed.route === "/data-integration/runs/:runId"
               ? [
-                  { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                  { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
                   { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
                   { label: scraperLabels.runHistoryTitle, onClick: goToRunHistory },
                   { label: scraperLabels.enrichmentRunDetailTitle, current: true },
                 ]
             : parsed.route === "/data-integration/scraper-test"
               ? [
-                  { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                  { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
                   { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
                   { label: scraperLabels.testPageTitle, current: true },
                 ]
             : parsed.route === "/data-integration/run-history"
               ? [
-                  { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                  { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
                   { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
                   { label: scraperLabels.runHistoryTitle, current: true },
                 ]
             : isDiActive
             ? [
-                { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
                 { label: uiLabels.navImports, current: true },
               ]
             : isAdminActive
               ? [
-                  { label: uiLabels.breadcrumbHome, onClick: goToCustomers },
+                  { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
                   { label: uiLabels.navAdmin, onClick: () => goToAdmin() },
                   {
                     label:
@@ -529,9 +542,21 @@ export function App() {
                     current: true,
                   },
                 ]
-              : [{ label: labels.customers, current: true }];
+              : parsed.route === "/customers"
+                ? [
+                    { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
+                    { label: labels.customers, current: true },
+                  ]
+              : [{ label: dashboardLabels.pageTitle, current: true }];
 
   const navItems = [
+    {
+      path: "/dashboard",
+      label: uiLabels.navDashboard,
+      icon: <NavIconDashboard />,
+      active: isDashboardActive,
+      onClick: (e: React.MouseEvent) => handleNav("/dashboard", e),
+    },
     {
       path: "/customers",
       label: uiLabels.navCustomers,
@@ -694,6 +719,16 @@ export function App() {
       sidebarOpen={sidebarOpen}
       onToggleSidebar={() => setSidebarOpen((v) => !v)}
     >
+      {parsed.route === "/dashboard" && (
+        <DashboardPage
+          onOpenCustomer={goToCustomerDetail}
+          onNavigate={(path) => {
+            navigate(path);
+            setParsed(parseRoute(path));
+            setSidebarOpen(false);
+          }}
+        />
+      )}
       {parsed.route === "/fairs" && <FairsPage onOpenDetail={goToFairDetail} />}
       {parsed.route === "/fairs/:id" && parsed.fairId && (
         <FairDetailPage
