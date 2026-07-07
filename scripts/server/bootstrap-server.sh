@@ -130,6 +130,7 @@ main() {
   step "Preflight"
   require_linux
   require_root_or_sudo
+  resolve_deploy_service_user
   log "FAIR_CRM_DIR=${FAIR_CRM_DIR}"
   log "KYROX_CORE_DIR=${KYROX_CORE_DIR}"
   log "DEPLOY_SERVICE_USER=${DEPLOY_SERVICE_USER}"

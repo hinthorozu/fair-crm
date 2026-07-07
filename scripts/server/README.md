@@ -56,6 +56,8 @@ with `dev@example.com` / `DevPassword123!` and require HTTP 200 + `access_token`
 - `Restart=always`, `RestartSec=5`
 - Bind `127.0.0.1` only for API services
 - Templates: `scripts/server/systemd/kyrox-core.service`, `fair-crm-backend.service`
+- Placeholders use `__VAR__` (rendered by `deploy-all.sh`; legacy `@VAR@` still accepted)
+- `deploy-all.sh` runs `systemd-analyze verify` on rendered units before install
 
 ## Protected files (never overwritten)
 

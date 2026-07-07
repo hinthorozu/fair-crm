@@ -331,11 +331,13 @@ main() {
   require_cmd python3
   require_cmd curl
   require_cmd psql
+  resolve_deploy_service_user
 
   step "Verify target directories"
   mkdir -p "$(dirname "$KYROX_CORE_DIR")" "$(dirname "$FAIR_CRM_DIR")"
   log "KYROX_CORE_DIR=${KYROX_CORE_DIR} (branch ${KYROX_CORE_BRANCH})"
   log "FAIR_CRM_DIR=${FAIR_CRM_DIR} (branch ${FAIR_CRM_BRANCH})"
+  log "DEPLOY_SERVICE_USER=${DEPLOY_SERVICE_USER}"
   log "SERVER_PUBLIC_URL=${SERVER_PUBLIC_URL}"
 
   clone_or_update_repo "$KYROX_CORE_DIR" "$KYROX_CORE_REPO" "$KYROX_CORE_BRANCH" "${PROTECTED_KYROX_CORE_PATHS[@]}"

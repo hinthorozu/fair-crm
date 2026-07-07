@@ -777,28 +777,124 @@ check_alembic_at_head() {
   fi
 }
 
+escape_sed_replacement() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//|/\\|}"
+  value="${value//&/\\&}"
+  printf '%s' "$value"
+}
+
+resolve_deploy_service_user() {
+  local user="${DEPLOY_SERVICE_USER:-}"
+
+  if [[ -z "$user" && -n "${SUDO_USER:-}" ]]; then
+    user="$SUDO_USER"
+  fi
+  if [[ -z "$user" && -n "${SUDO_UID:-}" ]]; then
+    user="$(getent passwd "$SUDO_UID" 2>/dev/null | cut -d: -f1 || true)"
+  fi
+  if [[ -z "$user" ]]; then
+    user="$(id -un 2>/dev/null || true)"
+  fi
+
+  [[ -n "$user" ]] || die "Cannot resolve DEPLOY_SERVICE_USER for systemd units"
+  if ! getent passwd "$user" >/dev/null 2>&1; then
+    die "DEPLOY_SERVICE_USER '${user}' does not exist on this system"
+  fi
+
+  DEPLOY_SERVICE_USER="$user"
+}
+
+normalize_template_output() {
+  local file="$1"
+  if grep -q $'\r' "$file" 2>/dev/null; then
+    tr -d '\r' <"$file" >"${file}.tmp"
+    mv "${file}.tmp" "$file"
+  fi
+}
+
 render_template() {
   local template="$1"
   local output="$2"
-  sed \
-    -e "s|@DEPLOY_SERVICE_USER@|${DEPLOY_SERVICE_USER}|g" \
-    -e "s|@KYROX_CORE_DIR@|${KYROX_CORE_DIR}|g" \
-    -e "s|@FAIR_CRM_DIR@|${FAIR_CRM_DIR}|g" \
-    -e "s|@SERVER_PUBLIC_URL@|${SERVER_PUBLIC_URL:-$(detect_server_public_url)}|g" \
-    "$template" >"$output"
+  local service_user core_dir fair_dir public_url
+  local -a tokens=(
+    DEPLOY_SERVICE_USER
+    KYROX_CORE_DIR
+    FAIR_CRM_DIR
+    SERVER_PUBLIC_URL
+  )
+  local token value escaped pattern
+
+  [[ -f "$template" ]] || die "Template missing: ${template}"
+
+  resolve_deploy_service_user
+  core_dir="${KYROX_CORE_DIR:-/opt/kyrox-core}"
+  fair_dir="${FAIR_CRM_DIR:-/opt/fair-crm}"
+  public_url="${SERVER_PUBLIC_URL:-$(detect_server_public_url)}"
+  service_user="$DEPLOY_SERVICE_USER"
+
+  [[ -n "$core_dir" && -n "$fair_dir" && -n "$public_url" ]] \
+    || die "Template render requires KYROX_CORE_DIR, FAIR_CRM_DIR, and SERVER_PUBLIC_URL"
+
+  cp "$template" "$output"
+
+  for token in "${tokens[@]}"; do
+    case "$token" in
+      DEPLOY_SERVICE_USER) value="$service_user" ;;
+      KYROX_CORE_DIR) value="$core_dir" ;;
+      FAIR_CRM_DIR) value="$fair_dir" ;;
+      SERVER_PUBLIC_URL) value="$public_url" ;;
+      *) die "Unknown template token: ${token}" ;;
+    esac
+    escaped="$(escape_sed_replacement "$value")"
+    for pattern in "__${token}__" "@${token}@"; do
+      sed -i "s|${pattern}|${escaped}|g" "$output"
+    done
+  done
+
+  normalize_template_output "$output"
+}
+
+assert_rendered_systemd_unit() {
+  local unit_file="$1"
+  local label="${2:-systemd unit}"
+
+  [[ -f "$unit_file" ]] || die "${label} missing after render: ${unit_file}"
+
+  if grep -Eq '@(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR|SERVER_PUBLIC_URL)@|__(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR|SERVER_PUBLIC_URL)__' "$unit_file"; then
+    die "${label} has unreplaced template placeholders"
+  fi
+
+  local unit_user unit_group
+  unit_user="$(grep -E '^User=' "$unit_file" | head -n1 | cut -d= -f2- || true)"
+  unit_group="$(grep -E '^Group=' "$unit_file" | head -n1 | cut -d= -f2- || true)"
+  [[ -n "$unit_user" ]] || die "${label} is missing User="
+  [[ -n "$unit_group" ]] || die "${label} is missing Group="
+  getent passwd "$unit_user" >/dev/null 2>&1 || die "${label} User=${unit_user} is not a valid system user"
+  getent group "$unit_group" >/dev/null 2>&1 || die "${label} Group=${unit_group} is not a valid system group"
+
+  if command -v systemd-analyze >/dev/null 2>&1; then
+    local verify_out verify_rc=0
+    verify_out="$(systemd-analyze verify "$unit_file" 2>&1)" || verify_rc=$?
+    if [[ "$verify_rc" -ne 0 ]]; then
+      die "${label} failed systemd-analyze verify: ${verify_out}"
+    fi
+  fi
 }
 
 install_systemd_unit() {
-  local template="$1"
+  local rendered_unit="$1"
   local service_name="$2"
   local dest="/etc/systemd/system/${service_name}"
   step "Install systemd unit ${service_name}"
-  [[ -f "$template" ]] || die "systemd template missing: ${template}"
+  [[ -f "$rendered_unit" ]] || die "Rendered systemd unit missing: ${rendered_unit}"
+  assert_rendered_systemd_unit "$rendered_unit" "${service_name}"
   if [[ "${EUID}" -ne 0 ]]; then
     warn "Not running as root; skipping systemd install for ${service_name}"
     return 0
   fi
-  cp "$template" "$dest"
+  cp "$rendered_unit" "$dest"
   chmod 644 "$dest"
 }
 
@@ -1538,7 +1634,15 @@ print_systemd_service_audit() {
     local port="8000"
     [[ "$service" == "fair-crm-backend.service" ]] && port="8001"
     if [[ -f "$installed" ]]; then
-      if grep -q '127.0.0.1' "$installed" && grep -q 'Restart=always' "$installed"; then
+      local verify_rc=0 verify_out=""
+      if command -v systemd-analyze >/dev/null 2>&1; then
+        verify_out="$(systemd-analyze verify "$installed" 2>&1)" || verify_rc=$?
+      fi
+      if [[ "$verify_rc" -ne 0 ]]; then
+        check_fail "${service} unit valid (systemd-analyze: ${verify_out})"
+      elif grep -Eq '@(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR|SERVER_PUBLIC_URL)@|__(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR|SERVER_PUBLIC_URL)__' "$installed"; then
+        check_fail "${service} unit valid (unreplaced template placeholders in ${installed})"
+      elif grep -q '127.0.0.1' "$installed" && grep -q 'Restart=always' "$installed"; then
         check_pass "${service} unit configured (127.0.0.1:${port}, Restart=always)"
       else
         check_warn_item "${service} unit configured (verify bind/Restart in ${installed})"
