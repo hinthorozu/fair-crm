@@ -21,6 +21,7 @@ from app.modules.system_admin.api.dependencies import (
     get_list_backups_use_case,
     get_list_restore_jobs_use_case,
     get_get_restore_job_use_case,
+    get_get_restore_job_log_use_case,
     get_restore_backup_from_upload_use_case,
     get_restore_backup_use_case,
     require_admin_create_permission,
@@ -33,6 +34,7 @@ from app.modules.system_admin.api.schemas import (
     CreateSystemBackupResponse,
     DeleteSystemBackupResponse,
     ErrorResponse,
+    RestoreJobLogResponse,
     SystemBackupRestoreJobResponse,
     SystemBackupResponse,
 )
@@ -274,6 +276,38 @@ def get_restore_job(
     except LookupError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return _to_restore_job_response(result)
+
+
+@router.get(
+    "/backups/restore-jobs/{job_id}/log",
+    response_model=RestoreJobLogResponse,
+    responses={
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        400: {"model": ErrorResponse},
+    },
+    summary="Get restore job log content",
+)
+def get_restore_job_log(
+    job_id: UUID,
+    auth: AuthContext = Depends(require_admin_read_permission),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case=Depends(get_get_restore_job_log_use_case),
+) -> RestoreJobLogResponse:
+    try:
+        result = use_case.execute(
+            organization_id=auth.organization_id,
+            user_id=auth.user_id,
+            access_token=access_token(credentials),
+            job_id=job_id,
+        )
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return RestoreJobLogResponse.model_validate(result.__dict__)
 
 
 @router.get(

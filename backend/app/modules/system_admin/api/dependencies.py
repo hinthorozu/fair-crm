@@ -17,6 +17,7 @@ from app.integrations.kyrox_core.dev_bypass import (
 from app.integrations.kyrox_core.ports import AuthorizationPort
 from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
 from app.modules.system_admin.application.restore_job_service import (
+    GetRestoreJobLogUseCase,
     GetRestoreJobUseCase,
     ListRestoreJobsUseCase,
 )
@@ -225,6 +226,13 @@ def get_get_restore_job_use_case(
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
 ) -> GetRestoreJobUseCase:
     return GetRestoreJobUseCase(restore_job_repository, backup_repository, authorization)
+
+
+def get_get_restore_job_log_use_case(
+    restore_job_repository: SqlAlchemySystemBackupRestoreJobRepository = Depends(get_restore_job_repository),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+) -> GetRestoreJobLogUseCase:
+    return GetRestoreJobLogUseCase(restore_job_repository, authorization)
 
 
 def get_delete_backup_use_case(

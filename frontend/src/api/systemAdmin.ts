@@ -10,6 +10,7 @@ import type {
   DeleteSystemBackupResponse,
   SystemBackup,
   SystemBackupRestoreJobResponse,
+  RestoreJobLogResponse,
 } from "../types/systemBackup";
 
 export { ApiError };
@@ -173,4 +174,8 @@ export async function listRestoreJobsTable(
 
 export async function getRestoreJob(id: string): Promise<SystemBackupRestoreJobResponse> {
   return apiRequest<SystemBackupRestoreJobResponse>(`/api/v1/admin/backups/restore-jobs/${id}`);
+}
+
+export async function getRestoreJobLog(id: string): Promise<RestoreJobLogResponse> {
+  return apiRequest<RestoreJobLogResponse>(`/api/v1/admin/backups/restore-jobs/${id}/log`);
 }

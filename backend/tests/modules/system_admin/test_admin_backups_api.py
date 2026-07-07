@@ -130,6 +130,12 @@ def backups_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr("app.modules.system_admin.application.backup_service.relative_repo_path", lambda path: str(path.resolve().relative_to(root.resolve())).replace("\\", "/"))
     monkeypatch.setattr("app.shared.database_backup.paths.get_restore_uploads_dir", lambda repo_root=None: root / "data" / "restore_uploads")
     monkeypatch.setattr("app.shared.database_backup.paths.get_restore_logs_dir", lambda repo_root=None: root / "data" / "restore_logs")
+    monkeypatch.setattr("app.modules.system_admin.application.restore_job_service.get_repo_root", lambda: root)
+    monkeypatch.setattr("app.modules.system_admin.application.restore_job_service.get_restore_logs_dir", lambda repo_root=None: root / "data" / "restore_logs")
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.relative_repo_path",
+        lambda path: str(path.resolve().relative_to(root.resolve())).replace("\\", "/"),
+    )
     monkeypatch.setattr(
         "app.modules.system_admin.application.backup_job_runner.pg_dump_custom",
         _fake_pg_dump,
@@ -266,6 +272,95 @@ def test_restore_completed_backup(client, auth_headers, backups_root, monkeypatc
     assert detail.status_code == 200
     assert detail.json()["status"] == "manual_restore_required"
     assert detail.json()["source_file_name"]
+
+
+def test_restore_job_log_endpoint_returns_queued_log(client, auth_headers, backups_root, monkeypatch):
+    from app.shared.database_backup.engine import BackupVerificationResult
+
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+
+    create = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
+    backup_id = _first_item(create.json())["id"]
+    restore = client.post(f"/api/v1/admin/backups/{backup_id}/restore", headers=auth_headers)
+    job_id = restore.json()["id"]
+    assert restore.json()["restore_log_path"]
+
+    log = client.get(f"/api/v1/admin/backups/restore-jobs/{job_id}/log", headers=auth_headers)
+    assert log.status_code == 200
+    payload = log.json()
+    assert payload["job_id"] == job_id
+    assert payload["status"] == "manual_restore_required"
+    assert payload["exists"] is True
+    assert "[restore job queued]" in payload["content"]
+    assert "source db: fair_crm" in payload["content"]
+
+
+def test_restore_job_log_endpoint_not_found(client, auth_headers):
+    log = client.get(
+        "/api/v1/admin/backups/restore-jobs/00000000-0000-4000-8000-000000000099/log",
+        headers=auth_headers,
+    )
+    assert log.status_code == 404
+
+
+def test_restore_job_log_endpoint_after_runner(client, auth_headers, backups_root, monkeypatch, db_session):
+    from uuid import UUID
+
+    from app.shared.database_backup.engine import BackupVerificationResult
+    from app.modules.system_admin.application.restore_job_service import (
+        RestoreJobMaintenanceCommand,
+        RestoreJobMaintenanceRunner,
+    )
+
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.pg_restore_custom",
+        lambda **kwargs: None,
+    )
+    monkeypatch.setattr("app.modules.system_admin.application.restore_job_service.get_repo_root", lambda: backups_root)
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.subprocess.run",
+        lambda *args, **kwargs: type("Proc", (), {"returncode": 0, "stdout": "ok", "stderr": ""})(),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.run_post_restore_health_check",
+        _success_post_restore_health,
+    )
+
+    create = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
+    backup_id = _first_item(create.json())["id"]
+    restore = client.post(f"/api/v1/admin/backups/{backup_id}/restore", headers=auth_headers)
+    job_id = UUID(restore.json()["id"])
+
+    runner = RestoreJobMaintenanceRunner(session_factory=lambda: db_session)
+    assert (
+        runner.run(
+            RestoreJobMaintenanceCommand(
+                job_id=job_id,
+                target_database_url="postgresql://postgres:postgres@localhost:5432/fair_crm",
+                allow_restore=True,
+            )
+        )
+        == 0
+    )
+
+    log = client.get(f"/api/v1/admin/backups/restore-jobs/{str(job_id)}/log", headers=auth_headers)
+    assert log.status_code == 200
+    payload = log.json()
+    assert payload["exists"] is True
+    assert payload["status"] == "completed"
+    assert "pg_restore completed" in payload["content"]
+    assert "completed" in payload["content"]
 
 
 def test_restore_rejects_non_dump_format(client, auth_headers, backups_root):
@@ -560,6 +655,44 @@ def test_restore_kyrox_core_backup(client, auth_headers, backups_root, monkeypat
     body = restore.json()
     assert body["source_database_key"] == "kyrox_core"
     assert body["target_database_key"] == "kyrox_core"
+
+
+def test_resolve_restore_job_log_path_rejects_traversal(backups_root):
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    from app.modules.system_admin.application.restore_job_service import resolve_restore_job_log_path
+    from app.modules.system_admin.domain.entities import SystemBackupRestoreJob
+    from app.modules.system_admin.domain.value_objects import RestoreJobSourceType, RestoreJobStatus
+    from app.shared.database_backup.database_keys import DatabaseKey
+
+    now = datetime.now(tz=UTC)
+    job = SystemBackupRestoreJob(
+        id=uuid4(),
+        organization_id=uuid4(),
+        source_type=RestoreJobSourceType.EXISTING_BACKUP,
+        source_database_key=DatabaseKey.FAIR_CRM,
+        target_database_key=DatabaseKey.FAIR_CRM,
+        backup_id=uuid4(),
+        uploaded_file_path=None,
+        source_file_name="faircrm_backup_test.dump",
+        checksum_sha256=None,
+        status=RestoreJobStatus.MANUAL_RESTORE_REQUIRED,
+        notes=None,
+        requested_by_user_id=uuid4(),
+        requested_by_email="dev@example.com",
+        requested_at=now,
+        started_at=None,
+        completed_at=None,
+        failed_at=None,
+        error_message=None,
+        restore_log_path="../backups/evil.log",
+        created_at=now,
+        updated_at=now,
+    )
+
+    with pytest.raises(ValueError, match="escapes restore logs directory"):
+        resolve_restore_job_log_path(job)
 
 
 def test_resolve_backup_path_rejects_traversal():
