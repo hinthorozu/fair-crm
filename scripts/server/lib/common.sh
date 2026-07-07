@@ -218,6 +218,48 @@ ensure_git_ff_pull() {
   git -C "$dir" pull --ff-only origin "${branch}"
 }
 
+FAIR_CRM_SAFE_DEPLOY_RESTORE_PATHS=(
+  "scripts/server/bootstrap-server.sh"
+  "scripts/server/deploy-all.sh"
+  "scripts/server/check-server.sh"
+  "scripts/server/systemd"
+  "scripts/server/nginx"
+)
+
+restore_safe_fair_crm_deploy_files() {
+  local dir="$1"
+  REPORT_SAFE_DEPLOY_RESTORE="${REPORT_SAFE_DEPLOY_RESTORE:-not run}"
+
+  [[ -d "${dir}/.git" ]] || return 0
+
+  step "Restore safe deploy files before git pull"
+  local dirty
+  dirty="$(
+    git -C "$dir" status --porcelain -- "${FAIR_CRM_SAFE_DEPLOY_RESTORE_PATHS[@]}" 2>/dev/null || true
+  )"
+  if [[ -z "$dirty" ]]; then
+    REPORT_SAFE_DEPLOY_RESTORE="none needed"
+    log "No safe deploy file changes to restore"
+    return 0
+  fi
+
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    log "Restoring safe deploy path: ${line:3}"
+  done <<< "$dirty"
+
+  if git -C "$dir" checkout HEAD -- "${FAIR_CRM_SAFE_DEPLOY_RESTORE_PATHS[@]}" 2>/dev/null; then
+    :
+  elif git -C "$dir" restore --source=HEAD --worktree --staged -- "${FAIR_CRM_SAFE_DEPLOY_RESTORE_PATHS[@]}" 2>/dev/null; then
+    :
+  else
+    die "Failed to restore safe deploy files in ${dir}"
+  fi
+
+  REPORT_SAFE_DEPLOY_RESTORE="safe deploy files restored before git pull"
+  log "${REPORT_SAFE_DEPLOY_RESTORE}"
+}
+
 copy_env_if_missing() {
   local example="$1"
   local target="$2"

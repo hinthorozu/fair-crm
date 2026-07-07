@@ -78,6 +78,7 @@ REPORT_NGINX="skipped"
 REPORT_NGINX_TEST="skipped"
 REPORT_POST_CHECK="skipped"
 REPORT_LOGIN_SMOKE="not run"
+REPORT_SAFE_DEPLOY_RESTORE="not run"
 REPORT_FINAL_STATUS="unknown"
 
 clone_or_update_repo() {
@@ -289,8 +290,9 @@ print_final_report() {
   echo "7. Frontend build: ${REPORT_FRONTEND_BUILD}"
   echo "8. Migrations: Core ${REPORT_CORE_MIGRATION}, Fair CRM ${REPORT_FAIR_MIGRATION}"
   echo "9. Git commits: kyrox-core=${REPORT_CORE_HASH}, fair-crm=${REPORT_FAIR_HASH}"
-  echo "10. Post-deploy check: ${REPORT_POST_CHECK}"
-  echo "11. Push: not run by deploy script (manual git push if needed)"
+  echo "10. Safe deploy restore: ${REPORT_SAFE_DEPLOY_RESTORE}"
+  echo "11. Post-deploy check: ${REPORT_POST_CHECK}"
+  echo "12. Push: not run by deploy script (manual git push if needed)"
   echo ""
   echo "Core API: http://127.0.0.1:${CORE_PORT}"
   echo "Fair CRM API: http://127.0.0.1:${FAIR_CRM_PORT}"
@@ -301,6 +303,7 @@ print_final_report() {
 log_deploy_safety_contract() {
   step "Deploy safety contract (backup/restore compatible)"
   log "Will run: git pull, pip/npm install, alembic upgrade head, systemd restart"
+  log "Will restore safe deploy scripts/templates before fair-crm git pull when locally modified"
   log "Will not: drop/truncate DB, pg_restore, touch backups/ or restore data dirs, overwrite .env"
 }
 
@@ -325,6 +328,7 @@ main() {
   ensure_core_backend_env "$KYROX_CORE_DIR" || die "Cannot create Core backend .env at ${KYROX_CORE_DIR}/backend/.env"
 
   if [[ -d "${FAIR_CRM_DIR}/.git" ]]; then
+    restore_safe_fair_crm_deploy_files "$FAIR_CRM_DIR"
     clone_or_update_repo "$FAIR_CRM_DIR" "$(git -C "$FAIR_CRM_DIR" remote get-url origin)" "$FAIR_CRM_BRANCH" "${PROTECTED_FAIR_CRM_PATHS[@]}"
   else
     warn "Fair CRM repo not initialized at ${FAIR_CRM_DIR}; using working tree without git pull"
