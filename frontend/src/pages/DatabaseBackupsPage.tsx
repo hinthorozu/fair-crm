@@ -220,6 +220,17 @@ function inferDatabaseKeyFromFileName(fileName: string): DatabaseKey | null {
   return null;
 }
 
+function renderBackupDatabaseCell(backup: SystemBackup): React.ReactNode {
+  return (
+    <div className="backup-database-cell">
+      <span className="backup-database-label">
+        {backup.database_label ?? databaseKeyLabel(backup.database_key)}
+      </span>
+      <span className="backup-database-key">{backup.database_key}</span>
+    </div>
+  );
+}
+
 function buildBackupColumns(handlers: {
   onDownload: (backup: SystemBackup) => void;
   onDetails: (backup: SystemBackup) => void;
@@ -228,17 +239,11 @@ function buildBackupColumns(handlers: {
   return [
     {
       key: "database_key",
-      title: adminLabels.colDatabaseKey,
+      title: adminLabels.colDatabase,
       sortable: true,
-      className: "col-format",
-      render: (backup) => <span className="mono">{backup.database_key}</span>,
-    },
-    {
-      key: "database_label",
-      title: adminLabels.colDatabaseLabel,
-      sortable: true,
-      className: "col-format",
-      render: (backup) => backup.database_label ?? databaseKeyLabel(backup.database_key),
+      sortField: "database_key",
+      className: "col-database",
+      render: (backup) => renderBackupDatabaseCell(backup),
     },
     {
       key: "file_name",
@@ -257,6 +262,27 @@ function buildBackupColumns(handlers: {
       sortable: true,
       className: "col-format",
       render: (backup) => formatLabel(backup.backup_format),
+    },
+    {
+      key: "status",
+      title: adminLabels.colStatus,
+      sortable: true,
+      className: "col-status",
+      render: (backup) => (
+        <div className="backup-status-cell">
+          <Badge variant={statusBadgeVariant(backup.status)}>{statusLabel(backup.status)}</Badge>
+          {backup.status === "running" && (
+            <span className="backup-progress-hint">{stageLabel(backup.progress_stage)}</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "file_size",
+      title: adminLabels.colSize,
+      sortable: true,
+      className: "col-size",
+      render: (backup) => formatBytes(backup.file_size),
     },
     {
       key: "started_at",
@@ -278,45 +304,6 @@ function buildBackupColumns(handlers: {
           </span>
         );
       },
-    },
-    {
-      key: "file_size",
-      title: adminLabels.colSize,
-      sortable: true,
-      className: "col-size",
-      render: (backup) => formatBytes(backup.file_size),
-    },
-    {
-      key: "duration_seconds",
-      title: adminLabels.colDuration,
-      sortable: true,
-      className: "col-duration",
-      render: (backup) => formatDuration(backup.duration_seconds),
-    },
-    {
-      key: "status",
-      title: adminLabels.colStatus,
-      sortable: true,
-      className: "col-status",
-      render: (backup) => (
-        <div className="backup-status-cell">
-          <Badge variant={statusBadgeVariant(backup.status)}>{statusLabel(backup.status)}</Badge>
-          {backup.status === "running" && (
-            <div className="backup-progress-hint">{stageLabel(backup.progress_stage)}</div>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: "notes",
-      title: adminLabels.colNotes,
-      sortable: true,
-      className: "col-notes",
-      render: (backup) => (
-        <span className="backup-notes-preview" title={backup.notes ?? undefined}>
-          {backup.notes?.trim() ? backup.notes : "—"}
-        </span>
-      ),
     },
     {
       key: "actions",
@@ -1151,7 +1138,7 @@ export function DatabaseBackupsPage() {
         table={table}
         columns={columns}
         rowKey={(backup) => backup.id}
-        skeletonCols={11}
+        skeletonCols={8}
         className="backups-table"
         emptyState={
           <EmptyState title={adminLabels.backupsEmpty} description={adminLabels.backupsEmptyDescription} />
