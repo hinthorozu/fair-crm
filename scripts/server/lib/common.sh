@@ -1034,46 +1034,150 @@ check_http_endpoints() {
   fi
 }
 
+login_smoke_parse_response_body() {
+  local body_file="$1"
+  python3 -c '
+import json
+import sys
+
+path = sys.argv[1]
+try:
+    with open(path, encoding="utf-8") as handle:
+        raw = handle.read()
+except OSError as exc:
+    print(f"read_error={exc}")
+    raise SystemExit(1)
+
+if not raw.strip():
+    print("empty_body")
+    raise SystemExit(1)
+
+try:
+    data = json.loads(raw)
+except json.JSONDecodeError as exc:
+    preview = raw.replace("\n", " ").replace("\r", " ")[:300]
+    print(f"json_error={exc}; raw={preview}")
+    raise SystemExit(1)
+
+if data.get("access_token"):
+    print("ok")
+    raise SystemExit(0)
+
+preview = raw.replace("\n", " ").replace("\r", " ")[:300]
+print(f"missing_access_token; raw={preview}")
+raise SystemExit(1)
+' "$body_file"
+}
+
 run_login_smoke_test() {
   local core_port="${1:-8000}"
   local fail_mode="${2:-check}"
   local url="http://127.0.0.1:${core_port}/api/v1/auth/login"
-  local payload response http_code body
+  local tmp_body tmp_payload tmp_curl_err
+  local http_code curl_rc=0 body_preview parse_detail parse_rc=0
+  local attempt max_attempts=5
 
-  payload="$(python3 - <<PY
-import json
-print(json.dumps({"email": "${DEV_LOGIN_EMAIL}", "password": "${DEV_LOGIN_PASSWORD}"}))
-PY
-)"
+  tmp_body="$(mktemp -t login-smoke-body.XXXXXX)"
+  tmp_payload="$(mktemp -t login-smoke-payload.XXXXXX)"
+  tmp_curl_err="$(mktemp -t login-smoke-curl.XXXXXX)"
 
-  response="$(curl -s -w $'\n%{http_code}' -X POST "$url" \
-    -H "Content-Type: application/json" \
-    -d "$payload" \
-    --connect-timeout 10 --max-time 30 2>/dev/null || printf '\n000')"
-  http_code="$(echo "$response" | tail -n 1)"
-  body="$(echo "$response" | sed '$d')"
+  LOGIN_SMOKE_FAIL_DETAIL=""
 
-  if [[ "$http_code" != "200" ]]; then
-    if [[ "$fail_mode" == "deploy" ]]; then
+  _login_smoke_cleanup() {
+    rm -f "$tmp_body" "$tmp_payload" "$tmp_curl_err"
+  }
+
+  _login_smoke_fail() {
+    local status="$1"
+    local body="$2"
+    local extra="${3:-}"
+    LOGIN_SMOKE_FAIL_DETAIL="status=${status}, body=${body}"
+    if [[ -n "$extra" ]]; then
+      LOGIN_SMOKE_FAIL_DETAIL="${LOGIN_SMOKE_FAIL_DETAIL}, ${extra}"
+    fi
+    _login_smoke_cleanup
+    if [[ "$fail_mode" != "deploy" ]]; then
+      check_fail "Login smoke test failed (${LOGIN_SMOKE_FAIL_DETAIL})"
+    fi
+    return 1
+  }
+
+  export DEV_LOGIN_EMAIL DEV_LOGIN_PASSWORD
+  python3 -c 'import json, os, sys; json.dump({"email": os.environ["DEV_LOGIN_EMAIL"], "password": os.environ["DEV_LOGIN_PASSWORD"]}, sys.stdout)' \
+    >"$tmp_payload"
+
+  http_code="000"
+  curl_rc=0
+  parse_detail=""
+
+  for (( attempt=1; attempt<=max_attempts; attempt++ )); do
+    : >"$tmp_body"
+    : >"$tmp_curl_err"
+    curl_rc=0
+    http_code="$(
+      curl -sS -o "$tmp_body" -w '%{http_code}' -X POST "$url" \
+        -H "Content-Type: application/json" \
+        --data-binary "@${tmp_payload}" \
+        --connect-timeout 10 --max-time 30 2>"$tmp_curl_err"
+    )" || curl_rc=$?
+
+    body_preview="$(tr -d '\n\r' <"$tmp_body" 2>/dev/null | head -c 300)"
+    [[ -n "$body_preview" ]] || body_preview="empty"
+
+    if [[ "$curl_rc" -ne 0 ]]; then
+      if [[ "$attempt" -lt "$max_attempts" ]]; then
+        sleep 2
+        continue
+      fi
+      local curl_error
+      curl_error="$(tr -d '\n\r' <"$tmp_curl_err" 2>/dev/null | head -c 200)"
+      _login_smoke_fail "${http_code:-000}" "$body_preview" "curl_error=${curl_error:-unknown}"
       return 1
     fi
-    check_fail "Login smoke test failed (HTTP ${http_code})"
-    return 1
-  fi
 
-  if ! printf '%s' "$body" | python3 - <<'PY'
-import json, sys
-data = json.load(sys.stdin)
-sys.exit(0 if data.get("access_token") else 1)
-PY
-  then
-    if [[ "$fail_mode" == "deploy" ]]; then
+    if [[ -z "$http_code" || "$http_code" == "000" ]]; then
+      if [[ "$attempt" -lt "$max_attempts" ]]; then
+        sleep 2
+        continue
+      fi
+      _login_smoke_fail "000" "$body_preview"
       return 1
     fi
-    check_fail "Login smoke test failed (no access_token)"
-    return 1
-  fi
 
+    if [[ "$http_code" != "200" ]]; then
+      if [[ "$attempt" -lt "$max_attempts" ]]; then
+        sleep 2
+        continue
+      fi
+      _login_smoke_fail "$http_code" "$body_preview"
+      return 1
+    fi
+
+    if [[ ! -s "$tmp_body" ]]; then
+      if [[ "$attempt" -lt "$max_attempts" ]]; then
+        sleep 2
+        continue
+      fi
+      _login_smoke_fail "$http_code" "empty"
+      return 1
+    fi
+
+    parse_rc=0
+    parse_detail="$(login_smoke_parse_response_body "$tmp_body" 2>&1)" || parse_rc=$?
+    if [[ "$parse_rc" -eq 0 ]]; then
+      break
+    fi
+
+    if [[ "$attempt" -lt "$max_attempts" ]]; then
+      sleep 2
+      continue
+    fi
+
+    _login_smoke_fail "$http_code" "$body_preview" "${parse_detail:-parse_failed}"
+    return 1
+  done
+
+  _login_smoke_cleanup
   if [[ "$fail_mode" != "deploy" ]]; then
     check_pass "Login smoke test passed"
   fi
