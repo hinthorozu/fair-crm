@@ -4,7 +4,7 @@
 Runs against the Core database only (fair-crm repo script; does not modify kyrox-core code).
 Creates dev organization, role templates with FAIR CRM permission matrix, and dev users per role.
 
-Requires Core Alembic revision >= 20260701_0029 (fair_crm product permission catalog).
+Requires Core Alembic revision >= 20260701_0030 (fair_crm product permission catalog).
 """
 
 from __future__ import annotations
@@ -47,7 +47,7 @@ CORE_DB_URL = os.environ.get(
     "postgresql://postgres:postgres@localhost:5432/kyrox_core",
 )
 
-MIN_CORE_MIGRATION_REVISION = "20260701_0029"
+MIN_CORE_MIGRATION_REVISION = "20260701_0030"
 
 
 class SeedError(RuntimeError):
