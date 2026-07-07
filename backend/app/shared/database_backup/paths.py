@@ -4,9 +4,9 @@ from pathlib import Path
 from app.shared.database_backup.formats import (
     ALLOWED_BACKUP_EXTENSIONS,
     FORMAT_EXTENSIONS,
-    FORMAT_FILENAME_PREFIX,
     BackupFormat,
 )
+from app.shared.database_backup.database_keys import DatabaseKey
 
 BACKUP_FILENAME_PREFIX = "faircrm_backup_"
 BACKUP_EXTENSION = ".dump"
@@ -40,11 +40,15 @@ def relative_repo_path(path: Path) -> str:
 
 def generate_backup_filename(
     *,
+    database_key: DatabaseKey = DatabaseKey.FAIR_CRM,
     backup_format: BackupFormat = BackupFormat.POSTGRESQL_DUMP,
     now: datetime | None = None,
 ) -> str:
     ts = (now or datetime.now(tz=UTC)).strftime("%Y%m%d_%H%M%S")
-    prefix = FORMAT_FILENAME_PREFIX[backup_format]
+    if backup_format == BackupFormat.UNIVERSAL_DATA_PACKAGE:
+        prefix = "fair_crm_data_package_"
+    else:
+        prefix = f"{database_key.value}_backup_"
     extension = FORMAT_EXTENSIONS[backup_format]
     return f"{prefix}{ts}{extension}"
 

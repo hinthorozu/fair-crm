@@ -19,7 +19,7 @@ import { UniversalDataTable, type UniversalDataTableColumn } from "../components
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { useRestoreJobPolling } from "../hooks/useRestoreJobPolling";
 import { adminLabels } from "../labels/adminLabels";
-import type { BackupFormat, SystemBackup, SystemBackupRestoreJobResponse } from "../types/systemBackup";
+import type { BackupFormat, DatabaseKey, SystemBackup, SystemBackupRestoreJobResponse } from "../types/systemBackup";
 import type { BadgeVariant } from "../components/ui/Badge";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 import {
@@ -96,6 +96,21 @@ function restoreJobFileLabel(job: SystemBackupRestoreJobResponse): string {
   return job.backup_file_name ?? job.source_file_name;
 }
 
+function databaseKeyLabel(key: DatabaseKey): string {
+  if (key === "kyrox_core") return adminLabels.databaseKeyKyroxCore;
+  return adminLabels.databaseKeyFairCrm;
+}
+
+function restoreWarningForDatabase(key: DatabaseKey): string {
+  if (key === "kyrox_core") return adminLabels.restoreWarningKyroxCore;
+  return adminLabels.restoreWarningFairCrm;
+}
+
+function restoreUploadWarningForDatabase(key: DatabaseKey): string {
+  if (key === "kyrox_core") return adminLabels.restoreUploadWarningKyroxCore;
+  return adminLabels.restoreUploadWarningFairCrm;
+}
+
 function buildRestoreJobColumns(handlers: {
   onDetails: (job: SystemBackupRestoreJobResponse) => void;
 }): UniversalDataTableColumn<SystemBackupRestoreJobResponse>[] {
@@ -115,6 +130,20 @@ function buildRestoreJobColumns(handlers: {
       sortable: true,
       className: "col-format",
       render: (job) => restoreJobSourceLabel(job.source_type),
+    },
+    {
+      key: "source_database_key",
+      title: adminLabels.restoreJobColSourceDatabase,
+      sortable: true,
+      className: "col-format",
+      render: (job) => databaseKeyLabel(job.source_database_key),
+    },
+    {
+      key: "target_database_key",
+      title: adminLabels.restoreJobColTargetDatabase,
+      sortable: true,
+      className: "col-format",
+      render: (job) => databaseKeyLabel(job.target_database_key),
     },
     {
       key: "source_file_name",
@@ -183,12 +212,34 @@ function restoreDisabledTitle(backup: SystemBackup): string | undefined {
 const RESTORE_CONFIRM_TEXT = "RESTORE";
 const DELETE_CONFIRM_TEXT = "DELETE";
 
+function inferDatabaseKeyFromFileName(fileName: string): DatabaseKey | null {
+  const name = fileName.toLowerCase();
+  if (name.startsWith("kyrox_core_backup_")) return "kyrox_core";
+  if (name.startsWith("fair_crm_backup_") || name.startsWith("fair_crm_data_package_")) return "fair_crm";
+  if (name.startsWith("faircrm_backup_") || name.startsWith("faircrm_data_package_")) return "fair_crm";
+  return null;
+}
+
 function buildBackupColumns(handlers: {
   onDownload: (backup: SystemBackup) => void;
   onDetails: (backup: SystemBackup) => void;
   downloadingId: string | null;
 }): UniversalDataTableColumn<SystemBackup>[] {
   return [
+    {
+      key: "database_key",
+      title: adminLabels.colDatabaseKey,
+      sortable: true,
+      className: "col-format",
+      render: (backup) => <span className="mono">{backup.database_key}</span>,
+    },
+    {
+      key: "database_label",
+      title: adminLabels.colDatabaseLabel,
+      sortable: true,
+      className: "col-format",
+      render: (backup) => backup.database_label ?? databaseKeyLabel(backup.database_key),
+    },
     {
       key: "file_name",
       title: adminLabels.colName,
@@ -257,6 +308,17 @@ function buildBackupColumns(handlers: {
       ),
     },
     {
+      key: "notes",
+      title: adminLabels.colNotes,
+      sortable: true,
+      className: "col-notes",
+      render: (backup) => (
+        <span className="backup-notes-preview" title={backup.notes ?? undefined}>
+          {backup.notes?.trim() ? backup.notes : "—"}
+        </span>
+      ),
+    },
+    {
       key: "actions",
       title: adminLabels.colActions,
       sortable: false,
@@ -279,6 +341,23 @@ function buildBackupColumns(handlers: {
     },
   ];
 }
+
+const DATABASE_KEY_OPTIONS: Array<{
+  value: DatabaseKey;
+  title: string;
+  description: string;
+}> = [
+  {
+    value: "kyrox_core",
+    title: adminLabels.databaseKeyKyroxCore,
+    description: adminLabels.databaseKeyKyroxCoreDesc,
+  },
+  {
+    value: "fair_crm",
+    title: adminLabels.databaseKeyFairCrm,
+    description: adminLabels.databaseKeyFairCrmDesc,
+  },
+];
 
 const BACKUP_FORMAT_OPTIONS: Array<{
   value: BackupFormat;
@@ -307,6 +386,8 @@ interface CreateBackupModalContentProps {
   onNotesChange: (value: string) => void;
   backupFormat: BackupFormat;
   onBackupFormatChange: (value: BackupFormat) => void;
+  selectedDatabaseKeys: DatabaseKey[];
+  onDatabaseKeysChange: (value: DatabaseKey[]) => void;
   createError: string | null;
   creating: boolean;
   onCancel: () => void;
@@ -318,24 +399,75 @@ function CreateBackupModalContent({
   onNotesChange,
   backupFormat,
   onBackupFormatChange,
+  selectedDatabaseKeys,
+  onDatabaseKeysChange,
   createError,
   creating,
   onCancel,
   onSubmit,
 }: CreateBackupModalContentProps) {
   const baseline = React.useMemo(
-    () => ({ notes: "", backupFormat: "postgresql_dump" as BackupFormat }),
+    () => ({
+      notes: "",
+      backupFormat: "postgresql_dump" as BackupFormat,
+      selectedDatabaseKeys: ["fair_crm"] as DatabaseKey[],
+    }),
     [],
   );
-  useReportFormDirty({ notes, backupFormat }, baseline);
+  useReportFormDirty({ notes, backupFormat, selectedDatabaseKeys }, baseline);
   const handleCancel = useModalFormCancel(onCancel);
+
+  const toggleDatabaseKey = (key: DatabaseKey) => {
+    onDatabaseKeysChange(
+      selectedDatabaseKeys.includes(key)
+        ? selectedDatabaseKeys.filter((item) => item !== key)
+        : [...selectedDatabaseKeys, key],
+    );
+  };
+
+  const includesKyroxCore = selectedDatabaseKeys.includes("kyrox_core");
+  const visibleFormatOptions = BACKUP_FORMAT_OPTIONS.filter(
+    (option) => !(includesKyroxCore && option.value === "universal_data_package"),
+  );
+
+  React.useEffect(() => {
+    if (includesKyroxCore && backupFormat === "universal_data_package") {
+      onBackupFormatChange("postgresql_dump");
+    }
+  }, [includesKyroxCore, backupFormat, onBackupFormatChange]);
+
+  const canSubmit = selectedDatabaseKeys.length > 0;
 
   return (
     <div className="backup-create-modal">
       <section className="backup-create-modal-section">
+        <p className="form-section-title">{adminLabels.databaseKeysLabel}</p>
+        <div className="backup-database-options" role="group" aria-label={adminLabels.databaseKeysLabel}>
+          {DATABASE_KEY_OPTIONS.map((option) => {
+            const selected = selectedDatabaseKeys.includes(option.value);
+            return (
+              <label
+                key={option.value}
+                className={`backup-database-option${selected ? " is-selected" : ""}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={selected}
+                  onChange={() => toggleDatabaseKey(option.value)}
+                />
+                <span className="backup-database-option-title">{option.title}</span>
+                <span className="backup-database-option-desc field-hint">{option.description}</span>
+              </label>
+            );
+          })}
+        </div>
+        {!canSubmit && <p className="form-error">{adminLabels.databaseKeysRequired}</p>}
+      </section>
+
+      <section className="backup-create-modal-section">
         <p className="form-section-title">{adminLabels.formatLabel}</p>
         <div className="backup-format-cards" role="radiogroup" aria-label={adminLabels.formatLabel}>
-          {BACKUP_FORMAT_OPTIONS.map((option) => {
+          {visibleFormatOptions.map((option) => {
             const selected = backupFormat === option.value;
             return (
               <label
@@ -377,7 +509,7 @@ function CreateBackupModalContent({
         <button type="button" className="btn secondary" onClick={handleCancel}>
           {adminLabels.cancel}
         </button>
-        <button type="button" className="btn primary" disabled={creating} onClick={onSubmit}>
+        <button type="button" className="btn primary" disabled={creating || !canSubmit} onClick={onSubmit}>
           {creating ? "…" : adminLabels.startBackup}
         </button>
       </footer>
@@ -406,8 +538,17 @@ function RestoreBackupConfirmModal({
   return (
     <Modal title={adminLabels.restoreDatabaseTitle} onClose={onCancel}>
       <div className="backup-restore-confirm">
-        <p className="text-danger">{adminLabels.restoreWarning}</p>
+        <p className={`text-danger${backup.database_key === "kyrox_core" ? " backup-restore-danger-banner" : ""}`}>
+          {restoreWarningForDatabase(backup.database_key)}
+        </p>
+        {backup.database_key === "kyrox_core" && (
+          <p className="text-danger">{adminLabels.restoreWarningKyroxCoreStrong}</p>
+        )}
         <dl className="detail-list backup-restore-summary">
+          <dt>{adminLabels.colDatabaseKey}</dt>
+          <dd className="mono">{backup.database_key}</dd>
+          <dt>{adminLabels.colDatabaseLabel}</dt>
+          <dd>{backup.database_label ?? databaseKeyLabel(backup.database_key)}</dd>
           <dt>{adminLabels.colName}</dt>
           <dd>{backup.file_name}</dd>
           <dt>{adminLabels.colCreatedAt}</dt>
@@ -508,12 +649,14 @@ function DeleteBackupConfirmModal({
 interface RestoreFromFileModalProps {
   notes: string;
   selectedFile: File | null;
+  databaseKey: DatabaseKey;
   acknowledge: boolean;
   confirmText: string;
   restoring: boolean;
   error: string | null;
   onNotesChange: (value: string) => void;
   onFileChange: (file: File | null) => void;
+  onDatabaseKeyChange: (value: DatabaseKey) => void;
   onAcknowledgeChange: (value: boolean) => void;
   onConfirmTextChange: (value: string) => void;
   onCancel: () => void;
@@ -523,12 +666,14 @@ interface RestoreFromFileModalProps {
 function RestoreFromFileModal({
   notes,
   selectedFile,
+  databaseKey,
   acknowledge,
   confirmText,
   restoring,
   error,
   onNotesChange,
   onFileChange,
+  onDatabaseKeyChange,
   onAcknowledgeChange,
   onConfirmTextChange,
   onCancel,
@@ -536,11 +681,11 @@ function RestoreFromFileModal({
 }: RestoreFromFileModalProps) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const baseline = React.useMemo(
-    () => ({ notes: "", acknowledge: false, confirmText: "", hasFile: false }),
+    () => ({ notes: "", acknowledge: false, confirmText: "", hasFile: false, databaseKey: "fair_crm" as DatabaseKey }),
     [],
   );
   useReportFormDirty(
-    { notes, acknowledge, confirmText, hasFile: selectedFile != null },
+    { notes, acknowledge, confirmText, hasFile: selectedFile != null, databaseKey },
     baseline,
   );
   const handleCancel = useModalFormCancel(onCancel);
@@ -559,11 +704,38 @@ function RestoreFromFileModal({
       className="modal-restore-from-file"
     >
       <div className="backup-restore-upload-modal">
-        <div className="banner error backup-restore-upload-warning" role="alert">
+        <div
+          className={`banner error backup-restore-upload-warning${databaseKey === "kyrox_core" ? " backup-restore-danger-banner" : ""}`}
+          role="alert"
+        >
           <span className="backup-restore-upload-warning-icon" aria-hidden="true">
             !
           </span>
-          <p>{adminLabels.restoreFromFileWarning}</p>
+          <p>{restoreUploadWarningForDatabase(databaseKey)}</p>
+        </div>
+
+        <div className="field backup-restore-upload-database">
+          <span className="field-label">{adminLabels.restoreUploadDatabaseLabel}</span>
+          <div className="backup-database-options" role="radiogroup" aria-label={adminLabels.restoreUploadDatabaseLabel}>
+            {DATABASE_KEY_OPTIONS.map((option) => {
+              const selected = databaseKey === option.value;
+              return (
+                <label
+                  key={option.value}
+                  className={`backup-database-option${selected ? " is-selected" : ""}`}
+                >
+                  <input
+                    type="radio"
+                    name="restore_upload_database_key"
+                    checked={selected}
+                    onChange={() => onDatabaseKeyChange(option.value)}
+                  />
+                  <span className="backup-database-option-title">{option.title}</span>
+                  <span className="backup-database-option-desc field-hint">{option.description}</span>
+                </label>
+              );
+            })}
+          </div>
         </div>
 
         <div className="field backup-restore-upload-file">
@@ -573,7 +745,16 @@ function RestoreFromFileModal({
             type="file"
             accept=".dump"
             className="backup-restore-file-input"
-            onChange={(e) => onFileChange(e.target.files?.[0] ?? null)}
+            onChange={(e) => {
+              const file = e.target.files?.[0] ?? null;
+              onFileChange(file);
+              if (file) {
+                const inferred = inferDatabaseKeyFromFileName(file.name);
+                if (inferred) {
+                  onDatabaseKeyChange(inferred);
+                }
+              }
+            }}
           />
           <div className="backup-restore-file-picker">
             <button
@@ -692,6 +873,7 @@ export function DatabaseBackupsPage() {
   const [showCreateModal, setShowCreateModal] = React.useState(false);
   const [notes, setNotes] = React.useState("");
   const [backupFormat, setBackupFormat] = React.useState<BackupFormat>("postgresql_dump");
+  const [selectedDatabaseKeys, setSelectedDatabaseKeys] = React.useState<DatabaseKey[]>(["fair_crm"]);
   const [creating, setCreating] = React.useState(false);
   const [createError, setCreateError] = React.useState<string | null>(null);
   const [detailBackup, setDetailBackup] = React.useState<SystemBackup | null>(null);
@@ -700,6 +882,7 @@ export function DatabaseBackupsPage() {
   const [showRestoreUploadModal, setShowRestoreUploadModal] = React.useState(false);
   const [restoreUploadNotes, setRestoreUploadNotes] = React.useState("");
   const [restoreUploadFile, setRestoreUploadFile] = React.useState<File | null>(null);
+  const [restoreUploadDatabaseKey, setRestoreUploadDatabaseKey] = React.useState<DatabaseKey>("fair_crm");
   const [restoreUploadAcknowledge, setRestoreUploadAcknowledge] = React.useState(false);
   const [restoreUploadConfirmText, setRestoreUploadConfirmText] = React.useState("");
   const [restoring, setRestoring] = React.useState(false);
@@ -762,6 +945,7 @@ export function DatabaseBackupsPage() {
   const closeCreateModal = React.useCallback(() => {
     setShowCreateModal(false);
     setBackupFormat("postgresql_dump");
+    setSelectedDatabaseKeys(["fair_crm"]);
     setNotes("");
     setCreateError(null);
   }, []);
@@ -783,6 +967,7 @@ export function DatabaseBackupsPage() {
     setShowRestoreUploadModal(false);
     setRestoreUploadNotes("");
     setRestoreUploadFile(null);
+    setRestoreUploadDatabaseKey("fair_crm");
     setRestoreUploadAcknowledge(false);
     setRestoreUploadConfirmText("");
     setRestoreError(null);
@@ -813,7 +998,11 @@ export function DatabaseBackupsPage() {
     setRestoreError(null);
     setRestorePollError(null);
     try {
-      const job = await restoreSystemBackupFromUpload(restoreUploadFile, restoreUploadNotes.trim() || null);
+      const job = await restoreSystemBackupFromUpload(
+        restoreUploadFile,
+        restoreUploadDatabaseKey,
+        restoreUploadNotes.trim() || null,
+      );
       trackRestoreJob(job);
       closeRestoreUploadModal();
       setNotice(adminLabels.restoreSuccess);
@@ -843,15 +1032,26 @@ export function DatabaseBackupsPage() {
   };
 
   const handleCreateBackup = async () => {
+    if (selectedDatabaseKeys.length === 0) {
+      setCreateError(adminLabels.databaseKeysRequired);
+      return;
+    }
     setCreating(true);
     setNotice(null);
     setCreateError(null);
     try {
-      const created = await createSystemBackup(notes.trim() || null, backupFormat);
+      const batch = await createSystemBackup(selectedDatabaseKeys, notes.trim() || null, backupFormat);
       setShowCreateModal(false);
       setNotes("");
+      setSelectedDatabaseKeys(["fair_crm"]);
       setNotice(adminLabels.backupStarting);
-      setPollingIds((prev) => new Set(prev).add(created.id));
+      setPollingIds((prev) => {
+        const next = new Set(prev);
+        for (const item of batch.items) {
+          next.add(item.id);
+        }
+        return next;
+      });
       await table.refresh();
     } catch (err) {
       setCreateError(err instanceof ApiError ? err.message : adminLabels.createError);
@@ -951,7 +1151,7 @@ export function DatabaseBackupsPage() {
         table={table}
         columns={columns}
         rowKey={(backup) => backup.id}
-        skeletonCols={8}
+        skeletonCols={11}
         className="backups-table"
         emptyState={
           <EmptyState title={adminLabels.backupsEmpty} description={adminLabels.backupsEmptyDescription} />
@@ -965,7 +1165,7 @@ export function DatabaseBackupsPage() {
           table={restoreJobsTable}
           columns={restoreJobColumns}
           rowKey={(job) => job.id}
-          skeletonCols={7}
+          skeletonCols={9}
           className="restore-jobs-table"
           emptyState={
             <EmptyState
@@ -988,6 +1188,8 @@ export function DatabaseBackupsPage() {
             onNotesChange={setNotes}
             backupFormat={backupFormat}
             onBackupFormatChange={setBackupFormat}
+            selectedDatabaseKeys={selectedDatabaseKeys}
+            onDatabaseKeysChange={setSelectedDatabaseKeys}
             createError={createError}
             creating={creating}
             onCancel={closeCreateModal}
@@ -999,6 +1201,10 @@ export function DatabaseBackupsPage() {
       {detailBackup && (
         <Modal title={adminLabels.detailsTitle} onClose={closeDetailModal}>
           <dl className="detail-list">
+            <dt>{adminLabels.colDatabaseKey}</dt>
+            <dd className="mono">{detailBackup.database_key}</dd>
+            <dt>{adminLabels.colDatabaseLabel}</dt>
+            <dd>{detailBackup.database_label ?? databaseKeyLabel(detailBackup.database_key)}</dd>
             <dt>{adminLabels.colName}</dt>
             <dd>{detailBackup.file_name}</dd>
             <dt>{adminLabels.detailFormat}</dt>
@@ -1089,6 +1295,10 @@ export function DatabaseBackupsPage() {
             </dd>
             <dt>{adminLabels.restoreJobColSource}</dt>
             <dd>{restoreJobSourceLabel(visibleDetailRestoreJob.source_type)}</dd>
+            <dt>{adminLabels.restoreJobColSourceDatabase}</dt>
+            <dd>{databaseKeyLabel(visibleDetailRestoreJob.source_database_key)}</dd>
+            <dt>{adminLabels.restoreJobColTargetDatabase}</dt>
+            <dd>{databaseKeyLabel(visibleDetailRestoreJob.target_database_key)}</dd>
             <dt>{adminLabels.restoreJobColFile}</dt>
             <dd>{restoreJobFileLabel(visibleDetailRestoreJob)}</dd>
             <dt>{adminLabels.restoreJobColRequestedAt}</dt>
@@ -1129,12 +1339,14 @@ export function DatabaseBackupsPage() {
         <RestoreFromFileModal
           notes={restoreUploadNotes}
           selectedFile={restoreUploadFile}
+          databaseKey={restoreUploadDatabaseKey}
           acknowledge={restoreUploadAcknowledge}
           confirmText={restoreUploadConfirmText}
           restoring={restoring}
           error={restoreError}
           onNotesChange={setRestoreUploadNotes}
           onFileChange={setRestoreUploadFile}
+          onDatabaseKeyChange={setRestoreUploadDatabaseKey}
           onAcknowledgeChange={setRestoreUploadAcknowledge}
           onConfirmTextChange={setRestoreUploadConfirmText}
           onCancel={closeRestoreUploadModal}

@@ -5,15 +5,19 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 BackupFormatLiteral = Literal["postgresql_dump", "postgresql_sql", "universal_data_package"]
+DatabaseKeyLiteral = Literal["kyrox_core", "fair_crm"]
 
 
 class CreateSystemBackupRequest(BaseModel):
     notes: str | None = Field(default=None, max_length=2000)
     backup_format: BackupFormatLiteral = "postgresql_dump"
+    database_keys: list[DatabaseKeyLiteral] | None = Field(default=None)
 
 
 class SystemBackupResponse(BaseModel):
     id: UUID
+    database_key: str
+    database_label: str
     file_name: str
     backup_format: str
     file_size: int | None
@@ -33,10 +37,16 @@ class SystemBackupResponse(BaseModel):
 
 class CreateSystemBackupResponse(BaseModel):
     id: UUID
+    database_key: str
+    database_label: str
     file_name: str
     backup_format: str
     status: str
     progress_stage: str
+
+
+class CreateSystemBackupBatchResponse(BaseModel):
+    items: list[CreateSystemBackupResponse]
 
 
 class SystemBackupListResponse(BaseModel):
@@ -55,6 +65,8 @@ class SystemBackupRestoreJobResponse(BaseModel):
     id: UUID
     status: str
     source_type: str
+    source_database_key: str
+    target_database_key: str
     backup_id: UUID | None = None
     source_file_name: str
     checksum_sha256: str | None = None

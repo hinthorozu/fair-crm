@@ -12,6 +12,7 @@ from app.modules.system_admin.infrastructure.repositories.backup_repository impo
     SqlAlchemySystemBackupRepository,
 )
 from app.shared.database_backup.engine import DatabaseBackupError, pg_dump_custom, pg_dump_plain
+from app.shared.database_backup.database_keys import DatabaseKey, resolve_database_url
 from app.shared.database_backup.formats import BackupFormat
 from app.shared.database_backup.paths import resolve_backup_path
 from app.shared.universal_data_package.service import UniversalDataPackageService
@@ -37,6 +38,7 @@ class BackupJobRunner:
                 return
 
             settings = get_settings()
+            database_url = resolve_database_url(backup.database_key)
             now = datetime.now(tz=UTC)
             backup.mark_stage(SystemBackupStage.PREPARING, now=now)
             repo.update(backup)
@@ -65,17 +67,19 @@ class BackupJobRunner:
                 manifest_json = None
                 if backup.backup_format == BackupFormat.POSTGRESQL_DUMP:
                     result = pg_dump_custom(
-                        database_url=settings.database_url,
+                        database_url=database_url,
                         output_path=output_path,
                         on_stage=on_stage,
                     )
                 elif backup.backup_format == BackupFormat.POSTGRESQL_SQL:
                     result = pg_dump_plain(
-                        database_url=settings.database_url,
+                        database_url=database_url,
                         output_path=output_path,
                         on_stage=on_stage,
                     )
                 elif backup.backup_format == BackupFormat.UNIVERSAL_DATA_PACKAGE:
+                    if backup.database_key != DatabaseKey.FAIR_CRM:
+                        raise DatabaseBackupError("Universal data package is only supported for fair_crm")
                     result, manifest_json = self._package_service.build_package(
                         session=db,
                         organization_id=command.organization_id,

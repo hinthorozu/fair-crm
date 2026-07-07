@@ -13,6 +13,14 @@ from app.modules.system_admin.domain.value_objects import RestoreJobSourceType
 from app.modules.system_admin.application.restore_job_service import (
     _to_result as _restore_job_to_result,
 )
+from app.shared.database_backup.database_keys import (
+    DatabaseKey,
+    parse_database_keys,
+    resolve_database_url,
+    validate_backup_format_for_database,
+    assert_upload_database_key_matches,
+    database_label,
+)
 from app.shared.database_backup.paths import relative_repo_path
 from app.shared.database_backup.engine import (
     DatabaseBackupError,
@@ -29,6 +37,7 @@ PERMISSION_DELETE = "fair_crm.admin.backups.create"
 
 BACKUP_ALLOWED_SORT_FIELDS = frozenset(
     {
+        "database_key",
         "file_name",
         "backup_format",
         "started_at",
@@ -53,6 +62,7 @@ class CreateSystemBackupCommand:
     access_token: str
     notes: str | None
     backup_format: BackupFormat = BackupFormat.POSTGRESQL_DUMP
+    database_keys: list[DatabaseKey] | None = None
 
 
 @dataclass
@@ -60,8 +70,15 @@ class CreateSystemBackupResult:
     backup_id: UUID
     file_name: str
     backup_format: str
+    database_key: str
+    database_label: str
     status: str
     progress_stage: str
+
+
+@dataclass
+class CreateSystemBackupBatchResult:
+    items: list[CreateSystemBackupResult]
 
 
 class CreateSystemBackupUseCase:
@@ -73,7 +90,7 @@ class CreateSystemBackupUseCase:
         self._repository = repository
         self._authorization = authorization
 
-    def execute(self, command: CreateSystemBackupCommand) -> CreateSystemBackupResult:
+    def execute(self, command: CreateSystemBackupCommand) -> CreateSystemBackupBatchResult:
         if not self._authorization.check_permission(
             organization_id=command.organization_id,
             user_id=command.user_id,
@@ -82,30 +99,48 @@ class CreateSystemBackupUseCase:
         ):
             raise ForbiddenError("Permission denied")
 
+        database_keys = parse_database_keys(
+            [key.value for key in command.database_keys] if command.database_keys else None
+        )
         now = datetime.now(tz=UTC)
-        file_name = generate_backup_filename(backup_format=command.backup_format, now=now)
-        backup = SystemBackup.create(
-            organization_id=command.organization_id,
-            file_name=file_name,
-            backup_format=command.backup_format,
-            created_by=command.user_id,
-            created_by_email=command.user_email,
-            notes=command.notes,
-            now=now,
-        )
-        saved = self._repository.add(backup)
-        return CreateSystemBackupResult(
-            backup_id=saved.id,
-            file_name=saved.file_name,
-            backup_format=saved.backup_format.value,
-            status=saved.status.value,
-            progress_stage=saved.progress_stage.value,
-        )
+        results: list[CreateSystemBackupResult] = []
+        for database_key in database_keys:
+            validate_backup_format_for_database(database_key, command.backup_format)
+            file_name = generate_backup_filename(
+                database_key=database_key,
+                backup_format=command.backup_format,
+                now=now,
+            )
+            backup = SystemBackup.create(
+                organization_id=command.organization_id,
+                database_key=database_key,
+                file_name=file_name,
+                backup_format=command.backup_format,
+                created_by=command.user_id,
+                created_by_email=command.user_email,
+                notes=command.notes,
+                now=now,
+            )
+            saved = self._repository.add(backup)
+            results.append(
+                CreateSystemBackupResult(
+                    backup_id=saved.id,
+                    file_name=saved.file_name,
+                    backup_format=saved.backup_format.value,
+                    database_key=saved.database_key.value,
+                    database_label=database_label(saved.database_key),
+                    status=saved.status.value,
+                    progress_stage=saved.progress_stage.value,
+                )
+            )
+        return CreateSystemBackupBatchResult(items=results)
 
 
 @dataclass
 class GetSystemBackupResult:
     id: UUID
+    database_key: str
+    database_label: str
     file_name: str
     backup_format: str
     file_size: int | None
@@ -247,6 +282,8 @@ def media_type_for_backup_file(file_name: str) -> str:
 def _to_result(backup: SystemBackup) -> GetSystemBackupResult:
     return GetSystemBackupResult(
         id=backup.id,
+        database_key=backup.database_key.value,
+        database_label=database_label(backup.database_key),
         file_name=backup.file_name,
         backup_format=backup.backup_format.value,
         file_size=backup.file_size,
@@ -308,6 +345,7 @@ class RestoreSystemBackupFromUploadCommand:
     original_file_name: str
     file_bytes: bytes
     notes: str | None
+    database_key: DatabaseKey
 
 
 @dataclass
@@ -323,6 +361,8 @@ class SystemBackupRestoreJobResult:
     id: UUID
     status: str
     source_type: str
+    source_database_key: str
+    target_database_key: str
     backup_id: UUID | None
     source_file_name: str
     checksum_sha256: str | None
@@ -340,6 +380,8 @@ def _restore_job_to_api_result(job: SystemBackupRestoreJob) -> SystemBackupResto
         id=mapped.id,
         status=mapped.status,
         source_type=mapped.source_type,
+        source_database_key=mapped.source_database_key,
+        target_database_key=mapped.target_database_key,
         backup_id=mapped.backup_id,
         source_file_name=mapped.source_file_name,
         checksum_sha256=mapped.checksum_sha256,
@@ -397,7 +439,10 @@ class RestoreSystemBackupUseCase:
             raise ValueError("Backup file is not a PostgreSQL custom-format dump")
 
         try:
-            verify_backup_dump(database_url=self._settings.database_url, dump_path=path)
+            verify_backup_dump(
+                database_url=resolve_database_url(backup.database_key),
+                dump_path=path,
+            )
         except DatabaseBackupError as exc:
             raise ValueError(str(exc)) from exc
 
@@ -405,6 +450,8 @@ class RestoreSystemBackupUseCase:
         job = SystemBackupRestoreJob.create(
             organization_id=command.organization_id,
             source_type=RestoreJobSourceType.EXISTING_BACKUP,
+            source_database_key=backup.database_key,
+            target_database_key=backup.database_key,
             backup_id=backup.id,
             uploaded_file_path=None,
             source_file_name=backup.file_name,
@@ -428,6 +475,8 @@ class RestoreSystemBackupUseCase:
                 "backup_id": str(backup.id),
                 "source_file_name": backup.file_name,
                 "checksum_sha256": backup.checksum,
+                "source_database_key": backup.database_key.value,
+                "target_database_key": backup.database_key.value,
             },
             metadata={"user_id": str(command.user_id), "source": "existing_backup"},
         )
@@ -461,9 +510,20 @@ class RestoreSystemBackupFromUploadUseCase:
         if not command.file_bytes:
             raise ValueError("Uploaded file is empty")
 
+        try:
+            assert_upload_database_key_matches(
+                file_name=original_name,
+                database_key=command.database_key,
+            )
+        except ValueError as exc:
+            raise ValueError(str(exc)) from exc
+
         uploads_dir = get_restore_uploads_dir()
         uploads_dir.mkdir(parents=True, exist_ok=True)
-        stored_name = generate_backup_filename(backup_format=BackupFormat.POSTGRESQL_DUMP)
+        stored_name = generate_backup_filename(
+            database_key=command.database_key,
+            backup_format=BackupFormat.POSTGRESQL_DUMP,
+        )
         stored_path = uploads_dir / stored_name
         stored_path.write_bytes(command.file_bytes)
 
@@ -472,7 +532,10 @@ class RestoreSystemBackupFromUploadUseCase:
             raise ValueError("File is not a PostgreSQL custom-format dump")
 
         try:
-            verify_backup_dump(database_url=self._settings.database_url, dump_path=stored_path)
+            verify_backup_dump(
+                database_url=resolve_database_url(command.database_key),
+                dump_path=stored_path,
+            )
         except DatabaseBackupError as exc:
             stored_path.unlink(missing_ok=True)
             raise ValueError(str(exc)) from exc
@@ -482,6 +545,8 @@ class RestoreSystemBackupFromUploadUseCase:
         job = SystemBackupRestoreJob.create(
             organization_id=command.organization_id,
             source_type=RestoreJobSourceType.UPLOADED_FILE,
+            source_database_key=command.database_key,
+            target_database_key=command.database_key,
             backup_id=None,
             uploaded_file_path=relative_repo_path(stored_path),
             source_file_name=original_name,
@@ -507,6 +572,8 @@ class RestoreSystemBackupFromUploadUseCase:
                 "checksum_sha256": checksum,
                 "uploaded_file_path": relative_repo_path(stored_path),
                 "notes": command.notes,
+                "source_database_key": command.database_key.value,
+                "target_database_key": command.database_key.value,
             },
             metadata={"user_id": str(command.user_id), "source": "file_upload"},
         )

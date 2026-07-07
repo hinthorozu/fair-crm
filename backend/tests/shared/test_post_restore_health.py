@@ -59,6 +59,7 @@ def test_post_restore_health_check_success():
     )
 
     assert result.ok is True
+    assert result.database_key == "fair_crm"
     assert result.customers_count == 3
     assert result.fairs_count == 1
     assert result.contacts_count == 2
@@ -87,3 +88,26 @@ def test_post_restore_health_check_connection_error_fails():
 
     assert result.ok is False
     assert "connection refused" in (result.error_message or "")
+
+
+def test_post_restore_health_check_kyrox_core_success():
+    counts = {
+        "identity_users": 5,
+        "identity_organizations": 2,
+        "identity_roles": 3,
+        "identity_permissions": 10,
+        "identity_memberships": 7,
+    }
+    engine = _mock_engine(counts=counts)
+    result = run_post_restore_health_check(
+        database_url="postgresql://postgres:postgres@localhost:5432/kyrox_core",
+        database_key="kyrox_core",
+        migration_result="success",
+        engine_factory=lambda *args, **kwargs: engine,
+    )
+
+    assert result.ok is True
+    assert result.database_key == "kyrox_core"
+    assert result.users_count == 5
+    assert result.roles_count == 3
+    assert "users: 5" in result.summary_text()

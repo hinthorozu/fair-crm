@@ -9,10 +9,33 @@ from app.shared.database_backup.engine import BackupRunResult
 from app.shared.database_backup.post_restore_health import PostRestoreHealthResult
 
 
+def _batch_items(body: dict) -> list[dict]:
+    return body["items"]
+
+
+def _first_item(body: dict) -> dict:
+    items = _batch_items(body)
+    assert items, "Expected at least one backup item"
+    return items[0]
+
+
 def _success_post_restore_health(**kwargs) -> PostRestoreHealthResult:
+    database_key = kwargs.get("database_key", "fair_crm")
+    if database_key == "kyrox_core":
+        return PostRestoreHealthResult(
+            ok=True,
+            migration_result=kwargs.get("migration_result", "success"),
+            database_key="kyrox_core",
+            users_count=5,
+            organizations_count=2,
+            roles_count=3,
+            permissions_count=10,
+            memberships_count=7,
+        )
     return PostRestoreHealthResult(
         ok=True,
         migration_result=kwargs.get("migration_result", "success"),
+        database_key="fair_crm",
         customers_count=12,
         fairs_count=4,
         contacts_count=7,
@@ -20,10 +43,18 @@ def _success_post_restore_health(**kwargs) -> PostRestoreHealthResult:
 
 
 def _failed_post_restore_health(**kwargs) -> PostRestoreHealthResult:
-    _ = kwargs
+    database_key = kwargs.get("database_key", "fair_crm")
+    if database_key == "kyrox_core":
+        return PostRestoreHealthResult(
+            ok=False,
+            migration_result="success",
+            database_key="kyrox_core",
+            error_message="Missing critical tables: identity_roles",
+        )
     return PostRestoreHealthResult(
         ok=False,
         migration_result="success",
+        database_key="fair_crm",
         error_message="Missing critical tables: crm_fairs",
     )
 
@@ -122,16 +153,21 @@ def test_create_list_and_get_backup(client, auth_headers, backups_root):
     )
     assert create.status_code == 202
     body = create.json()
-    backup_id = body["id"]
-    assert body["status"] in {"running", "completed"}
-    assert body["backup_format"] == "postgresql_dump"
-    assert body["file_name"].startswith("faircrm_backup_")
-    assert body["file_name"].endswith(".dump")
+    item = _first_item(body)
+    backup_id = item["id"]
+    assert item["status"] in {"running", "completed"}
+    assert item["backup_format"] == "postgresql_dump"
+    assert item["database_key"] == "fair_crm"
+    assert item["database_label"] == "FAIR CRM"
+    assert item["file_name"].startswith("fair_crm_backup_")
+    assert item["file_name"].endswith(".dump")
 
     detail = client.get(f"/api/v1/admin/backups/{backup_id}", headers=auth_headers)
     assert detail.status_code == 200
     assert detail.json()["status"] == "completed"
     assert detail.json()["backup_format"] == "postgresql_dump"
+    assert detail.json()["database_key"] == "fair_crm"
+    assert detail.json()["database_label"] == "FAIR CRM"
     assert detail.json()["notes"] == "Sprint 09.2.2 test backup"
     assert detail.json()["file_size"] == len(b"PGDMP" + b"\x00" * 20 + b"FAIRCRM_TEST_BACKUP")
 
@@ -150,13 +186,14 @@ def test_create_sql_backup(client, auth_headers, backups_root):
     )
     assert create.status_code == 202
     body = create.json()
-    assert body["backup_format"] == "postgresql_sql"
-    assert body["file_name"].endswith(".sql")
+    item = _first_item(body)
+    assert item["backup_format"] == "postgresql_sql"
+    assert item["file_name"].endswith(".sql")
 
-    detail = client.get(f"/api/v1/admin/backups/{body['id']}", headers=auth_headers)
+    detail = client.get(f"/api/v1/admin/backups/{item['id']}", headers=auth_headers)
     assert detail.status_code == 200
     assert detail.json()["status"] == "completed"
-    assert "PostgreSQL database dump" in (backups_root / "backups" / body["file_name"]).read_text(encoding="utf-8")
+    assert "PostgreSQL database dump" in (backups_root / "backups" / item["file_name"]).read_text(encoding="utf-8")
 
 
 def test_create_universal_data_package(client, auth_headers, backups_root):
@@ -167,17 +204,18 @@ def test_create_universal_data_package(client, auth_headers, backups_root):
     )
     assert create.status_code == 202
     body = create.json()
-    assert body["backup_format"] == "universal_data_package"
-    assert body["file_name"].startswith("faircrm_data_package_")
-    assert body["file_name"].endswith(".zip")
+    item = _first_item(body)
+    assert item["backup_format"] == "universal_data_package"
+    assert item["file_name"].startswith("fair_crm_data_package_")
+    assert item["file_name"].endswith(".zip")
 
-    detail = client.get(f"/api/v1/admin/backups/{body['id']}", headers=auth_headers)
+    detail = client.get(f"/api/v1/admin/backups/{item['id']}", headers=auth_headers)
     assert detail.status_code == 200
     payload = detail.json()
     assert payload["status"] == "completed"
     assert payload["manifest_json"]["app"] == "fair-crm"
 
-    zip_path = backups_root / "backups" / body["file_name"]
+    zip_path = backups_root / "backups" / item["file_name"]
     with zipfile.ZipFile(zip_path) as archive:
         assert "manifest.json" in archive.namelist()
 
@@ -185,8 +223,9 @@ def test_create_universal_data_package(client, auth_headers, backups_root):
 def test_download_backup_increments_count(client, auth_headers, backups_root):
     create = client.post("/api/v1/admin/backups", headers=auth_headers, json={"notes": None})
     assert create.status_code == 202
-    backup_id = create.json()["id"]
-    file_name = create.json()["file_name"]
+    item = _first_item(create.json())
+    backup_id = item["id"]
+    file_name = item["file_name"]
 
     download = client.get(f"/api/v1/admin/backups/{backup_id}/download", headers=auth_headers)
     assert download.status_code == 200
@@ -206,7 +245,7 @@ def test_restore_completed_backup(client, auth_headers, backups_root, monkeypatc
     )
 
     create = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
-    backup_id = create.json()["id"]
+    backup_id = _first_item(create.json())["id"]
 
     restore = client.post(f"/api/v1/admin/backups/{backup_id}/restore", headers=auth_headers)
     assert restore.status_code == 202
@@ -215,6 +254,8 @@ def test_restore_completed_backup(client, auth_headers, backups_root, monkeypatc
     assert body["backup_id"] == backup_id
     assert body["uploaded"] is False
     assert body["source_type"] == "existing_backup"
+    assert body["source_database_key"] == "fair_crm"
+    assert body["target_database_key"] == "fair_crm"
 
     jobs = client.get("/api/v1/admin/backups/restore-jobs", headers=auth_headers)
     assert jobs.status_code == 200
@@ -233,7 +274,7 @@ def test_restore_rejects_non_dump_format(client, auth_headers, backups_root):
         headers=auth_headers,
         json={"backup_format": "postgresql_sql"},
     )
-    backup_id = create.json()["id"]
+    backup_id = _first_item(create.json())["id"]
 
     restore = client.post(f"/api/v1/admin/backups/{backup_id}/restore", headers=auth_headers)
     assert restore.status_code == 400
@@ -262,6 +303,8 @@ def test_restore_from_upload_accepts_custom_dump(client, auth_headers, backups_r
     assert body["uploaded"] is True
     assert body["source_file_name"].endswith(".dump")
     assert body["source_type"] == "uploaded_file"
+    assert body["source_database_key"] == "fair_crm"
+    assert body["target_database_key"] == "fair_crm"
     assert body["checksum_sha256"]
 
 
@@ -275,11 +318,32 @@ def test_restore_from_upload_rejects_non_dump(client, auth_headers, backups_root
     assert restore.status_code == 400
 
 
+def test_restore_from_upload_rejects_wrong_database_key(client, auth_headers, backups_root, monkeypatch):
+    from app.shared.database_backup.engine import BackupVerificationResult
+
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+
+    payload = b"PGDMP" + b"\x00" * 20 + b"uploaded"
+    files = {"file": ("kyrox_core_backup_test.dump", payload, "application/octet-stream")}
+    restore = client.post(
+        "/api/v1/admin/backups/restore/upload",
+        headers=auth_headers,
+        files=files,
+        data={"database_key": "fair_crm"},
+    )
+    assert restore.status_code == 400
+    assert "kyrox_core" in restore.json()["detail"].lower()
+
+
 def test_delete_backup(client, auth_headers, backups_root):
     create = client.post("/api/v1/admin/backups", headers=auth_headers, json={"notes": "to delete"})
     assert create.status_code == 202
-    backup_id = create.json()["id"]
-    file_name = create.json()["file_name"]
+    item = _first_item(create.json())
+    backup_id = item["id"]
+    file_name = item["file_name"]
     assert (backups_root / "backups" / file_name).exists()
 
     delete = client.delete(f"/api/v1/admin/backups/{backup_id}", headers=auth_headers)
@@ -345,7 +409,7 @@ def test_restore_job_maintenance_runner_completes_job(client, auth_headers, back
     )
 
     create = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
-    backup_id = create.json()["id"]
+    backup_id = _first_item(create.json())["id"]
     restore = client.post(f"/api/v1/admin/backups/{backup_id}/restore", headers=auth_headers)
     job_id = UUID(restore.json()["id"])
 
@@ -406,7 +470,7 @@ def test_restore_job_health_check_failure_marks_failed(client, auth_headers, bac
     )
 
     create = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
-    backup_id = create.json()["id"]
+    backup_id = _first_item(create.json())["id"]
     restore = client.post(f"/api/v1/admin/backups/{backup_id}/restore", headers=auth_headers)
     job_id = UUID(restore.json()["id"])
 
@@ -446,6 +510,58 @@ def test_backup_forbidden_without_permission(client, auth_headers, backups_root)
         app.dependency_overrides[get_authorization_adapter] = lambda: AllowAllAuthorization()
 
 
+def test_create_multi_database_backup(client, auth_headers, backups_root):
+    create = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={"database_keys": ["kyrox_core", "fair_crm"], "notes": "multi-db"},
+    )
+    assert create.status_code == 202
+    items = _batch_items(create.json())
+    assert len(items) == 2
+    keys = {item["database_key"] for item in items}
+    assert keys == {"kyrox_core", "fair_crm"}
+    for item in items:
+        assert item["file_name"].startswith(f"{item['database_key']}_backup_")
+        detail = client.get(f"/api/v1/admin/backups/{item['id']}", headers=auth_headers)
+        assert detail.status_code == 200
+        assert detail.json()["status"] == "completed"
+        assert detail.json()["notes"] == "multi-db"
+
+
+def test_create_kyrox_core_rejects_universal_package(client, auth_headers, backups_root):
+    create = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={"database_keys": ["kyrox_core"], "backup_format": "universal_data_package"},
+    )
+    assert create.status_code == 400
+    assert "fair_crm" in create.json()["detail"].lower()
+
+
+def test_restore_kyrox_core_backup(client, auth_headers, backups_root, monkeypatch):
+    from app.shared.database_backup.engine import BackupVerificationResult
+
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+
+    create = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={"database_keys": ["kyrox_core"]},
+    )
+    assert create.status_code == 202
+    backup_id = _first_item(create.json())["id"]
+
+    restore = client.post(f"/api/v1/admin/backups/{backup_id}/restore", headers=auth_headers)
+    assert restore.status_code == 202
+    body = restore.json()
+    assert body["source_database_key"] == "kyrox_core"
+    assert body["target_database_key"] == "kyrox_core"
+
+
 def test_resolve_backup_path_rejects_traversal():
     from app.shared.database_backup.paths import resolve_backup_path
 
@@ -460,7 +576,7 @@ def test_resolve_backup_path_accepts_supported_extensions(tmp_path, monkeypatch)
     (root / "backups").mkdir(parents=True)
     monkeypatch.setattr("app.shared.database_backup.paths.get_repo_root", lambda: root)
 
-    for name in ("faircrm_backup_20260702_120000.dump", "faircrm_backup_20260702_120000.sql", "faircrm_data_package_20260702_120000.zip"):
+    for name in ("fair_crm_backup_20260702_120000.dump", "kyrox_core_backup_20260702_120000.dump", "fair_crm_backup_20260702_120000.sql", "fair_crm_data_package_20260702_120000.zip"):
         path = resolve_backup_path(name)
         assert path.name == name
 

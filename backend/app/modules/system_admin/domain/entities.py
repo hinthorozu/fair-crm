@@ -9,12 +9,14 @@ from app.modules.system_admin.domain.value_objects import (
     SystemBackupStage,
     SystemBackupStatus,
 )
+from app.shared.database_backup.database_keys import DatabaseKey
 from app.shared.database_backup.formats import BackupFormat
 
 @dataclass
 class SystemBackup:
     id: UUID
     organization_id: UUID
+    database_key: DatabaseKey
     file_name: str
     backup_format: BackupFormat
     file_size: Optional[int]
@@ -38,6 +40,7 @@ class SystemBackup:
         cls,
         *,
         organization_id: UUID,
+        database_key: DatabaseKey,
         file_name: str,
         backup_format: BackupFormat,
         created_by: UUID,
@@ -48,6 +51,7 @@ class SystemBackup:
         return cls(
             id=uuid4(),
             organization_id=organization_id,
+            database_key=database_key,
             file_name=file_name,
             backup_format=backup_format,
             file_size=None,
@@ -110,6 +114,8 @@ class SystemBackupRestoreJob:
     id: UUID
     organization_id: UUID
     source_type: RestoreJobSourceType
+    source_database_key: DatabaseKey
+    target_database_key: DatabaseKey
     backup_id: UUID | None
     uploaded_file_path: str | None
     source_file_name: str
@@ -133,6 +139,8 @@ class SystemBackupRestoreJob:
         *,
         organization_id: UUID,
         source_type: RestoreJobSourceType,
+        source_database_key: DatabaseKey,
+        target_database_key: DatabaseKey,
         backup_id: UUID | None,
         uploaded_file_path: str | None,
         source_file_name: str,
@@ -146,6 +154,8 @@ class SystemBackupRestoreJob:
             id=uuid4(),
             organization_id=organization_id,
             source_type=source_type,
+            source_database_key=source_database_key,
+            target_database_key=target_database_key,
             backup_id=backup_id,
             uploaded_file_path=uploaded_file_path,
             source_file_name=source_file_name,

@@ -8,8 +8,10 @@ function makeJob(
 ): SystemBackupRestoreJobResponse {
   return {
     source_type: "existing_backup",
+    source_database_key: "fair_crm",
+    target_database_key: "fair_crm",
     backup_id: "00000000-0000-4000-8000-000000000001",
-    source_file_name: "faircrm_backup_test.dump",
+    source_file_name: "fair_crm_backup_test.dump",
     checksum_sha256: null,
     notes: null,
     requested_by_user_id: "00000000-0000-4000-8000-000000000002",
@@ -22,7 +24,7 @@ function makeJob(
     restore_log_path: null,
     message: "test",
     uploaded: false,
-    backup_file_name: "faircrm_backup_test.dump",
+    backup_file_name: "fair_crm_backup_test.dump",
     backup_format: "postgresql_dump",
     ...overrides,
   };

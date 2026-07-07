@@ -70,6 +70,7 @@ class SystemBackupModel(Base):
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
     organization_id: Mapped[UUID] = mapped_column(Uuid, nullable=False, index=True)
+    database_key: Mapped[str] = mapped_column(String(32), nullable=False, default="fair_crm", index=True)
     file_name: Mapped[str] = mapped_column(String(255), nullable=False)
     backup_format: Mapped[str] = mapped_column(String(32), nullable=False, default="postgresql_dump", index=True)
     file_size: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
@@ -95,6 +96,8 @@ class SystemBackupRestoreJobModel(Base):
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
     organization_id: Mapped[UUID] = mapped_column(Uuid, nullable=False, index=True)
     source_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    source_database_key: Mapped[str] = mapped_column(String(32), nullable=False, default="fair_crm", index=True)
+    target_database_key: Mapped[str] = mapped_column(String(32), nullable=False, default="fair_crm", index=True)
     backup_id: Mapped[UUID | None] = mapped_column(Uuid, nullable=True, index=True)
     uploaded_file_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     source_file_name: Mapped[str] = mapped_column(String(255), nullable=False)

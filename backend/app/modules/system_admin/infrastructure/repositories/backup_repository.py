@@ -6,9 +6,11 @@ from sqlalchemy.orm import Session
 from app.modules.system_admin.domain.entities import SystemBackup
 from app.modules.system_admin.domain.value_objects import SystemBackupStage, SystemBackupStatus
 from app.modules.system_admin.infrastructure.persistence.models import SystemBackupModel
+from app.shared.database_backup.database_keys import DatabaseKey
 from app.shared.database_backup.formats import BackupFormat
 
 BACKUP_SORT_FIELDS = {
+    "database_key": SystemBackupModel.database_key,
     "file_name": SystemBackupModel.file_name,
     "backup_format": SystemBackupModel.backup_format,
     "started_at": SystemBackupModel.started_at,
@@ -34,6 +36,7 @@ def _to_entity(model: SystemBackupModel) -> SystemBackup:
     return SystemBackup(
         id=model.id,
         organization_id=model.organization_id,
+        database_key=DatabaseKey(model.database_key),
         file_name=model.file_name,
         backup_format=BackupFormat(model.backup_format),
         file_size=model.file_size,
@@ -58,6 +61,7 @@ def _to_model(entity: SystemBackup) -> SystemBackupModel:
     return SystemBackupModel(
         id=entity.id,
         organization_id=entity.organization_id,
+        database_key=entity.database_key.value,
         file_name=entity.file_name,
         backup_format=entity.backup_format.value,
         file_size=entity.file_size,
@@ -80,6 +84,7 @@ def _to_model(entity: SystemBackup) -> SystemBackupModel:
 
 def _update_model(model: SystemBackupModel, entity: SystemBackup) -> None:
     model.file_name = entity.file_name
+    model.database_key = entity.database_key.value
     model.backup_format = entity.backup_format.value
     model.file_size = entity.file_size
     model.status = entity.status.value

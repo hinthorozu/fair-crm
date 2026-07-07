@@ -6,10 +6,13 @@ from sqlalchemy.orm import Session
 from app.modules.system_admin.domain.entities import SystemBackupRestoreJob
 from app.modules.system_admin.domain.value_objects import RestoreJobSourceType, RestoreJobStatus
 from app.modules.system_admin.infrastructure.persistence.models import SystemBackupRestoreJobModel
+from app.shared.database_backup.database_keys import DatabaseKey
 
 RESTORE_JOB_SORT_FIELDS = {
     "status": SystemBackupRestoreJobModel.status,
     "source_type": SystemBackupRestoreJobModel.source_type,
+    "source_database_key": SystemBackupRestoreJobModel.source_database_key,
+    "target_database_key": SystemBackupRestoreJobModel.target_database_key,
     "source_file_name": SystemBackupRestoreJobModel.source_file_name,
     "requested_at": SystemBackupRestoreJobModel.requested_at,
     "requested_by_email": SystemBackupRestoreJobModel.requested_by_email,
@@ -31,6 +34,8 @@ def _to_entity(model: SystemBackupRestoreJobModel) -> SystemBackupRestoreJob:
         id=model.id,
         organization_id=model.organization_id,
         source_type=RestoreJobSourceType(model.source_type),
+        source_database_key=DatabaseKey(model.source_database_key),
+        target_database_key=DatabaseKey(model.target_database_key),
         backup_id=model.backup_id,
         uploaded_file_path=model.uploaded_file_path,
         source_file_name=model.source_file_name,
@@ -55,6 +60,8 @@ def _to_model(entity: SystemBackupRestoreJob) -> SystemBackupRestoreJobModel:
         id=entity.id,
         organization_id=entity.organization_id,
         source_type=entity.source_type.value,
+        source_database_key=entity.source_database_key.value,
+        target_database_key=entity.target_database_key.value,
         backup_id=entity.backup_id,
         uploaded_file_path=entity.uploaded_file_path,
         source_file_name=entity.source_file_name,
@@ -76,6 +83,8 @@ def _to_model(entity: SystemBackupRestoreJob) -> SystemBackupRestoreJobModel:
 
 def _update_model(model: SystemBackupRestoreJobModel, entity: SystemBackupRestoreJob) -> None:
     model.source_type = entity.source_type.value
+    model.source_database_key = entity.source_database_key.value
+    model.target_database_key = entity.target_database_key.value
     model.backup_id = entity.backup_id
     model.uploaded_file_path = entity.uploaded_file_path
     model.source_file_name = entity.source_file_name

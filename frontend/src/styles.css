@@ -4240,6 +4240,66 @@ textarea.form-control-textarea {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent);
 }
 
+.backup-database-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.backup-database-option {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  column-gap: 12px;
+  row-gap: 0.25rem;
+  align-items: start;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.625rem 0.75rem;
+  cursor: pointer;
+  background: var(--surface);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.backup-database-option:hover {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+}
+
+.backup-database-option.is-selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.backup-database-option input[type="checkbox"] {
+  margin-top: 2px;
+}
+
+.backup-database-option-title {
+  font-weight: 600;
+}
+
+.backup-database-option-desc {
+  grid-column: 2;
+}
+
+.backup-database-key {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.backup-notes-preview {
+  display: inline-block;
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.backup-restore-danger-banner {
+  border-left: 4px solid var(--danger);
+}
+
 .backup-format-card-radio {
   grid-column: 1;
   grid-row: 1;

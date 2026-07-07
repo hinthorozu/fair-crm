@@ -28,6 +28,7 @@ from app.modules.system_admin.api.dependencies import (
     require_admin_read_permission,
 )
 from app.modules.system_admin.api.schemas import (
+    CreateSystemBackupBatchResponse,
     CreateSystemBackupRequest,
     CreateSystemBackupResponse,
     DeleteSystemBackupResponse,
@@ -47,6 +48,7 @@ from app.modules.system_admin.application.backup_service import (
     RestoreSystemBackupFromUploadCommand,
     media_type_for_backup_file,
 )
+from app.shared.database_backup.database_keys import DatabaseKey, parse_database_keys
 from app.modules.system_admin.application.restore_job_service import (
     RESTORE_JOB_ALLOWED_SORT_FIELDS,
     RESTORE_JOB_DEFAULT_SORT_DIRECTION,
@@ -69,10 +71,10 @@ def _to_restore_job_response(item) -> SystemBackupRestoreJobResponse:
 
 @router.post(
     "/backups",
-    response_model=CreateSystemBackupResponse,
+    response_model=CreateSystemBackupBatchResponse,
     status_code=status.HTTP_202_ACCEPTED,
     responses={403: {"model": ErrorResponse}},
-    summary="Create database backup (background job)",
+    summary="Create database backup jobs for one or more platform databases",
 )
 def create_system_backup(
     body: CreateSystemBackupRequest,
@@ -82,9 +84,10 @@ def create_system_backup(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     use_case=Depends(get_create_backup_use_case),
     job_runner=Depends(get_backup_job_runner),
-) -> CreateSystemBackupResponse:
+) -> CreateSystemBackupBatchResponse:
     try:
-        result = use_case.execute(
+        database_keys = parse_database_keys(body.database_keys)
+        batch = use_case.execute(
             CreateSystemBackupCommand(
                 organization_id=auth.organization_id,
                 user_id=auth.user_id,
@@ -92,23 +95,34 @@ def create_system_backup(
                 access_token=access_token(credentials),
                 notes=body.notes,
                 backup_format=BackupFormat(body.backup_format),
+                database_keys=database_keys,
             )
         )
     except ForbiddenError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     db.commit()
-    background_tasks.add_task(
-        run_blocking_background_task,
-        job_runner.run_backup,
-        BackupJobCommand(organization_id=auth.organization_id, backup_id=result.backup_id),
-    )
-    return CreateSystemBackupResponse(
-        id=result.backup_id,
-        file_name=result.file_name,
-        backup_format=result.backup_format,
-        status=result.status,
-        progress_stage=result.progress_stage,
+    for item in batch.items:
+        background_tasks.add_task(
+            run_blocking_background_task,
+            job_runner.run_backup,
+            BackupJobCommand(organization_id=auth.organization_id, backup_id=item.backup_id),
+        )
+    return CreateSystemBackupBatchResponse(
+        items=[
+            CreateSystemBackupResponse(
+                id=item.backup_id,
+                database_key=item.database_key,
+                database_label=item.database_label,
+                file_name=item.file_name,
+                backup_format=item.backup_format,
+                status=item.status,
+                progress_stage=item.progress_stage,
+            )
+            for item in batch.items
+        ]
     )
 
 
@@ -333,6 +347,7 @@ def download_system_backup(
 async def restore_system_backup_from_upload(
     file: UploadFile = File(...),
     notes: str | None = Form(default=None),
+    database_key: str = Form(default=DatabaseKey.FAIR_CRM.value),
     db: Session = Depends(get_db),
     auth: AuthContext = Depends(require_admin_create_permission),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
@@ -341,6 +356,7 @@ async def restore_system_backup_from_upload(
     original_name = file.filename or ""
     payload = await file.read()
     try:
+        parsed_database_key = DatabaseKey(database_key)
         result = use_case.execute(
             RestoreSystemBackupFromUploadCommand(
                 organization_id=auth.organization_id,
@@ -350,6 +366,7 @@ async def restore_system_backup_from_upload(
                 original_file_name=original_name,
                 file_bytes=payload,
                 notes=notes.strip() if notes else None,
+                database_key=parsed_database_key,
             )
         )
     except ForbiddenError as exc:

@@ -38,6 +38,11 @@ class Settings(BaseSettings):
         default="postgresql+psycopg2://postgres:postgres@localhost:5432/fair_crm",
         validation_alias=AliasChoices("FAIR_CRM_DATABASE_URL", "DATABASE_URL"),
     )
+    kyrox_core_database_url: str = Field(
+        default="postgresql+psycopg2://postgres:postgres@localhost:5432/kyrox_core",
+        validation_alias="KYROX_CORE_DATABASE_URL",
+    )
+    kyrox_core_repo_path: str | None = Field(default=None, validation_alias="KYROX_CORE_REPO_PATH")
     jwt_secret_key: str = "change-me-in-production-use-a-long-random-string"
     smtp_secret_encryption_key: str | None = Field(
         default=None,

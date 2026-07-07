@@ -5,7 +5,8 @@ import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
 import type { StandardListResponse } from "../types/listTable";
 import type {
   BackupFormat,
-  CreateSystemBackupResponse,
+  CreateSystemBackupBatchResponse,
+  DatabaseKey,
   DeleteSystemBackupResponse,
   SystemBackup,
   SystemBackupRestoreJobResponse,
@@ -56,12 +57,17 @@ export async function listSystemBackups(params?: {
 }
 
 export async function createSystemBackup(
+  databaseKeys: DatabaseKey[],
   notes?: string | null,
   backupFormat: BackupFormat = "postgresql_dump",
-): Promise<CreateSystemBackupResponse> {
-  return apiRequest<CreateSystemBackupResponse>("/api/v1/admin/backups", {
+): Promise<CreateSystemBackupBatchResponse> {
+  return apiRequest<CreateSystemBackupBatchResponse>("/api/v1/admin/backups", {
     method: "POST",
-    body: JSON.stringify({ notes: notes ?? null, backup_format: backupFormat }),
+    body: JSON.stringify({
+      database_keys: databaseKeys,
+      notes: notes ?? null,
+      backup_format: backupFormat,
+    }),
   });
 }
 
@@ -103,10 +109,12 @@ export async function restoreSystemBackup(backupId: string): Promise<SystemBacku
 
 export async function restoreSystemBackupFromUpload(
   file: File,
+  databaseKey: DatabaseKey,
   notes?: string | null,
 ): Promise<SystemBackupRestoreJobResponse> {
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("database_key", databaseKey);
   if (notes?.trim()) {
     formData.append("notes", notes.trim());
   }

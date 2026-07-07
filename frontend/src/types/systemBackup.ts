@@ -1,7 +1,11 @@
 export type BackupFormat = "postgresql_dump" | "postgresql_sql" | "universal_data_package";
 
+export type DatabaseKey = "kyrox_core" | "fair_crm";
+
 export interface SystemBackup {
   id: string;
+  database_key: DatabaseKey;
+  database_label: string;
   file_name: string;
   backup_format: BackupFormat;
   file_size: number | null;
@@ -28,16 +32,24 @@ export interface SystemBackupListResponse {
 
 export interface CreateSystemBackupResponse {
   id: string;
+  database_key: DatabaseKey;
+  database_label: string;
   file_name: string;
   backup_format: BackupFormat;
   status: string;
   progress_stage: string;
 }
 
+export interface CreateSystemBackupBatchResponse {
+  items: CreateSystemBackupResponse[];
+}
+
 export interface SystemBackupRestoreJobResponse {
   id: string;
   status: "manual_restore_required" | "running" | "completed" | "failed";
   source_type: "existing_backup" | "uploaded_file";
+  source_database_key: DatabaseKey;
+  target_database_key: DatabaseKey;
   backup_id: string | null;
   source_file_name: string;
   checksum_sha256: string | null;

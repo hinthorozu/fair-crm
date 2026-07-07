@@ -28,6 +28,12 @@ from app.shared.database_backup.engine import (
     pg_restore_custom,
     verify_backup_dump,
 )
+from app.shared.database_backup.database_keys import (
+    DatabaseKey,
+    assert_target_url_matches_database_key,
+    resolve_alembic_workdir,
+    resolve_database_url,
+)
 from app.shared.database_backup.paths import get_repo_root, get_restore_logs_dir, get_restore_uploads_dir, relative_repo_path, resolve_backup_path
 from app.shared.database_backup.post_restore_health import run_post_restore_health_check
 
@@ -37,6 +43,8 @@ RESTORE_JOB_ALLOWED_SORT_FIELDS = frozenset(
     {
         "status",
         "source_type",
+        "source_database_key",
+        "target_database_key",
         "source_file_name",
         "requested_at",
         "requested_by_email",
@@ -58,6 +66,8 @@ class RestoreJobResult:
     id: UUID
     status: str
     source_type: str
+    source_database_key: str
+    target_database_key: str
     backup_id: UUID | None
     source_file_name: str
     checksum_sha256: str | None
@@ -81,6 +91,8 @@ def _to_result(job: SystemBackupRestoreJob, *, backup_file_name: str | None = No
         id=job.id,
         status=job.status.value,
         source_type=job.source_type.value,
+        source_database_key=job.source_database_key.value,
+        target_database_key=job.target_database_key.value,
         backup_id=job.backup_id,
         source_file_name=job.source_file_name,
         checksum_sha256=job.checksum_sha256,
@@ -220,7 +232,7 @@ def _merge_restore_job_notes(existing: str | None, health_summary: str) -> str:
 @dataclass(frozen=True)
 class RestoreJobMaintenanceCommand:
     job_id: UUID
-    target_database_url: str
+    target_database_url: str | None
     allow_restore: bool
 
 
@@ -237,9 +249,6 @@ class RestoreJobMaintenanceRunner:
         if not command.allow_restore:
             print("Restore blocked: set ALLOW_RESTORE=true to run destructive restore.", file=sys.stderr)
             return 1
-        if not command.target_database_url.strip():
-            print("Restore blocked: TARGET_DATABASE_URL is required.", file=sys.stderr)
-            return 1
 
         db = self._session_factory()
         log_handle = None
@@ -255,6 +264,13 @@ class RestoreJobMaintenanceRunner:
                     file=sys.stderr,
                 )
                 return 1
+
+            target_database_url = (
+                command.target_database_url.strip()
+                if command.target_database_url and command.target_database_url.strip()
+                else resolve_database_url(job.target_database_key)
+            )
+            assert_target_url_matches_database_key(target_database_url, job.target_database_key)
 
             logs_dir = get_restore_logs_dir()
             logs_dir.mkdir(parents=True, exist_ok=True)
@@ -283,6 +299,7 @@ class RestoreJobMaintenanceRunner:
             dump_path = resolve_restore_job_dump_path(job)
             _log(f"Restore job: {job.id}")
             _log(f"Source type: {job.source_type.value}")
+            _log(f"Target database: {job.target_database_key.value}")
             _log(f"Dump file: {dump_path}")
 
             if not dump_path.exists():
@@ -290,34 +307,40 @@ class RestoreJobMaintenanceRunner:
             if not is_custom_pg_dump(dump_path):
                 raise ValueError("Dump file is not PostgreSQL custom format")
 
-            verify_backup_dump(database_url=command.target_database_url, dump_path=dump_path)
+            verify_backup_dump(database_url=target_database_url, dump_path=dump_path)
             _log("Dump validation OK")
 
-            pg_restore_custom(database_url=command.target_database_url, dump_path=dump_path)
+            pg_restore_custom(database_url=target_database_url, dump_path=dump_path)
             _log("pg_restore completed")
 
-            repo_root = get_repo_root()
-            _log("Running alembic upgrade head")
-            result = subprocess.run(
-                [sys.executable, "-m", "alembic", "upgrade", "head"],
-                cwd=str(repo_root),
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            if log_handle:
-                if result.stdout:
-                    log_handle.write(result.stdout)
-                if result.stderr:
-                    log_handle.write(result.stderr)
-                log_handle.flush()
-            if result.returncode != 0:
-                raise DatabaseBackupError(result.stderr or result.stdout or "alembic upgrade head failed")
-            _log("Alembic upgrade head completed")
+            migration_result = "success"
+            try:
+                alembic_workdir = resolve_alembic_workdir(job.target_database_key)
+                _log(f"Running alembic upgrade head in {alembic_workdir}")
+                result = subprocess.run(
+                    [sys.executable, "-m", "alembic", "upgrade", "head"],
+                    cwd=str(alembic_workdir),
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                if log_handle:
+                    if result.stdout:
+                        log_handle.write(result.stdout)
+                    if result.stderr:
+                        log_handle.write(result.stderr)
+                    log_handle.flush()
+                if result.returncode != 0:
+                    raise DatabaseBackupError(result.stderr or result.stdout or "alembic upgrade head failed")
+                _log("Alembic upgrade head completed")
+            except ValueError as exc:
+                migration_result = "skipped"
+                _log(f"Alembic upgrade skipped: {exc}")
 
             health = run_post_restore_health_check(
-                database_url=command.target_database_url,
-                migration_result="success",
+                database_url=target_database_url,
+                database_key=job.target_database_key,
+                migration_result=migration_result,
             )
             for line in health.log_lines():
                 _log(line)

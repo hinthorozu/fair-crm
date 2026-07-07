@@ -104,6 +104,30 @@ export const adminLabels = {
   startBackup: "Yedeği Başlat",
   cancel: "İptal",
 
+  databaseKeysLabel: "Yedeklenecek veritabanları",
+  databaseKeyKyroxCore: "KYROX Core",
+  databaseKeyFairCrm: "FAIR CRM",
+  databaseKeyKyroxCoreDesc: "Kullanıcılar, organizasyonlar, roller, yetkiler ve oturum tabloları",
+  databaseKeyFairCrmDesc: "Müşteriler, fuarlar, contacts, görevler, SMTP ve CRM verileri",
+  databaseKeysRequired: "En az bir veritabanı seçmelisiniz.",
+  colDatabase: "Database",
+  colDatabaseKey: "Database Key",
+  colDatabaseLabel: "Database Label",
+
+  restoreWarningFairCrm:
+    "FAIR CRM verileri geri yüklenecek. Bu işlem mevcut fair_crm veritabanını siler ve seçili backup dosyasındaki veriyle yeniden yükler. Bu işlem geri alınamaz.",
+  restoreWarningKyroxCore:
+    "DİKKAT: KYROX Core veritabanı geri yüklenecek. Kullanıcılar, roller, yetkiler ve oturum verileri değişecektir. Tüm platform oturumları etkilenebilir. Bu işlem geri alınamaz.",
+  restoreWarningKyroxCoreStrong:
+    "KYROX Core restore, platform genelinde kimlik ve yetkilendirme verilerini değiştirir. Production ortamında ekstra dikkat gerektirir.",
+  restoreUploadDatabaseLabel: "Hedef veritabanı",
+  restoreUploadWarningFairCrm:
+    "Bu işlem FAIR CRM veritabanını seçilen dosyadaki verilerle değiştirir. Devam etmeden önce güncel yedek aldığınızdan emin olun.",
+  restoreUploadWarningKyroxCore:
+    "DİKKAT: Bu işlem KYROX Core veritabanını değiştirir. Kullanıcılar, roller ve yetkiler etkilenir. Devam etmeden önce güncel yedek aldığınızdan emin olun.",
+  restoreJobColSourceDatabase: "Source DB",
+  restoreJobColTargetDatabase: "Target DB",
+
   colName: "Backup Name",
   colFormat: "Format",
   colCreatedAt: "Created At",
