@@ -21,6 +21,7 @@ class RunFairEnrichmentCommand:
     organization_id: UUID
     fair_id: UUID
     limit: int | None = None
+    include_existing_email: bool = False
 
 
 class RunFairEnrichmentUseCase:
@@ -43,13 +44,14 @@ class RunFairEnrichmentUseCase:
         # explicitly triggered. Prior enrichment scan state from other runs (pending_merge,
         # retry cooldowns, previously completed scans) must not silently block it — the user
         # should not need to know about or clear that bookkeeping themselves. Customers who
-        # already have a real CRM email are still excluded (enforced inside the query itself).
+        # already have a real CRM email stay excluded unless include_existing_email is set.
         candidates = list_enrichment_candidates(
             self._session,
             command.organization_id,
             limit=command.limit,
             fair_id=fair.id,
             ignore_previous_scan_state=True,
+            include_existing_email=command.include_existing_email,
         )
         if not candidates:
             raise FairEnrichmentNoCandidatesError(

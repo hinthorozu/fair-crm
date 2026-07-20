@@ -8,6 +8,7 @@ import {
   FormField,
   FormGrid,
   FormSection,
+  PasswordInput,
   SelectInput,
   TextInput,
 } from "../ui/form";
@@ -217,9 +218,8 @@ export function SmtpAccountForm({
             htmlFor="smtp-password"
             hint={passwordHint}
           >
-            <TextInput
+            <PasswordInput
               id="smtp-password"
-              type="password"
               value={values.password}
               onChange={(event) => setField("password", event.target.value)}
               autoComplete="new-password"

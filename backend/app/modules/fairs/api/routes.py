@@ -431,6 +431,7 @@ def run_fair_contact_enrichment(
                 organization_id=auth.organization_id,
                 fair_id=fair_id,
                 limit=body.limit,
+                include_existing_email=body.include_existing_email,
             )
         )
     except ForbiddenError as exc:
@@ -456,6 +457,7 @@ def run_fair_contact_enrichment(
             max_pages=body.max_pages or 10,
             fair_id=fair_id,
             ignore_previous_scan_state=True,
+            include_existing_email=body.include_existing_email,
         ),
     )
     return ScraperRunHistoryResponse.from_entity(run)

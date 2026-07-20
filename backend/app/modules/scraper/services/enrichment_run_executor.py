@@ -25,6 +25,11 @@ from app.modules.scraper.services.enrichment_candidate_service import (
 )
 from app.modules.scraper.services.customer_enrichment_state_service import record_scan_result
 from app.modules.scraper.services.enrichment_customer_run_logger import EnrichmentCustomerRunLogger
+from app.modules.scraper.services.enrichment_run_candidate_preview_logger import (
+    log_bulk_enrichment_candidate_preview,
+    log_customer_scan_finished,
+    log_customer_scan_started,
+)
 from app.modules.scraper.services.scraper_run_cancellation import RunCancelChecker
 from app.modules.scraper.types.scraper_result import ScraperResult
 from app.modules.scraper.types.scraper_site import ScraperSiteKey
@@ -86,6 +91,7 @@ def execute_enrichment_run(
     customer_ids: list[UUID] | None = None,
     fair_id: UUID | None = None,
     ignore_previous_scan_state: bool = False,
+    include_existing_email: bool = False,
     cancel_checker: RunCancelChecker | None = None,
 ) -> EnrichmentRunExecution:
     def _cancelled_execution(
@@ -117,6 +123,7 @@ def execute_enrichment_run(
             limit=limit,
             fair_id=fair_id,
             ignore_previous_scan_state=ignore_previous_scan_state,
+            include_existing_email=include_existing_email,
         )
     elif customer_ids:
         from app.modules.scraper.services.single_customer_enrichment_service import (
@@ -129,7 +136,12 @@ def execute_enrichment_run(
             customer_ids,
         )
     else:
-        candidates = list_enrichment_candidates(session, organization_id, limit=limit)
+        candidates = list_enrichment_candidates(
+            session,
+            organization_id,
+            limit=limit,
+            include_existing_email=include_existing_email,
+        )
     duration_ms = int((time.perf_counter() - query_started_at) * 1000)
     candidate_count = len(candidates)
     if run_logger is not None:
@@ -140,6 +152,7 @@ def execute_enrichment_run(
             "customer_ids_filter": [str(item) for item in customer_ids or []],
             "fair_id": str(fair_id) if fair_id is not None else None,
             "ignore_previous_scan_state": ignore_previous_scan_state,
+            "include_existing_email": include_existing_email,
         }
         run_logger.info(
             "candidates_query_finished",
@@ -168,11 +181,17 @@ def execute_enrichment_run(
     if cancel_checker is not None and cancel_checker.is_cancel_requested():
         return _cancelled_execution([], total_candidates=candidate_count, last_processed_customer_id=None)
 
+    is_bulk_enrichment_run = customer_ids is None
+    if run_logger is not None and is_bulk_enrichment_run:
+        log_bulk_enrichment_candidate_preview(run_logger, candidates)
+
     results: list[EnrichmentResultDto] = []
     last_processed_customer_id: UUID | None = None
     for candidate in candidates:
         if cancel_checker is not None and cancel_checker.is_cancel_requested():
             break
+        if run_logger is not None and is_bulk_enrichment_run:
+            log_customer_scan_started(run_logger, candidate)
         result = enrich_customer_website(
             candidate,
             requested_fields=requested_fields,
@@ -181,6 +200,8 @@ def execute_enrichment_run(
             run_id=run_id,
             run_logger=run_logger,
         )
+        if run_logger is not None and is_bulk_enrichment_run:
+            log_customer_scan_finished(run_logger, candidate)
         results.append(result)
         last_processed_customer_id = candidate.customer_id
         if run_id is not None:

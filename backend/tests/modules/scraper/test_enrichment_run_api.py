@@ -158,3 +158,33 @@ def test_enrichment_run_rejects_non_enrichment_adapter(client, auth_headers):
         headers=auth_headers,
     )
     assert response.status_code == 404
+
+
+def test_enrichment_run_passes_include_existing_email_to_executor(
+    client, auth_headers, db_session
+):
+    captured: dict[str, object] = {}
+
+    def _capture_executor(_session, _organization_id, **kwargs):
+        captured["include_existing_email"] = kwargs.get("include_existing_email")
+        return _mock_executor(_session, _organization_id, **kwargs)
+
+    mock_runner = EnrichmentRunJobRunner(session_factory=lambda: db_session, executor=_capture_executor)
+    previous_runner = scraper_dependencies._enrichment_run_job_runner
+    scraper_dependencies._enrichment_run_job_runner = mock_runner
+    try:
+        response = client.post(
+            f"/api/v1/scraper/adapters/{ScraperSiteKey.CUSTOMER_CONTACT_ENRICHMENT}/enrichment-run",
+            json={
+                "limit": 5,
+                "dry_run": True,
+                "requested_fields": ["email"],
+                "include_existing_email": True,
+            },
+            headers=auth_headers,
+        )
+    finally:
+        scraper_dependencies._enrichment_run_job_runner = previous_runner
+
+    assert response.status_code == 202
+    assert captured["include_existing_email"] is True

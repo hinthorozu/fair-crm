@@ -43,6 +43,7 @@ def list_enrichment_candidates(
     limit: int | None = None,
     fair_id: UUID | None = None,
     ignore_previous_scan_state: bool = False,
+    include_existing_email: bool = False,
 ) -> list[EnrichmentCandidate]:
     """Return customers eligible for enrichment based on website, email, and scan state.
 
@@ -50,21 +51,27 @@ def list_enrichment_candidates(
     (pending_merge, failed/email_not_found retry cooldowns, previously completed scans)
     entirely. It is intended for a manually-triggered, single-fair scoped run, where the
     user explicitly asked to (re)scan that fair's participants and should not have to know
-    about or clear prior scan bookkeeping for another run to pick them up. It never affects
-    the "customer already has a CRM email" exclusion, which is enforced above at the query
-    level regardless of this flag.
+    about or clear prior scan bookkeeping for another run to pick them up.
+
+    ``include_existing_email`` disables the default "no CRM email" filter so customers who
+    already have an email can be re-scanned for new or updated contact data. When False
+    (default), only website-holding customers without any CRM email are returned — the
+    original enrichment behaviour.
     """
+    filters = [
+        CustomerModel.organization_id == organization_id,
+        CustomerModel.deleted_at.is_(None),
+        CustomerWebsiteModel.organization_id == organization_id,
+        CustomerWebsiteModel.website.isnot(None),
+        func.trim(CustomerWebsiteModel.website) != "",
+    ]
+    if not include_existing_email:
+        filters.append(~_website_has_email_subquery(organization_id))
+
     query = (
         session.query(CustomerWebsiteModel, CustomerModel)
         .join(CustomerModel, CustomerModel.id == CustomerWebsiteModel.customer_id)
-        .filter(
-            CustomerModel.organization_id == organization_id,
-            CustomerModel.deleted_at.is_(None),
-            CustomerWebsiteModel.organization_id == organization_id,
-            CustomerWebsiteModel.website.isnot(None),
-            func.trim(CustomerWebsiteModel.website) != "",
-            ~_website_has_email_subquery(organization_id),
-        )
+        .filter(*filters)
     )
     if fair_id is not None:
         query = query.join(

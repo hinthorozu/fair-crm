@@ -3,4 +3,10 @@ export { FormSection } from "./FormSection";
 export { FormGrid } from "./FormGrid";
 export { FormField } from "./FormField";
 export { FormActions } from "./FormActions";
-export { TextInput, SelectInput, TextareaInput, CheckboxField } from "./FormInputs";
+export {
+  TextInput,
+  PasswordInput,
+  SelectInput,
+  TextareaInput,
+  CheckboxField,
+} from "./FormInputs";

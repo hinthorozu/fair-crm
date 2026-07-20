@@ -42,4 +42,6 @@ export const uiLabels = {
     "Kaydedilmemiş değişiklikler var. Çıkmak istediğinize emin misiniz?",
   modalReturnToForm: "Forma Dön",
   modalDiscardExit: "Çık",
+  showPassword: "Şifreyi göster",
+  hidePassword: "Şifreyi gizle",
 } as const;

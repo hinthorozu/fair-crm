@@ -41,7 +41,7 @@ export function EnrichmentRunPanel({
 }: EnrichmentRunPanelProps) {
   /** Empty string = no limit (all eligible customers); the "50" shown to the user is only a placeholder hint. */
   const [limitInput, setLimitInput] = React.useState("");
-  const [dryRun, setDryRun] = React.useState(false);
+  const [includeExistingEmail, setIncludeExistingEmail] = React.useState(false);
   const [requestedFields, setRequestedFields] = React.useState<RequestedOutputField[]>(() =>
     filterEnrichmentRequestedFields(resolveRequestedFieldsForManifest(manifest)),
   );
@@ -98,8 +98,8 @@ export function EnrichmentRunPanel({
     try {
       const payload = {
         limit,
-        dry_run: dryRun,
         requested_fields: requestedFields,
+        include_existing_email: includeExistingEmail,
       };
       const started = fairId
         ? await runFairContactEnrichment(fairId, payload)
@@ -129,7 +129,7 @@ export function EnrichmentRunPanel({
     } finally {
       setRunning(false);
     }
-  }, [adapterKey, dryRun, fairId, limitInput, onRunFinished, onRunStarted, pollRun, requestedFields]);
+  }, [adapterKey, fairId, includeExistingEmail, limitInput, onRunFinished, onRunStarted, pollRun, requestedFields]);
 
   return (
     <div className="enrichment-run-panel">
@@ -161,12 +161,13 @@ export function EnrichmentRunPanel({
       <label className="output-field-label">
         <input
           type="checkbox"
-          checked={dryRun}
+          checked={includeExistingEmail}
           disabled={running}
-          onChange={(event) => setDryRun(event.target.checked)}
+          onChange={(event) => setIncludeExistingEmail(event.target.checked)}
         />{" "}
-        {scraperLabels.enrichmentRunDryRun}
+        {scraperLabels.enrichmentRunIncludeExistingEmail}
       </label>
+      <p className="form-hint">{scraperLabels.enrichmentRunIncludeExistingEmailHint}</p>
 
       <div className="enrichment-run-actions">
         <button type="button" className="btn primary" disabled={running} onClick={() => void handleRun()}>

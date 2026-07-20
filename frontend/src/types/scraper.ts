@@ -246,8 +246,9 @@ export interface EnrichmentRunPayload {
   /** Omitted/undefined falls back to the backend default; explicit `null` means "no limit — all eligible customers". */
   limit?: number | null;
   requested_fields?: RequestedOutputField[];
-  dry_run?: boolean;
   max_pages?: number;
+  /** When true, customers who already have a CRM email are also scanned for new data. */
+  include_existing_email?: boolean;
 }
 
 export interface EnrichmentStateResetPayload {

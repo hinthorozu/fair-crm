@@ -255,5 +255,115 @@ def test_fair_scoped_candidates_ignore_previous_state_but_org_wide_still_blocks(
     assert failed_customer.id not in org_candidates, "org-wide run must still respect the failed retry cooldown"
     assert already_emailed_customer.id not in org_candidates
     assert already_emailed_customer.id not in fair_candidates, (
-        "a customer with a real CRM email must stay excluded even for fair-scoped runs"
+        "a customer with a real CRM email must stay excluded when include_existing_email=False"
     )
+
+
+def test_list_enrichment_candidates_includes_customers_with_email_when_flag_set(
+    db_session, organization_id
+):
+    customer = _seed_customer(db_session, organization_id, display_name="Has Email Co")
+    now = datetime.now(tz=UTC)
+    db_session.add_all(
+        [
+            CustomerWebsiteModel(
+                id=uuid4(),
+                organization_id=organization_id,
+                customer_id=customer.id,
+                website="https://has-email.test",
+                is_primary=True,
+                created_at=now,
+            ),
+            CustomerEmailModel(
+                id=uuid4(),
+                organization_id=organization_id,
+                customer_id=customer.id,
+                email="info@has-email.test",
+                is_primary=True,
+                created_at=now,
+            ),
+        ]
+    )
+    db_session.commit()
+
+    default_candidates = list_enrichment_candidates(db_session, organization_id)
+    assert all(item.customer_id != customer.id for item in default_candidates)
+
+    included_candidates = list_enrichment_candidates(
+        db_session, organization_id, include_existing_email=True
+    )
+    assert any(item.customer_id == customer.id for item in included_candidates)
+
+
+def test_fair_scoped_include_existing_email_adds_emailed_participants(db_session, organization_id):
+    now = datetime.now(tz=UTC)
+    fair = FairModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        name="Email Include Fair",
+        normalized_name="email include fair",
+        status="planned",
+        created_at=now,
+        updated_at=now,
+    )
+    db_session.add(fair)
+    db_session.flush()
+
+    no_email_customer = _seed_customer(db_session, organization_id, display_name="No Email Co")
+    emailed_customer = _seed_customer(db_session, organization_id, display_name="Emailed Co")
+    for customer, website in (
+        (no_email_customer, "https://no-email.test"),
+        (emailed_customer, "https://emailed.test"),
+    ):
+        db_session.add(
+            CustomerWebsiteModel(
+                id=uuid4(),
+                organization_id=organization_id,
+                customer_id=customer.id,
+                website=website,
+                is_primary=True,
+                created_at=now,
+            )
+        )
+        db_session.add(
+            CustomerFairParticipationModel(
+                id=uuid4(),
+                organization_id=organization_id,
+                customer_id=customer.id,
+                fair_id=fair.id,
+                participation_status="exhibitor",
+                created_at=now,
+                updated_at=now,
+            )
+        )
+    db_session.add(
+        CustomerEmailModel(
+            id=uuid4(),
+            organization_id=organization_id,
+            customer_id=emailed_customer.id,
+            email="info@emailed.test",
+            is_primary=True,
+            created_at=now,
+        )
+    )
+    db_session.commit()
+
+    default_fair_candidates = {
+        item.customer_id
+        for item in list_enrichment_candidates(
+            db_session, organization_id, fair_id=fair.id, ignore_previous_scan_state=True
+        )
+    }
+    assert default_fair_candidates == {no_email_customer.id}
+
+    include_email_fair_candidates = {
+        item.customer_id
+        for item in list_enrichment_candidates(
+            db_session,
+            organization_id,
+            fair_id=fair.id,
+            ignore_previous_scan_state=True,
+            include_existing_email=True,
+        )
+    }
+    assert include_email_fair_candidates == {no_email_customer.id, emailed_customer.id}

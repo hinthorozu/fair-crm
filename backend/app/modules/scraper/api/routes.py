@@ -601,6 +601,7 @@ def run_customer_contact_enrichment(
             requested_fields=body.requested_fields,
             dry_run=body.dry_run,
             max_pages=body.max_pages or 10,
+            include_existing_email=body.include_existing_email,
         ),
     )
     return ScraperRunHistoryResponse.from_entity(run)

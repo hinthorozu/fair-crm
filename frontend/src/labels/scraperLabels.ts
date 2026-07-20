@@ -146,7 +146,9 @@ export const scraperLabels = {
   enrichmentRunLimit: "Müşteri limiti",
   enrichmentRunLimitHint: "Boş bırakılırsa uygun tüm müşteriler işlenir.",
   enrichmentRunLimitInvalid: "Müşteri limiti 1 ile 500 arasında bir sayı olmalı veya boş bırakılmalıdır.",
-  enrichmentRunDryRun: "Önizleme (import batch oluşturma)",
+  enrichmentRunIncludeExistingEmail: "E-mail olanları da dahil et",
+  enrichmentRunIncludeExistingEmailHint:
+    "Açıkken CRM'de e-postası olan müşteriler de taranır. Mevcut veriler otomatik değişmez; bulunan bilgiler Import Önizleme'de onayınıza sunulur.",
   enrichmentRunStatus: "Durum",
   enrichmentRunFailed: "Zenginleştirme çalışması başarısız oldu.",
   enrichmentRunTimeout: "Çalıştırma zaman aşımına uğradı.",

@@ -1,4 +1,6 @@
 import React from "react";
+import { NavIconEye, NavIconEyeOff } from "../../layout/NavIcons";
+import { uiLabels } from "../../../labels/uiLabels";
 
 type ControlProps = {
   id: string;
@@ -33,6 +35,75 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(func
     />
   );
 });
+
+export interface PasswordInputProps extends Omit<TextInputProps, "type"> {}
+
+export const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(
+  function PasswordInput({ id, className, disabled, "aria-invalid": ariaInvalid, ...rest }, ref) {
+    const [visible, setVisible] = React.useState(false);
+    const inputRef = React.useRef<HTMLInputElement | null>(null);
+    const selectionRef = React.useRef<{ start: number; end: number } | null>(null);
+
+    const setRefs = React.useCallback(
+      (node: HTMLInputElement | null) => {
+        inputRef.current = node;
+        if (typeof ref === "function") {
+          ref(node);
+        } else if (ref) {
+          ref.current = node;
+        }
+      },
+      [ref],
+    );
+
+    React.useLayoutEffect(() => {
+      const input = inputRef.current;
+      const selection = selectionRef.current;
+      if (!input || !selection || document.activeElement !== input) {
+        selectionRef.current = null;
+        return;
+      }
+      input.setSelectionRange(selection.start, selection.end);
+      selectionRef.current = null;
+    }, [visible]);
+
+    const toggleVisibility = () => {
+      const input = inputRef.current;
+      if (input) {
+        selectionRef.current = {
+          start: input.selectionStart ?? input.value.length,
+          end: input.selectionEnd ?? input.value.length,
+        };
+      }
+      setVisible((current) => !current);
+    };
+
+    return (
+      <div className="password-input">
+        <TextInput
+          ref={setRefs}
+          id={id}
+          type={visible ? "text" : "password"}
+          className={["password-input__control", className].filter(Boolean).join(" ")}
+          disabled={disabled}
+          aria-invalid={ariaInvalid}
+          {...rest}
+        />
+        <button
+          type="button"
+          className="password-input__toggle"
+          disabled={disabled}
+          aria-label={visible ? uiLabels.hidePassword : uiLabels.showPassword}
+          aria-pressed={visible}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={toggleVisibility}
+        >
+          {visible ? <NavIconEyeOff /> : <NavIconEye />}
+        </button>
+      </div>
+    );
+  },
+);
 
 export interface SelectInputProps
   extends ControlProps,

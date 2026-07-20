@@ -334,6 +334,7 @@ class EnrichmentRunRequest(BaseModel):
     requested_fields: list[str] | None = None
     dry_run: bool = False
     max_pages: int | None = Field(default=10, ge=1, le=10)
+    include_existing_email: bool = False
 
 
 class EnrichmentStateResetRequest(BaseModel):

@@ -1585,6 +1585,54 @@ textarea.form-control-textarea {
   resize: vertical;
 }
 
+.password-input {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+}
+
+.password-input__control {
+  padding-right: 2.75rem;
+}
+
+.password-input__toggle {
+  position: absolute;
+  right: 0.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.password-input__toggle:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.password-input__toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 0;
+}
+
+.password-input__toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.password-input__toggle .nav-icon {
+  width: 18px;
+  height: 18px;
+}
+
 .checkbox-field {
   flex-direction: row;
   align-items: flex-start;
@@ -5511,6 +5559,41 @@ textarea.form-control-textarea {
   flex-wrap: wrap;
 }
 
+.todo-worklist-mail-action-row {
+  margin: 0 0 1rem;
+}
+
+.manual-task-mail-add-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.manual-task-mail-add-row .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.manual-task-mail-recipient-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.manual-task-mail-recipient-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border, #d7dce3);
+  border-radius: 6px;
+  background: var(--surface-muted, #f7f8fa);
+}
+
 @media (max-width: 768px) {
   .todo-worklist-progress-grid {
     grid-template-columns: 1fr;
@@ -5519,6 +5602,14 @@ textarea.form-control-textarea {
   .todo-worklist-recent-item {
     grid-template-columns: 1fr;
     gap: 0.35rem;
+  }
+
+  .manual-task-mail-add-row {
+    flex-direction: column;
+  }
+
+  .manual-task-mail-add-row .btn {
+    width: 100%;
   }
 }
 

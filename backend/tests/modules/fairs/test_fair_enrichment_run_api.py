@@ -17,6 +17,7 @@ from app.modules.scraper.services.scraper_run_history_service import ScraperRunH
 from app.modules.scraper.types.scraper_site import ScraperSiteKey
 from app.modules.customers.domain.value_objects import CustomerStatus, CustomerType
 from app.modules.customers.infrastructure.persistence.communication_models import CustomerWebsiteModel
+from app.modules.customers.infrastructure.persistence.communication_models import CustomerEmailModel
 from app.modules.customers.infrastructure.persistence.models import CustomerModel
 from app.modules.fairs.infrastructure.persistence.models import FairModel
 from app.modules.participations.infrastructure.persistence.models import CustomerFairParticipationModel
@@ -275,3 +276,73 @@ def test_run_fair_contact_enrichment_not_found(client, auth_headers):
         headers=auth_headers,
     )
     assert response.status_code == 404
+
+
+def test_run_fair_contact_enrichment_include_existing_email_passes_flag(
+    client, auth_headers, db_session, organization_id
+):
+    fair = _seed_fair(db_session, organization_id, name="Email Include Fair")
+    emailed_customer = _seed_customer(
+        db_session,
+        organization_id,
+        name="Already Emailed Co",
+        website="https://already-emailed.test",
+    )
+    _seed_participation(db_session, organization_id, fair.id, emailed_customer.id)
+    now = datetime.now(tz=UTC)
+    db_session.add(
+        CustomerEmailModel(
+            id=uuid4(),
+            organization_id=organization_id,
+            customer_id=emailed_customer.id,
+            email="info@already-emailed.test",
+            is_primary=True,
+            created_at=now,
+        )
+    )
+    db_session.commit()
+
+    fair_id = fair.id
+    emailed_customer_id = emailed_customer.id
+
+    captured: dict[str, object] = {}
+
+    def _mock_executor(_session, _organization_id, **kwargs):
+        captured["include_existing_email"] = kwargs.get("include_existing_email")
+        return EnrichmentRunExecution(
+            results=[
+                EnrichmentResultDto(
+                    customer_id=emailed_customer_id,
+                    company_name="Already Emailed Co",
+                    website="https://already-emailed.test",
+                    emails=[SourcedValue(value="sales@already-emailed.test", source_url="https://already-emailed.test")],
+                    status="found",
+                )
+            ],
+            handoff=_sample_handoff(emailed_customer_id),
+        )
+
+    mock_runner = EnrichmentRunJobRunner(session_factory=lambda: db_session, executor=_mock_executor)
+    previous_runner = fairs_dependencies._enrichment_run_job_runner
+    fairs_dependencies._enrichment_run_job_runner = mock_runner
+    try:
+        rejected = client.post(
+            f"/api/v1/fairs/{fair_id}/contact-enrichment/run",
+            json={"limit": 10, "requested_fields": ["email"]},
+            headers=auth_headers,
+        )
+        accepted = client.post(
+            f"/api/v1/fairs/{fair_id}/contact-enrichment/run",
+            json={
+                "limit": 10,
+                "requested_fields": ["email"],
+                "include_existing_email": True,
+            },
+            headers=auth_headers,
+        )
+    finally:
+        fairs_dependencies._enrichment_run_job_runner = previous_runner
+
+    assert rejected.status_code == 400
+    assert accepted.status_code == 202
+    assert captured["include_existing_email"] is True

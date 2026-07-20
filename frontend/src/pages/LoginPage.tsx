@@ -4,7 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import { labels } from "../labels";
 import { authLabels } from "../labels/authLabels";
 import { Card } from "../components/ui/Card";
-import { FormField, TextInput } from "../components/ui/form";
+import { FormField, PasswordInput, TextInput } from "../components/ui/form";
 
 interface LoginPageProps {
   onSuccess: () => void;
@@ -107,9 +107,8 @@ export function LoginPage({ onSuccess }: LoginPageProps) {
               error={fieldErrors.password}
               fullWidth
             >
-              <TextInput
+              <PasswordInput
                 id="login-password"
-                type="password"
                 autoComplete="current-password"
                 value={password}
                 disabled={submitting}
