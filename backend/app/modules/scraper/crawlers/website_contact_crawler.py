@@ -4,10 +4,34 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
+from html import unescape
 from urllib.parse import urljoin, urlparse
 
 from app.modules.scraper.extractors.contact_extractor import normalize_website_url
 from app.modules.scraper.fetchers.website_http_fetcher import fetch_html
+
+# Some sites serve a near-empty "loader" page at the bare domain/homepage and
+# push the real content via a client-side redirect (meta refresh or
+# `window.location`). A plain HTTP fetch never executes that JS, so the crawl
+# would otherwise stop dead on an empty shell page. `STUB_REDIRECT_TEXT_LIMIT`
+# bounds how little visible text a page may have before we treat a
+# `window.location` assignment in it as a real redirect target rather than
+# incidental JS on an otherwise content-rich page. Meta-refresh is always
+# honored since it is an explicit page-level redirect directive.
+STUB_REDIRECT_TEXT_LIMIT = 200
+CLIENT_REDIRECT_MAX_HOPS = 3
+
+META_REFRESH_PATTERN = re.compile(
+    r"""<meta[^>]+http-equiv=["']refresh["'][^>]*content=["'][^"']*url=([^"'>]+)["']""",
+    re.IGNORECASE,
+)
+JS_LOCATION_PATTERN = re.compile(
+    r"""window\.location(?:\.href)?\s*=\s*["']([^"']+)["']"""
+    r"""|window\.location\.replace\(\s*["']([^"']+)["']\s*\)""",
+    re.IGNORECASE,
+)
+SCRIPT_OR_STYLE_PATTERN = re.compile(r"<(script|style)\b[^>]*>.*?</\1>", re.IGNORECASE | re.DOTALL)
+TAG_PATTERN = re.compile(r"<[^>]+>")
 
 CONTACT_PATH_KEYWORDS = (
     "iletisim",
@@ -59,6 +83,40 @@ def discover_contact_links(html: str, *, base_url: str, root_domain: str) -> lis
     return discovered
 
 
+def _visible_text_length(html: str) -> int:
+    """Approximate amount of visible page text, ignoring script/style and tags."""
+    without_scripts = SCRIPT_OR_STYLE_PATTERN.sub(" ", html)
+    text = TAG_PATTERN.sub(" ", without_scripts)
+    return len(re.sub(r"\s+", "", text))
+
+
+def detect_client_side_redirect(html: str, base_url: str) -> str | None:
+    """Return the absolute target URL of a client-side redirect, if present.
+
+    Handles the two common "loader" patterns that a plain HTTP fetch cannot
+    follow on its own: `<meta http-equiv="refresh" content="...;url=...">`
+    and a bare `window.location(.href) = "..."` / `window.location.replace(...)`
+    script. The meta-refresh case is always honored. The `window.location`
+    case is only honored when the page has little to no other visible
+    content, so we don't hijack content-rich pages that merely also contain
+    unrelated redirect JS elsewhere (e.g. login/logout handlers).
+    """
+    meta_match = META_REFRESH_PATTERN.search(html)
+    if meta_match:
+        target = unescape(meta_match.group(1).strip())
+        if target:
+            return urljoin(base_url, target)
+
+    if _visible_text_length(html) <= STUB_REDIRECT_TEXT_LIMIT:
+        js_match = JS_LOCATION_PATTERN.search(html)
+        if js_match:
+            target = unescape((js_match.group(1) or js_match.group(2) or "").strip())
+            if target:
+                return urljoin(base_url, target)
+
+    return None
+
+
 def _is_social_url(url: str) -> bool:
     host = urlparse(url).netloc.lower()
     return any(
@@ -94,6 +152,19 @@ def crawl_customer_website(
             html = fetch(current_url)
         except Exception:
             continue
+
+        for _ in range(CLIENT_REDIRECT_MAX_HOPS):
+            redirect_target = detect_client_side_redirect(html, current_url)
+            if redirect_target is None or redirect_target in visited:
+                break
+            if not _same_domain(redirect_target, root_domain):
+                break
+            visited.add(redirect_target)
+            try:
+                html = fetch(redirect_target)
+            except Exception:
+                break
+            current_url = redirect_target
 
         pages.append((current_url, html))
 

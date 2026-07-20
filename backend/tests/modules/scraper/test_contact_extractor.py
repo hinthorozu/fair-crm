@@ -93,3 +93,33 @@ def test_extract_ignores_junk_email():
     values = [item.value for item in extracted["emails"]]
     assert "info@ornek.com" in values
     assert "noreply@ornek.com" not in values
+
+
+def test_extract_emails_from_js_redirect_target_fixture():
+    """Agroder-style regression: footer email in link text, found on the
+    real page (post client-side redirect)."""
+    html = (FIXTURES / "js_redirect_target.html").read_text(encoding="utf-8")
+    extracted = extract_contacts_from_html(
+        html,
+        source_url="https://ornektarim.com.tr/tr",
+        requested_fields={"email"},
+    )
+    values = [item.value for item in extracted["emails"]]
+    assert "ornektarim@ornektarim.com.tr" in values
+
+
+def test_extract_emails_ranks_site_domain_match_ahead_of_mismatched_mailto():
+    """When a `mailto:` href and the visible link text disagree, the address
+    matching the crawled site's own domain should be surfaced first, since
+    downstream handoff keeps only the first found email."""
+    html = (
+        "<a href='mailto:info@othertld.tr'>ornektarim@ornektarim.com.tr</a>"
+    )
+    extracted = extract_contacts_from_html(
+        html,
+        source_url="https://ornektarim.com.tr/tr",
+        requested_fields={"email"},
+    )
+    values = [item.value for item in extracted["emails"]]
+    assert values[0] == "ornektarim@ornektarim.com.tr"
+    assert "info@othertld.tr" in values

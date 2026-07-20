@@ -182,6 +182,40 @@ def _append_decoded_email(
     _append_unique_sourced(emails, value=email, source_url=source_url, seen=seen)
 
 
+def _site_host(source_url: str) -> str:
+    host = urlparse(source_url).netloc.lower().split(":", 1)[0]
+    return host[4:] if host.startswith("www.") else host
+
+
+def _email_domain_matches_site(email: str, site_host: str) -> bool:
+    if not site_host or "@" not in email:
+        return False
+    domain = email.rsplit("@", 1)[-1].lower()
+    return (
+        domain == site_host
+        or site_host.endswith(f".{domain}")
+        or domain.endswith(f".{site_host}")
+    )
+
+
+def _rank_emails_by_domain_match(items: list[SourcedValue], source_url: str) -> list[SourcedValue]:
+    """Prefer emails whose domain matches the crawled site's own domain.
+
+    Sites sometimes show a correct email in the visible text of a link but
+    point its `mailto:` at a stale/mistyped domain (e.g. after a TLD
+    migration). Extraction order alone would then surface the wrong address
+    first. A stable sort keeps everything found, but ranks the address most
+    likely to be the company's real contact email ahead of mismatched ones.
+    """
+    site_host = _site_host(source_url)
+    if not site_host:
+        return items
+    return sorted(
+        items,
+        key=lambda item: 0 if _email_domain_matches_site(item.value, site_host) else 1,
+    )
+
+
 def extract_emails(html: str, source_url: str) -> list[SourcedValue]:
     seen: set[str] = set()
     emails: list[SourcedValue] = []
@@ -204,7 +238,7 @@ def extract_emails(html: str, source_url: str) -> list[SourcedValue]:
             continue
         _append_unique_sourced(emails, value=email, source_url=source_url, seen=seen)
 
-    return emails
+    return _rank_emails_by_domain_match(emails, source_url)
 
 
 def extract_phones(html: str, source_url: str) -> list[SourcedValue]:
