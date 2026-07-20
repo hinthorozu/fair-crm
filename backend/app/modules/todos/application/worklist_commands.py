@@ -130,6 +130,27 @@ class TodoWorklistModalContextResult:
 
 
 @dataclass(frozen=True)
+class SendManualTaskMailCommand:
+    organization_id: UUID
+    access_token: str
+    user_id: UUID
+    todo_id: UUID
+    customer_id: UUID
+    smtp_account_id: UUID
+    recipients: str
+    subject: str
+    body: str
+    template_id: UUID | None = None
+
+
+@dataclass(frozen=True)
+class SendManualTaskMailResult:
+    queued_count: int
+    operation_ids: list[UUID]
+    message: str
+
+
+@dataclass(frozen=True)
 class FollowUpRowResult:
     todo_id: UUID
     todo_title: str

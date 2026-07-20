@@ -37,6 +37,7 @@ from app.modules.todos.application.get_todo_worklist_progress import GetTodoWork
 from app.modules.todos.application.list_follow_ups import ListFollowUpsUseCase
 from app.modules.todos.application.list_todo_worklist import ListTodoWorklistUseCase
 from app.modules.todos.application.record_todo_worklist_activity import RecordTodoWorklistActivityUseCase
+from app.modules.todos.application.send_manual_task_mail import SendManualTaskMailUseCase
 from app.modules.todos.infrastructure.repositories.outcome_definition_repository import (
     SqlAlchemyTodoOutcomeDefinitionRepository,
 )
@@ -46,6 +47,18 @@ from app.modules.todos.infrastructure.repositories.worklist_query_repository imp
 )
 from app.modules.todos.infrastructure.repositories.worklist_state_repository import (
     SqlAlchemyTodoWorklistStateRepository,
+)
+from app.modules.mail_send_operations.application.mail_send_operation_service import (
+    MailSendOperationService,
+)
+from app.modules.mail_send_operations.infrastructure.repositories.mail_send_operation_repository import (
+    SqlAlchemyMailSendOperationRepository,
+)
+from app.modules.mail_templates.infrastructure.repositories.mail_template_repository import (
+    SqlAlchemyMailTemplateRepository,
+)
+from app.modules.smtp.infrastructure.repositories.smtp_account_repository import (
+    SqlAlchemySmtpAccountRepository,
 )
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -163,6 +176,25 @@ def get_todo_worklist_modal_context_use_case(
         list_outcomes,
         ensure_defaults,
         list_activities,
+    )
+
+
+def get_send_manual_task_mail_use_case(
+    todo_repository: SqlAlchemyTodoRepository = Depends(get_todo_repository),
+    participation_repository: SqlAlchemyParticipationRepository = Depends(
+        get_participation_repository
+    ),
+    db: Session = Depends(get_db),
+    authorization=Depends(get_authorization_adapter),
+) -> SendManualTaskMailUseCase:
+    mail_ops_repo = SqlAlchemyMailSendOperationRepository(db)
+    return SendManualTaskMailUseCase(
+        todo_repository=todo_repository,
+        participation_repository=participation_repository,
+        smtp_repository=SqlAlchemySmtpAccountRepository(db),
+        template_repository=SqlAlchemyMailTemplateRepository(db),
+        mail_send_operations=MailSendOperationService(mail_ops_repo),
+        authorization=authorization,
     )
 
 

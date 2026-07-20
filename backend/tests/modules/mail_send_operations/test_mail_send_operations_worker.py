@@ -92,6 +92,136 @@ def _create_queued_operation(
 
 
 @patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+def test_worker_processes_manual_task_mail_to_sent(mock_send, db_session, organization_id):
+    operation = _create_queued_operation(
+        db_session,
+        organization_id,
+        source_type=MailSendSourceType.MANUAL_TASK_MAIL,
+        recipient_email="manual-ok@example.com",
+    )
+
+    result = ProcessMailSendOperationsWorker(db_session).run()
+    assert result.picked_count == 1
+    assert result.sent_count == 1
+    mock_send.assert_called_once()
+    assert mock_send.call_args.kwargs["recipient"] == "manual-ok@example.com"
+
+    refreshed = db_session.query(MailSendOperationModel).filter(MailSendOperationModel.id == operation.id).one()
+    assert refreshed.status == MailSendOperationStatus.SENT
+    assert refreshed.source_type == MailSendSourceType.MANUAL_TASK_MAIL
+    events = _operation_events(refreshed.operation_logs)
+    assert "picked_by_worker" in events
+    assert "sending_started" in events
+    assert events[-1] == "sent"
+
+
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+def test_worker_marks_manual_task_mail_failed_on_smtp_error(mock_send, db_session, organization_id):
+    mock_send.side_effect = SmtpMailDeliveryError("smtp down", error_type="SMTPConnectError")
+    operation = _create_queued_operation(
+        db_session,
+        organization_id,
+        source_type=MailSendSourceType.MANUAL_TASK_MAIL,
+        recipient_email="manual-fail@example.com",
+    )
+
+    result = ProcessMailSendOperationsWorker(db_session).run()
+    assert result.picked_count == 1
+    assert result.failed_count == 1
+
+    refreshed = db_session.query(MailSendOperationModel).filter(MailSendOperationModel.id == operation.id).one()
+    assert refreshed.status == MailSendOperationStatus.FAILED
+    assert refreshed.error_code == "SMTPConnectError"
+    events = _operation_events(refreshed.operation_logs)
+    assert "sending_started" in events
+    assert events[-1] == "failed"
+
+
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+def test_worker_manual_task_mail_failure_does_not_stop_other_queued(mock_send, db_session, organization_id):
+    mock_send.side_effect = [
+        SmtpMailDeliveryError("fail-one", error_type="SMTPConnectError"),
+        None,
+    ]
+    _create_queued_operation(
+        db_session,
+        organization_id,
+        source_type=MailSendSourceType.MANUAL_TASK_MAIL,
+        recipient_email="manual-a@example.com",
+    )
+    _create_queued_operation(
+        db_session,
+        organization_id,
+        source_type=MailSendSourceType.MANUAL_TASK_MAIL,
+        recipient_email="manual-b@example.com",
+    )
+
+    result = ProcessMailSendOperationsWorker(db_session).run()
+    assert result.sent_count == 1
+    assert result.failed_count == 1
+    assert mock_send.call_count == 2
+
+    statuses = {
+        row.recipient_email: row.status
+        for row in db_session.query(MailSendOperationModel)
+        .filter(MailSendOperationModel.source_type == MailSendSourceType.MANUAL_TASK_MAIL)
+        .all()
+    }
+    assert statuses["manual-a@example.com"] == MailSendOperationStatus.FAILED
+    assert statuses["manual-b@example.com"] == MailSendOperationStatus.SENT
+
+
+def test_manual_task_mail_is_selected_by_worker_queue_query(db_session, organization_id):
+    operation = _create_queued_operation(
+        db_session,
+        organization_id,
+        source_type=MailSendSourceType.MANUAL_TASK_MAIL,
+        recipient_email="manual-pick@example.com",
+    )
+    repository = SqlAlchemyMailSendOperationRepository(db_session)
+    candidates = repository.list_queued_for_worker(
+        max_batch_size=25,
+        now=datetime.now(timezone.utc),
+    )
+    assert any(item.id == operation.id for item in candidates)
+    assert any(item.source_type == MailSendSourceType.MANUAL_TASK_MAIL for item in candidates)
+
+
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+def test_background_drain_processes_manual_task_mail(mock_send, db_session, organization_id):
+    from app.modules.mail_send_operations.application.process_mail_send_operations_worker import (
+        process_mail_send_operations_background,
+        set_mail_worker_session_factory,
+    )
+
+    _create_queued_operation(
+        db_session,
+        organization_id,
+        source_type=MailSendSourceType.MANUAL_TASK_MAIL,
+        recipient_email="manual-drain@example.com",
+    )
+
+    class _Factory:
+        def __call__(self):
+            return db_session
+
+    set_mail_worker_session_factory(_Factory())
+    try:
+        result = process_mail_send_operations_background()
+    finally:
+        set_mail_worker_session_factory(None)
+
+    assert result.picked_count == 1
+    assert result.sent_count == 1
+    refreshed = (
+        db_session.query(MailSendOperationModel)
+        .filter(MailSendOperationModel.recipient_email == "manual-drain@example.com")
+        .one()
+    )
+    assert refreshed.status == MailSendOperationStatus.SENT
+
+
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
 def test_worker_processes_max_batch_size(mock_send, db_session, organization_id, monkeypatch):
     monkeypatch.setenv("MAIL_WORKER_MAX_BATCH_SIZE", "3")
     get_settings.cache_clear()

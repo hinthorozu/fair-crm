@@ -270,6 +270,32 @@ class SqlAlchemyMailSendOperationRepository:
         models = self._apply_worker_row_lock(query).all()
         return [self._to_record(model) for model in models]
 
+    def count_queued_ready(self, *, now: datetime) -> int:
+        """Count queued operations that are eligible for worker pickup (no row lock)."""
+        return (
+            self._session.query(MailSendOperationModel)
+            .filter(
+                MailSendOperationModel.status == MailSendOperationStatus.QUEUED,
+                or_(
+                    MailSendOperationModel.scheduled_at.is_(None),
+                    MailSendOperationModel.scheduled_at <= now,
+                ),
+            )
+            .count()
+        )
+
+    def count_stuck_sending_past_timeout(self, *, cutoff: datetime) -> int:
+        """Count stuck sending operations past timeout (no row lock; for startup probe)."""
+        return (
+            self._session.query(MailSendOperationModel)
+            .filter(
+                MailSendOperationModel.status == MailSendOperationStatus.SENDING,
+                MailSendOperationModel.sending_started_at.isnot(None),
+                MailSendOperationModel.sending_started_at < cutoff,
+            )
+            .count()
+        )
+
     def list_stuck_sending(self, *, cutoff: datetime) -> list[MailSendOperationRecord]:
         query = self._session.query(MailSendOperationModel).filter(
             MailSendOperationModel.status == MailSendOperationStatus.SENDING,

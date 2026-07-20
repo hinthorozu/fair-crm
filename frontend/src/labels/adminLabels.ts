@@ -66,6 +66,7 @@ export const adminLabels = {
     fair_bulk_email: "Fuar Toplu Mail",
     system_notification: "Sistem Bildirimi",
     manual_email: "Manuel E-posta",
+    manual_task_mail: "Manuel Görev Maili",
   },
   mailOperationsActionLabels: {
     detail: "Detay",

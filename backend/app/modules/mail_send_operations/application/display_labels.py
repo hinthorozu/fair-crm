@@ -12,6 +12,7 @@ SOURCE_TYPE_LABELS: dict[str, str] = {
     MailSendSourceType.PASSWORD_RESET: "Şifre Sıfırlama",
     MailSendSourceType.FAIR_BULK_EMAIL: "Fuar Toplu Mail",
     MailSendSourceType.MANUAL_EMAIL: "Manuel E-posta",
+    MailSendSourceType.MANUAL_TASK_MAIL: "Manuel Görev Maili",
     MailSendSourceType.SYSTEM_NOTIFICATION: "Sistem Bildirimi",
 }
 

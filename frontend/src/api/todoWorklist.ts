@@ -61,3 +61,33 @@ export function recordTodoWorklistActivity(
     },
   );
 }
+
+export interface SendManualTaskMailPayload {
+  todo_id?: string;
+  customer_id?: string;
+  smtp_account_id: string;
+  template_id?: string | null;
+  recipients: string;
+  subject: string;
+  body: string;
+}
+
+export interface SendManualTaskMailResponse {
+  queued_count: number;
+  operation_ids: string[];
+  message: string;
+}
+
+export function sendManualTaskMail(
+  todoId: string,
+  customerId: string,
+  payload: SendManualTaskMailPayload,
+): Promise<SendManualTaskMailResponse> {
+  return apiRequest<SendManualTaskMailResponse>(
+    `/api/v1/todos/${todoId}/worklist/customers/${customerId}/manual-mail`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}

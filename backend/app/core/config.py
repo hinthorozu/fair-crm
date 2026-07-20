@@ -163,6 +163,13 @@ class Settings(BaseSettings):
             "FAIR_CRM_MAIL_SENDING_TIMEOUT_MINUTES",
         ),
     )
+    mail_startup_recovery_enabled: bool = Field(
+        default=True,
+        validation_alias=AliasChoices(
+            "MAIL_STARTUP_RECOVERY_ENABLED",
+            "FAIR_CRM_MAIL_STARTUP_RECOVERY_ENABLED",
+        ),
+    )
 
     @model_validator(mode="after")
     def resolve_fair_crm_database_url(self) -> Self:

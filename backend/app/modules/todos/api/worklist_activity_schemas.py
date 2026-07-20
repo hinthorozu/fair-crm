@@ -65,3 +65,20 @@ class TodoWorklistModalContextResponse(BaseModel):
     worklist_row: Optional[TodoWorklistRowResponse]
     outcomes: list[TodoWorklistModalOutcomeResponse]
     recent_activities: list[TodoWorklistModalActivityResponse]
+
+
+class SendManualTaskMailRequest(BaseModel):
+    smtp_account_id: UUID
+    recipients: str = Field(min_length=1)
+    subject: str = Field(min_length=1)
+    body: str = Field(min_length=1)
+    template_id: Optional[UUID] = None
+    # Echoed for clients that include path ids in the body; path params are authoritative.
+    todo_id: Optional[UUID] = None
+    customer_id: Optional[UUID] = None
+
+
+class SendManualTaskMailResponse(BaseModel):
+    queued_count: int
+    operation_ids: list[UUID]
+    message: str

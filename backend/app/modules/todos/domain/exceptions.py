@@ -76,3 +76,11 @@ class TodoOutcomeInactiveError(TodoDomainError):
 
 class InvalidWorklistNoteError(TodoDomainError):
     pass
+
+
+class InvalidManualTaskMailRecipientsError(TodoDomainError):
+    pass
+
+
+class InvalidManualTaskMailContentError(TodoDomainError):
+    pass

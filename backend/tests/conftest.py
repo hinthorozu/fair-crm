@@ -207,6 +207,8 @@ def auth_headers(user_id: UUID, organization_id: UUID) -> dict[str, str]:
 def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setenv("FAIR_CRM_DEV_BYPASS_CORE", "false")
     monkeypatch.setenv("SCRAPER_BROWSER_CHANNEL", "msedge")
+    # Avoid lifespan mail-queue recovery racing API tests / shared db_session.
+    monkeypatch.setenv("MAIL_STARTUP_RECOVERY_ENABLED", "false")
     get_settings.cache_clear()
 
     def override_get_db() -> Generator[Session, None, None]:
@@ -256,7 +258,11 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     )
 
     from app.modules.fair_emails.application import process_batch as fair_email_process_batch
+    from app.modules.mail_send_operations.application import (
+        process_mail_send_operations_worker as mail_send_operations_worker,
+    )
 
     fair_email_process_batch.configure_batch_session_factory(lambda: db_session)
+    mail_send_operations_worker.configure_mail_worker_session_factory(lambda: db_session)
 
     return TestClient(app)

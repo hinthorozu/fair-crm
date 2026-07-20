@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
@@ -12,6 +14,9 @@ from app.core.exceptions import ForbiddenError, UnauthorizedError
 from app.core.logging import setup_logging
 from app.core.request_timing import RequestTimingMiddleware
 from app.integrations.kyrox_core.dev_bypass import log_dev_bypass_startup_warning
+from app.modules.mail_send_operations.application.startup_mail_queue_recovery import (
+    schedule_mail_queue_startup_recovery,
+)
 from app.modules.scraper.core.playwright_availability import log_playwright_browser_startup_check
 
 logger = logging.getLogger(__name__)
@@ -40,6 +45,22 @@ def _json_response(request: Request, status_code: int, content: dict) -> JSONRes
     return JSONResponse(status_code=status_code, content=content, headers=_cors_headers(request))
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    recovery_task = schedule_mail_queue_startup_recovery()
+    app.state.mail_queue_startup_recovery_task = recovery_task
+    try:
+        yield
+    finally:
+        task = getattr(app.state, "mail_queue_startup_recovery_task", None)
+        if task is not None and not task.done():
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
+
 def create_app() -> FastAPI:
     setup_logging()
     settings = get_settings()
@@ -48,6 +69,7 @@ def create_app() -> FastAPI:
         title="FAIR CRM",
         version=settings.app_version,
         description="Fair CRM product service",
+        lifespan=lifespan,
     )
 
     if settings.app_env in {"development", "local", "test"}:

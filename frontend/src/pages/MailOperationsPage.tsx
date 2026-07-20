@@ -41,6 +41,7 @@ const MAIL_OPERATION_SOURCE_OPTIONS: { value: MailOperationSourceType | "all"; l
   { value: "fair_bulk_email", label: adminLabels.mailOperationsSourceLabels.fair_bulk_email },
   { value: "system_notification", label: adminLabels.mailOperationsSourceLabels.system_notification },
   { value: "manual_email", label: adminLabels.mailOperationsSourceLabels.manual_email },
+  { value: "manual_task_mail", label: adminLabels.mailOperationsSourceLabels.manual_task_mail },
 ];
 
 type DialogState =

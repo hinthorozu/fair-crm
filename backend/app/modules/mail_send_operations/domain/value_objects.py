@@ -8,6 +8,7 @@ class MailSendSourceType(StrEnum):
     PASSWORD_RESET = "password_reset"
     FAIR_BULK_EMAIL = "fair_bulk_email"
     MANUAL_EMAIL = "manual_email"
+    MANUAL_TASK_MAIL = "manual_task_mail"
     SYSTEM_NOTIFICATION = "system_notification"
 
 
@@ -26,6 +27,7 @@ MAIL_SEND_SOURCE_PRIORITY: dict[MailSendSourceType, int] = {
     MailSendSourceType.SMTP_TEST: 40,
     MailSendSourceType.TEMPLATE_TEST: 40,
     MailSendSourceType.MANUAL_EMAIL: 50,
+    MailSendSourceType.MANUAL_TASK_MAIL: 50,
     MailSendSourceType.SYSTEM_NOTIFICATION: 60,
     MailSendSourceType.FAIR_BULK_EMAIL: 99,
 }

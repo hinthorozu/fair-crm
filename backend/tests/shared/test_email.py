@@ -1,4 +1,4 @@
-"""Shared email normalization tests."""
+"""Shared email normalization and validation tests."""
 
 import pytest
 
@@ -42,6 +42,38 @@ def test_invalid_email_raises_with_address():
         normalize_email_field("info@abc.com;sales@@abc.com")
 
 
-def test_is_valid_email_address():
-    assert is_valid_email_address("info@abc.com") is True
-    assert is_valid_email_address("sales@@abc.com") is False
+@pytest.mark.parametrize(
+    "email",
+    [
+        "abc @.oxom",
+        "abc@.com",
+        "abc@domain",
+        "abc domain@example.com",
+        "@domain.com",
+        "abc@",
+        "abc..def@domain.com",
+        "abc@domain..com",
+    ],
+)
+def test_is_valid_email_address_rejects_invalid(email: str):
+    assert is_valid_email_address(email) is False
+    with pytest.raises(ValueError, match="Invalid email address"):
+        normalize_email_field(email)
+
+
+@pytest.mark.parametrize(
+    "email",
+    [
+        "abc@example.com",
+        "info@firma.com.tr",
+        "ad.soyad+etiket@example.co.uk",
+    ],
+)
+def test_is_valid_email_address_accepts_valid(email: str):
+    assert is_valid_email_address(email) is True
+
+
+def test_internal_space_is_not_normalized_away():
+    """Do not strip internal spaces to coerce validity."""
+    with pytest.raises(ValueError, match=r"Invalid email address: abc @\.oxom"):
+        normalize_email_field("abc @.oxom")

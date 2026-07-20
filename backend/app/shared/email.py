@@ -2,16 +2,26 @@
 
 from __future__ import annotations
 
+from email_validator import EmailNotValidError, validate_email
+
 
 def is_valid_email_address(email: str) -> bool:
-    if not email or "@" not in email:
+    """Return True only for a structurally valid single email address.
+
+    Leading/trailing whitespace must be stripped by the caller before calling.
+    Internal whitespace is never accepted (and is never stripped away to "fix" it).
+    Uses the project ``email-validator`` dependency with deliverability checks off.
+    """
+    if not email:
         return False
-    if email.startswith("@") or email.endswith("@"):
+    # Reject any whitespace so addresses like "abc @.oxom" cannot pass.
+    if any(ch.isspace() for ch in email):
         return False
-    if email.count("@") != 1 or "@@" in email:
+    try:
+        validate_email(email, check_deliverability=False)
+    except EmailNotValidError:
         return False
-    local, domain = email.rsplit("@", 1)
-    return bool(local.strip()) and bool(domain.strip())
+    return True
 
 
 def normalize_email_field(value: str | None) -> str | None:
@@ -31,9 +41,11 @@ def normalize_email_field(value: str | None) -> str | None:
     for raw in raw_parts:
         if not raw:
             continue
-        email = raw.lower()
-        if not is_valid_email_address(email):
+        # Lowercase for storage only after structural validation of the stripped token.
+        # Do not remove internal spaces — invalid tokens raise.
+        if not is_valid_email_address(raw):
             raise ValueError(f"Invalid email address: {raw}")
+        email = raw.lower()
         if email in seen:
             continue
         seen.add(email)

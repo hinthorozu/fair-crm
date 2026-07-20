@@ -190,3 +190,75 @@ class ProcessMailSendOperationsWorker:
 
 def process_mail_send_operations(session: Session) -> MailSendOperationWorkerResult:
     return ProcessMailSendOperationsWorker(session).run()
+
+
+# Optional override for tests (same pattern as fair bulk batch processor).
+_mail_worker_session_factory = None
+
+
+def configure_mail_worker_session_factory(factory) -> None:
+    global _mail_worker_session_factory
+    _mail_worker_session_factory = factory
+
+
+def set_mail_worker_session_factory(factory) -> None:
+    """Backward-compatible alias used by tests."""
+    configure_mail_worker_session_factory(factory)
+
+
+def process_mail_send_operations_background(*, max_drain_rounds: int = 100) -> MailSendOperationWorkerResult:
+    """Background entry: open a fresh session and drain queued mail operations.
+
+    Used after enqueue paths (e.g. manual_task_mail) so records do not stay
+    ``queued`` until a manual CLI worker run. Safe to call when the queue is empty.
+    """
+    from app.db.session import SessionLocal
+
+    session_factory = _mail_worker_session_factory or SessionLocal
+    session = session_factory()
+    recovered = 0
+    picked = 0
+    sent = 0
+    failed = 0
+    skipped = 0
+    try:
+        logger.info("mail_worker_background_started")
+        for round_index in range(max(1, max_drain_rounds)):
+            result = process_mail_send_operations(session)
+            session.commit()
+            recovered += result.recovered_stuck_count
+            picked += result.picked_count
+            sent += result.sent_count
+            failed += result.failed_count
+            skipped += result.skipped_count
+            if result.picked_count == 0:
+                break
+            logger.info(
+                "mail_worker_background_round round=%s picked=%s sent=%s failed=%s",
+                round_index + 1,
+                result.picked_count,
+                result.sent_count,
+                result.failed_count,
+            )
+        logger.info(
+            "mail_worker_background_completed recovered=%s picked=%s sent=%s failed=%s skipped=%s",
+            recovered,
+            picked,
+            sent,
+            failed,
+            skipped,
+        )
+        return MailSendOperationWorkerResult(
+            recovered_stuck_count=recovered,
+            picked_count=picked,
+            sent_count=sent,
+            failed_count=failed,
+            skipped_count=skipped,
+        )
+    except Exception:
+        session.rollback()
+        logger.exception("mail_worker_background_failed")
+        raise
+    finally:
+        if _mail_worker_session_factory is None:
+            session.close()

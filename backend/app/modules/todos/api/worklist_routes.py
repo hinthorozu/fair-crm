@@ -2,16 +2,28 @@ from dataclasses import asdict
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import AliasChoices
+from sqlalchemy.orm import Session
 
 from app.api.dependencies.list_query import parse_list_query, resolve_page_size_from_request
 from app.api.list_helpers import standard_list_from_result
 from app.core.exceptions import ForbiddenError
+from app.db.session import get_db
 from app.integrations.kyrox_core.auth import AuthContext
+from app.modules.mail_send_operations.application.process_mail_send_operations_worker import (
+    process_mail_send_operations_background,
+)
+from app.modules.mail_templates.domain.exceptions import (
+    MailTemplateAlreadyDeletedError,
+    MailTemplateNotFoundError,
+)
+from app.modules.smtp.domain.exceptions import SmtpAccountAlreadyDeletedError, SmtpAccountNotFoundError
 from app.modules.todos.api.worklist_activity_schemas import (
     RecordTodoWorklistActivityRequest,
+    SendManualTaskMailRequest,
+    SendManualTaskMailResponse,
     TodoWorklistActivityResponse,
     TodoWorklistModalContextResponse,
 )
@@ -19,6 +31,7 @@ from app.modules.todos.api.worklist_dependencies import (
     access_token,
     get_list_todo_worklist_use_case,
     get_record_todo_worklist_activity_use_case,
+    get_send_manual_task_mail_use_case,
     get_todo_worklist_modal_context_use_case,
     get_todo_worklist_progress_use_case,
     require_create_permission,
@@ -40,13 +53,17 @@ from app.modules.todos.application.list_todo_worklist import (
     ListTodoWorklistUseCase,
 )
 from app.modules.todos.application.record_todo_worklist_activity import RecordTodoWorklistActivityUseCase
+from app.modules.todos.application.send_manual_task_mail import SendManualTaskMailUseCase
 from app.modules.todos.application.worklist_commands import (
     GetTodoWorklistModalContextQuery,
     GetTodoWorklistProgressQuery,
     ListTodoWorklistQuery,
     RecordTodoWorklistActivityCommand,
+    SendManualTaskMailCommand,
 )
 from app.modules.todos.domain.exceptions import (
+    InvalidManualTaskMailContentError,
+    InvalidManualTaskMailRecipientsError,
     InvalidWorklistNoteError,
     TodoMissingSourceFairError,
     TodoNotFoundError,
@@ -55,6 +72,7 @@ from app.modules.todos.domain.exceptions import (
     WorklistCustomerNotInTodoError,
 )
 from app.modules.todos.domain.worklist_value_objects import WorklistFilter
+from app.shared.background_jobs import run_blocking_background_task
 
 router = APIRouter(prefix="/todos/{todo_id}/worklist", tags=["todo-worklist"])
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -272,4 +290,72 @@ def record_todo_worklist_activity(
         worklist_row=TodoWorklistRowResponse.model_validate(asdict(result.worklist_row)),
         progress=TodoWorklistProgressResponse.model_validate(asdict(result.progress)),
         next_customer_id=result.next_customer_id,
+    )
+
+
+@router.post(
+    "/customers/{customer_id}/manual-mail",
+    response_model=SendManualTaskMailResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    responses={
+        400: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+    },
+)
+async def send_manual_task_mail(
+    todo_id: UUID,
+    customer_id: UUID,
+    body: SendManualTaskMailRequest,
+    background_tasks: BackgroundTasks,
+    auth: AuthContext = Depends(require_create_permission),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+    use_case: SendManualTaskMailUseCase = Depends(get_send_manual_task_mail_use_case),
+) -> SendManualTaskMailResponse:
+    try:
+        result = use_case.execute(
+            SendManualTaskMailCommand(
+                organization_id=auth.organization_id,
+                access_token=access_token(credentials),
+                user_id=auth.user_id,
+                todo_id=todo_id,
+                customer_id=customer_id,
+                smtp_account_id=body.smtp_account_id,
+                recipients=body.recipients,
+                subject=body.subject,
+                body=body.body,
+                template_id=body.template_id,
+            )
+        )
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except TodoNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except WorklistCustomerNotInTodoError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except InvalidManualTaskMailRecipientsError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except (
+        TodoMissingSourceFairError,
+        InvalidManualTaskMailContentError,
+    ) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except (SmtpAccountNotFoundError, SmtpAccountAlreadyDeletedError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except (MailTemplateNotFoundError, MailTemplateAlreadyDeletedError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    # Persist queued operations before the background worker opens a new session.
+    db.commit()
+    background_tasks.add_task(
+        run_blocking_background_task,
+        process_mail_send_operations_background,
+    )
+
+    return SendManualTaskMailResponse(
+        queued_count=result.queued_count,
+        operation_ids=result.operation_ids,
+        message=result.message,
     )

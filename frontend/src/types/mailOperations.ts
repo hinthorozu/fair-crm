@@ -7,7 +7,8 @@ export type MailOperationSourceType =
   | "template_test"
   | "fair_bulk_email"
   | "system_notification"
-  | "manual_email";
+  | "manual_email"
+  | "manual_task_mail";
 
 export interface MailOperationLogEntry {
   time: string;
