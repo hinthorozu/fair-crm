@@ -5235,6 +5235,10 @@ textarea.form-control-textarea {
 }
 
 .adapter-console-line {
+  display: block;
+}
+
+.adapter-console-header {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
@@ -5254,6 +5258,7 @@ textarea.form-control-textarea {
   color: #f8fafc;
   min-width: 0;
   overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .adapter-console-info .adapter-console-step,

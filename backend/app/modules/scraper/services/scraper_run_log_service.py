@@ -47,6 +47,9 @@ class ScraperRunLogService:
     ) -> list[ScraperRunLog]:
         return self._repository.list_by_run_id(run_id, after_id=after_id, limit=limit)
 
+    def list_all_logs(self, run_id: UUID) -> list[ScraperRunLog]:
+        return self._repository.list_all_by_run_id(run_id)
+
     def count_logs(self, run_id: UUID) -> int:
         return self._repository.count_by_run_id(run_id)
 

@@ -2,6 +2,7 @@ import React from "react";
 import { cancelScraperRun, getScraperRun } from "../api/scraper";
 import { ApiError } from "../api/client";
 import { AdapterRunLogConsole } from "../components/scraper/AdapterRunLogConsole";
+import { EnrichmentRunLogExportMenu } from "../components/scraper/EnrichmentRunLogExportMenu";
 import { Badge } from "../components/ui/Badge";
 import { Card } from "../components/ui/Card";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
@@ -134,22 +135,23 @@ export function EnrichmentRunDetailPage({
       <PageHeader
         title={scraperLabels.enrichmentRunDetailTitle}
         subtitle={scraperLabels.enrichmentRunDetailSubtitle}
-        actions={[
-          ...(showCancelButton
-            ? [
-                {
-                  label: scraperLabels.enrichmentRunCancel,
-                  variant: "danger" as const,
-                  onClick: () => setCancelConfirmOpen(true),
-                },
-              ]
-            : []),
-          {
-            label: scraperLabels.enrichmentRunDetailBackHistory,
-            variant: "secondary" as const,
-            onClick: onBack,
-          },
-        ]}
+        actions={
+          <>
+            {run ? <EnrichmentRunLogExportMenu runId={runId} /> : null}
+            {showCancelButton ? (
+              <button
+                type="button"
+                className="btn danger"
+                onClick={() => setCancelConfirmOpen(true)}
+              >
+                {scraperLabels.enrichmentRunCancel}
+              </button>
+            ) : null}
+            <button type="button" className="btn secondary" onClick={onBack}>
+              {scraperLabels.enrichmentRunDetailBackHistory}
+            </button>
+          </>
+        }
       />
 
       {error ? <div className="banner error">{error}</div> : null}

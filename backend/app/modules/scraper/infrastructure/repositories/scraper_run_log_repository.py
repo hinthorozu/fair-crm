@@ -75,6 +75,14 @@ class ScraperRunLogRepository:
         stmt = stmt.order_by(asc(ScraperRunLogModel.created_at), asc(ScraperRunLogModel.id)).limit(limit)
         return [_to_entity(model) for model in self._session.scalars(stmt).all()]
 
+    def list_all_by_run_id(self, run_id: UUID) -> list[ScraperRunLog]:
+        stmt = (
+            select(ScraperRunLogModel)
+            .where(ScraperRunLogModel.run_id == run_id)
+            .order_by(asc(ScraperRunLogModel.created_at), asc(ScraperRunLogModel.id))
+        )
+        return [_to_entity(model) for model in self._session.scalars(stmt).all()]
+
     def find_latest_by_level_and_steps(
         self,
         run_id: UUID,

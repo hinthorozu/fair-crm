@@ -7,7 +7,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
@@ -111,6 +111,10 @@ from app.modules.scraper.infrastructure.handoff_storage import (
 from app.modules.scraper.core.scraper_manager import ScraperManager
 from app.modules.scraper.services.scraper_dashboard_service import ScraperDashboardService
 from app.modules.scraper.services.scraper_run_history_list_builder import build_run_history_list_item
+from app.modules.scraper.services.enrichment_run_log_export_service import (
+    export_enrichment_run_logs,
+    is_supported_export_format,
+)
 from app.modules.scraper.services.enrichment_run_summary_loader import load_enrichment_summary_for_run
 from app.modules.scraper.types.scraper_site import ScraperSiteKey
 
@@ -778,6 +782,46 @@ def list_scraper_run_logs(
         total_rows=run.total_rows,
         output_json_available=outputs_ready and _artifact_available(json_path, run.output_json_path),
         output_excel_available=outputs_ready and _artifact_available(excel_path, run.output_excel_path),
+    )
+
+
+@router.get(
+    "/runs/{run_id}/logs/export",
+    summary="Zenginleştirme çalışması log dışa aktarma",
+)
+def export_scraper_run_logs(
+    run_id: UUID,
+    auth: Annotated[AuthContext, Depends(require_read_permission)],
+    run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
+    run_log_service: Annotated[ScraperRunLogService, Depends(get_scraper_run_log_service)],
+    format: Annotated[str, Query(alias="format")],
+) -> Response:
+    if not is_supported_export_format(format):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Desteklenmeyen format.",
+        )
+    run = _get_org_scoped_run(run_history_service, run_id, auth.organization_id)
+    if not is_customer_contact_enrichment_adapter(run.adapter_key):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Scraper run not found: {run_id}",
+        )
+    try:
+        content, filename, media_type = export_enrichment_run_logs(
+            run=run,
+            run_log_service=run_log_service,
+            export_format=format,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 

@@ -9,6 +9,7 @@ import { ApiError } from "../../api/client";
 import { Badge } from "../ui/Badge";
 import { scraperLabels } from "../../labels/scraperLabels";
 import { runStatusBadgeVariant, runStatusLabel } from "../../utils/scraperBadges";
+import { formatScraperConsoleTime } from "../../utils/formatScraperConsoleLogTxt";
 import { formatScraperLogStepLabel } from "../../utils/scraperLogStepLabels";
 import type { ScraperRunLog } from "../../types/scraper";
 
@@ -25,7 +26,7 @@ interface AdapterRunLogConsoleProps {
 }
 
 function formatConsoleTime(value: string): string {
-  return new Date(value).toLocaleTimeString("tr-TR");
+  return formatScraperConsoleTime(value);
 }
 
 export function AdapterRunLogConsole({
@@ -337,9 +338,11 @@ export function AdapterRunLogConsole({
         {loading && logs.length === 0 ? <p className="text-muted">Yükleniyor…</p> : null}
         {logs.map((log) => (
           <div key={log.id} className={`adapter-console-line adapter-console-${log.level}`}>
-            <span className="adapter-console-time">{formatConsoleTime(log.created_at)}</span>
-            <span className="adapter-console-step">[{formatScraperLogStepLabel(log.step, enrichmentMode)}]</span>
-            <span className="adapter-console-message">{log.message}</span>
+            <div className="adapter-console-header">
+              <span className="adapter-console-time">{formatConsoleTime(log.created_at)}</span>
+              <span className="adapter-console-step">[{formatScraperLogStepLabel(log.step, enrichmentMode)}]</span>
+            </div>
+            <div className="adapter-console-message">{log.message}</div>
           </div>
         ))}
         {selectedRunId && !loading && logs.length === 0 && runStatus === "running" ? (

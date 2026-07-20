@@ -188,6 +188,49 @@ export async function listScraperRunLogs(
   );
 }
 
+type EnrichmentRunLogExportFormat = "txt" | "json";
+
+const ENRICHMENT_LOG_EXPORT_MIME: Record<EnrichmentRunLogExportFormat, string> = {
+  txt: "text/plain",
+  json: "application/json",
+};
+
+function enrichmentRunLogsExportUrl(runId: string, format: EnrichmentRunLogExportFormat): string {
+  const search = new URLSearchParams({ format });
+  return `${config.apiBaseUrl}/api/v1/scraper/runs/${encodeURIComponent(runId)}/logs/export?${search.toString()}`;
+}
+
+export async function downloadEnrichmentRunLogs(
+  runId: string,
+  format: EnrichmentRunLogExportFormat,
+): Promise<void> {
+  const response = await fetchWithTimeout(enrichmentRunLogsExportUrl(runId, format), {
+    headers: buildDownloadRequestHeaders(buildApiHeaders({})),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    let detail = `HTTP ${response.status}`;
+    try {
+      const data = JSON.parse(text) as { detail?: string };
+      if (data.detail) detail = data.detail;
+    } catch {
+      if (text) detail = text;
+    }
+    throw new ApiError(detail, response.status);
+  }
+  const rawBlob = await response.blob();
+  const mimeType = ENRICHMENT_LOG_EXPORT_MIME[format];
+  const blob =
+    rawBlob.type && rawBlob.type !== "application/octet-stream"
+      ? rawBlob
+      : new Blob([rawBlob], { type: mimeType });
+  const resolvedFileName = parseContentDispositionFileName(
+    response.headers.get("Content-Disposition"),
+    `fair-crm-enrichment-run.${format}`,
+  );
+  triggerBlobDownload(blob, resolvedFileName);
+}
+
 export async function runCustomerContactEnrichment(
   adapterKey: string,
   payload: EnrichmentRunPayload,
