@@ -30,6 +30,13 @@
 #   SKIP_SYSTEMD=1
 #   SKIP_NGINX_RELOAD=1
 #   RUN_POST_CHECK=1
+#   DEV_SEED_ENV_FILE=/etc/fair-crm/dev-seed.env
+#
+# Dev seed password:
+#   Required file (no hardcoded default): /etc/fair-crm/dev-seed.env
+#   Contents: DEV_USER_PASSWORD=<value>
+#   Permissions: root:root, chmod 600
+#   Password is never printed in deploy logs or the acceptance report.
 #
 set -euo pipefail
 
@@ -125,11 +132,14 @@ run_core_dev_seed() {
     return 0
   fi
 
+  require_dev_seed_env_file
+
   local seed_script="${FAIR_CRM_DIR}/scripts/seed_core_dev_identity.py"
   [[ -f "$seed_script" ]] || die "Fair CRM Core dev seed script missing: ${seed_script}"
 
   (
     env DATABASE_URL="$db_url" KYROX_CORE_DATABASE_URL="$db_url" \
+      DEV_USER_PASSWORD="$DEV_USER_PASSWORD" \
       PYTHONPATH="${FAIR_CRM_DIR}/scripts:${FAIR_CRM_DIR}" \
       "${KYROX_CORE_DIR}/.venv/bin/python" "$seed_script"
   ) || die "Core dev identity seed failed"
@@ -287,7 +297,7 @@ print_final_report() {
   echo "   script: ${FAIR_CRM_DIR}/scripts/seed_core_dev_identity.py"
   echo "   python: ${KYROX_CORE_DIR}/.venv/bin/python"
   echo "   email: ${DEV_LOGIN_EMAIL}"
-  echo "   password: ${DEV_LOGIN_PASSWORD}"
+  echo "   password: (from ${DEV_SEED_ENV_FILE}; not shown)"
   echo "   org id: ${DEV_LOGIN_ORG_ID}"
   echo "   role: owner/admin; permissions: all fair_crm.*"
   echo ""

@@ -14,8 +14,9 @@ CHECK_STRICT="${CHECK_STRICT:-0}"
 CHECK_QUIET="${CHECK_QUIET:-0}"
 
 DEV_LOGIN_EMAIL="${DEV_LOGIN_EMAIL:-dev@example.com}"
-DEV_LOGIN_PASSWORD="${DEV_LOGIN_PASSWORD:-DevPassword123!}"
+DEV_LOGIN_PASSWORD="${DEV_LOGIN_PASSWORD:-}"
 DEV_LOGIN_ORG_ID="${DEV_LOGIN_ORG_ID:-00000000-0000-4000-8000-000000000010}"
+DEV_SEED_ENV_FILE="${DEV_SEED_ENV_FILE:-/etc/fair-crm/dev-seed.env}"
 
 MIN_CORE_SEED_MIGRATION_REVISION="${MIN_CORE_SEED_MIGRATION_REVISION:-20260701_0030}"
 EXPECTED_FAIR_CRM_BRANCH="${EXPECTED_FAIR_CRM_BRANCH:-${FAIR_CRM_BRANCH:-main}}"
@@ -133,6 +134,67 @@ read_env_key() {
   value="${value%\'}"
   value="${value#\'}"
   printf '%s' "$value"
+}
+
+dev_seed_password_missing_help() {
+  cat <<EOF
+DEV_USER_PASSWORD is required for Core dev identity seed and login smoke tests.
+There is no hardcoded default password.
+
+Create a root-only env file on the server:
+
+  sudo mkdir -p /etc/fair-crm
+  echo 'DEV_USER_PASSWORD=<set-a-strong-dev-password>' | sudo tee ${DEV_SEED_ENV_FILE} >/dev/null
+  sudo chown root:root ${DEV_SEED_ENV_FILE}
+  sudo chmod 600 ${DEV_SEED_ENV_FILE}
+
+Or export DEV_USER_PASSWORD in the environment (local development).
+EOF
+}
+
+# Load DEV_USER_PASSWORD from /etc/fair-crm/dev-seed.env (required on deploy).
+# Never prints the password value. Does not fall back to a hardcoded default.
+require_dev_seed_env_file() {
+  local seed_env="${DEV_SEED_ENV_FILE}"
+  if [[ ! -f "$seed_env" ]]; then
+    die "Dev seed password file missing: ${seed_env}
+
+$(dev_seed_password_missing_help)"
+  fi
+
+  local password
+  password="$(read_env_key "$seed_env" DEV_USER_PASSWORD || true)"
+  if [[ -z "$password" ]]; then
+    die "DEV_USER_PASSWORD is missing or empty in ${seed_env}
+
+$(dev_seed_password_missing_help)"
+  fi
+
+  export DEV_USER_PASSWORD="$password"
+  export DEV_LOGIN_PASSWORD="$password"
+  log "Loaded DEV_USER_PASSWORD from ${seed_env} (value not shown)"
+}
+
+# Resolve password for smoke tests: env override, else seed env file.
+# Never falls back to a hardcoded default.
+require_dev_login_password() {
+  local password=""
+  if [[ -n "${DEV_USER_PASSWORD:-}" ]]; then
+    password="$DEV_USER_PASSWORD"
+  elif [[ -n "${DEV_LOGIN_PASSWORD:-}" ]]; then
+    password="$DEV_LOGIN_PASSWORD"
+  elif [[ -f "${DEV_SEED_ENV_FILE}" ]]; then
+    password="$(read_env_key "$DEV_SEED_ENV_FILE" DEV_USER_PASSWORD || true)"
+  fi
+
+  if [[ -z "$password" ]]; then
+    die "DEV_USER_PASSWORD is not set and seed env file is missing or empty: ${DEV_SEED_ENV_FILE}
+
+$(dev_seed_password_missing_help)"
+  fi
+
+  export DEV_USER_PASSWORD="$password"
+  export DEV_LOGIN_PASSWORD="$password"
 }
 
 parse_database_url() {
@@ -700,6 +762,8 @@ fetch_dev_access_token() {
   local tmp_body tmp_payload tmp_curl_err
   local http_code curl_rc=0 body_preview parse_detail parse_rc=0
   local attempt max_attempts=5
+
+  require_dev_login_password
 
   tmp_body="$(mktemp -t dev-access-token-body.XXXXXX)"
   tmp_payload="$(mktemp -t dev-access-token-payload.XXXXXX)"
@@ -1535,6 +1599,8 @@ run_login_smoke_test() {
   local http_code curl_rc=0 body_preview parse_detail parse_rc=0
   local attempt max_attempts=5
 
+  require_dev_login_password
+
   tmp_body="$(mktemp -t login-smoke-body.XXXXXX)"
   tmp_payload="$(mktemp -t login-smoke-payload.XXXXXX)"
   tmp_curl_err="$(mktemp -t login-smoke-curl.XXXXXX)"
@@ -1646,11 +1712,11 @@ print_core_seed_identity_report() {
   echo ""
   echo "Core dev seed identity (idempotent):"
   echo "  email: ${DEV_LOGIN_EMAIL}"
-  echo "  password: ${DEV_LOGIN_PASSWORD}"
+  echo "  password: (from DEV_USER_PASSWORD / ${DEV_SEED_ENV_FILE}; not shown)"
   echo "  org id: ${DEV_LOGIN_ORG_ID}"
   echo "  role: owner/admin"
   echo "  permissions: all fair_crm.* permissions in Core catalog"
-  echo "  behavior: safe to re-run; creates or updates user/org/role mappings"
+  echo "  behavior: safe to re-run; creates or updates user/org/role/password mappings"
 }
 
 print_systemd_service_summary() {

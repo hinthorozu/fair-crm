@@ -34,7 +34,24 @@ Both `deploy-all.sh` and `check-server.sh` POST to:
 
 `http://127.0.0.1:8000/api/v1/auth/login`
 
-with `dev@example.com` / `DevPassword123!` and require HTTP 200 + `access_token`.
+with `dev@example.com` and the password from `DEV_USER_PASSWORD`, and require HTTP 200 + `access_token`.
+
+### Dev seed password (required)
+
+There is **no hardcoded default** password in source or deploy scripts.
+
+On the server, store it in a root-only env file:
+
+```bash
+sudo mkdir -p /etc/fair-crm
+echo 'DEV_USER_PASSWORD=<set-a-strong-dev-password>' | sudo tee /etc/fair-crm/dev-seed.env >/dev/null
+sudo chown root:root /etc/fair-crm/dev-seed.env
+sudo chmod 600 /etc/fair-crm/dev-seed.env
+```
+
+`deploy-all.sh` loads `/etc/fair-crm/dev-seed.env` before Core seed. If the file is missing or empty, deploy fails with a clear error (no silent fallback). The password is never printed in deploy logs or the acceptance report.
+
+Local development: export `DEV_USER_PASSWORD` before running `python scripts/seed_core_dev_identity.py`.
 
 ## Port binding expectations
 

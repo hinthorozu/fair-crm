@@ -90,7 +90,7 @@ Pytest suite'leri (servis gerektirmeden): **73 passed**.
 
 ## Dev kullanıcılar (seed)
 
-Şifre: `DevPassword123!` · Org: `00000000-0000-4000-8000-000000000010`
+Şifre: `DEV_USER_PASSWORD` env (sunucu: `/etc/fair-crm/dev-seed.env`) · Org: `00000000-0000-4000-8000-000000000010`
 
 | Rol | E-posta |
 |-----|---------|

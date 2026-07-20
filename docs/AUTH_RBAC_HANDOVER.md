@@ -114,7 +114,9 @@ Seed idempotent çalışır (`ON CONFLICT DO NOTHING`).
 4. **Organization role bindings** (`identity_organization_roles`)
 5. **Dev users** + **memberships** + **user role assignments** (`identity_user_roles`)
 
-### Dev kullanıcılar (şifre: `DevPassword123!`)
+### Dev kullanıcılar
+
+Şifre `DEV_USER_PASSWORD` ortam değişkeninden gelir (hardcoded default yok). Sunucuda `/etc/fair-crm/dev-seed.env` dosyasında saklanır.
 
 | Rol | E-posta |
 |-----|---------|
@@ -128,6 +130,7 @@ Seed idempotent çalışır (`ON CONFLICT DO NOTHING`).
 Çalıştırma:
 
 ```powershell
+$env:DEV_USER_PASSWORD = "<dev-password>"
 python scripts/seed_core_dev_identity.py
 ```
 
@@ -144,7 +147,7 @@ Seed tamamlandığında yazılır. E2E ve manuel testler bu dosyayı okur.
 ```json
 {
   "email": "dev@example.com",
-  "password": "DevPassword123!",
+  "password_source": "DEV_USER_PASSWORD",
   "user_id": "...",
   "organization_id": "00000000-0000-4000-8000-000000000010",
   "fair_crm_permission_count": 40,
@@ -156,9 +159,11 @@ Seed tamamlandığında yazılır. E2E ve manuel testler bu dosyayı okur.
 }
 ```
 
+Açık metin şifre bu dosyaya yazılmaz. Login için `DEV_USER_PASSWORD` kullanılır.
+
 **Kullanım alanları:**
 
-- E2E login (owner credentials)
+- E2E login (owner email + `DEV_USER_PASSWORD`)
 - Role bazlı live auth testleri (14b)
 - SQL RBAC chain doğrulama (user_id + org_id + role slug)
 - Stale seed tespiti (`role_matrix_version`, eksik roller)

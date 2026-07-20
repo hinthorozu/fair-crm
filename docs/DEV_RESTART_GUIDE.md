@@ -215,15 +215,23 @@ Beklenen: 73 passed.
 
 ## Dev login bilgileri
 
-Seed sonrası (`.dev_state.json`):
+Seed sonrası (`.dev_state.json` email/org; şifre ortam değişkeninden):
 
-- **Owner:** dev@example.com / DevPassword123!
+- **Owner:** `dev@example.com`
+- **Password:** `$env:DEV_USER_PASSWORD` (sunucuda `/etc/fair-crm/dev-seed.env`)
 - **Org ID:** 00000000-0000-4000-8000-000000000010
+
+Seed:
+
+```powershell
+$env:DEV_USER_PASSWORD = "<dev-password>"
+python scripts/seed_core_dev_identity.py
+```
 
 Core login:
 
 ```powershell
-curl -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -d "{\"email\":\"dev@example.com\",\"password\":\"DevPassword123!\"}"
+curl -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -d "{\"email\":\"dev@example.com\",\"password\":\"$env:DEV_USER_PASSWORD\"}"
 ```
 
 ---

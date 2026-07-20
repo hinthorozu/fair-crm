@@ -18,6 +18,7 @@ from pathlib import Path
 
 import psycopg2
 from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 from psycopg2 import sql
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,7 +38,6 @@ from fair_crm_role_matrix import (  # noqa: E402
     role_slugs,
 )
 
-DEV_PASSWORD = os.environ.get("DEV_USER_PASSWORD", "DevPassword123!")
 DEV_ORG_ID = os.environ.get("FAIR_CRM_DEV_ORGANIZATION_ID", "00000000-0000-4000-8000-000000000010")
 DEV_ORG_NAME = os.environ.get("FAIR_CRM_DEV_ORGANIZATION_NAME", "Fair CRM Dev Org")
 DEV_ORG_SLUG = os.environ.get("FAIR_CRM_DEV_ORGANIZATION_SLUG", "fair-crm-dev")
@@ -48,10 +48,31 @@ CORE_DB_URL = os.environ.get(
 )
 
 MIN_CORE_MIGRATION_REVISION = "20260701_0030"
+DEV_SEED_ENV_FILE_HINT = "/etc/fair-crm/dev-seed.env"
 
 
 class SeedError(RuntimeError):
     pass
+
+
+def require_dev_password() -> str:
+    """Resolve DEV_USER_PASSWORD; never fall back to a hardcoded default."""
+    password = os.environ.get("DEV_USER_PASSWORD", "").strip()
+    if password:
+        return password
+    raise SeedError(
+        "DEV_USER_PASSWORD is required and must not be empty.\n"
+        "Local: export DEV_USER_PASSWORD before running this script.\n"
+        f"Server: create {DEV_SEED_ENV_FILE_HINT} with DEV_USER_PASSWORD=<value>, "
+        "then chmod 600 and chown root:root. deploy-all.sh loads that file before seed."
+    )
+
+
+def password_hash_matches(stored_hash: str, password: str) -> bool:
+    try:
+        return bool(PasswordHasher().verify(stored_hash, password))
+    except (VerifyMismatchError, ValueError, TypeError):
+        return False
 
 
 def _now() -> datetime:
@@ -235,7 +256,44 @@ def ensure_dev_organization(cur) -> str:
     return DEV_ORG_ID
 
 
-def ensure_dev_user(cur, *, user_id: str, email: str) -> str:
+def sync_dev_user_password(cur, *, user_id: str, email: str, password: str) -> None:
+    """Idempotently align password_hash with DEV_USER_PASSWORD for an existing user."""
+    ph = PasswordHasher()
+    cur.execute(
+        "SELECT password_hash FROM identity_users WHERE id = %s LIMIT 1",
+        (user_id,),
+    )
+    row = cur.fetchone()
+    if row is None:
+        raise SeedError(f"Cannot sync password; user missing: {email} ({user_id})")
+
+    stored_hash = str(row[0] or "")
+    now = _now()
+    if stored_hash and password_hash_matches(stored_hash, password):
+        if ph.check_needs_rehash(stored_hash):
+            cur.execute(
+                """
+                UPDATE identity_users
+                SET password_hash = %s, status = 'active', updated_at = %s, deleted_at = NULL
+                WHERE id = %s
+                """,
+                (ph.hash(password), now, user_id),
+            )
+            print(f"Rehashed password for {email}")
+        return
+
+    cur.execute(
+        """
+        UPDATE identity_users
+        SET password_hash = %s, status = 'active', updated_at = %s, deleted_at = NULL
+        WHERE id = %s
+        """,
+        (ph.hash(password), now, user_id),
+    )
+    print(f"Updated password for {email}")
+
+
+def ensure_dev_user(cur, *, user_id: str, email: str, password: str) -> str:
     cur.execute("SELECT id, email FROM identity_users WHERE id = %s LIMIT 1", (user_id,))
     row = cur.fetchone()
     if row:
@@ -247,6 +305,7 @@ def ensure_dev_user(cur, *, user_id: str, email: str) -> str:
             print(f"Updated dev user email for {user_id}: {row[1]} -> {email}")
         else:
             print(f"Dev user already exists: {email} ({user_id})")
+        sync_dev_user_password(cur, user_id=user_id, email=email, password=password)
         return user_id
 
     cur.execute("SELECT id FROM identity_users WHERE email = %s LIMIT 1", (email,))
@@ -254,9 +313,12 @@ def ensure_dev_user(cur, *, user_id: str, email: str) -> str:
     if by_email:
         existing_id = str(by_email[0])
         print(f"Dev user already exists by email ({email}): {existing_id}")
+        sync_dev_user_password(
+            cur, user_id=existing_id, email=email, password=password
+        )
         return existing_id
 
-    password_hash = PasswordHasher().hash(DEV_PASSWORD)
+    password_hash = PasswordHasher().hash(password)
     now = _now()
     cur.execute(
         """
@@ -408,6 +470,12 @@ def ensure_user_role_assignment(
 
 
 def main() -> int:
+    try:
+        dev_password = require_dev_password()
+    except SeedError as exc:
+        print(f"Seed failed: {exc}", file=sys.stderr)
+        return 1
+
     admin_url = os.environ.get(
         "POSTGRES_ADMIN_URL",
         "postgresql://postgres:postgres@localhost:5432/postgres",
@@ -454,7 +522,9 @@ def main() -> int:
                 )
 
             for role_slug, email, user_id in DEV_ROLE_USERS:
-                resolved_user_id = ensure_dev_user(cur, user_id=user_id, email=email)
+                resolved_user_id = ensure_dev_user(
+                    cur, user_id=user_id, email=email, password=dev_password
+                )
                 ensure_membership(cur, resolved_user_id, org_id)
                 org_role_id = org_role_ids[role_slug]
                 ensure_dev_user_role_mapping(
@@ -494,9 +564,10 @@ def main() -> int:
         conn.close()
 
     owner = role_users_state["owner"]
+    # Never persist the plaintext password; consumers must use DEV_USER_PASSWORD.
     state = {
         "email": owner["email"],
-        "password": DEV_PASSWORD,
+        "password_source": "DEV_USER_PASSWORD",
         "user_id": owner["user_id"],
         "organization_id": org_id,
         "owner_role_id": role_template_ids["owner"],

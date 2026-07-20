@@ -84,7 +84,7 @@ STEP_HINTS: dict[str, str] = {
         "Same as 0b: restart Fair CRM with bypass disabled before re-running prod-path e2e."
     ),
     "10. Create development user (seed)": (
-        "Run python scripts/seed_core_dev_identity.py after Core migrations. "
+        "Set DEV_USER_PASSWORD, then run python scripts/seed_core_dev_identity.py after Core migrations. "
         "Check stderr for missing permissions or roles."
     ),
     "11. Verify seed state (.dev_state.json)": (
@@ -96,7 +96,8 @@ STEP_HINTS: dict[str, str] = {
         "and seed script output."
     ),
     "11f. Role matrix seed + RBAC chain (SQL)": (
-        "Role-permission mappings are stale. Re-run: python scripts/seed_core_dev_identity.py"
+        "Role-permission mappings are stale. Re-run with DEV_USER_PASSWORD set: "
+        "python scripts/seed_core_dev_identity.py"
     ),
     "11e. Endpoint permission enforcement tests (pytest)": (
         "Run: cd backend && python -m pytest tests/modules/test_endpoint_permission_enforcement.py -q"
@@ -105,7 +106,8 @@ STEP_HINTS: dict[str, str] = {
         "Run: cd backend && python -m pytest tests/modules/test_role_matrix_authorization.py -q"
     ),
     "12-13. Core login + JWT": (
-        "Owner dev user missing or password mismatch. Re-run seed and use credentials from .dev_state.json."
+        "Owner dev user missing or password mismatch. Re-run seed with DEV_USER_PASSWORD set "
+        "and login using that same environment variable (password is not stored in .dev_state.json)."
     ),
     "14b. Role matrix selective authorization (live)": (
         "Live RBAC mismatch — re-run seed and verify Core authorization API matches role matrix."
@@ -328,6 +330,18 @@ def load_dev_state() -> dict:
     return json.loads(STATE_FILE.read_text(encoding="utf-8"))
 
 
+def require_dev_password() -> str:
+    """Login/seed password from DEV_USER_PASSWORD only (no hardcoded default)."""
+    password = os.environ.get("DEV_USER_PASSWORD", "").strip()
+    if password:
+        return password
+    raise RuntimeError(
+        "DEV_USER_PASSWORD is required for e2e login and seed. "
+        "Set the environment variable before running this script. "
+        "On servers, load it from /etc/fair-crm/dev-seed.env."
+    )
+
+
 def verify_seed_state(state: dict) -> tuple[bool, str]:
     org_id = state.get("organization_id")
     count = state.get("fair_crm_permission_count")
@@ -516,10 +530,23 @@ def verify_permissions_api(token: str, org_id: str, codes: tuple[str, ...]) -> t
 
 
 def run_seed_script() -> subprocess.CompletedProcess:
+    env = os.environ.copy()
+    # Ensure child seed process also fails clearly if password is unset.
+    if not env.get("DEV_USER_PASSWORD", "").strip():
+        return subprocess.CompletedProcess(
+            args=[sys.executable, str(SEED_SCRIPT)],
+            returncode=1,
+            stdout="",
+            stderr=(
+                "DEV_USER_PASSWORD is required for seed. "
+                "Set it before running e2e_validation.py."
+            ),
+        )
     return subprocess.run(
         [sys.executable, str(SEED_SCRIPT)],
         capture_output=True,
         text=True,
+        env=env,
     )
 
 
@@ -870,7 +897,11 @@ def main(argv: list[str] | None = None) -> int:
     record(results, "8. Swagger Fair CRM", True, f"{FAIR_BASE}/docs")
 
     email = state.get("email", "dev@example.com")
-    password = state.get("password", "DevPassword123!")
+    try:
+        password = require_dev_password()
+    except RuntimeError as exc:
+        record(results, "12-13. Core login + JWT", False, str(exc))
+        return _finish(ctx, results, 1)
 
     login_resp = httpx.post(
         f"{CORE_BASE}/api/v1/auth/login",
