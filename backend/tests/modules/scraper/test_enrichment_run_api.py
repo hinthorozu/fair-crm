@@ -7,6 +7,8 @@ from app.modules.scraper.application.enrichment_run_job_runner import (
     EnrichmentRunJobCommand,
     EnrichmentRunJobRunner,
 )
+from app.modules.scraper.domain.scraper_run_log import ScraperRunLogLevel
+from app.modules.scraper.domain.scraper_run_source import ScraperRunSource
 from app.modules.scraper.dto.enrichment_result_dto import EnrichmentResultDto, SourcedValue
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
 from app.modules.scraper.services.enrichment_run_executor import EnrichmentRunExecution
@@ -101,6 +103,52 @@ def test_enrichment_run_starts_and_completes_with_summary(
     detail = detail_response.json()
     assert detail["enrichment_summary"]["customers_scanned"] == 2
     assert detail["enrichment_summary"]["emails_found"] == 1
+
+
+def test_enrichment_summary_survives_high_log_volume(db_session, organization_id):
+    """Large candidate runs (e.g. a 50-customer fair-scoped run) can emit far more than
+    one page of console logs. The terminal run-finished summary must still be found even
+    when it is preceded by hundreds of earlier log rows."""
+    history_service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
+    run = history_service.start_run(
+        adapter_key=ScraperSiteKey.CUSTOMER_CONTACT_ENRICHMENT,
+        input_url=None,
+        fair_name=None,
+        fair_year=None,
+        organization_id=organization_id,
+        run_source=ScraperRunSource.ENRICHMENT,
+    )
+    db_session.commit()
+
+    log_service = create_run_log_service(db_session)
+    for i in range(600):
+        log_service.append_log(
+            run_id=run.id,
+            level=ScraperRunLogLevel.INFO,
+            step="page_fetch",
+            message=f"Sayfa alındı: https://example{i}.test",
+        )
+    log_service.append_log(
+        run_id=run.id,
+        level=ScraperRunLogLevel.SUCCESS,
+        step="run_finished",
+        message="Müşteri iletişim zenginleştirme tamamlandı",
+        metadata={
+            "customers_scanned": 50,
+            "emails_found": 40,
+            "not_found": 10,
+            "failed": 0,
+            "dry_run": False,
+            "import_batch_created": True,
+        },
+    )
+    db_session.commit()
+
+    summary = load_enrichment_summary_for_run(log_service, run.id)
+    assert summary is not None
+    assert summary["customers_scanned"] == 50
+    assert summary["emails_found"] == 40
+    assert summary["import_batch_created"] is True
 
 
 def test_enrichment_run_rejects_non_enrichment_adapter(client, auth_headers):

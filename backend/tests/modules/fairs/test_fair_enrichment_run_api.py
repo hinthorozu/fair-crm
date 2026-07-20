@@ -10,6 +10,8 @@ from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportH
 from app.modules.scraper.infrastructure.repositories.scraper_run_history_repository import (
     ScraperRunHistoryRepository,
 )
+from app.modules.scraper.domain.customer_enrichment_state import CustomerEnrichmentScanStatus
+from app.modules.scraper.infrastructure.persistence.models import CustomerEnrichmentStateModel
 from app.modules.scraper.services.enrichment_run_executor import EnrichmentRunExecution
 from app.modules.scraper.services.scraper_run_history_service import ScraperRunHistoryService
 from app.modules.scraper.types.scraper_site import ScraperSiteKey
@@ -172,6 +174,76 @@ def test_run_fair_contact_enrichment_starts_run_with_fair_id(
 
     # Other fair customer without participation must not affect candidate validation for this fair.
     assert other_customer_id != fair_customer_id
+
+
+def test_run_fair_contact_enrichment_succeeds_despite_stale_scan_state(
+    client, auth_headers, db_session, organization_id, user_id
+):
+    """A manually-triggered fair-scoped run must not be blocked by an earlier run's leftover
+    enrichment state (pending_merge / failed / email_not_found) for this fair's participants —
+    the user should not need to know about or clear that bookkeeping to re-run this fair."""
+    fair = _seed_fair(db_session, organization_id, name="Repeat Enrichment Fair")
+    stale_customer = _seed_customer(
+        db_session,
+        organization_id,
+        name="Stale State Co",
+        website="https://stale-state.test",
+    )
+    _seed_participation(db_session, organization_id, fair.id, stale_customer.id)
+
+    now = datetime.now(tz=UTC)
+    db_session.add(
+        CustomerEnrichmentStateModel(
+            id=uuid4(),
+            organization_id=organization_id,
+            customer_id=stale_customer.id,
+            website="https://stale-state.test",
+            last_email_scan_status=CustomerEnrichmentScanStatus.PENDING_MERGE.value,
+            created_at=now,
+            updated_at=now,
+        )
+    )
+    db_session.commit()
+
+    fair_id = fair.id
+    stale_customer_id = stale_customer.id
+    stale_customer_name = stale_customer.display_name
+
+    captured: dict[str, object] = {}
+
+    def _mock_executor(_session, _organization_id, **kwargs):
+        captured["fair_id"] = kwargs.get("fair_id")
+        captured["ignore_previous_scan_state"] = kwargs.get("ignore_previous_scan_state")
+        return EnrichmentRunExecution(
+            results=[
+                EnrichmentResultDto(
+                    customer_id=stale_customer_id,
+                    company_name=stale_customer_name,
+                    website="https://stale-state.test",
+                    emails=[SourcedValue(value="info@stale-state.test", source_url="https://stale-state.test")],
+                    status="found",
+                )
+            ],
+            handoff=_sample_handoff(stale_customer_id),
+        )
+
+    mock_runner = EnrichmentRunJobRunner(session_factory=lambda: db_session, executor=_mock_executor)
+    previous_runner = fairs_dependencies._enrichment_run_job_runner
+    fairs_dependencies._enrichment_run_job_runner = mock_runner
+    try:
+        response = client.post(
+            f"/api/v1/fairs/{fair_id}/contact-enrichment/run",
+            json={"limit": 10, "dry_run": False, "requested_fields": ["email"]},
+            headers=auth_headers,
+        )
+    finally:
+        fairs_dependencies._enrichment_run_job_runner = previous_runner
+
+    assert response.status_code == 202
+    payload = response.json()
+    assert payload["status"] == "running"
+    assert captured["fair_id"] == fair_id
+    assert captured["ignore_previous_scan_state"] is True
 
 
 def test_run_fair_contact_enrichment_rejects_when_no_candidates(

@@ -85,6 +85,7 @@ def execute_enrichment_run(
     fetcher: Callable[[str], str] | None = None,
     customer_ids: list[UUID] | None = None,
     fair_id: UUID | None = None,
+    ignore_previous_scan_state: bool = False,
     cancel_checker: RunCancelChecker | None = None,
 ) -> EnrichmentRunExecution:
     def _cancelled_execution(
@@ -115,6 +116,7 @@ def execute_enrichment_run(
             organization_id,
             limit=limit,
             fair_id=fair_id,
+            ignore_previous_scan_state=ignore_previous_scan_state,
         )
     elif customer_ids:
         from app.modules.scraper.services.single_customer_enrichment_service import (
@@ -137,6 +139,7 @@ def execute_enrichment_run(
             "limit": limit,
             "customer_ids_filter": [str(item) for item in customer_ids or []],
             "fair_id": str(fair_id) if fair_id is not None else None,
+            "ignore_previous_scan_state": ignore_previous_scan_state,
         }
         run_logger.info(
             "candidates_query_finished",

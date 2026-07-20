@@ -42,8 +42,18 @@ def list_enrichment_candidates(
     *,
     limit: int | None = None,
     fair_id: UUID | None = None,
+    ignore_previous_scan_state: bool = False,
 ) -> list[EnrichmentCandidate]:
-    """Return customers eligible for enrichment based on website, email, and scan state."""
+    """Return customers eligible for enrichment based on website, email, and scan state.
+
+    ``ignore_previous_scan_state`` skips the per-customer enrichment-state check
+    (pending_merge, failed/email_not_found retry cooldowns, previously completed scans)
+    entirely. It is intended for a manually-triggered, single-fair scoped run, where the
+    user explicitly asked to (re)scan that fair's participants and should not have to know
+    about or clear prior scan bookkeeping for another run to pick them up. It never affects
+    the "customer already has a CRM email" exclusion, which is enforced above at the query
+    level regardless of this flag.
+    """
     query = (
         session.query(CustomerWebsiteModel, CustomerModel)
         .join(CustomerModel, CustomerModel.id == CustomerWebsiteModel.customer_id)
@@ -88,17 +98,22 @@ def list_enrichment_candidates(
         seen_customer_ids.add(customer.id)
         pending.append((customer, website))
 
-    state_map = load_state_map(
-        session,
-        organization_id,
-        [customer.id for customer, _website in pending],
+    state_map = (
+        {}
+        if ignore_previous_scan_state
+        else load_state_map(
+            session,
+            organization_id,
+            [customer.id for customer, _website in pending],
+        )
     )
 
     candidates: list[EnrichmentCandidate] = []
     for customer, website in pending:
-        state = state_map.get(customer.id)
-        if not is_customer_scan_eligible(state, website=website):
-            continue
+        if not ignore_previous_scan_state:
+            state = state_map.get(customer.id)
+            if not is_customer_scan_eligible(state, website=website):
+                continue
         candidates.append(
             EnrichmentCandidate(
                 customer_id=customer.id,

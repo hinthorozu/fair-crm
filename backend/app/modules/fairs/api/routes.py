@@ -455,6 +455,7 @@ def run_fair_contact_enrichment(
             dry_run=body.dry_run,
             max_pages=body.max_pages or 10,
             fair_id=fair_id,
+            ignore_previous_scan_state=True,
         ),
     )
     return ScraperRunHistoryResponse.from_entity(run)

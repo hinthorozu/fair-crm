@@ -58,6 +58,8 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
       return fairLabels.fairs;
     case "/fairs/:id":
       return context.fairName?.trim() || fairLabels.fairs;
+    case "/fairs/:id/enrichment":
+      return fairLabels.enrichFairAction;
     case "/todos":
       return todoLabels.pageTitle;
     case "/todos/:id":

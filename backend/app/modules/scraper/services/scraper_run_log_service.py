@@ -50,6 +50,15 @@ class ScraperRunLogService:
     def count_logs(self, run_id: UUID) -> int:
         return self._repository.count_by_run_id(run_id)
 
+    def find_latest_by_level_and_steps(
+        self,
+        run_id: UUID,
+        *,
+        level: ScraperRunLogLevel,
+        steps: tuple[str, ...],
+    ) -> ScraperRunLog | None:
+        return self._repository.find_latest_by_level_and_steps(run_id, level=level, steps=steps)
+
 
 def create_run_log_service(session: Session) -> ScraperRunLogService:
     return ScraperRunLogService(ScraperRunLogRepository(session))

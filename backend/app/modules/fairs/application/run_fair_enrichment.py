@@ -39,11 +39,17 @@ class RunFairEnrichmentUseCase:
         if fair is None:
             raise FairNotFoundError("Fair not found")
 
+        # Manual fair-scoped enrichment is a deliberate, single-fair re-check that the user
+        # explicitly triggered. Prior enrichment scan state from other runs (pending_merge,
+        # retry cooldowns, previously completed scans) must not silently block it — the user
+        # should not need to know about or clear that bookkeeping themselves. Customers who
+        # already have a real CRM email are still excluded (enforced inside the query itself).
         candidates = list_enrichment_candidates(
             self._session,
             command.organization_id,
             limit=command.limit,
             fair_id=fair.id,
+            ignore_previous_scan_state=True,
         )
         if not candidates:
             raise FairEnrichmentNoCandidatesError(

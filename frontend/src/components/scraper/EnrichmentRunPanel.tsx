@@ -1,4 +1,5 @@
 import React from "react";
+import { runFairContactEnrichment } from "../../api/fairs";
 import { getScraperRun, runCustomerContactEnrichment } from "../../api/scraper";
 import { scraperLabels } from "../../labels/scraperLabels";
 import type { EnrichmentRunSummary, RequestedOutputField, ScraperManifest, ScraperRun } from "../../types/scraper";
@@ -13,8 +14,13 @@ import { EnrichmentStateResetPanel } from "./EnrichmentStateResetPanel";
 interface EnrichmentRunPanelProps {
   adapterKey: string;
   manifest: ScraperManifest;
+  /** When set, scopes the run to a single fair's participants instead of the org-wide candidate pool. */
+  fairId?: string;
   onRunFinished?: () => void;
   onOpenRunDetail?: (adapterKey: string, runId: string) => void;
+  /** When set, called immediately after the run starts (instead of polling in-place) so the
+   * caller can navigate straight to the run detail + live log screen. */
+  onRunStarted?: (runId: string) => void;
 }
 
 const POLL_INTERVAL_MS = 2000;
@@ -25,13 +31,22 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
-export function EnrichmentRunPanel({ adapterKey, manifest, onRunFinished, onOpenRunDetail }: EnrichmentRunPanelProps) {
-  const [limit, setLimit] = React.useState(50);
+export function EnrichmentRunPanel({
+  adapterKey,
+  manifest,
+  fairId,
+  onRunFinished,
+  onOpenRunDetail,
+  onRunStarted,
+}: EnrichmentRunPanelProps) {
+  /** Empty string = no limit (all eligible customers); the "50" shown to the user is only a placeholder hint. */
+  const [limitInput, setLimitInput] = React.useState("");
   const [dryRun, setDryRun] = React.useState(false);
   const [requestedFields, setRequestedFields] = React.useState<RequestedOutputField[]>(() =>
     filterEnrichmentRequestedFields(resolveRequestedFieldsForManifest(manifest)),
   );
   const [running, setRunning] = React.useState(false);
+  const [redirecting, setRedirecting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [activeRun, setActiveRun] = React.useState<ScraperRun | null>(null);
   const [summary, setSummary] = React.useState<EnrichmentRunSummary | null>(null);
@@ -65,17 +80,41 @@ export function EnrichmentRunPanel({ adapterKey, manifest, onRunFinished, onOpen
   }, []);
 
   const handleRun = React.useCallback(async () => {
+    const trimmedLimit = limitInput.trim();
+    let limit: number | null = null;
+    if (trimmedLimit !== "") {
+      const parsed = Number(trimmedLimit);
+      if (!Number.isInteger(parsed) || parsed < 1 || parsed > 500) {
+        setError(scraperLabels.enrichmentRunLimitInvalid);
+        return;
+      }
+      limit = parsed;
+    }
+
     setRunning(true);
     setError(null);
     setSummary(null);
     setActiveRun(null);
     try {
-      const started = await runCustomerContactEnrichment(adapterKey, {
+      const payload = {
         limit,
         dry_run: dryRun,
         requested_fields: requestedFields,
-      });
+      };
+      const started = fairId
+        ? await runFairContactEnrichment(fairId, payload)
+        : await runCustomerContactEnrichment(adapterKey, payload);
+      if (!started?.id) {
+        // The run may genuinely have been created server-side, but without an id we cannot
+        // navigate anywhere useful — surface this explicitly instead of closing silently.
+        throw new Error(scraperLabels.enrichmentRunMissingId);
+      }
       setActiveRun(started);
+      if (onRunStarted) {
+        setRedirecting(true);
+        onRunStarted(started.id);
+        return;
+      }
       const finished = await pollRun(started.id);
       if (finished.enrichment_summary) {
         setSummary(finished.enrichment_summary);
@@ -85,11 +124,12 @@ export function EnrichmentRunPanel({ adapterKey, manifest, onRunFinished, onOpen
       }
       onRunFinished?.();
     } catch (err) {
+      setRedirecting(false);
       setError(err instanceof Error ? err.message : scraperLabels.enrichmentRunFailed);
     } finally {
       setRunning(false);
     }
-  }, [adapterKey, dryRun, limit, onRunFinished, pollRun, requestedFields]);
+  }, [adapterKey, dryRun, fairId, limitInput, onRunFinished, onRunStarted, pollRun, requestedFields]);
 
   return (
     <div className="enrichment-run-panel">
@@ -101,10 +141,12 @@ export function EnrichmentRunPanel({ adapterKey, manifest, onRunFinished, onOpen
           type="number"
           min={1}
           max={500}
-          value={limit}
+          placeholder="50"
+          value={limitInput}
           disabled={running}
-          onChange={(event) => setLimit(Number(event.target.value) || 1)}
+          onChange={(event) => setLimitInput(event.target.value)}
         />
+        <span className="form-hint">{scraperLabels.enrichmentRunLimitHint}</span>
       </label>
 
       <div className="form-field">
@@ -128,7 +170,11 @@ export function EnrichmentRunPanel({ adapterKey, manifest, onRunFinished, onOpen
 
       <div className="enrichment-run-actions">
         <button type="button" className="btn primary" disabled={running} onClick={() => void handleRun()}>
-          {running ? scraperLabels.enrichmentRunRunning : scraperLabels.enrichmentRunStart}
+          {running
+            ? redirecting
+              ? scraperLabels.enrichmentRunRedirecting
+              : scraperLabels.enrichmentRunRunning
+            : scraperLabels.enrichmentRunStart}
         </button>
       </div>
 
@@ -182,8 +228,12 @@ export function EnrichmentRunPanel({ adapterKey, manifest, onRunFinished, onOpen
         </dl>
       ) : null}
 
-      <hr className="enrichment-panel-divider" />
-      <EnrichmentStateResetPanel />
+      {fairId ? null : (
+        <>
+          <hr className="enrichment-panel-divider" />
+          <EnrichmentStateResetPanel />
+        </>
+      )}
     </div>
   );
 }

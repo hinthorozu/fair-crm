@@ -3,6 +3,7 @@ import { CustomersPage } from "./pages/CustomersPage";
 import { CustomerDetailPage } from "./pages/CustomerDetailPage";
 import { FairsPage } from "./pages/FairsPage";
 import { FairDetailPage } from "./pages/FairDetailPage";
+import { FairEnrichmentRunPage } from "./pages/FairEnrichmentRunPage";
 import { ImportWizardPage } from "./pages/ImportWizardPage";
 import { DataIntegrationImportsPage } from "./pages/DataIntegrationImportsPage";
 import { AdapterManagementPage } from "./pages/AdapterManagementPage";
@@ -40,9 +41,13 @@ import { adminLabels } from "./labels/adminLabels";
 import { followUpLabels } from "./labels/followUpLabels";
 import { labels } from "./labels";
 import { scraperLabels } from "./labels/scraperLabels";
+import { fairLabels } from "./labels/fairLabels";
 import { dashboardLabels } from "./labels/dashboardLabels";
 import { resolveRunDetailPath } from "./utils/enrichmentRunRouting";
-import { isCustomerContactEnrichmentAdapter } from "./utils/enrichmentAdapter";
+import {
+  CUSTOMER_CONTACT_ENRICHMENT_ADAPTER_KEY,
+  isCustomerContactEnrichmentAdapter,
+} from "./utils/enrichmentAdapter";
 import { useDocumentTitle } from "./hooks/useDocumentTitle";
 import { useAuth } from "./auth/AuthContext";
 import "./styles.css";
@@ -53,6 +58,7 @@ type AppRoute =
   | "/customers"
   | "/fairs"
   | "/fairs/:id"
+  | "/fairs/:id/enrichment"
   | "/todos"
   | "/todos/:id"
   | "/follow-ups"
@@ -184,6 +190,10 @@ function parseRoute(location: string): ParsedRoute {
     return { route: "/imports" };
   }
   if (pathname === "/fairs" || pathname.startsWith("/fairs/")) {
+    const fairEnrichment = pathname.match(/^\/fairs\/([^/]+)\/enrichment$/);
+    if (fairEnrichment) {
+      return { route: "/fairs/:id/enrichment", fairId: fairEnrichment[1] };
+    }
     const fairMatch = pathname.match(/^\/fairs\/([^/]+)$/);
     if (fairMatch) {
       return { route: "/fairs/:id", fairId: fairMatch[1] };
@@ -398,6 +408,13 @@ export function App() {
     setSidebarOpen(false);
   };
 
+  const goToFairEnrichment = (fairId: string) => {
+    const path = `/fairs/${fairId}/enrichment`;
+    navigate(path);
+    setParsed(parseRoute(path));
+    setSidebarOpen(false);
+  };
+
   const goToTodos = () => {
     navigate("/todos");
     setParsed({ route: "/todos" });
@@ -474,7 +491,10 @@ export function App() {
 
   const isDashboardActive = parsed.route === "/dashboard";
   const isCustomersActive = parsed.route === "/customers" || parsed.route === "/customers/:id";
-  const isFairsActive = parsed.route === "/fairs" || parsed.route === "/fairs/:id";
+  const isFairsActive =
+    parsed.route === "/fairs" ||
+    parsed.route === "/fairs/:id" ||
+    parsed.route === "/fairs/:id/enrichment";
   const isTodosActive =
     parsed.route === "/todos" || parsed.route === "/todos/:id";
   const isFollowUpsActive = parsed.route === "/follow-ups";
@@ -490,6 +510,13 @@ export function App() {
           { label: labels.customers, onClick: goToCustomers },
           { label: customerName ?? uiLabels.navCustomers, current: true },
         ]
+      : parsed.route === "/fairs/:id/enrichment" && parsed.fairId
+        ? [
+            { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
+            { label: uiLabels.navFairs, onClick: goToFairs },
+            { label: fairName ?? uiLabels.navFairs, onClick: () => goToFairDetail(parsed.fairId!) },
+            { label: fairLabels.enrichFairAction, current: true },
+          ]
       : parsed.route === "/fairs/:id" && parsed.fairId
         ? [
             { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
@@ -778,7 +805,15 @@ export function App() {
           onOpenImportDecisions={(batchId) =>
             goToDataIntegration(`/data-integration/imports/continue/${batchId}`)
           }
-          onOpenEnrichmentRun={(runId) =>
+          onOpenFairEnrichment={goToFairEnrichment}
+        />
+      )}
+      {parsed.route === "/fairs/:id/enrichment" && parsed.fairId && (
+        <FairEnrichmentRunPage
+          fairId={parsed.fairId}
+          onBack={() => goToFairDetail(parsed.fairId!)}
+          onFairLoaded={setFairName}
+          onRunStarted={(runId) =>
             goToAdapterRunDetail(CUSTOMER_CONTACT_ENRICHMENT_ADAPTER_KEY, runId)
           }
         />

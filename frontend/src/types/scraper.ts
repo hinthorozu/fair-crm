@@ -243,7 +243,8 @@ export interface EnrichmentRunSummary {
 }
 
 export interface EnrichmentRunPayload {
-  limit?: number;
+  /** Omitted/undefined falls back to the backend default; explicit `null` means "no limit — all eligible customers". */
+  limit?: number | null;
   requested_fields?: RequestedOutputField[];
   dry_run?: boolean;
   max_pages?: number;

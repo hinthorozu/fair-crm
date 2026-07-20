@@ -6,7 +6,7 @@ import json
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import asc, func, select
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.orm import Session
 
 from app.modules.scraper.domain.scraper_run_log import ScraperRunLog, ScraperRunLogLevel
@@ -74,6 +74,32 @@ class ScraperRunLogRepository:
                 )
         stmt = stmt.order_by(asc(ScraperRunLogModel.created_at), asc(ScraperRunLogModel.id)).limit(limit)
         return [_to_entity(model) for model in self._session.scalars(stmt).all()]
+
+    def find_latest_by_level_and_steps(
+        self,
+        run_id: UUID,
+        *,
+        level: ScraperRunLogLevel,
+        steps: tuple[str, ...],
+    ) -> ScraperRunLog | None:
+        """Find the most recent log entry matching level/step, independent of total log volume.
+
+        Runs with many candidates can produce far more than any fixed page size of log
+        rows; scanning a capped, oldest-first page for a terminal log (e.g. run completion)
+        can silently miss it. Querying newest-first for the specific level/step avoids that.
+        """
+        stmt = (
+            select(ScraperRunLogModel)
+            .where(
+                ScraperRunLogModel.run_id == run_id,
+                ScraperRunLogModel.level == level.value,
+                ScraperRunLogModel.step.in_(steps),
+            )
+            .order_by(desc(ScraperRunLogModel.created_at), desc(ScraperRunLogModel.id))
+            .limit(1)
+        )
+        model = self._session.scalars(stmt).first()
+        return _to_entity(model) if model is not None else None
 
     def count_by_run_id(self, run_id: UUID) -> int:
         stmt = (

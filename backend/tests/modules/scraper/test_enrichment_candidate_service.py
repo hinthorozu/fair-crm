@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from app.modules.customers.domain.value_objects import CustomerStatus, CustomerType
@@ -9,6 +9,8 @@ from app.modules.customers.infrastructure.persistence.communication_models impor
 from app.modules.customers.infrastructure.persistence.models import CustomerModel
 from app.modules.fairs.infrastructure.persistence.models import FairModel
 from app.modules.participations.infrastructure.persistence.models import CustomerFairParticipationModel
+from app.modules.scraper.domain.customer_enrichment_state import CustomerEnrichmentScanStatus
+from app.modules.scraper.infrastructure.persistence.models import CustomerEnrichmentStateModel
 from app.modules.scraper.services.enrichment_candidate_service import list_enrichment_candidates
 
 
@@ -126,3 +128,132 @@ def test_list_enrichment_candidates_for_fair_excludes_non_participants(db_sessio
 
     org_candidates = list_enrichment_candidates(db_session, organization_id)
     assert {item.customer_id for item in org_candidates} == {participant.id, outsider.id}
+
+
+def _seed_enrichment_state(
+    db_session,
+    organization_id,
+    customer_id,
+    *,
+    website: str,
+    status: str,
+    retry_after=None,
+) -> None:
+    """Seed a prior scan state with the SAME website as the customer's current one, so the
+    `is_customer_scan_eligible` "website_changed" escape hatch does not mask the status check
+    being tested (a changed website is intentionally always re-scanned regardless of status)."""
+    now = datetime.now(tz=UTC)
+    db_session.add(
+        CustomerEnrichmentStateModel(
+            id=uuid4(),
+            organization_id=organization_id,
+            customer_id=customer_id,
+            website=website,
+            last_email_scan_status=status,
+            retry_after=retry_after,
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+
+def test_fair_scoped_candidates_ignore_previous_state_but_org_wide_still_blocks(
+    db_session, organization_id
+):
+    """Manual fair-scoped enrichment must re-check exactly this fair's participants,
+    regardless of any earlier org-wide scan outcome (pending_merge, failed/email_not_found
+    retry cooldowns). Org-wide dedup must stay untouched."""
+    now = datetime.now(tz=UTC)
+    fair = FairModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        name="Repeat Scan Fair",
+        normalized_name="repeat scan fair",
+        status="planned",
+        created_at=now,
+        updated_at=now,
+    )
+    db_session.add(fair)
+    db_session.flush()
+
+    pending_merge_customer = _seed_customer(db_session, organization_id, display_name="Pending Merge Co")
+    failed_customer = _seed_customer(db_session, organization_id, display_name="Failed Co")
+    already_emailed_customer = _seed_customer(db_session, organization_id, display_name="Already Emailed Co")
+
+    for customer, website in (
+        (pending_merge_customer, "https://pending-merge.test"),
+        (failed_customer, "https://failed.test"),
+        (already_emailed_customer, "https://already-emailed.test"),
+    ):
+        db_session.add(
+            CustomerWebsiteModel(
+                id=uuid4(),
+                organization_id=organization_id,
+                customer_id=customer.id,
+                website=website,
+                is_primary=True,
+                created_at=now,
+            )
+        )
+        db_session.add(
+            CustomerFairParticipationModel(
+                id=uuid4(),
+                organization_id=organization_id,
+                customer_id=customer.id,
+                fair_id=fair.id,
+                participation_status="exhibitor",
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+    db_session.add(
+        CustomerEmailModel(
+            id=uuid4(),
+            organization_id=organization_id,
+            customer_id=already_emailed_customer.id,
+            email="info@already-emailed.test",
+            is_primary=True,
+            created_at=now,
+        )
+    )
+
+    _seed_enrichment_state(
+        db_session,
+        organization_id,
+        pending_merge_customer.id,
+        website="https://pending-merge.test",
+        status=CustomerEnrichmentScanStatus.PENDING_MERGE.value,
+    )
+    _seed_enrichment_state(
+        db_session,
+        organization_id,
+        failed_customer.id,
+        website="https://failed.test",
+        status=CustomerEnrichmentScanStatus.FAILED.value,
+        retry_after=now + timedelta(days=7),
+    )
+    db_session.commit()
+
+    fair_candidates = {item.customer_id for item in list_enrichment_candidates(
+        db_session, organization_id, fair_id=fair.id, ignore_previous_scan_state=True
+    )}
+    assert fair_candidates == {pending_merge_customer.id, failed_customer.id}, (
+        "manual fair-scoped run (ignore_previous_scan_state=True) must ignore pending_merge/failed "
+        "retry state for its own participants"
+    )
+
+    fair_candidates_default = {item.customer_id for item in list_enrichment_candidates(
+        db_session, organization_id, fair_id=fair.id
+    )}
+    assert fair_candidates_default == set(), (
+        "fair-scoped queries must still respect scan state by default (ignore_previous_scan_state=False)"
+    )
+
+    org_candidates = {item.customer_id for item in list_enrichment_candidates(db_session, organization_id)}
+    assert pending_merge_customer.id not in org_candidates, "org-wide run must still respect pending_merge"
+    assert failed_customer.id not in org_candidates, "org-wide run must still respect the failed retry cooldown"
+    assert already_emailed_customer.id not in org_candidates
+    assert already_emailed_customer.id not in fair_candidates, (
+        "a customer with a real CRM email must stay excluded even for fair-scoped runs"
+    )

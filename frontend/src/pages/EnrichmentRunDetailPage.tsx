@@ -45,6 +45,12 @@ function EnrichmentSummaryGrid({ summary }: { summary: EnrichmentRunSummary }) {
             ? scraperLabels.enrichmentSummaryImportBatchDryRun
             : scraperLabels.enrichmentSummaryImportBatchNone}
       </dd>
+      {summary.import_batch_created ? (
+        <>
+          <dt>{scraperLabels.enrichmentSummaryPendingDecision}</dt>
+          <dd>{summary.import_rows.toLocaleString("tr-TR")}</dd>
+        </>
+      ) : null}
     </dl>
   );
 }
@@ -178,7 +184,7 @@ export function EnrichmentRunDetailPage({
             {onOpenImportBatch ? (
               <button
                 type="button"
-                className="btn link"
+                className="btn primary"
                 onClick={() => onOpenImportBatch(summary.import_batch_id!)}
               >
                 {scraperLabels.enrichmentOpenImportBatch}

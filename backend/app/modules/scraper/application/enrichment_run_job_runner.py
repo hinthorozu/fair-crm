@@ -47,6 +47,7 @@ class EnrichmentRunJobCommand:
     max_pages: int = 10
     customer_ids: list[UUID] | None = None
     fair_id: UUID | None = None
+    ignore_previous_scan_state: bool = False
 
 
 class EnrichmentRunJobRunner:
@@ -114,6 +115,7 @@ class EnrichmentRunJobRunner:
                 max_pages=command.max_pages,
                 customer_ids=command.customer_ids,
                 fair_id=command.fair_id,
+                ignore_previous_scan_state=command.ignore_previous_scan_state,
                 cancel_checker=cancel_checker,
             )
             history_service.touch_heartbeat(
