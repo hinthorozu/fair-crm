@@ -4,7 +4,7 @@
 # Run after bootstrap-server.sh on fresh servers, or alone for updates.
 #
 # Safe deploy contract (backup/restore compatible):
-#   - Git pull + dependency install + frontend build + systemd/nginx reload
+#   - Git pull + dependency install + Playwright Chromium + frontend build + systemd/nginx reload
 #   - Alembic upgrade head on both databases (required after restore; non-destructive)
 #   - Backend restart via systemd (normal)
 #   - ensure_database only CREATE DATABASE when missing (no drop/truncate/reset)
@@ -80,6 +80,7 @@ REPORT_POST_CHECK="skipped"
 REPORT_LOGIN_SMOKE="not run"
 REPORT_BACKUPS_SMOKE="not run"
 REPORT_SAFE_DEPLOY_RESTORE="not run"
+REPORT_PLAYWRIGHT_CHROMIUM="not run"
 REPORT_FINAL_STATUS="unknown"
 
 clone_or_update_repo() {
@@ -303,11 +304,12 @@ print_final_report() {
   echo "6. Login smoke: ${REPORT_LOGIN_SMOKE} (${login_label})"
   echo "7. Admin backups API: ${REPORT_BACKUPS_SMOKE}"
   echo "8. Frontend build: ${REPORT_FRONTEND_BUILD}"
-  echo "9. Migrations: Core ${REPORT_CORE_MIGRATION}, Fair CRM ${REPORT_FAIR_MIGRATION}"
-  echo "10. Git commits: kyrox-core=${REPORT_CORE_HASH} (${KYROX_CORE_BRANCH}), fair-crm=${REPORT_FAIR_HASH} (${FAIR_CRM_BRANCH})"
-  echo "11. Safe deploy restore: ${REPORT_SAFE_DEPLOY_RESTORE}"
-  echo "12. Post-deploy check: ${REPORT_POST_CHECK}"
-  echo "13. Push: not run by deploy script (manual git push if needed)"
+  echo "9. Playwright Chromium: ${REPORT_PLAYWRIGHT_CHROMIUM}"
+  echo "10. Migrations: Core ${REPORT_CORE_MIGRATION}, Fair CRM ${REPORT_FAIR_MIGRATION}"
+  echo "11. Git commits: kyrox-core=${REPORT_CORE_HASH} (${KYROX_CORE_BRANCH}), fair-crm=${REPORT_FAIR_HASH} (${FAIR_CRM_BRANCH})"
+  echo "12. Safe deploy restore: ${REPORT_SAFE_DEPLOY_RESTORE}"
+  echo "13. Post-deploy check: ${REPORT_POST_CHECK}"
+  echo "14. Push: not run by deploy script (manual git push if needed)"
   echo ""
   echo "Core API: http://127.0.0.1:${CORE_PORT}"
   echo "Fair CRM API: http://127.0.0.1:${FAIR_CRM_PORT}"
@@ -317,7 +319,7 @@ print_final_report() {
 
 log_deploy_safety_contract() {
   step "Deploy safety contract (backup/restore compatible)"
-  log "Will run: git pull, pip/npm install, alembic upgrade head, systemd restart"
+  log "Will run: git pull, pip/npm install, Playwright Chromium install, alembic upgrade head, systemd restart"
   log "Will restore safe deploy scripts/templates before fair-crm git pull when locally modified"
   log "Will not: drop/truncate DB, pg_restore, touch backups/ or restore data dirs, overwrite .env"
 }
@@ -356,6 +358,11 @@ main() {
 
   setup_python_project "kyrox-core" "$KYROX_CORE_DIR" "${KYROX_CORE_DIR}/.venv"
   setup_python_project "fair-crm" "$FAIR_CRM_DIR" "${FAIR_CRM_DIR}/backend/.venv"
+
+  # After Fair CRM pip install; before systemd restart / health checks.
+  REPORT_PLAYWRIGHT_CHROMIUM="failed"
+  install_playwright_chromium "$FAIR_CRM_DIR"
+  REPORT_PLAYWRIGHT_CHROMIUM="success (idempotent)"
 
   ensure_postgres_container "$FAIR_CRM_DIR"
   resolve_postgres_connection "$FAIR_CRM_DIR" "$KYROX_CORE_DIR"

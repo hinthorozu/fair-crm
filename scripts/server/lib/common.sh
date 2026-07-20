@@ -450,6 +450,62 @@ pip_install_requirements() {
   "${venv_dir}/bin/pip" install -r "$requirements_file"
 }
 
+install_playwright_chromium() {
+  local fair_crm_dir="${1:-${FAIR_CRM_DIR}}"
+  local venv_python="${fair_crm_dir}/backend/.venv/bin/python"
+
+  step "Install Playwright Chromium (browser + OS deps)"
+  [[ -x "$venv_python" ]] || die "Fair CRM venv missing: ${venv_python}"
+
+  # Idempotent: re-running succeeds when Chromium and deps are already present.
+  if ! "$venv_python" -m playwright install --with-deps chromium; then
+    die "Playwright Chromium install failed (${venv_python} -m playwright install --with-deps chromium)"
+  fi
+}
+
+check_playwright_chromium() {
+  local fair_crm_dir="${1:-${FAIR_CRM_DIR}}"
+  local venv_python="${fair_crm_dir}/backend/.venv/bin/python"
+  local label="Playwright Chromium headless launch"
+  local err_file detail
+
+  if [[ ! -x "$venv_python" ]]; then
+    check_fail "${label} (venv missing: ${venv_python})"
+    return 0
+  fi
+
+  err_file="$(mktemp)"
+  if "$venv_python" - <<'PY' >"${err_file}" 2>&1
+from playwright.sync_api import sync_playwright
+
+with sync_playwright() as p:
+    browser = p.chromium.launch(headless=True)
+    page = browser.new_page()
+    page.set_content("<title>FAIR CRM Playwright Check</title>")
+    assert page.title() == "FAIR CRM Playwright Check"
+    browser.close()
+PY
+  then
+    rm -f "$err_file"
+    check_pass "${label}"
+    return 0
+  fi
+
+  # Prefer the actionable Playwright/import error line over a full traceback prefix.
+  detail="$(
+    grep -E 'BrowserType\.|Executable doesn|ModuleNotFoundError|ImportError|Error:|No module named' "$err_file" \
+      | tail -n 1 \
+      || true
+  )"
+  if [[ -z "$detail" ]]; then
+    detail="$(tr '\n' ' ' <"$err_file" | sed 's/[[:space:]]\+/ /g')"
+  fi
+  detail="$(printf '%s' "$detail" | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g')"
+  detail="${detail:0:300}"
+  rm -f "$err_file"
+  check_fail "${label} (${detail:-unknown error})"
+}
+
 resolve_requirements_file() {
   local project_dir="$1"
   if [[ -f "${project_dir}/requirements.txt" ]]; then

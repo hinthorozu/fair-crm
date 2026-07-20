@@ -59,6 +59,7 @@ main() {
   else
     check_fail "Fair CRM virtualenv present"
   fi
+  check_playwright_chromium "$FAIR_CRM_DIR"
   if [[ -f "${FAIR_CRM_DIR}/frontend/dist/index.html" ]]; then
     check_pass "Frontend build present"
   else
