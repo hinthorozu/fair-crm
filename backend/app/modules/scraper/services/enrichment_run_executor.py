@@ -49,12 +49,13 @@ def build_handoff_from_enrichment_results(
     *,
     requested_fields: list[str],
     adapter_key: str = ScraperSiteKey.CUSTOMER_CONTACT_ENRICHMENT,
+    fair_id: UUID | None = None,
 ) -> ScraperImportHandoff:
     normalizer = CompanyNormalizer()
     normalized, _warnings = normalizer.normalize_many(raw_rows)
     result = ScraperResult(
         site_key=adapter_key,
-        fair_id=None,
+        fair_id=fair_id,
         companies=normalized,
         raw_count=len(raw_rows),
         normalized_count=len(normalized),
@@ -83,6 +84,7 @@ def execute_enrichment_run(
     max_pages: int = 10,
     fetcher: Callable[[str], str] | None = None,
     customer_ids: list[UUID] | None = None,
+    fair_id: UUID | None = None,
     cancel_checker: RunCancelChecker | None = None,
 ) -> EnrichmentRunExecution:
     def _cancelled_execution(
@@ -95,6 +97,7 @@ def execute_enrichment_run(
         handoff = build_handoff_from_enrichment_results(
             raw_rows,
             requested_fields=requested_fields,
+            fair_id=fair_id,
         )
         return EnrichmentRunExecution(
             results=results,
@@ -106,7 +109,14 @@ def execute_enrichment_run(
         )
 
     query_started_at = time.perf_counter()
-    if customer_ids:
+    if fair_id is not None:
+        candidates = list_enrichment_candidates(
+            session,
+            organization_id,
+            limit=limit,
+            fair_id=fair_id,
+        )
+    elif customer_ids:
         from app.modules.scraper.services.single_customer_enrichment_service import (
             list_enrichment_candidates_for_customer_ids,
         )
@@ -126,6 +136,7 @@ def execute_enrichment_run(
             "candidates_count": candidate_count,
             "limit": limit,
             "customer_ids_filter": [str(item) for item in customer_ids or []],
+            "fair_id": str(fair_id) if fair_id is not None else None,
         }
         run_logger.info(
             "candidates_query_finished",
@@ -184,6 +195,7 @@ def execute_enrichment_run(
     handoff = build_handoff_from_enrichment_results(
         raw_rows,
         requested_fields=requested_fields,
+        fair_id=fair_id,
     )
 
     if run_logger is not None and run_id is not None:

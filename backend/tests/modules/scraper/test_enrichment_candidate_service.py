@@ -7,6 +7,8 @@ from app.modules.customers.infrastructure.persistence.communication_models impor
     CustomerWebsiteModel,
 )
 from app.modules.customers.infrastructure.persistence.models import CustomerModel
+from app.modules.fairs.infrastructure.persistence.models import FairModel
+from app.modules.participations.infrastructure.persistence.models import CustomerFairParticipationModel
 from app.modules.scraper.services.enrichment_candidate_service import list_enrichment_candidates
 
 
@@ -74,3 +76,53 @@ def test_list_enrichment_candidates_excludes_customers_with_email(db_session, or
 
     candidates = list_enrichment_candidates(db_session, organization_id)
     assert all(item.customer_id != customer.id for item in candidates)
+
+
+def test_list_enrichment_candidates_for_fair_excludes_non_participants(db_session, organization_id):
+    now = datetime.now(tz=UTC)
+    fair = FairModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        name="Scoped Fair",
+        normalized_name="scoped fair",
+        status="planned",
+        created_at=now,
+        updated_at=now,
+    )
+    db_session.add(fair)
+    db_session.flush()
+
+    participant = _seed_customer(db_session, organization_id, display_name="Fair Participant")
+    outsider = _seed_customer(db_session, organization_id, display_name="Outsider")
+    for customer, website in (
+        (participant, "https://participant.test"),
+        (outsider, "https://outsider.test"),
+    ):
+        db_session.add(
+            CustomerWebsiteModel(
+                id=uuid4(),
+                organization_id=organization_id,
+                customer_id=customer.id,
+                website=website,
+                is_primary=True,
+                created_at=now,
+            )
+        )
+    db_session.add(
+        CustomerFairParticipationModel(
+            id=uuid4(),
+            organization_id=organization_id,
+            customer_id=participant.id,
+            fair_id=fair.id,
+            participation_status="exhibitor",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+    db_session.commit()
+
+    fair_candidates = list_enrichment_candidates(db_session, organization_id, fair_id=fair.id)
+    assert [item.customer_id for item in fair_candidates] == [participant.id]
+
+    org_candidates = list_enrichment_candidates(db_session, organization_id)
+    assert {item.customer_id for item in org_candidates} == {participant.id, outsider.id}

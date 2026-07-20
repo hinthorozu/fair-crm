@@ -19,10 +19,12 @@ from app.modules.fairs.application.create_fair import CreateFairUseCase
 from app.modules.fairs.application.get_fair import GetFairUseCase
 from app.modules.fairs.application.list_fairs import ListFairsUseCase
 from app.modules.fairs.application.restore_fair import RestoreFairUseCase
+from app.modules.fairs.application.run_fair_enrichment import RunFairEnrichmentUseCase
 from app.modules.fairs.application.run_fair_scraper import RunFairScraperUseCase
 from app.modules.fairs.application.update_fair import UpdateFairUseCase
 from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
 from app.modules.scraper.application.fair_scraper_job_runner import FairScraperJobRunner
+from app.modules.scraper.application.enrichment_run_job_runner import EnrichmentRunJobRunner
 from app.modules.scraper.services.scraper_run_history_service import (
     ScraperRunHistoryService,
     create_run_history_service,
@@ -150,10 +152,15 @@ def get_scraper_run_history_service(db: Session = Depends(get_db)) -> ScraperRun
 
 
 _fair_scraper_job_runner = FairScraperJobRunner()
+_enrichment_run_job_runner = EnrichmentRunJobRunner()
 
 
 def get_fair_scraper_job_runner() -> FairScraperJobRunner:
     return _fair_scraper_job_runner
+
+
+def get_enrichment_run_job_runner() -> EnrichmentRunJobRunner:
+    return _enrichment_run_job_runner
 
 
 def get_run_fair_scraper_use_case(
@@ -161,3 +168,11 @@ def get_run_fair_scraper_use_case(
     run_history_service: ScraperRunHistoryService = Depends(get_scraper_run_history_service),
 ) -> RunFairScraperUseCase:
     return RunFairScraperUseCase(repository, run_history_service)
+
+
+def get_run_fair_enrichment_use_case(
+    repository: SqlAlchemyFairRepository = Depends(get_fair_repository),
+    run_history_service: ScraperRunHistoryService = Depends(get_scraper_run_history_service),
+    db: Session = Depends(get_db),
+) -> RunFairEnrichmentUseCase:
+    return RunFairEnrichmentUseCase(repository, run_history_service, db)

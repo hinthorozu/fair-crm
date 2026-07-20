@@ -1,5 +1,5 @@
 import React from "react";
-import { getFair, archiveFair, updateFair, runFairScraper } from "../api/fairs";
+import { getFair, archiveFair, updateFair, runFairScraper, runFairContactEnrichment } from "../api/fairs";
 import { getScraperRun, listAdapters, listScraperRuns } from "../api/scraper";
 import {
   createParticipation,
@@ -52,6 +52,11 @@ import {
   getGrantedFairEmailPermissions,
 } from "../permissions/fairEmailPermissions";
 import {
+  canRunScraperActions,
+  getGrantedScraperPermissions,
+} from "../permissions/scraperPermissions";
+import { CUSTOMER_CONTACT_ENRICHMENT_ADAPTER_KEY } from "../utils/enrichmentAdapter";
+import {
   buildLocationSearch,
   navigateWithSearch,
   readSearchParams,
@@ -64,6 +69,7 @@ interface FairDetailPageProps {
   onOpenCustomer?: (customerId: string) => void;
   onImportParticipants?: () => void;
   onOpenImportDecisions?: (batchId: string) => void;
+  onOpenEnrichmentRun?: (runId: string) => void;
 }
 
 type TabId = "overview" | "participants";
@@ -83,6 +89,7 @@ export function FairDetailPage({
   onOpenCustomer,
   onImportParticipants,
   onOpenImportDecisions,
+  onOpenEnrichmentRun,
 }: FairDetailPageProps) {
   const [fair, setFair] = React.useState<Fair | null>(null);
   const [customers, setCustomers] = React.useState<Customer[]>([]);
@@ -98,6 +105,7 @@ export function FairDetailPage({
   const [participantCount, setParticipantCount] = React.useState(0);
   const [adapters, setAdapters] = React.useState<AdapterListItem[]>([]);
   const [runningScraper, setRunningScraper] = React.useState(false);
+  const [runningEnrichment, setRunningEnrichment] = React.useState(false);
   const [runSuccess, setRunSuccess] = React.useState<string | null>(null);
   const [lastImportAt, setLastImportAt] = React.useState<string | null>(null);
   const [logsRefreshToken, setLogsRefreshToken] = React.useState(0);
@@ -261,8 +269,10 @@ export function FairDetailPage({
   }, [fair?.scraper_config]);
 
   const fairEmailPermissions = React.useMemo(() => getGrantedFairEmailPermissions(), []);
+  const scraperPermissions = React.useMemo(() => getGrantedScraperPermissions(), []);
   const canPreviewFairEmail = canPerformFairEmailAction(fairEmailPermissions, "preview");
   const canSendFairEmail = canPerformFairEmailAction(fairEmailPermissions, "send");
+  const canRunEnrichment = canRunScraperActions(scraperPermissions);
 
   const canRunScraper =
     Boolean(fair?.adapter_key?.trim() && fair?.source_url?.trim()) &&
@@ -312,6 +322,36 @@ export function FairDetailPage({
       setError(err instanceof ApiError ? err.message : fairLabels.runScraperError);
     } finally {
       setRunningScraper(false);
+    }
+  };
+
+  const handleRunEnrichment = async () => {
+    if (!canRunEnrichment) {
+      setError(fairLabels.enrichFairPermissionDenied);
+      return;
+    }
+    setRunningEnrichment(true);
+    setRunSuccess(null);
+    setError(null);
+    try {
+      const run = await runFairContactEnrichment(fairId, {
+        limit: 50,
+        requested_fields: ["email"],
+        dry_run: false,
+      });
+      if (onOpenEnrichmentRun) {
+        onOpenEnrichmentRun(run.id);
+        return;
+      }
+      setRunSuccess(fairLabels.enrichFairRunning);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 400) {
+        setError(err.message || fairLabels.enrichFairNoCandidates);
+      } else {
+        setError(err instanceof ApiError ? err.message : fairLabels.enrichFairError);
+      }
+    } finally {
+      setRunningEnrichment(false);
     }
   };
 
@@ -382,6 +422,15 @@ export function FairDetailPage({
       variant: "secondary",
       onClick: () => onImportParticipants?.(),
       disabled: isArchived || !onImportParticipants,
+    },
+    {
+      id: "enrich",
+      label: fairLabels.enrichFairAction,
+      variant: "secondary",
+      onClick: () => void handleRunEnrichment(),
+      disabled: isArchived || !canRunEnrichment,
+      loading: runningEnrichment,
+      title: !canRunEnrichment ? fairLabels.enrichFairPermissionDenied : undefined,
     },
     {
       id: "activity",

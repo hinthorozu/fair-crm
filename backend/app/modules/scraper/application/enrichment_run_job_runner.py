@@ -46,6 +46,7 @@ class EnrichmentRunJobCommand:
     dry_run: bool = False
     max_pages: int = 10
     customer_ids: list[UUID] | None = None
+    fair_id: UUID | None = None
 
 
 class EnrichmentRunJobRunner:
@@ -94,6 +95,7 @@ class EnrichmentRunJobRunner:
                     "dry_run": command.dry_run,
                     "requested_fields": requested_fields,
                     "customer_ids": [str(item) for item in command.customer_ids or []],
+                    "fair_id": str(command.fair_id) if command.fair_id is not None else None,
                 },
             )
             db.commit()
@@ -111,6 +113,7 @@ class EnrichmentRunJobRunner:
                 requested_fields=requested_fields,
                 max_pages=command.max_pages,
                 customer_ids=command.customer_ids,
+                fair_id=command.fair_id,
                 cancel_checker=cancel_checker,
             )
             history_service.touch_heartbeat(
@@ -143,7 +146,7 @@ class EnrichmentRunJobRunner:
                     handoff,
                     command.run_id,
                     adapter_key=command.adapter_key,
-                    fair_id=None,
+                    fair_id=command.fair_id,
                     source_url=None,
                     run_logger=run_logger,
                 )
@@ -153,7 +156,7 @@ class EnrichmentRunJobRunner:
                     import_batch_id = create_and_analyze_import_batch_from_handoff(
                         db,
                         organization_id=command.organization_id,
-                        fair_id=None,
+                        fair_id=command.fair_id,
                         run_id=command.run_id,
                         handoff=handoff,
                         adapter_key=command.adapter_key,
@@ -270,7 +273,7 @@ class EnrichmentRunJobRunner:
                 handoff,
                 command.run_id,
                 adapter_key=command.adapter_key,
-                fair_id=None,
+                fair_id=command.fair_id,
                 source_url=None,
                 run_logger=run_logger,
             )
@@ -280,7 +283,7 @@ class EnrichmentRunJobRunner:
                 import_batch_id = create_and_analyze_import_batch_from_handoff(
                     db,
                     organization_id=command.organization_id,
-                    fair_id=None,
+                    fair_id=command.fair_id,
                     run_id=command.run_id,
                     handoff=handoff,
                     adapter_key=command.adapter_key,

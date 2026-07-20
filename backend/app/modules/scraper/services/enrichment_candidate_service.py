@@ -13,6 +13,7 @@ from app.modules.customers.infrastructure.persistence.communication_models impor
     CustomerWebsiteModel,
 )
 from app.modules.customers.infrastructure.persistence.models import CustomerModel
+from app.modules.participations.infrastructure.persistence.models import CustomerFairParticipationModel
 from app.modules.scraper.services.customer_enrichment_state_service import (
     is_customer_scan_eligible,
     load_state_map,
@@ -40,9 +41,10 @@ def list_enrichment_candidates(
     organization_id: UUID,
     *,
     limit: int | None = None,
+    fair_id: UUID | None = None,
 ) -> list[EnrichmentCandidate]:
     """Return customers eligible for enrichment based on website, email, and scan state."""
-    rows = (
+    query = (
         session.query(CustomerWebsiteModel, CustomerModel)
         .join(CustomerModel, CustomerModel.id == CustomerWebsiteModel.customer_id)
         .filter(
@@ -53,6 +55,19 @@ def list_enrichment_candidates(
             func.trim(CustomerWebsiteModel.website) != "",
             ~_website_has_email_subquery(organization_id),
         )
+    )
+    if fair_id is not None:
+        query = query.join(
+            CustomerFairParticipationModel,
+            and_(
+                CustomerFairParticipationModel.customer_id == CustomerModel.id,
+                CustomerFairParticipationModel.organization_id == organization_id,
+                CustomerFairParticipationModel.fair_id == fair_id,
+                CustomerFairParticipationModel.deleted_at.is_(None),
+            ),
+        )
+    rows = (
+        query
         .order_by(
             CustomerWebsiteModel.is_primary.desc(),
             CustomerWebsiteModel.created_at.asc(),

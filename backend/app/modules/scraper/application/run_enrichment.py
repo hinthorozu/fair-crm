@@ -21,6 +21,9 @@ class RunEnrichmentCommand:
     organization_id: UUID
     adapter_key: str
     limit: int | None = None
+    fair_id: UUID | None = None
+    fair_name: str | None = None
+    fair_year: int | None = None
 
 
 class EnrichmentAdapterNotSupportedError(ValueError):
@@ -43,12 +46,13 @@ class RunEnrichmentUseCase:
                 f"Enrichment run is only supported for {CUSTOMER_CONTACT_ENRICHMENT_ADAPTER_KEY}"
             )
 
+        fair_name = command.fair_name or "Müşteri İletişim Zenginleştirme"
         return self._run_history_service.start_run(
             adapter_key=normalized_key,
             input_url=None,
-            fair_name="Müşteri İletişim Zenginleştirme",
-            fair_year=None,
+            fair_name=fair_name,
+            fair_year=command.fair_year,
             organization_id=command.organization_id,
-            fair_id=None,
+            fair_id=command.fair_id,
             run_source=ScraperRunSource.ENRICHMENT,
         )

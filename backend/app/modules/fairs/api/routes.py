@@ -21,9 +21,11 @@ from app.modules.fairs.api.dependencies import (
     get_auth_context,
     get_create_fair_use_case,
     get_fair_scraper_job_runner,
+    get_enrichment_run_job_runner,
     get_get_fair_use_case,
     get_list_fairs_use_case,
     get_restore_fair_use_case,
+    get_run_fair_enrichment_use_case,
     get_run_fair_scraper_use_case,
     get_update_fair_use_case,
     require_read_permission,
@@ -49,11 +51,13 @@ from app.modules.fairs.application.create_fair import CreateFairUseCase
 from app.modules.fairs.application.get_fair import GetFairUseCase
 from app.modules.fairs.application.list_fairs import ListFairsUseCase
 from app.modules.fairs.application.restore_fair import RestoreFairUseCase
+from app.modules.fairs.application.run_fair_enrichment import RunFairEnrichmentCommand, RunFairEnrichmentUseCase
 from app.modules.fairs.application.run_fair_scraper import RunFairScraperCommand, RunFairScraperUseCase
 from app.modules.fairs.application.update_fair import UpdateFairUseCase
 from app.modules.fairs.domain.exceptions import (
     FairAlreadyArchivedError,
     FairNotArchivedError,
+    FairEnrichmentNoCandidatesError,
     FairNotFoundError,
     FairScraperAdapterNotConfiguredError,
     FairScraperNotConfiguredError,
@@ -64,7 +68,8 @@ from app.modules.fairs.domain.exceptions import (
     InvalidFairSourceUrlError,
 )
 from app.modules.fairs.domain.value_objects import FairStatus
-from app.modules.scraper.api.schemas import ScraperRunHistoryResponse
+from app.modules.scraper.api.schemas import EnrichmentRunRequest, ScraperRunHistoryResponse
+from app.modules.scraper.application.enrichment_run_job_runner import EnrichmentRunJobCommand, EnrichmentRunJobRunner
 from app.modules.scraper.application.fair_scraper_job_runner import FairScraperJobCommand, FairScraperJobRunner
 from app.modules.scraper.core.browser_service import BrowserConfig
 from app.modules.scraper.core.playwright_availability import playwright_browser_unavailable_message
@@ -397,6 +402,62 @@ def run_fair_scraper_alias(
         use_case=use_case,
         job_runner=job_runner,
     )
+
+
+@router.post(
+    "/{fair_id}/contact-enrichment/run",
+    response_model=ScraperRunHistoryResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    responses={
+        400: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+    },
+    summary="Fuar katılımcıları için iletişim zenginleştirme çalıştır",
+)
+def run_fair_contact_enrichment(
+    fair_id: UUID,
+    body: EnrichmentRunRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_scraper_run_permission),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case: RunFairEnrichmentUseCase = Depends(get_run_fair_enrichment_use_case),
+    job_runner: EnrichmentRunJobRunner = Depends(get_enrichment_run_job_runner),
+) -> ScraperRunHistoryResponse:
+    try:
+        run = use_case.execute(
+            RunFairEnrichmentCommand(
+                organization_id=auth.organization_id,
+                fair_id=fair_id,
+                limit=body.limit,
+            )
+        )
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except FairNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except FairEnrichmentNoCandidatesError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    db.commit()
+    access_token = _access_token(credentials)
+    background_tasks.add_task(
+        run_blocking_background_task,
+        job_runner.run_enrichment,
+        EnrichmentRunJobCommand(
+            run_id=run.id,
+            organization_id=auth.organization_id,
+            adapter_key=run.adapter_key,
+            user_id=auth.user_id,
+            access_token=access_token,
+            limit=body.limit,
+            requested_fields=body.requested_fields,
+            dry_run=body.dry_run,
+            max_pages=body.max_pages or 10,
+            fair_id=fair_id,
+        ),
+    )
+    return ScraperRunHistoryResponse.from_entity(run)
 
 
 @router.delete(

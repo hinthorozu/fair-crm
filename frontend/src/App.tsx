@@ -778,6 +778,9 @@ export function App() {
           onOpenImportDecisions={(batchId) =>
             goToDataIntegration(`/data-integration/imports/continue/${batchId}`)
           }
+          onOpenEnrichmentRun={(runId) =>
+            goToAdapterRunDetail(CUSTOMER_CONTACT_ENRICHMENT_ADAPTER_KEY, runId)
+          }
         />
       )}
       {isDiActive && renderDataIntegration()}

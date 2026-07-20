@@ -40,3 +40,7 @@ class FairScraperUrlNotConfiguredError(FairScraperNotConfiguredError):
 
 class InvalidFairSourceUrlError(FairDomainError):
     pass
+
+
+class FairEnrichmentNoCandidatesError(FairDomainError):
+    pass
