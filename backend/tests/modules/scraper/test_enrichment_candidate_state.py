@@ -27,7 +27,8 @@ def _seed_customer(db_session, organization_id, *, display_name: str) -> Custome
     return customer
 
 
-def test_list_enrichment_candidates_excludes_pending_merge(db_session, organization_id):
+def test_list_enrichment_candidates_includes_pending_merge(db_session, organization_id):
+    """pending_merge means import awaiting — customer stays a candidate until import/merge."""
     customer = _seed_customer(db_session, organization_id, display_name="Pending Merge Co")
     now = datetime.now(tz=UTC)
     db_session.add_all(
@@ -60,7 +61,56 @@ def test_list_enrichment_candidates_excludes_pending_merge(db_session, organizat
     db_session.commit()
 
     candidates = list_enrichment_candidates(db_session, organization_id)
-    assert all(item.customer_id != customer.id for item in candidates)
+    assert any(item.customer_id == customer.id for item in candidates)
+
+
+def test_list_enrichment_candidates_same_count_before_and_after_pending_merge(
+    db_session, organization_id
+):
+    """Same filter must return the same candidate count when results are only pending_merge."""
+    now = datetime.now(tz=UTC)
+    customer_ids: list = []
+    for index in range(5):
+        customer = _seed_customer(db_session, organization_id, display_name=f"Batch Co {index}")
+        customer_ids.append(customer.id)
+        db_session.add(
+            CustomerWebsiteModel(
+                id=uuid4(),
+                organization_id=organization_id,
+                customer_id=customer.id,
+                website=f"https://batch-{index}.test",
+                is_primary=True,
+                created_at=now,
+            )
+        )
+    db_session.commit()
+
+    before = list_enrichment_candidates(db_session, organization_id)
+    assert len(before) == 5
+
+    for customer_id in customer_ids:
+        db_session.add(
+            CustomerEnrichmentStateModel(
+                id=uuid4(),
+                organization_id=organization_id,
+                customer_id=customer_id,
+                website="https://batch.test",
+                last_enrichment_run_id=None,
+                last_email_scan_at=now,
+                last_email_scan_status=CustomerEnrichmentScanStatus.PENDING_MERGE,
+                last_email_found="found@batch.test",
+                last_source_url="https://batch.test",
+                last_error=None,
+                retry_after=None,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+    db_session.commit()
+
+    after = list_enrichment_candidates(db_session, organization_id)
+    assert len(after) == 5
+    assert {item.customer_id for item in after} == set(customer_ids)
 
 
 def test_list_enrichment_candidates_includes_retry_eligible(db_session, organization_id):

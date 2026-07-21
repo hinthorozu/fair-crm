@@ -159,9 +159,9 @@ def test_get_customer_contact_enrichment_state_pending_merge(client, auth_header
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == CustomerEnrichmentScanStatus.PENDING_MERGE
-    assert payload["can_run"] is False
-    assert payload["block_code"] == "pending_merge"
-    assert "import bekleyen" in (payload["block_message"] or "").lower()
+    assert payload["can_run"] is True
+    assert payload["block_code"] is None
+    assert payload["last_email_found"] == "found@pending.test"
 
 
 def test_run_customer_contact_enrichment_rejects_no_website(client, auth_headers, db_session, organization_id):

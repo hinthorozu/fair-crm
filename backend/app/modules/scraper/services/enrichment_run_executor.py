@@ -222,7 +222,10 @@ def execute_enrichment_run(
             log_customer_scan_finished(run_logger, candidate)
         results.append(result)
         last_processed_customer_id = candidate.customer_id
-        # Dry-run must not persist blocking (or any) scan state.
+        # Persist only when the run is still active. User cancel must not leave
+        # failed/email_not_found cooldowns; any earlier writes are cleared on finalize.
+        if cancel_checker is not None and cancel_checker.is_cancel_requested():
+            break
         if run_id is not None and not dry_run:
             record_scan_result(
                 session,
@@ -230,8 +233,6 @@ def execute_enrichment_run(
                 run_id=run_id,
                 result=result,
             )
-        if cancel_checker is not None and cancel_checker.is_cancel_requested():
-            break
 
     cancelled = cancel_checker is not None and cancel_checker.is_cancel_requested()
     raw_rows = enrichment_results_to_raw_companies(results, requested_fields=requested_fields)

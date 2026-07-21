@@ -95,13 +95,7 @@ def _evaluate_run_blockers(
             "no_website",
             "Bu müşterinin web sitesi olmadığı için zenginleştirme çalıştırılamaz.",
         )
-    if state_status == CustomerEnrichmentScanStatus.PENDING_MERGE:
-        return (
-            False,
-            "pending_merge",
-            "Bu müşteri için import bekleyen sonuç var. Önce import önizlemesinden onaylayın "
-            "veya durumu sıfırlayın.",
-        )
+    # pending_merge is informational (import awaiting) — does not block a re-scan.
     # Legacy "skipped because CRM email already existed" must not permanently lock
     # the card — the operator can re-scan to find additional emails without a reset.
     if state_status == CustomerEnrichmentScanStatus.SKIPPED_EMAIL_EXISTS:

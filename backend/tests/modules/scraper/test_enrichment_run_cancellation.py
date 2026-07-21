@@ -19,6 +19,7 @@ from app.modules.scraper.domain.customer_enrichment_state import CustomerEnrichm
 from app.modules.scraper.domain.scraper_run_history import ScraperRunStatus
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
 from app.modules.scraper.infrastructure.persistence.models import CustomerEnrichmentStateModel
+from app.modules.scraper.services.enrichment_candidate_service import list_enrichment_candidates
 from app.modules.scraper.services.enrichment_run_executor import EnrichmentRunExecution
 from app.modules.scraper.services.scraper_run_cancellation import RunCancelChecker
 from app.modules.scraper.services.scraper_run_history_service import create_run_history_service
@@ -233,7 +234,7 @@ def test_unprocessed_customer_has_no_state_after_cancelled_run(db_session, organ
             user_id=user_id,
             limit=10,
             requested_fields=["email"],
-            dry_run=True,
+            dry_run=False,
         )
     )
     db_session.expire_all()
@@ -254,9 +255,111 @@ def test_unprocessed_customer_has_no_state_after_cancelled_run(db_session, organ
         )
         .one_or_none()
     )
+    # User cancel clears email_not_found/failed cooldowns from this run.
     assert processed_state is not None
-    assert processed_state.last_email_scan_status == CustomerEnrichmentScanStatus.EMAIL_NOT_FOUND
+    assert processed_state.last_email_scan_status == CustomerEnrichmentScanStatus.NOT_SCANNED
+    assert processed_state.retry_after is None
     assert untouched_state is None
+
+    candidate_ids = {item.customer_id for item in list_enrichment_candidates(db_session, organization_id)}
+    assert processed.id in candidate_ids
+    assert untouched.id in candidate_ids
+
+
+def test_cancelled_run_does_not_block_candidates_after_failed_and_not_found(
+    db_session, organization_id, user_id
+):
+    """380→378 style regression: cancel must not leave retry cooldowns on scanned rows."""
+    now = datetime.now(tz=UTC)
+    customers = []
+    for name, website in (
+        ("Not Found Co", "https://not-found.test"),
+        ("Failed Co", "https://failed.test"),
+        ("Untouched Co", "https://untouched.test"),
+    ):
+        customer = CustomerModel(
+            id=uuid4(),
+            organization_id=organization_id,
+            display_name=name,
+            normalized_name=name.lower(),
+            customer_type=CustomerType.LEAD.value,
+            status=CustomerStatus.ACTIVE.value,
+            source="manual",
+            created_at=now,
+            updated_at=now,
+        )
+        db_session.add(customer)
+        db_session.flush()
+        db_session.add(
+            CustomerWebsiteModel(
+                id=uuid4(),
+                organization_id=organization_id,
+                customer_id=customer.id,
+                website=website,
+                is_primary=True,
+                created_at=now,
+            )
+        )
+        customers.append(customer)
+    db_session.commit()
+    not_found_customer, failed_customer, untouched_customer = customers
+
+    assert len(list_enrichment_candidates(db_session, organization_id)) == 3
+
+    def _executor(session, _organization_id, **kwargs):
+        from app.modules.scraper.dto.enrichment_result_dto import EnrichmentResultDto
+        from app.modules.scraper.services.customer_enrichment_state_service import record_scan_result
+
+        run_id = kwargs["run_id"]
+        record_scan_result(
+            session,
+            organization_id=organization_id,
+            run_id=run_id,
+            result=EnrichmentResultDto(
+                customer_id=not_found_customer.id,
+                company_name="Not Found Co",
+                website="https://not-found.test",
+                status="not_found",
+            ),
+        )
+        record_scan_result(
+            session,
+            organization_id=organization_id,
+            run_id=run_id,
+            result=EnrichmentResultDto(
+                customer_id=failed_customer.id,
+                company_name="Failed Co",
+                website="https://failed.test",
+                status="failed",
+                error="timeout",
+            ),
+        )
+        session.commit()
+        return EnrichmentRunExecution(
+            results=[],
+            handoff=ScraperImportHandoff(canonical_rows=[], row_metadata=[]),
+            cancelled=True,
+            processed_count=2,
+            total_candidates=3,
+            last_processed_customer_id=failed_customer.id,
+        )
+
+    run_id = _start_run(db_session, organization_id)
+    EnrichmentRunJobRunner(session_factory=_session_factory(db_session), executor=_executor).run_enrichment(
+        EnrichmentRunJobCommand(
+            run_id=run_id,
+            organization_id=organization_id,
+            adapter_key=ScraperSiteKey.CUSTOMER_CONTACT_ENRICHMENT,
+            user_id=user_id,
+            limit=10,
+            requested_fields=["email"],
+            dry_run=False,
+        )
+    )
+    db_session.expire_all()
+
+    after_ids = {item.customer_id for item in list_enrichment_candidates(db_session, organization_id)}
+    assert after_ids == {not_found_customer.id, failed_customer.id, untouched_customer.id}
 
 
 def test_cancel_scraper_run_api_sets_cancel_requested(client, auth_headers, db_session, organization_id, user_id):

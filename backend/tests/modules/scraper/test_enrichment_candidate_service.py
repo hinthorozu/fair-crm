@@ -165,8 +165,8 @@ def test_fair_scoped_candidates_ignore_previous_state_but_org_wide_still_blocks(
     db_session, organization_id
 ):
     """Manual fair-scoped enrichment must re-check exactly this fair's participants,
-    regardless of any earlier org-wide scan outcome (pending_merge, failed/email_not_found
-    retry cooldowns). Org-wide dedup must stay untouched."""
+    regardless of failed/email_not_found retry cooldowns. pending_merge never blocks
+    candidate selection (import awaiting only). Org-wide still respects real blockers."""
     now = datetime.now(tz=UTC)
     fair = FairModel(
         id=uuid4(),
@@ -243,19 +243,21 @@ def test_fair_scoped_candidates_ignore_previous_state_but_org_wide_still_blocks(
         db_session, organization_id, fair_id=fair.id, ignore_previous_scan_state=True
     )}
     assert fair_candidates == {pending_merge_customer.id, failed_customer.id}, (
-        "manual fair-scoped run (ignore_previous_scan_state=True) must ignore pending_merge/failed "
+        "manual fair-scoped run (ignore_previous_scan_state=True) must ignore failed "
         "retry state for its own participants"
     )
 
     fair_candidates_default = {item.customer_id for item in list_enrichment_candidates(
         db_session, organization_id, fair_id=fair.id
     )}
-    assert fair_candidates_default == set(), (
-        "fair-scoped queries must still respect scan state by default (ignore_previous_scan_state=False)"
+    assert fair_candidates_default == {pending_merge_customer.id}, (
+        "pending_merge stays eligible; failed cooldown still blocks by default"
     )
 
     org_candidates = {item.customer_id for item in list_enrichment_candidates(db_session, organization_id)}
-    assert pending_merge_customer.id not in org_candidates, "org-wide run must still respect pending_merge"
+    assert pending_merge_customer.id in org_candidates, (
+        "org-wide run must keep pending_merge customers as candidates until import/merge"
+    )
     assert failed_customer.id not in org_candidates, "org-wide run must still respect the failed retry cooldown"
     assert already_emailed_customer.id not in org_candidates
     assert already_emailed_customer.id not in fair_candidates, (

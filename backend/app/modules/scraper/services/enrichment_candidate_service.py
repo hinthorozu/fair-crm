@@ -74,10 +74,11 @@ def list_enrichment_candidates(
     """Return customers eligible for enrichment based on website, email, and scan state.
 
     ``ignore_previous_scan_state`` skips the per-customer enrichment-state check
-    (pending_merge, failed/email_not_found retry cooldowns, previously completed scans)
-    entirely. It is intended for a manually-triggered, single-fair scoped run, where the
-    user explicitly asked to (re)scan that fair's participants and should not have to know
-    about or clear prior scan bookkeeping for another run to pick them up.
+    (failed/email_not_found retry cooldowns, email_found after import, other blocking
+    statuses) entirely. ``pending_merge`` is never blocking — it only means import is
+    awaiting. This flag is intended for a manually-triggered, single-fair scoped run,
+    where the user explicitly asked to (re)scan that fair's participants and should not
+    have to know about or clear prior scan bookkeeping for another run to pick them up.
 
     ``include_existing_email`` disables the default "no CRM email" filter so customers who
     already have an email can be re-scanned for new or updated contact data. When False

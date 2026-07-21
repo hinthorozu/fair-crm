@@ -19,10 +19,12 @@ class CustomerEnrichmentScanStatus(StrEnum):
 EMAIL_NOT_FOUND_RETRY = timedelta(days=30)
 FAILED_RETRY = timedelta(days=7)
 
+# pending_merge is informational only ("import awaiting") — scan is not complete until
+# import/merge writes CRM data (then status becomes email_found). It must not block
+# re-selection as an enrichment candidate.
 BLOCKING_STATUSES = frozenset(
     {
         CustomerEnrichmentScanStatus.EMAIL_FOUND,
-        CustomerEnrichmentScanStatus.PENDING_MERGE,
         CustomerEnrichmentScanStatus.SKIPPED_EMAIL_EXISTS,
         CustomerEnrichmentScanStatus.SKIPPED_NO_WEBSITE,
     }
@@ -52,6 +54,9 @@ def is_eligible_for_enrichment_scan(
     if website_changed:
         return True
     if status is None or status == CustomerEnrichmentScanStatus.NOT_SCANNED:
+        return True
+    # Import not applied yet — still eligible for the same filter / re-run.
+    if status == CustomerEnrichmentScanStatus.PENDING_MERGE:
         return True
     if status in BLOCKING_STATUSES:
         return False

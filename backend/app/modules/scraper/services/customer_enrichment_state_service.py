@@ -195,13 +195,20 @@ def record_enrichment_apply_outcome(
     *,
     organization_id: UUID,
     customer_id: UUID,
-    had_email_before: bool,
-    email_written: bool,
+    had_email_before: bool = False,
+    email_written: bool = False,
+    crm_data_written: bool | None = None,
 ) -> None:
-    """Transition pending_merge → email_found after import apply writes CRM data.
+    """Transition pending_merge → email_found only when CRM gained new enrichment data.
 
-    ``email_found`` means enriched (data applied to the customer card), not merely scanned.
+    ``email_found`` means enriched (new data applied to the customer card), not merely
+    scanned or duplicate-confirmed. Duplicate email with no new fields keeps pending_merge.
+
+    ``crm_data_written`` is preferred when the caller can detect email/phone/address/social
+    writes. When omitted, ``email_written`` is used (email-only detection).
+    ``had_email_before`` is retained for call-site compatibility and is not used for status.
     """
+    del had_email_before  # call-site compat; does not imply enrichment completed
     row = (
         session.query(CustomerEnrichmentStateModel)
         .filter(
@@ -220,15 +227,45 @@ def record_enrichment_apply_outcome(
     row.retry_after = None
     row.last_error = None
 
-    if email_written:
+    written = email_written if crm_data_written is None else crm_data_written
+    if written:
         row.last_email_scan_status = CustomerEnrichmentScanStatus.EMAIL_FOUND
-        return
 
-    if had_email_before:
-        # Customer already had CRM email(s). Apply may have merged additional
-        # addresses or confirmed existing ones — never treat that as a skip.
-        row.last_email_scan_status = CustomerEnrichmentScanStatus.EMAIL_FOUND
-        return
+
+def clear_blocking_states_for_cancelled_run(
+    session: Session,
+    *,
+    organization_id: UUID,
+    run_id: UUID,
+) -> int:
+    """Drop failed/email_not_found cooldowns written during a user-cancelled run.
+
+    Import/merge did not complete; user stop must not shrink the candidate pool.
+    ``pending_merge`` / ``email_found`` rows for this run are left unchanged.
+    """
+    rows = (
+        session.query(CustomerEnrichmentStateModel)
+        .filter(
+            CustomerEnrichmentStateModel.organization_id == organization_id,
+            CustomerEnrichmentStateModel.last_enrichment_run_id == run_id,
+            CustomerEnrichmentStateModel.last_email_scan_status.in_(
+                (
+                    CustomerEnrichmentScanStatus.FAILED.value,
+                    CustomerEnrichmentScanStatus.EMAIL_NOT_FOUND.value,
+                )
+            ),
+        )
+        .all()
+    )
+    if not rows:
+        return 0
+    now = _now()
+    for row in rows:
+        row.last_email_scan_status = CustomerEnrichmentScanStatus.NOT_SCANNED
+        row.retry_after = None
+        row.last_error = None
+        row.updated_at = now
+    return len(rows)
 
 
 def reset_enrichment_states(

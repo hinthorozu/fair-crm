@@ -50,14 +50,14 @@ def _seed_run(db_session, organization_id) -> ScraperRunHistoryModel:
     return run
 
 
-def test_is_eligible_blocks_pending_merge_and_respects_retry():
+def test_is_eligible_allows_pending_merge_and_respects_retry():
     now = datetime(2026, 7, 6, tzinfo=UTC)
     assert is_eligible_for_enrichment_scan(
         status=CustomerEnrichmentScanStatus.PENDING_MERGE,
         retry_after=None,
         website_changed=False,
         now=now,
-    ) is False
+    ) is True
     assert is_eligible_for_enrichment_scan(
         status=CustomerEnrichmentScanStatus.EMAIL_NOT_FOUND,
         retry_after=now + timedelta(days=1),
@@ -73,6 +73,12 @@ def test_is_eligible_blocks_pending_merge_and_respects_retry():
     assert is_eligible_for_enrichment_scan(
         status=CustomerEnrichmentScanStatus.EMAIL_FOUND,
         retry_after=None,
+        website_changed=False,
+        now=now,
+    ) is False
+    assert is_eligible_for_enrichment_scan(
+        status=CustomerEnrichmentScanStatus.FAILED,
+        retry_after=now + timedelta(days=1),
         website_changed=False,
         now=now,
     ) is False
@@ -142,6 +148,11 @@ def test_mark_pending_merge_after_scan_found(db_session, organization_id):
     state = load_state_map(db_session, organization_id, [customer.id])[customer.id]
     assert state.last_email_scan_status == CustomerEnrichmentScanStatus.PENDING_MERGE
     assert state.last_email_found == "info@pending.example"
+    assert is_eligible_for_enrichment_scan(
+        status=state.last_email_scan_status,
+        retry_after=state.retry_after,
+        website_changed=False,
+    ) is True
 
 
 def test_record_scan_result_sets_retry_for_not_found(db_session, organization_id):

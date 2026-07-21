@@ -22,6 +22,7 @@ from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportH
 from app.modules.scraper.infrastructure.handoff_storage import write_handoff_json
 from app.modules.scraper.manifests.customer_contact_enrichment_manifest import CUSTOMER_CONTACT_ENRICHMENT_MANIFEST
 from app.modules.scraper.services.customer_enrichment_state_service import (
+    clear_blocking_states_for_cancelled_run,
     customer_ids_from_handoff_metadata,
     mark_customers_pending_merge,
 )
@@ -262,6 +263,11 @@ class EnrichmentRunJobRunner:
     ) -> None:
         history_service.mark_cancelling(command.run_id)
         db.commit()
+        cleared = clear_blocking_states_for_cancelled_run(
+            db,
+            organization_id=command.organization_id,
+            run_id=command.run_id,
+        )
         run_logger.info(
             "cancelling",
             "İş durduruluyor",
@@ -269,6 +275,7 @@ class EnrichmentRunJobRunner:
                 "run_id": str(command.run_id),
                 "processed_count": execution.processed_count,
                 "remaining_count": max(0, execution.total_candidates - execution.processed_count),
+                "cleared_blocking_states": cleared,
                 "last_processed_customer_id": (
                     str(execution.last_processed_customer_id)
                     if execution.last_processed_customer_id is not None

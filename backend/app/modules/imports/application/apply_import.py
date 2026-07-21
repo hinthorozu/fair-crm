@@ -232,10 +232,14 @@ class ApplyImportUseCase:
         fair_id = batch.fair_id
         enrichment_batch = is_enrichment_import_batch(batch)
         had_email_before = False
-        emails_before: set[str] = set()
+        contact_before: dict[str, Any] | None = None
         if enrichment_batch and row.match_customer_id is not None:
-            emails_before = self._customer_email_set(row.match_customer_id)
-            had_email_before = bool(emails_before)
+            matched = self._customer_repository.get_by_id(
+                command.organization_id, row.match_customer_id
+            )
+            if matched is not None:
+                contact_before = self._enrichment_contact_snapshot(matched)
+                had_email_before = bool(contact_before["emails"])
 
         if decision == ImportDecision.MANUAL_REVIEW:
             return counters
@@ -315,15 +319,30 @@ class ApplyImportUseCase:
         counters.applied = True
 
         if enrichment_batch and customer is not None:
-            emails_after = self._customer_email_set(customer.id)
-            # True when at least one newly discovered address was linked.
-            email_written = bool(emails_after - emails_before)
+            contact_after = self._enrichment_contact_snapshot(customer)
+            before = contact_before or {
+                "emails": set(),
+                "phones": set(),
+                "address": None,
+                "instagram_url": None,
+                "facebook_url": None,
+                "linkedin_url": None,
+                "youtube_url": None,
+            }
+            email_written = bool(contact_after["emails"] - before["emails"])
+            phone_written = bool(contact_after["phones"] - before["phones"])
+            profile_written = any(
+                not before[key] and contact_after[key]
+                for key in ("address", "instagram_url", "facebook_url", "linkedin_url", "youtube_url")
+            )
+            crm_data_written = email_written or phone_written or profile_written
             record_enrichment_apply_outcome(
                 self._db,
                 organization_id=command.organization_id,
                 customer_id=customer.id,
                 had_email_before=had_email_before,
                 email_written=email_written,
+                crm_data_written=crm_data_written,
             )
 
         return counters
@@ -580,6 +599,21 @@ class ApplyImportUseCase:
     def _customer_email_set(self, customer_id: UUID) -> set[str]:
         communications = self._communication_sync.load_for_customer(customer_id)
         return {(item.email or "").strip().lower() for item in communications.emails if item.email}
+
+    def _customer_phone_set(self, customer_id: UUID) -> set[str]:
+        communications = self._communication_sync.load_for_customer(customer_id)
+        return {(item.phone or "").strip() for item in communications.phones if item.phone}
+
+    def _enrichment_contact_snapshot(self, customer: Customer) -> dict[str, Any]:
+        return {
+            "emails": self._customer_email_set(customer.id),
+            "phones": self._customer_phone_set(customer.id),
+            "address": (customer.address or "").strip() or None,
+            "instagram_url": (customer.instagram_url or "").strip() or None,
+            "facebook_url": (customer.facebook_url or "").strip() or None,
+            "linkedin_url": (customer.linkedin_url or "").strip() or None,
+            "youtube_url": (customer.youtube_url or "").strip() or None,
+        }
 
     def _customer_has_email(self, customer_id: UUID) -> bool:
         return bool(self._customer_email_set(customer_id))

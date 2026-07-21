@@ -143,7 +143,7 @@ def test_record_enrichment_apply_outcome_email_found_keeps_last_email(db_session
     assert state.last_email_found == "found@apply.example"
 
 
-def test_record_enrichment_apply_outcome_marks_email_found_when_customer_already_had_email(
+def test_record_enrichment_apply_outcome_keeps_pending_merge_when_duplicate_email_only(
     db_session, organization_id
 ):
     customer = _seed_customer(db_session, organization_id, display_name="Apply Existing Email Co")
@@ -161,7 +161,7 @@ def test_record_enrichment_apply_outcome_marks_email_found_when_customer_already
     db_session.commit()
 
     state = load_state_map(db_session, organization_id, [customer.id])[customer.id]
-    assert state.last_email_scan_status == CustomerEnrichmentScanStatus.EMAIL_FOUND
+    assert state.last_email_scan_status == CustomerEnrichmentScanStatus.PENDING_MERGE
     assert state.last_email_found == "new@apply.example"
 
 
@@ -391,7 +391,8 @@ def test_apply_enrichment_import_does_not_duplicate_existing_email(
     assert emails == ["info@dup.example"]
 
     state = load_state_map(db_session, organization_id, [customer.id])[customer.id]
-    assert state.last_email_scan_status == CustomerEnrichmentScanStatus.EMAIL_FOUND
+    assert state.last_email_scan_status == CustomerEnrichmentScanStatus.PENDING_MERGE
+    assert is_customer_scan_eligible(state, website="https://apply.test") is True
 
 
 def _build_apply_decisions_use_case(db_session) -> ApplyImportDecisionsUseCase:
@@ -533,3 +534,67 @@ def test_apply_enrichment_skip_decision_keeps_pending_merge(db_session, organiza
 
     state = load_state_map(db_session, organization_id, [customer.id])[customer.id]
     assert state.last_email_scan_status == CustomerEnrichmentScanStatus.PENDING_MERGE
+
+
+def test_normal_excel_import_does_not_change_enrichment_state(db_session, organization_id, user_id):
+    customer = _seed_customer(db_session, organization_id, display_name="Excel Import Co")
+    _seed_pending_merge_state(db_session, organization_id, customer, email_found="keep@excel.example")
+    now = datetime.now(tz=UTC)
+    db_session.add(
+        CustomerWebsiteModel(
+            id=uuid4(),
+            organization_id=organization_id,
+            customer_id=customer.id,
+            website="https://excel.test",
+            is_primary=True,
+            created_at=now,
+        )
+    )
+
+    batch = ImportBatch.create_from_canonical(
+        organization_id=organization_id,
+        fair_id=None,
+        source_type=ImportSourceType.EXCEL,
+        file_name="exhibitors.xlsx",
+        total_rows=1,
+        valid_rows=1,
+        invalid_rows=0,
+        raw_preview_json={"canonical_source": {"adapter_key": "excel_upload"}},
+        now=now,
+    )
+    batch.status = ImportBatchStatus.ANALYZED
+    saved_batch = SqlAlchemyImportBatchRepository(db_session).add(batch)
+
+    row = ImportRow.create(
+        batch_id=saved_batch.id,
+        organization_id=organization_id,
+        row_number=1,
+        raw_data_json={},
+        normalized_data_json={
+            "company_name": customer.display_name,
+            "email": "new-from-excel@example.com",
+        },
+        status=ImportRowStatus.READY_TO_UPDATE,
+        validation_errors_json=None,
+        match_customer_id=customer.id,
+        match_confidence=100,
+        match_reason="company_name",
+        now=now,
+    )
+    row.decision = ImportDecision.UPDATE_EXISTING
+    SqlAlchemyImportRowRepository(db_session).add_many([row])
+    db_session.commit()
+
+    use_case = _build_apply_use_case(db_session)
+    command = ApplyImportCommand(
+        organization_id=organization_id,
+        user_id=user_id,
+        access_token="token",
+        batch_id=saved_batch.id,
+    )
+    use_case.finalize_applied_row(saved_batch, row, command, now)
+    db_session.commit()
+
+    state = load_state_map(db_session, organization_id, [customer.id])[customer.id]
+    assert state.last_email_scan_status == CustomerEnrichmentScanStatus.PENDING_MERGE
+    assert state.last_email_found == "keep@excel.example"
