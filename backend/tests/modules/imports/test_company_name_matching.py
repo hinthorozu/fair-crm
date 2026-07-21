@@ -62,11 +62,48 @@ def test_high_confidence_pairs(import_name: str, crm_name: str):
             "AGRO SEEDS GIDA SAN. VE TİC. LTD. ŞTİ.",
             "AGROWELL GIDA SANAYİ VE TİCARET A.Ş.",
         ),
+        (
+            "ACARLAR VAGON SAN. VE TİC. A.Ş.",
+            "ACARLAR YAPI MALZEMELERİ PAZARLAMA TİCARET LTD ŞTİ",
+        ),
+        (
+            "AKM GÜVENLİK SİSTEMLERİ A.Ş.",
+            "AKM ALARM KONTROL MERKEZİ LTD.",
+        ),
+        ("ABC ELECTRICAL APPLIANCE LTD", "XYZ ELECTRICAL APPLIANCE LTD"),
+        (
+            "ZHONGSHAN ALFA ELECTRICAL APPLIANCE CO LTD",
+            "ZHONGSHAN BETA ELECTRICAL EQUIPMENT CO LTD",
+        ),
+        ("OMEGA TEXTILE MACHINERY LTD", "DELTA TEXTILE MACHINERY LTD"),
     ],
 )
 def test_should_not_match_pairs(import_name: str, crm_name: str):
     scored = score_company_name_pair(import_name, crm_name)
     assert scored is None or scored.confidence < MATCH_SCORE_MIN
+
+
+@pytest.mark.parametrize(
+    ("left", "right"),
+    [
+        ("ABC ELECTRICAL APPLIANCE LTD", "ABC ELECTRICAL APPLIANCE CO LTD"),
+        ("OMEGA TEXTILE MACHINERY LTD", "OMEGA TEXTILE MACHINERY A.S."),
+        ("AKM ALARM KONTROL MERKEZİ LTD ŞTİ", "AKM ALARM KONTROL MERKEZİ A.Ş."),
+    ],
+)
+def test_sector_generics_do_not_block_same_brand_legal_variants(left: str, right: str):
+    scored = score_company_name_pair(left, right)
+    assert scored is not None
+    assert scored.confidence >= MATCH_SCORE_STRONG
+
+
+def test_akm_alarm_legal_form_variants_match_strongly():
+    scored = score_company_name_pair(
+        "AKM ALARM KONTROL MERKEZİ LTD ŞTİ",
+        "AKM ALARM KONTROL MERKEZİ A.Ş.",
+    )
+    assert scored is not None
+    assert scored.confidence >= MATCH_SCORE_STRONG
 
 
 def test_turkish_i_normalization():

@@ -12,7 +12,10 @@ from app.modules.imports.domain.services.company_name_matcher import (
     format_match_explanation,
     score_company_name_pair,
 )
-from app.modules.imports.domain.services.company_name_normalizer import normalize_import_company_name
+from app.modules.imports.domain.services.company_name_normalizer import (
+    company_name_comparison_key,
+    normalize_import_company_name,
+)
 
 MATCH_TYPE_EXACT = "exact_normalized_match"
 MATCH_TYPE_FUZZY = "fuzzy_name_candidate"
@@ -31,8 +34,10 @@ class DuplicateMatch:
 
 
 def customer_match_key(customer: Customer) -> str:
-    source = customer.legal_name.strip() if customer.legal_name and customer.legal_name.strip() else customer.display_name
-    return normalize_import_company_name(source)
+    return company_name_comparison_key(
+        display_name=customer.display_name,
+        legal_name=customer.legal_name,
+    )
 
 
 def _reason_for_confidence(confidence: int) -> str:
@@ -64,7 +69,10 @@ class CustomerMatchIndex:
                 if customer.legal_name and customer.legal_name.strip()
                 else customer.display_name
             )
-            match_key = normalize_import_company_name(display_source)
+            match_key = company_name_comparison_key(
+                display_name=customer.display_name,
+                legal_name=customer.legal_name,
+            )
             if match_key:
                 keys.add(match_key)
             if customer.normalized_name and customer.normalized_name.strip():

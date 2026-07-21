@@ -476,7 +476,7 @@ def test_analyze_customer_groups_by_company_name_groups_similar_legal_suffixes(
     assert summary.customers_in_duplicate_groups == 2
     assert {row.customer_id for row in member_rows} == {first.id, second.id}
     assert len({row.group_key for row in member_rows}) == 1
-    assert member_rows[0].group_key == "A R T YAYINCILIK"
+    assert member_rows[0].group_key == "a r t yayincilik"
 
 
 def test_analyze_customer_groups_by_company_name_fuzzy_flag_controls_similarity_merge(

@@ -12,10 +12,12 @@ from sqlalchemy.orm import Session, load_only
 
 from app.modules.customers.domain.communication_entities import CustomerCommunications
 from app.modules.customers.domain.services.normalizers import (
-    compute_normalized_name,
     normalize_email,
     normalize_phone,
     normalize_website,
+)
+from app.modules.imports.domain.services.company_name_normalizer import (
+    company_name_comparison_key,
 )
 from app.modules.customers.application.customer_duplicate_eligibility import (
     exclude_merge_deleted_customers,
@@ -66,7 +68,8 @@ def grouping_keys_for_customer(
     communications: CustomerCommunications | None,
 ) -> list[str]:
     if group_by == "company_name":
-        key = compute_normalized_name(
+        # Same comparison key as Import Duplicate Detection (ADR-026 engine).
+        key = company_name_comparison_key(
             display_name=model.display_name,
             legal_name=model.legal_name,
         )

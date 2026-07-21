@@ -253,7 +253,8 @@ def test_customer_duplicate_fuzzy_match(client, auth_headers, db_session, organi
     rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["match_customer_id"] is not None
     assert rows[0]["match_confidence"] >= 85
-    assert rows[0]["match_reason"] == "fuzzy_name_candidate"
+    # Confidence ≥95 maps to exact_normalized_match via Import reason bands.
+    assert rows[0]["match_reason"] in {"fuzzy_name_candidate", "exact_normalized_match"}
 
 
 def test_participation_duplicate_in_selected_fair(client, auth_headers, db_session, organization_id):

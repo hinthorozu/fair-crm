@@ -62,25 +62,30 @@ def _first_token_blocks_match(core_a: list[str], core_b: list[str]) -> bool:
 
 
 def _sector_only_overlap(set_a: set[str], set_b: set[str]) -> bool:
-    """True when overlap is only generic sector words and brand tokens differ on both sides."""
+    """True when shared tokens are only sector generics and brand tokens differ on both sides."""
     shared = set_a & set_b
-    if not shared or not shared.issubset(SECTOR_GENERIC_TOKENS):
+    if not shared:
         return False
+    distinctive_shared = shared - SECTOR_GENERIC_TOKENS
     distinctive_a = set_a - SECTOR_GENERIC_TOKENS
     distinctive_b = set_b - SECTOR_GENERIC_TOKENS
     if not distinctive_a or not distinctive_b:
         return False
-    return not (distinctive_a & distinctive_b)
+    return not distinctive_shared
 
 
 def _distinctive_tail_mismatch(core_a: list[str], core_b: list[str]) -> bool:
-    """Same leading token but differing distinctive tail tokens (e.g. ANADOLU GIDA vs ANADOLU MAKINA)."""
+    """Same leading token but differing non-sector tail tokens (e.g. ANADOLU GIDA vs ANADOLU MAKINA).
+
+    Sector generics in the tail (electrical, textile, …) are ignored so they cannot
+    mask a brand/tail mismatch between otherwise unrelated companies.
+    """
     if len(core_a) < 2 or len(core_b) < 2:
         return False
     if core_a[0] != core_b[0]:
         return False
-    tail_a = set(core_a[1:])
-    tail_b = set(core_b[1:])
+    tail_a = set(core_a[1:]) - SECTOR_GENERIC_TOKENS
+    tail_b = set(core_b[1:]) - SECTOR_GENERIC_TOKENS
     return bool(tail_a and tail_b and not (tail_a & tail_b))
 
 
@@ -104,18 +109,34 @@ def _insufficient_distinctive_overlap(
     set_q: set[str],
     set_c: set[str],
 ) -> bool:
-    """Multi-token names need shared distinctive tokens beyond a lone prefix token."""
+    """Multi-token names need shared distinctive (non-sector) tokens beyond a lone prefix."""
     shared = set_q & set_c
     if not shared:
         return True
+
+    distinctive_shared = shared - SECTOR_GENERIC_TOKENS
+    distinctive_q = set_q - SECTOR_GENERIC_TOKENS
+    distinctive_c = set_c - SECTOR_GENERIC_TOKENS
+
     if len(core_q) < 2 or len(core_c) < 2:
         return False
+
+    # Both sides have brand tokens but only sector generics (or nothing distinctive) overlap.
+    if distinctive_q and distinctive_c and not distinctive_shared:
+        return True
+
     if set_q <= set_c or set_c <= set_q:
-        return len(shared) < 2 and len(min(set_q, set_c, key=len)) < 2
-    if len(shared) >= 2:
+        if distinctive_shared:
+            return False
+        return len(min(set_q, set_c, key=len)) < 2
+
+    if len(distinctive_shared) >= 2:
         return False
-    only = next(iter(shared))
-    return bool(core_q and core_c and core_q[0] == core_c[0] == only)
+    if not distinctive_shared:
+        return True
+    only = next(iter(distinctive_shared))
+    # Lone shared brand token that is only the common first/prefix token is not enough.
+    return bool(core_q[0] == core_c[0] == only)
 
 
 def score_company_name_pair(query: str, candidate: str) -> CompanyNameMatchScore | None:
