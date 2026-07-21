@@ -56,6 +56,7 @@ import {
 } from "./utils/enrichmentAdapter";
 import { useDocumentTitle } from "./hooks/useDocumentTitle";
 import { useAuth } from "./auth/AuthContext";
+import { config } from "./config";
 import "./styles.css";
 
 type AppRoute =
@@ -512,6 +513,11 @@ export function App() {
 
   const handleLogout = React.useCallback(async () => {
     await logout();
+    // VITE_DEV_BYPASS_ENABLED keeps the app usable without a Core session.
+    if (config.devBypassEnabled) {
+      setSidebarOpen(false);
+      return;
+    }
     window.history.replaceState(null, "", "/login");
     setParsed({ route: "/login" });
     setSidebarOpen(false);

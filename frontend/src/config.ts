@@ -17,9 +17,8 @@ function resolveAppEnv(): string {
   return envString(import.meta.env.VITE_APP_ENV, import.meta.env.MODE).toLowerCase();
 }
 
-/** Dev bypass is active on the Vite dev server or when VITE_DEV_BYPASS_ENABLED=true. */
+/** Dev bypass is active only when VITE_DEV_BYPASS_ENABLED=true. */
 function resolveDevBypassEnabled(): boolean {
-  if (import.meta.env.DEV) return true;
   return envBool(import.meta.env.VITE_DEV_BYPASS_ENABLED, false);
 }
 
@@ -36,7 +35,7 @@ export const config = {
   apiBaseUrl: envString(import.meta.env.VITE_API_BASE_URL, "http://127.0.0.1:8001"),
   coreBaseUrl: resolveCoreBaseUrl(),
   appEnv: resolveAppEnv(),
-  /** True on Vite dev server or when VITE_DEV_BYPASS_ENABLED=true. */
+  /** True only when VITE_DEV_BYPASS_ENABLED=true. Controls API bypass headers and login skip. */
   devBypassEnabled: resolveDevBypassEnabled(),
   devBypassToken: envString(import.meta.env.VITE_DEV_BYPASS_TOKEN, "dev-bypass"),
   organizationId: envString(

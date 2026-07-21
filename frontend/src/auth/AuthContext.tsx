@@ -46,6 +46,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     const onSessionExpired = () => {
       logout();
+      // With VITE_DEV_BYPASS_ENABLED, stay in the app using bypass headers.
+      if (config.devBypassEnabled) return;
       if (window.location.pathname !== "/login") {
         window.history.replaceState(null, "", "/login");
       }
@@ -57,7 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = React.useMemo<AuthContextValue>(
     () => ({
       session,
-      isAuthenticated: session !== null,
+      // Single control: VITE_DEV_BYPASS_ENABLED (via config.devBypassEnabled).
+      isAuthenticated: session !== null || config.devBypassEnabled,
       login,
       logout,
     }),
