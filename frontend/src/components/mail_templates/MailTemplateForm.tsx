@@ -82,7 +82,7 @@ export function MailTemplateForm({
   };
 
   return (
-    <form className="mail-template-form" onSubmit={(event) => void handleSubmit(event)}>
+    <form className="mail-template-form crm-form crm-form--wide" onSubmit={(event) => void handleSubmit(event)}>
       {formError ? <Banner variant="error" className="form-form-alert">{formError}</Banner> : null}
 
       <FormSection title={adminLabels.mailTemplatesSectionGeneral}>

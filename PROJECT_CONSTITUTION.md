@@ -41,6 +41,9 @@ No sprint work begins until these documents have been read and understood.
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Architecture Decision Records |
 | [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) | Long-term product direction (see also canonical table above) |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Detailed architecture reference |
+| [docs/frontend/FRONTEND_UI_MASTER_STANDARD.md](docs/frontend/FRONTEND_UI_MASTER_STANDARD.md) | Binding frontend UI / design-system master standard |
+
+**Frontend UI:** Frontend UI üzerinde çalışmadan önce `docs/frontend/FRONTEND_UI_MASTER_STANDARD.md` okunması zorunludur.
 
 ---
 
@@ -216,6 +219,8 @@ Report platform needs in design docs and track in `kyrox-platform` before changi
 ---
 
 ## Frontend Standards
+
+**Mandatory before any frontend UI change:** Read [docs/frontend/FRONTEND_UI_MASTER_STANDARD.md](docs/frontend/FRONTEND_UI_MASTER_STANDARD.md). That file is the binding UI / design-system source of truth (components, tokens, responsive, Visual QA, DoD).
 
 ### Stack and Structure
 

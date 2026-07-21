@@ -1,3 +1,5 @@
+import { Button } from "../Button";
+
 interface FormActionsProps {
   onCancel: () => void;
   submitLabel: string;
@@ -15,12 +17,12 @@ export function FormActions({
 }: FormActionsProps) {
   return (
     <div className="form-actions span-2">
-      <button type="button" className="btn secondary" onClick={onCancel} disabled={saving}>
+      <Button type="button" variant="secondary" onClick={onCancel} disabled={saving}>
         {cancelLabel}
-      </button>
-      <button type="submit" className="btn primary" disabled={saving}>
+      </Button>
+      <Button type="submit" variant="primary" loading={saving}>
         {saving ? (savingLabel ?? "…") : submitLabel}
-      </button>
+      </Button>
     </div>
   );
 }

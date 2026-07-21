@@ -126,7 +126,7 @@ export function ContactForm({
   };
 
   return (
-    <form className="contact-form" onSubmit={(event) => void handleSubmit(event)}>
+    <form className="contact-form crm-form crm-form--standard" onSubmit={(event) => void handleSubmit(event)}>
       {error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}
 
       <FormSection title={contactLabels.contactSectionPerson}>

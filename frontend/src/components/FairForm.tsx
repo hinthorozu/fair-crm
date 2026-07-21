@@ -147,7 +147,7 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
   };
 
   return (
-    <form className="fair-form" onSubmit={(event) => void handleSubmit(event)}>
+    <form className="fair-form crm-form crm-form--standard" onSubmit={(event) => void handleSubmit(event)}>
       {error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}
 
       <FormSection title={fairLabels.fairSectionInfo}>

@@ -63,6 +63,7 @@ Current delivery snapshot:
 
 ## Frontend Rules
 
+- **Frontend UI üzerinde çalışmadan önce `docs/frontend/FRONTEND_UI_MASTER_STANDARD.md` okunması zorunludur.** Do not change frontend UI code without reading that master standard first.
 - Use React + TypeScript + Vite patterns already present in `frontend/src/`.
 - Keep labels in `frontend/src/labels/`.
 - Keep API calls in resource-specific files under `frontend/src/api/`.

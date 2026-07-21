@@ -165,7 +165,7 @@ export function ParticipationForm({
   };
 
   return (
-    <form className="participation-form" onSubmit={(event) => void handleSubmit(event)}>
+    <form className="participation-form crm-form crm-form--standard" onSubmit={(event) => void handleSubmit(event)}>
       {error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}
 
       <FormSection title={participationLabels.participationSectionInfo}>

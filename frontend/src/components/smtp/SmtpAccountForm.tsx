@@ -111,7 +111,7 @@ export function SmtpAccountForm({
   }, [initial?.config_warnings, portEncryptionHints]);
 
   return (
-    <form className="smtp-account-form" onSubmit={(event) => void handleSubmit(event)}>
+    <form className="smtp-account-form crm-form crm-form--standard" onSubmit={(event) => void handleSubmit(event)}>
       {formError ? <Banner variant="error" className="form-form-alert">{formError}</Banner> : null}
 
       <FormSection title={adminLabels.smtpSectionGeneral}>

@@ -134,7 +134,7 @@ export function ActivityForm({
   };
 
   return (
-    <form className="activity-form" onSubmit={(event) => void handleSubmit(event)}>
+    <form className="activity-form crm-form crm-form--standard" onSubmit={(event) => void handleSubmit(event)}>
       {error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}
 
       <FormSection title={activityLabels.activitySectionInfo}>

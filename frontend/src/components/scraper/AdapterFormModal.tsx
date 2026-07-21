@@ -156,7 +156,7 @@ export function AdapterFormModal({ saving, error, onClose, onSubmit }: AdapterFo
         </>
       }
     >
-      <form id={FORM_ID} className="adapter-form" onSubmit={handleSubmit}>
+      <form id={FORM_ID} className="adapter-form crm-form crm-form--wide" onSubmit={handleSubmit}>
         <AdapterForm
           mode="create"
           values={values}

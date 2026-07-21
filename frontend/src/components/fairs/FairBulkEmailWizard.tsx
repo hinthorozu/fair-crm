@@ -328,7 +328,7 @@ export function FairBulkEmailWizard({
   };
 
   return (
-    <div className="crm-form fair-bulk-email-wizard">
+    <div className="crm-form crm-form--wide fair-bulk-email-wizard">
       {success ? <Banner variant="success">{success}</Banner> : null}
       {error ? <Banner variant="error">{error}</Banner> : null}
       {templateError ? <Banner variant="warning">{templateError}</Banner> : null}

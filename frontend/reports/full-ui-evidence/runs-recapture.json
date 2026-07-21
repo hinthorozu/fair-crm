@@ -1,0 +1,227 @@
+[
+  {
+    "route": "/data-integration/runs/:runId",
+    "url": "/data-integration/runs/ed0c1972-9936-4381-a512-cc67f1e2639b?adapter_key=customer_contact_enrichment",
+    "width": 320,
+    "status": "PASS",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "title": "FAIR CRM — Zenginleştirme çalışması",
+      "h1": "Zenginleştirme çalışması",
+      "body": "FAIR CRM\nDashboard\nMüşteriler\nFuarlar\nGörevler\nTakipler\nAktiviteler\nVeri Entegrasyonu\nAdmin\nAna Sayfa\nVeri Entegrasyonu\nMüşteri Zenginleştirme\nZenginleştirme çalışması\n—\n▾\nImport İşleri\nExcel Import\nİ"
+    },
+    "screenshot": "screenshots/data-integration_runs__runId__w320.png"
+  },
+  {
+    "route": "/data-integration/runs/:runId",
+    "url": "/data-integration/runs/ed0c1972-9936-4381-a512-cc67f1e2639b?adapter_key=customer_contact_enrichment",
+    "width": 390,
+    "status": "PASS",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "title": "FAIR CRM — Zenginleştirme çalışması",
+      "h1": "Zenginleştirme çalışması",
+      "body": "FAIR CRM\nDashboard\nMüşteriler\nFuarlar\nGörevler\nTakipler\nAktiviteler\nVeri Entegrasyonu\nAdmin\nAna Sayfa\nVeri Entegrasyonu\nMüşteri Zenginleştirme\nZenginleştirme çalışması\n—\n▾\nImport İşleri\nExcel Import\nİ"
+    },
+    "screenshot": "screenshots/data-integration_runs__runId__w390.png"
+  },
+  {
+    "route": "/data-integration/runs/:runId",
+    "url": "/data-integration/runs/ed0c1972-9936-4381-a512-cc67f1e2639b?adapter_key=customer_contact_enrichment",
+    "width": 767,
+    "status": "PASS",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "title": "FAIR CRM — Zenginleştirme çalışması",
+      "h1": "Zenginleştirme çalışması",
+      "body": "FAIR CRM\nDashboard\nMüşteriler\nFuarlar\nGörevler\nTakipler\nAktiviteler\nVeri Entegrasyonu\nAdmin\nAna Sayfa\nVeri Entegrasyonu\nMüşteri Zenginleştirme\nZenginleştirme çalışması\n—\n▾\nImport İşleri\nExcel Import\nİ"
+    },
+    "screenshot": "screenshots/data-integration_runs__runId__w767.png"
+  },
+  {
+    "route": "/data-integration/runs/:runId",
+    "url": "/data-integration/runs/ed0c1972-9936-4381-a512-cc67f1e2639b?adapter_key=customer_contact_enrichment",
+    "width": 768,
+    "status": "PASS",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "title": "FAIR CRM — Zenginleştirme çalışması",
+      "h1": "Zenginleştirme çalışması",
+      "body": "FAIR CRM\nDashboard\nMüşteriler\nFuarlar\nGörevler\nTakipler\nAktiviteler\nVeri Entegrasyonu\nAdmin\nAna Sayfa\nVeri Entegrasyonu\nMüşteri Zenginleştirme\nZenginleştirme çalışması\n—\n▾\nImport İşleri\nExcel Import\nİ"
+    },
+    "screenshot": "screenshots/data-integration_runs__runId__w768.png"
+  },
+  {
+    "route": "/data-integration/runs/:runId",
+    "url": "/data-integration/runs/ed0c1972-9936-4381-a512-cc67f1e2639b?adapter_key=customer_contact_enrichment",
+    "width": 769,
+    "status": "PASS",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "title": "FAIR CRM — Zenginleştirme çalışması",
+      "h1": "Zenginleştirme çalışması",
+      "body": "FAIR CRM\nDashboard\nMüşteriler\nFuarlar\nGörevler\nTakipler\nAktiviteler\nVeri Entegrasyonu\nAdmin\nAna Sayfa\nVeri Entegrasyonu\nMüşteri Zenginleştirme\nZenginleştirme çalışması\n—\n▾\nImport İşleri\nExcel Import\nİ"
+    },
+    "screenshot": "screenshots/data-integration_runs__runId__w769.png"
+  },
+  {
+    "route": "/data-integration/runs/:runId",
+    "url": "/data-integration/runs/ed0c1972-9936-4381-a512-cc67f1e2639b?adapter_key=customer_contact_enrichment",
+    "width": 1023,
+    "status": "PASS",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "title": "FAIR CRM — Zenginleştirme çalışması",
+      "h1": "Zenginleştirme çalışması",
+      "body": "FAIR CRM\nDashboard\nMüşteriler\nFuarlar\nGörevler\nTakipler\nAktiviteler\nVeri Entegrasyonu\nAdmin\nAna Sayfa\nVeri Entegrasyonu\nMüşteri Zenginleştirme\nZenginleştirme çalışması\n—\n▾\nImport İşleri\nExcel Import\nİ"
+    },
+    "screenshot": "screenshots/data-integration_runs__runId__w1023.png"
+  },
+  {
+    "route": "/data-integration/runs/:runId",
+    "url": "/data-integration/runs/ed0c1972-9936-4381-a512-cc67f1e2639b?adapter_key=customer_contact_enrichment",
+    "width": 1024,
+    "status": "PASS",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "title": "FAIR CRM — Zenginleştirme çalışması",
+      "h1": "Zenginleştirme çalışması",
+      "body": "FAIR CRM\nDashboard\nMüşteriler\nFuarlar\nGörevler\nTakipler\nAktiviteler\nVeri Entegrasyonu\nAdmin\nAna Sayfa\nVeri Entegrasyonu\nMüşteri Zenginleştirme\nZenginleştirme çalışması\n—\n▾\nImport İşleri\nExcel Import\nİ"
+    },
+    "screenshot": "screenshots/data-integration_runs__runId__w1024.png"
+  },
+  {
+    "route": "/data-integration/runs/:runId",
+    "url": "/data-integration/runs/ed0c1972-9936-4381-a512-cc67f1e2639b?adapter_key=customer_contact_enrichment",
+    "width": 1025,
+    "status": "PASS",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "title": "FAIR CRM — Zenginleştirme çalışması",
+      "h1": "Zenginleştirme çalışması",
+      "body": "FAIR CRM\nDashboard\nMüşteriler\nFuarlar\nGörevler\nTakipler\nAktiviteler\nVeri Entegrasyonu\nAdmin\nAna Sayfa\nVeri Entegrasyonu\nMüşteri Zenginleştirme\nZenginleştirme çalışması\n—\n▾\nVeri Entegrasyonu\nImport İşl"
+    },
+    "screenshot": "screenshots/data-integration_runs__runId__w1025.png"
+  },
+  {
+    "route": "/data-integration/runs/:runId",
+    "url": "/data-integration/runs/ed0c1972-9936-4381-a512-cc67f1e2639b?adapter_key=customer_contact_enrichment",
+    "width": 1439,
+    "status": "PASS",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "title": "FAIR CRM — Zenginleştirme çalışması",
+      "h1": "Zenginleştirme çalışması",
+      "body": "FAIR CRM\nDashboard\nMüşteriler\nFuarlar\nGörevler\nTakipler\nAktiviteler\nVeri Entegrasyonu\nAdmin\nAna Sayfa\nVeri Entegrasyonu\nMüşteri Zenginleştirme\nZenginleştirme çalışması\n—\n▾\nVeri Entegrasyonu\nImport İşl"
+    },
+    "screenshot": "screenshots/data-integration_runs__runId__w1439.png"
+  },
+  {
+    "route": "/data-integration/runs/:runId",
+    "url": "/data-integration/runs/ed0c1972-9936-4381-a512-cc67f1e2639b?adapter_key=customer_contact_enrichment",
+    "width": 1440,
+    "status": "PASS",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "title": "FAIR CRM — Zenginleştirme çalışması",
+      "h1": "Zenginleştirme çalışması",
+      "body": "FAIR CRM\nDashboard\nMüşteriler\nFuarlar\nGörevler\nTakipler\nAktiviteler\nVeri Entegrasyonu\nAdmin\nAna Sayfa\nVeri Entegrasyonu\nMüşteri Zenginleştirme\nZenginleştirme çalışması\n—\n▾\nVeri Entegrasyonu\nImport İşl"
+    },
+    "screenshot": "screenshots/data-integration_runs__runId__w1440.png"
+  },
+  {
+    "route": "/data-integration/runs/:runId",
+    "url": "/data-integration/runs/ed0c1972-9936-4381-a512-cc67f1e2639b?adapter_key=customer_contact_enrichment",
+    "width": 1441,
+    "status": "PASS",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "title": "FAIR CRM — Zenginleştirme çalışması",
+      "h1": "Zenginleştirme çalışması",
+      "body": "FAIR CRM\nDashboard\nMüşteriler\nFuarlar\nGörevler\nTakipler\nAktiviteler\nVeri Entegrasyonu\nAdmin\nAna Sayfa\nVeri Entegrasyonu\nMüşteri Zenginleştirme\nZenginleştirme çalışması\n—\n▾\nVeri Entegrasyonu\nImport İşl"
+    },
+    "screenshot": "screenshots/data-integration_runs__runId__w1441.png"
+  },
+  {
+    "route": "/data-integration/runs/:runId",
+    "url": "/data-integration/runs/ed0c1972-9936-4381-a512-cc67f1e2639b?adapter_key=customer_contact_enrichment",
+    "width": 1920,
+    "status": "PASS",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "title": "FAIR CRM — Zenginleştirme çalışması",
+      "h1": "Zenginleştirme çalışması",
+      "body": "FAIR CRM\nDashboard\nMüşteriler\nFuarlar\nGörevler\nTakipler\nAktiviteler\nVeri Entegrasyonu\nAdmin\nAna Sayfa\nVeri Entegrasyonu\nMüşteri Zenginleştirme\nZenginleştirme çalışması\n—\n▾\nVeri Entegrasyonu\nImport İşl"
+    },
+    "screenshot": "screenshots/data-integration_runs__runId__w1920.png"
+  },
+  {
+    "route": "/data-integration/runs/:runId",
+    "url": "/data-integration/runs/ed0c1972-9936-4381-a512-cc67f1e2639b?adapter_key=customer_contact_enrichment",
+    "width": 2560,
+    "status": "PASS",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "title": "FAIR CRM — Zenginleştirme çalışması",
+      "h1": "Zenginleştirme çalışması",
+      "body": "FAIR CRM\nDashboard\nMüşteriler\nFuarlar\nGörevler\nTakipler\nAktiviteler\nVeri Entegrasyonu\nAdmin\nAna Sayfa\nVeri Entegrasyonu\nMüşteri Zenginleştirme\nZenginleştirme çalışması\n—\n▾\nVeri Entegrasyonu\nImport İşl"
+    },
+    "screenshot": "screenshots/data-integration_runs__runId__w2560.png"
+  },
+  {
+    "route": "/data-integration/runs/:runId",
+    "url": "/data-integration/runs/ed0c1972-9936-4381-a512-cc67f1e2639b?adapter_key=customer_contact_enrichment",
+    "width": 3440,
+    "status": "PASS",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "title": "FAIR CRM — Zenginleştirme çalışması",
+      "h1": "Zenginleştirme çalışması",
+      "body": "FAIR CRM\nDashboard\nMüşteriler\nFuarlar\nGörevler\nTakipler\nAktiviteler\nVeri Entegrasyonu\nAdmin\nAna Sayfa\nVeri Entegrasyonu\nMüşteri Zenginleştirme\nZenginleştirme çalışması\n—\n▾\nVeri Entegrasyonu\nImport İşl"
+    },
+    "screenshot": "screenshots/data-integration_runs__runId__w3440.png"
+  },
+  {
+    "route": "/data-integration/runs/:runId",
+    "url": "/data-integration/runs/ed0c1972-9936-4381-a512-cc67f1e2639b?adapter_key=customer_contact_enrichment",
+    "width": 3840,
+    "status": "PASS",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "title": "FAIR CRM — Zenginleştirme çalışması",
+      "h1": "Zenginleştirme çalışması",
+      "body": "FAIR CRM\nDashboard\nMüşteriler\nFuarlar\nGörevler\nTakipler\nAktiviteler\nVeri Entegrasyonu\nAdmin\nAna Sayfa\nVeri Entegrasyonu\nMüşteri Zenginleştirme\nZenginleştirme çalışması\n—\n▾\nVeri Entegrasyonu\nImport İşl"
+    },
+    "screenshot": "screenshots/data-integration_runs__runId__w3840.png"
+  }
+]

@@ -1,0 +1,474 @@
+{
+  "catalog": {},
+  "domain_select_wrappers": [],
+  "local_modal_wrappers_without_shared_import": [],
+  "categories": [],
+  "css_override_hotspots": {},
+  "routes": {
+    "app_routes": [
+      "/activities",
+      "/admin/data-operations",
+      "/admin/data-operations/runs/:runId",
+      "/admin/smtp-operations/accounts",
+      "/admin/smtp-operations/mail-operations",
+      "/admin/smtp-operations/templates",
+      "/admin/system/backups",
+      "/customers",
+      "/customers/:id",
+      "/dashboard",
+      "/data-integration/adapters",
+      "/data-integration/adapters/:adapterKey",
+      "/data-integration/enrichment",
+      "/data-integration/imports",
+      "/data-integration/imports/continue/:batchId",
+      "/data-integration/imports/fair/:fairId",
+      "/data-integration/imports/new",
+      "/data-integration/jobs",
+      "/data-integration/reports",
+      "/data-integration/run-history",
+      "/data-integration/runs/:runId",
+      "/data-integration/scraper-test",
+      "/fairs",
+      "/fairs/:id",
+      "/fairs/:id/enrichment",
+      "/follow-ups",
+      "/imports",
+      "/imports/fair/:fairId",
+      "/login",
+      "/todos",
+      "/todos/:id"
+    ],
+    "mounted_page_components": [
+      "ActivitiesPage",
+      "AdapterDetailPage",
+      "AdapterManagementPage",
+      "CustomerDetailPage",
+      "CustomerEnrichmentPage",
+      "CustomersPage",
+      "CustomersResponsivePilotPage",
+      "DashboardPage",
+      "DataIntegrationImportsPage",
+      "DataOperationRunResultPage",
+      "DataOperationsPage",
+      "DatabaseBackupsPage",
+      "EnrichmentRunDetailPage",
+      "FairDetailPage",
+      "FairEnrichmentRunPage",
+      "FairsPage",
+      "FollowUpsPage",
+      "ImportWizardPage",
+      "LoginPage",
+      "MailOperationsPage",
+      "MailTemplatesPage",
+      "ScraperRunHistoryPage",
+      "ScraperTestPage",
+      "SmtpAccountsPage",
+      "TableStandardSmokePage",
+      "TodoDetailPage",
+      "TodosPage"
+    ],
+    "smoke_covered_routes": [
+      "/activities",
+      "/admin/data-operations",
+      "/admin/data-operations/runs/:runId",
+      "/admin/smtp-operations/accounts",
+      "/admin/smtp-operations/mail-operations",
+      "/admin/smtp-operations/templates",
+      "/admin/system/backups",
+      "/customers",
+      "/customers/:id",
+      "/dashboard",
+      "/data-integration/adapters",
+      "/data-integration/adapters/:adapterKey",
+      "/data-integration/enrichment",
+      "/data-integration/imports",
+      "/data-integration/imports/continue/:batchId",
+      "/data-integration/imports/fair/:fairId",
+      "/data-integration/imports/new",
+      "/data-integration/jobs",
+      "/data-integration/reports",
+      "/data-integration/run-history",
+      "/data-integration/runs/:runId",
+      "/data-integration/scraper-test",
+      "/dev/customers-responsive-pilot",
+      "/dev/table-standard-smoke",
+      "/fairs",
+      "/fairs/:id",
+      "/fairs/:id/enrichment",
+      "/follow-ups",
+      "/imports",
+      "/imports/fair/:fairId",
+      "/login",
+      "/todos",
+      "/todos/:id"
+    ],
+    "page_files": [
+      "ActivitiesPage.tsx",
+      "AdapterDetailPage.tsx",
+      "AdapterManagementPage.tsx",
+      "CustomerDetailPage.tsx",
+      "CustomerEnrichmentPage.tsx",
+      "CustomersPage.tsx",
+      "DashboardPage.tsx",
+      "DataIntegrationImportsPage.tsx",
+      "DataOperationAnalyzeResultPage.tsx",
+      "DataOperationDuplicateResultPage.tsx",
+      "DataOperationRunResultPage.tsx",
+      "DataOperationsPage.tsx",
+      "DatabaseBackupsPage.tsx",
+      "EnrichmentRunDetailPage.tsx",
+      "FairDetailPage.tsx",
+      "FairEnrichmentRunPage.tsx",
+      "FairsPage.tsx",
+      "FollowUpsPage.tsx",
+      "ImportWizardPage.tsx",
+      "LoginPage.tsx",
+      "MailOperationsPage.tsx",
+      "MailTemplatesPage.tsx",
+      "ScraperRunHistoryPage.tsx",
+      "ScraperTestPage.tsx",
+      "SmtpAccountsPage.tsx",
+      "TodoDetailPage.tsx",
+      "TodosPage.tsx"
+    ],
+    "missing_pageshell_on_mounted": [],
+    "unmounted_page_files": [],
+    "routes_missing_smoke_coverage": [],
+    "total_violations": 0,
+    "pass": true
+  },
+  "p0": {
+    "total_violations": 0,
+    "bare_checkbox_radio": [],
+    "local_filters_without_filter_panel": [],
+    "raw_form_controls": [],
+    "allowlist": [
+      "frontend/src/components/AdapterSelect.tsx",
+      "frontend/src/components/FairEntitySelect.tsx",
+      "frontend/src/components/imports/ExcelMappingGrid.tsx",
+      "frontend/src/components/ui/form/FormInputs.tsx"
+    ],
+    "pass": true
+  },
+  "p1": {
+    "total_violations": 0,
+    "bare_alert_toast": [],
+    "bare_card": [],
+    "intentional_exceptions": [
+      {
+        "file": "frontend/src/pages/ImportWizardPage.tsx",
+        "line": 1217,
+        "kind": "specialty_banner_layout",
+        "snippet": "<div className=\"import-complete-banner\">"
+      }
+    ],
+    "allowlist_alert": [
+      "frontend/src/components/ui/Banner.tsx"
+    ],
+    "allowlist_card": [
+      "frontend/src/components/ui/Card.tsx"
+    ],
+    "pass": true
+  },
+  "p2": {
+    "total_violations": 0,
+    "bare_form_error": [],
+    "link_button": [],
+    "adhoc_empty": [],
+    "adhoc_loading": [],
+    "bare_action_wrappers": [],
+    "intentional_exceptions": [
+      {
+        "file": "frontend/src/components/AdapterSelect.tsx",
+        "line": 0,
+        "kind": "domain_combobox_loading",
+        "snippet": "inline combobox loading text (not page LoadingState)"
+      },
+      {
+        "file": "frontend/src/components/FairEntitySelect.tsx",
+        "line": 0,
+        "kind": "domain_combobox_loading",
+        "snippet": "inline combobox loading text (not page LoadingState)"
+      }
+    ],
+    "pass": true
+  },
+  "p3": {
+    "total_violations": 0,
+    "bare_icon_buttons": [],
+    "login_form_error": [],
+    "bare_nav_links": [],
+    "missing_pageshell": [],
+    "missing_navlink_layouts": [],
+    "intentional_exceptions": [
+      {
+        "file": "frontend/src/components/ui/WidthResponsiveDataTable.tsx",
+        "line": 280,
+        "kind": "table_expand_placeholder_span",
+        "snippet": "<span className=\"table-expand-btn\">+</span>"
+      },
+      {
+        "file": "frontend/src/components/ui/WidthResponsiveDataTable.tsx",
+        "line": 299,
+        "kind": "table_expand_placeholder_span",
+        "snippet": "<span className=\"table-expand-btn\">+</span>"
+      },
+      {
+        "file": "frontend/src/components/mail_templates/MailTemplateActionsMenu.tsx",
+        "line": 0,
+        "kind": "labeled_actions_menu",
+        "snippet": "text trigger (not icon kebab) \u2014 intentional"
+      },
+      {
+        "file": "frontend/src/pages/LoginPage.tsx",
+        "line": 0,
+        "kind": "auth_shell",
+        "snippet": "login brand shell outside AppLayout/PageShell \u2014 intentional"
+      }
+    ],
+    "pass": true
+  },
+  "final": {
+    "total_violations": 0,
+    "bare_field_error": [],
+    "bare_modal_actions": [],
+    "form_actions_in_modal": [],
+    "legacy_breakpoints": [],
+    "a11y_icon_buttons_missing_label": [],
+    "route_coverage": {
+      "app_routes": [
+        "/activities",
+        "/admin/data-operations",
+        "/admin/data-operations/runs/:runId",
+        "/admin/smtp-operations/accounts",
+        "/admin/smtp-operations/mail-operations",
+        "/admin/smtp-operations/templates",
+        "/admin/system/backups",
+        "/customers",
+        "/customers/:id",
+        "/dashboard",
+        "/data-integration/adapters",
+        "/data-integration/adapters/:adapterKey",
+        "/data-integration/enrichment",
+        "/data-integration/imports",
+        "/data-integration/imports/continue/:batchId",
+        "/data-integration/imports/fair/:fairId",
+        "/data-integration/imports/new",
+        "/data-integration/jobs",
+        "/data-integration/reports",
+        "/data-integration/run-history",
+        "/data-integration/runs/:runId",
+        "/data-integration/scraper-test",
+        "/fairs",
+        "/fairs/:id",
+        "/fairs/:id/enrichment",
+        "/follow-ups",
+        "/imports",
+        "/imports/fair/:fairId",
+        "/login",
+        "/todos",
+        "/todos/:id"
+      ],
+      "mounted_page_components": [
+        "ActivitiesPage",
+        "AdapterDetailPage",
+        "AdapterManagementPage",
+        "CustomerDetailPage",
+        "CustomerEnrichmentPage",
+        "CustomersPage",
+        "CustomersResponsivePilotPage",
+        "DashboardPage",
+        "DataIntegrationImportsPage",
+        "DataOperationRunResultPage",
+        "DataOperationsPage",
+        "DatabaseBackupsPage",
+        "EnrichmentRunDetailPage",
+        "FairDetailPage",
+        "FairEnrichmentRunPage",
+        "FairsPage",
+        "FollowUpsPage",
+        "ImportWizardPage",
+        "LoginPage",
+        "MailOperationsPage",
+        "MailTemplatesPage",
+        "ScraperRunHistoryPage",
+        "ScraperTestPage",
+        "SmtpAccountsPage",
+        "TableStandardSmokePage",
+        "TodoDetailPage",
+        "TodosPage"
+      ],
+      "smoke_covered_routes": [
+        "/activities",
+        "/admin/data-operations",
+        "/admin/data-operations/runs/:runId",
+        "/admin/smtp-operations/accounts",
+        "/admin/smtp-operations/mail-operations",
+        "/admin/smtp-operations/templates",
+        "/admin/system/backups",
+        "/customers",
+        "/customers/:id",
+        "/dashboard",
+        "/data-integration/adapters",
+        "/data-integration/adapters/:adapterKey",
+        "/data-integration/enrichment",
+        "/data-integration/imports",
+        "/data-integration/imports/continue/:batchId",
+        "/data-integration/imports/fair/:fairId",
+        "/data-integration/imports/new",
+        "/data-integration/jobs",
+        "/data-integration/reports",
+        "/data-integration/run-history",
+        "/data-integration/runs/:runId",
+        "/data-integration/scraper-test",
+        "/dev/customers-responsive-pilot",
+        "/dev/table-standard-smoke",
+        "/fairs",
+        "/fairs/:id",
+        "/fairs/:id/enrichment",
+        "/follow-ups",
+        "/imports",
+        "/imports/fair/:fairId",
+        "/login",
+        "/todos",
+        "/todos/:id"
+      ],
+      "page_files": [
+        "ActivitiesPage.tsx",
+        "AdapterDetailPage.tsx",
+        "AdapterManagementPage.tsx",
+        "CustomerDetailPage.tsx",
+        "CustomerEnrichmentPage.tsx",
+        "CustomersPage.tsx",
+        "DashboardPage.tsx",
+        "DataIntegrationImportsPage.tsx",
+        "DataOperationAnalyzeResultPage.tsx",
+        "DataOperationDuplicateResultPage.tsx",
+        "DataOperationRunResultPage.tsx",
+        "DataOperationsPage.tsx",
+        "DatabaseBackupsPage.tsx",
+        "EnrichmentRunDetailPage.tsx",
+        "FairDetailPage.tsx",
+        "FairEnrichmentRunPage.tsx",
+        "FairsPage.tsx",
+        "FollowUpsPage.tsx",
+        "ImportWizardPage.tsx",
+        "LoginPage.tsx",
+        "MailOperationsPage.tsx",
+        "MailTemplatesPage.tsx",
+        "ScraperRunHistoryPage.tsx",
+        "ScraperTestPage.tsx",
+        "SmtpAccountsPage.tsx",
+        "TodoDetailPage.tsx",
+        "TodosPage.tsx"
+      ],
+      "missing_pageshell_on_mounted": [],
+      "unmounted_page_files": [],
+      "routes_missing_smoke_coverage": [],
+      "total_violations": 0,
+      "pass": true
+    },
+    "prior_gates_failed": false,
+    "intentional_exceptions": [
+      {
+        "file": "frontend/src/**/FairBulkEmailWizard.tsx",
+        "line": 0,
+        "kind": "in_form_modal_actions",
+        "snippet": "multi-action form/wizard keeps form-actions in body"
+      },
+      {
+        "file": "frontend/src/**/FormActions.tsx",
+        "line": 0,
+        "kind": "in_form_modal_actions",
+        "snippet": "multi-action form/wizard keeps form-actions in body"
+      },
+      {
+        "file": "frontend/src/**/MailTemplateTestEmailPanel.tsx",
+        "line": 0,
+        "kind": "in_form_modal_actions",
+        "snippet": "multi-action form/wizard keeps form-actions in body"
+      },
+      {
+        "file": "frontend/src/**/ManualTaskMailModal.tsx",
+        "line": 0,
+        "kind": "in_form_modal_actions",
+        "snippet": "multi-action form/wizard keeps form-actions in body"
+      },
+      {
+        "file": "frontend/src/**/TodoWorklistActivityModal.tsx",
+        "line": 0,
+        "kind": "in_form_modal_actions",
+        "snippet": "multi-action form/wizard keeps form-actions in body"
+      }
+    ],
+    "pass": true,
+    "breakpoints_found": [
+      767,
+      768,
+      1023,
+      1024,
+      1440
+    ],
+    "allowlist_policy": {
+      "p0": [
+        {
+          "file": "frontend/src/components/ui/form/FormInputs.tsx",
+          "pattern": "raw <input|select|textarea|checkbox|radio>",
+          "reason": "Shared form-kit definition; primitives wrap native controls.",
+          "owner": "ui/form kit"
+        },
+        {
+          "file": "frontend/src/components/imports/ExcelMappingGrid.tsx",
+          "pattern": "raw <select> in mapping grid",
+          "reason": "Dense Excel mapping specialty requires native selects inside scroll-only grid; generic SelectInput breaks cell density.",
+          "owner": "import mapping specialty"
+        },
+        {
+          "file": "frontend/src/components/FairEntitySelect.tsx",
+          "pattern": "raw combobox input chrome",
+          "reason": "Domain async combobox; wraps search input + listbox pattern not covered by SelectInput.",
+          "owner": "domain select wrappers"
+        },
+        {
+          "file": "frontend/src/components/AdapterSelect.tsx",
+          "pattern": "raw combobox input chrome",
+          "reason": "Domain async combobox; wraps search input + listbox pattern not covered by SelectInput.",
+          "owner": "domain select wrappers"
+        }
+      ],
+      "p1_alert": [
+        {
+          "file": "frontend/src/components/ui/Banner.tsx",
+          "pattern": "class token banner",
+          "reason": "Shared Banner definition applies the canonical banner class.",
+          "owner": "ui/Banner kit"
+        }
+      ],
+      "p1_card": [
+        {
+          "file": "frontend/src/components/ui/Card.tsx",
+          "pattern": "class token card",
+          "reason": "Shared Card definition applies the canonical card class.",
+          "owner": "ui/Card kit"
+        }
+      ],
+      "p3_pages": [
+        {
+          "file": "frontend/src/pages/LoginPage.tsx",
+          "pattern": "PageShell missing",
+          "reason": "Auth brand shell is outside AppLayout; PageShell is for in-app pages only.",
+          "owner": "auth shell specialty"
+        }
+      ],
+      "rule": "Allowlist requires file + pattern + reason + owner. 'specialty' alone is invalid."
+    }
+  },
+  "gates": {
+    "P0": true,
+    "P1": true,
+    "P2": true,
+    "P3": true,
+    "FINAL": true,
+    "ALL": true
+  }
+}

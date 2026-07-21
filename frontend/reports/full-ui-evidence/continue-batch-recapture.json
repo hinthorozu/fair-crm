@@ -1,0 +1,317 @@
+[
+  {
+    "route": "/data-integration/imports/continue/:batchId",
+    "url": "/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+    "width": 320,
+    "status": "PASS",
+    "reason": "",
+    "kind": "di-param",
+    "production": true,
+    "screenshot": "screenshots/data-integration_imports_continue_batchId__w320.png",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "href": "http://127.0.0.1:5175/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+      "h1": "Excel Import",
+      "isWizard": true,
+      "redirected": false,
+      "batchMissing": false
+    },
+    "captureKind": "metric"
+  },
+  {
+    "route": "/data-integration/imports/continue/:batchId",
+    "url": "/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+    "width": 390,
+    "status": "PASS",
+    "reason": "",
+    "kind": "di-param",
+    "production": true,
+    "screenshot": "screenshots/data-integration_imports_continue_batchId__w390.png",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "href": "http://127.0.0.1:5175/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+      "h1": "Excel Import",
+      "isWizard": true,
+      "redirected": false,
+      "batchMissing": false
+    },
+    "captureKind": "metric"
+  },
+  {
+    "route": "/data-integration/imports/continue/:batchId",
+    "url": "/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+    "width": 767,
+    "status": "PASS",
+    "reason": "",
+    "kind": "di-param",
+    "production": true,
+    "screenshot": "screenshots/data-integration_imports_continue_batchId__w767.png",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "href": "http://127.0.0.1:5175/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+      "h1": "Excel Import",
+      "isWizard": true,
+      "redirected": false,
+      "batchMissing": false
+    },
+    "captureKind": "metric"
+  },
+  {
+    "route": "/data-integration/imports/continue/:batchId",
+    "url": "/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+    "width": 768,
+    "status": "PASS",
+    "reason": "",
+    "kind": "di-param",
+    "production": true,
+    "screenshot": "screenshots/data-integration_imports_continue_batchId__w768.png",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "href": "http://127.0.0.1:5175/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+      "h1": "Excel Import",
+      "isWizard": true,
+      "redirected": false,
+      "batchMissing": false
+    },
+    "captureKind": "metric"
+  },
+  {
+    "route": "/data-integration/imports/continue/:batchId",
+    "url": "/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+    "width": 769,
+    "status": "PASS",
+    "reason": "",
+    "kind": "di-param",
+    "production": true,
+    "screenshot": "screenshots/data-integration_imports_continue_batchId__w769.png",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "href": "http://127.0.0.1:5175/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+      "h1": "Excel Import",
+      "isWizard": true,
+      "redirected": false,
+      "batchMissing": false
+    },
+    "captureKind": "metric"
+  },
+  {
+    "route": "/data-integration/imports/continue/:batchId",
+    "url": "/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+    "width": 1023,
+    "status": "PASS",
+    "reason": "",
+    "kind": "di-param",
+    "production": true,
+    "screenshot": "screenshots/data-integration_imports_continue_batchId__w1023.png",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "href": "http://127.0.0.1:5175/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+      "h1": "Excel Import",
+      "isWizard": true,
+      "redirected": false,
+      "batchMissing": false
+    },
+    "captureKind": "metric"
+  },
+  {
+    "route": "/data-integration/imports/continue/:batchId",
+    "url": "/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+    "width": 1024,
+    "status": "PASS",
+    "reason": "",
+    "kind": "di-param",
+    "production": true,
+    "screenshot": "screenshots/data-integration_imports_continue_batchId__w1024.png",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "href": "http://127.0.0.1:5175/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+      "h1": "Excel Import",
+      "isWizard": true,
+      "redirected": false,
+      "batchMissing": false
+    },
+    "captureKind": "metric"
+  },
+  {
+    "route": "/data-integration/imports/continue/:batchId",
+    "url": "/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+    "width": 1025,
+    "status": "PASS",
+    "reason": "",
+    "kind": "di-param",
+    "production": true,
+    "screenshot": "screenshots/data-integration_imports_continue_batchId__w1025.png",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "href": "http://127.0.0.1:5175/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+      "h1": "Excel Import",
+      "isWizard": true,
+      "redirected": false,
+      "batchMissing": false
+    },
+    "captureKind": "metric"
+  },
+  {
+    "route": "/data-integration/imports/continue/:batchId",
+    "url": "/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+    "width": 1439,
+    "status": "PASS",
+    "reason": "",
+    "kind": "di-param",
+    "production": true,
+    "screenshot": "screenshots/data-integration_imports_continue_batchId__w1439.png",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "href": "http://127.0.0.1:5175/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+      "h1": "Excel Import",
+      "isWizard": true,
+      "redirected": false,
+      "batchMissing": false
+    },
+    "captureKind": "metric"
+  },
+  {
+    "route": "/data-integration/imports/continue/:batchId",
+    "url": "/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+    "width": 1440,
+    "status": "PASS",
+    "reason": "",
+    "kind": "di-param",
+    "production": true,
+    "screenshot": "screenshots/data-integration_imports_continue_batchId__w1440.png",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "href": "http://127.0.0.1:5175/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+      "h1": "Excel Import",
+      "isWizard": true,
+      "redirected": false,
+      "batchMissing": false
+    },
+    "captureKind": "metric"
+  },
+  {
+    "route": "/data-integration/imports/continue/:batchId",
+    "url": "/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+    "width": 1441,
+    "status": "PASS",
+    "reason": "",
+    "kind": "di-param",
+    "production": true,
+    "screenshot": "screenshots/data-integration_imports_continue_batchId__w1441.png",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "href": "http://127.0.0.1:5175/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+      "h1": "Excel Import",
+      "isWizard": true,
+      "redirected": false,
+      "batchMissing": false
+    },
+    "captureKind": "metric"
+  },
+  {
+    "route": "/data-integration/imports/continue/:batchId",
+    "url": "/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+    "width": 1920,
+    "status": "PASS",
+    "reason": "",
+    "kind": "di-param",
+    "production": true,
+    "screenshot": "screenshots/data-integration_imports_continue_batchId__w1920.png",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "href": "http://127.0.0.1:5175/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+      "h1": "Excel Import",
+      "isWizard": true,
+      "redirected": false,
+      "batchMissing": false
+    },
+    "captureKind": "metric"
+  },
+  {
+    "route": "/data-integration/imports/continue/:batchId",
+    "url": "/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+    "width": 2560,
+    "status": "PASS",
+    "reason": "",
+    "kind": "di-param",
+    "production": true,
+    "screenshot": "screenshots/data-integration_imports_continue_batchId__w2560.png",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "href": "http://127.0.0.1:5175/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+      "h1": "Excel Import",
+      "isWizard": true,
+      "redirected": false,
+      "batchMissing": false
+    },
+    "captureKind": "metric"
+  },
+  {
+    "route": "/data-integration/imports/continue/:batchId",
+    "url": "/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+    "width": 3440,
+    "status": "PASS",
+    "reason": "",
+    "kind": "di-param",
+    "production": true,
+    "screenshot": "screenshots/data-integration_imports_continue_batchId__w3440.png",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "href": "http://127.0.0.1:5175/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+      "h1": "Excel Import",
+      "isWizard": true,
+      "redirected": false,
+      "batchMissing": false
+    },
+    "captureKind": "metric"
+  },
+  {
+    "route": "/data-integration/imports/continue/:batchId",
+    "url": "/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+    "width": 3840,
+    "status": "PASS",
+    "reason": "",
+    "kind": "di-param",
+    "production": true,
+    "screenshot": "screenshots/data-integration_imports_continue_batchId__w3840.png",
+    "metrics": {
+      "overflowX": 0,
+      "stretched": 0,
+      "nativeChecks": 0,
+      "href": "http://127.0.0.1:5175/data-integration/imports/continue/e302f4d8-5058-4753-afe6-186cf26e916f",
+      "h1": "Excel Import",
+      "isWizard": true,
+      "redirected": false,
+      "batchMissing": false
+    },
+    "captureKind": "metric"
+  }
+]

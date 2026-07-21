@@ -67,7 +67,7 @@ export function LoginPage({ onSuccess }: LoginPageProps) {
         <Card className="login-card">
           <h2 className="login-card-heading">{authLabels.pageTitle}</h2>
           <form
-            className="crm-form login-form"
+            className="crm-form crm-form--narrow login-form"
             onSubmit={handleSubmit}
             noValidate
             aria-busy={submitting}

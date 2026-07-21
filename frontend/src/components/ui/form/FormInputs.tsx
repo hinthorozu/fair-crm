@@ -199,7 +199,7 @@ export function CheckboxField({
       ref={setRefs}
       id={id}
       type="checkbox"
-      className={inputClassName}
+      className={["form-checkbox", inputClassName].filter(Boolean).join(" ")}
       checked={checked}
       disabled={disabled}
       onChange={(event) => onChange(event.target.checked)}
@@ -266,7 +266,7 @@ export function RadioField({
       type="radio"
       name={name}
       value={value}
-      className={inputClassName}
+      className={["form-radio", inputClassName].filter(Boolean).join(" ")}
       checked={checked}
       disabled={disabled}
       onChange={() => onChange(value)}

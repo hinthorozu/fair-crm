@@ -20,7 +20,7 @@ export function FormField({
   children,
 }: FormFieldProps) {
   return (
-    <div className={`field ${fullWidth ? "span-2" : ""}`.trim()}>
+    <div className={`field ${fullWidth ? "full-width" : ""}`.trim()}>
       <label htmlFor={htmlFor}>
         <span className="field-label">
           {label}

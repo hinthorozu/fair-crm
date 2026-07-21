@@ -485,7 +485,7 @@ export function ManualTaskMailModal({
         </div>
       ) : (
         <form
-          className="manual-task-mail-form"
+          className="manual-task-mail-form crm-form crm-form--standard"
           onSubmit={(event) => {
             event.preventDefault();
           }}

@@ -1,0 +1,11 @@
+{
+  "customer": "96715255-5b1b-5a4e-a8d6-1efa8e010da5",
+  "fair": "185f1197-beb6-4d98-a53f-1ed7e503ae14",
+  "todo": "14dbd7db-9a64-4608-81f5-a13bbae64945",
+  "adapter": "customer_contact_enrichment",
+  "runId": "ed0c1972-9936-4381-a512-cc67f1e2639b",
+  "batchId": "e302f4d8-5058-4753-afe6-186cf26e916f",
+  "dataOpRunId": "7c54a19a-2e30-4af3-ba93-e1d151f40a8d",
+  "dataOpKey": "analyze_customers_without_fair",
+  "adapters": []
+}

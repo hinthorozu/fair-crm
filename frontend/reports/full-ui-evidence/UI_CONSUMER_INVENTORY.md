@@ -1,0 +1,883 @@
+# UI_CONSUMER_INVENTORY
+
+Source scan of `src/**/*.{ts,tsx}`. Counts are JSX/tag occurrences (definition sites excluded where marked).
+
+**Verification rule:** a consumer is VERIFIED only with route + screenshot visual QA. Until then NOT VERIFIED = total for that row.
+
+| Tür | Toplam consumer | Design system altında | Specialty | NOT VERIFIED |
+|---|---:|---:|---:|---:|
+| forms | 36 | 36 | 0 | 36 |
+| buttons | 205 | 205 | 0 | 205 |
+| iconButtons | 8 | 8 | 0 | 8 |
+| inputs | 100 | 95 | 5 | 100 |
+| textareas | 20 | 19 | 1 | 20 |
+| selects | 58 | 55 | 3 | 58 |
+| comboboxes | 4 | 0 | 4 | 4 |
+| checkbox | 33 | 33 | 0 | 33 |
+| radio | 13 | 13 | 0 | 13 |
+| switch | 0 | 0 | 0 | 0 |
+| tables | 41 | 35 | 6 | 41 |
+| cards | 51 | 51 | 0 | 51 |
+| modals | 66 | 66 | 0 | 66 |
+| drawers | 0 | 0 | 0 | 0 |
+| toolbars | 16 | 16 | 0 | 16 |
+| pagination | 2 | 2 | 0 | 2 |
+| banners | 86 | 86 | 0 | 86 |
+| loadingStates | 22 | 22 | 0 | 22 |
+| emptyStates | 34 | 34 | 0 | 34 |
+
+**NOT VERIFIED total (sum of rows): 795** — COMPLETE blocked.
+
+## Consumer detail
+
+### forms (36)
+
+- `src/components/ActivityForm.tsx:137` — **form** — ds=`crm-form / FormModal` — `<form className="activity-form crm-form crm-form--standard" onSubmit={(event) => void handleSubmit(event)}>`
+- `src/components/ContactForm.tsx:129` — **form** — ds=`crm-form / FormModal` — `<form className="contact-form crm-form crm-form--standard" onSubmit={(event) => void handleSubmit(event)}>`
+- `src/components/CustomerForm.tsx:170` — **form** — ds=`crm-form / FormModal` — `<form className="customer-form crm-form crm-form--wide" onSubmit={(event) => void handleSubmit(event)}>`
+- `src/components/FairForm.tsx:150` — **form** — ds=`crm-form / FormModal` — `<form className="fair-form crm-form crm-form--standard" onSubmit={(event) => void handleSubmit(event)}>`
+- `src/components/mail_templates/MailTemplateForm.tsx:85` — **form** — ds=`crm-form / FormModal` — `<form className="mail-template-form crm-form crm-form--wide" onSubmit={(event) => void handleSubmit(event)}>`
+- `src/components/ParticipationForm.tsx:168` — **form** — ds=`crm-form / FormModal` — `<form className="participation-form crm-form crm-form--standard" onSubmit={(event) => void handleSubmit(event)}>`
+- `src/components/scraper/AdapterFormModal.tsx:159` — **form** — ds=`crm-form / FormModal` — `<form id={FORM_ID} className="adapter-form crm-form crm-form--wide" onSubmit={handleSubmit}>`
+- `src/components/smtp/SmtpAccountForm.tsx:114` — **form** — ds=`crm-form / FormModal` — `<form className="smtp-account-form crm-form crm-form--standard" onSubmit={(event) => void handleSubmit(event)}>`
+- `src/components/todos/ManualTaskMailModal.tsx:487` — **form** — ds=`crm-form / FormModal` — `<form`
+- `src/components/todos/ManualTaskMailModal.tsx:413` — **FormModal** — ds=`FormModal` — `<FormModal title={title} onClose={requestClose} size="lg">`
+- `src/components/todos/TodoWorklistActivityModal.tsx:228` — **form** — ds=`crm-form / FormModal` — `<form`
+- `src/components/todos/TodoWorklistActivityModal.tsx:213` — **FormModal** — ds=`FormModal` — `<FormModal title={modalTitle} onClose={requestClose} size="lg">`
+- `src/pages/CustomerDetailPage.tsx:782` — **FormModal** — ds=`FormModal` — `<FormModal title={labels.editCustomer} onClose={closeModal} size="lg">`
+- `src/pages/CustomerDetailPage.tsx:793` — **FormModal** — ds=`FormModal` — `<FormModal title={contactLabels.newContact} onClose={closeModal}>`
+- `src/pages/CustomerDetailPage.tsx:805` — **FormModal** — ds=`FormModal` — `<FormModal title={contactLabels.editContact} onClose={closeModal}>`
+- `src/pages/CustomerDetailPage.tsx:818` — **FormModal** — ds=`FormModal` — `<FormModal title={activityLabels.newActivity} onClose={closeModal}>`
+- `src/pages/CustomerDetailPage.tsx:829` — **FormModal** — ds=`FormModal` — `<FormModal title={activityLabels.editActivity} onClose={closeModal}>`
+- `src/pages/CustomerDetailPage.tsx:841` — **FormModal** — ds=`FormModal` — `<FormModal title={participationLabels.newParticipation} onClose={closeModal} size="lg">`
+- `src/pages/CustomerDetailPage.tsx:854` — **FormModal** — ds=`FormModal` — `<FormModal title={participationLabels.editParticipation} onClose={closeModal} size="lg">`
+- `src/pages/CustomersPage.tsx:158` — **FormModal** — ds=`FormModal` — `<FormModal title={labels.newCustomer} onClose={closeModal} size="lg">`
+- `src/pages/CustomersPage.tsx:168` — **FormModal** — ds=`FormModal` — `<FormModal title={labels.editCustomer} onClose={closeModal} size="lg">`
+- `src/pages/FairDetailPage.tsx:633` — **FormModal** — ds=`FormModal` — `<FormModal title={fairLabels.editFair} onClose={closeModal} size="lg">`
+- `src/pages/FairDetailPage.tsx:644` — **FormModal** — ds=`FormModal` — `<FormModal title={participationLabels.newParticipant} onClose={closeModal} size="lg">`
+- `src/pages/FairDetailPage.tsx:656` — **FormModal** — ds=`FormModal` — `<FormModal title={participationLabels.editParticipant} onClose={closeModal} size="lg">`
+- `src/pages/FairDetailPage.tsx:669` — **FormModal** — ds=`FormModal` — `<FormModal title={fairLabels.bulkEmailModalTitle} onClose={closeModal} size="lg">`
+- `src/pages/FairsPage.tsx:158` — **FormModal** — ds=`FormModal` — `<FormModal title={fairLabels.newFair} onClose={closeModal} size="lg">`
+- `src/pages/FairsPage.tsx:168` — **FormModal** — ds=`FormModal` — `<FormModal title={fairLabels.editFair} onClose={closeModal} size="lg">`
+- `src/pages/LoginPage.tsx:69` — **form** — ds=`crm-form / FormModal` — `<form`
+- `src/pages/MailTemplatesPage.tsx:424` — **FormModal** — ds=`FormModal` — `<FormModal title={adminLabels.mailTemplatesNew} onClose={closeModal} size="lg">`
+- `src/pages/MailTemplatesPage.tsx:437` — **FormModal** — ds=`FormModal` — `<FormModal title={adminLabels.mailTemplatesEdit} onClose={closeModal} size="lg">`
+- `src/pages/MailTemplatesPage.tsx:493` — **FormModal** — ds=`FormModal` — `<FormModal title={adminLabels.mailTemplatesTestEmailTitle} onClose={closeTestEmail} size="lg">`
+- `src/pages/SmtpAccountsPage.tsx:348` — **FormModal** — ds=`FormModal` — `<FormModal title={adminLabels.smtpNewAccount} onClose={closeModal}>`
+- `src/pages/SmtpAccountsPage.tsx:363` — **FormModal** — ds=`FormModal` — `<FormModal title={adminLabels.smtpEditAccount} onClose={closeModal}>`
+- `src/pages/TodosPage.tsx:219` — **form** — ds=`crm-form / FormModal` — `<form className="crm-form crm-form--standard" onSubmit={(event) => void handleSubmit(event)}>`
+- `src/pages/TodosPage.tsx:753` — **FormModal** — ds=`FormModal` — `<FormModal title={todoLabels.newTodo} onClose={() => setModal(null)} size="lg">`
+- `src/pages/TodosPage.tsx:764` — **FormModal** — ds=`FormModal` — `<FormModal title={todoLabels.editTodo} onClose={() => setModal(null)} size="lg">`
+
+### buttons (205)
+
+- `src/components/ActivityList.tsx:106` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link" onClick={() => onEdit(a)}>`
+- `src/components/ActivityList.tsx:109` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/AdapterSelect.tsx:113` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/AdapterSelect.tsx:125` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/AssignCustomersToFairModal.tsx:48` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={requestClose} disabled={assigning}>`
+- `src/components/AssignCustomersToFairModal.tsx:51` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/ContactList.tsx:76` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link" onClick={() => onEdit(c)}>`
+- `src/components/ContactList.tsx:79` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/CustomerCommunicationFieldList.tsx:78` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/CustomerCommunicationFieldList.tsx:90` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary btn-sm communication-field-add" onClick={addItem}>`
+- `src/components/CustomerList.tsx:37` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={onRefresh}>`
+- `src/components/CustomerList.tsx:193` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/CustomerList.tsx:204` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link" onClick={() => onEdit(c)}>`
+- `src/components/CustomerList.tsx:207` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/customers/CustomerContactEnrichmentTab.tsx:201` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/customers/CustomerContactEnrichmentTab.tsx:209` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/customers/CustomerContactEnrichmentTab.tsx:251` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link" onClick={() => onOpenImportBatch(importBatchId)}>`
+- `src/components/DeleteSelectedCustomersModal.tsx:31` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={requestClose} disabled={deleting}>`
+- `src/components/DeleteSelectedCustomersModal.tsx:34` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/DuplicateGroupDetailView.tsx:562` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link" onClick={handleExpandAll}>`
+- `src/components/DuplicateGroupDetailView.tsx:566` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link" onClick={handleCollapseAll}>`
+- `src/components/DuplicateGroupDetailView.tsx:574` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/DuplicateGroupDetailView.tsx:582` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/DuplicateGroupDetailView.tsx:633` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/DuplicateGroupDetailView.tsx:641` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/duplicateMerge/CopyableCustomerId.tsx:26` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/duplicateMerge/MergeCustomersConfirmModal.tsx:41` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={requestClose} disabled={merging}>`
+- `src/components/duplicateMerge/MergeCustomersConfirmModal.tsx:44` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn danger" disabled={merging} onClick={onConfirm}>`
+- `src/components/duplicateMerge/MergeSummaryPanel.tsx:121` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/FairEntitySelect.tsx:201` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/FairList.tsx:31` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={onRefresh}>`
+- `src/components/FairList.tsx:107` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link table-link" onClick={() => onOpenDetail(f.id)}>`
+- `src/components/FairList.tsx:164` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/FairList.tsx:175` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link" onClick={() => onEdit(f)}>`
+- `src/components/FairList.tsx:178` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/fairs/FairBulkEmailBatchDetailModal.tsx:130` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={onClose}>`
+- `src/components/fairs/FairBulkEmailBatchLogs.tsx:143` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/fairs/FairBulkEmailBatchLogs.tsx:171` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={() => void loadBatches()}>`
+- `src/components/fairs/FairBulkEmailWizard.tsx:435` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/fairs/FairBulkEmailWizard.tsx:508` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={onCancel} disabled={sending}>`
+- `src/components/fairs/FairBulkEmailWizard.tsx:512` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/imports/MergeDiffViewer.tsx:70` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button type="button" className="merge-diff-toggle" onClick={toggleExpanded}>`
+- `src/components/imports/MergeDiffViewer.tsx:80` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button type="button" className="merge-diff-toggle" onClick={toggleExpanded}>`
+- `src/components/layout/AppLayout.tsx:104` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/layout/NavLink.tsx:57` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button type="button" className={classes} onClick={onClick} aria-disabled="true">`
+- `src/components/layout/UserMenu.tsx:80` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/layout/UserMenu.tsx:96` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/mail_operations/MailOperationActionsMenu.tsx:110` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/mail_templates/MailTemplateActionsMenu.tsx:98` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/mail_templates/MailTemplateActionsMenu.tsx:108` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/mail_templates/MailTemplateActionsMenu.tsx:118` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/mail_templates/MailTemplateActionsMenu.tsx:128` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/mail_templates/MailTemplateActionsMenu.tsx:138` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/mail_templates/MailTemplateActionsMenu.tsx:155` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/mail_templates/MailTemplatePreviewPanel.tsx:61` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/mail_templates/MailTemplateTestEmailPanel.tsx:259` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/mail_templates/MailTemplateTestEmailPanel.tsx:307` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={onCancel} disabled={sending}>`
+- `src/components/mail_templates/MailTemplateTestEmailPanel.tsx:310` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/Pagination.tsx:62` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/Pagination.tsx:70` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/ParticipationList.tsx:98` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link" onClick={() => onEdit(item)}>`
+- `src/components/ParticipationList.tsx:101` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/ParticipationList.tsx:164` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/ParticipationList.tsx:234` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link" onClick={() => onEdit(item)}>`
+- `src/components/ParticipationList.tsx:237` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/scraper/AdapterDetailContent.tsx:66` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link" onClick={() => onSelectRun(run.id)}>`
+- `src/components/scraper/AdapterDetailContent.tsx:225` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link" onClick={() => onOpenScraperTest(adapterKey)}>`
+- `src/components/scraper/AdapterDetailContent.tsx:230` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link" onClick={() => onViewAllRuns(adapterKey)}>`
+- `src/components/scraper/AdapterFormModal.tsx:145` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={handleCancel}>`
+- `src/components/scraper/AdapterFormModal.tsx:148` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/scraper/AdapterLinkedFairsTab.tsx:86` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/scraper/AdapterRunLogConsole.tsx:223` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/scraper/AdapterRunLogConsole.tsx:287` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/scraper/AdapterRunLogConsole.tsx:295` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/scraper/AdapterRunLogConsole.tsx:308` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/scraper/AdapterRunLogConsole.tsx:316` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/scraper/EnrichmentRunLogExportMenu.tsx:46` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/scraper/EnrichmentRunLogExportMenu.tsx:58` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/scraper/EnrichmentRunLogExportMenu.tsx:67` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/scraper/EnrichmentRunPanel.tsx:194` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/scraper/EnrichmentRunPanel.tsx:299` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn primary" disabled={running} onClick={() => void handleRun()}>`
+- `src/components/scraper/EnrichmentRunPanel.tsx:316` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/scraper/EnrichmentStateResetPanel.tsx:53` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/smtp/SmtpAccountForm.tsx:271` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/todos/ManualTaskMailModal.tsx:468` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/todos/ManualTaskMailModal.tsx:476` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/todos/ManualTaskMailModal.tsx:549` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/todos/ManualTaskMailModal.tsx:676` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/todos/ManualTaskMailModal.tsx:684` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/todos/ManualTaskMailModal.tsx:694` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn primary" disabled title={todoWorklistLabels.manualMailPreviewRequired}>`
+- `src/components/todos/TodoWorklistActivityModal.tsx:222` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={requestClose}>`
+- `src/components/todos/TodoWorklistActivityModal.tsx:240` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/todos/TodoWorklistActivityModal.tsx:316` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={requestClose} disabled={saving}>`
+- `src/components/todos/TodoWorklistActivityModal.tsx:319` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/todos/TodoWorklistActivityModal.tsx:327` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="submit" className="btn primary" disabled={!canSubmit}>`
+- `src/components/ui/Breadcrumb.tsx:23` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button type="button" className="breadcrumb-link" onClick={item.onClick}>`
+- `src/components/ui/Button.tsx:30` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `* Prefer this over ad-hoc '<button className="btn …">' for new code;`
+- `src/components/ui/Button.tsx:49` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/ui/ConfirmDialog.tsx:57` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={onCancel} disabled={loading}>`
+- `src/components/ui/ConfirmDialog.tsx:60` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/ui/DataTable.tsx:33` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/ui/DataTable.tsx:102` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={onRetry}>`
+- `src/components/ui/EmptyState.tsx:28` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn primary" onClick={onAction}>`
+- `src/components/ui/form/FormActions.tsx:20` — **Button** — ds=`Button` — `<Button type="button" variant="secondary" onClick={onCancel} disabled={saving}>`
+- `src/components/ui/form/FormActions.tsx:23` — **Button** — ds=`Button` — `<Button type="submit" variant="primary" loading={saving}>`
+- `src/components/ui/IconButton.tsx:28` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `* Prefer this over bare icon '<button>' markup in shell / overlays / tables.`
+- `src/components/ui/IconButton.tsx:47` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/ui/PageHeader.tsx:45` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/ui/PageHeader.tsx:66` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link back-link" onClick={back.onClick}>`
+- `src/components/ui/ServerDataTableFrame.tsx:71` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link" onClick={() => void table.refresh()}>`
+- `src/components/ui/TableEntityLink.tsx:15` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/ui/Tabs.tsx:25` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/components/ui/TechnicalDetails.tsx:30` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/dev/TableStandardSmokePage.tsx:332` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/ActivitiesPage.tsx:173` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link" onClick={() => setDetail(activity)}>`
+- `src/pages/ActivitiesPage.tsx:176` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/ActivitiesPage.tsx:243` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/ActivitiesPage.tsx:272` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={() => void table.refresh()}>`
+- `src/pages/AdapterDetailPage.tsx:323` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={onBack}>`
+- `src/pages/AdapterManagementPage.tsx:102` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn btn-sm secondary" onClick={() => handlers.onOpenDetail(adapter)}>`
+- `src/pages/AdapterManagementPage.tsx:105` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/AdapterManagementPage.tsx:315` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={() => void loadData()} disabled={loading}>`
+- `src/pages/AdapterManagementPage.tsx:318` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/CustomerDetailPage.tsx:439` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={onBack}>`
+- `src/pages/CustomerDetailPage.tsx:640` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/CustomerDetailPage.tsx:685` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/CustomerDetailPage.tsx:734` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/CustomersPage.tsx:111` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn primary" onClick={openCreate}>`
+- `src/pages/DashboardPage.tsx:181` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DatabaseBackupsPage.tsx:197` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link" onClick={() => void handlers.onDetails(job)}>`
+- `src/pages/DatabaseBackupsPage.tsx:325` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DatabaseBackupsPage.tsx:333` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link" onClick={() => void handlers.onDetails(backup)}>`
+- `src/pages/DatabaseBackupsPage.tsx:532` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={handleCancel}>`
+- `src/pages/DatabaseBackupsPage.tsx:535` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn primary" disabled={creating || !canSubmit} onClick={onSubmit}>`
+- `src/pages/DatabaseBackupsPage.tsx:566` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={onCancel} disabled={restoring}>`
+- `src/pages/DatabaseBackupsPage.tsx:569` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DatabaseBackupsPage.tsx:646` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={onCancel} disabled={deleting}>`
+- `src/pages/DatabaseBackupsPage.tsx:649` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DatabaseBackupsPage.tsx:741` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={handleCancel} disabled={restoring}>`
+- `src/pages/DatabaseBackupsPage.tsx:744` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DatabaseBackupsPage.tsx:818` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DatabaseBackupsPage.tsx:1304` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DatabaseBackupsPage.tsx:1313` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DataIntegrationImportsPage.tsx:137` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DataIntegrationImportsPage.tsx:149` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DataIntegrationImportsPage.tsx:164` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DataIntegrationImportsPage.tsx:172` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DataOperationAnalyzeResultPage.tsx:259` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={onBack}>`
+- `src/pages/DataOperationAnalyzeResultPage.tsx:332` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DataOperationAnalyzeResultPage.tsx:340` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DataOperationAnalyzeResultPage.tsx:348` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DataOperationDuplicateResultPage.tsx:87` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DataOperationDuplicateResultPage.tsx:333` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={closeGroupDetail}>`
+- `src/pages/DataOperationDuplicateResultPage.tsx:336` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={onBack}>`
+- `src/pages/DataOperationDuplicateResultPage.tsx:341` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={onBack}>`
+- `src/pages/DataOperationDuplicateResultPage.tsx:437` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={() => void table.refresh()}>`
+- `src/pages/DataOperationDuplicateResultPage.tsx:440` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DataOperationRunResultPage.tsx:87` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={onBack}>`
+- `src/pages/DataOperationsPage.tsx:245` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DataOperationsPage.tsx:298` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/DataOperationsPage.tsx:315` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/EnrichmentRunDetailPage.tsx:144` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/EnrichmentRunDetailPage.tsx:152` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={onBack}>`
+- `src/pages/EnrichmentRunDetailPage.tsx:189` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/FairDetailPage.tsx:354` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={onBack}>`
+- `src/pages/FairDetailPage.tsx:515` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/FairDetailPage.tsx:558` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/FairDetailPage.tsx:593` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/FairsPage.tsx:114` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn primary" onClick={openCreate}>`
+- `src/pages/FollowUpsPage.tsx:262` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/FollowUpsPage.tsx:286` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={() => void table.refresh()}>`
+- `src/pages/FollowUpsPage.tsx:293` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/ImportWizardPage.tsx:561` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/ImportWizardPage.tsx:612` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/ImportWizardPage.tsx:620` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/ImportWizardPage.tsx:724` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/ImportWizardPage.tsx:965` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn btn-secondary" onClick={() => fileRef.current?.click()}>`
+- `src/pages/ImportWizardPage.tsx:1152` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/ImportWizardPage.tsx:1178` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn btn-primary" disabled={loading} onClick={() => void handleAnalyze()}>`
+- `src/pages/ImportWizardPage.tsx:1221` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn btn-primary" onClick={() => onFinished?.()}>`
+- `src/pages/ImportWizardPage.tsx:1241` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/ImportWizardPage.tsx:1349` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/ImportWizardPage.tsx:1358` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/LoginPage.tsx:122` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="submit" className="btn primary login-submit" disabled={submitting}>`
+- `src/pages/MailTemplatesPage.tsx:338` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn primary" onClick={openCreate}>`
+- `src/pages/ScraperRunHistoryPage.tsx:93` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/ScraperRunHistoryPage.tsx:110` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/ScraperRunHistoryPage.tsx:121` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/ScraperRunHistoryPage.tsx:170` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn link" onClick={() => handlers.onOpenAdapter?.(run.adapter_key)}>`
+- `src/pages/ScraperRunHistoryPage.tsx:228` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/ScraperRunHistoryPage.tsx:281` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/SmtpAccountsPage.tsx:270` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn btn-sm secondary" onClick={() => openEdit(account)}>`
+- `src/pages/SmtpAccountsPage.tsx:275` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/SmtpAccountsPage.tsx:295` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/SmtpAccountsPage.tsx:318` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn primary" onClick={openCreate}>`
+- `src/pages/TodoDetailPage.tsx:253` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/TodoDetailPage.tsx:275` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={onBack}>`
+- `src/pages/TodoDetailPage.tsx:327` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/TodoDetailPage.tsx:344` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={() => void table.refresh()}>`
+- `src/pages/TodosPage.tsx:557` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/TodosPage.tsx:570` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/TodosPage.tsx:580` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/TodosPage.tsx:590` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/TodosPage.tsx:623` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — SPECIALTY — `<button`
+- `src/pages/TodosPage.tsx:644` — **button** — ds=`.btn / Button / IconButton / specialty chrome` — `<button type="button" className="btn secondary" onClick={() => void table.refresh()}>`
+
+### iconButtons (8)
+
+- `src/components/layout/AppLayout.tsx:87` — **IconButton** — ds=`IconButton` — `<IconButton`
+- `src/components/layout/SidebarCollapseButton.tsx:23` — **IconButton** — ds=`IconButton` — `<IconButton`
+- `src/components/mail_operations/MailOperationActionsMenu.tsx:127` — **IconButton** — ds=`IconButton` — `<IconButton`
+- `src/components/todos/ManualTaskMailModal.tsx:568` — **IconButton** — ds=`IconButton` — `<IconButton`
+- `src/components/ui/Drawer.tsx:37` — **IconButton** — ds=`IconButton` — `<IconButton`
+- `src/components/ui/form/FormInputs.tsx:93` — **IconButton** — ds=`IconButton` — `<IconButton`
+- `src/components/ui/Modal.tsx:95` — **IconButton** — ds=`IconButton` — `<IconButton`
+- `src/components/ui/WidthResponsiveDataTable.tsx:229` — **IconButton** — ds=`IconButton` — `<IconButton`
+
+### inputs (100)
+
+- `src/components/ActivityForm.tsx:173` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/ActivityForm.tsx:204` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/ActivityForm.tsx:214` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/AdapterSelect.tsx:88` — **raw_input** — ds=`raw <input> (inspect)` — SPECIALTY — `<input`
+- `src/components/ContactForm.tsx:135` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/ContactForm.tsx:144` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/ContactForm.tsx:153` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/ContactForm.tsx:161` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/ContactForm.tsx:178` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/ContactForm.tsx:188` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/ContactForm.tsx:197` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/ContactForm.tsx:210` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/CustomerCommunicationFieldList.tsx:70` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/CustomerForm.tsx:176` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/CustomerForm.tsx:185` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/CustomerForm.tsx:193` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/CustomerForm.tsx:249` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/CustomerForm.tsx:257` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/CustomerForm.tsx:265` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/CustomerForm.tsx:308` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/CustomerForm.tsx:318` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/CustomerForm.tsx:328` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/CustomerForm.tsx:338` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/CustomerList.tsx:42` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/FairEntitySelect.tsx:165` — **raw_input** — ds=`raw <input> (inspect)` — SPECIALTY — `<input`
+- `src/components/FairForm.tsx:156` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/FairForm.tsx:183` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/FairForm.tsx:192` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/FairForm.tsx:201` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/FairForm.tsx:209` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/FairForm.tsx:217` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/FairForm.tsx:229` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/FairForm.tsx:237` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/FairForm.tsx:277` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/FairList.tsx:36` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/fairs/FairBulkEmailWizard.tsx:422` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/mail_templates/MailTemplateForm.tsx:91` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/mail_templates/MailTemplateForm.tsx:105` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/mail_templates/MailTemplateForm.tsx:130` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/mail_templates/MailTemplateForm.tsx:139` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/mail_templates/MailTemplateTestEmailPanel.tsx:194` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/mail_templates/MailTemplateTestEmailPanel.tsx:210` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/ParticipationForm.tsx:215` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/ParticipationForm.tsx:223` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/ParticipationForm.tsx:254` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/scraper/AdapterForm.tsx:121` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/scraper/AdapterForm.tsx:140` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/scraper/AdapterForm.tsx:157` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/scraper/AdapterRunLogConsole.tsx:208` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/scraper/AdapterRunLogConsole.tsx:235` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/scraper/EnrichmentRunPanel.tsx:213` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/scraper/EnrichmentRunPanel.tsx:252` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/scraper/EnrichmentRunPanel.tsx:267` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/smtp/SmtpAccountForm.tsx:120` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/smtp/SmtpAccountForm.tsx:130` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/smtp/SmtpAccountForm.tsx:140` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/smtp/SmtpAccountForm.tsx:153` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/smtp/SmtpAccountForm.tsx:163` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/smtp/SmtpAccountForm.tsx:208` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/smtp/SmtpAccountForm.tsx:259` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/smtp/SmtpAccountForm.tsx:222` — **PasswordInput** — ds=`PasswordInput` — `<PasswordInput`
+- `src/components/todos/ManualTaskMailModal.tsx:536` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/todos/ManualTaskMailModal.tsx:640` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/todos/TodoWorklistActivityModal.tsx:283` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/components/ui/form/FormInputs.tsx:29` — **raw_input** — ds=`raw <input> (inspect)` — SPECIALTY — `<input`
+- `src/components/ui/form/FormInputs.tsx:198` — **raw_input** — ds=`raw <input> (inspect)` — SPECIALTY — `<input`
+- `src/components/ui/form/FormInputs.tsx:264` — **raw_input** — ds=`raw <input> (inspect)` — SPECIALTY — `<input`
+- `src/pages/ActivitiesPage.tsx:277` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/ActivitiesPage.tsx:325` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/ActivitiesPage.tsx:332` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/AdapterManagementPage.tsx:331` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/CustomerDetailPage.tsx:649` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/CustomerDetailPage.tsx:694` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/CustomerDetailPage.tsx:743` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/DatabaseBackupsPage.tsx:606` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/DatabaseBackupsPage.tsx:667` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/DatabaseBackupsPage.tsx:800` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/DatabaseBackupsPage.tsx:868` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/DataOperationDuplicateResultPage.tsx:451` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/FairDetailPage.tsx:602` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/FollowUpsPage.tsx:303` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/ImportWizardPage.tsx:572` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/ImportWizardPage.tsx:909` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/ImportWizardPage.tsx:957` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/ImportWizardPage.tsx:1093` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/LoginPage.tsx:84` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/LoginPage.tsx:107` — **PasswordInput** — ds=`PasswordInput` — `<PasswordInput`
+- `src/pages/MailOperationsPage.tsx:326` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/MailOperationsPage.tsx:406` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/MailOperationsPage.tsx:415` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/ScraperRunHistoryPage.tsx:422` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/ScraperRunHistoryPage.tsx:430` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/ScraperRunHistoryPage.tsx:439` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/TodoDetailPage.tsx:349` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/TodosPage.tsx:222` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/TodosPage.tsx:294` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/TodosPage.tsx:325` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/TodosPage.tsx:649` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/TodosPage.tsx:707` — **TextInput** — ds=`TextInput` — `<TextInput`
+- `src/pages/TodosPage.tsx:715` — **TextInput** — ds=`TextInput` — `<TextInput`
+
+### textareas (20)
+
+- `src/components/ActivityForm.tsx:246` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+- `src/components/ContactForm.tsx:261` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+- `src/components/CustomerForm.tsx:273` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+- `src/components/CustomerForm.tsx:369` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+- `src/components/FairForm.tsx:251` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+- `src/components/FairForm.tsx:293` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+- `src/components/mail_templates/MailTemplateForm.tsx:152` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+- `src/components/mail_templates/MailTemplateForm.tsx:161` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+- `src/components/mail_templates/MailTemplateForm.tsx:174` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+- `src/components/mail_templates/MailTemplatePreviewPanel.tsx:46` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+- `src/components/mail_templates/MailTemplateTestEmailPanel.tsx:247` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+- `src/components/ParticipationForm.tsx:292` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+- `src/components/scraper/AdapterForm.tsx:194` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+- `src/components/scraper/AdapterForm.tsx:211` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+- `src/components/todos/ManualTaskMailModal.tsx:659` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+- `src/components/todos/TodoWorklistActivityModal.tsx:271` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+- `src/components/ui/form/FormInputs.tsx:135` — **raw_textarea** — ds=`raw <textarea>` — SPECIALTY — `<textarea`
+- `src/pages/DatabaseBackupsPage.tsx:501` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+- `src/pages/DatabaseBackupsPage.tsx:842` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+- `src/pages/TodosPage.tsx:230` — **TextareaInput** — ds=`TextareaInput` — `<TextareaInput`
+
+### selects (58)
+
+- `src/components/ActivityForm.tsx:143` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/ActivityForm.tsx:158` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/ActivityForm.tsx:184` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/ActivityForm.tsx:227` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/CustomerForm.tsx:201` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/CustomerForm.tsx:215` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/CustomerForm.tsx:229` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/CustomerList.tsx:51` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/CustomerList.tsx:64` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/FairForm.tsx:165` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/FairList.tsx:45` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/fairs/FairBulkEmailWizard.tsx:386` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/fairs/FairBulkEmailWizard.tsx:407` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/imports/ExcelMappingGrid.tsx:55` — **raw_select** — ds=`raw <select>` — SPECIALTY — `<select`
+- `src/components/mail_templates/MailTemplateForm.tsx:114` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/mail_templates/MailTemplateTestEmailPanel.tsx:227` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/Pagination.tsx:47` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/ParticipationForm.tsx:175` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/ParticipationForm.tsx:198` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/ParticipationForm.tsx:234` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/ParticipationForm.tsx:272` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/scraper/AdapterForm.tsx:87` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/smtp/SmtpAccountForm.tsx:175` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/todos/ManualTaskMailModal.tsx:510` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/todos/ManualTaskMailModal.tsx:592` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/todos/ManualTaskMailModal.tsx:616` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/todos/TodoWorklistActivityModal.tsx:254` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/components/ui/form/FormInputs.tsx:114` — **raw_select** — ds=`raw <select>` — SPECIALTY — `<select`
+- `src/pages/ActivitiesPage.tsx:286` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/ActivitiesPage.tsx:299` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/ActivitiesPage.tsx:312` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/ImportWizardPage.tsx:581` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/ImportWizardPage.tsx:594` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/ImportWizardPage.tsx:711` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/ImportWizardPage.tsx:808` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/ImportWizardPage.tsx:852` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/ImportWizardPage.tsx:973` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/ImportWizardPage.tsx:1123` — **raw_select** — ds=`raw <select>` — SPECIALTY — `<select`
+- `src/pages/MailOperationsPage.tsx:336` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/MailOperationsPage.tsx:350` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/MailOperationsPage.tsx:369` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/MailOperationsPage.tsx:390` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/MailTemplatesPage.tsx:350` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/MailTemplatesPage.tsx:365` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/MailTemplatesPage.tsx:380` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/MailTemplatesPage.tsx:392` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/ScraperRunHistoryPage.tsx:383` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/ScraperRunHistoryPage.tsx:397` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/ScraperRunHistoryPage.tsx:411` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/ScraperTestPage.tsx:114` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/TodosPage.tsx:240` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/TodosPage.tsx:258` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/TodosPage.tsx:276` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/TodosPage.tsx:309` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/TodosPage.tsx:658` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/TodosPage.tsx:671` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/TodosPage.tsx:684` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+- `src/pages/TodosPage.tsx:697` — **SelectInput** — ds=`SelectInput` — `<SelectInput`
+
+### comboboxes (4)
+
+- `src/components/AssignCustomersToFairModal.tsx:66` — **FairEntitySelect** — ds=`specialty combobox` — SPECIALTY — `<FairEntitySelect`
+- `src/components/FairForm.tsx:264` — **AdapterSelect** — ds=`specialty combobox` — SPECIALTY — `<AdapterSelect`
+- `src/components/scraper/EnrichmentRunPanel.tsx:187` — **FairEntitySelect** — ds=`specialty combobox` — SPECIALTY — `<FairEntitySelect`
+- `src/pages/ImportWizardPage.tsx:1036` — **FairEntitySelect** — ds=`specialty combobox` — SPECIALTY — `<FairEntitySelect`
+
+### checkbox (33)
+
+- `src/components/ContactForm.tsx:223` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/ContactForm.tsx:230` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/ContactForm.tsx:248` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/ContactForm.tsx:254` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/CustomerForm.tsx:351` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/CustomerForm.tsx:357` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/DuplicateGroupDetailView.tsx:192` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/fairs/FairBulkEmailWizard.tsx:345` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/fairs/FairBulkEmailWizard.tsx:352` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/fairs/FairBulkEmailWizard.tsx:359` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/fairs/FairBulkEmailWizard.tsx:366` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/fairs/FairBulkEmailWizard.tsx:373` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/mail_templates/MailTemplateForm.tsx:187` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/mail_templates/MailTemplateForm.tsx:193` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/scraper/AdapterForm.tsx:230` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/scraper/AdapterForm.tsx:236` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/scraper/AdapterForm.tsx:254` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/scraper/AdapterForm.tsx:260` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/scraper/AdapterRunLogConsole.tsx:252` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/scraper/AdapterRunLogConsole.tsx:259` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/scraper/EnrichmentRunPanel.tsx:288` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/scraper/OutputFieldsSection.tsx:54` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/smtp/SmtpAccountForm.tsx:235` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/smtp/SmtpAccountForm.tsx:241` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/todos/TodoWorklistActivityModal.tsx:296` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/todos/TodoWorklistActivityModal.tsx:304` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/ui/UniversalDataTableSelection.tsx:24` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/components/ui/UniversalDataTableSelection.tsx:62` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/pages/DatabaseBackupsPage.tsx:448` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/pages/DatabaseBackupsPage.tsx:853` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/pages/ImportWizardPage.tsx:763` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/pages/ImportWizardPage.tsx:783` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+- `src/pages/TodosPage.tsx:723` — **CheckboxField** — ds=`CheckboxField` — `<CheckboxField`
+
+### radio (13)
+
+- `src/components/CustomerCommunicationFieldList.tsx:60` — **RadioField** — ds=`RadioField` — `<RadioField`
+- `src/components/DuplicateGroupDetailView.tsx:125` — **RadioField** — ds=`RadioField` — `<RadioField`
+- `src/components/scraper/EnrichmentRunPanel.tsx:226` — **RadioField** — ds=`RadioField` — `<RadioField`
+- `src/components/scraper/EnrichmentRunPanel.tsx:235` — **RadioField** — ds=`RadioField` — `<RadioField`
+- `src/pages/DatabaseBackupsPage.tsx:478` — **RadioField** — ds=`RadioField` — `<RadioField`
+- `src/pages/DatabaseBackupsPage.tsx:778` — **RadioField** — ds=`RadioField` — `<RadioField`
+- `src/pages/DataOperationsPage.tsx:229` — **RadioField** — ds=`RadioField` — `<RadioField`
+- `src/pages/ImportWizardPage.tsx:873` — **RadioField** — ds=`RadioField` — `<RadioField`
+- `src/pages/ImportWizardPage.tsx:884` — **RadioField** — ds=`RadioField` — `<RadioField`
+- `src/pages/ImportWizardPage.tsx:895` — **RadioField** — ds=`RadioField` — `<RadioField`
+- `src/pages/ImportWizardPage.tsx:1057` — **RadioField** — ds=`RadioField` — `<RadioField`
+- `src/pages/ImportWizardPage.tsx:1068` — **RadioField** — ds=`RadioField` — `<RadioField`
+- `src/pages/ImportWizardPage.tsx:1079` — **RadioField** — ds=`RadioField` — `<RadioField`
+
+### switch (0)
+
+
+### tables (41)
+
+- `src/components/ActivityList.tsx:127` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/components/ContactList.tsx:97` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/components/CustomerList.tsx:464` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/components/FairList.tsx:199` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/components/fairs/FairBulkEmailBatchDetailModal.tsx:178` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/components/fairs/FairBulkEmailBatchLogs.tsx:183` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/components/fairs/FairBulkEmailWizard.tsx:471` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/components/imports/ExcelMappingGrid.tsx:43` — **raw_table** — ds=`raw <table>` — SPECIALTY — `<table className="data-table excel-mapping-grid">`
+- `src/components/imports/MergeDiffViewer.tsx:184` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/components/ParticipationList.tsx:119` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/components/ParticipationList.tsx:255` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/components/scraper/AdapterDetailContent.tsx:236` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/components/scraper/AdapterLinkedFairsTab.tsx:147` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/components/ui/DataTable.tsx:124` — **raw_table** — ds=`raw <table>` — SPECIALTY — `<table className="data-table">`
+- `src/components/ui/DataTable.tsx:174` — **raw_table** — ds=`raw <table>` — SPECIALTY — `* Children must include their own '<table>' element.`
+- `src/components/ui/ResponsiveDataTable.tsx:78` — **WidthResponsiveDataTable** — ds=`WidthResponsiveDataTable` — `<WidthResponsiveDataTable`
+- `src/components/ui/UniversalDataTable.tsx:180` — **WidthResponsiveDataTable** — ds=`WidthResponsiveDataTable` — `<WidthResponsiveDataTable`
+- `src/components/ui/UniversalDataTable.tsx:204` — **WidthResponsiveDataTable** — ds=`WidthResponsiveDataTable` — `<WidthResponsiveDataTable`
+- `src/components/ui/WidthResponsiveDataTable.tsx:276` — **raw_table** — ds=`raw <table>` — SPECIALTY — `<table className="data-table" ref={measureTableRef}>`
+- `src/dev/TableStandardSmokePage.tsx:372` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable table={todoTable} columns={todoColumns} rowKey={(r) => r.id} />`
+- `src/dev/TableStandardSmokePage.tsx:376` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable table={importTable} columns={importColumns} rowKey={(r) => r.id} />`
+- `src/dev/TableStandardSmokePage.tsx:380` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable table={backupTable} columns={backupColumns} rowKey={(r) => r.id} />`
+- `src/pages/ActivitiesPage.tsx:258` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/pages/AdapterManagementPage.tsx:345` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/pages/DashboardPage.tsx:308` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/pages/DashboardPage.tsx:328` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/pages/DatabaseBackupsPage.tsx:1199` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/pages/DatabaseBackupsPage.tsx:1213` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/pages/DataIntegrationImportsPage.tsx:286` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/pages/DataOperationAnalyzeResultPage.tsx:299` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/pages/DataOperationDuplicateResultPage.tsx:426` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/pages/FollowUpsPage.tsx:280` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/pages/ImportWizardPage.tsx:696` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/pages/ImportWizardPage.tsx:1008` — **raw_table** — ds=`raw <table>` — SPECIALTY — `<table className="data-table">`
+- `src/pages/ImportWizardPage.tsx:1104` — **raw_table** — ds=`raw <table>` — SPECIALTY — `<table className="data-table mapping-table">`
+- `src/pages/MailOperationsPage.tsx:424` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/pages/MailTemplatesPage.tsx:404` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/pages/ScraperRunHistoryPage.tsx:469` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/pages/SmtpAccountsPage.tsx:328` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/pages/TodoDetailPage.tsx:338` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+- `src/pages/TodosPage.tsx:637` — **UniversalDataTable** — ds=`UniversalDataTable` — `<UniversalDataTable`
+
+### cards (51)
+
+- `src/components/customers/CustomerContactEnrichmentTab.tsx:226` — **Card** — ds=`Card` — `<Card title={customerEnrichmentLabels.statusTitle}>`
+- `src/components/customers/CustomerContactEnrichmentTab.tsx:265` — **Card** — ds=`Card` — `<Card title={customerEnrichmentLabels.runSummaryTitle}>`
+- `src/components/customers/CustomerContactEnrichmentTab.tsx:275` — **Card** — ds=`Card` — `<Card title={customerEnrichmentLabels.historyTitle}>`
+- `src/components/DuplicateGroupDetailView.tsx:523` — **Card** — ds=`Card` — `<Card padding="none" className="data-operation-summary-card">`
+- `src/components/DuplicateGroupDetailView.tsx:532` — **Card** — ds=`Card` — `<Card padding="none" className="data-operation-summary-card">`
+- `src/components/DuplicateGroupDetailView.tsx:536` — **Card** — ds=`Card` — `<Card padding="none" className="data-operation-summary-card">`
+- `src/components/DuplicateGroupDetailView.tsx:540` — **Card** — ds=`Card` — `<Card padding="none" className="data-operation-summary-card">`
+- `src/components/DuplicateGroupDetailView.tsx:544` — **Card** — ds=`Card` — `<Card padding="none" className="data-operation-summary-card">`
+- `src/components/DuplicateGroupDetailView.tsx:556` — **Card** — ds=`Card` — `<Card padding="none" className="duplicate-group-merge-intro">`
+- `src/components/DuplicateGroupDetailView.tsx:605` — **Card** — ds=`Card` — `<Card`
+- `src/components/duplicateMerge/MergeSummaryPanel.tsx:48` — **Card** — ds=`Card` — `<Card as="aside" className="duplicate-group-merge-summary" aria-label={adminLabels.dataOpMergeSummaryTitle}>`
+- `src/components/scraper/AdapterDetailContent.tsx:188` — **Card** — ds=`Card` — `<Card>`
+- `src/components/scraper/AdapterDetailContent.tsx:204` — **Card** — ds=`Card` — `<Card>`
+- `src/components/scraper/AdapterDetailContent.tsx:220` — **Card** — ds=`Card` — `<Card>`
+- `src/components/scraper/AdapterDetailContent.tsx:247` — **Card** — ds=`Card` — `<Card>`
+- `src/pages/AdapterManagementPage.tsx:135` — **Card** — ds=`Card` — `<Card padding="none" className="adapter-summary-card" key={card.label}>`
+- `src/pages/AdapterManagementPage.tsx:310` — **Card** — ds=`Card` — `<Card padding="none" className="adapter-table-card">`
+- `src/pages/CustomerDetailPage.tsx:511` — **Card** — ds=`Card` — `<Card>`
+- `src/pages/CustomerEnrichmentPage.tsx:71` — **Card** — ds=`Card` — `<Card>`
+- `src/pages/DashboardPage.tsx:44` — **Card** — ds=`Card` — `<Card padding="none" className="dashboard-summary-card" key={card.label}>`
+- `src/pages/DashboardPage.tsx:64` — **Card** — ds=`Card` — `<Card padding="none" className="dashboard-summary-card" key={card.label}>`
+- `src/pages/DashboardPage.tsx:85` — **Card** — ds=`Card` — `<Card padding="none" className="dashboard-summary-card" key={card.label}>`
+- `src/pages/DashboardPage.tsx:202` — **Card** — ds=`Card` — `<Card as="section" className="dashboard-section">`
+- `src/pages/DataOperationAnalyzeResultPage.tsx:273` — **Card** — ds=`Card` — `<Card padding="none" className="data-operation-summary-card">`
+- `src/pages/DataOperationAnalyzeResultPage.tsx:277` — **Card** — ds=`Card` — `<Card padding="none" className="data-operation-summary-card">`
+- `src/pages/DataOperationAnalyzeResultPage.tsx:281` — **Card** — ds=`Card` — `<Card padding="none" className="data-operation-summary-card">`
+- `src/pages/DataOperationDuplicateResultPage.tsx:364` — **Card** — ds=`Card` — `<Card padding="none" className="duplicate-groups-summary-card">`
+- `src/pages/DataOperationDuplicateResultPage.tsx:370` — **Card** — ds=`Card` — `<Card padding="none" className="duplicate-groups-summary-card">`
+- `src/pages/DataOperationDuplicateResultPage.tsx:376` — **Card** — ds=`Card` — `<Card padding="none" className="duplicate-groups-summary-card">`
+- `src/pages/DataOperationDuplicateResultPage.tsx:386` — **Card** — ds=`Card` — `<Card padding="none" className="duplicate-groups-summary-card">`
+- `src/pages/DataOperationsPage.tsx:219` — **Card** — ds=`Card` — `<Card as="section" padding="none" className="data-operation-card" key={operation.key}>`
+- `src/pages/EnrichmentRunDetailPage.tsx:165` — **Card** — ds=`Card` — `<Card>`
+- `src/pages/FairDetailPage.tsx:450` — **Card** — ds=`Card` — `<Card>`
+- `src/pages/FairDetailPage.tsx:511` — **Card** — ds=`Card` — `<Card className="detail-card-spaced">`
+- `src/pages/FairDetailPage.tsx:553` — **Card** — ds=`Card` — `<Card className="detail-card-spaced">`
+- `src/pages/FairDetailPage.tsx:576` — **Card** — ds=`Card` — `<Card className="detail-card-spaced">`
+- `src/pages/FairEnrichmentRunPage.tsx:95` — **Card** — ds=`Card` — `<Card>`
+- `src/pages/ImportWizardPage.tsx:847` — **Card** — ds=`Card` — `<Card>`
+- `src/pages/ImportWizardPage.tsx:870` — **Card** — ds=`Card` — `<Card>`
+- `src/pages/ImportWizardPage.tsx:923` — **Card** — ds=`Card` — `<Card>`
+- `src/pages/ImportWizardPage.tsx:945` — **Card** — ds=`Card` — `<Card>`
+- `src/pages/ImportWizardPage.tsx:1025` — **Card** — ds=`Card` — `<Card>`
+- `src/pages/ImportWizardPage.tsx:1053` — **Card** — ds=`Card` — `<Card>`
+- `src/pages/ImportWizardPage.tsx:1164` — **Card** — ds=`Card` — `<Card>`
+- `src/pages/ImportWizardPage.tsx:1185` — **Card** — ds=`Card` — `<Card>`
+- `src/pages/ImportWizardPage.tsx:1216` — **Card** — ds=`Card` — `<Card>`
+- `src/pages/ImportWizardPage.tsx:1230` — **Card** — ds=`Card` — `<Card>`
+- `src/pages/LoginPage.tsx:67` — **Card** — ds=`Card` — `<Card className="login-card">`
+- `src/pages/ScraperTestPage.tsx:111` — **Card** — ds=`Card` — `<Card>`
+- `src/pages/TodoDetailPage.tsx:299` — **Card** — ds=`Card` — `<Card className="todo-worklist-progress">`
+- `src/pages/TodoDetailPage.tsx:379` — **Card** — ds=`Card` — `<Card className="todo-worklist-missing-fair">`
+
+### modals (66)
+
+- `src/components/ActivityDetailModal.tsx:56` — **Modal** — ds=`Modal family` — `<Modal title={activityLabels.detailTitle} onClose={onClose}>`
+- `src/components/AssignCustomersToFairModal.tsx:43` — **Modal** — ds=`Modal family` — `<Modal`
+- `src/components/customers/CustomerContactEnrichmentTab.tsx:280` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/components/DeleteSelectedCustomersModal.tsx:26` — **Modal** — ds=`Modal family` — `<Modal`
+- `src/components/duplicateMerge/MergeCustomersConfirmModal.tsx:35` — **Modal** — ds=`Modal family` — `<Modal`
+- `src/components/fairs/FairBulkEmailBatchDetailModal.tsx:125` — **Modal** — ds=`Modal family` — `<Modal`
+- `src/components/mail_operations/MailOperationDetailModal.tsx:20` — **Modal** — ds=`Modal family` — `<Modal title={adminLabels.mailOperationsDetailTitle} onClose={onClose}>`
+- `src/components/mail_operations/MailOperationErrorModal.tsx:15` — **Modal** — ds=`Modal family` — `<Modal title={adminLabels.mailOperationsErrorTitle} onClose={onClose}>`
+- `src/components/mail_operations/MailOperationLogsModal.tsx:16` — **Modal** — ds=`Modal family` — `<Modal title={adminLabels.mailOperationsLogsTitle} onClose={onClose} size="lg">`
+- `src/components/scraper/AdapterFormModal.tsx:139` — **Modal** — ds=`Modal family` — `<Modal`
+- `src/components/scraper/EnrichmentStateResetPanel.tsx:67` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/components/todos/ManualTaskMailModal.tsx:413` — **Modal** — ds=`Modal family` — `<FormModal title={title} onClose={requestClose} size="lg">`
+- `src/components/todos/TodoWorklistActivityModal.tsx:213` — **Modal** — ds=`Modal family` — `<FormModal title={modalTitle} onClose={requestClose} size="lg">`
+- `src/components/ui/form/FormModal.tsx:25` — **Modal** — ds=`Modal family` — `<Modal title={title} onClose={onClose} size={size} footer={footer}>`
+- `src/components/ui/Modal.tsx:114` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/ActivitiesPage.tsx:364` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/ActivitiesPage.tsx:376` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/AdapterDetailPage.tsx:417` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/CustomerDetailPage.tsx:782` — **Modal** — ds=`Modal family` — `<FormModal title={labels.editCustomer} onClose={closeModal} size="lg">`
+- `src/pages/CustomerDetailPage.tsx:793` — **Modal** — ds=`Modal family` — `<FormModal title={contactLabels.newContact} onClose={closeModal}>`
+- `src/pages/CustomerDetailPage.tsx:805` — **Modal** — ds=`Modal family` — `<FormModal title={contactLabels.editContact} onClose={closeModal}>`
+- `src/pages/CustomerDetailPage.tsx:818` — **Modal** — ds=`Modal family` — `<FormModal title={activityLabels.newActivity} onClose={closeModal}>`
+- `src/pages/CustomerDetailPage.tsx:829` — **Modal** — ds=`Modal family` — `<FormModal title={activityLabels.editActivity} onClose={closeModal}>`
+- `src/pages/CustomerDetailPage.tsx:841` — **Modal** — ds=`Modal family` — `<FormModal title={participationLabels.newParticipation} onClose={closeModal} size="lg">`
+- `src/pages/CustomerDetailPage.tsx:854` — **Modal** — ds=`Modal family` — `<FormModal title={participationLabels.editParticipation} onClose={closeModal} size="lg">`
+- `src/pages/CustomerDetailPage.tsx:868` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/CustomerDetailPage.tsx:880` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/CustomerDetailPage.tsx:892` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/CustomerDetailPage.tsx:904` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/CustomersPage.tsx:158` — **Modal** — ds=`Modal family` — `<FormModal title={labels.newCustomer} onClose={closeModal} size="lg">`
+- `src/pages/CustomersPage.tsx:168` — **Modal** — ds=`Modal family` — `<FormModal title={labels.editCustomer} onClose={closeModal} size="lg">`
+- `src/pages/CustomersPage.tsx:179` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/CustomersPage.tsx:191` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/DatabaseBackupsPage.tsx:561` — **Modal** — ds=`Modal family` — `<Modal`
+- `src/pages/DatabaseBackupsPage.tsx:641` — **Modal** — ds=`Modal family` — `<Modal`
+- `src/pages/DatabaseBackupsPage.tsx:735` — **Modal** — ds=`Modal family` — `<Modal`
+- `src/pages/DatabaseBackupsPage.tsx:1229` — **Modal** — ds=`Modal family` — `<Modal`
+- `src/pages/DatabaseBackupsPage.tsx:1259` — **Modal** — ds=`Modal family` — `<Modal title={adminLabels.detailsTitle} onClose={closeDetailModal}>`
+- `src/pages/DatabaseBackupsPage.tsx:1345` — **Modal** — ds=`Modal family` — `<Modal title={adminLabels.restoreJobDetailsTitle} onClose={closeRestoreJobDetailModal}>`
+- `src/pages/DataIntegrationImportsPage.tsx:300` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/EnrichmentRunDetailPage.tsx:214` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/FairDetailPage.tsx:633` — **Modal** — ds=`Modal family` — `<FormModal title={fairLabels.editFair} onClose={closeModal} size="lg">`
+- `src/pages/FairDetailPage.tsx:644` — **Modal** — ds=`Modal family` — `<FormModal title={participationLabels.newParticipant} onClose={closeModal} size="lg">`
+- `src/pages/FairDetailPage.tsx:656` — **Modal** — ds=`Modal family` — `<FormModal title={participationLabels.editParticipant} onClose={closeModal} size="lg">`
+- `src/pages/FairDetailPage.tsx:669` — **Modal** — ds=`Modal family` — `<FormModal title={fairLabels.bulkEmailModalTitle} onClose={closeModal} size="lg">`
+- `src/pages/FairDetailPage.tsx:681` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/FairDetailPage.tsx:693` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/FairsPage.tsx:158` — **Modal** — ds=`Modal family` — `<FormModal title={fairLabels.newFair} onClose={closeModal} size="lg">`
+- `src/pages/FairsPage.tsx:168` — **Modal** — ds=`Modal family` — `<FormModal title={fairLabels.editFair} onClose={closeModal} size="lg">`
+- `src/pages/FairsPage.tsx:179` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/FairsPage.tsx:191` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/MailOperationsPage.tsx:442` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/MailOperationsPage.tsx:456` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/MailTemplatesPage.tsx:424` — **Modal** — ds=`Modal family` — `<FormModal title={adminLabels.mailTemplatesNew} onClose={closeModal} size="lg">`
+- `src/pages/MailTemplatesPage.tsx:437` — **Modal** — ds=`Modal family` — `<FormModal title={adminLabels.mailTemplatesEdit} onClose={closeModal} size="lg">`
+- `src/pages/MailTemplatesPage.tsx:451` — **Modal** — ds=`Modal family` — `<Modal title={adminLabels.mailTemplatesPreview} onClose={closePreview} size="lg">`
+- `src/pages/MailTemplatesPage.tsx:470` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/MailTemplatesPage.tsx:482` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/MailTemplatesPage.tsx:493` — **Modal** — ds=`Modal family` — `<FormModal title={adminLabels.mailTemplatesTestEmailTitle} onClose={closeTestEmail} size="lg">`
+- `src/pages/SmtpAccountsPage.tsx:348` — **Modal** — ds=`Modal family` — `<FormModal title={adminLabels.smtpNewAccount} onClose={closeModal}>`
+- `src/pages/SmtpAccountsPage.tsx:363` — **Modal** — ds=`Modal family` — `<FormModal title={adminLabels.smtpEditAccount} onClose={closeModal}>`
+- `src/pages/SmtpAccountsPage.tsx:381` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/TodosPage.tsx:753` — **Modal** — ds=`Modal family` — `<FormModal title={todoLabels.newTodo} onClose={() => setModal(null)} size="lg">`
+- `src/pages/TodosPage.tsx:764` — **Modal** — ds=`Modal family` — `<FormModal title={todoLabels.editTodo} onClose={() => setModal(null)} size="lg">`
+- `src/pages/TodosPage.tsx:776` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+- `src/pages/TodosPage.tsx:788` — **Modal** — ds=`Modal family` — `<ConfirmDialog`
+
+### drawers (0)
+
+
+### toolbars (16)
+
+- `src/components/CustomerList.tsx:35` — **FilterPanel** — ds=`FilterPanel` — `<FilterPanel`
+- `src/components/FairList.tsx:29` — **FilterPanel** — ds=`FilterPanel` — `<FilterPanel`
+- `src/pages/ActivitiesPage.tsx:269` — **FilterPanel** — ds=`FilterPanel` — `<FilterPanel`
+- `src/pages/AdapterManagementPage.tsx:312` — **FilterPanel** — ds=`FilterPanel` — `<FilterPanel`
+- `src/pages/CustomerDetailPage.tsx:638` — **FilterPanel** — ds=`FilterPanel` — `<FilterPanel`
+- `src/pages/CustomerDetailPage.tsx:683` — **FilterPanel** — ds=`FilterPanel` — `<FilterPanel`
+- `src/pages/CustomerDetailPage.tsx:732` — **FilterPanel** — ds=`FilterPanel` — `<FilterPanel`
+- `src/pages/DataOperationDuplicateResultPage.tsx:434` — **FilterPanel** — ds=`FilterPanel` — `<FilterPanel`
+- `src/pages/FairDetailPage.tsx:591` — **FilterPanel** — ds=`FilterPanel` — `<FilterPanel`
+- `src/pages/FollowUpsPage.tsx:284` — **FilterPanel** — ds=`FilterPanel` — `<FilterPanel`
+- `src/pages/ImportWizardPage.tsx:548` — **FilterPanel** — ds=`FilterPanel` — `<FilterPanel className="preview-filters">`
+- `src/pages/MailOperationsPage.tsx:324` — **FilterPanel** — ds=`FilterPanel` — `<FilterPanel className="mail-operations-filters">`
+- `src/pages/MailTemplatesPage.tsx:348` — **FilterPanel** — ds=`FilterPanel` — `<FilterPanel className="mail-template-filters">`
+- `src/pages/ScraperRunHistoryPage.tsx:381` — **FilterPanel** — ds=`FilterPanel` — `<FilterPanel className="run-history-filters">`
+- `src/pages/TodoDetailPage.tsx:342` — **FilterPanel** — ds=`FilterPanel` — `<FilterPanel`
+- `src/pages/TodosPage.tsx:641` — **FilterPanel** — ds=`FilterPanel` — `<FilterPanel`
+
+### pagination (2)
+
+- `src/components/ui/ServerDataTableFrame.tsx:31` — **PaginationBar** — ds=`PaginationBar` — `<PaginationBar`
+- `src/pages/DataOperationDuplicateResultPage.tsx:461` — **PaginationBar** — ds=`PaginationBar` — `<PaginationBar`
+
+### banners (86)
+
+- `src/components/ActivityForm.tsx:138` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}`
+- `src/components/ContactForm.tsx:130` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}`
+- `src/components/CustomerForm.tsx:171` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}`
+- `src/components/customers/CustomerContactEnrichmentTab.tsx:220` — **Banner** — ds=`Banner` — `<Banner variant="warning" as="p">{state.block_message}</Banner>`
+- `src/components/customers/CustomerContactEnrichmentTab.tsx:222` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error" as="p">{error}</Banner> : null}`
+- `src/components/DuplicateGroupDetailView.tsx:550` — **Banner** — ds=`Banner` — `<Banner variant="info" className="duplicate-group-merge-notice" role="status">`
+- `src/components/DuplicateGroupDetailView.tsx:754` — **Banner** — ds=`Banner` — `<Banner variant="info" className="duplicate-group-dedup-notice" role="status">`
+- `src/components/duplicateMerge/MergePreviewSummaryContent.tsx:125` — **Banner** — ds=`Banner` — `<Banner`
+- `src/components/duplicateMerge/MergeSummaryPanel.tsx:82` — **Banner** — ds=`Banner` — `<Banner variant="success" className="duplicate-group-summary-banner" role="status">`
+- `src/components/duplicateMerge/MergeSummaryPanel.tsx:116` — **Banner** — ds=`Banner` — `<Banner variant="success" className="duplicate-group-summary-banner" role="status">`
+- `src/components/FairForm.tsx:151` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}`
+- `src/components/fairs/FairBulkEmailBatchDetailModal.tsx:136` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error">{error}</Banner> : null}`
+- `src/components/fairs/FairBulkEmailBatchLogs.tsx:160` — **Banner** — ds=`Banner` — `<Banner variant="warning">{fairLabels.bulkEmailPermissionPreviewDeniedDebug}</Banner>`
+- `src/components/fairs/FairBulkEmailBatchLogs.tsx:176` — **Banner** — ds=`Banner` — `{polling ? <Banner variant="info">{fairLabels.bulkEmailLogsPolling}</Banner> : null}`
+- `src/components/fairs/FairBulkEmailBatchLogs.tsx:177` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error">{error}</Banner> : null}`
+- `src/components/fairs/FairBulkEmailWizard.tsx:332` — **Banner** — ds=`Banner` — `{success ? <Banner variant="success">{success}</Banner> : null}`
+- `src/components/fairs/FairBulkEmailWizard.tsx:333` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error">{error}</Banner> : null}`
+- `src/components/fairs/FairBulkEmailWizard.tsx:334` — **Banner** — ds=`Banner` — `{templateError ? <Banner variant="warning">{templateError}</Banner> : null}`
+- `src/components/fairs/FairBulkEmailWizard.tsx:336` — **Banner** — ds=`Banner` — `<Banner variant="warning">{fairLabels.bulkEmailRenderPermissionDenied}</Banner>`
+- `src/components/fairs/FairBulkEmailWizard.tsx:338` — **Banner** — ds=`Banner` — `{previewStale ? <Banner variant="warning">{fairLabels.bulkEmailPreviewStale}</Banner> : null}`
+- `src/components/fairs/FairBulkEmailWizard.tsx:340` — **Banner** — ds=`Banner` — `<Banner variant="info">{fairLabels.bulkEmailPreviewRequired}</Banner>`
+- `src/components/mail_templates/MailTemplateForm.tsx:86` — **Banner** — ds=`Banner` — `{formError ? <Banner variant="error" className="form-form-alert">{formError}</Banner> : null}`
+- `src/components/mail_templates/MailTemplatePreviewPanel.tsx:56` — **Banner** — ds=`Banner` — `<Banner variant="error">{localError ?? error}</Banner>`
+- `src/components/mail_templates/MailTemplateTestEmailPanel.tsx:179` — **Banner** — ds=`Banner` — `{success ? <Banner variant="success">{success}</Banner> : null}`
+- `src/components/mail_templates/MailTemplateTestEmailPanel.tsx:180` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error">{error}</Banner> : null}`
+- `src/components/mail_templates/MailTemplateTestEmailPanel.tsx:181` — **Banner** — ds=`Banner` — `{previewStale ? <Banner variant="warning">{adminLabels.mailTemplatesTestEmailPreviewStale}</Banner> : null}`
+- `src/components/mail_templates/MailTemplateTestEmailPanel.tsx:183` — **Banner** — ds=`Banner` — `<Banner variant="info">{adminLabels.mailTemplatesTestEmailPreviewRequired}</Banner>`
+- `src/components/ParticipationForm.tsx:169` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}`
+- `src/components/smtp/SmtpAccountForm.tsx:115` — **Banner** — ds=`Banner` — `{formError ? <Banner variant="error" className="form-form-alert">{formError}</Banner> : null}`
+- `src/components/smtp/SmtpAccountForm.tsx:194` — **Banner** — ds=`Banner` — `<Banner variant="info" className="smtp-config-warning">`
+- `src/components/smtp/SmtpAccountForm.tsx:268` — **Banner** — ds=`Banner` — `{testError ? <Banner variant="error">{testError}</Banner> : null}`
+- `src/components/smtp/SmtpAccountForm.tsx:269` — **Banner** — ds=`Banner` — `{testSuccess ? <Banner variant="success">{testSuccess}</Banner> : null}`
+- `src/components/todos/ManualTaskMailModal.tsx:420` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}`
+- `src/components/todos/ManualTaskMailModal.tsx:421` — **Banner** — ds=`Banner` — `{success ? <Banner variant="success" className="form-form-alert">{success}</Banner> : null}`
+- `src/components/todos/ManualTaskMailModal.tsx:423` — **Banner** — ds=`Banner` — `<Banner variant="warning" className="form-form-alert">`
+- `src/components/todos/ManualTaskMailModal.tsx:428` — **Banner** — ds=`Banner` — `<Banner variant="warning" className="form-form-alert">`
+- `src/components/todos/ManualTaskMailModal.tsx:493` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}`
+- `src/components/todos/ManualTaskMailModal.tsx:494` — **Banner** — ds=`Banner` — `{success ? <Banner variant="success" className="form-form-alert">{success}</Banner> : null}`
+- `src/components/todos/ManualTaskMailModal.tsx:496` — **Banner** — ds=`Banner` — `<Banner variant="info" className="form-form-alert">`
+- `src/components/todos/TodoWorklistActivityModal.tsx:220` — **Banner** — ds=`Banner` — `<Banner variant="error" className="form-form-alert">{error ?? todoWorklistLabels.loadError}</Banner>`
+- `src/components/todos/TodoWorklistActivityModal.tsx:235` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}`
+- `src/components/todos/TodoWorklistActivityModal.tsx:236` — **Banner** — ds=`Banner` — `{mailSuccess ? <Banner variant="success" className="form-form-alert">{mailSuccess}</Banner> : null}`
+- `src/components/ui/ServerDataTableFrame.tsx:69` — **Banner** — ds=`Banner` — `<Banner variant="error">`
+- `src/pages/ActivitiesPage.tsx:254` — **Banner** — ds=`Banner` — `{success ? <Banner variant="success">{success}</Banner> : null}`
+- `src/pages/ActivitiesPage.tsx:255` — **Banner** — ds=`Banner` — `{actionError ? <Banner variant="error">{actionError}</Banner> : null}`
+- `src/pages/ActivitiesPage.tsx:256` — **Banner** — ds=`Banner` — `{table.error ? <Banner variant="error">{table.error}</Banner> : null}`
+- `src/pages/AdapterDetailPage.tsx:322` — **Banner** — ds=`Banner` — `<Banner variant="error">{error ?? scraperLabels.loadError}</Banner>`
+- `src/pages/AdapterDetailPage.tsx:396` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error">{error}</Banner> : null}`
+- `src/pages/CustomerDetailPage.tsx:438` — **Banner** — ds=`Banner` — `<Banner variant="error">{error ?? "Müşteri bulunamadı."}</Banner>`
+- `src/pages/CustomerDetailPage.tsx:508` — **Banner** — ds=`Banner` — `{error && <Banner variant="error">{error}</Banner>}`
+- `src/pages/CustomerEnrichmentPage.tsx:66` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error">{error}</Banner> : null}`
+- `src/pages/CustomerEnrichmentPage.tsx:69` — **Banner** — ds=`Banner` — `<Banner variant="error">{fairLabels.enrichFairPermissionDenied}</Banner>`
+- `src/pages/CustomersPage.tsx:155` — **Banner** — ds=`Banner` — `{success && <Banner variant="success">{success}</Banner>}`
+- `src/pages/DatabaseBackupsPage.tsx:756` — **Banner** — ds=`Banner` — `<Banner`
+- `src/pages/DatabaseBackupsPage.tsx:1181` — **Banner** — ds=`Banner` — `{restorePollError ? <Banner variant="error">{restorePollError}</Banner> : null}`
+- `src/pages/DataIntegrationImportsPage.tsx:284` — **Banner** — ds=`Banner` — `{successMessage && <Banner variant="success" as="p">{successMessage}</Banner>}`
+- `src/pages/DataIntegrationImportsPage.tsx:294` — **Banner** — ds=`Banner` — `<Banner variant="error" as="p">`
+- `src/pages/DataOperationDuplicateResultPage.tsx:351` — **Banner** — ds=`Banner` — `<Banner variant="success" className="duplicate-groups-merge-success" role="status">`
+- `src/pages/DataOperationDuplicateResultPage.tsx:357` — **Banner** — ds=`Banner` — `<Banner variant="info" className="duplicate-groups-stale-notice" role="status">`
+- `src/pages/DataOperationRunResultPage.tsx:92` — **Banner** — ds=`Banner` — `<Banner variant="error">{error}</Banner>`
+- `src/pages/EnrichmentRunDetailPage.tsx:159` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error">{error}</Banner> : null}`
+- `src/pages/EnrichmentRunDetailPage.tsx:160` — **Banner** — ds=`Banner` — `{cancelError ? <Banner variant="error">{cancelError}</Banner> : null}`
+- `src/pages/EnrichmentRunDetailPage.tsx:162` — **Banner** — ds=`Banner` — `<Banner variant="info">{scraperLabels.runStatusCancelRequested}</Banner>`
+- `src/pages/FairDetailPage.tsx:353` — **Banner** — ds=`Banner` — `<Banner variant="error">{error ?? "Fuar bulunamadı."}</Banner>`
+- `src/pages/FairDetailPage.tsx:446` — **Banner** — ds=`Banner` — `{runSuccess && <Banner variant="success">{runSuccess}</Banner>}`
+- `src/pages/FairDetailPage.tsx:447` — **Banner** — ds=`Banner` — `{error && <Banner variant="error">{error}</Banner>}`
+- `src/pages/FairDetailPage.tsx:572` — **Banner** — ds=`Banner` — `<Banner variant="warning">{fairLabels.bulkEmailPermissionPreviewDeniedDebug}</Banner>`
+- `src/pages/FairEnrichmentRunPage.tsx:90` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error">{error}</Banner> : null}`
+- `src/pages/FairEnrichmentRunPage.tsx:93` — **Banner** — ds=`Banner` — `<Banner variant="error">{fairLabels.enrichFairPermissionDenied}</Banner>`
+- `src/pages/FairsPage.tsx:155` — **Banner** — ds=`Banner` — `{success && <Banner variant="success">{success}</Banner>}`
+- `src/pages/FollowUpsPage.tsx:320` — **Banner** — ds=`Banner` — `{saveSuccess && <Banner variant="success">{saveSuccess}</Banner>}`
+- `src/pages/ImportWizardPage.tsx:937` — **Banner** — ds=`Banner` — `<Banner variant="error" role="status">`
+- `src/pages/ImportWizardPage.tsx:1346` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error">{error}</Banner> : null}`
+- `src/pages/LoginPage.tsx:75` — **Banner** — ds=`Banner` — `{formError ? <Banner variant="error">{formError}</Banner> : null}`
+- `src/pages/MailOperationsPage.tsx:321` — **Banner** — ds=`Banner` — `{toast ? <Banner variant="success">{toast}</Banner> : null}`
+- `src/pages/MailOperationsPage.tsx:322` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error">{error}</Banner> : null}`
+- `src/pages/MailTemplatesPage.tsx:345` — **Banner** — ds=`Banner` — `{success ? <Banner variant="success">{success}</Banner> : null}`
+- `src/pages/MailTemplatesPage.tsx:346` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error">{error}</Banner> : null}`
+- `src/pages/ScraperRunHistoryPage.tsx:467` — **Banner** — ds=`Banner` — `{outputError ? <Banner variant="error">{outputError}</Banner> : null}`
+- `src/pages/ScraperTestPage.tsx:109` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error">{error}</Banner> : null}`
+- `src/pages/SmtpAccountsPage.tsx:325` — **Banner** — ds=`Banner` — `{success ? <Banner variant="success">{success}</Banner> : null}`
+- `src/pages/SmtpAccountsPage.tsx:326` — **Banner** — ds=`Banner` — `{error ? <Banner variant="error">{error}</Banner> : null}`
+- `src/pages/TodoDetailPage.tsx:274` — **Banner** — ds=`Banner` — `<Banner variant="error">{todoError ?? todoLabels.loadError}</Banner>`
+- `src/pages/TodoDetailPage.tsx:319` — **Banner** — ds=`Banner` — `{progressError ? <Banner variant="error">{progressError}</Banner> : null}`
+- `src/pages/TodoDetailPage.tsx:366` — **Banner** — ds=`Banner` — `{saveSuccess && <Banner variant="success">{saveSuccess}</Banner>}`
+- `src/pages/TodosPage.tsx:750` — **Banner** — ds=`Banner` — `{success ? <Banner variant="success">{success}</Banner> : null}`
+
+### loadingStates (22)
+
+- `src/components/customers/CustomerContactEnrichmentTab.tsx:185` — **LoadingState** — ds=`LoadingState` — `return <LoadingState />;`
+- `src/components/fairs/FairBulkEmailBatchDetailModal.tsx:135` — **LoadingState** — ds=`LoadingState` — `{loading ? <LoadingState /> : null}`
+- `src/components/fairs/FairBulkEmailBatchLogs.tsx:178` — **LoadingState** — ds=`LoadingState` — `{loading ? <LoadingState /> : null}`
+- `src/components/scraper/AdapterDetailContent.tsx:189` — **LoadingState** — ds=`LoadingState` — `{manifestLoading ? <LoadingState variant="inline" /> : null}`
+- `src/components/scraper/AdapterDetailContent.tsx:213` — **LoadingState** — ds=`LoadingState` — `<LoadingState variant="inline" />`
+- `src/components/scraper/AdapterLinkedFairsTab.tsx:135` — **LoadingState** — ds=`LoadingState` — `<LoadingState variant="inline" />`
+- `src/components/scraper/AdapterRunLogConsole.tsx:336` — **LoadingState** — ds=`LoadingState` — `{loading && logs.length === 0 ? <LoadingState variant="inline" /> : null}`
+- `src/components/todos/ManualTaskMailModal.tsx:416` — **LoadingState** — ds=`LoadingState` — `<LoadingState variant="inline" />`
+- `src/components/todos/TodoWorklistActivityModal.tsx:216` — **LoadingState** — ds=`LoadingState` — `<LoadingState variant="inline" />`
+- `src/pages/AdapterDetailPage.tsx:316` — **LoadingState** — ds=`LoadingState` — `return <LoadingState />;`
+- `src/pages/CustomerDetailPage.tsx:432` — **LoadingState** — ds=`LoadingState` — `return <LoadingState />;`
+- `src/pages/CustomerEnrichmentPage.tsx:56` — **LoadingState** — ds=`LoadingState` — `return <LoadingState />;`
+- `src/pages/DashboardPage.tsx:248` — **LoadingState** — ds=`LoadingState` — `<LoadingState />`
+- `src/pages/DataOperationRunResultPage.tsx:76` — **LoadingState** — ds=`LoadingState` — `<LoadingState message={adminLabels.dataOpLoading} />`
+- `src/pages/DataOperationsPage.tsx:203` — **LoadingState** — ds=`LoadingState` — `{loading && <LoadingState />}`
+- `src/pages/EnrichmentRunDetailPage.tsx:129` — **LoadingState** — ds=`LoadingState` — `return <LoadingState />;`
+- `src/pages/FairDetailPage.tsx:347` — **LoadingState** — ds=`LoadingState` — `return <LoadingState />;`
+- `src/pages/FairEnrichmentRunPage.tsx:70` — **LoadingState** — ds=`LoadingState` — `return <LoadingState />;`
+- `src/pages/ImportWizardPage.tsx:685` — **LoadingState** — ds=`LoadingState` — `return <LoadingState message="Satırlar yükleniyor…" />;`
+- `src/pages/ImportWizardPage.tsx:1347` — **LoadingState** — ds=`LoadingState` — `{loading ? <LoadingState message="Yükleniyor…" /> : stepContent[currentStep]}`
+- `src/pages/ScraperTestPage.tsx:100` — **LoadingState** — ds=`LoadingState` — `return <LoadingState />;`
+- `src/pages/TodoDetailPage.tsx:267` — **LoadingState** — ds=`LoadingState` — `return <LoadingState />;`
+
+### emptyStates (34)
+
+- `src/App.tsx:758` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/components/ActivityList.tsx:134` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/components/ContactList.tsx:104` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/components/CustomerList.tsx:474` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/components/customers/CustomerContactEnrichmentTab.tsx:60` — **EmptyState** — ds=`EmptyState` — `return <EmptyState title={customerEnrichmentLabels.emptyHistory} />;`
+- `src/components/FairList.tsx:206` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/components/fairs/FairBulkEmailBatchLogs.tsx:180` — **EmptyState** — ds=`EmptyState` — `<EmptyState title={fairLabels.bulkEmailLogsEmpty} />`
+- `src/components/ParticipationList.tsx:126` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/components/ParticipationList.tsx:262` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/components/scraper/AdapterDetailContent.tsx:240` — **EmptyState** — ds=`EmptyState` — `emptyState={<EmptyState title={scraperLabels.runsEmpty} />}`
+- `src/components/scraper/AdapterLinkedFairsTab.tsx:151` — **EmptyState** — ds=`EmptyState` — `emptyState={<EmptyState title={scraperLabels.linkedFairsEmpty} />}`
+- `src/pages/ActivitiesPage.tsx:342` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/pages/AdapterManagementPage.tsx:352` — **EmptyState** — ds=`EmptyState` — `emptyState={<EmptyState title={scraperLabels.emptyAdapters} />}`
+- `src/pages/DashboardPage.tsx:257` — **EmptyState** — ds=`EmptyState` — `<EmptyState title={error} description="" actionLabel="Tekrar Dene" onAction={() => void loadData()} />`
+- `src/pages/DashboardPage.tsx:303` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/pages/DashboardPage.tsx:323` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/pages/DatabaseBackupsPage.tsx:1206` — **EmptyState** — ds=`EmptyState` — `<EmptyState title={adminLabels.backupsEmpty} description={adminLabels.backupsEmptyDescription} />`
+- `src/pages/DatabaseBackupsPage.tsx:1220` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/pages/DataIntegrationImportsPage.tsx:291` — **EmptyState** — ds=`EmptyState` — `emptyState={<EmptyState title={dataIntegrationLabels.importsEmpty} description="" />}`
+- `src/pages/DataOperationAnalyzeResultPage.tsx:359` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/pages/DataOperationDuplicateResultPage.tsx:474` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/pages/FollowUpsPage.tsx:316` — **EmptyState** — ds=`EmptyState` — `emptyState={<EmptyState title={followUpLabels.emptyList} />}`
+- `src/pages/ImportWizardPage.tsx:689` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/pages/ImportWizardPage.tsx:777` — **EmptyState** — ds=`EmptyState` — `<EmptyState title="Satır yok" description="Filtreye uygun satır bulunamadı." />`
+- `src/pages/ImportWizardPage.tsx:1189` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/pages/ImportWizardPage.tsx:1197` — **EmptyState** — ds=`EmptyState` — `<EmptyState title="Satır yok" description="Önce analiz çalıştırın." />`
+- `src/pages/ImportWizardPage.tsx:1233` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/pages/MailOperationsPage.tsx:430` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/pages/MailTemplatesPage.tsx:413` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/pages/ScraperRunHistoryPage.tsx:476` — **EmptyState** — ds=`EmptyState` — `emptyState={showEmpty ? <EmptyState title={scraperLabels.runHistoryEmpty} /> : undefined}`
+- `src/pages/SmtpAccountsPage.tsx:337` — **EmptyState** — ds=`EmptyState` — `<EmptyState`
+- `src/pages/TodoDetailPage.tsx:362` — **EmptyState** — ds=`EmptyState` — `emptyState={<EmptyState title={todoWorklistLabels.emptyWorklist} />}`
+- `src/pages/TodosPage.tsx:611` — **EmptyState** — ds=`EmptyState` — `<EmptyState title={todoLabels.permissionDenied} />`
+- `src/pages/TodosPage.tsx:737` — **EmptyState** — ds=`EmptyState` — `<EmptyState`

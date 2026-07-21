@@ -226,7 +226,7 @@ export function TodoWorklistActivityModal({
           </>
         ) : (
           <form
-            className="todo-worklist-activity-form"
+            className="todo-worklist-activity-form crm-form crm-form--standard"
             onSubmit={(event) => {
               event.preventDefault();
               void handleSubmit(false);

@@ -216,7 +216,7 @@ function TodoForm({ initial, fairs, submitLabel, onCancel, onSubmit }: TodoFormP
   };
 
   return (
-    <form onSubmit={(event) => void handleSubmit(event)}>
+    <form className="crm-form crm-form--standard" onSubmit={(event) => void handleSubmit(event)}>
       <FormGrid>
         <FormField label={todoLabels.fieldTitle} htmlFor="todo-title" required fullWidth>
           <TextInput

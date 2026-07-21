@@ -58,22 +58,24 @@ export function PaginationBar({
           </SelectInput>
         </label>
 
-        <button
-          type="button"
-          className="btn secondary"
-          disabled={!canGoPrev}
-          onClick={() => onPageChange(page - 1)}
-        >
-          {paginationLabels.previous}
-        </button>
-        <button
-          type="button"
-          className="btn secondary"
-          disabled={!canGoNext}
-          onClick={() => onPageChange(page + 1)}
-        >
-          {paginationLabels.next}
-        </button>
+        <div className="pagination-nav">
+          <button
+            type="button"
+            className="btn secondary"
+            disabled={!canGoPrev}
+            onClick={() => onPageChange(page - 1)}
+          >
+            {paginationLabels.previous}
+          </button>
+          <button
+            type="button"
+            className="btn secondary"
+            disabled={!canGoNext}
+            onClick={() => onPageChange(page + 1)}
+          >
+            {paginationLabels.next}
+          </button>
+        </div>
       </div>
     </div>
   );

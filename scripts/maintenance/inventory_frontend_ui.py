@@ -1,20 +1,37 @@
-"""Full FAIR CRM frontend UI inventory (read-only audit).
+"""Full FAIR CRM frontend UI inventory + CI gate enforcement.
 
 Scans frontend/src for shared vs local/non-standard UI usage.
 Writes JSON + Markdown under scripts/maintenance/reports/.
+
+CI / local gate commands (from repo root):
+
+  python scripts/maintenance/inventory_frontend_ui.py --gate P0
+  python scripts/maintenance/inventory_frontend_ui.py --gate P1
+  python scripts/maintenance/inventory_frontend_ui.py --gate P2
+  python scripts/maintenance/inventory_frontend_ui.py --gate P3
+  python scripts/maintenance/inventory_frontend_ui.py --gate FINAL
+  python scripts/maintenance/inventory_frontend_ui.py --gate ALL
+
+Exit code 0 = gate PASS; non-zero = FAIL. See PROJECT_CONSTITUTION.md
+and docs/frontend/UI_DESIGN_SYSTEM.md.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
+import sys
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "frontend" / "src"
-OUT = Path(__file__).resolve().parent / "reports" / "frontend-ui-inventory-20260721"
+APP_TSX = SRC / "App.tsx"
+CAPTURE_EVIDENCE = ROOT / "frontend" / "scripts" / "capture-ui-evidence.mjs"
+OUT_DEFAULT = Path(__file__).resolve().parent / "reports" / "frontend-ui-inventory"
+OUT = OUT_DEFAULT
 
 SKIP_DIRS = {"node_modules", "dist", "__pycache__"}
 
@@ -22,8 +39,8 @@ SKIP_DIRS = {"node_modules", "dist", "__pycache__"}
 SHARED = {
     "button": {
         "standard": [".btn", "btn primary", "btn secondary", "btn danger", "btn ghost", "btn link", "btn-primary", "btn-secondary", "btn-danger", "btn-ghost"],
-        "component_files": [],
-        "notes": "No Button.tsx — class-based `.btn` / `.btn-*` is the standard (ADR-032 §5).",
+        "component_files": ["Button.tsx"],
+        "notes": "Prefer `Button` from `components/ui/Button`. Class-based `.btn` / `.btn-*` remains supported (same tokens).",
     },
     "input": {
         "standard_imports": ["TextInput", "PasswordInput"],
@@ -369,13 +386,44 @@ def inventory_import_category(
     return report
 
 
-# Specialty / intentional exceptions for P0 form/filter standardization
-P0_RAW_ALLOWLIST = {
-    "frontend/src/components/ui/form/FormInputs.tsx",  # kit definition
-    "frontend/src/components/imports/ExcelMappingGrid.tsx",  # specialty scroll grid
-    "frontend/src/components/FairEntitySelect.tsx",  # domain combobox
-    "frontend/src/components/AdapterSelect.tsx",  # domain combobox
-}
+@dataclass(frozen=True)
+class AllowlistEntry:
+    """Specialty exception. 'specialty' alone is never a valid reason."""
+
+    file: str
+    pattern: str
+    reason: str
+    owner: str
+
+
+# Specialty / intentional exceptions — documented in docs/frontend/UI_INVENTORY_ALLOWLIST.md
+P0_RAW_ALLOWLIST_ENTRIES: list[AllowlistEntry] = [
+    AllowlistEntry(
+        "frontend/src/components/ui/form/FormInputs.tsx",
+        "raw <input|select|textarea|checkbox|radio>",
+        "Shared form-kit definition; primitives wrap native controls.",
+        "ui/form kit",
+    ),
+    AllowlistEntry(
+        "frontend/src/components/imports/ExcelMappingGrid.tsx",
+        "raw <select> in mapping grid",
+        "Dense Excel mapping specialty requires native selects inside scroll-only grid; generic SelectInput breaks cell density.",
+        "import mapping specialty",
+    ),
+    AllowlistEntry(
+        "frontend/src/components/FairEntitySelect.tsx",
+        "raw combobox input chrome",
+        "Domain async combobox; wraps search input + listbox pattern not covered by SelectInput.",
+        "domain select wrappers",
+    ),
+    AllowlistEntry(
+        "frontend/src/components/AdapterSelect.tsx",
+        "raw combobox input chrome",
+        "Domain async combobox; wraps search input + listbox pattern not covered by SelectInput.",
+        "domain select wrappers",
+    ),
+]
+P0_RAW_ALLOWLIST = {e.file for e in P0_RAW_ALLOWLIST_ENTRIES}
 
 
 def compute_p0_violations(ts_files: list[Path]) -> dict:
@@ -465,12 +513,24 @@ def compute_p0_violations(ts_files: list[Path]) -> dict:
     }
 
 
-P1_ALERT_ALLOWLIST = {
-    "frontend/src/components/ui/Banner.tsx",  # kit definition
-}
-P1_CARD_ALLOWLIST = {
-    "frontend/src/components/ui/Card.tsx",  # kit definition
-}
+P1_ALERT_ALLOWLIST_ENTRIES: list[AllowlistEntry] = [
+    AllowlistEntry(
+        "frontend/src/components/ui/Banner.tsx",
+        "class token banner",
+        "Shared Banner definition applies the canonical banner class.",
+        "ui/Banner kit",
+    ),
+]
+P1_CARD_ALLOWLIST_ENTRIES: list[AllowlistEntry] = [
+    AllowlistEntry(
+        "frontend/src/components/ui/Card.tsx",
+        "class token card",
+        "Shared Card definition applies the canonical card class.",
+        "ui/Card kit",
+    ),
+]
+P1_ALERT_ALLOWLIST = {e.file for e in P1_ALERT_ALLOWLIST_ENTRIES}
+P1_CARD_ALLOWLIST = {e.file for e in P1_CARD_ALLOWLIST_ENTRIES}
 
 CLASSNAME_ATTR_RE = re.compile(r'className=(["\'])([^"\']*)\1|className=\{`([^`]*)`\}')
 
@@ -654,9 +714,15 @@ P3_DEFINITION_FILES = {
     "SidebarCollapseButton.tsx",
 }
 
-P3_PAGE_ALLOWLIST = {
-    "LoginPage.tsx",  # auth chrome outside AppLayout / PageShell
-}
+P3_PAGE_ALLOWLIST_ENTRIES: list[AllowlistEntry] = [
+    AllowlistEntry(
+        "frontend/src/pages/LoginPage.tsx",
+        "PageShell missing",
+        "Auth brand shell is outside AppLayout; PageShell is for in-app pages only.",
+        "auth shell specialty",
+    ),
+]
+P3_PAGE_ALLOWLIST = {Path(e.file).name for e in P3_PAGE_ALLOWLIST_ENTRIES}
 
 P3_REQUIRED_NAVLINK_LAYOUTS = {
     "AppLayout.tsx",
@@ -790,11 +856,151 @@ FINAL_FORM_ACTIONS_IN_MODAL_ALLOWLIST = {
     "FormActions.tsx",
 }
 
+# Canonical ADR-032 / ADR-034 breakpoint pixel set (max/min-width media queries).
 ADR_BREAKPOINTS_PX = {767, 768, 1023, 1024, 1440}
 
+# Production page files that may exist without being mounted from App.tsx (nested result views).
+ROUTE_UNMOUNTED_PAGE_ALLOWLIST = {
+    "DataOperationAnalyzeResultPage.tsx",
+    "DataOperationDuplicateResultPage.tsx",
+}
 
-def compute_final_violations(ts_files: list[Path], p0: dict, p1: dict, p2: dict, p3: dict) -> dict:
-    """FINAL system gate: residual chrome + tokens + a11y beyond P0–P3."""
+
+def extract_app_routes() -> list[str]:
+    """Derive production AppRoute literals from frontend/src/App.tsx (source of truth)."""
+    if not APP_TSX.exists():
+        return []
+    text = APP_TSX.read_text(encoding="utf-8")
+    m = re.search(r"type\s+AppRoute\s*=\s*(.*?);", text, flags=re.S)
+    if not m:
+        return []
+    return sorted(set(re.findall(r'["\'](/[^"\']+)["\']', m.group(1))))
+
+
+def extract_mounted_page_components() -> list[str]:
+    """Page components mounted from App.tsx JSX (`<XxxPage`)."""
+    if not APP_TSX.exists():
+        return []
+    text = APP_TSX.read_text(encoding="utf-8")
+    return sorted(set(re.findall(r"<([A-Z][A-Za-z0-9]*Page)\b", text)))
+
+
+def extract_smoke_covered_routes() -> list[str]:
+    """Routes referenced in capture-ui-evidence.mjs (responsive smoke catalog)."""
+    if not CAPTURE_EVIDENCE.exists():
+        return []
+    text = CAPTURE_EVIDENCE.read_text(encoding="utf-8")
+    # Prefer explicit route: "..." keys; also collect extractAppRoutes() merge marker.
+    return sorted(set(re.findall(r'route:\s*["\'](/[^"\']+)["\']', text)))
+
+
+def inventory_routes(ts_files: list[Path]) -> dict:
+    """New-route auto-coverage: AppRoute → mounted page → PageShell → smoke catalog."""
+    routes = extract_app_routes()
+    mounted = extract_mounted_page_components()
+    smoke = set(extract_smoke_covered_routes())
+    pages_dir = SRC / "pages"
+    page_files = sorted(p.name for p in pages_dir.glob("*Page.tsx")) if pages_dir.exists() else []
+
+    missing_pageshell: list[dict] = []
+    unmounted_pages: list[dict] = []
+    routes_missing_smoke: list[dict] = []
+
+    page_by_export: dict[str, Path] = {}
+    for path in ts_files:
+        if "/pages/" not in rel(path).replace("\\", "/"):
+            continue
+        if not path.name.endswith("Page.tsx"):
+            continue
+        text = path.read_text(encoding="utf-8")
+        for m in re.finditer(
+            rf"export\s+(?:function|const)\s+({re.escape(path.stem)}|[A-Z][A-Za-z0-9]*Page)\b",
+            text,
+        ):
+            page_by_export[m.group(1)] = path
+        # Convention: file name matches component
+        page_by_export.setdefault(path.stem, path)
+
+    for name in mounted:
+        path = page_by_export.get(name)
+        if path is None:
+            # May live under pages/ with same stem
+            candidate = pages_dir / f"{name}.tsx"
+            path = candidate if candidate.exists() else None
+        if path is None:
+            continue
+        if path.name in P3_PAGE_ALLOWLIST:
+            continue
+        text = path.read_text(encoding="utf-8")
+        if "PageShell" not in text:
+            missing_pageshell.append(
+                {
+                    "file": rel(path),
+                    "line": 0,
+                    "route_component": name,
+                    "snippet": "mounted production page missing PageShell",
+                }
+            )
+
+    mounted_files = {f"{n}.tsx" for n in mounted}
+    for page_name in page_files:
+        if page_name in P3_PAGE_ALLOWLIST or page_name in ROUTE_UNMOUNTED_PAGE_ALLOWLIST:
+            continue
+        if page_name not in mounted_files:
+            # Nested result pages imported by other pages are OK if allowlisted; else flag
+            unmounted_pages.append(
+                {
+                    "file": f"frontend/src/pages/{page_name}",
+                    "line": 0,
+                    "snippet": "page file not mounted from App.tsx — add route mount or allowlist",
+                }
+            )
+
+    for route in routes:
+        if route in smoke:
+            continue
+        # capture-ui-evidence auto-merges AppRoute; require either explicit route: key
+        # or the AUTO_FROM_APPROUTE marker after we update the script.
+        routes_missing_smoke.append(
+            {
+                "file": rel(CAPTURE_EVIDENCE) if CAPTURE_EVIDENCE.exists() else "frontend/scripts/capture-ui-evidence.mjs",
+                "line": 0,
+                "route": route,
+                "snippet": "AppRoute not present in responsive smoke catalog",
+            }
+        )
+
+    # If the capture script declares AUTO_FROM_APPROUTE, treat static routes as covered.
+    if CAPTURE_EVIDENCE.exists() and "AUTO_FROM_APPROUTE" in CAPTURE_EVIDENCE.read_text(encoding="utf-8"):
+        routes_missing_smoke = [
+            hit
+            for hit in routes_missing_smoke
+            if ":" in hit["route"] and hit["route"] not in smoke
+        ]
+
+    total = len(missing_pageshell) + len(unmounted_pages) + len(routes_missing_smoke)
+    return {
+        "app_routes": routes,
+        "mounted_page_components": mounted,
+        "smoke_covered_routes": sorted(smoke),
+        "page_files": page_files,
+        "missing_pageshell_on_mounted": missing_pageshell,
+        "unmounted_page_files": unmounted_pages,
+        "routes_missing_smoke_coverage": routes_missing_smoke,
+        "total_violations": total,
+        "pass": total == 0,
+    }
+
+
+def compute_final_violations(
+    ts_files: list[Path],
+    p0: dict,
+    p1: dict,
+    p2: dict,
+    p3: dict,
+    route_inv: dict | None = None,
+) -> dict:
+    """FINAL system gate: residual chrome + tokens + a11y + routes + breakpoints beyond P0–P3."""
     bare_field_error: list[dict] = []
     bare_modal_actions: list[dict] = []
     form_actions_in_modal: list[dict] = []
@@ -851,11 +1057,14 @@ def compute_final_violations(ts_files: list[Path], p0: dict, p1: dict, p2: dict,
                     {"file": r, "line": line_no(text, m.start()), "snippet": snippet_at(text, m.start())}
                 )
 
-    css_path = SRC / "styles.css"
-    if css_path.exists():
+    breakpoints_found: set[int] = set()
+    for css_path in sorted(SRC.rglob("*.css")):
+        if any(part in SKIP_DIRS for part in css_path.parts):
+            continue
         css = css_path.read_text(encoding="utf-8")
         for m in media_re.finditer(css):
             px = int(m.group(1))
+            breakpoints_found.add(px)
             if px not in ADR_BREAKPOINTS_PX:
                 legacy_breakpoints.append(
                     {
@@ -876,13 +1085,16 @@ def compute_final_violations(ts_files: list[Path], p0: dict, p1: dict, p2: dict,
             }
         )
 
+    route_inv = route_inv if route_inv is not None else inventory_routes(ts_files)
     prior_fail = not (p0["pass"] and p1["pass"] and p2["pass"] and p3["pass"])
+    route_fail_count = route_inv.get("total_violations", 0)
     total = (
         len(bare_field_error)
         + len(bare_modal_actions)
         + len(form_actions_in_modal)
         + len(legacy_breakpoints)
         + len(a11y_icon_buttons)
+        + route_fail_count
         + (1 if prior_fail else 0)
     )
     return {
@@ -892,14 +1104,18 @@ def compute_final_violations(ts_files: list[Path], p0: dict, p1: dict, p2: dict,
         "form_actions_in_modal": form_actions_in_modal,
         "legacy_breakpoints": legacy_breakpoints,
         "a11y_icon_buttons_missing_label": a11y_icon_buttons,
+        "route_coverage": route_inv,
         "prior_gates_failed": prior_fail,
         "intentional_exceptions": intentional,
         "pass": total == 0,
-        "breakpoints_found": sorted(
-            {int(m.group(1)) for m in media_re.finditer(css_path.read_text(encoding="utf-8"))}
-            if css_path.exists()
-            else []
-        ),
+        "breakpoints_found": sorted(breakpoints_found),
+        "allowlist_policy": {
+            "p0": [asdict(e) for e in P0_RAW_ALLOWLIST_ENTRIES],
+            "p1_alert": [asdict(e) for e in P1_ALERT_ALLOWLIST_ENTRIES],
+            "p1_card": [asdict(e) for e in P1_CARD_ALLOWLIST_ENTRIES],
+            "p3_pages": [asdict(e) for e in P3_PAGE_ALLOWLIST_ENTRIES],
+            "rule": "Allowlist requires file + pattern + reason + owner. 'specialty' alone is invalid.",
+        },
     }
 
 
@@ -945,181 +1161,249 @@ def inventory_component_catalog() -> dict:
     return catalog
 
 
-def main() -> None:
-    OUT.mkdir(parents=True, exist_ok=True)
-    files = iter_source_files()
-    ts_files = [p for p in files if p.suffix in {".ts", ".tsx"}]
-
-    reports: list[CategoryReport] = []
-
-    reports.append(inventory_buttons(ts_files))
-
-    reports.append(
-        inventory_import_category(
-            "Input / TextBox",
-            "TextInput, PasswordInput (`components/ui/form`)",
-            SHARED["input"]["notes"],
-            ts_files,
-            SHARED["input"]["standard_imports"],
-            raw_patterns=SHARED["input"]["raw_tags"],
-        )
-    )
-    reports.append(
-        inventory_import_category(
-            "TextArea",
-            "TextareaInput (`components/ui/form`)",
-            SHARED["textarea"]["notes"],
-            ts_files,
-            SHARED["textarea"]["standard_imports"],
-            raw_patterns=SHARED["textarea"]["raw_tags"],
-        )
-    )
-    reports.append(
-        inventory_import_category(
-            "Select",
-            "SelectInput (`components/ui/form`) + domain EntitySelect wrappers",
-            SHARED["select"]["notes"],
-            ts_files,
-            SHARED["select"]["standard_imports"],
-            raw_patterns=SHARED["select"]["raw_tags"],
-        )
-    )
-    reports.append(
-        inventory_import_category(
-            "Checkbox / Radio",
-            "CheckboxField, RadioField (`components/ui/form`)",
-            SHARED["checkbox_radio"]["notes"],
-            ts_files,
-            SHARED["checkbox_radio"]["standard_imports"],
-            raw_patterns=SHARED["checkbox_radio"]["raw_tags"],
-        )
-    )
-    reports.append(
-        inventory_import_category(
-            "Form",
-            "FormGrid / FormField / FormSection / FormActions / FormModal",
-            SHARED["form"]["notes"],
-            ts_files,
-            SHARED["form"]["standard_imports"],
-        )
-    )
-    reports.append(
-        inventory_import_category(
-            "Modal / Dialog / Confirmation",
-            "Modal, ConfirmDialog, FormModal, Drawer (ADR-028)",
-            SHARED["modal"]["notes"],
-            ts_files,
-            SHARED["modal"]["standard_imports"],
-            # local overlays: class modal-backdrop without Modal import is hard; detect custom Modal wrappers by filename
-        )
-    )
-    reports.append(
-        inventory_import_category(
-            "DataTable / Table",
-            "UniversalDataTable -> WidthResponsiveDataTable (+ ServerDataTableFrame)",
-            SHARED["datatable"]["notes"],
-            ts_files,
-            SHARED["datatable"]["standard_imports"],
-            raw_patterns=SHARED["datatable"]["raw_tags"],
-            deprecated=["ResponsiveDataTable"],
-        )
-    )
-    reports.append(
-        inventory_import_category(
-            "Pagination",
-            "PaginationBar + ServerDataTableFrame dual pagination",
-            SHARED["pagination"]["notes"],
-            ts_files,
-            SHARED["pagination"]["standard_imports"],
-        )
-    )
-    reports.append(
-        inventory_import_category(
-            "Filter / Toolbar",
-            "FilterPanel",
-            SHARED["filter_toolbar"]["notes"],
-            ts_files,
-            SHARED["filter_toolbar"]["standard_imports"],
-            class_patterns=[r'className=["\'][^"\']*\bfilters\b'],
-        )
-    )
-    reports.append(
-        inventory_import_category(
-            "Card",
-            "Card (`components/ui/Card`)",
-            SHARED["card"]["notes"],
-            ts_files,
-            SHARED["card"]["standard_imports"],
-        )
-    )
-    reports.append(
-        inventory_import_category(
-            "PageHeader",
-            "PageHeader / SectionHeader",
-            SHARED["page_header"]["notes"],
-            ts_files,
-            SHARED["page_header"]["standard_imports"],
-        )
-    )
-    reports.append(
-        inventory_import_category(
-            "Layout / Shell",
-            "AppLayout, AdminSystemLayout, DataIntegrationLayout, Breadcrumb, UserMenu",
-            SHARED["layout_shell"]["notes"],
-            ts_files,
-            SHARED["layout_shell"]["standard_imports"],
-        )
-    )
-    reports.append(
-        inventory_import_category(
-            "Alert / Toast / Banner",
-            "Banner (`components/ui/Banner`) — success/warning/error/info",
-            SHARED["alert_toast"]["notes"],
-            ts_files,
-            SHARED["alert_toast"]["standard_imports"],
-        )
-    )
-    reports.append(
-        inventory_import_category(
-            "Other shared UI",
-            "Tabs, Badge, TruncatedText, TechnicalDetails, EmptyState, LoadingState, DetailFields",
-            SHARED["other"]["notes"],
-            ts_files,
-            SHARED["other"]["standard_imports"],
-        )
-    )
-
-    # Local modal wrappers (files named *Modal* that don't import shared Modal)
-    local_modals = []
-    for path in ts_files:
-        if "Modal" not in path.name and "Dialog" not in path.name:
-            continue
-        text = path.read_text(encoding="utf-8")
-        r = rel(path)
-        if "/components/ui/" in r:
-            continue
-        uses_shared = any(
-            file_imports_symbol(text, s)
-            for s in ("Modal", "ConfirmDialog", "FormModal", "Drawer")
-        )
-        if not uses_shared:
-            local_modals.append(r)
-
-    css_findings = inventory_css_overrides(files)
-    catalog = inventory_component_catalog()
-
-    # Domain select wrappers
-    domain_selects = [
-        rel(p)
-        for p in ts_files
-        if p.name.endswith("Select.tsx") or "EntitySelect" in p.name
-    ]
-
+def compute_all_gates(ts_files: list[Path]) -> dict:
     p0 = compute_p0_violations(ts_files)
     p1 = compute_p1_violations(ts_files)
     p2 = compute_p2_violations(ts_files)
     p3 = compute_p3_violations(ts_files)
-    p_final = compute_final_violations(ts_files, p0, p1, p2, p3)
+    route_inv = inventory_routes(ts_files)
+    p_final = compute_final_violations(ts_files, p0, p1, p2, p3, route_inv)
+    return {
+        "p0": p0,
+        "p1": p1,
+        "p2": p2,
+        "p3": p3,
+        "routes": route_inv,
+        "final": p_final,
+    }
+
+
+def gate_passed(gates: dict, name: str) -> bool:
+    key = name.lower()
+    if key == "all":
+        return all(gates[g]["pass"] for g in ("p0", "p1", "p2", "p3", "final"))
+    if key == "final":
+        return gates["final"]["pass"]
+    return gates[key]["pass"]
+
+
+def print_gate_summary(gates: dict, selected: str) -> None:
+    order = ["P0", "P1", "P2", "P3", "FINAL"]
+    print("UI GOVERNANCE GATES")
+    for name in order:
+        key = name.lower()
+        g = gates[key]
+        status = "PASS" if g["pass"] else "FAIL"
+        print(f"  {name}: {status} (violations={g['total_violations']})")
+    routes = gates["routes"]
+    print(
+        f"  ROUTES: {'PASS' if routes['pass'] else 'FAIL'} "
+        f"(app_routes={len(routes['app_routes'])}, mounted={len(routes['mounted_page_components'])})"
+    )
+    if selected.upper() != "ALL":
+        ok = gate_passed(gates, selected)
+        print(f"Selected gate {selected.upper()}: {'PASS' if ok else 'FAIL'}")
+
+
+def main(argv: list[str] | None = None) -> int:
+    global OUT
+    parser = argparse.ArgumentParser(description="FAIR CRM frontend UI inventory + governance gates")
+    parser.add_argument(
+        "--gate",
+        choices=["P0", "P1", "P2", "P3", "FINAL", "ALL"],
+        default=None,
+        help="Enforce a gate and exit non-zero on FAIL (CI mode).",
+    )
+    parser.add_argument(
+        "--report-dir",
+        default=str(OUT_DEFAULT),
+        help="Directory for REPORT.md / inventory.json",
+    )
+    parser.add_argument(
+        "--full-report",
+        action="store_true",
+        help="Always write the full category inventory report (default when --gate omitted).",
+    )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress long report stdout; still print gate summary.",
+    )
+    args = parser.parse_args(argv)
+
+    OUT = Path(args.report_dir)
+    OUT.mkdir(parents=True, exist_ok=True)
+    files = iter_source_files()
+    ts_files = [p for p in files if p.suffix in {".ts", ".tsx"}]
+
+    gates = compute_all_gates(ts_files)
+    p0, p1, p2, p3, p_final = gates["p0"], gates["p1"], gates["p2"], gates["p3"], gates["final"]
+    route_inv = gates["routes"]
+
+    write_full = args.full_report or args.gate is None
+    reports: list[CategoryReport] = []
+    local_modals: list[str] = []
+    css_findings: dict = {}
+    catalog: dict = {}
+    domain_selects: list[str] = []
+
+    if write_full:
+        reports.append(inventory_buttons(ts_files))
+        reports.append(
+            inventory_import_category(
+                "Input / TextBox",
+                "TextInput, PasswordInput (`components/ui/form`)",
+                SHARED["input"]["notes"],
+                ts_files,
+                SHARED["input"]["standard_imports"],
+                raw_patterns=SHARED["input"]["raw_tags"],
+            )
+        )
+        reports.append(
+            inventory_import_category(
+                "TextArea",
+                "TextareaInput (`components/ui/form`)",
+                SHARED["textarea"]["notes"],
+                ts_files,
+                SHARED["textarea"]["standard_imports"],
+                raw_patterns=SHARED["textarea"]["raw_tags"],
+            )
+        )
+        reports.append(
+            inventory_import_category(
+                "Select",
+                "SelectInput (`components/ui/form`) + domain EntitySelect wrappers",
+                SHARED["select"]["notes"],
+                ts_files,
+                SHARED["select"]["standard_imports"],
+                raw_patterns=SHARED["select"]["raw_tags"],
+            )
+        )
+        reports.append(
+            inventory_import_category(
+                "Checkbox / Radio",
+                "CheckboxField, RadioField (`components/ui/form`)",
+                SHARED["checkbox_radio"]["notes"],
+                ts_files,
+                SHARED["checkbox_radio"]["standard_imports"],
+                raw_patterns=SHARED["checkbox_radio"]["raw_tags"],
+            )
+        )
+        reports.append(
+            inventory_import_category(
+                "Form",
+                "FormGrid / FormField / FormSection / FormActions / FormModal",
+                SHARED["form"]["notes"],
+                ts_files,
+                SHARED["form"]["standard_imports"],
+            )
+        )
+        reports.append(
+            inventory_import_category(
+                "Modal / Dialog / Confirmation",
+                "Modal, ConfirmDialog, FormModal, Drawer (ADR-028)",
+                SHARED["modal"]["notes"],
+                ts_files,
+                SHARED["modal"]["standard_imports"],
+            )
+        )
+        reports.append(
+            inventory_import_category(
+                "DataTable / Table",
+                "UniversalDataTable -> WidthResponsiveDataTable (+ ServerDataTableFrame)",
+                SHARED["datatable"]["notes"],
+                ts_files,
+                SHARED["datatable"]["standard_imports"],
+                raw_patterns=SHARED["datatable"]["raw_tags"],
+                deprecated=["ResponsiveDataTable"],
+            )
+        )
+        reports.append(
+            inventory_import_category(
+                "Pagination",
+                "PaginationBar + ServerDataTableFrame dual pagination",
+                SHARED["pagination"]["notes"],
+                ts_files,
+                SHARED["pagination"]["standard_imports"],
+            )
+        )
+        reports.append(
+            inventory_import_category(
+                "Filter / Toolbar",
+                "FilterPanel",
+                SHARED["filter_toolbar"]["notes"],
+                ts_files,
+                SHARED["filter_toolbar"]["standard_imports"],
+                class_patterns=[r'className=["\'][^"\']*\bfilters\b'],
+            )
+        )
+        reports.append(
+            inventory_import_category(
+                "Card",
+                "Card (`components/ui/Card`)",
+                SHARED["card"]["notes"],
+                ts_files,
+                SHARED["card"]["standard_imports"],
+            )
+        )
+        reports.append(
+            inventory_import_category(
+                "PageHeader",
+                "PageHeader / SectionHeader",
+                SHARED["page_header"]["notes"],
+                ts_files,
+                SHARED["page_header"]["standard_imports"],
+            )
+        )
+        reports.append(
+            inventory_import_category(
+                "Layout / Shell",
+                "AppLayout, AdminSystemLayout, DataIntegrationLayout, Breadcrumb, UserMenu",
+                SHARED["layout_shell"]["notes"],
+                ts_files,
+                SHARED["layout_shell"]["standard_imports"],
+            )
+        )
+        reports.append(
+            inventory_import_category(
+                "Alert / Toast / Banner",
+                "Banner (`components/ui/Banner`) — success/warning/error/info",
+                SHARED["alert_toast"]["notes"],
+                ts_files,
+                SHARED["alert_toast"]["standard_imports"],
+            )
+        )
+        reports.append(
+            inventory_import_category(
+                "Other shared UI",
+                "Tabs, Badge, TruncatedText, TechnicalDetails, EmptyState, LoadingState, DetailFields",
+                SHARED["other"]["notes"],
+                ts_files,
+                SHARED["other"]["standard_imports"],
+            )
+        )
+
+        for path in ts_files:
+            if "Modal" not in path.name and "Dialog" not in path.name:
+                continue
+            text_src = path.read_text(encoding="utf-8")
+            r = rel(path)
+            if "/components/ui/" in r:
+                continue
+            uses_shared = any(
+                file_imports_symbol(text_src, s)
+                for s in ("Modal", "ConfirmDialog", "FormModal", "Drawer")
+            )
+            if not uses_shared:
+                local_modals.append(r)
+
+        css_findings = inventory_css_overrides(files)
+        catalog = inventory_component_catalog()
+        domain_selects = [
+            rel(p)
+            for p in ts_files
+            if p.name.endswith("Select.tsx") or "EntitySelect" in p.name
+        ]
 
     payload = {
         "catalog": catalog,
@@ -1127,19 +1411,28 @@ def main() -> None:
         "local_modal_wrappers_without_shared_import": local_modals,
         "categories": [asdict(r) for r in reports],
         "css_override_hotspots": css_findings,
+        "routes": route_inv,
         "p0": p0,
         "p1": p1,
         "p2": p2,
         "p3": p3,
         "final": p_final,
+        "gates": {
+            "P0": p0["pass"],
+            "P1": p1["pass"],
+            "P2": p2["pass"],
+            "P3": p3["pass"],
+            "FINAL": p_final["pass"],
+            "ALL": gate_passed(gates, "ALL"),
+        },
     }
     (OUT / "inventory.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
-    # Markdown report
     lines = [
         "# FAIR CRM Frontend UI Inventory",
         "",
-        "Read-only audit of `frontend/src` against PROJECT_CONSTITUTION + ADR-028/032 + `docs/frontend/RESPONSIVE_UI_STANDARD.md`.",
+        "Audit of `frontend/src` against PROJECT_CONSTITUTION, ADR-028/032/034, "
+        "`docs/frontend/UI_DESIGN_SYSTEM.md`, and `docs/frontend/RESPONSIVE_UI_STANDARD.md`.",
         "",
         "## P0 standardization gate",
         "",
@@ -1156,7 +1449,6 @@ def main() -> None:
         f"- **Total P1 violations:** {p1['total_violations']}",
         f"- Bare alert/toast class tokens (`banner`/`toast`/`import-toast`): **{len(p1['bare_alert_toast'])}**",
         f"- Bare `card` class token on raw elements: **{len(p1['bare_card'])}**",
-        f"- Intentional specialty layouts (non-notification `*-banner`): **{len(p1['intentional_exceptions'])}**",
         "",
         "## P2 standardization gate",
         "",
@@ -1164,262 +1456,86 @@ def main() -> None:
         f"- **Total P2 violations:** {p2['total_violations']}",
         f"- Bare `form-error` class: **{len(p2['bare_form_error'])}**",
         f"- Legacy `link-button`: **{len(p2['link_button'])}**",
-        f"- Ad-hoc emptyState `<p className=\"text-muted\">`: **{len(p2['adhoc_empty'])}**",
-        f"- Ad-hoc page loading `<p>Yükleniyor…`: **{len(p2['adhoc_loading'])}**",
-        f"- Bare table/list action wrappers (not TableRowActions): **{len(p2['bare_action_wrappers'])}**",
-        f"- Intentional exceptions: **{len(p2['intentional_exceptions'])}**",
+        f"- Ad-hoc emptyState: **{len(p2['adhoc_empty'])}**",
+        f"- Ad-hoc page loading: **{len(p2['adhoc_loading'])}**",
+        f"- Bare table/list action wrappers: **{len(p2['bare_action_wrappers'])}**",
         "",
         "## P3 standardization gate",
         "",
         f"- **PASS:** {'YES' if p3['pass'] else 'NO'}",
         f"- **Total P3 violations:** {p3['total_violations']}",
         f"- Bare icon-button class tokens: **{len(p3['bare_icon_buttons'])}**",
-        f"- `login-form-error`: **{len(p3['login_form_error'])}**",
-        f"- Bare nav-link class markup (outside NavLink): **{len(p3['bare_nav_links'])}**",
         f"- Pages missing PageShell: **{len(p3['missing_pageshell'])}**",
         f"- Layouts missing NavLink: **{len(p3['missing_navlink_layouts'])}**",
-        f"- Intentional exceptions: **{len(p3['intentional_exceptions'])}**",
+        "",
+        "## Route auto-coverage",
+        "",
+        f"- **PASS:** {'YES' if route_inv['pass'] else 'NO'}",
+        f"- AppRoute count: **{len(route_inv['app_routes'])}**",
+        f"- Mounted page components: **{len(route_inv['mounted_page_components'])}**",
+        f"- Missing PageShell on mounted pages: **{len(route_inv['missing_pageshell_on_mounted'])}**",
+        f"- Unmounted page files: **{len(route_inv['unmounted_page_files'])}**",
+        f"- Routes missing smoke catalog: **{len(route_inv['routes_missing_smoke_coverage'])}**",
         "",
         "## FINAL standardization gate",
         "",
         f"- **PASS:** {'YES' if p_final['pass'] else 'NO'}",
         f"- **Total FINAL violations:** {p_final['total_violations']}",
-        f"- Bare `field-error` (outside FieldError/FormField): **{len(p_final['bare_field_error'])}**",
+        f"- Bare `field-error`: **{len(p_final['bare_field_error'])}**",
         f"- Bare `modal-actions`: **{len(p_final['bare_modal_actions'])}**",
-        f"- `form-actions` inside Modal/FormModal (non-allowlist): **{len(p_final['form_actions_in_modal'])}**",
-        f"- Legacy CSS breakpoints (not ADR set): **{len(p_final['legacy_breakpoints'])}**",
+        f"- `form-actions` inside Modal/FormModal: **{len(p_final['form_actions_in_modal'])}**",
+        f"- Legacy CSS breakpoints: **{len(p_final['legacy_breakpoints'])}**",
         f"- Icon buttons missing aria-label: **{len(p_final['a11y_icon_buttons_missing_label'])}**",
+        f"- Route coverage violations: **{route_inv['total_violations']}**",
         f"- Prior gates failed: **{'YES' if p_final['prior_gates_failed'] else 'NO'}**",
         f"- Breakpoints found: {', '.join(str(x) for x in p_final.get('breakpoints_found', []))}",
-        f"- Intentional exceptions: **{len(p_final['intentional_exceptions'])}**",
+        "",
+        "## Gate commands",
+        "",
+        "```powershell",
+        "python scripts/maintenance/inventory_frontend_ui.py --gate P0",
+        "python scripts/maintenance/inventory_frontend_ui.py --gate P1",
+        "python scripts/maintenance/inventory_frontend_ui.py --gate P2",
+        "python scripts/maintenance/inventory_frontend_ui.py --gate P3",
+        "python scripts/maintenance/inventory_frontend_ui.py --gate FINAL",
+        "python scripts/maintenance/inventory_frontend_ui.py --gate ALL",
+        "```",
         "",
     ]
-    if not p0["pass"]:
-        lines.append("### P0 remaining samples")
-        lines.append("")
-        for bucket, key in (
-            ("bare_checkbox_radio", "bare_checkbox_radio"),
-            ("local_filters_without_filter_panel", "local_filters_without_filter_panel"),
-            ("raw_form_controls", "raw_form_controls"),
-        ):
-            items = p0[key]
-            if not items:
-                continue
-            lines.append(f"**{bucket}** ({len(items)}):")
-            for s in items[:25]:
-                lines.append(f"- `{s['file']}:{s['line']}` — `{s['snippet']}`")
-            lines.append("")
 
-    if not p1["pass"] or p1["intentional_exceptions"]:
-        lines.append("### P1 details")
-        lines.append("")
-        if not p1["pass"]:
-            for bucket, key in (("bare_alert_toast", "bare_alert_toast"), ("bare_card", "bare_card")):
-                items = p1[key]
-                if not items:
-                    continue
-                lines.append(f"**{bucket}** ({len(items)}):")
-                for s in items[:25]:
-                    lines.append(f"- `{s['file']}:{s['line']}` — `{s['snippet']}`")
-                lines.append("")
-        if p1["intentional_exceptions"]:
-            lines.append(f"**Intentional exceptions** ({len(p1['intentional_exceptions'])}):")
-            for s in p1["intentional_exceptions"][:20]:
-                lines.append(f"- `{s['file']}:{s['line']}` ({s.get('kind', '')}) — `{s['snippet']}`")
-            lines.append("")
-
-    if not p2["pass"] or p2["intentional_exceptions"]:
-        lines.append("### P2 details")
-        lines.append("")
-        if not p2["pass"]:
-            for bucket, key in (
-                ("bare_form_error", "bare_form_error"),
-                ("link_button", "link_button"),
-                ("adhoc_empty", "adhoc_empty"),
-                ("adhoc_loading", "adhoc_loading"),
-                ("bare_action_wrappers", "bare_action_wrappers"),
-            ):
-                items = p2[key]
-                if not items:
-                    continue
-                lines.append(f"**{bucket}** ({len(items)}):")
-                for s in items[:25]:
-                    lines.append(f"- `{s['file']}:{s['line']}` — `{s['snippet']}`")
-                lines.append("")
-        if p2["intentional_exceptions"]:
-            lines.append(f"**Intentional exceptions** ({len(p2['intentional_exceptions'])}):")
-            for s in p2["intentional_exceptions"][:20]:
-                lines.append(f"- `{s['file']}:{s['line']}` ({s.get('kind', '')}) — `{s['snippet']}`")
-            lines.append("")
-
-    if not p3["pass"] or p3["intentional_exceptions"]:
-        lines.append("### P3 details")
-        lines.append("")
-        if not p3["pass"]:
-            for bucket, key in (
-                ("bare_icon_buttons", "bare_icon_buttons"),
-                ("login_form_error", "login_form_error"),
-                ("bare_nav_links", "bare_nav_links"),
-                ("missing_pageshell", "missing_pageshell"),
-                ("missing_navlink_layouts", "missing_navlink_layouts"),
-            ):
-                items = p3[key]
-                if not items:
-                    continue
-                lines.append(f"**{bucket}** ({len(items)}):")
-                for s in items[:40]:
-                    lines.append(f"- `{s['file']}:{s['line']}` — `{s['snippet']}`")
-                lines.append("")
-        if p3["intentional_exceptions"]:
-            lines.append(f"**Intentional exceptions** ({len(p3['intentional_exceptions'])}):")
-            for s in p3["intentional_exceptions"][:30]:
-                lines.append(f"- `{s['file']}:{s['line']}` ({s.get('kind', '')}) — `{s['snippet']}`")
-            lines.append("")
-
-    if not p_final["pass"] or p_final["intentional_exceptions"]:
-        lines.append("### FINAL details")
-        lines.append("")
-        if not p_final["pass"]:
-            for bucket, key in (
-                ("bare_field_error", "bare_field_error"),
-                ("bare_modal_actions", "bare_modal_actions"),
-                ("form_actions_in_modal", "form_actions_in_modal"),
-                ("legacy_breakpoints", "legacy_breakpoints"),
-                ("a11y_icon_buttons_missing_label", "a11y_icon_buttons_missing_label"),
-            ):
-                items = p_final[key]
-                if not items:
-                    continue
-                lines.append(f"**{bucket}** ({len(items)}):")
-                for s in items[:40]:
-                    lines.append(f"- `{s['file']}:{s['line']}` — `{s['snippet']}`")
-                lines.append("")
-        if p_final["intentional_exceptions"]:
-            lines.append(f"**Intentional exceptions** ({len(p_final['intentional_exceptions'])}):")
-            for s in p_final["intentional_exceptions"][:30]:
-                lines.append(f"- `{s['file']}:{s['line']}` ({s.get('kind', '')}) — `{s['snippet']}`")
-            lines.append("")
-
-    lines += [
-        "## Shared catalog",
-        "",
-        f"- `components/ui`: {', '.join(catalog['shared_ui_files'])}",
-        f"- Form kit: {', '.join(catalog['form_kit'])}",
-        f"- Layout: {', '.join(catalog['layout'])}",
-        f"- Nested shells: {', '.join(catalog['admin_di_layout'])}",
-        "",
-        "## Category summary",
-        "",
-        "| UI türü | Ortak altyapı | Toplam hit | Standart | Standart dışı | Standart dosya # | Standart dışı dosya # |",
-        "|---|---|---:|---:|---:|---:|---:|",
-    ]
-    for r in reports:
-        lines.append(
-            f"| {r.category} | {r.standard_infra} | {r.total_hits} | {r.standard_hits} | {r.nonstandard_hits} | {len(r.files_standard)} | {len(r.files_nonstandard)} |"
-        )
-
-    lines += ["", "## Detaylar", ""]
-    for r in reports:
-        lines += [
-            f"### {r.category}",
+    if write_full and catalog:
+        insert_at = lines.index("## Gate commands")
+        extra = [
+            "## Shared catalog",
             "",
-            f"- **Ortak altyapı:** {r.standard_infra}",
-            f"- **Not:** {r.notes}",
-            f"- **Toplam / standart / dışı:** {r.total_hits} / {r.standard_hits} / {r.nonstandard_hits}",
-            f"- **Standart kullanan dosya sayısı:** {len(r.files_standard)}",
-            f"- **Standart dışı içeren dosya sayısı:** {len(r.files_nonstandard)}",
+            f"- `components/ui`: {', '.join(catalog.get('shared_ui_files', []))}",
+            f"- Form kit: {', '.join(catalog.get('form_kit', []))}",
             "",
+            "## Category summary",
+            "",
+            "| UI türü | Ortak altyapı | Toplam hit | Standart | Standart dışı |",
+            "|---|---|---:|---:|---:|",
         ]
-        if r.files_nonstandard:
-            lines.append("**Standart dışı / karışık dosyalar:**")
-            for f in r.files_nonstandard[:60]:
-                lines.append(f"- `{f}`")
-            if len(r.files_nonstandard) > 60:
-                lines.append(f"- … +{len(r.files_nonstandard) - 60} more")
-            lines.append("")
-        if r.samples_nonstandard:
-            lines.append("**Örnek standart dışı satırlar:**")
-            for s in r.samples_nonstandard[:15]:
-                lines.append(
-                    f"- `{s['file']}:{s['line']}` — {s.get('reason', '')} — `{s['snippet']}`"
-                )
-            lines.append("")
-
-    lines += [
-        "## Local modal wrappers (filename *Modal* without shared Modal import)",
-        "",
-    ]
-    if local_modals:
-        for f in local_modals:
-            lines.append(f"- `{f}`")
-    else:
-        lines.append("- (none)")
-
-    lines += [
-        "",
-        "## Domain select wrappers",
-        "",
-    ]
-    for f in domain_selects:
-        lines.append(f"- `{f}`")
-
-    lines += [
-        "",
-        "## CSS override / hotspot map (`styles.css`)",
-        "",
-    ]
-    for key, val in css_findings.items():
-        if key.endswith("_count"):
-            lines.append(f"- **{key[:-6]}**: {val} matches")
-    lines += ["", "### Sample CSS hits", ""]
-    for key, val in css_findings.items():
-        if key.endswith("_count") or not isinstance(val, list):
-            continue
-        lines.append(f"**{key}** (first {min(5, len(val))}):")
-        for h in val[:5]:
-            lines.append(f"- L{h['line']}: `{h['snippet']}`")
-        lines.append("")
-
-    lines += [
-        "## Sorun haritası (öncelik)",
-        "",
-        (
-            "0. **P0 gate** — PASS (0 violations)."
-            if p0["pass"]
-            else f"0. **P0 gate** — FAIL ({p0['total_violations']} violations)."
-        ),
-        (
-            "1. **P1 gate** — PASS (0 violations)."
-            if p1["pass"]
-            else f"1. **P1 gate** — FAIL ({p1['total_violations']} violations)."
-        ),
-        (
-            "2. **P2 gate** — PASS (0 violations)."
-            if p2["pass"]
-            else f"2. **P2 gate** — FAIL ({p2['total_violations']} violations)."
-        ),
-        (
-            "3. **P3 gate** — PASS (0 violations)."
-            if p3["pass"]
-            else f"3. **P3 gate** — FAIL ({p3['total_violations']} violations)."
-        ),
-        (
-            "4. **FINAL gate** — PASS (0 violations)."
-            if p_final["pass"]
-            else f"4. **FINAL gate** — FAIL ({p_final['total_violations']} violations)."
-        ),
-        "5. **Specialty** — Import Wizard mapping + ExcelMappingGrid scroll-only; merge UIs; entity selects.",
-        "6. **CSS** — leftover page-local table/overflow rules and `word-break: break-all` outside `.text-mono`.",
-        "",
-    ]
+        for r in reports:
+            extra.append(
+                f"| {r.category} | {r.standard_infra} | {r.total_hits} | {r.standard_hits} | {r.nonstandard_hits} |"
+            )
+        extra.append("")
+        lines[insert_at:insert_at] = extra
 
     report_text = "\n".join(lines)
     (OUT / "REPORT.md").write_text(report_text, encoding="utf-8")
-    # Avoid Windows console encoding crashes on unicode arrows
-    print(report_text[:4000].encode("ascii", "replace").decode("ascii"))
-    print(f"\n... full report: {OUT / 'REPORT.md'}")
+
+    print_gate_summary(gates, args.gate or "ALL")
+    if not args.quiet and write_full:
+        print(report_text[:3000].encode("ascii", "replace").decode("ascii"))
+        print(f"\n... full report: {OUT / 'REPORT.md'}")
     print(f"json: {OUT / 'inventory.json'}")
+
+    if args.gate:
+        return 0 if gate_passed(gates, args.gate) else 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

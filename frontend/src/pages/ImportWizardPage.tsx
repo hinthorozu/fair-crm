@@ -734,6 +734,16 @@ export function ImportWizardPage({
         >
           {bulkAssignRunning ? importLabels.bulkAssignRunning : importLabels.bulkAssignSelected}
         </button>
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={applyRunning || bulkAssignRunning || loading || previewTable.items.length === 0}
+          onClick={() => void handleApplyDecisions()}
+        >
+          {applyRunning || bulkAssignRunning || loading
+            ? importLabels.applyRunning
+            : importLabels.applyAllList}
+        </button>
         {selectedRowIds.size > 0 && (
           <span className="text-muted">{importLabels.selectedCount(selectedRowIds.size)}</span>
         )}
@@ -1209,8 +1219,6 @@ export function ImportWizardPage({
   );
 
   const renderDecisions = () => {
-    const decisionBusy = applyRunning || bulkAssignRunning || loading;
-
     if (isImportComplete && batch) {
       return (
         <Card>
@@ -1238,14 +1246,6 @@ export function ImportWizardPage({
           <>
             {renderBulkDecisionPanel()}
             <div className="bulk-actions">
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={decisionBusy || previewTable.items.length === 0}
-                onClick={() => void handleApplyDecisions()}
-              >
-                {decisionBusy ? importLabels.applyRunning : importLabels.applyAllList}
-              </button>
               {applyResult && (
                 <div className="import-apply-result">
                   <p className="import-apply-result-title">{importLabels.applyCompletedTitle}</p>

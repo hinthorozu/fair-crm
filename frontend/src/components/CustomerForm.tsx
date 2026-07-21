@@ -167,7 +167,7 @@ export function CustomerForm({ initial, submitLabel, onCancel, onSubmit }: Custo
   };
 
   return (
-    <form className="customer-form" onSubmit={(event) => void handleSubmit(event)}>
+    <form className="customer-form crm-form crm-form--wide" onSubmit={(event) => void handleSubmit(event)}>
       {error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}
 
       <FormSection title={labels.customerSectionGeneral}>
