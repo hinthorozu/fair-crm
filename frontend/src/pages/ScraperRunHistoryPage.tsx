@@ -262,6 +262,12 @@ function buildColumns(
   ];
 }
 
+const POLL_INTERVAL_MS = 12_000;
+
+function isActiveRunStatus(status: ScraperRunStatus): boolean {
+  return status === "running" || status === "cancel_requested" || status === "cancelling";
+}
+
 export function ScraperRunHistoryPage({
   initialAdapterKey,
   onOpenAdapter,
@@ -271,6 +277,8 @@ export function ScraperRunHistoryPage({
   const [adapters, setAdapters] = React.useState<AdapterListItem[]>([]);
   const [outputLoading, setOutputLoading] = React.useState<string | null>(null);
   const [outputError, setOutputError] = React.useState<string | null>(null);
+  const silentRefreshInFlight = React.useRef(false);
+  const loadingRef = React.useRef(false);
 
   const table = useServerDataTable<ScraperRun>({
     fetchFn: listScraperRunsTable,
@@ -281,6 +289,20 @@ export function ScraperRunHistoryPage({
     urlPath: "/data-integration/run-history",
   });
 
+  loadingRef.current = table.loading;
+
+  const hasActiveRuns = table.items.some((run) => isActiveRunStatus(run.status));
+
+  const silentRefresh = React.useCallback(async () => {
+    if (silentRefreshInFlight.current || loadingRef.current) return;
+    silentRefreshInFlight.current = true;
+    try {
+      await table.refresh({ silent: true });
+    } finally {
+      silentRefreshInFlight.current = false;
+    }
+  }, [table.refresh]);
+
   React.useEffect(() => {
     void listAdapters()
       .then((response) => setAdapters(response.items))
@@ -288,15 +310,16 @@ export function ScraperRunHistoryPage({
   }, []);
 
   React.useEffect(() => {
-    const hasRunning = table.items.some((run) => run.status === "running");
-    if (!hasRunning) {
-      return;
-    }
+    if (!hasActiveRuns) return;
     const interval = window.setInterval(() => {
-      void table.refresh();
-    }, 3000);
+      void silentRefresh();
+    }, POLL_INTERVAL_MS);
     return () => window.clearInterval(interval);
-  }, [table.items, table.refresh]);
+  }, [hasActiveRuns, silentRefresh]);
+
+  const handleManualRefresh = React.useCallback(() => {
+    void silentRefresh();
+  }, [silentRefresh]);
 
   const handleDownload = React.useCallback(async (run: ScraperRun, kind: "json" | "excel") => {
     const key = `${run.id}:${kind}`;
@@ -330,6 +353,15 @@ export function ScraperRunHistoryPage({
       <PageHeader
         title={scraperLabels.runHistoryTitle}
         subtitle={scraperLabels.runHistorySubtitle}
+        actions={[
+          {
+            id: "refresh-run-history",
+            label: scraperLabels.runHistoryRefresh,
+            onClick: handleManualRefresh,
+            variant: "secondary",
+            disabled: table.loading || table.isRefreshing,
+          },
+        ]}
       />
 
       {outputError ? <div className="banner error">{outputError}</div> : null}

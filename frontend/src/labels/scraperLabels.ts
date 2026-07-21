@@ -128,6 +128,8 @@ export const scraperLabels = {
   runViewAllHistory: "Tüm Run History'yi Gör",
   runRecentSummary: "Son çalıştırmalar",
   runHistoryEmpty: "Henüz scraper çalıştırması yok.",
+  runHistoryRefresh: "Yenile",
+
   testPageTitle: "Scraper Test",
   testPageSubtitle: "Adapter seçip URL girerek scraper test çalıştırması başlatın.",
   testAdapterLabel: "Adapter",

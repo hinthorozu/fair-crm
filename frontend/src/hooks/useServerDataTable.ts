@@ -20,6 +20,12 @@ export interface ServerTableFetchParams {
 export interface ServerTableRefreshOverrides {
   filters?: Record<string, string>;
   page?: number;
+  /**
+   * When true, keep existing rows on screen (no skeleton / loading flip).
+   * Failures leave current data untouched and do not surface a new error banner.
+   * Default callers are unchanged: omit or pass false for a normal loading fetch.
+   */
+  silent?: boolean;
 }
 
 export interface UseServerDataTableOptions<T> {
@@ -85,7 +91,9 @@ export function useServerDataTable<T>({
 
   const [items, setItems] = React.useState<T[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const requestIdRef = React.useRef(0);
   const [search, setSearchState] = React.useState(urlState.search);
   const [debouncedSearch, setDebouncedSearch] = React.useState(urlState.search);
   const [page, setPageState] = React.useState(urlState.page);
@@ -152,10 +160,18 @@ export function useServerDataTable<T>({
   const load = React.useCallback(async (overrides?: ServerTableRefreshOverrides) => {
     if (!enabled) {
       setLoading(false);
+      setIsRefreshing(false);
       return;
     }
-    setLoading(true);
-    setError(null);
+    const silent = Boolean(overrides?.silent);
+    const requestId = ++requestIdRef.current;
+    if (silent) {
+      setIsRefreshing(true);
+    } else {
+      setLoading(true);
+      setIsRefreshing(false);
+      setError(null);
+    }
     try {
       const effectiveSortBy = sorting.field ?? defaultSortField ?? null;
       const effectiveSortOrder =
@@ -174,15 +190,26 @@ export function useServerDataTable<T>({
         sortOrder: effectiveSortOrder,
         filters: effectiveFilters,
       });
+      if (requestId !== requestIdRef.current) return;
       setItems(res.items);
       setPagination(res.pagination);
       setResponseSorting(res.sorting);
       setResponseFilters(res.filters);
       setFilterCounts(res.counts ?? null);
+      if (silent) setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Liste yüklenemedi.");
+      if (requestId !== requestIdRef.current) return;
+      if (!silent) {
+        setError(err instanceof Error ? err.message : "Liste yüklenemedi.");
+      }
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        if (silent) {
+          setIsRefreshing(false);
+        } else {
+          setLoading(false);
+        }
+      }
     }
   }, [
     debouncedSearch,
@@ -287,6 +314,7 @@ export function useServerDataTable<T>({
   return {
     items,
     loading,
+    isRefreshing,
     error,
     search,
     filters,
