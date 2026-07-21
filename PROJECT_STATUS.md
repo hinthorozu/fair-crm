@@ -5,7 +5,7 @@
 | Field | Value |
 |-------|-------|
 | **Current Version** | v0.9.4 (Backup Format Options) |
-| **Last updated** | 2026-07-02 (Import Resume + Bulk Actions) |
+| **Last updated** | 2026-07-21 (Global Responsive UI Design System) |
 | **Constitution** | [PROJECT_CONSTITUTION.md](PROJECT_CONSTITUTION.md) |
 | **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
 | **Product Vision** | [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) |
@@ -46,6 +46,17 @@ Details: [docs/DEV_RUNTIME.md](docs/DEV_RUNTIME.md) · [docs/DEV_AUTO_START_COMP
 ---
 
 ## Completed
+
+### ✅ Global Responsive UI Design System (ADR-032)
+
+**Completed Features**
+
+- Breakpoint tokens and shared CSS for form/filter 3/2/1 grids, FilterPanel, modal bottom-sheet, button aliases
+- `ResponsiveDataTable` under `UniversalDataTable` with column `priority` + expand child rows
+- Shared `FilterPanel`, `TruncatedText`, `TechnicalDetails`, `RadioField`
+- Priority screens migrated: Enrichment, Todos, Run History, Customers, Fairs, Follow-ups, Imports, Dashboard
+- Constitution Responsive UI Definition of Done + [docs/frontend/RESPONSIVE_UI_STANDARD.md](docs/frontend/RESPONSIVE_UI_STANDARD.md)
+- Frontend-only; API contracts unchanged
 
 ### ✅ Sprint 01 — Customer Management
 

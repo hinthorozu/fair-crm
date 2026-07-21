@@ -74,6 +74,10 @@ interface DataTableProps<T> {
   onRetry?: () => void;
   emptyState?: React.ReactNode;
   className?: string;
+  /** Extra class on each main data row (e.g. data-table-main-row for responsive cards). */
+  rowClassName?: (row: T) => string | undefined;
+  /** Optional fragment rendered after each main row (expand child rows — ADR-032). */
+  renderAfterRow?: (row: T) => React.ReactNode;
 }
 
 export function DataTable<T>({
@@ -87,6 +91,8 @@ export function DataTable<T>({
   onRetry,
   emptyState,
   className = "",
+  rowClassName,
+  renderAfterRow,
 }: DataTableProps<T>) {
   if (error) {
     return (
@@ -136,19 +142,26 @@ export function DataTable<T>({
           </tr>
         </thead>
         <tbody>
-          {data.map((row) => (
-            <tr key={rowKey(row)}>
-              {columns.map((column) => (
-                <td
-                  key={column.id}
-                  className={column.className}
-                  data-label={column.dataLabel}
-                >
-                  {column.render(row)}
-                </td>
-              ))}
-            </tr>
-          ))}
+          {data.map((row) => {
+            const key = rowKey(row);
+            const extraClass = rowClassName?.(row);
+            return (
+              <React.Fragment key={key}>
+                <tr className={extraClass}>
+                  {columns.map((column) => (
+                    <td
+                      key={column.id}
+                      className={column.className}
+                      data-label={column.dataLabel}
+                    >
+                      {column.render(row)}
+                    </td>
+                  ))}
+                </tr>
+                {renderAfterRow?.(row)}
+              </React.Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>

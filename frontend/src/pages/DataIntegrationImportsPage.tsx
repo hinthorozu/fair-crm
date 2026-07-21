@@ -84,12 +84,16 @@ const IMPORT_COLUMNS = (
     key: "adapter_key",
     title: dataIntegrationLabels.colAdapter,
     sortable: false,
-    render: (batch) => displayOptionalText(batch.adapter_key),
+    priority: "technical",
+    render: (batch) => (
+      <span className="text-mono text-wrap">{displayOptionalText(batch.adapter_key)}</span>
+    ),
   },
   {
     key: "status",
     title: dataIntegrationLabels.colStatus,
     sortable: true,
+    priority: "primary",
     render: (batch) => (
       <div className="import-list-status">
         <Badge variant={importBatchStatusBadgeVariant(batch.status)}>
@@ -113,12 +117,15 @@ const IMPORT_COLUMNS = (
     key: "created_at",
     title: dataIntegrationLabels.colCreated,
     sortable: true,
+    priority: "secondary",
     render: (batch) => new Date(batch.created_at).toLocaleString("tr-TR"),
   },
   {
     key: "actions",
     title: dataIntegrationLabels.colActions,
     sortable: false,
+    priority: "primary",
+    className: "actions",
     render: (batch) => (
       <div className="import-list-actions">
         {canAnalyze(batch.status) && (

@@ -61,6 +61,7 @@ export function buildUniversalDataTableSelectionColumn<T extends { id: string }>
     ),
     dataLabel: options.title,
     sortable: false,
+    priority: "primary",
     className: "data-table-selection-col",
     render: (row) => (
       <input

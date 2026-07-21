@@ -8,6 +8,14 @@ Format: one version section per completed sprint milestone. Update this file aft
 
 ## Unreleased
 
+### Global Responsive UI Design System (ADR-032)
+
+- Shared responsive standard for all Fair CRM screens (390 / 768 / 1024 / 1440)
+- `ResponsiveDataTable` column priority (`primary` / `secondary` / `technical`) + expand child rows
+- `FilterPanel`, `TruncatedText`, `TechnicalDetails`, `RadioField`; FormGrid 3/2/1; modal bottom-sheet + sticky footer
+- Migrated: Enrichment, Todos, Run History, Customers, Fairs, Follow-ups, Imports list, Dashboard sub-lists
+- [docs/frontend/RESPONSIVE_UI_STANDARD.md](docs/frontend/RESPONSIVE_UI_STANDARD.md)
+
 ### Import Job Permanent Delete
 
 - `DELETE /api/v1/data-integration/imports/{batch_id}` — hard delete batch, rows, jobs, stored Excel bytes

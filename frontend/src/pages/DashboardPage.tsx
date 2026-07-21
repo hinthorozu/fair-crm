@@ -112,7 +112,8 @@ function buildRecentActivityColumns(
       key: "note_summary",
       title: dashboardLabels.colNoteSummary,
       sortable: false,
-      render: (row) => row.noteSummary ?? "—",
+      priority: "secondary",
+      render: (row) => <span className="text-truncate-2">{row.noteSummary ?? "—"}</span>,
     },
     {
       key: "activity_date",
@@ -141,18 +142,21 @@ function buildFairSummaryColumns(): UniversalDataTableColumn<DashboardFairSummar
       key: "customers_with_activity",
       title: dashboardLabels.colCustomersWithActivity,
       sortable: false,
+      priority: "secondary",
       render: (row) => formatNumber(row.customersWithActivity),
     },
     {
       key: "customers_with_mail_sent",
       title: dashboardLabels.colCustomersWithMailSent,
       sortable: false,
+      priority: "secondary",
       render: (row) => formatNumber(row.customersWithMailSent),
     },
     {
       key: "failed_mail_count",
       title: dashboardLabels.colFailedMailCount,
       sortable: false,
+      priority: "secondary",
       render: (row) => formatNumber(row.failedMailCount),
     },
   ];

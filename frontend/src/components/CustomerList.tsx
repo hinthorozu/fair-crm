@@ -5,6 +5,7 @@ import { uiLabels } from "../labels/uiLabels";
 import { Badge } from "./ui/Badge";
 import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
 import { UniversalDataTable, type UniversalDataTableColumn } from "./ui/UniversalDataTable";
+import { FilterPanel } from "./ui/FilterPanel";
 import { customerStatusBadgeVariant } from "../utils/badges";
 import { CommunicationListCell } from "./CommunicationListCell";
 
@@ -28,7 +29,13 @@ export function CustomerFilters({
   onRefresh,
 }: CustomerFiltersProps) {
   return (
-    <div className="filters">
+    <FilterPanel
+      actions={
+        <button type="button" className="btn secondary" onClick={onRefresh}>
+          {labels.refresh}
+        </button>
+      }
+    >
       <input
         type="search"
         className="search-input"
@@ -61,10 +68,7 @@ export function CustomerFilters({
           </option>
         ))}
       </select>
-      <button type="button" className="btn secondary" onClick={onRefresh}>
-        {labels.refresh}
-      </button>
-    </div>
+    </FilterPanel>
   );
 }
 
@@ -146,6 +150,7 @@ function buildCustomerColumns(props: CustomerTableProps): UniversalDataTableColu
       key: "phone",
       title: labels.phone,
       sortable: true,
+      priority: "secondary",
       render: (c) => (
         <CommunicationListCell value={c.phone} extraCount={c.phone_extra_count ?? 0} />
       ),
@@ -154,6 +159,7 @@ function buildCustomerColumns(props: CustomerTableProps): UniversalDataTableColu
       key: "email",
       title: labels.email,
       sortable: true,
+      priority: "secondary",
       render: (c) => (
         <CommunicationListCell value={c.email} extraCount={c.email_extra_count ?? 0} />
       ),
@@ -162,18 +168,21 @@ function buildCustomerColumns(props: CustomerTableProps): UniversalDataTableColu
       key: "created_at",
       title: labels.created_at,
       sortable: true,
+      priority: "secondary",
       render: (c) => formatDateTime(c.created_at),
     },
     {
       key: "updated_at",
       title: labels.updated_at,
       sortable: true,
+      priority: "secondary",
       render: (c) => formatDateTime(c.updated_at),
     },
     {
       key: "actions",
       title: labels.actions,
       sortable: false,
+      priority: "primary",
       className: "actions",
       render: (c) => {
         const isArchived = isArchivedCustomer(c);

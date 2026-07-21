@@ -23,6 +23,8 @@ import {
 import { FormModal } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Badge, type BadgeVariant } from "../components/ui/Badge";
+import { FilterPanel } from "../components/ui/FilterPanel";
+import { TruncatedText } from "../components/ui/TruncatedText";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import {
@@ -125,9 +127,9 @@ function formatDateTime(value: string | null | undefined): string {
   return new Date(value).toLocaleString("tr-TR");
 }
 
-function formatUserId(value: string | null | undefined): string {
+function formatUserId(value: string | null | undefined): React.ReactNode {
   if (!value) return "—";
-  return value.length > 8 ? `${value.slice(0, 8)}…` : value;
+  return <TruncatedText value={value} mono maxLength={8} />;
 }
 
 function statusBadgeVariant(status: TodoStatus): BadgeVariant {
@@ -502,6 +504,7 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
       {
         key: "category",
         title: todoLabels.colCategory,
+        priority: "secondary",
         render: (todo) => todoCategoryLabels[todo.category],
       },
       {
@@ -521,24 +524,29 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
         key: "created_by",
         title: todoLabels.colCreatedBy,
         sortable: false,
+        priority: "technical",
         render: (todo) => formatUserId(todo.created_by),
       },
       {
         key: "assignee_user_id",
         title: todoLabels.colAssignee,
         sortable: false,
+        priority: "technical",
         render: (todo) => formatUserId(todo.assignee_user_id),
       },
       {
         key: "updated_at",
         title: todoLabels.colUpdatedAt,
         sortField: "updated_at",
+        priority: "secondary",
         render: (todo) => formatDateTime(todo.updated_at),
       },
       {
         key: "actions",
         title: todoLabels.colActions,
         sortable: false,
+        priority: "primary",
+        className: "actions",
         render: (todo) => {
           const loading = actionLoadingId === todo.id;
           return (
@@ -628,7 +636,14 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
         table={table}
         skeletonCols={10}
         toolbar={
-          <div className="filters todo-filters">
+          <FilterPanel
+            className="todo-filters"
+            actions={
+              <button type="button" className="btn secondary" onClick={() => void table.refresh()}>
+                Yenile
+              </button>
+            }
+          >
             <input
               type="search"
               className="search-input"
@@ -698,7 +713,7 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
               onChange={(event) => table.setFilter("assignee_user_id", event.target.value)}
               aria-label={todoLabels.filterAssignee}
             />
-            <label className="todo-filter-checkbox">
+            <label className="todo-filter-checkbox checkbox-field">
               <input
                 type="checkbox"
                 checked={table.filters.include_archived === "true"}
@@ -706,12 +721,9 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
                   table.setFilter("include_archived", event.target.checked ? "true" : "")
                 }
               />
-              {todoLabels.filterIncludeArchived}
+              <span className="checkbox-field-label">{todoLabels.filterIncludeArchived}</span>
             </label>
-            <button type="button" className="btn secondary" onClick={() => void table.refresh()}>
-              Yenile
-            </button>
-          </div>
+          </FilterPanel>
         }
         columns={columns}
         rowKey={(todo) => todo.id}

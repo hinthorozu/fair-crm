@@ -21,23 +21,29 @@ export function ServerDataTableFrame<T>({
   skeletonRows = 6,
   showPagination = true,
 }: ServerDataTableFrameProps<T>) {
+  const showToolbarPanel = Boolean(toolbar) || showPagination;
+
   return (
     <div className="server-data-table-frame">
-      <div className="server-data-table-toolbar-panel">
-        {toolbar}
-        {showPagination ? (
-          <PaginationBar
-            className="server-data-table-pagination"
-            page={table.pagination.page}
-            pageSize={table.pagination.pageSize}
-            total={table.pagination.totalItems}
-            totalPages={table.pagination.totalPages}
-            loading={table.loading}
-            onPageChange={table.setPage}
-            onPageSizeChange={table.setPageSize}
-          />
-        ) : null}
-      </div>
+      {showToolbarPanel ? (
+        <div className="server-data-table-toolbar-panel">
+          {toolbar ? <div className="server-data-table-toolbar-filters">{toolbar}</div> : null}
+          {showPagination ? (
+            <div className="server-data-table-toolbar-pagination">
+              <PaginationBar
+                className="server-data-table-pagination"
+                page={table.pagination.page}
+                pageSize={table.pagination.pageSize}
+                total={table.pagination.totalItems}
+                totalPages={table.pagination.totalPages}
+                loading={table.loading}
+                onPageChange={table.setPage}
+                onPageSizeChange={table.setPageSize}
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       {table.error && (
         <div className="banner error">
           {table.error}

@@ -2,6 +2,7 @@ import React from "react";
 import { runFairContactEnrichment } from "../../api/fairs";
 import { getScraperRun, runCustomerContactEnrichment } from "../../api/scraper";
 import { FairEntitySelect } from "../FairEntitySelect";
+import { CheckboxField, FormGrid, RadioField } from "../ui/form";
 import { scraperLabels } from "../../labels/scraperLabels";
 import type {
   CompanyNameMatchMode,
@@ -178,100 +179,124 @@ export function EnrichmentRunPanel({
       <p className="form-hint">{scraperLabels.enrichmentRunHint}</p>
       <p className="form-hint">{scraperLabels.enrichmentRunFiltersHint}</p>
 
-      {!fairScoped ? (
-        <div className="form-field">
-          <span>{scraperLabels.enrichmentRunFairFilter}</span>
-          <div className="enrichment-run-fair-row">
-            <FairEntitySelect
-              value={selectedFairId}
-              onChange={setSelectedFairId}
-              disabled={running}
-              placeholder={scraperLabels.enrichmentRunFairFilterPlaceholder}
-            />
-            {selectedFairId ? (
-              <button
-                type="button"
-                className="btn link"
+      <FormGrid columns={3}>
+        {!fairScoped ? (
+          <div className="field full-width">
+            <span className="field-label">{scraperLabels.enrichmentRunFairFilter}</span>
+            <div className="enrichment-run-fair-row">
+              <FairEntitySelect
+                value={selectedFairId}
+                onChange={setSelectedFairId}
                 disabled={running}
-                onClick={() => setSelectedFairId("")}
-              >
-                {scraperLabels.enrichmentRunFairFilterClear}
-              </button>
-            ) : null}
+                placeholder={scraperLabels.enrichmentRunFairFilterPlaceholder}
+              />
+              {selectedFairId ? (
+                <button
+                  type="button"
+                  className="btn link"
+                  disabled={running}
+                  onClick={() => setSelectedFairId("")}
+                >
+                  {scraperLabels.enrichmentRunFairFilterClear}
+                </button>
+              ) : null}
+            </div>
+            <span className="field-hint">{scraperLabels.enrichmentRunFairFilterHint}</span>
           </div>
-          <span className="form-hint">{scraperLabels.enrichmentRunFairFilterHint}</span>
+        ) : null}
+
+        <div className="field">
+          <label htmlFor="enrichment-company-name">
+            <span className="field-label">{scraperLabels.enrichmentRunCompanyName}</span>
+            <input
+              id="enrichment-company-name"
+              className="form-control"
+              type="text"
+              value={companyName}
+              disabled={running}
+              placeholder="SDK"
+              onChange={(event) => setCompanyName(event.target.value)}
+            />
+          </label>
+          <span className="field-hint">{scraperLabels.enrichmentRunCompanyNameHint}</span>
         </div>
-      ) : null}
 
-      <label className="form-field">
-        <span>{scraperLabels.enrichmentRunCompanyName}</span>
-        <input
-          type="text"
-          value={companyName}
-          disabled={running}
-          placeholder="SDK"
-          onChange={(event) => setCompanyName(event.target.value)}
-        />
-        <span className="form-hint">{scraperLabels.enrichmentRunCompanyNameHint}</span>
-      </label>
+        <div className="field">
+          <span className="field-label">{scraperLabels.enrichmentRunCompanyNameMatch}</span>
+          <div className="radio-group radio-group-horizontal">
+            <RadioField
+              id="enrichment-match-contains"
+              name="enrichment-company-match"
+              label={scraperLabels.enrichmentRunCompanyNameMatchContains}
+              value="contains"
+              checked={companyNameMatch === "contains"}
+              disabled={running || !companyName.trim()}
+              onChange={(value) => setCompanyNameMatch(value as CompanyNameMatchMode)}
+            />
+            <RadioField
+              id="enrichment-match-starts"
+              name="enrichment-company-match"
+              label={scraperLabels.enrichmentRunCompanyNameMatchStartsWith}
+              value="starts_with"
+              checked={companyNameMatch === "starts_with"}
+              disabled={running || !companyName.trim()}
+              onChange={(value) => setCompanyNameMatch(value as CompanyNameMatchMode)}
+            />
+          </div>
+        </div>
 
-      <label className="form-field">
-        <span>{scraperLabels.enrichmentRunCompanyNameMatch}</span>
-        <select
-          value={companyNameMatch}
-          disabled={running || !companyName.trim()}
-          onChange={(event) => setCompanyNameMatch(event.target.value as CompanyNameMatchMode)}
-        >
-          <option value="contains">{scraperLabels.enrichmentRunCompanyNameMatchContains}</option>
-          <option value="starts_with">{scraperLabels.enrichmentRunCompanyNameMatchStartsWith}</option>
-        </select>
-      </label>
+        <div className="field">
+          <label htmlFor="enrichment-address">
+            <span className="field-label">{scraperLabels.enrichmentRunAddress}</span>
+            <input
+              id="enrichment-address"
+              className="form-control"
+              type="text"
+              value={addressContains}
+              disabled={running}
+              placeholder="İstanbul"
+              onChange={(event) => setAddressContains(event.target.value)}
+            />
+          </label>
+          <span className="field-hint">{scraperLabels.enrichmentRunAddressHint}</span>
+        </div>
 
-      <label className="form-field">
-        <span>{scraperLabels.enrichmentRunAddress}</span>
-        <input
-          type="text"
-          value={addressContains}
-          disabled={running}
-          placeholder="İstanbul"
-          onChange={(event) => setAddressContains(event.target.value)}
-        />
-        <span className="form-hint">{scraperLabels.enrichmentRunAddressHint}</span>
-      </label>
+        <div className="field">
+          <label htmlFor="enrichment-limit">
+            <span className="field-label">{scraperLabels.enrichmentRunLimit}</span>
+            <input
+              id="enrichment-limit"
+              className="form-control"
+              type="number"
+              min={1}
+              max={500}
+              placeholder="50"
+              value={limitInput}
+              disabled={running}
+              onChange={(event) => setLimitInput(event.target.value)}
+            />
+          </label>
+          <span className="field-hint">{scraperLabels.enrichmentRunLimitHint}</span>
+        </div>
 
-      <label className="form-field">
-        <span>{scraperLabels.enrichmentRunLimit}</span>
-        <input
-          type="number"
-          min={1}
-          max={500}
-          placeholder="50"
-          value={limitInput}
-          disabled={running}
-          onChange={(event) => setLimitInput(event.target.value)}
-        />
-        <span className="form-hint">{scraperLabels.enrichmentRunLimitHint}</span>
-      </label>
+        <div className="field full-width">
+          <span className="field-label">{scraperLabels.manifestOutputFields}</span>
+          <OutputFieldsSection
+            requestedFields={requestedFields}
+            capabilities={capabilities}
+            onChange={toggleField}
+          />
+        </div>
 
-      <div className="form-field">
-        <span>{scraperLabels.manifestOutputFields}</span>
-        <OutputFieldsSection
-          requestedFields={requestedFields}
-          capabilities={capabilities}
-          onChange={toggleField}
-        />
-      </div>
-
-      <label className="output-field-label">
-        <input
-          type="checkbox"
+        <CheckboxField
+          id="enrichment-include-existing-email"
+          label={scraperLabels.enrichmentRunIncludeExistingEmail}
           checked={includeExistingEmail}
           disabled={running}
-          onChange={(event) => setIncludeExistingEmail(event.target.checked)}
-        />{" "}
-        {scraperLabels.enrichmentRunIncludeExistingEmail}
-      </label>
-      <p className="form-hint">{scraperLabels.enrichmentRunIncludeExistingEmailHint}</p>
+          onChange={setIncludeExistingEmail}
+          hint={scraperLabels.enrichmentRunIncludeExistingEmailHint}
+        />
+      </FormGrid>
 
       <div className="enrichment-run-actions">
         <button type="button" className="btn primary" disabled={running} onClick={() => void handleRun()}>

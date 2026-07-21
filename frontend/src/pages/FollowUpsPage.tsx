@@ -9,6 +9,7 @@ import { TodoWorklistActivityModal } from "../components/todos/TodoWorklistActiv
 import { Badge } from "../components/ui/Badge";
 import { EmptyState } from "../components/ui/EmptyState";
 import { PageHeader } from "../components/ui/PageHeader";
+import { FilterPanel } from "../components/ui/FilterPanel";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { followUpLabels, followUpFilterOptions } from "../labels/followUpLabels";
@@ -179,22 +180,26 @@ export function FollowUpsPage({ onOpenCustomer }: FollowUpsPageProps) {
       {
         key: "phone_summary",
         title: followUpLabels.colPhone,
-        render: (row) => row.phone_summary || "—",
+        priority: "secondary",
+        render: (row) => <span className="text-wrap">{row.phone_summary || "—"}</span>,
       },
       {
         key: "email_summary",
         title: followUpLabels.colEmail,
-        render: (row) => row.email_summary || "—",
+        priority: "secondary",
+        render: (row) => <span className="text-wrap">{row.email_summary || "—"}</span>,
       },
       {
         key: "last_outcome_name",
         title: followUpLabels.colLastOutcome,
+        priority: "secondary",
         render: (row) => row.last_outcome_name || "—",
       },
       {
         key: "last_note_summary",
         title: followUpLabels.colLastNote,
-        render: (row) => row.last_note_summary || "—",
+        priority: "secondary",
+        render: (row) => <span className="text-truncate-2">{row.last_note_summary || "—"}</span>,
       },
       {
         key: "follow_up_at",
@@ -206,6 +211,7 @@ export function FollowUpsPage({ onOpenCustomer }: FollowUpsPageProps) {
         key: "todo_title",
         title: followUpLabels.colSourceTask,
         sortField: "todo_title",
+        priority: "secondary",
         render: (row) => row.todo_title,
       },
       {
@@ -222,6 +228,7 @@ export function FollowUpsPage({ onOpenCustomer }: FollowUpsPageProps) {
         key: "action_required",
         title: followUpLabels.colActionRequired,
         sortable: false,
+        priority: "secondary",
         render: (row) =>
           row.action_required ? (
             <Badge variant="warning">{followUpLabels.flagYes}</Badge>
@@ -233,6 +240,7 @@ export function FollowUpsPage({ onOpenCustomer }: FollowUpsPageProps) {
         key: "data_problem",
         title: followUpLabels.colDataProblem,
         sortable: false,
+        priority: "secondary",
         render: (row) =>
           row.data_problem ? (
             <Badge variant="warning">{followUpLabels.flagYes}</Badge>
@@ -244,6 +252,7 @@ export function FollowUpsPage({ onOpenCustomer }: FollowUpsPageProps) {
         key: "actions",
         title: followUpLabels.colActions,
         sortable: false,
+        priority: "primary",
         className: "actions",
         render: (row) => (
           <button
@@ -281,7 +290,13 @@ export function FollowUpsPage({ onOpenCustomer }: FollowUpsPageProps) {
           table={table}
           skeletonCols={12}
           toolbar={
-            <div className="filters">
+            <FilterPanel
+              actions={
+                <button type="button" className="btn secondary" onClick={() => void table.refresh()}>
+                  {labels.refresh}
+                </button>
+              }
+            >
               <input
                 type="search"
                 className="search-input"
@@ -289,10 +304,7 @@ export function FollowUpsPage({ onOpenCustomer }: FollowUpsPageProps) {
                 value={table.search}
                 onChange={(e) => table.setSearch(e.target.value)}
               />
-              <button type="button" className="btn secondary" onClick={() => void table.refresh()}>
-                {labels.refresh}
-              </button>
-            </div>
+            </FilterPanel>
           }
           columns={columns}
           rowKey={(row) => followUpRowKey(row)}

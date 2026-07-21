@@ -10,6 +10,8 @@ interface ModalProps {
   children: React.ReactNode;
   size?: "default" | "md" | "lg";
   className?: string;
+  /** Sticky action footer (visible on mobile bottom-sheet — ADR-032). */
+  footer?: React.ReactNode;
 }
 
 const FOCUSABLE_SELECTOR =
@@ -42,7 +44,7 @@ function focusInitialElement(body: HTMLElement | null, closeButton: HTMLButtonEl
   closeButton?.focus();
 }
 
-export function Modal({ title, onClose, children, size = "default", className }: ModalProps) {
+export function Modal({ title, onClose, children, size = "default", className, footer }: ModalProps) {
   const closeRef = React.useRef<HTMLButtonElement>(null);
   const bodyRef = React.useRef<HTMLDivElement>(null);
   const onCloseRef = React.useRef(onClose);
@@ -103,6 +105,7 @@ export function Modal({ title, onClose, children, size = "default", className }:
               <div ref={bodyRef} className="modal-body">
                 {children}
               </div>
+              {footer ? <div className="modal-footer">{footer}</div> : null}
             </ModalCloseContext.Provider>
           </ModalDirtyContext.Provider>
         </div>

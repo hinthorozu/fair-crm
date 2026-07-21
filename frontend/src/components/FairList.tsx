@@ -6,6 +6,7 @@ import { labels } from "../labels";
 import { Badge } from "./ui/Badge";
 import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
 import { UniversalDataTable, type UniversalDataTableColumn } from "./ui/UniversalDataTable";
+import { FilterPanel } from "./ui/FilterPanel";
 
 interface FairFiltersProps {
   search: string;
@@ -23,7 +24,13 @@ export function FairFilters({
   onRefresh,
 }: FairFiltersProps) {
   return (
-    <div className="filters">
+    <FilterPanel
+      actions={
+        <button type="button" className="btn secondary" onClick={onRefresh}>
+          {labels.refresh}
+        </button>
+      }
+    >
       <input
         type="search"
         className="search-input"
@@ -44,10 +51,7 @@ export function FairFilters({
           </option>
         ))}
       </select>
-      <button type="button" className="btn secondary" onClick={onRefresh}>
-        {labels.refresh}
-      </button>
-    </div>
+    </FilterPanel>
   );
 }
 
@@ -110,12 +114,14 @@ function buildFairColumns(props: FairTableProps): UniversalDataTableColumn<Fair>
       key: "organizer",
       title: fairLabels.organizer,
       sortable: true,
+      priority: "secondary",
       render: (f) => f.organizer ?? "—",
     },
     {
       key: "venue",
       title: fairLabels.venue,
       sortable: true,
+      priority: "secondary",
       render: (f) => f.venue ?? "—",
     },
     {
@@ -144,6 +150,7 @@ function buildFairColumns(props: FairTableProps): UniversalDataTableColumn<Fair>
       key: "actions",
       title: labels.actions,
       sortable: false,
+      priority: "primary",
       className: "actions",
       render: (f) => {
         const isArchived = isArchivedFair(f);

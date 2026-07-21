@@ -173,3 +173,45 @@ export function CheckboxField({ id, label, checked, onChange, disabled, hint }: 
     </div>
   );
 }
+
+interface RadioFieldProps {
+  id: string;
+  name: string;
+  label: string;
+  value: string;
+  checked: boolean;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  hint?: string;
+}
+
+export function RadioField({
+  id,
+  name,
+  label,
+  value,
+  checked,
+  onChange,
+  disabled,
+  hint,
+}: RadioFieldProps) {
+  return (
+    <div className="field radio-field">
+      <input
+        id={id}
+        type="radio"
+        name={name}
+        value={value}
+        checked={checked}
+        disabled={disabled}
+        onChange={() => onChange(value)}
+      />
+      <div className="checkbox-field-content">
+        <label htmlFor={id} className="checkbox-field-label">
+          {label}
+        </label>
+        {hint ? <span className="field-hint">{hint}</span> : null}
+      </div>
+    </div>
+  );
+}

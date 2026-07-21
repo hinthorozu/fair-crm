@@ -739,3 +739,40 @@ Customer phone, email, and website data moved to child tables (`crm_customer_pho
 - Phase 1 ships without extra communication indexes; acceptable at current scale.
 - Before large-scale production load, run the documented review and add indexes only with measured justification.
 
+---
+
+## ADR-032: Global Responsive UI Design System
+
+**Status:** Accepted  
+**Date:** 2026-07-21  
+**Detail:** [docs/frontend/RESPONSIVE_UI_STANDARD.md](frontend/RESPONSIVE_UI_STANDARD.md)
+
+**Context:**
+
+Sprint 04.5 delivered reusable UI primitives and Sprint 08.0/ADR-015/ADR-019 delivered Universal Server-Side DataTable. Screens still diverged: some used page-local mobile cards, technical fields appeared in main tables, form grids were 2→1 only, and “desktop works” was treated as enough. Horizontal scroll became the default escape hatch for wide tables.
+
+**Tier note (ADR-023):** This is Tier 3 UX work. Product owner explicitly scoped Global Responsive UI as mandatory for all current and future screens — accepted override over open Tier 1 gaps for this delivery.
+
+**Decision:**
+
+1. **One responsive standard** for all Fair CRM frontend screens (list, form, filter, modal, card, pagination, actions).
+2. **Breakpoints** — mobile `<768` (smoke 390), tablet `768–1023`, laptop `≥1024`, desktop polish `≥1440`.
+3. **Form / filter grid** — desktop 3 columns, tablet 2, mobile 1 via `FormGrid` / `FilterPanel`.
+4. **ResponsiveDataTable** under `UniversalDataTable` with column `priority`: `primary` | `secondary` | `technical`.
+5. **No default horizontal scroll** — `table-wrap--scroll-only` is opt-in only.
+6. **Technical fields** (`run_id`, UUID, `adapter_key`, long URL, JSON/debug) never primary main-table columns.
+7. **Modal** — centered desktop, wide tablet, bottom-sheet mobile with sticky footer; ADR-028 dirty guard unchanged.
+8. **Shared components only** — extend existing primitives; no page-local margin hacks as the design system.
+
+**Implementation:**
+
+- `ResponsiveDataTable`, `FilterPanel`, `TruncatedText`, `TechnicalDetails`, `RadioField`
+- `UniversalDataTableColumn.priority`
+- CSS tokens and ADR-032 section in `frontend/src/styles.css`
+- Priority screens migrated: Enrichment, Todos, Run History, Customers, Fairs, Follow-ups, Imports, Dashboard
+
+**Consequences:**
+
+- Every new frontend screen must pass the Responsive UI Definition of Done in `PROJECT_CONSTITUTION.md` and `docs/frontend/RESPONSIVE_UI_STANDARD.md`.
+- Remaining admin/mail screens adopt the standard as they are touched.
+

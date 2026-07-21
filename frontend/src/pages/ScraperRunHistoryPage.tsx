@@ -3,10 +3,9 @@ import { downloadScraperRunOutput, listAdapters, listScraperRunsTable } from "..
 import { ApiError } from "../api/client";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Badge } from "../components/ui/Badge";
-import { DataTable } from "../components/ui/DataTable";
-import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
-import { type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
-import { RunHistoryMobileCards } from "../components/scraper/RunHistoryMobileCards";
+import { FilterPanel } from "../components/ui/FilterPanel";
+import { TruncatedText } from "../components/ui/TruncatedText";
+import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { scraperLabels } from "../labels/scraperLabels";
 import type { AdapterListItem, ScraperRun, ScraperRunStatus } from "../types/scraper";
@@ -145,24 +144,23 @@ function buildColumns(
       key: "started_at",
       title: scraperLabels.runColStarted,
       sortable: false,
+      priority: "primary",
       render: (run) => formatDateTime(run.started_at),
     },
     {
-      key: "run_source",
-      title: scraperLabels.runColSource,
+      key: "status",
+      title: scraperLabels.runColStatus,
       sortable: false,
-      render: (run) => runSourceLabel(run.run_source),
-    },
-    {
-      key: "fair_name",
-      title: scraperLabels.runColFairName,
-      sortable: false,
-      render: (run) => run.fair_name ?? "—",
+      priority: "primary",
+      render: (run) => (
+        <Badge variant={runStatusBadgeVariant(run.status)}>{runStatusLabel(run.status)}</Badge>
+      ),
     },
     {
       key: "adapter_name",
       title: scraperLabels.runColAdapterName,
       sortable: false,
+      priority: "primary",
       render: (run) =>
         handlers.onOpenAdapter ? (
           <button type="button" className="btn link" onClick={() => handlers.onOpenAdapter?.(run.adapter_key)}>
@@ -173,60 +171,45 @@ function buildColumns(
         ),
     },
     {
-      key: "adapter_key",
-      title: scraperLabels.runColAdapterKey,
+      key: "fair_name",
+      title: scraperLabels.runColFairName,
       sortable: false,
-      render: (run) => run.adapter_key,
-    },
-    {
-      key: "engine_key",
-      title: scraperLabels.runColEngineKey,
-      sortable: false,
-      render: (run) => run.engine_key ?? "—",
-    },
-    {
-      key: "engine_type",
-      title: scraperLabels.runColEngineType,
-      sortable: false,
-      render: (run) => engineTypeLabel(run.engine_type),
-    },
-    {
-      key: "input_url",
-      title: scraperLabels.runColInputUrl,
-      sortable: false,
-      render: (run) =>
-        run.input_url ? (
-          <a href={run.input_url} target="_blank" rel="noreferrer" className="run-history-url">
-            {run.input_url}
-          </a>
-        ) : (
-          "—"
-        ),
-    },
-    {
-      key: "status",
-      title: scraperLabels.runColStatus,
-      sortable: false,
-      render: (run) => (
-        <Badge variant={runStatusBadgeVariant(run.status)}>{runStatusLabel(run.status)}</Badge>
-      ),
+      priority: "primary",
+      render: (run) => run.fair_name ?? "—",
     },
     {
       key: "total_rows",
       title: scraperLabels.runColRows,
       sortable: false,
+      priority: "primary",
       render: (run) => run.total_rows.toLocaleString("tr-TR"),
+    },
+    {
+      key: "run_source",
+      title: scraperLabels.runColSource,
+      sortable: false,
+      priority: "secondary",
+      render: (run) => runSourceLabel(run.run_source),
+    },
+    {
+      key: "engine_type",
+      title: scraperLabels.runColEngineType,
+      sortable: false,
+      priority: "secondary",
+      render: (run) => engineTypeLabel(run.engine_type),
     },
     {
       key: "duration_ms",
       title: scraperLabels.runColDuration,
       sortable: false,
+      priority: "secondary",
       render: (run) => formatDurationMs(run.duration_ms),
     },
     {
       key: "files",
       title: scraperLabels.runColFiles,
       sortable: false,
+      priority: "secondary",
       render: (run) => (
         <RunHistoryFilesMenu run={run} onDownload={handlers.onDownload} loadingKey={handlers.loadingKey} />
       ),
@@ -235,6 +218,7 @@ function buildColumns(
       key: "import_batch_id",
       title: scraperLabels.runColImportBatch,
       sortable: false,
+      priority: "secondary",
       render: (run) =>
         run.import_batch_id && handlers.onOpenImportBatch ? (
           <button
@@ -249,9 +233,46 @@ function buildColumns(
         ),
     },
     {
+      key: "adapter_key",
+      title: scraperLabels.runColAdapterKey,
+      sortable: false,
+      priority: "technical",
+      render: (run) => <TruncatedText value={run.adapter_key} mono maxLength={28} />,
+    },
+    {
+      key: "engine_key",
+      title: scraperLabels.runColEngineKey,
+      sortable: false,
+      priority: "technical",
+      render: (run) => <TruncatedText value={run.engine_key} mono maxLength={28} />,
+    },
+    {
+      key: "input_url",
+      title: scraperLabels.runColInputUrl,
+      sortable: false,
+      priority: "technical",
+      render: (run) =>
+        run.input_url ? (
+          <a href={run.input_url} target="_blank" rel="noreferrer" className="run-history-url text-wrap">
+            <TruncatedText value={run.input_url} maxLength={48} />
+          </a>
+        ) : (
+          "—"
+        ),
+    },
+    {
+      key: "run_id",
+      title: "Run ID",
+      sortable: false,
+      priority: "technical",
+      render: (run) => <TruncatedText value={run.id} mono maxLength={12} />,
+    },
+    {
       key: "detail",
       title: scraperLabels.runColDetail,
       sortable: false,
+      priority: "primary",
+      className: "actions",
       render: (run) => (
         <button
           type="button"
@@ -349,26 +370,11 @@ export function ScraperRunHistoryPage({
     [handleDownload, onOpenAdapter, onOpenRunDetail, onOpenImportBatch, outputLoading],
   );
 
-  const dataTableColumns = React.useMemo(
-    () =>
-      columns.map((column) => ({
-        id: column.key,
-        header: column.title,
-        sortable: column.sortable !== false,
-        sortField: column.sortField ?? column.key,
-        render: column.render,
-        className: column.className,
-        dataLabel:
-          column.dataLabel ?? (typeof column.title === "string" ? column.title : undefined),
-      })),
-    [columns],
-  );
-
   const statusOptions: ScraperRunStatus[] = ["running", "completed", "failed", "cancelled"];
   const showEmpty = !table.loading && !table.error && table.items.length === 0;
 
   const filtersToolbar = (
-    <div className="run-history-filters">
+    <FilterPanel className="run-history-filters">
       <label>
         {scraperLabels.runFilterAdapter}
         <select
@@ -439,7 +445,7 @@ export function ScraperRunHistoryPage({
           onChange={(event) => table.setSearch(event.target.value)}
         />
       </label>
-    </div>
+    </FilterPanel>
   );
 
   return (
@@ -460,39 +466,15 @@ export function ScraperRunHistoryPage({
 
       {outputError ? <div className="banner error">{outputError}</div> : null}
 
-      <ServerDataTableFrame table={table} toolbar={filtersToolbar} skeletonCols={11}>
-        {showEmpty ? (
-          <p className="text-muted">{scraperLabels.runHistoryEmpty}</p>
-        ) : (
-          <>
-            <div className="run-history-desktop-only">
-              <DataTable
-                columns={dataTableColumns}
-                data={table.items}
-                rowKey={(run) => run.id}
-                sorting={table.sorting}
-                onSortChange={table.setSort}
-                className="scraper-run-history-table table-wrap--scroll-only"
-              />
-            </div>
-            <div className="run-history-mobile-only">
-              <RunHistoryMobileCards
-                items={table.items}
-                onOpenAdapter={onOpenAdapter}
-                onOpenRunDetail={onOpenRunDetail}
-                onOpenImportBatch={onOpenImportBatch}
-                filesMenu={(run) => (
-                  <RunHistoryFilesMenu
-                    run={run}
-                    onDownload={(item, kind) => void handleDownload(item, kind)}
-                    loadingKey={outputLoading}
-                  />
-                )}
-              />
-            </div>
-          </>
-        )}
-      </ServerDataTableFrame>
+      <UniversalDataTable
+        table={table}
+        toolbar={filtersToolbar}
+        skeletonCols={8}
+        columns={columns}
+        rowKey={(run) => run.id}
+        className="scraper-run-history-table"
+        emptyState={showEmpty ? <p className="text-muted">{scraperLabels.runHistoryEmpty}</p> : undefined}
+      />
     </div>
   );
 }

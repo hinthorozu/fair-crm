@@ -1,12 +1,12 @@
 import React from "react";
-import { DataTable } from "./DataTable";
+import { ResponsiveDataTable, type ColumnPriority } from "./ResponsiveDataTable";
 import { ServerDataTableFrame } from "./ServerDataTableFrame";
 import type { ServerDataTableRowSelectionController } from "../../hooks/useServerDataTableRowSelection";
 import type { ServerDataTableController } from "../../hooks/useServerDataTable";
 import type { SortDirection } from "../../types/listTable";
 import { buildUniversalDataTableSelectionColumn } from "./UniversalDataTableSelection";
 
-/** Column definition for Universal Server-Side DataTable (ADR-019). */
+/** Column definition for Universal Server-Side DataTable (ADR-019 / ADR-032). */
 export interface UniversalDataTableColumn<T> {
   key: string;
   title: React.ReactNode;
@@ -18,6 +18,12 @@ export interface UniversalDataTableColumn<T> {
   className?: string;
   /** Responsive stacked-row label; defaults to `title` when it is a string. */
   dataLabel?: string;
+  /**
+   * primary — main row always
+   * secondary — desktop main; tablet/mobile expand
+   * technical — expand / technical panel only (never main table)
+   */
+  priority?: ColumnPriority;
 }
 
 export interface UniversalDataTableRowSelectionConfig<T> {
@@ -75,6 +81,7 @@ function mapColumns<T>(columns: UniversalDataTableColumn<T>[]) {
     className: column.className,
     dataLabel:
       column.dataLabel ?? (typeof column.title === "string" ? column.title : undefined),
+    priority: column.priority ?? "primary",
   }));
 }
 
@@ -96,6 +103,7 @@ function withSelectionColumn<T extends { id: string }>(
 /**
  * Universal Server-Side DataTable — sortable data columns via column config.
  * Set `sortable: false` only on Actions columns.
+ * Responsive priority + expand via ResponsiveDataTable (ADR-032).
  */
 export function UniversalDataTable<T>(props: UniversalDataTableProps<T>) {
   const { columns, rowKey, emptyState, className } = props;
@@ -117,7 +125,7 @@ export function UniversalDataTable<T>(props: UniversalDataTableProps<T>) {
         {showEmpty && emptyState ? (
           emptyState
         ) : (
-          <DataTable
+          <ResponsiveDataTable
             columns={mapColumns(resolvedColumns)}
             data={table.items}
             rowKey={rowKey}
@@ -138,7 +146,7 @@ export function UniversalDataTable<T>(props: UniversalDataTableProps<T>) {
   return (
     <div className="server-data-table-frame">
       <div className="server-data-table-body">
-        <DataTable
+        <ResponsiveDataTable
           columns={mapColumns(columns)}
           data={items}
           rowKey={rowKey}

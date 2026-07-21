@@ -44,4 +44,9 @@ export const uiLabels = {
   modalDiscardExit: "Çık",
   showPassword: "Şifreyi göster",
   hidePassword: "Şifreyi gizle",
+  technicalDetails: "Teknik detaylar",
+  expandRow: "Satırı genişlet",
+  collapseRow: "Satırı daralt",
+  expandDetails: "Detayları göster",
+  collapseDetails: "Detayları gizle",
 } as const;
