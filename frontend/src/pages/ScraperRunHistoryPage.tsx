@@ -3,7 +3,10 @@ import { downloadScraperRunOutput, listAdapters, listScraperRunsTable } from "..
 import { ApiError } from "../api/client";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Badge } from "../components/ui/Badge";
-import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
+import { DataTable } from "../components/ui/DataTable";
+import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
+import { type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
+import { RunHistoryMobileCards } from "../components/scraper/RunHistoryMobileCards";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { scraperLabels } from "../labels/scraperLabels";
 import type { AdapterListItem, ScraperRun, ScraperRunStatus } from "../types/scraper";
@@ -346,7 +349,98 @@ export function ScraperRunHistoryPage({
     [handleDownload, onOpenAdapter, onOpenRunDetail, onOpenImportBatch, outputLoading],
   );
 
+  const dataTableColumns = React.useMemo(
+    () =>
+      columns.map((column) => ({
+        id: column.key,
+        header: column.title,
+        sortable: column.sortable !== false,
+        sortField: column.sortField ?? column.key,
+        render: column.render,
+        className: column.className,
+        dataLabel:
+          column.dataLabel ?? (typeof column.title === "string" ? column.title : undefined),
+      })),
+    [columns],
+  );
+
   const statusOptions: ScraperRunStatus[] = ["running", "completed", "failed", "cancelled"];
+  const showEmpty = !table.loading && !table.error && table.items.length === 0;
+
+  const filtersToolbar = (
+    <div className="run-history-filters">
+      <label>
+        {scraperLabels.runFilterAdapter}
+        <select
+          className="input"
+          value={table.filters.adapter_key ?? ""}
+          onChange={(event) => table.setFilter("adapter_key", event.target.value)}
+        >
+          <option value="">{scraperLabels.runFilterAll}</option>
+          {adapters.map((adapter) => (
+            <option key={adapter.adapter_key} value={adapter.adapter_key}>
+              {adapter.display_name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        {scraperLabels.runFilterStatus}
+        <select
+          className="input"
+          value={table.filters.status ?? ""}
+          onChange={(event) => table.setFilter("status", event.target.value)}
+        >
+          <option value="">{scraperLabels.runFilterAll}</option>
+          {statusOptions.map((status) => (
+            <option key={status} value={status}>
+              {runStatusLabel(status)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        {scraperLabels.runFilterEngineType}
+        <select
+          className="input"
+          value={table.filters.engine_type ?? ""}
+          onChange={(event) => table.setFilter("engine_type", event.target.value)}
+        >
+          <option value="">{scraperLabels.runFilterAll}</option>
+          <option value="static">{scraperLabels.runEngineTypeStatic}</option>
+          <option value="dynamic">{scraperLabels.runEngineTypeDynamic}</option>
+        </select>
+      </label>
+      <label>
+        {scraperLabels.runFilterDateFrom}
+        <input
+          className="input"
+          type="date"
+          value={table.filters.date_from ?? ""}
+          onChange={(event) => table.setFilter("date_from", event.target.value)}
+        />
+      </label>
+      <label>
+        {scraperLabels.runFilterDateTo}
+        <input
+          className="input"
+          type="date"
+          value={table.filters.date_to ?? ""}
+          onChange={(event) => table.setFilter("date_to", event.target.value)}
+        />
+      </label>
+      <label className="run-history-url-filter">
+        {scraperLabels.runFilterUrl}
+        <input
+          className="input"
+          type="search"
+          value={table.search}
+          placeholder="https://"
+          onChange={(event) => table.setSearch(event.target.value)}
+        />
+      </label>
+    </div>
+  );
 
   return (
     <div className="page scraper-run-history-page">
@@ -366,88 +460,39 @@ export function ScraperRunHistoryPage({
 
       {outputError ? <div className="banner error">{outputError}</div> : null}
 
-      <UniversalDataTable
-        table={table}
-        skeletonCols={11}
-        toolbar={
-          <div className="run-history-filters">
-            <label>
-              {scraperLabels.runFilterAdapter}
-              <select
-                className="input"
-                value={table.filters.adapter_key ?? ""}
-                onChange={(event) => table.setFilter("adapter_key", event.target.value)}
-              >
-                <option value="">{scraperLabels.runFilterAll}</option>
-                {adapters.map((adapter) => (
-                  <option key={adapter.adapter_key} value={adapter.adapter_key}>
-                    {adapter.display_name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {scraperLabels.runFilterStatus}
-              <select
-                className="input"
-                value={table.filters.status ?? ""}
-                onChange={(event) => table.setFilter("status", event.target.value)}
-              >
-                <option value="">{scraperLabels.runFilterAll}</option>
-                {statusOptions.map((status) => (
-                  <option key={status} value={status}>
-                    {runStatusLabel(status)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {scraperLabels.runFilterEngineType}
-              <select
-                className="input"
-                value={table.filters.engine_type ?? ""}
-                onChange={(event) => table.setFilter("engine_type", event.target.value)}
-              >
-                <option value="">{scraperLabels.runFilterAll}</option>
-                <option value="static">{scraperLabels.runEngineTypeStatic}</option>
-                <option value="dynamic">{scraperLabels.runEngineTypeDynamic}</option>
-              </select>
-            </label>
-            <label>
-              {scraperLabels.runFilterDateFrom}
-              <input
-                className="input"
-                type="date"
-                value={table.filters.date_from ?? ""}
-                onChange={(event) => table.setFilter("date_from", event.target.value)}
+      <ServerDataTableFrame table={table} toolbar={filtersToolbar} skeletonCols={11}>
+        {showEmpty ? (
+          <p className="text-muted">{scraperLabels.runHistoryEmpty}</p>
+        ) : (
+          <>
+            <div className="run-history-desktop-only">
+              <DataTable
+                columns={dataTableColumns}
+                data={table.items}
+                rowKey={(run) => run.id}
+                sorting={table.sorting}
+                onSortChange={table.setSort}
+                className="scraper-run-history-table table-wrap--scroll-only"
               />
-            </label>
-            <label>
-              {scraperLabels.runFilterDateTo}
-              <input
-                className="input"
-                type="date"
-                value={table.filters.date_to ?? ""}
-                onChange={(event) => table.setFilter("date_to", event.target.value)}
+            </div>
+            <div className="run-history-mobile-only">
+              <RunHistoryMobileCards
+                items={table.items}
+                onOpenAdapter={onOpenAdapter}
+                onOpenRunDetail={onOpenRunDetail}
+                onOpenImportBatch={onOpenImportBatch}
+                filesMenu={(run) => (
+                  <RunHistoryFilesMenu
+                    run={run}
+                    onDownload={(item, kind) => void handleDownload(item, kind)}
+                    loadingKey={outputLoading}
+                  />
+                )}
               />
-            </label>
-            <label className="run-history-url-filter">
-              {scraperLabels.runFilterUrl}
-              <input
-                className="input"
-                type="search"
-                value={table.search}
-                placeholder="https://"
-                onChange={(event) => table.setSearch(event.target.value)}
-              />
-            </label>
-          </div>
-        }
-        columns={columns}
-        rowKey={(run) => run.id}
-        emptyState={<p className="text-muted">{scraperLabels.runHistoryEmpty}</p>}
-        className="scraper-run-history-table"
-      />
+            </div>
+          </>
+        )}
+      </ServerDataTableFrame>
     </div>
   );
 }
