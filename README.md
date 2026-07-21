@@ -33,9 +33,10 @@ Historical note: early Sprint 1.0 documentation described the initial Customer m
 FAIR CRM is an **independent FastAPI product service** with its own PostgreSQL database. It integrates with KYROX Core **only through public HTTP APIs**. There are no Python imports from kyrox-core, no shared database sessions, and no cross-repository foreign keys.
 
 ```text
-Client -> KYROX Core (login, orgs, RBAC)
-Client -> FAIR CRM (CRM and data integration APIs) with JWT + X-Organization-Id
-FAIR CRM -> KYROX Core (permission check, audit write, settings, jobs, notifications)
+Client -> Fair CRM UI (same-origin)
+  -> /api/v1/...          (Vite/Nginx -> Fair CRM :8001)
+  -> /kyrox-core/api/v1/... (Vite/Nginx -> Core :8000)
+Fair CRM backend -> KYROX Core (permission check, audit write, settings, jobs, notifications)
 ```
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/INTEGRATION_WITH_CORE.md](docs/INTEGRATION_WITH_CORE.md).
@@ -50,7 +51,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/INTEGRATION_WITH_CORE
 - Python 3.12+
 - PostgreSQL 14+
 - Node.js 18+ recommended for frontend work
-- Running KYROX Core instance for full integration tests (default `http://localhost:8000`)
+- Running KYROX Core instance for full integration tests (default process `http://127.0.0.1:8000`; browser uses `/kyrox-core`)
 
 ## Quick Start
 
@@ -102,6 +103,8 @@ npm run dev
 
 Open `http://127.0.0.1:5173`.
 
+Keep `VITE_API_BASE_URL` and `VITE_CORE_BASE_URL` **empty** (see `frontend/.env.example`). The browser calls same-origin `/api/v1/...` and `/kyrox-core/api/v1/...`; Vite (local) and Nginx (server) proxy those paths to `127.0.0.1:8001` and `127.0.0.1:8000`. The UI never uses those hosts directly — see [docs/DEV_RUNTIME.md](docs/DEV_RUNTIME.md#browser--frontend-network-local--server).
+
 ## Local Development
 
 From the repository root:
@@ -126,12 +129,12 @@ See [docs/DEV_RUNTIME.md](docs/DEV_RUNTIME.md).
 
 | Concern | Owner | Fair CRM approach |
 |---------|-------|-------------------|
-| Login / refresh / logout | Core | Client calls Core directly |
+| Login / refresh / logout | Core | Browser → `/kyrox-core/api/v1/...` (Vite/Nginx proxy); not direct `:8000` |
 | JWT validation | Fair CRM | Local decode using shared `JWT_SECRET_KEY` |
 | Organization context | Header | `X-Organization-Id` on every org-scoped request |
-| Permission check | Core API | `POST /organizations/{id}/authorization/check` |
-| Audit write | Core API | `POST /organizations/{id}/audit-events`, best-effort on product mutations |
-| Settings / jobs / notifications | Core API | Use public Core APIs when needed |
+| Permission check | Core API | Backend → Core `POST /organizations/{id}/authorization/check` |
+| Audit write | Core API | Backend → Core `POST /organizations/{id}/audit-events`, best-effort on product mutations |
+| Settings / jobs / notifications | Core API | Backend uses public Core APIs when needed |
 
 ## Development Workflow
 

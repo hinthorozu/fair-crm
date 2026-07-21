@@ -22,17 +22,14 @@ function resolveDevBypassEnabled(): boolean {
   return envBool(import.meta.env.VITE_DEV_BYPASS_ENABLED, false);
 }
 
+/** Empty/unset VITE_CORE_BASE_URL → same-origin `/kyrox-core` (Vite/Nginx proxy). */
 function resolveCoreBaseUrl(): string {
-  const configured = import.meta.env.VITE_CORE_BASE_URL?.trim();
-  if (configured) return configured;
-  if (import.meta.env.DEV) {
-    return "http://127.0.0.1:5173/kyrox-core";
-  }
-  return "http://127.0.0.1:8000";
+  return envString(import.meta.env.VITE_CORE_BASE_URL, "/kyrox-core");
 }
 
 export const config = {
-  apiBaseUrl: envString(import.meta.env.VITE_API_BASE_URL, "http://127.0.0.1:8001"),
+  /** Empty = same-origin relative `/api/v1/...` (Vite/Nginx proxy to backend). */
+  apiBaseUrl: envString(import.meta.env.VITE_API_BASE_URL, ""),
   coreBaseUrl: resolveCoreBaseUrl(),
   appEnv: resolveAppEnv(),
   /** True only when VITE_DEV_BYPASS_ENABLED=true. Controls API bypass headers and login skip. */

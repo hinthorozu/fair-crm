@@ -33,8 +33,8 @@ python scripts/e2e_validation.py --ci
 | Değişken | Varsayılan | Açıklama |
 |----------|------------|----------|
 | `FAIR_CRM_DEV_BYPASS_CORE` | `false` | **Prod-path için zorunlu false.** `true` ise gate fail eder. |
-| `KYROX_CORE_BASE_URL` | `http://127.0.0.1:8000` | Core API |
-| `FAIR_CRM_BASE_URL` | `http://127.0.0.1:8001` | Fair CRM API |
+| `KYROX_CORE_BASE_URL` | `http://127.0.0.1:8000` | Core API (**E2E script / server-internal**; browser uses `/kyrox-core`) |
+| `FAIR_CRM_BASE_URL` | `http://127.0.0.1:8001` | Fair CRM API (**E2E script / server-internal**; browser uses `/api/v1/...`) |
 | `KYROX_CORE_DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/kyrox_core` | Core DB (seed) |
 | `DATABASE_URL` | `postgresql+psycopg2://postgres:postgres@localhost:5432/fair_crm` | Fair CRM DB |
 | `FAIR_CRM_DEV_ORGANIZATION_ID` | `00000000-0000-4000-8000-000000000010` | Seed org |

@@ -91,9 +91,9 @@ Detay: [AUTH_RBAC_HANDOVER.md](AUTH_RBAC_HANDOVER.md)
 ## Frontend
 
 - React + TypeScript + Vite (`frontend/src/`)
-- API çağrıları: `frontend/src/api/`
+- API çağrıları: `frontend/src/api/` — browser base: `/api/v1/...` ve `/kyrox-core/api/v1/...` (`VITE_*` boş)
 - Görünen etiketler: Türkçe (`frontend/src/labels/`)
-- Auth: Core login → JWT → Fair CRM API + `X-Organization-Id`
+- Auth: Core login (`/kyrox-core/...`) → JWT → Fair CRM API (`/api/v1/...`) + `X-Organization-Id`
 
 Org switcher / tam auth UI bu handover kapsamında değil; backend RBAC hattı hazır.
 
@@ -101,12 +101,14 @@ Org switcher / tam auth UI bu handover kapsamında değil; backend RBAC hattı h
 
 ## Dev runtime
 
-| Servis | URL |
-|--------|-----|
-| Core | http://localhost:8000 |
-| Fair CRM API | http://localhost:8001 |
-| Fair CRM UI | http://localhost:5173 |
-| PostgreSQL | localhost:5432 |
+| Servis | URL (process / UI) |
+|--------|---------------------|
+| Core (process) | http://127.0.0.1:8000 |
+| Fair CRM API (process) | http://127.0.0.1:8001 |
+| Fair CRM UI | http://127.0.0.1:5173 |
+| Browser → Fair CRM | `/api/v1/...` (Vite/Nginx → 8001) |
+| Browser → Core | `/kyrox-core/api/v1/...` (Vite/Nginx → 8000) |
+| PostgreSQL | 127.0.0.1:5432 |
 
 Script'ler: `scripts/dev/dev-start.ps1`, `reset-dev.ps1`, `dev-stop.ps1`
 

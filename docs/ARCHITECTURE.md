@@ -61,7 +61,7 @@ Layering follows [kyrox-core Backend Architecture Standards](../../kyrox-core/do
 
 **Two services, two databases, one auth token.**
 
-Clients typically authenticate via **Core** (`POST /api/v1/auth/login`), then call **Fair CRM** with the same JWT and `X-Organization-Id`. Fair CRM validates the token and checks permissions through Core APIs (see [INTEGRATION_WITH_CORE.md](INTEGRATION_WITH_CORE.md) for gaps).
+Browser paths are same-origin relative: Core login via `POST /kyrox-core/api/v1/auth/login`, Fair CRM via `/api/v1/...` with the same JWT and `X-Organization-Id`. Vite (local) and Nginx (server) proxy those prefixes to the Core and Fair CRM processes. Fair CRM validates the token and checks permissions through Core APIs (see [INTEGRATION_WITH_CORE.md](INTEGRATION_WITH_CORE.md)).
 
 ---
 
@@ -179,18 +179,22 @@ Product **domain** must not import HTTP clients or Core response types. Core int
 
 ### Fair CRM service (product only)
 
-Base URL: e.g. `http://localhost:8001/api/v1`
+Process / server-internal base (Swagger, curl, backend tools): e.g. `http://127.0.0.1:8001/api/v1`
 
 | Route group | Examples |
 |-------------|----------|
 | Health | `GET /health` |
-| Customers | `POST /customers`, `GET /customers`, â€¦ |
+| Customers | `POST /customers`, `GET /customers`, … |
 
-Fair CRM **does not** expose Core platform routes. Auth, org management, and platform services are on the **Core base URL** (e.g. `http://localhost:8000/api/v1`).
+**Browser / frontend** does not use that host. Same-origin relative paths: `/api/v1/...` (`VITE_API_BASE_URL` empty). Local Vite and server Nginx proxy `/api` → `127.0.0.1:8001`.
+
+Fair CRM **does not** expose Core platform routes on its own process. Auth and platform APIs remain on the Core process (e.g. `http://127.0.0.1:8000/api/v1` for server-internal access).
 
 ### KYROX Core service (platform)
 
-Documented in [kyrox-core README](../../kyrox-core/README.md). Clients and Fair CRM integration layer call Core directly for platform operations.
+Documented in [kyrox-core README](../../kyrox-core/README.md). Fair CRM **backend** calls Core at `KYROX_CORE_BASE_URL` (typically `http://127.0.0.1:8000`). The **browser** reaches Core via same-origin `/kyrox-core/api/v1/...` (`VITE_CORE_BASE_URL` empty → fallback `/kyrox-core`), proxied by Vite or Nginx to `127.0.0.1:8000`.
+
+See [DEV_RUNTIME.md](DEV_RUNTIME.md#browser--frontend-network-local--server) and [scripts/server/README.md](../scripts/server/README.md).
 
 ---
 

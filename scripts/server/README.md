@@ -53,6 +53,35 @@ sudo chmod 600 /etc/fair-crm/dev-seed.env
 
 Local development: export `DEV_USER_PASSWORD` before running `python scripts/seed_core_dev_identity.py`.
 
+## Browser / frontend network (same as local)
+
+Local Vite and server Nginx share one relative-path model. Public IP or domain can change without editing frontend API base URLs.
+
+### FAIR CRM API
+
+| Layer | Value |
+|-------|--------|
+| Browser / frontend endpoints | `/api/v1/...` |
+| `VITE_API_BASE_URL` | empty |
+| Server | Nginx `/api` → `http://127.0.0.1:8001` |
+| Local (dev) | Vite `/api` → `http://127.0.0.1:8001` |
+
+### KYROX Core
+
+| Layer | Value |
+|-------|--------|
+| Browser / frontend endpoints | `/kyrox-core/api/v1/...` |
+| `VITE_CORE_BASE_URL` | empty → frontend fallback `/kyrox-core` |
+| Server | Nginx `/kyrox-core` → `http://127.0.0.1:8000` |
+| Local (dev) | Vite `/kyrox-core` → `http://127.0.0.1:8000` |
+
+### Critical rules
+
+- Browser/frontend **never** calls `http://127.0.0.1:8000` or `http://127.0.0.1:8001` directly.
+- `127.0.0.1` is only for Nginx `proxy_pass`, systemd-bound APIs, and server-internal health/curl (e.g. login smoke below).
+- `deploy-all.sh` / bootstrap write `frontend/.env` with empty `VITE_API_BASE_URL` and `VITE_CORE_BASE_URL` when creating the file.
+- Site config: `scripts/server/nginx/fair-crm.conf` (`/api/` → 8001, `/kyrox-core/` → 8000, `/` → `frontend/dist`).
+
 ## Port binding expectations
 
 | Service    | Expected bind        |

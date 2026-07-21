@@ -68,16 +68,48 @@ Kills listeners on Core `8000`, backend `8001`, and frontend `5173`–`5177`, th
 8. Starts worker only if `scripts/dev/start-worker.ps1` exists (not configured in current sprint)
 9. Prints service URLs and `docker compose ps`
 
-## URLs
+## URLs (direct service access)
+
+These are for **server-internal** use: health checks, Swagger, curl, and backend→Core HTTP. They are **not** browser/frontend API base URLs.
 
 | Service  | URL |
 |----------|-----|
-| KYROX Core | http://localhost:8000 |
-| Core health | http://localhost:8000/api/v1/health |
-| Backend  | http://localhost:8001 |
-| Swagger  | http://localhost:8001/docs |
-| Frontend | http://localhost:5173 |
-| Health   | http://localhost:8001/health |
+| KYROX Core (process) | http://127.0.0.1:8000 |
+| Core health | http://127.0.0.1:8000/api/v1/health |
+| Fair CRM backend (process) | http://127.0.0.1:8001 |
+| Swagger  | http://127.0.0.1:8001/docs |
+| Frontend (Vite) | http://127.0.0.1:5173 |
+| Health   | http://127.0.0.1:8001/health |
+
+## Browser / frontend network (local = server)
+
+Local Vite and production Nginx use the **same relative-path system**. The browser never talks to `127.0.0.1:8000` or `127.0.0.1:8001` directly. Those addresses appear only in Vite/Nginx (and backend) internal upstreams.
+
+### FAIR CRM API
+
+| Layer | Value |
+|-------|--------|
+| Browser / frontend endpoints | `/api/v1/...` |
+| `VITE_API_BASE_URL` | empty (same-origin relative) |
+| Local | Vite `/api` → `http://127.0.0.1:8001` |
+| Server | Nginx `/api` → `http://127.0.0.1:8001` |
+
+### KYROX Core
+
+| Layer | Value |
+|-------|--------|
+| Browser / frontend endpoints | `/kyrox-core/api/v1/...` |
+| `VITE_CORE_BASE_URL` | empty → frontend fallback `/kyrox-core` |
+| Local | Vite `/kyrox-core` → `http://127.0.0.1:8000` |
+| Server | Nginx `/kyrox-core` → `http://127.0.0.1:8000` |
+
+### Critical rules
+
+- Browser/frontend **never** uses `http://127.0.0.1:8000` or `http://127.0.0.1:8001` as an API base.
+- `127.0.0.1` is only for Vite proxy, Nginx `proxy_pass`, systemd-bound APIs, and server-side health/curl.
+- Changing public IP/domain on a new server does **not** require changing frontend `VITE_*` base URLs — keep both empty.
+
+See `frontend/.env.example`, `frontend/vite.config.ts`, and `scripts/server/nginx/fair-crm.conf`.
 
 ## Validation
 

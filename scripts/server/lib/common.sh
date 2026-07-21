@@ -424,16 +424,15 @@ write_frontend_production_env_if_missing() {
     return 0
   fi
 
-  local public_url
-  public_url="$(detect_server_public_url)"
   cat >"$target" <<EOF
-VITE_API_BASE_URL=${public_url}
-VITE_CORE_BASE_URL=${public_url}/kyrox-core
+# Empty: same-origin /api/v1/... and /kyrox-core/... via Nginx proxies
+VITE_API_BASE_URL=
+VITE_CORE_BASE_URL=
 VITE_APP_ENV=production
 VITE_DEV_BYPASS_ENABLED=false
 VITE_ORGANIZATION_ID=00000000-0000-4000-8000-000000000010
 EOF
-  warn "Created ${target} with SERVER_PUBLIC_URL=${public_url} — adjust if using a domain name"
+  warn "Created ${target} with same-origin API/Core bases (Nginx proxies /api and /kyrox-core)"
 }
 
 validate_env_files_required() {

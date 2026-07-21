@@ -98,6 +98,32 @@ DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/fair_crm
 
 Core `backend/.env` içinde de `JWT_SECRET_KEY` Fair CRM ile eşleşmeli.
 
+> `KYROX_CORE_BASE_URL=http://127.0.0.1:8000` **backend → Core** sunucu-içi HTTP içindir. Browser/frontend bu adresi kullanmaz.
+
+---
+
+## Adım 5b — Frontend `.env` (relative-path)
+
+`frontend/.env` (veya `.env.example` ile aynı):
+
+```env
+VITE_API_BASE_URL=
+VITE_CORE_BASE_URL=
+```
+
+Local ve sunucu aynı relative-path sistemini kullanır:
+
+| Hedef | Browser path | Proxy (local / sunucu) |
+|-------|--------------|-------------------------|
+| Fair CRM API | `/api/v1/...` | Vite `/api` veya Nginx `/api` → `127.0.0.1:8001` |
+| KYROX Core | `/kyrox-core/api/v1/...` | Vite `/kyrox-core` veya Nginx `/kyrox-core` → `127.0.0.1:8000` |
+
+- Boş `VITE_API_BASE_URL` → same-origin `/api/v1/...`
+- Boş `VITE_CORE_BASE_URL` → frontend fallback `/kyrox-core`
+- Browser **asla** `127.0.0.1:8000` / `127.0.0.1:8001` kullanmaz; IP/domain değişince frontend base URL değiştirilmez.
+
+Detay: [DEV_RUNTIME.md](DEV_RUNTIME.md#browser--frontend-network-local--server), [scripts/server/README.md](../scripts/server/README.md).
+
 ---
 
 ## Adım 6 — Servisleri başlat
@@ -135,6 +161,8 @@ npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 
 ## Adım 7 — Health check
 
+Aşağıdaki curl adresleri **server-internal** (process bind) kontrolüdür; frontend API base URL değildir.
+
 ```powershell
 curl http://127.0.0.1:8000/api/v1/health
 curl http://127.0.0.1:8001/health
@@ -147,6 +175,8 @@ curl -H "Authorization: Bearer dev-bypass" -H "X-Organization-Id: 00000000-0000-
 ```
 
 Beklenen: **401** veya **403** (200 ise bypass hâlâ açık — `reset-dev.ps1` tekrar).
+
+UI üzerinden doğrulama: tarayıcıda `http://127.0.0.1:5173` aç; Fair CRM istekleri `/api/v1/...`, Core login `/kyrox-core/api/v1/...` olmalı (Network sekmesi).
 
 ---
 

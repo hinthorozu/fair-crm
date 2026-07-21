@@ -27,19 +27,21 @@ This aligns with ADR-007 and kyrox-core [Backend Architecture Standards Â§12](
 
 ## 2. Runtime topology
 
-| Component | Default local | Responsibility |
-|-----------|---------------|----------------|
-| **KYROX Core** | `http://localhost:8000` | Auth, orgs, memberships, audit query, settings, jobs, notifications |
-| **Fair CRM** | `http://localhost:8001` | Customer and future CRM domain APIs |
+| Component | Default local (process) | Responsibility |
+|-----------|-------------------------|----------------|
+| **KYROX Core** | `http://127.0.0.1:8000` | Auth, orgs, memberships, audit query, settings, jobs, notifications |
+| **Fair CRM** | `http://127.0.0.1:8001` | Customer and future CRM domain APIs |
 | **Core database** | `postgresql://.../kyrox_core` | Platform schema only |
 | **Product database** | `postgresql://.../fair_crm` | `crm_*` tables only |
+
+Process URLs above are for **server-internal** use (backend→Core, health, curl). The browser uses relative paths only — see §4 and [DEV_RUNTIME.md](DEV_RUNTIME.md#browser--frontend-network-local--server).
 
 ### Fair CRM configuration
 
 | Setting | Purpose |
 |---------|---------|
-| `KYROX_CORE_BASE_URL` | Base URL for Core HTTP client (e.g. `http://localhost:8000`) |
-| `JWT_SECRET_KEY` | Must match Core â€” local access-token signature validation |
+| `KYROX_CORE_BASE_URL` | Backend HTTP client → Core (e.g. `http://127.0.0.1:8000`) — **not** a browser URL |
+| `JWT_SECRET_KEY` | Must match Core — local access-token signature validation |
 | `JWT_ALGORITHM` | Must match Core (default `HS256`) |
 | `DATABASE_URL` | **Fair CRM database only** |
 
@@ -68,28 +70,40 @@ Application use cases depend on **ports** (protocols). Infrastructure implements
 
 ## 4. Authentication flow
 
-### 4.1 Login (client â†’ Core)
+### 4.1 Login (browser → Core via relative path)
 
-Clients authenticate **directly with Core**:
+The SPA authenticates through the same-origin Core proxy (not a direct `:8000` URL):
 
 ```http
-POST {CORE_BASE_URL}/api/v1/auth/login
+POST /kyrox-core/api/v1/auth/login
 Content-Type: application/json
 
 {"email": "...", "password": "..."}
 ```
 
+- `VITE_CORE_BASE_URL` empty → frontend base `/kyrox-core`
+- Local: Vite `/kyrox-core` → `http://127.0.0.1:8000`
+- Server: Nginx `/kyrox-core` → `http://127.0.0.1:8000`
+
 Response: `access_token`, `refresh_token` (Core contract).
 
-Token refresh and logout also go to Core (`/api/v1/auth/refresh`, `/api/v1/auth/logout`). Fair CRM does not implement auth issuance endpoints in Sprint 1.
+Token refresh and logout also go to Core under `/kyrox-core/api/v1/auth/...`. Fair CRM does not implement auth issuance endpoints.
 
-### 4.2 Calling Fair CRM (client â†’ product)
+Server-side tools (curl, E2E scripts) may still call `http://127.0.0.1:8000/api/v1/auth/login` directly — that is not the browser path.
+
+### 4.2 Calling Fair CRM (browser → product via relative path)
 
 ```http
-GET {FAIR_CRM_BASE_URL}/api/v1/customers
+GET /api/v1/customers
 Authorization: Bearer <access_token>
 X-Organization-Id: <organization_uuid>
 ```
+
+- `VITE_API_BASE_URL` empty → same-origin `/api/v1/...`
+- Local: Vite `/api` → `http://127.0.0.1:8001`
+- Server: Nginx `/api` → `http://127.0.0.1:8001`
+
+The browser **never** uses `http://127.0.0.1:8000` or `http://127.0.0.1:8001` as an API base. New host/IP/domain does not require frontend base URL changes.
 
 ### 4.3 Token validation (Fair CRM â€” local)
 

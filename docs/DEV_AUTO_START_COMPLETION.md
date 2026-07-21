@@ -122,10 +122,14 @@ Manual Windows reboot: **PASS** (sign-off 2026-07-02)
 
 | Service | URL |
 |---------|-----|
-| Backend | http://localhost:8001 |
-| Swagger | http://localhost:8001/docs |
-| Frontend | http://localhost:5173 |
-| Health | http://localhost:8001/health |
+| Backend (process) | http://127.0.0.1:8001 |
+| Swagger | http://127.0.0.1:8001/docs |
+| Frontend UI | http://127.0.0.1:5173 |
+| Health | http://127.0.0.1:8001/health |
+| Browser → Fair CRM API | `/api/v1/...` (Vite proxy → 8001) |
+| Browser → Core | `/kyrox-core/api/v1/...` (Vite proxy → 8000) |
+
+Canonical network rules: [DEV_RUNTIME.md](DEV_RUNTIME.md#browser--frontend-network-local--server).
 
 ---
 
