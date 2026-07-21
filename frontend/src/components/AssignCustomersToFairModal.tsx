@@ -40,7 +40,25 @@ export function AssignCustomersToFairModal({
   if (!open) return null;
 
   return (
-    <Modal title={adminLabels.dataOpAssignToFairTitle} onClose={requestClose}>
+    <Modal
+      title={adminLabels.dataOpAssignToFairTitle}
+      onClose={requestClose}
+      footer={
+        <>
+          <button type="button" className="btn secondary" onClick={requestClose} disabled={assigning}>
+            {adminLabels.cancel}
+          </button>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={assigning || !fairId || selectedCount === 0}
+            onClick={onAssign}
+          >
+            {assigning ? adminLabels.dataOpAssignToFairAssigning : adminLabels.dataOpAssignToFairConfirm}
+          </button>
+        </>
+      }
+    >
       <div className="assign-fair-modal">
         <p className="text-muted">{adminLabels.dataOpAssignToFairDescription}</p>
         <div className="form-field">
@@ -61,19 +79,6 @@ export function AssignCustomersToFairModal({
             <strong>{adminLabels.dataOpAssignToFairSelectedFair}:</strong>{" "}
             {fairName ?? (fairId ? adminLabels.dataOpAssignToFairFairSelected : adminLabels.dataOpAssignToFairFairNotSelected)}
           </p>
-        </div>
-        <div className="form-actions">
-          <button type="button" className="btn secondary" onClick={requestClose} disabled={assigning}>
-            {adminLabels.cancel}
-          </button>
-          <button
-            type="button"
-            className="btn primary"
-            disabled={assigning || !fairId || selectedCount === 0}
-            onClick={onAssign}
-          >
-            {assigning ? adminLabels.dataOpAssignToFairAssigning : adminLabels.dataOpAssignToFairConfirm}
-          </button>
         </div>
       </div>
     </Modal>

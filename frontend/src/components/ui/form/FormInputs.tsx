@@ -1,6 +1,7 @@
 import React from "react";
 import { NavIconEye, NavIconEyeOff } from "../../layout/NavIcons";
 import { uiLabels } from "../../../labels/uiLabels";
+import { IconButton } from "../IconButton";
 
 type ControlProps = {
   id: string;
@@ -89,17 +90,15 @@ export const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputPro
           aria-invalid={ariaInvalid}
           {...rest}
         />
-        <button
-          type="button"
-          className="password-input__toggle"
+        <IconButton
+          variant="password"
+          label={visible ? uiLabels.hidePassword : uiLabels.showPassword}
+          icon={visible ? <NavIconEyeOff /> : <NavIconEye />}
           disabled={disabled}
-          aria-label={visible ? uiLabels.hidePassword : uiLabels.showPassword}
-          aria-pressed={visible}
+          pressed={visible}
           onMouseDown={(event) => event.preventDefault()}
           onClick={toggleVisibility}
-        >
-          {visible ? <NavIconEyeOff /> : <NavIconEye />}
-        </button>
+        />
       </div>
     );
   },
@@ -145,27 +144,85 @@ export const TextareaInput = React.forwardRef<HTMLTextAreaElement, TextareaInput
   },
 );
 
-interface CheckboxFieldProps {
+export interface CheckboxFieldProps {
   id: string;
   label: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
   hint?: string;
+  className?: string;
+  inputClassName?: string;
+  /** Hide visible label (still associated via htmlFor / aria). */
+  hideLabel?: boolean;
+  ariaLabel?: string;
+  indeterminate?: boolean;
+  inputRef?: React.Ref<HTMLInputElement>;
 }
 
-export function CheckboxField({ id, label, checked, onChange, disabled, hint }: CheckboxFieldProps) {
+export function CheckboxField({
+  id,
+  label,
+  checked,
+  onChange,
+  disabled,
+  hint,
+  className,
+  inputClassName,
+  hideLabel = false,
+  ariaLabel,
+  indeterminate = false,
+  inputRef,
+}: CheckboxFieldProps) {
+  const localRef = React.useRef<HTMLInputElement | null>(null);
+
+  const setRefs = React.useCallback(
+    (node: HTMLInputElement | null) => {
+      localRef.current = node;
+      if (typeof inputRef === "function") {
+        inputRef(node);
+      } else if (inputRef) {
+        (inputRef as React.MutableRefObject<HTMLInputElement | null>).current = node;
+      }
+    },
+    [inputRef],
+  );
+
+  React.useEffect(() => {
+    if (localRef.current) {
+      localRef.current.indeterminate = indeterminate;
+    }
+  }, [indeterminate]);
+
+  const input = (
+    <input
+      ref={setRefs}
+      id={id}
+      type="checkbox"
+      className={inputClassName}
+      checked={checked}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.checked)}
+      aria-label={ariaLabel ?? (hideLabel ? label : undefined)}
+    />
+  );
+
+  if (hideLabel && !hint) {
+    return (
+      <span className={["checkbox-field-control", className].filter(Boolean).join(" ")}>
+        {input}
+        <label htmlFor={id} className="sr-only">
+          {label}
+        </label>
+      </span>
+    );
+  }
+
   return (
-    <div className="field checkbox-field">
-      <input
-        id={id}
-        type="checkbox"
-        checked={checked}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.checked)}
-      />
+    <div className={["field", "checkbox-field", className].filter(Boolean).join(" ")}>
+      {input}
       <div className="checkbox-field-content">
-        <label htmlFor={id} className="checkbox-field-label">
+        <label htmlFor={id} className={hideLabel ? "sr-only" : "checkbox-field-label"}>
           {label}
         </label>
         {hint ? <span className="field-hint">{hint}</span> : null}
@@ -174,7 +231,7 @@ export function CheckboxField({ id, label, checked, onChange, disabled, hint }: 
   );
 }
 
-interface RadioFieldProps {
+export interface RadioFieldProps {
   id: string;
   name: string;
   label: string;
@@ -183,6 +240,10 @@ interface RadioFieldProps {
   onChange: (value: string) => void;
   disabled?: boolean;
   hint?: string;
+  className?: string;
+  inputClassName?: string;
+  hideLabel?: boolean;
+  ariaLabel?: string;
 }
 
 export function RadioField({
@@ -194,20 +255,41 @@ export function RadioField({
   onChange,
   disabled,
   hint,
+  className,
+  inputClassName,
+  hideLabel = false,
+  ariaLabel,
 }: RadioFieldProps) {
+  const input = (
+    <input
+      id={id}
+      type="radio"
+      name={name}
+      value={value}
+      className={inputClassName}
+      checked={checked}
+      disabled={disabled}
+      onChange={() => onChange(value)}
+      aria-label={ariaLabel ?? (hideLabel ? label : undefined)}
+    />
+  );
+
+  if (hideLabel && !hint) {
+    return (
+      <span className={["radio-field-control", className].filter(Boolean).join(" ")}>
+        {input}
+        <label htmlFor={id} className="sr-only">
+          {label}
+        </label>
+      </span>
+    );
+  }
+
   return (
-    <div className="field radio-field">
-      <input
-        id={id}
-        type="radio"
-        name={name}
-        value={value}
-        checked={checked}
-        disabled={disabled}
-        onChange={() => onChange(value)}
-      />
+    <div className={["field", "radio-field", className].filter(Boolean).join(" ")}>
+      {input}
       <div className="checkbox-field-content">
-        <label htmlFor={id} className="checkbox-field-label">
+        <label htmlFor={id} className={hideLabel ? "sr-only" : "checkbox-field-label"}>
           {label}
         </label>
         {hint ? <span className="field-hint">{hint}</span> : null}

@@ -14,7 +14,8 @@ import { MailTemplatePreviewPanel } from "../components/mail_templates/MailTempl
 import { MailTemplateTestEmailPanel } from "../components/mail_templates/MailTemplateTestEmailPanel";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
-import { FormModal } from "../components/ui/form";
+import { FilterPanel } from "../components/ui/FilterPanel";
+import { FormField, FormModal, SelectInput } from "../components/ui/form";
 import { Modal } from "../components/ui/Modal";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Badge } from "../components/ui/Badge";
@@ -28,6 +29,8 @@ import {
 import type { MailTemplate, MailTemplateType, RenderMailTemplateResponse } from "../types/mailTemplates";
 import type { SmtpAccount } from "../types/smtp";
 import { DEFAULT_RENDER_VARIABLES_JSON, MAIL_TEMPLATE_TYPES } from "../utils/mailTemplateForm";
+import { Banner } from "../components/ui/Banner";
+import { PageShell } from "../components/ui/PageShell";
 
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return "—";
@@ -326,7 +329,7 @@ export function MailTemplatesPage() {
   );
 
   return (
-    <div className="page mail-templates-page">
+    <PageShell className="mail-templates-page">
       <PageHeader
         title={adminLabels.mailTemplatesTitle}
         subtitle={adminLabels.mailTemplatesSubtitle}
@@ -339,14 +342,13 @@ export function MailTemplatesPage() {
         }
       />
 
-      {success ? <div className="banner success">{success}</div> : null}
-      {error ? <p className="form-error">{error}</p> : null}
+      {success ? <Banner variant="success">{success}</Banner> : null}
+      {error ? <Banner variant="error">{error}</Banner> : null}
 
-      <div className="mail-template-filters">
-        <label>
-          {adminLabels.mailTemplatesFilterType}
-          <select
-            className="form-control"
+      <FilterPanel className="mail-template-filters">
+        <FormField label={adminLabels.mailTemplatesFilterType} htmlFor="mail-templates-filter-type">
+          <SelectInput
+            id="mail-templates-filter-type"
             value={filterType}
             onChange={(event) => setFilterType(event.target.value as MailTemplateType | "all")}
           >
@@ -356,13 +358,12 @@ export function MailTemplatesPage() {
                 {type}
               </option>
             ))}
-          </select>
-        </label>
+          </SelectInput>
+        </FormField>
 
-        <label>
-          {adminLabels.mailTemplatesFilterLanguage}
-          <select
-            className="form-control"
+        <FormField label={adminLabels.mailTemplatesFilterLanguage} htmlFor="mail-templates-filter-language">
+          <SelectInput
+            id="mail-templates-filter-language"
             value={filterLanguage}
             onChange={(event) => setFilterLanguage(event.target.value)}
           >
@@ -372,35 +373,33 @@ export function MailTemplatesPage() {
                 {lang}
               </option>
             ))}
-          </select>
-        </label>
+          </SelectInput>
+        </FormField>
 
-        <label>
-          {adminLabels.mailTemplatesFilterActive}
-          <select
-            className="form-control"
+        <FormField label={adminLabels.mailTemplatesFilterActive} htmlFor="mail-templates-filter-active">
+          <SelectInput
+            id="mail-templates-filter-active"
             value={filterActive}
             onChange={(event) => setFilterActive(event.target.value as ActiveFilter)}
           >
             <option value="all">{adminLabels.mailTemplatesFilterAll}</option>
             <option value="active">{adminLabels.mailTemplatesFilterActiveOnly}</option>
             <option value="inactive">{adminLabels.mailTemplatesFilterInactiveOnly}</option>
-          </select>
-        </label>
+          </SelectInput>
+        </FormField>
 
-        <label>
-          {adminLabels.mailTemplatesFilterDefault}
-          <select
-            className="form-control"
+        <FormField label={adminLabels.mailTemplatesFilterDefault} htmlFor="mail-templates-filter-default">
+          <SelectInput
+            id="mail-templates-filter-default"
             value={filterDefault}
             onChange={(event) => setFilterDefault(event.target.value as DefaultFilter)}
           >
             <option value="all">{adminLabels.mailTemplatesFilterAll}</option>
             <option value="default">{adminLabels.mailTemplatesFilterDefaultOnly}</option>
             <option value="non-default">{adminLabels.mailTemplatesFilterNonDefault}</option>
-          </select>
-        </label>
-      </div>
+          </SelectInput>
+        </FormField>
+      </FilterPanel>
 
       <UniversalDataTable
         items={filteredTemplates}
@@ -501,6 +500,6 @@ export function MailTemplatesPage() {
           />
         </FormModal>
       ) : null}
-    </div>
+    </PageShell>
   );
 }

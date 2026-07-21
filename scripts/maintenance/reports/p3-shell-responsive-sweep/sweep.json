@@ -1,0 +1,908 @@
+{
+  "min_width": 320,
+  "continuous_to": 1600,
+  "step": 40,
+  "breakpoints": [
+    390,
+    768,
+    1024,
+    1440
+  ],
+  "ultrawide": [
+    1920,
+    2560,
+    3440,
+    3840
+  ],
+  "pages": [
+    "customers",
+    "fairs",
+    "todos",
+    "activities",
+    "admin-backups",
+    "di-imports",
+    "login"
+  ],
+  "total_checks": 336,
+  "failure_count": 0,
+  "pass": true,
+  "failures": [],
+  "sample_ultrawide": [
+    {
+      "viewportWidth": 1920,
+      "overflowX": 0,
+      "shell": {
+        "width": 1920,
+        "left": 0,
+        "right": 1920,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 1680,
+        "left": 240,
+        "right": 1920,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 360,
+        "right": 1800,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": {
+        "width": 1440,
+        "left": 360,
+        "right": 1800,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "customers",
+      "path": "/customers",
+      "fails": []
+    },
+    {
+      "viewportWidth": 2560,
+      "overflowX": 0,
+      "shell": {
+        "width": 2560,
+        "left": 0,
+        "right": 2560,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 2320,
+        "left": 240,
+        "right": 2560,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 680,
+        "right": 2120,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": {
+        "width": 1440,
+        "left": 680,
+        "right": 2120,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "customers",
+      "path": "/customers",
+      "fails": []
+    },
+    {
+      "viewportWidth": 3440,
+      "overflowX": 0,
+      "shell": {
+        "width": 3440,
+        "left": 0,
+        "right": 3440,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 3200,
+        "left": 240,
+        "right": 3440,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 1120,
+        "right": 2560,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": {
+        "width": 1440,
+        "left": 1120,
+        "right": 2560,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "customers",
+      "path": "/customers",
+      "fails": []
+    },
+    {
+      "viewportWidth": 3840,
+      "overflowX": 0,
+      "shell": {
+        "width": 3840,
+        "left": 0,
+        "right": 3840,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 3600,
+        "left": 240,
+        "right": 3840,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 1320,
+        "right": 2760,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": {
+        "width": 1440,
+        "left": 1320,
+        "right": 2760,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "customers",
+      "path": "/customers",
+      "fails": []
+    },
+    {
+      "viewportWidth": 1920,
+      "overflowX": 0,
+      "shell": {
+        "width": 1920,
+        "left": 0,
+        "right": 1920,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 1680,
+        "left": 240,
+        "right": 1920,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 360,
+        "right": 1800,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": {
+        "width": 1440,
+        "left": 360,
+        "right": 1800,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "fairs",
+      "path": "/fairs",
+      "fails": []
+    },
+    {
+      "viewportWidth": 2560,
+      "overflowX": 0,
+      "shell": {
+        "width": 2560,
+        "left": 0,
+        "right": 2560,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 2320,
+        "left": 240,
+        "right": 2560,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 680,
+        "right": 2120,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": {
+        "width": 1440,
+        "left": 680,
+        "right": 2120,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "fairs",
+      "path": "/fairs",
+      "fails": []
+    },
+    {
+      "viewportWidth": 3440,
+      "overflowX": 0,
+      "shell": {
+        "width": 3440,
+        "left": 0,
+        "right": 3440,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 3200,
+        "left": 240,
+        "right": 3440,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 1120,
+        "right": 2560,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": {
+        "width": 1440,
+        "left": 1120,
+        "right": 2560,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "fairs",
+      "path": "/fairs",
+      "fails": []
+    },
+    {
+      "viewportWidth": 3840,
+      "overflowX": 0,
+      "shell": {
+        "width": 3840,
+        "left": 0,
+        "right": 3840,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 3600,
+        "left": 240,
+        "right": 3840,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 1320,
+        "right": 2760,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": {
+        "width": 1440,
+        "left": 1320,
+        "right": 2760,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "fairs",
+      "path": "/fairs",
+      "fails": []
+    },
+    {
+      "viewportWidth": 1920,
+      "overflowX": 0,
+      "shell": {
+        "width": 1920,
+        "left": 0,
+        "right": 1920,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 1680,
+        "left": 240,
+        "right": 1920,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 360,
+        "right": 1800,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": {
+        "width": 1440,
+        "left": 360,
+        "right": 1800,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "todos",
+      "path": "/todos",
+      "fails": []
+    },
+    {
+      "viewportWidth": 2560,
+      "overflowX": 0,
+      "shell": {
+        "width": 2560,
+        "left": 0,
+        "right": 2560,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 2320,
+        "left": 240,
+        "right": 2560,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 680,
+        "right": 2120,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": {
+        "width": 1440,
+        "left": 680,
+        "right": 2120,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "todos",
+      "path": "/todos",
+      "fails": []
+    },
+    {
+      "viewportWidth": 3440,
+      "overflowX": 0,
+      "shell": {
+        "width": 3440,
+        "left": 0,
+        "right": 3440,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 3200,
+        "left": 240,
+        "right": 3440,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 1120,
+        "right": 2560,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": {
+        "width": 1440,
+        "left": 1120,
+        "right": 2560,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "todos",
+      "path": "/todos",
+      "fails": []
+    },
+    {
+      "viewportWidth": 3840,
+      "overflowX": 0,
+      "shell": {
+        "width": 3840,
+        "left": 0,
+        "right": 3840,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 3600,
+        "left": 240,
+        "right": 3840,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 1320,
+        "right": 2760,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": {
+        "width": 1440,
+        "left": 1320,
+        "right": 2760,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "todos",
+      "path": "/todos",
+      "fails": []
+    },
+    {
+      "viewportWidth": 1920,
+      "overflowX": 0,
+      "shell": {
+        "width": 1920,
+        "left": 0,
+        "right": 1920,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 1680,
+        "left": 240,
+        "right": 1920,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 360,
+        "right": 1800,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": null,
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "activities",
+      "path": "/activities",
+      "fails": []
+    },
+    {
+      "viewportWidth": 2560,
+      "overflowX": 0,
+      "shell": {
+        "width": 2560,
+        "left": 0,
+        "right": 2560,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 2320,
+        "left": 240,
+        "right": 2560,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 680,
+        "right": 2120,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": null,
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "activities",
+      "path": "/activities",
+      "fails": []
+    },
+    {
+      "viewportWidth": 3440,
+      "overflowX": 0,
+      "shell": {
+        "width": 3440,
+        "left": 0,
+        "right": 3440,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 3200,
+        "left": 240,
+        "right": 3440,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 1120,
+        "right": 2560,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": null,
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "activities",
+      "path": "/activities",
+      "fails": []
+    },
+    {
+      "viewportWidth": 3840,
+      "overflowX": 0,
+      "shell": {
+        "width": 3840,
+        "left": 0,
+        "right": 3840,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 3600,
+        "left": 240,
+        "right": 3840,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 1320,
+        "right": 2760,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": null,
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "activities",
+      "path": "/activities",
+      "fails": []
+    },
+    {
+      "viewportWidth": 1920,
+      "overflowX": 0,
+      "shell": {
+        "width": 1920,
+        "left": 0,
+        "right": 1920,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 1680,
+        "left": 240,
+        "right": 1920,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1380,
+        "left": 512,
+        "right": 1892,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": {
+        "width": 1380,
+        "left": 512,
+        "right": 1892,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "admin-backups",
+      "path": "/admin/system/backups",
+      "fails": []
+    },
+    {
+      "viewportWidth": 2560,
+      "overflowX": 0,
+      "shell": {
+        "width": 2560,
+        "left": 0,
+        "right": 2560,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 2320,
+        "left": 240,
+        "right": 2560,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 802,
+        "right": 2242,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": {
+        "width": 1440,
+        "left": 802,
+        "right": 2242,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "admin-backups",
+      "path": "/admin/system/backups",
+      "fails": []
+    },
+    {
+      "viewportWidth": 3440,
+      "overflowX": 0,
+      "shell": {
+        "width": 3440,
+        "left": 0,
+        "right": 3440,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 3200,
+        "left": 240,
+        "right": 3440,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 1242,
+        "right": 2682,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": {
+        "width": 1440,
+        "left": 1242,
+        "right": 2682,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "admin-backups",
+      "path": "/admin/system/backups",
+      "fails": []
+    },
+    {
+      "viewportWidth": 3840,
+      "overflowX": 0,
+      "shell": {
+        "width": 3840,
+        "left": 0,
+        "right": 3840,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "sidebar": {
+        "width": 240,
+        "left": 0,
+        "right": 240,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "topbar": {
+        "width": 3600,
+        "left": 240,
+        "right": 3840,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShell": {
+        "width": 1440,
+        "left": 1442,
+        "right": 2882,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "modal": null,
+      "toolbar": {
+        "width": 1440,
+        "left": 1442,
+        "right": 2882,
+        "overflowX": 0,
+        "clipped": false
+      },
+      "pageShellMaxWidth": "min(100%, 1440px)",
+      "topbarContentOverlap": false,
+      "page": "admin-backups",
+      "path": "/admin/system/backups",
+      "fails": []
+    }
+  ]
+}

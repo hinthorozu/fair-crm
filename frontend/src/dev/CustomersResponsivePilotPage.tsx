@@ -1,6 +1,7 @@
 import React from "react";
 import { CustomerTable } from "../components/CustomerList";
 import type { Customer } from "../types/customer";
+import { PageShell } from "../components/ui/PageShell";
 
 function mockCustomer(partial: Partial<Customer> & Pick<Customer, "id" | "display_name">): Customer {
   return {
@@ -79,7 +80,7 @@ export function CustomersResponsivePilotPage() {
   const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">("asc");
 
   return (
-    <div className="page" style={{ padding: "1rem" }}>
+    <PageShell style={{ padding: "1rem" }}>
       <h1>Customers width-responsive pilot</h1>
       <p className="muted">
         DEV harness — identical <code>CustomerTable</code> /{" "}
@@ -104,6 +105,6 @@ export function CustomersResponsivePilotPage() {
         onArchive={() => undefined}
         onRestore={() => undefined}
       />
-    </div>
+    </PageShell>
   );
 }

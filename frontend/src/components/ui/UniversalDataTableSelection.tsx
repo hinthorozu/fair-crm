@@ -1,6 +1,7 @@
 import React from "react";
 import type { ServerDataTableRowSelectionController } from "../../hooks/useServerDataTableRowSelection";
 import type { UniversalDataTableColumn } from "./UniversalDataTable";
+import { CheckboxField } from "./form";
 
 interface SelectionColumnHeaderProps {
   title: string;
@@ -17,24 +18,18 @@ function SelectionColumnHeader({
   somePageRowsSelected,
   onTogglePage,
 }: SelectionColumnHeaderProps) {
-  const checkboxRef = React.useRef<HTMLInputElement>(null);
-
-  React.useEffect(() => {
-    if (checkboxRef.current) {
-      checkboxRef.current.indeterminate = !allPageRowsSelected && somePageRowsSelected;
-    }
-  }, [allPageRowsSelected, somePageRowsSelected]);
-
   return (
     <span className="data-table-selection-header">
       <span className="data-table-selection-title">{title}</span>
-      <input
-        ref={checkboxRef}
-        type="checkbox"
-        className="data-table-selection-checkbox"
+      <CheckboxField
+        id="data-table-select-all-page"
+        label={selectAllAriaLabel}
         checked={allPageRowsSelected}
-        onChange={(event) => onTogglePage(event.target.checked)}
-        aria-label={selectAllAriaLabel}
+        indeterminate={!allPageRowsSelected && somePageRowsSelected}
+        onChange={onTogglePage}
+        hideLabel
+        className="data-table-selection-checkbox-wrap"
+        inputClassName="data-table-selection-checkbox"
       />
     </span>
   );
@@ -64,12 +59,14 @@ export function buildUniversalDataTableSelectionColumn<T extends { id: string }>
     priority: "primary",
     className: "data-table-selection-col",
     render: (row) => (
-      <input
-        type="checkbox"
-        className="data-table-selection-checkbox"
+      <CheckboxField
+        id={`data-table-row-select-${row.id}`}
+        label={options.rowAriaLabel(row)}
         checked={selection.isSelected(row.id)}
-        onChange={(event) => selection.toggleRow(row.id, event.target.checked)}
-        aria-label={options.rowAriaLabel(row)}
+        onChange={(checked) => selection.toggleRow(row.id, checked)}
+        hideLabel
+        className="data-table-selection-checkbox-wrap"
+        inputClassName="data-table-selection-checkbox"
       />
     ),
   };

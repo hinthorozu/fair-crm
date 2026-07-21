@@ -14,6 +14,8 @@ import { UniversalDataTable, type UniversalDataTableColumn } from "../components
 import { Badge } from "../components/ui/Badge";
 import { Card } from "../components/ui/Card";
 import { EmptyState } from "../components/ui/EmptyState";
+import { FilterPanel } from "../components/ui/FilterPanel";
+import { TextInput } from "../components/ui/form";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { todoLabels } from "../labels/todoLabels";
 import { labels } from "../labels";
@@ -24,6 +26,9 @@ import {
   worklistStatusLabels,
 } from "../labels/todoWorklistLabels";
 import type { Todo } from "../types/todo";
+import { Banner } from "../components/ui/Banner";
+import { TableEntityLink } from "../components/ui/TableEntityLink";
+import { PageShell } from "../components/ui/PageShell";
 import type {
   RecordTodoWorklistActivityPayload,
   TodoWorklistModalContext,
@@ -193,13 +198,9 @@ export function TodoDetailPage({
         title: todoWorklistLabels.colCustomer,
         sortField: "company_name",
         render: (row) => (
-          <button
-            type="button"
-            className="link-button"
-            onClick={() => handleOpenActivity(row)}
-          >
+          <TableEntityLink onClick={() => handleOpenActivity(row)}>
             {row.customer_name}
-          </button>
+          </TableEntityLink>
         ),
       },
       {
@@ -268,18 +269,18 @@ export function TodoDetailPage({
 
   if (todoError || !todo) {
     return (
-      <div className="page">
+      <PageShell>
         <PageHeader title={todoLabels.pageTitle} />
-        <p className="form-error">{todoError ?? todoLabels.loadError}</p>
+        <Banner variant="error">{todoError ?? todoLabels.loadError}</Banner>
         <button type="button" className="btn secondary" onClick={onBack}>
           {todoWorklistLabels.backToList}
         </button>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="page todo-detail-page">
+    <PageShell className="todo-detail-page">
       <PageHeader
         title={todo.title}
         subtitle={todo.description || undefined}
@@ -315,13 +316,13 @@ export function TodoDetailPage({
                   <strong>{progress.closed}</strong>
                 </div>
               </div>
-              {progressError && <p className="form-error">{progressError}</p>}
+              {progressError ? <Banner variant="error">{progressError}</Banner> : null}
             </Card>
           )}
 
           <section className="todo-worklist-section">
             <h3>{todoWorklistLabels.worklistTitle}</h3>
-            <div className="todo-worklist-filters">
+            <div className="todo-worklist-segments">
               {worklistFilterOptions.map((option) => (
                 <button
                   key={option.value}
@@ -338,26 +339,31 @@ export function TodoDetailPage({
               table={table}
               skeletonCols={9}
               toolbar={
-                <div className="filters">
-                  <input
+                <FilterPanel
+                  actions={
+                    <button type="button" className="btn secondary" onClick={() => void table.refresh()}>
+                      {labels.refresh}
+                    </button>
+                  }
+                >
+                  <TextInput
+                    id="todo-worklist-search"
                     type="search"
                     className="search-input"
                     placeholder={todoLabels.searchPlaceholder}
                     value={table.search}
                     onChange={(e) => table.setSearch(e.target.value)}
+                    aria-label={todoLabels.searchPlaceholder}
                   />
-                  <button type="button" className="btn secondary" onClick={() => void table.refresh()}>
-                    {labels.refresh}
-                  </button>
-                </div>
+                </FilterPanel>
               }
               columns={columns}
               rowKey={(row) => row.customer_id}
-              emptyState={<EmptyState message={todoWorklistLabels.emptyWorklist} />}
+              emptyState={<EmptyState title={todoWorklistLabels.emptyWorklist} />}
             />
           </section>
 
-          {saveSuccess && <div className="banner success">{saveSuccess}</div>}
+          {saveSuccess && <Banner variant="success">{saveSuccess}</Banner>}
 
           <TodoWorklistActivityModal
             open={activityModalOpen}
@@ -375,6 +381,6 @@ export function TodoDetailPage({
           <p className="muted">{todoWorklistLabels.missingSourceFairAction}</p>
         </Card>
       )}
-    </div>
+    </PageShell>
   );
 }

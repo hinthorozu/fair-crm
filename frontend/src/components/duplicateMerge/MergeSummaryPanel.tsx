@@ -4,6 +4,8 @@ import { adminLabels } from "../../labels/adminLabels";
 import { Badge } from "../ui/Badge";
 import { CopyableCustomerId } from "./CopyableCustomerId";
 import { MergePreviewSummaryContent } from "./MergePreviewSummaryContent";
+import { Banner } from "../ui/Banner";
+import { Card } from "../ui/Card";
 
 interface MergeSummaryPanelProps {
   suggestedWinnerId: string | null;
@@ -43,7 +45,7 @@ export function MergeSummaryPanel({
     Boolean(preview?.is_valid) && !previewRefreshing && previewMatchesSelection && !mergeExecuting;
 
   return (
-    <aside className="duplicate-group-merge-summary card" aria-label={adminLabels.dataOpMergeSummaryTitle}>
+    <Card as="aside" className="duplicate-group-merge-summary" aria-label={adminLabels.dataOpMergeSummaryTitle}>
       <div className="duplicate-group-merge-summary-header">
         <h3 className="duplicate-group-merge-summary-title">{adminLabels.dataOpMergeSummaryTitle}</h3>
         <span className="duplicate-group-merge-summary-live">
@@ -77,9 +79,9 @@ export function MergeSummaryPanel({
       )}
 
       {mergeSuccessMessage && (
-        <div className="banner success duplicate-group-summary-banner" role="status">
+        <Banner variant="success" className="duplicate-group-summary-banner" role="status">
           {mergeSuccessMessage}
-        </div>
+        </Banner>
       )}
 
       <section className="duplicate-group-summary-section">
@@ -111,9 +113,9 @@ export function MergeSummaryPanel({
       )}
 
       {preview?.is_valid && !previewRefreshing && (
-        <div className="banner success duplicate-group-summary-banner" role="status">
+        <Banner variant="success" className="duplicate-group-summary-banner" role="status">
           {adminLabels.dataOpMergePreviewReady}
-        </div>
+        </Banner>
       )}
 
       <button
@@ -131,6 +133,6 @@ export function MergeSummaryPanel({
           adminLabels.dataOpMergeCustomers
         )}
       </button>
-    </aside>
+    </Card>
   );
 }

@@ -6,6 +6,7 @@ import { labels } from "../labels";
 import { Badge } from "./ui/Badge";
 import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
 import { UniversalDataTable, type UniversalDataTableColumn } from "./ui/UniversalDataTable";
+import { TableRowActions } from "./ui/TableRowActions";
 
 interface ContactTableProps {
   items: Contact[];
@@ -71,7 +72,7 @@ function buildContactColumns(props: ContactTableProps): UniversalDataTableColumn
       sortable: false,
       className: "actions",
       render: (c) => (
-        <>
+        <TableRowActions>
           <button type="button" className="btn link" onClick={() => onEdit(c)}>
             {contactLabels.edit}
           </button>
@@ -83,7 +84,7 @@ function buildContactColumns(props: ContactTableProps): UniversalDataTableColumn
           >
             {deletingId === c.id ? labels.loading : contactLabels.delete}
           </button>
-        </>
+        </TableRowActions>
       ),
     },
   ];

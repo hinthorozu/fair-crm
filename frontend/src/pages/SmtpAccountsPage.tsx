@@ -14,6 +14,7 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { FormModal } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Badge } from "../components/ui/Badge";
+import { TableRowActions } from "../components/ui/TableRowActions";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { adminLabels } from "../labels/adminLabels";
 import {
@@ -23,6 +24,8 @@ import {
 } from "../permissions/smtpPermissions";
 import type { SmtpAccount } from "../types/smtp";
 import { responseContainsPassword, smtpPasswordSet, formatSmtpTestMailError } from "../utils/smtpForm";
+import { Banner } from "../components/ui/Banner";
+import { PageShell } from "../components/ui/PageShell";
 
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return "—";
@@ -262,7 +265,7 @@ export function SmtpAccountsPage() {
         title: adminLabels.colActions,
         sortable: false,
         render: (account) => (
-          <div className="smtp-list-actions">
+          <TableRowActions className="smtp-list-actions">
             {canUpdate ? (
               <button type="button" className="btn btn-sm secondary" onClick={() => openEdit(account)}>
                 {adminLabels.smtpActionEdit}
@@ -298,7 +301,7 @@ export function SmtpAccountsPage() {
                 {adminLabels.actionDelete}
               </button>
             ) : null}
-          </div>
+          </TableRowActions>
         ),
       },
     ],
@@ -306,7 +309,7 @@ export function SmtpAccountsPage() {
   );
 
   return (
-    <div className="page smtp-accounts-page">
+    <PageShell className="smtp-accounts-page">
       <PageHeader
         title={adminLabels.smtpTitle}
         subtitle={adminLabels.smtpSubtitle}
@@ -319,8 +322,8 @@ export function SmtpAccountsPage() {
         }
       />
 
-      {success ? <div className="banner success">{success}</div> : null}
-      {error ? <p className="form-error">{error}</p> : null}
+      {success ? <Banner variant="success">{success}</Banner> : null}
+      {error ? <Banner variant="error">{error}</Banner> : null}
 
       <UniversalDataTable
         items={accounts}
@@ -385,6 +388,6 @@ export function SmtpAccountsPage() {
           onConfirm={() => void handleDelete(deleteTarget)}
         />
       ) : null}
-    </div>
+    </PageShell>
   );
 }

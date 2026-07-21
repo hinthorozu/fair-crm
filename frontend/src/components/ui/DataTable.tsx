@@ -168,7 +168,11 @@ export function DataTable<T>({
   );
 }
 
-/** Legacy shell for static table markup during migration. */
+/**
+ * Shell for specialty non-list tables (Import Wizard mapping / sample grids).
+ * Pass `table-wrap--scroll-only` when horizontal scroll is an intentional ADR-032 exception.
+ * Children must include their own `<table>` element.
+ */
 export function DataTableShell({
   children,
   className = "",
@@ -176,9 +180,5 @@ export function DataTableShell({
   children: React.ReactNode;
   className?: string;
 }) {
-  return (
-    <div className={`table-wrap ${className}`.trim()}>
-      <table className="data-table">{children}</table>
-    </div>
-  );
+  return <div className={`table-wrap ${className}`.trim()}>{children}</div>;
 }

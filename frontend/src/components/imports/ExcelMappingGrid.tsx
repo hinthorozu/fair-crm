@@ -39,8 +39,8 @@ export function ExcelMappingGrid({
           {totalDataRows != null && `Toplam ${totalDataRows} veri satırı`}
         </p>
       )}
-      <div className="excel-mapping-grid-scroll">
-        <table className="excel-mapping-grid">
+      <div className="table-wrap table-wrap--scroll-only excel-mapping-grid-scroll">
+        <table className="data-table excel-mapping-grid">
           <thead>
             <tr>
               <th className="excel-mapping-row-num">#</th>

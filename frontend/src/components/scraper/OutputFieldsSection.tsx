@@ -1,4 +1,5 @@
 import { scraperLabels } from "../../labels/scraperLabels";
+import { CheckboxField } from "../ui/form";
 import type { RequestedOutputField, ScraperSupports } from "../../types/scraper";
 import {
   OUTPUT_FIELD_KEYS,
@@ -50,15 +51,14 @@ export function OutputFieldsSection({
 
           return (
             <li key={key} className="output-field-row">
-              <label className="output-field-label">
-                <input
-                  type="checkbox"
-                  checked={supported && selected.has(key)}
-                  disabled={disabled}
-                  onChange={(event) => onChange?.(key, event.target.checked)}
-                />{" "}
-                {getOutputFieldLabel(key)}
-              </label>
+              <CheckboxField
+                id={`output-field-${key}`}
+                label={getOutputFieldLabel(key)}
+                checked={supported && selected.has(key)}
+                disabled={disabled}
+                onChange={(checked) => onChange?.(key, checked)}
+                className="output-field-label"
+              />
               {showSupport ? (
                 <span
                   className={

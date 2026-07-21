@@ -2,6 +2,7 @@ import React from "react";
 import { adminLabels } from "../../labels/adminLabels";
 import { FormField, FormSection, TextareaInput } from "../ui/form";
 import type { RenderMailTemplateResponse } from "../../types/mailTemplates";
+import { Banner } from "../ui/Banner";
 import {
   DEFAULT_RENDER_VARIABLES_JSON,
   parseRenderVariablesJson,
@@ -52,7 +53,7 @@ export function MailTemplatePreviewPanel({
         </FormField>
 
         {localError || error ? (
-          <div className="banner error">{localError ?? error}</div>
+          <Banner variant="error">{localError ?? error}</Banner>
         ) : null}
 
         {canRender ? (

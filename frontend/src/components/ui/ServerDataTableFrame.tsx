@@ -2,6 +2,7 @@ import React from "react";
 import { PaginationBar } from "../Pagination";
 import { TableSkeleton } from "./LoadingState";
 import type { ServerDataTableController } from "../../hooks/useServerDataTable";
+import { Banner } from "./Banner";
 
 interface ServerDataTableFrameProps<T> {
   table: ServerDataTableController<T>;
@@ -56,7 +57,7 @@ export function ServerDataTableFrame<T>({
     <div className="server-data-table-frame">
       {showToolbarPanel ? (
         <div className="server-data-table-toolbar-panel">
-          {toolbar ? <div className="server-data-table-toolbar-filters">{toolbar}</div> : null}
+          {toolbar ? <div className="server-data-table-toolbar-slot">{toolbar}</div> : null}
           {showPagination ? (
             <div className="server-data-table-toolbar-pagination">
               <ServerDataTablePagination table={table} />
@@ -65,12 +66,12 @@ export function ServerDataTableFrame<T>({
         </div>
       ) : null}
       {table.error && (
-        <div className="banner error">
+        <Banner variant="error">
           {table.error}
           <button type="button" className="btn link" onClick={() => void table.refresh()}>
             Tekrar Dene
           </button>
-        </div>
+        </Banner>
       )}
       <div className="server-data-table-body">
         {table.loading ? (

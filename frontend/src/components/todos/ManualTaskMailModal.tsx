@@ -29,8 +29,11 @@ import {
 } from "../../utils/manualTaskMailPreview";
 import { FormField, FormGrid, FormSection, SelectInput, TextareaInput, TextInput } from "../ui/form";
 import { FormModal } from "../ui/form/FormModal";
+import { IconButton } from "../ui/IconButton";
 import { LoadingState } from "../ui/LoadingState";
 import { useModalFormCancel, useReportFormDirty } from "../../hooks/useModalForm";
+import { Banner } from "../ui/Banner";
+import { NavIconClose } from "../layout/NavIcons";
 
 export interface ManualTaskMailModalProps {
   open: boolean;
@@ -414,17 +417,17 @@ export function ManualTaskMailModal({
         </div>
       ) : step === "preview" && previewPayload ? (
         <div className="manual-task-mail-preview">
-          {error ? <div className="banner error form-form-alert">{error}</div> : null}
-          {success ? <div className="banner success form-form-alert">{success}</div> : null}
+          {error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}
+          {success ? <Banner variant="success" className="form-form-alert">{success}</Banner> : null}
           {previewPayload.unresolvedVariables ? (
-            <div className="banner warning form-form-alert">
+            <Banner variant="warning" className="form-form-alert">
               {todoWorklistLabels.manualMailUnresolvedVariables}
-            </div>
+            </Banner>
           ) : null}
           {previewStale ? (
-            <div className="banner warning form-form-alert">
+            <Banner variant="warning" className="form-form-alert">
               {todoWorklistLabels.manualMailPreviewStale}
-            </div>
+            </Banner>
           ) : null}
 
           <FormSection title={todoWorklistLabels.manualMailPreviewSection}>
@@ -487,14 +490,14 @@ export function ManualTaskMailModal({
             event.preventDefault();
           }}
         >
-          {error ? <div className="banner error form-form-alert">{error}</div> : null}
-          {success ? <div className="banner success form-form-alert">{success}</div> : null}
+          {error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}
+          {success ? <Banner variant="success" className="form-form-alert">{success}</Banner> : null}
           {!previewSnapshot || previewStale ? (
-            <div className="banner info form-form-alert">
+            <Banner variant="info" className="form-form-alert">
               {previewStale && previewSnapshot
                 ? todoWorklistLabels.manualMailPreviewStale
                 : todoWorklistLabels.manualMailPreviewRequired}
-            </div>
+            </Banner>
           ) : null}
 
           <FormSection title={todoWorklistLabels.manualMailRecipientsSection}>
@@ -562,18 +565,15 @@ export function ManualTaskMailModal({
                     {recipients.map((email) => (
                       <li key={email} className="manual-task-mail-recipient-item">
                         <span>{email}</span>
-                        <button
-                          type="button"
-                          className="btn icon"
-                          aria-label={todoWorklistLabels.manualMailRemoveRecipient}
+                        <IconButton
+                          label={todoWorklistLabels.manualMailRemoveRecipient}
+                          icon={<NavIconClose />}
                           disabled={sending || previewing}
                           onClick={() => {
                             setRecipients((current) => current.filter((item) => item !== email));
                             invalidatePreview();
                           }}
-                        >
-                          ×
-                        </button>
+                        />
                       </li>
                     ))}
                   </ul>

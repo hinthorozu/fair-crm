@@ -18,6 +18,7 @@ import {
   participationStatusOptions,
 } from "../labels/participationLabels";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
+import { Banner } from "./ui/Banner";
 import {
   FormActions,
   FormField,
@@ -165,7 +166,7 @@ export function ParticipationForm({
 
   return (
     <form className="participation-form" onSubmit={(event) => void handleSubmit(event)}>
-      {error ? <div className="banner error form-form-alert">{error}</div> : null}
+      {error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}
 
       <FormSection title={participationLabels.participationSectionInfo}>
         <FormGrid>

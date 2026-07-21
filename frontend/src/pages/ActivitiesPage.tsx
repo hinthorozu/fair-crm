@@ -11,7 +11,10 @@ import { Badge } from "../components/ui/Badge";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
 import { FilterPanel } from "../components/ui/FilterPanel";
+import { SelectInput, TextInput } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
+import { TableEntityLink } from "../components/ui/TableEntityLink";
+import { TableRowActions } from "../components/ui/TableRowActions";
 import { TruncatedText } from "../components/ui/TruncatedText";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { useServerDataTable } from "../hooks/useServerDataTable";
@@ -28,6 +31,8 @@ import { labels } from "../labels";
 import { uiLabels } from "../labels/uiLabels";
 import type { Activity, ActivityStatus, ActivityType } from "../types/activity";
 import type { Customer } from "../types/customer";
+import { Banner } from "../components/ui/Banner";
+import { PageShell } from "../components/ui/PageShell";
 import {
   activityStatusBadgeVariant,
   activityTypeBadgeVariant,
@@ -137,14 +142,12 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
         allowWrap: true,
         render: (activity) =>
           onOpenCustomer ? (
-            <button
-              type="button"
-              className="link-button"
+            <TableEntityLink
               onClick={() => onOpenCustomer(activity.customer_id)}
               aria-label={activityLabels.openCustomer}
             >
               {activity.customer_name ?? "—"}
-            </button>
+            </TableEntityLink>
           ) : (
             <span>{activity.customer_name ?? "—"}</span>
           ),
@@ -155,13 +158,9 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
         sortField: "subject",
         allowWrap: true,
         render: (activity) => (
-          <button
-            type="button"
-            className="link-button"
-            onClick={() => setDetail(activity)}
-          >
+          <TableEntityLink onClick={() => setDetail(activity)}>
             <TruncatedText value={activity.subject} maxLength={80} />
-          </button>
+          </TableEntityLink>
         ),
       },
       {
@@ -170,7 +169,7 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
         sortable: false,
         className: "actions",
         render: (activity) => (
-          <div className="table-actions">
+          <TableRowActions>
             <button type="button" className="btn link" onClick={() => setDetail(activity)}>
               {activityLabels.view}
             </button>
@@ -182,7 +181,7 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
             >
               {deletingId === activity.id ? labels.loading : activityLabels.delete}
             </button>
-          </div>
+          </TableRowActions>
         ),
       },
       {
@@ -235,7 +234,7 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
   );
 
   return (
-    <div className="page activities-page">
+    <PageShell className="activities-page">
       <PageHeader
         title={activityLabels.pageTitle}
         subtitle={`${table.pagination.totalItems} kayıt`}
@@ -252,9 +251,9 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
         }
       />
 
-      {success ? <div className="banner success">{success}</div> : null}
-      {actionError ? <div className="banner error">{actionError}</div> : null}
-      {table.error ? <div className="banner error">{table.error}</div> : null}
+      {success ? <Banner variant="success">{success}</Banner> : null}
+      {actionError ? <Banner variant="error">{actionError}</Banner> : null}
+      {table.error ? <Banner variant="error">{table.error}</Banner> : null}
 
       <UniversalDataTable
         table={table}
@@ -275,7 +274,8 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
               </button>
             }
           >
-            <input
+            <TextInput
+              id="activity-search"
               type="search"
               className="search-input"
               placeholder={activityLabels.searchPlaceholder}
@@ -283,7 +283,8 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
               onChange={(event) => table.setSearch(event.target.value)}
               aria-label={activityLabels.searchPlaceholder}
             />
-            <select
+            <SelectInput
+              id="activity-filter-customer"
               value={table.filters.customerId ?? ""}
               onChange={(event) => table.setFilter("customerId", event.target.value)}
               aria-label={activityLabels.filterCustomer}
@@ -294,8 +295,9 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
                   {customer.display_name}
                 </option>
               ))}
-            </select>
-            <select
+            </SelectInput>
+            <SelectInput
+              id="activity-filter-type"
               value={table.filters.activityType ?? ""}
               onChange={(event) => table.setFilter("activityType", event.target.value)}
               aria-label={activityLabels.filterType}
@@ -306,8 +308,9 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
                   {activityTypeLabels[type]}
                 </option>
               ))}
-            </select>
-            <select
+            </SelectInput>
+            <SelectInput
+              id="activity-filter-status"
               value={table.filters.status ?? ""}
               onChange={(event) => table.setFilter("status", event.target.value)}
               aria-label={activityLabels.filterStatus}
@@ -318,17 +321,17 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
                   {activityStatusLabels[status]}
                 </option>
               ))}
-            </select>
-            <input
+            </SelectInput>
+            <TextInput
+              id="activity-filter-date-from"
               type="date"
-              className="input"
               value={table.filters.dateFrom ?? ""}
               onChange={(event) => table.setFilter("dateFrom", event.target.value)}
               aria-label={activityLabels.filterDateFrom}
             />
-            <input
+            <TextInput
+              id="activity-filter-date-to"
               type="date"
-              className="input"
               value={table.filters.dateTo ?? ""}
               onChange={(event) => table.setFilter("dateTo", event.target.value)}
               aria-label={activityLabels.filterDateTo}
@@ -380,6 +383,6 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
           onConfirm={() => void handleBulkDelete()}
         />
       ) : null}
-    </div>
+    </PageShell>
   );
 }

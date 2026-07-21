@@ -15,13 +15,17 @@ import {
 import { getFair } from "../api/fairs";
 import { FairEntitySelect } from "../components/FairEntitySelect";
 import { listParticipantsByFair } from "../api/participations";
+import { Banner } from "../components/ui/Banner";
 import { Card } from "../components/ui/Card";
+import { CheckboxField, FieldError, RadioField, SelectInput, TextInput, FormField } from "../components/ui/form";
 import { DataTableShell } from "../components/ui/DataTable";
 import { EmptyState } from "../components/ui/EmptyState";
+import { FilterPanel } from "../components/ui/FilterPanel";
 import { LoadingState } from "../components/ui/LoadingState";
 import { PageHeader } from "../components/ui/PageHeader";
 import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { Badge } from "../components/ui/Badge";
+import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { useServerDataTable, type ServerTableFetchParams } from "../hooks/useServerDataTable";
 import { DEFAULT_PAGE } from "../types/listTable";
 import {
@@ -68,6 +72,7 @@ import {
   mappingsToColumnFieldMap,
 } from "../components/imports/ExcelMappingGrid";
 import { MergeDiffViewer } from "../components/imports/MergeDiffViewer";
+import { PageShell } from "../components/ui/PageShell";
 
 interface ImportWizardPageProps {
   preselectedFairId?: string;
@@ -540,7 +545,7 @@ export function ImportWizardPage({
 
   const renderPreviewControls = () => (
     <div className="preview-controls">
-      <div className="preview-filters">
+      <FilterPanel className="preview-filters">
         {(
           [
             ["pending", importLabels.previewFilterPending],
@@ -562,27 +567,32 @@ export function ImportWizardPage({
             {importLabels.previewFilterWithCount(label, previewTable.filterCounts?.[key] ?? 0)}
           </button>
         ))}
-      </div>
+      </FilterPanel>
       <div className="preview-search-sort">
-        <input
+        <TextInput
+          id="import-preview-search"
           type="search"
           className="form-input"
           placeholder={importLabels.previewSearch}
           value={previewTable.search}
           onChange={(e) => previewTable.setSearch(e.target.value)}
+          aria-label={importLabels.previewSearch}
         />
-        <select
+        <SelectInput
+          id="import-preview-sort-field"
           className="form-select"
           value={previewTable.sorting.field || "company_name"}
           onChange={(e) =>
             previewTable.setSorting(e.target.value as PreviewSortBy, previewTable.sorting.direction)
           }
+          aria-label={importLabels.previewSortCompany}
         >
           <option value="confidence">{importLabels.previewSortConfidence}</option>
           <option value="company_name">{importLabels.previewSortCompany}</option>
           <option value="status">{importLabels.previewSortStatus}</option>
-        </select>
-        <select
+        </SelectInput>
+        <SelectInput
+          id="import-preview-sort-direction"
           className="form-select"
           value={previewTable.sorting.direction}
           onChange={(e) =>
@@ -591,10 +601,11 @@ export function ImportWizardPage({
               e.target.value as "asc" | "desc",
             )
           }
+          aria-label="Sıralama yönü"
         >
           <option value="asc">Artan</option>
           <option value="desc">Azalan</option>
-        </select>
+        </SelectInput>
       </div>
       {isPreviewStep && (
         <div className="preview-expand-actions">
@@ -619,6 +630,56 @@ export function ImportWizardPage({
     </div>
   );
 
+  const analyzeResultColumns = React.useMemo<UniversalDataTableColumn<ImportRow>[]>(
+    () => [
+      {
+        key: "row_number",
+        title: importLabels.colRow,
+        sortable: false,
+        render: (row) => row.row_number,
+      },
+      {
+        key: "company_name",
+        title: importLabels.colCompany,
+        sortable: false,
+        allowWrap: true,
+        render: (row) => str(row.normalized_data_json?.company_name),
+      },
+      {
+        key: "match_status",
+        title: importLabels.colStatus,
+        sortable: false,
+        render: (row) => {
+          const matchStatus = getImportMatchStatus(row);
+          return importMatchStatusLabels[matchStatus] ?? matchStatus;
+        },
+      },
+      {
+        key: "match_customer_name",
+        title: importLabels.colMatch,
+        sortable: false,
+        allowWrap: true,
+        render: (row) => row.match_customer_name ?? "—",
+      },
+      {
+        key: "match_reason",
+        title: importLabels.colMatchType,
+        sortable: false,
+        render: (row) =>
+          row.match_reason
+            ? importMatchTypeLabels[row.match_reason] ?? row.match_reason
+            : "—",
+      },
+      {
+        key: "match_confidence",
+        title: importLabels.colConfidence,
+        sortable: false,
+        render: (row) => formatMatchConfidence(row.match_confidence),
+      },
+    ],
+    [],
+  );
+
   const renderAnalyzeResultTable = () => {
     if (previewTable.loading) {
       return <LoadingState message="Satırlar yükleniyor…" />;
@@ -632,39 +693,12 @@ export function ImportWizardPage({
       );
     }
     return (
-      <DataTableShell>
-        <table className="data-table import-analyze-table">
-          <thead>
-            <tr>
-              <th>{importLabels.colRow}</th>
-              <th>{importLabels.colCompany}</th>
-              <th>{importLabels.colStatus}</th>
-              <th>{importLabels.colMatch}</th>
-              <th>{importLabels.colMatchType}</th>
-              <th>{importLabels.colConfidence}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {previewTable.items.map((row) => {
-              const matchStatus = getImportMatchStatus(row);
-              return (
-                <tr key={row.id}>
-                  <td>{row.row_number}</td>
-                  <td>{str(row.normalized_data_json?.company_name)}</td>
-                  <td>{importMatchStatusLabels[matchStatus] ?? matchStatus}</td>
-                  <td>{row.match_customer_name ?? "—"}</td>
-                  <td>
-                    {row.match_reason
-                      ? importMatchTypeLabels[row.match_reason] ?? row.match_reason
-                      : "—"}
-                  </td>
-                  <td>{formatMatchConfidence(row.match_confidence)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </DataTableShell>
+      <UniversalDataTable
+        items={previewTable.items}
+        columns={analyzeResultColumns}
+        rowKey={(row) => row.id}
+        className="import-analyze-table"
+      />
     );
   };
 
@@ -672,9 +706,10 @@ export function ImportWizardPage({
     <div className="bulk-decision-panel">
       <h4>{importLabels.bulkDecisionPanelTitle}</h4>
       <div className="bulk-decision-panel-controls">
-        <label className="bulk-decision-field">
+        <label className="bulk-decision-field" htmlFor="import-bulk-decision">
           <span>{importLabels.bulkDecisionActionLabel}</span>
-          <select
+          <SelectInput
+            id="import-bulk-decision"
             className="form-select"
             value={bulkAssignDecision}
             onChange={(e) => setBulkAssignDecision(e.target.value as ImportDecision | "")}
@@ -684,7 +719,7 @@ export function ImportWizardPage({
             {Object.entries(importDecisionLabels).map(([k, v]) => (
               <option key={k} value={k}>{v}</option>
             ))}
-          </select>
+          </SelectInput>
         </label>
         <button
           type="button"
@@ -725,18 +760,14 @@ export function ImportWizardPage({
     <div className="merge-preview-list">
       {editable && previewTable.items.length > 0 && (
         <div className="merge-preview-select-all">
-          <label className="merge-preview-checkbox-label">
-            <input
-              type="checkbox"
-              checked={allPageRowsSelected}
-              ref={(el) => {
-                if (el) el.indeterminate = !allPageRowsSelected && somePageRowsSelected;
-              }}
-              onChange={(e) => togglePageSelection(e.target.checked)}
-              aria-label={importLabels.selectAllOnPage}
-            />
-            {importLabels.selectAllOnPage}
-          </label>
+          <CheckboxField
+            id="merge-preview-select-all"
+            label={importLabels.selectAllOnPage}
+            checked={allPageRowsSelected}
+            indeterminate={!allPageRowsSelected && somePageRowsSelected}
+            onChange={togglePageSelection}
+            className="merge-preview-checkbox-label"
+          />
           {selectedRowIds.size > 0 && (
             <span className="text-muted">{importLabels.selectedCount(selectedRowIds.size)}</span>
           )}
@@ -749,12 +780,13 @@ export function ImportWizardPage({
           <div key={row.id} className="merge-preview-item">
             <div className="merge-preview-meta">
               {editable && (
-                <input
-                  type="checkbox"
-                  className="merge-preview-row-checkbox"
+                <CheckboxField
+                  id={`merge-preview-row-${row.id}`}
+                  label={`Satır ${row.row_number} seç`}
                   checked={selectedRowIds.has(row.id)}
-                  onChange={(e) => toggleRowSelection(row.id, e.target.checked)}
-                  aria-label={`Satır ${row.row_number} seç`}
+                  onChange={(checked) => toggleRowSelection(row.id, checked)}
+                  hideLabel
+                  className="merge-preview-row-checkbox"
                 />
               )}
               <span>#{row.row_number}</span>
@@ -773,16 +805,18 @@ export function ImportWizardPage({
                 </span>
               )}
               {editable && (
-                <select
+                <SelectInput
+                  id={`import-merge-decision-${row.id}`}
                   className="form-select merge-decision-select"
                   value={getEffectiveImportDecision(row)}
                   onChange={(e) => void handleDecision(row, e.target.value as ImportDecision)}
+                  aria-label={importLabels.bulkDecisionActionLabel}
                 >
                   <option value="">—</option>
                   {Object.entries(importDecisionLabels).map(([k, v]) => (
                     <option key={k} value={k}>{v}</option>
                   ))}
-                </select>
+                </SelectInput>
               )}
             </div>
             <MergeDiffViewer
@@ -791,7 +825,7 @@ export function ImportWizardPage({
               onExpandedChange={(expanded) => handleRowExpandedChange(row.id, expanded)}
             />
             {row.validation_errors_json?.length ? (
-              <p className="form-error">{row.validation_errors_json.join("; ")}</p>
+              <FieldError>{row.validation_errors_json.join("; ")}</FieldError>
             ) : null}
           </div>
         ))
@@ -814,9 +848,9 @@ export function ImportWizardPage({
       <h3>{dataIntegrationLabels.sheetTitle}</h3>
       <p className="text-muted">{dataIntegrationLabels.sheetSubtitle}</p>
       {availableSheets.length > 0 ? (
-        <div className="form-field">
-          <label>{dataIntegrationLabels.sheetTitle}</label>
-          <select
+        <FormField label={dataIntegrationLabels.sheetTitle} htmlFor="import-sheet-select">
+          <SelectInput
+            id="import-sheet-select"
             className="form-select"
             value={selectedSheet}
             onChange={(e) => setSelectedSheet(e.target.value)}
@@ -824,8 +858,8 @@ export function ImportWizardPage({
             {availableSheets.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
-          </select>
-        </div>
+          </SelectInput>
+        </FormField>
       ) : (
         <p>{selectedSheet || "—"}</p>
       )}
@@ -836,51 +870,51 @@ export function ImportWizardPage({
     <Card>
       <h3>{dataIntegrationLabels.headerModeTitle}</h3>
       <div className="header-toggle">
-        <label>
-          <input
-            type="radio"
-            checked={headerMode === "first_row_header"}
-            onChange={() => {
-              setHeaderMode("first_row_header");
-              setHasHeaderRow(true);
-            }}
-          />
-          {dataIntegrationLabels.headerFirstRow}
-        </label>
-        <label>
-          <input
-            type="radio"
-            checked={headerMode === "no_header"}
-            onChange={() => {
-              setHeaderMode("no_header");
-              setHasHeaderRow(false);
-            }}
-          />
-          {dataIntegrationLabels.headerNoHeader}
-        </label>
-        <label>
-          <input
-            type="radio"
-            checked={headerMode === "manual_header_row"}
-            onChange={() => {
-              setHeaderMode("manual_header_row");
-              setHasHeaderRow(true);
-            }}
-          />
-          {dataIntegrationLabels.headerManualRow}
-        </label>
+        <RadioField
+          id="import-header-first-row"
+          name="import_header_mode"
+          label={dataIntegrationLabels.headerFirstRow}
+          value="first_row_header"
+          checked={headerMode === "first_row_header"}
+          onChange={(value) => {
+            setHeaderMode(value as ExcelHeaderMode);
+            setHasHeaderRow(true);
+          }}
+        />
+        <RadioField
+          id="import-header-no-header"
+          name="import_header_mode"
+          label={dataIntegrationLabels.headerNoHeader}
+          value="no_header"
+          checked={headerMode === "no_header"}
+          onChange={(value) => {
+            setHeaderMode(value as ExcelHeaderMode);
+            setHasHeaderRow(false);
+          }}
+        />
+        <RadioField
+          id="import-header-manual-row"
+          name="import_header_mode"
+          label={dataIntegrationLabels.headerManualRow}
+          value="manual_header_row"
+          checked={headerMode === "manual_header_row"}
+          onChange={(value) => {
+            setHeaderMode(value as ExcelHeaderMode);
+            setHasHeaderRow(true);
+          }}
+        />
       </div>
       {headerMode === "manual_header_row" && (
-        <div className="form-field">
-          <label>{dataIntegrationLabels.manualHeaderRowLabel}</label>
-          <input
+        <FormField label={dataIntegrationLabels.manualHeaderRowLabel} htmlFor="import-manual-header-row">
+          <TextInput
+            id="import-manual-header-row"
             type="number"
             min={1}
             className="form-input"
             value={manualHeaderRow}
             onChange={(e) => setManualHeaderRow(Number(e.target.value) || 1)}
           />
-        </div>
+        </FormField>
       )}
     </Card>
   );
@@ -900,9 +934,9 @@ export function ImportWizardPage({
         previewRowCount={gridMeta.previewRowCount}
       />
       {!isMappingGridValid(columnFieldMap) && (
-        <p className="form-error" role="status">
+        <Banner variant="error" role="status">
           Firma Adı eşleştirmesi zorunludur ve aynı alan iki kolona atanamaz.
-        </p>
+        </Banner>
       )}
     </Card>
   );
@@ -920,8 +954,9 @@ export function ImportWizardPage({
       ) : (
         <>
           <p className="text-muted">{importLabels.uploadHint}</p>
-          <input
+          <TextInput
             ref={fileRef}
+            id="import-upload-file"
             type="file"
             accept=".xlsx"
             hidden
@@ -934,9 +969,9 @@ export function ImportWizardPage({
         </>
       )}
       {uploadPreview && availableSheets.length > 1 && (
-        <div className="form-field">
-          <label>{dataIntegrationLabels.sheetTitle}</label>
-          <select
+        <FormField label={dataIntegrationLabels.sheetTitle} htmlFor="import-upload-sheet">
+          <SelectInput
+            id="import-upload-sheet"
             className="form-select"
             value={selectedSheet}
             onChange={async (e) => {
@@ -965,12 +1000,12 @@ export function ImportWizardPage({
             {availableSheets.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
-          </select>
-        </div>
+          </SelectInput>
+        </FormField>
       )}
       {uploadPreview && (
-        <DataTableShell>
-          <table>
+        <DataTableShell className="table-wrap--scroll-only">
+          <table className="data-table">
             <tbody>
               {uploadPreview.sample_rows.slice(0, 5).map((row, ri) => (
                 <tr key={ri}>
@@ -1019,54 +1054,54 @@ export function ImportWizardPage({
       <h3>{importLabels.mappingTitle}</h3>
       <p className="text-muted">{importLabels.mappingSubtitle}</p>
       <div className="header-toggle">
-        <label>
-          <input
-            type="radio"
-            checked={headerMode === "first_row_header"}
-            onChange={() => {
-              setHeaderMode("first_row_header");
-              setHasHeaderRow(true);
-            }}
-          />
-          {dataIntegrationLabels.headerFirstRow}
-        </label>
-        <label>
-          <input
-            type="radio"
-            checked={headerMode === "no_header"}
-            onChange={() => {
-              setHeaderMode("no_header");
-              setHasHeaderRow(false);
-            }}
-          />
-          {dataIntegrationLabels.headerNoHeader}
-        </label>
-        <label>
-          <input
-            type="radio"
-            checked={headerMode === "manual_header_row"}
-            onChange={() => {
-              setHeaderMode("manual_header_row");
-              setHasHeaderRow(true);
-            }}
-          />
-          {dataIntegrationLabels.headerManualRow}
-        </label>
+        <RadioField
+          id="import-mapping-header-first-row"
+          name="import_mapping_header_mode"
+          label={dataIntegrationLabels.headerFirstRow}
+          value="first_row_header"
+          checked={headerMode === "first_row_header"}
+          onChange={(value) => {
+            setHeaderMode(value as ExcelHeaderMode);
+            setHasHeaderRow(true);
+          }}
+        />
+        <RadioField
+          id="import-mapping-header-no-header"
+          name="import_mapping_header_mode"
+          label={dataIntegrationLabels.headerNoHeader}
+          value="no_header"
+          checked={headerMode === "no_header"}
+          onChange={(value) => {
+            setHeaderMode(value as ExcelHeaderMode);
+            setHasHeaderRow(false);
+          }}
+        />
+        <RadioField
+          id="import-mapping-header-manual-row"
+          name="import_mapping_header_mode"
+          label={dataIntegrationLabels.headerManualRow}
+          value="manual_header_row"
+          checked={headerMode === "manual_header_row"}
+          onChange={(value) => {
+            setHeaderMode(value as ExcelHeaderMode);
+            setHasHeaderRow(true);
+          }}
+        />
       </div>
       {headerMode === "manual_header_row" && (
-        <div className="form-field">
-          <label>{dataIntegrationLabels.manualHeaderRowLabel}</label>
-          <input
+        <FormField label={dataIntegrationLabels.manualHeaderRowLabel} htmlFor="import-mapping-manual-header-row">
+          <TextInput
+            id="import-mapping-manual-header-row"
             type="number"
             min={1}
             className="form-input"
             value={manualHeaderRow}
             onChange={(e) => setManualHeaderRow(Number(e.target.value) || 1)}
           />
-        </div>
+        </FormField>
       )}
-      <DataTableShell>
-        <table className="mapping-table">
+      <DataTableShell className="table-wrap--scroll-only">
+        <table className="data-table mapping-table">
           <thead>
             <tr>
               <th>{importLabels.mappingCrmField}</th>
@@ -1305,10 +1340,10 @@ export function ImportWizardPage({
     currentStep === "mapping" ? "Kaydet ve Listeye Dön" : importLabels.next;
 
   return (
-    <div className="import-wizard">
+    <PageShell className="import-wizard" fullWidth>
       <PageHeader title={importLabels.wizardTitle} subtitle={importLabels.wizardSubtitle} />
       {renderStepper()}
-      {error && <p className="form-error">{error}</p>}
+      {error ? <Banner variant="error">{error}</Banner> : null}
       {loading ? <LoadingState message="Yükleniyor…" /> : stepContent[currentStep]}
       <div className="wizard-nav">
         <button
@@ -1330,6 +1365,6 @@ export function ImportWizardPage({
           </button>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }

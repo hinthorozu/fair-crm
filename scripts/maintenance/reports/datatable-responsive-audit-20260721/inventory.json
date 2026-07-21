@@ -1,0 +1,260 @@
+[
+  {
+    "file": "frontend/src/components/ActivityList.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/components/ContactList.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/components/CustomerList.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/components/FairList.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/components/ParticipationList.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/components/ParticipationList.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/dev/TableStandardSmokePage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/dev/TableStandardSmokePage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/dev/TableStandardSmokePage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/ActivitiesPage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/AdapterManagementPage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": "adapter-table",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/DashboardPage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/DashboardPage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/DatabaseBackupsPage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": "backups-table",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/DatabaseBackupsPage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": "restore-jobs-table",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/DataIntegrationImportsPage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": "form-error",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/DataOperationAnalyzeResultPage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": "duplicate-groups-table",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/FollowUpsPage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": "btn secondary",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/ImportWizardPage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": "import-analyze-table",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/ImportWizardPage.tsx",
+    "kind": "DataTableShell",
+    "class_name": "table-wrap--scroll-only",
+    "notes": "specialty shell (scroll-only allowed for Import Wizard)"
+  },
+  {
+    "file": "frontend/src/pages/ImportWizardPage.tsx",
+    "kind": "DataTableShell",
+    "class_name": "table-wrap--scroll-only",
+    "notes": "specialty shell (scroll-only allowed for Import Wizard)"
+  },
+  {
+    "file": "frontend/src/pages/ImportWizardPage.tsx",
+    "kind": "raw-html-table",
+    "class_name": "data-table",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/ImportWizardPage.tsx",
+    "kind": "raw-html-table",
+    "class_name": "data-table mapping-table",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/MailOperationsPage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/MailTemplatesPage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/ScraperRunHistoryPage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": "scraper-run-history-table",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/SmtpAccountsPage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/TodoDetailPage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": "filters",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/pages/TodosPage.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": "todo-filters",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/components/fairs/FairBulkEmailBatchDetailModal.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": "fair-bulk-email-outbox-table",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/components/fairs/FairBulkEmailBatchLogs.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": "fair-bulk-email-logs-table",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": "fair-bulk-email-recipients-table",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/components/imports/ExcelMappingGrid.tsx",
+    "kind": "raw-html-table",
+    "class_name": "data-table excel-mapping-grid",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/components/imports/MergeDiffViewer.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": "merge-diff-table",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/components/scraper/AdapterDetailContent.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": "text-muted",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/components/scraper/AdapterLinkedFairsTab.tsx",
+    "kind": "UniversalDataTable",
+    "class_name": "adapter-linked-fairs-table",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/components/ui/DataTable.tsx",
+    "kind": "raw-html-table",
+    "class_name": "data-table",
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/components/ui/ResponsiveDataTable.tsx",
+    "kind": "WidthResponsiveDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/components/ui/UniversalDataTable.tsx",
+    "kind": "WidthResponsiveDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/components/ui/UniversalDataTable.tsx",
+    "kind": "WidthResponsiveDataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/components/ui/WidthResponsiveDataTable.tsx",
+    "kind": "DataTable",
+    "class_name": null,
+    "notes": ""
+  },
+  {
+    "file": "frontend/src/components/ui/WidthResponsiveDataTable.tsx",
+    "kind": "raw-html-table",
+    "class_name": "data-table",
+    "notes": ""
+  }
+]

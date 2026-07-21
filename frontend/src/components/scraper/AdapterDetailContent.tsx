@@ -2,6 +2,8 @@ import React from "react";
 import { Tabs, TabPanel } from "../ui/Tabs";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
+import { EmptyState } from "../ui/EmptyState";
+import { LoadingState } from "../ui/LoadingState";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../ui/UniversalDataTable";
 import { AdapterLinkedFairsTab } from "./AdapterLinkedFairsTab";
 import { AdapterForm } from "./AdapterForm";
@@ -184,7 +186,7 @@ export function AdapterDetailContent({
 
       <TabPanel id="panel-manifest" labelledBy="tab-manifest" active={activeTab === "manifest"}>
         <Card>
-          {manifestLoading ? <p className="text-muted">Yükleniyor…</p> : null}
+          {manifestLoading ? <LoadingState variant="inline" /> : null}
           {manifestError ? <p className="text-danger">{manifestError}</p> : null}
           {manifest ? (
             <ManifestTabPanel
@@ -208,7 +210,7 @@ export function AdapterDetailContent({
                 onOpenRunDetail={onOpenRunDetail}
               />
             ) : (
-              <p className="text-muted">Yükleniyor…</p>
+              <LoadingState variant="inline" />
             )}
           </Card>
         </TabPanel>
@@ -235,7 +237,7 @@ export function AdapterDetailContent({
             items={adapterRuns}
             columns={runColumns}
             rowKey={(run) => run.id}
-            emptyState={<p className="text-muted">{scraperLabels.runsEmpty}</p>}
+            emptyState={<EmptyState title={scraperLabels.runsEmpty} />}
             className="adapter-runs-table"
           />
         </Card>

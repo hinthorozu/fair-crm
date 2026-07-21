@@ -15,6 +15,10 @@ interface ConfirmDialogProps {
   className?: string;
 }
 
+/**
+ * Lightweight confirm chrome (not Modal) to avoid Modal↔ConfirmDialog cycles
+ * used by Modal dirty-guard. Sticky `.modal-footer` matches ADR-032 action placement.
+ */
 export function ConfirmDialog({
   title,
   message,
@@ -48,20 +52,20 @@ export function ConfirmDialog({
           <p id="confirm-message" className="confirm-message">
             {message}
           </p>
-          <div className="form-actions">
-            <button type="button" className="btn secondary" onClick={onCancel} disabled={loading}>
-              {cancelLabel}
-            </button>
-            <button
-              ref={confirmRef}
-              type="button"
-              className={variant === "danger" ? "btn danger" : "btn primary"}
-              onClick={onConfirm}
-              disabled={loading}
-            >
-              {loading ? labels.loading : confirmLabel}
-            </button>
-          </div>
+        </div>
+        <div className="modal-footer">
+          <button type="button" className="btn secondary" onClick={onCancel} disabled={loading}>
+            {cancelLabel}
+          </button>
+          <button
+            ref={confirmRef}
+            type="button"
+            className={variant === "danger" ? "btn danger" : "btn primary"}
+            onClick={onConfirm}
+            disabled={loading}
+          >
+            {loading ? labels.loading : confirmLabel}
+          </button>
         </div>
       </div>
     </div>

@@ -14,6 +14,9 @@ import {
 import { Badge } from "../ui/Badge";
 import { LoadingState } from "../ui/LoadingState";
 import { Modal } from "../ui/Modal";
+import { UniversalDataTable, type UniversalDataTableColumn } from "../ui/UniversalDataTable";
+import type { FairEmailOutboxItem } from "../../types/fairBulkEmail";
+import { Banner } from "../ui/Banner";
 
 interface FairBulkEmailBatchDetailModalProps {
   fairId: string;
@@ -51,10 +54,86 @@ export function FairBulkEmailBatchDetailModal({
     };
   }, [fairId, batchId]);
 
+  const outboxColumns = React.useMemo<UniversalDataTableColumn<FairEmailOutboxItem>[]>(
+    () => [
+      {
+        key: "recipient_name",
+        title: fairLabels.bulkEmailLogsColRecipient,
+        sortable: false,
+        allowWrap: true,
+        render: (item) => item.recipient_name ?? "—",
+      },
+      {
+        key: "company_name",
+        title: fairLabels.bulkEmailLogsColCompany,
+        sortable: false,
+        allowWrap: true,
+        render: (item) => item.company_name,
+      },
+      {
+        key: "recipient_source",
+        title: fairLabels.bulkEmailLogsColSource,
+        sortable: false,
+        render: (item) =>
+          item.recipient_source === "contact"
+            ? fairLabels.bulkEmailSourceContact
+            : fairLabels.bulkEmailSourceCustomer,
+      },
+      {
+        key: "recipient_email",
+        title: fairLabels.bulkEmailLogsColEmail,
+        sortable: false,
+        allowWrap: true,
+        render: (item) => item.recipient_email,
+      },
+      {
+        key: "status",
+        title: fairLabels.bulkEmailLogsColStatus,
+        sortable: false,
+        render: (item) => (
+          <Badge variant={fairEmailOutboxStatusVariant(item.status)}>
+            {fairEmailOutboxStatusLabel(item.status)}
+          </Badge>
+        ),
+      },
+      {
+        key: "error_message",
+        title: fairLabels.bulkEmailLogsColError,
+        sortable: false,
+        allowWrap: true,
+        render: (item) => (
+          <span className="error-cell">{item.error_message ?? "—"}</span>
+        ),
+      },
+      {
+        key: "attempts",
+        title: fairLabels.bulkEmailLogsColAttempts,
+        sortable: false,
+        render: (item) => item.attempts,
+      },
+      {
+        key: "sent_at",
+        title: fairLabels.bulkEmailLogsColSentAt,
+        sortable: false,
+        render: (item) => formatFairEmailDateTime(item.sent_at),
+      },
+    ],
+    [],
+  );
+
   return (
-    <Modal title={fairLabels.bulkEmailLogsDetailTitle} onClose={onClose} size="lg">
+    <Modal
+      title={fairLabels.bulkEmailLogsDetailTitle}
+      onClose={onClose}
+      size="lg"
+      footer={
+        <button type="button" className="btn secondary" onClick={onClose}>
+          {labels.cancel}
+        </button>
+      }
+    >
       {loading ? <LoadingState /> : null}
-      {error ? <div className="banner error">{error}</div> : null}
+      {error ? <Banner variant="error">{error}</Banner> : null}
       {data ? (
         <div className="fair-bulk-email-batch-detail">
           <div className="detail-grid compact">
@@ -96,51 +175,14 @@ export function FairBulkEmailBatchDetailModal({
             </div>
           </div>
 
-          <div className="table-scroll">
-            <table className="data-table compact">
-              <thead>
-                <tr>
-                  <th>{fairLabels.bulkEmailLogsColRecipient}</th>
-                  <th>{fairLabels.bulkEmailLogsColCompany}</th>
-                  <th>{fairLabels.bulkEmailLogsColSource}</th>
-                  <th>{fairLabels.bulkEmailLogsColEmail}</th>
-                  <th>{fairLabels.bulkEmailLogsColStatus}</th>
-                  <th>{fairLabels.bulkEmailLogsColError}</th>
-                  <th>{fairLabels.bulkEmailLogsColAttempts}</th>
-                  <th>{fairLabels.bulkEmailLogsColSentAt}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.items.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.recipient_name ?? "—"}</td>
-                    <td>{item.company_name}</td>
-                    <td>
-                      {item.recipient_source === "contact"
-                        ? fairLabels.bulkEmailSourceContact
-                        : fairLabels.bulkEmailSourceCustomer}
-                    </td>
-                    <td>{item.recipient_email}</td>
-                    <td>
-                      <Badge variant={fairEmailOutboxStatusVariant(item.status)}>
-                        {fairEmailOutboxStatusLabel(item.status)}
-                      </Badge>
-                    </td>
-                    <td className="error-cell">{item.error_message ?? "—"}</td>
-                    <td>{item.attempts}</td>
-                    <td>{formatFairEmailDateTime(item.sent_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <UniversalDataTable
+            items={data.items}
+            columns={outboxColumns}
+            rowKey={(item) => item.id}
+            className="fair-bulk-email-outbox-table"
+          />
         </div>
       ) : null}
-      <div className="form-actions">
-        <button type="button" className="btn secondary" onClick={onClose}>
-          {labels.cancel}
-        </button>
-      </div>
     </Modal>
   );
 }

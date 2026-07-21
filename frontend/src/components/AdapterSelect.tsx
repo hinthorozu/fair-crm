@@ -1,5 +1,6 @@
 import React from "react";
 import { listAdapters } from "../api/scraper";
+import { FieldError } from "./ui/form";
 import { fairLabels } from "../labels/fairLabels";
 import type { AdapterListItem } from "../types/scraper";
 import { formatAdapterOptionLabel } from "../utils/fairIntegration";
@@ -106,7 +107,7 @@ export function AdapterSelect({ id, value, onChange, disabled }: AdapterSelectPr
           setSearchText("");
         }}
       />
-      {loadError && <p className="form-error">{loadError}</p>}
+      {loadError ? <FieldError>{loadError}</FieldError> : null}
       {open && !loading && !loadError && (
         <div className="entity-select-dropdown" role="listbox">
           <button

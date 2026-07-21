@@ -5,6 +5,7 @@ import { LoadingState, TableSkeleton } from "../ui/LoadingState";
 import { Badge } from "../ui/Badge";
 import { DetailWebsite } from "../ui/DetailFields";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../ui/UniversalDataTable";
+import { TableRowActions } from "../ui/TableRowActions";
 import { scraperLabels } from "../../labels/scraperLabels";
 import { fairStatusLabels } from "../../labels/fairLabels";
 import type { AdapterLinkedFair } from "../../types/scraper";
@@ -81,14 +82,16 @@ function buildColumns(onOpenFair?: (fairId: string) => void): UniversalDataTable
       title: scraperLabels.colActions,
       sortable: false,
       render: (fair) => (
-        <button
-          type="button"
-          className="btn btn-sm secondary"
-          disabled={!fair.id || !onOpenFair}
-          onClick={() => fair.id && onOpenFair?.(fair.id)}
-        >
-          {scraperLabels.linkedFairOpenFair}
-        </button>
+        <TableRowActions>
+          <button
+            type="button"
+            className="btn btn-sm secondary"
+            disabled={!fair.id || !onOpenFair}
+            onClick={() => fair.id && onOpenFair?.(fair.id)}
+          >
+            {scraperLabels.linkedFairOpenFair}
+          </button>
+        </TableRowActions>
       ),
     },
   ];

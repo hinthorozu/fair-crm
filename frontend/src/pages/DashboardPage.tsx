@@ -2,7 +2,9 @@ import React from "react";
 import { ApiError } from "../api/client";
 import { getDashboardSummary } from "../api/dashboard";
 import { EmptyState } from "../components/ui/EmptyState";
+import { LoadingState } from "../components/ui/LoadingState";
 import { PageHeader } from "../components/ui/PageHeader";
+import { TableEntityLink } from "../components/ui/TableEntityLink";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { activityTypeLabels } from "../labels/activityLabels";
 import { dashboardLabels } from "../labels/dashboardLabels";
@@ -15,6 +17,8 @@ import type {
   DashboardMailStatusSummary,
 } from "../types/dashboard";
 import type { ActivityType } from "../types/activity";
+import { Card } from "../components/ui/Card";
+import { PageShell } from "../components/ui/PageShell";
 
 function formatNumber(value: number): string {
   return value.toLocaleString("tr-TR");
@@ -37,10 +41,10 @@ function SummaryCards({ overview }: { overview: DashboardOverviewCards }) {
   return (
     <div className="dashboard-summary-grid">
       {cards.map((card) => (
-        <div key={card.label} className="dashboard-summary-card card">
+        <Card padding="none" className="dashboard-summary-card" key={card.label}>
           <p className="dashboard-summary-label">{card.label}</p>
           <p className="dashboard-summary-value">{formatNumber(card.value)}</p>
-        </div>
+        </Card>
       ))}
     </div>
   );
@@ -57,10 +61,10 @@ function TaskSummaryCards({ summary }: { summary: DashboardTaskSummary }) {
   return (
     <div className="dashboard-task-grid">
       {cards.map((card) => (
-        <div key={card.label} className="dashboard-summary-card card">
+        <Card padding="none" className="dashboard-summary-card" key={card.label}>
           <p className="dashboard-summary-label">{card.label}</p>
           <p className="dashboard-summary-value">{formatNumber(card.value)}</p>
-        </div>
+        </Card>
       ))}
     </div>
   );
@@ -78,10 +82,10 @@ function MailStatusCards({ mailStatus }: { mailStatus: DashboardMailStatusSummar
   return (
     <div className="dashboard-mail-grid">
       {cards.map((card) => (
-        <div key={card.label} className="dashboard-summary-card card">
+        <Card padding="none" className="dashboard-summary-card" key={card.label}>
           <p className="dashboard-summary-label">{card.label}</p>
           <p className="dashboard-summary-value">{formatNumber(card.value)}</p>
-        </div>
+        </Card>
       ))}
     </div>
   );
@@ -96,9 +100,9 @@ function buildRecentActivityColumns(
       title: dashboardLabels.colCustomerName,
       sortable: false,
       render: (row) => (
-        <button type="button" className="link-button" onClick={() => onOpenCustomer(row.customerId)}>
+        <TableEntityLink onClick={() => onOpenCustomer(row.customerId)}>
           {row.customerName}
-        </button>
+        </TableEntityLink>
       ),
     },
     {
@@ -195,10 +199,10 @@ function DashboardSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="dashboard-section card">
+    <Card as="section" className="dashboard-section">
       <h2 className="dashboard-section-title">{title}</h2>
       {children}
-    </section>
+    </Card>
   );
 }
 
@@ -239,19 +243,19 @@ export function DashboardPage({
 
   if (loading) {
     return (
-      <div className="page dashboard-page">
+      <PageShell className="dashboard-page">
         <PageHeader title={dashboardLabels.pageTitle} />
-        <p className="text-muted">Yükleniyor…</p>
-      </div>
+        <LoadingState />
+      </PageShell>
     );
   }
 
   if (error) {
     return (
-      <div className="page dashboard-page">
+      <PageShell className="dashboard-page">
         <PageHeader title={dashboardLabels.pageTitle} />
         <EmptyState title={error} description="" actionLabel="Tekrar Dene" onAction={() => void loadData()} />
-      </div>
+      </PageShell>
     );
   }
 
@@ -282,7 +286,7 @@ export function DashboardPage({
   };
 
   return (
-    <div className="page dashboard-page">
+    <PageShell className="dashboard-page">
       <PageHeader title={dashboardLabels.pageTitle} />
 
       <DashboardSection title={dashboardLabels.sectionOverview}>
@@ -332,6 +336,6 @@ export function DashboardPage({
       <DashboardSection title={dashboardLabels.sectionMailStatus}>
         <MailStatusCards mailStatus={summary.mailStatus} />
       </DashboardSection>
-    </div>
+    </PageShell>
   );
 }

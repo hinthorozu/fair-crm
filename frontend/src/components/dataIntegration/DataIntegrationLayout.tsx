@@ -2,18 +2,9 @@ import React from "react";
 import { dataIntegrationLabels, DISABLED_NAV_ITEMS } from "../../labels/dataIntegrationLabels";
 import { usePersistedCollapsed } from "../../hooks/usePersistedCollapsed";
 import { SidebarCollapseButton } from "../layout/SidebarCollapseButton";
-import { DataIntegrationNavIcon } from "../layout/NavIcons";
-import { withSidebarTooltip } from "../layout/SidebarTooltip";
+import { DataIntegrationNavIcon, NavIconComingSoon } from "../layout/NavIcons";
+import { NavLink } from "../layout/NavLink";
 import { uiLabels } from "../../labels/uiLabels";
-
-export interface DataIntegrationNavItem {
-  id: string;
-  label: string;
-  path: string;
-  active: boolean;
-  disabled?: boolean;
-  onClick: (e: React.MouseEvent) => void;
-}
 
 interface DataIntegrationLayoutProps {
   children: React.ReactNode;
@@ -61,41 +52,30 @@ export function DataIntegrationLayout({
             collapseLabel={uiLabels.diSubnavCollapse}
           />
         </div>
-        <nav className="di-subnav-links">
-          {primaryItems.map((item) =>
-            withSidebarTooltip(
-              <a
-                key={item.id}
-                href={item.path}
-                className={`di-subnav-link ${activeSection === item.id ? "active" : ""}`}
-                onClick={(e) => onNavigate(item.path, e)}
-              >
-                <span className="di-subnav-link-icon">
-                  <DataIntegrationNavIcon id={item.id} />
-                </span>
-                <span className="di-subnav-link-label">{item.label}</span>
-              </a>,
-              { label: item.label, collapsed: subnavCollapsed },
-            ),
-          )}
-          {DISABLED_NAV_ITEMS.map((item) =>
-            withSidebarTooltip(
-              <button
-                key={item.id}
-                type="button"
-                className="di-subnav-link disabled"
-                onClick={onDisabledClick}
-              >
-                <span className="di-subnav-link-icon" aria-hidden>
-                  🚧
-                </span>
-                <span className="di-subnav-link-label">
-                  {item.label} {!subnavCollapsed && "🚧"}
-                </span>
-              </button>,
-              { label: item.label, collapsed: subnavCollapsed },
-            ),
-          )}
+        <nav className="di-subnav-links" aria-label={dataIntegrationLabels.moduleTitle}>
+          {primaryItems.map((item) => (
+            <NavLink
+              key={item.id}
+              variant="di"
+              href={item.path}
+              label={item.label}
+              icon={<DataIntegrationNavIcon id={item.id} />}
+              active={activeSection === item.id}
+              collapsed={subnavCollapsed}
+              onClick={(e) => onNavigate(item.path, e)}
+            />
+          ))}
+          {DISABLED_NAV_ITEMS.map((item) => (
+            <NavLink
+              key={item.id}
+              variant="di"
+              label={item.label}
+              icon={<NavIconComingSoon />}
+              disabled
+              collapsed={subnavCollapsed}
+              onClick={onDisabledClick}
+            />
+          ))}
         </nav>
       </aside>
       <div className="di-content">{children}</div>

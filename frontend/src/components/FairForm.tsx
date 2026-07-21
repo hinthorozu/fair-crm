@@ -13,6 +13,7 @@ import {
   TextareaInput,
   TextInput,
 } from "./ui/form";
+import { Banner } from "./ui/Banner";
 import {
   isValidSourceUrl,
   parseScraperConfigJson,
@@ -147,7 +148,7 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
 
   return (
     <form className="fair-form" onSubmit={(event) => void handleSubmit(event)}>
-      {error ? <div className="banner error form-form-alert">{error}</div> : null}
+      {error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}
 
       <FormSection title={fairLabels.fairSectionInfo}>
         <FormGrid>

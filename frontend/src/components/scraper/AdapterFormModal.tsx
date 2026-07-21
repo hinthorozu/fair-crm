@@ -1,4 +1,5 @@
 import React from "react";
+import { FieldError } from "../ui/form";
 import { Modal } from "../ui/Modal";
 import { useModalFormCancel, useReportFormDirty } from "../../hooks/useModalForm";
 import { listAdapterEngines } from "../../api/scraper";
@@ -24,7 +25,9 @@ interface AdapterFormModalProps {
   onSubmit: (payload: CreateAdapterPayload) => Promise<void>;
 }
 
-function AdapterFormModalContent({ saving, error, onClose, onSubmit }: AdapterFormModalProps) {
+const FORM_ID = "adapter-create-form";
+
+export function AdapterFormModal({ saving, error, onClose, onSubmit }: AdapterFormModalProps) {
   const emptyValues = React.useMemo(() => createEmptyFormState(), []);
   const [values, setValues] = React.useState<AdapterFormState>(emptyValues);
   const [engines, setEngines] = React.useState<AdapterEngine[]>([]);
@@ -133,35 +136,39 @@ function AdapterFormModalContent({ saving, error, onClose, onSubmit }: AdapterFo
   };
 
   return (
-    <form className="adapter-form" onSubmit={handleSubmit}>
-      <AdapterForm
-        mode="create"
-        values={values}
-        onChange={handleChange}
-        capabilities={fieldCapabilities}
-        engines={engines}
-        enginesLoading={enginesLoading}
-        enginesError={enginesError}
-      />
+    <Modal
+      title={scraperLabels.newAdapter}
+      onClose={onClose}
+      size="lg"
+      footer={
+        <>
+          <button type="button" className="btn secondary" onClick={handleCancel}>
+            {scraperLabels.formCancel}
+          </button>
+          <button
+            type="submit"
+            form={FORM_ID}
+            className="btn primary"
+            disabled={saving || enginesLoading}
+          >
+            {saving ? "…" : scraperLabels.formCreate}
+          </button>
+        </>
+      }
+    >
+      <form id={FORM_ID} className="adapter-form" onSubmit={handleSubmit}>
+        <AdapterForm
+          mode="create"
+          values={values}
+          onChange={handleChange}
+          capabilities={fieldCapabilities}
+          engines={engines}
+          enginesLoading={enginesLoading}
+          enginesError={enginesError}
+        />
 
-      {(localError || error) && <p className="form-error">{localError || error}</p>}
-
-      <div className="modal-actions">
-        <button type="button" className="btn secondary" onClick={handleCancel}>
-          {scraperLabels.formCancel}
-        </button>
-        <button type="submit" className="btn primary" disabled={saving || enginesLoading}>
-          {saving ? "…" : scraperLabels.formCreate}
-        </button>
-      </div>
-    </form>
-  );
-}
-
-export function AdapterFormModal(props: AdapterFormModalProps) {
-  return (
-    <Modal title={scraperLabels.newAdapter} onClose={props.onClose} size="lg">
-      <AdapterFormModalContent {...props} />
+        {localError || error ? <FieldError>{localError || error}</FieldError> : null}
+      </form>
     </Modal>
   );
 }

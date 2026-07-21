@@ -1,6 +1,10 @@
 import React from "react";
 import { getDataOperationRun, ApiError } from "../api/dataOperations";
 import { adminLabels } from "../labels/adminLabels";
+import { Banner } from "../components/ui/Banner";
+import { LoadingState } from "../components/ui/LoadingState";
+import { PageHeader } from "../components/ui/PageHeader";
+import { PageShell } from "../components/ui/PageShell";
 import { DataOperationAnalyzeResultPage } from "./DataOperationAnalyzeResultPage";
 import { DataOperationDuplicateResultPage } from "./DataOperationDuplicateResultPage";
 
@@ -66,11 +70,28 @@ export function DataOperationRunResultPage({
   }, [runId]);
 
   if (loading && !operationKeyFromRoute) {
-    return <p className="text-muted">{adminLabels.dataOpLoading}</p>;
+    return (
+      <PageShell>
+        <PageHeader title={adminLabels.dataOperationsTitle} />
+        <LoadingState message={adminLabels.dataOpLoading} />
+      </PageShell>
+    );
   }
 
   if (error && !resolvedOperationKey) {
-    return <p className="text-danger">{error}</p>;
+    return (
+      <PageShell>
+        <PageHeader
+          title={adminLabels.dataOperationsTitle}
+          actions={
+            <button type="button" className="btn secondary" onClick={onBack}>
+              {adminLabels.dataOpBackToOperations}
+            </button>
+          }
+        />
+        <Banner variant="error">{error}</Banner>
+      </PageShell>
+    );
   }
 
   if (isDuplicateResultRun(resolvedOperationKey, resolvedDatasetKind)) {

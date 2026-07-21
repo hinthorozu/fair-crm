@@ -251,6 +251,33 @@ export function NavIconEyeOff(props: IconProps) {
   );
 }
 
+/** Coming-soon / disabled nav placeholder (replaces emoji in nested rails). */
+export function NavIconComingSoon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8v5" />
+      <circle cx="12" cy="16" r="0.75" fill="currentColor" stroke="none" />
+    </IconBase>
+  );
+}
+
+export function NavIconMenu(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4 6h16M4 12h16M4 18h16" />
+    </IconBase>
+  );
+}
+
+export function NavIconClose(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M18 6L6 18M6 6l12 12" />
+    </IconBase>
+  );
+}
+
 const DI_NAV_ICONS: Record<string, React.ComponentType<IconProps>> = {
   imports: NavIconImports,
   new: NavIconNewImport,

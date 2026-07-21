@@ -18,6 +18,7 @@ import {
   TextareaInput,
   TextInput,
 } from "./ui/form";
+import { Banner } from "./ui/Banner";
 import {
   type CommunicationFormItem,
   customerToCommunicationForm,
@@ -167,7 +168,7 @@ export function CustomerForm({ initial, submitLabel, onCancel, onSubmit }: Custo
 
   return (
     <form className="customer-form" onSubmit={(event) => void handleSubmit(event)}>
-      {error ? <div className="banner error form-form-alert">{error}</div> : null}
+      {error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}
 
       <FormSection title={labels.customerSectionGeneral}>
         <FormGrid>

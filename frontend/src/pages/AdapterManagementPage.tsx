@@ -12,8 +12,12 @@ import {
 import { AdapterFormModal } from "../components/scraper/AdapterFormModal";
 import { AdapterFeatureBadges } from "../components/scraper/AdapterFeatureBadges";
 import { EmptyState } from "../components/ui/EmptyState";
+import { FilterPanel } from "../components/ui/FilterPanel";
+import { TextInput } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
+import { PageShell } from "../components/ui/PageShell";
 import { Badge } from "../components/ui/Badge";
+import { TableRowActions } from "../components/ui/TableRowActions";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { labels } from "../labels";
 import { scraperLabels } from "../labels/scraperLabels";
@@ -25,6 +29,7 @@ import type {
 } from "../types/scraper";
 import { formatDetailDate } from "../components/ui/DetailFields";
 import { adapterDetailToListItem, mergeAdapterListItem } from "../utils/scraperAdapters";
+import { Card } from "../components/ui/Card";
 
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return "—";
@@ -93,7 +98,7 @@ function buildAdapterColumns(handlers: {
       title: scraperLabels.colActions,
       sortable: false,
       render: (adapter) => (
-        <div className="adapter-list-actions">
+        <TableRowActions className="adapter-list-actions">
           <button type="button" className="btn btn-sm secondary" onClick={() => handlers.onOpenDetail(adapter)}>
             {scraperLabels.actionDetail}
           </button>
@@ -105,7 +110,7 @@ function buildAdapterColumns(handlers: {
           >
             {adapter.is_active ? scraperLabels.actionDeactivate : scraperLabels.actionActivate}
           </button>
-        </div>
+        </TableRowActions>
       ),
     },
   ];
@@ -127,10 +132,10 @@ function SummaryCards({
   return (
     <div className="adapter-summary-grid">
       {cards.map((card) => (
-        <div key={card.label} className="adapter-summary-card card">
+        <Card padding="none" className="adapter-summary-card" key={card.label}>
           <p className="adapter-summary-label">{card.label}</p>
           <p className="adapter-summary-value">{card.value}</p>
-        </div>
+        </Card>
       ))}
     </div>
   );
@@ -297,36 +302,42 @@ export function AdapterManagementPage({
   );
 
   return (
-    <div className="adapter-management-page duplicate-groups-page">
+    <PageShell className="adapter-management-page duplicate-groups-page">
       <PageHeader title={scraperLabels.pageTitle} subtitle={scraperLabels.pageSubtitle} />
 
       {summary ? <SummaryCards summary={summary} lastRunLabel={lastRunLabel} /> : null}
 
-      <div className="card adapter-table-card">
-        <div className="adapter-toolbar filters">
-          <input
-            type="search"
-            className="search-input adapter-search-input"
-            placeholder={scraperLabels.searchPlaceholder}
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            aria-label={scraperLabels.searchPlaceholder}
-          />
-          <div className="adapter-toolbar-actions">
-            <button type="button" className="btn secondary" onClick={() => void loadData()} disabled={loading}>
-              {labels.refresh}
-            </button>
-            <button
-              type="button"
-              className="btn primary"
-              onClick={() => {
-                setFormError(null);
-                setShowCreateModal(true);
-              }}
-            >
-              {scraperLabels.newAdapter}
-            </button>
-          </div>
+      <Card padding="none" className="adapter-table-card">
+        <div className="adapter-toolbar">
+          <FilterPanel
+            actions={
+              <div className="adapter-toolbar-actions">
+                <button type="button" className="btn secondary" onClick={() => void loadData()} disabled={loading}>
+                  {labels.refresh}
+                </button>
+                <button
+                  type="button"
+                  className="btn primary"
+                  onClick={() => {
+                    setFormError(null);
+                    setShowCreateModal(true);
+                  }}
+                >
+                  {scraperLabels.newAdapter}
+                </button>
+              </div>
+            }
+          >
+            <TextInput
+              id="adapter-search"
+              type="search"
+              className="search-input adapter-search-input"
+              placeholder={scraperLabels.searchPlaceholder}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              aria-label={scraperLabels.searchPlaceholder}
+            />
+          </FilterPanel>
         </div>
 
         {error ? <p className="text-danger adapter-table-error">{error}</p> : null}
@@ -341,7 +352,7 @@ export function AdapterManagementPage({
           emptyState={<EmptyState title={scraperLabels.emptyAdapters} />}
           className="adapter-table"
         />
-      </div>
+      </Card>
 
       {showCreateModal ? (
         <AdapterFormModal
@@ -354,6 +365,6 @@ export function AdapterManagementPage({
           onSubmit={handleCreate}
         />
       ) : null}
-    </div>
+    </PageShell>
   );
 }

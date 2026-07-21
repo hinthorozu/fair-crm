@@ -11,11 +11,16 @@ import { DuplicateGroupDetailView } from "../components/DuplicateGroupDetailView
 import { PageHeader } from "../components/ui/PageHeader";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { EmptyState, EmptyStateIcon } from "../components/ui/EmptyState";
+import { FilterPanel } from "../components/ui/FilterPanel";
+import { TextInput } from "../components/ui/form";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { adminLabels } from "../labels/adminLabels";
 import { labels } from "../labels";
 import { uiLabels } from "../labels/uiLabels";
 import type { DataOperationRun, DuplicateDatasetGroup } from "../types/dataOperations";
+import { Banner } from "../components/ui/Banner";
+import { Card } from "../components/ui/Card";
+import { PageShell } from "../components/ui/PageShell";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -310,9 +315,7 @@ export function DataOperationDuplicateResultPage({
         liveDuplicateGroupCount !== Number(summary.duplicate_groups)));
 
   return (
-    <div
-      className={`data-operation-result-page${showingGroupsList ? " duplicate-groups-page" : ""}`}
-    >
+    <PageShell className={`data-operation-result-page${showingGroupsList ? " duplicate-groups-page" : ""}`}>
       <PageHeader
         title={
           selectedGroupKey
@@ -345,32 +348,32 @@ export function DataOperationDuplicateResultPage({
       {runError && <p className="text-danger">{runError}</p>}
 
       {mergeSuccessMessage && showingGroupsList && (
-        <div className="banner success duplicate-groups-merge-success" role="status">
+        <Banner variant="success" className="duplicate-groups-merge-success" role="status">
           {mergeSuccessMessage}
-        </div>
+        </Banner>
       )}
 
       {showStaleAnalysisNotice && (
-        <div className="banner info duplicate-groups-stale-notice" role="status">
+        <Banner variant="info" className="duplicate-groups-stale-notice" role="status">
           {adminLabels.dataOpDuplicateAnalysisStale}
-        </div>
+        </Banner>
       )}
 
       {showingGroupsList && summary && (
         <div className="duplicate-groups-summary-grid">
-          <div className="duplicate-groups-summary-card card">
+          <Card padding="none" className="duplicate-groups-summary-card">
             <p className="duplicate-groups-summary-label">{adminLabels.dataOpSummaryGroupBy}</p>
             <p className="duplicate-groups-summary-value">
               {summary.group_by ? formatGroupByLabel(String(summary.group_by)) : "—"}
             </p>
-          </div>
-          <div className="duplicate-groups-summary-card card">
+          </Card>
+          <Card padding="none" className="duplicate-groups-summary-card">
             <p className="duplicate-groups-summary-label">{adminLabels.dataOpSummaryTotalCustomers}</p>
             <p className="duplicate-groups-summary-value">
               {formatSummaryNumber(summary.total_customers)}
             </p>
-          </div>
-          <div className="duplicate-groups-summary-card card">
+          </Card>
+          <Card padding="none" className="duplicate-groups-summary-card">
             <p className="duplicate-groups-summary-label">{adminLabels.dataOpSummaryDuplicateGroups}</p>
             <p className="duplicate-groups-summary-value">
               {formatSummaryNumber(
@@ -379,8 +382,8 @@ export function DataOperationDuplicateResultPage({
                   : summary?.duplicate_groups,
               )}
             </p>
-          </div>
-          <div className="duplicate-groups-summary-card card">
+          </Card>
+          <Card padding="none" className="duplicate-groups-summary-card">
             <p className="duplicate-groups-summary-label">
               {adminLabels.dataOpSummaryCustomersInDuplicateGroups}
             </p>
@@ -391,7 +394,7 @@ export function DataOperationDuplicateResultPage({
                   : summary?.customers_in_duplicate_groups,
               )}
             </p>
-          </div>
+          </Card>
         </div>
       )}
 
@@ -428,8 +431,25 @@ export function DataOperationDuplicateResultPage({
           showPagination={false}
           toolbar={
             <div className="duplicate-groups-toolbar-stack">
-              <div className="filters">
-                <input
+              <FilterPanel
+                actions={
+                  <>
+                    <button type="button" className="btn secondary" onClick={() => void table.refresh()}>
+                      {labels.refresh}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn secondary"
+                      disabled={exporting}
+                      onClick={() => void handleExport()}
+                    >
+                      {exporting ? adminLabels.dataOpExporting : adminLabels.dataOpExportExcel}
+                    </button>
+                  </>
+                }
+              >
+                <TextInput
+                  id="duplicate-groups-search"
                   type="search"
                   className="search-input"
                   placeholder={adminLabels.dataOpDuplicateGroupsSearchPlaceholder}
@@ -437,18 +457,7 @@ export function DataOperationDuplicateResultPage({
                   onChange={(e) => table.setSearch(e.target.value)}
                   aria-label={adminLabels.dataOpDuplicateGroupsSearchPlaceholder}
                 />
-                <button type="button" className="btn secondary" onClick={() => void table.refresh()}>
-                  {labels.refresh}
-                </button>
-                <button
-                  type="button"
-                  className="btn secondary"
-                  disabled={exporting}
-                  onClick={() => void handleExport()}
-                >
-                  {exporting ? adminLabels.dataOpExporting : adminLabels.dataOpExportExcel}
-                </button>
-              </div>
+              </FilterPanel>
               <PaginationBar
                 className="duplicate-groups-pagination"
                 page={table.pagination.page}
@@ -474,6 +483,6 @@ export function DataOperationDuplicateResultPage({
           }
         />
       )}
-    </div>
+    </PageShell>
   );
 }

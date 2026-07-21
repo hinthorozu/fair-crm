@@ -17,6 +17,11 @@ import { importBatchStatusLabels } from "../labels/importLabels";
 import type { ImportBatch } from "../types/import";
 import { importBatchStatusBadgeVariant } from "../utils/importBadges";
 import { canResumeDecisions, canResumeSetup } from "../utils/importResume";
+import { Banner } from "../components/ui/Banner";
+import { TableRowActions } from "../components/ui/TableRowActions";
+import { TableEntityLink } from "../components/ui/TableEntityLink";
+import { TruncatedText } from "../components/ui/TruncatedText";
+import { PageShell } from "../components/ui/PageShell";
 
 interface DataIntegrationImportsPageProps {
   onOpenBatch?: (batchId: string) => void;
@@ -62,9 +67,9 @@ const IMPORT_COLUMNS = (
     title: dataIntegrationLabels.colFile,
     sortable: true,
     render: (batch) => (
-      <button type="button" className="link-button" onClick={() => handlers.onOpenBatch?.(batch.id)}>
+      <TableEntityLink onClick={() => handlers.onOpenBatch?.(batch.id)}>
         {batch.file_name}
-      </button>
+      </TableEntityLink>
     ),
   },
   {
@@ -86,7 +91,7 @@ const IMPORT_COLUMNS = (
     sortable: false,
     priority: "technical",
     render: (batch) => (
-      <span className="text-mono text-wrap">{displayOptionalText(batch.adapter_key)}</span>
+      <TruncatedText value={batch.adapter_key} mono maxLength={28} />
     ),
   },
   {
@@ -127,7 +132,7 @@ const IMPORT_COLUMNS = (
     priority: "primary",
     className: "actions",
     render: (batch) => (
-      <div className="import-list-actions">
+      <TableRowActions className="import-list-actions">
         {canAnalyze(batch.status) && (
           <button
             type="button"
@@ -178,7 +183,7 @@ const IMPORT_COLUMNS = (
             ? "Siliniyor…"
             : dataIntegrationLabels.deleteBatch}
         </button>
-      </div>
+      </TableRowActions>
     ),
   },
 ];
@@ -273,10 +278,10 @@ export function DataIntegrationImportsPage({
   );
 
   return (
-    <div>
+    <PageShell>
       <PageHeader title={dataIntegrationLabels.importsTitle} subtitle={dataIntegrationLabels.importsSubtitle} />
 
-      {successMessage && <p className="import-toast success">{successMessage}</p>}
+      {successMessage && <Banner variant="success" as="p">{successMessage}</Banner>}
 
       <UniversalDataTable
         table={table}
@@ -286,7 +291,9 @@ export function DataIntegrationImportsPage({
         emptyState={<EmptyState title={dataIntegrationLabels.importsEmpty} description="" />}
       />
       {(table.error || actionError) && (
-        <p className="form-error">{actionError ?? table.error}</p>
+        <Banner variant="error" as="p">
+          {actionError ?? table.error}
+        </Banner>
       )}
 
       {batchToDelete && (
@@ -300,6 +307,6 @@ export function DataIntegrationImportsPage({
           onCancel={() => setBatchToDelete(null)}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

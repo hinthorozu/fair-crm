@@ -3,6 +3,7 @@ import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { labels } from "../labels";
 import { authLabels } from "../labels/authLabels";
+import { Banner } from "../components/ui/Banner";
 import { Card } from "../components/ui/Card";
 import { FormField, PasswordInput, TextInput } from "../components/ui/form";
 
@@ -71,11 +72,7 @@ export function LoginPage({ onSuccess }: LoginPageProps) {
             noValidate
             aria-busy={submitting}
           >
-            {formError ? (
-              <div className="login-form-error" role="alert">
-                {formError}
-              </div>
-            ) : null}
+            {formError ? <Banner variant="error">{formError}</Banner> : null}
 
             <FormField
               label={authLabels.email}

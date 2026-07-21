@@ -1,7 +1,9 @@
 import React from "react";
 import { labels } from "../../labels";
 import { uiLabels } from "../../labels/uiLabels";
+import { NavIconClose } from "../layout/NavIcons";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { IconButton } from "./IconButton";
 
 /** Overlay dialog — ADR-028 Universal Modal Standard (no backdrop/Escape close; dirty guard). */
 interface ModalProps {
@@ -90,15 +92,12 @@ export function Modal({ title, onClose, children, size = "default", className, f
         >
           <header className="modal-header">
             <h2 id="modal-title">{title}</h2>
-            <button
+            <IconButton
               ref={closeRef}
-              type="button"
-              className="btn icon"
+              label={labels.cancel}
+              icon={<NavIconClose />}
               onClick={requestClose}
-              aria-label={labels.cancel}
-            >
-              ×
-            </button>
+            />
           </header>
           <ModalDirtyContext.Provider value={setModalDirty}>
             <ModalCloseContext.Provider value={requestClose}>

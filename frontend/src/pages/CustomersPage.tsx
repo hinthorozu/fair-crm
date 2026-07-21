@@ -18,6 +18,8 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import type { Customer, CustomerStatus, CustomerType } from "../types/customer";
 import { labels } from "../labels";
+import { Banner } from "../components/ui/Banner";
+import { PageShell } from "../components/ui/PageShell";
 
 type ConfirmAction =
   | { type: "archive"; customer: Customer }
@@ -101,7 +103,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
   const closeConfirm = React.useCallback(() => setConfirm(null), []);
 
   return (
-    <div className="page">
+    <PageShell>
       <PageHeader
         title={labels.customers}
         subtitle={`${table.pagination.totalItems} kayıt`}
@@ -150,7 +152,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
         />
       </ServerDataTableFrame>
 
-      {success && <div className="banner success">{success}</div>}
+      {success && <Banner variant="success">{success}</Banner>}
 
       {modal === "create" && (
         <FormModal title={labels.newCustomer} onClose={closeModal} size="lg">
@@ -195,6 +197,6 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
           onConfirm={() => void handleRestore(confirm.customer)}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

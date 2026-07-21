@@ -6,7 +6,9 @@ import { labels } from "../labels";
 import { Badge } from "./ui/Badge";
 import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
 import { UniversalDataTable, type UniversalDataTableColumn } from "./ui/UniversalDataTable";
+import { TableRowActions } from "./ui/TableRowActions";
 import { FilterPanel } from "./ui/FilterPanel";
+import { SelectInput, TextInput } from "./ui/form";
 
 interface FairFiltersProps {
   search: string;
@@ -31,7 +33,8 @@ export function FairFilters({
         </button>
       }
     >
-      <input
+      <TextInput
+        id="fair-search"
         type="search"
         className="search-input"
         placeholder={uiLabels.searchFair}
@@ -39,7 +42,8 @@ export function FairFilters({
         onChange={(e) => onSearchChange(e.target.value)}
         aria-label={uiLabels.searchFair}
       />
-      <select
+      <SelectInput
+        id="fair-filter-status"
         value={status}
         onChange={(e) => onStatusChange(e.target.value as FairStatus | "")}
         aria-label={labels.status}
@@ -50,7 +54,7 @@ export function FairFilters({
             {fairStatusLabels[s]}
           </option>
         ))}
-      </select>
+      </SelectInput>
     </FilterPanel>
   );
 }
@@ -155,7 +159,7 @@ function buildFairColumns(props: FairTableProps): UniversalDataTableColumn<Fair>
       render: (f) => {
         const isArchived = isArchivedFair(f);
         return (
-          <>
+          <TableRowActions>
             {isArchived && (
               <button
                 type="button"
@@ -181,7 +185,7 @@ function buildFairColumns(props: FairTableProps): UniversalDataTableColumn<Fair>
                 </button>
               </>
             )}
-          </>
+          </TableRowActions>
         );
       },
     },

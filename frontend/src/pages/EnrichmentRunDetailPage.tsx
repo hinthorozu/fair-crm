@@ -12,6 +12,8 @@ import { scraperLabels } from "../labels/scraperLabels";
 import type { EnrichmentRunSummary, ScraperRun } from "../types/scraper";
 import { CUSTOMER_CONTACT_ENRICHMENT_ADAPTER_KEY } from "../utils/enrichmentAdapter";
 import { isActiveScraperRunStatus, runStatusBadgeVariant, runStatusLabel } from "../utils/scraperBadges";
+import { Banner } from "../components/ui/Banner";
+import { PageShell } from "../components/ui/PageShell";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -131,7 +133,7 @@ export function EnrichmentRunDetailPage({
   const summary = run?.enrichment_summary ?? null;
 
   return (
-    <div className="page enrichment-run-detail-page">
+    <PageShell className="enrichment-run-detail-page">
       <PageHeader
         title={scraperLabels.enrichmentRunDetailTitle}
         subtitle={scraperLabels.enrichmentRunDetailSubtitle}
@@ -154,10 +156,10 @@ export function EnrichmentRunDetailPage({
         }
       />
 
-      {error ? <div className="banner error">{error}</div> : null}
-      {cancelError ? <div className="banner error">{cancelError}</div> : null}
+      {error ? <Banner variant="error">{error}</Banner> : null}
+      {cancelError ? <Banner variant="error">{cancelError}</Banner> : null}
       {showCancellingState ? (
-        <div className="banner info">{scraperLabels.runStatusCancelRequested}</div>
+        <Banner variant="info">{scraperLabels.runStatusCancelRequested}</Banner>
       ) : null}
 
       <Card>
@@ -219,6 +221,6 @@ export function EnrichmentRunDetailPage({
           onCancel={() => setCancelConfirmOpen(false)}
         />
       ) : null}
-    </div>
+    </PageShell>
   );
 }

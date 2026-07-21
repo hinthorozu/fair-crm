@@ -10,12 +10,16 @@ import { Badge } from "../components/ui/Badge";
 import { EmptyState } from "../components/ui/EmptyState";
 import { PageHeader } from "../components/ui/PageHeader";
 import { FilterPanel } from "../components/ui/FilterPanel";
+import { TextInput } from "../components/ui/form";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { followUpLabels, followUpFilterOptions } from "../labels/followUpLabels";
 import { labels } from "../labels";
 import { todoWorklistLabels, worklistStatusBadgeVariant, worklistStatusLabels } from "../labels/todoWorklistLabels";
 import type { FollowUpFilter, FollowUpRow } from "../types/followUps";
+import { Banner } from "../components/ui/Banner";
+import { TableEntityLink } from "../components/ui/TableEntityLink";
+import { PageShell } from "../components/ui/PageShell";
 import type {
   RecordTodoWorklistActivityPayload,
   TodoWorklistModalContext,
@@ -167,9 +171,9 @@ export function FollowUpsPage({ onOpenCustomer }: FollowUpsPageProps) {
         title: followUpLabels.colCustomer,
         sortField: "company_name",
         render: (row) => (
-          <button type="button" className="link-button" onClick={() => handleOpenActivity(row)}>
+          <TableEntityLink onClick={() => handleOpenActivity(row)}>
             {row.customer_name}
-          </button>
+          </TableEntityLink>
         ),
       },
       {
@@ -269,23 +273,10 @@ export function FollowUpsPage({ onOpenCustomer }: FollowUpsPageProps) {
   );
 
   return (
-    <div className="page follow-ups-page">
+    <PageShell className="follow-ups-page">
       <PageHeader title={followUpLabels.pageTitle} />
 
       <section className="follow-ups-section">
-        <div className="todo-worklist-filters">
-          {followUpFilterOptions.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className={`btn ${followUpFilter === option.value ? "primary" : "secondary"}`}
-              onClick={() => handleFilterChange(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-
         <UniversalDataTable
           table={table}
           skeletonCols={12}
@@ -297,22 +288,36 @@ export function FollowUpsPage({ onOpenCustomer }: FollowUpsPageProps) {
                 </button>
               }
             >
-              <input
+              <div className="field full-width todo-worklist-segments">
+                {followUpFilterOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`btn ${followUpFilter === option.value ? "primary" : "secondary"}`}
+                    onClick={() => handleFilterChange(option.value)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <TextInput
+                id="follow-up-search"
                 type="search"
                 className="search-input"
                 placeholder={followUpLabels.searchPlaceholder}
                 value={table.search}
                 onChange={(e) => table.setSearch(e.target.value)}
+                aria-label={followUpLabels.searchPlaceholder}
               />
             </FilterPanel>
           }
           columns={columns}
           rowKey={(row) => followUpRowKey(row)}
-          emptyState={<EmptyState message={followUpLabels.emptyList} />}
+          emptyState={<EmptyState title={followUpLabels.emptyList} />}
         />
       </section>
 
-      {saveSuccess && <div className="banner success">{saveSuccess}</div>}
+      {saveSuccess && <Banner variant="success">{saveSuccess}</Banner>}
 
       <TodoWorklistActivityModal
         open={activityModalOpen}
@@ -323,6 +328,6 @@ export function FollowUpsPage({ onOpenCustomer }: FollowUpsPageProps) {
         onClose={closeActivityModal}
         onSave={handleSaveActivity}
       />
-    </div>
+    </PageShell>
   );
 }

@@ -11,11 +11,21 @@ import {
   restoreSystemBackupFromUpload,
   ApiError,
 } from "../api/systemAdmin";
+import { Banner } from "../components/ui/Banner";
 import { EmptyState } from "../components/ui/EmptyState";
 import { PageHeader } from "../components/ui/PageHeader";
+import { PageShell } from "../components/ui/PageShell";
 import { Badge } from "../components/ui/Badge";
 import { Modal } from "../components/ui/Modal";
+import {
+  CheckboxField,
+  FieldError,
+  RadioField,
+  TextInput,
+  TextareaInput,
+} from "../components/ui/form";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
+import { TableRowActions } from "../components/ui/TableRowActions";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { useRestoreJobPolling } from "../hooks/useRestoreJobPolling";
 import { adminLabels } from "../labels/adminLabels";
@@ -183,11 +193,11 @@ function buildRestoreJobColumns(handlers: {
       sortable: false,
       className: "col-actions",
       render: (job) => (
-        <div className="table-actions backups-table-actions">
+        <TableRowActions className="backups-table-actions">
           <button type="button" className="btn link" onClick={() => void handlers.onDetails(job)}>
             {adminLabels.actionDetails}
           </button>
-        </div>
+        </TableRowActions>
       ),
     },
   ];
@@ -311,7 +321,7 @@ function buildBackupColumns(handlers: {
       sortable: false,
       className: "col-actions",
       render: (backup) => (
-        <div className="table-actions backups-table-actions">
+        <TableRowActions className="backups-table-actions">
           <button
             type="button"
             className="btn link"
@@ -323,7 +333,7 @@ function buildBackupColumns(handlers: {
           <button type="button" className="btn link" onClick={() => void handlers.onDetails(backup)}>
             {adminLabels.actionDetails}
           </button>
-        </div>
+        </TableRowActions>
       ),
     },
   ];
@@ -402,7 +412,6 @@ function CreateBackupModalContent({
     [],
   );
   useReportFormDirty({ notes, backupFormat, selectedDatabaseKeys }, baseline);
-  const handleCancel = useModalFormCancel(onCancel);
 
   const toggleDatabaseKey = (key: DatabaseKey) => {
     onDatabaseKeysChange(
@@ -423,8 +432,6 @@ function CreateBackupModalContent({
     }
   }, [includesKyroxCore, backupFormat, onBackupFormatChange]);
 
-  const canSubmit = selectedDatabaseKeys.length > 0;
-
   return (
     <div className="backup-create-modal">
       <section className="backup-create-modal-section">
@@ -432,23 +439,29 @@ function CreateBackupModalContent({
         <div className="backup-database-options" role="group" aria-label={adminLabels.databaseKeysLabel}>
           {DATABASE_KEY_OPTIONS.map((option) => {
             const selected = selectedDatabaseKeys.includes(option.value);
+            const inputId = `backup-create-db-${option.value}`;
             return (
-              <label
+              <div
                 key={option.value}
                 className={`backup-database-option${selected ? " is-selected" : ""}`}
               >
-                <input
-                  type="checkbox"
+                <CheckboxField
+                  id={inputId}
+                  label={option.title}
                   checked={selected}
                   onChange={() => toggleDatabaseKey(option.value)}
+                  hideLabel
+                  className="backup-database-option-control"
                 />
-                <span className="backup-database-option-title">{option.title}</span>
+                <label htmlFor={inputId} className="backup-database-option-title">
+                  {option.title}
+                </label>
                 <span className="backup-database-option-desc field-hint">{option.description}</span>
-              </label>
+              </div>
             );
           })}
         </div>
-        {!canSubmit && <p className="form-error">{adminLabels.databaseKeysRequired}</p>}
+        {!canSubmit && <FieldError>{adminLabels.databaseKeysRequired}</FieldError>}
       </section>
 
       <section className="backup-create-modal-section">
@@ -456,22 +469,28 @@ function CreateBackupModalContent({
         <div className="backup-format-cards" role="radiogroup" aria-label={adminLabels.formatLabel}>
           {visibleFormatOptions.map((option) => {
             const selected = backupFormat === option.value;
+            const inputId = `backup-format-${option.value}`;
             return (
-              <label
+              <div
                 key={option.value}
                 className={`backup-format-card${selected ? " is-selected" : ""}`}
               >
-                <input
-                  type="radio"
-                  className="backup-format-card-radio"
+                <RadioField
+                  id={inputId}
                   name="backup_format"
+                  label={option.title}
                   value={option.value}
                   checked={selected}
-                  onChange={() => onBackupFormatChange(option.value)}
+                  onChange={(value) => onBackupFormatChange(value as BackupFormat)}
+                  hideLabel
+                  className="backup-format-card-radio"
+                  inputClassName="backup-format-card-radio"
                 />
-                <span className="backup-format-card-title">{option.title}</span>
+                <label htmlFor={inputId} className="backup-format-card-title">
+                  {option.title}
+                </label>
                 <span className="backup-format-card-desc field-hint">{option.description}</span>
-              </label>
+              </div>
             );
           })}
         </div>
@@ -479,8 +498,8 @@ function CreateBackupModalContent({
 
       <label className="field backup-create-modal-notes">
         <span className="field-label">{adminLabels.notesLabel}</span>
-        <textarea
-          className="form-control"
+        <TextareaInput
+          id="backup-create-notes"
           rows={3}
           value={notes}
           onChange={(e) => onNotesChange(e.target.value)}
@@ -490,17 +509,33 @@ function CreateBackupModalContent({
         <span className="field-hint">{adminLabels.notesHint}</span>
       </label>
 
-      {createError && <p className="form-error">{createError}</p>}
-
-      <footer className="backup-create-modal-footer modal-actions">
-        <button type="button" className="btn secondary" onClick={handleCancel}>
-          {adminLabels.cancel}
-        </button>
-        <button type="button" className="btn primary" disabled={creating || !canSubmit} onClick={onSubmit}>
-          {creating ? "…" : adminLabels.startBackup}
-        </button>
-      </footer>
+      {createError ? <FieldError>{createError}</FieldError> : null}
     </div>
+  );
+}
+
+/** Stable footer actions for create-backup Modal (ADR-032 sticky footer). */
+function CreateBackupModalFooter({
+  creating,
+  canSubmit,
+  onCancel,
+  onSubmit,
+}: {
+  creating: boolean;
+  canSubmit: boolean;
+  onCancel: () => void;
+  onSubmit: () => void;
+}) {
+  const handleCancel = useModalFormCancel(onCancel);
+  return (
+    <>
+      <button type="button" className="btn secondary" onClick={handleCancel}>
+        {adminLabels.cancel}
+      </button>
+      <button type="button" className="btn primary" disabled={creating || !canSubmit} onClick={onSubmit}>
+        {creating ? "…" : adminLabels.startBackup}
+      </button>
+    </>
   );
 }
 
@@ -523,7 +558,25 @@ function RestoreBackupConfirmModal({
   const canConfirm = confirmText === RESTORE_CONFIRM_TEXT;
 
   return (
-    <Modal title={adminLabels.restoreDatabaseTitle} onClose={onCancel}>
+    <Modal
+      title={adminLabels.restoreDatabaseTitle}
+      onClose={onCancel}
+      footer={
+        <>
+          <button type="button" className="btn secondary" onClick={onCancel} disabled={restoring}>
+            {adminLabels.cancel}
+          </button>
+          <button
+            type="button"
+            className="btn danger"
+            disabled={restoring || !canConfirm}
+            onClick={onConfirm}
+          >
+            {restoring ? "…" : adminLabels.restoreDatabaseButton}
+          </button>
+        </>
+      }
+    >
       <div className="backup-restore-confirm">
         <p className={`text-danger${backup.database_key === "kyrox_core" ? " backup-restore-danger-banner" : ""}`}>
           {restoreWarningForDatabase(backup.database_key)}
@@ -550,7 +603,8 @@ function RestoreBackupConfirmModal({
         <p className="text-muted backup-restore-manual-hint">{adminLabels.restoreJobManualHint}</p>
         <label className="form-field">
           <span>{adminLabels.restoreConfirmLabel}</span>
-          <input
+          <TextInput
+            id="restore-backup-confirm-text"
             type="text"
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
@@ -559,20 +613,7 @@ function RestoreBackupConfirmModal({
             spellCheck={false}
           />
         </label>
-        {error && <p className="form-error">{error}</p>}
-        <div className="modal-actions">
-          <button type="button" className="btn secondary" onClick={onCancel} disabled={restoring}>
-            {adminLabels.cancel}
-          </button>
-          <button
-            type="button"
-            className="btn danger"
-            disabled={restoring || !canConfirm}
-            onClick={onConfirm}
-          >
-            {restoring ? "…" : adminLabels.restoreDatabaseButton}
-          </button>
-        </div>
+        {error ? <FieldError>{error}</FieldError> : null}
       </div>
     </Modal>
   );
@@ -597,25 +638,11 @@ function DeleteBackupConfirmModal({
   const canConfirm = confirmText === DELETE_CONFIRM_TEXT;
 
   return (
-    <Modal title={adminLabels.deleteBackupTitle} onClose={onCancel}>
-      <div className="backup-delete-confirm">
-        <p className="text-danger">{adminLabels.deleteBackupWarning}</p>
-        <p>
-          <strong>{adminLabels.colName}:</strong> {backup.file_name}
-        </p>
-        <label className="form-field">
-          <span>{adminLabels.deleteConfirmLabel}</span>
-          <input
-            type="text"
-            value={confirmText}
-            onChange={(e) => setConfirmText(e.target.value)}
-            placeholder={adminLabels.deleteConfirmPlaceholder}
-            autoComplete="off"
-            spellCheck={false}
-          />
-        </label>
-        {error && <p className="form-error">{error}</p>}
-        <div className="modal-actions">
+    <Modal
+      title={adminLabels.deleteBackupTitle}
+      onClose={onCancel}
+      footer={
+        <>
           <button type="button" className="btn secondary" onClick={onCancel} disabled={deleting}>
             {adminLabels.cancel}
           </button>
@@ -627,7 +654,27 @@ function DeleteBackupConfirmModal({
           >
             {deleting ? "…" : adminLabels.actionDelete}
           </button>
-        </div>
+        </>
+      }
+    >
+      <div className="backup-delete-confirm">
+        <p className="text-danger">{adminLabels.deleteBackupWarning}</p>
+        <p>
+          <strong>{adminLabels.colName}:</strong> {backup.file_name}
+        </p>
+        <label className="form-field">
+          <span>{adminLabels.deleteConfirmLabel}</span>
+          <TextInput
+            id="delete-backup-confirm-text"
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder={adminLabels.deleteConfirmPlaceholder}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </label>
+        {error ? <FieldError>{error}</FieldError> : null}
       </div>
     </Modal>
   );
@@ -689,37 +736,60 @@ function RestoreFromFileModal({
       title={adminLabels.restoreFromFileTitle}
       onClose={onCancel}
       className="modal-restore-from-file"
+      footer={
+        <>
+          <button type="button" className="btn secondary" onClick={handleCancel} disabled={restoring}>
+            {adminLabels.cancel}
+          </button>
+          <button
+            type="button"
+            className="btn danger backup-restore-upload-submit"
+            disabled={restoring || !canSubmit}
+            onClick={onSubmit}
+          >
+            {restoring ? "…" : adminLabels.restoreFromFileButton}
+          </button>
+        </>
+      }
     >
       <div className="backup-restore-upload-modal">
-        <div
-          className={`banner error backup-restore-upload-warning${databaseKey === "kyrox_core" ? " backup-restore-danger-banner" : ""}`}
+        <Banner
+          variant="error"
+          className={`backup-restore-upload-warning${databaseKey === "kyrox_core" ? " backup-restore-danger-banner" : ""}`}
           role="alert"
         >
           <span className="backup-restore-upload-warning-icon" aria-hidden="true">
             !
           </span>
           <p>{restoreUploadWarningForDatabase(databaseKey)}</p>
-        </div>
+        </Banner>
 
         <div className="field backup-restore-upload-database">
           <span className="field-label">{adminLabels.restoreUploadDatabaseLabel}</span>
           <div className="backup-database-options" role="radiogroup" aria-label={adminLabels.restoreUploadDatabaseLabel}>
             {DATABASE_KEY_OPTIONS.map((option) => {
               const selected = databaseKey === option.value;
+              const inputId = `restore-upload-db-${option.value}`;
               return (
-                <label
+                <div
                   key={option.value}
                   className={`backup-database-option${selected ? " is-selected" : ""}`}
                 >
-                  <input
-                    type="radio"
+                  <RadioField
+                    id={inputId}
                     name="restore_upload_database_key"
+                    label={option.title}
+                    value={option.value}
                     checked={selected}
-                    onChange={() => onDatabaseKeyChange(option.value)}
+                    onChange={(value) => onDatabaseKeyChange(value as DatabaseKey)}
+                    hideLabel
+                    className="backup-database-option-control"
                   />
-                  <span className="backup-database-option-title">{option.title}</span>
+                  <label htmlFor={inputId} className="backup-database-option-title">
+                    {option.title}
+                  </label>
                   <span className="backup-database-option-desc field-hint">{option.description}</span>
-                </label>
+                </div>
               );
             })}
           </div>
@@ -727,8 +797,9 @@ function RestoreFromFileModal({
 
         <div className="field backup-restore-upload-file">
           <span className="field-label">{adminLabels.restoreUploadLabel}</span>
-          <input
+          <TextInput
             ref={fileInputRef}
+            id="backup-restore-upload-file"
             type="file"
             accept=".dump"
             className="backup-restore-file-input"
@@ -768,8 +839,8 @@ function RestoreFromFileModal({
 
         <label className="field backup-restore-upload-notes">
           <span className="field-label">{adminLabels.notesLabel}</span>
-          <textarea
-            className="form-control"
+          <TextareaInput
+            id="restore-upload-notes"
             rows={3}
             value={notes}
             onChange={(e) => onNotesChange(e.target.value)}
@@ -778,20 +849,25 @@ function RestoreFromFileModal({
           />
         </label>
 
-        <label className="restore-confirm-row">
-          <input
-            type="checkbox"
+        <div className="restore-confirm-row">
+          <CheckboxField
+            id="restore-upload-acknowledge"
+            label={adminLabels.restoreAcknowledge}
             checked={acknowledge}
-            onChange={(e) => onAcknowledgeChange(e.target.checked)}
+            onChange={onAcknowledgeChange}
+            hideLabel
+            className="restore-confirm-row-control"
           />
-          <span>{adminLabels.restoreAcknowledge}</span>
-        </label>
+          <label htmlFor="restore-upload-acknowledge">
+            <span>{adminLabels.restoreAcknowledge}</span>
+          </label>
+        </div>
 
         <label className="field backup-restore-upload-confirm">
           <span className="field-label">{adminLabels.restoreConfirmLabel}</span>
-          <input
+          <TextInput
+            id="restore-upload-confirm-text"
             type="text"
-            className="form-control"
             value={confirmText}
             onChange={(e) => onConfirmTextChange(e.target.value)}
             placeholder={adminLabels.restoreConfirmPlaceholder}
@@ -801,21 +877,7 @@ function RestoreFromFileModal({
           <span className="field-hint">{adminLabels.restoreConfirmHelp}</span>
         </label>
 
-        {error && <p className="form-error">{error}</p>}
-
-        <footer className="backup-restore-upload-footer modal-actions">
-          <button type="button" className="btn secondary" onClick={handleCancel} disabled={restoring}>
-            {adminLabels.cancel}
-          </button>
-          <button
-            type="button"
-            className="btn danger backup-restore-upload-submit"
-            disabled={restoring || !canSubmit}
-            onClick={onSubmit}
-          >
-            {restoring ? "…" : adminLabels.restoreFromFileButton}
-          </button>
-        </footer>
+        {error ? <FieldError>{error}</FieldError> : null}
       </div>
     </Modal>
   );
@@ -1095,7 +1157,7 @@ export function DatabaseBackupsPage() {
   );
 
   return (
-    <div>
+    <PageShell>
       <PageHeader
         title={adminLabels.backupsTitle}
         subtitle={adminLabels.backupsSubtitle}
@@ -1116,7 +1178,7 @@ export function DatabaseBackupsPage() {
       />
 
       {notice && <p className="text-muted">{notice}</p>}
-      {restorePollError && <p className="form-error">{restorePollError}</p>}
+      {restorePollError ? <Banner variant="error">{restorePollError}</Banner> : null}
 
       {activeTrackedJobs.length > 0 && (
         <div className="restore-job-polling-banner" aria-live="polite">
@@ -1169,6 +1231,14 @@ export function DatabaseBackupsPage() {
           onClose={closeCreateModal}
           size="md"
           className="modal-create-backup"
+          footer={
+            <CreateBackupModalFooter
+              creating={creating}
+              canSubmit={selectedDatabaseKeys.length > 0}
+              onCancel={closeCreateModal}
+              onSubmit={() => void handleCreateBackup()}
+            />
+          }
         >
           <CreateBackupModalContent
             notes={notes}
@@ -1226,7 +1296,7 @@ export function DatabaseBackupsPage() {
             {detailBackup.error_message && (
               <>
                 <dt>{adminLabels.detailError}</dt>
-                <dd className="form-error">{detailBackup.error_message}</dd>
+                <FieldError as="dd">{detailBackup.error_message}</FieldError>
               </>
             )}
           </dl>
@@ -1312,7 +1382,7 @@ export function DatabaseBackupsPage() {
             {visibleDetailRestoreJob.error_message && (
               <>
                 <dt>{adminLabels.restoreJobDetailError}</dt>
-                <dd className="form-error">{visibleDetailRestoreJob.error_message}</dd>
+                <FieldError as="dd">{visibleDetailRestoreJob.error_message}</FieldError>
               </>
             )}
           </dl>
@@ -1340,6 +1410,6 @@ export function DatabaseBackupsPage() {
           onSubmit={() => void handleRestoreFromUpload()}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

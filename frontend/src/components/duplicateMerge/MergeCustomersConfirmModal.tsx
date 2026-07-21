@@ -32,7 +32,21 @@ export function MergeCustomersConfirmModal({
   }
 
   return (
-    <Modal title={adminLabels.dataOpMergeConfirmTitle} onClose={requestClose} size="lg">
+    <Modal
+      title={adminLabels.dataOpMergeConfirmTitle}
+      onClose={requestClose}
+      size="lg"
+      footer={
+        <>
+          <button type="button" className="btn secondary" onClick={requestClose} disabled={merging}>
+            {adminLabels.dataOpMergeCancel}
+          </button>
+          <button type="button" className="btn danger" disabled={merging} onClick={onConfirm}>
+            {merging ? adminLabels.dataOpMergeExecuting : adminLabels.dataOpMergeConfirmAction}
+          </button>
+        </>
+      }
+    >
       <div className="delete-selected-modal merge-confirm-modal">
         <p className="text-danger">{adminLabels.dataOpMergeConfirmMessage}</p>
         <MergePreviewSummaryContent
@@ -40,14 +54,6 @@ export function MergeCustomersConfirmModal({
           groupCustomers={groupCustomers}
           showCustomersToDelete
         />
-        <div className="form-actions">
-          <button type="button" className="btn secondary" onClick={requestClose} disabled={merging}>
-            {adminLabels.dataOpMergeCancel}
-          </button>
-          <button type="button" className="btn danger" disabled={merging} onClick={onConfirm}>
-            {merging ? adminLabels.dataOpMergeExecuting : adminLabels.dataOpMergeConfirmAction}
-          </button>
-        </div>
       </div>
     </Modal>
   );

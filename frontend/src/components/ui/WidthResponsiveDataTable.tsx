@@ -2,6 +2,7 @@ import React from "react";
 import { DataTable, type DataTableColumn } from "./DataTable";
 import type { SortDirection } from "../../types/listTable";
 import { uiLabels } from "../../labels/uiLabels";
+import { IconButton } from "./IconButton";
 
 /**
  * Column order = responsive priority (DataTables Responsive style).
@@ -42,6 +43,8 @@ interface WidthResponsiveDataTableProps<T> {
 const EXPAND_COL_ID = "__expand";
 const EXPAND_COL_FALLBACK_PX = 44;
 const MIN_COL_FALLBACK_PX = 72;
+/** Border/padding/font metric slack so live row never exceeds the wrap. */
+const CONTAINER_SAFETY_PX = 40;
 
 function columnLabel<T>(column: WidthResponsiveColumn<T>): string {
   if (column.dataLabel) return column.dataLabel;
@@ -165,7 +168,7 @@ export function WidthResponsiveDataTable<T>({
 
   const visibleCount = resolveVisibleColumnCount(
     widthsForResolve,
-    containerWidth,
+    Math.max(0, containerWidth - CONTAINER_SAFETY_PX),
     expandWidth,
     { forceExpandReserve: hasDetailOnly },
   );
@@ -223,18 +226,17 @@ export function WidthResponsiveDataTable<T>({
         const id = rowKey(row);
         const open = expandedIds.has(id);
         return (
-          <button
-            type="button"
-            className="table-expand-btn"
+          <IconButton
+            variant="table"
+            label={open ? uiLabels.collapseRow : uiLabels.expandRow}
+            icon={open ? "−" : "+"}
+            pressed={open}
             aria-expanded={open}
-            aria-label={open ? uiLabels.collapseRow : uiLabels.expandRow}
             onClick={(event) => {
               event.stopPropagation();
               toggleExpanded(id);
             }}
-          >
-            {open ? "−" : "+"}
-          </button>
+          />
         );
       },
     };

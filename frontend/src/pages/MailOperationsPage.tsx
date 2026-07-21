@@ -10,12 +10,16 @@ import { Badge } from "../components/ui/Badge";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
 import { PageHeader } from "../components/ui/PageHeader";
+import { FilterPanel } from "../components/ui/FilterPanel";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
+import { FormField, SelectInput, TextInput } from "../components/ui/form";
 import { adminLabels } from "../labels/adminLabels";
 import { fairLabels } from "../labels/fairLabels";
 import type { Fair } from "../types/fair";
 import type { MailOperationRecord, MailOperationSourceType, MailOperationStatus } from "../types/mailOperations";
 import type { SmtpAccount } from "../types/smtp";
+import { Banner } from "../components/ui/Banner";
+import { PageShell } from "../components/ui/PageShell";
 import {
   buildMailOperationSummary,
   formatMailOperationDateTime,
@@ -299,7 +303,7 @@ export function MailOperationsPage() {
   const errorRecord = dialog?.type === "error" ? dialog.record : null;
 
   return (
-    <div className="mail-operations-page">
+    <PageShell className="mail-operations-page">
       <PageHeader
         title={adminLabels.mailOperationsTitle}
         subtitle={adminLabels.mailOperationsSubtitle}
@@ -314,25 +318,23 @@ export function MailOperationsPage() {
         ]}
       />
 
-      {toast ? <div className="banner success">{toast}</div> : null}
-      {error ? <div className="banner danger">{error}</div> : null}
+      {toast ? <Banner variant="success">{toast}</Banner> : null}
+      {error ? <Banner variant="error">{error}</Banner> : null}
 
-      <div className="mail-operations-filters">
-        <label>
-          {adminLabels.mailOperationsFilterSearch}
-          <input
-            className="form-control"
+      <FilterPanel className="mail-operations-filters">
+        <FormField label={adminLabels.mailOperationsFilterSearch} htmlFor="mail-operations-search">
+          <TextInput
+            id="mail-operations-search"
             type="search"
             value={search}
             placeholder={adminLabels.mailOperationsFilterSearchPlaceholder}
             onChange={(event) => setSearch(event.target.value)}
           />
-        </label>
+        </FormField>
 
-        <label>
-          {adminLabels.mailOperationsFilterStatus}
-          <select
-            className="form-control"
+        <FormField label={adminLabels.mailOperationsFilterStatus} htmlFor="mail-operations-status">
+          <SelectInput
+            id="mail-operations-status"
             value={status}
             onChange={(event) => setStatus(event.target.value as MailOperationStatus | "all")}
           >
@@ -341,13 +343,12 @@ export function MailOperationsPage() {
                 {option.label}
               </option>
             ))}
-          </select>
-        </label>
+          </SelectInput>
+        </FormField>
 
-        <label>
-          {adminLabels.mailOperationsFilterSource}
-          <select
-            className="form-control"
+        <FormField label={adminLabels.mailOperationsFilterSource} htmlFor="mail-operations-source">
+          <SelectInput
+            id="mail-operations-source"
             value={sourceType}
             onChange={(event) => setSourceType(event.target.value as MailOperationSourceType | "all")}
           >
@@ -356,13 +357,17 @@ export function MailOperationsPage() {
                 {option.label}
               </option>
             ))}
-          </select>
-        </label>
+          </SelectInput>
+        </FormField>
 
-        <label>
-          {adminLabels.mailOperationsFilterSmtp}
-          <select
-            className="form-control"
+        <FormField
+          label={adminLabels.mailOperationsFilterSmtp}
+          htmlFor="mail-operations-smtp"
+          hint={smtpAccountsLoading ? adminLabels.dataOpLoading : undefined}
+          error={smtpAccountsError ?? undefined}
+        >
+          <SelectInput
+            id="mail-operations-smtp"
             value={smtpAccount}
             disabled={smtpAccountsLoading}
             onChange={(event) => setSmtpAccount(event.target.value)}
@@ -373,19 +378,17 @@ export function MailOperationsPage() {
                 {account.name}
               </option>
             ))}
-          </select>
-          {smtpAccountsLoading ? (
-            <span className="field-hint">{adminLabels.dataOpLoading}</span>
-          ) : null}
-          {smtpAccountsError ? (
-            <span className="field-error">{smtpAccountsError}</span>
-          ) : null}
-        </label>
+          </SelectInput>
+        </FormField>
 
-        <label>
-          {adminLabels.mailOperationsFilterFair}
-          <select
-            className="form-control"
+        <FormField
+          label={adminLabels.mailOperationsFilterFair}
+          htmlFor="mail-operations-fair"
+          hint={fairsLoading ? adminLabels.dataOpLoading : undefined}
+          error={fairsError ?? undefined}
+        >
+          <SelectInput
+            id="mail-operations-fair"
             value={fair}
             disabled={fairsLoading}
             onChange={(event) => setFair(event.target.value)}
@@ -396,35 +399,27 @@ export function MailOperationsPage() {
                 {item.name}
               </option>
             ))}
-          </select>
-          {fairsLoading ? (
-            <span className="field-hint">{adminLabels.dataOpLoading}</span>
-          ) : null}
-          {fairsError ? (
-            <span className="field-error">{fairsError}</span>
-          ) : null}
-        </label>
+          </SelectInput>
+        </FormField>
 
-        <label>
-          {adminLabels.mailOperationsFilterDateFrom}
-          <input
-            className="form-control"
+        <FormField label={adminLabels.mailOperationsFilterDateFrom} htmlFor="mail-operations-date-from">
+          <TextInput
+            id="mail-operations-date-from"
             type="date"
             value={dateFrom}
             onChange={(event) => setDateFrom(event.target.value)}
           />
-        </label>
+        </FormField>
 
-        <label>
-          {adminLabels.mailOperationsFilterDateTo}
-          <input
-            className="form-control"
+        <FormField label={adminLabels.mailOperationsFilterDateTo} htmlFor="mail-operations-date-to">
+          <TextInput
+            id="mail-operations-date-to"
             type="date"
             value={dateTo}
             onChange={(event) => setDateTo(event.target.value)}
           />
-        </label>
-      </div>
+        </FormField>
+      </FilterPanel>
 
       <UniversalDataTable
         items={items}
@@ -470,6 +465,6 @@ export function MailOperationsPage() {
           onCancel={() => setDialog(null)}
         />
       ) : null}
-    </div>
+    </PageShell>
   );
 }

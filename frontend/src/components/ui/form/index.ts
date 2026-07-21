@@ -3,6 +3,7 @@ export { FormSection } from "./FormSection";
 export { FormGrid } from "./FormGrid";
 export { FormField } from "./FormField";
 export { FormActions } from "./FormActions";
+export { FieldError } from "./FieldError";
 export {
   TextInput,
   PasswordInput,

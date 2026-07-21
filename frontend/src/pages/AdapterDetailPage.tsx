@@ -28,6 +28,8 @@ import {
 import { adapterDetailToListItem } from "../utils/scraperAdapters";
 import { isCustomerContactEnrichmentAdapter } from "../utils/enrichmentAdapter";
 import { buildLocationSearch, navigateWithSearch, readSearchParams } from "../utils/urlState";
+import { Banner } from "../components/ui/Banner";
+import { PageShell } from "../components/ui/PageShell";
 
 interface AdapterDetailPageProps {
   adapterKey: string;
@@ -316,12 +318,12 @@ export function AdapterDetailPage({
 
   if (!adapterItem) {
     return (
-      <div className="page adapter-detail-page">
-        <div className="banner error">{error ?? scraperLabels.loadError}</div>
+      <PageShell className="adapter-detail-page">
+        <Banner variant="error">{error ?? scraperLabels.loadError}</Banner>
         <button type="button" className="btn secondary" onClick={onBack}>
           ← {scraperLabels.backToAdapters}
         </button>
-      </div>
+      </PageShell>
     );
   }
 
@@ -383,7 +385,7 @@ export function AdapterDetailPage({
       ];
 
   return (
-    <div className="page adapter-detail-page">
+    <PageShell className="adapter-detail-page">
       <PageHeader
         title={headerTitle}
         subtitle={adapterKey}
@@ -391,7 +393,7 @@ export function AdapterDetailPage({
         actions={headerActions}
       />
 
-      {error ? <div className="banner error">{error}</div> : null}
+      {error ? <Banner variant="error">{error}</Banner> : null}
 
       <AdapterDetailContent
         adapterKey={adapterKey}
@@ -422,6 +424,6 @@ export function AdapterDetailPage({
           onConfirm={() => void handleDeleteAdapter()}
         />
       ) : null}
-    </div>
+    </PageShell>
   );
 }

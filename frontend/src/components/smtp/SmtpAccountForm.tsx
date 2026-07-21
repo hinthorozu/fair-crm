@@ -13,6 +13,7 @@ import {
   TextInput,
 } from "../ui/form";
 import type { SmtpAccount } from "../../types/smtp";
+import { Banner } from "../ui/Banner";
 import {
   EMPTY_SMTP_FORM_VALUES,
   SMTP_ENCRYPTION_TYPES,
@@ -111,7 +112,7 @@ export function SmtpAccountForm({
 
   return (
     <form className="smtp-account-form" onSubmit={(event) => void handleSubmit(event)}>
-      {formError ? <div className="banner error form-form-alert">{formError}</div> : null}
+      {formError ? <Banner variant="error" className="form-form-alert">{formError}</Banner> : null}
 
       <FormSection title={adminLabels.smtpSectionGeneral}>
         <FormGrid>
@@ -190,14 +191,14 @@ export function SmtpAccountForm({
           </FormField>
         </FormGrid>
         {serverWarnings.length > 0 ? (
-          <div className="banner info smtp-config-warning">
+          <Banner variant="info" className="smtp-config-warning">
             <strong>{adminLabels.smtpConfigWarningTitle}</strong>
             <ul className="smtp-config-warning-list">
               {serverWarnings.map((warning) => (
                 <li key={warning}>{warning}</li>
               ))}
             </ul>
-          </div>
+          </Banner>
         ) : null}
       </FormSection>
 
@@ -264,8 +265,8 @@ export function SmtpAccountForm({
                 />
               </FormField>
             </FormGrid>
-            {testError ? <div className="banner error">{testError}</div> : null}
-            {testSuccess ? <div className="banner success">{testSuccess}</div> : null}
+            {testError ? <Banner variant="error">{testError}</Banner> : null}
+            {testSuccess ? <Banner variant="success">{testSuccess}</Banner> : null}
             <div className="smtp-test-mail-actions">
               <button
                 type="button"

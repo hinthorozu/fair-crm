@@ -23,14 +23,11 @@ export function DeleteSelectedCustomersModal({
   if (!open) return null;
 
   return (
-    <Modal title={adminLabels.dataOpDeleteSelectedTitle} onClose={requestClose}>
-      <div className="delete-selected-modal">
-        <p className="text-danger">{adminLabels.dataOpDeleteSelectedWarning}</p>
-        <p className="text-muted">{adminLabels.dataOpDeleteSelectedDescription}</p>
-        <p>
-          <strong>{adminLabels.dataOpDeleteSelectedCountLabel}:</strong> {selectedCount}
-        </p>
-        <div className="form-actions">
+    <Modal
+      title={adminLabels.dataOpDeleteSelectedTitle}
+      onClose={requestClose}
+      footer={
+        <>
           <button type="button" className="btn secondary" onClick={requestClose} disabled={deleting}>
             {adminLabels.cancel}
           </button>
@@ -42,7 +39,15 @@ export function DeleteSelectedCustomersModal({
           >
             {deleting ? adminLabels.dataOpDeleteSelectedDeleting : adminLabels.dataOpDeleteSelectedConfirm}
           </button>
-        </div>
+        </>
+      }
+    >
+      <div className="delete-selected-modal">
+        <p className="text-danger">{adminLabels.dataOpDeleteSelectedWarning}</p>
+        <p className="text-muted">{adminLabels.dataOpDeleteSelectedDescription}</p>
+        <p>
+          <strong>{adminLabels.dataOpDeleteSelectedCountLabel}:</strong> {selectedCount}
+        </p>
       </div>
     </Modal>
   );

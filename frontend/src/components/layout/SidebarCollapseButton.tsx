@@ -1,4 +1,5 @@
 import React from "react";
+import { IconButton } from "../ui/IconButton";
 import { NavIconChevronLeft, NavIconChevronRight } from "./NavIcons";
 import { uiLabels } from "../../labels/uiLabels";
 
@@ -19,15 +20,13 @@ export function SidebarCollapseButton({
 }: SidebarCollapseButtonProps) {
   const label = collapsed ? expandLabel : collapseLabel;
   return (
-    <button
-      type="button"
-      className={`sidebar-collapse-btn ${className ?? ""}`.trim()}
+    <IconButton
+      variant="bordered"
+      label={label}
+      icon={collapsed ? <NavIconChevronRight /> : <NavIconChevronLeft />}
       onClick={onToggle}
-      aria-label={label}
       aria-expanded={!collapsed}
-      title={label}
-    >
-      {collapsed ? <NavIconChevronRight /> : <NavIconChevronLeft />}
-    </button>
+      className={className}
+    />
   );
 }

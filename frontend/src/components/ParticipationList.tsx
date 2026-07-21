@@ -9,6 +9,7 @@ import { labels } from "../labels";
 import { Badge } from "./ui/Badge";
 import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
 import { UniversalDataTable, type UniversalDataTableColumn } from "./ui/UniversalDataTable";
+import { TableRowActions } from "./ui/TableRowActions";
 import { participationStatusBadgeVariant } from "../utils/badges";
 
 function formatFairDates(start: string | null, end: string | null): string {
@@ -93,7 +94,7 @@ function buildCustomerParticipationColumns(
       sortable: false,
       className: "actions",
       render: (item) => (
-        <>
+        <TableRowActions>
           <button type="button" className="btn link" onClick={() => onEdit(item)}>
             {participationLabels.edit}
           </button>
@@ -105,7 +106,7 @@ function buildCustomerParticipationColumns(
           >
             {deletingId === item.id ? labels.loading : participationLabels.delete}
           </button>
-        </>
+        </TableRowActions>
       ),
     },
   ];
@@ -229,7 +230,7 @@ function buildFairParticipantColumns(
       sortable: false,
       className: "actions",
       render: (item) => (
-        <>
+        <TableRowActions>
           <button type="button" className="btn link" onClick={() => onEdit(item)}>
             {participationLabels.edit}
           </button>
@@ -241,7 +242,7 @@ function buildFairParticipantColumns(
           >
             {deletingId === item.id ? labels.loading : participationLabels.delete}
           </button>
-        </>
+        </TableRowActions>
       ),
     },
   ];

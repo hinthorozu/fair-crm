@@ -1,7 +1,9 @@
 import React from "react";
 
 interface EmptyStateProps {
-  title: string;
+  title?: string;
+  /** @deprecated Prefer `title`. Kept as alias for call-site compatibility. */
+  message?: string;
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
@@ -10,15 +12,17 @@ interface EmptyStateProps {
 
 export function EmptyState({
   title,
+  message,
   description,
   actionLabel,
   onAction,
   icon,
 }: EmptyStateProps) {
+  const heading = title ?? message ?? "";
   return (
     <div className="empty-state" role="status">
       {icon && <div className="empty-state-icon" aria-hidden="true">{icon}</div>}
-      <h3 className="empty-state-title">{title}</h3>
+      {heading ? <h3 className="empty-state-title">{heading}</h3> : null}
       {description && <p className="empty-state-description">{description}</p>}
       {actionLabel && onAction && (
         <button type="button" className="btn primary" onClick={onAction}>

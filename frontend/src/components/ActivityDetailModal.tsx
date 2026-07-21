@@ -9,6 +9,7 @@ import {
 } from "../labels/activityLabels";
 import { Modal } from "./ui/Modal";
 import { Badge } from "./ui/Badge";
+import { TableEntityLink } from "./ui/TableEntityLink";
 import {
   activitySourceBadgeVariant,
   activityStatusBadgeVariant,
@@ -58,13 +59,9 @@ export function ActivityDetailModal({
           <strong>{activityLabels.customer}</strong>
           <div>
             {onOpenCustomer ? (
-              <button
-                type="button"
-                className="link-button"
-                onClick={() => onOpenCustomer(activity.customer_id)}
-              >
+              <TableEntityLink onClick={() => onOpenCustomer(activity.customer_id)}>
                 {activity.customer_name ?? activity.customer_id}
-              </button>
+              </TableEntityLink>
             ) : (
               (activity.customer_name ?? "—")
             )}

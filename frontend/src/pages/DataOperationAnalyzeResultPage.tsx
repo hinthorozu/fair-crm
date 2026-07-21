@@ -19,6 +19,8 @@ import { adminLabels } from "../labels/adminLabels";
 import { uiLabels } from "../labels/uiLabels";
 import type { Customer, CustomerStatus, CustomerType } from "../types/customer";
 import type { DataOperationRun } from "../types/dataOperations";
+import { Card } from "../components/ui/Card";
+import { PageShell } from "../components/ui/PageShell";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -249,7 +251,7 @@ export function DataOperationAnalyzeResultPage({ runId, onBack }: DataOperationA
   };
 
   return (
-    <div className="data-operation-result-page">
+    <PageShell className="data-operation-result-page">
       <PageHeader
         title={adminLabels.dataOpAnalyzeResultTitle}
         subtitle={adminLabels.dataOpAnalyzeResultSubtitle}
@@ -268,18 +270,18 @@ export function DataOperationAnalyzeResultPage({ runId, onBack }: DataOperationA
 
       {summary && (
         <div className="data-operation-summary-grid">
-          <div className="data-operation-summary-card card">
+          <Card padding="none" className="data-operation-summary-card">
             <p className="data-operation-summary-label">{adminLabels.dataOpSummaryTotalCustomers}</p>
             <p className="data-operation-summary-value">{summary.total_customers ?? "—"}</p>
-          </div>
-          <div className="data-operation-summary-card card">
+          </Card>
+          <Card padding="none" className="data-operation-summary-card">
             <p className="data-operation-summary-label">{adminLabels.dataOpSummaryCustomersWithFair}</p>
             <p className="data-operation-summary-value">{summary.customers_with_fair ?? "—"}</p>
-          </div>
-          <div className="data-operation-summary-card card">
+          </Card>
+          <Card padding="none" className="data-operation-summary-card">
             <p className="data-operation-summary-label">{adminLabels.dataOpSummaryCustomersWithoutFair}</p>
             <p className="data-operation-summary-value">{summary.customers_without_fair ?? "—"}</p>
-          </div>
+          </Card>
         </div>
       )}
 
@@ -393,6 +395,6 @@ export function DataOperationAnalyzeResultPage({ runId, onBack }: DataOperationA
         }}
         onConfirm={() => void handleDeleteSelected()}
       />
-    </div>
+    </PageShell>
   );
 }

@@ -43,8 +43,9 @@ import {
 } from "../components/ParticipationForm";
 import { CustomerContactEnrichmentTab } from "../components/customers/CustomerContactEnrichmentTab";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { FilterPanel } from "../components/ui/FilterPanel";
 import { LoadingState } from "../components/ui/LoadingState";
-import { FormModal } from "../components/ui/form";
+import { FormModal, TextInput } from "../components/ui/form";
 import { PageHeader, type PageHeaderAction } from "../components/ui/PageHeader";
 import { TabPanel, Tabs } from "../components/ui/Tabs";
 import { Badge } from "../components/ui/Badge";
@@ -75,6 +76,8 @@ import {
 } from "../utils/urlState";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
+import { Banner } from "../components/ui/Banner";
+import { PageShell } from "../components/ui/PageShell";
 
 interface CustomerDetailPageProps {
   customerId: string;
@@ -431,12 +434,12 @@ export function CustomerDetailPage({
 
   if (!customer) {
     return (
-      <div className="page">
-        <div className="banner error">{error ?? "Müşteri bulunamadı."}</div>
+      <PageShell>
+        <Banner variant="error">{error ?? "Müşteri bulunamadı."}</Banner>
         <button type="button" className="btn secondary" onClick={onBack}>
           {contactLabels.backToCustomers}
         </button>
-      </div>
+      </PageShell>
     );
   }
 
@@ -482,7 +485,7 @@ export function CustomerDetailPage({
   ];
 
   return (
-    <div className="page">
+    <PageShell>
       <PageHeader
         title={customer.display_name}
         subtitle={
@@ -502,7 +505,7 @@ export function CustomerDetailPage({
 
       <Tabs items={tabItems} active={activeTab} onChange={setActiveTab} />
 
-      {error && <div className="banner error">{error}</div>}
+      {error && <Banner variant="error">{error}</Banner>}
 
       <TabPanel id="panel-overview" labelledBy="tab-overview" active={activeTab === "overview"}>
         <Card>
@@ -632,8 +635,19 @@ export function CustomerDetailPage({
           table={contactsTable}
           skeletonCols={6}
           toolbar={
-            <div className="filters">
-              <input
+            <FilterPanel
+              actions={
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => void contactsTable.refresh()}
+                >
+                  {labels.refresh}
+                </button>
+              }
+            >
+              <TextInput
+                id="customer-contacts-search"
                 type="search"
                 className="search-input"
                 placeholder={uiLabels.searchContact}
@@ -641,14 +655,7 @@ export function CustomerDetailPage({
                 onChange={(e) => contactsTable.setSearch(e.target.value)}
                 aria-label={uiLabels.searchContact}
               />
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={() => void contactsTable.refresh()}
-              >
-                {labels.refresh}
-              </button>
-            </div>
+            </FilterPanel>
           }
         >
           <ContactTable
@@ -673,8 +680,19 @@ export function CustomerDetailPage({
           table={activitiesTable}
           skeletonRows={4}
           toolbar={
-            <div className="filters">
-              <input
+            <FilterPanel
+              actions={
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => void activitiesTable.refresh()}
+                >
+                  {labels.refresh}
+                </button>
+              }
+            >
+              <TextInput
+                id="customer-activities-search"
                 type="search"
                 className="search-input"
                 placeholder={uiLabels.searchActivity}
@@ -682,14 +700,7 @@ export function CustomerDetailPage({
                 onChange={(e) => activitiesTable.setSearch(e.target.value)}
                 aria-label={uiLabels.searchActivity}
               />
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={() => void activitiesTable.refresh()}
-              >
-                {labels.refresh}
-              </button>
-            </div>
+            </FilterPanel>
           }
         >
           <ActivityTable
@@ -718,8 +729,19 @@ export function CustomerDetailPage({
           table={participationsTable}
           skeletonCols={7}
           toolbar={
-            <div className="filters">
-              <input
+            <FilterPanel
+              actions={
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => void participationsTable.refresh()}
+                >
+                  {labels.refresh}
+                </button>
+              }
+            >
+              <TextInput
+                id="customer-participations-search"
                 type="search"
                 className="search-input"
                 placeholder={uiLabels.searchFair}
@@ -727,14 +749,7 @@ export function CustomerDetailPage({
                 onChange={(e) => participationsTable.setSearch(e.target.value)}
                 aria-label={uiLabels.searchFair}
               />
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={() => void participationsTable.refresh()}
-              >
-                {labels.refresh}
-              </button>
-            </div>
+            </FilterPanel>
           }
         >
           <CustomerParticipationTable
@@ -896,6 +911,6 @@ export function CustomerDetailPage({
           onConfirm={() => void handleArchiveCustomer()}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

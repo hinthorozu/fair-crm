@@ -7,6 +7,7 @@ import {
   getMailOperationActions,
   mailOperationActionLabel,
 } from "../../utils/mailOperations";
+import { IconButton } from "../ui/IconButton";
 
 export interface MailOperationActionHandlers {
   onDetail?: (record: MailOperationRecord) => void;
@@ -123,22 +124,20 @@ export function MailOperationActionsMenu({
 
   return (
     <div className="mail-operation-actions-menu" ref={anchorRef}>
-      <button
-        type="button"
-        className="btn btn-sm icon kebab-menu-btn"
+      <IconButton
+        variant="kebab"
+        label={adminLabels.mailOperationsActionsMenuLabel}
+        icon={<span aria-hidden>⋮</span>}
+        pressed={open}
+        disabled={retryDisabled}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={adminLabels.mailOperationsActionsMenuLabel}
-        title={adminLabels.mailOperationsActionsMenuLabel}
-        disabled={retryDisabled}
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
           setOpen((value) => !value);
         }}
-      >
-        <span aria-hidden>⋮</span>
-      </button>
+      />
       {dropdown}
     </div>
   );

@@ -12,6 +12,7 @@ import {
   resolveSubjectAfterPreview,
 } from "../../utils/mailTemplateForm";
 import { formatSmtpTestMailError } from "../../utils/smtpForm";
+import { Banner } from "../ui/Banner";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -175,11 +176,11 @@ export function MailTemplateTestEmailPanel({
         {template.name} ({template.key})
       </p>
 
-      {success ? <div className="banner success">{success}</div> : null}
-      {error ? <div className="banner error">{error}</div> : null}
-      {previewStale ? <div className="banner warning">{adminLabels.mailTemplatesTestEmailPreviewStale}</div> : null}
+      {success ? <Banner variant="success">{success}</Banner> : null}
+      {error ? <Banner variant="error">{error}</Banner> : null}
+      {previewStale ? <Banner variant="warning">{adminLabels.mailTemplatesTestEmailPreviewStale}</Banner> : null}
       {!previewReady && !previewStale && canRender ? (
-        <div className="banner info">{adminLabels.mailTemplatesTestEmailPreviewRequired}</div>
+        <Banner variant="info">{adminLabels.mailTemplatesTestEmailPreviewRequired}</Banner>
       ) : null}
 
       <FormSection title={adminLabels.mailTemplatesTestEmailSection}>

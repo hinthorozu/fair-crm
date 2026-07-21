@@ -7,6 +7,8 @@ import {
 } from "../../api/scraper";
 import { ApiError } from "../../api/client";
 import { Badge } from "../ui/Badge";
+import { LoadingState } from "../ui/LoadingState";
+import { CheckboxField, TextInput } from "../ui/form";
 import { scraperLabels } from "../../labels/scraperLabels";
 import { runStatusBadgeVariant, runStatusLabel } from "../../utils/scraperBadges";
 import { formatScraperConsoleTime } from "../../utils/formatScraperConsoleLogTxt";
@@ -203,7 +205,7 @@ export function AdapterRunLogConsole({
             {scraperLabels.testUrlLabel}
           </label>
           <div className="adapter-console-url-row">
-            <input
+            <TextInput
               id="adapter-test-url"
               className="input adapter-console-url-input"
               type="url"
@@ -230,7 +232,7 @@ export function AdapterRunLogConsole({
           <label className="adapter-console-url-label" htmlFor="adapter-test-max-pages">
             {scraperLabels.testMaxPagesLabel}
           </label>
-          <input
+          <TextInput
             id="adapter-test-max-pages"
             className="input adapter-console-max-pages-input"
             type="number"
@@ -247,24 +249,20 @@ export function AdapterRunLogConsole({
             <div className="adapter-console-output-options">
               <span className="adapter-console-url-label">{scraperLabels.testOutputFormatsLabel}</span>
               <div className="adapter-manifest-checkboxes">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={outputJson}
-                    disabled={running || runStatus === "running"}
-                    onChange={(event) => setOutputJson(event.target.checked)}
-                  />{" "}
-                  JSON
-                </label>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={outputExcel}
-                    disabled={running || runStatus === "running"}
-                    onChange={(event) => setOutputExcel(event.target.checked)}
-                  />{" "}
-                  Excel
-                </label>
+                <CheckboxField
+                  id="adapter-console-output-json"
+                  label="JSON"
+                  checked={outputJson}
+                  disabled={running || runStatus === "running"}
+                  onChange={setOutputJson}
+                />
+                <CheckboxField
+                  id="adapter-console-output-excel"
+                  label="Excel"
+                  checked={outputExcel}
+                  disabled={running || runStatus === "running"}
+                  onChange={setOutputExcel}
+                />
               </div>
             </div>
           ) : null}
@@ -335,7 +333,7 @@ export function AdapterRunLogConsole({
         {!selectedRunId ? (
           <p className="text-muted">{scraperLabels.testConsoleHint}</p>
         ) : null}
-        {loading && logs.length === 0 ? <p className="text-muted">Yükleniyor…</p> : null}
+        {loading && logs.length === 0 ? <LoadingState variant="inline" /> : null}
         {logs.map((log) => (
           <div key={log.id} className={`adapter-console-line adapter-console-${log.level}`}>
             <div className="adapter-console-header">

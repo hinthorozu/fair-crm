@@ -2,14 +2,18 @@ import React from "react";
 import { downloadScraperRunOutput, listAdapters, listScraperRunsTable } from "../api/scraper";
 import { ApiError } from "../api/client";
 import { PageHeader } from "../components/ui/PageHeader";
+import { EmptyState } from "../components/ui/EmptyState";
 import { Badge } from "../components/ui/Badge";
 import { FilterPanel } from "../components/ui/FilterPanel";
+import { FormField, SelectInput, TextInput } from "../components/ui/form";
 import { TruncatedText } from "../components/ui/TruncatedText";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { scraperLabels } from "../labels/scraperLabels";
 import type { AdapterListItem, ScraperRun, ScraperRunStatus } from "../types/scraper";
 import { runStatusBadgeVariant, runStatusLabel } from "../utils/scraperBadges";
+import { Banner } from "../components/ui/Banner";
+import { PageShell } from "../components/ui/PageShell";
 
 interface ScraperRunHistoryPageProps {
   initialAdapterKey?: string;
@@ -375,10 +379,9 @@ export function ScraperRunHistoryPage({
 
   const filtersToolbar = (
     <FilterPanel className="run-history-filters">
-      <label>
-        {scraperLabels.runFilterAdapter}
-        <select
-          className="input"
+      <FormField label={scraperLabels.runFilterAdapter} htmlFor="run-filter-adapter">
+        <SelectInput
+          id="run-filter-adapter"
           value={table.filters.adapter_key ?? ""}
           onChange={(event) => table.setFilter("adapter_key", event.target.value)}
         >
@@ -388,12 +391,11 @@ export function ScraperRunHistoryPage({
               {adapter.display_name}
             </option>
           ))}
-        </select>
-      </label>
-      <label>
-        {scraperLabels.runFilterStatus}
-        <select
-          className="input"
+        </SelectInput>
+      </FormField>
+      <FormField label={scraperLabels.runFilterStatus} htmlFor="run-filter-status">
+        <SelectInput
+          id="run-filter-status"
           value={table.filters.status ?? ""}
           onChange={(event) => table.setFilter("status", event.target.value)}
         >
@@ -403,53 +405,51 @@ export function ScraperRunHistoryPage({
               {runStatusLabel(status)}
             </option>
           ))}
-        </select>
-      </label>
-      <label>
-        {scraperLabels.runFilterEngineType}
-        <select
-          className="input"
+        </SelectInput>
+      </FormField>
+      <FormField label={scraperLabels.runFilterEngineType} htmlFor="run-filter-engine-type">
+        <SelectInput
+          id="run-filter-engine-type"
           value={table.filters.engine_type ?? ""}
           onChange={(event) => table.setFilter("engine_type", event.target.value)}
         >
           <option value="">{scraperLabels.runFilterAll}</option>
           <option value="static">{scraperLabels.runEngineTypeStatic}</option>
           <option value="dynamic">{scraperLabels.runEngineTypeDynamic}</option>
-        </select>
-      </label>
-      <label>
-        {scraperLabels.runFilterDateFrom}
-        <input
-          className="input"
+        </SelectInput>
+      </FormField>
+      <FormField label={scraperLabels.runFilterDateFrom} htmlFor="run-filter-date-from">
+        <TextInput
+          id="run-filter-date-from"
           type="date"
           value={table.filters.date_from ?? ""}
           onChange={(event) => table.setFilter("date_from", event.target.value)}
         />
-      </label>
-      <label>
-        {scraperLabels.runFilterDateTo}
-        <input
-          className="input"
+      </FormField>
+      <FormField label={scraperLabels.runFilterDateTo} htmlFor="run-filter-date-to">
+        <TextInput
+          id="run-filter-date-to"
           type="date"
           value={table.filters.date_to ?? ""}
           onChange={(event) => table.setFilter("date_to", event.target.value)}
         />
-      </label>
-      <label className="run-history-url-filter">
-        {scraperLabels.runFilterUrl}
-        <input
-          className="input"
-          type="search"
-          value={table.search}
-          placeholder="https://"
-          onChange={(event) => table.setSearch(event.target.value)}
-        />
-      </label>
+      </FormField>
+      <div className="run-history-url-filter">
+        <FormField label={scraperLabels.runFilterUrl} htmlFor="run-filter-url" fullWidth>
+          <TextInput
+            id="run-filter-url"
+            type="search"
+            value={table.search}
+            placeholder="https://"
+            onChange={(event) => table.setSearch(event.target.value)}
+          />
+        </FormField>
+      </div>
     </FilterPanel>
   );
 
   return (
-    <div className="page scraper-run-history-page">
+    <PageShell className="scraper-run-history-page">
       <PageHeader
         title={scraperLabels.runHistoryTitle}
         subtitle={scraperLabels.runHistorySubtitle}
@@ -464,7 +464,7 @@ export function ScraperRunHistoryPage({
         ]}
       />
 
-      {outputError ? <div className="banner error">{outputError}</div> : null}
+      {outputError ? <Banner variant="error">{outputError}</Banner> : null}
 
       <UniversalDataTable
         table={table}
@@ -473,8 +473,8 @@ export function ScraperRunHistoryPage({
         columns={columns}
         rowKey={(run) => run.id}
         className="scraper-run-history-table"
-        emptyState={showEmpty ? <p className="text-muted">{scraperLabels.runHistoryEmpty}</p> : undefined}
+        emptyState={showEmpty ? <EmptyState title={scraperLabels.runHistoryEmpty} /> : undefined}
       />
-    </div>
+    </PageShell>
   );
 }

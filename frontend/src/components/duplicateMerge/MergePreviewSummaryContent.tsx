@@ -3,6 +3,7 @@ import type {
   DuplicateGroupCustomerDetail,
   DuplicateGroupMergePreview,
 } from "../../types/dataOperations";
+import { Banner } from "../ui/Banner";
 import { adminLabels } from "../../labels/adminLabels";
 import { CopyableCustomerId } from "./CopyableCustomerId";
 
@@ -121,13 +122,14 @@ export function MergePreviewSummaryContent({
 
       {showWarnings &&
         preview.warnings.map((warning, index) => (
-          <div
+          <Banner
             key={`${warning.code}-${index}`}
-            className="banner warning duplicate-group-summary-banner"
+            variant="warning"
+            className="duplicate-group-summary-banner"
             role="status"
           >
             {warning.message}
-          </div>
+          </Banner>
         ))}
 
       <CommunicationSection title={adminLabels.dataOpSummarySelectedEmails} items={preview.emails} />

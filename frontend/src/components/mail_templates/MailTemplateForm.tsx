@@ -13,6 +13,7 @@ import {
   TextareaInput,
 } from "../ui/form";
 import type { MailTemplate } from "../../types/mailTemplates";
+import { Banner } from "../ui/Banner";
 import {
   EMPTY_MAIL_TEMPLATE_FORM_VALUES,
   MAIL_TEMPLATE_TYPES,
@@ -82,7 +83,7 @@ export function MailTemplateForm({
 
   return (
     <form className="mail-template-form" onSubmit={(event) => void handleSubmit(event)}>
-      {formError ? <div className="banner error form-form-alert">{formError}</div> : null}
+      {formError ? <Banner variant="error" className="form-form-alert">{formError}</Banner> : null}
 
       <FormSection title={adminLabels.mailTemplatesSectionGeneral}>
         <FormGrid>

@@ -7,10 +7,14 @@ import {
   ApiError,
 } from "../api/dataOperations";
 import { PageHeader } from "../components/ui/PageHeader";
+import { LoadingState } from "../components/ui/LoadingState";
 import { Badge } from "../components/ui/Badge";
+import { RadioField } from "../components/ui/form";
 import { adminLabels } from "../labels/adminLabels";
 import type { DataOperationDefinition, DataOperationRun, DuplicateGroupByField } from "../types/dataOperations";
 import type { BadgeVariant } from "../components/ui/Badge";
+import { Card } from "../components/ui/Card";
+import { PageShell } from "../components/ui/PageShell";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -192,11 +196,11 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
   };
 
   return (
-    <div className="data-operations-page">
+    <PageShell className="data-operations-page">
       <PageHeader title={adminLabels.dataOperationsTitle} subtitle={adminLabels.dataOperationsSubtitle} />
 
       {error && <p className="text-danger">{error}</p>}
-      {loading && <p className="text-muted">{adminLabels.dataOpLoading}</p>}
+      {loading && <LoadingState />}
 
       {!loading && (
         <div className="data-operations-list">
@@ -212,7 +216,7 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
                 : null;
 
             return (
-              <section key={operation.key} className="data-operation-card card">
+              <Card as="section" padding="none" className="data-operation-card" key={operation.key}>
                 <div className="data-operation-card-header">
                   <div>
                     <h3>{operation.name}</h3>
@@ -222,17 +226,17 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
                         <legend>{adminLabels.dataOpGroupByLabel}</legend>
                         <div className="data-operation-group-by-options">
                           {DUPLICATE_GROUP_BY_OPTIONS.map((option) => (
-                            <label key={option.value} className="data-operation-group-by-option">
-                              <input
-                                type="radio"
-                                name="duplicate-group-by"
-                                value={option.value}
-                                checked={duplicateGroupBy === option.value}
-                                disabled={busy}
-                                onChange={() => setDuplicateGroupBy(option.value)}
-                              />
-                              {option.label}
-                            </label>
+                            <RadioField
+                              key={option.value}
+                              id={`duplicate-group-by-${option.value}`}
+                              name="duplicate-group-by"
+                              label={option.label}
+                              value={option.value}
+                              checked={duplicateGroupBy === option.value}
+                              disabled={busy}
+                              onChange={(value) => setDuplicateGroupBy(value as DuplicateGroupByField)}
+                              className="data-operation-group-by-option"
+                            />
                           ))}
                         </div>
                       </fieldset>
@@ -317,11 +321,11 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
                     </button>
                   </div>
                 )}
-              </section>
+              </Card>
             );
           })}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

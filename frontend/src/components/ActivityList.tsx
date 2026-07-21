@@ -13,6 +13,7 @@ import { uiLabels } from "../labels/uiLabels";
 import { Badge } from "./ui/Badge";
 import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
 import { UniversalDataTable, type UniversalDataTableColumn } from "./ui/UniversalDataTable";
+import { TableRowActions } from "./ui/TableRowActions";
 import {
   activitySourceBadgeVariant,
   activityStatusBadgeVariant,
@@ -101,7 +102,7 @@ function buildActivityColumns(props: ActivityTableProps): UniversalDataTableColu
       sortable: false,
       className: "actions",
       render: (a) => (
-        <>
+        <TableRowActions>
           <button type="button" className="btn link" onClick={() => onEdit(a)}>
             {activityLabels.edit}
           </button>
@@ -113,7 +114,7 @@ function buildActivityColumns(props: ActivityTableProps): UniversalDataTableColu
           >
             {deletingId === a.id ? labels.loading : activityLabels.delete}
           </button>
-        </>
+        </TableRowActions>
       ),
     },
   ];

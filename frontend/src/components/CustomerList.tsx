@@ -4,7 +4,10 @@ import { uiLabels } from "../labels/uiLabels";
 import { Badge } from "./ui/Badge";
 import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
 import { UniversalDataTable, type UniversalDataTableColumn } from "./ui/UniversalDataTable";
+import { TableEntityLink } from "./ui/TableEntityLink";
+import { TableRowActions } from "./ui/TableRowActions";
 import { FilterPanel } from "./ui/FilterPanel";
+import { SelectInput, TextInput } from "./ui/form";
 import { customerStatusBadgeVariant } from "../utils/badges";
 import { CommunicationListCell } from "./CommunicationListCell";
 import type { SortDirection } from "../types/listTable";
@@ -36,7 +39,8 @@ export function CustomerFilters({
         </button>
       }
     >
-      <input
+      <TextInput
+        id="customer-search"
         type="search"
         className="search-input"
         placeholder={uiLabels.searchCustomer}
@@ -44,7 +48,8 @@ export function CustomerFilters({
         onChange={(e) => onSearchChange(e.target.value)}
         aria-label={uiLabels.searchCustomer}
       />
-      <select
+      <SelectInput
+        id="customer-filter-status"
         value={status}
         onChange={(e) => onStatusChange(e.target.value as CustomerStatus | "")}
         aria-label={labels.status}
@@ -55,8 +60,9 @@ export function CustomerFilters({
             {customerStatusLabels[s]}
           </option>
         ))}
-      </select>
-      <select
+      </SelectInput>
+      <SelectInput
+        id="customer-filter-type"
         value={customerType}
         onChange={(e) => onTypeChange(e.target.value as CustomerType | "")}
         aria-label={labels.customer_type}
@@ -67,7 +73,7 @@ export function CustomerFilters({
             {label}
           </option>
         ))}
-      </select>
+      </SelectInput>
     </FilterPanel>
   );
 }
@@ -114,9 +120,9 @@ function buildCustomerColumns(props: CustomerTableProps): UniversalDataTableColu
       render: (c) => (
         <>
           {onOpenDetail ? (
-            <button type="button" className="btn link name-link" onClick={() => onOpenDetail(c)}>
+            <TableEntityLink className="name-link" onClick={() => onOpenDetail(c)}>
               <strong>{c.display_name}</strong>
-            </button>
+            </TableEntityLink>
           ) : (
             <strong>{c.display_name}</strong>
           )}
@@ -182,7 +188,7 @@ function buildCustomerColumns(props: CustomerTableProps): UniversalDataTableColu
       render: (c) => {
         const isArchived = isArchivedCustomer(c);
         return (
-          <>
+          <TableRowActions>
             {isArchived && (
               <button
                 type="button"
@@ -208,7 +214,7 @@ function buildCustomerColumns(props: CustomerTableProps): UniversalDataTableColu
                 </button>
               </>
             )}
-          </>
+          </TableRowActions>
         );
       },
     },

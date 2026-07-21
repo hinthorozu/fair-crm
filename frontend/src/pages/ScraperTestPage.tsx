@@ -3,6 +3,7 @@ import { getScraperManifest, listAdapters } from "../api/scraper";
 import { ApiError } from "../api/client";
 import { AdapterRunLogConsole } from "../components/scraper/AdapterRunLogConsole";
 import { Card } from "../components/ui/Card";
+import { FormField, SelectInput } from "../components/ui/form";
 import { LoadingState } from "../components/ui/LoadingState";
 import { PageHeader } from "../components/ui/PageHeader";
 import { scraperLabels } from "../labels/scraperLabels";
@@ -10,6 +11,8 @@ import type { AdapterListItem } from "../types/scraper";
 import { readSearchParams } from "../utils/urlState";
 import { isCustomerContactEnrichmentAdapter } from "../utils/enrichmentAdapter";
 import { buildEnrichmentRunDetailPath } from "../utils/enrichmentRunRouting";
+import { Banner } from "../components/ui/Banner";
+import { PageShell } from "../components/ui/PageShell";
 
 interface ScraperTestPageProps {
   initialAdapterKey?: string;
@@ -100,16 +103,15 @@ export function ScraperTestPage({ initialAdapterKey, focusRunId }: ScraperTestPa
   const selectedAdapter = adapters.find((item) => item.adapter_key === selectedAdapterKey) ?? null;
 
   return (
-    <div className="page scraper-test-page">
+    <PageShell className="scraper-test-page">
       <PageHeader title={scraperLabels.testPageTitle} subtitle={scraperLabels.testPageSubtitle} />
 
-      {error ? <div className="banner error">{error}</div> : null}
+      {error ? <Banner variant="error">{error}</Banner> : null}
 
       <Card>
         <div className="scraper-test-form">
-          <label htmlFor="scraper-test-adapter">
-            {scraperLabels.testAdapterLabel}
-            <select
+          <FormField label={scraperLabels.testAdapterLabel} htmlFor="scraper-test-adapter">
+            <SelectInput
               id="scraper-test-adapter"
               className="input"
               value={selectedAdapterKey}
@@ -124,8 +126,8 @@ export function ScraperTestPage({ initialAdapterKey, focusRunId }: ScraperTestPa
                   {adapter.display_name} ({adapter.adapter_key})
                 </option>
               ))}
-            </select>
-          </label>
+            </SelectInput>
+          </FormField>
           {selectedAdapter ? (
             <p className="text-muted scraper-test-adapter-meta">
               {scraperLabels.testAdapterMeta(
@@ -149,6 +151,6 @@ export function ScraperTestPage({ initialAdapterKey, focusRunId }: ScraperTestPa
           <p className="text-muted">{scraperLabels.testSelectAdapterHint}</p>
         )}
       </Card>
-    </div>
+    </PageShell>
   );
 }

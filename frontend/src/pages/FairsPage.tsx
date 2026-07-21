@@ -18,6 +18,8 @@ import { useServerDataTable } from "../hooks/useServerDataTable";
 import type { CreateFairPayload, Fair, FairStatus } from "../types/fair";
 import { fairLabels } from "../labels/fairLabels";
 import { labels } from "../labels";
+import { Banner } from "../components/ui/Banner";
+import { PageShell } from "../components/ui/PageShell";
 
 type ConfirmAction =
   | { type: "archive"; fair: Fair }
@@ -104,7 +106,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
   const closeConfirm = React.useCallback(() => setConfirm(null), []);
 
   return (
-    <div className="page">
+    <PageShell>
       <PageHeader
         title={fairLabels.fairs}
         subtitle={`${table.pagination.totalItems} kayıt`}
@@ -150,7 +152,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
         />
       </ServerDataTableFrame>
 
-      {success && <div className="banner success">{success}</div>}
+      {success && <Banner variant="success">{success}</Banner>}
 
       {modal === "create" && (
         <FormModal title={fairLabels.newFair} onClose={closeModal} size="lg">
@@ -195,6 +197,6 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
           onConfirm={() => void handleRestore(confirm.fair)}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

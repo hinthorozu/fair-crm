@@ -1,6 +1,7 @@
 import React from "react";
 import { paginationLabels } from "../labels";
 import { PAGE_SIZE_OPTIONS } from "../types/pagination";
+import { SelectInput } from "./ui/form";
 
 export interface PaginationBarProps {
   page: number;
@@ -41,9 +42,10 @@ export function PaginationBar({
       </div>
 
       <div className="pagination-controls">
-        <label className="pagination-size">
+        <label className="pagination-size" htmlFor="pagination-page-size">
           <span>{paginationLabels.pageSizeLabel}</span>
-          <select
+          <SelectInput
+            id="pagination-page-size"
             value={pageSize}
             disabled={loading}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
@@ -53,7 +55,7 @@ export function PaginationBar({
                 {size}
               </option>
             ))}
-          </select>
+          </SelectInput>
         </label>
 
         <button

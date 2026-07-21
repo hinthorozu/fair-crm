@@ -2,7 +2,7 @@ import React from "react";
 import type { CommunicationFormItem } from "../utils/customerCommunicationForm";
 import { createCommunicationItem, ensureSinglePrimary } from "../utils/customerCommunicationForm";
 import { labels } from "../labels";
-import { TextInput } from "./ui/form";
+import { TextInput, RadioField } from "./ui/form";
 
 interface CustomerCommunicationFieldListProps {
   sectionLabel: string;
@@ -57,16 +57,16 @@ export function CustomerCommunicationFieldList({
         <ul className="communication-field-list">
           {items.map((item, index) => (
             <li key={item.id} className="communication-field-row">
-              <label className="communication-field-primary">
-                <input
-                  type="radio"
-                  name={`${fieldId}-primary`}
-                  checked={item.is_primary}
-                  onChange={() => setPrimary(item.id)}
-                  aria-label={`${labels.markPrimary} ${sectionLabel}`}
-                />
-                <span>{labels.primary}</span>
-              </label>
+              <RadioField
+                id={`${fieldId}-primary-${item.id}`}
+                name={`${fieldId}-primary`}
+                label={labels.primary}
+                value={item.id}
+                checked={item.is_primary}
+                onChange={() => setPrimary(item.id)}
+                ariaLabel={`${labels.markPrimary} ${sectionLabel}`}
+                className="communication-field-primary"
+              />
               <TextInput
                 id={`${fieldId}-${index}`}
                 type={inputType}

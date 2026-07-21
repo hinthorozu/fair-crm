@@ -26,6 +26,7 @@ import type {
   TodoWorklistModalContext,
 } from "../../types/todoWorklist";
 import { ManualTaskMailModal } from "./ManualTaskMailModal";
+import { Banner } from "../ui/Banner";
 
 const EMPTY_FORM = {
   outcomeId: "",
@@ -216,7 +217,7 @@ export function TodoWorklistActivityModal({
           </div>
         ) : !context ? (
           <>
-            <div className="banner error form-form-alert">{error ?? todoWorklistLabels.loadError}</div>
+            <Banner variant="error" className="form-form-alert">{error ?? todoWorklistLabels.loadError}</Banner>
             <div className="form-actions span-2">
               <button type="button" className="btn secondary" onClick={requestClose}>
                 {todoLabels.cancel}
@@ -231,8 +232,8 @@ export function TodoWorklistActivityModal({
               void handleSubmit(false);
             }}
           >
-            {error ? <div className="banner error form-form-alert">{error}</div> : null}
-            {mailSuccess ? <div className="banner success form-form-alert">{mailSuccess}</div> : null}
+            {error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}
+            {mailSuccess ? <Banner variant="success" className="form-form-alert">{mailSuccess}</Banner> : null}
 
             <CustomerSummarySection context={context} />
             <div className="todo-worklist-mail-action-row">

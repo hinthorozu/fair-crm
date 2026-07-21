@@ -1,5 +1,7 @@
 import React from "react";
 import { labels } from "../../labels";
+import { NavIconClose } from "../layout/NavIcons";
+import { IconButton } from "./IconButton";
 
 interface DrawerProps {
   title: string;
@@ -32,15 +34,12 @@ export function Drawer({ title, subtitle, onClose, children }: DrawerProps) {
             <h2 id="drawer-title">{title}</h2>
             {subtitle ? <p className="drawer-subtitle text-muted">{subtitle}</p> : null}
           </div>
-          <button
+          <IconButton
             ref={closeRef}
-            type="button"
-            className="btn icon"
+            label={labels.cancel}
+            icon={<NavIconClose />}
             onClick={onClose}
-            aria-label={labels.cancel}
-          >
-            ×
-          </button>
+          />
         </header>
         <div className="drawer-body">{children}</div>
       </aside>

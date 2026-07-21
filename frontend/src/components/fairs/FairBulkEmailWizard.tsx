@@ -29,7 +29,10 @@ import {
   resolveSubjectAfterPreview,
   selectActiveMailTemplates,
 } from "../../utils/mailTemplateForm";
-import { FormField, FormGrid, FormSection, SelectInput, TextInput } from "../ui/form";
+import { CheckboxField, FormField, FormGrid, FormSection, SelectInput, TextInput } from "../ui/form";
+import { UniversalDataTable, type UniversalDataTableColumn } from "../ui/UniversalDataTable";
+import type { RecipientPreviewItem } from "../../types/fairBulkEmail";
+import { Banner } from "../ui/Banner";
 
 function skipReasonLabel(reason: string | null): string {
   switch (reason) {
@@ -83,6 +86,58 @@ export function FairBulkEmailWizard({
   const [error, setError] = React.useState<string | null>(null);
   const [templateError, setTemplateError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
+
+  const recipientPreviewColumns = React.useMemo<UniversalDataTableColumn<RecipientPreviewItem>[]>(
+    () => [
+      {
+        key: "recipient_name",
+        title: fairLabels.bulkEmailColRecipient,
+        sortable: false,
+        allowWrap: true,
+        render: (item) => item.recipient_name ?? "—",
+      },
+      {
+        key: "company_name",
+        title: fairLabels.bulkEmailColCompany,
+        sortable: false,
+        allowWrap: true,
+        render: (item) => item.company_name,
+      },
+      {
+        key: "email",
+        title: fairLabels.bulkEmailColEmail,
+        sortable: false,
+        allowWrap: true,
+        render: (item) => item.email || "—",
+      },
+      {
+        key: "source",
+        title: fairLabels.bulkEmailColSource,
+        sortable: false,
+        render: (item) =>
+          item.source === "contact"
+            ? fairLabels.bulkEmailSourceContact
+            : fairLabels.bulkEmailSourceCustomer,
+      },
+      {
+        key: "status",
+        title: fairLabels.bulkEmailColStatus,
+        sortable: false,
+        render: (item) =>
+          item.status === "will_send"
+            ? fairLabels.bulkEmailStatusWillSend
+            : fairLabels.bulkEmailStatusSkip,
+      },
+      {
+        key: "skip_reason",
+        title: fairLabels.bulkEmailColSkipReason,
+        sortable: false,
+        allowWrap: true,
+        render: (item) => skipReasonLabel(item.skip_reason),
+      },
+    ],
+    [],
+  );
 
   const selectedTemplate = templates.find((item) => item.id === templateId) ?? null;
   const previewStale = previewReady && JSON.stringify(recipientOptions) !== optionsSnapshot;
@@ -274,59 +329,54 @@ export function FairBulkEmailWizard({
 
   return (
     <div className="crm-form fair-bulk-email-wizard">
-      {success ? <div className="banner success">{success}</div> : null}
-      {error ? <div className="banner error">{error}</div> : null}
-      {templateError ? <div className="banner warning">{templateError}</div> : null}
+      {success ? <Banner variant="success">{success}</Banner> : null}
+      {error ? <Banner variant="error">{error}</Banner> : null}
+      {templateError ? <Banner variant="warning">{templateError}</Banner> : null}
       {!canRenderMailTemplate && canReadMailTemplates && templates.length > 0 ? (
-        <div className="banner warning">{fairLabels.bulkEmailRenderPermissionDenied}</div>
+        <Banner variant="warning">{fairLabels.bulkEmailRenderPermissionDenied}</Banner>
       ) : null}
-      {previewStale ? <div className="banner warning">{fairLabels.bulkEmailPreviewStale}</div> : null}
+      {previewStale ? <Banner variant="warning">{fairLabels.bulkEmailPreviewStale}</Banner> : null}
       {!previewReady && !previewStale ? (
-        <div className="banner info">{fairLabels.bulkEmailPreviewRequired}</div>
+        <Banner variant="info">{fairLabels.bulkEmailPreviewRequired}</Banner>
       ) : null}
 
       <FormSection title={fairLabels.bulkEmailOptionsSection}>
         <div className="checkbox-list">
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={recipientOptions.include_customer_emails}
-              onChange={(event) => updateOption("include_customer_emails", event.target.checked)}
-            />
-            <span>{fairLabels.bulkEmailIncludeCustomerEmails}</span>
-          </label>
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={recipientOptions.include_contact_emails}
-              onChange={(event) => updateOption("include_contact_emails", event.target.checked)}
-            />
-            <span>{fairLabels.bulkEmailIncludeContactEmails}</span>
-          </label>
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={recipientOptions.skip_no_email}
-              onChange={(event) => updateOption("skip_no_email", event.target.checked)}
-            />
-            <span>{fairLabels.bulkEmailSkipNoEmail}</span>
-          </label>
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={recipientOptions.exclude_inactive}
-              onChange={(event) => updateOption("exclude_inactive", event.target.checked)}
-            />
-            <span>{fairLabels.bulkEmailExcludeInactive}</span>
-          </label>
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={recipientOptions.dedupe_emails}
-              onChange={(event) => updateOption("dedupe_emails", event.target.checked)}
-            />
-            <span>{fairLabels.bulkEmailDedupeEmails}</span>
-          </label>
+          <CheckboxField
+            id="fair-bulk-email-include-customer-emails"
+            label={fairLabels.bulkEmailIncludeCustomerEmails}
+            checked={recipientOptions.include_customer_emails}
+            onChange={(checked) => updateOption("include_customer_emails", checked)}
+            className="checkbox-row"
+          />
+          <CheckboxField
+            id="fair-bulk-email-include-contact-emails"
+            label={fairLabels.bulkEmailIncludeContactEmails}
+            checked={recipientOptions.include_contact_emails}
+            onChange={(checked) => updateOption("include_contact_emails", checked)}
+            className="checkbox-row"
+          />
+          <CheckboxField
+            id="fair-bulk-email-skip-no-email"
+            label={fairLabels.bulkEmailSkipNoEmail}
+            checked={recipientOptions.skip_no_email}
+            onChange={(checked) => updateOption("skip_no_email", checked)}
+            className="checkbox-row"
+          />
+          <CheckboxField
+            id="fair-bulk-email-exclude-inactive"
+            label={fairLabels.bulkEmailExcludeInactive}
+            checked={recipientOptions.exclude_inactive}
+            onChange={(checked) => updateOption("exclude_inactive", checked)}
+            className="checkbox-row"
+          />
+          <CheckboxField
+            id="fair-bulk-email-dedupe-emails"
+            label={fairLabels.bulkEmailDedupeEmails}
+            checked={recipientOptions.dedupe_emails}
+            onChange={(checked) => updateOption("dedupe_emails", checked)}
+            className="checkbox-row"
+          />
         </div>
       </FormSection>
 
@@ -418,40 +468,12 @@ export function FairBulkEmailWizard({
               <div>{recipientPreview.skipped_count}</div>
             </div>
           </div>
-          <div className="table-scroll">
-            <table className="data-table compact">
-              <thead>
-                <tr>
-                  <th>{fairLabels.bulkEmailColRecipient}</th>
-                  <th>{fairLabels.bulkEmailColCompany}</th>
-                  <th>{fairLabels.bulkEmailColEmail}</th>
-                  <th>{fairLabels.bulkEmailColSource}</th>
-                  <th>{fairLabels.bulkEmailColStatus}</th>
-                  <th>{fairLabels.bulkEmailColSkipReason}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recipientPreview.recipients.map((item) => (
-                  <tr key={item.recipient_key}>
-                    <td>{item.recipient_name ?? "—"}</td>
-                    <td>{item.company_name}</td>
-                    <td>{item.email || "—"}</td>
-                    <td>
-                      {item.source === "contact"
-                        ? fairLabels.bulkEmailSourceContact
-                        : fairLabels.bulkEmailSourceCustomer}
-                    </td>
-                    <td>
-                      {item.status === "will_send"
-                        ? fairLabels.bulkEmailStatusWillSend
-                        : fairLabels.bulkEmailStatusSkip}
-                    </td>
-                    <td>{skipReasonLabel(item.skip_reason)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <UniversalDataTable
+            items={recipientPreview.recipients}
+            columns={recipientPreviewColumns}
+            rowKey={(item) => item.recipient_key}
+            className="fair-bulk-email-recipients-table"
+          />
         </FormSection>
       ) : null}
 

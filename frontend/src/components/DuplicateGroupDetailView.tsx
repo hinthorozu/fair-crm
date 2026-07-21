@@ -6,10 +6,13 @@ import { customerStatusBadgeVariant } from "../utils/badges";
 import type { CustomerStatus } from "../types/customer";
 import { adminLabels } from "../labels/adminLabels";
 import { Badge } from "./ui/Badge";
+import { CheckboxField, RadioField } from "./ui/form";
 import { CopyableCustomerId } from "./duplicateMerge/CopyableCustomerId";
 import { MergeSummaryPanel } from "./duplicateMerge/MergeSummaryPanel";
 import { MergeCustomersConfirmModal } from "./duplicateMerge/MergeCustomersConfirmModal";
 import { buildMergePreviewRequest } from "./duplicateMerge/mergePreviewRequest";
+import { Banner } from "./ui/Banner";
+import { Card } from "./ui/Card";
 import {
   allCommunicationKeys,
   commSelectionKey,
@@ -117,23 +120,24 @@ function ScalarMergeField({
   const inputId = `merge-field-${fieldKey}-${customerId}`;
 
   return (
-    <label
-      htmlFor={inputId}
-      className={`duplicate-group-merge-field${selected ? " is-selected" : ""}`}
-    >
+    <div className={`duplicate-group-merge-field${selected ? " is-selected" : ""}`}>
       <span className="duplicate-group-merge-field-control">
-        <input
+        <RadioField
           id={inputId}
-          type="radio"
           name={`merge-field-${fieldKey}`}
-          className="duplicate-group-merge-field-radio"
+          label={fieldLabel}
+          value={customerId}
           checked={selected}
           onChange={() => onSelect(fieldKey, customerId)}
+          hideLabel
+          inputClassName="duplicate-group-merge-field-radio"
         />
-        <span className="duplicate-group-merge-field-label">{fieldLabel}</span>
+        <label htmlFor={inputId} className="duplicate-group-merge-field-label">
+          {fieldLabel}
+        </label>
       </span>
       <span className="duplicate-group-merge-field-value">{value ?? "—"}</span>
-    </label>
+    </div>
   );
 }
 
@@ -184,18 +188,21 @@ function CommunicationMergeField({
 
             return (
               <li key={item.id}>
-                <label htmlFor={inputId} className={`duplicate-group-comm-check${checked ? " is-selected" : ""}`}>
-                  <input
+                <div className={`duplicate-group-comm-check${checked ? " is-selected" : ""}`}>
+                  <CheckboxField
                     id={inputId}
-                    type="checkbox"
+                    label={value}
                     checked={checked}
-                    onChange={(event) => onToggle(key, event.target.checked)}
+                    onChange={(nextChecked) => onToggle(key, nextChecked)}
+                    hideLabel
                   />
-                  <span className="duplicate-group-comm-check-value">{value}</span>
+                  <label htmlFor={inputId} className="duplicate-group-comm-check-value">
+                    {value}
+                  </label>
                   {item.is_primary && (
                     <span className="detail-primary-badge">{adminLabels.dataOpPrimary}</span>
                   )}
-                </label>
+                </div>
               </li>
             );
           })}
@@ -513,7 +520,7 @@ export function DuplicateGroupDetailView({
   return (
     <div className="duplicate-group-detail">
       <div className="data-operation-summary-grid duplicate-group-summary-grid">
-        <div className="data-operation-summary-card card">
+        <Card padding="none" className="data-operation-summary-card">
           <p className="data-operation-summary-label">
             {adminLabels.dataOpColGroupKey}
             {groupBy ? ` (${formatGroupByLabel(groupBy)})` : ""}
@@ -521,32 +528,32 @@ export function DuplicateGroupDetailView({
           <p className="data-operation-summary-value duplicate-group-summary-key">
             <code>{groupKey}</code>
           </p>
-        </div>
-        <div className="data-operation-summary-card card">
+        </Card>
+        <Card padding="none" className="data-operation-summary-card">
           <p className="data-operation-summary-label">{adminLabels.dataOpColCustomerCount}</p>
           <p className="data-operation-summary-value">{customers.length}</p>
-        </div>
-        <div className="data-operation-summary-card card">
+        </Card>
+        <Card padding="none" className="data-operation-summary-card">
           <p className="data-operation-summary-label">{adminLabels.dataOpSummaryTotalParticipationRows}</p>
           <p className="data-operation-summary-value">{totalParticipations}</p>
-        </div>
-        <div className="data-operation-summary-card card">
+        </Card>
+        <Card padding="none" className="data-operation-summary-card">
           <p className="data-operation-summary-label">{adminLabels.dataOpSummaryUniqueFairs}</p>
           <p className="data-operation-summary-value">{uniqueFairs}</p>
-        </div>
-        <div className="data-operation-summary-card card">
+        </Card>
+        <Card padding="none" className="data-operation-summary-card">
           <p className="data-operation-summary-label">{adminLabels.dataOpSummaryFairParticipations}</p>
           <p className="data-operation-summary-value">{totalParticipations}</p>
-        </div>
+        </Card>
       </div>
 
-      <div className="banner info duplicate-group-merge-notice" role="status">
+      <Banner variant="info" className="duplicate-group-merge-notice" role="status">
         {adminLabels.dataOpDuplicateGroupMergeNotice}
-      </div>
+      </Banner>
 
       <div className="duplicate-group-detail-body">
         <div className="duplicate-group-detail-main">
-          <div className="duplicate-group-merge-intro card">
+          <Card padding="none" className="duplicate-group-merge-intro">
             <h3 className="duplicate-group-merge-intro-title">{adminLabels.dataOpMergeSelectFieldsTitle}</h3>
             <p className="duplicate-group-merge-intro-hint text-muted">
               {adminLabels.dataOpMergeSelectFieldsHint}
@@ -582,7 +589,7 @@ export function DuplicateGroupDetailView({
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
 
           <div className="duplicate-group-customers">
             {customers.map((customer, index) => {
@@ -595,9 +602,11 @@ export function DuplicateGroupDetailView({
               );
 
               return (
-                <section
+                <Card
+                  as="section"
                   key={customer.id}
-                  className={`card duplicate-group-customer-card${
+                  padding="none"
+                  className={`duplicate-group-customer-card${
                     isSuggestedWinner ? " duplicate-group-customer-card-winner" : ""
                   }${isExpanded ? " is-expanded" : " is-collapsed"}`}
                 >
@@ -707,7 +716,7 @@ export function DuplicateGroupDetailView({
                       </div>
                     </div>
                   )}
-                </section>
+                </Card>
               );
             })}
           </div>
@@ -742,9 +751,9 @@ export function DuplicateGroupDetailView({
         onConfirm={() => void handleMergeExecute()}
       />
 
-      <div className="banner info duplicate-group-dedup-notice" role="status">
+      <Banner variant="info" className="duplicate-group-dedup-notice" role="status">
         {adminLabels.dataOpMergeDedupNotice}
-      </div>
+      </Banner>
     </div>
   );
 }

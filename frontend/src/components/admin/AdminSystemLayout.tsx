@@ -2,9 +2,9 @@ import React from "react";
 import { adminLabels, DISABLED_ADMIN_NAV_ITEMS } from "../../labels/adminLabels";
 import { uiLabels } from "../../labels/uiLabels";
 import { usePersistedCollapsed } from "../../hooks/usePersistedCollapsed";
-import { AdminNavIcon } from "../layout/NavIcons";
+import { AdminNavIcon, NavIconComingSoon } from "../layout/NavIcons";
+import { NavLink } from "../layout/NavLink";
 import { SidebarCollapseButton } from "../layout/SidebarCollapseButton";
-import { withSidebarTooltip } from "../layout/SidebarTooltip";
 
 interface AdminSystemLayoutProps {
   children: React.ReactNode;
@@ -58,40 +58,6 @@ export function AdminSystemLayout({
     },
   ];
 
-  const renderNavLink = (item: { id: string; label: string; path: string }) =>
-    withSidebarTooltip(
-      <a
-        key={item.id}
-        href={item.path}
-        className={`admin-subnav-link ${activeSection === item.id ? "active" : ""}`}
-        onClick={(e) => onNavigate(item.path, e)}
-      >
-        <span className="admin-subnav-link-icon">
-          <AdminNavIcon id={item.id} />
-        </span>
-        <span className="admin-subnav-link-label">{item.label}</span>
-      </a>,
-      { label: item.label, collapsed: subnavCollapsed },
-    );
-
-  const renderDisabledLink = (item: { id: string; label: string }) =>
-    withSidebarTooltip(
-      <button
-        key={item.id}
-        type="button"
-        className="admin-subnav-link disabled"
-        onClick={onDisabledClick}
-      >
-        <span className="admin-subnav-link-icon" aria-hidden>
-          🚧
-        </span>
-        <span className="admin-subnav-link-label">
-          {item.label} {!subnavCollapsed && "🚧"}
-        </span>
-      </button>,
-      { label: item.label, collapsed: subnavCollapsed },
-    );
-
   const renderSectionTitle = (title: string, first = false) =>
     !subnavCollapsed ? (
       <h2
@@ -127,18 +93,61 @@ export function AdminSystemLayout({
 
         {renderSectionTitle(adminLabels.systemTitle, true)}
         <nav className="admin-subnav-links" aria-label={adminLabels.systemTitle}>
-          {systemItems.map(renderNavLink)}
-          {DISABLED_ADMIN_NAV_ITEMS.map(renderDisabledLink)}
+          {systemItems.map((item) => (
+            <NavLink
+              key={item.id}
+              variant="admin"
+              href={item.path}
+              label={item.label}
+              icon={<AdminNavIcon id={item.id} />}
+              active={activeSection === item.id}
+              collapsed={subnavCollapsed}
+              onClick={(e) => onNavigate(item.path, e)}
+            />
+          ))}
+          {DISABLED_ADMIN_NAV_ITEMS.map((item) => (
+            <NavLink
+              key={item.id}
+              variant="admin"
+              label={item.label}
+              icon={<NavIconComingSoon />}
+              disabled
+              collapsed={subnavCollapsed}
+              onClick={onDisabledClick}
+            />
+          ))}
         </nav>
 
         {renderSectionTitle(adminLabels.smtpOperationsTitle)}
         <nav className="admin-subnav-links" aria-label={adminLabels.smtpOperationsTitle}>
-          {smtpOperationsItems.map(renderNavLink)}
+          {smtpOperationsItems.map((item) => (
+            <NavLink
+              key={item.id}
+              variant="admin"
+              href={item.path}
+              label={item.label}
+              icon={<AdminNavIcon id={item.id} />}
+              active={activeSection === item.id}
+              collapsed={subnavCollapsed}
+              onClick={(e) => onNavigate(item.path, e)}
+            />
+          ))}
         </nav>
 
         {renderSectionTitle(adminLabels.navDataOperations)}
         <nav className="admin-subnav-links" aria-label={adminLabels.navDataOperations}>
-          {dataOperationItems.map(renderNavLink)}
+          {dataOperationItems.map((item) => (
+            <NavLink
+              key={item.id}
+              variant="admin"
+              href={item.path}
+              label={item.label}
+              icon={<AdminNavIcon id={item.id} />}
+              active={activeSection === item.id}
+              collapsed={subnavCollapsed}
+              onClick={(e) => onNavigate(item.path, e)}
+            />
+          ))}
         </nav>
       </aside>
       <div className="admin-content">{children}</div>

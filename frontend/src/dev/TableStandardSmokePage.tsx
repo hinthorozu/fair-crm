@@ -7,6 +7,7 @@ import type { Customer } from "../types/customer";
 import type { Fair } from "../types/fair";
 import type { ServerDataTableController } from "../hooks/useServerDataTable";
 import type { SortDirection } from "../types/listTable";
+import { PageShell } from "../components/ui/PageShell";
 
 function mockCustomer(partial: Partial<Customer> & Pick<Customer, "id" | "display_name">): Customer {
   return {
@@ -312,7 +313,7 @@ export function TableStandardSmokePage() {
   }, []);
 
   return (
-    <div className="page" style={{ padding: "1rem" }} data-testid="table-standard-smoke">
+    <PageShell style={{ padding: "1rem" }} data-testid="table-standard-smoke">
       <h1>Table standard smoke</h1>
       <p className="muted">
         DEV — <code>UniversalDataTable</code> → <code>WidthResponsiveDataTable</code> + dual pagination.
@@ -388,6 +389,6 @@ export function TableStandardSmokePage() {
           </ServerDataTableFrame>
         </div>
       ) : null}
-    </div>
+    </PageShell>
   );
 }

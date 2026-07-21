@@ -13,7 +13,9 @@ import { isoToLocalDatetime, localDatetimeToIso } from "../components/ActivityFo
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
 import {
+  FieldError,
   FormActions,
+  CheckboxField,
   FormField,
   FormGrid,
   SelectInput,
@@ -24,6 +26,8 @@ import { FormModal } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Badge, type BadgeVariant } from "../components/ui/Badge";
 import { FilterPanel } from "../components/ui/FilterPanel";
+import { TableEntityLink } from "../components/ui/TableEntityLink";
+import { TableRowActions } from "../components/ui/TableRowActions";
 import { TruncatedText } from "../components/ui/TruncatedText";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { useServerDataTable } from "../hooks/useServerDataTable";
@@ -43,6 +47,8 @@ import {
   getGrantedTodoPermissions,
 } from "../permissions/todoPermissions";
 import type { Fair } from "../types/fair";
+import { Banner } from "../components/ui/Banner";
+import { PageShell } from "../components/ui/PageShell";
 import type {
   CreateTodoPayload,
   Todo,
@@ -325,11 +331,7 @@ function TodoForm({ initial, fairs, submitLabel, onCancel, onSubmit }: TodoFormP
             placeholder="00000000-0000-0000-0000-000000000000"
           />
         </FormField>
-        {error ? (
-          <p className="field-error span-2" role="alert">
-            {error}
-          </p>
-        ) : null}
+        {error ? <FieldError className="span-2">{error}</FieldError> : null}
         <FormActions
           onCancel={onCancel}
           submitLabel={submitLabel}
@@ -474,9 +476,9 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
         sortField: "title",
         render: (todo) =>
           onOpenDetail ? (
-            <button type="button" className="link-button" onClick={() => onOpenDetail(todo.id)}>
+            <TableEntityLink onClick={() => onOpenDetail(todo.id)}>
               {todo.title}
-            </button>
+            </TableEntityLink>
           ) : (
             <span className="todo-title-cell">{todo.title}</span>
           ),
@@ -550,7 +552,7 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
         render: (todo) => {
           const loading = actionLoadingId === todo.id;
           return (
-            <div className="table-actions">
+            <TableRowActions>
               {canUpdate && canEditTodo(todo) ? (
                 <button
                   type="button"
@@ -594,7 +596,7 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
                   {todoLabels.actionDelete}
                 </button>
               ) : null}
-            </div>
+            </TableRowActions>
           );
         },
       },
@@ -604,15 +606,15 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
 
   if (!canRead) {
     return (
-      <div className="page">
+      <PageShell>
         <PageHeader title={todoLabels.pageTitle} subtitle={todoLabels.pageSubtitle} />
         <EmptyState title={todoLabels.permissionDenied} />
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="page todos-page">
+    <PageShell className="todos-page">
       <PageHeader
         title={todoLabels.pageTitle}
         subtitle={`${table.pagination.totalItems} kayıt`}
@@ -644,7 +646,8 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
               </button>
             }
           >
-            <input
+            <TextInput
+              id="todo-search"
               type="search"
               className="search-input"
               placeholder={todoLabels.searchPlaceholder}
@@ -652,7 +655,8 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
               onChange={(event) => table.setSearch(event.target.value)}
               aria-label={todoLabels.searchPlaceholder}
             />
-            <select
+            <SelectInput
+              id="todo-filter-status"
               value={table.filters.status ?? ""}
               onChange={(event) => table.setFilter("status", event.target.value)}
               aria-label={todoLabels.filterStatus}
@@ -663,8 +667,9 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
                   {todoStatusLabels[status]}
                 </option>
               ))}
-            </select>
-            <select
+            </SelectInput>
+            <SelectInput
+              id="todo-filter-priority"
               value={table.filters.priority ?? ""}
               onChange={(event) => table.setFilter("priority", event.target.value)}
               aria-label={todoLabels.filterPriority}
@@ -675,8 +680,9 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
                   {todoPriorityLabels[priority]}
                 </option>
               ))}
-            </select>
-            <select
+            </SelectInput>
+            <SelectInput
+              id="todo-filter-category"
               value={table.filters.category ?? ""}
               onChange={(event) => table.setFilter("category", event.target.value)}
               aria-label={todoLabels.filterCategory}
@@ -687,8 +693,9 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
                   {todoCategoryLabels[category]}
                 </option>
               ))}
-            </select>
-            <select
+            </SelectInput>
+            <SelectInput
+              id="todo-filter-overdue"
               value={table.filters.is_overdue ?? ""}
               onChange={(event) => table.setFilter("is_overdue", event.target.value)}
               aria-label={todoLabels.filterOverdue}
@@ -696,33 +703,32 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
               <option value="">{todoLabels.filterAll}</option>
               <option value="true">{todoLabels.filterOverdueYes}</option>
               <option value="false">{todoLabels.filterOverdueNo}</option>
-            </select>
-            <input
+            </SelectInput>
+            <TextInput
+              id="todo-filter-created-by"
               type="search"
-              className="input"
               placeholder={todoLabels.filterCreatedBy}
               value={table.filters.created_by ?? ""}
               onChange={(event) => table.setFilter("created_by", event.target.value)}
               aria-label={todoLabels.filterCreatedBy}
             />
-            <input
+            <TextInput
+              id="todo-filter-assignee"
               type="search"
-              className="input"
               placeholder={todoLabels.filterAssignee}
               value={table.filters.assignee_user_id ?? ""}
               onChange={(event) => table.setFilter("assignee_user_id", event.target.value)}
               aria-label={todoLabels.filterAssignee}
             />
-            <label className="todo-filter-checkbox checkbox-field">
-              <input
-                type="checkbox"
-                checked={table.filters.include_archived === "true"}
-                onChange={(event) =>
-                  table.setFilter("include_archived", event.target.checked ? "true" : "")
-                }
-              />
-              <span className="checkbox-field-label">{todoLabels.filterIncludeArchived}</span>
-            </label>
+            <CheckboxField
+              id="todo-filter-include-archived"
+              label={todoLabels.filterIncludeArchived}
+              checked={table.filters.include_archived === "true"}
+              onChange={(checked) =>
+                table.setFilter("include_archived", checked ? "true" : "")
+              }
+              className="todo-filter-checkbox"
+            />
           </FilterPanel>
         }
         columns={columns}
@@ -741,7 +747,7 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
         }
       />
 
-      {success ? <div className="banner success">{success}</div> : null}
+      {success ? <Banner variant="success">{success}</Banner> : null}
 
       {modal === "create" ? (
         <FormModal title={todoLabels.newTodo} onClose={() => setModal(null)} size="lg">
@@ -789,6 +795,6 @@ export function TodosPage({ onOpenDetail }: TodosPageProps) {
           onConfirm={() => void handleDelete(confirm.todo)}
         />
       ) : null}
-    </div>
+    </PageShell>
   );
 }

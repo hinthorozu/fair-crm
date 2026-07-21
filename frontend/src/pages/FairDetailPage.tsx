@@ -20,8 +20,9 @@ import {
 import { FairBulkEmailWizard } from "../components/fairs/FairBulkEmailWizard";
 import { FairBulkEmailBatchLogs } from "../components/fairs/FairBulkEmailBatchLogs";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { FilterPanel } from "../components/ui/FilterPanel";
 import { LoadingState } from "../components/ui/LoadingState";
-import { FormModal } from "../components/ui/form";
+import { FormModal, TextInput } from "../components/ui/form";
 import { FairForm, fairToFormValues } from "../components/FairForm";
 import { PageHeader, type PageHeaderAction } from "../components/ui/PageHeader";
 import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
@@ -55,6 +56,8 @@ import {
   canRunScraperActions,
   getGrantedScraperPermissions,
 } from "../permissions/scraperPermissions";
+import { Banner } from "../components/ui/Banner";
+import { PageShell } from "../components/ui/PageShell";
 import {
   buildLocationSearch,
   navigateWithSearch,
@@ -346,12 +349,12 @@ export function FairDetailPage({
 
   if (!fair) {
     return (
-      <div className="page">
-        <div className="banner error">{error ?? "Fuar bulunamadı."}</div>
+      <PageShell>
+        <Banner variant="error">{error ?? "Fuar bulunamadı."}</Banner>
         <button type="button" className="btn secondary" onClick={onBack}>
           ← {fairLabels.fairs}
         </button>
-      </div>
+      </PageShell>
     );
   }
 
@@ -426,7 +429,7 @@ export function FairDetailPage({
   ];
 
   return (
-    <div className="page">
+    <PageShell>
       <PageHeader
         title={fair.name}
         subtitle={
@@ -440,8 +443,8 @@ export function FairDetailPage({
 
       <Tabs items={tabItems} active={activeTab} onChange={setActiveTab} />
 
-      {runSuccess && <div className="banner success">{runSuccess}</div>}
-      {error && <div className="banner error">{error}</div>}
+      {runSuccess && <Banner variant="success">{runSuccess}</Banner>}
+      {error && <Banner variant="error">{error}</Banner>}
 
       <TabPanel id="panel-fair-overview" labelledBy="tab-overview" active={activeTab === "overview"}>
         <Card>
@@ -566,7 +569,7 @@ export function FairDetailPage({
           {canPreviewFairEmail ? (
             <p className="text-muted">{fairLabels.bulkEmailCardDescription}</p>
           ) : (
-            <div className="banner warning">{fairLabels.bulkEmailPermissionPreviewDeniedDebug}</div>
+            <Banner variant="warning">{fairLabels.bulkEmailPermissionPreviewDeniedDebug}</Banner>
           )}
         </Card>
 
@@ -585,8 +588,19 @@ export function FairDetailPage({
           table={participantsTable}
           skeletonCols={8}
           toolbar={
-            <div className="filters">
-              <input
+            <FilterPanel
+              actions={
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => void participantsTable.refresh()}
+                >
+                  {labels.refresh}
+                </button>
+              }
+            >
+              <TextInput
+                id="fair-participants-search"
                 type="search"
                 className="search-input"
                 placeholder={uiLabels.searchCustomer}
@@ -594,14 +608,7 @@ export function FairDetailPage({
                 onChange={(e) => participantsTable.setSearch(e.target.value)}
                 aria-label={uiLabels.searchCustomer}
               />
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={() => void participantsTable.refresh()}
-              >
-                {labels.refresh}
-              </button>
-            </div>
+            </FilterPanel>
           }
         >
           <FairParticipantTable
@@ -693,6 +700,6 @@ export function FairDetailPage({
           onConfirm={() => void handleArchiveFair()}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

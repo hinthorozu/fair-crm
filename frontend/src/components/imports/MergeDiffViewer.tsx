@@ -1,6 +1,7 @@
 import React from "react";
 import { Badge } from "../../components/ui/Badge";
 import { DetailWebsite } from "../../components/ui/DetailFields";
+import { UniversalDataTable, type UniversalDataTableColumn } from "../../components/ui/UniversalDataTable";
 import type { ImportRow, MergeFieldPreview, MergeOutcome, MergePreview } from "../../types/import";
 import { mergeEntityLabels, mergeFieldSourceLabel, mergeOutcomeLabels } from "../../labels/importLabels";
 import { mergeOutcomeBadgeVariant } from "../../utils/importBadges";
@@ -105,42 +106,11 @@ export function MergeDiffViewer({ row, expanded: controlledExpanded, onExpandedC
             </ul>
           ) : null}
           {sortMergeGroups(preview.groups).map((group) => (
-            <div key={group.entity} className="merge-entity-group">
-              <h4>{mergeEntityLabels[group.entity] ?? group.entity_label}</h4>
-              <table className="merge-diff-table">
-                <thead>
-                  <tr>
-                    <th>Alan</th>
-                    <th>CRM</th>
-                    <th>Import</th>
-                    <th>Sonuç</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {group.fields.map((field: MergeFieldPreview) => (
-                    <tr key={field.field_key}>
-                      <td>{field.label}</td>
-                      <td>{str(field.crm_value)}</td>
-                      <td>
-                        <div>{str(field.import_value)}</div>
-                        {field.source_url ? (
-                          <div className="merge-field-source text-muted">
-                            <span>{mergeFieldSourceLabel}: </span>
-                            <DetailWebsite value={field.source_url} />
-                          </div>
-                        ) : null}
-                      </td>
-                      <td>
-                        <OutcomeBadge outcome={field.outcome} label={field.outcome_label} />
-                        {field.result_value && field.outcome !== "same" && field.outcome !== "empty" && (
-                          <div className="merge-result-value text-muted">{str(field.result_value)}</div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <MergeGroupTable
+              key={group.entity}
+              title={mergeEntityLabels[group.entity] ?? group.entity_label}
+              fields={group.fields}
+            />
           ))}
         </div>
       )}
@@ -153,5 +123,70 @@ function OutcomeBadge({ outcome, label }: { outcome: MergeOutcome; label: string
     <Badge variant={mergeOutcomeBadgeVariant(outcome)}>
       {mergeOutcomeLabels[outcome] ?? label}
     </Badge>
+  );
+}
+
+function MergeGroupTable({ title, fields }: { title: string; fields: MergeFieldPreview[] }) {
+  const columns = React.useMemo<UniversalDataTableColumn<MergeFieldPreview>[]>(
+    () => [
+      {
+        key: "label",
+        title: "Alan",
+        sortable: false,
+        allowWrap: true,
+        render: (field) => field.label,
+      },
+      {
+        key: "crm_value",
+        title: "CRM",
+        sortable: false,
+        allowWrap: true,
+        render: (field) => str(field.crm_value),
+      },
+      {
+        key: "import_value",
+        title: "Import",
+        sortable: false,
+        allowWrap: true,
+        render: (field) => (
+          <>
+            <div>{str(field.import_value)}</div>
+            {field.source_url ? (
+              <div className="merge-field-source text-muted">
+                <span>{mergeFieldSourceLabel}: </span>
+                <DetailWebsite value={field.source_url} />
+              </div>
+            ) : null}
+          </>
+        ),
+      },
+      {
+        key: "outcome",
+        title: "Sonuç",
+        sortable: false,
+        allowWrap: true,
+        render: (field) => (
+          <>
+            <OutcomeBadge outcome={field.outcome} label={field.outcome_label} />
+            {field.result_value && field.outcome !== "same" && field.outcome !== "empty" ? (
+              <div className="merge-result-value text-muted">{str(field.result_value)}</div>
+            ) : null}
+          </>
+        ),
+      },
+    ],
+    [],
+  );
+
+  return (
+    <div className="merge-entity-group">
+      <h4>{title}</h4>
+      <UniversalDataTable
+        items={fields}
+        columns={columns}
+        rowKey={(field) => field.field_key}
+        className="merge-diff-table"
+      />
+    </div>
   );
 }

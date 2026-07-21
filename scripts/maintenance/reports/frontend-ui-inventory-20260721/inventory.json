@@ -1,0 +1,1350 @@
+{
+  "catalog": {
+    "shared_ui_files": [
+      "Badge.tsx",
+      "Banner.tsx",
+      "Breadcrumb.tsx",
+      "Card.tsx",
+      "ConfirmDialog.tsx",
+      "DataTable.tsx",
+      "DetailFields.tsx",
+      "Drawer.tsx",
+      "EmptyState.tsx",
+      "FieldError.tsx",
+      "FilterPanel.tsx",
+      "FormActions.tsx",
+      "FormField.tsx",
+      "FormField.tsx",
+      "FormGrid.tsx",
+      "FormInputs.tsx",
+      "FormModal.tsx",
+      "FormSection.tsx",
+      "IconButton.tsx",
+      "LoadingState.tsx",
+      "Modal.tsx",
+      "PageHeader.tsx",
+      "PageShell.tsx",
+      "ResponsiveDataTable.tsx",
+      "SectionHeader.tsx",
+      "ServerDataTableFrame.tsx",
+      "TableEntityLink.tsx",
+      "TableRowActions.tsx",
+      "Tabs.tsx",
+      "TechnicalDetails.tsx",
+      "TruncatedText.tsx",
+      "UniversalDataTable.tsx",
+      "UniversalDataTableSelection.tsx",
+      "WidthResponsiveDataTable.tsx"
+    ],
+    "form_kit": [
+      "FieldError.tsx",
+      "FormActions.tsx",
+      "FormField.tsx",
+      "FormGrid.tsx",
+      "FormInputs.tsx",
+      "FormModal.tsx",
+      "FormSection.tsx"
+    ],
+    "layout": [
+      "AppLayout.tsx",
+      "NavIcons.tsx",
+      "NavLink.tsx",
+      "SidebarCollapseButton.tsx",
+      "SidebarTooltip.tsx",
+      "UserMenu.tsx"
+    ],
+    "admin_di_layout": [
+      "components/admin/AdminSystemLayout.tsx",
+      "components/dataIntegration/DataIntegrationLayout.tsx"
+    ]
+  },
+  "domain_select_wrappers": [
+    "frontend/src/components/AdapterSelect.tsx",
+    "frontend/src/components/FairEntitySelect.tsx"
+  ],
+  "local_modal_wrappers_without_shared_import": [
+    "frontend/src/hooks/useModalForm.ts"
+  ],
+  "categories": [
+    {
+      "category": "Button",
+      "standard_infra": "`.btn` / `.btn.primary|secondary|danger|ghost|link` (+ kebab aliases) \u2014 no Button component",
+      "total_hits": 387,
+      "standard_hits": 256,
+      "nonstandard_hits": 131,
+      "files_standard": [
+        "frontend/src/components/ActivityList.tsx",
+        "frontend/src/components/AssignCustomersToFairModal.tsx",
+        "frontend/src/components/ContactList.tsx",
+        "frontend/src/components/CustomerCommunicationFieldList.tsx",
+        "frontend/src/components/CustomerList.tsx",
+        "frontend/src/components/DeleteSelectedCustomersModal.tsx",
+        "frontend/src/components/DuplicateGroupDetailView.tsx",
+        "frontend/src/components/FairList.tsx",
+        "frontend/src/components/Pagination.tsx",
+        "frontend/src/components/ParticipationList.tsx",
+        "frontend/src/components/admin/AdminSystemLayout.tsx",
+        "frontend/src/components/customers/CustomerContactEnrichmentTab.tsx",
+        "frontend/src/components/dataIntegration/DataIntegrationLayout.tsx",
+        "frontend/src/components/duplicateMerge/CopyableCustomerId.tsx",
+        "frontend/src/components/duplicateMerge/MergeCustomersConfirmModal.tsx",
+        "frontend/src/components/duplicateMerge/MergeSummaryPanel.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchDetailModal.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchLogs.tsx",
+        "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+        "frontend/src/components/layout/AppLayout.tsx",
+        "frontend/src/components/mail_templates/MailTemplateActionsMenu.tsx",
+        "frontend/src/components/mail_templates/MailTemplatePreviewPanel.tsx",
+        "frontend/src/components/mail_templates/MailTemplateTestEmailPanel.tsx",
+        "frontend/src/components/scraper/AdapterDetailContent.tsx",
+        "frontend/src/components/scraper/AdapterFormModal.tsx",
+        "frontend/src/components/scraper/AdapterLinkedFairsTab.tsx",
+        "frontend/src/components/scraper/AdapterRunLogConsole.tsx",
+        "frontend/src/components/scraper/EnrichmentRunLogExportMenu.tsx",
+        "frontend/src/components/scraper/EnrichmentRunPanel.tsx",
+        "frontend/src/components/scraper/EnrichmentStateResetPanel.tsx",
+        "frontend/src/components/smtp/SmtpAccountForm.tsx",
+        "frontend/src/components/todos/ManualTaskMailModal.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/components/ui/ConfirmDialog.tsx",
+        "frontend/src/components/ui/DataTable.tsx",
+        "frontend/src/components/ui/EmptyState.tsx",
+        "frontend/src/components/ui/PageHeader.tsx",
+        "frontend/src/components/ui/ServerDataTableFrame.tsx",
+        "frontend/src/components/ui/TableEntityLink.tsx",
+        "frontend/src/components/ui/TechnicalDetails.tsx",
+        "frontend/src/components/ui/WidthResponsiveDataTable.tsx",
+        "frontend/src/components/ui/form/FormActions.tsx",
+        "frontend/src/dev/TableStandardSmokePage.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/AdapterDetailPage.tsx",
+        "frontend/src/pages/AdapterManagementPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/CustomersPage.tsx",
+        "frontend/src/pages/DashboardPage.tsx",
+        "frontend/src/pages/DataIntegrationImportsPage.tsx",
+        "frontend/src/pages/DataOperationAnalyzeResultPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/DataOperationRunResultPage.tsx",
+        "frontend/src/pages/DataOperationsPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/EnrichmentRunDetailPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairsPage.tsx",
+        "frontend/src/pages/FollowUpsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/LoginPage.tsx",
+        "frontend/src/pages/MailTemplatesPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPage.tsx",
+        "frontend/src/pages/SmtpAccountsPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/TodosPage.tsx"
+      ],
+      "files_nonstandard": [
+        "frontend/src/components/ActivityList.tsx",
+        "frontend/src/components/AdapterSelect.tsx",
+        "frontend/src/components/AssignCustomersToFairModal.tsx",
+        "frontend/src/components/ContactList.tsx",
+        "frontend/src/components/CustomerCommunicationFieldList.tsx",
+        "frontend/src/components/CustomerList.tsx",
+        "frontend/src/components/DeleteSelectedCustomersModal.tsx",
+        "frontend/src/components/DuplicateGroupDetailView.tsx",
+        "frontend/src/components/FairEntitySelect.tsx",
+        "frontend/src/components/FairList.tsx",
+        "frontend/src/components/Pagination.tsx",
+        "frontend/src/components/ParticipationList.tsx",
+        "frontend/src/components/customers/CustomerContactEnrichmentTab.tsx",
+        "frontend/src/components/duplicateMerge/CopyableCustomerId.tsx",
+        "frontend/src/components/duplicateMerge/MergeSummaryPanel.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchLogs.tsx",
+        "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+        "frontend/src/components/imports/MergeDiffViewer.tsx",
+        "frontend/src/components/layout/AppLayout.tsx",
+        "frontend/src/components/layout/NavLink.tsx",
+        "frontend/src/components/layout/UserMenu.tsx",
+        "frontend/src/components/mail_operations/MailOperationActionsMenu.tsx",
+        "frontend/src/components/mail_templates/MailTemplateActionsMenu.tsx",
+        "frontend/src/components/mail_templates/MailTemplatePreviewPanel.tsx",
+        "frontend/src/components/mail_templates/MailTemplateTestEmailPanel.tsx",
+        "frontend/src/components/scraper/AdapterFormModal.tsx",
+        "frontend/src/components/scraper/AdapterLinkedFairsTab.tsx",
+        "frontend/src/components/scraper/AdapterRunLogConsole.tsx",
+        "frontend/src/components/scraper/EnrichmentRunLogExportMenu.tsx",
+        "frontend/src/components/scraper/EnrichmentRunPanel.tsx",
+        "frontend/src/components/scraper/EnrichmentStateResetPanel.tsx",
+        "frontend/src/components/smtp/SmtpAccountForm.tsx",
+        "frontend/src/components/todos/ManualTaskMailModal.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/components/ui/Breadcrumb.tsx",
+        "frontend/src/components/ui/ConfirmDialog.tsx",
+        "frontend/src/components/ui/DataTable.tsx",
+        "frontend/src/components/ui/IconButton.tsx",
+        "frontend/src/components/ui/PageHeader.tsx",
+        "frontend/src/components/ui/TableEntityLink.tsx",
+        "frontend/src/components/ui/Tabs.tsx",
+        "frontend/src/components/ui/TechnicalDetails.tsx",
+        "frontend/src/dev/TableStandardSmokePage.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/AdapterManagementPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/DashboardPage.tsx",
+        "frontend/src/pages/DataIntegrationImportsPage.tsx",
+        "frontend/src/pages/DataOperationAnalyzeResultPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/DataOperationsPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/EnrichmentRunDetailPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FollowUpsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPage.tsx",
+        "frontend/src/pages/SmtpAccountsPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/TodosPage.tsx"
+      ],
+      "samples_nonstandard": [
+        {
+          "file": "frontend/src/components/ActivityList.tsx",
+          "line": 109,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/AdapterSelect.tsx",
+          "line": 113,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/AdapterSelect.tsx",
+          "line": 125,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/AssignCustomersToFairModal.tsx",
+          "line": 51,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/ContactList.tsx",
+          "line": 79,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/CustomerCommunicationFieldList.tsx",
+          "line": 78,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/CustomerList.tsx",
+          "line": 193,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/CustomerList.tsx",
+          "line": 207,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/customers/CustomerContactEnrichmentTab.tsx",
+          "line": 201,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/customers/CustomerContactEnrichmentTab.tsx",
+          "line": 209,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/DeleteSelectedCustomersModal.tsx",
+          "line": 34,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/DuplicateGroupDetailView.tsx",
+          "line": 574,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/DuplicateGroupDetailView.tsx",
+          "line": 582,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/DuplicateGroupDetailView.tsx",
+          "line": 633,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/DuplicateGroupDetailView.tsx",
+          "line": 641,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/duplicateMerge/CopyableCustomerId.tsx",
+          "line": 26,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/duplicateMerge/MergeSummaryPanel.tsx",
+          "line": 121,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/FairEntitySelect.tsx",
+          "line": 201,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/FairList.tsx",
+          "line": 164,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/FairList.tsx",
+          "line": 178,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/fairs/FairBulkEmailBatchLogs.tsx",
+          "line": 143,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+          "line": 435,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+          "line": 512,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/imports/MergeDiffViewer.tsx",
+          "line": 70,
+          "snippet": "<button type=\"button\" className=\"merge-diff-toggle\" onClick={toggleExpanded}>"
+        },
+        {
+          "file": "frontend/src/components/imports/MergeDiffViewer.tsx",
+          "line": 80,
+          "snippet": "<button type=\"button\" className=\"merge-diff-toggle\" onClick={toggleExpanded}>"
+        }
+      ],
+      "notes": "No Button.tsx \u2014 class-based `.btn` / `.btn-*` is the standard (ADR-032 \u00a75)."
+    },
+    {
+      "category": "Input / TextBox",
+      "standard_infra": "TextInput, PasswordInput (`components/ui/form`)",
+      "total_hits": 98,
+      "standard_hits": 96,
+      "nonstandard_hits": 2,
+      "files_standard": [
+        "frontend/src/components/ActivityForm.tsx",
+        "frontend/src/components/ContactForm.tsx",
+        "frontend/src/components/CustomerCommunicationFieldList.tsx",
+        "frontend/src/components/CustomerForm.tsx",
+        "frontend/src/components/CustomerList.tsx",
+        "frontend/src/components/FairForm.tsx",
+        "frontend/src/components/FairList.tsx",
+        "frontend/src/components/ParticipationForm.tsx",
+        "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+        "frontend/src/components/mail_templates/MailTemplateForm.tsx",
+        "frontend/src/components/mail_templates/MailTemplateTestEmailPanel.tsx",
+        "frontend/src/components/scraper/AdapterForm.tsx",
+        "frontend/src/components/scraper/AdapterRunLogConsole.tsx",
+        "frontend/src/components/scraper/EnrichmentRunPanel.tsx",
+        "frontend/src/components/smtp/SmtpAccountForm.tsx",
+        "frontend/src/components/todos/ManualTaskMailModal.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/components/ui/form/FormInputs.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/AdapterManagementPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FollowUpsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/LoginPage.tsx",
+        "frontend/src/pages/MailOperationsPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/TodosPage.tsx"
+      ],
+      "files_nonstandard": [
+        "frontend/src/components/AdapterSelect.tsx",
+        "frontend/src/components/FairEntitySelect.tsx"
+      ],
+      "samples_nonstandard": [
+        {
+          "file": "frontend/src/components/AdapterSelect.tsx",
+          "line": 88,
+          "snippet": "<input",
+          "reason": "raw:<input\\b"
+        },
+        {
+          "file": "frontend/src/components/FairEntitySelect.tsx",
+          "line": 165,
+          "snippet": "<input",
+          "reason": "raw:<input\\b"
+        }
+      ],
+      "notes": "Shared: TextInput / PasswordInput from ui/form."
+    },
+    {
+      "category": "TextArea",
+      "standard_infra": "TextareaInput (`components/ui/form`)",
+      "total_hits": 19,
+      "standard_hits": 19,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/components/ActivityForm.tsx",
+        "frontend/src/components/ContactForm.tsx",
+        "frontend/src/components/CustomerForm.tsx",
+        "frontend/src/components/FairForm.tsx",
+        "frontend/src/components/ParticipationForm.tsx",
+        "frontend/src/components/mail_templates/MailTemplateForm.tsx",
+        "frontend/src/components/mail_templates/MailTemplatePreviewPanel.tsx",
+        "frontend/src/components/mail_templates/MailTemplateTestEmailPanel.tsx",
+        "frontend/src/components/scraper/AdapterForm.tsx",
+        "frontend/src/components/todos/ManualTaskMailModal.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/TodosPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "Shared: TextareaInput from ui/form."
+    },
+    {
+      "category": "Select",
+      "standard_infra": "SelectInput (`components/ui/form`) + domain EntitySelect wrappers",
+      "total_hits": 57,
+      "standard_hits": 55,
+      "nonstandard_hits": 2,
+      "files_standard": [
+        "frontend/src/components/ActivityForm.tsx",
+        "frontend/src/components/CustomerForm.tsx",
+        "frontend/src/components/CustomerList.tsx",
+        "frontend/src/components/FairForm.tsx",
+        "frontend/src/components/FairList.tsx",
+        "frontend/src/components/Pagination.tsx",
+        "frontend/src/components/ParticipationForm.tsx",
+        "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+        "frontend/src/components/mail_templates/MailTemplateForm.tsx",
+        "frontend/src/components/mail_templates/MailTemplateTestEmailPanel.tsx",
+        "frontend/src/components/scraper/AdapterForm.tsx",
+        "frontend/src/components/smtp/SmtpAccountForm.tsx",
+        "frontend/src/components/todos/ManualTaskMailModal.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/MailOperationsPage.tsx",
+        "frontend/src/pages/MailTemplatesPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPage.tsx",
+        "frontend/src/pages/ScraperTestPage.tsx",
+        "frontend/src/pages/TodosPage.tsx"
+      ],
+      "files_nonstandard": [
+        "frontend/src/components/imports/ExcelMappingGrid.tsx"
+      ],
+      "samples_nonstandard": [
+        {
+          "file": "frontend/src/components/imports/ExcelMappingGrid.tsx",
+          "line": 55,
+          "snippet": "<select",
+          "reason": "raw:<select\\b"
+        },
+        {
+          "file": "frontend/src/pages/ImportWizardPage.tsx",
+          "line": 1123,
+          "snippet": "<select",
+          "reason": "raw:<select\\b"
+        }
+      ],
+      "notes": "Shared: SelectInput from ui/form. Domain selects (FairEntitySelect, AdapterSelect) are OK wrappers."
+    },
+    {
+      "category": "Checkbox / Radio",
+      "standard_infra": "CheckboxField, RadioField (`components/ui/form`)",
+      "total_hits": 46,
+      "standard_hits": 46,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/components/ContactForm.tsx",
+        "frontend/src/components/CustomerCommunicationFieldList.tsx",
+        "frontend/src/components/CustomerForm.tsx",
+        "frontend/src/components/DuplicateGroupDetailView.tsx",
+        "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+        "frontend/src/components/mail_templates/MailTemplateForm.tsx",
+        "frontend/src/components/scraper/AdapterForm.tsx",
+        "frontend/src/components/scraper/AdapterRunLogConsole.tsx",
+        "frontend/src/components/scraper/EnrichmentRunPanel.tsx",
+        "frontend/src/components/scraper/OutputFieldsSection.tsx",
+        "frontend/src/components/smtp/SmtpAccountForm.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/components/ui/UniversalDataTableSelection.tsx",
+        "frontend/src/pages/DataOperationsPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/TodosPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "Shared: CheckboxField / RadioField only (ADR-032 \u00a74)."
+    },
+    {
+      "category": "Form",
+      "standard_infra": "FormGrid / FormField / FormSection / FormActions / FormModal",
+      "total_hits": 241,
+      "standard_hits": 241,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/components/ActivityForm.tsx",
+        "frontend/src/components/ContactForm.tsx",
+        "frontend/src/components/CustomerForm.tsx",
+        "frontend/src/components/FairForm.tsx",
+        "frontend/src/components/ParticipationForm.tsx",
+        "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+        "frontend/src/components/mail_templates/MailTemplateForm.tsx",
+        "frontend/src/components/mail_templates/MailTemplatePreviewPanel.tsx",
+        "frontend/src/components/mail_templates/MailTemplateTestEmailPanel.tsx",
+        "frontend/src/components/scraper/EnrichmentRunPanel.tsx",
+        "frontend/src/components/smtp/SmtpAccountForm.tsx",
+        "frontend/src/components/todos/ManualTaskMailModal.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/CustomersPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/LoginPage.tsx",
+        "frontend/src/pages/MailOperationsPage.tsx",
+        "frontend/src/pages/MailTemplatesPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPage.tsx",
+        "frontend/src/pages/ScraperTestPage.tsx",
+        "frontend/src/pages/SmtpAccountsPage.tsx",
+        "frontend/src/pages/TodosPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "Shared form kit under components/ui/form (+ legacy FormField.tsx re-export)."
+    },
+    {
+      "category": "Modal / Dialog / Confirmation",
+      "standard_infra": "Modal, ConfirmDialog, FormModal, Drawer (ADR-028)",
+      "total_hits": 66,
+      "standard_hits": 66,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/components/ActivityDetailModal.tsx",
+        "frontend/src/components/AssignCustomersToFairModal.tsx",
+        "frontend/src/components/DeleteSelectedCustomersModal.tsx",
+        "frontend/src/components/customers/CustomerContactEnrichmentTab.tsx",
+        "frontend/src/components/duplicateMerge/MergeCustomersConfirmModal.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchDetailModal.tsx",
+        "frontend/src/components/mail_operations/MailOperationDetailModal.tsx",
+        "frontend/src/components/mail_operations/MailOperationErrorModal.tsx",
+        "frontend/src/components/mail_operations/MailOperationLogsModal.tsx",
+        "frontend/src/components/scraper/AdapterFormModal.tsx",
+        "frontend/src/components/scraper/EnrichmentStateResetPanel.tsx",
+        "frontend/src/components/todos/ManualTaskMailModal.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/components/ui/Modal.tsx",
+        "frontend/src/components/ui/form/FormModal.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/AdapterDetailPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/CustomersPage.tsx",
+        "frontend/src/pages/DataIntegrationImportsPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/EnrichmentRunDetailPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairsPage.tsx",
+        "frontend/src/pages/MailOperationsPage.tsx",
+        "frontend/src/pages/MailTemplatesPage.tsx",
+        "frontend/src/pages/SmtpAccountsPage.tsx",
+        "frontend/src/pages/TodosPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "ADR-028: Modal + ConfirmDialog (+ FormModal/Drawer)."
+    },
+    {
+      "category": "DataTable / Table",
+      "standard_infra": "UniversalDataTable -> WidthResponsiveDataTable (+ ServerDataTableFrame)",
+      "total_hits": 50,
+      "standard_hits": 47,
+      "nonstandard_hits": 3,
+      "files_standard": [
+        "frontend/src/components/ActivityList.tsx",
+        "frontend/src/components/ContactList.tsx",
+        "frontend/src/components/CustomerList.tsx",
+        "frontend/src/components/FairList.tsx",
+        "frontend/src/components/ParticipationList.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchDetailModal.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchLogs.tsx",
+        "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+        "frontend/src/components/imports/MergeDiffViewer.tsx",
+        "frontend/src/components/scraper/AdapterDetailContent.tsx",
+        "frontend/src/components/scraper/AdapterLinkedFairsTab.tsx",
+        "frontend/src/components/ui/ResponsiveDataTable.tsx",
+        "frontend/src/components/ui/UniversalDataTable.tsx",
+        "frontend/src/dev/TableStandardSmokePage.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/AdapterManagementPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/CustomersPage.tsx",
+        "frontend/src/pages/DashboardPage.tsx",
+        "frontend/src/pages/DataIntegrationImportsPage.tsx",
+        "frontend/src/pages/DataOperationAnalyzeResultPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairsPage.tsx",
+        "frontend/src/pages/FollowUpsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/MailOperationsPage.tsx",
+        "frontend/src/pages/MailTemplatesPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPage.tsx",
+        "frontend/src/pages/SmtpAccountsPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/TodosPage.tsx"
+      ],
+      "files_nonstandard": [
+        "frontend/src/components/imports/ExcelMappingGrid.tsx"
+      ],
+      "samples_nonstandard": [
+        {
+          "file": "frontend/src/components/imports/ExcelMappingGrid.tsx",
+          "line": 43,
+          "snippet": "<table className=\"data-table excel-mapping-grid\">",
+          "reason": "raw:<table\\b"
+        },
+        {
+          "file": "frontend/src/pages/ImportWizardPage.tsx",
+          "line": 1008,
+          "snippet": "<table className=\"data-table\">",
+          "reason": "raw:<table\\b"
+        },
+        {
+          "file": "frontend/src/pages/ImportWizardPage.tsx",
+          "line": 1104,
+          "snippet": "<table className=\"data-table mapping-table\">",
+          "reason": "raw:<table\\b"
+        }
+      ],
+      "notes": "ADR-032: UniversalDataTable \u2192 WidthResponsiveDataTable. DataTableShell scroll-only for specialty grids."
+    },
+    {
+      "category": "Pagination",
+      "standard_infra": "PaginationBar + ServerDataTableFrame dual pagination",
+      "total_hits": 14,
+      "standard_hits": 14,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/components/ui/ServerDataTableFrame.tsx",
+        "frontend/src/components/ui/UniversalDataTable.tsx",
+        "frontend/src/dev/TableStandardSmokePage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/CustomersPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "PaginationBar + ServerDataTableFrame dual pagination."
+    },
+    {
+      "category": "Filter / Toolbar",
+      "standard_infra": "FilterPanel",
+      "total_hits": 22,
+      "standard_hits": 22,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/components/CustomerList.tsx",
+        "frontend/src/components/FairList.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/AdapterManagementPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FollowUpsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/MailOperationsPage.tsx",
+        "frontend/src/pages/MailTemplatesPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/TodosPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "Shared: FilterPanel. Local `.filters` toolbars are non-standard if not FilterPanel."
+    },
+    {
+      "category": "Card",
+      "standard_infra": "Card (`components/ui/Card`)",
+      "total_hits": 51,
+      "standard_hits": 51,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/components/DuplicateGroupDetailView.tsx",
+        "frontend/src/components/customers/CustomerContactEnrichmentTab.tsx",
+        "frontend/src/components/duplicateMerge/MergeSummaryPanel.tsx",
+        "frontend/src/components/scraper/AdapterDetailContent.tsx",
+        "frontend/src/pages/AdapterManagementPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/CustomerEnrichmentPage.tsx",
+        "frontend/src/pages/DashboardPage.tsx",
+        "frontend/src/pages/DataOperationAnalyzeResultPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/DataOperationsPage.tsx",
+        "frontend/src/pages/EnrichmentRunDetailPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairEnrichmentRunPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/LoginPage.tsx",
+        "frontend/src/pages/ScraperTestPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "Shared Card component only. Bare class token `card` on raw elements is a P1 violation."
+    },
+    {
+      "category": "PageHeader",
+      "standard_infra": "PageHeader / SectionHeader",
+      "total_hits": 35,
+      "standard_hits": 35,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchLogs.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/AdapterDetailPage.tsx",
+        "frontend/src/pages/AdapterManagementPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/CustomerEnrichmentPage.tsx",
+        "frontend/src/pages/CustomersPage.tsx",
+        "frontend/src/pages/DashboardPage.tsx",
+        "frontend/src/pages/DataIntegrationImportsPage.tsx",
+        "frontend/src/pages/DataOperationAnalyzeResultPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/DataOperationRunResultPage.tsx",
+        "frontend/src/pages/DataOperationsPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/EnrichmentRunDetailPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairEnrichmentRunPage.tsx",
+        "frontend/src/pages/FairsPage.tsx",
+        "frontend/src/pages/FollowUpsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/MailOperationsPage.tsx",
+        "frontend/src/pages/MailTemplatesPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPage.tsx",
+        "frontend/src/pages/ScraperTestPage.tsx",
+        "frontend/src/pages/SmtpAccountsPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/TodosPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "PageHeader for pages; SectionHeader for nested sections."
+    },
+    {
+      "category": "Layout / Shell",
+      "standard_infra": "AppLayout, AdminSystemLayout, DataIntegrationLayout, Breadcrumb, UserMenu",
+      "total_hits": 8,
+      "standard_hits": 8,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/admin/AdminSystemLayout.tsx",
+        "frontend/src/components/dataIntegration/DataIntegrationLayout.tsx",
+        "frontend/src/components/layout/AppLayout.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "App shell + nested Admin/DI layouts."
+    },
+    {
+      "category": "Alert / Toast / Banner",
+      "standard_infra": "Banner (`components/ui/Banner`) \u2014 success/warning/error/info",
+      "total_hits": 86,
+      "standard_hits": 86,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/components/ActivityForm.tsx",
+        "frontend/src/components/ContactForm.tsx",
+        "frontend/src/components/CustomerForm.tsx",
+        "frontend/src/components/DuplicateGroupDetailView.tsx",
+        "frontend/src/components/FairForm.tsx",
+        "frontend/src/components/ParticipationForm.tsx",
+        "frontend/src/components/customers/CustomerContactEnrichmentTab.tsx",
+        "frontend/src/components/duplicateMerge/MergePreviewSummaryContent.tsx",
+        "frontend/src/components/duplicateMerge/MergeSummaryPanel.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchDetailModal.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchLogs.tsx",
+        "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+        "frontend/src/components/mail_templates/MailTemplateForm.tsx",
+        "frontend/src/components/mail_templates/MailTemplatePreviewPanel.tsx",
+        "frontend/src/components/mail_templates/MailTemplateTestEmailPanel.tsx",
+        "frontend/src/components/smtp/SmtpAccountForm.tsx",
+        "frontend/src/components/todos/ManualTaskMailModal.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/components/ui/ServerDataTableFrame.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/AdapterDetailPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/CustomerEnrichmentPage.tsx",
+        "frontend/src/pages/CustomersPage.tsx",
+        "frontend/src/pages/DataIntegrationImportsPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/DataOperationRunResultPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/EnrichmentRunDetailPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairEnrichmentRunPage.tsx",
+        "frontend/src/pages/FairsPage.tsx",
+        "frontend/src/pages/FollowUpsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/LoginPage.tsx",
+        "frontend/src/pages/MailOperationsPage.tsx",
+        "frontend/src/pages/MailTemplatesPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPage.tsx",
+        "frontend/src/pages/ScraperTestPage.tsx",
+        "frontend/src/pages/SmtpAccountsPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/TodosPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "Shared Banner (success/warning/error/info). No parallel toast system. Field-level `.form-error` stays with FormField."
+    },
+    {
+      "category": "Other shared UI",
+      "standard_infra": "Tabs, Badge, TruncatedText, TechnicalDetails, EmptyState, LoadingState, DetailFields",
+      "total_hits": 132,
+      "standard_hits": 132,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/ActivityDetailModal.tsx",
+        "frontend/src/components/ActivityList.tsx",
+        "frontend/src/components/ContactList.tsx",
+        "frontend/src/components/CustomerList.tsx",
+        "frontend/src/components/DuplicateGroupDetailView.tsx",
+        "frontend/src/components/FairList.tsx",
+        "frontend/src/components/ParticipationList.tsx",
+        "frontend/src/components/customers/CustomerContactEnrichmentTab.tsx",
+        "frontend/src/components/duplicateMerge/MergeSummaryPanel.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchDetailModal.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchLogs.tsx",
+        "frontend/src/components/imports/MergeDiffViewer.tsx",
+        "frontend/src/components/scraper/AdapterDetailContent.tsx",
+        "frontend/src/components/scraper/AdapterLinkedFairsTab.tsx",
+        "frontend/src/components/scraper/AdapterRunLogConsole.tsx",
+        "frontend/src/components/todos/ManualTaskMailModal.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/components/ui/DetailFields.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/AdapterDetailPage.tsx",
+        "frontend/src/pages/AdapterManagementPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/CustomerEnrichmentPage.tsx",
+        "frontend/src/pages/DashboardPage.tsx",
+        "frontend/src/pages/DataIntegrationImportsPage.tsx",
+        "frontend/src/pages/DataOperationAnalyzeResultPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/DataOperationRunResultPage.tsx",
+        "frontend/src/pages/DataOperationsPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/EnrichmentRunDetailPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairEnrichmentRunPage.tsx",
+        "frontend/src/pages/FollowUpsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/MailOperationsPage.tsx",
+        "frontend/src/pages/MailTemplatesPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPage.tsx",
+        "frontend/src/pages/ScraperTestPage.tsx",
+        "frontend/src/pages/SmtpAccountsPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/TodosPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "Tabs, Badge, TruncatedText, TechnicalDetails, Empty/Loading states, Detail fields."
+    }
+  ],
+  "css_override_hotspots": {
+    "table_layout_fixed": [
+      {
+        "line": 6211,
+        "snippet": "table-layout: fixed;"
+      }
+    ],
+    "table_layout_fixed_count": 1,
+    "min_width_forced_rem": [
+      {
+        "line": 119,
+        "snippet": "min-width: 2rem;"
+      },
+      {
+        "line": 368,
+        "snippet": "min-width: 12rem;"
+      },
+      {
+        "line": 1798,
+        "snippet": "min-width: 2rem;"
+      },
+      {
+        "line": 1865,
+        "snippet": "min-width: 11rem;"
+      },
+      {
+        "line": 2805,
+        "snippet": "min-width: 9rem;"
+      },
+      {
+        "line": 2898,
+        "snippet": "min-width: 2rem;"
+      },
+      {
+        "line": 3027,
+        "snippet": "min-width: 2rem;"
+      },
+      {
+        "line": 4798,
+        "snippet": "min-width: 10rem;"
+      },
+      {
+        "line": 4821,
+        "snippet": "min-width: 14rem;"
+      },
+      {
+        "line": 4992,
+        "snippet": "min-width: 12rem;"
+      },
+      {
+        "line": 5079,
+        "snippet": "min-width: 10rem;"
+      },
+      {
+        "line": 5084,
+        "snippet": "min-width: 12rem;"
+      },
+      {
+        "line": 5103,
+        "snippet": "min-width: 9rem;"
+      },
+      {
+        "line": 5377,
+        "snippet": "min-width: 9rem;"
+      }
+    ],
+    "min_width_forced_rem_count": 14,
+    "min_width_forced_px_large": [
+      {
+        "line": 688,
+        "snippet": "min-width: 180px;"
+      },
+      {
+        "line": 1135,
+        "snippet": "@media (min-width: 768px) {"
+      },
+      {
+        "line": 1768,
+        "snippet": "min-width: 160px;"
+      },
+      {
+        "line": 1789,
+        "snippet": "min-width: 160px;"
+      },
+      {
+        "line": 2581,
+        "snippet": "min-width: 220px;"
+      },
+      {
+        "line": 2618,
+        "snippet": "min-width: 200px;"
+      },
+      {
+        "line": 6279,
+        "snippet": "@media (min-width: 768px) and (max-width: 1023px) {"
+      },
+      {
+        "line": 6408,
+        "snippet": "@media (min-width: 768px) and (max-width: 1023px) {"
+      }
+    ],
+    "min_width_forced_px_large_count": 8,
+    "overflow_x_auto": [
+      {
+        "line": 530,
+        "snippet": "overflow-x: auto;"
+      },
+      {
+        "line": 6060,
+        "snippet": "overflow-x: auto;"
+      }
+    ],
+    "overflow_x_auto_count": 2,
+    "overflow_x_clip": [
+      {
+        "line": 6234,
+        "snippet": "text-overflow: clip;"
+      },
+      {
+        "line": 6253,
+        "snippet": "text-overflow: clip;"
+      }
+    ],
+    "overflow_x_clip_count": 2,
+    "word_break_all": [
+      {
+        "line": 4628,
+        "snippet": "word-break: break-all;"
+      },
+      {
+        "line": 5837,
+        "snippet": "word-break: break-all;"
+      }
+    ],
+    "word_break_all_count": 2,
+    "page_local_table": [
+      {
+        "line": 2770,
+        "snippet": ".excel-mapping-grid-wrap {"
+      },
+      {
+        "line": 2774,
+        "snippet": ".excel-mapping-grid-meta {"
+      },
+      {
+        "line": 2779,
+        "snippet": ".excel-mapping-grid-scroll {"
+      },
+      {
+        "line": 2786,
+        "snippet": ".excel-mapping-grid {"
+      },
+      {
+        "line": 2792,
+        "snippet": ".excel-mapping-grid th,"
+      },
+      {
+        "line": 2793,
+        "snippet": ".excel-mapping-grid td {"
+      },
+      {
+        "line": 2803,
+        "snippet": ".excel-mapping-col-header {"
+      },
+      {
+        "line": 2808,
+        "snippet": ".excel-mapping-col-select {"
+      },
+      {
+        "line": 2814,
+        "snippet": ".excel-mapping-col-letter {"
+      },
+      {
+        "line": 2819,
+        "snippet": ".excel-mapping-row-num {"
+      },
+      {
+        "line": 4032,
+        "snippet": ".duplicate-groups-page .table-wrap.duplicate-groups-table {"
+      },
+      {
+        "line": 4111,
+        "snippet": ".server-data-table-frame:has(.backups-table) .server-data-table-toolbar-panel {"
+      },
+      {
+        "line": 4118,
+        "snippet": ".server-data-table-frame:has(.backups-table) .server-data-table-pagination {"
+      },
+      {
+        "line": 4124,
+        "snippet": ".table-wrap.backups-table {"
+      },
+      {
+        "line": 4129,
+        "snippet": ".table-wrap.backups-table .data-table th,"
+      },
+      {
+        "line": 4130,
+        "snippet": ".table-wrap.backups-table .data-table td {"
+      },
+      {
+        "line": 4136,
+        "snippet": ".table-wrap.backups-table .col-size {"
+      },
+      {
+        "line": 4140,
+        "snippet": ".table-wrap.backups-table th.col-size {"
+      },
+      {
+        "line": 4144,
+        "snippet": ".table-wrap.backups-table .col-size .table-sort-header {"
+      },
+      {
+        "line": 4191,
+        "snippet": ".backups-table-actions {"
+      },
+      {
+        "line": 4959,
+        "snippet": ".adapter-runs-table .table-wrap {"
+      }
+    ],
+    "page_local_table_count": 21,
+    "legacy_card_stack": [
+      {
+        "line": 1166,
+        "snippet": ".table-wrap.table-wrap--cards,"
+      },
+      {
+        "line": 1174,
+        "snippet": ".table-wrap.table-wrap--cards .data-table,"
+      },
+      {
+        "line": 1181,
+        "snippet": ".table-wrap.table-wrap--cards .data-table thead,"
+      },
+      {
+        "line": 1186,
+        "snippet": ".table-wrap.table-wrap--cards .data-table,"
+      },
+      {
+        "line": 1187,
+        "snippet": ".table-wrap.table-wrap--cards .data-table tbody,"
+      },
+      {
+        "line": 1188,
+        "snippet": ".table-wrap.table-wrap--cards .data-table tr,"
+      },
+      {
+        "line": 1192,
+        "snippet": "display: block;"
+      },
+      {
+        "line": 1196,
+        "snippet": ".table-wrap.table-wrap--cards .data-table tr,"
+      },
+      {
+        "line": 1206,
+        "snippet": ".table-wrap.table-wrap--cards .data-table td,"
+      },
+      {
+        "line": 1220,
+        "snippet": ".table-wrap.table-wrap--cards .data-table td::before,"
+      },
+      {
+        "line": 1234,
+        "snippet": ".table-wrap.table-wrap--cards .data-table td.actions,"
+      },
+      {
+        "line": 1242,
+        "snippet": ".table-wrap.table-wrap--cards .data-table td.actions::before,"
+      },
+      {
+        "line": 5112,
+        "snippet": "display: block;"
+      },
+      {
+        "line": 6300,
+        "snippet": ".table-wrap.table-wrap--cards,"
+      },
+      {
+        "line": 6314,
+        "snippet": "display: block;"
+      },
+      {
+        "line": 6320,
+        "snippet": "display: block;"
+      },
+      {
+        "line": 6336,
+        "snippet": "display: block;"
+      }
+    ],
+    "legacy_card_stack_count": 17,
+    "btn_aliases_ok": [
+      {
+        "line": 5772,
+        "snippet": ".btn-primary {"
+      },
+      {
+        "line": 5783,
+        "snippet": ".btn-primary:hover:not(:disabled) {"
+      },
+      {
+        "line": 5787,
+        "snippet": ".btn-secondary {"
+      },
+      {
+        "line": 5798,
+        "snippet": ".btn-secondary:hover:not(:disabled) {"
+      },
+      {
+        "line": 5817,
+        "snippet": ".btn-primary:disabled,"
+      },
+      {
+        "line": 5818,
+        "snippet": ".btn-secondary:disabled,"
+      },
+      {
+        "line": 6449,
+        "snippet": ".btn-primary,"
+      },
+      {
+        "line": 6450,
+        "snippet": ".btn-secondary,"
+      }
+    ],
+    "btn_aliases_ok_count": 8
+  },
+  "p0": {
+    "total_violations": 0,
+    "bare_checkbox_radio": [],
+    "local_filters_without_filter_panel": [],
+    "raw_form_controls": [],
+    "allowlist": [
+      "frontend/src/components/AdapterSelect.tsx",
+      "frontend/src/components/FairEntitySelect.tsx",
+      "frontend/src/components/imports/ExcelMappingGrid.tsx",
+      "frontend/src/components/ui/form/FormInputs.tsx"
+    ],
+    "pass": true
+  },
+  "p1": {
+    "total_violations": 0,
+    "bare_alert_toast": [],
+    "bare_card": [],
+    "intentional_exceptions": [
+      {
+        "file": "frontend/src/pages/ImportWizardPage.tsx",
+        "line": 1217,
+        "kind": "specialty_banner_layout",
+        "snippet": "<div className=\"import-complete-banner\">"
+      }
+    ],
+    "allowlist_alert": [
+      "frontend/src/components/ui/Banner.tsx"
+    ],
+    "allowlist_card": [
+      "frontend/src/components/ui/Card.tsx"
+    ],
+    "pass": true
+  },
+  "p2": {
+    "total_violations": 0,
+    "bare_form_error": [],
+    "link_button": [],
+    "adhoc_empty": [],
+    "adhoc_loading": [],
+    "bare_action_wrappers": [],
+    "intentional_exceptions": [
+      {
+        "file": "frontend/src/components/AdapterSelect.tsx",
+        "line": 0,
+        "kind": "domain_combobox_loading",
+        "snippet": "inline combobox loading text (not page LoadingState)"
+      },
+      {
+        "file": "frontend/src/components/FairEntitySelect.tsx",
+        "line": 0,
+        "kind": "domain_combobox_loading",
+        "snippet": "inline combobox loading text (not page LoadingState)"
+      }
+    ],
+    "pass": true
+  },
+  "p3": {
+    "total_violations": 0,
+    "bare_icon_buttons": [],
+    "login_form_error": [],
+    "bare_nav_links": [],
+    "missing_pageshell": [],
+    "missing_navlink_layouts": [],
+    "intentional_exceptions": [
+      {
+        "file": "frontend/src/components/ui/WidthResponsiveDataTable.tsx",
+        "line": 280,
+        "kind": "table_expand_placeholder_span",
+        "snippet": "<span className=\"table-expand-btn\">+</span>"
+      },
+      {
+        "file": "frontend/src/components/ui/WidthResponsiveDataTable.tsx",
+        "line": 299,
+        "kind": "table_expand_placeholder_span",
+        "snippet": "<span className=\"table-expand-btn\">+</span>"
+      },
+      {
+        "file": "frontend/src/components/mail_templates/MailTemplateActionsMenu.tsx",
+        "line": 0,
+        "kind": "labeled_actions_menu",
+        "snippet": "text trigger (not icon kebab) \u2014 intentional"
+      },
+      {
+        "file": "frontend/src/pages/LoginPage.tsx",
+        "line": 0,
+        "kind": "auth_shell",
+        "snippet": "login brand shell outside AppLayout/PageShell \u2014 intentional"
+      }
+    ],
+    "pass": true
+  },
+  "final": {
+    "total_violations": 0,
+    "bare_field_error": [],
+    "bare_modal_actions": [],
+    "form_actions_in_modal": [],
+    "legacy_breakpoints": [],
+    "a11y_icon_buttons_missing_label": [],
+    "prior_gates_failed": false,
+    "intentional_exceptions": [
+      {
+        "file": "frontend/src/**/FairBulkEmailWizard.tsx",
+        "line": 0,
+        "kind": "in_form_modal_actions",
+        "snippet": "multi-action form/wizard keeps form-actions in body"
+      },
+      {
+        "file": "frontend/src/**/FormActions.tsx",
+        "line": 0,
+        "kind": "in_form_modal_actions",
+        "snippet": "multi-action form/wizard keeps form-actions in body"
+      },
+      {
+        "file": "frontend/src/**/MailTemplateTestEmailPanel.tsx",
+        "line": 0,
+        "kind": "in_form_modal_actions",
+        "snippet": "multi-action form/wizard keeps form-actions in body"
+      },
+      {
+        "file": "frontend/src/**/ManualTaskMailModal.tsx",
+        "line": 0,
+        "kind": "in_form_modal_actions",
+        "snippet": "multi-action form/wizard keeps form-actions in body"
+      },
+      {
+        "file": "frontend/src/**/TodoWorklistActivityModal.tsx",
+        "line": 0,
+        "kind": "in_form_modal_actions",
+        "snippet": "multi-action form/wizard keeps form-actions in body"
+      }
+    ],
+    "pass": true,
+    "breakpoints_found": [
+      767,
+      768,
+      1023,
+      1024,
+      1440
+    ]
+  }
+}

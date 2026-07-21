@@ -40,7 +40,9 @@ import {
   NavIconTodos,
 } from "./components/layout/NavIcons";
 import { activityLabels } from "./labels/activityLabels";
-import { Card } from "./components/ui/Card";
+import { EmptyState } from "./components/ui/EmptyState";
+import { PageHeader } from "./components/ui/PageHeader";
+import { PageShell } from "./components/ui/PageShell";
 import { uiLabels } from "./labels/uiLabels";
 import { dataIntegrationLabels } from "./labels/dataIntegrationLabels";
 import { adminLabels } from "./labels/adminLabels";
@@ -745,9 +747,19 @@ export function App() {
         />
       )}
       {(parsed.route === "/data-integration/jobs" || parsed.route === "/data-integration/reports") && (
-        <Card>
-          <p>{dataIntegrationLabels.comingSoonMessage}</p>
-        </Card>
+        <PageShell>
+          <PageHeader
+            title={
+              parsed.route === "/data-integration/jobs"
+                ? dataIntegrationLabels.navJobs
+                : dataIntegrationLabels.navReports
+            }
+          />
+          <EmptyState
+            title={dataIntegrationLabels.comingSoon}
+            description={dataIntegrationLabels.comingSoonMessage}
+          />
+        </PageShell>
       )}
       {parsed.route === "/data-integration/adapters" && (
         <AdapterManagementPage onOpenDetail={goToAdapterDetail} />

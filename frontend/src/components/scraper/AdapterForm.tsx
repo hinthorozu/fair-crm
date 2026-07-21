@@ -1,5 +1,12 @@
 import React from "react";
 import { DetailValue, formatDetailDate } from "../ui/DetailFields";
+import {
+  CheckboxField,
+  FieldError,
+  SelectInput,
+  TextInput,
+  TextareaInput,
+} from "../ui/form";
 import { scraperLabels } from "../../labels/scraperLabels";
 import type { AdapterEngine, RequestedOutputField } from "../../types/scraper";
 import {
@@ -77,11 +84,12 @@ export function AdapterForm({
         value={
           showEngineSelect ? (
             <>
-              <select
+              <SelectInput
                 className="input"
                 value={values.engine_selection}
                 onChange={(event) => setField("engine_selection", event.target.value)}
                 disabled={enginesLoading || readOnly}
+                id="adapter-engine-selection"
               >
                 <option value={DYNAMIC_ENGINE_VALUE}>{scraperLabels.formEngineDynamic}</option>
                 {engines.map((engine) => (
@@ -89,11 +97,11 @@ export function AdapterForm({
                     {engine.display_name} - {engine.engine_key}
                   </option>
                 ))}
-              </select>
+              </SelectInput>
               {enginesLoading ? (
                 <p className="form-hint text-muted">{scraperLabels.formEngineLoading}</p>
               ) : null}
-              {enginesError ? <p className="form-error">{enginesError}</p> : null}
+              {enginesError ? <FieldError>{enginesError}</FieldError> : null}
               {values.engine_selection === DYNAMIC_ENGINE_VALUE ? (
                 <p className="form-hint">{scraperLabels.formEngineDynamicHint}</p>
               ) : null}
@@ -110,13 +118,14 @@ export function AdapterForm({
           readOnly ? (
             <DetailValue value={values.display_name} />
           ) : (
-            <input
+            <TextInput
               className="input"
               type="text"
               value={values.display_name}
               onChange={(event) => setField("display_name", event.target.value)}
               required
               maxLength={255}
+              id="adapter-display-name"
             />
           )
         }
@@ -128,11 +137,12 @@ export function AdapterForm({
           readOnly ? (
             <DetailValue value={values.version} />
           ) : (
-            <input
+            <TextInput
               className="input"
               value={values.version}
               onChange={(event) => setField("version", event.target.value)}
               maxLength={50}
+              id="adapter-version"
             />
           )
         }
@@ -144,11 +154,12 @@ export function AdapterForm({
           readOnly ? (
             formatDetailDate(values.last_verified || null)
           ) : (
-            <input
+            <TextInput
               className="input"
               type="date"
               value={values.last_verified}
               onChange={(event) => setField("last_verified", event.target.value)}
+              id="adapter-last-verified"
             />
           )
         }
@@ -180,11 +191,12 @@ export function AdapterForm({
               "—"
             )
           ) : (
-            <textarea
+            <TextareaInput
               className="input"
               rows={3}
               value={values.supported_sites}
               onChange={(event) => setField("supported_sites", event.target.value)}
+              id="adapter-supported-sites"
             />
           )
         }
@@ -196,12 +208,13 @@ export function AdapterForm({
           readOnly ? (
             <DetailValue value={values.notes} />
           ) : (
-            <textarea
+            <TextareaInput
               className="input"
               rows={3}
               value={values.notes}
               onChange={(event) => setField("notes", event.target.value)}
               maxLength={5000}
+              id="adapter-notes"
             />
           )
         }
@@ -214,22 +227,18 @@ export function AdapterForm({
             `JSON: ${readOnlyBoolean(values.output_json_handoff)}, Excel: ${readOnlyBoolean(values.output_excel)}`
           ) : (
             <div className="adapter-manifest-checkboxes">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={values.output_json_handoff}
-                  onChange={(event) => setField("output_json_handoff", event.target.checked)}
-                />{" "}
-                JSON Handoff
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={values.output_excel}
-                  onChange={(event) => setField("output_excel", event.target.checked)}
-                />{" "}
-                Excel
-              </label>
+              <CheckboxField
+                id="adapter-output-json-handoff"
+                label="JSON Handoff"
+                checked={values.output_json_handoff}
+                onChange={(checked) => setField("output_json_handoff", checked)}
+              />
+              <CheckboxField
+                id="adapter-output-excel"
+                label="Excel"
+                checked={values.output_excel}
+                onChange={(checked) => setField("output_excel", checked)}
+              />
             </div>
           )
         }
@@ -242,22 +251,18 @@ export function AdapterForm({
             `JS: ${readOnlyBoolean(values.browser_requires_js)}, Playwright: ${readOnlyBoolean(values.browser_requires_playwright)}`
           ) : (
             <div className="adapter-manifest-checkboxes">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={values.browser_requires_js}
-                  onChange={(event) => setField("browser_requires_js", event.target.checked)}
-                />{" "}
-                JS
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={values.browser_requires_playwright}
-                  onChange={(event) => setField("browser_requires_playwright", event.target.checked)}
-                />{" "}
-                Playwright
-              </label>
+              <CheckboxField
+                id="adapter-browser-requires-js"
+                label="JS"
+                checked={values.browser_requires_js}
+                onChange={(checked) => setField("browser_requires_js", checked)}
+              />
+              <CheckboxField
+                id="adapter-browser-requires-playwright"
+                label="Playwright"
+                checked={values.browser_requires_playwright}
+                onChange={(checked) => setField("browser_requires_playwright", checked)}
+              />
             </div>
           )
         }

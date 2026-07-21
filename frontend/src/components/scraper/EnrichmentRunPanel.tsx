@@ -2,7 +2,7 @@ import React from "react";
 import { runFairContactEnrichment } from "../../api/fairs";
 import { getScraperRun, runCustomerContactEnrichment } from "../../api/scraper";
 import { FairEntitySelect } from "../FairEntitySelect";
-import { CheckboxField, FormGrid, RadioField } from "../ui/form";
+import { CheckboxField, FormField, FormGrid, RadioField, TextInput } from "../ui/form";
 import { scraperLabels } from "../../labels/scraperLabels";
 import type {
   CompanyNameMatchMode,
@@ -205,21 +205,20 @@ export function EnrichmentRunPanel({
           </div>
         ) : null}
 
-        <div className="field">
-          <label htmlFor="enrichment-company-name">
-            <span className="field-label">{scraperLabels.enrichmentRunCompanyName}</span>
-            <input
-              id="enrichment-company-name"
-              className="form-control"
-              type="text"
-              value={companyName}
-              disabled={running}
-              placeholder="SDK"
-              onChange={(event) => setCompanyName(event.target.value)}
-            />
-          </label>
-          <span className="field-hint">{scraperLabels.enrichmentRunCompanyNameHint}</span>
-        </div>
+        <FormField
+          label={scraperLabels.enrichmentRunCompanyName}
+          htmlFor="enrichment-company-name"
+          hint={scraperLabels.enrichmentRunCompanyNameHint}
+        >
+          <TextInput
+            id="enrichment-company-name"
+            type="text"
+            value={companyName}
+            disabled={running}
+            placeholder="SDK"
+            onChange={(event) => setCompanyName(event.target.value)}
+          />
+        </FormField>
 
         <div className="field">
           <span className="field-label">{scraperLabels.enrichmentRunCompanyNameMatch}</span>
@@ -245,39 +244,37 @@ export function EnrichmentRunPanel({
           </div>
         </div>
 
-        <div className="field">
-          <label htmlFor="enrichment-address">
-            <span className="field-label">{scraperLabels.enrichmentRunAddress}</span>
-            <input
-              id="enrichment-address"
-              className="form-control"
-              type="text"
-              value={addressContains}
-              disabled={running}
-              placeholder="İstanbul"
-              onChange={(event) => setAddressContains(event.target.value)}
-            />
-          </label>
-          <span className="field-hint">{scraperLabels.enrichmentRunAddressHint}</span>
-        </div>
+        <FormField
+          label={scraperLabels.enrichmentRunAddress}
+          htmlFor="enrichment-address"
+          hint={scraperLabels.enrichmentRunAddressHint}
+        >
+          <TextInput
+            id="enrichment-address"
+            type="text"
+            value={addressContains}
+            disabled={running}
+            placeholder="İstanbul"
+            onChange={(event) => setAddressContains(event.target.value)}
+          />
+        </FormField>
 
-        <div className="field">
-          <label htmlFor="enrichment-limit">
-            <span className="field-label">{scraperLabels.enrichmentRunLimit}</span>
-            <input
-              id="enrichment-limit"
-              className="form-control"
-              type="number"
-              min={1}
-              max={500}
-              placeholder="50"
-              value={limitInput}
-              disabled={running}
-              onChange={(event) => setLimitInput(event.target.value)}
-            />
-          </label>
-          <span className="field-hint">{scraperLabels.enrichmentRunLimitHint}</span>
-        </div>
+        <FormField
+          label={scraperLabels.enrichmentRunLimit}
+          htmlFor="enrichment-limit"
+          hint={scraperLabels.enrichmentRunLimitHint}
+        >
+          <TextInput
+            id="enrichment-limit"
+            type="number"
+            min={1}
+            max={500}
+            placeholder="50"
+            value={limitInput}
+            disabled={running}
+            onChange={(event) => setLimitInput(event.target.value)}
+          />
+        </FormField>
 
         <div className="field full-width">
           <span className="field-label">{scraperLabels.manifestOutputFields}</span>

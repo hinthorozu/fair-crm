@@ -11,6 +11,8 @@ import { canRunScraperActions, getGrantedScraperPermissions } from "../permissio
 import type { Fair } from "../types/fair";
 import type { ScraperManifest } from "../types/scraper";
 import { CUSTOMER_CONTACT_ENRICHMENT_ADAPTER_KEY } from "../utils/enrichmentAdapter";
+import { Banner } from "../components/ui/Banner";
+import { PageShell } from "../components/ui/PageShell";
 
 interface FairEnrichmentRunPageProps {
   fairId: string;
@@ -78,17 +80,17 @@ export function FairEnrichmentRunPage({
   ];
 
   return (
-    <div className="page fair-enrichment-run-page">
+    <PageShell className="fair-enrichment-run-page">
       <PageHeader
         title={fairLabels.enrichFairModalTitle}
         subtitle={fair ? fair.name : undefined}
         actions={headerActions}
       />
 
-      {error ? <div className="banner error">{error}</div> : null}
+      {error ? <Banner variant="error">{error}</Banner> : null}
 
       {!canRunEnrichment ? (
-        <div className="banner error">{fairLabels.enrichFairPermissionDenied}</div>
+        <Banner variant="error">{fairLabels.enrichFairPermissionDenied}</Banner>
       ) : (
         <Card>
           {manifest ? (
@@ -103,6 +105,6 @@ export function FairEnrichmentRunPage({
           )}
         </Card>
       )}
-    </div>
+    </PageShell>
   );
 }

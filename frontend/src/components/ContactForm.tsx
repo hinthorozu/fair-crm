@@ -3,6 +3,7 @@ import type { Contact, CreateContactPayload } from "../types/contact";
 import { contactLabels } from "../labels/contactLabels";
 import { emailPlaceholder, validateMultiEmailInput } from "../utils/email";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
+import { Banner } from "./ui/Banner";
 import {
   CheckboxField,
   FormActions,
@@ -126,7 +127,7 @@ export function ContactForm({
 
   return (
     <form className="contact-form" onSubmit={(event) => void handleSubmit(event)}>
-      {error ? <div className="banner error form-form-alert">{error}</div> : null}
+      {error ? <Banner variant="error" className="form-form-alert">{error}</Banner> : null}
 
       <FormSection title={contactLabels.contactSectionPerson}>
         <FormGrid>

@@ -9,6 +9,7 @@ import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { LoadingState } from "../ui/LoadingState";
+import { EmptyState } from "../ui/EmptyState";
 import { customerEnrichmentLabels, customerEnrichmentStatusLabel } from "../../labels/customerEnrichmentLabels";
 import { scraperLabels } from "../../labels/scraperLabels";
 import type { CustomerContactEnrichmentState } from "../../types/customerEnrichment";
@@ -16,6 +17,7 @@ import type { EnrichmentRunSummary, ScraperRunLog } from "../../types/scraper";
 import { ENRICHMENT_OUTPUT_FIELD_KEYS } from "../../utils/enrichmentAdapter";
 import { formatScraperLogStepLabel } from "../../utils/scraperLogStepLabels";
 import { runStatusBadgeVariant, runStatusLabel } from "../../utils/scraperBadges";
+import { Banner } from "../ui/Banner";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -55,7 +57,7 @@ function RunSummary({ summary }: { summary: EnrichmentRunSummary }) {
 
 function LogList({ logs }: { logs: ScraperRunLog[] }) {
   if (logs.length === 0) {
-    return <p className="text-muted">{customerEnrichmentLabels.emptyHistory}</p>;
+    return <EmptyState title={customerEnrichmentLabels.emptyHistory} />;
   }
   return (
     <ul className="adapter-run-log-list">
@@ -215,9 +217,9 @@ export function CustomerContactEnrichmentTab({
       </div>
 
       {state && !state.can_run && state.block_message ? (
-        <p className="banner warning">{state.block_message}</p>
+        <Banner variant="warning" as="p">{state.block_message}</Banner>
       ) : null}
-      {error ? <p className="banner error">{error}</p> : null}
+      {error ? <Banner variant="error" as="p">{error}</Banner> : null}
       {resetSuccess ? <p className="import-apply-result-success">{resetSuccess}</p> : null}
 
       {state ? (

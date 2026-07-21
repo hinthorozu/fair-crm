@@ -10,6 +10,8 @@ import { fairLabels } from "../labels/fairLabels";
 import { canRunScraperActions, getGrantedScraperPermissions } from "../permissions/scraperPermissions";
 import type { ScraperManifest } from "../types/scraper";
 import { CUSTOMER_CONTACT_ENRICHMENT_ADAPTER_KEY } from "../utils/enrichmentAdapter";
+import { Banner } from "../components/ui/Banner";
+import { PageShell } from "../components/ui/PageShell";
 
 interface CustomerEnrichmentPageProps {
   onRunStarted: (runId: string) => void;
@@ -55,16 +57,16 @@ export function CustomerEnrichmentPage({ onRunStarted }: CustomerEnrichmentPageP
   }
 
   return (
-    <div className="page customer-enrichment-page">
+    <PageShell className="customer-enrichment-page">
       <PageHeader
         title={dataIntegrationLabels.enrichmentTitle}
         subtitle={dataIntegrationLabels.enrichmentSubtitle}
       />
 
-      {error ? <div className="banner error">{error}</div> : null}
+      {error ? <Banner variant="error">{error}</Banner> : null}
 
       {!canRunEnrichment ? (
-        <div className="banner error">{fairLabels.enrichFairPermissionDenied}</div>
+        <Banner variant="error">{fairLabels.enrichFairPermissionDenied}</Banner>
       ) : (
         <Card>
           {manifest ? (
@@ -78,6 +80,6 @@ export function CustomerEnrichmentPage({ onRunStarted }: CustomerEnrichmentPageP
           )}
         </Card>
       )}
-    </div>
+    </PageShell>
   );
 }

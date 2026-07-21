@@ -1,10 +1,13 @@
 import React from "react";
 import { Breadcrumb, type BreadcrumbItem } from "../ui/Breadcrumb";
+import { IconButton } from "../ui/IconButton";
 import { labels } from "../../labels";
 import { UserMenu } from "./UserMenu";
 import { usePersistedCollapsed } from "../../hooks/usePersistedCollapsed";
 import { SidebarCollapseButton } from "./SidebarCollapseButton";
-import { withSidebarTooltip, SidebarTooltipTarget } from "./SidebarTooltip";
+import { SidebarTooltipTarget } from "./SidebarTooltip";
+import { NavLink } from "./NavLink";
+import { NavIconMenu } from "./NavIcons";
 
 interface NavItem {
   path: string;
@@ -51,10 +54,7 @@ export function AppLayout({
           {!sidebarCollapsed ? (
             <span className="brand">{labels.appTitle}</span>
           ) : (
-            <SidebarTooltipTarget
-              label={labels.appTitle}
-              collapsed={sidebarCollapsed}
-            >
+            <SidebarTooltipTarget label={labels.appTitle} collapsed={sidebarCollapsed}>
               <span className="brand brand--icon">F</span>
             </SidebarTooltipTarget>
           )}
@@ -65,21 +65,18 @@ export function AppLayout({
           />
         </div>
         <nav className="sidebar-nav">
-          {navItems.map((item) =>
-            withSidebarTooltip(
-              <a
-                key={item.path}
-                href={item.path}
-                className={item.active ? "sidebar-link active" : "sidebar-link"}
-                onClick={item.onClick}
-                aria-current={item.active ? "page" : undefined}
-              >
-                <span className="sidebar-link-icon">{item.icon}</span>
-                <span className="sidebar-link-label">{item.label}</span>
-              </a>,
-              { label: item.label, collapsed: sidebarCollapsed },
-            ),
-          )}
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              variant="sidebar"
+              href={item.path}
+              label={item.label}
+              icon={item.icon}
+              active={item.active}
+              collapsed={sidebarCollapsed}
+              onClick={item.onClick}
+            />
+          ))}
         </nav>
       </aside>
 
@@ -87,14 +84,13 @@ export function AppLayout({
         <header className="app-topbar">
           <div className="app-topbar-left">
             {onToggleSidebar && (
-              <button
-                type="button"
-                className="btn icon sidebar-toggle"
+              <IconButton
+                variant="ghost"
+                className="sidebar-toggle"
+                label="Menüyü aç/kapat"
+                icon={<NavIconMenu />}
                 onClick={onToggleSidebar}
-                aria-label="Menüyü aç/kapat"
-              >
-                ☰
-              </button>
+              />
             )}
             {breadcrumbs.length > 0 && <Breadcrumb items={breadcrumbs} />}
           </div>

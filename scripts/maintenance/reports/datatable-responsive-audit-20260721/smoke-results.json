@@ -1,0 +1,1138 @@
+[
+  {
+    "slug": "dashboard",
+    "path": "/dashboard",
+    "viewport": "390x844",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 390,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 330,
+        "tableClient": 330,
+        "wrapClient": 330,
+        "rootClient": 332,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "dashboard",
+    "path": "/dashboard",
+    "viewport": "768x1024",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 768,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 700,
+        "tableClient": 700,
+        "wrapClient": 700,
+        "rootClient": 702,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "dashboard",
+    "path": "/dashboard",
+    "viewport": "1024x768",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1024,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 956,
+        "tableClient": 956,
+        "wrapClient": 956,
+        "rootClient": 958,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "dashboard",
+    "path": "/dashboard",
+    "viewport": "1440x900",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1440,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 1108,
+        "tableClient": 1108,
+        "wrapClient": 1108,
+        "rootClient": 1110,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "customers",
+    "path": "/customers",
+    "viewport": "390x844",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 390,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 364,
+        "tableClient": 364,
+        "wrapClient": 364,
+        "rootClient": 366,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "customers",
+    "path": "/customers",
+    "viewport": "768x1024",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 768,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 734,
+        "tableClient": 734,
+        "wrapClient": 734,
+        "rootClient": 736,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "customers",
+    "path": "/customers",
+    "viewport": "1024x768",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1024,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 990,
+        "tableClient": 990,
+        "wrapClient": 990,
+        "rootClient": 992,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "customers",
+    "path": "/customers",
+    "viewport": "1440x900",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1440,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 1142,
+        "tableClient": 1142,
+        "wrapClient": 1142,
+        "rootClient": 1144,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "fairs",
+    "path": "/fairs",
+    "viewport": "390x844",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 390,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 364,
+        "tableClient": 364,
+        "wrapClient": 364,
+        "rootClient": 366,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "fairs",
+    "path": "/fairs",
+    "viewport": "768x1024",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 768,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 734,
+        "tableClient": 734,
+        "wrapClient": 734,
+        "rootClient": 736,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "fairs",
+    "path": "/fairs",
+    "viewport": "1024x768",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1024,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 14,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 1004,
+        "tableClient": 990,
+        "wrapClient": 990,
+        "rootClient": 992,
+        "overflow": 14
+      }
+    ]
+  },
+  {
+    "slug": "fairs",
+    "path": "/fairs",
+    "viewport": "1440x900",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1440,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 1142,
+        "tableClient": 1142,
+        "wrapClient": 1142,
+        "rootClient": 1144,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "todos",
+    "path": "/todos",
+    "viewport": "390x844",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 390,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 364,
+        "tableClient": 364,
+        "wrapClient": 364,
+        "rootClient": 366,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "todos",
+    "path": "/todos",
+    "viewport": "768x1024",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 768,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 734,
+        "tableClient": 734,
+        "wrapClient": 734,
+        "rootClient": 736,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "todos",
+    "path": "/todos",
+    "viewport": "1024x768",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1024,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 990,
+        "tableClient": 990,
+        "wrapClient": 990,
+        "rootClient": 992,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "todos",
+    "path": "/todos",
+    "viewport": "1440x900",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1440,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 1108,
+        "tableClient": 1108,
+        "wrapClient": 1108,
+        "rootClient": 1110,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "follow-ups",
+    "path": "/follow-ups",
+    "viewport": "390x844",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 390,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 0,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": false,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": []
+  },
+  {
+    "slug": "follow-ups",
+    "path": "/follow-ups",
+    "viewport": "768x1024",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 768,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 0,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": false,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": []
+  },
+  {
+    "slug": "follow-ups",
+    "path": "/follow-ups",
+    "viewport": "1024x768",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1024,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 0,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": false,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": []
+  },
+  {
+    "slug": "follow-ups",
+    "path": "/follow-ups",
+    "viewport": "1440x900",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1440,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 0,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": false,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": []
+  },
+  {
+    "slug": "activities",
+    "path": "/activities",
+    "viewport": "390x844",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 390,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 0,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": false,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": []
+  },
+  {
+    "slug": "activities",
+    "path": "/activities",
+    "viewport": "768x1024",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 768,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 0,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": false,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": []
+  },
+  {
+    "slug": "activities",
+    "path": "/activities",
+    "viewport": "1024x768",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1024,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 0,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": false,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": []
+  },
+  {
+    "slug": "activities",
+    "path": "/activities",
+    "viewport": "1440x900",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1440,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 0,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": false,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": []
+  },
+  {
+    "slug": "imports",
+    "path": "/data-integration/imports",
+    "viewport": "390x844",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 390,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 364,
+        "tableClient": 364,
+        "wrapClient": 364,
+        "rootClient": 366,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "imports",
+    "path": "/data-integration/imports",
+    "viewport": "768x1024",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 768,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 734,
+        "tableClient": 734,
+        "wrapClient": 734,
+        "rootClient": 736,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "imports",
+    "path": "/data-integration/imports",
+    "viewport": "1024x768",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1024,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 990,
+        "tableClient": 990,
+        "wrapClient": 990,
+        "rootClient": 992,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "imports",
+    "path": "/data-integration/imports",
+    "viewport": "1440x900",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1440,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 898,
+        "tableClient": 898,
+        "wrapClient": 898,
+        "rootClient": 900,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "adapters",
+    "path": "/data-integration/adapters",
+    "viewport": "390x844",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 390,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 330,
+        "tableClient": 330,
+        "wrapClient": 330,
+        "rootClient": 332,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "adapters",
+    "path": "/data-integration/adapters",
+    "viewport": "768x1024",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 768,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 700,
+        "tableClient": 700,
+        "wrapClient": 700,
+        "rootClient": 702,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "adapters",
+    "path": "/data-integration/adapters",
+    "viewport": "1024x768",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1024,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 956,
+        "tableClient": 956,
+        "wrapClient": 956,
+        "rootClient": 958,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "adapters",
+    "path": "/data-integration/adapters",
+    "viewport": "1440x900",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1440,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 864,
+        "tableClient": 864,
+        "wrapClient": 864,
+        "rootClient": 866,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "run-history",
+    "path": "/data-integration/run-history",
+    "viewport": "390x844",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 390,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 364,
+        "tableClient": 364,
+        "wrapClient": 364,
+        "rootClient": 366,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "run-history",
+    "path": "/data-integration/run-history",
+    "viewport": "768x1024",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 768,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 734,
+        "tableClient": 734,
+        "wrapClient": 734,
+        "rootClient": 736,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "run-history",
+    "path": "/data-integration/run-history",
+    "viewport": "1024x768",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1024,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 990,
+        "tableClient": 990,
+        "wrapClient": 990,
+        "rootClient": 992,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "run-history",
+    "path": "/data-integration/run-history",
+    "viewport": "1440x900",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1440,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 898,
+        "tableClient": 898,
+        "wrapClient": 898,
+        "rootClient": 900,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "backups",
+    "path": "/admin/system/backups",
+    "viewport": "390x844",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 390,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 364,
+        "tableClient": 364,
+        "wrapClient": 364,
+        "rootClient": 366,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "backups",
+    "path": "/admin/system/backups",
+    "viewport": "768x1024",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 768,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 734,
+        "tableClient": 734,
+        "wrapClient": 734,
+        "rootClient": 736,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "backups",
+    "path": "/admin/system/backups",
+    "viewport": "1024x768",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1024,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 990,
+        "tableClient": 990,
+        "wrapClient": 990,
+        "rootClient": 992,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "backups",
+    "path": "/admin/system/backups",
+    "viewport": "1440x900",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1440,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 898,
+        "tableClient": 898,
+        "wrapClient": 898,
+        "rootClient": 900,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "smtp-accounts",
+    "path": "/admin/smtp-operations/accounts",
+    "viewport": "390x844",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 390,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 364,
+        "tableClient": 364,
+        "wrapClient": 364,
+        "rootClient": 366,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "smtp-accounts",
+    "path": "/admin/smtp-operations/accounts",
+    "viewport": "768x1024",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 768,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 734,
+        "tableClient": 734,
+        "wrapClient": 734,
+        "rootClient": 736,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "smtp-accounts",
+    "path": "/admin/smtp-operations/accounts",
+    "viewport": "1024x768",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1024,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 990,
+        "tableClient": 990,
+        "wrapClient": 990,
+        "rootClient": 992,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "smtp-accounts",
+    "path": "/admin/smtp-operations/accounts",
+    "viewport": "1440x900",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1440,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 898,
+        "tableClient": 898,
+        "wrapClient": 898,
+        "rootClient": 900,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "mail-templates",
+    "path": "/admin/smtp-operations/templates",
+    "viewport": "390x844",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 390,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 364,
+        "tableClient": 364,
+        "wrapClient": 364,
+        "rootClient": 366,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "mail-templates",
+    "path": "/admin/smtp-operations/templates",
+    "viewport": "768x1024",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 768,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 734,
+        "tableClient": 734,
+        "wrapClient": 734,
+        "rootClient": 736,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "mail-templates",
+    "path": "/admin/smtp-operations/templates",
+    "viewport": "1024x768",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1024,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 990,
+        "tableClient": 990,
+        "wrapClient": 990,
+        "rootClient": 992,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "mail-templates",
+    "path": "/admin/smtp-operations/templates",
+    "viewport": "1440x900",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1440,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 898,
+        "tableClient": 898,
+        "wrapClient": 898,
+        "rootClient": 900,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "mail-operations",
+    "path": "/admin/smtp-operations/mail-operations",
+    "viewport": "390x844",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 390,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 364,
+        "tableClient": 364,
+        "wrapClient": 364,
+        "rootClient": 366,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "mail-operations",
+    "path": "/admin/smtp-operations/mail-operations",
+    "viewport": "768x1024",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 768,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 734,
+        "tableClient": 734,
+        "wrapClient": 734,
+        "rootClient": 736,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "mail-operations",
+    "path": "/admin/smtp-operations/mail-operations",
+    "viewport": "1024x768",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1024,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 990,
+        "tableClient": 990,
+        "wrapClient": 990,
+        "rootClient": 992,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "mail-operations",
+    "path": "/admin/smtp-operations/mail-operations",
+    "viewport": "1440x900",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1440,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 1,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": true,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": [
+      {
+        "tableScroll": 898,
+        "tableClient": 898,
+        "wrapClient": 898,
+        "rootClient": 900,
+        "overflow": 0
+      }
+    ]
+  },
+  {
+    "slug": "data-operations",
+    "path": "/admin/data-operations",
+    "viewport": "390x844",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 390,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 0,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": false,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": []
+  },
+  {
+    "slug": "data-operations",
+    "path": "/admin/data-operations",
+    "viewport": "768x1024",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 768,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 0,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": false,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": []
+  },
+  {
+    "slug": "data-operations",
+    "path": "/admin/data-operations",
+    "viewport": "1024x768",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1024,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 0,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": false,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": []
+  },
+  {
+    "slug": "data-operations",
+    "path": "/admin/data-operations",
+    "viewport": "1440x900",
+    "status": "PASS",
+    "reasons": [],
+    "viewportWidth": 1440,
+    "pageOverflowX": 0,
+    "widthResponsiveCount": 0,
+    "maxTableOverflow": 0,
+    "hasWidthResponsive": false,
+    "hasLegacyScrollWrap": false,
+    "tableIssues": []
+  }
+]
