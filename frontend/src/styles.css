@@ -1102,10 +1102,11 @@ textarea:hover {
   white-space: nowrap;
 }
 
-/* Sticky actions column when table scrolls horizontally (tablet/desktop). */
+/* Sticky actions column when table scrolls horizontally (tablet/desktop).
+   Width-responsive pilot keeps actions in flow (no sticky / no scroll). */
 @media (min-width: 641px) {
-  .table-wrap .data-table th.actions,
-  .table-wrap .data-table td.actions {
+  .table-wrap:not(.table-wrap--width-responsive) .data-table th.actions,
+  .table-wrap:not(.table-wrap--width-responsive) .data-table td.actions {
     position: sticky;
     right: 0;
     z-index: 2;
@@ -1113,28 +1114,29 @@ textarea:hover {
     box-shadow: -8px 0 12px -6px rgba(15, 23, 42, 0.14);
   }
 
-  .table-wrap .data-table th.actions {
+  .table-wrap:not(.table-wrap--width-responsive) .data-table th.actions {
     z-index: 3;
     background: #f8fafc;
   }
 
-  .table-wrap .data-table tbody tr:nth-child(even) td.actions {
+  .table-wrap:not(.table-wrap--width-responsive) .data-table tbody tr:nth-child(even) td.actions {
     background: #fafbfc;
   }
 
-  .table-wrap .data-table tbody tr:hover td.actions {
+  .table-wrap:not(.table-wrap--width-responsive) .data-table tbody tr:hover td.actions {
     background: #f8fafc;
   }
 
-  .table-wrap .data-table tbody tr:nth-child(even):hover td.actions {
+  .table-wrap:not(.table-wrap--width-responsive) .data-table tbody tr:nth-child(even):hover td.actions {
     background: #f1f5f9;
   }
 }
 
-/* Mobile: stack table rows as cards (Universal DataTable `data-label`). */
+/* Mobile: stack table rows as cards (Universal DataTable `data-label`).
+   Width-responsive pilot tables opt out via `.table-wrap--width-responsive`. */
 @media (max-width: 640px) {
   .table-wrap.table-wrap--cards,
-  .table-wrap:not(.table-wrap--scroll-only) {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) {
     overflow-x: visible;
     border: none;
     background: transparent;
@@ -1142,29 +1144,29 @@ textarea:hover {
   }
 
   .table-wrap.table-wrap--cards .data-table,
-  .table-wrap:not(.table-wrap--scroll-only) .data-table {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table {
     table-layout: auto;
     min-width: 0;
     width: 100%;
   }
 
   .table-wrap.table-wrap--cards .data-table thead,
-  .table-wrap:not(.table-wrap--scroll-only) .data-table thead {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table thead {
     display: none;
   }
 
   .table-wrap.table-wrap--cards .data-table,
   .table-wrap.table-wrap--cards .data-table tbody,
   .table-wrap.table-wrap--cards .data-table tr,
-  .table-wrap:not(.table-wrap--scroll-only) .data-table,
-  .table-wrap:not(.table-wrap--scroll-only) .data-table tbody,
-  .table-wrap:not(.table-wrap--scroll-only) .data-table tr {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table,
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table tbody,
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table tr {
     display: block;
     width: 100%;
   }
 
   .table-wrap.table-wrap--cards .data-table tr,
-  .table-wrap:not(.table-wrap--scroll-only) .data-table tr {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table tr {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -1174,7 +1176,7 @@ textarea:hover {
   }
 
   .table-wrap.table-wrap--cards .data-table td,
-  .table-wrap:not(.table-wrap--scroll-only) .data-table td {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table td {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -1188,7 +1190,7 @@ textarea:hover {
   }
 
   .table-wrap.table-wrap--cards .data-table td::before,
-  .table-wrap:not(.table-wrap--scroll-only) .data-table td::before {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table td::before {
     content: attr(data-label);
     flex: 0 0 42%;
     max-width: 42%;
@@ -1202,7 +1204,7 @@ textarea:hover {
   }
 
   .table-wrap.table-wrap--cards .data-table td.actions,
-  .table-wrap:not(.table-wrap--scroll-only) .data-table td.actions {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table td.actions {
     justify-content: flex-start;
     padding-top: 0.5rem;
     margin-top: 0.25rem;
@@ -1210,7 +1212,7 @@ textarea:hover {
   }
 
   .table-wrap.table-wrap--cards .data-table td.actions::before,
-  .table-wrap:not(.table-wrap--scroll-only) .data-table td.actions::before {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table td.actions::before {
     content: attr(data-label);
   }
 }
@@ -6254,6 +6256,21 @@ textarea.form-control-textarea {
   border-top: 1px solid var(--border);
 }
 
+.server-data-table-bottom-pagination {
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.65rem 0 0;
+  border-top: 1px solid var(--border);
+}
+
+.server-data-table-bottom-pagination .pagination-bar,
+.server-data-table-bottom-pagination .server-data-table-pagination {
+  flex: none;
+  margin: 0;
+  width: 100%;
+  justify-content: space-between;
+}
+
 .server-data-table-toolbar-panel .filters,
 .server-data-table-toolbar-panel .filter-panel {
   margin-bottom: 0;
@@ -6365,14 +6382,15 @@ textarea.form-control-textarea {
 
 .table-child-field-value {
   font-size: 0.9rem;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .table-child-field--technical .table-child-field-value {
   font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", Consolas, monospace;
   font-size: 0.82rem;
-  word-break: break-all;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .technical-details {
@@ -6392,13 +6410,99 @@ textarea.form-control-textarea {
   margin-top: 0.5rem;
 }
 
+/* ── Width-responsive DataTables-style pilot (Customers only) ── */
+.width-responsive-table-root {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  position: relative;
+}
+
+.width-responsive-measure {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  pointer-events: none;
+  height: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.width-responsive-measure .data-table {
+  width: max-content;
+  min-width: max-content;
+  table-layout: auto;
+}
+
+/* Width-responsive table standard (ADR-032) — UniversalDataTable default. */
+.table-wrap.table-wrap--width-responsive {
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+.table-wrap.table-wrap--width-responsive .data-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: auto;
+}
+
+.table-wrap.table-wrap--width-responsive .data-table th,
+.table-wrap.table-wrap--width-responsive .data-table td {
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.table-wrap.table-wrap--width-responsive .data-table th.col-nowrap,
+.table-wrap.table-wrap--width-responsive .data-table td.col-nowrap {
+  white-space: nowrap;
+}
+
+.table-wrap.table-wrap--width-responsive .data-table th.col-wrap,
+.table-wrap.table-wrap--width-responsive .data-table td.col-wrap {
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: manual;
+}
+
+.table-wrap.table-wrap--width-responsive .data-table th.actions,
+.table-wrap.table-wrap--width-responsive .data-table td.actions {
+  white-space: nowrap;
+  position: static;
+  box-shadow: none;
+}
+
+.table-wrap.table-wrap--width-responsive .table-child-field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  align-items: baseline;
+}
+
+.table-wrap.table-wrap--width-responsive .table-child-field-label {
+  flex: 0 0 auto;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 0.85rem;
+}
+
+.table-wrap.table-wrap--width-responsive .table-child-field-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
 @media (min-width: 768px) and (max-width: 1023px) {
+  /* Legacy breakpoint hide — unused by WidthResponsiveDataTable (ADR-032 width standard). */
   .col-priority-secondary {
     display: none !important;
   }
 }
 
 @media (max-width: 767px) {
+  /* Legacy breakpoint hide — unused by WidthResponsiveDataTable (ADR-032 width standard). */
   .col-priority-secondary {
     display: none !important;
   }
@@ -6409,27 +6513,28 @@ textarea.form-control-textarea {
     padding-left: 0.9rem;
   }
 
-  /* Mobile card stack (overrides earlier 640px rules for main rows) */
+  /* Legacy mobile card stack for non-width-responsive tables only.
+     All UniversalDataTable lists use `.table-wrap--width-responsive` and keep real table layout. */
   .table-wrap.table-wrap--cards,
-  .table-wrap:not(.table-wrap--scroll-only) {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) {
     overflow-x: visible;
     border: none;
     background: transparent;
     box-shadow: none;
   }
 
-  .table-wrap:not(.table-wrap--scroll-only) .data-table thead {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table thead {
     display: none;
   }
 
-  .table-wrap:not(.table-wrap--scroll-only) .data-table,
-  .table-wrap:not(.table-wrap--scroll-only) .data-table tbody {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table,
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table tbody {
     display: block;
     width: 100%;
     min-width: 0;
   }
 
-  .table-wrap:not(.table-wrap--scroll-only) .data-table tr.data-table-main-row {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table tr.data-table-main-row {
     display: block;
     width: 100%;
     background: var(--surface);
@@ -6440,12 +6545,12 @@ textarea.form-control-textarea {
     padding: 0.75rem 0.9rem;
   }
 
-  .table-wrap:not(.table-wrap--scroll-only) .data-table tr.data-table-main-row:has(+ .table-child-row) {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table tr.data-table-main-row:has(+ .table-child-row) {
     border-radius: var(--radius) var(--radius) 0 0;
     margin-bottom: 0;
   }
 
-  .table-wrap:not(.table-wrap--scroll-only) .data-table tr.table-child-row {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table tr.table-child-row {
     display: block;
     width: 100%;
     background: var(--surface);
@@ -6456,7 +6561,7 @@ textarea.form-control-textarea {
     box-shadow: var(--shadow-sm);
   }
 
-  .table-wrap:not(.table-wrap--scroll-only) .data-table tr.data-table-main-row td {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table tr.data-table-main-row td {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -6469,7 +6574,7 @@ textarea.form-control-textarea {
     white-space: normal;
   }
 
-  .table-wrap:not(.table-wrap--scroll-only) .data-table tr.data-table-main-row td::before {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table tr.data-table-main-row td::before {
     content: attr(data-label);
     flex: 0 0 42%;
     max-width: 42%;
@@ -6482,11 +6587,11 @@ textarea.form-control-textarea {
     line-height: 1.4;
   }
 
-  .table-wrap:not(.table-wrap--scroll-only) .data-table tr.data-table-main-row td.table-expand-col::before {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table tr.data-table-main-row td.table-expand-col::before {
     content: none;
   }
 
-  .table-wrap:not(.table-wrap--scroll-only) .data-table tr.data-table-main-row td.actions {
+  .table-wrap:not(.table-wrap--scroll-only):not(.table-wrap--width-responsive) .data-table tr.data-table-main-row td.actions {
     justify-content: flex-start;
     flex-wrap: wrap;
     padding-top: 0.5rem;

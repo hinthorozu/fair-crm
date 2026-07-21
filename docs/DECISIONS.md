@@ -756,23 +756,29 @@ Sprint 04.5 delivered reusable UI primitives and Sprint 08.0/ADR-015/ADR-019 del
 **Decision:**
 
 1. **One responsive standard** for all Fair CRM frontend screens (list, form, filter, modal, card, pagination, actions).
-2. **Breakpoints** — mobile `<768` (smoke 390), tablet `768–1023`, laptop `≥1024`, desktop polish `≥1440`.
+2. **Breakpoints** — mobile `<768` (smoke 390), tablet `768–1023`, laptop `≥1024`, desktop polish `≥1440` for page chrome/forms. **List tables do not use fixed breakpoint layouts.**
 3. **Form / filter grid** — desktop 3 columns, tablet 2, mobile 1 via `FormGrid` / `FilterPanel`.
-4. **ResponsiveDataTable** under `UniversalDataTable` with column `priority`: `primary` | `secondary` | `technical`.
-5. **No default horizontal scroll** — `table-wrap--scroll-only` is opt-in only.
-6. **Technical fields** (`run_id`, UUID, `adapter_key`, long URL, JSON/debug) never primary main-table columns.
+4. **Width-responsive DataTable (default for all lists)** — `UniversalDataTable` → `WidthResponsiveDataTable`:
+   - Available container width (`ResizeObserver`) drives column visibility.
+   - Column array order = responsive priority (hide trailing first).
+   - Hidden (+ `priority: "technical"`) fields appear in child rows (`Alan adı: Değer`).
+   - Column squeezing and letter-break wrapping are forbidden; horizontal scroll is opt-in only (`table-wrap--scroll-only`).
+5. **Dual pagination** — `ServerDataTableFrame` shows the same `ServerDataTablePagination` above and below by default.
+6. **Technical fields** (`run_id`, UUID, `adapter_key`, long URL, JSON/debug) never main-table columns (`priority: "technical"`), even when space remains.
 7. **Modal** — centered desktop, wide tablet, bottom-sheet mobile with sticky footer; ADR-028 dirty guard unchanged.
-8. **Shared components only** — extend existing primitives; no page-local margin hacks as the design system.
+8. **Shared components only** — extend existing primitives; no page-local responsive table implementations.
 
 **Implementation:**
 
-- `ResponsiveDataTable`, `FilterPanel`, `TruncatedText`, `TechnicalDetails`, `RadioField`
-- `UniversalDataTableColumn.priority`
-- CSS tokens and ADR-032 section in `frontend/src/styles.css`
-- Priority screens migrated: Enrichment, Todos, Run History, Customers, Fairs, Follow-ups, Imports, Dashboard
+- `WidthResponsiveDataTable` (engine), `UniversalDataTable` (entry), `ServerDataTableFrame` / `ServerDataTablePagination` (dual pagination)
+- `ResponsiveDataTable` retained only as a deprecated adapter to `WidthResponsiveDataTable`
+- `FilterPanel`, `TruncatedText`, `TechnicalDetails`, `RadioField`
+- CSS tokens and ADR-032 / width-responsive sections in `frontend/src/styles.css`
+- All UniversalDataTable screens inherit the standard by default (Customers, Fairs, Todos, Follow-ups, Imports, Run History, Admin backups, Dashboard, etc.)
 
 **Consequences:**
 
 - Every new frontend screen must pass the Responsive UI Definition of Done in `PROJECT_CONSTITUTION.md` and `docs/frontend/RESPONSIVE_UI_STANDARD.md`.
-- Remaining admin/mail screens adopt the standard as they are touched.
+- New tables must use `UniversalDataTable` — width-responsive + dual pagination arrive without extra configuration.
+- Page-specific responsive table CSS/hacks are rejected.
 

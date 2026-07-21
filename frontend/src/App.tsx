@@ -23,6 +23,8 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { TodoDetailPage } from "./pages/TodoDetailPage";
 import { TodosPage } from "./pages/TodosPage";
+import { CustomersResponsivePilotPage } from "./dev/CustomersResponsivePilotPage";
+import { TableStandardSmokePage } from "./dev/TableStandardSmokePage";
 import { DataIntegrationLayout } from "./components/dataIntegration/DataIntegrationLayout";
 import { AdminSystemLayout } from "./components/admin/AdminSystemLayout";
 import { AppLayout } from "./components/layout/AppLayout";
@@ -306,12 +308,19 @@ export function App() {
   });
 
   React.useLayoutEffect(() => {
-    if (!isAuthenticated && window.location.pathname !== "/login") {
+    const path = window.location.pathname;
+    if (import.meta.env.DEV && path === "/dev/customers-responsive-pilot") {
+      return;
+    }
+    if (import.meta.env.DEV && path === "/dev/table-standard-smoke") {
+      return;
+    }
+    if (!isAuthenticated && path !== "/login") {
       window.history.replaceState(null, "", "/login");
       setParsed({ route: "/login" });
       return;
     }
-    if (isAuthenticated && window.location.pathname === "/login") {
+    if (isAuthenticated && path === "/login") {
       window.history.replaceState(null, "", "/dashboard");
       setParsed({ route: "/dashboard" });
     }
@@ -793,6 +802,14 @@ export function App() {
       )}
     </AdminSystemLayout>
   );
+
+  if (import.meta.env.DEV && window.location.pathname === "/dev/customers-responsive-pilot") {
+    return <CustomersResponsivePilotPage />;
+  }
+
+  if (import.meta.env.DEV && window.location.pathname === "/dev/table-standard-smoke") {
+    return <TableStandardSmokePage />;
+  }
 
   if (!isAuthenticated) {
     return <LoginPage onSuccess={handleLoginSuccess} />;

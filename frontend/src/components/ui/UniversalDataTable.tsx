@@ -1,10 +1,16 @@
 import React from "react";
-import { ResponsiveDataTable, type ColumnPriority } from "./ResponsiveDataTable";
+import {
+  WidthResponsiveDataTable,
+  type WidthResponsiveColumn,
+} from "./WidthResponsiveDataTable";
 import { ServerDataTableFrame } from "./ServerDataTableFrame";
 import type { ServerDataTableRowSelectionController } from "../../hooks/useServerDataTableRowSelection";
 import type { ServerDataTableController } from "../../hooks/useServerDataTable";
 import type { SortDirection } from "../../types/listTable";
 import { buildUniversalDataTableSelectionColumn } from "./UniversalDataTableSelection";
+
+/** @deprecated Prefer column order for priority. Keep `"technical"` for detail-only fields. */
+export type ColumnPriority = "primary" | "secondary" | "technical";
 
 /** Column definition for Universal Server-Side DataTable (ADR-019 / ADR-032). */
 export interface UniversalDataTableColumn<T> {
@@ -16,14 +22,15 @@ export interface UniversalDataTableColumn<T> {
   sortField?: string;
   render: (row: T) => React.ReactNode;
   className?: string;
-  /** Responsive stacked-row label; defaults to `title` when it is a string. */
+  /** Child-row label; defaults to `title` when it is a string. */
   dataLabel?: string;
   /**
-   * primary — main row always
-   * secondary — desktop main; tablet/mobile expand
-   * technical — expand / technical panel only (never main table)
+   * - `"technical"` — never in main row; child-row only (UUIDs, adapter keys, …).
+   * - `"primary"` / `"secondary"` — legacy; order in `columns` is the responsive priority.
    */
   priority?: ColumnPriority;
+  /** Wrap at word boundaries (inferred for name/title-like keys when omitted). */
+  allowWrap?: boolean;
 }
 
 export interface UniversalDataTableRowSelectionConfig<T> {
@@ -50,6 +57,8 @@ interface UniversalDataTableStandaloneProps<T> extends UniversalDataTableBasePro
   table?: never;
   toolbar?: never;
   skeletonCols?: never;
+  showPagination?: never;
+  showBottomPagination?: never;
 }
 
 interface UniversalDataTableServerProps<T> extends UniversalDataTableBaseProps<T> {
@@ -57,8 +66,10 @@ interface UniversalDataTableServerProps<T> extends UniversalDataTableBaseProps<T
   toolbar?: React.ReactNode;
   skeletonCols?: number;
   showPagination?: boolean;
+  /** Dual top+bottom pagination (default true). */
+  showBottomPagination?: boolean;
   /** Optional row selection (ADR-029); prepends a Selection column. */
-  rowSelection?: UniversalDataTableRowSelectionConfig<T>;
+  rowSelection?: UniversalDataTableRowSelectionConfig<T & { id: string }>;
   items?: never;
   sorting?: never;
   onSortChange?: never;
@@ -71,8 +82,13 @@ export type UniversalDataTableProps<T> =
   | UniversalDataTableStandaloneProps<T>
   | UniversalDataTableServerProps<T>;
 
-function mapColumns<T>(columns: UniversalDataTableColumn<T>[]) {
-  return columns.map((column) => ({
+function inferAllowWrap(key: string, allowWrap: boolean | undefined): boolean {
+  if (allowWrap != null) return allowWrap;
+  return /name|title|company|subject|message|description|label|display/i.test(key);
+}
+
+function toWidthColumn<T>(column: UniversalDataTableColumn<T>): WidthResponsiveColumn<T> {
+  return {
     id: column.key,
     header: column.title,
     sortable: column.sortable !== false,
@@ -81,36 +97,71 @@ function mapColumns<T>(columns: UniversalDataTableColumn<T>[]) {
     className: column.className,
     dataLabel:
       column.dataLabel ?? (typeof column.title === "string" ? column.title : undefined),
-    priority: column.priority ?? "primary",
-  }));
+    allowWrap: inferAllowWrap(column.key, column.allowWrap),
+  };
 }
 
-function withSelectionColumn<T extends { id: string }>(
+function splitColumns<T>(columns: UniversalDataTableColumn<T>[]): {
+  main: WidthResponsiveColumn<T>[];
+  detailOnly: WidthResponsiveColumn<T>[];
+} {
+  const main: WidthResponsiveColumn<T>[] = [];
+  const detailOnly: WidthResponsiveColumn<T>[] = [];
+  for (const column of columns) {
+    const mapped = toWidthColumn(column);
+    if (column.priority === "technical") {
+      detailOnly.push(mapped);
+    } else {
+      main.push(mapped);
+    }
+  }
+  return { main, detailOnly };
+}
+
+function withSelectionColumn<T>(
   columns: UniversalDataTableColumn<T>[],
-  rowSelection: UniversalDataTableRowSelectionConfig<T> | undefined,
+  rowSelection: UniversalDataTableRowSelectionConfig<T & { id: string }> | undefined,
 ): UniversalDataTableColumn<T>[] {
   if (!rowSelection) return columns;
-  return [
-    buildUniversalDataTableSelectionColumn(rowSelection.controller, {
+  const selectionCol = buildUniversalDataTableSelectionColumn(
+    rowSelection.controller,
+    {
       title: rowSelection.title,
       selectAllAriaLabel: rowSelection.selectAllAriaLabel,
       rowAriaLabel: rowSelection.rowAriaLabel,
-    }),
-    ...columns,
-  ];
+    },
+  ) as UniversalDataTableColumn<T>;
+  return [selectionCol, ...columns];
+}
+
+function toSorting(
+  sorting: { field: string | null; direction: SortDirection | null } | null | undefined,
+): { field: string; direction: SortDirection } | null {
+  if (!sorting?.field) return null;
+  return { field: sorting.field, direction: sorting.direction ?? "asc" };
 }
 
 /**
- * Universal Server-Side DataTable — sortable data columns via column config.
- * Set `sortable: false` only on Actions columns.
- * Responsive priority + expand via ResponsiveDataTable (ADR-032).
+ * Universal Server-Side DataTable — FAIR CRM default list standard (ADR-019 / ADR-032).
+ *
+ * - Width-responsive column hiding (column order = priority)
+ * - Child row for hidden + technical columns
+ * - Dual pagination when used with `table` (via ServerDataTableFrame)
  */
 export function UniversalDataTable<T>(props: UniversalDataTableProps<T>) {
   const { columns, rowKey, emptyState, className } = props;
 
   if ("table" in props && props.table) {
-    const { table, toolbar, skeletonCols, rowSelection, showPagination } = props;
+    const {
+      table,
+      toolbar,
+      skeletonCols,
+      rowSelection,
+      showPagination,
+      showBottomPagination,
+    } = props;
     const resolvedColumns = withSelectionColumn(columns, rowSelection);
+    const { main, detailOnly } = splitColumns(resolvedColumns);
     const dataColumns = resolvedColumns.filter((column) => column.sortable !== false).length;
     const selectionColCount = rowSelection ? 1 : 0;
     const showEmpty = !table.loading && !table.error && table.items.length === 0;
@@ -120,13 +171,15 @@ export function UniversalDataTable<T>(props: UniversalDataTableProps<T>) {
         table={table}
         toolbar={toolbar}
         showPagination={showPagination}
+        showBottomPagination={showBottomPagination}
         skeletonCols={skeletonCols ?? Math.max(dataColumns + selectionColCount + 1, 4)}
       >
         {showEmpty && emptyState ? (
           emptyState
         ) : (
-          <ResponsiveDataTable
-            columns={mapColumns(resolvedColumns)}
+          <WidthResponsiveDataTable
+            columns={main}
+            detailOnlyColumns={detailOnly}
             data={table.items}
             rowKey={rowKey}
             sorting={table.sorting}
@@ -143,20 +196,17 @@ export function UniversalDataTable<T>(props: UniversalDataTableProps<T>) {
     return <>{emptyState}</>;
   }
 
+  const { main, detailOnly } = splitColumns(columns);
+
   return (
     <div className="server-data-table-frame">
       <div className="server-data-table-body">
-        <ResponsiveDataTable
-          columns={mapColumns(columns)}
+        <WidthResponsiveDataTable
+          columns={main}
+          detailOnlyColumns={detailOnly}
           data={items}
           rowKey={rowKey}
-          sorting={
-            sorting?.field && sorting.direction
-              ? { field: sorting.field, direction: sorting.direction }
-              : sorting?.field
-                ? { field: sorting.field, direction: sorting.direction ?? "asc" }
-                : null
-          }
+          sorting={toSorting(sorting ?? null)}
           loading={loading}
           error={error}
           onSortChange={onSortChange}

@@ -578,18 +578,19 @@ const columns: UniversalDataTableColumn<Fair>[] = [
 
 A new or changed **frontend screen** is not complete until all of the following are verified. Detail: [docs/frontend/RESPONSIVE_UI_STANDARD.md](docs/frontend/RESPONSIVE_UI_STANDARD.md).
 
-- [ ] Shared primitives used (`PageHeader`, `FilterPanel`, `FormGrid`/`FormField`, `UniversalDataTable` / `ResponsiveDataTable`, `Modal`, `PaginationBar`, `CheckboxField`/`RadioField`)
+- [ ] Shared primitives used (`PageHeader`, `FilterPanel`, `FormGrid`/`FormField`, `UniversalDataTable` → `WidthResponsiveDataTable`, `Modal`, `PaginationBar`, `CheckboxField`/`RadioField`)
 - [ ] Form and filter layouts follow 3 / 2 / 1 column grid (desktop / tablet / mobile)
-- [ ] List columns set `priority` (`primary` | `secondary` | `technical`); technical fields not in the main row
+- [ ] List tables use width-responsive column hiding (order = priority) + child rows; `priority: "technical"` fields never in the main row
+- [ ] Dual top+bottom pagination via `ServerDataTableFrame` (unless explicitly opted out)
 - [ ] No default page-level horizontal scroll; `table-wrap--scroll-only` only when intentionally required
-- [ ] Tablet expand (`+`/`−`) and mobile card/expand usable where secondary/technical columns exist
+- [ ] No page-local responsive table implementations or column-squeeze / `break-all` hacks
 - [ ] Primary actions visible at 390px; modal actions remain visible (sticky footer when needed)
 - [ ] Long UUID / URL / technical text wrap or use `TruncatedText` — no viewport overflow
-- [ ] Smoke-checked at **390 / 768 / 1024 / 1440**
+- [ ] Smoke-checked at **390 / 768 / 1024 / 1440** (including table resize + child row)
 - [ ] Existing list API behavior preserved (search, sort, filter, pagination, URL sync, silent refresh)
 - [ ] `npm run build` PASS
 
-**Architectural rule:** No screen may be accepted as “desktop-only”. Future list and form work must ship on the shared responsive path.
+**Architectural rule:** No screen may be accepted as “desktop-only”. Future list and form work must ship on the shared responsive path. All new tables use `UniversalDataTable` so width-responsive + dual pagination are the default.
 
 ---
 

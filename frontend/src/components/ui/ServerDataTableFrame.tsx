@@ -9,8 +9,35 @@ interface ServerDataTableFrameProps<T> {
   children: React.ReactNode;
   skeletonCols?: number;
   skeletonRows?: number;
-  /** When false, pagination is omitted (e.g. when rendered inside `toolbar`). */
+  /** When false, top pagination is omitted (e.g. when rendered inside `toolbar`). */
   showPagination?: boolean;
+  /**
+   * When true (default), renders the same PaginationBar below the table body.
+   * Set false only for rare nested/preview frames that must stay top-only.
+   */
+  showBottomPagination?: boolean;
+}
+
+/** Shared PaginationBar wired to a server-side table controller (single source of state). */
+export function ServerDataTablePagination<T>({
+  table,
+  className = "server-data-table-pagination",
+}: {
+  table: ServerDataTableController<T>;
+  className?: string;
+}) {
+  return (
+    <PaginationBar
+      className={className}
+      page={table.pagination.page}
+      pageSize={table.pagination.pageSize}
+      total={table.pagination.totalItems}
+      totalPages={table.pagination.totalPages}
+      loading={table.loading}
+      onPageChange={table.setPage}
+      onPageSizeChange={table.setPageSize}
+    />
+  );
 }
 
 export function ServerDataTableFrame<T>({
@@ -20,8 +47,10 @@ export function ServerDataTableFrame<T>({
   skeletonCols = 6,
   skeletonRows = 6,
   showPagination = true,
+  showBottomPagination = true,
 }: ServerDataTableFrameProps<T>) {
   const showToolbarPanel = Boolean(toolbar) || showPagination;
+  const showBottom = showBottomPagination && showPagination;
 
   return (
     <div className="server-data-table-frame">
@@ -30,16 +59,7 @@ export function ServerDataTableFrame<T>({
           {toolbar ? <div className="server-data-table-toolbar-filters">{toolbar}</div> : null}
           {showPagination ? (
             <div className="server-data-table-toolbar-pagination">
-              <PaginationBar
-                className="server-data-table-pagination"
-                page={table.pagination.page}
-                pageSize={table.pagination.pageSize}
-                total={table.pagination.totalItems}
-                totalPages={table.pagination.totalPages}
-                loading={table.loading}
-                onPageChange={table.setPage}
-                onPageSizeChange={table.setPageSize}
-              />
+              <ServerDataTablePagination table={table} />
             </div>
           ) : null}
         </div>
@@ -61,6 +81,11 @@ export function ServerDataTableFrame<T>({
           children
         )}
       </div>
+      {showBottom ? (
+        <div className="server-data-table-bottom-pagination">
+          <ServerDataTablePagination table={table} />
+        </div>
+      ) : null}
     </div>
   );
 }

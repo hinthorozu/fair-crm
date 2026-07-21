@@ -1,4 +1,3 @@
-import React from "react";
 import type { Customer, CustomerStatus, CustomerType } from "../types/customer";
 import { customerStatusLabels, customerTypeLabels, labels } from "../labels";
 import { uiLabels } from "../labels/uiLabels";
@@ -8,6 +7,7 @@ import { UniversalDataTable, type UniversalDataTableColumn } from "./ui/Universa
 import { FilterPanel } from "./ui/FilterPanel";
 import { customerStatusBadgeVariant } from "../utils/badges";
 import { CommunicationListCell } from "./CommunicationListCell";
+import type { SortDirection } from "../types/listTable";
 
 interface CustomerFiltersProps {
   search: string;
@@ -150,7 +150,6 @@ function buildCustomerColumns(props: CustomerTableProps): UniversalDataTableColu
       key: "phone",
       title: labels.phone,
       sortable: true,
-      priority: "secondary",
       render: (c) => (
         <CommunicationListCell value={c.phone} extraCount={c.phone_extra_count ?? 0} />
       ),
@@ -159,7 +158,6 @@ function buildCustomerColumns(props: CustomerTableProps): UniversalDataTableColu
       key: "email",
       title: labels.email,
       sortable: true,
-      priority: "secondary",
       render: (c) => (
         <CommunicationListCell value={c.email} extraCount={c.email_extra_count ?? 0} />
       ),
@@ -168,21 +166,18 @@ function buildCustomerColumns(props: CustomerTableProps): UniversalDataTableColu
       key: "created_at",
       title: labels.created_at,
       sortable: true,
-      priority: "secondary",
       render: (c) => formatDateTime(c.created_at),
     },
     {
       key: "updated_at",
       title: labels.updated_at,
       sortable: true,
-      priority: "secondary",
       render: (c) => formatDateTime(c.updated_at),
     },
     {
       key: "actions",
       title: labels.actions,
       sortable: false,
-      priority: "primary",
       className: "actions",
       render: (c) => {
         const isArchived = isArchivedCustomer(c);
@@ -455,13 +450,19 @@ export function buildDuplicateCustomerColumns(
 
 export function CustomerTable(props: CustomerTableProps) {
   const { items, onCreate, sortField, sortDirection, onSortChange, emptyDueToFilters } = props;
+  const columns = buildCustomerColumns(props).map((column) =>
+    column.key === "name" ? { ...column, allowWrap: true } : column,
+  );
 
   return (
     <UniversalDataTable
-      columns={buildCustomerColumns(props)}
       items={items}
+      columns={columns}
       rowKey={(c) => c.id}
-      sorting={{ field: sortField ?? null, direction: sortDirection ?? null }}
+      sorting={{
+        field: sortField ?? null,
+        direction: (sortDirection ?? null) as SortDirection | null,
+      }}
       onSortChange={onSortChange}
       emptyState={
         <EmptyState

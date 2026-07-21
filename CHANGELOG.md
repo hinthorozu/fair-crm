@@ -8,12 +8,19 @@ Format: one version section per completed sprint milestone. Update this file aft
 
 ## Unreleased
 
+### Width-responsive table standard (ADR-032 update)
+
+- Default list engine: `UniversalDataTable` → `WidthResponsiveDataTable` (container width, column order = priority, child rows)
+- Dual top+bottom pagination default via `ServerDataTableFrame` / `ServerDataTablePagination`
+- Column squeezing / letter-break wrapping forbidden; `priority: "technical"` stays detail-only
+- `ResponsiveDataTable` deprecated as thin adapter; all UniversalDataTable screens inherit the standard
+- Docs: [docs/frontend/RESPONSIVE_UI_STANDARD.md](docs/frontend/RESPONSIVE_UI_STANDARD.md)
+
 ### Global Responsive UI Design System (ADR-032)
 
 - Shared responsive standard for all Fair CRM screens (390 / 768 / 1024 / 1440)
-- `ResponsiveDataTable` column priority (`primary` / `secondary` / `technical`) + expand child rows
-- `FilterPanel`, `TruncatedText`, `TechnicalDetails`, `RadioField`; FormGrid 3/2/1; modal bottom-sheet + sticky footer
-- Migrated: Enrichment, Todos, Run History, Customers, Fairs, Follow-ups, Imports list, Dashboard sub-lists
+- Form/filter 3/2/1, `FilterPanel`, `TruncatedText`, `TechnicalDetails`, modal bottom-sheet
+- List tables: width-responsive engine (see above)
 - [docs/frontend/RESPONSIVE_UI_STANDARD.md](docs/frontend/RESPONSIVE_UI_STANDARD.md)
 
 ### Import Job Permanent Delete

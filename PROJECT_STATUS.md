@@ -5,7 +5,7 @@
 | Field | Value |
 |-------|-------|
 | **Current Version** | v0.9.4 (Backup Format Options) |
-| **Last updated** | 2026-07-21 (Global Responsive UI Design System) |
+| **Last updated** | 2026-07-21 (Width-responsive table standard) |
 | **Constitution** | [PROJECT_CONSTITUTION.md](PROJECT_CONSTITUTION.md) |
 | **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
 | **Product Vision** | [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) |
@@ -52,9 +52,10 @@ Details: [docs/DEV_RUNTIME.md](docs/DEV_RUNTIME.md) · [docs/DEV_AUTO_START_COMP
 **Completed Features**
 
 - Breakpoint tokens and shared CSS for form/filter 3/2/1 grids, FilterPanel, modal bottom-sheet, button aliases
-- `ResponsiveDataTable` under `UniversalDataTable` with column `priority` + expand child rows
+- **List table standard:** `UniversalDataTable` → `WidthResponsiveDataTable` (available-width hide, order = priority, child rows) + dual pagination default
+- `priority: "technical"` = detail-only forever; page-local responsive table hacks rejected
 - Shared `FilterPanel`, `TruncatedText`, `TechnicalDetails`, `RadioField`
-- Priority screens migrated: Enrichment, Todos, Run History, Customers, Fairs, Follow-ups, Imports, Dashboard
+- All UniversalDataTable screens inherit the standard (Customers, Fairs, Todos, Follow-ups, Imports, Run History, Admin backups, Dashboard, …)
 - Constitution Responsive UI Definition of Done + [docs/frontend/RESPONSIVE_UI_STANDARD.md](docs/frontend/RESPONSIVE_UI_STANDARD.md)
 - Frontend-only; API contracts unchanged
 
