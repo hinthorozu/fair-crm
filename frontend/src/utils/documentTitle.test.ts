@@ -37,6 +37,12 @@ describe("resolvePageTitle", () => {
     );
   });
 
+  it("resolves customer enrichment title", () => {
+    expect(resolvePageTitle({ route: "/data-integration/enrichment" })).toBe(
+      dataIntegrationLabels.enrichmentTitle,
+    );
+  });
+
   it("resolves duplicate groups title", () => {
     expect(
       resolvePageTitle({

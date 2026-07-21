@@ -12,7 +12,10 @@ from app.modules.fairs.domain.ports import FairRepository
 from app.modules.scraper.domain.enrichment_adapter import CUSTOMER_CONTACT_ENRICHMENT_ADAPTER_KEY
 from app.modules.scraper.domain.scraper_run_history import ScraperRunHistory
 from app.modules.scraper.domain.scraper_run_source import ScraperRunSource
-from app.modules.scraper.services.enrichment_candidate_service import list_enrichment_candidates
+from app.modules.scraper.services.enrichment_candidate_service import (
+    CompanyNameMatchMode,
+    list_enrichment_candidates,
+)
 from app.modules.scraper.services.scraper_run_history_service import ScraperRunHistoryService
 
 
@@ -22,6 +25,9 @@ class RunFairEnrichmentCommand:
     fair_id: UUID
     limit: int | None = None
     include_existing_email: bool = False
+    company_name: str | None = None
+    company_name_match: CompanyNameMatchMode = "contains"
+    address_contains: str | None = None
 
 
 class RunFairEnrichmentUseCase:
@@ -52,6 +58,9 @@ class RunFairEnrichmentUseCase:
             fair_id=fair.id,
             ignore_previous_scan_state=True,
             include_existing_email=command.include_existing_email,
+            company_name=command.company_name,
+            company_name_match=command.company_name_match,
+            address_contains=command.address_contains,
         )
         if not candidates:
             raise FairEnrichmentNoCandidatesError(

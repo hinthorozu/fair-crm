@@ -1,6 +1,6 @@
 """Tests for customer contact enrichment run API."""
 
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import app.modules.scraper.api.dependencies as scraper_dependencies
 from app.modules.scraper.application.enrichment_run_job_runner import (
@@ -187,4 +187,45 @@ def test_enrichment_run_passes_include_existing_email_to_executor(
         scraper_dependencies._enrichment_run_job_runner = previous_runner
 
     assert response.status_code == 202
+    assert captured["include_existing_email"] is True
+
+
+def test_enrichment_run_passes_candidate_filters_to_executor(client, auth_headers, db_session):
+    fair_id = str(uuid4())
+    captured: dict[str, object] = {}
+
+    def _capture_executor(_session, _organization_id, **kwargs):
+        captured["fair_id"] = kwargs.get("fair_id")
+        captured["company_name"] = kwargs.get("company_name")
+        captured["company_name_match"] = kwargs.get("company_name_match")
+        captured["address_contains"] = kwargs.get("address_contains")
+        captured["include_existing_email"] = kwargs.get("include_existing_email")
+        return _mock_executor(_session, _organization_id, **kwargs)
+
+    mock_runner = EnrichmentRunJobRunner(session_factory=lambda: db_session, executor=_capture_executor)
+    previous_runner = scraper_dependencies._enrichment_run_job_runner
+    scraper_dependencies._enrichment_run_job_runner = mock_runner
+    try:
+        response = client.post(
+            f"/api/v1/scraper/adapters/{ScraperSiteKey.CUSTOMER_CONTACT_ENRICHMENT}/enrichment-run",
+            json={
+                "limit": 10,
+                "dry_run": True,
+                "requested_fields": ["email"],
+                "include_existing_email": True,
+                "fair_id": fair_id,
+                "company_name": "SDK",
+                "company_name_match": "starts_with",
+                "address_contains": "İstanbul",
+            },
+            headers=auth_headers,
+        )
+    finally:
+        scraper_dependencies._enrichment_run_job_runner = previous_runner
+
+    assert response.status_code == 202
+    assert str(captured["fair_id"]) == fair_id
+    assert captured["company_name"] == "SDK"
+    assert captured["company_name_match"] == "starts_with"
+    assert captured["address_contains"] == "İstanbul"
     assert captured["include_existing_email"] is True

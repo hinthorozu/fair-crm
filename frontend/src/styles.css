@@ -5071,6 +5071,18 @@ textarea.form-control-textarea {
   gap: 0.75rem;
 }
 
+.enrichment-run-fair-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.enrichment-run-fair-row .entity-select {
+  flex: 1 1 16rem;
+  min-width: 12rem;
+}
+
 .enrichment-run-actions,
 .enrichment-state-reset-actions {
   display: flex;

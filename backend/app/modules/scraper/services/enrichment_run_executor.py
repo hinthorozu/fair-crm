@@ -20,6 +20,7 @@ from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportE
 from app.modules.scraper.normalizers.company_normalizer import CompanyNormalizer
 from app.modules.scraper.services.customer_contact_enrichment_service import enrich_customer_website
 from app.modules.scraper.services.enrichment_candidate_service import (
+    CompanyNameMatchMode,
     EnrichmentCandidate,
     list_enrichment_candidates,
 )
@@ -37,6 +38,7 @@ from app.modules.scraper.types.scraper_site import ScraperSiteKey
 logger = logging.getLogger(__name__)
 
 CANDIDATES_QUERY_SLOW_WARNING_MS = 10_000
+_VALID_COMPANY_NAME_MATCH = frozenset({"contains", "starts_with"})
 
 
 @dataclass(frozen=True)
@@ -92,6 +94,9 @@ def execute_enrichment_run(
     fair_id: UUID | None = None,
     ignore_previous_scan_state: bool = False,
     include_existing_email: bool = False,
+    company_name: str | None = None,
+    company_name_match: CompanyNameMatchMode | str = "contains",
+    address_contains: str | None = None,
     cancel_checker: RunCancelChecker | None = None,
 ) -> EnrichmentRunExecution:
     def _cancelled_execution(
@@ -115,6 +120,9 @@ def execute_enrichment_run(
             last_processed_customer_id=last_processed_customer_id,
         )
 
+    match_mode: CompanyNameMatchMode = (
+        company_name_match if company_name_match in _VALID_COMPANY_NAME_MATCH else "contains"
+    )
     query_started_at = time.perf_counter()
     if fair_id is not None:
         candidates = list_enrichment_candidates(
@@ -124,6 +132,9 @@ def execute_enrichment_run(
             fair_id=fair_id,
             ignore_previous_scan_state=ignore_previous_scan_state,
             include_existing_email=include_existing_email,
+            company_name=company_name,
+            company_name_match=match_mode,
+            address_contains=address_contains,
         )
     elif customer_ids:
         from app.modules.scraper.services.single_customer_enrichment_service import (
@@ -141,6 +152,9 @@ def execute_enrichment_run(
             organization_id,
             limit=limit,
             include_existing_email=include_existing_email,
+            company_name=company_name,
+            company_name_match=match_mode,
+            address_contains=address_contains,
         )
     duration_ms = int((time.perf_counter() - query_started_at) * 1000)
     candidate_count = len(candidates)
@@ -153,6 +167,9 @@ def execute_enrichment_run(
             "fair_id": str(fair_id) if fair_id is not None else None,
             "ignore_previous_scan_state": ignore_previous_scan_state,
             "include_existing_email": include_existing_email,
+            "company_name": company_name,
+            "company_name_match": match_mode,
+            "address_contains": address_contains,
         }
         run_logger.info(
             "candidates_query_finished",

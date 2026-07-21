@@ -41,6 +41,7 @@ export function DataIntegrationLayout({
     { id: "adapters", label: dataIntegrationLabels.navAdapters, path: "/data-integration/adapters" },
     { id: "run-history", label: dataIntegrationLabels.navRunHistory, path: "/data-integration/run-history" },
     { id: "scraper-test", label: dataIntegrationLabels.navScraperTest, path: "/data-integration/scraper-test" },
+    { id: "enrichment", label: dataIntegrationLabels.navEnrichment, path: "/data-integration/enrichment" },
   ];
 
   return (

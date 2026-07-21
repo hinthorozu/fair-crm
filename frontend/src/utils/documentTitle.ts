@@ -88,6 +88,8 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
       return scraperLabels.enrichmentRunDetailTitle;
     case "/data-integration/scraper-test":
       return scraperLabels.testPageTitle;
+    case "/data-integration/enrichment":
+      return dataIntegrationLabels.enrichmentTitle;
     case "/data-integration/jobs":
       return dataIntegrationLabels.navJobs;
     case "/data-integration/reports":

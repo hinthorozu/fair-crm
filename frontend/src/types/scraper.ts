@@ -242,6 +242,8 @@ export interface EnrichmentRunSummary {
   import_batch_id: string | null;
 }
 
+export type CompanyNameMatchMode = "contains" | "starts_with";
+
 export interface EnrichmentRunPayload {
   /** Omitted/undefined falls back to the backend default; explicit `null` means "no limit — all eligible customers". */
   limit?: number | null;
@@ -249,6 +251,13 @@ export interface EnrichmentRunPayload {
   max_pages?: number;
   /** When true, customers who already have a CRM email are also scanned for new data. */
   include_existing_email?: boolean;
+  /** Optional fair scope — only participants of this fair are candidates. */
+  fair_id?: string | null;
+  /** Optional company-name filter (contains / starts_with). */
+  company_name?: string | null;
+  company_name_match?: CompanyNameMatchMode;
+  /** Optional address/city substring filter. */
+  address_contains?: string | null;
 }
 
 export interface EnrichmentStateResetPayload {

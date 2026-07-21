@@ -154,6 +154,15 @@ export function NavIconScraperTest(props: IconProps) {
   );
 }
 
+export function NavIconEnrichment(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+      <path d="M15 5l4 4" />
+    </IconBase>
+  );
+}
+
 export function NavIconChevronLeft(props: IconProps) {
   return (
     <IconBase {...props}>
@@ -241,6 +250,7 @@ const DI_NAV_ICONS: Record<string, React.ComponentType<IconProps>> = {
   adapters: NavIconAdapters,
   "run-history": NavIconRunHistory,
   "scraper-test": NavIconScraperTest,
+  enrichment: NavIconEnrichment,
 };
 
 export function DataIntegrationNavIcon({ id }: { id: string }) {

@@ -49,6 +49,9 @@ class EnrichmentRunJobCommand:
     fair_id: UUID | None = None
     ignore_previous_scan_state: bool = False
     include_existing_email: bool = False
+    company_name: str | None = None
+    company_name_match: str = "contains"
+    address_contains: str | None = None
 
 
 class EnrichmentRunJobRunner:
@@ -99,6 +102,9 @@ class EnrichmentRunJobRunner:
                     "customer_ids": [str(item) for item in command.customer_ids or []],
                     "fair_id": str(command.fair_id) if command.fair_id is not None else None,
                     "include_existing_email": command.include_existing_email,
+                    "company_name": command.company_name,
+                    "company_name_match": command.company_name_match,
+                    "address_contains": command.address_contains,
                 },
             )
             db.commit()
@@ -119,6 +125,9 @@ class EnrichmentRunJobRunner:
                 fair_id=command.fair_id,
                 ignore_previous_scan_state=command.ignore_previous_scan_state,
                 include_existing_email=command.include_existing_email,
+                company_name=command.company_name,
+                company_name_match=command.company_name_match,
+                address_contains=command.address_contains,
                 cancel_checker=cancel_checker,
             )
             history_service.touch_heartbeat(

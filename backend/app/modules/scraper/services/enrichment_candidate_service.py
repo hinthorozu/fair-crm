@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 from uuid import UUID
 
-from sqlalchemy import and_, exists, func
+from sqlalchemy import and_, exists, func, or_
 from sqlalchemy.orm import Session
 
 from app.modules.customers.infrastructure.persistence.communication_models import (
@@ -18,6 +19,8 @@ from app.modules.scraper.services.customer_enrichment_state_service import (
     is_customer_scan_eligible,
     load_state_map,
 )
+
+CompanyNameMatchMode = Literal["contains", "starts_with"]
 
 
 @dataclass(frozen=True)
@@ -36,6 +39,26 @@ def _website_has_email_subquery(organization_id: UUID):
     )
 
 
+def _company_name_filter(company_name: str, match: CompanyNameMatchMode):
+    needle = company_name.strip()
+    if not needle:
+        return None
+    if match == "starts_with":
+        return CustomerModel.display_name.ilike(f"{needle}%")
+    return CustomerModel.display_name.ilike(f"%{needle}%")
+
+
+def _address_contains_filter(address_contains: str):
+    needle = address_contains.strip()
+    if not needle:
+        return None
+    pattern = f"%{needle}%"
+    return or_(
+        CustomerModel.address.ilike(pattern),
+        CustomerModel.city.ilike(pattern),
+    )
+
+
 def list_enrichment_candidates(
     session: Session,
     organization_id: UUID,
@@ -44,6 +67,9 @@ def list_enrichment_candidates(
     fair_id: UUID | None = None,
     ignore_previous_scan_state: bool = False,
     include_existing_email: bool = False,
+    company_name: str | None = None,
+    company_name_match: CompanyNameMatchMode = "contains",
+    address_contains: str | None = None,
 ) -> list[EnrichmentCandidate]:
     """Return customers eligible for enrichment based on website, email, and scan state.
 
@@ -57,6 +83,10 @@ def list_enrichment_candidates(
     already have an email can be re-scanned for new or updated contact data. When False
     (default), only website-holding customers without any CRM email are returned — the
     original enrichment behaviour.
+
+    Optional filters (``company_name``, ``address_contains``, ``fair_id``) narrow the
+    candidate pool; all are optional so a run can target a limited subset without
+    requiring every filter.
     """
     filters = [
         CustomerModel.organization_id == organization_id,
@@ -67,6 +97,14 @@ def list_enrichment_candidates(
     ]
     if not include_existing_email:
         filters.append(~_website_has_email_subquery(organization_id))
+
+    company_filter = _company_name_filter(company_name or "", company_name_match)
+    if company_filter is not None:
+        filters.append(company_filter)
+
+    address_filter = _address_contains_filter(address_contains or "")
+    if address_filter is not None:
+        filters.append(address_filter)
 
     query = (
         session.query(CustomerWebsiteModel, CustomerModel)

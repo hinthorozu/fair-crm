@@ -346,3 +346,64 @@ def test_run_fair_contact_enrichment_include_existing_email_passes_flag(
     assert rejected.status_code == 400
     assert accepted.status_code == 202
     assert captured["include_existing_email"] is True
+
+
+def test_run_fair_contact_enrichment_passes_candidate_filters(
+    client, auth_headers, db_session, organization_id
+):
+    fair = _seed_fair(db_session, organization_id, name="Filter Fair")
+    customer = _seed_customer(
+        db_session,
+        organization_id,
+        name="SDK Istanbul Co",
+        website="https://sdk-istanbul.test",
+    )
+    customer.address = "Maslak, İstanbul"
+    _seed_participation(db_session, organization_id, fair.id, customer.id)
+    db_session.commit()
+
+    fair_id = fair.id
+    customer_id = customer.id
+    customer_name = customer.display_name
+
+    captured: dict[str, object] = {}
+
+    def _mock_executor(_session, _organization_id, **kwargs):
+        captured["company_name"] = kwargs.get("company_name")
+        captured["company_name_match"] = kwargs.get("company_name_match")
+        captured["address_contains"] = kwargs.get("address_contains")
+        return EnrichmentRunExecution(
+            results=[
+                EnrichmentResultDto(
+                    customer_id=customer_id,
+                    company_name=customer_name,
+                    website="https://sdk-istanbul.test",
+                    emails=[SourcedValue(value="info@sdk.test", source_url="https://sdk-istanbul.test")],
+                    status="found",
+                )
+            ],
+            handoff=_sample_handoff(customer_id),
+        )
+
+    mock_runner = EnrichmentRunJobRunner(session_factory=lambda: db_session, executor=_mock_executor)
+    previous_runner = fairs_dependencies._enrichment_run_job_runner
+    fairs_dependencies._enrichment_run_job_runner = mock_runner
+    try:
+        response = client.post(
+            f"/api/v1/fairs/{fair_id}/contact-enrichment/run",
+            json={
+                "limit": 10,
+                "requested_fields": ["email"],
+                "company_name": "SDK",
+                "company_name_match": "contains",
+                "address_contains": "İstanbul",
+            },
+            headers=auth_headers,
+        )
+    finally:
+        fairs_dependencies._enrichment_run_job_runner = previous_runner
+
+    assert response.status_code == 202
+    assert captured["company_name"] == "SDK"
+    assert captured["company_name_match"] == "contains"
+    assert captured["address_contains"] == "İstanbul"

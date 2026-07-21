@@ -602,6 +602,10 @@ def run_customer_contact_enrichment(
             dry_run=body.dry_run,
             max_pages=body.max_pages or 10,
             include_existing_email=body.include_existing_email,
+            fair_id=body.fair_id,
+            company_name=body.company_name,
+            company_name_match=body.company_name_match,
+            address_contains=body.address_contains,
         ),
     )
     return ScraperRunHistoryResponse.from_entity(run)

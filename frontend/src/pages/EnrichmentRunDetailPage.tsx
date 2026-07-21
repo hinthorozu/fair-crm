@@ -148,7 +148,7 @@ export function EnrichmentRunDetailPage({
               </button>
             ) : null}
             <button type="button" className="btn secondary" onClick={onBack}>
-              {scraperLabels.enrichmentRunDetailBackHistory}
+              {scraperLabels.enrichmentRunDetailBackEnrichment}
             </button>
           </>
         }

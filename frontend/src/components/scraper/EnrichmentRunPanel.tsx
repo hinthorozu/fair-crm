@@ -1,8 +1,16 @@
 import React from "react";
 import { runFairContactEnrichment } from "../../api/fairs";
 import { getScraperRun, runCustomerContactEnrichment } from "../../api/scraper";
+import { FairEntitySelect } from "../FairEntitySelect";
 import { scraperLabels } from "../../labels/scraperLabels";
-import type { EnrichmentRunSummary, RequestedOutputField, ScraperManifest, ScraperRun } from "../../types/scraper";
+import type {
+  CompanyNameMatchMode,
+  EnrichmentRunPayload,
+  EnrichmentRunSummary,
+  RequestedOutputField,
+  ScraperManifest,
+  ScraperRun,
+} from "../../types/scraper";
 import { manifestCapabilities, resolveRequestedFieldsForManifest } from "../../utils/adapterManifestForm";
 import {
   ENRICHMENT_OUTPUT_FIELD_KEYS,
@@ -31,6 +39,11 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
+function optionalTrimmed(value: string): string | undefined {
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 export function EnrichmentRunPanel({
   adapterKey,
   manifest,
@@ -42,6 +55,10 @@ export function EnrichmentRunPanel({
   /** Empty string = no limit (all eligible customers); the "50" shown to the user is only a placeholder hint. */
   const [limitInput, setLimitInput] = React.useState("");
   const [includeExistingEmail, setIncludeExistingEmail] = React.useState(false);
+  const [selectedFairId, setSelectedFairId] = React.useState("");
+  const [companyName, setCompanyName] = React.useState("");
+  const [companyNameMatch, setCompanyNameMatch] = React.useState<CompanyNameMatchMode>("contains");
+  const [addressContains, setAddressContains] = React.useState("");
   const [requestedFields, setRequestedFields] = React.useState<RequestedOutputField[]>(() =>
     filterEnrichmentRequestedFields(resolveRequestedFieldsForManifest(manifest)),
   );
@@ -50,6 +67,9 @@ export function EnrichmentRunPanel({
   const [error, setError] = React.useState<string | null>(null);
   const [activeRun, setActiveRun] = React.useState<ScraperRun | null>(null);
   const [summary, setSummary] = React.useState<EnrichmentRunSummary | null>(null);
+
+  const fairScoped = Boolean(fairId);
+  const effectiveFairId = fairId || selectedFairId || undefined;
 
   const capabilities = React.useMemo(() => {
     const all = manifestCapabilities(manifest);
@@ -96,14 +116,22 @@ export function EnrichmentRunPanel({
     setSummary(null);
     setActiveRun(null);
     try {
-      const payload = {
+      const payload: EnrichmentRunPayload = {
         limit,
         requested_fields: requestedFields,
         include_existing_email: includeExistingEmail,
+        company_name: optionalTrimmed(companyName),
+        company_name_match: companyNameMatch,
+        address_contains: optionalTrimmed(addressContains),
       };
-      const started = fairId
+      // Fair-detail page uses the fair-scoped endpoint (ignores prior scan state).
+      // Org-wide panel with an optional fair filter stays on the org endpoint and passes fair_id.
+      const started = fairScoped && fairId
         ? await runFairContactEnrichment(fairId, payload)
-        : await runCustomerContactEnrichment(adapterKey, payload);
+        : await runCustomerContactEnrichment(adapterKey, {
+            ...payload,
+            fair_id: effectiveFairId,
+          });
       if (!started?.id) {
         // The run may genuinely have been created server-side, but without an id we cannot
         // navigate anywhere useful — surface this explicitly instead of closing silently.
@@ -129,11 +157,87 @@ export function EnrichmentRunPanel({
     } finally {
       setRunning(false);
     }
-  }, [adapterKey, fairId, includeExistingEmail, limitInput, onRunFinished, onRunStarted, pollRun, requestedFields]);
+  }, [
+    adapterKey,
+    addressContains,
+    companyName,
+    companyNameMatch,
+    effectiveFairId,
+    fairId,
+    fairScoped,
+    includeExistingEmail,
+    limitInput,
+    onRunFinished,
+    onRunStarted,
+    pollRun,
+    requestedFields,
+  ]);
 
   return (
     <div className="enrichment-run-panel">
       <p className="form-hint">{scraperLabels.enrichmentRunHint}</p>
+      <p className="form-hint">{scraperLabels.enrichmentRunFiltersHint}</p>
+
+      {!fairScoped ? (
+        <div className="form-field">
+          <span>{scraperLabels.enrichmentRunFairFilter}</span>
+          <div className="enrichment-run-fair-row">
+            <FairEntitySelect
+              value={selectedFairId}
+              onChange={setSelectedFairId}
+              disabled={running}
+              placeholder={scraperLabels.enrichmentRunFairFilterPlaceholder}
+            />
+            {selectedFairId ? (
+              <button
+                type="button"
+                className="btn link"
+                disabled={running}
+                onClick={() => setSelectedFairId("")}
+              >
+                {scraperLabels.enrichmentRunFairFilterClear}
+              </button>
+            ) : null}
+          </div>
+          <span className="form-hint">{scraperLabels.enrichmentRunFairFilterHint}</span>
+        </div>
+      ) : null}
+
+      <label className="form-field">
+        <span>{scraperLabels.enrichmentRunCompanyName}</span>
+        <input
+          type="text"
+          value={companyName}
+          disabled={running}
+          placeholder="SDK"
+          onChange={(event) => setCompanyName(event.target.value)}
+        />
+        <span className="form-hint">{scraperLabels.enrichmentRunCompanyNameHint}</span>
+      </label>
+
+      <label className="form-field">
+        <span>{scraperLabels.enrichmentRunCompanyNameMatch}</span>
+        <select
+          value={companyNameMatch}
+          disabled={running || !companyName.trim()}
+          onChange={(event) => setCompanyNameMatch(event.target.value as CompanyNameMatchMode)}
+        >
+          <option value="contains">{scraperLabels.enrichmentRunCompanyNameMatchContains}</option>
+          <option value="starts_with">{scraperLabels.enrichmentRunCompanyNameMatchStartsWith}</option>
+        </select>
+      </label>
+
+      <label className="form-field">
+        <span>{scraperLabels.enrichmentRunAddress}</span>
+        <input
+          type="text"
+          value={addressContains}
+          disabled={running}
+          placeholder="İstanbul"
+          onChange={(event) => setAddressContains(event.target.value)}
+        />
+        <span className="form-hint">{scraperLabels.enrichmentRunAddressHint}</span>
+      </label>
 
       <label className="form-field">
         <span>{scraperLabels.enrichmentRunLimit}</span>

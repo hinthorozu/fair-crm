@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from datetime import datetime
 from uuid import UUID
@@ -335,6 +335,11 @@ class EnrichmentRunRequest(BaseModel):
     dry_run: bool = False
     max_pages: int | None = Field(default=10, ge=1, le=10)
     include_existing_email: bool = False
+    # Optional candidate filters — none are required; empty/null means no filter.
+    fair_id: UUID | None = None
+    company_name: str | None = Field(default=None, max_length=255)
+    company_name_match: Literal["contains", "starts_with"] = "contains"
+    address_contains: str | None = Field(default=None, max_length=500)
 
 
 class EnrichmentStateResetRequest(BaseModel):

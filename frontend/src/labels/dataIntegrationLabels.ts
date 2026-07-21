@@ -9,6 +9,11 @@ export const dataIntegrationLabels = {
   navAdapters: "Adapter Yönetimi",
   navRunHistory: "Run History",
   navScraperTest: "Scraper Test",
+  navEnrichment: "Müşteri Zenginleştirme",
+  enrichmentTitle: "Müşteri Zenginleştirme",
+  enrichmentSubtitle:
+    "Website'i olan müşterileri filtreleyerek iletişim bilgilerini tarayın. Bulunan veriler Import Önizleme'de onayınıza sunulur.",
+  enrichmentLoadError: "Zenginleştirme ekranı yüklenemedi.",
   comingSoon: "Yakında",
   comingSoonMessage: "Bu özellik yakında kullanıma sunulacak.",
   importsTitle: "Import İşleri",

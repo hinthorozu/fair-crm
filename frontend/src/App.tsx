@@ -11,6 +11,7 @@ import { AdapterDetailPage } from "./pages/AdapterDetailPage";
 import { ScraperRunHistoryPage } from "./pages/ScraperRunHistoryPage";
 import { ScraperTestPage } from "./pages/ScraperTestPage";
 import { EnrichmentRunDetailPage } from "./pages/EnrichmentRunDetailPage";
+import { CustomerEnrichmentPage } from "./pages/CustomerEnrichmentPage";
 import { DatabaseBackupsPage } from "./pages/DatabaseBackupsPage";
 import { SmtpAccountsPage } from "./pages/SmtpAccountsPage";
 import { MailTemplatesPage } from "./pages/MailTemplatesPage";
@@ -73,6 +74,7 @@ type AppRoute =
   | "/data-integration/run-history"
   | "/data-integration/runs/:runId"
   | "/data-integration/scraper-test"
+  | "/data-integration/enrichment"
   | "/admin/system/backups"
   | "/admin/smtp-operations/accounts"
   | "/admin/smtp-operations/templates"
@@ -169,6 +171,9 @@ function parseRoute(location: string): ParsedRoute {
     }
     if (pathname === "/data-integration/scraper-test" || pathname === "/data-integration/scraper-test/") {
       return { route: "/data-integration/scraper-test" };
+    }
+    if (pathname === "/data-integration/enrichment" || pathname === "/data-integration/enrichment/") {
+      return { route: "/data-integration/enrichment" };
     }
     const adapterDetail = pathname.match(/^\/data-integration\/adapters\/([^/]+)$/);
     if (adapterDetail) {
@@ -268,6 +273,7 @@ function adminSection(route: AppRoute): string {
 
 function diSection(route: AppRoute): string {
   if (route.includes("/scraper-test")) return "scraper-test";
+  if (route.includes("/enrichment") || route.includes("/runs/")) return "enrichment";
   if (route.includes("/run-history")) return "run-history";
   if (route.includes("/adapters")) return "adapters";
   if (route.includes("/new") || route.includes("/fair/")) return "new";
@@ -562,8 +568,17 @@ export function App() {
               ? [
                   { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
                   { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
-                  { label: scraperLabels.runHistoryTitle, onClick: goToRunHistory },
+                  {
+                    label: dataIntegrationLabels.navEnrichment,
+                    onClick: () => goToDataIntegration("/data-integration/enrichment"),
+                  },
                   { label: scraperLabels.enrichmentRunDetailTitle, current: true },
+                ]
+            : parsed.route === "/data-integration/enrichment"
+              ? [
+                  { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
+                  { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
+                  { label: dataIntegrationLabels.navEnrichment, current: true },
                 ]
             : parsed.route === "/data-integration/scraper-test"
               ? [
@@ -723,13 +738,20 @@ export function App() {
           adapterKey={parsed.adapterKey}
           onBack={() => {
             if (parsed.adapterKey && isCustomerContactEnrichmentAdapter(parsed.adapterKey)) {
-              goToAdapterDetail(parsed.adapterKey);
+              goToDataIntegration("/data-integration/enrichment");
               return;
             }
             goToRunHistory(parsed.adapterKey);
           }}
           onOpenImportBatch={(batchId) =>
             goToDataIntegration(`/data-integration/imports/continue/${batchId}`)
+          }
+        />
+      )}
+      {parsed.route === "/data-integration/enrichment" && (
+        <CustomerEnrichmentPage
+          onRunStarted={(runId) =>
+            goToAdapterRunDetail(CUSTOMER_CONTACT_ENRICHMENT_ADAPTER_KEY, runId)
           }
         />
       )}
