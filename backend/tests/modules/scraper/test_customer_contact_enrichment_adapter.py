@@ -47,7 +47,8 @@ async def test_customer_contact_enrichment_adapter_extracts_contacts_from_fixtur
     assert len(rows) == 1
     row = rows[0]
     assert row.company_name == "Örnek Firma"
-    assert row.email in {"info@ornek.com", "destek@ornek.com"}
+    emails = set((row.email or "").split(";"))
+    assert emails == {"info@ornek.com", "destek@ornek.com"}
     assert row.phone is not None
     assert row.address is not None
     assert row.metadata["external_id"] == str(customer_id)
@@ -101,4 +102,7 @@ async def test_customer_contact_enrichment_adapter_follows_js_redirect_and_ranks
 
     assert len(rows) == 1
     row = rows[0]
-    assert row.email == "ornektarim@ornektarim.com.tr"
+    emails = (row.email or "").split(";")
+    # Domain-matching address stays primary; additional discovered emails are retained.
+    assert emails[0] == "ornektarim@ornektarim.com.tr"
+    assert "info@ornektarim.tr" in emails

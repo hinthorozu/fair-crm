@@ -128,6 +128,7 @@ class EnrichmentRunJobRunner:
                 company_name=command.company_name,
                 company_name_match=command.company_name_match,
                 address_contains=command.address_contains,
+                dry_run=command.dry_run,
                 cancel_checker=cancel_checker,
             )
             history_service.touch_heartbeat(

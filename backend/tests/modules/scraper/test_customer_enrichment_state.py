@@ -84,7 +84,8 @@ def test_is_eligible_blocks_pending_merge_and_respects_retry():
     ) is True
 
 
-def test_record_scan_result_persists_email_found_without_placeholder(db_session, organization_id):
+def test_record_scan_result_stores_found_email_without_marking_enriched(db_session, organization_id):
+    """Scan discovery must not set email_found — that status is post-import only."""
     customer = _seed_customer(db_session, organization_id, display_name="Acme")
     run = _seed_run(db_session, organization_id)
     record_scan_result(
@@ -94,18 +95,53 @@ def test_record_scan_result_persists_email_found_without_placeholder(db_session,
         result=EnrichmentResultDto(
             customer_id=customer.id,
             company_name="Acme",
-            website="https://acme.test",
-            emails=[SourcedValue(value="info@acme.test", source_url="https://acme.test/contact")],
+            website="https://acme.example",
+            emails=[SourcedValue(value="info@acme.example", source_url="https://acme.example/contact")],
             status="found",
         ),
     )
     db_session.commit()
 
     state = load_state_map(db_session, organization_id, [customer.id])[customer.id]
-    assert state.last_email_scan_status == CustomerEnrichmentScanStatus.EMAIL_FOUND
-    assert state.last_email_found == "info@acme.test"
-    assert state.last_source_url == "https://acme.test/contact"
+    assert state.last_email_scan_status == CustomerEnrichmentScanStatus.NOT_SCANNED
+    assert state.last_email_found == "info@acme.example"
+    assert state.last_source_url == "https://acme.example/contact"
     assert state.retry_after is None
+    assert is_eligible_for_enrichment_scan(
+        status=state.last_email_scan_status,
+        retry_after=state.retry_after,
+        website_changed=False,
+    ) is True
+
+
+def test_mark_pending_merge_after_scan_found(db_session, organization_id):
+    from app.modules.scraper.services.customer_enrichment_state_service import mark_customers_pending_merge
+
+    customer = _seed_customer(db_session, organization_id, display_name="Pending Co")
+    run = _seed_run(db_session, organization_id)
+    record_scan_result(
+        db_session,
+        organization_id=organization_id,
+        run_id=run.id,
+        result=EnrichmentResultDto(
+            customer_id=customer.id,
+            company_name="Pending Co",
+            website="https://pending.example",
+            emails=[SourcedValue(value="info@pending.example", source_url="https://pending.example")],
+            status="found",
+        ),
+    )
+    mark_customers_pending_merge(
+        db_session,
+        organization_id=organization_id,
+        run_id=run.id,
+        customer_ids=[customer.id],
+    )
+    db_session.commit()
+
+    state = load_state_map(db_session, organization_id, [customer.id])[customer.id]
+    assert state.last_email_scan_status == CustomerEnrichmentScanStatus.PENDING_MERGE
+    assert state.last_email_found == "info@pending.example"
 
 
 def test_record_scan_result_sets_retry_for_not_found(db_session, organization_id):

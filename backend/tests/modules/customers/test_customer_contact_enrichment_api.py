@@ -103,7 +103,9 @@ def test_get_customer_contact_enrichment_state_no_website(client, auth_headers, 
     assert "web sitesi olmadığı" in payload["block_message"]
 
 
-def test_get_customer_contact_enrichment_state_email_exists(client, auth_headers, db_session, organization_id):
+def test_get_customer_contact_enrichment_state_allows_run_when_email_exists(
+    client, auth_headers, db_session, organization_id
+):
     customer = _seed_customer(
         db_session,
         organization_id,
@@ -118,8 +120,8 @@ def test_get_customer_contact_enrichment_state_email_exists(client, auth_headers
     )
     assert response.status_code == 200
     payload = response.json()
-    assert payload["can_run"] is False
-    assert payload["block_code"] == "email_exists"
+    assert payload["can_run"] is True
+    assert payload["block_code"] is None
     assert payload["has_crm_email"] is True
 
 
@@ -159,6 +161,7 @@ def test_get_customer_contact_enrichment_state_pending_merge(client, auth_header
     assert payload["status"] == CustomerEnrichmentScanStatus.PENDING_MERGE
     assert payload["can_run"] is False
     assert payload["block_code"] == "pending_merge"
+    assert "import bekleyen" in (payload["block_message"] or "").lower()
 
 
 def test_run_customer_contact_enrichment_rejects_no_website(client, auth_headers, db_session, organization_id):
@@ -173,7 +176,9 @@ def test_run_customer_contact_enrichment_rejects_no_website(client, auth_headers
     assert "web sitesi olmadığı" in response.json()["detail"]
 
 
-def test_run_customer_contact_enrichment_rejects_email_exists(client, auth_headers, db_session, organization_id):
+def test_run_customer_contact_enrichment_starts_when_email_exists(
+    client, auth_headers, db_session, organization_id
+):
     customer = _seed_customer(
         db_session,
         organization_id,
@@ -181,14 +186,33 @@ def test_run_customer_contact_enrichment_rejects_email_exists(client, auth_heade
         website="https://run-email.test",
         email="info@run-email.test",
     )
+    captured_commands: list[EnrichmentRunJobCommand] = []
 
-    response = client.post(
-        f"/api/v1/customers/{customer.id}/contact-enrichment/run",
-        json={"dry_run": True, "requested_fields": ["email"]},
-        headers=auth_headers,
-    )
-    assert response.status_code == 400
-    assert "zaten e-posta var" in response.json()["detail"]
+    def _capture_runner(session_factory, executor):
+        runner = EnrichmentRunJobRunner(session_factory=session_factory, executor=executor)
+
+        def _run_enrichment(command: EnrichmentRunJobCommand):
+            captured_commands.append(command)
+            return None
+
+        runner.run_enrichment = _run_enrichment  # type: ignore[method-assign]
+        return runner
+
+    mock_runner = _capture_runner(lambda: db_session, lambda *args, **kwargs: ([], None))
+    previous_runner = scraper_dependencies._enrichment_run_job_runner
+    scraper_dependencies._enrichment_run_job_runner = mock_runner
+    try:
+        response = client.post(
+            f"/api/v1/customers/{customer.id}/contact-enrichment/run",
+            json={"dry_run": True, "requested_fields": ["email"]},
+            headers=auth_headers,
+        )
+    finally:
+        scraper_dependencies._enrichment_run_job_runner = previous_runner
+
+    assert response.status_code == 202
+    assert len(captured_commands) == 1
+    assert captured_commands[0].customer_ids == [customer.id]
 
 
 def test_run_customer_contact_enrichment_starts_for_eligible_customer(
@@ -280,8 +304,8 @@ def test_reset_enrichment_state_preserves_crm_email(client, auth_headers, db_ses
     state_payload = state_response.json()
     assert state_payload["status"] == CustomerEnrichmentScanStatus.NOT_SCANNED
     assert state_payload["has_crm_email"] is True
-    assert state_payload["can_run"] is False
-    assert state_payload["block_code"] == "email_exists"
+    assert state_payload["can_run"] is True
+    assert state_payload["block_code"] is None
 
     email_count = (
         db_session.query(CustomerEmailModel)

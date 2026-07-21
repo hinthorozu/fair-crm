@@ -144,11 +144,15 @@ def record_scan_result(
 
     first_email = result.emails[0] if result.emails else None
     if first_email is not None:
-        row.last_email_scan_status = CustomerEnrichmentScanStatus.EMAIL_FOUND
+        # Persist scan evidence only. EMAIL_FOUND is reserved for post-import apply
+        # (CRM write). Batch creation moves these rows to PENDING_MERGE; if no batch
+        # is created the customer stays non-blocking and can be re-scanned.
         row.last_email_found = first_email.value
         row.last_source_url = first_email.source_url
         row.last_error = None
         row.retry_after = None
+        if row.last_email_scan_status != CustomerEnrichmentScanStatus.PENDING_MERGE:
+            row.last_email_scan_status = CustomerEnrichmentScanStatus.NOT_SCANNED
         return
 
     source_url = result.phones[0].source_url if result.phones else result.website
@@ -194,7 +198,10 @@ def record_enrichment_apply_outcome(
     had_email_before: bool,
     email_written: bool,
 ) -> None:
-    """Transition pending_merge enrichment state after import apply."""
+    """Transition pending_merge → email_found after import apply writes CRM data.
+
+    ``email_found`` means enriched (data applied to the customer card), not merely scanned.
+    """
     row = (
         session.query(CustomerEnrichmentStateModel)
         .filter(
@@ -218,9 +225,10 @@ def record_enrichment_apply_outcome(
         return
 
     if had_email_before:
-        row.last_email_scan_status = CustomerEnrichmentScanStatus.SKIPPED_EMAIL_EXISTS
-        row.last_email_found = None
-        row.last_source_url = None
+        # Customer already had CRM email(s). Apply may have merged additional
+        # addresses or confirmed existing ones — never treat that as a skip.
+        row.last_email_scan_status = CustomerEnrichmentScanStatus.EMAIL_FOUND
+        return
 
 
 def reset_enrichment_states(

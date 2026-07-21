@@ -81,42 +81,38 @@ def _has_crm_email(session: Session, organization_id: UUID, customer_id: UUID) -
 def _evaluate_run_blockers(
     *,
     website: str | None,
-    has_crm_email: bool,
     state_status: str | None,
     state_map_entry,
 ) -> tuple[bool, str | None, str | None]:
+    """Decide whether a single-customer enrichment run is allowed.
+
+    Existing CRM emails never block the run: the scan still crawls the website to
+    discover additional addresses. Duplicate handling happens later at import apply.
+    """
     if not website:
         return (
             False,
             "no_website",
             "Bu müşterinin web sitesi olmadığı için zenginleştirme çalıştırılamaz.",
         )
-    if has_crm_email:
-        return (
-            False,
-            "email_exists",
-            "Bu müşteride zaten e-posta var. Tekrar taramak için önce durumu sıfırlayabilir "
-            "veya mevcut e-postayı kontrol edebilirsiniz.",
-        )
     if state_status == CustomerEnrichmentScanStatus.PENDING_MERGE:
         return (
             False,
             "pending_merge",
-            "Bu müşteri için bekleyen merge/import sonucu var.",
+            "Bu müşteri için import bekleyen sonuç var. Önce import önizlemesinden onaylayın "
+            "veya durumu sıfırlayın.",
         )
+    # Legacy "skipped because CRM email already existed" must not permanently lock
+    # the card — the operator can re-scan to find additional emails without a reset.
+    if state_status == CustomerEnrichmentScanStatus.SKIPPED_EMAIL_EXISTS:
+        return True, None, None
     state_for_eligibility = state_map_entry if state_map_entry is not None else None
     if not is_customer_scan_eligible(state_for_eligibility, website=website):
         if state_status == CustomerEnrichmentScanStatus.EMAIL_FOUND:
             return (
                 False,
                 "already_enriched",
-                "Bu müşteri daha önce zenginleştirildi. Tekrar taramak için durumu sıfırlayın.",
-            )
-        if state_status == CustomerEnrichmentScanStatus.SKIPPED_EMAIL_EXISTS:
-            return (
-                False,
-                "skipped_email_exists",
-                "Bu müşteri e-posta mevcut olduğu için atlanmış. Tekrar taramak için durumu sıfırlayın.",
+                "Bu müşteri zenginleştirildi (veri CRM'e yazıldı). Tekrar taramak için durumu sıfırlayın.",
             )
         return (
             False,
@@ -157,7 +153,6 @@ def get_customer_contact_enrichment_state(
     )
     can_run, block_code, block_message = _evaluate_run_blockers(
         website=website,
-        has_crm_email=has_crm_email,
         state_status=status if state is not None else None,
         state_map_entry=state,
     )

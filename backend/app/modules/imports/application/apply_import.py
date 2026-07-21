@@ -232,8 +232,10 @@ class ApplyImportUseCase:
         fair_id = batch.fair_id
         enrichment_batch = is_enrichment_import_batch(batch)
         had_email_before = False
+        emails_before: set[str] = set()
         if enrichment_batch and row.match_customer_id is not None:
-            had_email_before = self._customer_has_email(row.match_customer_id)
+            emails_before = self._customer_email_set(row.match_customer_id)
+            had_email_before = bool(emails_before)
 
         if decision == ImportDecision.MANUAL_REVIEW:
             return counters
@@ -313,8 +315,9 @@ class ApplyImportUseCase:
         counters.applied = True
 
         if enrichment_batch and customer is not None:
-            has_email_after = self._customer_has_email(customer.id)
-            email_written = not had_email_before and has_email_after
+            emails_after = self._customer_email_set(customer.id)
+            # True when at least one newly discovered address was linked.
+            email_written = bool(emails_after - emails_before)
             record_enrichment_apply_outcome(
                 self._db,
                 organization_id=command.organization_id,
@@ -574,6 +577,9 @@ class ApplyImportUseCase:
         )
         self._activity_repository.add(activity)
 
-    def _customer_has_email(self, customer_id: UUID) -> bool:
+    def _customer_email_set(self, customer_id: UUID) -> set[str]:
         communications = self._communication_sync.load_for_customer(customer_id)
-        return bool(communications.emails)
+        return {(item.email or "").strip().lower() for item in communications.emails if item.email}
+
+    def _customer_has_email(self, customer_id: UUID) -> bool:
+        return bool(self._customer_email_set(customer_id))

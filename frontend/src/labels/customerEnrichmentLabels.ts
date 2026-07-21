@@ -1,7 +1,7 @@
 export const customerEnrichmentLabels = {
   tabTitle: "İletişim Zenginleştirme",
   intro:
-    "Bu işlem müşterinin web sitesinden e-posta başta olmak üzere iletişim bilgilerini arar. Bulunan bilgiler doğrudan CRM'e yazılmaz; merge/preview akışına gönderilir.",
+    "Bu işlem müşterinin web sitesinden e-posta başta olmak üzere iletişim bilgilerini arar. Kartta e-posta olsa bile site yeniden taranır; yeni bulunan adresler mevcutlarla karşılaştırılır, aynı olanlar eklenmez. Bulunan bilgiler doğrudan CRM'e yazılmaz; merge/preview akışına gönderilir.",
   runButton: "Bu Müşteriyi Zenginleştir",
   resetButton: "Zenginleştirme Durumunu Sıfırla",
   running: "Zenginleştirme çalışıyor…",
@@ -12,7 +12,7 @@ export const customerEnrichmentLabels = {
   resetFailed: "Zenginleştirme durumu sıfırlanamadı.",
   resetConfirmTitle: "Zenginleştirme durumunu sıfırla",
   resetConfirmMessage:
-    "Bu işlem müşterinin daha önce zenginleştirildi bilgilerini sıfırlar. CRM'deki email, telefon ve diğer müşteri bilgileri silinmez. Müşteri tekrar zenginleştirme adayına girebilir.",
+    "Bu işlem müşterinin enrichment durum kaydını sıfırlar (Import bekliyor / Zenginleştirildi vb.). CRM'deki email, telefon ve diğer müşteri bilgileri silinmez. Müşteri tekrar zenginleştirme adayına girebilir.",
   resetConfirmAction: "Sıfırla",
   statusTitle: "Mevcut durum",
   lastScan: "Son tarama",
@@ -36,10 +36,10 @@ export const customerEnrichmentLabels = {
   summaryImportCreated: "Oluşturuldu",
   summaryImportNone: "Oluşturulmadı",
   statusNotScanned: "Taranmadı",
-  statusEmailFound: "E-posta bulundu",
+  statusEmailFound: "Zenginleştirildi",
   statusEmailNotFound: "E-posta bulunamadı",
   statusFailed: "Başarısız",
-  statusPendingMerge: "Merge bekliyor",
+  statusPendingMerge: "Import bekliyor",
   statusSkippedEmailExists: "E-posta mevcut (atlandı)",
   statusSkippedNoWebsite: "Web sitesi yok (atlandı)",
 } as const;

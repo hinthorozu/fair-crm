@@ -83,7 +83,7 @@ def _seed_enrichment_state(db_session, organization_id, customer_id, *, status: 
             last_enrichment_run_id=None,
             last_email_scan_at=now,
             last_email_scan_status=status,
-            last_email_found="found@example.test",
+            last_email_found="found@example.com",
             last_source_url="https://example.test/contact",
             last_error=None,
             retry_after=None,
@@ -110,7 +110,7 @@ def test_delete_last_email_resets_enrichment_state(client, auth_headers, db_sess
         db_session,
         organization_id,
         display_name="Single Email Co",
-        emails=["only@example.test"],
+        emails=["only@example.com"],
     )
     _seed_enrichment_state(
         db_session,
@@ -138,10 +138,10 @@ def test_delete_one_of_many_emails_preserves_enrichment_state(
         organization_id,
         display_name="Multi Email Co",
         emails=[
-            "one@example.test",
-            "two@example.test",
-            "three@example.test",
-            "four@example.test",
+            "one@example.com",
+            "two@example.com",
+            "three@example.com",
+            "four@example.com",
         ],
     )
     _seed_enrichment_state(
@@ -155,9 +155,9 @@ def test_delete_one_of_many_emails_preserves_enrichment_state(
         f"/api/v1/customers/{customer.id}",
         json={
             "emails": [
-                {"email": "one@example.test", "is_primary": True},
-                {"email": "three@example.test", "is_primary": False},
-                {"email": "four@example.test", "is_primary": False},
+                {"email": "one@example.com", "is_primary": True},
+                {"email": "three@example.com", "is_primary": False},
+                {"email": "four@example.com", "is_primary": False},
             ]
         },
         headers=auth_headers,
@@ -178,7 +178,7 @@ def test_update_email_value_preserves_enrichment_state(client, auth_headers, db_
         db_session,
         organization_id,
         display_name="Update Email Co",
-        emails=["old@example.test"],
+        emails=["old@example.com"],
     )
     _seed_enrichment_state(
         db_session,
@@ -189,11 +189,11 @@ def test_update_email_value_preserves_enrichment_state(client, auth_headers, db_
 
     response = client.patch(
         f"/api/v1/customers/{customer.id}",
-        json={"emails": [{"email": "new@example.test", "is_primary": True}]},
+        json={"emails": [{"email": "new@example.com", "is_primary": True}]},
         headers=auth_headers,
     )
     assert response.status_code == 200
-    assert response.json()["emails"][0]["email"] == "new@example.test"
+    assert response.json()["emails"][0]["email"] == "new@example.com"
     assert _state_count(db_session, organization_id, customer.id) == 1
 
 
@@ -204,7 +204,7 @@ def test_email_delete_reset_does_not_remove_other_crm_communications(
         db_session,
         organization_id,
         display_name="Preserve Comm Co",
-        emails=["remove@example.test"],
+        emails=["remove@example.com"],
         phone="905551234567",
         website="https://preserve.test",
     )
@@ -242,13 +242,13 @@ def test_email_delete_reset_only_affects_target_customer(client, auth_headers, d
         db_session,
         organization_id,
         display_name="Target Co",
-        emails=["target@example.test"],
+        emails=["target@example.com"],
     )
     other = _seed_customer_with_communications(
         db_session,
         organization_id,
         display_name="Other Co",
-        emails=["other@example.test"],
+        emails=["other@example.com"],
     )
     _seed_enrichment_state(
         db_session,

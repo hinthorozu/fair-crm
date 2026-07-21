@@ -69,7 +69,7 @@ def _seed_pending_merge_state(
     organization_id,
     customer: CustomerModel,
     *,
-    email_found: str = "found@apply.test",
+    email_found: str = "found@apply.example",
 ) -> None:
     now = datetime.now(tz=UTC)
     db_session.add(
@@ -127,7 +127,7 @@ def _build_apply_use_case(db_session) -> ApplyImportUseCase:
 
 def test_record_enrichment_apply_outcome_email_found_keeps_last_email(db_session, organization_id):
     customer = _seed_customer(db_session, organization_id, display_name="Apply Found Co")
-    _seed_pending_merge_state(db_session, organization_id, customer, email_found="found@apply.test")
+    _seed_pending_merge_state(db_session, organization_id, customer, email_found="found@apply.example")
 
     record_enrichment_apply_outcome(
         db_session,
@@ -140,12 +140,16 @@ def test_record_enrichment_apply_outcome_email_found_keeps_last_email(db_session
 
     state = load_state_map(db_session, organization_id, [customer.id])[customer.id]
     assert state.last_email_scan_status == CustomerEnrichmentScanStatus.EMAIL_FOUND
-    assert state.last_email_found == "found@apply.test"
+    assert state.last_email_found == "found@apply.example"
 
 
-def test_record_enrichment_apply_outcome_skipped_when_email_already_exists(db_session, organization_id):
-    customer = _seed_customer(db_session, organization_id, display_name="Apply Skip Co")
-    _seed_pending_merge_state(db_session, organization_id, customer)
+def test_record_enrichment_apply_outcome_marks_email_found_when_customer_already_had_email(
+    db_session, organization_id
+):
+    customer = _seed_customer(db_session, organization_id, display_name="Apply Existing Email Co")
+    _seed_pending_merge_state(
+        db_session, organization_id, customer, email_found="new@apply.example"
+    )
 
     record_enrichment_apply_outcome(
         db_session,
@@ -157,8 +161,8 @@ def test_record_enrichment_apply_outcome_skipped_when_email_already_exists(db_se
     db_session.commit()
 
     state = load_state_map(db_session, organization_id, [customer.id])[customer.id]
-    assert state.last_email_scan_status == CustomerEnrichmentScanStatus.SKIPPED_EMAIL_EXISTS
-    assert state.last_email_found is None
+    assert state.last_email_scan_status == CustomerEnrichmentScanStatus.EMAIL_FOUND
+    assert state.last_email_found == "new@apply.example"
 
 
 def test_record_enrichment_apply_outcome_keeps_pending_merge_when_no_email_written(db_session, organization_id):
@@ -191,7 +195,7 @@ def test_apply_enrichment_import_writes_email_and_marks_email_found(db_session, 
             created_at=now,
         )
     )
-    _seed_pending_merge_state(db_session, organization_id, customer, email_found="info@apply.test")
+    _seed_pending_merge_state(db_session, organization_id, customer, email_found="info@apply.example")
 
     batch = _enrichment_batch(organization_id)
     batch.status = ImportBatchStatus.ANALYZED
@@ -205,7 +209,7 @@ def test_apply_enrichment_import_writes_email_and_marks_email_found(db_session, 
         normalized_data_json={
             "company_name": customer.display_name,
             "external_id": str(customer.id),
-            "email": "info@apply.test",
+            "email": "info@apply.example",
             "website": "https://apply.test",
         },
         status=ImportRowStatus.READY_TO_UPDATE,
@@ -234,15 +238,17 @@ def test_apply_enrichment_import_writes_email_and_marks_email_found(db_session, 
 
     state = load_state_map(db_session, organization_id, [customer.id])[customer.id]
     assert state.last_email_scan_status == CustomerEnrichmentScanStatus.EMAIL_FOUND
-    assert state.last_email_found == "info@apply.test"
+    assert state.last_email_found == "info@apply.example"
 
     communications = CustomerCommunicationSyncService(
         SqlAlchemyCustomerCommunicationRepository(db_session)
     ).load_for_customer(customer.id)
-    assert any(item.email == "info@apply.test" for item in communications.emails)
+    assert any(item.email == "info@apply.example" for item in communications.emails)
 
 
-def test_apply_enrichment_import_skips_when_customer_already_has_email(db_session, organization_id, user_id):
+def test_apply_enrichment_import_merges_new_email_when_customer_already_has_email(
+    db_session, organization_id, user_id
+):
     customer = _seed_customer(db_session, organization_id, display_name="Already Has Email Co")
     now = datetime.now(tz=UTC)
     db_session.add_all(
@@ -259,13 +265,13 @@ def test_apply_enrichment_import_skips_when_customer_already_has_email(db_sessio
                 id=uuid4(),
                 organization_id=organization_id,
                 customer_id=customer.id,
-                email="existing@apply.test",
+                email="existing@apply.example",
                 is_primary=True,
                 created_at=now,
             ),
         ]
     )
-    _seed_pending_merge_state(db_session, organization_id, customer, email_found="new@apply.test")
+    _seed_pending_merge_state(db_session, organization_id, customer, email_found="new@apply.example")
 
     batch = _enrichment_batch(organization_id)
     batch.status = ImportBatchStatus.ANALYZED
@@ -279,7 +285,83 @@ def test_apply_enrichment_import_skips_when_customer_already_has_email(db_sessio
         normalized_data_json={
             "company_name": customer.display_name,
             "external_id": str(customer.id),
-            "email": "new@apply.test",
+            "email": "new@apply.example",
+        },
+        status=ImportRowStatus.READY_TO_UPDATE,
+        validation_errors_json=None,
+        match_customer_id=customer.id,
+        match_confidence=100,
+        match_reason="enrichment_customer_id",
+        now=now,
+    )
+    row.decision = ImportDecision.UPDATE_EXISTING
+    SqlAlchemyImportRowRepository(db_session).add_many([row])
+    db_session.commit()
+
+    use_case = _build_apply_use_case(db_session)
+    command = ApplyImportCommand(
+        organization_id=organization_id,
+        user_id=user_id,
+        access_token="token",
+        batch_id=saved_batch.id,
+    )
+    counters = use_case.finalize_applied_row(saved_batch, row, command, now)
+    db_session.commit()
+
+    assert counters.applied is True
+    assert counters.updated == 1
+
+    state = load_state_map(db_session, organization_id, [customer.id])[customer.id]
+    assert state.last_email_scan_status == CustomerEnrichmentScanStatus.EMAIL_FOUND
+    assert state.last_email_found == "new@apply.example"
+
+    communications = CustomerCommunicationSyncService(
+        SqlAlchemyCustomerCommunicationRepository(db_session)
+    ).load_for_customer(customer.id)
+    emails = {item.email for item in communications.emails}
+    assert emails == {"existing@apply.example", "new@apply.example"}
+
+
+def test_apply_enrichment_import_does_not_duplicate_existing_email(
+    db_session, organization_id, user_id
+):
+    customer = _seed_customer(db_session, organization_id, display_name="Duplicate Email Co")
+    now = datetime.now(tz=UTC)
+    db_session.add_all(
+        [
+            CustomerWebsiteModel(
+                id=uuid4(),
+                organization_id=organization_id,
+                customer_id=customer.id,
+                website="https://dup.test",
+                is_primary=True,
+                created_at=now,
+            ),
+            CustomerEmailModel(
+                id=uuid4(),
+                organization_id=organization_id,
+                customer_id=customer.id,
+                email="info@dup.example",
+                is_primary=True,
+                created_at=now,
+            ),
+        ]
+    )
+    _seed_pending_merge_state(db_session, organization_id, customer, email_found="info@dup.example")
+
+    batch = _enrichment_batch(organization_id)
+    batch.status = ImportBatchStatus.ANALYZED
+    saved_batch = SqlAlchemyImportBatchRepository(db_session).add(batch)
+
+    row = ImportRow.create(
+        batch_id=saved_batch.id,
+        organization_id=organization_id,
+        row_number=1,
+        raw_data_json={"external_id": str(customer.id)},
+        normalized_data_json={
+            "company_name": customer.display_name,
+            "external_id": str(customer.id),
+            "email": "info@dup.example",
         },
         status=ImportRowStatus.READY_TO_UPDATE,
         validation_errors_json=None,
@@ -302,9 +384,14 @@ def test_apply_enrichment_import_skips_when_customer_already_has_email(db_sessio
     use_case.finalize_applied_row(saved_batch, row, command, now)
     db_session.commit()
 
+    communications = CustomerCommunicationSyncService(
+        SqlAlchemyCustomerCommunicationRepository(db_session)
+    ).load_for_customer(customer.id)
+    emails = [item.email for item in communications.emails]
+    assert emails == ["info@dup.example"]
+
     state = load_state_map(db_session, organization_id, [customer.id])[customer.id]
-    assert state.last_email_scan_status == CustomerEnrichmentScanStatus.SKIPPED_EMAIL_EXISTS
-    assert state.last_email_found is None
+    assert state.last_email_scan_status == CustomerEnrichmentScanStatus.EMAIL_FOUND
 
 
 def _build_apply_decisions_use_case(db_session) -> ApplyImportDecisionsUseCase:
@@ -320,7 +407,7 @@ def _build_apply_decisions_use_case(db_session) -> ApplyImportDecisionsUseCase:
 
 def test_sync_email_write_does_not_delete_pending_merge_state(db_session, organization_id):
     customer = _seed_customer(db_session, organization_id, display_name="Sync Write Co")
-    _seed_pending_merge_state(db_session, organization_id, customer, email_found="info@sync.test")
+    _seed_pending_merge_state(db_session, organization_id, customer, email_found="info@sync.example")
     now = datetime.now(tz=UTC)
 
     CustomerCommunicationSyncService(
@@ -329,7 +416,7 @@ def test_sync_email_write_does_not_delete_pending_merge_state(db_session, organi
         organization_id=organization_id,
         customer_id=customer.id,
         now=now,
-        emails=["info@sync.test"],
+        emails=["info@sync.example"],
         sync_email=True,
     )
     db_session.commit()
@@ -337,7 +424,7 @@ def test_sync_email_write_does_not_delete_pending_merge_state(db_session, organi
     state = load_state_map(db_session, organization_id, [customer.id]).get(customer.id)
     assert state is not None
     assert state.last_email_scan_status == CustomerEnrichmentScanStatus.PENDING_MERGE
-    assert state.last_email_found == "info@sync.test"
+    assert state.last_email_found == "info@sync.example"
 
 
 def test_apply_enrichment_import_via_decisions_marks_email_found(db_session, organization_id, user_id):
@@ -353,7 +440,7 @@ def test_apply_enrichment_import_via_decisions_marks_email_found(db_session, org
             created_at=now,
         )
     )
-    _seed_pending_merge_state(db_session, organization_id, customer, email_found="info@apply.test")
+    _seed_pending_merge_state(db_session, organization_id, customer, email_found="info@apply.example")
 
     batch = _enrichment_batch(organization_id)
     batch.status = ImportBatchStatus.ANALYZED
@@ -367,7 +454,7 @@ def test_apply_enrichment_import_via_decisions_marks_email_found(db_session, org
         normalized_data_json={
             "company_name": customer.display_name,
             "external_id": str(customer.id),
-            "email": "info@apply.test",
+            "email": "info@apply.example",
             "website": "https://apply.test",
         },
         status=ImportRowStatus.READY_TO_UPDATE,
@@ -398,12 +485,12 @@ def test_apply_enrichment_import_via_decisions_marks_email_found(db_session, org
     state = load_state_map(db_session, organization_id, [customer.id]).get(customer.id)
     assert state is not None
     assert state.last_email_scan_status == CustomerEnrichmentScanStatus.EMAIL_FOUND
-    assert state.last_email_found == "info@apply.test"
+    assert state.last_email_found == "info@apply.example"
 
     communications = CustomerCommunicationSyncService(
         SqlAlchemyCustomerCommunicationRepository(db_session)
     ).load_for_customer(customer.id)
-    assert any(item.email == "info@apply.test" for item in communications.emails)
+    assert any(item.email == "info@apply.example" for item in communications.emails)
 
     assert is_customer_scan_eligible(state, website="https://apply.test") is False
 
@@ -422,7 +509,7 @@ def test_apply_enrichment_skip_decision_keeps_pending_merge(db_session, organiza
         organization_id=organization_id,
         row_number=1,
         raw_data_json={"external_id": str(customer.id)},
-        normalized_data_json={"company_name": customer.display_name, "email": "skip@apply.test"},
+        normalized_data_json={"company_name": customer.display_name, "email": "skip@apply.example"},
         status=ImportRowStatus.READY_TO_UPDATE,
         validation_errors_json=None,
         match_customer_id=customer.id,

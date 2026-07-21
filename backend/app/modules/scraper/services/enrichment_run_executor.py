@@ -97,6 +97,7 @@ def execute_enrichment_run(
     company_name: str | None = None,
     company_name_match: CompanyNameMatchMode | str = "contains",
     address_contains: str | None = None,
+    dry_run: bool = False,
     cancel_checker: RunCancelChecker | None = None,
 ) -> EnrichmentRunExecution:
     def _cancelled_execution(
@@ -221,7 +222,8 @@ def execute_enrichment_run(
             log_customer_scan_finished(run_logger, candidate)
         results.append(result)
         last_processed_customer_id = candidate.customer_id
-        if run_id is not None:
+        # Dry-run must not persist blocking (or any) scan state.
+        if run_id is not None and not dry_run:
             record_scan_result(
                 session,
                 organization_id=organization_id,

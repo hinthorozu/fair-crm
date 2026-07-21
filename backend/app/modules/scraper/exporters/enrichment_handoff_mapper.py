@@ -52,7 +52,13 @@ def enrichment_result_to_raw_company(
 
     extra_fields: dict[str, str] = {}
 
-    email = _first_value(result.emails) if "email" in requested else None
+    # Pass every discovered address (semicolon-separated). Import apply merges with
+    # existing CRM emails and drops duplicates — do not truncate to the first hit.
+    email = (
+        ";".join(item.value for item in result.emails)
+        if "email" in requested and result.emails
+        else None
+    )
     phone = _first_value(result.phones) if "phone" in requested else None
     address = result.address.value if "address" in requested and result.address is not None else None
 
