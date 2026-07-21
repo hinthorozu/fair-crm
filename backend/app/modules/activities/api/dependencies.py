@@ -4,7 +4,6 @@ from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from app.core.config import get_settings
 from app.db.session import get_db
 from app.integrations.kyrox_core.auth import AuthContext
 from app.integrations.kyrox_core.client import HttpAuditAdapter, HttpAuthorizationAdapter
@@ -15,9 +14,13 @@ from app.integrations.kyrox_core.dev_bypass import (
     resolve_auth_context,
 )
 from app.integrations.kyrox_core.ports import AuthorizationPort
+from app.modules.activities.application.bulk_delete_activities import (
+    BulkDeleteActivitiesUseCase,
+)
 from app.modules.activities.application.create_activity import CreateActivityUseCase
 from app.modules.activities.application.delete_activity import DeleteActivityUseCase
 from app.modules.activities.application.get_activity import GetActivityUseCase
+from app.modules.activities.application.list_activities import ListActivitiesUseCase
 from app.modules.activities.application.list_activities_by_customer import (
     ListActivitiesByCustomerUseCase,
 )
@@ -111,9 +114,24 @@ def get_create_activity_use_case(
 
 def get_get_activity_use_case(
     activity_repository: SqlAlchemyActivityRepository = Depends(get_activity_repository),
+    customer_repository: SqlAlchemyCustomerRepository = Depends(get_customer_repository_for_activities),
     contact_repository: SqlAlchemyContactRepository = Depends(get_contact_repository_for_activities),
+    db: Session = Depends(get_db),
 ) -> GetActivityUseCase:
-    return GetActivityUseCase(activity_repository, contact_repository)
+    return GetActivityUseCase(
+        activity_repository, customer_repository, contact_repository, db
+    )
+
+
+def get_list_activities_use_case(
+    activity_repository: SqlAlchemyActivityRepository = Depends(get_activity_repository),
+    customer_repository: SqlAlchemyCustomerRepository = Depends(get_customer_repository_for_activities),
+    contact_repository: SqlAlchemyContactRepository = Depends(get_contact_repository_for_activities),
+    db: Session = Depends(get_db),
+) -> ListActivitiesUseCase:
+    return ListActivitiesUseCase(
+        activity_repository, customer_repository, contact_repository, db
+    )
 
 
 def get_list_activities_by_customer_use_case(
@@ -137,8 +155,15 @@ def get_update_activity_use_case(
 
 def get_delete_activity_use_case(
     activity_repository: SqlAlchemyActivityRepository = Depends(get_activity_repository),
-    contact_repository: SqlAlchemyContactRepository = Depends(get_contact_repository_for_activities),
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
 ) -> DeleteActivityUseCase:
-    return DeleteActivityUseCase(activity_repository, contact_repository, authorization, audit)
+    return DeleteActivityUseCase(activity_repository, authorization, audit)
+
+
+def get_bulk_delete_activities_use_case(
+    activity_repository: SqlAlchemyActivityRepository = Depends(get_activity_repository),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
+) -> BulkDeleteActivitiesUseCase:
+    return BulkDeleteActivitiesUseCase(activity_repository, authorization, audit)

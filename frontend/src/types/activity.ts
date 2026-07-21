@@ -35,6 +35,14 @@ export interface Activity {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  customer_name?: string | null;
+  related_todo_id?: string | null;
+  related_todo_title?: string | null;
+  related_outcome_id?: string | null;
+  related_outcome_name?: string | null;
+  action_required?: boolean | null;
+  data_problem?: boolean | null;
+  display_metadata?: Record<string, unknown> | null;
 }
 
 export interface ActivityListResponse {
@@ -68,6 +76,13 @@ export interface UpdateActivityPayload {
   follow_up_date?: string | null;
   source?: ActivitySource;
   is_active?: boolean;
+}
+
+export interface BulkDeleteActivitiesResult {
+  deleted_ids: string[];
+  not_found_ids: string[];
+  deleted_count: number;
+  not_found_count: number;
 }
 
 export interface ListActivitiesParams {

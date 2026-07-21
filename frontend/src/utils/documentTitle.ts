@@ -8,6 +8,7 @@ import { followUpLabels } from "../labels/followUpLabels";
 import { dashboardLabels } from "../labels/dashboardLabels";
 import { authLabels } from "../labels/authLabels";
 import { todoLabels } from "../labels/todoLabels";
+import { activityLabels } from "../labels/activityLabels";
 
 export const DOCUMENT_TITLE_BRAND = labels.appTitle;
 
@@ -66,6 +67,8 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
       return context.todoTitle?.trim() || todoLabels.pageTitle;
     case "/follow-ups":
       return followUpLabels.pageTitle;
+    case "/activities":
+      return activityLabels.pageTitle;
     case "/data-integration/imports":
       return dataIntegrationLabels.importsTitle;
     case "/data-integration/imports/new":

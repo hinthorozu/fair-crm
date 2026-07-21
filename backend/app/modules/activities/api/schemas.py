@@ -74,10 +74,29 @@ class ActivityResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime]
+    customer_name: Optional[str] = None
+    related_todo_id: Optional[UUID] = None
+    related_todo_title: Optional[str] = None
+    related_outcome_id: Optional[UUID] = None
+    related_outcome_name: Optional[str] = None
+    action_required: Optional[bool] = None
+    data_problem: Optional[bool] = None
+    display_metadata: Optional[dict] = None
 
 
 class ActivityListResponse(StandardListResponse[ActivityResponse]):
     pass
+
+
+class BulkDeleteActivitiesRequest(BaseModel):
+    activity_ids: list[UUID] = Field(..., min_length=1, max_length=200)
+
+
+class BulkDeleteActivitiesResponse(BaseModel):
+    deleted_ids: list[UUID]
+    not_found_ids: list[UUID]
+    deleted_count: int
+    not_found_count: int
 
 
 class ErrorResponse(BaseModel):

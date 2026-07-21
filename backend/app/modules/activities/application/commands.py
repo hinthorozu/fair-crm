@@ -40,6 +40,29 @@ class ListActivitiesByCustomerQuery:
 
 
 @dataclass(frozen=True)
+class ListActivitiesQuery:
+    organization_id: UUID
+    search: str | None = None
+    customer_id: UUID | None = None
+    activity_type: str | None = None
+    status: str | None = None
+    date_from: datetime | None = None
+    date_to: datetime | None = None
+    page: int = 1
+    page_size: int = 25
+    sort_by: str = "activity_date"
+    sort_dir: str = "desc"
+
+
+@dataclass(frozen=True)
+class BulkDeleteActivitiesCommand:
+    organization_id: UUID
+    access_token: str
+    user_id: UUID
+    activity_ids: list[UUID]
+
+
+@dataclass(frozen=True)
 class UpdateActivityCommand:
     organization_id: UUID
     activity_id: UUID
@@ -85,6 +108,14 @@ class ActivityResult:
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime]
+    customer_name: Optional[str] = None
+    related_todo_id: Optional[UUID] = None
+    related_todo_title: Optional[str] = None
+    related_outcome_id: Optional[UUID] = None
+    related_outcome_name: Optional[str] = None
+    action_required: Optional[bool] = None
+    data_problem: Optional[bool] = None
+    display_metadata: Optional[dict] = None
 
 
 @dataclass(frozen=True)
@@ -94,3 +125,11 @@ class ActivityListResultDto:
     page_size: int
     total: int
     total_pages: int
+
+
+@dataclass(frozen=True)
+class BulkDeleteActivitiesResult:
+    deleted_ids: list[UUID]
+    not_found_ids: list[UUID]
+    deleted_count: int
+    not_found_count: int

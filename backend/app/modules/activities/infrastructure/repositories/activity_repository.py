@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import or_
@@ -13,6 +14,7 @@ from app.modules.activities.infrastructure.persistence.mappers import (
 )
 from app.modules.activities.domain.value_objects import ActivitySource
 from app.modules.activities.infrastructure.persistence.models import ActivityModel
+from app.modules.customers.infrastructure.persistence.models import CustomerModel
 
 FAIR_BULK_EMAIL_ACTIVITY_SOURCE = "fair_bulk_email"
 
@@ -24,6 +26,7 @@ ACTIVITY_SORT_FIELDS = {
     "subject": ActivityModel.subject,
     "status": ActivityModel.status,
     "activity_type": ActivityModel.activity_type,
+    "customer_name": CustomerModel.display_name,
 }
 
 SEARCH_FIELDS = (
@@ -91,6 +94,55 @@ class SqlAlchemyActivityRepository:
         self._session.refresh(model)
         return model_to_entity(model)
 
+    def hard_delete(self, organization_id: UUID, activity_id: UUID) -> bool:
+        model = (
+            self._session.query(ActivityModel)
+            .filter(
+                ActivityModel.organization_id == organization_id,
+                ActivityModel.id == activity_id,
+                ActivityModel.deleted_at.is_(None),
+            )
+            .one_or_none()
+        )
+        if model is None:
+            return False
+        self._session.delete(model)
+        self._session.flush()
+        return True
+
+    def hard_delete_many(self, organization_id: UUID, activity_ids: list[UUID]) -> int:
+        if not activity_ids:
+            return 0
+        models = (
+            self._session.query(ActivityModel)
+            .filter(
+                ActivityModel.organization_id == organization_id,
+                ActivityModel.id.in_(activity_ids),
+                ActivityModel.deleted_at.is_(None),
+            )
+            .all()
+        )
+        for model in models:
+            self._session.delete(model)
+        self._session.flush()
+        return len(models)
+
+    def get_existing_ids(
+        self, organization_id: UUID, activity_ids: list[UUID]
+    ) -> list[UUID]:
+        if not activity_ids:
+            return []
+        rows = (
+            self._session.query(ActivityModel.id)
+            .filter(
+                ActivityModel.organization_id == organization_id,
+                ActivityModel.id.in_(activity_ids),
+                ActivityModel.deleted_at.is_(None),
+            )
+            .all()
+        )
+        return [row.id for row in rows]
+
     def list_by_customer(
         self,
         organization_id: UUID,
@@ -116,6 +168,74 @@ class SqlAlchemyActivityRepository:
         if search:
             pattern = f"%{search.strip()}%"
             query = query.filter(or_(*[field.ilike(pattern) for field in SEARCH_FIELDS]))
+
+        total = query.count()
+        sort_column = ACTIVITY_SORT_FIELDS.get(sort_by, ActivityModel.activity_date)
+        if sort_by == "customer_name":
+            sort_column = ActivityModel.activity_date
+        order = build_order_clause(
+            sort_column,
+            sort_dir if sort_dir in ("asc", "desc") else "desc",
+            tie_breaker=ActivityModel.id,
+        )
+
+        models = (
+            query.order_by(*order)
+            .offset(page_params.offset)
+            .limit(page_params.page_size)
+            .all()
+        )
+        meta = build_paginated_meta(page_params.page, page_params.page_size, total)
+        return ActivityListResult(
+            items=[model_to_entity(model) for model in models],
+            page=meta.page,
+            page_size=meta.page_size,
+            total=meta.total,
+            total_pages=meta.total_pages,
+        )
+
+    def list_all(
+        self,
+        organization_id: UUID,
+        *,
+        search: str | None = None,
+        customer_id: UUID | None = None,
+        activity_type: str | None = None,
+        status: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        page: int = 1,
+        page_size: int = 25,
+        sort_by: str = "activity_date",
+        sort_dir: str = "desc",
+        include_deleted: bool = False,
+    ) -> ActivityListResult:
+        page_params = normalize_page_params(page, page_size)
+        query = (
+            self._session.query(ActivityModel)
+            .join(CustomerModel, CustomerModel.id == ActivityModel.customer_id)
+            .filter(ActivityModel.organization_id == organization_id)
+        )
+        if not include_deleted:
+            query = query.filter(ActivityModel.deleted_at.is_(None))
+        if customer_id is not None:
+            query = query.filter(ActivityModel.customer_id == customer_id)
+        if activity_type:
+            query = query.filter(ActivityModel.activity_type == activity_type.strip())
+        if status:
+            query = query.filter(ActivityModel.status == status.strip())
+        if date_from is not None:
+            query = query.filter(ActivityModel.activity_date >= date_from)
+        if date_to is not None:
+            query = query.filter(ActivityModel.activity_date <= date_to)
+        if search:
+            pattern = f"%{search.strip()}%"
+            query = query.filter(
+                or_(
+                    *[field.ilike(pattern) for field in SEARCH_FIELDS],
+                    CustomerModel.display_name.ilike(pattern),
+                )
+            )
 
         total = query.count()
         sort_column = ACTIVITY_SORT_FIELDS.get(sort_by, ActivityModel.activity_date)

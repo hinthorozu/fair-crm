@@ -8,6 +8,15 @@ Format: one version section per completed sprint milestone. Update this file aft
 
 ## Unreleased
 
+### Central Activities screen + hard delete (ADR-033)
+
+- Org-wide `GET /api/v1/activities` with server-side search, customer, type, status, date-range filters
+- Single hard delete `DELETE /api/v1/activities/{id}` → `204` (physical row removal)
+- Bulk hard delete `POST /api/v1/activities/bulk-delete` with partial-result reporting
+- Frontend `/activities` central list: UniversalDataTable, dual pagination, row selection, detail modal, confirm dialogs
+- Worklist `last_activity_id` remains `ON DELETE SET NULL` (no silent cascade of unrelated rows)
+- Decision: [docs/DECISIONS.md](docs/DECISIONS.md) ADR-033
+
 ### Width-responsive table standard (ADR-032 update)
 
 - Default list engine: `UniversalDataTable` → `WidthResponsiveDataTable` (container width, column order = priority, child rows)

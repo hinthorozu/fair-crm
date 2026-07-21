@@ -782,3 +782,29 @@ Sprint 04.5 delivered reusable UI primitives and Sprint 08.0/ADR-015/ADR-019 del
 - New tables must use `UniversalDataTable` — width-responsive + dual pagination arrive without extra configuration.
 - Page-specific responsive table CSS/hacks are rejected.
 
+---
+
+## ADR-033: Activity hard delete (no soft delete on user delete)
+
+**Status:** Accepted  
+**Date:** 2026-07-21
+
+**Context:**
+
+Sprint 04 introduced activities with soft delete (`deleted_at` + `is_active`). The central Activities screen and operator cleanup workflows require permanent removal. Soft-deleted rows remaining in the database conflict with that product intent. The only inbound FK to `crm_activities` is `crm_todo_worklist_states.last_activity_id` with `ON DELETE SET NULL`.
+
+**Decision:**
+
+1. User-initiated activity delete (single and bulk) is **hard delete** — the row is physically removed from `crm_activities`.
+2. Do **not** add new soft-delete fields or soft-delete filters for this flow.
+3. Existing `deleted_at` / `is_active` columns remain for legacy rows and non-delete lifecycle use; new deletes do not set them.
+4. Do **not** add cascade rules that silently delete unrelated aggregates. Worklist states survive; `last_activity_id` becomes NULL.
+5. Bulk delete uses one backend endpoint (`POST /api/v1/activities/bulk-delete`) and reports `deleted_count` / `not_found_count` for partial results.
+6. Org-wide list is `GET /api/v1/activities` with server-side filters (search, customer, type, status, date range).
+
+**Consequences:**
+
+- `DELETE /api/v1/activities/{id}` returns `204` and the row is gone from DB and detail (`404`).
+- Fair bulk-email uniqueness (partial unique index on non-deleted rows) continues to work: hard delete frees the outbox slot.
+- Worklist denormalized fields (`last_note_summary`, `last_activity_at`, …) may remain stale after deleting the referenced last activity — acceptable; pointer is cleared.
+

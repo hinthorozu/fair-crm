@@ -19,6 +19,7 @@ import { MailOperationsPage } from "./pages/MailOperationsPage";
 import { DataOperationsPage } from "./pages/DataOperationsPage";
 import { DataOperationRunResultPage } from "./pages/DataOperationRunResultPage";
 import { FollowUpsPage } from "./pages/FollowUpsPage";
+import { ActivitiesPage } from "./pages/ActivitiesPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { TodoDetailPage } from "./pages/TodoDetailPage";
@@ -29,6 +30,7 @@ import { DataIntegrationLayout } from "./components/dataIntegration/DataIntegrat
 import { AdminSystemLayout } from "./components/admin/AdminSystemLayout";
 import { AppLayout } from "./components/layout/AppLayout";
 import {
+  NavIconActivities,
   NavIconAdmin,
   NavIconCustomers,
   NavIconDashboard,
@@ -37,6 +39,7 @@ import {
   NavIconFollowUps,
   NavIconTodos,
 } from "./components/layout/NavIcons";
+import { activityLabels } from "./labels/activityLabels";
 import { Card } from "./components/ui/Card";
 import { uiLabels } from "./labels/uiLabels";
 import { dataIntegrationLabels } from "./labels/dataIntegrationLabels";
@@ -65,6 +68,7 @@ type AppRoute =
   | "/todos"
   | "/todos/:id"
   | "/follow-ups"
+  | "/activities"
   | "/data-integration/imports"
   | "/data-integration/imports/new"
   | "/data-integration/imports/fair/:fairId"
@@ -209,6 +213,9 @@ function parseRoute(location: string): ParsedRoute {
   }
   if (pathname === "/follow-ups" || pathname.startsWith("/follow-ups/")) {
     return { route: "/follow-ups" };
+  }
+  if (pathname === "/activities" || pathname.startsWith("/activities/")) {
+    return { route: "/activities" };
   }
   if (pathname === "/todos" || pathname.startsWith("/todos/")) {
     const todoMatch = pathname.match(/^\/todos\/([^/]+)$/);
@@ -437,6 +444,12 @@ export function App() {
     setSidebarOpen(false);
   };
 
+  const goToActivities = () => {
+    navigate("/activities");
+    setParsed({ route: "/activities" });
+    setSidebarOpen(false);
+  };
+
   const goToTodoDetail = (todoId: string) => {
     const path = `/todos/${todoId}`;
     navigate(path);
@@ -513,6 +526,7 @@ export function App() {
   const isTodosActive =
     parsed.route === "/todos" || parsed.route === "/todos/:id";
   const isFollowUpsActive = parsed.route === "/follow-ups";
+  const isActivitiesActive = parsed.route === "/activities";
   const isDiActive = isDataIntegrationRoute(parsed.route);
   const isAdminActive = isAdminRoute(parsed.route);
 
@@ -559,6 +573,11 @@ export function App() {
             ? [
                 { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
                 { label: followUpLabels.pageTitle, current: true },
+              ]
+          : parsed.route === "/activities"
+            ? [
+                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
+                { label: activityLabels.pageTitle, current: true },
               ]
           : parsed.route === "/data-integration/adapters/:adapterKey" && parsed.adapterKey
             ? [
@@ -668,6 +687,13 @@ export function App() {
       icon: <NavIconFollowUps />,
       active: isFollowUpsActive,
       onClick: (e: React.MouseEvent) => handleNav("/follow-ups", e),
+    },
+    {
+      path: "/activities",
+      label: uiLabels.navActivities,
+      icon: <NavIconActivities />,
+      active: isActivitiesActive,
+      onClick: (e: React.MouseEvent) => handleNav("/activities", e),
     },
     {
       path: "/data-integration/imports",
@@ -870,6 +896,9 @@ export function App() {
       )}
       {parsed.route === "/follow-ups" && (
         <FollowUpsPage onOpenCustomer={goToCustomerDetail} />
+      )}
+      {parsed.route === "/activities" && (
+        <ActivitiesPage onOpenCustomer={goToCustomerDetail} />
       )}
       {parsed.route === "/customers" && <CustomersPage onOpenDetail={goToCustomerDetail} />}
       {parsed.route === "/customers/:id" && parsed.customerId && (

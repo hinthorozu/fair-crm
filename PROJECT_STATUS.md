@@ -5,7 +5,7 @@
 | Field | Value |
 |-------|-------|
 | **Current Version** | v0.9.4 (Backup Format Options) |
-| **Last updated** | 2026-07-21 (Width-responsive table standard) |
+| **Last updated** | 2026-07-21 (Central Activities + hard delete) |
 | **Constitution** | [PROJECT_CONSTITUTION.md](PROJECT_CONSTITUTION.md) |
 | **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
 | **Product Vision** | [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) |
@@ -46,6 +46,19 @@ Details: [docs/DEV_RUNTIME.md](docs/DEV_RUNTIME.md) · [docs/DEV_AUTO_START_COMP
 ---
 
 ## Completed
+
+### ✅ Central Activities Screen + Hard Delete (ADR-033)
+
+**Completed Features**
+
+- Org-wide Activities list at `/activities` (`GET /api/v1/activities`)
+- Server-side filters: search, customer, activity type, status, date range
+- Activity detail modal (customer, type/outcome, note, dates, todo/outcome, action flags)
+- Single hard delete (`DELETE /api/v1/activities/{id}` → 204, physical row removal)
+- Bulk hard delete (`POST /api/v1/activities/bulk-delete`) with selection + confirm + partial results
+- UniversalDataTable / WidthResponsiveDataTable + dual pagination (ADR-032)
+- Worklist `last_activity_id` SET NULL on delete (no silent cascade)
+- Backend activity tests + frontend build verified
 
 ### ✅ Global Responsive UI Design System (ADR-032)
 
@@ -105,16 +118,16 @@ Details: [docs/DEV_RUNTIME.md](docs/DEV_RUNTIME.md) · [docs/DEV_AUTO_START_COMP
 
 **Completed Features**
 
-- Activity CRUD (create, read, update, soft delete)
-- List activities by customer (paginated, sortable)
+- Activity CRUD (create, read, update; user delete is hard delete per ADR-033)
+- List activities by customer (paginated, sortable) + org-wide central list
 - Activity types: call, meeting, email, whatsapp, note, fair_visit, follow_up, other
 - Activity status: open, completed, cancelled
 - Activity source: manual (default), system, email_automation, whatsapp_integration, import, other
 - Optional contact linkage with same-customer validation
 - Follow-up date support
-- Soft delete via `deleted_at` + `is_active`
+- Legacy `deleted_at` / `is_active` columns retained; new deletes physically remove the row
 - Swagger
-- Customer detail page with Aktiviteler tab
+- Customer detail page with Aktiviteler tab + central `/activities` screen
 - Turkish frontend labels and timeline list
 - Backend tests
 - Live API verification script

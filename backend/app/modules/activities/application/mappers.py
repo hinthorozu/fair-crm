@@ -1,3 +1,4 @@
+from typing import Any, Optional
 from uuid import UUID
 
 from app.modules.activities.application.commands import ActivityResult
@@ -8,6 +9,14 @@ def activity_to_result(
     activity: Activity,
     *,
     contact_full_name: str | None = None,
+    customer_name: str | None = None,
+    related_todo_id: UUID | None = None,
+    related_todo_title: str | None = None,
+    related_outcome_id: UUID | None = None,
+    related_outcome_name: str | None = None,
+    action_required: bool | None = None,
+    data_problem: bool | None = None,
+    display_metadata: Optional[dict[str, Any]] = None,
 ) -> ActivityResult:
     return ActivityResult(
         id=activity.id,
@@ -26,6 +35,14 @@ def activity_to_result(
         created_at=activity.created_at,
         updated_at=activity.updated_at,
         deleted_at=activity.deleted_at,
+        customer_name=customer_name,
+        related_todo_id=related_todo_id,
+        related_todo_title=related_todo_title,
+        related_outcome_id=related_outcome_id,
+        related_outcome_name=related_outcome_name,
+        action_required=action_required,
+        data_problem=data_problem,
+        display_metadata=display_metadata,
     )
 
 

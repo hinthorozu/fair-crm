@@ -11,6 +11,7 @@ export const uiLabels = {
   navFairs: "Fuarlar",
   navTodos: "Görevler",
   navFollowUps: "Takipler",
+  navActivities: "Aktiviteler",
   navImports: "Veri Entegrasyonu",
   navAdmin: "Admin",
   sidebarCollapse: "Menüyü daralt",
