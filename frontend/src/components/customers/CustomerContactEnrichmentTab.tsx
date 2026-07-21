@@ -191,6 +191,10 @@ export function CustomerContactEnrichmentTab({
     <div className="customer-contact-enrichment-tab">
       <p className="form-hint">{customerEnrichmentLabels.intro}</p>
 
+      {state?.has_crm_email && state.can_run ? (
+        <p className="form-hint">{customerEnrichmentLabels.existingEmailHint}</p>
+      ) : null}
+
       <div className="customer-enrichment-actions">
         <button
           type="button"

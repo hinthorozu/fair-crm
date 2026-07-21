@@ -142,6 +142,16 @@ def record_scan_result(
         row.retry_after = now + FAILED_RETRY
         return
 
+    # Crawl found only addresses already on the customer card — not a miss, not enriched.
+    if result.status == "skipped":
+        row.last_email_found = None
+        row.last_source_url = result.website
+        row.last_error = None
+        row.retry_after = None
+        if row.last_email_scan_status != CustomerEnrichmentScanStatus.PENDING_MERGE:
+            row.last_email_scan_status = CustomerEnrichmentScanStatus.NOT_SCANNED
+        return
+
     first_email = result.emails[0] if result.emails else None
     if first_email is not None:
         # Persist scan evidence only. EMAIL_FOUND is reserved for post-import apply

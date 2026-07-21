@@ -26,6 +26,10 @@ from app.modules.scraper.services.enrichment_candidate_service import (
 )
 from app.modules.scraper.services.customer_enrichment_state_service import record_scan_result
 from app.modules.scraper.services.enrichment_customer_run_logger import EnrichmentCustomerRunLogger
+from app.modules.scraper.services.enrichment_known_email_filter import (
+    filter_known_crm_emails_from_result,
+    load_customer_email_keys,
+)
 from app.modules.scraper.services.enrichment_run_candidate_preview_logger import (
     log_bulk_enrichment_candidate_preview,
     log_customer_scan_finished,
@@ -203,6 +207,12 @@ def execute_enrichment_run(
     if run_logger is not None and is_bulk_enrichment_run:
         log_bulk_enrichment_candidate_preview(run_logger, candidates)
 
+    known_emails_by_customer = load_customer_email_keys(
+        session,
+        organization_id=organization_id,
+        customer_ids=[candidate.customer_id for candidate in candidates],
+    )
+
     results: list[EnrichmentResultDto] = []
     last_processed_customer_id: UUID | None = None
     for candidate in candidates:
@@ -218,6 +228,27 @@ def execute_enrichment_run(
             run_id=run_id,
             run_logger=run_logger,
         )
+        crawled_email_count = len(result.emails)
+        result = filter_known_crm_emails_from_result(
+            result,
+            known_emails_by_customer.get(candidate.customer_id, set()),
+        )
+        if (
+            run_logger is not None
+            and crawled_email_count > 0
+            and len(result.emails) < crawled_email_count
+        ):
+            dropped = crawled_email_count - len(result.emails)
+            run_logger.info(
+                "duplicate_emails_skipped",
+                f"Mevcut CRM e-postaları elendi ({dropped}): {candidate.company_name}",
+                metadata={
+                    "customer_id": str(candidate.customer_id),
+                    "dropped_email_count": dropped,
+                    "remaining_email_count": len(result.emails),
+                    "status": result.status,
+                },
+            )
         if run_logger is not None and is_bulk_enrichment_run:
             log_customer_scan_finished(run_logger, candidate)
         results.append(result)

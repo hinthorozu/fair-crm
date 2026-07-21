@@ -81,6 +81,7 @@ def _has_crm_email(session: Session, organization_id: UUID, customer_id: UUID) -
 def _evaluate_run_blockers(
     *,
     website: str | None,
+    has_crm_email: bool,
     state_status: str | None,
     state_map_entry,
 ) -> tuple[bool, str | None, str | None]:
@@ -90,6 +91,13 @@ def _evaluate_run_blockers(
     discover additional addresses. Duplicate handling happens later at import apply.
     """
     if not website:
+        if has_crm_email:
+            return (
+                False,
+                "no_website",
+                "Bu müşterinin web sitesi yok; site taraması yapılamaz. "
+                "Karttaki mevcut e-posta başarı sayılmaz — önce web sitesi ekleyin.",
+            )
         return (
             False,
             "no_website",
@@ -147,6 +155,7 @@ def get_customer_contact_enrichment_state(
     )
     can_run, block_code, block_message = _evaluate_run_blockers(
         website=website,
+        has_crm_email=has_crm_email,
         state_status=status if state is not None else None,
         state_map_entry=state,
     )

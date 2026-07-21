@@ -133,6 +133,9 @@ def run_customer_contact_enrichment(
             dry_run=body.dry_run,
             max_pages=body.max_pages or 10,
             customer_ids=[customer_id],
+            # Card enrich always re-scans even when CRM email exists; duplicates
+            # are stripped before handoff and merged without overwrite on apply.
+            include_existing_email=True,
         ),
     )
     return ScraperRunHistoryResponse.from_entity(run)

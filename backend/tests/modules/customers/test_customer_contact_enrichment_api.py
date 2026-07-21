@@ -164,6 +164,28 @@ def test_get_customer_contact_enrichment_state_pending_merge(client, auth_header
     assert payload["last_email_found"] == "found@pending.test"
 
 
+def test_get_customer_contact_enrichment_state_no_website_with_email(
+    client, auth_headers, db_session, organization_id
+):
+    customer = _seed_customer(
+        db_session,
+        organization_id,
+        display_name="Email No Website Co",
+        email="only@email.test",
+    )
+
+    response = client.get(
+        f"/api/v1/customers/{customer.id}/contact-enrichment-state",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["can_run"] is False
+    assert payload["block_code"] == "no_website"
+    assert payload["has_crm_email"] is True
+    assert "mevcut e-posta başarı sayılmaz" in payload["block_message"]
+
+
 def test_run_customer_contact_enrichment_rejects_no_website(client, auth_headers, db_session, organization_id):
     customer = _seed_customer(db_session, organization_id, display_name="Run No Website Co")
 
@@ -213,7 +235,7 @@ def test_run_customer_contact_enrichment_starts_when_email_exists(
     assert response.status_code == 202
     assert len(captured_commands) == 1
     assert captured_commands[0].customer_ids == [customer.id]
-
+    assert captured_commands[0].include_existing_email is True
 
 def test_run_customer_contact_enrichment_starts_for_eligible_customer(
     client, auth_headers, db_session, organization_id, user_id

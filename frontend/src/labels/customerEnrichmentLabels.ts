@@ -2,6 +2,8 @@ export const customerEnrichmentLabels = {
   tabTitle: "İletişim Zenginleştirme",
   intro:
     "Bu işlem müşterinin web sitesinden e-posta başta olmak üzere iletişim bilgilerini arar. Kartta e-posta olsa bile site yeniden taranır; yeni bulunan adresler mevcutlarla karşılaştırılır, aynı olanlar eklenmez. Bulunan bilgiler doğrudan CRM'e yazılmaz; merge/preview akışına gönderilir.",
+  existingEmailHint:
+    "Bu müşteride zaten e-posta var. Zenginleştirme mevcut adresi değiştirmez; web sitesinde yeni veya farklı e-posta arar. Aynı adres bulunursa yeni kayıt oluşmaz; farklı adres bulunursa import/onay sonrası ek e-posta olarak eklenir.",
   runButton: "Bu Müşteriyi Zenginleştir",
   resetButton: "Zenginleştirme Durumunu Sıfırla",
   running: "Zenginleştirme çalışıyor…",

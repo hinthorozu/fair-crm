@@ -130,6 +130,17 @@ class EnrichmentCustomerRunLogger:
             return
         if result.emails:
             self.email_found(result)
+        elif result.status == "skipped":
+            self._run_logger.info(
+                "duplicate_email_only",
+                f"Yeni e-posta yok (mevcutlarla aynı): {self._candidate.company_name}",
+                metadata=self._base_metadata(
+                    status="skipped",
+                    found_emails_count=0,
+                    found_email_values=[],
+                    source_url=result.website,
+                ),
+            )
         elif result.status == "not_found":
             self.not_found(result)
 

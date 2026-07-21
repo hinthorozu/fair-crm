@@ -120,6 +120,35 @@ def test_record_scan_result_stores_found_email_without_marking_enriched(db_sessi
     ) is True
 
 
+def test_record_scan_result_skipped_duplicate_does_not_set_retry(db_session, organization_id):
+    customer = _seed_customer(db_session, organization_id, display_name="Dup Skip Co")
+    run = _seed_run(db_session, organization_id)
+    record_scan_result(
+        db_session,
+        organization_id=organization_id,
+        run_id=run.id,
+        result=EnrichmentResultDto(
+            customer_id=customer.id,
+            company_name="Dup Skip Co",
+            website="https://dup-skip.test",
+            emails=[],
+            status="skipped",
+            error="duplicate_email_only",
+        ),
+    )
+    db_session.commit()
+
+    state = load_state_map(db_session, organization_id, [customer.id])[customer.id]
+    assert state.last_email_scan_status == CustomerEnrichmentScanStatus.NOT_SCANNED
+    assert state.retry_after is None
+    assert state.last_email_found is None
+    assert is_eligible_for_enrichment_scan(
+        status=state.last_email_scan_status,
+        retry_after=state.retry_after,
+        website_changed=False,
+    )
+
+
 def test_mark_pending_merge_after_scan_found(db_session, organization_id):
     from app.modules.scraper.services.customer_enrichment_state_service import mark_customers_pending_merge
 
