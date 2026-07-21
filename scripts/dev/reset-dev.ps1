@@ -1,11 +1,14 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Force-reset Fair CRM local dev runtime (kill stale listeners, restart backend + frontend).
+  Force-reset Fair CRM local dev runtime (kill stale listeners, restart Core + backend + frontend).
 
 .DESCRIPTION
   Unlike dev-start.ps1, this always stops existing listeners on standard ports before
   starting fresh processes. Use when ports are stuck or stale uvicorn/vite reloaders remain.
+
+  Clears Core (8000), Fair backend (8001), and frontend (5173–5177), then starts:
+  KYROX Core → Fair CRM backend → frontend.
 
 .EXAMPLE
   .\scripts\dev\reset-dev.ps1
@@ -40,7 +43,7 @@ Wait-DevPostgresHealthy
 $alembicStatus = Invoke-DevDatabaseMigrations
 Wait-DevRedisHealthy
 
-Write-DevStep "Stopping stale Fair CRM dev processes"
+Write-DevStep "Stopping stale Core + Fair CRM dev processes"
 $cleared = @(Stop-DevRuntimeProcesses -IncludeAltFrontendPorts)
 if ($cleared.Count -gt 0) {
     Start-Sleep -Seconds 2
@@ -49,11 +52,14 @@ if ($cleared.Count -gt 0) {
     Write-Host "No listeners found on target ports."
 }
 
-foreach ($port in @($script:DevBackendPort, $script:DevFrontendPort)) {
+foreach ($port in @($script:DevCorePort, $script:DevBackendPort, $script:DevFrontendPort)) {
     if (Test-DevPortListening -Port $port) {
         throw "Port $port is still in use after cleanup. Stop remaining listeners manually."
     }
 }
+
+Write-DevStep "Starting KYROX Core on port $script:DevCorePort"
+$core = Start-DevCore
 
 Write-DevStep "Starting backend on port $script:DevBackendPort"
 $backend = Start-DevBackend
@@ -99,10 +105,12 @@ function Test-ParticipantsSearchOpenApi([int]$Port) {
 }
 
 Write-DevStep "Verifying services"
+$coreHealth = $script:DevCoreHealthUrl
 $backendHealth = "http://127.0.0.1:$($script:DevBackendPort)/health"
 $swaggerUrl = "http://127.0.0.1:$($script:DevBackendPort)/docs"
 $frontendUrl = "http://127.0.0.1:$($script:DevFrontendPort)/"
 
+$coreOk = Wait-DevHttpOk -Urls @($coreHealth)
 $backendOk = Wait-DevHttpOk -Urls @($backendHealth)
 $swaggerOk = Wait-DevHttpOk -Urls @($swaggerUrl)
 $openapiOk = Test-ParticipantsSearchOpenApi -Port $script:DevBackendPort
@@ -120,6 +128,9 @@ Write-Host ""
 Write-Host "Port status:" -ForegroundColor Yellow
 Get-DevPortReport -Ports $script:DevAllRuntimePorts | Format-Table -AutoSize
 
+if (-not $coreOk) {
+    throw "KYROX Core failed to start on port $($script:DevCorePort). See $($core.Log) and $($core.ErrLog)"
+}
 if (-not $backendOk) {
     throw "Backend failed to start on port $($script:DevBackendPort). See $($backend.Log) and $($backend.ErrLog)"
 }
@@ -140,6 +151,7 @@ if ($escapedPorts.Count -gt 0) {
 }
 
 Write-Host ""
+Write-Host "Core PID:     $($core.Process.Id) (log: $($core.Log))"
 Write-Host "Backend PID:  $($backend.Process.Id) (log: $($backend.Log))"
 Write-Host "Frontend PID: $($frontend.Process.Id) (log: $($frontend.Log))"
 

@@ -44,16 +44,16 @@ Stop Docker infrastructure as well:
 .\scripts\dev\reset-dev.ps1
 ```
 
-Kills listeners on backend `8001` and frontend `5173`–`5177`, then starts fresh processes.
+Kills listeners on Core `8000`, backend `8001`, and frontend `5173`–`5177`, then starts fresh processes (Core → Fair backend → frontend).
 
 ## Scripts
 
 | Script | Purpose |
 |--------|---------|
 | `setup-dev.ps1` | New-machine bootstrap: check/install Python deps, npm deps, Playwright; verify .env and PostgreSQL |
-| `dev-start.ps1` | Docker infra up + wait for Postgres (+ Redis if defined) + start backend/frontend if not healthy |
-| `dev-stop.ps1` | Stop backend, frontend, optional worker; Docker infra optional via `-StopInfra` |
-| `reset-dev.ps1` | Force kill stale listeners and restart backend + frontend |
+| `dev-start.ps1` | Docker infra up + wait for Postgres (+ Redis if defined) + start Core/backend/frontend if not healthy |
+| `dev-stop.ps1` | Stop Core, backend, frontend, optional worker; Docker infra optional via `-StopInfra` |
+| `reset-dev.ps1` | Force kill stale listeners and restart Core + backend + frontend |
 | `dev-lib.ps1` | Shared helpers (sourced by the scripts above) |
 
 ## What `dev-start.ps1` does
@@ -62,15 +62,18 @@ Kills listeners on backend `8001` and frontend `5173`–`5177`, then starts fres
 2. `docker compose up -d` (infra containers use `restart: unless-stopped`)
 3. Waits for PostgreSQL health (`kyrox-postgres-dev`)
 4. Waits for Redis if the `redis` service exists in `docker-compose.yml` (skipped today)
-5. Starts backend only if `http://127.0.0.1:8001/health` is not OK
-6. Starts frontend only if `http://127.0.0.1:5173` is not OK
-7. Starts worker only if `scripts/dev/start-worker.ps1` exists (not configured in current sprint)
-8. Prints service URLs and `docker compose ps`
+5. Starts **KYROX Core** only if `http://127.0.0.1:8000/api/v1/health` is not OK (sibling `../kyrox-core` or `KYROX_CORE_ROOT`)
+6. Starts Fair CRM backend only if `http://127.0.0.1:8001/health` is not OK
+7. Starts frontend only if `http://127.0.0.1:5173` is not OK
+8. Starts worker only if `scripts/dev/start-worker.ps1` exists (not configured in current sprint)
+9. Prints service URLs and `docker compose ps`
 
 ## URLs
 
 | Service  | URL |
 |----------|-----|
+| KYROX Core | http://localhost:8000 |
+| Core health | http://localhost:8000/api/v1/health |
 | Backend  | http://localhost:8001 |
 | Swagger  | http://localhost:8001/docs |
 | Frontend | http://localhost:5173 |
@@ -111,7 +114,7 @@ Uzun aradan sonra veya yeni geliştirici için:
 1. Start **Docker Desktop** (wait until Ready)
 2. Run `.\scripts\dev\dev-start.ps1`
 
-PostgreSQL may already be running via Docker `unless-stopped`; the script still ensures backend and frontend are up.
+PostgreSQL may already be running via Docker `unless-stopped`; the script still ensures Core, backend, and frontend are up.
 
 ## After database restore
 
@@ -131,6 +134,7 @@ Usually schema drift after restore (e.g. missing `backup_format` on `system_back
 ## Logs
 
 ```text
+scripts/dev/logs/core-8000.log
 scripts/dev/logs/backend-8001.log
 scripts/dev/logs/frontend-5173.log
 ```
@@ -138,21 +142,27 @@ scripts/dev/logs/frontend-5173.log
 ## Prerequisites
 
 - Docker Desktop (PostgreSQL container)
-- Python 3.12+ with `pip install -r backend/requirements.txt`
+- Sibling **kyrox-core** repo (`../kyrox-core`) or `KYROX_CORE_ROOT` env pointing at it
+- Python 3.12+ with `pip install -r backend/requirements.txt` (Fair CRM and Core)
 - Node.js 16+ with `npm install` in `frontend/`
-- Migrations applied: `alembic upgrade head`
-- Optional: KYROX Core for full auth; dev bypass works with `FAIR_CRM_DEV_BYPASS_CORE`
+- Migrations applied: `alembic upgrade head` (Fair CRM); Core migrations via Core repo
+- Optional: `FAIR_CRM_DEV_BYPASS_CORE` for UI-only work without real Core auth
 
 `setup-dev.ps1` bu maddelerin cogu icin kontrol ve kurulum adimlarini otomatiklestirir (Python/Node/PostgreSQL kurulumu haric).
 
 ## Manual start (without scripts)
 
 ```powershell
-docker compose up -d
-cd backend
+# Terminal 1 — KYROX Core (or rely on dev-start / reset-dev)
+cd kyrox-core\backend
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+# Terminal 2 — Fair CRM backend
+cd fair-crm\backend
 python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 
-cd frontend
+# Terminal 3 — Frontend
+cd fair-crm\frontend
 npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 ```
 

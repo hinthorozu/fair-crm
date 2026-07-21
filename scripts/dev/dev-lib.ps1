@@ -5,15 +5,17 @@
 #>
 Set-StrictMode -Version Latest
 
+$script:DevCorePort = 8000
 $script:DevBackendPort = 8001
 $script:DevFrontendPort = 5173
 $script:DevFrontendAltPorts = @(5174, 5175, 5176, 5177)
-$script:DevAllRuntimePorts = @($script:DevBackendPort) + $script:DevFrontendPort + $script:DevFrontendAltPorts
+$script:DevAllRuntimePorts = @($script:DevCorePort, $script:DevBackendPort) + $script:DevFrontendPort + $script:DevFrontendAltPorts
 $script:DevRepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $script:DevBackendDir = Join-Path $script:DevRepoRoot "backend"
 $script:DevFrontendDir = Join-Path $script:DevRepoRoot "frontend"
 $script:DevLogDir = Join-Path $script:DevRepoRoot "scripts\dev\logs"
 $script:DevPostgresContainer = "kyrox-postgres-dev"
+$script:DevCoreHealthUrl = "http://127.0.0.1:$($script:DevCorePort)/api/v1/health"
 
 function Write-DevStep([string]$Message) {
     Write-Host "==> $Message" -ForegroundColor Cyan
@@ -451,6 +453,23 @@ function Invoke-DevPrepareRepository {
     }
 }
 
+function Get-DevKyroxCoreRoot {
+    $candidates = @()
+    if ($env:KYROX_CORE_ROOT) {
+        $candidates += $env:KYROX_CORE_ROOT
+    }
+    $candidates += (Join-Path (Split-Path $script:DevRepoRoot -Parent) "kyrox-core")
+    $candidates += (Join-Path $script:DevRepoRoot "kyrox-core")
+
+    foreach ($candidate in $candidates) {
+        if (-not $candidate) { continue }
+        if (Test-Path (Join-Path $candidate "backend\app\main.py")) {
+            return (Resolve-Path $candidate).Path
+        }
+    }
+    return $null
+}
+
 function Show-DevRuntimeSummary {
     param([string]$AlembicRevision = "")
 
@@ -467,6 +486,7 @@ function Show-DevRuntimeSummary {
     Write-Host "Git branch:       $(Get-DevGitBranch)"
     Write-Host "Git commit:       $(Get-DevGitCommit)"
     Write-Host "Alembic revision: $AlembicRevision"
+    Write-Host "Core URL:         http://localhost:$($script:DevCorePort)"
     Write-Host "Backend URL:      http://localhost:$($script:DevBackendPort)"
     Write-Host "Frontend URL:     http://localhost:$($script:DevFrontendPort)"
 }
@@ -571,6 +591,10 @@ function Stop-DevPortListeners([int[]]$Ports) {
     return @($stopped)
 }
 
+function Test-DevCoreHealthy {
+    return Test-DevHttpOk -Url $script:DevCoreHealthUrl
+}
+
 function Test-DevBackendHealthy {
     return Test-DevHttpOk -Url "http://127.0.0.1:$($script:DevBackendPort)/health"
 }
@@ -578,6 +602,33 @@ function Test-DevBackendHealthy {
 function Test-DevFrontendHealthy {
     $base = "http://127.0.0.1:$($script:DevFrontendPort)"
     return (Test-DevHttpOk -Url $base) -or (Test-DevHttpOk -Url "$base/index.html")
+}
+
+function Start-DevCore {
+    $coreRoot = Get-DevKyroxCoreRoot
+    if (-not $coreRoot) {
+        throw @"
+KYROX Core repository not found. Clone kyrox-core as a sibling of fair-crm (../kyrox-core) or set KYROX_CORE_ROOT to the repository path.
+"@
+    }
+    $coreBackendDir = Join-Path $coreRoot "backend"
+    if (-not (Test-Path $coreBackendDir)) {
+        throw "KYROX Core backend directory not found: $coreBackendDir"
+    }
+
+    New-Item -ItemType Directory -Force -Path $script:DevLogDir | Out-Null
+    $coreLog = Join-Path $script:DevLogDir "core-$($script:DevCorePort).log"
+    $coreErr = Join-Path $script:DevLogDir "core-$($script:DevCorePort).err.log"
+    $coreArgs = @("-m", "uvicorn", "app.main:app", "--reload", "--host", "127.0.0.1", "--port", "$($script:DevCorePort)")
+    # Avoid inheriting Fair CRM DATABASE_URL into Core process; let Core backend/.env load.
+    if (Test-Path Env:DATABASE_URL) {
+        Remove-Item Env:DATABASE_URL
+    }
+    Write-Host "Starting KYROX Core from: $coreRoot"
+    $proc = Start-Process -FilePath "python" -ArgumentList $coreArgs -WorkingDirectory $coreBackendDir `
+        -RedirectStandardOutput $coreLog -RedirectStandardError $coreErr -PassThru -WindowStyle Hidden
+    Start-Sleep -Seconds 2
+    return [pscustomobject]@{ Process = $proc; Log = $coreLog; ErrLog = $coreErr; Root = $coreRoot }
 }
 
 function Start-DevBackend {
@@ -646,13 +697,14 @@ function Stop-DevWorkerIfRunning {
 }
 
 function Stop-DevRuntimeProcesses([switch]$IncludeAltFrontendPorts) {
-    $ports = @($script:DevBackendPort, $script:DevFrontendPort)
+    $ports = @($script:DevCorePort, $script:DevBackendPort, $script:DevFrontendPort)
     if ($IncludeAltFrontendPorts) {
         $ports += $script:DevFrontendAltPorts
     }
 
     $null = @(Stop-DevOrphanedUvicornWorkers)
-    $null = @(Stop-DevFairCrmUvicornProcesses)
+    $null = @(Stop-DevFairCrmUvicornProcesses -Port $script:DevCorePort)
+    $null = @(Stop-DevFairCrmUvicornProcesses -Port $script:DevBackendPort)
     $null = @(Stop-DevFairCrmViteProcesses)
     $null = @(Stop-DevWorkerIfRunning)
     return @(Stop-DevPortListeners -Ports $ports)
@@ -677,6 +729,8 @@ function Get-DevPortReport([int[]]$Ports) {
 
 function Show-DevServiceUrls {
     Write-Host ""
+    Write-Host "Core:     http://localhost:$($script:DevCorePort)" -ForegroundColor Green
+    Write-Host "Core health: $($script:DevCoreHealthUrl)" -ForegroundColor Green
     Write-Host "Backend:  http://localhost:$($script:DevBackendPort)" -ForegroundColor Green
     Write-Host "Swagger:  http://localhost:$($script:DevBackendPort)/docs" -ForegroundColor Green
     Write-Host "Frontend: http://localhost:$($script:DevFrontendPort)" -ForegroundColor Green

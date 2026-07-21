@@ -110,16 +110,9 @@ $env:FAIR_CRM_DEV_BYPASS_CORE = "false"
 .\scripts\dev\reset-dev.ps1
 ```
 
-`reset-dev.ps1` port 8001/5173'teki eski process'leri öldürüp yeniden başlatır.
+`reset-dev.ps1` port 8000/8001/5173'teki eski process'leri öldürüp yeniden başlatır (önce Core, sonra Fair backend, sonra frontend).
 
-**Core ayrı başlatılmalı** (fair-crm script'i Core'u otomatik başlatmaz):
-
-```powershell
-cd ..\kyrox-core\backend
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
-
-Ayrı terminal'de Fair CRM zaten `reset-dev` ile ayaktaysa yeterli.
+Core sibling repo gerekir: `../kyrox-core` veya `KYROX_CORE_ROOT`.
 
 ### Seçenek B — Manuel
 
@@ -192,7 +185,7 @@ Beklenen: 73 passed.
 
 | Durum | Komut |
 |-------|-------|
-| Windows / Docker restart sonrası | `.\scripts\dev\dev-start.ps1` + Core'u manuel başlat |
+| Windows / Docker restart sonrası | `.\scripts\dev\dev-start.ps1` (Core + Fair backend + frontend) |
 | Port stuck / eski uvicorn | `.\scripts\dev\reset-dev.ps1` |
 | Gün sonu | `.\scripts\dev\dev-stop.ps1` |
 | Auth garip davranıyor | Seed + reset-dev + prod-path e2e |

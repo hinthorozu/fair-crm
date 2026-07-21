@@ -1,11 +1,13 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Idempotent Fair CRM development runtime start (Docker infra + backend + frontend).
+  Idempotent Fair CRM development runtime start (Docker infra + Core + backend + frontend).
 
 .DESCRIPTION
-  Safe to run multiple times. Does not create duplicate backend/frontend processes when
+  Safe to run multiple times. Does not create duplicate Core/backend/frontend processes when
   health checks already pass. Use reset-dev.ps1 to force-kill stale listeners first.
+
+  Start order: KYROX Core (8000) → Fair CRM backend (8001) → frontend (5173).
 
 .EXAMPLE
   .\scripts\dev\dev-start.ps1
@@ -33,8 +35,22 @@ Wait-DevPostgresHealthy
 $alembicStatus = Invoke-DevDatabaseMigrations
 Wait-DevRedisHealthy
 
+$coreStarted = $false
 $backendStarted = $false
 $frontendStarted = $false
+
+if (Test-DevCoreHealthy) {
+    Write-Host "KYROX Core already healthy on port $script:DevCorePort - skipping start."
+} elseif (Test-DevPortListening -Port $script:DevCorePort) {
+    throw "Port $script:DevCorePort is in use but $($script:DevCoreHealthUrl) is not OK. Run .\scripts\dev\reset-dev.ps1 to clear stale processes."
+} else {
+    Write-DevStep "Starting KYROX Core on port $script:DevCorePort"
+    $core = Start-DevCore
+    $coreStarted = $true
+    if (-not (Wait-DevHttpOk -Urls @($script:DevCoreHealthUrl))) {
+        throw "KYROX Core failed to start. See $($core.Log) and $($core.ErrLog)"
+    }
+}
 
 if (Test-DevBackendHealthy) {
     Write-Host "Backend already healthy on port $script:DevBackendPort - skipping start."
@@ -67,11 +83,12 @@ $workerProc = Start-DevWorkerIfConfigured
 
 Write-Host ""
 Write-Host "Runtime port status:" -ForegroundColor Yellow
-Get-DevPortReport -Ports @($script:DevBackendPort, $script:DevFrontendPort) | Format-Table -AutoSize
+Get-DevPortReport -Ports @($script:DevCorePort, $script:DevBackendPort, $script:DevFrontendPort) | Format-Table -AutoSize
 
 Show-DevDockerStatus
 
 Write-Host ""
+if ($coreStarted) { Write-Host "KYROX Core started." } else { Write-Host "KYROX Core reused (already running)." }
 if ($backendStarted) { Write-Host "Backend started." } else { Write-Host "Backend reused (already running)." }
 if ($frontendStarted) { Write-Host "Frontend started." } else { Write-Host "Frontend reused (already running)." }
 if ($null -eq $workerProc) { Write-Host "Worker: not configured." } else { Write-Host "Worker launcher PID: $($workerProc.Id)" }
