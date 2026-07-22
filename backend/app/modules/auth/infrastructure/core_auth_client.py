@@ -80,7 +80,7 @@ class CoreAuthClient:
         settings = get_settings()
         expires_in = data.get("expires_in")
         if not isinstance(expires_in, int) or expires_in <= 0:
-            expires_in = settings.access_token_expire_minutes * 60
+            expires_in = settings.access_token_expire_days * 24 * 60 * 60
 
         token_type = data.get("token_type")
         if not isinstance(token_type, str) or not token_type:

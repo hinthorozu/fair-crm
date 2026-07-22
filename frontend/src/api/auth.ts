@@ -1,5 +1,5 @@
 import { fetchWithTimeout, ApiError } from "./client";
-import { config } from "../config";
+import { ACCESS_TOKEN_EXPIRE_SECONDS, config } from "../config";
 import { authLabels } from "../labels/authLabels";
 
 export interface LoginRequest {
@@ -66,7 +66,9 @@ function assertAccessTokenResponse(data: unknown, status: number): AccessTokenRe
   }
   const typed = data as AccessTokenResponse;
   const expiresIn =
-    typeof typed.expires_in === "number" && typed.expires_in > 0 ? typed.expires_in : 900;
+    typeof typed.expires_in === "number" && typed.expires_in > 0
+      ? typed.expires_in
+      : ACCESS_TOKEN_EXPIRE_SECONDS;
   return {
     access_token: typed.access_token,
     token_type: typed.token_type,

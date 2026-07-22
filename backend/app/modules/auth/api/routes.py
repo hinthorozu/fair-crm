@@ -115,6 +115,8 @@ def session_config() -> dict[str, int]:
     """Expose configured TTLs (no secrets). Actual JWT exp is set by Core on issue."""
     settings = get_settings()
     return {
-        "access_token_expire_minutes": settings.access_token_expire_minutes,
+        "access_token_expire_days": settings.access_token_expire_days,
         "refresh_token_expire_days": settings.refresh_token_expire_days,
+        "access_token_expire_seconds": settings.access_token_expire_days * 24 * 60 * 60,
+        "refresh_cookie_max_age_seconds": settings.refresh_token_expire_days * 24 * 60 * 60,
     }

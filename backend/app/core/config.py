@@ -49,13 +49,13 @@ class Settings(BaseSettings):
         validation_alias="FAIR_CRM_SMTP_SECRET_ENCRYPTION_KEY",
     )
     jwt_algorithm: str = "HS256"
-    # Cookie Max-Age / session-config; Core JWT lifetime must match Core ACCESS_TOKEN_EXPIRE_MINUTES.
-    access_token_expire_minutes: int = Field(
+    # Access JWT lifetime (days). Must match KYROX Core ACCESS_TOKEN_EXPIRE_DAYS.
+    access_token_expire_days: int = Field(
         default=15,
-        ge=1,
-        validation_alias="ACCESS_TOKEN_EXPIRE_MINUTES",
+        ge=15,
+        validation_alias="ACCESS_TOKEN_EXPIRE_DAYS",
     )
-    # HttpOnly refresh cookie Max-Age; Core refresh TTL must be >= this (Core default 30).
+    # HttpOnly refresh cookie Max-Age (days). Must match Core REFRESH_TOKEN_EXPIRE_DAYS.
     refresh_token_expire_days: int = Field(
         default=15,
         ge=15,
