@@ -20,10 +20,11 @@ import {
   scraperConfigToJsonText,
 } from "../utils/fairIntegration";
 import {
+  applyEndDateInput,
+  applyStartDateInput,
   buildFairSubmitPayload,
   isValidFairWebsite,
   parseFairDateInput,
-  resolveAutoEndDate,
 } from "../utils/fairForm";
 
 export type FairFormValues = CreateFairPayload & {
@@ -75,16 +76,26 @@ interface FairFormProps {
   onCancel: () => void;
 }
 
+function isoForDatePicker(value: string): string {
+  const parsed = parseFairDateInput(value);
+  return parsed ?? "";
+}
+
 export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormProps) {
-  // Parent should remount via `key` when switching create/edit records.
+  // Parent remounts via `key` when switching create/edit records — no syncing useEffect.
   const [values, setValues] = React.useState<FairFormValues>(() => initial ?? emptyForm());
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [dateErrors, setDateErrors] = React.useState<{ start_date?: string; end_date?: string }>(
     {},
   );
+  // Explicit form state: API-loaded end dates count as manual and must not be overwritten.
+  const [endDateManual, setEndDateManual] = React.useState(
+    Boolean((initial?.end_date ?? "").trim()),
+  );
+  const endDateManualRef = React.useRef(endDateManual);
+  endDateManualRef.current = endDateManual;
   const baseline = React.useMemo(() => initial ?? emptyForm(), []);
-  const endDateManualRef = React.useRef(Boolean((initial?.end_date ?? "").trim()));
   const handleCancel = useModalFormCancel(onCancel);
 
   useReportFormDirty(values, baseline);
@@ -94,60 +105,35 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
   };
 
   const handleStartDateChange = (raw: string) => {
-    set("start_date", raw);
-    setDateErrors((prev) => ({ ...prev, start_date: undefined }));
-  };
-
-  const handleStartDateBlur = (event: React.FocusEvent<HTMLInputElement>) => {
-    const raw = event.target.value.trim();
-    if (!raw) {
-      setDateErrors((prev) => ({ ...prev, start_date: undefined }));
-      return;
-    }
-    const parsed = parseFairDateInput(raw);
-    if (!parsed) {
-      setDateErrors((prev) => ({ ...prev, start_date: fairLabels.dateInvalid }));
-      return;
-    }
-    setDateErrors((prev) => ({ ...prev, start_date: undefined }));
     setValues((prev) => {
-      const endDate = prev.end_date ?? "";
-      const nextEnd = resolveAutoEndDate({
-        startDate: parsed,
-        endDate,
+      const result = applyStartDateInput({
+        raw,
+        currentEndDate: prev.end_date ?? "",
         endDateManual: endDateManualRef.current,
+        invalidMessage: fairLabels.dateInvalid,
       });
+      setDateErrors((errs) => ({ ...errs, start_date: result.error }));
+      if (result.endDateManual !== undefined) {
+        endDateManualRef.current = result.endDateManual;
+        setEndDateManual(result.endDateManual);
+      }
       return {
         ...prev,
-        start_date: parsed,
-        ...(nextEnd ? { end_date: nextEnd } : {}),
+        start_date: result.start_date,
+        ...(result.end_date !== undefined ? { end_date: result.end_date } : {}),
       };
     });
   };
 
   const handleEndDateChange = (raw: string) => {
-    endDateManualRef.current = Boolean(raw.trim());
-    set("end_date", raw);
-    setDateErrors((prev) => ({ ...prev, end_date: undefined }));
-  };
-
-  const handleEndDateBlur = (event: React.FocusEvent<HTMLInputElement>) => {
-    const raw = event.target.value.trim();
-    if (!raw) {
-      endDateManualRef.current = false;
-      setDateErrors((prev) => ({ ...prev, end_date: undefined }));
-      return;
-    }
-    const parsed = parseFairDateInput(raw);
-    if (!parsed) {
-      setDateErrors((prev) => ({ ...prev, end_date: fairLabels.dateInvalid }));
-      return;
-    }
-    endDateManualRef.current = true;
-    setDateErrors((prev) => ({ ...prev, end_date: undefined }));
-    if (parsed !== raw) {
-      set("end_date", parsed);
-    }
+    const result = applyEndDateInput({
+      raw,
+      invalidMessage: fairLabels.dateInvalid,
+    });
+    endDateManualRef.current = result.endDateManual;
+    setEndDateManual(result.endDateManual);
+    setDateErrors((errs) => ({ ...errs, end_date: result.error }));
+    setValues((prev) => ({ ...prev, end_date: result.end_date }));
   };
 
   const adapterSelected = Boolean(values.adapter_key?.trim());
@@ -163,8 +149,8 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
     const startRaw = values.start_date?.trim() ?? "";
     const endRaw = values.end_date?.trim() ?? "";
     const nextDateErrors: { start_date?: string; end_date?: string } = {};
-    let startDate = startRaw;
-    let endDate = endRaw;
+    let startDate = "";
+    let endDate = "";
 
     if (startRaw) {
       const parsedStart = parseFairDateInput(startRaw);
@@ -231,8 +217,8 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
         buildFairSubmitPayload(
           {
             ...values,
-            start_date: startDate,
-            end_date: endDate,
+            start_date: startDate || null,
+            end_date: endDate || null,
           },
           scraperConfig,
         ),
@@ -283,15 +269,26 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
             hint={fairLabels.dateFormatHint}
             error={dateErrors.start_date}
           >
-            <TextInput
-              id="fair-start-date"
-              type="date"
-              placeholder={fairLabels.datePlaceholder}
-              value={values.start_date ?? ""}
-              onChange={(event) => handleStartDateChange(event.target.value)}
-              onBlur={handleStartDateBlur}
-              aria-invalid={Boolean(dateErrors.start_date)}
-            />
+            <div className="fair-date-input">
+              <TextInput
+                id="fair-start-date"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder={fairLabels.datePlaceholder}
+                value={values.start_date ?? ""}
+                onChange={(event) => handleStartDateChange(event.target.value)}
+                aria-invalid={Boolean(dateErrors.start_date)}
+              />
+              <input
+                type="date"
+                className="form-control fair-date-input__picker"
+                aria-label={fairLabels.start_date}
+                value={isoForDatePicker(values.start_date ?? "")}
+                onChange={(event) => handleStartDateChange(event.target.value)}
+                onBlur={(event) => handleStartDateChange(event.target.value)}
+              />
+            </div>
           </FormField>
 
           <FormField
@@ -300,15 +297,26 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
             hint={fairLabels.dateFormatHint}
             error={dateErrors.end_date}
           >
-            <TextInput
-              id="fair-end-date"
-              type="date"
-              placeholder={fairLabels.datePlaceholder}
-              value={values.end_date ?? ""}
-              onChange={(event) => handleEndDateChange(event.target.value)}
-              onBlur={handleEndDateBlur}
-              aria-invalid={Boolean(dateErrors.end_date)}
-            />
+            <div className="fair-date-input">
+              <TextInput
+                id="fair-end-date"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder={fairLabels.datePlaceholder}
+                value={values.end_date ?? ""}
+                onChange={(event) => handleEndDateChange(event.target.value)}
+                aria-invalid={Boolean(dateErrors.end_date)}
+              />
+              <input
+                type="date"
+                className="form-control fair-date-input__picker"
+                aria-label={fairLabels.end_date}
+                value={isoForDatePicker(values.end_date ?? "")}
+                onChange={(event) => handleEndDateChange(event.target.value)}
+                onBlur={(event) => handleEndDateChange(event.target.value)}
+              />
+            </div>
           </FormField>
 
           <FormField label={labels.country} htmlFor="fair-country">
@@ -347,11 +355,7 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
             />
           </FormField>
 
-          <FormField
-            label={labels.website}
-            htmlFor="fair-website"
-            hint={fairLabels.websiteHint}
-          >
+          <FormField label={labels.website} htmlFor="fair-website" hint={fairLabels.websiteHint}>
             <TextInput
               id="fair-website"
               type="text"

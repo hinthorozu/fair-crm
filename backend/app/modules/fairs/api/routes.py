@@ -66,6 +66,7 @@ from app.modules.fairs.domain.exceptions import (
     InvalidFairDateRangeError,
     InvalidFairNameError,
     InvalidFairSourceUrlError,
+    InvalidFairWebsiteError,
 )
 from app.modules.fairs.domain.value_objects import FairStatus
 from app.modules.scraper.api.schemas import EnrichmentRunRequest, ScraperRunHistoryResponse
@@ -126,6 +127,8 @@ def create_fair(
     except InvalidFairAdapterConfigError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except InvalidFairSourceUrlError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except InvalidFairWebsiteError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _to_response(result)
 
@@ -319,6 +322,8 @@ def update_fair(
     except InvalidFairAdapterConfigError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except InvalidFairSourceUrlError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except InvalidFairWebsiteError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _to_response(result)
 

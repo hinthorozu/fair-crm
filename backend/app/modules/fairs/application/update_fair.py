@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from typing import Any, Optional
 
 from app.core.exceptions import ForbiddenError
@@ -33,23 +33,6 @@ def _clearable_str(command: UpdateFairCommand, field: str) -> Optional[str]:
     return value
 
 
-def _should_auto_plan(command: UpdateFairCommand, today: date) -> bool:
-    """When start/end is set to today or a future date, force status to planned.
-
-    Explicit status in the same request wins (auto-plan is skipped).
-    """
-    if "status" in command.fields_set:
-        return False
-
-    candidates: list[date] = []
-    if "start_date" in command.fields_set and command.start_date is not None:
-        candidates.append(command.start_date)
-    if "end_date" in command.fields_set and command.end_date is not None:
-        candidates.append(command.end_date)
-
-    return any(value >= today for value in candidates)
-
-
 class UpdateFairUseCase:
     def __init__(
         self,
@@ -79,6 +62,8 @@ class UpdateFairUseCase:
             field: _clearable_str(command, field) for field in _STRING_CLEAR_FIELDS
         }
 
+        date_fields_updated = "start_date" in command.fields_set or "end_date" in command.fields_set
+
         fair.update_fields(
             name=command.name if "name" in command.fields_set else None,
             organizer=string_kwargs["organizer"],
@@ -101,7 +86,7 @@ class UpdateFairUseCase:
             clear_scraper_config=(
                 "scraper_config" in command.fields_set and command.scraper_config is None
             ),
-            auto_planned_from_dates=_should_auto_plan(command, now.date()),
+            date_fields_updated=date_fields_updated,
         )
 
         saved = self._repository.update(fair)

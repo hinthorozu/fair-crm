@@ -42,13 +42,13 @@ class CreateFairUseCase:
             start_date=command.start_date,
             end_date=command.end_date,
             website=command.website,
-        status=command.status,
-        description=command.description,
-        adapter_key=command.adapter_key,
-        source_url=command.source_url,
-        scraper_config=command.scraper_config,
-        now=now,
-    )
+            status=command.status,
+            description=command.description,
+            adapter_key=command.adapter_key,
+            source_url=command.source_url,
+            scraper_config=command.scraper_config,
+            now=now,
+        )
 
         saved = self._repository.add(fair)
 

@@ -9,13 +9,13 @@ from app.modules.fairs.domain.exceptions import (
     InvalidFairAdapterConfigError,
     InvalidFairDateRangeError,
     InvalidFairNameError,
-    InvalidFairSourceUrlError,
 )
 from app.modules.fairs.domain.services.normalizers import (
     compute_normalized_name,
     normalize_adapter_key,
     normalize_source_url,
     normalize_website,
+    resolve_status_for_dates,
 )
 from app.modules.fairs.domain.value_objects import FairStatus
 
@@ -88,6 +88,14 @@ class Fair:
         normalized_source_url = normalize_source_url(source_url) if source_url else None
         _validate_adapter_fields(normalized_adapter_key, normalized_source_url)
 
+        resolved_status = resolve_status_for_dates(
+            requested_status=status,
+            start_date=start_date,
+            end_date=end_date,
+            today=now.date(),
+            default=FairStatus.PLANNED,
+        )
+
         return cls(
             id=uuid4(),
             organization_id=organization_id,
@@ -99,7 +107,7 @@ class Fair:
             start_date=start_date,
             end_date=end_date,
             website=normalize_website(website) if website else None,
-            status=status,
+            status=resolved_status,
             description=description.strip() if description else None,
             normalized_name=compute_normalized_name(name=trimmed_name),
             created_at=now,
@@ -135,7 +143,7 @@ class Fair:
         clear_start_date: bool = False,
         clear_end_date: bool = False,
         clear_scraper_config: bool = False,
-        auto_planned_from_dates: bool = False,
+        date_fields_updated: bool = False,
     ) -> None:
         self.ensure_mutable()
 
@@ -165,8 +173,7 @@ class Fair:
 
         if website is not None:
             self.website = normalize_website(website) if website else None
-        if status is not None and status != FairStatus.ARCHIVED:
-            self.status = status
+
         if description is not None:
             self.description = description.strip() if description else None
 
@@ -179,8 +186,19 @@ class Fair:
         elif scraper_config is not None:
             self.scraper_config = scraper_config
 
-        if auto_planned_from_dates and self.status != FairStatus.ARCHIVED:
-            self.status = FairStatus.PLANNED
+        # Date-driven Planlandı overrides client status when entered dates are today/future.
+        entered_start = start_date if (not clear_start_date and start_date is not None) else None
+        entered_end = end_date if (not clear_end_date and end_date is not None) else None
+        if date_fields_updated and (entered_start is not None or entered_end is not None):
+            self.status = resolve_status_for_dates(
+                requested_status=status,
+                start_date=entered_start,
+                end_date=entered_end,
+                today=now.date(),
+                default=self.status,
+            )
+        elif status is not None and status != FairStatus.ARCHIVED:
+            self.status = status
 
         _validate_adapter_fields(self.adapter_key, self.source_url)
 

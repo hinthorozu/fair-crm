@@ -521,13 +521,39 @@ def test_update_fair_omitted_fields_are_preserved(client, auth_headers):
 
 
 def test_create_fair_accepts_protocol_less_website(client, auth_headers):
+    for website in ("abc.com", "www.abc.com", "http://abc.com", "https://abc.com"):
+        response = client.post(
+            "/api/v1/fairs",
+            json={"name": f"Website Fair {website}", "website": website},
+            headers=auth_headers,
+        )
+        assert response.status_code == 201, website
+        assert response.json()["website"] == "abc.com"
+
+
+def test_create_fair_rejects_invalid_website(client, auth_headers):
     response = client.post(
         "/api/v1/fairs",
-        json={"name": "Protocol Less Website Fair", "website": "abc.com"},
+        json={"name": "Bad Website Fair", "website": "not a url"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 400
+    assert "website" in response.json()["detail"]
+
+
+def test_create_fair_future_dates_force_planned_even_if_status_wrong(client, auth_headers):
+    response = client.post(
+        "/api/v1/fairs",
+        json={
+            "name": "Future Force Planned Fair",
+            "status": "completed",
+            "start_date": "2099-06-01",
+            "end_date": "2099-06-04",
+        },
         headers=auth_headers,
     )
     assert response.status_code == 201
-    assert response.json()["website"] == "abc.com"
+    assert response.json()["status"] == "planned"
 
 
 def test_update_fair_auto_plans_when_future_start_date_set(client, auth_headers):
@@ -549,10 +575,10 @@ def test_update_fair_auto_plans_when_future_start_date_set(client, auth_headers)
     assert update_response.json()["start_date"] == "2099-01-15"
 
 
-def test_update_fair_explicit_status_wins_over_auto_plan(client, auth_headers):
+def test_update_fair_auto_plan_overrides_stale_client_status(client, auth_headers):
     create_response = client.post(
         "/api/v1/fairs",
-        json={"name": "Explicit Status Fair", "status": "planned"},
+        json={"name": "Stale Status Fair", "status": "completed"},
         headers=auth_headers,
     )
     fair_id = create_response.json()["id"]
@@ -567,7 +593,7 @@ def test_update_fair_explicit_status_wins_over_auto_plan(client, auth_headers):
         headers=auth_headers,
     )
     assert update_response.status_code == 200
-    assert update_response.json()["status"] == "cancelled"
+    assert update_response.json()["status"] == "planned"
 
 
 def test_update_fair_past_dates_do_not_auto_plan(client, auth_headers):
@@ -585,6 +611,27 @@ def test_update_fair_past_dates_do_not_auto_plan(client, auth_headers):
     )
     assert update_response.status_code == 200
     assert update_response.json()["status"] == "completed"
+
+
+def test_update_fair_website_protocol_less_and_persists(client, auth_headers):
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={"name": "Website Edit Fair", "website": "https://old.example"},
+        headers=auth_headers,
+    )
+    fair_id = create_response.json()["id"]
+
+    update_response = client.patch(
+        f"/api/v1/fairs/{fair_id}",
+        json={"website": "abc.com"},
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["website"] == "abc.com"
+
+    get_response = client.get(f"/api/v1/fairs/{fair_id}", headers=auth_headers)
+    assert get_response.status_code == 200
+    assert get_response.json()["website"] == "abc.com"
 
 
 def test_fair_detail_and_list_include_adapter_fields(client, auth_headers):

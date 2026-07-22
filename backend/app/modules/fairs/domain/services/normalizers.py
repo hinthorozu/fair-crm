@@ -1,8 +1,10 @@
 import re
 import unicodedata
+from datetime import date
 from urllib.parse import urlparse
 
-from app.modules.fairs.domain.exceptions import InvalidFairSourceUrlError
+from app.modules.fairs.domain.exceptions import InvalidFairSourceUrlError, InvalidFairWebsiteError
+from app.modules.fairs.domain.value_objects import FairStatus
 
 TURKISH_CHAR_MAP = str.maketrans(
     {
@@ -37,14 +39,51 @@ def normalize_fair_name(value: str) -> str:
     return text
 
 
+def is_valid_fair_website(value: str) -> bool:
+    """Accept protocol-less domains and http(s) URLs (abc.com, www.x.com, http(s)://...)."""
+    text = value.strip()
+    if not text:
+        return True
+    candidate = text if re.match(r"^https?://", text, flags=re.IGNORECASE) else f"https://{text}"
+    parsed = urlparse(candidate)
+    if parsed.scheme not in {"http", "https"}:
+        return False
+    host = (parsed.hostname or "").strip().lower()
+    if not host:
+        return False
+    return host == "localhost" or "." in host
+
+
 def normalize_website(value: str) -> str:
+    """Store a consistent host (no scheme/www/path) so reopen display matches all input forms."""
     text = value.strip().lower()
     if not text:
         return ""
+    if not is_valid_fair_website(text):
+        raise InvalidFairWebsiteError(
+            "website must be a domain or http(s) URL (e.g. abc.com or https://abc.com)"
+        )
     text = re.sub(r"^https?://", "", text)
     text = re.sub(r"^www\.", "", text)
     text = text.split("/")[0].split("?")[0]
     return text
+
+
+def resolve_status_for_dates(
+    *,
+    requested_status: FairStatus | None,
+    start_date: date | None,
+    end_date: date | None,
+    today: date,
+    default: FairStatus = FairStatus.PLANNED,
+) -> FairStatus:
+    """Today/future start or end forces Planlandı; otherwise keep requested/default."""
+    entered = [value for value in (start_date, end_date) if value is not None]
+    if any(value >= today for value in entered):
+        return FairStatus.PLANNED
+    if requested_status is not None and requested_status != FairStatus.ARCHIVED:
+        return requested_status
+    return default
 
 
 def compute_normalized_name(*, name: str) -> str:

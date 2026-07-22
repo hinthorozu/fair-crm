@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   addDaysToIsoDate,
+  applyEndDateInput,
+  applyStartDateInput,
   buildFairSubmitPayload,
   isValidFairWebsite,
+  normalizeFairWebsite,
   parseFairDateInput,
   resolveAutoEndDate,
 } from "./fairForm";
@@ -21,6 +24,16 @@ describe("isValidFairWebsite", () => {
   it("rejects invalid values", () => {
     expect(isValidFairWebsite("not a url")).toBe(false);
     expect(isValidFairWebsite("ftp://abc.com")).toBe(false);
+  });
+});
+
+describe("normalizeFairWebsite", () => {
+  it("normalizes all accepted input forms to the same host", () => {
+    expect(normalizeFairWebsite("abc.com")).toBe("abc.com");
+    expect(normalizeFairWebsite("www.abc.com")).toBe("abc.com");
+    expect(normalizeFairWebsite("http://abc.com")).toBe("abc.com");
+    expect(normalizeFairWebsite("https://abc.com")).toBe("abc.com");
+    expect(normalizeFairWebsite("https://www.abc.com/about")).toBe("abc.com");
   });
 });
 
@@ -72,6 +85,54 @@ describe("addDaysToIsoDate / resolveAutoEndDate", () => {
   });
 });
 
+describe("applyStartDateInput / applyEndDateInput", () => {
+  it("applies auto end on valid start without waiting for blur", () => {
+    expect(
+      applyStartDateInput({
+        raw: "2026-03-15",
+        currentEndDate: "",
+        endDateManual: false,
+        invalidMessage: "bad",
+      }),
+    ).toEqual({ start_date: "2026-03-15", end_date: "2026-03-18" });
+  });
+
+  it("keeps partial typed start text without wiping it", () => {
+    expect(
+      applyStartDateInput({
+        raw: "2026-03",
+        currentEndDate: "",
+        endDateManual: false,
+        invalidMessage: "bad",
+      }),
+    ).toEqual({ start_date: "2026-03" });
+  });
+
+  it("does not overwrite manual end when start changes", () => {
+    expect(
+      applyStartDateInput({
+        raw: "2026-04-01",
+        currentEndDate: "2026-04-10",
+        endDateManual: true,
+        invalidMessage: "bad",
+      }),
+    ).toEqual({ start_date: "2026-04-01" });
+  });
+
+  it("marks end as manual when user types a valid end date", () => {
+    expect(
+      applyEndDateInput({ raw: "15.03.2026", invalidMessage: "bad" }),
+    ).toEqual({ end_date: "2026-03-15", endDateManual: true });
+  });
+
+  it("clears manual flag when end is emptied", () => {
+    expect(applyEndDateInput({ raw: "", invalidMessage: "bad" })).toEqual({
+      end_date: "",
+      endDateManual: false,
+    });
+  });
+});
+
 describe("buildFairSubmitPayload", () => {
   it("sends null for cleared optional fields", () => {
     expect(
@@ -108,5 +169,31 @@ describe("buildFairSubmitPayload", () => {
       source_url: null,
       scraper_config: null,
     });
+  });
+
+  it("normalizes website formats before submit", () => {
+    expect(
+      buildFairSubmitPayload(
+        {
+          name: "Fair",
+          status: "planned",
+          website: "https://www.abc.com/path",
+          scraper_config_json: "",
+        },
+        null,
+      ).website,
+    ).toBe("abc.com");
+  });
+
+  it("defaults status to planned on create payload", () => {
+    expect(
+      buildFairSubmitPayload(
+        {
+          name: "Fair",
+          scraper_config_json: "",
+        },
+        null,
+      ).status,
+    ).toBe("planned");
   });
 });

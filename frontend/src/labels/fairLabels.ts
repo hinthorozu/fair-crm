@@ -17,8 +17,9 @@ export const fairLabels = {
   start_date: "Başlangıç Tarihi",
   end_date: "Bitiş Tarihi",
   datePlaceholder: "YYYY-MM-DD",
-  dateFormatHint: "Geçerli format: YYYY-MM-DD (ör. 2026-03-15). Takvimden seçebilir veya klavye ile yazabilirsiniz.",
-  dateInvalid: "Geçerli bir tarih girin (YYYY-MM-DD).",
+  dateFormatHint:
+    "Format: YYYY-MM-DD (ör. 2026-03-15) veya GG.AA.YYYY. Takvimden seçebilir veya klavye ile yazabilirsiniz.",
+  dateInvalid: "Geçerli bir tarih girin (YYYY-MM-DD veya GG.AA.YYYY).",
   dateRangeInvalid: "Bitiş tarihi başlangıç tarihinden önce olamaz.",
   websitePlaceholder: "abc.com veya https://abc.com",
   websiteHint: "http/https yazmak zorunlu değildir (ör. abc.com, www.abc.com).",

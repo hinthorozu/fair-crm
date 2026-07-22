@@ -1701,6 +1701,21 @@ textarea::placeholder {
   gap: 1rem 1.25rem;
 }
 
+.fair-date-input {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.fair-date-input__picker {
+  width: 2.75rem;
+  min-width: 2.75rem;
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+  cursor: pointer;
+}
+
 .field {
   display: flex;
   flex-direction: column;

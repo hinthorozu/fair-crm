@@ -42,5 +42,9 @@ class InvalidFairSourceUrlError(FairDomainError):
     pass
 
 
+class InvalidFairWebsiteError(FairDomainError):
+    pass
+
+
 class FairEnrichmentNoCandidatesError(FairDomainError):
     pass
