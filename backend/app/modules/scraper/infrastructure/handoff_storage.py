@@ -27,6 +27,56 @@ def resolve_handoff_excel_path(run_id: UUID, *, base_dir: Path | None = None) ->
     return directory / f"{run_id}.xlsx"
 
 
+def _is_safe_handoff_artifact_path(path: Path, *, run_id: UUID, handoff_dir: Path) -> bool:
+    """Only allow deleting files that belong to this run under the handoff directory."""
+    try:
+        resolved = path.resolve()
+        handoff_root = handoff_dir.resolve()
+    except OSError:
+        return False
+    if not resolved.is_relative_to(handoff_root):
+        return False
+    run_token = str(run_id)
+    return run_token in resolved.name
+
+
+def delete_handoff_artifacts_for_run(
+    run_id: UUID,
+    *,
+    output_json_path: str | None = None,
+    output_excel_path: str | None = None,
+    base_dir: Path | None = None,
+) -> None:
+    """Best-effort cleanup of run-scoped handoff files. Never deletes unrelated paths."""
+    handoff_dir = base_dir or DEFAULT_HANDOFF_DIR
+    candidates: list[Path] = [
+        resolve_handoff_path(run_id, base_dir=handoff_dir),
+        resolve_handoff_excel_path(run_id, base_dir=handoff_dir),
+    ]
+    for stored in (output_json_path, output_excel_path):
+        if stored:
+            candidates.append(Path(stored))
+
+    seen: set[Path] = set()
+    for candidate in candidates:
+        try:
+            resolved = candidate.resolve()
+        except OSError:
+            continue
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        if not _is_safe_handoff_artifact_path(candidate, run_id=run_id, handoff_dir=handoff_dir):
+            continue
+        if not resolved.is_file():
+            continue
+        try:
+            resolved.unlink()
+        except OSError:
+            # Orphaning a file is preferable to failing history deletion.
+            continue
+
+
 def serialize_handoff_to_canonical_json(
     handoff: ScraperImportHandoff,
     *,

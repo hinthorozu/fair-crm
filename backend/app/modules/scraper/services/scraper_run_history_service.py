@@ -16,10 +16,19 @@ from app.modules.scraper.domain.scraper_run_history import (
 from app.modules.scraper.domain.scraper_run_source import ScraperRunSource
 from app.modules.scraper.domain.scraper_run_history_filters import ScraperRunHistoryListFilters
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
+from app.modules.scraper.infrastructure.handoff_storage import delete_handoff_artifacts_for_run
 from app.modules.scraper.infrastructure.repositories.scraper_run_history_repository import (
     ScraperRunHistoryListRow,
     ScraperRunHistoryRepository,
 )
+
+
+class ScraperRunHistoryDeleteError(Exception):
+    """Raised when a run history row cannot be deleted."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.message = message
 
 
 def compute_handoff_metrics(handoff: ScraperImportHandoff) -> dict[str, int]:
@@ -495,6 +504,33 @@ class ScraperRunHistoryService:
             adapter_key=adapter_key,
             organization_id=organization_id,
         )
+
+    def delete_run(
+        self,
+        run_id: UUID,
+        *,
+        organization_id: UUID,
+    ) -> None:
+        """Delete a single run history row and its run-scoped handoff artifacts.
+
+        Does not delete fairs, customers, import batches, or other primary CRM data.
+        Linked FKs that point at this run (e.g. enrichment state) are SET NULL by the DB.
+        """
+        existing = self._repository.get_by_id(run_id)
+        if existing is None or existing.organization_id != organization_id:
+            raise KeyError(f"Scraper run not found: {run_id}")
+        if existing.status in ACTIVE_SCRAPER_RUN_STATUSES:
+            raise ScraperRunHistoryDeleteError(
+                "Aktif bir çalıştırma silinemez. Önce durdurun veya tamamlanmasını bekleyin."
+            )
+        delete_handoff_artifacts_for_run(
+            run_id,
+            output_json_path=existing.output_json_path,
+            output_excel_path=existing.output_excel_path,
+        )
+        deleted = self._repository.hard_delete_by_id(run_id, organization_id=organization_id)
+        if not deleted:
+            raise KeyError(f"Scraper run not found: {run_id}")
 
     def get_dashboard_run_stats(self, organization_id: UUID) -> dict[str, int | str | None]:
         latest = self._repository.get_latest_for_organization(organization_id)

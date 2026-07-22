@@ -1,5 +1,10 @@
 import React from "react";
-import { downloadScraperRunOutput, listAdapters, listScraperRunsTable } from "../api/scraper";
+import {
+  deleteScraperRun,
+  downloadScraperRunOutput,
+  listAdapters,
+  listScraperRunsTable,
+} from "../api/scraper";
 import { ApiError } from "../api/client";
 import { PageHeader } from "../components/ui/PageHeader";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -8,6 +13,8 @@ import { FilterPanel } from "../components/ui/FilterPanel";
 import { FormField, SelectInput, TextInput } from "../components/ui/form";
 import { TruncatedText } from "../components/ui/TruncatedText";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
+import { TableRowActions } from "../components/ui/TableRowActions";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { scraperLabels } from "../labels/scraperLabels";
 import type { AdapterListItem, ScraperRun, ScraperRunStatus } from "../types/scraper";
@@ -48,6 +55,10 @@ function engineTypeLabel(value: string | null | undefined): string {
   if (value === "static") return scraperLabels.runEngineTypeStatic;
   if (value === "dynamic") return scraperLabels.runEngineTypeDynamic;
   return value ?? "—";
+}
+
+function isActiveRunStatus(status: ScraperRunStatus): boolean {
+  return status === "running" || status === "cancel_requested" || status === "cancelling";
 }
 
 function RunHistoryFilesMenu({
@@ -140,7 +151,9 @@ function buildColumns(
     onOpenRunDetail?: (adapterKey: string, runId: string) => void;
     onOpenImportBatch?: (batchId: string) => void;
     onDownload: (run: ScraperRun, kind: "json" | "excel") => void;
+    onDelete: (run: ScraperRun) => void;
     loadingKey: string | null;
+    deletingRunId: string | null;
   },
 ): UniversalDataTableColumn<ScraperRun>[] {
   return [
@@ -158,6 +171,32 @@ function buildColumns(
       priority: "primary",
       render: (run) => (
         <Badge variant={runStatusBadgeVariant(run.status)}>{runStatusLabel(run.status)}</Badge>
+      ),
+    },
+    {
+      key: "actions",
+      title: scraperLabels.runColDetail,
+      sortable: false,
+      priority: "primary",
+      className: "actions",
+      render: (run) => (
+        <TableRowActions className="run-history-row-actions">
+          <button
+            type="button"
+            className="btn btn-sm btn-secondary"
+            onClick={() => handlers.onOpenRunDetail?.(run.adapter_key, run.id)}
+          >
+            {scraperLabels.actionDetail}
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm danger"
+            disabled={isActiveRunStatus(run.status) || handlers.deletingRunId === run.id}
+            onClick={() => handlers.onDelete(run)}
+          >
+            {handlers.deletingRunId === run.id ? "Siliniyor…" : scraperLabels.runHistoryDelete}
+          </button>
+        </TableRowActions>
       ),
     },
     {
@@ -271,30 +310,10 @@ function buildColumns(
       priority: "technical",
       render: (run) => <TruncatedText value={run.id} mono maxLength={12} />,
     },
-    {
-      key: "detail",
-      title: scraperLabels.runColDetail,
-      sortable: false,
-      priority: "primary",
-      className: "actions",
-      render: (run) => (
-        <button
-          type="button"
-          className="btn btn-sm btn-secondary"
-          onClick={() => handlers.onOpenRunDetail?.(run.adapter_key, run.id)}
-        >
-          {scraperLabels.actionDetail}
-        </button>
-      ),
-    },
   ];
 }
 
 const POLL_INTERVAL_MS = 12_000;
-
-function isActiveRunStatus(status: ScraperRunStatus): boolean {
-  return status === "running" || status === "cancel_requested" || status === "cancelling";
-}
 
 export function ScraperRunHistoryPage({
   initialAdapterKey,
@@ -305,6 +324,10 @@ export function ScraperRunHistoryPage({
   const [adapters, setAdapters] = React.useState<AdapterListItem[]>([]);
   const [outputLoading, setOutputLoading] = React.useState<string | null>(null);
   const [outputError, setOutputError] = React.useState<string | null>(null);
+  const [runToDelete, setRunToDelete] = React.useState<ScraperRun | null>(null);
+  const [deletingRunId, setDeletingRunId] = React.useState<string | null>(null);
+  const [actionError, setActionError] = React.useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
   const silentRefreshInFlight = React.useRef(false);
   const loadingRef = React.useRef(false);
 
@@ -345,6 +368,12 @@ export function ScraperRunHistoryPage({
     return () => window.clearInterval(interval);
   }, [hasActiveRuns, silentRefresh]);
 
+  React.useEffect(() => {
+    if (!successMessage) return;
+    const timer = window.setTimeout(() => setSuccessMessage(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [successMessage]);
+
   const handleManualRefresh = React.useCallback(() => {
     void silentRefresh();
   }, [silentRefresh]);
@@ -362,6 +391,23 @@ export function ScraperRunHistoryPage({
     }
   }, []);
 
+  const handleConfirmDelete = React.useCallback(async () => {
+    if (!runToDelete) return;
+    setDeletingRunId(runToDelete.id);
+    setActionError(null);
+    setSuccessMessage(null);
+    try {
+      await deleteScraperRun(runToDelete.id);
+      setRunToDelete(null);
+      setSuccessMessage(scraperLabels.runHistoryDeleteSuccess);
+      await table.refresh();
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : scraperLabels.runHistoryDeleteError);
+    } finally {
+      setDeletingRunId(null);
+    }
+  }, [runToDelete, table]);
+
   const columns = React.useMemo(
     () =>
       buildColumns({
@@ -369,13 +415,16 @@ export function ScraperRunHistoryPage({
         onOpenRunDetail,
         onOpenImportBatch,
         onDownload: (run, kind) => void handleDownload(run, kind),
+        onDelete: setRunToDelete,
         loadingKey: outputLoading,
+        deletingRunId,
       }),
-    [handleDownload, onOpenAdapter, onOpenRunDetail, onOpenImportBatch, outputLoading],
+    [handleDownload, onOpenAdapter, onOpenRunDetail, onOpenImportBatch, outputLoading, deletingRunId],
   );
 
   const statusOptions: ScraperRunStatus[] = ["running", "completed", "failed", "cancelled"];
   const showEmpty = !table.loading && !table.error && table.items.length === 0;
+  const bannerError = actionError ?? outputError;
 
   const filtersToolbar = (
     <FilterPanel className="run-history-filters">
@@ -464,7 +513,8 @@ export function ScraperRunHistoryPage({
         ]}
       />
 
-      {outputError ? <Banner variant="error">{outputError}</Banner> : null}
+      {successMessage ? <Banner variant="success">{successMessage}</Banner> : null}
+      {bannerError ? <Banner variant="error">{bannerError}</Banner> : null}
 
       <UniversalDataTable
         table={table}
@@ -475,6 +525,21 @@ export function ScraperRunHistoryPage({
         className="scraper-run-history-table"
         emptyState={showEmpty ? <EmptyState title={scraperLabels.runHistoryEmpty} /> : undefined}
       />
+
+      {runToDelete ? (
+        <ConfirmDialog
+          title={scraperLabels.runHistoryDeleteTitle}
+          message={scraperLabels.buildDeleteRunHistoryMessage(runToDelete)}
+          confirmLabel={scraperLabels.runHistoryDeleteConfirmLabel}
+          variant="danger"
+          loading={deletingRunId === runToDelete.id}
+          onCancel={() => {
+            if (deletingRunId) return;
+            setRunToDelete(null);
+          }}
+          onConfirm={() => void handleConfirmDelete()}
+        />
+      ) : null}
     </PageShell>
   );
 }

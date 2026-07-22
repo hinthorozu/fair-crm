@@ -418,3 +418,18 @@ class ScraperRunHistoryRepository:
         self._session.flush()
         return int(result.rowcount or 0)
 
+    def hard_delete_by_id(
+        self,
+        run_id: UUID,
+        *,
+        organization_id: UUID,
+    ) -> bool:
+        result = self._session.execute(
+            delete(ScraperRunHistoryModel).where(
+                ScraperRunHistoryModel.id == run_id,
+                ScraperRunHistoryModel.organization_id == organization_id,
+            )
+        )
+        self._session.flush()
+        return int(result.rowcount or 0) > 0
+

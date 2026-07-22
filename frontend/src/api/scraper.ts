@@ -175,6 +175,12 @@ export async function cancelScraperRun(runId: string): Promise<ScraperRunCancelR
   );
 }
 
+export async function deleteScraperRun(runId: string): Promise<void> {
+  await apiRequest<void>(`/api/v1/scraper/runs/${encodeURIComponent(runId)}`, {
+    method: "DELETE",
+  });
+}
+
 export async function listScraperRunLogs(
   runId: string,
   params?: { after_id?: string; limit?: number },

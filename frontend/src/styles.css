@@ -3177,7 +3177,8 @@ textarea.form-control-textarea {
 }
 
 .import-list-actions,
-.smtp-list-actions {
+.smtp-list-actions,
+.run-history-row-actions {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;

@@ -154,6 +154,42 @@ def test_scraper_delete_permission_denied_returns_403(client: TestClient, auth_h
         client.app.dependency_overrides.pop(get_scraper_authorization_adapter, None)
 
 
+def test_scraper_run_delete_permission_denied_returns_403(
+    client: TestClient,
+    auth_headers,
+    db_session,
+    organization_id,
+):
+    run = _seed_completed_run(db_session, organization_id)
+    client.app.dependency_overrides[get_scraper_authorization_adapter] = lambda: SelectiveAuthorization(
+        denied={PERMISSION_DELETE}
+    )
+    try:
+        response = client.delete(f"/api/v1/scraper/runs/{run.id}", headers=auth_headers)
+        assert response.status_code == 403
+    finally:
+        client.app.dependency_overrides.pop(get_scraper_authorization_adapter, None)
+
+
+def test_scraper_run_delete_not_visible_from_other_organization(
+    client: TestClient,
+    auth_headers,
+    other_organization_id,
+    user_id,
+    db_session,
+    organization_id,
+):
+    run = _seed_completed_run(db_session, organization_id)
+    other_headers = {
+        "Authorization": f"Bearer {create_test_token(user_id=user_id)}",
+        "X-Organization-Id": str(other_organization_id),
+    }
+
+    response = client.delete(f"/api/v1/scraper/runs/{run.id}", headers=other_headers)
+    assert response.status_code == 404
+    assert ScraperRunHistoryService(ScraperRunHistoryRepository(db_session)).get_run(run.id) is not None
+
+
 def test_scraper_run_permission_denied_returns_403(client: TestClient, auth_headers):
     client.app.dependency_overrides[get_scraper_authorization_adapter] = lambda: SelectiveAuthorization(
         denied={PERMISSION_RUN}

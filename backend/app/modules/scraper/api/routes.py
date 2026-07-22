@@ -69,7 +69,10 @@ from app.modules.scraper.core.playwright_availability import playwright_browser_
 from app.modules.scraper.services.adapter_engine_service import AdapterEngineService
 from app.modules.scraper.services.adapter_linked_fair_service import AdapterLinkedFairService
 from app.modules.scraper.services.scraper_adapter_service import ScraperAdapterService
-from app.modules.scraper.services.scraper_run_history_service import ScraperRunHistoryService
+from app.modules.scraper.services.scraper_run_history_service import (
+    ScraperRunHistoryDeleteError,
+    ScraperRunHistoryService,
+)
 from app.modules.scraper.services.scraper_run_log_service import ScraperRunLogService
 from app.modules.scraper.services.adapter_instance_resolver import resolve_output_formats
 from app.modules.scraper.application.delete_adapter import DeleteAdapterUseCase
@@ -705,6 +708,32 @@ def get_scraper_run(
         engine_service=engine_service,
         run_log_service=run_log_service,
     )
+
+
+@router.delete(
+    "/runs/{run_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Scraper run history kaydını sil",
+)
+def delete_scraper_run(
+    run_id: UUID,
+    auth: Annotated[AuthContext, Depends(require_delete_permission)],
+    db: Annotated[Session, Depends(get_db)],
+    run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
+) -> None:
+    try:
+        run_history_service.delete_run(run_id, organization_id=auth.organization_id)
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Scraper run not found: {run_id}",
+        ) from exc
+    except ScraperRunHistoryDeleteError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=exc.message,
+        ) from exc
+    db.commit()
 
 
 @router.post(

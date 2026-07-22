@@ -115,7 +115,7 @@ export const scraperLabels = {
   runColEngineType: "Engine Type",
   runColInputUrl: "Taranan URL",
   runColFiles: "Dosyalar",
-  runColDetail: "Detay",
+  runColDetail: "İşlemler",
   runColRunId: "Run ID",
   runColError: "Hata",
   runHistoryShowDetails: "Detayları Göster",
@@ -134,6 +134,33 @@ export const scraperLabels = {
   runRecentSummary: "Son çalıştırmalar",
   runHistoryEmpty: "Henüz scraper çalıştırması yok.",
   runHistoryRefresh: "Yenile",
+  runHistoryDelete: "Sil",
+  runHistoryDeleteTitle: "Run history kaydı silinsin mi?",
+  runHistoryDeleteConfirmLabel: "Sil",
+  runHistoryDeleteSuccess: "Run history kaydı silindi.",
+  runHistoryDeleteError: "Run history kaydı silinemedi.",
+  runHistoryDeleteIrreversible: "Bu işlem geri alınamaz.",
+  buildDeleteRunHistoryMessage: (run: {
+    started_at: string;
+    adapter_name?: string | null;
+    adapter_key: string;
+    fair_name?: string | null;
+  }) => {
+    const lines = [
+      `Çalıştırma tarihi: ${new Date(run.started_at).toLocaleString("tr-TR")}`,
+    ];
+    const adapterLabel = (run.adapter_name ?? run.adapter_key).trim();
+    if (adapterLabel) {
+      lines.push(`Adapter: ${adapterLabel}`);
+    }
+    const fairName = (run.fair_name ?? "").trim();
+    if (fairName) {
+      lines.push(`Fuar: ${fairName}`);
+    }
+    lines.push("Bu işlem geri alınamaz.");
+    lines.push("Devam etmek istiyor musunuz?");
+    return lines.join("\n\n");
+  },
 
   testPageTitle: "Scraper Test",
   testPageSubtitle: "Adapter seçip URL girerek scraper test çalıştırması başlatın.",
