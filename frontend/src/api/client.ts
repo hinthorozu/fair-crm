@@ -1,5 +1,6 @@
 import { buildApiHeaders, config } from "../config";
 import { getAccessToken, clearSession, notifySessionExpired } from "../auth/session";
+import { refreshSessionSingleFlight } from "../auth/refreshCoordinator";
 
 export const API_REQUEST_TIMEOUT_MS = 30_000;
 /** Import analyze can process large batches against full CRM — allow longer than default list calls. */
@@ -69,45 +70,63 @@ export async function fetchWithTimeout(
   }
 }
 
+async function parseResponseBody(response: Response): Promise<unknown> {
+  const text = await response.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function detailFromBody(data: unknown, status: number): string {
+  let detail = `HTTP ${status}`;
+  if (typeof data === "object" && data !== null) {
+    if ("message" in data && data.message) {
+      detail = String(data.message);
+    } else if ("detail" in data && data.detail) {
+      detail = String(data.detail);
+    }
+  }
+  return detail;
+}
+
+type ApiRequestInternalOptions = RequestInit & { _retriedAfterRefresh?: boolean };
+
 export async function apiRequest<T>(
   path: string,
-  options: RequestInit = {},
+  options: ApiRequestInternalOptions = {},
   timeoutMs: number = API_REQUEST_TIMEOUT_MS,
 ): Promise<T> {
   const url = `${config.apiBaseUrl}${path}`;
+  const { _retriedAfterRefresh, ...fetchOptions } = options;
   const response = await fetchWithTimeout(
     url,
     {
-      ...options,
-      headers: buildApiHeaders(options.headers ?? {}),
+      ...fetchOptions,
+      headers: buildApiHeaders(fetchOptions.headers ?? {}),
     },
     timeoutMs,
   );
 
-  const text = await response.text();
-  let data: unknown = null;
-  if (text) {
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = text;
-    }
-  }
+  const data = await parseResponseBody(response);
 
   if (!response.ok) {
-    if (response.status === 401 && getAccessToken()) {
+    const hadAccessToken = Boolean(getAccessToken());
+    if (response.status === 401 && hadAccessToken && !_retriedAfterRefresh) {
+      const newToken = await refreshSessionSingleFlight();
+      if (newToken) {
+        return apiRequest<T>(path, { ...fetchOptions, _retriedAfterRefresh: true }, timeoutMs);
+      }
+      // refreshSessionSingleFlight already cleared session + notified
+      throw new ApiError(detailFromBody(data, response.status), response.status, data);
+    }
+    if (response.status === 401 && hadAccessToken && _retriedAfterRefresh) {
       clearSession();
       notifySessionExpired();
     }
-    let detail = `HTTP ${response.status}`;
-    if (typeof data === "object" && data !== null) {
-      if ("message" in data && data.message) {
-        detail = String(data.message);
-      } else if ("detail" in data && data.detail) {
-        detail = String(data.detail);
-      }
-    }
-    throw new ApiError(detail, response.status, data);
+    throw new ApiError(detailFromBody(data, response.status), response.status, data);
   }
 
   return data as T;

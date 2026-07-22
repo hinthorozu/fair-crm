@@ -1,12 +1,14 @@
 import React from "react";
-import { loginWithCredentials, logoutFromCore } from "../api/auth";
+import { loginWithCredentials, logoutSession } from "../api/auth";
 import { config } from "../config";
+import { refreshSessionSingleFlight } from "./refreshCoordinator";
 import {
   clearSession,
-  notifySessionExpired,
+  consumeLegacyRefreshTokenFromStorage,
   readSession,
   saveSession,
   SESSION_EXPIRED_EVENT,
+  SESSION_UPDATED_EVENT,
   type AuthSession,
 } from "./session";
 
@@ -23,21 +25,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = React.useState<AuthSession | null>(() => readSession());
 
   const logout = React.useCallback(async () => {
-    const current = readSession();
     clearSession();
     setSession(null);
-    if (current?.refreshToken) {
-      await logoutFromCore(current.refreshToken);
-    }
+    await logoutSession();
   }, []);
 
   const login = React.useCallback(async (email: string, password: string) => {
     const response = await loginWithCredentials({ email, password });
     const nextSession: AuthSession = {
       accessToken: response.access_token,
-      refreshToken: response.refresh_token,
       organizationId: config.organizationId,
       email: email.trim(),
+      expiresIn: response.expires_in,
     };
     saveSession(nextSession);
     setSession(nextSession);
@@ -45,8 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     const onSessionExpired = () => {
-      logout();
-      // With VITE_DEV_BYPASS_ENABLED, stay in the app using bypass headers.
+      void logout();
       if (config.devBypassEnabled) return;
       if (window.location.pathname !== "/login") {
         window.history.replaceState(null, "", "/login");
@@ -56,10 +54,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
   }, [logout]);
 
+  React.useEffect(() => {
+    const onUpdated = () => setSession(readSession());
+    window.addEventListener(SESSION_UPDATED_EVENT, onUpdated);
+    return () => window.removeEventListener(SESSION_UPDATED_EVENT, onUpdated);
+  }, []);
+
+  // Boot: migrate legacy refresh once; if no access token, probe HttpOnly cookie silently.
+  React.useEffect(() => {
+    let cancelled = false;
+    const boot = async () => {
+      if (config.devBypassEnabled && !readSession()) return;
+      const legacy = consumeLegacyRefreshTokenFromStorage();
+      const current = readSession();
+      if (current?.accessToken && !legacy) {
+        setSession(current);
+        return;
+      }
+      if (!current?.accessToken && !legacy) {
+        // Avoid noisy refresh on the login page when there is no prior session.
+        if (window.location.pathname === "/login") return;
+        const token = await refreshSessionSingleFlight({ silent: true });
+        if (cancelled) return;
+        if (token) setSession(readSession());
+        return;
+      }
+      const token = await refreshSessionSingleFlight({
+        legacyRefreshToken: legacy,
+        silent: true,
+      });
+      if (cancelled) return;
+      if (token) setSession(readSession());
+      else if (current?.accessToken) setSession(current);
+    };
+    void boot();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const value = React.useMemo<AuthContextValue>(
     () => ({
       session,
-      // Single control: VITE_DEV_BYPASS_ENABLED (via config.devBypassEnabled).
       isAuthenticated: session !== null || config.devBypassEnabled,
       login,
       logout,

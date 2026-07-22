@@ -7,10 +7,13 @@ export interface LoginRequest {
   password: string;
 }
 
-export interface LoginResponse {
+export interface AccessTokenResponse {
   access_token: string;
-  refresh_token?: string;
+  token_type?: string;
+  expires_in: number;
 }
+
+const CSRF_HEADER = { "X-Fair-CRM-Requested-With": "XMLHttpRequest" };
 
 function parseLoginError(status: number, data: unknown): string {
   if (status === 401) {
@@ -42,15 +45,46 @@ function parseLoginError(status: number, data: unknown): string {
   return authLabels.loginFailed;
 }
 
-export async function loginWithCredentials(payload: LoginRequest): Promise<LoginResponse> {
-  const url = `${config.coreBaseUrl}/api/v1/auth/login`;
+async function parseJson(response: Response): Promise<unknown> {
+  const text = await response.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function assertAccessTokenResponse(data: unknown, status: number): AccessTokenResponse {
+  if (
+    typeof data !== "object" ||
+    data === null ||
+    !("access_token" in data) ||
+    typeof (data as AccessTokenResponse).access_token !== "string"
+  ) {
+    throw new ApiError(authLabels.loginFailed, status, data);
+  }
+  const typed = data as AccessTokenResponse;
+  const expiresIn =
+    typeof typed.expires_in === "number" && typed.expires_in > 0 ? typed.expires_in : 900;
+  return {
+    access_token: typed.access_token,
+    token_type: typed.token_type,
+    expires_in: expiresIn,
+  };
+}
+
+/** Login via Fair CRM auth bridge (sets HttpOnly refresh cookie). */
+export async function loginWithCredentials(payload: LoginRequest): Promise<AccessTokenResponse> {
+  const url = `${config.apiBaseUrl}/api/v1/auth/login`;
   let response: Response;
   try {
     response = await fetchWithTimeout(
       url,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...CSRF_HEADER },
+        credentials: "include",
         body: JSON.stringify(payload),
       },
       30_000,
@@ -62,48 +96,74 @@ export async function loginWithCredentials(payload: LoginRequest): Promise<Login
     throw new ApiError(authLabels.networkError, 0);
   }
 
-  const text = await response.text();
-  let data: unknown = null;
-  if (text) {
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = text;
-    }
-  }
-
+  const data = await parseJson(response);
   if (!response.ok) {
     throw new ApiError(parseLoginError(response.status, data), response.status, data);
   }
-
-  if (
-    typeof data !== "object" ||
-    data === null ||
-    !("access_token" in data) ||
-    typeof (data as LoginResponse).access_token !== "string"
-  ) {
-    throw new ApiError(authLabels.loginFailed, response.status, data);
-  }
-
-  return data as LoginResponse;
+  return assertAccessTokenResponse(data, response.status);
 }
 
-export async function logoutFromCore(refreshToken: string): Promise<void> {
-  const url = `${config.coreBaseUrl}/api/v1/auth/logout`;
+/**
+ * Refresh access token using HttpOnly cookie (preferred) or legacy body token once.
+ * Single-flight coordination lives in auth/refreshCoordinator.ts.
+ */
+export async function refreshAccessToken(legacyRefreshToken?: string): Promise<AccessTokenResponse> {
+  const url = `${config.apiBaseUrl}/api/v1/auth/refresh`;
+  const body =
+    legacyRefreshToken && legacyRefreshToken.trim()
+      ? JSON.stringify({ refresh_token: legacyRefreshToken.trim() })
+      : "{}";
+
+  let response: Response;
   try {
-    const response = await fetchWithTimeout(
+    response = await fetchWithTimeout(
       url,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh_token: refreshToken }),
+        headers: { "Content-Type": "application/json", ...CSRF_HEADER },
+        credentials: "include",
+        body,
       },
       15_000,
     );
-    if (!response.ok && response.status !== 204) {
-      return;
+  } catch (err) {
+    if (err instanceof ApiError) {
+      throw err;
     }
+    throw new ApiError(authLabels.networkError, 0);
+  }
+
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new ApiError(
+      typeof data === "object" && data && "detail" in data
+        ? String((data as { detail: unknown }).detail)
+        : "Oturum yenilenemedi",
+      response.status,
+      data,
+    );
+  }
+  return assertAccessTokenResponse(data, response.status);
+}
+
+export async function logoutSession(legacyRefreshToken?: string): Promise<void> {
+  const url = `${config.apiBaseUrl}/api/v1/auth/logout`;
+  const body =
+    legacyRefreshToken && legacyRefreshToken.trim()
+      ? JSON.stringify({ refresh_token: legacyRefreshToken.trim() })
+      : "{}";
+  try {
+    await fetchWithTimeout(
+      url,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...CSRF_HEADER },
+        credentials: "include",
+        body,
+      },
+      15_000,
+    );
   } catch {
-    // Best-effort: local session is cleared even if Core is unreachable.
+    // Best-effort: local session is cleared even if backend is unreachable.
   }
 }

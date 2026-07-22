@@ -49,6 +49,26 @@ class Settings(BaseSettings):
         validation_alias="FAIR_CRM_SMTP_SECRET_ENCRYPTION_KEY",
     )
     jwt_algorithm: str = "HS256"
+    # Cookie Max-Age / session-config; Core JWT lifetime must match Core ACCESS_TOKEN_EXPIRE_MINUTES.
+    access_token_expire_minutes: int = Field(
+        default=15,
+        ge=1,
+        validation_alias="ACCESS_TOKEN_EXPIRE_MINUTES",
+    )
+    # HttpOnly refresh cookie Max-Age; Core refresh TTL must be >= this (Core default 30).
+    refresh_token_expire_days: int = Field(
+        default=15,
+        ge=15,
+        validation_alias="REFRESH_TOKEN_EXPIRE_DAYS",
+    )
+    refresh_cookie_secure: bool = Field(
+        default=False,
+        validation_alias="FAIR_CRM_REFRESH_COOKIE_SECURE",
+    )
+    refresh_cookie_samesite: str = Field(
+        default="lax",
+        validation_alias="FAIR_CRM_REFRESH_COOKIE_SAMESITE",
+    )
     kyrox_core_base_url: str = "http://localhost:8000"
     app_env: str = "development"
     log_level: str = "INFO"
@@ -178,6 +198,18 @@ class Settings(BaseSettings):
             file_url = _read_env_file_database_url()
             if file_url and "fair_crm" in file_url.lower():
                 self.database_url = file_url
+        return self
+
+    @model_validator(mode="after")
+    def normalize_refresh_cookie_samesite(self) -> Self:
+        normalized = self.refresh_cookie_samesite.strip().lower()
+        if normalized not in {"lax", "strict", "none"}:
+            raise ValueError("FAIR_CRM_REFRESH_COOKIE_SAMESITE must be lax, strict, or none")
+        if normalized == "none" and not self.refresh_cookie_secure:
+            raise ValueError("SameSite=None requires FAIR_CRM_REFRESH_COOKIE_SECURE=true")
+        self.refresh_cookie_samesite = normalized
+        if self.app_env not in {"development", "local", "test"} and not self.refresh_cookie_secure:
+            self.refresh_cookie_secure = True
         return self
 
 

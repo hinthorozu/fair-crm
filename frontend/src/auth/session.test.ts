@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   clearSession,
+  consumeLegacyRefreshTokenFromStorage,
   getAccessToken,
   isAuthenticated,
   readSession,
@@ -71,16 +72,20 @@ describe("auth session", () => {
     uninstallLocalStorage();
   });
 
-  it("persists and reads access token", () => {
+  it("persists and reads access token without refresh token", () => {
     saveSession({
       accessToken: "jwt-token",
       organizationId: "00000000-0000-4000-8000-000000000010",
       email: "dev@example.com",
+      expiresIn: 900,
     });
 
     expect(isAuthenticated()).toBe(true);
     expect(getAccessToken()).toBe("jwt-token");
     expect(readSession()?.email).toBe("dev@example.com");
+    expect(readSession()).not.toHaveProperty("refreshToken");
+    const raw = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "{}");
+    expect(raw.refreshToken).toBeUndefined();
   });
 
   it("clears session on logout", () => {
@@ -91,5 +96,21 @@ describe("auth session", () => {
     clearSession();
     expect(isAuthenticated()).toBe(false);
     expect(readSession()).toBeNull();
+  });
+
+  it("consumes legacy refresh token from storage without keeping it", () => {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        accessToken: "old-access",
+        refreshToken: "legacy-refresh",
+        organizationId: "00000000-0000-4000-8000-000000000010",
+      }),
+    );
+    const legacy = consumeLegacyRefreshTokenFromStorage();
+    expect(legacy).toBe("legacy-refresh");
+    const raw = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "{}");
+    expect(raw.refreshToken).toBeUndefined();
+    expect(raw.accessToken).toBe("old-access");
   });
 });

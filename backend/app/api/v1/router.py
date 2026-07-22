@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.modules.auth.api.routes import router as auth_router
 from app.modules.activities.api.routes import customer_activities_router, router as activities_router
 from app.modules.contacts.api.routes import customer_contacts_router, router as contacts_router
 from app.modules.customers.api.routes import router as customers_router
@@ -28,6 +29,7 @@ from app.modules.todos.api.worklist_routes import router as todo_worklist_router
 from app.modules.dashboard.api.routes import router as dashboard_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
+api_v1_router.include_router(auth_router)
 api_v1_router.include_router(customer_activities_router)
 api_v1_router.include_router(activities_router)
 api_v1_router.include_router(customer_contacts_router)
