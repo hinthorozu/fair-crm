@@ -6,21 +6,18 @@ import asyncio
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass, replace
-from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.db.session import SessionLocal
-from app.modules.scraper.adapters import register_builtin_adapters
 from app.modules.scraper.application.fair_scraper_job_runner import _scrape_and_export
-from app.modules.scraper.core.browser_service import BrowserConfig, BrowserService, create_browser_service
+from app.modules.scraper.core.browser_service import BrowserConfig, create_browser_service
 from app.modules.scraper.core.playwright_availability import PlaywrightBrowserNotInstalledError
-from app.modules.scraper.core.scraper_registry import ScraperAdapterRegistry
 from app.modules.scraper.core.scraper_run_logger import CappedWarningRunLogger, DbScraperRunLogger, ScraperRunLogger
+from app.modules.scraper.exporters.scraper_artifact_export import export_scraper_artifacts
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
-from app.modules.scraper.infrastructure.handoff_storage import write_handoff_excel_file, write_handoff_json
 from app.modules.scraper.services.adapter_instance_resolver import resolve_engine_key, resolve_requested_fields
 from app.modules.scraper.services.scraper_run_history_service import create_run_history_service
 from app.modules.scraper.services.scraper_run_log_service import create_run_log_service
@@ -97,70 +94,79 @@ class AdapterTestRunJobRunner:
                 options={**context.options, "requested_fields": requested_fields},
             )
             clear_validation_cache()
-            if self._scrape_executor is not None:
-                handoff = self._scrape_executor(
-                    instance_key=command.adapter_key,
-                    engine_key=engine_key,
-                    context=context,
-                    fair_name=TEST_FAIR_NAME,
-                    fair_year=None,
-                    source_url=command.input_url,
-                    run_logger=run_logger,
-                )
-            else:
-                handoff = asyncio.run(
-                    self._execute_with_browser(
+            try:
+                if self._scrape_executor is not None:
+                    handoff = self._scrape_executor(
                         instance_key=command.adapter_key,
                         engine_key=engine_key,
                         context=context,
-                        input_url=command.input_url,
+                        fair_name=TEST_FAIR_NAME,
+                        fair_year=None,
+                        source_url=command.input_url,
                         run_logger=run_logger,
                     )
-                )
+                else:
+                    handoff = asyncio.run(
+                        self._execute_with_browser(
+                            instance_key=command.adapter_key,
+                            engine_key=engine_key,
+                            context=context,
+                            input_url=command.input_url,
+                            run_logger=run_logger,
+                        )
+                    )
+            except PlaywrightBrowserNotInstalledError as scrape_exc:
+                logger.warning("%s", scrape_exc)
+                if isinstance(run_logger, CappedWarningRunLogger):
+                    run_logger.flush_suppressed_warnings()
+                run_logger.error("failed", str(scrape_exc))
+                self._fail_run(db, command.run_id, str(scrape_exc))
+                return
+            except Exception as scrape_exc:
+                logger.exception("Adapter test scrape failed id=%s", command.run_id)
+                if isinstance(run_logger, CappedWarningRunLogger):
+                    run_logger.flush_suppressed_warnings()
+                run_logger.error("failed", str(scrape_exc))
+                self._fail_run(db, command.run_id, str(scrape_exc))
+                return
 
-            output_json_path: str | None = None
-            output_excel_path: str | None = None
-            if command.output_json:
-                output_json_path = write_handoff_json(
-                    handoff,
-                    command.run_id,
-                    adapter_key=command.adapter_key,
-                    fair_id=None,
-                    source_url=command.input_url,
-                    run_logger=run_logger,
-                )
-            if command.output_excel:
-                output_excel_path = write_handoff_excel_file(
-                    handoff,
-                    command.run_id,
-                    adapter_key=command.adapter_key,
-                    source_url=command.input_url,
-                    requested_fields=requested_fields,
-                    run_logger=run_logger,
-                )
+            artifacts = export_scraper_artifacts(
+                handoff,
+                command.run_id,
+                output_json=command.output_json,
+                output_excel=command.output_excel,
+                adapter_key=command.adapter_key,
+                fair_id=None,
+                source_url=command.input_url,
+                requested_fields=requested_fields,
+                run_logger=run_logger,
+            )
             if isinstance(run_logger, CappedWarningRunLogger):
                 run_logger.flush_suppressed_warnings()
             total_rows = len(handoff.canonical_rows or [])
+            warning_message = artifacts.warning_message()
+            completed_metadata: dict[str, object] = {"total_rows": total_rows}
+            if warning_message:
+                completed_metadata["artifact_warnings"] = warning_message
             run_logger.success(
                 "completed",
                 f"{total_rows} kayıt tamamlandı",
-                metadata={"total_rows": total_rows},
+                metadata=completed_metadata,
             )
             history_service.complete_run(
                 command.run_id,
                 handoff=handoff,
-                output_json_path=output_json_path,
-                output_excel_path=output_excel_path,
+                output_json_path=artifacts.json_path,
+                output_excel_path=artifacts.excel_path,
+                warning_message=warning_message,
             )
             db.commit()
-            logger.info("Completed adapter test run id=%s rows=%s", command.run_id, total_rows)
-        except PlaywrightBrowserNotInstalledError as exc:
-            logger.warning("%s", exc)
-            if run_logger is not None:
-                if isinstance(run_logger, CappedWarningRunLogger):
-                    run_logger.flush_suppressed_warnings()
-                run_logger.error("failed", str(exc))
-            self._fail_run(db, command.run_id, str(exc))
+            logger.info(
+                "Completed adapter test run id=%s rows=%s warnings=%s",
+                command.run_id,
+                total_rows,
+                bool(warning_message),
+            )
         except Exception as exc:
             logger.exception("Adapter test run failed id=%s", command.run_id)
             if run_logger is not None:

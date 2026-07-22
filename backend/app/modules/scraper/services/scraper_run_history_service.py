@@ -117,6 +117,7 @@ class ScraperRunHistoryService:
         output_json_path: str | None = None,
         output_excel_path: str | None = None,
         import_batch_id: UUID | None = None,
+        warning_message: str | None = None,
     ) -> ScraperRunHistory:
         existing = self._repository.get_by_id(run_id)
         if existing is None:
@@ -133,7 +134,8 @@ class ScraperRunHistoryService:
                 status=ScraperRunStatus.COMPLETED,
                 finished_at=finished,
                 duration_ms=duration_ms_between(existing.started_at, finished),
-                error_message=None,
+                # Keep scrape success as completed; surface secondary artifact/import warnings.
+                error_message=warning_message,
                 output_json_path=output_json_path,
                 output_excel_path=output_excel_path,
                 import_batch_id=import_batch_id if import_batch_id is not None else existing.import_batch_id,

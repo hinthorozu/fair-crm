@@ -16,23 +16,23 @@ from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
 from app.modules.scraper.adapters import register_builtin_adapters
+from app.modules.scraper.application.fair_scraper_import_automation import create_and_analyze_import_batch_from_handoff
 from app.modules.scraper.core.browser_service import BrowserConfig, BrowserService, create_browser_service
 from app.modules.scraper.core.playwright_availability import PlaywrightBrowserNotInstalledError
 from app.modules.scraper.core.scraper_registry import ScraperAdapterRegistry
 from app.modules.scraper.core.scraper_run_logger import CappedWarningRunLogger, DbScraperRunLogger, ScraperRunLogger
 from app.modules.scraper.domain.requested_output_fields import filter_handoff_by_requested_fields
+from app.modules.scraper.exporters.scraper_artifact_export import ArtifactExportBundle, export_scraper_artifacts
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportExporter, ScraperImportHandoff
-from app.modules.scraper.infrastructure.handoff_storage import write_handoff_excel_file, write_handoff_json
 from app.modules.scraper.normalizers.company_normalizer import CompanyNormalizer
-from app.modules.scraper.services.scraper_run_history_service import (
-    ScraperRunHistoryService,
-    create_run_history_service,
-)
-from app.modules.scraper.application.fair_scraper_import_automation import create_and_analyze_import_batch_from_handoff
 from app.modules.scraper.services.adapter_instance_resolver import (
     resolve_engine_key,
     resolve_output_formats,
     resolve_requested_fields,
+)
+from app.modules.scraper.services.scraper_run_history_service import (
+    ScraperRunHistoryService,
+    create_run_history_service,
 )
 from app.modules.scraper.services.scraper_run_log_service import create_run_log_service
 from app.modules.scraper.types.scraper_context import ScraperContext
@@ -125,6 +125,13 @@ async def _scrape_and_export(
     return filter_handoff_by_requested_fields(handoff, requested_fields)
 
 
+def _combine_warning_messages(*messages: str | None) -> str | None:
+    parts = [message.strip() for message in messages if message and message.strip()]
+    if not parts:
+        return None
+    return " | ".join(parts)
+
+
 class FairScraperJobRunner:
     def __init__(
         self,
@@ -176,19 +183,9 @@ class FairScraperJobRunner:
             db.commit()
 
             clear_validation_cache()
-            if self._scrape_executor is not None:
-                handoff = self._scrape_executor(
-                    instance_key=adapter_key,
-                    engine_key=engine_key,
-                    context=context,
-                    fair_name=fair.name,
-                    fair_year=fair_year,
-                    source_url=source_url,
-                    run_logger=run_logger,
-                )
-            else:
-                handoff = asyncio.run(
-                    self._execute_with_browser(
+            try:
+                if self._scrape_executor is not None:
+                    handoff = self._scrape_executor(
                         instance_key=adapter_key,
                         engine_key=engine_key,
                         context=context,
@@ -197,85 +194,46 @@ class FairScraperJobRunner:
                         source_url=source_url,
                         run_logger=run_logger,
                     )
-                )
-
-            output_json_path: str | None = None
-            output_excel_path: str | None = None
-            if output_formats.json_handoff:
-                output_json_path = write_handoff_json(
-                    handoff,
-                    command.run_id,
-                    adapter_key=adapter_key,
-                    fair_id=fair.id,
-                    source_url=source_url,
-                    run_logger=run_logger,
-                )
-            if output_formats.excel:
-                output_excel_path = write_handoff_excel_file(
-                    handoff,
-                    command.run_id,
-                    adapter_key=adapter_key,
-                    fair_id=fair.id,
-                    source_url=source_url,
-                    requested_fields=requested_fields,
-                    run_logger=run_logger,
-                )
-            if isinstance(run_logger, CappedWarningRunLogger):
-                run_logger.flush_suppressed_warnings()
-            total_rows = len(handoff.canonical_rows or [])
-            import_batch_id = None
-            if total_rows > 0:
-                try:
-                    import_batch_id = create_and_analyze_import_batch_from_handoff(
-                        db,
-                        organization_id=command.organization_id,
-                        fair_id=fair.id,
-                        run_id=command.run_id,
-                        handoff=handoff,
-                        adapter_key=adapter_key,
-                        source_url=source_url,
-                        user_id=command.user_id,
-                        access_token=command.access_token,
+                else:
+                    handoff = asyncio.run(
+                        self._execute_with_browser(
+                            instance_key=adapter_key,
+                            engine_key=engine_key,
+                            context=context,
+                            fair_name=fair.name,
+                            fair_year=fair_year,
+                            source_url=source_url,
+                            run_logger=run_logger,
+                        )
                     )
-                    run_logger.info(
-                        "import_batch_created",
-                        "Import batch hazırlandı",
-                        metadata={"import_batch_id": str(import_batch_id), "total_rows": total_rows},
-                    )
-                except Exception as exc:
-                    logger.exception("Failed to create import batch for fair scraper run id=%s", command.run_id)
-                    if isinstance(run_logger, CappedWarningRunLogger):
-                        run_logger.flush_suppressed_warnings()
-                    run_logger.error("import_batch_failed", str(exc))
-                    self._fail_run(db, command.run_id, f"Import batch oluşturulamadı: {exc}")
-                    return
-            else:
-                run_logger.warning(
-                    "no_rows",
-                    "Scraper tamamlandı ancak kayıt bulunamadı; import batch oluşturulmadı.",
-                    metadata={"total_rows": 0},
-                )
-            run_logger.success(
-                "completed",
-                f"{total_rows} kayıt tamamlandı",
-                metadata={"total_rows": total_rows, "import_batch_id": str(import_batch_id) if import_batch_id else None},
-            )
-            history_service.complete_run(
-                command.run_id,
-                handoff=handoff,
-                output_json_path=output_json_path,
-                output_excel_path=output_excel_path,
-                import_batch_id=import_batch_id,
-            )
-            db.commit()
-            logger.info("Completed fair scraper run id=%s rows=%s", command.run_id, total_rows)
-        except PlaywrightBrowserNotInstalledError as exc:
-            logger.warning("%s", exc)
-            if run_logger is not None:
+            except PlaywrightBrowserNotInstalledError as scrape_exc:
+                logger.warning("%s", scrape_exc)
                 if isinstance(run_logger, CappedWarningRunLogger):
                     run_logger.flush_suppressed_warnings()
-                run_logger.error("failed", str(exc))
-            self._fail_run(db, command.run_id, str(exc))
+                run_logger.error("failed", str(scrape_exc))
+                self._fail_run(db, command.run_id, str(scrape_exc))
+                return
+            except Exception as scrape_exc:
+                logger.exception("Fair scraper scrape failed id=%s", command.run_id)
+                if isinstance(run_logger, CappedWarningRunLogger):
+                    run_logger.flush_suppressed_warnings()
+                run_logger.error("failed", str(scrape_exc))
+                self._fail_run(db, command.run_id, str(scrape_exc))
+                return
+
+            # Scraping succeeded: secondary artifact/import failures must not fail the run.
+            self._finalize_successful_scrape(
+                db=db,
+                command=command,
+                history_service=history_service,
+                run_logger=run_logger,
+                handoff=handoff,
+                adapter_key=adapter_key,
+                fair_id=fair.id,
+                source_url=source_url,
+                requested_fields=requested_fields,
+                output_formats=output_formats,
+            )
         except Exception as exc:
             logger.exception("Fair scraper run failed id=%s", command.run_id)
             if run_logger is not None:
@@ -285,6 +243,98 @@ class FairScraperJobRunner:
             self._fail_run(db, command.run_id, str(exc))
         finally:
             db.close()
+
+    def _finalize_successful_scrape(
+        self,
+        *,
+        db: Session,
+        command: FairScraperJobCommand,
+        history_service: ScraperRunHistoryService,
+        run_logger: ScraperRunLogger,
+        handoff: ScraperImportHandoff,
+        adapter_key: str,
+        fair_id: UUID,
+        source_url: str,
+        requested_fields: list[str] | None,
+        output_formats,
+    ) -> None:
+        artifacts: ArtifactExportBundle = export_scraper_artifacts(
+            handoff,
+            command.run_id,
+            output_formats=output_formats,
+            adapter_key=adapter_key,
+            fair_id=fair_id,
+            source_url=source_url,
+            requested_fields=requested_fields,
+            run_logger=run_logger,
+        )
+        if isinstance(run_logger, CappedWarningRunLogger):
+            run_logger.flush_suppressed_warnings()
+
+        total_rows = len(handoff.canonical_rows or [])
+        import_batch_id = None
+        import_warning: str | None = None
+        if total_rows > 0:
+            try:
+                import_batch_id = create_and_analyze_import_batch_from_handoff(
+                    db,
+                    organization_id=command.organization_id,
+                    fair_id=fair_id,
+                    run_id=command.run_id,
+                    handoff=handoff,
+                    adapter_key=adapter_key,
+                    source_url=source_url,
+                    user_id=command.user_id,
+                    access_token=command.access_token,
+                )
+                run_logger.info(
+                    "import_batch_created",
+                    "Import batch hazırlandı",
+                    metadata={"import_batch_id": str(import_batch_id), "total_rows": total_rows},
+                )
+            except Exception as exc:
+                logger.exception("Failed to create import batch for fair scraper run id=%s", command.run_id)
+                import_warning = f"Import batch oluşturulamadı: {exc}"
+                run_logger.warning(
+                    "import_batch_failed",
+                    import_warning,
+                    metadata={"total_rows": total_rows, "error": str(exc)},
+                )
+        else:
+            run_logger.warning(
+                "no_rows",
+                "Scraper tamamlandı ancak kayıt bulunamadı; import batch oluşturulmadı.",
+                metadata={"total_rows": 0},
+            )
+
+        warning_message = _combine_warning_messages(artifacts.warning_message(), import_warning)
+        completed_metadata: dict[str, object] = {"total_rows": total_rows}
+        if import_batch_id is not None:
+            completed_metadata["import_batch_id"] = str(import_batch_id)
+        if warning_message:
+            completed_metadata["artifact_warnings"] = warning_message
+        run_logger.success(
+            "completed",
+            f"{total_rows} kayıt tamamlandı",
+            metadata=completed_metadata,
+        )
+        history_service.complete_run(
+            command.run_id,
+            handoff=handoff,
+            output_json_path=artifacts.json_path,
+            output_excel_path=artifacts.excel_path,
+            import_batch_id=import_batch_id,
+            warning_message=warning_message,
+        )
+        db.commit()
+        logger.info(
+            "Completed fair scraper run id=%s rows=%s json=%s excel=%s warnings=%s",
+            command.run_id,
+            total_rows,
+            bool(artifacts.json_path),
+            bool(artifacts.excel_path),
+            bool(warning_message),
+        )
 
     async def _execute_with_browser(
         self,

@@ -82,7 +82,7 @@ def test_run_fair_scraper_starts_run_and_completes_with_mock(
     assert batch_response.json()["status"] == "decision_required"
     assert batch_response.json()["source_type"] == "scraper"
 
-    logs_response = client.get(f"/api/v1/scraper/runs/{run_id}/logs")
+    logs_response = client.get(f"/api/v1/scraper/runs/{run_id}/logs", headers=auth_headers)
     assert logs_response.status_code == 200
     assert len(logs_response.json()["items"]) >= 1
 
@@ -131,7 +131,7 @@ def test_run_fair_scraper_respects_adapter_output_formats(
     assert completed.output_excel_path is None
     assert completed.import_batch_id is not None
 
-    logs_response = client.get(f"/api/v1/scraper/runs/{run_id}/logs")
+    logs_response = client.get(f"/api/v1/scraper/runs/{run_id}/logs", headers=auth_headers)
     assert logs_response.status_code == 200
     logs_payload = logs_response.json()
     assert logs_payload["output_json_available"] is True
@@ -181,13 +181,13 @@ def test_run_fair_scraper_produces_excel_when_manifest_enabled(
     assert completed.output_excel_path is not None
     assert completed.import_batch_id is not None
 
-    logs_response = client.get(f"/api/v1/scraper/runs/{run_id}/logs")
+    logs_response = client.get(f"/api/v1/scraper/runs/{run_id}/logs", headers=auth_headers)
     assert logs_response.status_code == 200
     logs_payload = logs_response.json()
     assert logs_payload["output_json_available"] is False
     assert logs_payload["output_excel_available"] is True
 
-    excel_response = client.get(f"/api/v1/scraper/runs/{run_id}/output/excel")
+    excel_response = client.get(f"/api/v1/scraper/runs/{run_id}/output/excel", headers=auth_headers)
     assert excel_response.status_code == 200
     assert "spreadsheetml" in excel_response.headers["content-type"]
 
@@ -251,7 +251,7 @@ def test_run_fair_scraper_returns_503_when_playwright_browser_missing(client, au
     )
 
 
-def test_list_scraper_runs_filter_by_fair_id(client, auth_headers, db_session):
+def test_list_scraper_runs_filter_by_fair_id(client, auth_headers, db_session, organization_id):
     create_response = client.post(
         "/api/v1/fairs",
         json={
@@ -270,6 +270,7 @@ def test_list_scraper_runs_filter_by_fair_id(client, auth_headers, db_session):
         fair_name="Filter Fair",
         fair_year=2026,
         handoff=_sample_handoff(),
+        organization_id=organization_id,
         fair_id=fair_id,
     )
     db_session.flush()
