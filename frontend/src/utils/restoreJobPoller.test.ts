@@ -30,6 +30,13 @@ function makeJob(
   };
 }
 
+/** Flush async pollOnce continuations after track()/timer ticks under fake timers. */
+async function flushMicrotasks(): Promise<void> {
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+}
+
 describe("RestoreJobPoller", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -59,20 +66,23 @@ describe("RestoreJobPoller", () => {
     const poller = new RestoreJobPoller({ fetchJob, onUpdate, onTerminal });
     poller.track(jobId);
 
-    await Promise.resolve();
+    await flushMicrotasks();
     expect(fetchJob).toHaveBeenCalledTimes(1);
     expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ status: "manual_restore_required" }));
 
     await vi.advanceTimersByTimeAsync(RESTORE_JOB_POLL_INTERVAL_MS);
+    await flushMicrotasks();
     expect(fetchJob).toHaveBeenCalledTimes(2);
     expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ status: "running" }));
 
     await vi.advanceTimersByTimeAsync(RESTORE_JOB_POLL_INTERVAL_MS);
+    await flushMicrotasks();
     expect(fetchJob).toHaveBeenCalledTimes(3);
     expect(onTerminal).toHaveBeenCalledWith(expect.objectContaining({ status: "completed" }));
     expect(poller.getTrackedJobIds()).toEqual([]);
 
     await vi.advanceTimersByTimeAsync(RESTORE_JOB_POLL_INTERVAL_MS * 2);
+    await flushMicrotasks();
     expect(fetchJob).toHaveBeenCalledTimes(3);
 
     poller.dispose();
@@ -95,8 +105,9 @@ describe("RestoreJobPoller", () => {
     const poller = new RestoreJobPoller({ fetchJob, onTerminal });
 
     poller.track(jobId);
-    await Promise.resolve();
+    await flushMicrotasks();
     await vi.advanceTimersByTimeAsync(RESTORE_JOB_POLL_INTERVAL_MS);
+    await flushMicrotasks();
 
     expect(onTerminal).toHaveBeenCalledWith(
       expect.objectContaining({ status: "failed", error_message: "pg_restore failed" }),
@@ -111,11 +122,12 @@ describe("RestoreJobPoller", () => {
     const poller = new RestoreJobPoller({ fetchJob });
 
     poller.track(jobId);
-    await Promise.resolve();
+    await flushMicrotasks();
     expect(fetchJob).toHaveBeenCalledTimes(1);
 
     poller.dispose();
     await vi.advanceTimersByTimeAsync(RESTORE_JOB_POLL_INTERVAL_MS * 3);
+    await flushMicrotasks();
     expect(fetchJob).toHaveBeenCalledTimes(1);
   });
 });

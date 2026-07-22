@@ -112,23 +112,21 @@ describe("formStateToPayload", () => {
   it("persists supported optional fields on detail save for tuyap_old", () => {
     const manifest = buildManifest("tuyap_old", TUYAP_OLD_SUPPORTS);
     const draft = manifestToFormState(manifest);
-    draft.requested_fields = [
+    const selected = [
       "customerName",
       "email",
       "instagram",
       "notes",
       "phone",
-    ];
+    ] as const;
+    draft.requested_fields = [...selected];
 
     const payload = formStateToPayload(draft, manifestCapabilities(manifest));
 
-    expect(payload.requested_fields).toEqual([
-      "customerName",
-      "email",
-      "instagram",
-      "notes",
-      "phone",
-    ]);
+    // sanitizeRequestedFields reorders to canonical OUTPUT_FIELD_KEYS order.
+    expect(payload.requested_fields).toEqual(
+      OUTPUT_FIELD_KEYS.filter((field) => (selected as readonly string[]).includes(field)),
+    );
   });
 });
 

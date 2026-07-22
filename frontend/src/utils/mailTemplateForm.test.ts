@@ -115,7 +115,8 @@ describe("buildUpdateMailTemplatePayload", () => {
     });
 
     expect(payload.name).toBe("Güncel");
-    expect(payload.variables_schema).toBeUndefined();
+    // Empty schema mirrors create payload: explicit null (API clears schema).
+    expect(payload.variables_schema).toBeNull();
   });
 
   it("sends only changed fields when initial template is provided", () => {
