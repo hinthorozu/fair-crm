@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import replace
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
+
+# Cooperative stop wait before treating an active run as stale / force-stopping.
+DEFAULT_DELETE_STOP_WAIT_SECONDS = 30.0
+DEFAULT_DELETE_STOP_POLL_SECONDS = 0.25
+# Active runs with no recent heartbeat are treated as orphaned (no living worker).
+DEFAULT_STALE_HEARTBEAT_SECONDS = 120.0
 
 from app.modules.scraper.domain.scraper_run_history import (
     ACTIVE_SCRAPER_RUN_STATUSES,
@@ -127,10 +134,11 @@ class ScraperRunHistoryService:
         output_excel_path: str | None = None,
         import_batch_id: UUID | None = None,
         warning_message: str | None = None,
-    ) -> ScraperRunHistory:
+    ) -> ScraperRunHistory | None:
         existing = self._repository.get_by_id(run_id)
         if existing is None:
-            raise KeyError(f"Scraper run not found: {run_id}")
+            # Race-safe: history may have been deleted while the worker finished.
+            return None
         if existing.status == ScraperRunStatus.CANCELLED:
             return existing
         if existing.status in {ScraperRunStatus.CANCEL_REQUESTED, ScraperRunStatus.CANCELLING}:
@@ -160,10 +168,10 @@ class ScraperRunHistoryService:
         finished_at: datetime | None = None,
         output_json_path: str | None = None,
         output_excel_path: str | None = None,
-    ) -> ScraperRunHistory:
+    ) -> ScraperRunHistory | None:
         existing = self._repository.get_by_id(run_id)
         if existing is None:
-            raise KeyError(f"Scraper run not found: {run_id}")
+            return None
         if existing.status == ScraperRunStatus.CANCELLED:
             return existing
         if existing.status in {ScraperRunStatus.CANCEL_REQUESTED, ScraperRunStatus.CANCELLING}:
@@ -384,10 +392,10 @@ class ScraperRunHistoryService:
             )
         )
 
-    def mark_cancelling(self, run_id: UUID) -> ScraperRunHistory:
+    def mark_cancelling(self, run_id: UUID) -> ScraperRunHistory | None:
         existing = self._repository.get_by_id(run_id)
         if existing is None:
-            raise KeyError(f"Scraper run not found: {run_id}")
+            return None
         if existing.status == ScraperRunStatus.CANCELLED:
             return existing
         if existing.status not in {ScraperRunStatus.CANCEL_REQUESTED, ScraperRunStatus.CANCELLING}:
@@ -428,10 +436,11 @@ class ScraperRunHistoryService:
         finished_at: datetime | None = None,
         output_json_path: str | None = None,
         import_batch_id: UUID | None = None,
-    ) -> ScraperRunHistory:
+        error_message: str | None = None,
+    ) -> ScraperRunHistory | None:
         existing = self._repository.get_by_id(run_id)
         if existing is None:
-            raise KeyError(f"Scraper run not found: {run_id}")
+            return None
         if existing.status == ScraperRunStatus.CANCELLED:
             return existing
         finished = finished_at or datetime.now(UTC)
@@ -452,7 +461,7 @@ class ScraperRunHistoryService:
                 status=ScraperRunStatus.CANCELLED,
                 finished_at=finished,
                 duration_ms=duration_ms_between(existing.started_at, finished),
-                error_message=None,
+                error_message=error_message,
                 output_json_path=output_json_path if output_json_path is not None else existing.output_json_path,
                 import_batch_id=import_batch_id if import_batch_id is not None else existing.import_batch_id,
                 **metrics,
@@ -465,10 +474,10 @@ class ScraperRunHistoryService:
         *,
         reason: str | None = None,
         finished_at: datetime | None = None,
-    ) -> ScraperRunHistory:
+    ) -> ScraperRunHistory | None:
         existing = self._repository.get_by_id(run_id)
         if existing is None:
-            raise KeyError(f"Scraper run not found: {run_id}")
+            return None
         if existing.status != ScraperRunStatus.RUNNING:
             return existing
         finished = finished_at or datetime.now(UTC)
@@ -482,6 +491,134 @@ class ScraperRunHistoryService:
             )
         )
 
+    def force_stop_run(
+        self,
+        run_id: UUID,
+        *,
+        reason: str,
+    ) -> ScraperRunHistory | None:
+        """Force an active run into a terminal cancelled state (stale / delete path)."""
+        existing = self._repository.get_by_id(run_id)
+        if existing is None:
+            return None
+        if existing.status not in ACTIVE_SCRAPER_RUN_STATUSES:
+            return existing
+        if existing.status == ScraperRunStatus.RUNNING:
+            return self.cancel_run(run_id, reason=reason)
+        return self.complete_cancelled_run(run_id, error_message=reason)
+
+    def is_stale_active_run(
+        self,
+        run: ScraperRunHistory,
+        *,
+        now: datetime | None = None,
+        stale_heartbeat_seconds: float = DEFAULT_STALE_HEARTBEAT_SECONDS,
+    ) -> bool:
+        if run.status not in ACTIVE_SCRAPER_RUN_STATUSES:
+            return False
+        current = now or datetime.now(UTC)
+        heartbeat = run.last_heartbeat_at or run.started_at
+        if heartbeat.tzinfo is None:
+            heartbeat = heartbeat.replace(tzinfo=UTC)
+        else:
+            heartbeat = heartbeat.astimezone(UTC)
+        age = (current - heartbeat).total_seconds()
+        if age >= stale_heartbeat_seconds:
+            return True
+        if run.cancel_requested_at is not None:
+            requested = run.cancel_requested_at
+            if requested.tzinfo is None:
+                requested = requested.replace(tzinfo=UTC)
+            else:
+                requested = requested.astimezone(UTC)
+            if (current - requested).total_seconds() >= stale_heartbeat_seconds:
+                return True
+        return False
+
+    def _commit_visible(self) -> None:
+        """Flush+commit so cooperative workers in other sessions can observe cancel state."""
+        self._repository._session.flush()
+        self._repository._session.commit()
+
+    def _refresh_run(self, run_id: UUID) -> ScraperRunHistory | None:
+        self._repository._session.expire_all()
+        return self._repository.get_by_id(run_id)
+
+    def stop_active_run_for_delete(
+        self,
+        run_id: UUID,
+        *,
+        organization_id: UUID,
+        requested_by: UUID,
+        wait_seconds: float | None = None,
+        poll_seconds: float | None = None,
+        stale_heartbeat_seconds: float | None = None,
+    ) -> ScraperRunHistory | None:
+        """Stop an active run via existing cancel semantics, then ensure terminal state.
+
+        1. Request cooperative cancel when still running.
+        2. Wait briefly for the worker to observe cancel and finish.
+        3. If still active and stale (or wait elapsed), force-cancel the DB row.
+        4. If still active after force, raise — do not delete blindly.
+        """
+        resolved_wait = DEFAULT_DELETE_STOP_WAIT_SECONDS if wait_seconds is None else wait_seconds
+        resolved_poll = DEFAULT_DELETE_STOP_POLL_SECONDS if poll_seconds is None else poll_seconds
+        resolved_stale = (
+            DEFAULT_STALE_HEARTBEAT_SECONDS if stale_heartbeat_seconds is None else stale_heartbeat_seconds
+        )
+
+        existing = self._repository.get_by_id(run_id)
+        if existing is None or existing.organization_id != organization_id:
+            raise KeyError(f"Scraper run not found: {run_id}")
+        if existing.status not in ACTIVE_SCRAPER_RUN_STATUSES:
+            return existing
+
+        if self.is_stale_active_run(existing, stale_heartbeat_seconds=resolved_stale):
+            forced = self.force_stop_run(
+                run_id,
+                reason="Takılı kalmış çalıştırma silme için durduruldu.",
+            )
+            self._commit_visible()
+            return forced
+
+        if existing.status == ScraperRunStatus.RUNNING:
+            self.request_cancel(
+                run_id,
+                organization_id=organization_id,
+                requested_by=requested_by,
+            )
+            self._commit_visible()
+
+        deadline = time.monotonic() + max(0.0, resolved_wait)
+        while time.monotonic() < deadline:
+            current = self._refresh_run(run_id)
+            if current is None:
+                return None
+            if current.status not in ACTIVE_SCRAPER_RUN_STATUSES:
+                return current
+            time.sleep(max(0.05, resolved_poll))
+
+        current = self._refresh_run(run_id)
+        if current is None:
+            return None
+        if current.status not in ACTIVE_SCRAPER_RUN_STATUSES:
+            return current
+
+        # Wait elapsed: treat as orphaned / non-cooperative and force-stop.
+        forced = self.force_stop_run(
+            run_id,
+            reason="Silme için çalıştırma durduruldu.",
+        )
+        self._commit_visible()
+        current = self._refresh_run(run_id)
+        if current is None:
+            return None
+        if current.status in ACTIVE_SCRAPER_RUN_STATUSES:
+            raise ScraperRunHistoryDeleteError(
+                "Çalıştırma durdurulamadı. History kaydı silinmedi."
+            )
+        return current
+
     def cancel_running_for_adapter(
         self,
         *,
@@ -491,7 +628,9 @@ class ScraperRunHistoryService:
     ) -> list[ScraperRunHistory]:
         cancelled: list[ScraperRunHistory] = []
         for run in self.list_running_for_adapter(adapter_key=adapter_key, organization_id=organization_id):
-            cancelled.append(self.cancel_run(run.id, reason=reason))
+            stopped = self.cancel_run(run.id, reason=reason)
+            if stopped is not None:
+                cancelled.append(stopped)
         return cancelled
 
     def hard_delete_runs_for_adapter(
@@ -510,8 +649,12 @@ class ScraperRunHistoryService:
         run_id: UUID,
         *,
         organization_id: UUID,
+        requested_by: UUID | None = None,
+        wait_seconds: float | None = None,
+        poll_seconds: float | None = None,
+        stale_heartbeat_seconds: float | None = None,
     ) -> None:
-        """Delete a single run history row and its run-scoped handoff artifacts.
+        """Stop (if needed) then delete a run history row and its handoff artifacts.
 
         Does not delete fairs, customers, import batches, or other primary CRM data.
         Linked FKs that point at this run (e.g. enrichment state) are SET NULL by the DB.
@@ -519,10 +662,28 @@ class ScraperRunHistoryService:
         existing = self._repository.get_by_id(run_id)
         if existing is None or existing.organization_id != organization_id:
             raise KeyError(f"Scraper run not found: {run_id}")
+
         if existing.status in ACTIVE_SCRAPER_RUN_STATUSES:
-            raise ScraperRunHistoryDeleteError(
-                "Aktif bir çalıştırma silinemez. Önce durdurun veya tamamlanmasını bekleyin."
+            if requested_by is None:
+                raise ScraperRunHistoryDeleteError(
+                    "Aktif çalıştırma silinemedi: durdurma için kullanıcı kimliği gerekli."
+                )
+            stopped = self.stop_active_run_for_delete(
+                run_id,
+                organization_id=organization_id,
+                requested_by=requested_by,
+                wait_seconds=wait_seconds,
+                poll_seconds=poll_seconds,
+                stale_heartbeat_seconds=stale_heartbeat_seconds,
             )
+            if stopped is None:
+                return
+            existing = stopped
+            if existing.status in ACTIVE_SCRAPER_RUN_STATUSES:
+                raise ScraperRunHistoryDeleteError(
+                    "Çalıştırma durdurulamadı. History kaydı silinmedi."
+                )
+
         delete_handoff_artifacts_for_run(
             run_id,
             output_json_path=existing.output_json_path,

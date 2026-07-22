@@ -17,6 +17,7 @@ from app.modules.scraper.fetchers.tuyap_old_http_fetcher import (
 )
 from app.modules.scraper.parsers.tuyap_old_detail_parser import TuyapOldDetailInfo, parse_tuyap_old_detail_html
 from app.modules.scraper.parsers.tuyap_old_list_parser import TuyapOldListItem, parse_tuyap_old_list_html
+from app.modules.scraper.services.scraper_run_cancellation import ensure_run_not_cancelled
 from app.modules.scraper.types.scraper_context import ScraperContext
 from app.modules.scraper.types.scraper_site import ScraperSiteKey
 from app.modules.scraper.validators.website_validator import validate_website_url
@@ -106,6 +107,7 @@ class TuyapOldAdapter:
         pages_scraped = 0
 
         while pending_urls:
+            ensure_run_not_cancelled(context)
             page_url = pending_urls.pop(0)
             if page_url in visited_urls:
                 continue
@@ -168,6 +170,7 @@ class TuyapOldAdapter:
         pages_scraped = 0
 
         while pending_urls:
+            ensure_run_not_cancelled(context)
             page_url = pending_urls.pop(0)
             if page_url in visited_urls:
                 continue

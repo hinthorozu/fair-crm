@@ -19,6 +19,10 @@ from app.modules.scraper.core.scraper_run_logger import CappedWarningRunLogger, 
 from app.modules.scraper.exporters.scraper_artifact_export import export_scraper_artifacts
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
 from app.modules.scraper.services.adapter_instance_resolver import resolve_engine_key, resolve_requested_fields
+from app.modules.scraper.services.scraper_run_cancellation import (
+    RunCancelChecker,
+    ScraperRunCancelledError,
+)
 from app.modules.scraper.services.scraper_run_history_service import create_run_history_service
 from app.modules.scraper.services.scraper_run_log_service import create_run_log_service
 from app.modules.scraper.types.scraper_context import ScraperContext
@@ -89,11 +93,19 @@ class AdapterTestRunJobRunner:
 
             engine_key = resolve_engine_key(db, command.organization_id, command.adapter_key)
             requested_fields = resolve_requested_fields(db, command.organization_id, command.adapter_key)
+            cancel_checker = RunCancelChecker(self._session_factory, command.run_id)
             context = replace(
                 context,
-                options={**context.options, "requested_fields": requested_fields},
+                options={
+                    **context.options,
+                    "requested_fields": requested_fields,
+                    "cancel_checker": cancel_checker,
+                },
             )
             clear_validation_cache()
+            if cancel_checker.is_cancel_requested():
+                self._cancel_run(db, command.run_id, run_logger=run_logger)
+                return
             try:
                 if self._scrape_executor is not None:
                     handoff = self._scrape_executor(
@@ -115,6 +127,9 @@ class AdapterTestRunJobRunner:
                             run_logger=run_logger,
                         )
                     )
+            except ScraperRunCancelledError:
+                self._cancel_run(db, command.run_id, run_logger=run_logger)
+                return
             except PlaywrightBrowserNotInstalledError as scrape_exc:
                 logger.warning("%s", scrape_exc)
                 if isinstance(run_logger, CappedWarningRunLogger):
@@ -128,6 +143,10 @@ class AdapterTestRunJobRunner:
                     run_logger.flush_suppressed_warnings()
                 run_logger.error("failed", str(scrape_exc))
                 self._fail_run(db, command.run_id, str(scrape_exc))
+                return
+
+            if cancel_checker.is_cancel_requested():
+                self._cancel_run(db, command.run_id, run_logger=run_logger)
                 return
 
             artifacts = export_scraper_artifacts(
@@ -200,6 +219,29 @@ class AdapterTestRunJobRunner:
                 run_logger=run_logger,
                 browser=browser,
             )
+
+    def _cancel_run(
+        self,
+        db: Session,
+        run_id: UUID,
+        *,
+        run_logger: ScraperRunLogger | None,
+    ) -> None:
+        try:
+            history_service = create_run_history_service(db)
+            history_service.mark_cancelling(run_id)
+            if run_logger is not None:
+                if isinstance(run_logger, CappedWarningRunLogger):
+                    run_logger.flush_suppressed_warnings()
+                run_logger.info("cancelled", "Test çalışması iptal edildi / silindi")
+            history_service.complete_cancelled_run(
+                run_id,
+                error_message="Kullanıcı tarafından durduruldu.",
+            )
+            db.commit()
+        except Exception:
+            logger.exception("Failed to record adapter test run cancellation id=%s", run_id)
+            db.rollback()
 
     def _fail_run(self, db: Session, run_id: UUID, error_message: str) -> None:
         try:

@@ -30,6 +30,10 @@ from app.modules.scraper.services.adapter_instance_resolver import (
     resolve_output_formats,
     resolve_requested_fields,
 )
+from app.modules.scraper.services.scraper_run_cancellation import (
+    RunCancelChecker,
+    ScraperRunCancelledError,
+)
 from app.modules.scraper.services.scraper_run_history_service import (
     ScraperRunHistoryService,
     create_run_history_service,
@@ -64,6 +68,7 @@ def _build_scraper_context(
     scraper_config: dict[str, Any] | None,
     run_logger: ScraperRunLogger,
     requested_fields: list[str] | None = None,
+    cancel_checker: RunCancelChecker | None = None,
 ) -> ScraperContext:
     metadata: dict[str, Any] = {"fair_name": fair_name}
     if fair_year is not None:
@@ -73,6 +78,8 @@ def _build_scraper_context(
     options["run_logger"] = run_logger
     if requested_fields is not None:
         options["requested_fields"] = requested_fields
+    if cancel_checker is not None:
+        options["cancel_checker"] = cancel_checker
 
     return ScraperContext(
         fair_id=fair_id,
@@ -166,6 +173,7 @@ class FairScraperJobRunner:
             requested_fields = resolve_requested_fields(db, command.organization_id, adapter_key)
             output_formats = resolve_output_formats(db, command.organization_id, adapter_key)
             fair_year = _fair_year_from_start_date(fair.start_date)
+            cancel_checker = RunCancelChecker(self._session_factory, command.run_id)
             context = _build_scraper_context(
                 fair_id=fair.id,
                 source_url=source_url,
@@ -174,6 +182,7 @@ class FairScraperJobRunner:
                 scraper_config=fair.scraper_config,
                 run_logger=run_logger,
                 requested_fields=requested_fields,
+                cancel_checker=cancel_checker,
             )
             run_logger.info(
                 "started",
@@ -183,6 +192,9 @@ class FairScraperJobRunner:
             db.commit()
 
             clear_validation_cache()
+            if cancel_checker.is_cancel_requested():
+                self._cancel_run(db, command.run_id, run_logger=run_logger)
+                return
             try:
                 if self._scrape_executor is not None:
                     handoff = self._scrape_executor(
@@ -206,6 +218,9 @@ class FairScraperJobRunner:
                             run_logger=run_logger,
                         )
                     )
+            except ScraperRunCancelledError:
+                self._cancel_run(db, command.run_id, run_logger=run_logger)
+                return
             except PlaywrightBrowserNotInstalledError as scrape_exc:
                 logger.warning("%s", scrape_exc)
                 if isinstance(run_logger, CappedWarningRunLogger):
@@ -219,6 +234,10 @@ class FairScraperJobRunner:
                     run_logger.flush_suppressed_warnings()
                 run_logger.error("failed", str(scrape_exc))
                 self._fail_run(db, command.run_id, str(scrape_exc))
+                return
+
+            if cancel_checker.is_cancel_requested():
+                self._cancel_run(db, command.run_id, run_logger=run_logger)
                 return
 
             # Scraping succeeded: secondary artifact/import failures must not fail the run.
@@ -361,6 +380,29 @@ class FairScraperJobRunner:
                 run_logger=run_logger,
                 browser=browser,
             )
+
+    def _cancel_run(
+        self,
+        db: Session,
+        run_id: UUID,
+        *,
+        run_logger: ScraperRunLogger | None,
+    ) -> None:
+        try:
+            history_service = create_run_history_service(db)
+            history_service.mark_cancelling(run_id)
+            if run_logger is not None:
+                if isinstance(run_logger, CappedWarningRunLogger):
+                    run_logger.flush_suppressed_warnings()
+                run_logger.info("cancelled", "Fuar scraper çalışması iptal edildi / silindi")
+            history_service.complete_cancelled_run(
+                run_id,
+                error_message="Kullanıcı tarafından durduruldu.",
+            )
+            db.commit()
+        except Exception:
+            logger.exception("Failed to record fair scraper run cancellation id=%s", run_id)
+            db.rollback()
 
     def _fail_run(self, db: Session, run_id: UUID, error_message: str) -> None:
         try:

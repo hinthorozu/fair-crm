@@ -207,6 +207,27 @@ def test_delete_scraper_run_removes_history_row(
     assert service.get_run(run.id) is None
 
 
+def test_delete_scraper_run_removes_failed_history_row(
+    client: TestClient, db_session, auth_headers, organization_id
+):
+    service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
+    run = service.record_failed_run(
+        adapter_key=ScraperSiteKey.TUYAP_NEW,
+        started_at=datetime.now(UTC),
+        input_url="https://delete-failed.test",
+        fair_name="Failed Delete Fair",
+        fair_year=2026,
+        organization_id=organization_id,
+        error_message="boom",
+    )
+    db_session.flush()
+
+    response = client.delete(f"/api/v1/scraper/runs/{run.id}", headers=auth_headers)
+
+    assert response.status_code == 204
+    assert service.get_run(run.id) is None
+
+
 def test_delete_scraper_run_not_found(client: TestClient, auth_headers):
     response = client.delete(
         "/api/v1/scraper/runs/00000000-0000-0000-0000-000000000001",
@@ -215,24 +236,165 @@ def test_delete_scraper_run_not_found(client: TestClient, auth_headers):
     assert response.status_code == 404
 
 
-def test_delete_scraper_run_rejects_active_run(
-    client: TestClient, db_session, auth_headers, organization_id
+def test_delete_scraper_run_stops_then_deletes_running_run(
+    client: TestClient, db_session, auth_headers, organization_id, monkeypatch
 ):
+    monkeypatch.setattr(
+        "app.modules.scraper.services.scraper_run_history_service.DEFAULT_DELETE_STOP_WAIT_SECONDS",
+        0.0,
+    )
     service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
     run = service.start_run(
         adapter_key=ScraperSiteKey.TUYAP_NEW,
-        input_url="https://active.test",
-        fair_name="Active Fair",
+        input_url="https://active-delete.test",
+        fair_name="Active Delete Fair",
         fair_year=2026,
         organization_id=organization_id,
     )
-    db_session.flush()
+    db_session.commit()
+
+    response = client.delete(f"/api/v1/scraper/runs/{run.id}", headers=auth_headers)
+
+    assert response.status_code == 204
+    assert service.get_run(run.id) is None
+
+
+def test_delete_scraper_run_stops_then_deletes_cancel_requested_run(
+    client: TestClient, db_session, auth_headers, organization_id, user_id, monkeypatch
+):
+    monkeypatch.setattr(
+        "app.modules.scraper.services.scraper_run_history_service.DEFAULT_DELETE_STOP_WAIT_SECONDS",
+        0.0,
+    )
+    service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
+    run = service.start_run(
+        adapter_key=ScraperSiteKey.TUYAP_NEW,
+        input_url="https://cancel-requested-delete.test",
+        fair_name="Cancel Requested Fair",
+        fair_year=2026,
+        organization_id=organization_id,
+    )
+    service.request_cancel(run.id, organization_id=organization_id, requested_by=user_id)
+    db_session.commit()
+
+    response = client.delete(f"/api/v1/scraper/runs/{run.id}", headers=auth_headers)
+
+    assert response.status_code == 204
+    assert service.get_run(run.id) is None
+
+
+def test_delete_scraper_run_stops_then_deletes_cancelling_run(
+    client: TestClient, db_session, auth_headers, organization_id, user_id, monkeypatch
+):
+    monkeypatch.setattr(
+        "app.modules.scraper.services.scraper_run_history_service.DEFAULT_DELETE_STOP_WAIT_SECONDS",
+        0.0,
+    )
+    service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
+    run = service.start_run(
+        adapter_key=ScraperSiteKey.TUYAP_NEW,
+        input_url="https://cancelling-delete.test",
+        fair_name="Cancelling Fair",
+        fair_year=2026,
+        organization_id=organization_id,
+    )
+    service.request_cancel(run.id, organization_id=organization_id, requested_by=user_id)
+    service.mark_cancelling(run.id)
+    db_session.commit()
+
+    response = client.delete(f"/api/v1/scraper/runs/{run.id}", headers=auth_headers)
+
+    assert response.status_code == 204
+    assert service.get_run(run.id) is None
+
+
+def test_delete_scraper_run_deletes_stale_running_run_immediately(
+    client: TestClient, db_session, auth_headers, organization_id, monkeypatch
+):
+    from datetime import timedelta
+
+    monkeypatch.setattr(
+        "app.modules.scraper.services.scraper_run_history_service.DEFAULT_STALE_HEARTBEAT_SECONDS",
+        60.0,
+    )
+    service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
+    started = datetime.now(UTC) - timedelta(minutes=10)
+    run = service.start_run(
+        adapter_key=ScraperSiteKey.TUYAP_NEW,
+        input_url="https://stale-delete.test",
+        fair_name="Stale Fair",
+        fair_year=2026,
+        organization_id=organization_id,
+        started_at=started,
+    )
+    db_session.commit()
+
+    response = client.delete(f"/api/v1/scraper/runs/{run.id}", headers=auth_headers)
+
+    assert response.status_code == 204
+    assert service.get_run(run.id) is None
+
+
+def test_delete_scraper_run_keeps_row_when_stop_fails(
+    client: TestClient, db_session, auth_headers, organization_id, monkeypatch
+):
+    monkeypatch.setattr(
+        "app.modules.scraper.services.scraper_run_history_service.DEFAULT_DELETE_STOP_WAIT_SECONDS",
+        0.0,
+    )
+
+    def _force_stop_noop(self, run_id, *, reason):
+        return self.get_run(run_id)
+
+    monkeypatch.setattr(ScraperRunHistoryService, "force_stop_run", _force_stop_noop)
+
+    service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
+    run = service.start_run(
+        adapter_key=ScraperSiteKey.TUYAP_NEW,
+        input_url="https://stop-fail.test",
+        fair_name="Stop Fail Fair",
+        fair_year=2026,
+        organization_id=organization_id,
+    )
+    db_session.commit()
 
     response = client.delete(f"/api/v1/scraper/runs/{run.id}", headers=auth_headers)
 
     assert response.status_code == 409
-    assert "Aktif" in response.json()["detail"]
-    assert service.get_run(run.id) is not None
+    assert "durdurulamadı" in response.json()["detail"].lower()
+    remaining = service.get_run(run.id)
+    assert remaining is not None
+    assert remaining.status.value in {"running", "cancel_requested", "cancelling"}
+
+
+def test_deleted_run_is_not_updated_by_worker_complete(
+    client: TestClient, db_session, auth_headers, organization_id, monkeypatch
+):
+    monkeypatch.setattr(
+        "app.modules.scraper.services.scraper_run_history_service.DEFAULT_DELETE_STOP_WAIT_SECONDS",
+        0.0,
+    )
+    service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
+    run = service.start_run(
+        adapter_key=ScraperSiteKey.TUYAP_NEW,
+        input_url="https://race-delete.test",
+        fair_name="Race Fair",
+        fair_year=2026,
+        organization_id=organization_id,
+    )
+    db_session.commit()
+    run_id = run.id
+
+    response = client.delete(f"/api/v1/scraper/runs/{run_id}", headers=auth_headers)
+    assert response.status_code == 204
+
+    # Late worker finalize must not recreate/update the deleted row.
+    result = service.complete_run(run_id, handoff=_sample_handoff())
+    assert result is None
+    assert service.get_run(run_id) is None
+    fail_result = service.fail_run(run_id, error_message="late failure")
+    assert fail_result is None
+    assert service.get_run(run_id) is None
 
 
 def test_delete_scraper_run_preserves_fair_and_import_batch(

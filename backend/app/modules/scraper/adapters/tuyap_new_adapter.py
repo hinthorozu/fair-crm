@@ -19,6 +19,7 @@ from app.modules.scraper.fetchers.foodist_http_fetcher import (
 )
 from app.modules.scraper.parsers.foodist_detail_parser import FoodistDetailInfo, parse_foodist_detail_html
 from app.modules.scraper.parsers.foodist_list_parser import FoodistListItem, parse_foodist_list_text
+from app.modules.scraper.services.scraper_run_cancellation import ensure_run_not_cancelled
 from app.modules.scraper.types.scraper_context import ScraperContext
 from app.modules.scraper.types.scraper_site import ScraperSiteKey
 from app.modules.scraper.validators.website_validator import validate_website_url
@@ -144,6 +145,7 @@ class TuyapNewAdapter:
         pages_scraped = 0
 
         while pending_urls:
+            ensure_run_not_cancelled(context)
             page_url = pending_urls.pop(0)
             if page_url in visited_urls:
                 continue
@@ -343,6 +345,7 @@ class TuyapNewAdapter:
         pages_scraped = 0
 
         while pending_urls:
+            ensure_run_not_cancelled(context)
             page_url = pending_urls.pop(0)
             if page_url in visited_urls:
                 continue

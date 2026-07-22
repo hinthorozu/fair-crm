@@ -722,7 +722,11 @@ def delete_scraper_run(
     run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
 ) -> None:
     try:
-        run_history_service.delete_run(run_id, organization_id=auth.organization_id)
+        run_history_service.delete_run(
+            run_id,
+            organization_id=auth.organization_id,
+            requested_by=auth.user_id,
+        )
     except KeyError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

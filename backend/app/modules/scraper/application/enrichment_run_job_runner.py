@@ -261,7 +261,9 @@ class EnrichmentRunJobRunner:
         run_logger: ScraperRunLogger,
         history_service,
     ) -> None:
-        history_service.mark_cancelling(command.run_id)
+        marked = history_service.mark_cancelling(command.run_id)
+        if marked is None:
+            return
         db.commit()
         cleared = clear_blocking_states_for_cancelled_run(
             db,

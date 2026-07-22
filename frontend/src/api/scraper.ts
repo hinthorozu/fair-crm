@@ -175,10 +175,15 @@ export async function cancelScraperRun(runId: string): Promise<ScraperRunCancelR
   );
 }
 
+/** Active-run delete may cooperatively stop the worker (up to ~30s) before hard delete. */
+export const DELETE_SCRAPER_RUN_TIMEOUT_MS = 90_000;
+
 export async function deleteScraperRun(runId: string): Promise<void> {
-  await apiRequest<void>(`/api/v1/scraper/runs/${encodeURIComponent(runId)}`, {
-    method: "DELETE",
-  });
+  await apiRequest<void>(
+    `/api/v1/scraper/runs/${encodeURIComponent(runId)}`,
+    { method: "DELETE" },
+    DELETE_SCRAPER_RUN_TIMEOUT_MS,
+  );
 }
 
 export async function listScraperRunLogs(

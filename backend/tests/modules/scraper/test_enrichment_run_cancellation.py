@@ -84,6 +84,11 @@ def test_run_cancel_checker_detects_cancel_requested(db_session, organization_id
     assert checker.is_cancel_requested() is True
 
 
+def test_run_cancel_checker_treats_missing_run_as_cancelled(db_session):
+    checker = RunCancelChecker(_session_factory(db_session), uuid4())
+    assert checker.is_cancel_requested() is True
+
+
 def test_enrichment_job_finalizes_cancelled_with_partial_results(db_session, organization_id, user_id):
     customer_a = uuid4()
     customer_b = uuid4()

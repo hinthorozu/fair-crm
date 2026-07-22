@@ -191,10 +191,14 @@ function buildColumns(
           <button
             type="button"
             className="btn btn-sm danger"
-            disabled={isActiveRunStatus(run.status) || handlers.deletingRunId === run.id}
+            disabled={handlers.deletingRunId === run.id}
             onClick={() => handlers.onDelete(run)}
           >
-            {handlers.deletingRunId === run.id ? "Siliniyor…" : scraperLabels.runHistoryDelete}
+            {handlers.deletingRunId === run.id
+              ? isActiveRunStatus(run.status)
+                ? "Durdurulup siliniyor…"
+                : "Siliniyor…"
+              : scraperLabels.runHistoryDelete}
           </button>
         </TableRowActions>
       ),

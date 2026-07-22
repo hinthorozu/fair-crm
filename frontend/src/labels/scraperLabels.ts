@@ -140,13 +140,23 @@ export const scraperLabels = {
   runHistoryDeleteSuccess: "Run history kaydı silindi.",
   runHistoryDeleteError: "Run history kaydı silinemedi.",
   runHistoryDeleteIrreversible: "Bu işlem geri alınamaz.",
+  runHistoryDeleteActiveWarning:
+    "Bu görev halen çalışıyor. Silme işlemi önce çalışan görevi tamamen durduracak, ardından geçmiş kaydını silecektir. Bu işlem geri alınamaz.",
   buildDeleteRunHistoryMessage: (run: {
     started_at: string;
+    status: string;
     adapter_name?: string | null;
     adapter_key: string;
     fair_name?: string | null;
   }) => {
-    const lines = [
+    const isActive =
+      run.status === "running" ||
+      run.status === "cancel_requested" ||
+      run.status === "cancelling";
+    if (isActive) {
+      return scraperLabels.runHistoryDeleteActiveWarning;
+    }
+    const lines: string[] = [
       `Çalıştırma tarihi: ${new Date(run.started_at).toLocaleString("tr-TR")}`,
     ];
     const adapterLabel = (run.adapter_name ?? run.adapter_key).trim();
