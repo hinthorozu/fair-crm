@@ -4503,6 +4503,8 @@ textarea.form-control-textarea {
 .table-wrap.backups-table {
   border-top: none;
   border-radius: 0 0 var(--radius) var(--radius);
+  padding-right: 20px;
+  box-sizing: border-box;
 }
 
 .table-wrap.backups-table .data-table th,
@@ -4512,7 +4514,33 @@ textarea.form-control-textarea {
   line-height: 1.35;
 }
 
+.table-wrap.backups-table .data-table th.col-actions,
+.table-wrap.backups-table .data-table td.col-actions {
+  overflow: visible;
+}
+
+.table-wrap.backups-table .data-table tbody tr {
+  height: 48px;
+}
+
+.table-wrap.backups-table .col-database {
+  width: 140px;
+}
+
+.table-wrap.backups-table .col-backup-name {
+  width: auto;
+}
+
+.table-wrap.backups-table .col-format {
+  width: 110px;
+}
+
+.table-wrap.backups-table .col-status {
+  width: 112px;
+}
+
 .table-wrap.backups-table .col-size {
+  width: 84px;
   text-align: right;
 }
 
@@ -4523,6 +4551,30 @@ textarea.form-control-textarea {
 .table-wrap.backups-table .col-size .table-sort-header {
   justify-content: flex-end;
   width: 100%;
+}
+
+.table-wrap.backups-table .col-datetime {
+  width: 142px;
+  white-space: nowrap;
+  font-size: 0.84rem;
+}
+
+.table-wrap.backups-table .col-created-by {
+  width: 132px;
+}
+
+.table-wrap.backups-table .col-actions {
+  width: 180px;
+  min-width: 180px;
+  max-width: 180px;
+  padding-right: 16px;
+  padding-left: 8px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.table-wrap.backups-table th.col-actions {
+  text-align: right;
 }
 
 .backup-database-cell {
@@ -4568,9 +4620,145 @@ textarea.form-control-textarea {
 }
 
 .backups-table-actions {
-  flex-wrap: wrap;
-  gap: 0.35rem 0.5rem;
-  justify-content: flex-start;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+.backups-table-actions .btn.link {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+  .table-wrap.backups-table .col-created-by {
+    width: 130px;
+  }
+
+  .table-wrap.backups-table .col-datetime {
+    width: 130px;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .table-wrap.backups-table {
+    overflow-x: auto;
+  }
+
+  .table-wrap.backups-table .col-created-by {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-system-layout {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .server-data-table-frame:has(.backups-table) .server-data-table-toolbar-panel {
+    border-radius: var(--radius);
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-wrap.backups-table {
+    overflow-x: visible;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    border-radius: var(--radius);
+  }
+
+  .table-wrap.backups-table .data-table {
+    table-layout: auto;
+  }
+
+  .table-wrap.backups-table .data-table thead {
+    display: none;
+  }
+
+  .table-wrap.backups-table .data-table,
+  .table-wrap.backups-table .data-table tbody,
+  .table-wrap.backups-table .data-table tr {
+    display: block;
+    width: 100%;
+  }
+
+  .table-wrap.backups-table .data-table tr {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    height: auto;
+  }
+
+  .table-wrap.backups-table .data-table td {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100% !important;
+    border: none;
+    padding: 0.45rem 0;
+    overflow: visible;
+    text-align: right;
+  }
+
+  .table-wrap.backups-table .data-table td::before {
+    content: attr(data-label);
+    flex: 0 0 38%;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    line-height: 1.4;
+  }
+
+  .table-wrap.backups-table .data-table td.col-backup-name {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+    padding-top: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.35rem;
+    padding-bottom: 0.65rem;
+  }
+
+  .table-wrap.backups-table .data-table td.col-backup-name::before {
+    content: none;
+  }
+
+  .table-wrap.backups-table .data-table td.col-actions {
+    justify-content: flex-end;
+    padding-right: 0;
+    padding-bottom: 0;
+  }
+
+  .table-wrap.backups-table .data-table td.col-actions::before {
+    content: none;
+  }
+
+  .backup-file-name {
+    white-space: normal;
+    word-break: break-all;
+    font-size: 0.9rem;
+  }
+
+  .backup-status-cell {
+    align-items: flex-end;
+  }
 }
 
 .backup-detail-actions {
@@ -4694,6 +4882,19 @@ textarea.form-control-textarea {
 
 .backup-restore-danger-banner {
   border-left: 4px solid var(--danger);
+}
+
+.restore-job-polling-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.restore-job-queue-hint {
+  flex: 1 1 100%;
+  font-size: 0.82rem;
+  line-height: 1.4;
 }
 
 .backup-format-card-radio {
@@ -4957,6 +5158,68 @@ textarea.form-control-textarea {
 .backup-restore-manual-hint {
   font-size: 0.875rem;
   margin: 0.75rem 0;
+}
+
+.restore-job-detail-error {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  white-space: pre-wrap;
+}
+
+.restore-job-detail-list {
+  margin-bottom: 1rem;
+}
+
+.restore-job-runner-command {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.restore-job-live-log-section {
+  margin-top: 1.25rem;
+}
+
+.restore-job-live-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.restore-job-live-log-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.restore-job-live-log-polling {
+  font-size: 0.85rem;
+  color: var(--muted, #64748b);
+}
+
+.restore-job-live-log-truncated {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+}
+
+.restore-job-live-log {
+  max-height: 360px;
+  overflow: auto;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .restore-job-polling-banner {

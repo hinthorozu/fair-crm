@@ -13,6 +13,7 @@ import {
 } from "../api/systemAdmin";
 import { Banner } from "../components/ui/Banner";
 import { EmptyState } from "../components/ui/EmptyState";
+import { RestoreJobDetailModal } from "../components/admin/RestoreJobDetailModal";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
 import { Badge } from "../components/ui/Badge";
@@ -1182,7 +1183,11 @@ export function DatabaseBackupsPage() {
 
       {activeTrackedJobs.length > 0 && (
         <div className="restore-job-polling-banner" aria-live="polite">
-          <p className="text-muted">{adminLabels.restoreJobTracking}</p>
+          <p className="text-muted">
+            {activeTrackedJobs.some((job) => job.status === "running")
+              ? adminLabels.restoreJobTrackingRunning
+              : adminLabels.restoreJobTracking}
+          </p>
           <ul className="restore-job-polling-list">
             {activeTrackedJobs.map((job) => (
               <li key={job.id}>
@@ -1190,6 +1195,11 @@ export function DatabaseBackupsPage() {
                   {restoreJobStatusLabel(job.status)}
                 </Badge>
                 <span className="backup-file-name">{restoreJobFileLabel(job)}</span>
+                {job.status === "manual_restore_required" && (
+                  <span className="field-hint restore-job-queue-hint">
+                    {adminLabels.restoreJobTrackingQueued.replace("{jobId}", job.id)}
+                  </span>
+                )}
               </li>
             ))}
           </ul>
@@ -1342,54 +1352,18 @@ export function DatabaseBackupsPage() {
       )}
 
       {visibleDetailRestoreJob && (
-        <Modal title={adminLabels.restoreJobDetailsTitle} onClose={closeRestoreJobDetailModal}>
-          <dl className="detail-list">
-            <dt>{adminLabels.restoreJobColStatus}</dt>
-            <dd>
-              <Badge variant={restoreJobStatusBadgeVariant(visibleDetailRestoreJob.status)}>
-                {restoreJobStatusLabel(visibleDetailRestoreJob.status)}
-              </Badge>
-            </dd>
-            <dt>{adminLabels.restoreJobColSource}</dt>
-            <dd>{restoreJobSourceLabel(visibleDetailRestoreJob.source_type)}</dd>
-            <dt>{adminLabels.restoreJobColSourceDatabase}</dt>
-            <dd>{databaseKeyLabel(visibleDetailRestoreJob.source_database_key)}</dd>
-            <dt>{adminLabels.restoreJobColTargetDatabase}</dt>
-            <dd>{databaseKeyLabel(visibleDetailRestoreJob.target_database_key)}</dd>
-            <dt>{adminLabels.restoreJobColFile}</dt>
-            <dd>{restoreJobFileLabel(visibleDetailRestoreJob)}</dd>
-            <dt>{adminLabels.restoreJobColRequestedAt}</dt>
-            <dd>{new Date(visibleDetailRestoreJob.requested_at).toLocaleString("tr-TR")}</dd>
-            <dt>{adminLabels.restoreJobColRequestedBy}</dt>
-            <dd>{visibleDetailRestoreJob.requested_by_email ?? visibleDetailRestoreJob.requested_by_user_id}</dd>
-            <dt>{adminLabels.restoreJobColNotes}</dt>
-            <dd className="restore-job-notes-preview">
-              {visibleDetailRestoreJob.notes?.trim() ? visibleDetailRestoreJob.notes : "—"}
-            </dd>
-            <dt>{adminLabels.detailChecksum}</dt>
-            <dd className="mono">{visibleDetailRestoreJob.checksum_sha256 ?? "—"}</dd>
-            {visibleDetailRestoreJob.backup_file_name && (
-              <>
-                <dt>{adminLabels.restoreJobDetailBackupSummary}</dt>
-                <dd>
-                  {visibleDetailRestoreJob.backup_file_name}
-                  {visibleDetailRestoreJob.backup_format ? ` (${visibleDetailRestoreJob.backup_format})` : ""}
-                </dd>
-              </>
-            )}
-            <dt>{adminLabels.restoreJobDetailLogPath}</dt>
-            <dd className="mono">{visibleDetailRestoreJob.restore_log_path ?? "—"}</dd>
-            {visibleDetailRestoreJob.error_message && (
-              <>
-                <dt>{adminLabels.restoreJobDetailError}</dt>
-                <FieldError as="dd">{visibleDetailRestoreJob.error_message}</FieldError>
-              </>
-            )}
-          </dl>
-          {mapRestoreJobUiStatus(visibleDetailRestoreJob.status) === "queued" && (
-            <p className="text-muted backup-restore-manual-hint">{adminLabels.restoreJobManualHint}</p>
-          )}
-        </Modal>
+        <RestoreJobDetailModal
+          job={visibleDetailRestoreJob}
+          onClose={closeRestoreJobDetailModal}
+          onJobUpdated={(updated) => {
+            if (detailRestoreJob?.id === updated.id) {
+              setDetailRestoreJob(updated);
+            }
+            if (!isTerminalRestoreJobStatus(updated.status)) {
+              trackRestoreJob(updated);
+            }
+          }}
+        />
       )}
 
       {showRestoreUploadModal && (

@@ -12,6 +12,7 @@ from app.modules.system_admin.domain.ports import SystemBackupRepository, System
 from app.modules.system_admin.domain.value_objects import RestoreJobSourceType
 from app.modules.system_admin.application.restore_job_service import (
     _to_result as _restore_job_to_result,
+    initialize_restore_job_log_file,
 )
 from app.shared.database_backup.database_keys import (
     DatabaseKey,
@@ -372,6 +373,11 @@ class SystemBackupRestoreJobResult:
     requested_at: datetime
     message: str
     uploaded: bool
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    failed_at: datetime | None = None
+    error_message: str | None = None
+    restore_log_path: str | None = None
 
 
 def _restore_job_to_api_result(job: SystemBackupRestoreJob) -> SystemBackupRestoreJobResult:
@@ -389,6 +395,11 @@ def _restore_job_to_api_result(job: SystemBackupRestoreJob) -> SystemBackupResto
         requested_by_user_id=mapped.requested_by_user_id,
         requested_by_email=mapped.requested_by_email,
         requested_at=mapped.requested_at,
+        started_at=mapped.started_at,
+        completed_at=mapped.completed_at,
+        failed_at=mapped.failed_at,
+        error_message=mapped.error_message,
+        restore_log_path=mapped.restore_log_path,
         message=mapped.message,
         uploaded=mapped.uploaded,
     )
@@ -462,6 +473,7 @@ class RestoreSystemBackupUseCase:
             now=now,
         )
         saved = self._restore_job_repository.add(job)
+        initialize_restore_job_log_file(saved)
         result = _restore_job_to_api_result(saved)
 
         self._audit.record_event(
@@ -557,6 +569,7 @@ class RestoreSystemBackupFromUploadUseCase:
             now=now,
         )
         saved = self._restore_job_repository.add(job)
+        initialize_restore_job_log_file(saved)
         result = _restore_job_to_api_result(saved)
 
         self._audit.record_event(

@@ -150,8 +150,9 @@ class SystemBackupRestoreJob:
         requested_by_email: str | None,
         now: datetime,
     ) -> "SystemBackupRestoreJob":
+        job_id = uuid4()
         return cls(
-            id=uuid4(),
+            id=job_id,
             organization_id=organization_id,
             source_type=source_type,
             source_database_key=source_database_key,
@@ -169,7 +170,7 @@ class SystemBackupRestoreJob:
             completed_at=None,
             failed_at=None,
             error_message=None,
-            restore_log_path=None,
+            restore_log_path=f"data/restore_logs/{job_id}.log",
             created_at=now,
             updated_at=now,
         )

@@ -34,7 +34,13 @@ from app.shared.database_backup.database_keys import (
     resolve_alembic_workdir,
     resolve_database_url,
 )
-from app.shared.database_backup.paths import get_repo_root, get_restore_logs_dir, get_restore_uploads_dir, relative_repo_path, resolve_backup_path
+from app.shared.database_backup.paths import (
+    get_repo_root,
+    get_restore_logs_dir,
+    get_restore_uploads_dir,
+    relative_repo_path,
+    resolve_backup_path,
+)
 from app.shared.database_backup.post_restore_health import run_post_restore_health_check
 
 PERMISSION_READ = "fair_crm.admin.backups.read"
@@ -56,9 +62,12 @@ RESTORE_JOB_DEFAULT_SORT_FIELD = "requested_at"
 RESTORE_JOB_DEFAULT_SORT_DIRECTION = "desc"
 
 RESTORE_JOB_MESSAGE = (
-    "Restore job recorded. Automatic in-process restore is not production-safe; "
-    "run scripts/dev/run-restore-job.ps1 against this job id."
+    "Restore job recorded. Destructive restore requires the maintenance runner "
+    "(scripts/dev/run-restore-job.ps1 or scripts/server/run-restore-job.sh) with ALLOW_RESTORE=true."
 )
+
+RESTORE_JOB_LOG_MAX_BYTES = 256 * 1024
+RESTORE_JOB_LOG_MAX_LINES = 500
 
 
 @dataclass
@@ -209,6 +218,141 @@ class GetRestoreJobUseCase:
         return _to_result(job, backup_file_name=backup_file_name, backup_format=backup_format)
 
 
+@dataclass
+class RestoreJobLogResult:
+    job_id: UUID
+    status: str
+    restore_log_path: str | None
+    exists: bool
+    content: str
+    truncated: bool
+
+
+def build_restore_runner_command(job_id: UUID) -> str:
+    return (
+        "ALLOW_RESTORE=true "
+        f"bash scripts/server/run-restore-job.sh {job_id} "
+        f"# dev: $env:ALLOW_RESTORE='true'; .\\scripts\\dev\\run-restore-job.ps1 -RestoreJobId '{job_id}'"
+    )
+
+
+def resolve_restore_job_log_path(job: SystemBackupRestoreJob) -> Path | None:
+    if not job.restore_log_path:
+        return None
+    candidate = (get_repo_root() / job.restore_log_path).resolve()
+    logs_root = get_restore_logs_dir().resolve()
+    try:
+        candidate.relative_to(logs_root)
+    except ValueError as exc:
+        raise ValueError("Restore log path escapes restore logs directory") from exc
+    return candidate
+
+
+def read_restore_job_log_content(log_path: Path) -> tuple[str, bool]:
+    raw = log_path.read_bytes()
+    truncated = False
+    if len(raw) > RESTORE_JOB_LOG_MAX_BYTES:
+        raw = raw[-RESTORE_JOB_LOG_MAX_BYTES :]
+        truncated = True
+    text = raw.decode("utf-8", errors="replace")
+    if truncated and text:
+        newline_index = text.find("\n")
+        if newline_index != -1:
+            text = text[newline_index + 1 :]
+    lines = text.splitlines()
+    if len(lines) > RESTORE_JOB_LOG_MAX_LINES:
+        lines = lines[-RESTORE_JOB_LOG_MAX_LINES :]
+        truncated = True
+    return "\n".join(lines), truncated
+
+
+def initialize_restore_job_log_file(job: SystemBackupRestoreJob) -> None:
+    logs_dir = get_restore_logs_dir()
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    log_path = logs_dir / f"{job.id}.log"
+    job.restore_log_path = relative_repo_path(log_path)
+    runner_command = build_restore_runner_command(job.id)
+    lines = [
+        "[restore job queued]",
+        f"job id: {job.id}",
+        f"source db: {job.source_database_key.value}",
+        f"target db: {job.target_database_key.value}",
+        f"source type: {job.source_type.value}",
+        f"source file: {job.source_file_name}",
+        f"requested at: {job.requested_at.isoformat()}",
+        f"status: {job.status.value}",
+        "Restore runner henüz başlamadı. Manuel çalıştırma:",
+        runner_command,
+    ]
+    log_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+class GetRestoreJobLogUseCase:
+    def __init__(
+        self,
+        repository: SystemBackupRestoreJobRepository,
+        authorization: AuthorizationPort,
+    ) -> None:
+        self._repository = repository
+        self._authorization = authorization
+
+    def execute(
+        self,
+        *,
+        organization_id: UUID,
+        user_id: UUID,
+        access_token: str,
+        job_id: UUID,
+    ) -> RestoreJobLogResult:
+        if not self._authorization.check_permission(
+            organization_id=organization_id,
+            user_id=user_id,
+            permission_code=PERMISSION_READ,
+            access_token=access_token,
+        ):
+            raise ForbiddenError("Permission denied")
+
+        job = self._repository.get_by_id(organization_id, job_id)
+        if job is None:
+            raise LookupError("Restore job not found")
+
+        restore_log_path = job.restore_log_path
+        if not restore_log_path:
+            return RestoreJobLogResult(
+                job_id=job.id,
+                status=job.status.value,
+                restore_log_path=None,
+                exists=False,
+                content="",
+                truncated=False,
+            )
+
+        try:
+            log_path = resolve_restore_job_log_path(job)
+        except ValueError as exc:
+            raise ValueError(str(exc)) from exc
+
+        if log_path is None or not log_path.is_file():
+            return RestoreJobLogResult(
+                job_id=job.id,
+                status=job.status.value,
+                restore_log_path=restore_log_path,
+                exists=False,
+                content="",
+                truncated=False,
+            )
+
+        content, truncated = read_restore_job_log_content(log_path)
+        return RestoreJobLogResult(
+            job_id=job.id,
+            status=job.status.value,
+            restore_log_path=restore_log_path,
+            exists=True,
+            content=content,
+            truncated=truncated,
+        )
+
+
 def resolve_restore_job_dump_path(job: SystemBackupRestoreJob) -> Path:
     if job.source_type == RestoreJobSourceType.EXISTING_BACKUP:
         if job.backup_id is None:
@@ -252,6 +396,7 @@ class RestoreJobMaintenanceRunner:
 
         db = self._session_factory()
         log_handle = None
+        relative_log_path = ""
         try:
             repo = SqlAlchemySystemBackupRestoreJobRepository(db)
             job = repo.get_by_id_global(command.job_id)
@@ -274,13 +419,16 @@ class RestoreJobMaintenanceRunner:
 
             logs_dir = get_restore_logs_dir()
             logs_dir.mkdir(parents=True, exist_ok=True)
-            log_path = logs_dir / f"{job.id}.log"
-            relative_log_path = relative_repo_path(log_path)
-            now = datetime.now(tz=UTC)
-            job.mark_running(now=now, restore_log_path=relative_log_path)
-            repo.update(job)
-            db.commit()
+            if job.restore_log_path:
+                log_path = resolve_restore_job_log_path(job)
+                if log_path is None:
+                    log_path = logs_dir / f"{job.id}.log"
+                relative_log_path = job.restore_log_path
+            else:
+                log_path = logs_dir / f"{job.id}.log"
+                relative_log_path = relative_repo_path(log_path)
 
+            now = datetime.now(tz=UTC)
             log_handle = log_path.open("a", encoding="utf-8")
 
             def _log(message: str) -> None:
@@ -289,6 +437,20 @@ class RestoreJobMaintenanceRunner:
                     log_handle.write(message + "\n")
                     log_handle.flush()
 
+            _log("")
+            _log("[restore runner started]")
+            _log(f"job id: {job.id}")
+            _log(f"source db: {job.source_database_key.value}")
+            _log(f"target db: {job.target_database_key.value}")
+            _log(f"source type: {job.source_type.value}")
+            _log(f"started at: {now.isoformat()}")
+            _log(f"runner command: {build_restore_runner_command(job.id)}")
+
+            job.mark_running(now=now, restore_log_path=relative_log_path)
+            repo.update(job)
+            db.commit()
+
+            _log("validating job")
             self._record_audit(
                 organization_id=job.organization_id,
                 action="fair_crm.system_backup.restore_started",
@@ -297,10 +459,10 @@ class RestoreJobMaintenanceRunner:
             )
 
             dump_path = resolve_restore_job_dump_path(job)
-            _log(f"Restore job: {job.id}")
-            _log(f"Source type: {job.source_type.value}")
-            _log(f"Target database: {job.target_database_key.value}")
-            _log(f"Dump file: {dump_path}")
+            _log(f"source file: {dump_path}")
+            _log("resolving database url")
+            _log(f"target database url resolved for {job.target_database_key.value}")
+            _log("checking backup/dump file")
 
             if not dump_path.exists():
                 raise FileNotFoundError(f"Dump file not found: {dump_path}")
@@ -308,15 +470,17 @@ class RestoreJobMaintenanceRunner:
                 raise ValueError("Dump file is not PostgreSQL custom format")
 
             verify_backup_dump(database_url=target_database_url, dump_path=dump_path)
-            _log("Dump validation OK")
+            _log("dump validation OK")
 
+            _log("starting pg_restore")
             pg_restore_custom(database_url=target_database_url, dump_path=dump_path)
             _log("pg_restore completed")
 
             migration_result = "success"
             try:
                 alembic_workdir = resolve_alembic_workdir(job.target_database_key)
-                _log(f"Running alembic upgrade head in {alembic_workdir}")
+                _log("running alembic upgrade head")
+                _log(f"alembic workdir: {alembic_workdir}")
                 result = subprocess.run(
                     [sys.executable, "-m", "alembic", "upgrade", "head"],
                     cwd=str(alembic_workdir),
@@ -332,11 +496,12 @@ class RestoreJobMaintenanceRunner:
                     log_handle.flush()
                 if result.returncode != 0:
                     raise DatabaseBackupError(result.stderr or result.stdout or "alembic upgrade head failed")
-                _log("Alembic upgrade head completed")
+                _log("alembic upgrade head completed")
             except ValueError as exc:
                 migration_result = "skipped"
-                _log(f"Alembic upgrade skipped: {exc}")
+                _log(f"alembic upgrade skipped: {exc}")
 
+            _log("running post-restore health check")
             health = run_post_restore_health_check(
                 database_url=target_database_url,
                 database_key=job.target_database_key,
@@ -362,7 +527,7 @@ class RestoreJobMaintenanceRunner:
                 job=job,
                 metadata={"runner": "maintenance_script", "restore_log_path": relative_log_path},
             )
-            _log("Restore job completed")
+            _log("completed")
             return 0
         except (DatabaseBackupError, OSError, ValueError, FileNotFoundError) as exc:
             db.rollback()
@@ -371,6 +536,8 @@ class RestoreJobMaintenanceRunner:
             job = repo.get_by_id_global(command.job_id)
             if job is not None:
                 job.mark_failed(error_message=str(exc), now=failed)
+                if relative_log_path:
+                    job.restore_log_path = relative_log_path
                 repo.update(job)
                 db.commit()
                 self._record_audit(
@@ -381,7 +548,7 @@ class RestoreJobMaintenanceRunner:
                 )
             print(f"Restore failed: {exc}", file=sys.stderr)
             if log_handle:
-                log_handle.write(f"Restore failed: {exc}\n")
+                log_handle.write(f"failed: {exc}\n")
                 log_handle.flush()
             return 1
         finally:

@@ -85,6 +85,15 @@ class SystemBackupRestoreJobResponse(BaseModel):
     backup_format: str | None = None
 
 
+class RestoreJobLogResponse(BaseModel):
+    job_id: UUID
+    status: str
+    restore_log_path: str | None = None
+    exists: bool
+    content: str
+    truncated: bool = False
+
+
 class DeleteSystemBackupResponse(BaseModel):
     id: UUID
     file_name: str

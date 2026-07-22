@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 from pathlib import Path
+from uuid import UUID
 
 from app.shared.database_backup.formats import (
     ALLOWED_BACKUP_EXTENSIONS,
@@ -30,6 +31,11 @@ def get_restore_uploads_dir(repo_root: Path | None = None) -> Path:
 def get_restore_logs_dir(repo_root: Path | None = None) -> Path:
     root = repo_root or get_repo_root()
     return root / "data" / "restore_logs"
+
+
+def build_restore_log_relative_path(job_id: UUID, repo_root: Path | None = None) -> str:
+    logs_dir = get_restore_logs_dir(repo_root)
+    return relative_repo_path(logs_dir / f"{job_id}.log")
 
 
 def relative_repo_path(path: Path) -> str:

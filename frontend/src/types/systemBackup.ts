@@ -68,6 +68,15 @@ export interface SystemBackupRestoreJobResponse {
   backup_format: string | null;
 }
 
+export interface RestoreJobLogResponse {
+  job_id: string;
+  status: SystemBackupRestoreJobResponse["status"];
+  restore_log_path: string | null;
+  exists: boolean;
+  content: string;
+  truncated: boolean;
+}
+
 export interface DeleteSystemBackupResponse {
   id: string;
   file_name: string;

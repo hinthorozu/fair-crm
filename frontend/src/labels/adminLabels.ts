@@ -170,15 +170,21 @@ export const adminLabels = {
   restoreAcknowledge:
     "Mevcut veritabanının silineceğini ve seçilen dosyadan geri yükleneceğini anlıyorum.",
   restoreFileSizeLabel: "Dosya boyutu",
-  restoreSuccess: "Geri yükleme işi oluşturuldu. Durum otomatik takip ediliyor.",
+  restoreSuccess:
+    "Geri yükleme işi oluşturuldu. Bakım scripti çalıştırılmalı; durum otomatik takip ediliyor.",
+  restoreSuccessWithRunner:
+    "Geri yükleme işi oluşturuldu ve arka planda başlatıldı. Durum otomatik takip ediliyor.",
   restoreError: "Geri yükleme başlatılamadı.",
   restoreJobPollSuccess: "Geri yükleme tamamlandı.",
   restoreJobPollFailed: "Geri yükleme başarısız oldu.",
   restoreJobTracking: "Geri yükleme işi takip ediliyor…",
+  restoreJobTrackingQueued:
+    "Geri yükleme kuyrukta. Bakım scripti çalıştırılınca durum güncellenecek: .\\scripts\\dev\\run-restore-job.ps1 -RestoreJobId \"{jobId}\"",
+  restoreJobTrackingRunning: "Geri yükleme çalışıyor…",
   deleteSuccess: "Yedek silindi.",
   deleteError: "Yedek silinemedi.",
   restoreJobManualHint:
-    "Not: Otomatik restore, API'nin bağlı olduğu veritabanını doğrudan değiştirir ve production için güvenli değildir. Gerçek restore işlemi bakım scripti ile yapılmalıdır.",
+    "Gerçek restore işlemi bakım scripti ile yapılır. Dev: $env:ALLOW_RESTORE=\"true\"; .\\scripts\\dev\\run-restore-job.ps1 -RestoreJobId \"<job-id>\". FAIR_CRM_DATABASE_RESTORE_ENABLED=true ve ALLOW_RESTORE=true ise dev API runner'ı otomatik başlatabilir.",
 
   restoreJobsTitle: "Restore Jobs",
   restoreJobsSubtitle: "Geri yükleme istekleri ve bakım scripti durumu",
@@ -196,7 +202,17 @@ export const adminLabels = {
   restoreJobStatusFailed: "Başarısız",
   restoreJobDetailsTitle: "Restore Job Detayları",
   restoreJobDetailLogPath: "Log path",
+  restoreJobDetailStartedAt: "Started At",
+  restoreJobDetailCompletedAt: "Completed At",
+  restoreJobDetailRunnerCommand: "Runner Command",
   restoreJobDetailError: "Error",
+  restoreJobLiveLogTitle: "Live Log",
+  restoreJobLiveLogPolling: "Canlı güncelleniyor…",
+  restoreJobLiveLogLoading: "Log yükleniyor…",
+  restoreJobLiveLogMissing:
+    "Restore runner henüz başlamamış veya log dosyası oluşmamış.",
+  restoreJobLiveLogEmpty: "Log dosyası boş.",
+  restoreJobLiveLogTruncated: "Log çok büyük; yalnızca son kısım gösteriliyor.",
   restoreJobDetailBackupSummary: "Backup özeti",
   restoreJobEmpty: "Henüz restore job yok.",
   restoreJobEmptyDescription: "Bir backup veya dosya yükleyerek geri yükleme isteği oluşturun.",
