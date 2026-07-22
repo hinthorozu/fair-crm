@@ -19,3 +19,12 @@ export function getEffectiveImportDecision(row: ImportRow): ImportDecision | "" 
   }
   return "";
 }
+
+/** True while apply / bulk-assign / wizard loading should lock decision-list editing. */
+export function isImportDecisionBusy(
+  applyRunning: boolean,
+  bulkAssignRunning: boolean,
+  loading: boolean,
+): boolean {
+  return applyRunning || bulkAssignRunning || loading;
+}

@@ -57,7 +57,7 @@ import { WIZARD_MAPPING_FIELDS as MAPPING_FIELDS } from "../types/import";
 import type { Fair } from "../types/fair";
 import { importBatchStatusBadgeVariant, importRowStatusBadgeVariant } from "../utils/importBadges";
 import { formatMatchConfidence, getImportMatchStatus } from "../utils/importMatchStatus";
-import { getEffectiveImportDecision } from "../utils/importDecision";
+import { getEffectiveImportDecision, isImportDecisionBusy } from "../utils/importDecision";
 import {
   canResumeDecisions,
   canResumeSetup,
@@ -737,10 +737,13 @@ export function ImportWizardPage({
         <button
           type="button"
           className="btn btn-primary"
-          disabled={applyRunning || bulkAssignRunning || loading || previewTable.items.length === 0}
+          disabled={
+            isImportDecisionBusy(applyRunning, bulkAssignRunning, loading)
+            || previewTable.items.length === 0
+          }
           onClick={() => void handleApplyDecisions()}
         >
-          {applyRunning || bulkAssignRunning || loading
+          {isImportDecisionBusy(applyRunning, bulkAssignRunning, loading)
             ? importLabels.applyRunning
             : importLabels.applyAllList}
         </button>
@@ -1219,6 +1222,9 @@ export function ImportWizardPage({
   );
 
   const renderDecisions = () => {
+    // Lock row decision controls while apply / bulk-assign / wizard load is in flight.
+    const decisionBusy = isImportDecisionBusy(applyRunning, bulkAssignRunning, loading);
+
     if (isImportComplete && batch) {
       return (
         <Card>
