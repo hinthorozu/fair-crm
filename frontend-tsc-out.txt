@@ -1,0 +1,102 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help
+ npmrc` for supported config options.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+src/api/dataIntegration.ts(3,32): error TS6133: 'ANALYZE_IMPORT_TIMEOUT_MS' is declared but its value is never read.
+src/App.tsx(448,9): error TS6133: 'goToActivities' is declared but its value is never read.
+src/auth/AuthContext.tsx(6,3): error TS6133: 'notifySessionExpired' is declared but its value is never read.
+src/components/ActivityDetailModal.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/ActivityList.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/admin/AdminSystemLayout.tsx(74,7): error TS2345: Argument of type '{ label: string; collapsed: boolean; }' is not assignable to parameter of type 'SidebarTooltipProps'.
+  Property 'children' is missing in type '{ label: string; collapsed: boolean; }' but required in type 'SidebarTooltipProps'.
+src/components/admin/AdminSystemLayout.tsx(92,7): error TS2345: Argument of type '{ label: string; collapsed: boolean; }' is not assignable to parameter of type 'SidebarTooltipProps'.
+  Property 'children' is missing in type '{ label: string; collapsed: boolean; }' but required in type 'SidebarTooltipProps'.
+src/components/CommunicationListCell.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/ContactList.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/CustomerForm.tsx(145,51): error TS2345: Argument of type '{ display_name: string; legal_name: string | null; trade_name: string | null; country: string | null; city: string | null; district: string | null; address: string | null; description: string | null; ... 11 more ...; sms_allowed: boolean; }' is not assignable to parameter of type 'Omit<CreateCustomerPayload, "email" | "phone" | "website"> & { phones: CommunicationFormItem[]; emails: CommunicationFormItem[]; websites: CommunicationFormItem[]; email_allowed: boolean; sms_allowed: boolean; }'.
+  Type '{ display_name: string; legal_name: string | null; trade_name: string | null; country: string | null; city: string | null; district: string | null; address: string | null; description: string | null; ... 11 more ...; sms_allowed: boolean; }' is not assignable to type 'Omit<CreateCustomerPayload, "email" | "phone" | "website">'.
+    Types of property 'phones' are incompatible.
+      Type 'CommunicationFormItem[]' is not assignable to type 'CustomerPhoneInput[]'.
+        Property 'phone' is missing in type 'CommunicationFormItem' but required in type 'CustomerPhoneInput'.
+src/components/customers/CustomerContactEnrichmentTab.tsx(224,15): error TS2322: Type '{ children: Element; title: "Mevcut durum"; }' is not assignable to type 'IntrinsicAttributes & CardProps'.
+  Property 'title' does not exist on type 'IntrinsicAttributes & CardProps'.
+src/components/customers/CustomerContactEnrichmentTab.tsx(263,15): error TS2322: Type '{ children: (Element | null)[]; title: "Son ├ğal─▒┼şma ├Âzeti"; }' is not assignable to type 'IntrinsicAttributes & CardProps'.
+  Property 'title' does not exist on type 'IntrinsicAttributes & CardProps'.
+src/components/customers/CustomerContactEnrichmentTab.tsx(273,13): error TS2322: Type '{ children: Element; title: "Son ├ğal─▒┼şma loglar─▒"; }' is not assignable to type 'IntrinsicAttributes & CardProps'.
+  Property 'title' does not exist on type 'IntrinsicAttributes & CardProps'.
+src/components/dataIntegration/DataIntegrationLayout.tsx(78,15): error TS2345: Argument of type '{ label: string; collapsed: boolean; }' is not assignable to parameter of type 'SidebarTooltipProps'.
+  Property 'children' is missing in type '{ label: string; collapsed: boolean; }' but required in type 'SidebarTooltipProps'.
+src/components/dataIntegration/DataIntegrationLayout.tsx(96,15): error TS2345: Argument of type '{ label: "Export ─░┼şleri" | "API Entegrasyonlar─▒" | "ERP Entegrasyonlar─▒" | "CSV/XML Kaynaklar─▒" | "Senkronizasyon ─░┼şleri" | "Entegrasyon Ayarlar─▒"; collapsed: boolean; }' is not assignable to parameter of type 'SidebarTooltipProps'.
+  Property 'children' is missing in type '{ label: "Export ─░┼şleri" | "API Entegrasyonlar─▒" | "ERP Entegrasyonlar─▒" | "CSV/XML Kaynaklar─▒" | "Senkronizasyon ─░┼şleri" | "Entegrasyon Ayarlar─▒"; collapsed: boolean; }' but required in type 'SidebarTooltipProps'.
+src/components/DeleteSelectedCustomersModal.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/duplicateMerge/MergeCustomersConfirmModal.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/duplicateMerge/MergeSummaryPanel.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/FairList.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/imports/ExcelMappingGrid.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/layout/AppLayout.tsx(80,15): error TS2345: Argument of type '{ label: string; collapsed: boolean; }' is not assignable to parameter of type 'SidebarTooltipProps'.
+  Property 'children' is missing in type '{ label: string; collapsed: boolean; }' but required in type 'SidebarTooltipProps'.
+src/components/layout/SidebarCollapseButton.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/layout/SidebarTooltip.tsx(71,11): error TS6133: 'ref' is declared but its value is never read.
+src/components/layout/SidebarTooltip.tsx(107,11): error TS2741: Property 'children' is missing in type '{ label: string; collapsed: true; element: ReactElement<any, string | JSXElementConstructor<any>>; }' but required in type 'SidebarTooltipProps'.
+src/components/layout/SidebarTooltip.tsx(125,39): error TS2345: Argument of type '{ label: string; collapsed: boolean; }' is not assignable to parameter of type 'SidebarTooltipProps'.
+  Property 'children' is missing in type '{ label: string; collapsed: boolean; }' but required in type 'SidebarTooltipProps'.
+src/components/mail_operations/MailOperationDetailModal.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/mail_operations/MailOperationErrorModal.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/mail_operations/MailOperationLogsModal.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/Pagination.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/ParticipationList.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/scraper/AdapterFeatureBadges.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/scraper/AdapterForm.tsx(4,3): error TS6133: 'CheckboxField' is declared but its value is never read.
+src/components/scraper/AdapterForm.tsx(6,3): error TS6133: 'TextInput' is declared but its value is never read.
+src/components/scraper/AdapterForm.tsx(7,3): error TS6133: 'TextareaInput' is declared but its value is never read.
+src/components/todos/ManualTaskMailModal.tsx(530,17): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/components/todos/ManualTaskMailModal.tsx(557,16): error TS2741: Property 'htmlFor' is missing in type '{ children: Element; label: "Al─▒c─▒ listesi"; fullWidth: true; }' but required in type 'FormFieldProps'.
+src/components/ui/Breadcrumb.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/ui/DetailFields.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/ui/form/FormInputs.tsx(19,18): error TS2320: Interface 'TextInputProps' cannot simultaneously extend types 'ControlProps' and 'Omit<InputHTMLAttributes<HTMLInputElement>, "className" | "id">'.
+  Named property '"aria-invalid"' of types 'ControlProps' and 'Omit<InputHTMLAttributes<HTMLInputElement>, "className" | "id">' are not identical.
+src/components/ui/form/FormInputs.tsx(108,18): error TS2320: Interface 'SelectInputProps' cannot simultaneously extend types 'ControlProps' and 'Omit<SelectHTMLAttributes<HTMLSelectElement>, "className" | "id">'.
+  Named property '"aria-invalid"' of types 'ControlProps' and 'Omit<SelectHTMLAttributes<HTMLSelectElement>, "className" | "id">' are not identical.
+src/components/ui/form/FormInputs.tsx(129,18): error TS2320: Interface 'TextareaInputProps' cannot simultaneously extend types 'ControlProps' and 'Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "className" | "id">'.
+  Named property '"aria-invalid"' of types 'ControlProps' and 'Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "className" | "id">' are not identical.
+src/components/ui/LoadingState.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/ui/TruncatedText.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/hooks/useDocumentTitle.ts(9,5): error TS6133: 'todoTitle' is declared but its value is never read.
+src/hooks/useServerDataTable.ts(198,27): error TS2339: Property 'counts' does not exist on type 'StandardListResponse<T>'.
+src/pages/ActivitiesPage.tsx(14,1): error TS6192: All imports in import declaration are unused.
+src/pages/FairDetailPage.tsx(50,1): error TS6133: 'DEFAULT_PAGE' is declared but its value is never read.
+src/pages/FollowUpsPage.tsx(311,35): error TS2322: Type '{ message: "Bu filtrede takip kayd─▒ bulunamad─▒."; }' is not assignable to type 'IntrinsicAttributes & EmptyStateProps'.
+  Property 'message' does not exist on type 'IntrinsicAttributes & EmptyStateProps'.
+src/pages/ImportWizardPage.tsx(40,8): error TS6133: 'WizardStepId' is declared but its value is never read.
+src/pages/ImportWizardPage.tsx(53,1): error TS6133: 'uiLabels' is declared but its value is never read.
+src/pages/ImportWizardPage.tsx(117,10): error TS6133: 'hasHeaderRow' is declared but its value is never read.
+src/pages/ImportWizardPage.tsx(174,11): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/pages/ImportWizardPage.tsx(184,5): error TS2322: Type '{ filter: string; } | { filter?: undefined; }' is not assignable to type 'Record<string, string> | undefined'.
+  Type '{ filter?: undefined; }' is not assignable to type 'Record<string, string>'.
+    Property 'filter' is incompatible with index signature.
+      Type 'undefined' is not assignable to type 'string'.
+src/pages/ImportWizardPage.tsx(1020,30): error TS2339: Property 'location' does not exist on type 'Fair'.
+src/pages/ImportWizardPage.tsx(1033,30): error TS2339: Property 'location' does not exist on type 'Fair'.
+src/pages/ImportWizardPage.tsx(1040,9): error TS6133: 'renderMapping' is declared but its value is never read.
+src/pages/ImportWizardPage.tsx(1108,28): error TS2339: Property 'required' does not exist on type '{ key: string; label: string; required: boolean | undefined; } | { key: "country" | "city" | "contact_first_name" | "contact_last_name" | "contact_title" | "contact_department" | ... 5 more ... | "tax_number"; label: "├£lke" | ... 10 more ... | "Yetkili Notu"; }'.
+  Property 'required' does not exist on type '{ key: "country" | "city" | "contact_first_name" | "contact_last_name" | "contact_title" | "contact_department" | "contact_email" | "contact_phone" | "contact_mobile_phone" | "contact_linkedin" | "contact_notes" | "tax_number"; label: "├£lke" | ... 10 more ... | "Yetkili Notu"; }'.
+src/pages/ImportWizardPage.tsx(1125,24): error TS2304: Cannot find name 'columnOptions'.
+src/pages/ImportWizardPage.tsx(1125,43): error TS7006: Parameter 'opt' implicitly has an 'any' type.
+src/pages/ImportWizardPage.tsx(1131,22): error TS2304: Cannot find name 'MappingFieldPreview'.
+src/pages/ImportWizardPage.tsx(1139,8): error TS2304: Cannot find name 'hasExpandableSamples'.
+src/pages/ImportWizardPage.tsx(1151,9): error TS6133: 'renderAnalyze' is declared but its value is never read.
+src/pages/ImportWizardPage.tsx(1166,96): error TS2304: Cannot find name 'handleAnalyze'.
+src/pages/ImportWizardPage.tsx(1172,9): error TS6133: 'renderPreview' is declared but its value is never read.
+src/pages/TodoDetailPage.tsx(289,11): error TS2741: Property 'id' is missing in type '{ label: "G├Ârev listesine d├Ân"; onClick: () => void; variant: "secondary"; }' but required in type 'PageHeaderAction'.
+src/pages/TodoDetailPage.tsx(363,39): error TS2322: Type '{ message: "Bu filtrede m├╝┼şteri bulunamad─▒."; }' is not assignable to type 'IntrinsicAttributes & EmptyStateProps'.
+  Property 'message' does not exist on type 'IntrinsicAttributes & EmptyStateProps'.
+src/permissions/mailTemplatePermissions.test.ts(33,7): error TS2552: Cannot find name 'MAIL_TEMPLATE_PERMISSION_TEST_SEND'. Did you mean 'MAIL_TEMPLATE_PERMISSION_CREATE'?
+src/utils/customerCommunicationForm.ts(74,36): error TS7053: Element implicitly has an 'any' type because expression of type '"email" | "phone" | "website"' can't be used to index type 'CustomerPhone | CustomerEmail | CustomerWebsite'.
+  Property 'email' does not exist on type 'CustomerPhone | CustomerEmail | CustomerWebsite'.
+src/utils/manualTaskMailPreview.test.ts(6,3): error TS6133: 'escapeHtml' is declared but its value is never read.

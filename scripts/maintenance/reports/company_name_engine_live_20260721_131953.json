@@ -1,0 +1,2655 @@
+{
+  "generated_at": "2026-07-21T13:19:53.801724+00:00",
+  "organization_id": "00000000-0000-4000-8000-000000000010",
+  "total_customers_analyzed": 28617,
+  "duplicate_groups": 2478,
+  "customers_in_duplicate_groups": 6031,
+  "legal_form_exact_groups": 893,
+  "member_score_band_counts": {
+    "95-100": 4749,
+    "85-94": 512,
+    "70-84": 770
+  },
+  "group_max_score_band_counts": {
+    "95-100": 2022,
+    "85-94": 218,
+    "70-84": 238
+  },
+  "group_min_score_band_counts": {
+    "95-100": 1943,
+    "70-84": 309,
+    "85-94": 226
+  },
+  "suspect_single_token_group_count": 125,
+  "suspect_single_token_examples": [
+    {
+      "group_key": "ideal",
+      "size": 27,
+      "names": [
+        "IDEAL",
+        "Ideal Av Spor Turizm Imalat San. Ve Tic. Ltd. Sti.",
+        "IDEAL KARTON KUTU VE OFSET AMBALAJ SANAYI TIC. LTD. STI.",
+        "IDEAL KOLTUK NALBURIYE MOBILYA PAZARLAMA SAN. VE TICARET LTD.STI.",
+        "iDEAL KURUYEMiŞ iM. NAK. TUR. TAR. ÜR.GIDA iNŞ. iHR. iTH. SAN. VE TiC. LTD. ŞTi.",
+        "IDEAL MAKINA END. ÜRÜN. SAN. VE TIC. A.S.",
+        "iDEAL MEMBA SULARI ENERJi MAD. TAR. ÜR. PET. SAN. VE TiC. A.Ş.",
+        "IDEAL MODEL & IDE-ALCAST",
+        "IDEAL MODEL DÖKÜM SISTEMLERI SAN. TIC. A.S.",
+        "IDEAL PAK OTOMATIK AMBALAJ MAKINALARI A.S.",
+        "IDEAL PREMIUM FURNITURE SDN BHD",
+        "IDEAL TEKNIK YAPI ENERJI VE END.KALIP A.S.",
+        "IDEAL ÇANTA DERI TEKSTIL SAN. TIC. LTD. STI.",
+        "İdeal Av Spor Tur. İml. San. ve Tic. Ltd. Şti.",
+        "İDEAL AV SPOR TUR. İMLT. SAN. TİC. LTD. ŞTİ.",
+        "İDEAL BAĞLANTI ELEMANLARI VE METAL ÜRÜNLERİ SAN. TİC. A.Ş.",
+        "İDEAL İSG",
+        "İDEAL LOJİSTİK HİZMETLERİ PETROL ENDÜSTRİYEL AMBALAJ SAN.TİC.LTD.ŞTİ.",
+        "İdeal Mak. End. Ürün. San. Ve Tic. A.Ş.",
+        "İDEAL MAKİNA",
+        "İDEAL MAKİNA İÇ VE DIŞ TİC. LTD. ŞTİ.",
+        "İDEAL MASTERBATCHES ADDITIVES COMPOUNDS PLASTİK KİMYEVİ MAD. İML. SAN. VE TİC. A.Ş.",
+        "İDEAL MEMBA SULARI ENERJI MAD. TAR. ÜR. PET. SAN. VE TIC. A.Ş.",
+        "İdeal Motor Enerji Sistemleri İth. İhr. San. ve Tic.",
+        "İDEAL PAK OTOMATİK AMBALAJ MAKİNALARİ A.Ş.",
+        "İdeal Yapı Ürünleri İnşaat Sanayi ve Ticaret Limited Şirketi",
+        "İdeal Yapı Ürünleri Sanayii ve Ticaret Anonim Şirketi"
+      ],
+      "comparison_keys": [
+        "ideal",
+        "ideal av spor turizm imalat",
+        "ideal karton kutu ofset ambalaj",
+        "ideal koltuk nalburiye mobilya",
+        "ideal kuruyemis im nak tur tar ur gida ins",
+        "ideal makina end urun",
+        "ideal memba sulari enerji mad tar ur pet",
+        "ideal model ide alcast",
+        "ideal model dokum sistemleri",
+        "ideal pak otomatik ambalaj makinalari",
+        "ideal premium furniture sdn bhd",
+        "ideal teknik yapi enerji end kalip",
+        "ideal canta deri tekstil",
+        "ideal av spor tur iml",
+        "ideal av spor tur imlt",
+        "ideal baglanti elemanlari metal urunleri",
+        "ideal isg",
+        "ideal lojistik hizmetleri petrol endustriyel ambalaj",
+        "ideal mak end urun",
+        "ideal makina",
+        "ideal makina ic dis",
+        "ideal masterbatches additives compounds plastik kimyevi mad iml",
+        "ideal memba sulari enerji mad tar ur pet",
+        "ideal motor enerji sistemleri",
+        "ideal pak otomatik ambalaj makinalari",
+        "ideal yapi urunleri insaat",
+        "ideal yapi urunleri sanayii"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high, abbreviation_normalized",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high, abbreviation_normalized",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 70,
+      "shared_core_tokens": [
+        "ideal"
+      ]
+    },
+    {
+      "group_key": "zhongshan ai li pu electrical appliance",
+      "size": 20,
+      "names": [
+        "ZHONGSHAN AI LI PU ELECTRICAL APPLIANCE CO., LTD.",
+        "ZHONGSHAN ARTMOON HOUSEHOLD APPLIANCES CO., LTD.",
+        "ZHONGSHAN BOWEN HOME APPLIANCE CO., LTD.",
+        "ZHONGSHAN CITY DINGXIANG ELECTRICAL CO.,LTD",
+        "ZHONGSHAN DAOFEY ELECTRİCAL CO. LTD.",
+        "ZHONGSHAN DIPPERS ELECTRIC CO., LTD.",
+        "ZHONGSHAN FOREVER GREAT ELECTRONIC TECHNOLOGY CO.,LTD.",
+        "ZHONGSHAN GOAL ELECTRICAL APPLIANCE CO., LTD",
+        "ZHONGSHAN JACAL ELECTRIC CO., LTD",
+        "ZHONGSHAN JIADESHİ ELECTRICAL APPLIANCE CO.LTD.",
+        "ZHONGSHAN JINHAO ELECTRIC APPLIANCE CO.,LTD",
+        "ZHONGSHAN KEQI ELECTRICAL APPLIANCE CO.,LTD.",
+        "ZHONGSHAN PENGFEI ELECTRICAL APPLIANCE CO., LTD.",
+        "ZHONGSHAN QINGGANG STAINLESS STEEL PRODUCTS CO., LTD",
+        "ZHONGSHAN SANY ELECTRICAL APPLIANCE CO.,LTD",
+        "ZHONGSHAN TOPSON ELECTRICAL APPLIANCES CO.LTD",
+        "ZHONGSHAN TUOFEİ ELECTRİC TECHNOLOGY CO., LTD.",
+        "ZHONGSHAN TUOJING ELECTRIC MOTOR CO., LTD.",
+        "ZHONGSHAN YINGTENG ELECTRICAL PRODUCTS CO., LTD",
+        "ZHONGSHAN YOUSDAS ELECTRICAL APPLIANCE CO.LTD"
+      ],
+      "comparison_keys": [
+        "zhongshan ai li pu electrical appliance",
+        "zhongshan artmoon household appliances",
+        "zhongshan bowen home appliance",
+        "zhongshan city dingxiang electrical",
+        "zhongshan daofey electrical",
+        "zhongshan dippers electric",
+        "zhongshan forever great electronic technology",
+        "zhongshan goal electrical appliance",
+        "zhongshan jacal electric",
+        "zhongshan jiadeshi electrical appliance",
+        "zhongshan jinhao electric appliance",
+        "zhongshan keqi electrical appliance",
+        "zhongshan pengfei electrical appliance",
+        "zhongshan qinggang stainless steel products",
+        "zhongshan sany electrical appliance",
+        "zhongshan topson electrical appliances",
+        "zhongshan tuofei electric technology",
+        "zhongshan tuojing electric motor",
+        "zhongshan yingteng electrical products",
+        "zhongshan yousdas electrical appliance"
+      ],
+      "member_scores": [
+        89,
+        74,
+        71,
+        74,
+        71,
+        76,
+        79,
+        89,
+        76,
+        85,
+        81,
+        86,
+        83,
+        72,
+        86,
+        83,
+        79,
+        76,
+        74,
+        83
+      ],
+      "member_reasons": [
+        "string_similarity_high",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "string_similarity_high",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "max_score": 89,
+      "min_score": 71,
+      "pairwise_min_score": 70,
+      "shared_core_tokens": [
+        "zhongshan"
+      ]
+    },
+    {
+      "group_key": "aktif dis",
+      "size": 16,
+      "names": [
+        "AKTIF DIS TIC. INS. TUR. VE TIBBI ÜRÜN. SAN. LTD. STI.",
+        "AKTIF GIRISIM",
+        "AKTIF KESICI TAKIM HIRDAVAT MAK. SAN. TIC. LTD. STI.",
+        "AKTIF YAPISTIRICILAR VE KIMYA TIC. SAN. A.S",
+        "AKTIF YAPISTIRICILAR VE KIMYA TIC. SAN. A.S",
+        "AKTİF DIŞ TİC. İNŞ. TUR. VE TIBBİ ÜRÜNLER SAN. LTD .ŞTİ.",
+        "AKTİF DIŞ TİCARET",
+        "AKTİF ELEKTROTEKNİK SAN.VE TİC.A.Ş.",
+        "AKTİF GIDA MEŞRUBAT SAN. VE TIC. A.Ş.",
+        "AKTİF GRANÜL GRUP TABAN SAN. VE TİC. LTD. ŞTİ.",
+        "AKTİF GRUP",
+        "AKTİF NESER ELEK. VE MAK. KOM. MÜŞ. İTH. İHR. VE PAZ. LTD. ŞTİ.",
+        "AKTİF SAVUNMA SANAYİ LTD.ŞTİ.",
+        "AKTİF YAPİŞTİRİCİLAR VE KİMYA TİC. SAN. A.Ş",
+        "AKTİF YURTDIŞI EĞİTİM",
+        "AKTİF ÖLÇÜM ENSTRÜMANLARI SANAYİ VE TİCARET LİMİTED ŞİRKETİ"
+      ],
+      "comparison_keys": [
+        "aktif dis ins tur tibbi urun",
+        "aktif girisim",
+        "aktif kesici takim hirdavat mak",
+        "aktif yapistiricilar kimya",
+        "aktif yapistiricilar kimya",
+        "aktif dis ins tur tibbi urunler",
+        "aktif dis",
+        "aktif elektroteknik",
+        "aktif gida mesrubat",
+        "aktif granul grup taban",
+        "aktif grup",
+        "aktif neser elek mak kom mus",
+        "aktif savunma",
+        "aktif yapistiricilar kimya",
+        "aktif yurtdisi egitim",
+        "aktif olcum enstrumanlari"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high, abbreviation_normalized",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high, abbreviation_normalized",
+        "token_overlap_high, abbreviation_normalized",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "shared_core_tokens": [
+        "aktif"
+      ]
+    },
+    {
+      "group_key": "atilim",
+      "size": 15,
+      "names": [
+        "ATILIM",
+        "ATILIM ALÜMINYUM SAN.VE TIC.LTD.STI.",
+        "ATILIM ALÜMİNYUM SAN.VE TİC.LTD.ŞTİ.",
+        "ATILIM AMBALAJ PAZ. SAN. VE TIC. LTD. STI.",
+        "ATILIM DİŞ DEPOSU",
+        "ATILIM DİŞ DEPOSU SAN. VE TİC. LTD. ŞTİ.",
+        "ATILIM İÇ VE DIŞ TİCARET LTD.ŞTİ.",
+        "ATILIM MAKINA VE SAN. MAMÜLLERI PAZ. MÜH. HIZ. SAN. TIC. LTD. STI.",
+        "ATILIM MAKiNA VE SANAYi MAMÜLLERi PAZ. MÜH. HiZM. SAN. TiC. LTD. ŞTi",
+        "ATILIM METAL KAUÇUK SAN. VE TIC. A.S.",
+        "ATILIM SAGLIK A.S.",
+        "ATILIM TARIMSAL FAALiYETLER VE iNŞ. SAN. TiC. A.Ş.",
+        "ATILIM ÖRME SAN.DIŞ TİC.A.Ş.",
+        "ATILIM ÜNIVERSITESI",
+        "ATILIM ÜNİVERSİTESİ Metal Şekillendirme Mükemmeliyet Merkezi"
+      ],
+      "comparison_keys": [
+        "atilim",
+        "atilim aluminyum",
+        "atilim aluminyum",
+        "atilim ambalaj",
+        "atilim dis deposu",
+        "atilim dis deposu",
+        "atilim ic dis",
+        "atilim makina mamulleri muh hiz",
+        "atilim makina mamulleri muh hizm",
+        "atilim metal kaucuk",
+        "atilim saglik",
+        "atilim tarimsal faaliyetler ins",
+        "atilim orme dis",
+        "atilim universitesi",
+        "atilim universitesi metal sekillendirme mukemmeliyet merkezi"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "shared_core_tokens": [
+        "atilim"
+      ]
+    },
+    {
+      "group_key": "tongxiang aochen home textile fabric",
+      "size": 14,
+      "names": [
+        "TONGXIANG AOCHEN HOME TEXTILE FABRIC CO.,LTD",
+        "TONGXIANG BANGTEX TEXTILE CO.,LTD",
+        "TONGXIANG BONZER TEXTILE CO., LTD",
+        "TONGXIANG CLIMBING TEXTILE CO.,LTD",
+        "TONGXIANG FEIYU TEXTILE CO.,LTD.",
+        "TONGXIANG HONGXIN TEXTILE CO., LTD",
+        "TONGXIANG KASHEN TEXTILE CO.,LTD",
+        "TONGXIANG KILOMETER FABRIC CO., LTD.",
+        "TONGXIANG LONGGENG TEXTILE CO.,LTD",
+        "TONGXIANG RUITAI TEXTILE CO.,LTD",
+        "TONGXIANG TELIYA-TEXTILE TECHNOLOGY CO.,LTD.",
+        "TONGXIANG WEIYU TEXTILE CO.,LTD",
+        "TONGXIANG XINBAOLAI TEXTILE CO., LTD",
+        "TONGXIANG YAJIE TEXTILE CO.,LTD"
+      ],
+      "comparison_keys": [
+        "tongxiang aochen home textile fabric",
+        "tongxiang bangtex textile",
+        "tongxiang bonzer textile",
+        "tongxiang climbing textile",
+        "tongxiang feiyu textile",
+        "tongxiang hongxin textile",
+        "tongxiang kashen textile",
+        "tongxiang kilometer fabric",
+        "tongxiang longgeng textile",
+        "tongxiang ruitai textile",
+        "tongxiang teliya textile technology",
+        "tongxiang weiyu textile",
+        "tongxiang xinbaolai textile",
+        "tongxiang yajie textile"
+      ],
+      "member_scores": [
+        73,
+        86,
+        86,
+        82,
+        79,
+        84,
+        73,
+        71,
+        82,
+        78,
+        72,
+        79,
+        77,
+        83
+      ],
+      "member_reasons": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "max_score": 86,
+      "min_score": 71,
+      "pairwise_min_score": 71,
+      "shared_core_tokens": [
+        "tongxiang"
+      ]
+    },
+    {
+      "group_key": "kuzey",
+      "size": 12,
+      "names": [
+        "KUZEY DENTAL",
+        "KUZEY DENTAL TIBBİ MALZEMELER TİC. LTD. ŞTİ.",
+        "KUZEY DİŞ DEPOSU",
+        "KUZEY EGE MAKINA SANAYI VE TICARET LIMITED SIRKETI",
+        "KUZEY FUNDUX",
+        "KUZEY GLOBAL MAKINA LTD. STI.",
+        "KUZEY GROUP SAĞLIK HİZM. LTD. ŞTİ.",
+        "KUZEY GÜNEY GIDA SAN. A.Ş.",
+        "KUZEY İTHALAT",
+        "KUZEY MAKINA PLASTIK VE INSAAT SANAYI DIS TICARET LIMITED SIRKETI",
+        "KUZEY MUTFAK İÇ VE DIŞ TİC. LTD. ŞTİ.",
+        "KUZEY TEKNİK METAL İŞLEME A.Ş."
+      ],
+      "comparison_keys": [
+        "kuzey dental",
+        "kuzey dental tibbi malzemeler",
+        "kuzey dis deposu",
+        "kuzey ege makina",
+        "kuzey fundux",
+        "kuzey global makina",
+        "kuzey group saglik hizm",
+        "kuzey guney gida",
+        "kuzey",
+        "kuzey makina plastik insaat dis",
+        "kuzey mutfak ic dis",
+        "kuzey teknik metal isleme"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 80,
+      "shared_core_tokens": [
+        "kuzey"
+      ]
+    },
+    {
+      "group_key": "lider ayakkabi yan",
+      "size": 12,
+      "names": [
+        "LIDER FUAR STANT HIZ. SAN. TIC.LTD.STI.",
+        "LIDER ISICAM MAKINALARI SAN. VE TIC. LTD. STI.",
+        "LIDER MAKINA - LIMA EXTRUSION",
+        "LİDER AYAKKABI YAN SAN. TİC. VE LTD. ŞTİ.",
+        "LİDER BENTONİT",
+        "LİDER DİŞ DEPOSU",
+        "LİDER DİŞ İTH. İHR. SAN. VE TİC. A.Ş.",
+        "LİDER FUAR STANT HİZ. SAN. TİC.LTD.ŞTİ.",
+        "LİDER İPLİK (IMAGE TEKSTİL SAN.VE DIŞ.TİC.A.Ş.)",
+        "LİDER MATBAA MÜREKKEPLERİ VE KİMYASALLARİ AMBALAJ SAN. VE TİC. A.Ş.",
+        "LİDER MOB.İNŞ.ELK.GID.TEKS.OTO.TURZ.HAY.PAZ.NAK.İTH.İHR.TİC.VE SAN.LTD.ŞTİ.",
+        "LİDER PET FOOD"
+      ],
+      "comparison_keys": [
+        "lider fuar stant hiz",
+        "lider isicam makinalari",
+        "lider makina lima extrusion",
+        "lider ayakkabi yan",
+        "lider bentonit",
+        "lider dis deposu",
+        "lider dis",
+        "lider fuar stant hiz",
+        "lider iplik image tekstil dis",
+        "lider matbaa murekkepleri kimyasallari ambalaj",
+        "lider mob ins elk gid teks oto turz hay nak",
+        "lider pet food"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "shared_core_tokens": [
+        "lider"
+      ]
+    },
+    {
+      "group_key": "omega carpet",
+      "size": 12,
+      "names": [
+        "OMEGA CARPET",
+        "OMEGA CIVATA SAN TIC. AS",
+        "OMEGA CIVATA SAN TIC. AS",
+        "Omega Dış Ticaret Limited Şirketi",
+        "OMEGA ELEKTRİK PANO",
+        "OMEGA LAZER",
+        "OMEGA MAKİNE SAN. TİC. LTD. ŞTİ.",
+        "OMEGA MARKETİNG DİŞ TİCARET LİMİTED ŞİRKETİ",
+        "OMEGA PLASTO LIMITED",
+        "Omega Sonen",
+        "OMEGA TAHIL TEKNOLOJİLERİ VE DIŞ TİC. PAZ. A.Ş.",
+        "OMEGA YAT DENİZCİLİK HİZMETLERİ LTD. ŞTİ."
+      ],
+      "comparison_keys": [
+        "omega carpet",
+        "omega civata",
+        "omega civata",
+        "omega dis",
+        "omega elektrik pano",
+        "omega lazer",
+        "omega makine",
+        "omega marketing dis",
+        "omega plasto",
+        "omega sonen",
+        "omega tahil teknolojileri dis",
+        "omega yat denizcilik hizmetleri"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "shared_core_tokens": [
+        "omega"
+      ]
+    },
+    {
+      "group_key": "seckin",
+      "size": 12,
+      "names": [
+        "SEÇKIN AMBALAJ SAN. TIC. LTD. STI.",
+        "Seçkin Madeni Eşya San. ve Tic. A.Ş.",
+        "SEÇKIN METAL",
+        "SEÇKIN PANEL RES.MOB.INS.TAAH.SAN. VE TIC.LTD.STI.",
+        "SEÇKIN SOGUTMA",
+        "SEÇKIN SOGUTMA MÜH. ISI SIST.ELK.ELEKTRONIK ITH.IHR.SAN. VE TIC.LTD.STI.",
+        "SEÇKIN SOĞUTMA MÜH. ISI SIS. ELEKT ELEKTRONIK ITH. IHR. SAN. VE TIC. LTD. ŞTI.",
+        "SEÇKİN DENTAL",
+        "SEÇKİN DENTAL VE MEDİKAL SAĞLIK ÜRÜN. SAN. VE TİC. LTD. ŞTİ.",
+        "SEÇKİN MADENİ EŞYA SAN. VE TİC.LTD.ŞTİ.",
+        "SEÇKİN SOĞUTMA MÜHENDİSLİK ISI SİSTM.ELEKT.",
+        "SEÇKİN TİC. VE PAZ. LTD. ŞTİ."
+      ],
+      "comparison_keys": [
+        "seckin ambalaj",
+        "seckin madeni esya",
+        "seckin metal",
+        "seckin panel res mob ins taah",
+        "seckin sogutma",
+        "seckin sogutma muh isi sist elk elektronik",
+        "seckin sogutma muh isi sis elekt elektronik",
+        "seckin dental",
+        "seckin dental medikal saglik urun",
+        "seckin madeni esya",
+        "seckin sogutma muhendislik isi sistm elekt",
+        "seckin"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        98,
+        98,
+        96,
+        98,
+        98,
+        98,
+        98,
+        75,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "string_similarity_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high, abbreviation_normalized",
+        "token_overlap_high",
+        "",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 75,
+      "pairwise_min_score": 75,
+      "shared_core_tokens": [
+        "seckin"
+      ]
+    },
+    {
+      "group_key": "prime aluminyum",
+      "size": 11,
+      "names": [
+        "PRIME ALÜMINYUM",
+        "PRIME ALÜMINYUM SAN.VE DIS TIC.LTD.STI.",
+        "PRIME ALÜMINYUM SANAYI VE DIS TICARET LTD. STI.",
+        "PRIME COTTON",
+        "PRIME DIS TICARET LTD. STI.",
+        "PRIME PAPER AND PACKAGING PRODUCTION",
+        "PRIME PLASTICHEM TURKEY HAMMADDE DAGTIM LTD. STI.",
+        "PRIME SOLUTION TAHIL DEPOLA SİS. SAN. TİC. LTD. ŞTİ.",
+        "PRIME YARNS",
+        "PRİME ALÜMİNYUM SAN VE DIŞ TİC LTD ŞTİ",
+        "PRİME ALÜMİNYUM SAN. VE DIŞ. TİC. LTD. ŞTİ."
+      ],
+      "comparison_keys": [
+        "prime aluminyum",
+        "prime aluminyum dis",
+        "prime aluminyum dis",
+        "prime cotton",
+        "prime dis",
+        "prime paper and packaging production",
+        "prime plastichem turkey hammadde dagtim",
+        "prime solution tahil depola sis",
+        "prime yarns",
+        "prime aluminyum dis",
+        "prime aluminyum dis"
+      ],
+      "member_scores": [
+        100,
+        100,
+        100,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        100,
+        100
+      ],
+      "member_reasons": [
+        "token_overlap_high, legal_suffix_ignored, string_similarity_high",
+        "token_overlap_high, legal_suffix_ignored, string_similarity_high",
+        "token_overlap_high, legal_suffix_ignored, string_similarity_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high, legal_suffix_ignored, string_similarity_high",
+        "token_overlap_high, legal_suffix_ignored, string_similarity_high"
+      ],
+      "max_score": 100,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "shared_core_tokens": [
+        "prime"
+      ]
+    },
+    {
+      "group_key": "trend",
+      "size": 11,
+      "names": [
+        "TREND",
+        "TREND AMBALAJ SAN. VE TIC. A.S.",
+        "TREND BARKOD ETİKET SAN. TİC. LTD. ŞTİ.",
+        "TREND ENERJİ MÜHENDİSLİK TAAHHÜT SANAYİ VE TİC.",
+        "TREND ETİKET KEMER DERİ METAL AKS SAN VE TİC LTD STİ",
+        "TREND FUARCILIK VE YAYINCILIK AŞ.",
+        "TREND İÇ GİYİM",
+        "TREND KAGITÇILIK ÜRÜNLERI IÇ VE DIS TIC. PAZ. LTD. STI.",
+        "TREND LOVERS SEDAT AYDOĞAN TREND LOVERS",
+        "TREND MÜHENDİSLİK MAKİNE SAN. TİC. A.Ş.",
+        "TREND ÖKÇE VE TABAN SAN. VE TİC. LTD. ŞTİ."
+      ],
+      "comparison_keys": [
+        "trend",
+        "trend ambalaj",
+        "trend barkod etiket",
+        "trend enerji muhendislik taahhut",
+        "trend etiket kemer deri metal aks",
+        "trend fuarcilik yayincilik",
+        "trend ic giyim",
+        "trend kagitcilik urunleri ic dis",
+        "trend lovers sedat aydogan trend lovers",
+        "trend muhendislik makine",
+        "trend okce taban"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "shared_core_tokens": [
+        "trend"
+      ]
+    },
+    {
+      "group_key": "standart",
+      "size": 10,
+      "names": [
+        "STANDART",
+        "Standart Arge Tasarım Üretim Sanayi ve Ticaret Anonim Şirketi",
+        "STANDART CIVATA TIC VE SAN AS",
+        "Standart Cıvata Ticaret ve Sanayi A.Ş.",
+        "STANDART KAUÇUK VE KIMYEVI MADDELER TICARET LIMITED SIRKETI",
+        "STANDART KONTROL VE TEST HİZMETLERİ A.Ş",
+        "STANDART POMPA",
+        "STANDART POMPA VE MAK. SAN. TİC. A.Ş.",
+        "STANDART POMPA VE MAKİNA SANAYİ TİCARET A.Ş.",
+        "STANDART YAY SANAYİ"
+      ],
+      "comparison_keys": [
+        "standart",
+        "standart arge tasarim uretim",
+        "standart civata",
+        "standart civata",
+        "standart kaucuk kimyevi maddeler",
+        "standart kontrol test hizmetleri",
+        "standart pompa",
+        "standart pompa mak",
+        "standart pompa makina",
+        "standart yay"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 92,
+      "shared_core_tokens": [
+        "standart"
+      ]
+    },
+    {
+      "group_key": "teksan",
+      "size": 9,
+      "names": [
+        "TEKSAN",
+        "TEKSAN AMBALAJ SANAYİ TİCARET ANONİM ŞİRKETİ",
+        "TEKSAN END. FIRIN MAK. SAN. VE TİC. LTD. ŞTİ.",
+        "TEKSAN ISI",
+        "TEKSAN IÇ VE DIS TICARET LTD.STI.",
+        "Teksan iç ve Dış Tic Ltd. Şti",
+        "TEKSAN JENARATÖR ELEK. SAN. VE TİC. A.Ş.",
+        "TEKSAN JENERATÖR ELEKTRIK SAN.VE TIC.A.S.",
+        "TEKSAN JENERATÖR ELEKTRİK SAN. TİC. A.Ş."
+      ],
+      "comparison_keys": [
+        "teksan",
+        "teksan ambalaj",
+        "teksan end firin mak",
+        "teksan isi",
+        "teksan ic dis",
+        "teksan ic dis",
+        "teksan jenarator elek",
+        "teksan jenerator elektrik",
+        "teksan jenerator elektrik"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "shared_core_tokens": [
+        "teksan"
+      ]
+    },
+    {
+      "group_key": "changzhou dingliang vehicle accessories",
+      "size": 8,
+      "names": [
+        "CHANGZHOU DINGLIANG VEHICLE ACCESSORIES CO.,LTD",
+        "CHANGZHOU JIAHONG AUTO PARTS CO.,LTD",
+        "CHANGZHOU VAP VEHICLE PARTS CO.,LTD",
+        "CHANGZHOU WENTAO AUTO-PARTS FACTORY",
+        "CHANGZHOU YE WEI VEHICLE ACCESSORIES CO., LTD",
+        "CHANGZHOU YIDAQI VEHICLE PARTS CO., LTD",
+        "CHANGZHOU YIZHAO AUTO PARTS CO ., LTD",
+        "CHANGZHOU YONGQING AUTO SPARE PARTS CO.,LTD"
+      ],
+      "comparison_keys": [
+        "changzhou dingliang vehicle accessories",
+        "changzhou jiahong auto parts",
+        "changzhou vap vehicle parts",
+        "changzhou wentao auto parts factory",
+        "changzhou ye wei vehicle accessories",
+        "changzhou yidaqi vehicle parts",
+        "changzhou yizhao auto parts",
+        "changzhou yongqing auto spare parts"
+      ],
+      "member_scores": [
+        83,
+        87,
+        88,
+        74,
+        83,
+        88,
+        87,
+        76
+      ],
+      "member_reasons": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "max_score": 88,
+      "min_score": 74,
+      "pairwise_min_score": 70,
+      "shared_core_tokens": [
+        "changzhou"
+      ]
+    },
+    {
+      "group_key": "kipas",
+      "size": 8,
+      "names": [
+        "KIPAS KAGIT SAN. ISLETMELERI A.S.",
+        "KIPAS KAGIT SANAYI ISLETMELERI A.S.",
+        "KİPAŞ KAĞIT",
+        "KİPAŞ MENSUCAT İŞLETMELERİ A.Ş",
+        "KİPAŞ MENSUCAT İŞLETMELERİ A.Ş.",
+        "KİPAŞ MENSUCAT İŞLETMELERİ A.Ş.",
+        "KİPAŞ MENSUCAT İŞLETMELERİ A.Ş.",
+        "KİPAŞ PAZARLAMA VE TİCARET A.Ş."
+      ],
+      "comparison_keys": [
+        "kipas kagit isletmeleri",
+        "kipas kagit isletmeleri",
+        "kipas kagit",
+        "kipas mensucat isletmeleri",
+        "kipas mensucat isletmeleri",
+        "kipas mensucat isletmeleri",
+        "kipas mensucat isletmeleri",
+        "kipas"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        82,
+        82,
+        82,
+        82,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "",
+        "",
+        "",
+        "",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 82,
+      "pairwise_min_score": 82,
+      "shared_core_tokens": [
+        "kipas"
+      ]
+    },
+    {
+      "group_key": "merkez",
+      "size": 8,
+      "names": [
+        "MERKEZ DİŞ",
+        "MERKEZ DİŞ MALZEMELERİ SAN. VE TİC. LTD. ŞTİ.",
+        "MERKEZ GRUP SU VE ÇEVRE TEKNOLOJİLERİ DANIŞMANLIK MÜHENDİSLİK İNŞAAT TAAHHÜT İTHALAT İHRACAT SANAYİ VE TİCARET LİMİTED ŞİRKETİ",
+        "MERKEZ ITHALAT IHRACAT LTD. STI.",
+        "MERKEZ KADIFE / FABRIC HILL'S",
+        "MERKEZ KALIP SAN. VE TİC. LTD. ŞTİ.",
+        "MERKEZ MOTOR",
+        "MERKEZ OTOMOTİV"
+      ],
+      "comparison_keys": [
+        "merkez dis",
+        "merkez dis malzemeleri",
+        "merkez grup su cevre teknolojileri danismanlik muhendislik insaat taahhut",
+        "merkez",
+        "merkez kadife fabric hill s",
+        "merkez kalip",
+        "merkez motor",
+        "merkez otomotiv"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "shared_core_tokens": [
+        "merkez"
+      ]
+    },
+    {
+      "group_key": "sancak",
+      "size": 8,
+      "names": [
+        "SANCAK",
+        "SANCAK BAHARAT GIDA SAN. VE TIC. LTD. ŞTI.",
+        "SANCAK ETIKET MATBAA AMBALAJ INS. SAN. VE TIC. A.S.",
+        "SANCAK EV GEREÇLERİ SAN. TİC. LTD. ŞTİ.",
+        "SANCAK GLOBAL GIDA DIŞ TIC. LTD. ŞTI.",
+        "SANCAK MEFRUŞAT TEKSTİL SAN. VE TİC. LTD. ŞTİ.",
+        "SANCAK OTOMASYON",
+        "SANCAK TEKSTİL VE YALITIM ÜRÜNLERİ SANAYİ VE TİCARET LTD. ŞTİ."
+      ],
+      "comparison_keys": [
+        "sancak",
+        "sancak baharat gida",
+        "sancak etiket matbaa ambalaj ins",
+        "sancak ev gerecleri",
+        "sancak global gida dis",
+        "sancak mefrusat tekstil",
+        "sancak otomasyon",
+        "sancak tekstil yalitim urunleri"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 76,
+      "shared_core_tokens": [
+        "sancak"
+      ]
+    },
+    {
+      "group_key": "akhan",
+      "size": 7,
+      "names": [
+        "Akhan Cam Ev Gereçleri ve Plastik San. Tic. Ltd. Şti.",
+        "AKHAN GROUP",
+        "AKHAN PLASTIK KALIP VE HED. ESYA SAN.TIC. LTD.STI.",
+        "Akhan Plastik Kalıp ve Hediyelik Eşya San. ve Tic. Ltd. Şti.",
+        "AKHAN TICARET ITH. IHR. SAN. LTD. STI.",
+        "AKHAN UN FABRIKASI VE TARIM ÜRN. GIDA SAN. TIC. A.Ş..",
+        "AKHAN UN FABRIKASI VE TARIM ÜRÜNLERI GIDA SANAYI TICARET ANONIM SIRKETI"
+      ],
+      "comparison_keys": [
+        "akhan cam ev gerecleri plastik",
+        "akhan group",
+        "akhan plastik kalip hed esya",
+        "akhan plastik kalip hediyelik esya",
+        "akhan",
+        "akhan un fabrikasi tarim urn gida",
+        "akhan un fabrikasi tarim urunleri gida"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        98,
+        98,
+        93,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "string_similarity_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 93,
+      "pairwise_min_score": 90,
+      "shared_core_tokens": [
+        "akhan"
+      ]
+    },
+    {
+      "group_key": "alternatif",
+      "size": 7,
+      "names": [
+        "ALTERNATIF LIMITED",
+        "ALTERNATIF RULMAN A.S.",
+        "ALTERNATIF TARIM VE ORMAN ÜR. SAN. VE TIC. LTD. ŞTI.",
+        "ALTERNATIF YAYINCILIK",
+        "ALTERNATİF MEDİKAL",
+        "ALTERNATİF MEDİKAL SAN. VE TİC. LTD. ŞTİ.",
+        "ALTERNATİF TURİZM ETKİNLİKLERİ VE İŞLETMELERİ BİRLİĞİ"
+      ],
+      "comparison_keys": [
+        "alternatif",
+        "alternatif rulman",
+        "alternatif tarim orman ur",
+        "alternatif yayincilik",
+        "alternatif medikal",
+        "alternatif medikal",
+        "alternatif turizm etkinlikleri isletmeleri birligi"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "shared_core_tokens": [
+        "alternatif"
+      ]
+    },
+    {
+      "group_key": "pakistan pavilion honest food products",
+      "size": 7,
+      "names": [
+        "PAKISTAN PAVILION / HONEST FOOD PRODUCTS",
+        "PAKİSTAN PAVİLYONU / Al Azeem Enterprises Pakistan",
+        "PAKİSTAN PAVİLYONU / AMS FOODS",
+        "PAKİSTAN PAVİLYONU / HONEST FOOD PRODUCTS",
+        "PAKİSTAN PAVİLYONU /Jazaa Global Pvt. Ltd.",
+        "PAKİSTAN PAVİLYONU HARMAIN GLOBAL IMPORTS AND EXPORTS",
+        "PAKİSTAN PAVİLYONU M.MANZOOR & CO. PAKISTAN PVT.LTD."
+      ],
+      "comparison_keys": [
+        "pakistan pavilion honest food products",
+        "pakistan pavilyonu al azeem enterprises pakistan",
+        "pakistan pavilyonu ams foods",
+        "pakistan pavilyonu honest food products",
+        "pakistan pavilyonu jazaa global pvt",
+        "pakistan pavilyonu harmain global imports and exports",
+        "pakistan pavilyonu m manzoor pakistan pvt"
+      ],
+      "member_scores": [
+        96,
+        72,
+        78,
+        96,
+        70,
+        70,
+        72
+      ],
+      "member_reasons": [
+        "string_similarity_high",
+        "",
+        "",
+        "string_similarity_high",
+        "",
+        "",
+        ""
+      ],
+      "max_score": 96,
+      "min_score": 70,
+      "pairwise_min_score": 70,
+      "shared_core_tokens": [
+        "pakistan"
+      ]
+    },
+    {
+      "group_key": "sonmez asf iplik dokuma boya",
+      "size": 7,
+      "names": [
+        "SÖNMEZ ASF İPLİK DOKUMA VE BOYA SAN TİC A.Ş.",
+        "SÖNMEZ DIS TICARET LTD. STI.",
+        "SÖNMEZ GLOBAL PLASTİK A.Ş.",
+        "SÖNMEZ MEDİKAL",
+        "SÖNMEZ PALMİYE",
+        "SÖNMEZ RAŞEL TEKNİK MÜHENDİSLİK HİZ. TEKSTİL KONF. SAN. VE TİC. LTD. ŞTİ.",
+        "Sönmez Seramik İmalat San. ve Dış Tic. Ltd. Şti."
+      ],
+      "comparison_keys": [
+        "sonmez asf iplik dokuma boya",
+        "sonmez dis",
+        "sonmez global plastik",
+        "sonmez medikal",
+        "sonmez palmiye",
+        "sonmez rasel teknik muhendislik hiz tekstil konf",
+        "sonmez seramik imalat dis"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "shared_core_tokens": [
+        "sonmez"
+      ]
+    },
+    {
+      "group_key": "ajansmik",
+      "size": 6,
+      "names": [
+        "AJANSMIK",
+        "AJANSMIK FUARCILIK VE MEDYA HIZ LTD STI",
+        "AJANSMIK FUARCILIK VE MEDYA HIZMETLERI LTD. STI.",
+        "AJANSMIK FUARCILIK VE MEDYA HIZMETLERI LTD. STI.",
+        "AJANSMİK FUARCILIK VE MEDYA HİZMETLERİ LTD.ŞTİ.",
+        "AJANSMİK YAYINCILIK VE REKLAM HİZ. TİC. SAN. LTD. ŞTİ."
+      ],
+      "comparison_keys": [
+        "ajansmik",
+        "ajansmik fuarcilik medya hiz",
+        "ajansmik fuarcilik medya hizmetleri",
+        "ajansmik fuarcilik medya hizmetleri",
+        "ajansmik fuarcilik medya hizmetleri",
+        "ajansmik yayincilik reklam hiz"
+      ],
+      "member_scores": [
+        98,
+        76,
+        98,
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 76,
+      "pairwise_min_score": 72,
+      "shared_core_tokens": [
+        "ajansmik"
+      ]
+    },
+    {
+      "group_key": "altinay elektromobilite enerji tek grup firmasi",
+      "size": 6,
+      "names": [
+        "ALTINAY ELEKTROMOBILITE VE ENERJI TEK.A.S GRUP FİRMASI)",
+        "ALTINAY ELEKTROMOBILITE VE ENERJI TEKNOLOJILERI A.S.",
+        "ALTINAY ELEKTROMOBİLİTE VE ENERJİ TEKNOLOJİLERİ A.Ş.",
+        "ALTINAY ROBOT TEKNOLOJİLERİ SAN. VE TİC.",
+        "ALTINAY SAVUNMA TEKNOLOJİLERİ A.Ş.",
+        "ALTINAY SAVUNMA TEKNOLOJİLERİ A.Ş."
+      ],
+      "comparison_keys": [
+        "altinay elektromobilite enerji tek grup firmasi",
+        "altinay elektromobilite enerji teknolojileri",
+        "altinay elektromobilite enerji teknolojileri",
+        "altinay robot teknolojileri",
+        "altinay savunma teknolojileri",
+        "altinay savunma teknolojileri"
+      ],
+      "member_scores": [
+        79,
+        79,
+        79,
+        79,
+        79,
+        79
+      ],
+      "member_reasons": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "max_score": 79,
+      "min_score": 79,
+      "pairwise_min_score": 73,
+      "shared_core_tokens": [
+        "altinay"
+      ]
+    },
+    {
+      "group_key": "girisim",
+      "size": 6,
+      "names": [
+        "GİRİŞİM AJANS OFSET MATB.BAS.YAY.DAĞ.KIRT.GIDA İNŞ. EĞT.DAN.REK.BİL.MAK.SAN. VE TİC.LTD.ŞTİ.",
+        "GİRİŞİM ENDÜSTRİYEL MUTFAK EŞYALARI GIDA TEKS İNŞ.SAN. TİC. LTD.ŞTİ.",
+        "GİRİŞİM MAKİNA",
+        "GİRİŞİM MAKİNA İMALAT SAN. TİC. LTD. ŞTİ.",
+        "GİRİŞİM MAKİNA İML. SAN. TİC. LTD. ŞTİ.",
+        "GİRİŞİM TİCARET"
+      ],
+      "comparison_keys": [
+        "girisim ajans ofset matb bas yay dag kirt gida ins egt dan rek bil mak",
+        "girisim endustriyel mutfak esyalari gida teks ins",
+        "girisim makina",
+        "girisim makina imalat",
+        "girisim makina iml",
+        "girisim"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 92,
+      "shared_core_tokens": [
+        "girisim"
+      ]
+    },
+    {
+      "group_key": "makel dis",
+      "size": 6,
+      "names": [
+        "MAKEL DIS TICARET A.S.",
+        "MAKEL ELEKTRİK",
+        "MAKEL MEKANİK MÜH. A.Ş.",
+        "MAKEL MEKANİK MÜHENDİSLİK A.Ş.",
+        "MAKEL TEKNOLOJİ A.Ş.",
+        "MAKEL TEKNOLOJİ A.Ş."
+      ],
+      "comparison_keys": [
+        "makel dis",
+        "makel elektrik",
+        "makel mekanik muh",
+        "makel mekanik muhendislik",
+        "makel teknoloji",
+        "makel teknoloji"
+      ],
+      "member_scores": [
+        98,
+        98,
+        81,
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 81,
+      "pairwise_min_score": 81,
+      "shared_core_tokens": [
+        "makel"
+      ]
+    }
+  ],
+  "short_hub_suspect_count": 0,
+  "short_hub_examples": [],
+  "sector_only_suspect_count": 3,
+  "sector_only_examples": [
+    {
+      "group_key": "plastik",
+      "size": 4,
+      "names": [
+        "AS PLASTIK SAN. VE TIC. LTD. STI.",
+        "PLASTIK AMBALAJ",
+        "PLASTIK AMBALAJ TEKNOLOJİSİ DERGİSİ",
+        "PLASTİK SANAYİCİLERİ DERNEĞİ İKTİSADİ İŞLETMESİ"
+      ],
+      "comparison_keys": [
+        "plastik",
+        "plastik ambalaj",
+        "plastik ambalaj teknolojisi dergisi",
+        "plastik sanayicileri dernegi iktisadi isletmesi"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "shared_core_tokens": [
+        "plastik"
+      ]
+    },
+    {
+      "group_key": "saglik",
+      "size": 4,
+      "names": [
+        "SAGLIK",
+        "SAĞLIK HABER GAZETESİ",
+        "SAĞLIK KALIP PLASTİK SANAYİ VE DIŞ TİC. LTD. ŞTİ.",
+        "SAĞLIK MARKET SAĞLIK ÜR. İTH.PAZ.SAN.TİC.LTD.ŞTİ"
+      ],
+      "comparison_keys": [
+        "saglik",
+        "saglik haber gazetesi",
+        "saglik kalip plastik dis",
+        "saglik market saglik ur"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "shared_core_tokens": [
+        "saglik"
+      ]
+    },
+    {
+      "group_key": "tarim",
+      "size": 3,
+      "names": [
+        "TARIM KREDI TEDARIK VE ÜRETIM A.Ş.",
+        "TARIM VE ORMAN BAKANLIĞI DOĞA KORUMA MİLLİ PARKLAR 1.BÖLGE MÜDÜRLÜĞÜ",
+        "Tarım"
+      ],
+      "comparison_keys": [
+        "tarim kredi tedarik uretim",
+        "tarim orman bakanligi doga koruma milli parklar 1 bolge mudurlugu",
+        "tarim"
+      ],
+      "member_scores": [
+        98,
+        98,
+        98
+      ],
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "shared_core_tokens": [
+        "tarim"
+      ]
+    }
+  ],
+  "transitive_member_group_count": 0,
+  "transitive_examples": [],
+  "required_scenarios": [
+    {
+      "code": "A_acarlar",
+      "left": "ACARLAR VAGON SAN. VE TİC. A.Ş.",
+      "right": "ACARLAR YAPI MALZEMELERİ PAZARLAMA TİCARET LTD ŞTİ",
+      "should_match": false,
+      "engine_match": false,
+      "engine_confidence": null,
+      "engine_ok": true,
+      "left_live_count": 1,
+      "right_live_count": 1,
+      "left_live_names": [
+        "ACARLAR VAGON SAN.VE TİC.A.Ş."
+      ],
+      "right_live_names": [
+        "Acarlar Yapı Malzemeleri Pazarlama Ticaret Limited Şirketi"
+      ],
+      "co_grouped_in_live_analysis": true,
+      "live_ok": false
+    },
+    {
+      "code": "B_akm_alarm",
+      "left": "AKM ALARM KONTROL MERKEZİ LTD ŞTİ",
+      "right": "AKM ALARM KONTROL MERKEZİ A.Ş.",
+      "should_match": true,
+      "engine_match": true,
+      "engine_confidence": 100,
+      "engine_ok": true,
+      "left_live_count": 0,
+      "right_live_count": 0,
+      "left_live_names": [],
+      "right_live_names": [],
+      "co_grouped_in_live_analysis": false,
+      "live_ok": null
+    },
+    {
+      "code": "C_akm_distinct",
+      "left": "AKM GÜVENLİK SİSTEMLERİ A.Ş.",
+      "right": "AKM ALARM KONTROL MERKEZİ LTD.",
+      "should_match": false,
+      "engine_match": false,
+      "engine_confidence": null,
+      "engine_ok": true,
+      "left_live_count": 0,
+      "right_live_count": 0,
+      "left_live_names": [],
+      "right_live_names": [],
+      "co_grouped_in_live_analysis": false,
+      "live_ok": null
+    }
+  ],
+  "acarlar_live_customer_count": 3,
+  "acarlar_live_names": [
+    "ACARLAR",
+    "ACARLAR VAGON SAN.VE TİC.A.Ş.",
+    "Acarlar Yapı Malzemeleri Pazarlama Ticaret Limited Şirketi"
+  ],
+  "acarlar_duplicate_groups": [
+    {
+      "group_key": "acarlar",
+      "names": [
+        "ACARLAR",
+        "ACARLAR VAGON SAN.VE TİC.A.Ş.",
+        "Acarlar Yapı Malzemeleri Pazarlama Ticaret Limited Şirketi"
+      ],
+      "shared": [
+        "acarlar"
+      ]
+    }
+  ],
+  "false_negative_exact_key_ungrouped": 0,
+  "false_negative_strong_fuzzy_ungrouped_sampled": 13,
+  "false_negative_examples": [
+    {
+      "type": "strong_fuzzy_not_grouped",
+      "confidence": 98,
+      "explanations": [
+        "token_overlap_high"
+      ],
+      "names": [
+        "GLOBAL Z GIDA MEDIKAL SAN. VE TIC. LTD. STI.",
+        "GLOBAL GIDA"
+      ],
+      "comparison_keys": [
+        "global z gida medikal",
+        "global gida"
+      ]
+    },
+    {
+      "type": "strong_fuzzy_not_grouped",
+      "confidence": 98,
+      "explanations": [
+        "token_overlap_high"
+      ],
+      "names": [
+        "GLOBAL Z GIDA MEDIKAL SAN. VE TIC. LTD. STI.",
+        "GLOBAL GIDA PAZ. SAN. VE DIŞ TIC. A.Ş."
+      ],
+      "comparison_keys": [
+        "global z gida medikal",
+        "global gida dis"
+      ]
+    },
+    {
+      "type": "strong_fuzzy_not_grouped",
+      "confidence": 98,
+      "explanations": [
+        "token_overlap_high"
+      ],
+      "names": [
+        "Global Group Pet Hayvansal Gida San. ve Tic. A.S.",
+        "GLOBAL GIDA"
+      ],
+      "comparison_keys": [
+        "global group pet hayvansal gida",
+        "global gida"
+      ]
+    },
+    {
+      "type": "strong_fuzzy_not_grouped",
+      "confidence": 98,
+      "explanations": [
+        "token_overlap_high"
+      ],
+      "names": [
+        "Global Group Pet Hayvansal Gida San. ve Tic. A.S.",
+        "GLOBAL GIDA PAZ. SAN. VE DIŞ TIC. A.Ş."
+      ],
+      "comparison_keys": [
+        "global group pet hayvansal gida",
+        "global gida dis"
+      ]
+    },
+    {
+      "type": "strong_fuzzy_not_grouped",
+      "confidence": 100,
+      "explanations": [
+        "token_overlap_high",
+        "legal_suffix_ignored",
+        "string_similarity_high"
+      ],
+      "names": [
+        "GLOBAL GIDA",
+        "GLOBAL GIDA PAZ. SAN. VE DIŞ TIC. A.Ş."
+      ],
+      "comparison_keys": [
+        "global gida",
+        "global gida dis"
+      ]
+    },
+    {
+      "type": "strong_fuzzy_not_grouped",
+      "confidence": 98,
+      "explanations": [
+        "token_overlap_high",
+        "string_similarity_high"
+      ],
+      "names": [
+        "TEKNİK KİMYA DONATIM MAKİNE SAN. VE TİC. A.Ş.",
+        "TEKNIK KIMYA DONATIM MAKINE ENERJI SAN. TIC. A.S."
+      ],
+      "comparison_keys": [
+        "teknik kimya donatim makine",
+        "teknik kimya donatim makine enerji"
+      ]
+    },
+    {
+      "type": "strong_fuzzy_not_grouped",
+      "confidence": 98,
+      "explanations": [
+        "token_overlap_high"
+      ],
+      "names": [
+        "TEKNİK DENTAL DİŞ ALET VE MALZ. SAN. VE TİC. LTD. ŞTİ.",
+        "TEKNİK DENTAL"
+      ],
+      "comparison_keys": [
+        "teknik dental dis alet malz",
+        "teknik dental"
+      ]
+    },
+    {
+      "type": "strong_fuzzy_not_grouped",
+      "confidence": 98,
+      "explanations": [
+        "token_overlap_high"
+      ],
+      "names": [
+        "TEKNİK MASURA AMBALAJ KAĞIT GERİ DÖNÜŞÜM SAN. TİC. A.Ş.",
+        "TEKNİK MASURA"
+      ],
+      "comparison_keys": [
+        "teknik masura ambalaj kagit geri donusum",
+        "teknik masura"
+      ]
+    },
+    {
+      "type": "strong_fuzzy_not_grouped",
+      "confidence": 98,
+      "explanations": [
+        "token_overlap_high"
+      ],
+      "names": [
+        "ANADOLU ÖTEKTIK",
+        "ANADOLU ÖTEKTİK MUH. SOĞUTMA SAN. VE TİC. LTD. ŞTİ."
+      ],
+      "comparison_keys": [
+        "anadolu otektik",
+        "anadolu otektik muh sogutma"
+      ]
+    },
+    {
+      "type": "strong_fuzzy_not_grouped",
+      "confidence": 98,
+      "explanations": [
+        "token_overlap_high"
+      ],
+      "names": [
+        "ANADOLU ISUZU OTOMOTIV SAN. VE TIC. A.S.",
+        "Anadolu Isuzu Otomotiv Sanayii ve Ticaret Anonim Şirketi"
+      ],
+      "comparison_keys": [
+        "anadolu isuzu otomotiv",
+        "anadolu isuzu otomotiv sanayii"
+      ]
+    },
+    {
+      "type": "strong_fuzzy_not_grouped",
+      "confidence": 98,
+      "explanations": [
+        "token_overlap_high"
+      ],
+      "names": [
+        "ANADOLU ISUZU OTOMOTİV SAN. VE TİC. A.Ş.",
+        "Anadolu Isuzu Otomotiv Sanayii ve Ticaret Anonim Şirketi"
+      ],
+      "comparison_keys": [
+        "anadolu isuzu otomotiv",
+        "anadolu isuzu otomotiv sanayii"
+      ]
+    },
+    {
+      "type": "strong_fuzzy_not_grouped",
+      "confidence": 98,
+      "explanations": [
+        "token_overlap_high"
+      ],
+      "names": [
+        "Anadolu Isuzu Otomotiv Sanayii ve Ticaret Anonim Şirketi",
+        "ANADOLU ISUZU OTOMOTİV SAN. VE TİC. A.Ş."
+      ],
+      "comparison_keys": [
+        "anadolu isuzu otomotiv sanayii",
+        "anadolu isuzu otomotiv"
+      ]
+    },
+    {
+      "type": "strong_fuzzy_not_grouped",
+      "confidence": 98,
+      "explanations": [
+        "token_overlap_high",
+        "string_similarity_high"
+      ],
+      "names": [
+        "ANADOLU ANKARA TURİZM İŞLETMECİLERİ DERNEĞİ",
+        "ANADOLU ANKARA TURİZM İŞLETMECİLERİ DERNEĞİ ATİD"
+      ],
+      "comparison_keys": [
+        "anadolu ankara turizm isletmecileri dernegi",
+        "anadolu ankara turizm isletmecileri dernegi atid"
+      ]
+    }
+  ],
+  "largest_groups": [
+    {
+      "group_key": "ideal",
+      "size": 27,
+      "names": [
+        "IDEAL",
+        "Ideal Av Spor Turizm Imalat San. Ve Tic. Ltd. Sti.",
+        "IDEAL KARTON KUTU VE OFSET AMBALAJ SANAYI TIC. LTD. STI.",
+        "IDEAL KOLTUK NALBURIYE MOBILYA PAZARLAMA SAN. VE TICARET LTD.STI.",
+        "iDEAL KURUYEMiŞ iM. NAK. TUR. TAR. ÜR.GIDA iNŞ. iHR. iTH. SAN. VE TiC. LTD. ŞTi.",
+        "IDEAL MAKINA END. ÜRÜN. SAN. VE TIC. A.S.",
+        "iDEAL MEMBA SULARI ENERJi MAD. TAR. ÜR. PET. SAN. VE TiC. A.Ş.",
+        "IDEAL MODEL & IDE-ALCAST",
+        "IDEAL MODEL DÖKÜM SISTEMLERI SAN. TIC. A.S.",
+        "IDEAL PAK OTOMATIK AMBALAJ MAKINALARI A.S.",
+        "IDEAL PREMIUM FURNITURE SDN BHD",
+        "IDEAL TEKNIK YAPI ENERJI VE END.KALIP A.S."
+      ],
+      "shared_core_tokens": [
+        "ideal"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 70,
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high, abbreviation_normalized",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ]
+    },
+    {
+      "group_key": "zhongshan ai li pu electrical appliance",
+      "size": 20,
+      "names": [
+        "ZHONGSHAN AI LI PU ELECTRICAL APPLIANCE CO., LTD.",
+        "ZHONGSHAN ARTMOON HOUSEHOLD APPLIANCES CO., LTD.",
+        "ZHONGSHAN BOWEN HOME APPLIANCE CO., LTD.",
+        "ZHONGSHAN CITY DINGXIANG ELECTRICAL CO.,LTD",
+        "ZHONGSHAN DAOFEY ELECTRİCAL CO. LTD.",
+        "ZHONGSHAN DIPPERS ELECTRIC CO., LTD.",
+        "ZHONGSHAN FOREVER GREAT ELECTRONIC TECHNOLOGY CO.,LTD.",
+        "ZHONGSHAN GOAL ELECTRICAL APPLIANCE CO., LTD",
+        "ZHONGSHAN JACAL ELECTRIC CO., LTD",
+        "ZHONGSHAN JIADESHİ ELECTRICAL APPLIANCE CO.LTD.",
+        "ZHONGSHAN JINHAO ELECTRIC APPLIANCE CO.,LTD",
+        "ZHONGSHAN KEQI ELECTRICAL APPLIANCE CO.,LTD."
+      ],
+      "shared_core_tokens": [
+        "zhongshan"
+      ],
+      "max_score": 89,
+      "min_score": 71,
+      "pairwise_min_score": 70,
+      "member_reasons": [
+        "string_similarity_high",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "string_similarity_high",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "group_key": "aktif dis",
+      "size": 16,
+      "names": [
+        "AKTIF DIS TIC. INS. TUR. VE TIBBI ÜRÜN. SAN. LTD. STI.",
+        "AKTIF GIRISIM",
+        "AKTIF KESICI TAKIM HIRDAVAT MAK. SAN. TIC. LTD. STI.",
+        "AKTIF YAPISTIRICILAR VE KIMYA TIC. SAN. A.S",
+        "AKTIF YAPISTIRICILAR VE KIMYA TIC. SAN. A.S",
+        "AKTİF DIŞ TİC. İNŞ. TUR. VE TIBBİ ÜRÜNLER SAN. LTD .ŞTİ.",
+        "AKTİF DIŞ TİCARET",
+        "AKTİF ELEKTROTEKNİK SAN.VE TİC.A.Ş.",
+        "AKTİF GIDA MEŞRUBAT SAN. VE TIC. A.Ş.",
+        "AKTİF GRANÜL GRUP TABAN SAN. VE TİC. LTD. ŞTİ.",
+        "AKTİF GRUP",
+        "AKTİF NESER ELEK. VE MAK. KOM. MÜŞ. İTH. İHR. VE PAZ. LTD. ŞTİ."
+      ],
+      "shared_core_tokens": [
+        "aktif"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "member_reasons": [
+        "token_overlap_high, abbreviation_normalized",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high, abbreviation_normalized",
+        "token_overlap_high, abbreviation_normalized",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ]
+    },
+    {
+      "group_key": "modest fashion pavilyonu al tatari",
+      "size": 16,
+      "names": [
+        "MODEST FASHION PAVİLYONU / AL-TATARI",
+        "MODEST FASHION PAVİLYONU / BLOOM WITH KAIA",
+        "MODEST FASHION PAVİLYONU / ELEMWE",
+        "MODEST FASHION PAVİLYONU / KAYANA BY TYAOZA",
+        "MODEST FASHION PAVİLYONU / MARGA MODEST FASHION",
+        "MODEST FASHION PAVİLYONU / MARIA IRENE",
+        "MODEST FASHION PAVİLYONU / MERIEM LEBDIRI",
+        "MODEST FASHION PAVİLYONU / NOIE STUDIOS",
+        "MODEST FASHION PAVİLYONU / ON LINE FASHION",
+        "MODEST FASHION PAVİLYONU / SANTOON INDONESIA",
+        "MODEST FASHION PAVİLYONU / TAQEEYA",
+        "MODEST FASHION PAVİLYONU / TENUN DARLA"
+      ],
+      "shared_core_tokens": [
+        "fashion",
+        "modest",
+        "pavilyonu"
+      ],
+      "max_score": 79,
+      "min_score": 73,
+      "pairwise_min_score": 70,
+      "member_reasons": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "group_key": "shaoxing ai yi textile",
+      "size": 16,
+      "names": [
+        "SHAOXING AI YI TEXTILE CO.,LTD",
+        "SHAOXING ANZHOU TEXTILE CO., LTD.",
+        "SHAOXING CHANGHAO TEXTILE CO.,LTD",
+        "SHAOXING CHUANSHI HOME TEXTILE COMPANY LIMITED.",
+        "SHAOXING GAOLIAN TEXTILE CO.,LTD",
+        "SHAOXING GOZUS TEXTILE CO.,LTD",
+        "SHAOXING KEQIAO YOUHE TEXTILE CO.,LTD",
+        "SHAOXING LINGYA TEXTILE CO., LTD",
+        "SHAOXING QIGE HOME TEXTILE CO., LTD.",
+        "SHAOXING WEIYAN TEXTILE CO.,LTD.",
+        "SHAOXING WORTHSHARE TEXTILE CO.,LTD",
+        "SHAOXING XIAOLUZHU TEXTILE CO., LTD"
+      ],
+      "shared_core_tokens": [
+        "shaoxing",
+        "textile"
+      ],
+      "max_score": 86,
+      "min_score": 70,
+      "pairwise_min_score": 70,
+      "member_reasons": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "group_key": "atilim",
+      "size": 15,
+      "names": [
+        "ATILIM",
+        "ATILIM ALÜMINYUM SAN.VE TIC.LTD.STI.",
+        "ATILIM ALÜMİNYUM SAN.VE TİC.LTD.ŞTİ.",
+        "ATILIM AMBALAJ PAZ. SAN. VE TIC. LTD. STI.",
+        "ATILIM DİŞ DEPOSU",
+        "ATILIM DİŞ DEPOSU SAN. VE TİC. LTD. ŞTİ.",
+        "ATILIM İÇ VE DIŞ TİCARET LTD.ŞTİ.",
+        "ATILIM MAKINA VE SAN. MAMÜLLERI PAZ. MÜH. HIZ. SAN. TIC. LTD. STI.",
+        "ATILIM MAKiNA VE SANAYi MAMÜLLERi PAZ. MÜH. HiZM. SAN. TiC. LTD. ŞTi",
+        "ATILIM METAL KAUÇUK SAN. VE TIC. A.S.",
+        "ATILIM SAGLIK A.S.",
+        "ATILIM TARIMSAL FAALiYETLER VE iNŞ. SAN. TiC. A.Ş."
+      ],
+      "shared_core_tokens": [
+        "atilim"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ]
+    },
+    {
+      "group_key": "endonezya pavilyonu badan pengembangan",
+      "size": 14,
+      "names": [
+        "ENDONEZYA PAVİLYONU / CV REALSA NATURAL",
+        "ENDONEZYA PAVİLYONU / PT BINABUSANA INTERNUSA",
+        "ENDONEZYA PAVİLYONU / PT CINQUER AGRO NUSANTARA",
+        "ENDONEZYA PAVİLYONU / PT JAYATAMA SELARAS",
+        "ENDONEZYA PAVİLYONU / PT KAPAL API",
+        "ENDONEZYA PAVİLYONU / PT LESTARI JAYA BANGSA",
+        "ENDONEZYA PAVİLYONU / PT PRISKILA PRIMA MAKMUR",
+        "ENDONEZYA PAVİLYONU / PT RM DELTASARI INDAH",
+        "ENDONEZYA PAVİLYONU / PT SURABAYA INDAH PERMAI",
+        "ENDONEZYA PAVİLYONU / PT VENAMON",
+        "ENDONEZYA PAVİLYONU PT BINTAN INTI INDUSTRIAL ESTATE",
+        "ENDONEZYA PAVİLYONU PT FORMOSA INGREDIENT FACTORY Tbk"
+      ],
+      "shared_core_tokens": [
+        "endonezya",
+        "pavilyonu"
+      ],
+      "max_score": 76,
+      "min_score": 70,
+      "pairwise_min_score": 70,
+      "member_reasons": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "group_key": "irak pavilyonu alibaba",
+      "size": 14,
+      "names": [
+        "IRAK PAVİLYONU / ALIBABA",
+        "IRAK PAVİLYONU / Alraji Company",
+        "IRAK PAVİLYONU / ASL AL-ETEMAD COMPANY",
+        "IRAK PAVİLYONU / Azhar factory",
+        "IRAK PAVİLYONU / Dijla",
+        "IRAK PAVİLYONU / FAYD AL QASIM",
+        "IRAK PAVİLYONU / Golden Mill",
+        "IRAK PAVİLYONU / Hadarat Larsa",
+        "IRAK PAVİLYONU / Iraqi cinema",
+        "IRAK PAVİLYONU / Kroonji Group",
+        "IRAK PAVİLYONU / Nour al-siptain",
+        "IRAK PAVİLYONU / TAREEK ALOFUK"
+      ],
+      "shared_core_tokens": [
+        "irak",
+        "pavilyonu"
+      ],
+      "max_score": 76,
+      "min_score": 70,
+      "pairwise_min_score": 70,
+      "member_reasons": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "group_key": "tongxiang aochen home textile fabric",
+      "size": 14,
+      "names": [
+        "TONGXIANG AOCHEN HOME TEXTILE FABRIC CO.,LTD",
+        "TONGXIANG BANGTEX TEXTILE CO.,LTD",
+        "TONGXIANG BONZER TEXTILE CO., LTD",
+        "TONGXIANG CLIMBING TEXTILE CO.,LTD",
+        "TONGXIANG FEIYU TEXTILE CO.,LTD.",
+        "TONGXIANG HONGXIN TEXTILE CO., LTD",
+        "TONGXIANG KASHEN TEXTILE CO.,LTD",
+        "TONGXIANG KILOMETER FABRIC CO., LTD.",
+        "TONGXIANG LONGGENG TEXTILE CO.,LTD",
+        "TONGXIANG RUITAI TEXTILE CO.,LTD",
+        "TONGXIANG TELIYA-TEXTILE TECHNOLOGY CO.,LTD.",
+        "TONGXIANG WEIYU TEXTILE CO.,LTD"
+      ],
+      "shared_core_tokens": [
+        "tongxiang"
+      ],
+      "max_score": 86,
+      "min_score": 71,
+      "pairwise_min_score": 71,
+      "member_reasons": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "group_key": "kuzey",
+      "size": 12,
+      "names": [
+        "KUZEY DENTAL",
+        "KUZEY DENTAL TIBBİ MALZEMELER TİC. LTD. ŞTİ.",
+        "KUZEY DİŞ DEPOSU",
+        "KUZEY EGE MAKINA SANAYI VE TICARET LIMITED SIRKETI",
+        "KUZEY FUNDUX",
+        "KUZEY GLOBAL MAKINA LTD. STI.",
+        "KUZEY GROUP SAĞLIK HİZM. LTD. ŞTİ.",
+        "KUZEY GÜNEY GIDA SAN. A.Ş.",
+        "KUZEY İTHALAT",
+        "KUZEY MAKINA PLASTIK VE INSAAT SANAYI DIS TICARET LIMITED SIRKETI",
+        "KUZEY MUTFAK İÇ VE DIŞ TİC. LTD. ŞTİ.",
+        "KUZEY TEKNİK METAL İŞLEME A.Ş."
+      ],
+      "shared_core_tokens": [
+        "kuzey"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 80,
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ]
+    },
+    {
+      "group_key": "lider ayakkabi yan",
+      "size": 12,
+      "names": [
+        "LIDER FUAR STANT HIZ. SAN. TIC.LTD.STI.",
+        "LIDER ISICAM MAKINALARI SAN. VE TIC. LTD. STI.",
+        "LIDER MAKINA - LIMA EXTRUSION",
+        "LİDER AYAKKABI YAN SAN. TİC. VE LTD. ŞTİ.",
+        "LİDER BENTONİT",
+        "LİDER DİŞ DEPOSU",
+        "LİDER DİŞ İTH. İHR. SAN. VE TİC. A.Ş.",
+        "LİDER FUAR STANT HİZ. SAN. TİC.LTD.ŞTİ.",
+        "LİDER İPLİK (IMAGE TEKSTİL SAN.VE DIŞ.TİC.A.Ş.)",
+        "LİDER MATBAA MÜREKKEPLERİ VE KİMYASALLARİ AMBALAJ SAN. VE TİC. A.Ş.",
+        "LİDER MOB.İNŞ.ELK.GID.TEKS.OTO.TURZ.HAY.PAZ.NAK.İTH.İHR.TİC.VE SAN.LTD.ŞTİ.",
+        "LİDER PET FOOD"
+      ],
+      "shared_core_tokens": [
+        "lider"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ]
+    },
+    {
+      "group_key": "omega carpet",
+      "size": 12,
+      "names": [
+        "OMEGA CARPET",
+        "OMEGA CIVATA SAN TIC. AS",
+        "OMEGA CIVATA SAN TIC. AS",
+        "Omega Dış Ticaret Limited Şirketi",
+        "OMEGA ELEKTRİK PANO",
+        "OMEGA LAZER",
+        "OMEGA MAKİNE SAN. TİC. LTD. ŞTİ.",
+        "OMEGA MARKETİNG DİŞ TİCARET LİMİTED ŞİRKETİ",
+        "OMEGA PLASTO LIMITED",
+        "Omega Sonen",
+        "OMEGA TAHIL TEKNOLOJİLERİ VE DIŞ TİC. PAZ. A.Ş.",
+        "OMEGA YAT DENİZCİLİK HİZMETLERİ LTD. ŞTİ."
+      ],
+      "shared_core_tokens": [
+        "omega"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ]
+    },
+    {
+      "group_key": "seckin",
+      "size": 12,
+      "names": [
+        "SEÇKIN AMBALAJ SAN. TIC. LTD. STI.",
+        "Seçkin Madeni Eşya San. ve Tic. A.Ş.",
+        "SEÇKIN METAL",
+        "SEÇKIN PANEL RES.MOB.INS.TAAH.SAN. VE TIC.LTD.STI.",
+        "SEÇKIN SOGUTMA",
+        "SEÇKIN SOGUTMA MÜH. ISI SIST.ELK.ELEKTRONIK ITH.IHR.SAN. VE TIC.LTD.STI.",
+        "SEÇKIN SOĞUTMA MÜH. ISI SIS. ELEKT ELEKTRONIK ITH. IHR. SAN. VE TIC. LTD. ŞTI.",
+        "SEÇKİN DENTAL",
+        "SEÇKİN DENTAL VE MEDİKAL SAĞLIK ÜRÜN. SAN. VE TİC. LTD. ŞTİ.",
+        "SEÇKİN MADENİ EŞYA SAN. VE TİC.LTD.ŞTİ.",
+        "SEÇKİN SOĞUTMA MÜHENDİSLİK ISI SİSTM.ELEKT.",
+        "SEÇKİN TİC. VE PAZ. LTD. ŞTİ."
+      ],
+      "shared_core_tokens": [
+        "seckin"
+      ],
+      "max_score": 98,
+      "min_score": 75,
+      "pairwise_min_score": 75,
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "string_similarity_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high, abbreviation_normalized",
+        "token_overlap_high",
+        "",
+        "token_overlap_high"
+      ]
+    },
+    {
+      "group_key": "prime aluminyum",
+      "size": 11,
+      "names": [
+        "PRIME ALÜMINYUM",
+        "PRIME ALÜMINYUM SAN.VE DIS TIC.LTD.STI.",
+        "PRIME ALÜMINYUM SANAYI VE DIS TICARET LTD. STI.",
+        "PRIME COTTON",
+        "PRIME DIS TICARET LTD. STI.",
+        "PRIME PAPER AND PACKAGING PRODUCTION",
+        "PRIME PLASTICHEM TURKEY HAMMADDE DAGTIM LTD. STI.",
+        "PRIME SOLUTION TAHIL DEPOLA SİS. SAN. TİC. LTD. ŞTİ.",
+        "PRIME YARNS",
+        "PRİME ALÜMİNYUM SAN VE DIŞ TİC LTD ŞTİ",
+        "PRİME ALÜMİNYUM SAN. VE DIŞ. TİC. LTD. ŞTİ."
+      ],
+      "shared_core_tokens": [
+        "prime"
+      ],
+      "max_score": 100,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "member_reasons": [
+        "token_overlap_high, legal_suffix_ignored, string_similarity_high",
+        "token_overlap_high, legal_suffix_ignored, string_similarity_high",
+        "token_overlap_high, legal_suffix_ignored, string_similarity_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high, legal_suffix_ignored, string_similarity_high",
+        "token_overlap_high, legal_suffix_ignored, string_similarity_high"
+      ]
+    },
+    {
+      "group_key": "trend",
+      "size": 11,
+      "names": [
+        "TREND",
+        "TREND AMBALAJ SAN. VE TIC. A.S.",
+        "TREND BARKOD ETİKET SAN. TİC. LTD. ŞTİ.",
+        "TREND ENERJİ MÜHENDİSLİK TAAHHÜT SANAYİ VE TİC.",
+        "TREND ETİKET KEMER DERİ METAL AKS SAN VE TİC LTD STİ",
+        "TREND FUARCILIK VE YAYINCILIK AŞ.",
+        "TREND İÇ GİYİM",
+        "TREND KAGITÇILIK ÜRÜNLERI IÇ VE DIS TIC. PAZ. LTD. STI.",
+        "TREND LOVERS SEDAT AYDOĞAN TREND LOVERS",
+        "TREND MÜHENDİSLİK MAKİNE SAN. TİC. A.Ş.",
+        "TREND ÖKÇE VE TABAN SAN. VE TİC. LTD. ŞTİ."
+      ],
+      "shared_core_tokens": [
+        "trend"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ]
+    },
+    {
+      "group_key": "azerbaycan pavilyonu balacans agro food",
+      "size": 10,
+      "names": [
+        "Azerbaycan Pavilyonu / Balacans Agro Food LLC",
+        "Azerbaycan Pavilyonu / BHP LLC",
+        "Azerbaycan Pavilyonu / Brightman LLC",
+        "Azerbaycan Pavilyonu / CORRECTO LLC",
+        "Azerbaycan Pavilyonu / Dolcha Foods",
+        "Azerbaycan Pavilyonu / Herba Flora LLC",
+        "Azerbaycan Pavilyonu / Milliana LLC",
+        "Azerbaycan Pavilyonu / Payim LLC",
+        "Azerbaycan Pavilyonu / Qoç LLC",
+        "Azerbaycan Pavilyonu / Vegas 2020 LLC"
+      ],
+      "shared_core_tokens": [
+        "azerbaycan",
+        "pavilyonu"
+      ],
+      "max_score": 88,
+      "min_score": 70,
+      "pairwise_min_score": 70,
+      "member_reasons": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "string_similarity_high",
+        "",
+        ""
+      ]
+    },
+    {
+      "group_key": "filistin",
+      "size": 10,
+      "names": [
+        "FİLİSTİN",
+        "FİLİSTİN PAVİLYONU / Al-Hathnawi General Trading Company",
+        "FİLİSTİN PAVİLYONU / Alkafrawi Company",
+        "FİLİSTİN PAVİLYONU / Beladi Soap",
+        "FİLİSTİN PAVİLYONU / Dead sea pearls For Health and Beauty Care",
+        "FİLİSTİN PAVİLYONU / King valley Dates Company",
+        "FİLİSTİN PAVİLYONU / Nablus soap and cosmetics Company",
+        "FİLİSTİN PAVİLYONU / Palestine Dates Company",
+        "FİLİSTİN PAVİLYONU / Quick Sesami Company",
+        "FİLİSTİN PAVİLYONU / Thawq Sweets"
+      ],
+      "shared_core_tokens": [
+        "filistin"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 71,
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ]
+    },
+    {
+      "group_key": "standart",
+      "size": 10,
+      "names": [
+        "STANDART",
+        "Standart Arge Tasarım Üretim Sanayi ve Ticaret Anonim Şirketi",
+        "STANDART CIVATA TIC VE SAN AS",
+        "Standart Cıvata Ticaret ve Sanayi A.Ş.",
+        "STANDART KAUÇUK VE KIMYEVI MADDELER TICARET LIMITED SIRKETI",
+        "STANDART KONTROL VE TEST HİZMETLERİ A.Ş",
+        "STANDART POMPA",
+        "STANDART POMPA VE MAK. SAN. TİC. A.Ş.",
+        "STANDART POMPA VE MAKİNA SANAYİ TİCARET A.Ş.",
+        "STANDART YAY SANAYİ"
+      ],
+      "shared_core_tokens": [
+        "standart"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 92,
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ]
+    },
+    {
+      "group_key": "cixi aiken electric appliance",
+      "size": 9,
+      "names": [
+        "CIXI AIKEN ELECTRIC APPLIANCE CO.,LTD",
+        "CIXI BEILIAN ELECTRICAL APPLIANCE CO., LTD.",
+        "CIXI CITY HONGYOU ELECTRICAL APPLIANCE CO.,LTD.",
+        "CIXI GESHINI ELECTRIC APPLIANCE CO., LTD",
+        "CIXI HOMECENTRE ELECTRICAL APPLIANCE CO., LTD.",
+        "CIXI JIAHUAN ELECTRICAL APPLIANCE CO., LTD.",
+        "CIXI LOTEK ELECTRICAL APPLIANCE CO., LTD",
+        "CIXI TEEYO ELECTRICAL APPLIANCE CO., LTD",
+        "CIXI UTRUST ELECTRIC APPLIANCE CO., LTD."
+      ],
+      "shared_core_tokens": [
+        "appliance",
+        "cixi"
+      ],
+      "max_score": 83,
+      "min_score": 75,
+      "pairwise_min_score": 75,
+      "member_reasons": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "group_key": "teksan",
+      "size": 9,
+      "names": [
+        "TEKSAN",
+        "TEKSAN AMBALAJ SANAYİ TİCARET ANONİM ŞİRKETİ",
+        "TEKSAN END. FIRIN MAK. SAN. VE TİC. LTD. ŞTİ.",
+        "TEKSAN ISI",
+        "TEKSAN IÇ VE DIS TICARET LTD.STI.",
+        "Teksan iç ve Dış Tic Ltd. Şti",
+        "TEKSAN JENARATÖR ELEK. SAN. VE TİC. A.Ş.",
+        "TEKSAN JENERATÖR ELEKTRIK SAN.VE TIC.A.S.",
+        "TEKSAN JENERATÖR ELEKTRİK SAN. TİC. A.Ş."
+      ],
+      "shared_core_tokens": [
+        "teksan"
+      ],
+      "max_score": 98,
+      "min_score": 98,
+      "pairwise_min_score": 98,
+      "member_reasons": [
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high",
+        "token_overlap_high"
+      ]
+    }
+  ]
+}
