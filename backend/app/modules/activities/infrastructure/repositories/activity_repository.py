@@ -12,7 +12,7 @@ from app.modules.activities.infrastructure.persistence.mappers import (
     model_to_entity,
     update_model_from_entity,
 )
-from app.modules.activities.domain.value_objects import ActivitySource
+from app.modules.activities.domain.value_objects import ActivitySource, ActivityType
 from app.modules.activities.infrastructure.persistence.models import ActivityModel
 from app.modules.customers.infrastructure.persistence.models import CustomerModel
 
@@ -74,6 +74,21 @@ class SqlAlchemyActivityRepository:
             .filter(
                 ActivityModel.organization_id == organization_id,
                 ActivityModel.id == activity_id,
+                ActivityModel.deleted_at.is_(None),
+            )
+            .one_or_none()
+        )
+        return model_to_entity(model) if model else None
+
+    def get_task_completed_by_todo_id(
+        self, organization_id: UUID, todo_id: UUID
+    ) -> Activity | None:
+        model = (
+            self._session.query(ActivityModel)
+            .filter(
+                ActivityModel.organization_id == organization_id,
+                ActivityModel.todo_id == todo_id,
+                ActivityModel.activity_type == ActivityType.TASK_COMPLETED,
                 ActivityModel.deleted_at.is_(None),
             )
             .one_or_none()
@@ -200,6 +215,7 @@ class SqlAlchemyActivityRepository:
         *,
         search: str | None = None,
         customer_id: UUID | None = None,
+        fair_id: UUID | None = None,
         activity_type: str | None = None,
         status: str | None = None,
         date_from: datetime | None = None,
@@ -213,13 +229,15 @@ class SqlAlchemyActivityRepository:
         page_params = normalize_page_params(page, page_size)
         query = (
             self._session.query(ActivityModel)
-            .join(CustomerModel, CustomerModel.id == ActivityModel.customer_id)
+            .outerjoin(CustomerModel, CustomerModel.id == ActivityModel.customer_id)
             .filter(ActivityModel.organization_id == organization_id)
         )
         if not include_deleted:
             query = query.filter(ActivityModel.deleted_at.is_(None))
         if customer_id is not None:
             query = query.filter(ActivityModel.customer_id == customer_id)
+        if fair_id is not None:
+            query = query.filter(ActivityModel.fair_id == fair_id)
         if activity_type:
             query = query.filter(ActivityModel.activity_type == activity_type.strip())
         if status:

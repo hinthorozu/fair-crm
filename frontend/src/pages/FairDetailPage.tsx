@@ -7,7 +7,6 @@ import {
   listParticipantsByFair,
   updateParticipation,
 } from "../api/participations";
-import { listCustomers } from "../api/customers";
 import { ApiError } from "../api/client";
 import { FairParticipantTable } from "../components/ParticipationList";
 import {
@@ -41,7 +40,6 @@ import { participationLabels } from "../labels/participationLabels";
 import { importLabels } from "../labels/importLabels";
 import { uiLabels } from "../labels/uiLabels";
 import { labels } from "../labels";
-import type { Customer } from "../types/customer";
 import type { CreateFairPayload, Fair } from "../types/fair";
 import type { SendBulkEmailResponse } from "../types/fairBulkEmail";
 import type { AdapterListItem } from "../types/scraper";
@@ -94,7 +92,6 @@ export function FairDetailPage({
   onOpenFairEnrichment,
 }: FairDetailPageProps) {
   const [fair, setFair] = React.useState<Fair | null>(null);
-  const [customers, setCustomers] = React.useState<Customer[]>([]);
   const [activeTab, setActiveTabState] = React.useState<TabId>(tabFromUrl);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -160,15 +157,6 @@ export function FairDetailPage({
     }
   }, [fairId, loadLastImport, onFairLoaded]);
 
-  const loadCustomersForForm = React.useCallback(async () => {
-    try {
-      const res = await listCustomers({ page: 1, pageSize: 100, status: "active" });
-      setCustomers(res.items);
-    } catch {
-      // best-effort
-    }
-  }, []);
-
   React.useEffect(() => {
     void loadFair();
   }, [loadFair]);
@@ -199,12 +187,6 @@ export function FairDetailPage({
       setParticipantCount(participantsTable.pagination.totalItems);
     }
   }, [activeTab, participantsTable.pagination.totalItems]);
-
-  React.useEffect(() => {
-    if (activeTab === "participants") {
-      void loadCustomersForForm();
-    }
-  }, [activeTab, loadCustomersForForm]);
 
   const closeModal = React.useCallback(() => setModal(null), []);
   const closeConfirmDelete = React.useCallback(() => setConfirmDelete(null), []);
@@ -373,7 +355,6 @@ export function FairDetailPage({
   };
 
   const openCreateParticipant = () => {
-    void loadCustomersForForm();
     setEditing(null);
     setModal("create");
   };
@@ -645,7 +626,6 @@ export function FairDetailPage({
         <FormModal title={participationLabels.newParticipant} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="fair"
-            customers={customers}
             submitLabel={participationLabels.save}
             onCancel={closeModal}
             onSubmit={handleCreate}
@@ -657,8 +637,8 @@ export function FairDetailPage({
         <FormModal title={participationLabels.editParticipant} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="fair"
-            customers={customers}
             initial={fairParticipantToFormValues(editing, editing.customer_id)}
+            lockCustomer
             submitLabel={participationLabels.save}
             onCancel={closeModal}
             onSubmit={handleUpdate}

@@ -9,6 +9,8 @@ import { dashboardLabels } from "../labels/dashboardLabels";
 import { authLabels } from "../labels/authLabels";
 import { todoLabels } from "../labels/todoLabels";
 import { activityLabels } from "../labels/activityLabels";
+import { operationLabels } from "../labels/operationLabels";
+import { uiLabels } from "../labels/uiLabels";
 
 export const DOCUMENT_TITLE_BRAND = labels.appTitle;
 
@@ -65,6 +67,12 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
       return todoLabels.pageTitle;
     case "/todos/:id":
       return context.todoTitle?.trim() || todoLabels.pageTitle;
+    case "/operations":
+      return uiLabels.navOperations;
+    case "/operations/new":
+      return operationLabels.wizardTitle;
+    case "/operations/:id":
+      return operationLabels.detailTitle;
     case "/follow-ups":
       return followUpLabels.pageTitle;
     case "/activities":

@@ -1,13 +1,10 @@
 from uuid import UUID
 
-from app.modules.contacts.domain.ports import ContactRepository
 from app.modules.customers.domain.entities import Customer
 from app.modules.customers.domain.ports import CustomerRepository
 from app.modules.fairs.domain.entities import Fair
 from app.modules.fairs.domain.ports import FairRepository
 from app.modules.participations.domain.exceptions import (
-    ContactCustomerMismatchForParticipationError,
-    ContactNotFoundForParticipationError,
     CustomerArchivedForParticipationError,
     CustomerNotFoundForParticipationError,
     DuplicateParticipationError,
@@ -43,21 +40,6 @@ def ensure_fair_for_participation(
     if fair.is_archived():
         raise FairArchivedForParticipationError("Fair is archived")
     return fair
-
-
-def validate_primary_contact(
-    contact_repository: ContactRepository,
-    organization_id: UUID,
-    customer_id: UUID,
-    primary_contact_id: UUID | None,
-) -> None:
-    if primary_contact_id is None:
-        return
-    contact = contact_repository.get_by_id(organization_id, primary_contact_id)
-    if contact is None:
-        raise ContactNotFoundForParticipationError("Contact not found")
-    if contact.customer_id != customer_id:
-        raise ContactCustomerMismatchForParticipationError("Contact does not belong to this customer")
 
 
 def ensure_no_duplicate_participation(

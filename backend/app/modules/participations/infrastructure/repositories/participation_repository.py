@@ -1,10 +1,9 @@
 from uuid import UUID
 
 from sqlalchemy import or_
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import Session
 
 from app.core.pagination import build_order_clause, build_paginated_meta, normalize_page_params
-from app.modules.contacts.infrastructure.persistence.models import ContactModel
 from app.modules.customers.infrastructure.persistence.communication_query_helpers import (
     email_search_exists,
     phone_search_exists,
@@ -30,10 +29,9 @@ from app.modules.participations.infrastructure.persistence.models import Custome
 PARTICIPATION_BASE_SORT_FIELDS = {
     "created_at": CustomerFairParticipationModel.created_at,
     "updated_at": CustomerFairParticipationModel.updated_at,
-    "visited_at": CustomerFairParticipationModel.visited_at,
     "hall": CustomerFairParticipationModel.hall,
     "stand": CustomerFairParticipationModel.stand,
-    "participation_status": CustomerFairParticipationModel.participation_status,
+    "notes": CustomerFairParticipationModel.notes,
 }
 
 CUSTOMER_LIST_SORT_FIELDS = {
@@ -156,28 +154,21 @@ class SqlAlchemyParticipationRepository:
         customer_id: UUID,
         *,
         search: str | None = None,
-        participation_status: str | None = None,
         page: int = 1,
         page_size: int = 25,
         sort_by: str = "fair_start_date",
         sort_dir: str = "desc",
     ) -> CustomerParticipationListResult:
         page_params = normalize_page_params(page, page_size)
-        contact = aliased(ContactModel)
         query = (
             self._session.query(CustomerFairParticipationModel, FairModel)
             .join(FairModel, CustomerFairParticipationModel.fair_id == FairModel.id)
-            .outerjoin(contact, CustomerFairParticipationModel.primary_contact_id == contact.id)
             .filter(
                 CustomerFairParticipationModel.organization_id == organization_id,
                 CustomerFairParticipationModel.customer_id == customer_id,
                 CustomerFairParticipationModel.deleted_at.is_(None),
             )
         )
-        if participation_status:
-            query = query.filter(
-                CustomerFairParticipationModel.participation_status == participation_status.strip()
-            )
         if search:
             pattern = f"%{search.strip()}%"
             query = query.filter(
@@ -185,8 +176,7 @@ class SqlAlchemyParticipationRepository:
             )
 
         total = query.count()
-        sort_fields = {**CUSTOMER_LIST_SORT_FIELDS, "primary_contact_name": contact.last_name}
-        sort_column = sort_fields.get(sort_by, FairModel.start_date)
+        sort_column = CUSTOMER_LIST_SORT_FIELDS.get(sort_by, FairModel.start_date)
         nulls_last = sort_by == "fair_start_date"
         order = build_order_clause(
             sort_column,
@@ -219,14 +209,12 @@ class SqlAlchemyParticipationRepository:
         fair_id: UUID,
         *,
         search: str | None = None,
-        participation_status: str | None = None,
         page: int = 1,
         page_size: int = 25,
         sort_by: str = "company_name",
         sort_dir: str = "asc",
     ) -> FairParticipantListResult:
         page_params = normalize_page_params(page, page_size)
-        contact = aliased(ContactModel)
         primary_phone = primary_phone_subquery()
         primary_email = primary_email_subquery()
         query = (
@@ -237,17 +225,12 @@ class SqlAlchemyParticipationRepository:
                 primary_email,
             )
             .join(CustomerModel, CustomerFairParticipationModel.customer_id == CustomerModel.id)
-            .outerjoin(contact, CustomerFairParticipationModel.primary_contact_id == contact.id)
             .filter(
                 CustomerFairParticipationModel.organization_id == organization_id,
                 CustomerFairParticipationModel.fair_id == fair_id,
                 CustomerFairParticipationModel.deleted_at.is_(None),
             )
         )
-        if participation_status:
-            query = query.filter(
-                CustomerFairParticipationModel.participation_status == participation_status.strip()
-            )
         if search:
             pattern = f"%{search.strip()}%"
             query = query.filter(
@@ -259,8 +242,7 @@ class SqlAlchemyParticipationRepository:
             )
 
         total = query.count()
-        sort_fields = {**FAIR_LIST_SORT_FIELDS, "primary_contact_name": contact.last_name}
-        sort_column = sort_fields.get(sort_by, CustomerModel.display_name)
+        sort_column = FAIR_LIST_SORT_FIELDS.get(sort_by, CustomerModel.display_name)
         order = build_order_clause(
             sort_column,
             sort_dir if sort_dir in ("asc", "desc") else "asc",
@@ -287,18 +269,3 @@ class SqlAlchemyParticipationRepository:
             total_pages=meta.total_pages,
         )
 
-    def get_contact_full_name(self, organization_id: UUID, contact_id: UUID | None) -> str | None:
-        if contact_id is None:
-            return None
-        model = (
-            self._session.query(ContactModel)
-            .filter(
-                ContactModel.organization_id == organization_id,
-                ContactModel.id == contact_id,
-                ContactModel.deleted_at.is_(None),
-            )
-            .one_or_none()
-        )
-        if model is None:
-            return None
-        return f"{model.first_name} {model.last_name}".strip()

@@ -206,6 +206,82 @@ def test_create_todo_with_source_fair_id(client, auth_headers, db_session, organ
     assert response.status_code == 201
     body = response.json()
     assert body["source_fair_id"] == str(fair.id)
+    assert body["customer_id"] is None
+
+
+def test_create_todo_without_customer_id(client, auth_headers):
+    response = _create_todo(client, auth_headers, title="No customer")
+    assert response.status_code == 201
+    assert response.json()["customer_id"] is None
+
+
+def test_create_todo_with_customer_id(client, auth_headers, db_session, organization_id):
+    from tests.conftest_customer_helpers import create_test_customer
+
+    customer = create_test_customer(
+        db_session,
+        organization_id,
+        display_name="Todo Customer",
+    )
+    response = _create_todo(client, auth_headers, customer_id=str(customer.id))
+    assert response.status_code == 201
+    body = response.json()
+    assert body["customer_id"] == str(customer.id)
+    assert body["source_fair_id"] is None
+
+
+def test_create_todo_without_source_fair_id(client, auth_headers):
+    response = _create_todo(client, auth_headers, title="No fair")
+    assert response.status_code == 201
+    assert response.json()["source_fair_id"] is None
+
+
+def test_create_todo_with_neither_customer_nor_fair(client, auth_headers):
+    response = _create_todo(client, auth_headers, title="Standalone")
+    assert response.status_code == 201
+    body = response.json()
+    assert body["customer_id"] is None
+    assert body["source_fair_id"] is None
+
+
+def test_create_todo_with_customer_and_fair(client, auth_headers, db_session, organization_id):
+    from tests.conftest_customer_helpers import create_test_customer
+
+    fair = _seed_fair(db_session, organization_id)
+    customer = create_test_customer(
+        db_session,
+        organization_id,
+        display_name="Linked Customer",
+    )
+    response = _create_todo(
+        client,
+        auth_headers,
+        customer_id=str(customer.id),
+        source_fair_id=str(fair.id),
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["customer_id"] == str(customer.id)
+    assert body["source_fair_id"] == str(fair.id)
+
+
+def test_create_todo_rejects_unknown_customer_id(client, auth_headers):
+    response = _create_todo(client, auth_headers, customer_id=str(uuid4()))
+    assert response.status_code == 400
+
+
+def test_create_todo_rejects_other_org_customer(
+    client, auth_headers, db_session, other_organization_id
+):
+    from tests.conftest_customer_helpers import create_test_customer
+
+    other_customer = create_test_customer(
+        db_session,
+        other_organization_id,
+        display_name="Other Org Customer",
+    )
+    response = _create_todo(client, auth_headers, customer_id=str(other_customer.id))
+    assert response.status_code == 400
 
 
 def test_create_todo_rejects_unknown_source_fair_id(client, auth_headers):
@@ -226,3 +302,45 @@ def test_update_todo_source_fair_id(client, auth_headers, db_session, organizati
     )
     assert update_response.status_code == 200
     assert update_response.json()["source_fair_id"] == str(fair.id)
+
+
+def test_update_todo_set_customer_id(client, auth_headers, db_session, organization_id):
+    from tests.conftest_customer_helpers import create_test_customer
+
+    create_response = _create_todo(client, auth_headers, title="Needs customer")
+    todo_id = create_response.json()["id"]
+    assert create_response.json()["customer_id"] is None
+
+    customer = create_test_customer(
+        db_session,
+        organization_id,
+        display_name="Patch Customer",
+    )
+    update_response = client.patch(
+        f"/api/v1/todos/{todo_id}",
+        json={"customer_id": str(customer.id)},
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["customer_id"] == str(customer.id)
+
+
+def test_update_todo_clear_customer_id(client, auth_headers, db_session, organization_id):
+    from tests.conftest_customer_helpers import create_test_customer
+
+    customer = create_test_customer(
+        db_session,
+        organization_id,
+        display_name="Clear Customer",
+    )
+    create_response = _create_todo(client, auth_headers, customer_id=str(customer.id))
+    todo_id = create_response.json()["id"]
+    assert create_response.json()["customer_id"] == str(customer.id)
+
+    update_response = client.patch(
+        f"/api/v1/todos/{todo_id}",
+        json={"customer_id": None},
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["customer_id"] is None

@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, Text, Uuid
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, String, Text, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -9,18 +9,44 @@ from app.db.base import Base
 
 class ActivityModel(Base):
     __tablename__ = "crm_activities"
+    __table_args__ = (
+        Index(
+            "uq_crm_activities_todo_task_completed",
+            "organization_id",
+            "todo_id",
+            unique=True,
+            postgresql_where=text(
+                "todo_id IS NOT NULL AND activity_type = 'task_completed' AND deleted_at IS NULL"
+            ),
+            sqlite_where=text(
+                "todo_id IS NOT NULL AND activity_type = 'task_completed' AND deleted_at IS NULL"
+            ),
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
     organization_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
-    customer_id: Mapped[UUID] = mapped_column(
+    customer_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("crm_customers.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     contact_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("crm_contacts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    todo_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("crm_todos.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    fair_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("crm_fairs.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )

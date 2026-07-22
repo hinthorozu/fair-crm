@@ -1,5 +1,5 @@
 from app.modules.participations.application.commands import GetParticipationQuery, ParticipationResult
-from app.modules.participations.application.mappers import participation_to_result, resolve_primary_contact_name
+from app.modules.participations.application.mappers import participation_to_result
 from app.modules.participations.domain.exceptions import ParticipationNotFoundError
 from app.modules.participations.domain.ports import ParticipationRepository
 
@@ -15,7 +15,4 @@ class GetParticipationUseCase:
         if participation is None:
             raise ParticipationNotFoundError("Participation not found")
 
-        contact_name = resolve_primary_contact_name(
-            self._participation_repository, query.organization_id, participation.primary_contact_id
-        )
-        return participation_to_result(participation, primary_contact_name=contact_name)
+        return participation_to_result(participation)

@@ -10,9 +10,7 @@ import type {
   UpdateParticipationPayload,
 } from "../types/participation";
 
-export interface ListParticipationsParams extends Partial<ServerTableFetchParams> {
-  participationStatus?: string;
-}
+export type ListParticipationsParams = Partial<ServerTableFetchParams>;
 
 export async function listParticipationsByCustomer(
   customerId: string,
@@ -24,10 +22,7 @@ export async function listParticipationsByCustomer(
     search: params.search,
     sortBy: params.sortBy,
     sortOrder: params.sortOrder,
-    filters: {
-      ...(params.participationStatus ? { participationStatus: params.participationStatus } : {}),
-      ...params.filters,
-    },
+    filters: params.filters,
   });
   const raw = await apiRequest<unknown>(
     `/api/v1/customers/${customerId}/fair-participations?${query.toString()}`,
@@ -45,10 +40,7 @@ export async function listParticipantsByFair(
     search: params.search,
     sortBy: params.sortBy,
     sortOrder: params.sortOrder,
-    filters: {
-      ...(params.participationStatus ? { participationStatus: params.participationStatus } : {}),
-      ...params.filters,
-    },
+    filters: params.filters,
   });
   const raw = await apiRequest<unknown>(`/api/v1/fairs/${fairId}/participants?${query.toString()}`);
   return normalizeStandardListResponse<FairParticipantListItem>(raw);

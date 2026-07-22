@@ -72,7 +72,7 @@ def enrich_activities(
         return []
 
     activity_ids = [a.id for a in activities]
-    customer_ids = {a.customer_id for a in activities}
+    customer_ids = {a.customer_id for a in activities if a.customer_id is not None}
     contact_ids = {a.contact_id for a in activities if a.contact_id}
 
     customer_names: dict[UUID, str] = {}
@@ -92,9 +92,11 @@ def enrich_activities(
     outcome_ids: set[UUID] = set()
     for activity in activities:
         parsed = _metadata_fields(activity.metadata_json)
+        related_todo_id = activity.todo_id or parsed["related_todo_id"]
+        parsed = {**parsed, "related_todo_id": related_todo_id}
         meta_by_activity[activity.id] = parsed
-        if parsed["related_todo_id"]:
-            todo_ids.add(parsed["related_todo_id"])
+        if related_todo_id:
+            todo_ids.add(related_todo_id)
         if parsed["related_outcome_id"]:
             outcome_ids.add(parsed["related_outcome_id"])
 
@@ -146,7 +148,9 @@ def enrich_activities(
             activity_to_result(
                 activity,
                 contact_full_name=contact_names.get(activity.contact_id) if activity.contact_id else None,
-                customer_name=customer_names.get(activity.customer_id),
+                customer_name=(
+                    customer_names.get(activity.customer_id) if activity.customer_id else None
+                ),
                 related_todo_id=related_todo_id,
                 related_todo_title=todo_titles.get(related_todo_id) if related_todo_id else None,
                 related_outcome_id=related_outcome_id,

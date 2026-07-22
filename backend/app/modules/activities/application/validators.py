@@ -1,4 +1,3 @@
-from datetime import UTC, datetime
 from uuid import UUID
 
 from app.modules.activities.domain.exceptions import (
@@ -33,11 +32,14 @@ def ensure_customer_for_activity(
 def validate_contact_for_activity(
     contact_repository: ContactRepository,
     organization_id: UUID,
-    customer_id: UUID,
+    customer_id: UUID | None,
     contact_id: UUID | None,
 ) -> None:
     if contact_id is None:
         return
+
+    if customer_id is None:
+        raise ContactCustomerMismatchError("customer_id is required when contact_id is set")
 
     contact = contact_repository.get_by_id(organization_id, contact_id)
     if contact is None:

@@ -12,7 +12,6 @@ import {
   listParticipationsByCustomer,
   updateParticipation,
 } from "../api/participations";
-import { listFairs } from "../api/fairs";
 import { getCustomer, archiveCustomer, updateCustomer } from "../api/customers";
 import {
   createContact,
@@ -24,6 +23,7 @@ import { ApiError } from "../api/client";
 import {
   ActivityForm,
   activityToFormValues,
+  formValuesToUpdatePayload as activityFormValuesToUpdatePayload,
   type ActivityFormValues,
 } from "../components/ActivityForm";
 import { ActivityTable } from "../components/ActivityList";
@@ -37,7 +37,7 @@ import {
 import {
   ParticipationForm,
   formValuesToCreatePayload,
-  formValuesToUpdatePayload,
+  formValuesToUpdatePayload as participationFormValuesToUpdatePayload,
   participationToFormValues,
   type ParticipationFormValues,
 } from "../components/ParticipationForm";
@@ -66,7 +66,6 @@ import { uiLabels } from "../labels/uiLabels";
 import type { Activity } from "../types/activity";
 import type { Customer } from "../types/customer";
 import type { Contact } from "../types/contact";
-import type { Fair } from "../types/fair";
 import type { CustomerParticipationListItem } from "../types/participation";
 import { customerStatusBadgeVariant } from "../utils/badges";
 import {
@@ -111,7 +110,6 @@ export function CustomerDetailPage({
 }: CustomerDetailPageProps) {
   const [customer, setCustomer] = React.useState<Customer | null>(null);
   const [contactsForForm, setContactsForForm] = React.useState<Contact[]>([]);
-  const [fairs, setFairs] = React.useState<Fair[]>([]);
   const [activeTab, setActiveTabState] = React.useState<TabId>(tabFromUrl);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -200,17 +198,6 @@ export function CustomerDetailPage({
     }
   }, [customerId]);
 
-  const loadFairsForForm = React.useCallback(async () => {
-    try {
-      const res = await listFairs({ page: 1, pageSize: 100, status: "planned" });
-      const active = await listFairs({ page: 1, pageSize: 100, status: "active" });
-      const completed = await listFairs({ page: 1, pageSize: 100, status: "completed" });
-      setFairs([...res.items, ...active.items, ...completed.items]);
-    } catch {
-      // best-effort
-    }
-  }, []);
-
   React.useEffect(() => {
     void loadCustomer();
   }, [loadCustomer]);
@@ -235,16 +222,10 @@ export function CustomerDetailPage({
   }, [customerId, customer]);
 
   React.useEffect(() => {
-    if (activeTab === "activities" || activeTab === "participations") {
+    if (activeTab === "activities") {
       void loadContactsForForm();
     }
   }, [activeTab, loadContactsForForm]);
-
-  React.useEffect(() => {
-    if (activeTab === "participations") {
-      void loadFairsForForm();
-    }
-  }, [activeTab, loadFairsForForm]);
 
   React.useEffect(() => {
     if (activeTab === "contacts") {
@@ -300,7 +281,7 @@ export function CustomerDetailPage({
 
   const handleUpdateActivity = async (values: ActivityFormValues) => {
     if (!editingActivity) return;
-    await updateActivity(editingActivity.id, values);
+    await updateActivity(editingActivity.id, activityFormValuesToUpdatePayload(values));
     setModal(null);
     setEditingActivity(null);
     await activitiesTable.refresh();
@@ -328,7 +309,7 @@ export function CustomerDetailPage({
 
   const handleUpdateParticipation = async (values: ParticipationFormValues) => {
     if (!editingParticipation) return;
-    await updateParticipation(editingParticipation.id, formValuesToUpdatePayload(values));
+    await updateParticipation(editingParticipation.id, participationFormValuesToUpdatePayload(values));
     setModal(null);
     setEditingParticipation(null);
     setParticipationFormInitial(undefined);
@@ -391,8 +372,7 @@ export function CustomerDetailPage({
     setModal("create-activity");
   };
 
-  const openCreateParticipation = async () => {
-    await Promise.all([loadFairsForForm(), loadContactsForForm()]);
+  const openCreateParticipation = () => {
     setEditingParticipation(null);
     setParticipationFormInitial(undefined);
     setModal("create-participation");
@@ -841,8 +821,6 @@ export function CustomerDetailPage({
         <FormModal title={participationLabels.newParticipation} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="customer"
-            fairs={fairs}
-            contacts={contactsForForm}
             submitLabel={participationLabels.save}
             onCancel={closeModal}
             onSubmit={handleCreateParticipation}
@@ -854,9 +832,8 @@ export function CustomerDetailPage({
         <FormModal title={participationLabels.editParticipation} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="customer"
-            fairs={fairs}
-            contacts={contactsForForm}
             initial={participationFormInitial}
+            lockFair
             submitLabel={participationLabels.save}
             onCancel={closeModal}
             onSubmit={handleUpdateParticipation}

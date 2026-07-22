@@ -41,9 +41,10 @@ class CreateActivityUseCase:
         ):
             raise ForbiddenError("Permission denied")
 
-        ensure_customer_for_activity(
-            self._customer_repository, command.organization_id, command.customer_id
-        )
+        if command.customer_id is not None:
+            ensure_customer_for_activity(
+                self._customer_repository, command.organization_id, command.customer_id
+            )
         validate_contact_for_activity(
             self._contact_repository,
             command.organization_id,
@@ -79,7 +80,10 @@ class CreateActivityUseCase:
             action="fair_crm.activity.created",
             resource_type="activity",
             resource_id=str(saved.id),
-            new_values={"subject": saved.subject, "customer_id": str(saved.customer_id)},
+            new_values={
+                "subject": saved.subject,
+                "customer_id": str(saved.customer_id) if saved.customer_id else None,
+            },
             metadata={"user_id": str(command.user_id)},
         )
 

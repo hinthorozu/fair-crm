@@ -5,7 +5,6 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
 from app.api.schemas.list_response import StandardListResponse
-from app.modules.participations.domain.value_objects import ParticipationStatus
 
 
 class CreateParticipationRequest(BaseModel):
@@ -13,20 +12,13 @@ class CreateParticipationRequest(BaseModel):
     fair_id: UUID
     hall: Optional[str] = None
     stand: Optional[str] = None
-    participation_status: ParticipationStatus = ParticipationStatus.EXHIBITOR
     notes: Optional[str] = None
-    primary_contact_id: Optional[UUID] = None
-    visited_at: Optional[datetime] = None
 
 
 class UpdateParticipationRequest(BaseModel):
     hall: Optional[str] = None
     stand: Optional[str] = None
-    participation_status: Optional[ParticipationStatus] = None
     notes: Optional[str] = None
-    primary_contact_id: Optional[UUID] = None
-    visited_at: Optional[datetime] = None
-    is_active: Optional[bool] = None
 
 
 class ParticipationResponse(BaseModel):
@@ -38,11 +30,7 @@ class ParticipationResponse(BaseModel):
     fair_id: UUID
     hall: Optional[str] = None
     stand: Optional[str] = None
-    participation_status: ParticipationStatus
     notes: Optional[str] = None
-    primary_contact_id: Optional[UUID] = None
-    primary_contact_name: Optional[str] = None
-    visited_at: Optional[datetime] = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -59,9 +47,6 @@ class CustomerParticipationListItemResponse(BaseModel):
     fair_end_date: Optional[date] = None
     hall: Optional[str] = None
     stand: Optional[str] = None
-    participation_status: ParticipationStatus
-    primary_contact_name: Optional[str] = None
-    visited_at: Optional[datetime] = None
     notes: Optional[str] = None
 
 
@@ -81,9 +66,6 @@ class FairParticipantListItemResponse(BaseModel):
     city: Optional[str] = None
     hall: Optional[str] = None
     stand: Optional[str] = None
-    participation_status: ParticipationStatus
-    primary_contact_name: Optional[str] = None
-    visited_at: Optional[datetime] = None
     notes: Optional[str] = None
 
 

@@ -28,7 +28,7 @@ class DashboardRecentActivityResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True, serialize_by_alias=True)
 
     id: UUID
-    customer_id: UUID = Field(serialization_alias="customerId")
+    customer_id: UUID | None = Field(serialization_alias="customerId")
     customer_name: str = Field(serialization_alias="customerName")
     activity_type: str = Field(serialization_alias="activityType")
     note_summary: str | None = Field(serialization_alias="noteSummary")

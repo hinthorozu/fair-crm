@@ -12,6 +12,7 @@ export interface FairEntitySelectProps {
   disabled?: boolean;
   id?: string;
   placeholder?: string;
+  allowClear?: boolean;
 }
 
 function isArchived(fair: Fair): boolean {
@@ -24,6 +25,7 @@ export function FairEntitySelect({
   disabled = false,
   id,
   placeholder,
+  allowClear = false,
 }: FairEntitySelectProps) {
   const [open, setOpen] = React.useState(false);
   const [searchText, setSearchText] = React.useState("");
@@ -117,6 +119,14 @@ export function FairEntitySelect({
     }
   };
 
+  const clearSelection = () => {
+    onChange("");
+    setSelectedFair(null);
+    setOpen(false);
+    setSearchText("");
+    setHighlightIndex(-1);
+  };
+
   const selectFair = (fair: Fair) => {
     onChange(fair.id);
     setSelectedFair(fair);
@@ -140,9 +150,12 @@ export function FairEntitySelect({
 
     if (!open) return;
 
+    const optionOffset = allowClear ? 1 : 0;
+    const maxIndex = items.length - 1 + optionOffset;
+
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      setHighlightIndex((prev) => Math.min(prev + 1, items.length - 1));
+      setHighlightIndex((prev) => Math.min(prev + 1, maxIndex));
       return;
     }
 
@@ -152,9 +165,14 @@ export function FairEntitySelect({
       return;
     }
 
-    if (event.key === "Enter" && highlightIndex >= 0 && items[highlightIndex]) {
+    if (event.key === "Enter" && highlightIndex >= 0) {
       event.preventDefault();
-      selectFair(items[highlightIndex]);
+      if (allowClear && highlightIndex === 0) {
+        clearSelection();
+        return;
+      }
+      const item = items[highlightIndex - optionOffset];
+      if (item) selectFair(item);
     }
   };
 
@@ -192,33 +210,54 @@ export function FairEntitySelect({
           role="listbox"
           onScroll={handleScroll}
         >
+          {allowClear ? (
+            <button
+              type="button"
+              role="option"
+              aria-selected={!value}
+              className={[
+                "entity-select-option",
+                !value ? "selected" : "",
+                highlightIndex === 0 ? "highlighted" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={clearSelection}
+            >
+              <span className="entity-select-option-label">{fairLabels.clearSelection}</span>
+            </button>
+          ) : null}
           {loading && items.length === 0 ? (
             <div className="entity-select-message">Yükleniyor…</div>
           ) : items.length === 0 ? (
             <div className="entity-select-message">{fairLabels.noResults}</div>
           ) : (
-            items.map((fair, index) => (
-              <button
-                key={fair.id}
-                type="button"
-                role="option"
-                aria-selected={fair.id === value}
-                className={[
-                  "entity-select-option",
-                  fair.id === value ? "selected" : "",
-                  index === highlightIndex ? "highlighted" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => selectFair(fair)}
-              >
-                <span className="entity-select-option-label">{fair.name}</span>
-                <span className="entity-select-option-meta">
-                  {fair.start_date ?? "—"} · {fairStatusLabels[fair.status] ?? fair.status}
-                </span>
-              </button>
-            ))
+            items.map((fair, index) => {
+              const optionIndex = index + (allowClear ? 1 : 0);
+              return (
+                <button
+                  key={fair.id}
+                  type="button"
+                  role="option"
+                  aria-selected={fair.id === value}
+                  className={[
+                    "entity-select-option",
+                    fair.id === value ? "selected" : "",
+                    optionIndex === highlightIndex ? "highlighted" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => selectFair(fair)}
+                >
+                  <span className="entity-select-option-label">{fair.name}</span>
+                  <span className="entity-select-option-meta">
+                    {fair.start_date ?? "—"} · {fairStatusLabels[fair.status] ?? fair.status}
+                  </span>
+                </button>
+              );
+            })
           )}
           {loadingMore && <div className="entity-select-message">Daha fazla yükleniyor…</div>}
         </div>

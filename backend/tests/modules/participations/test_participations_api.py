@@ -1,8 +1,5 @@
 """Tests for customer fair participation API."""
 
-from datetime import UTC, datetime
-
-
 from tests.conftest_helpers import pagination_from
 
 
@@ -26,27 +23,13 @@ def _create_fair(client, auth_headers, name="Test Fair"):
     return response.json()["id"]
 
 
-def _create_contact(client, auth_headers, customer_id, **overrides):
-    payload = {
-        "customer_id": customer_id,
-        "first_name": "Ali",
-        "last_name": "Veli",
-        "is_primary": True,
-        "is_active": True,
-    }
-    payload.update(overrides)
-    response = client.post("/api/v1/contacts", json=payload, headers=auth_headers)
-    assert response.status_code == 201
-    return response.json()["id"]
-
-
 def _participation_payload(customer_id, fair_id, **overrides):
     payload = {
         "customer_id": customer_id,
         "fair_id": fair_id,
         "hall": "A",
         "stand": "12",
-        "participation_status": "exhibitor",
+        "notes": "Salon notu",
     }
     payload.update(overrides)
     return payload
@@ -67,7 +50,33 @@ def test_create_participation(client, auth_headers):
     assert body["fair_id"] == fair_id
     assert body["hall"] == "A"
     assert body["stand"] == "12"
-    assert body["participation_status"] == "exhibitor"
+    assert body["notes"] == "Salon notu"
+    assert "participation_status" not in body
+    assert "visited_at" not in body
+    assert "primary_contact_id" not in body
+
+
+def test_create_ignores_legacy_workflow_fields(client, auth_headers):
+    customer_id = _create_customer(client, auth_headers, "Legacy Ignore Customer")
+    fair_id = _create_fair(client, auth_headers, "Legacy Ignore Fair")
+
+    response = client.post(
+        "/api/v1/fair-participations",
+        json=_participation_payload(
+            customer_id,
+            fair_id,
+            participation_status="visited",
+            visited_at="2026-01-01T10:00:00Z",
+            primary_contact_id="00000000-0000-0000-0000-000000000001",
+        ),
+        headers=auth_headers,
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["hall"] == "A"
+    assert "participation_status" not in body
+    assert "visited_at" not in body
+    assert "primary_contact_id" not in body
 
 
 def test_duplicate_active_participation_rejected(client, auth_headers):
@@ -106,8 +115,14 @@ def test_list_participations_by_customer(client, auth_headers):
     assert response.status_code == 200
     body = response.json()
     assert pagination_from(body)["totalItems"] == 1
-    assert body["items"][0]["fair_name"] == "List Fair"
-    assert body["items"][0]["hall"] == "A"
+    item = body["items"][0]
+    assert item["fair_name"] == "List Fair"
+    assert item["hall"] == "A"
+    assert item["stand"] == "12"
+    assert item["notes"] == "Salon notu"
+    assert "participation_status" not in item
+    assert "visited_at" not in item
+    assert "primary_contact_name" not in item
 
 
 def test_list_participants_by_fair(client, auth_headers):
@@ -123,7 +138,12 @@ def test_list_participants_by_fair(client, auth_headers):
     assert response.status_code == 200
     body = response.json()
     assert pagination_from(body)["totalItems"] == 1
-    assert body["items"][0]["company_name"] == "Fair Participant Co"
+    item = body["items"][0]
+    assert item["company_name"] == "Fair Participant Co"
+    assert item["hall"] == "A"
+    assert item["stand"] == "12"
+    assert item["notes"] == "Salon notu"
+    assert "participation_status" not in item
 
 
 def test_list_participants_by_fair_search(client, auth_headers):
@@ -164,13 +184,15 @@ def test_update_participation(client, auth_headers):
 
     update = client.patch(
         f"/api/v1/fair-participations/{participation_id}",
-        json={"hall": "C", "stand": "99", "participation_status": "visited"},
+        json={"hall": "C", "stand": "99", "notes": "Güncellendi"},
         headers=auth_headers,
     )
     assert update.status_code == 200
-    assert update.json()["hall"] == "C"
-    assert update.json()["stand"] == "99"
-    assert update.json()["participation_status"] == "visited"
+    body = update.json()
+    assert body["hall"] == "C"
+    assert body["stand"] == "99"
+    assert body["notes"] == "Güncellendi"
+    assert "participation_status" not in body
 
 
 def test_soft_delete_participation(client, auth_headers):
@@ -221,36 +243,6 @@ def test_recreate_after_soft_delete(client, auth_headers):
     assert recreate.json()["hall"] == "New Hall"
 
 
-def test_primary_contact_same_customer_accepted(client, auth_headers):
-    customer_id = _create_customer(client, auth_headers, "Contact OK Customer")
-    fair_id = _create_fair(client, auth_headers, "Contact OK Fair")
-    contact_id = _create_contact(client, auth_headers, customer_id)
-
-    response = client.post(
-        "/api/v1/fair-participations",
-        json=_participation_payload(customer_id, fair_id, primary_contact_id=contact_id),
-        headers=auth_headers,
-    )
-    assert response.status_code == 201
-    assert response.json()["primary_contact_id"] == contact_id
-    assert response.json()["primary_contact_name"] == "Ali Veli"
-
-
-def test_primary_contact_other_customer_rejected(client, auth_headers):
-    customer_a = _create_customer(client, auth_headers, "Customer A")
-    customer_b = _create_customer(client, auth_headers, "Customer B")
-    fair_id = _create_fair(client, auth_headers, "Mismatch Fair")
-    contact_b = _create_contact(client, auth_headers, customer_b)
-
-    response = client.post(
-        "/api/v1/fair-participations",
-        json=_participation_payload(customer_a, fair_id, primary_contact_id=contact_b),
-        headers=auth_headers,
-    )
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Contact does not belong to this customer"
-
-
 def test_create_rejected_for_archived_customer(client, auth_headers):
     customer_id = _create_customer(client, auth_headers, "Archived Customer")
     fair_id = _create_fair(client, auth_headers, "Archived Cust Fair")
@@ -291,4 +283,7 @@ def test_get_participation(client, auth_headers):
 
     get = client.get(f"/api/v1/fair-participations/{participation_id}", headers=auth_headers)
     assert get.status_code == 200
-    assert get.json()["id"] == participation_id
+    body = get.json()
+    assert body["id"] == participation_id
+    assert body["notes"] == "Salon notu"
+    assert "participation_status" not in body

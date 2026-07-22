@@ -58,7 +58,7 @@ SHARED = {
         "standard_imports": ["SelectInput"],
         "standard_from": ["components/ui/form", "ui/form", "FormInputs"],
         "raw_tags": [r"<select\b"],
-        "notes": "Shared: SelectInput from ui/form. Domain selects (FairEntitySelect, AdapterSelect) are OK wrappers.",
+        "notes": "Shared: SelectInput from ui/form. Domain selects (FairEntitySelect, CustomerEntitySelect, AdapterSelect) are OK wrappers.",
     },
     "checkbox_radio": {
         "standard_imports": ["CheckboxField", "RadioField"],
@@ -417,6 +417,12 @@ P0_RAW_ALLOWLIST_ENTRIES: list[AllowlistEntry] = [
         "domain select wrappers",
     ),
     AllowlistEntry(
+        "frontend/src/components/CustomerEntitySelect.tsx",
+        "raw combobox input chrome",
+        "Domain async combobox; wraps search input + listbox pattern not covered by SelectInput.",
+        "domain select wrappers",
+    ),
+    AllowlistEntry(
         "frontend/src/components/AdapterSelect.tsx",
         "raw combobox input chrome",
         "Domain async combobox; wraps search input + listbox pattern not covered by SelectInput.",
@@ -678,7 +684,7 @@ def compute_p2_violations(ts_files: list[Path]) -> dict:
     # Intentional specialty: entity select loading chrome (not page LoadingState)
     for path in ts_files:
         r = rel(path)
-        if path.name in {"FairEntitySelect.tsx", "AdapterSelect.tsx"}:
+        if path.name in {"FairEntitySelect.tsx", "CustomerEntitySelect.tsx", "AdapterSelect.tsx"}:
             intentional.append(
                 {
                     "file": r,
@@ -863,6 +869,8 @@ ADR_BREAKPOINTS_PX = {767, 768, 1023, 1024, 1440}
 ROUTE_UNMOUNTED_PAGE_ALLOWLIST = {
     "DataOperationAnalyzeResultPage.tsx",
     "DataOperationDuplicateResultPage.tsx",
+    # Nested result/list view mounted from TodosPage tabs, not App.tsx page switch.
+    "FollowUpsPage.tsx",
 }
 
 

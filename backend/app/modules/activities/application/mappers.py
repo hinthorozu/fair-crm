@@ -35,6 +35,8 @@ def activity_to_result(
         created_at=activity.created_at,
         updated_at=activity.updated_at,
         deleted_at=activity.deleted_at,
+        todo_id=activity.todo_id,
+        fair_id=activity.fair_id,
         customer_name=customer_name,
         related_todo_id=related_todo_id,
         related_todo_title=related_todo_title,

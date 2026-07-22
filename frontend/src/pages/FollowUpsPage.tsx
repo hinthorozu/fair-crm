@@ -27,6 +27,10 @@ import type {
 
 interface FollowUpsPageProps {
   onOpenCustomer?: (customerId: string) => void;
+  embedded?: boolean;
+  lockedFilter?: FollowUpFilter;
+  urlPath?: string;
+  hidePageChrome?: boolean;
 }
 
 function formatDateTime(value: string | null | undefined): string {
@@ -40,7 +44,13 @@ function followUpRowKey(row: Pick<FollowUpRow, "todo_id" | "customer_id">): stri
   return `${row.todo_id}:${row.customer_id}`;
 }
 
-export function FollowUpsPage({ onOpenCustomer }: FollowUpsPageProps) {
+export function FollowUpsPage({
+  onOpenCustomer,
+  embedded = false,
+  lockedFilter,
+  urlPath = "/follow-ups",
+  hidePageChrome = false,
+}: FollowUpsPageProps) {
   const [activityModalOpen, setActivityModalOpen] = React.useState(false);
   const [selectedTodoId, setSelectedTodoId] = React.useState<string | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<string | null>(null);
@@ -50,6 +60,8 @@ export function FollowUpsPage({ onOpenCustomer }: FollowUpsPageProps) {
   const [saving, setSaving] = React.useState(false);
   const [saveSuccess, setSaveSuccess] = React.useState<string | null>(null);
 
+  const defaultFilter: FollowUpFilter = lockedFilter ?? "bugun";
+
   const table = useServerDataTable<FollowUpRow>({
     fetchFn: (params) =>
       listFollowUps({
@@ -58,16 +70,17 @@ export function FollowUpsPage({ onOpenCustomer }: FollowUpsPageProps) {
         search: params.search,
         sortBy: params.sortBy ?? undefined,
         sortOrder: params.sortOrder ?? undefined,
-        filter: (params.filters.filter as FollowUpFilter | undefined) ?? "bugun",
+        filter: lockedFilter ?? (params.filters.filter as FollowUpFilter | undefined) ?? "bugun",
       }),
     defaultSort: { field: "follow_up_at", direction: "asc" },
-    defaultFilters: { filter: "bugun" },
+    defaultFilters: { filter: defaultFilter },
     filterKeys: ["filter"],
-    urlSync: true,
-    urlPath: "/follow-ups",
+    urlSync: !lockedFilter,
+    urlPath,
   });
 
-  const followUpFilter = (table.filters.filter as FollowUpFilter | undefined) ?? "bugun";
+  const followUpFilter =
+    lockedFilter ?? (table.filters.filter as FollowUpFilter | undefined) ?? "bugun";
 
   const loadModalContext = React.useCallback(async (todoId: string, customerId: string) => {
     setModalLoading(true);
@@ -161,6 +174,7 @@ export function FollowUpsPage({ onOpenCustomer }: FollowUpsPageProps) {
   };
 
   const handleFilterChange = (filter: FollowUpFilter) => {
+    if (lockedFilter) return;
     table.setFilter("filter", filter);
   };
 
@@ -272,10 +286,8 @@ export function FollowUpsPage({ onOpenCustomer }: FollowUpsPageProps) {
     [onOpenCustomer],
   );
 
-  return (
-    <PageShell className="follow-ups-page">
-      <PageHeader title={followUpLabels.pageTitle} />
-
+  const body = (
+    <>
       <section className="follow-ups-section">
         <UniversalDataTable
           table={table}
@@ -288,18 +300,20 @@ export function FollowUpsPage({ onOpenCustomer }: FollowUpsPageProps) {
                 </button>
               }
             >
-              <div className="field full-width todo-worklist-segments">
-                {followUpFilterOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className={`btn ${followUpFilter === option.value ? "primary" : "secondary"}`}
-                    onClick={() => handleFilterChange(option.value)}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
+              {!lockedFilter ? (
+                <div className="field full-width todo-worklist-segments">
+                  {followUpFilterOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`btn ${followUpFilter === option.value ? "primary" : "secondary"}`}
+                      onClick={() => handleFilterChange(option.value)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               <TextInput
                 id="follow-up-search"
                 type="search"
@@ -328,6 +342,17 @@ export function FollowUpsPage({ onOpenCustomer }: FollowUpsPageProps) {
         onClose={closeActivityModal}
         onSave={handleSaveActivity}
       />
+    </>
+  );
+
+  if (hidePageChrome || embedded) {
+    return <div className="follow-ups-page follow-ups-page--embedded">{body}</div>;
+  }
+
+  return (
+    <PageShell className="follow-ups-page">
+      <PageHeader title={followUpLabels.pageTitle} />
+      {body}
     </PageShell>
   );
 }

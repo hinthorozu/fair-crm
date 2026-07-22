@@ -29,3 +29,26 @@ class TodoCategory(StrEnum):
     GENEL_GOREV = "genel_gorev"
     STAND_TASARIM = "stand_tasarim"
     DIGER = "diger"
+
+
+CREATABLE_TODO_CATEGORIES = frozenset(
+    {
+        TodoCategory.ARAMA,
+        TodoCategory.ZIYARET,
+        TodoCategory.TEKLIF,
+        TodoCategory.IMPORT_KONTROL,
+        TodoCategory.MUSTERI_GUNCELLEME,
+        TodoCategory.GENEL_GOREV,
+        TodoCategory.STAND_TASARIM,
+        TodoCategory.DIGER,
+    }
+)
+
+LEGACY_SYSTEM_TODO_CATEGORIES = frozenset(
+    {
+        TodoCategory.TOPLU_MAIL,
+        TodoCategory.SMS,
+        TodoCategory.WHATSAPP,
+        TodoCategory.VERI_TEMIZLEME,
+    }
+)

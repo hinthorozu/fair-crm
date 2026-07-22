@@ -27,6 +27,7 @@ from app.modules.todos.api.outcome_routes import router as todo_outcomes_router
 from app.modules.todos.api.follow_up_routes import router as follow_ups_router
 from app.modules.todos.api.worklist_routes import router as todo_worklist_router
 from app.modules.dashboard.api.routes import router as dashboard_router
+from app.modules.operations.api.routes import router as operations_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
 api_v1_router.include_router(auth_router)
@@ -55,3 +56,4 @@ api_v1_router.include_router(todo_outcomes_router)
 api_v1_router.include_router(todo_worklist_router)
 api_v1_router.include_router(dashboard_router)
 api_v1_router.include_router(follow_ups_router)
+api_v1_router.include_router(operations_router)

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import or_
@@ -94,6 +94,7 @@ class SqlAlchemyTodoRepository:
         assignee_user_id: UUID | None = None,
         created_by: UUID | None = None,
         is_overdue: bool | None = None,
+        due_today: bool | None = None,
         include_archived: bool = False,
         now: datetime | None = None,
         page: int = 1,
@@ -135,6 +136,16 @@ class SqlAlchemyTodoRepository:
                         TodoModel.status.in_(NON_OVERDUE_STATUSES),
                     )
                 )
+        if due_today:
+            if now is None:
+                raise ValueError("now is required when filtering by due_today")
+            day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            day_end = day_start + timedelta(days=1)
+            query = query.filter(
+                TodoModel.deadline.isnot(None),
+                TodoModel.deadline >= day_start,
+                TodoModel.deadline < day_end,
+            )
         if search:
             pattern = f"%{search.strip()}%"
             query = query.filter(or_(*[field.ilike(pattern) for field in SEARCH_FIELDS]))

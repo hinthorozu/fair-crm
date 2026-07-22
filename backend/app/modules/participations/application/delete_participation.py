@@ -3,9 +3,8 @@ from datetime import UTC, datetime
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.client import HttpAuditAdapter
 from app.integrations.kyrox_core.ports import AuthorizationPort
-from app.modules.contacts.domain.ports import ContactRepository
 from app.modules.participations.application.commands import DeleteParticipationCommand, ParticipationResult
-from app.modules.participations.application.mappers import participation_to_result, resolve_primary_contact_name
+from app.modules.participations.application.mappers import participation_to_result
 from app.modules.participations.domain.exceptions import ParticipationNotFoundError
 from app.modules.participations.domain.ports import ParticipationRepository
 
@@ -51,7 +50,4 @@ class DeleteParticipationUseCase:
             metadata={"user_id": str(command.user_id)},
         )
 
-        contact_name = resolve_primary_contact_name(
-            self._participation_repository, command.organization_id, saved.primary_contact_id
-        )
-        return participation_to_result(saved, primary_contact_name=contact_name)
+        return participation_to_result(saved)

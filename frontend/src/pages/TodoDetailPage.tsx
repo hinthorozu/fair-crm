@@ -1,5 +1,7 @@
 import React from "react";
-import { getTodo } from "../api/todos";
+import { getCustomer } from "../api/customers";
+import { getFair } from "../api/fairs";
+import { getTodo, updateTodo } from "../api/todos";
 import {
   getTodoWorklistModalContext,
   getTodoWorklistProgress,
@@ -7,17 +9,32 @@ import {
   recordTodoWorklistActivity,
 } from "../api/todoWorklist";
 import { ApiError } from "../api/client";
+import { CompleteTodoModal } from "../components/todos/CompleteTodoModal";
+import {
+  TODO_FORM_ID,
+  TodoForm,
+  canEditTodo,
+  formValuesToUpdatePayload,
+  todoToFormValues,
+  type TodoFormValues,
+} from "../components/todos/TodoForm";
 import { TodoWorklistActivityModal } from "../components/todos/TodoWorklistActivityModal";
 import { LoadingState } from "../components/ui/LoadingState";
-import { PageHeader } from "../components/ui/PageHeader";
+import { PageHeader, type PageHeaderAction } from "../components/ui/PageHeader";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
-import { Badge } from "../components/ui/Badge";
+import { Badge, type BadgeVariant } from "../components/ui/Badge";
+import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { EmptyState } from "../components/ui/EmptyState";
 import { FilterPanel } from "../components/ui/FilterPanel";
-import { TextInput } from "../components/ui/form";
+import { FormModal, TextInput } from "../components/ui/form";
 import { useServerDataTable } from "../hooks/useServerDataTable";
-import { todoLabels } from "../labels/todoLabels";
+import {
+  todoCategoryLabels,
+  todoLabels,
+  todoPriorityLabels,
+  todoStatusLabels,
+} from "../labels/todoLabels";
 import { labels } from "../labels";
 import {
   todoWorklistLabels,
@@ -25,7 +42,11 @@ import {
   worklistStatusBadgeVariant,
   worklistStatusLabels,
 } from "../labels/todoWorklistLabels";
-import type { Todo } from "../types/todo";
+import {
+  canPerformTodoAction,
+  getGrantedTodoPermissions,
+} from "../permissions/todoPermissions";
+import type { Todo, TodoPriority, TodoStatus } from "../types/todo";
 import { Banner } from "../components/ui/Banner";
 import { TableEntityLink } from "../components/ui/TableEntityLink";
 import { PageShell } from "../components/ui/PageShell";
@@ -51,6 +72,39 @@ function formatDateTime(value: string | null | undefined): string {
   return date.toLocaleString("tr-TR");
 }
 
+function canCompleteTodo(todo: Todo): boolean {
+  return todo.status !== "done" && todo.status !== "archived" && todo.status !== "cancelled";
+}
+
+function statusBadgeVariant(status: TodoStatus): BadgeVariant {
+  switch (status) {
+    case "done":
+      return "success";
+    case "in_progress":
+      return "info";
+    case "cancelled":
+    case "archived":
+      return "neutral";
+    case "todo":
+    default:
+      return "default";
+  }
+}
+
+function priorityBadgeVariant(priority: TodoPriority): BadgeVariant {
+  switch (priority) {
+    case "urgent":
+      return "danger";
+    case "high":
+      return "warning";
+    case "low":
+      return "neutral";
+    case "normal":
+    default:
+      return "default";
+  }
+}
+
 export function TodoDetailPage({
   todoId,
   onBack,
@@ -60,6 +114,8 @@ export function TodoDetailPage({
   const [todo, setTodo] = React.useState<Todo | null>(null);
   const [loadingTodo, setLoadingTodo] = React.useState(true);
   const [todoError, setTodoError] = React.useState<string | null>(null);
+  const [customerName, setCustomerName] = React.useState<string | null>(null);
+  const [fairName, setFairName] = React.useState<string | null>(null);
   const [progress, setProgress] = React.useState<TodoWorklistProgress | null>(null);
   const [progressError, setProgressError] = React.useState<string | null>(null);
   const [activityModalOpen, setActivityModalOpen] = React.useState(false);
@@ -69,6 +125,12 @@ export function TodoDetailPage({
   const [saveError, setSaveError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [saveSuccess, setSaveSuccess] = React.useState<string | null>(null);
+  const [completeModalOpen, setCompleteModalOpen] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [formSaving, setFormSaving] = React.useState(false);
+
+  const grantedPermissions = React.useMemo(() => getGrantedTodoPermissions(), []);
+  const canUpdate = canPerformTodoAction(grantedPermissions, "update");
 
   const hasSourceFair = Boolean(todo?.source_fair_id);
 
@@ -143,9 +205,53 @@ export function TodoDetailPage({
   }, [todoId, onTodoLoaded]);
 
   React.useEffect(() => {
-    if (!hasSourceFair) return;
+    if (!todo?.customer_id) {
+      setCustomerName(null);
+      return;
+    }
+    let cancelled = false;
+    void getCustomer(todo.customer_id)
+      .then((customer) => {
+        if (!cancelled) setCustomerName(customer.display_name);
+      })
+      .catch(() => {
+        if (!cancelled) setCustomerName(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [todo?.customer_id]);
+
+  React.useEffect(() => {
+    if (!todo?.source_fair_id) {
+      setFairName(null);
+      return;
+    }
+    let cancelled = false;
+    void getFair(todo.source_fair_id)
+      .then((fair) => {
+        if (!cancelled) setFairName(fair.name);
+      })
+      .catch(() => {
+        if (!cancelled) setFairName(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [todo?.source_fair_id]);
+
+  React.useEffect(() => {
+    if (!hasSourceFair) {
+      setProgress(null);
+      setProgressError(null);
+      return;
+    }
     void refreshProgress();
   }, [hasSourceFair, refreshProgress]);
+
+  React.useEffect(() => {
+    if (!editOpen) setFormSaving(false);
+  }, [editOpen]);
 
   const handleFilterChange = (filter: WorklistFilter) => {
     table.setFilter("filter", filter);
@@ -188,6 +294,20 @@ export function TodoDetailPage({
       setSaveError(err instanceof ApiError ? err.message : todoWorklistLabels.saveError);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleEditSubmit = async (values: TodoFormValues) => {
+    const updated = await updateTodo(todoId, formValuesToUpdatePayload(values));
+    setTodo(updated);
+    setEditOpen(false);
+    setSaveSuccess(todoLabels.updateSuccess);
+    onTodoLoaded?.(updated.title);
+    if (updated.source_fair_id) {
+      await table.refresh();
+      await refreshProgress();
+    } else {
+      setProgress(null);
     }
   };
 
@@ -260,7 +380,7 @@ export function TodoDetailPage({
         ),
       },
     ],
-    [onOpenCustomer, handleOpenActivity],
+    [onOpenCustomer],
   );
 
   if (loadingTodo) {
@@ -279,19 +399,120 @@ export function TodoDetailPage({
     );
   }
 
+  const headerActions: PageHeaderAction[] = [
+    {
+      id: "back",
+      label: todoWorklistLabels.backToList,
+      onClick: onBack,
+      variant: "secondary",
+    },
+  ];
+  if (canUpdate && canEditTodo(todo)) {
+    headerActions.unshift({
+      id: "edit",
+      label: todoLabels.actionEdit,
+      onClick: () => setEditOpen(true),
+      variant: "secondary",
+    });
+  }
+  if (canUpdate && canCompleteTodo(todo)) {
+    headerActions.unshift({
+      id: "complete",
+      label: todoLabels.actionComplete,
+      onClick: () => setCompleteModalOpen(true),
+      variant: "primary",
+    });
+  }
+
+  const customerDisplay = todo.customer_id
+    ? customerName || todoLabels.fieldCustomerNone
+    : todoLabels.fieldCustomerNone;
+  const fairDisplay = todo.source_fair_id
+    ? fairName || todoLabels.fieldSourceFairNone
+    : todoLabels.fieldSourceFairNone;
+
   return (
     <PageShell className="todo-detail-page">
-      <PageHeader
-        title={todo.title}
-        subtitle={todo.description || undefined}
-        actions={[
-          {
-            label: todoWorklistLabels.backToList,
-            onClick: onBack,
-            variant: "secondary",
-          },
-        ]}
-      />
+      <PageHeader title={todo.title} actions={headerActions} />
+
+      {saveSuccess ? <Banner variant="success">{saveSuccess}</Banner> : null}
+
+      <Card className="todo-detail-meta">
+        <dl className="detail-grid todo-detail-meta-grid">
+          <div>
+            <dt>{todoLabels.fieldTitle}</dt>
+            <dd>{todo.title}</dd>
+          </div>
+          <div>
+            <dt>{todoLabels.fieldDescription}</dt>
+            <dd>{todo.description?.trim() ? todo.description : "—"}</dd>
+          </div>
+          <div>
+            <dt>{todoLabels.fieldStatus}</dt>
+            <dd>
+              <Badge variant={statusBadgeVariant(todo.status)}>
+                {todoStatusLabels[todo.status]}
+              </Badge>
+              {todo.is_overdue ? (
+                <>
+                  {" "}
+                  <Badge variant="danger">{todoLabels.overdueBadge}</Badge>
+                </>
+              ) : null}
+            </dd>
+          </div>
+          <div>
+            <dt>{todoLabels.fieldPriority}</dt>
+            <dd>
+              <Badge variant={priorityBadgeVariant(todo.priority)}>
+                {todoPriorityLabels[todo.priority]}
+              </Badge>
+            </dd>
+          </div>
+          <div>
+            <dt>{todoLabels.fieldCategory}</dt>
+            <dd>{todoCategoryLabels[todo.category] ?? todo.category}</dd>
+          </div>
+          <div>
+            <dt>{todoLabels.fieldDeadline}</dt>
+            <dd>{formatDateTime(todo.deadline)}</dd>
+          </div>
+          <div>
+            <dt>{todoLabels.fieldCustomer}</dt>
+            <dd>
+              {todo.customer_id && customerName && onOpenCustomer ? (
+                <TableEntityLink onClick={() => onOpenCustomer(todo.customer_id!)}>
+                  {customerName}
+                </TableEntityLink>
+              ) : (
+                customerDisplay
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>{todoLabels.fieldSourceFair}</dt>
+            <dd>{fairDisplay}</dd>
+          </div>
+          <div>
+            <dt>{todoLabels.fieldAssignee}</dt>
+            <dd>{todo.assignee_user_id || "—"}</dd>
+          </div>
+          <div>
+            <dt>{todoLabels.fieldCreatedAt}</dt>
+            <dd>{formatDateTime(todo.created_at)}</dd>
+          </div>
+          <div>
+            <dt>{todoLabels.fieldUpdatedAt}</dt>
+            <dd>{formatDateTime(todo.updated_at)}</dd>
+          </div>
+          {todo.completed_at ? (
+            <div>
+              <dt>{todoLabels.fieldCompletedAt}</dt>
+              <dd>{formatDateTime(todo.completed_at)}</dd>
+            </div>
+          ) : null}
+        </dl>
+      </Card>
 
       {hasSourceFair ? (
         <>
@@ -363,8 +584,6 @@ export function TodoDetailPage({
             />
           </section>
 
-          {saveSuccess && <Banner variant="success">{saveSuccess}</Banner>}
-
           <TodoWorklistActivityModal
             open={activityModalOpen}
             context={modalContext}
@@ -375,12 +594,50 @@ export function TodoDetailPage({
             onSave={handleSaveActivity}
           />
         </>
-      ) : (
-        <Card className="todo-worklist-missing-fair">
-          <p>{todoWorklistLabels.missingSourceFair}</p>
-          <p className="muted">{todoWorklistLabels.missingSourceFairAction}</p>
-        </Card>
-      )}
+      ) : null}
+
+      {editOpen ? (
+        <FormModal
+          title={todoLabels.editTodo}
+          onClose={() => setEditOpen(false)}
+          size="lg"
+          formWidth="standard"
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setEditOpen(false)}
+                disabled={formSaving}
+              >
+                {todoLabels.cancel}
+              </Button>
+              <Button type="submit" form={TODO_FORM_ID} variant="primary" loading={formSaving}>
+                {formSaving ? todoLabels.saving : todoLabels.save}
+              </Button>
+            </>
+          }
+        >
+          <TodoForm
+            initial={todoToFormValues(todo)}
+            onSubmit={handleEditSubmit}
+            onSavingChange={setFormSaving}
+          />
+        </FormModal>
+      ) : null}
+
+      {completeModalOpen ? (
+        <CompleteTodoModal
+          todo={todo}
+          onClose={() => setCompleteModalOpen(false)}
+          onCompleted={(updated) => {
+            setTodo(updated);
+            setCompleteModalOpen(false);
+            setSaveSuccess(todoLabels.completeSuccess);
+            onTodoLoaded?.(updated.title);
+          }}
+        />
+      ) : null}
     </PageShell>
   );
 }

@@ -7,17 +7,6 @@ from pydantic import AliasChoices
 
 from app.api.dependencies.list_query import parse_list_query, resolve_page_size_from_request
 from app.api.list_helpers import standard_list_from_result
-from app.modules.participations.application.list_by_customer import (
-    ALLOWED_SORT_FIELDS as CUSTOMER_ALLOWED_SORT_FIELDS,
-    DEFAULT_SORT_DIRECTION as CUSTOMER_DEFAULT_SORT_DIRECTION,
-    DEFAULT_SORT_FIELD as CUSTOMER_DEFAULT_SORT_FIELD,
-)
-from app.modules.participations.application.list_by_fair import (
-    ALLOWED_SORT_FIELDS as FAIR_ALLOWED_SORT_FIELDS,
-    DEFAULT_SORT_DIRECTION as FAIR_DEFAULT_SORT_DIRECTION,
-    DEFAULT_SORT_FIELD as FAIR_DEFAULT_SORT_FIELD,
-)
-
 from app.core.config import get_settings
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.auth import AuthContext
@@ -52,22 +41,28 @@ from app.modules.participations.application.commands import (
 from app.modules.participations.application.create_participation import CreateParticipationUseCase
 from app.modules.participations.application.delete_participation import DeleteParticipationUseCase
 from app.modules.participations.application.get_participation import GetParticipationUseCase
-from app.modules.participations.application.list_by_customer import ListParticipationsByCustomerUseCase
-from app.modules.participations.application.list_by_fair import ListParticipantsByFairUseCase
+from app.modules.participations.application.list_by_customer import (
+    ALLOWED_SORT_FIELDS as CUSTOMER_ALLOWED_SORT_FIELDS,
+    DEFAULT_SORT_DIRECTION as CUSTOMER_DEFAULT_SORT_DIRECTION,
+    DEFAULT_SORT_FIELD as CUSTOMER_DEFAULT_SORT_FIELD,
+    ListParticipationsByCustomerUseCase,
+)
+from app.modules.participations.application.list_by_fair import (
+    ALLOWED_SORT_FIELDS as FAIR_ALLOWED_SORT_FIELDS,
+    DEFAULT_SORT_DIRECTION as FAIR_DEFAULT_SORT_DIRECTION,
+    DEFAULT_SORT_FIELD as FAIR_DEFAULT_SORT_FIELD,
+    ListParticipantsByFairUseCase,
+)
 from app.modules.participations.application.update_participation import UpdateParticipationUseCase
 from app.modules.participations.domain.exceptions import (
-    ContactCustomerMismatchForParticipationError,
-    ContactNotFoundForParticipationError,
     CustomerArchivedForParticipationError,
     CustomerNotFoundForParticipationError,
     DuplicateParticipationError,
     FairArchivedForParticipationError,
     FairNotFoundForParticipationError,
-    InvalidParticipationStatusError,
     ParticipationAlreadyDeletedError,
     ParticipationNotFoundError,
 )
-from app.modules.participations.domain.value_objects import ParticipationStatus
 
 router = APIRouter(prefix="/fair-participations", tags=["fair-participations"])
 customer_participations_router = APIRouter(
@@ -104,7 +99,6 @@ def _participation_response(result) -> ParticipationResponse:
 def list_participations_by_customer(
     request: Request,
     customer_id: UUID,
-    participation_status: ParticipationStatus | None = Query(default=None, alias="participationStatus"),
     search: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: Annotated[
@@ -145,7 +139,6 @@ def list_participations_by_customer(
                 organization_id=auth.organization_id,
                 customer_id=customer_id,
                 search=list_query.search,
-                participation_status=participation_status.value if participation_status else None,
                 page=list_query.page,
                 page_size=list_query.page_size,
                 sort_by=list_query.sort_by,
@@ -160,8 +153,6 @@ def list_participations_by_customer(
     filters: dict = {}
     if list_query.search:
         filters["search"] = list_query.search
-    if participation_status is not None:
-        filters["participationStatus"] = participation_status.value
 
     return standard_list_from_result(
         result,
@@ -186,7 +177,6 @@ def list_participations_by_customer(
 def list_participants_by_fair(
     request: Request,
     fair_id: UUID,
-    participation_status: ParticipationStatus | None = Query(default=None, alias="participationStatus"),
     search: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: Annotated[
@@ -227,7 +217,6 @@ def list_participants_by_fair(
                 organization_id=auth.organization_id,
                 fair_id=fair_id,
                 search=list_query.search,
-                participation_status=participation_status.value if participation_status else None,
                 page=list_query.page,
                 page_size=list_query.page_size,
                 sort_by=list_query.sort_by,
@@ -242,8 +231,6 @@ def list_participants_by_fair(
     filters: dict = {}
     if list_query.search:
         filters["search"] = list_query.search
-    if participation_status is not None:
-        filters["participationStatus"] = participation_status.value
 
     return standard_list_from_result(
         result,
@@ -298,12 +285,6 @@ def create_participation(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except DuplicateParticipationError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except ContactNotFoundForParticipationError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except ContactCustomerMismatchForParticipationError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except InvalidParticipationStatusError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _participation_response(result)
 
 
@@ -348,10 +329,7 @@ def update_participation(
     use_case: UpdateParticipationUseCase = Depends(get_update_participation_use_case),
 ) -> ParticipationResponse:
     data = body.model_dump(exclude_unset=True)
-    set_fields = {
-        key: key in data
-        for key in ("hall", "stand", "notes", "primary_contact_id", "visited_at")
-    }
+    set_fields = {key: key in data for key in ("hall", "stand", "notes")}
     try:
         result = use_case.execute(
             UpdateParticipationCommand(
@@ -361,16 +339,10 @@ def update_participation(
                 participation_id=participation_id,
                 hall=data.get("hall"),
                 stand=data.get("stand"),
-                participation_status=data.get("participation_status"),
                 notes=data.get("notes"),
-                primary_contact_id=data.get("primary_contact_id"),
-                visited_at=data.get("visited_at"),
-                is_active=data.get("is_active"),
                 set_hall=set_fields["hall"],
                 set_stand=set_fields["stand"],
                 set_notes=set_fields["notes"],
-                set_primary_contact_id=set_fields["primary_contact_id"],
-                set_visited_at=set_fields["visited_at"],
             )
         )
     except ForbiddenError as exc:
@@ -378,12 +350,6 @@ def update_participation(
     except ParticipationNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ParticipationAlreadyDeletedError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except ContactNotFoundForParticipationError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except ContactCustomerMismatchForParticipationError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except InvalidParticipationStatusError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _participation_response(result)
 

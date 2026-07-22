@@ -99,11 +99,14 @@ function buildRecentActivityColumns(
       key: "customer_name",
       title: dashboardLabels.colCustomerName,
       sortable: false,
-      render: (row) => (
-        <TableEntityLink onClick={() => onOpenCustomer(row.customerId)}>
-          {row.customerName}
-        </TableEntityLink>
-      ),
+      render: (row) =>
+        row.customerId ? (
+          <TableEntityLink onClick={() => onOpenCustomer(row.customerId!)}>
+            {row.customerName}
+          </TableEntityLink>
+        ) : (
+          <span>{row.customerName || "—"}</span>
+        ),
     },
     {
       key: "activity_type",

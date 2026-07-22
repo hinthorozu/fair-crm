@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.api.schemas.list_response import StandardListResponse
 from app.modules.activities.domain.value_objects import ActivitySource
 
+# Manual create/update types — task_completed is system-only (Todo complete).
 ActivityTypeField = Literal[
     "call",
     "meeting",
@@ -60,7 +61,7 @@ class ActivityResponse(BaseModel):
 
     id: UUID
     organization_id: UUID
-    customer_id: UUID
+    customer_id: Optional[UUID]
     contact_id: Optional[UUID]
     contact_full_name: Optional[str]
     type: str
@@ -74,6 +75,8 @@ class ActivityResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime]
+    todo_id: Optional[UUID] = None
+    fair_id: Optional[UUID] = None
     customer_name: Optional[str] = None
     related_todo_id: Optional[UUID] = None
     related_todo_title: Optional[str] = None

@@ -20,6 +20,10 @@ class ActivityRepository(Protocol):
 
     def get_by_id(self, organization_id: UUID, activity_id: UUID) -> Activity | None: ...
 
+    def get_task_completed_by_todo_id(
+        self, organization_id: UUID, todo_id: UUID
+    ) -> Activity | None: ...
+
     def update(self, activity: Activity) -> Activity: ...
 
     def hard_delete(self, organization_id: UUID, activity_id: UUID) -> bool: ...
@@ -50,6 +54,7 @@ class ActivityRepository(Protocol):
         *,
         search: str | None = None,
         customer_id: UUID | None = None,
+        fair_id: UUID | None = None,
         activity_type: str | None = None,
         status: str | None = None,
         date_from: datetime | None = None,

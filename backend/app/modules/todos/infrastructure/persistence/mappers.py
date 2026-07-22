@@ -13,6 +13,7 @@ def model_to_entity(model: TodoModel) -> Todo:
         category=model.category,
         deadline=model.deadline,
         assignee_user_id=model.assignee_user_id,
+        customer_id=model.customer_id,
         source_fair_id=model.source_fair_id,
         created_by=model.created_by,
         updated_by=model.updated_by,
@@ -34,6 +35,7 @@ def entity_to_model(todo: Todo) -> TodoModel:
         category=todo.category,
         deadline=todo.deadline,
         assignee_user_id=todo.assignee_user_id,
+        customer_id=todo.customer_id,
         source_fair_id=todo.source_fair_id,
         created_by=todo.created_by,
         updated_by=todo.updated_by,
@@ -52,6 +54,7 @@ def update_model_from_entity(model: TodoModel, todo: Todo) -> None:
     model.category = todo.category
     model.deadline = todo.deadline
     model.assignee_user_id = todo.assignee_user_id
+    model.customer_id = todo.customer_id
     model.source_fair_id = todo.source_fair_id
     model.updated_by = todo.updated_by
     model.archived_at = todo.archived_at

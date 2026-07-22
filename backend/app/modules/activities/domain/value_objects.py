@@ -9,6 +9,7 @@ class ActivityType(StrEnum):
     NOTE = "note"
     FAIR_VISIT = "fair_visit"
     FOLLOW_UP = "follow_up"
+    TASK_COMPLETED = "task_completed"
     OTHER = "other"
 
 

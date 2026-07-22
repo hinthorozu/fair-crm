@@ -7,6 +7,7 @@ export const fairLabels = {
   restoreSuccess: "Fuar arşivden çıkarıldı.",
   searchPlaceholder: "Fuar ara…",
   noResults: "Fuar bulunamadı.",
+  clearSelection: "Fuar seçimini kaldır",
   loadError: "Fuarlar yüklenemedi.",
   archiveError: "Arşivleme başarısız.",
   restoreError: "Arşivden çıkarma başarısız.",

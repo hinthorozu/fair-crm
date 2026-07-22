@@ -205,6 +205,7 @@ def list_activities(
     activity_type: str | None = Query(default=None, alias="activityType"),
     status_filter: str | None = Query(default=None, alias="status"),
     customer_id: UUID | None = Query(default=None, alias="customerId"),
+    fair_id: UUID | None = Query(default=None, alias="fairId"),
     date_from: str | None = Query(default=None, alias="dateFrom"),
     date_to: str | None = Query(default=None, alias="dateTo"),
     search: str | None = Query(default=None),
@@ -246,6 +247,7 @@ def list_activities(
             organization_id=auth.organization_id,
             search=list_query.search,
             customer_id=customer_id,
+            fair_id=fair_id,
             activity_type=activity_type.strip() if activity_type and activity_type.strip() else None,
             status=status_filter.strip() if status_filter and status_filter.strip() else None,
             date_from=_parse_date_start(date_from),
@@ -266,6 +268,8 @@ def list_activities(
         filters["status"] = status_filter.strip()
     if customer_id is not None:
         filters["customerId"] = str(customer_id)
+    if fair_id is not None:
+        filters["fairId"] = str(fair_id)
     if date_from and date_from.strip():
         filters["dateFrom"] = date_from.strip()
     if date_to and date_to.strip():

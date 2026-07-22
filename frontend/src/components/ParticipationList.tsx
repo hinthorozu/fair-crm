@@ -3,27 +3,13 @@ import type {
   CustomerParticipationListItem,
   FairParticipantListItem,
 } from "../types/participation";
-import { participationLabels, participationStatusLabels } from "../labels/participationLabels";
+import { participationLabels } from "../labels/participationLabels";
 import { uiLabels } from "../labels/uiLabels";
 import { labels } from "../labels";
-import { Badge } from "./ui/Badge";
 import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
 import { UniversalDataTable, type UniversalDataTableColumn } from "./ui/UniversalDataTable";
 import { TableRowActions } from "./ui/TableRowActions";
-import { participationStatusBadgeVariant } from "../utils/badges";
-
-function formatFairDates(start: string | null, end: string | null): string {
-  if (!start && !end) return "—";
-  if (start && end) return `${start} – ${end}`;
-  return start ?? end ?? "—";
-}
-
-function formatVisitedAt(value: string | null): string {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString("tr-TR");
-}
+import { TableEntityLink } from "./ui/TableEntityLink";
 
 interface CustomerParticipationTableProps {
   items: CustomerParticipationListItem[];
@@ -49,12 +35,6 @@ function buildCustomerParticipationColumns(
       render: (item) => <strong>{item.fair_name}</strong>,
     },
     {
-      key: "fair_start_date",
-      title: participationLabels.date,
-      sortable: true,
-      render: (item) => formatFairDates(item.fair_start_date, item.fair_end_date),
-    },
-    {
       key: "hall",
       title: participationLabels.hall,
       sortable: true,
@@ -67,26 +47,10 @@ function buildCustomerParticipationColumns(
       render: (item) => item.stand ?? "—",
     },
     {
-      key: "participation_status",
-      title: participationLabels.status,
+      key: "notes",
+      title: participationLabels.notes,
       sortable: true,
-      render: (item) => (
-        <Badge variant={participationStatusBadgeVariant(item.participation_status)}>
-          {participationStatusLabels[item.participation_status]}
-        </Badge>
-      ),
-    },
-    {
-      key: "primary_contact_name",
-      title: participationLabels.primaryContact,
-      sortable: true,
-      render: (item) => item.primary_contact_name ?? "—",
-    },
-    {
-      key: "visited_at",
-      title: participationLabels.visitedAt,
-      sortable: true,
-      render: (item) => formatVisitedAt(item.visited_at),
+      render: (item) => item.notes ?? "—",
     },
     {
       key: "actions",
@@ -161,40 +125,12 @@ function buildFairParticipantColumns(
       sortable: true,
       render: (item) =>
         onOpenCustomer ? (
-          <button
-            type="button"
-            className="btn link table-link"
-            onClick={() => onOpenCustomer(item.customer_id)}
-          >
-            <strong>{item.company_name}</strong>
-          </button>
+          <TableEntityLink onClick={() => onOpenCustomer(item.customer_id)}>
+            {item.company_name}
+          </TableEntityLink>
         ) : (
           <strong>{item.company_name}</strong>
         ),
-    },
-    {
-      key: "email",
-      title: labels.email,
-      sortable: true,
-      render: (item) => item.email ?? "—",
-    },
-    {
-      key: "phone",
-      title: labels.phone,
-      sortable: true,
-      render: (item) => item.phone ?? "—",
-    },
-    {
-      key: "country",
-      title: labels.country,
-      sortable: true,
-      render: (item) => item.country ?? "—",
-    },
-    {
-      key: "city",
-      title: labels.city,
-      sortable: true,
-      render: (item) => item.city ?? "—",
     },
     {
       key: "hall",
@@ -209,20 +145,10 @@ function buildFairParticipantColumns(
       render: (item) => item.stand ?? "—",
     },
     {
-      key: "participation_status",
-      title: participationLabels.status,
+      key: "notes",
+      title: participationLabels.notes,
       sortable: true,
-      render: (item) => (
-        <Badge variant={participationStatusBadgeVariant(item.participation_status)}>
-          {participationStatusLabels[item.participation_status]}
-        </Badge>
-      ),
-    },
-    {
-      key: "primary_contact_name",
-      title: participationLabels.primaryContact,
-      sortable: true,
-      render: (item) => item.primary_contact_name ?? "—",
+      render: (item) => item.notes ?? "—",
     },
     {
       key: "actions",

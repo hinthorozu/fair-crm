@@ -6,6 +6,7 @@ export type ActivityType =
   | "note"
   | "fair_visit"
   | "follow_up"
+  | "task_completed"
   | "other";
 
 export type ActivityStatus = "open" | "completed" | "cancelled";
@@ -21,7 +22,7 @@ export type ActivitySource =
 export interface Activity {
   id: string;
   organization_id: string;
-  customer_id: string;
+  customer_id: string | null;
   contact_id: string | null;
   contact_full_name: string | null;
   type: ActivityType;
@@ -43,6 +44,9 @@ export interface Activity {
   action_required?: boolean | null;
   data_problem?: boolean | null;
   display_metadata?: Record<string, unknown> | null;
+  /** Alias / optional link fields returned by some activity sources */
+  todo_id?: string | null;
+  fair_id?: string | null;
 }
 
 export interface ActivityListResponse {

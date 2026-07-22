@@ -66,6 +66,10 @@ class TodoMissingSourceFairError(TodoDomainError):
     pass
 
 
+class InvalidTodoCustomerError(TodoDomainError):
+    pass
+
+
 class WorklistCustomerNotInTodoError(TodoDomainError):
     pass
 

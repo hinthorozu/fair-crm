@@ -5,6 +5,7 @@ export type TodoFormStatus = "todo" | "in_progress" | "cancelled";
 
 export type TodoPriority = "low" | "normal" | "high" | "urgent";
 
+/** Full category union including legacy values kept for reading existing records. */
 export type TodoCategory =
   | "arama"
   | "toplu_mail"
@@ -13,6 +14,17 @@ export type TodoCategory =
   | "ziyaret"
   | "teklif"
   | "veri_temizleme"
+  | "import_kontrol"
+  | "musteri_guncelleme"
+  | "genel_gorev"
+  | "stand_tasarim"
+  | "diger";
+
+/** Categories allowed when creating or editing a todo. */
+export type CreatableTodoCategory =
+  | "arama"
+  | "ziyaret"
+  | "teklif"
   | "import_kontrol"
   | "musteri_guncelleme"
   | "genel_gorev"
@@ -29,6 +41,7 @@ export interface Todo {
   category: TodoCategory;
   deadline: string | null;
   assignee_user_id: string | null;
+  customer_id: string | null;
   source_fair_id: string | null;
   created_by: string;
   updated_by: string | null;
@@ -44,9 +57,10 @@ export interface CreateTodoPayload {
   description?: string | null;
   status?: TodoFormStatus;
   priority?: TodoPriority;
-  category?: TodoCategory;
+  category?: CreatableTodoCategory;
   deadline?: string | null;
   assignee_user_id?: string | null;
+  customer_id?: string | null;
   source_fair_id?: string | null;
 }
 
@@ -55,8 +69,13 @@ export interface UpdateTodoPayload {
   description?: string | null;
   status?: TodoFormStatus;
   priority?: TodoPriority;
-  category?: TodoCategory;
+  category?: CreatableTodoCategory;
   deadline?: string | null;
   assignee_user_id?: string | null;
+  customer_id?: string | null;
   source_fair_id?: string | null;
+}
+
+export interface CompleteTodoPayload {
+  note?: string | null;
 }

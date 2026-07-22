@@ -10,6 +10,7 @@ export function activityTypeBadgeVariant(type: ActivityType): BadgeVariant {
     note: "warning",
     fair_visit: "primary",
     follow_up: "info",
+    task_completed: "neutral",
     other: "neutral",
   };
   return map[type] ?? "neutral";
@@ -42,20 +43,6 @@ export function customerStatusBadgeVariant(status: string): BadgeVariant {
     active: "success",
     inactive: "neutral",
     archived: "danger",
-  };
-  return map[status] ?? "neutral";
-}
-
-export function participationStatusBadgeVariant(status: string): BadgeVariant {
-  const map: Record<string, BadgeVariant> = {
-    planned: "info",
-    exhibitor: "primary",
-    visited: "success",
-    contacted: "warning",
-    follow_up_required: "warning",
-    not_interested: "danger",
-    customer: "success",
-    other: "neutral",
   };
   return map[status] ?? "neutral";
 }

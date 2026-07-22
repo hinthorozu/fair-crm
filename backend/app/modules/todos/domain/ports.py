@@ -35,6 +35,7 @@ class TodoRepository(Protocol):
         assignee_user_id: UUID | None = None,
         created_by: UUID | None = None,
         is_overdue: bool | None = None,
+        due_today: bool | None = None,
         include_archived: bool = False,
         now: datetime | None = None,
         page: int = 1,

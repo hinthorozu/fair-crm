@@ -1,30 +1,19 @@
 import React from "react";
-import type { Contact } from "../types/contact";
-import type { Customer } from "../types/customer";
-import type { Fair } from "../types/fair";
 import type {
   CustomerParticipationListItem,
   FairParticipantListItem,
-  ParticipationStatus,
 } from "../types/participation";
 import { labels } from "../labels";
-import {
-  isoToLocalDatetime,
-  localDatetimeToIso,
-} from "./ActivityForm";
-import {
-  participationLabels,
-  participationStatusLabels,
-  participationStatusOptions,
-} from "../labels/participationLabels";
+import { participationLabels } from "../labels/participationLabels";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
+import { CustomerEntitySelect } from "./CustomerEntitySelect";
+import { FairEntitySelect } from "./FairEntitySelect";
 import { Banner } from "./ui/Banner";
 import {
   FormActions,
   FormField,
   FormGrid,
   FormSection,
-  SelectInput,
   TextareaInput,
   TextInput,
 } from "./ui/form";
@@ -34,9 +23,6 @@ export interface ParticipationFormValues {
   customer_id: string;
   hall: string;
   stand: string;
-  participation_status: ParticipationStatus;
-  primary_contact_id: string;
-  visited_at: string;
   notes: string;
 }
 
@@ -45,9 +31,6 @@ const emptyForm = (): ParticipationFormValues => ({
   customer_id: "",
   hall: "",
   stand: "",
-  participation_status: "exhibitor",
-  primary_contact_id: "",
-  visited_at: "",
   notes: "",
 });
 
@@ -56,9 +39,6 @@ export function participationToFormValues(p: {
   customer_id: string;
   hall: string | null;
   stand: string | null;
-  participation_status: ParticipationStatus;
-  primary_contact_id: string | null;
-  visited_at: string | null;
   notes: string | null;
 }): ParticipationFormValues {
   return {
@@ -66,9 +46,6 @@ export function participationToFormValues(p: {
     customer_id: p.customer_id,
     hall: p.hall ?? "",
     stand: p.stand ?? "",
-    participation_status: p.participation_status,
-    primary_contact_id: p.primary_contact_id ?? "",
-    visited_at: isoToLocalDatetime(p.visited_at),
     notes: p.notes ?? "",
   };
 }
@@ -82,9 +59,6 @@ export function customerParticipationToFormValues(
     customer_id: "",
     hall: item.hall ?? "",
     stand: item.stand ?? "",
-    participation_status: item.participation_status,
-    primary_contact_id: "",
-    visited_at: isoToLocalDatetime(item.visited_at),
     notes: item.notes ?? "",
   };
 }
@@ -98,9 +72,6 @@ export function fairParticipantToFormValues(
     customer_id: customerId,
     hall: item.hall ?? "",
     stand: item.stand ?? "",
-    participation_status: item.participation_status,
-    primary_contact_id: "",
-    visited_at: isoToLocalDatetime(item.visited_at),
     notes: item.notes ?? "",
   };
 }
@@ -108,23 +79,23 @@ export function fairParticipantToFormValues(
 interface ParticipationFormProps {
   mode: "customer" | "fair";
   initial?: ParticipationFormValues;
-  fairs?: Fair[];
-  customers?: Customer[];
-  contacts?: Contact[];
   submitLabel: string;
   onSubmit: (values: ParticipationFormValues) => Promise<void>;
   onCancel: () => void;
+  /** When editing from customer context, fair is already fixed. */
+  lockFair?: boolean;
+  /** When editing from fair context, customer is already fixed. */
+  lockCustomer?: boolean;
 }
 
 export function ParticipationForm({
   mode,
   initial,
-  fairs = [],
-  customers = [],
-  contacts = [],
   submitLabel,
   onSubmit,
   onCancel,
+  lockFair = false,
+  lockCustomer = false,
 }: ParticipationFormProps) {
   const [values, setValues] = React.useState<ParticipationFormValues>(initial ?? emptyForm());
   const [saving, setSaving] = React.useState(false);
@@ -172,19 +143,13 @@ export function ParticipationForm({
         <FormGrid>
           {mode === "customer" ? (
             <FormField label={participationLabels.fair} htmlFor="participation-fair" required fullWidth>
-              <SelectInput
+              <FairEntitySelect
                 id="participation-fair"
                 value={values.fair_id}
-                onChange={(event) => set("fair_id", event.target.value)}
-                required
-              >
-                <option value="">{participationLabels.selectFair}</option>
-                {fairs.map((fair) => (
-                  <option key={fair.id} value={fair.id}>
-                    {fair.name}
-                  </option>
-                ))}
-              </SelectInput>
+                onChange={(fairId) => set("fair_id", fairId)}
+                disabled={lockFair}
+                placeholder={participationLabels.selectFair}
+              />
             </FormField>
           ) : null}
 
@@ -195,19 +160,13 @@ export function ParticipationForm({
               required
               fullWidth
             >
-              <SelectInput
+              <CustomerEntitySelect
                 id="participation-company"
                 value={values.customer_id}
-                onChange={(event) => set("customer_id", event.target.value)}
-                required
-              >
-                <option value="">{participationLabels.selectCompany}</option>
-                {customers.map((customer) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.display_name}
-                  </option>
-                ))}
-              </SelectInput>
+                onChange={(customerId) => set("customer_id", customerId)}
+                disabled={lockCustomer}
+                placeholder={participationLabels.selectCompany}
+              />
             </FormField>
           ) : null}
 
@@ -226,65 +185,8 @@ export function ParticipationForm({
               onChange={(event) => set("stand", event.target.value)}
             />
           </FormField>
-
-          <FormField
-            label={participationLabels.participationStatus}
-            htmlFor="participation-status"
-          >
-            <SelectInput
-              id="participation-status"
-              value={values.participation_status}
-              onChange={(event) =>
-                set("participation_status", event.target.value as ParticipationStatus)
-              }
-            >
-              {participationStatusOptions.map((option) => (
-                <option key={option} value={option}>
-                  {participationStatusLabels[option]}
-                </option>
-              ))}
-            </SelectInput>
-          </FormField>
         </FormGrid>
       </FormSection>
-
-      <FormSection title={participationLabels.participationSectionSchedule}>
-        <FormGrid>
-          <FormField label={participationLabels.visitedAt} htmlFor="participation-visited-at">
-            <TextInput
-              id="participation-visited-at"
-              type="datetime-local"
-              value={values.visited_at}
-              onChange={(event) => set("visited_at", event.target.value)}
-            />
-          </FormField>
-        </FormGrid>
-      </FormSection>
-
-      {contacts.length > 0 ? (
-        <FormSection title={participationLabels.participationSectionRelations}>
-          <FormGrid>
-            <FormField
-              label={participationLabels.primaryContact}
-              htmlFor="participation-primary-contact"
-              fullWidth
-            >
-              <SelectInput
-                id="participation-primary-contact"
-                value={values.primary_contact_id}
-                onChange={(event) => set("primary_contact_id", event.target.value)}
-              >
-                <option value="">{participationLabels.noContact}</option>
-                {contacts.map((contact) => (
-                  <option key={contact.id} value={contact.id}>
-                    {contact.full_name}
-                  </option>
-                ))}
-              </SelectInput>
-            </FormField>
-          </FormGrid>
-        </FormSection>
-      ) : null}
 
       <FormSection title={participationLabels.participationSectionDetails}>
         <FormGrid>
@@ -320,9 +222,6 @@ export function formValuesToCreatePayload(
     fair_id: mode === "fair" ? fixedId : values.fair_id,
     hall: values.hall.trim() || null,
     stand: values.stand.trim() || null,
-    participation_status: values.participation_status,
-    primary_contact_id: values.primary_contact_id || null,
-    visited_at: values.visited_at ? localDatetimeToIso(values.visited_at) : null,
     notes: values.notes.trim() || null,
   };
 }
@@ -331,9 +230,6 @@ export function formValuesToUpdatePayload(values: ParticipationFormValues) {
   return {
     hall: values.hall.trim() || null,
     stand: values.stand.trim() || null,
-    participation_status: values.participation_status,
-    primary_contact_id: values.primary_contact_id || null,
-    visited_at: values.visited_at ? localDatetimeToIso(values.visited_at) : null,
     notes: values.notes.trim() || null,
   };
 }

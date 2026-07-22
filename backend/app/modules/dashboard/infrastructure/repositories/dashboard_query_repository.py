@@ -234,11 +234,17 @@ class SqlAlchemyDashboardQueryRepository:
             note = activity.description or activity.subject
             if note and len(note) > 200:
                 note = note[:197] + "..."
+            if customer_name:
+                display_name = customer_name
+            elif activity.customer_id is None:
+                display_name = "—"
+            else:
+                display_name = UNKNOWN_CUSTOMER_NAME
             items.append(
                 DashboardRecentActivity(
                     id=activity.id,
                     customer_id=activity.customer_id,
-                    customer_name=customer_name or UNKNOWN_CUSTOMER_NAME,
+                    customer_name=display_name,
                     activity_type=activity.activity_type or "other",
                     note_summary=note,
                     activity_date=activity.activity_date,

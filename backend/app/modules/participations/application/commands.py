@@ -3,8 +3,6 @@ from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
 
-from app.modules.participations.domain.value_objects import ParticipationStatus
-
 
 @dataclass(frozen=True)
 class CreateParticipationCommand:
@@ -15,10 +13,7 @@ class CreateParticipationCommand:
     fair_id: UUID
     hall: Optional[str] = None
     stand: Optional[str] = None
-    participation_status: str = ParticipationStatus.EXHIBITOR
     notes: Optional[str] = None
-    primary_contact_id: Optional[UUID] = None
-    visited_at: Optional[datetime] = None
 
 
 @dataclass(frozen=True)
@@ -29,16 +24,10 @@ class UpdateParticipationCommand:
     participation_id: UUID
     hall: Optional[str] = None
     stand: Optional[str] = None
-    participation_status: Optional[str] = None
     notes: Optional[str] = None
-    primary_contact_id: Optional[UUID] = None
-    visited_at: Optional[datetime] = None
-    is_active: Optional[bool] = None
     set_hall: bool = False
     set_stand: bool = False
     set_notes: bool = False
-    set_primary_contact_id: bool = False
-    set_visited_at: bool = False
 
 
 @dataclass(frozen=True)
@@ -60,7 +49,6 @@ class ListParticipationsByCustomerQuery:
     organization_id: UUID
     customer_id: UUID
     search: str | None = None
-    participation_status: str | None = None
     page: int = 1
     page_size: int = 25
     sort_by: str = "fair_start_date"
@@ -72,7 +60,6 @@ class ListParticipantsByFairQuery:
     organization_id: UUID
     fair_id: UUID
     search: str | None = None
-    participation_status: str | None = None
     page: int = 1
     page_size: int = 25
     sort_by: str = "company_name"
@@ -87,11 +74,7 @@ class ParticipationResult:
     fair_id: UUID
     hall: Optional[str]
     stand: Optional[str]
-    participation_status: ParticipationStatus
     notes: Optional[str]
-    primary_contact_id: Optional[UUID]
-    primary_contact_name: Optional[str]
-    visited_at: Optional[datetime]
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -107,9 +90,6 @@ class CustomerParticipationListItem:
     fair_end_date: Optional[date]
     hall: Optional[str]
     stand: Optional[str]
-    participation_status: ParticipationStatus
-    primary_contact_name: Optional[str]
-    visited_at: Optional[datetime]
     notes: Optional[str]
 
 
@@ -133,9 +113,6 @@ class FairParticipantListItem:
     city: Optional[str]
     hall: Optional[str]
     stand: Optional[str]
-    participation_status: ParticipationStatus
-    primary_contact_name: Optional[str]
-    visited_at: Optional[datetime]
     notes: Optional[str]
 
 

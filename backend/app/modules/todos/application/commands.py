@@ -16,6 +16,7 @@ class CreateTodoCommand:
     category: str = "genel_gorev"
     deadline: Optional[datetime] = None
     assignee_user_id: Optional[UUID] = None
+    customer_id: Optional[UUID] = None
     source_fair_id: Optional[UUID] = None
 
 
@@ -35,6 +36,7 @@ class ListTodosQuery:
     assignee_user_id: UUID | None = None
     created_by: UUID | None = None
     is_overdue: bool | None = None
+    due_today: bool | None = None
     include_archived: bool = False
     page: int = 1
     page_size: int = 25
@@ -55,10 +57,12 @@ class UpdateTodoCommand:
     category: Optional[str] = None
     deadline: Optional[datetime] = None
     assignee_user_id: Optional[UUID] = None
+    customer_id: Optional[UUID] = None
     source_fair_id: Optional[UUID] = None
     set_description: bool = False
     set_deadline: bool = False
     set_assignee_user_id: bool = False
+    set_customer_id: bool = False
     set_source_fair_id: bool = False
 
 
@@ -68,6 +72,7 @@ class CompleteTodoCommand:
     todo_id: UUID
     access_token: str
     user_id: UUID
+    note: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -97,6 +102,7 @@ class TodoResult:
     category: str
     deadline: Optional[datetime]
     assignee_user_id: Optional[UUID]
+    customer_id: Optional[UUID]
     source_fair_id: Optional[UUID]
     created_by: UUID
     updated_by: Optional[UUID]

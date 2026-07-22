@@ -3,6 +3,8 @@ import { adminLabels } from "../labels/adminLabels";
 import { dataIntegrationLabels } from "../labels/dataIntegrationLabels";
 import { labels } from "../labels";
 import { scraperLabels } from "../labels/scraperLabels";
+import { operationLabels } from "../labels/operationLabels";
+import { uiLabels } from "../labels/uiLabels";
 import {
   DUPLICATE_OPERATION_KEY,
   formatDocumentTitle,
@@ -23,6 +25,18 @@ describe("formatDocumentTitle", () => {
 describe("resolvePageTitle", () => {
   it("resolves customers list title", () => {
     expect(resolvePageTitle({ route: "/customers" })).toBe(labels.customers);
+  });
+
+  it("resolves operations list title as Otomasyonlar", () => {
+    expect(resolvePageTitle({ route: "/operations" })).toBe(uiLabels.navOperations);
+    expect(uiLabels.navOperations).toBe("Otomasyonlar");
+  });
+
+  it("resolves operations wizard and detail titles", () => {
+    expect(resolvePageTitle({ route: "/operations/new" })).toBe(operationLabels.wizardTitle);
+    expect(resolvePageTitle({ route: "/operations/:id" })).toBe(operationLabels.detailTitle);
+    expect(operationLabels.wizardTitle).toBe("Yeni Otomasyon");
+    expect(operationLabels.detailTitle).toBe("Otomasyon Detayı");
   });
 
   it("resolves import jobs title", () => {

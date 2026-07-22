@@ -1,5 +1,11 @@
 import React from "react";
-import type { Activity, ActivityStatus, ActivityType, CreateActivityPayload } from "../types/activity";
+import type {
+  Activity,
+  ActivityStatus,
+  ActivityType,
+  CreateActivityPayload,
+  UpdateActivityPayload,
+} from "../types/activity";
 import type { Contact } from "../types/contact";
 import {
   activityLabels,
@@ -23,6 +29,43 @@ import {
 } from "./ui/form";
 
 export type ActivityFormValues = Omit<CreateActivityPayload, "customer_id">;
+
+/** System type from Todo complete — must appear as Diğer and never fall back to call. */
+const SYSTEM_DISPLAY_TYPE: ActivityType = "task_completed";
+
+/**
+ * Type options for the edit/create select.
+ * When editing a task_completed activity, include that value so the select
+ * shows "Diğer" instead of the first manual option (Telefon).
+ */
+export function activityTypeSelectOptions(currentType: ActivityType): ActivityType[] {
+  if (currentType === SYSTEM_DISPLAY_TYPE) {
+    return [SYSTEM_DISPLAY_TYPE];
+  }
+  return activityTypeOptions;
+}
+
+/**
+ * PATCH payload from form values.
+ * Omits `type` when it is task_completed — API manual update schema rejects
+ * system types, and omitting preserves the stored backend type.
+ */
+export function formValuesToUpdatePayload(values: ActivityFormValues): UpdateActivityPayload {
+  const payload: UpdateActivityPayload = {
+    subject: values.subject,
+    description: values.description,
+    activity_date: values.activity_date,
+    follow_up_date: values.follow_up_date,
+    status: values.status,
+    source: values.source,
+    contact_id: values.contact_id,
+    is_active: values.is_active,
+  };
+  if (values.type !== SYSTEM_DISPLAY_TYPE) {
+    payload.type = values.type;
+  }
+  return payload;
+}
 
 function nowLocalDatetime(): string {
   const d = new Date();
@@ -103,6 +146,9 @@ export function ActivityForm({
     setValues((prev) => ({ ...prev, [field]: value }));
   };
 
+  const isSystemTaskCompleted = values.type === SYSTEM_DISPLAY_TYPE;
+  const typeOptions = activityTypeSelectOptions(values.type);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!values.subject.trim()) {
@@ -145,8 +191,9 @@ export function ActivityForm({
               value={values.type}
               onChange={(event) => set("type", event.target.value as ActivityType)}
               required
+              disabled={isSystemTaskCompleted}
             >
-              {activityTypeOptions.map((option) => (
+              {typeOptions.map((option) => (
                 <option key={option} value={option}>
                   {activityTypeLabels[option]}
                 </option>

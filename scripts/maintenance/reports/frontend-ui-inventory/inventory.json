@@ -35,6 +35,9 @@
       "/imports",
       "/imports/fair/:fairId",
       "/login",
+      "/operations",
+      "/operations/:id",
+      "/operations/new",
       "/todos",
       "/todos/:id"
     ],
@@ -55,11 +58,13 @@
       "FairDetailPage",
       "FairEnrichmentRunPage",
       "FairsPage",
-      "FollowUpsPage",
       "ImportWizardPage",
       "LoginPage",
       "MailOperationsPage",
       "MailTemplatesPage",
+      "OperationDetailPage",
+      "OperationWizardPage",
+      "OperationsPage",
       "ScraperRunHistoryPage",
       "ScraperTestPage",
       "SmtpAccountsPage",
@@ -99,6 +104,7 @@
       "/imports",
       "/imports/fair/:fairId",
       "/login",
+      "/operations/:id",
       "/todos",
       "/todos/:id"
     ],
@@ -125,6 +131,9 @@
       "LoginPage.tsx",
       "MailOperationsPage.tsx",
       "MailTemplatesPage.tsx",
+      "OperationDetailPage.tsx",
+      "OperationWizardPage.tsx",
+      "OperationsPage.tsx",
       "ScraperRunHistoryPage.tsx",
       "ScraperTestPage.tsx",
       "SmtpAccountsPage.tsx",
@@ -144,6 +153,7 @@
     "raw_form_controls": [],
     "allowlist": [
       "frontend/src/components/AdapterSelect.tsx",
+      "frontend/src/components/CustomerEntitySelect.tsx",
       "frontend/src/components/FairEntitySelect.tsx",
       "frontend/src/components/imports/ExcelMappingGrid.tsx",
       "frontend/src/components/ui/form/FormInputs.tsx"
@@ -157,7 +167,7 @@
     "intentional_exceptions": [
       {
         "file": "frontend/src/pages/ImportWizardPage.tsx",
-        "line": 1217,
+        "line": 1231,
         "kind": "specialty_banner_layout",
         "snippet": "<div className=\"import-complete-banner\">"
       }
@@ -180,6 +190,12 @@
     "intentional_exceptions": [
       {
         "file": "frontend/src/components/AdapterSelect.tsx",
+        "line": 0,
+        "kind": "domain_combobox_loading",
+        "snippet": "inline combobox loading text (not page LoadingState)"
+      },
+      {
+        "file": "frontend/src/components/CustomerEntitySelect.tsx",
         "line": 0,
         "kind": "domain_combobox_loading",
         "snippet": "inline combobox loading text (not page LoadingState)"
@@ -266,6 +282,9 @@
         "/imports",
         "/imports/fair/:fairId",
         "/login",
+        "/operations",
+        "/operations/:id",
+        "/operations/new",
         "/todos",
         "/todos/:id"
       ],
@@ -286,11 +305,13 @@
         "FairDetailPage",
         "FairEnrichmentRunPage",
         "FairsPage",
-        "FollowUpsPage",
         "ImportWizardPage",
         "LoginPage",
         "MailOperationsPage",
         "MailTemplatesPage",
+        "OperationDetailPage",
+        "OperationWizardPage",
+        "OperationsPage",
         "ScraperRunHistoryPage",
         "ScraperTestPage",
         "SmtpAccountsPage",
@@ -330,6 +351,7 @@
         "/imports",
         "/imports/fair/:fairId",
         "/login",
+        "/operations/:id",
         "/todos",
         "/todos/:id"
       ],
@@ -356,6 +378,9 @@
         "LoginPage.tsx",
         "MailOperationsPage.tsx",
         "MailTemplatesPage.tsx",
+        "OperationDetailPage.tsx",
+        "OperationWizardPage.tsx",
+        "OperationsPage.tsx",
         "ScraperRunHistoryPage.tsx",
         "ScraperTestPage.tsx",
         "SmtpAccountsPage.tsx",
@@ -425,6 +450,12 @@
         },
         {
           "file": "frontend/src/components/FairEntitySelect.tsx",
+          "pattern": "raw combobox input chrome",
+          "reason": "Domain async combobox; wraps search input + listbox pattern not covered by SelectInput.",
+          "owner": "domain select wrappers"
+        },
+        {
+          "file": "frontend/src/components/CustomerEntitySelect.tsx",
           "pattern": "raw combobox input chrome",
           "reason": "Domain async combobox; wraps search input + listbox pattern not covered by SelectInput.",
           "owner": "domain select wrappers"

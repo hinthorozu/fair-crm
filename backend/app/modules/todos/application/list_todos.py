@@ -38,6 +38,7 @@ class ListTodosUseCase:
             assignee_user_id=query.assignee_user_id,
             created_by=query.created_by,
             is_overdue=query.is_overdue,
+            due_today=query.due_today,
             include_archived=query.include_archived,
             now=now,
             page=page_params.page,

@@ -23,6 +23,7 @@ from app.modules.todos.api.dependencies import (
     require_read_permission,
 )
 from app.modules.todos.api.schemas import (
+    CompleteTodoRequest,
     CreateTodoRequest,
     ErrorResponse,
     TodoCategoryField,
@@ -56,6 +57,7 @@ from app.modules.todos.application.update_todo import UpdateTodoUseCase
 from app.modules.fairs.domain.exceptions import FairNotFoundError
 from app.modules.todos.domain.exceptions import (
     InvalidTodoCategoryError,
+    InvalidTodoCustomerError,
     InvalidTodoPriorityError,
     InvalidTodoStatusError,
     InvalidTodoStatusTransitionError,
@@ -107,6 +109,7 @@ def create_todo(
                 category=body.category,
                 deadline=body.deadline,
                 assignee_user_id=body.assignee_user_id,
+                customer_id=body.customer_id,
                 source_fair_id=body.source_fair_id,
             )
         )
@@ -114,6 +117,8 @@ def create_todo(
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     except FairNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except InvalidTodoCustomerError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except InvalidTodoTitleError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except InvalidTodoStatusError as exc:
@@ -138,6 +143,7 @@ def list_todos(
     assignee_user_id: UUID | None = Query(default=None),
     created_by: UUID | None = Query(default=None),
     is_overdue: bool | None = Query(default=None),
+    due_today: bool | None = Query(default=None),
     include_archived: bool = Query(default=False),
     search: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
@@ -197,6 +203,7 @@ def list_todos(
             assignee_user_id=assignee_user_id,
             created_by=created_by,
             is_overdue=is_overdue,
+            due_today=due_today,
             include_archived=include_archived,
             page=list_query.page,
             page_size=list_query.page_size,
@@ -211,6 +218,7 @@ def list_todos(
         "assignee_user_id": str(assignee_user_id) if assignee_user_id else None,
         "created_by": str(created_by) if created_by else None,
         "is_overdue": is_overdue,
+        "due_today": due_today,
         "include_archived": include_archived,
         "search": list_query.search,
     }
@@ -277,10 +285,12 @@ def update_todo(
                 category=data.get("category"),
                 deadline=data.get("deadline"),
                 assignee_user_id=data.get("assignee_user_id"),
+                customer_id=data.get("customer_id"),
                 source_fair_id=data.get("source_fair_id"),
                 set_description="description" in data,
                 set_deadline="deadline" in data,
                 set_assignee_user_id="assignee_user_id" in data,
+                set_customer_id="customer_id" in data,
                 set_source_fair_id="source_fair_id" in data,
             )
         )
@@ -288,6 +298,8 @@ def update_todo(
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     except FairNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except InvalidTodoCustomerError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except TodoSourceFairChangeNotAllowedError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except TodoNotFoundError as exc:
@@ -315,6 +327,7 @@ def complete_todo(
     auth: AuthContext = Depends(get_auth_context),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     use_case: CompleteTodoUseCase = Depends(get_complete_todo_use_case),
+    body: CompleteTodoRequest | None = None,
 ) -> TodoResponse:
     try:
         result = use_case.execute(
@@ -323,6 +336,7 @@ def complete_todo(
                 todo_id=todo_id,
                 access_token=_access_token(credentials),
                 user_id=auth.user_id,
+                note=body.note if body is not None else None,
             )
         )
     except ForbiddenError as exc:

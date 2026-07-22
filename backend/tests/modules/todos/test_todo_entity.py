@@ -70,6 +70,34 @@ def test_todo_invalid_category():
         )
 
 
+def test_todo_create_rejects_legacy_system_category():
+    now = datetime.now(tz=UTC)
+    with pytest.raises(InvalidTodoCategoryError):
+        Todo.create(
+            organization_id=uuid4(),
+            title="Valid title",
+            created_by=uuid4(),
+            category=TodoCategory.TOPLU_MAIL,
+            now=now,
+        )
+
+
+def test_todo_update_rejects_legacy_system_category():
+    now = datetime.now(tz=UTC)
+    todo = Todo.create(
+        organization_id=uuid4(),
+        title="Original",
+        created_by=uuid4(),
+        now=now,
+    )
+    with pytest.raises(InvalidTodoCategoryError):
+        todo.update_fields(
+            now=now,
+            updated_by=uuid4(),
+            category=TodoCategory.SMS,
+        )
+
+
 def test_todo_update_fields():
     now = datetime.now(tz=UTC)
     user_id = uuid4()

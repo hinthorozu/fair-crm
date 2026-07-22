@@ -20,6 +20,8 @@ def model_to_entity(model: ActivityModel) -> Activity:
         created_at=model.created_at,
         updated_at=model.updated_at,
         deleted_at=model.deleted_at,
+        todo_id=model.todo_id,
+        fair_id=model.fair_id,
     )
 
 
@@ -29,6 +31,8 @@ def entity_to_model(activity: Activity) -> ActivityModel:
         organization_id=activity.organization_id,
         customer_id=activity.customer_id,
         contact_id=activity.contact_id,
+        todo_id=activity.todo_id,
+        fair_id=activity.fair_id,
         activity_type=activity.activity_type,
         subject=activity.subject,
         description=activity.description,
@@ -46,6 +50,8 @@ def entity_to_model(activity: Activity) -> ActivityModel:
 
 def update_model_from_entity(model: ActivityModel, activity: Activity) -> None:
     model.contact_id = activity.contact_id
+    model.todo_id = activity.todo_id
+    model.fair_id = activity.fair_id
     model.activity_type = activity.activity_type
     model.subject = activity.subject
     model.description = activity.description

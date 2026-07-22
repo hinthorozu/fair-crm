@@ -18,6 +18,7 @@ def todo_to_result(todo: Todo, *, now: datetime | None = None) -> TodoResult:
         category=todo.category,
         deadline=todo.deadline,
         assignee_user_id=todo.assignee_user_id,
+        customer_id=todo.customer_id,
         source_fair_id=todo.source_fair_id,
         created_by=todo.created_by,
         updated_by=todo.updated_by,

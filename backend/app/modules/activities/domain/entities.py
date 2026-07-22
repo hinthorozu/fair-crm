@@ -42,7 +42,7 @@ def _validate_source(value: str) -> str:
 class Activity:
     id: UUID
     organization_id: UUID
-    customer_id: UUID
+    customer_id: Optional[UUID]
     contact_id: Optional[UUID]
     activity_type: str
     subject: str
@@ -56,13 +56,15 @@ class Activity:
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime]
+    todo_id: Optional[UUID] = None
+    fair_id: Optional[UUID] = None
 
     @classmethod
     def create(
         cls,
         *,
         organization_id: UUID,
-        customer_id: UUID,
+        customer_id: Optional[UUID] = None,
         contact_id: Optional[UUID] = None,
         activity_type: str,
         subject: str,
@@ -73,6 +75,8 @@ class Activity:
         source: str = ActivitySource.MANUAL,
         is_active: bool = True,
         metadata_json: Optional[dict[str, Any]] = None,
+        todo_id: Optional[UUID] = None,
+        fair_id: Optional[UUID] = None,
         now: datetime,
     ) -> "Activity":
         trimmed_subject = subject.strip()
@@ -100,6 +104,8 @@ class Activity:
             created_at=now,
             updated_at=now,
             deleted_at=None,
+            todo_id=todo_id,
+            fair_id=fair_id,
         )
 
     def ensure_mutable(self) -> None:

@@ -18,12 +18,14 @@ import { MailTemplatesPage } from "./pages/MailTemplatesPage";
 import { MailOperationsPage } from "./pages/MailOperationsPage";
 import { DataOperationsPage } from "./pages/DataOperationsPage";
 import { DataOperationRunResultPage } from "./pages/DataOperationRunResultPage";
-import { FollowUpsPage } from "./pages/FollowUpsPage";
 import { ActivitiesPage } from "./pages/ActivitiesPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { TodoDetailPage } from "./pages/TodoDetailPage";
 import { TodosPage } from "./pages/TodosPage";
+import { OperationsPage } from "./pages/OperationsPage";
+import { OperationDetailPage } from "./pages/OperationDetailPage";
+import { OperationWizardPage } from "./pages/OperationWizardPage";
 import { CustomersResponsivePilotPage } from "./dev/CustomersResponsivePilotPage";
 import { TableStandardSmokePage } from "./dev/TableStandardSmokePage";
 import { DataIntegrationLayout } from "./components/dataIntegration/DataIntegrationLayout";
@@ -36,17 +38,17 @@ import {
   NavIconDashboard,
   NavIconDataIntegration,
   NavIconFairs,
-  NavIconFollowUps,
+  NavIconOperations,
   NavIconTodos,
 } from "./components/layout/NavIcons";
 import { activityLabels } from "./labels/activityLabels";
+import { operationLabels } from "./labels/operationLabels";
 import { EmptyState } from "./components/ui/EmptyState";
 import { PageHeader } from "./components/ui/PageHeader";
 import { PageShell } from "./components/ui/PageShell";
 import { uiLabels } from "./labels/uiLabels";
 import { dataIntegrationLabels } from "./labels/dataIntegrationLabels";
 import { adminLabels } from "./labels/adminLabels";
-import { followUpLabels } from "./labels/followUpLabels";
 import { labels } from "./labels";
 import { scraperLabels } from "./labels/scraperLabels";
 import { fairLabels } from "./labels/fairLabels";
@@ -70,6 +72,9 @@ type AppRoute =
   | "/fairs/:id/enrichment"
   | "/todos"
   | "/todos/:id"
+  | "/operations"
+  | "/operations/new"
+  | "/operations/:id"
   | "/follow-ups"
   | "/activities"
   | "/data-integration/imports"
@@ -99,6 +104,7 @@ interface ParsedRoute {
   customerId?: string;
   fairId?: string;
   todoId?: string;
+  operationId?: string;
   batchId?: string;
   dataOperationRunId?: string;
   dataOperationKey?: string;
@@ -227,6 +233,16 @@ function parseRoute(location: string): ParsedRoute {
     }
     return { route: "/todos" };
   }
+  if (pathname === "/operations" || pathname.startsWith("/operations/")) {
+    if (pathname === "/operations/new" || pathname === "/operations/new/") {
+      return { route: "/operations/new" };
+    }
+    const operationMatch = pathname.match(/^\/operations\/([^/]+)$/);
+    if (operationMatch) {
+      return { route: "/operations/:id", operationId: operationMatch[1] };
+    }
+    return { route: "/operations" };
+  }
   if (pathname === "/login" || pathname === "/login/") {
     return { route: "/login" };
   }
@@ -350,6 +366,11 @@ export function App() {
       setParsed(parseRoute("/data-integration/imports/new"));
       return;
     }
+    if (path === "/follow-ups" || path.startsWith("/follow-ups/")) {
+      window.history.replaceState(null, "", "/todos?view=follow_ups");
+      setParsed(parseRoute("/todos?view=follow_ups"));
+      return;
+    }
     const legacyFair = path.match(/^\/imports\/fair\/([^/]+)$/);
     if (legacyFair) {
       const next = `/data-integration/imports/fair/${legacyFair[1]}`;
@@ -460,6 +481,25 @@ export function App() {
     setSidebarOpen(false);
   };
 
+  const goToOperations = () => {
+    navigate("/operations");
+    setParsed({ route: "/operations" });
+    setSidebarOpen(false);
+  };
+
+  const goToOperationDetail = (operationId: string) => {
+    const path = `/operations/${operationId}`;
+    navigate(path);
+    setParsed(parseRoute(path));
+    setSidebarOpen(false);
+  };
+
+  const goToOperationWizard = () => {
+    navigate("/operations/new");
+    setParsed({ route: "/operations/new" });
+    setSidebarOpen(false);
+  };
+
   const goToAdapters = () => {
     navigate("/data-integration/adapters");
     setParsed({ route: "/data-integration/adapters" });
@@ -533,7 +573,10 @@ export function App() {
     parsed.route === "/fairs/:id/enrichment";
   const isTodosActive =
     parsed.route === "/todos" || parsed.route === "/todos/:id";
-  const isFollowUpsActive = parsed.route === "/follow-ups";
+  const isOperationsActive =
+    parsed.route === "/operations" ||
+    parsed.route === "/operations/new" ||
+    parsed.route === "/operations/:id";
   const isActivitiesActive = parsed.route === "/activities";
   const isDiActive = isDataIntegrationRoute(parsed.route);
   const isAdminActive = isAdminRoute(parsed.route);
@@ -577,10 +620,22 @@ export function App() {
                 { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
                 { label: uiLabels.navTodos, current: true },
               ]
-          : parsed.route === "/follow-ups"
+          : parsed.route === "/operations/:id"
             ? [
                 { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                { label: followUpLabels.pageTitle, current: true },
+                { label: uiLabels.navOperations, onClick: goToOperations },
+                { label: operationLabels.detailTitle, current: true },
+              ]
+          : parsed.route === "/operations/new"
+            ? [
+                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
+                { label: uiLabels.navOperations, onClick: goToOperations },
+                { label: operationLabels.wizardTitle, current: true },
+              ]
+          : parsed.route === "/operations"
+            ? [
+                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
+                { label: uiLabels.navOperations, current: true },
               ]
           : parsed.route === "/activities"
             ? [
@@ -690,11 +745,11 @@ export function App() {
       onClick: (e: React.MouseEvent) => handleNav("/todos", e),
     },
     {
-      path: "/follow-ups",
-      label: uiLabels.navFollowUps,
-      icon: <NavIconFollowUps />,
-      active: isFollowUpsActive,
-      onClick: (e: React.MouseEvent) => handleNav("/follow-ups", e),
+      path: "/operations",
+      label: uiLabels.navOperations,
+      icon: <NavIconOperations />,
+      active: isOperationsActive,
+      onClick: (e: React.MouseEvent) => handleNav("/operations", e),
     },
     {
       path: "/activities",
@@ -903,7 +958,9 @@ export function App() {
       )}
       {isDiActive && renderDataIntegration()}
       {isAdminActive && renderAdminSystem()}
-      {parsed.route === "/todos" && <TodosPage onOpenDetail={goToTodoDetail} />}
+      {parsed.route === "/todos" && (
+        <TodosPage onOpenDetail={goToTodoDetail} onOpenCustomer={goToCustomerDetail} />
+      )}
       {parsed.route === "/todos/:id" && parsed.todoId && (
         <TodoDetailPage
           todoId={parsed.todoId}
@@ -912,8 +969,21 @@ export function App() {
           onOpenCustomer={goToCustomerDetail}
         />
       )}
-      {parsed.route === "/follow-ups" && (
-        <FollowUpsPage onOpenCustomer={goToCustomerDetail} />
+      {parsed.route === "/operations" && (
+        <OperationsPage onOpenDetail={goToOperationDetail} onCreate={goToOperationWizard} />
+      )}
+      {parsed.route === "/operations/new" && (
+        <OperationWizardPage
+          onCancel={goToOperations}
+          onCreated={goToOperationDetail}
+        />
+      )}
+      {parsed.route === "/operations/:id" && parsed.operationId && (
+        <OperationDetailPage
+          operationId={parsed.operationId}
+          onBack={goToOperations}
+          onOpenTodo={goToTodoDetail}
+        />
       )}
       {parsed.route === "/activities" && (
         <ActivitiesPage onOpenCustomer={goToCustomerDetail} />

@@ -24,7 +24,7 @@ class DashboardTaskSummary:
 @dataclass(frozen=True)
 class DashboardRecentActivity:
     id: UUID
-    customer_id: UUID
+    customer_id: UUID | None
     customer_name: str
     activity_type: str
     note_summary: str | None

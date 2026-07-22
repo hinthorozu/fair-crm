@@ -19,6 +19,12 @@ class TodoModel(Base):
     category: Mapped[str] = mapped_column(String(32), nullable=False, server_default="genel_gorev")
     deadline: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     assignee_user_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True))
+    customer_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("crm_customers.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     source_fair_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("crm_fairs.id", ondelete="RESTRICT"),

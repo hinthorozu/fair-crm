@@ -280,9 +280,10 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
                 onChange={(event) => handleStartDateChange(event.target.value)}
                 aria-invalid={Boolean(dateErrors.start_date)}
               />
-              <input
+              <TextInput
+                id="fair-start-date-picker"
                 type="date"
-                className="form-control fair-date-input__picker"
+                className="fair-date-input__picker"
                 aria-label={fairLabels.start_date}
                 value={isoForDatePicker(values.start_date ?? "")}
                 onChange={(event) => handleStartDateChange(event.target.value)}
@@ -308,9 +309,10 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
                 onChange={(event) => handleEndDateChange(event.target.value)}
                 aria-invalid={Boolean(dateErrors.end_date)}
               />
-              <input
+              <TextInput
+                id="fair-end-date-picker"
                 type="date"
-                className="form-control fair-date-input__picker"
+                className="fair-date-input__picker"
                 aria-label={fairLabels.end_date}
                 value={isoForDatePicker(values.end_date ?? "")}
                 onChange={(event) => handleEndDateChange(event.target.value)}

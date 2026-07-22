@@ -4,7 +4,6 @@ from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from app.core.config import get_settings
 from app.db.session import get_db
 from app.integrations.kyrox_core.auth import AuthContext
 from app.integrations.kyrox_core.client import HttpAuditAdapter, HttpAuthorizationAdapter
@@ -15,7 +14,6 @@ from app.integrations.kyrox_core.dev_bypass import (
     resolve_auth_context,
 )
 from app.integrations.kyrox_core.ports import AuthorizationPort
-from app.modules.contacts.infrastructure.repositories.contact_repository import SqlAlchemyContactRepository
 from app.modules.customers.infrastructure.repositories.customer_repository import SqlAlchemyCustomerRepository
 from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
 from app.modules.participations.application.create_participation import CreateParticipationUseCase
@@ -43,10 +41,6 @@ def get_customer_repository(db: Session = Depends(get_db)) -> SqlAlchemyCustomer
 
 def get_fair_repository(db: Session = Depends(get_db)) -> SqlAlchemyFairRepository:
     return SqlAlchemyFairRepository(db)
-
-
-def get_contact_repository(db: Session = Depends(get_db)) -> SqlAlchemyContactRepository:
-    return SqlAlchemyContactRepository(db)
 
 
 def get_authorization_adapter() -> AuthorizationPort:
@@ -77,7 +71,7 @@ def get_auth_context(
 def require_read_permission(
     auth: AuthContext = Depends(get_auth_context),
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> AuthContext:
     if dev_bypass_enabled():
         return auth
@@ -97,7 +91,6 @@ def get_create_participation_use_case(
     participation_repository: SqlAlchemyParticipationRepository = Depends(get_participation_repository),
     customer_repository: SqlAlchemyCustomerRepository = Depends(get_customer_repository),
     fair_repository: SqlAlchemyFairRepository = Depends(get_fair_repository),
-    contact_repository: SqlAlchemyContactRepository = Depends(get_contact_repository),
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
 ) -> CreateParticipationUseCase:
@@ -105,7 +98,6 @@ def get_create_participation_use_case(
         participation_repository,
         customer_repository,
         fair_repository,
-        contact_repository,
         authorization,
         audit,
     )
@@ -119,13 +111,10 @@ def get_get_participation_use_case(
 
 def get_update_participation_use_case(
     participation_repository: SqlAlchemyParticipationRepository = Depends(get_participation_repository),
-    contact_repository: SqlAlchemyContactRepository = Depends(get_contact_repository),
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
 ) -> UpdateParticipationUseCase:
-    return UpdateParticipationUseCase(
-        participation_repository, contact_repository, authorization, audit
-    )
+    return UpdateParticipationUseCase(participation_repository, authorization, audit)
 
 
 def get_delete_participation_use_case(

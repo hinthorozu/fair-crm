@@ -47,6 +47,7 @@ class ListActivitiesUseCase:
             query.organization_id,
             search=query.search,
             customer_id=query.customer_id,
+            fair_id=query.fair_id,
             activity_type=query.activity_type,
             status=query.status,
             date_from=query.date_from,

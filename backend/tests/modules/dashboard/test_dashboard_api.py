@@ -333,3 +333,36 @@ def test_dashboard_summary_mapper_accepts_snake_case_fields(db_session, organiza
     response = dashboard_summary_to_response(summary)
     dumped = response.model_dump(by_alias=True)
     assert dumped["taskSummary"]["notStarted"] == 0
+
+
+def test_dashboard_summary_allows_null_customer_recent_activity(
+    client, auth_headers, db_session, organization_id
+):
+    """Independent Todo completion creates task_completed with customer_id NULL."""
+    now = datetime.now(tz=UTC)
+    db_session.add(
+        ActivityModel(
+            id=uuid4(),
+            organization_id=organization_id,
+            customer_id=None,
+            activity_type="task_completed",
+            subject="Görev tamamlandı: Independent",
+            description="Dashboard null-customer note",
+            activity_date=now,
+            status="completed",
+            source="system",
+            is_active=True,
+            created_at=now,
+            updated_at=now,
+        )
+    )
+    db_session.commit()
+
+    response = client.get("/api/v1/dashboard/summary", headers=auth_headers)
+    assert response.status_code == 200
+    recent = response.json()["recentActivities"]
+    assert len(recent) == 1
+    assert recent[0]["customerId"] is None
+    assert recent[0]["customerName"] == "—"
+    assert recent[0]["activityType"] == "task_completed"
+    assert "Dashboard null-customer note" in (recent[0]["noteSummary"] or "")

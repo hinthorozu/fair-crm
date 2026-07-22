@@ -1,9 +1,8 @@
 """Customer–Fair participation (exhibitor) join entity.
 
 Hall, stand, and fair-specific notes live here — not on Customer or Fair.
-Import engine will resolve/create participations for fair_name + hall + stand.
-
-Future: Activity records may link to a participation via optional participation_id (not in v1).
+A participation record means the customer is a participant of that fair.
+Workflow status / visit / primary contact are legacy DB fields only.
 """
 
 from dataclasses import dataclass
@@ -30,14 +29,15 @@ class CustomerFairParticipation:
     fair_id: UUID
     hall: Optional[str]
     stand: Optional[str]
-    participation_status: str
     notes: Optional[str]
-    primary_contact_id: Optional[UUID]
-    visited_at: Optional[datetime]
     is_active: bool
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime]
+    # Legacy columns retained for safe DB round-trip; not part of active business model.
+    participation_status: str = ParticipationStatus.EXHIBITOR
+    primary_contact_id: Optional[UUID] = None
+    visited_at: Optional[datetime] = None
 
     @classmethod
     def create(
@@ -48,10 +48,8 @@ class CustomerFairParticipation:
         fair_id: UUID,
         hall: Optional[str] = None,
         stand: Optional[str] = None,
-        participation_status: str = ParticipationStatus.EXHIBITOR,
         notes: Optional[str] = None,
-        primary_contact_id: Optional[UUID] = None,
-        visited_at: Optional[datetime] = None,
+        participation_status: str = ParticipationStatus.EXHIBITOR,
         is_active: bool = True,
         now: datetime,
     ) -> "CustomerFairParticipation":
@@ -62,10 +60,10 @@ class CustomerFairParticipation:
             fair_id=fair_id,
             hall=hall.strip() if hall else None,
             stand=stand.strip() if stand else None,
-            participation_status=_validate_status(participation_status),
             notes=notes.strip() if notes else None,
-            primary_contact_id=primary_contact_id,
-            visited_at=visited_at,
+            participation_status=_validate_status(participation_status),
+            primary_contact_id=None,
+            visited_at=None,
             is_active=is_active,
             created_at=now,
             updated_at=now,
@@ -84,16 +82,10 @@ class CustomerFairParticipation:
         now: datetime,
         hall: Optional[str] = None,
         stand: Optional[str] = None,
-        participation_status: Optional[str] = None,
         notes: Optional[str] = None,
-        primary_contact_id: Optional[UUID] = None,
-        visited_at: Optional[datetime] = None,
-        is_active: Optional[bool] = None,
         set_hall: bool = False,
         set_stand: bool = False,
         set_notes: bool = False,
-        set_primary_contact_id: bool = False,
-        set_visited_at: bool = False,
     ) -> None:
         self.ensure_mutable()
 
@@ -103,14 +95,6 @@ class CustomerFairParticipation:
             self.stand = stand.strip() if stand else None
         if set_notes:
             self.notes = notes.strip() if notes else None
-        if set_primary_contact_id:
-            self.primary_contact_id = primary_contact_id
-        if set_visited_at:
-            self.visited_at = visited_at
-        if participation_status is not None:
-            self.participation_status = _validate_status(participation_status)
-        if is_active is not None:
-            self.is_active = is_active
 
         self.updated_at = now
 

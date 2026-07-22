@@ -34,15 +34,27 @@ TodoCategoryField = Literal[
     "diger",
 ]
 
+CreatableTodoCategoryField = Literal[
+    "arama",
+    "ziyaret",
+    "teklif",
+    "import_kontrol",
+    "musteri_guncelleme",
+    "genel_gorev",
+    "stand_tasarim",
+    "diger",
+]
+
 
 class CreateTodoRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=500)
     description: Optional[str] = Field(default=None, max_length=10000)
     status: TodoStatusField = TodoStatus.TODO
     priority: TodoPriorityField = TodoPriority.NORMAL
-    category: TodoCategoryField = TodoCategory.GENEL_GOREV
+    category: CreatableTodoCategoryField = TodoCategory.GENEL_GOREV
     deadline: Optional[datetime] = None
     assignee_user_id: Optional[UUID] = None
+    customer_id: Optional[UUID] = None
     source_fair_id: Optional[UUID] = None
 
 
@@ -51,10 +63,15 @@ class UpdateTodoRequest(BaseModel):
     description: Optional[str] = Field(default=None, max_length=10000)
     status: Optional[TodoPatchStatusField] = None
     priority: Optional[TodoPriorityField] = None
-    category: Optional[TodoCategoryField] = None
+    category: Optional[CreatableTodoCategoryField] = None
     deadline: Optional[datetime] = None
     assignee_user_id: Optional[UUID] = None
+    customer_id: Optional[UUID] = None
     source_fair_id: Optional[UUID] = None
+
+
+class CompleteTodoRequest(BaseModel):
+    note: Optional[str] = Field(default=None, max_length=10000)
 
 
 class TodoResponse(BaseModel):
@@ -69,6 +86,7 @@ class TodoResponse(BaseModel):
     category: str
     deadline: Optional[datetime]
     assignee_user_id: Optional[UUID]
+    customer_id: Optional[UUID]
     source_fair_id: Optional[UUID]
     created_by: UUID
     updated_by: Optional[UUID]

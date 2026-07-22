@@ -1,4 +1,3 @@
-import React from "react";
 import type { Activity } from "../types/activity";
 import {
   activityLabels,
@@ -52,18 +51,23 @@ export function ActivityDetailModal({
     ([, value]) => value != null && String(value).trim() !== "",
   );
 
+  const customerName = activity.customer_name?.trim() || null;
+  const customerId = activity.customer_id;
+  const canOpenCustomer = Boolean(customerId && onOpenCustomer);
+  const relatedTodoTitle = activity.related_todo_title?.trim() || null;
+
   return (
     <Modal title={activityLabels.detailTitle} onClose={onClose}>
       <div className="detail-grid compact">
         <div>
           <strong>{activityLabels.customer}</strong>
           <div>
-            {onOpenCustomer ? (
-              <TableEntityLink onClick={() => onOpenCustomer(activity.customer_id)}>
-                {activity.customer_name ?? activity.customer_id}
+            {canOpenCustomer && customerId && onOpenCustomer ? (
+              <TableEntityLink onClick={() => onOpenCustomer(customerId)}>
+                {customerName ?? "—"}
               </TableEntityLink>
             ) : (
-              (activity.customer_name ?? "—")
+              (customerName ?? "—")
             )}
           </div>
         </div>
@@ -119,7 +123,7 @@ export function ActivityDetailModal({
         </div>
         <div>
           <strong>{activityLabels.relatedTodo}</strong>
-          <div>{activity.related_todo_title ?? "—"}</div>
+          <div>{relatedTodoTitle ?? "—"}</div>
         </div>
         <div>
           <strong>{activityLabels.relatedOutcome}</strong>

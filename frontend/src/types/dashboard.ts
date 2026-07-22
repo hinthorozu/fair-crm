@@ -16,7 +16,7 @@ export interface DashboardTaskSummary {
 
 export interface DashboardRecentActivity {
   id: string;
-  customerId: string;
+  customerId: string | null;
   customerName: string;
   activityType: string;
   noteSummary: string | null;

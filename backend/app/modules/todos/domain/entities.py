@@ -11,7 +11,12 @@ from app.modules.todos.domain.exceptions import (
     InvalidTodoTitleError,
     TodoSourceFairChangeNotAllowedError,
 )
-from app.modules.todos.domain.value_objects import TodoCategory, TodoPriority, TodoStatus
+from app.modules.todos.domain.value_objects import (
+    CREATABLE_TODO_CATEGORIES,
+    TodoCategory,
+    TodoPriority,
+    TodoStatus,
+)
 
 PATCHABLE_STATUSES = frozenset(
     {
@@ -43,6 +48,13 @@ def _validate_category(value: str) -> str:
         raise InvalidTodoCategoryError(f"Invalid todo category: {value}") from exc
 
 
+def _validate_creatable_category(value: str) -> str:
+    validated = _validate_category(value)
+    if validated not in CREATABLE_TODO_CATEGORIES:
+        raise InvalidTodoCategoryError(f"Category is not creatable: {value}")
+    return validated
+
+
 @dataclass
 class Todo:
     id: UUID
@@ -54,6 +66,7 @@ class Todo:
     category: str
     deadline: Optional[datetime]
     assignee_user_id: Optional[UUID]
+    customer_id: Optional[UUID]
     source_fair_id: Optional[UUID]
     created_by: UUID
     updated_by: Optional[UUID]
@@ -75,6 +88,7 @@ class Todo:
         category: str = TodoCategory.GENEL_GOREV,
         deadline: Optional[datetime] = None,
         assignee_user_id: Optional[UUID] = None,
+        customer_id: Optional[UUID] = None,
         source_fair_id: Optional[UUID] = None,
         now: datetime,
     ) -> "Todo":
@@ -89,9 +103,10 @@ class Todo:
             description=description.strip() if description else None,
             status=_validate_status(status),
             priority=_validate_priority(priority),
-            category=_validate_category(category),
+            category=_validate_creatable_category(category),
             deadline=deadline,
             assignee_user_id=assignee_user_id,
+            customer_id=customer_id,
             source_fair_id=source_fair_id,
             created_by=created_by,
             updated_by=None,
@@ -113,9 +128,11 @@ class Todo:
         category: Optional[str] = None,
         deadline: Optional[datetime] = None,
         assignee_user_id: Optional[UUID] = None,
+        customer_id: Optional[UUID] = None,
         set_description: bool = False,
         set_deadline: bool = False,
         set_assignee_user_id: bool = False,
+        set_customer_id: bool = False,
         source_fair_id: Optional[UUID] = None,
         set_source_fair_id: bool = False,
         has_worklist_states: bool = False,
@@ -141,13 +158,16 @@ class Todo:
             self.priority = _validate_priority(priority)
 
         if category is not None:
-            self.category = _validate_category(category)
+            self.category = _validate_creatable_category(category)
 
         if set_deadline:
             self.deadline = deadline
 
         if set_assignee_user_id:
             self.assignee_user_id = assignee_user_id
+
+        if set_customer_id:
+            self.customer_id = customer_id
 
         if set_source_fair_id:
             self.ensure_source_fair_change_allowed(

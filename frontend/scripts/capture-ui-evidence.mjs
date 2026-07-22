@@ -38,6 +38,7 @@ const RUN_ID = process.env.FAIR_RUN_ID || "";
 const BATCH_ID = process.env.FAIR_BATCH_ID || "";
 const DATAOP_RUN_ID = process.env.FAIR_DATAOP_RUN_ID || "";
 const DATAOP_KEY = process.env.FAIR_DATAOP_KEY || "";
+const OPERATION_ID = process.env.FAIR_OPERATION_ID || "";
 
 const WIDTHS = [320, 390, 767, 768, 769, 1023, 1024, 1025, 1439, 1440, 1441, 1920, 2560, 3440, 3840];
 const MATRIX_WIDTHS = [320, 390, 768, 1024, 1440, 1920, 2560, 3440, 3840];
@@ -60,6 +61,7 @@ async function discoverIds(page) {
     batchId: BATCH_ID || null,
     dataOpRunId: DATAOP_RUN_ID || null,
     dataOpKey: DATAOP_KEY || null,
+    operationId: OPERATION_ID || null,
   };
 
   await page.goto(`${BASE}/data-integration/run-history`, { waitUntil: "networkidle", timeout: 45000 }).catch(() => {});
@@ -175,6 +177,12 @@ function buildRoutes(ids) {
     { route: "/todos/:id", url: `/todos/${ids.todo}`, kind: "detail", production: true },
     { route: "/follow-ups", url: "/follow-ups", kind: "static", production: true },
     { route: "/activities", url: "/activities", kind: "static", production: true },
+    {
+      route: "/operations/:id",
+      url: ids.operationId ? `/operations/${ids.operationId}` : null,
+      kind: "detail",
+      production: true,
+    },
     { route: "/data-integration/imports", url: "/data-integration/imports", kind: "di", production: true },
     { route: "/data-integration/imports/new", url: "/data-integration/imports/new", kind: "di", production: true },
     { route: "/data-integration/imports/fair/:fairId", url: `/data-integration/imports/fair/${ids.fair}`, kind: "di-param", production: true },

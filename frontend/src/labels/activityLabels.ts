@@ -78,6 +78,8 @@ export const activityTypeLabels: Record<ActivityType, string> = {
   note: "Not",
   fair_visit: "Fuar Görüşmesi",
   follow_up: "Takip",
+  // System type from Todo complete — display as Diğer (not Telefon/E-posta/etc.).
+  task_completed: "Diğer",
   other: "Diğer",
 };
 
@@ -96,6 +98,7 @@ export const activitySourceLabels: Record<ActivitySource, string> = {
   other: "Diğer",
 };
 
+/** Manual create/edit options — excludes system-generated types like task_completed. */
 export const activityTypeOptions: ActivityType[] = [
   "call",
   "meeting",
@@ -105,6 +108,12 @@ export const activityTypeOptions: ActivityType[] = [
   "fair_visit",
   "follow_up",
   "other",
+];
+
+/** Filter options include system types. task_completed displays as Diğer. */
+export const activityTypeFilterOptions: ActivityType[] = [
+  ...activityTypeOptions,
+  "task_completed",
 ];
 
 export const activityStatusOptions: ActivityStatus[] = ["open", "completed", "cancelled"];

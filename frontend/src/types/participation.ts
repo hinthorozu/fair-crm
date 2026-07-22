@@ -1,13 +1,3 @@
-export type ParticipationStatus =
-  | "planned"
-  | "exhibitor"
-  | "visited"
-  | "contacted"
-  | "follow_up_required"
-  | "not_interested"
-  | "customer"
-  | "other";
-
 export interface Participation {
   id: string;
   organization_id: string;
@@ -15,11 +5,7 @@ export interface Participation {
   fair_id: string;
   hall: string | null;
   stand: string | null;
-  participation_status: ParticipationStatus;
   notes: string | null;
-  primary_contact_id: string | null;
-  primary_contact_name: string | null;
-  visited_at: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -34,9 +20,6 @@ export interface CustomerParticipationListItem {
   fair_end_date: string | null;
   hall: string | null;
   stand: string | null;
-  participation_status: ParticipationStatus;
-  primary_contact_name: string | null;
-  visited_at: string | null;
   notes: string | null;
 }
 
@@ -50,9 +33,6 @@ export interface FairParticipantListItem {
   city: string | null;
   hall: string | null;
   stand: string | null;
-  participation_status: ParticipationStatus;
-  primary_contact_name: string | null;
-  visited_at: string | null;
   notes: string | null;
 }
 
@@ -61,20 +41,13 @@ export interface CreateParticipationPayload {
   fair_id: string;
   hall?: string | null;
   stand?: string | null;
-  participation_status?: ParticipationStatus;
   notes?: string | null;
-  primary_contact_id?: string | null;
-  visited_at?: string | null;
 }
 
 export interface UpdateParticipationPayload {
   hall?: string | null;
   stand?: string | null;
-  participation_status?: ParticipationStatus;
   notes?: string | null;
-  primary_contact_id?: string | null;
-  visited_at?: string | null;
-  is_active?: boolean;
 }
 
 export interface CustomerParticipationListResponse {

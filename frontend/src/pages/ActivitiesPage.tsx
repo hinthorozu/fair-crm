@@ -24,7 +24,7 @@ import {
   activityStatusLabels,
   activityStatusOptions,
   activityTypeLabels,
-  activityTypeOptions,
+  activityTypeFilterOptions,
   formatActivityDateShort,
 } from "../labels/activityLabels";
 import { labels } from "../labels";
@@ -140,17 +140,21 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
         title: activityLabels.customer,
         sortField: "customer_name",
         allowWrap: true,
-        render: (activity) =>
-          onOpenCustomer ? (
-            <TableEntityLink
-              onClick={() => onOpenCustomer(activity.customer_id)}
-              aria-label={activityLabels.openCustomer}
-            >
-              {activity.customer_name ?? "—"}
-            </TableEntityLink>
-          ) : (
-            <span>{activity.customer_name ?? "—"}</span>
-          ),
+        render: (activity) => {
+          const customerName = activity.customer_name?.trim() || null;
+          const customerId = activity.customer_id;
+          if (customerId && onOpenCustomer) {
+            return (
+              <TableEntityLink
+                onClick={() => onOpenCustomer(customerId)}
+                aria-label={activityLabels.openCustomer}
+              >
+                {customerName ?? "—"}
+              </TableEntityLink>
+            );
+          }
+          return <span>{customerName ?? "—"}</span>;
+        },
       },
       {
         key: "subject",
@@ -303,7 +307,7 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
               aria-label={activityLabels.filterType}
             >
               <option value="">{activityLabels.filterAll}</option>
-              {activityTypeOptions.map((type) => (
+              {activityTypeFilterOptions.map((type) => (
                 <option key={type} value={type}>
                   {activityTypeLabels[type]}
                 </option>

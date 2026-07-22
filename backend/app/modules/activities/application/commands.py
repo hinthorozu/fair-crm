@@ -9,11 +9,11 @@ class CreateActivityCommand:
     organization_id: UUID
     access_token: str
     user_id: UUID
-    customer_id: UUID
     activity_type: str
     subject: str
     activity_date: datetime
     status: str
+    customer_id: Optional[UUID] = None
     contact_id: Optional[UUID] = None
     description: Optional[str] = None
     follow_up_date: Optional[datetime] = None
@@ -44,6 +44,7 @@ class ListActivitiesQuery:
     organization_id: UUID
     search: str | None = None
     customer_id: UUID | None = None
+    fair_id: UUID | None = None
     activity_type: str | None = None
     status: str | None = None
     date_from: datetime | None = None
@@ -94,7 +95,7 @@ class DeleteActivityCommand:
 class ActivityResult:
     id: UUID
     organization_id: UUID
-    customer_id: UUID
+    customer_id: Optional[UUID]
     contact_id: Optional[UUID]
     contact_full_name: Optional[str]
     type: str
@@ -108,6 +109,8 @@ class ActivityResult:
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime]
+    todo_id: Optional[UUID] = None
+    fair_id: Optional[UUID] = None
     customer_name: Optional[str] = None
     related_todo_id: Optional[UUID] = None
     related_todo_title: Optional[str] = None

@@ -2,7 +2,12 @@ import { normalizeStandardListResponse, buildListQueryParams } from "./listTable
 import { apiRequest } from "./client";
 import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
 import type { StandardListResponse } from "../types/listTable";
-import type { CreateTodoPayload, Todo, UpdateTodoPayload } from "../types/todo";
+import type {
+  CompleteTodoPayload,
+  CreateTodoPayload,
+  Todo,
+  UpdateTodoPayload,
+} from "../types/todo";
 
 export interface ListTodosParams extends Partial<ServerTableFetchParams> {
   status?: string;
@@ -11,6 +16,7 @@ export interface ListTodosParams extends Partial<ServerTableFetchParams> {
   assignee_user_id?: string;
   created_by?: string;
   is_overdue?: boolean;
+  due_today?: boolean;
   include_archived?: boolean;
 }
 
@@ -33,6 +39,12 @@ export async function listTodos(params: ListTodosParams = {}): Promise<StandardL
     filters.is_overdue = "true";
   } else if (params.is_overdue === false) {
     filters.is_overdue = "false";
+  }
+
+  if (params.due_today === true) {
+    filters.due_today = "true";
+  } else if (params.due_today === false) {
+    filters.due_today = "false";
   }
 
   if (params.include_archived) {
@@ -69,9 +81,15 @@ export function updateTodo(id: string, payload: UpdateTodoPayload): Promise<Todo
   });
 }
 
-export function completeTodo(id: string): Promise<Todo> {
+export function completeTodo(
+  id: string,
+  payload: CompleteTodoPayload = {},
+): Promise<Todo> {
   return apiRequest<Todo>(`/api/v1/todos/${id}/complete`, {
     method: "POST",
+    body: JSON.stringify({
+      note: payload.note?.trim() ? payload.note.trim() : null,
+    }),
   });
 }
 

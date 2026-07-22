@@ -100,6 +100,15 @@ from app.modules.todos.api.dependencies import (
     get_audit_adapter as get_todos_audit_adapter,
     get_authorization_adapter as get_todos_authorization_adapter,
 )
+from app.modules.operations.api.dependencies import (
+    get_audit_adapter as get_operations_audit_adapter,
+    get_authorization_adapter as get_operations_authorization_adapter,
+)
+from app.modules.operations.infrastructure.persistence.models import (  # noqa: F401
+    OperationModel,
+    OperationRunItemModel,
+    OperationRunModel,
+)
 from app.modules.todos.api.outcome_dependencies import (
     get_audit_adapter as get_outcome_audit_adapter,
     get_authorization_adapter as get_outcome_authorization_adapter,
@@ -241,6 +250,8 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     app.dependency_overrides[get_fair_emails_authorization_adapter] = lambda: AllowAllAuthorization()
     app.dependency_overrides[get_todos_authorization_adapter] = lambda: AllowAllAuthorization()
     app.dependency_overrides[get_todos_audit_adapter] = lambda: NoOpAudit()
+    app.dependency_overrides[get_operations_authorization_adapter] = lambda: AllowAllAuthorization()
+    app.dependency_overrides[get_operations_audit_adapter] = lambda: NoOpAudit()
     app.dependency_overrides[get_outcome_authorization_adapter] = lambda: AllowAllAuthorization()
     app.dependency_overrides[get_outcome_audit_adapter] = lambda: NoOpAudit()
     app.dependency_overrides[get_dashboard_authorization_adapter] = lambda: AllowAllAuthorization()
