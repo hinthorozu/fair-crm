@@ -430,6 +430,163 @@ def test_create_fair_invalid_source_url_validation(client, auth_headers):
     assert "source_url" in response.json()["detail"]
 
 
+def test_create_fair_defaults_status_to_planned(client, auth_headers):
+    response = client.post(
+        "/api/v1/fairs",
+        json={"name": "Default Status Fair"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 201
+    assert response.json()["status"] == "planned"
+
+
+def test_update_fair_clears_optional_fields_with_null(client, auth_headers):
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={
+            "name": "Clear Fields Fair",
+            "organizer": "Old Org",
+            "venue": "Old Venue",
+            "city": "İstanbul",
+            "country": "Türkiye",
+            "website": "https://www.old-fair.com",
+            "description": "Old description",
+            "start_date": "2026-03-15",
+            "end_date": "2026-03-18",
+            "adapter_key": "tuyap_new",
+            "source_url": "https://example.com/list",
+            "scraper_config": {"pagination": {"page_size": 10}},
+        },
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 201
+    fair_id = create_response.json()["id"]
+
+    update_response = client.patch(
+        f"/api/v1/fairs/{fair_id}",
+        json={
+            "organizer": None,
+            "venue": None,
+            "city": None,
+            "country": None,
+            "website": None,
+            "description": None,
+            "start_date": None,
+            "end_date": None,
+            "adapter_key": None,
+            "source_url": None,
+            "scraper_config": None,
+        },
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200
+    body = update_response.json()
+    assert body["organizer"] is None
+    assert body["venue"] is None
+    assert body["city"] is None
+    assert body["country"] is None
+    assert body["website"] is None
+    assert body["description"] is None
+    assert body["start_date"] is None
+    assert body["end_date"] is None
+    assert body["adapter_key"] is None
+    assert body["source_url"] is None
+    assert body["scraper_config"] is None
+
+
+def test_update_fair_omitted_fields_are_preserved(client, auth_headers):
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={
+            "name": "Omit Fields Fair",
+            "organizer": "Keep Me",
+            "website": "https://keep.example",
+            "start_date": "2026-05-01",
+        },
+        headers=auth_headers,
+    )
+    fair_id = create_response.json()["id"]
+
+    update_response = client.patch(
+        f"/api/v1/fairs/{fair_id}",
+        json={"name": "Omit Fields Fair Renamed"},
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200
+    body = update_response.json()
+    assert body["name"] == "Omit Fields Fair Renamed"
+    assert body["organizer"] == "Keep Me"
+    assert body["website"] == "keep.example"
+    assert body["start_date"] == "2026-05-01"
+
+
+def test_create_fair_accepts_protocol_less_website(client, auth_headers):
+    response = client.post(
+        "/api/v1/fairs",
+        json={"name": "Protocol Less Website Fair", "website": "abc.com"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 201
+    assert response.json()["website"] == "abc.com"
+
+
+def test_update_fair_auto_plans_when_future_start_date_set(client, auth_headers):
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={"name": "Auto Plan Fair", "status": "completed"},
+        headers=auth_headers,
+    )
+    fair_id = create_response.json()["id"]
+    assert create_response.json()["status"] == "completed"
+
+    update_response = client.patch(
+        f"/api/v1/fairs/{fair_id}",
+        json={"start_date": "2099-01-15", "end_date": "2099-01-18"},
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["status"] == "planned"
+    assert update_response.json()["start_date"] == "2099-01-15"
+
+
+def test_update_fair_explicit_status_wins_over_auto_plan(client, auth_headers):
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={"name": "Explicit Status Fair", "status": "planned"},
+        headers=auth_headers,
+    )
+    fair_id = create_response.json()["id"]
+
+    update_response = client.patch(
+        f"/api/v1/fairs/{fair_id}",
+        json={
+            "start_date": "2099-02-01",
+            "end_date": "2099-02-04",
+            "status": "cancelled",
+        },
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["status"] == "cancelled"
+
+
+def test_update_fair_past_dates_do_not_auto_plan(client, auth_headers):
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={"name": "Past Dates Fair", "status": "completed"},
+        headers=auth_headers,
+    )
+    fair_id = create_response.json()["id"]
+
+    update_response = client.patch(
+        f"/api/v1/fairs/{fair_id}",
+        json={"start_date": "2020-01-10", "end_date": "2020-01-12"},
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["status"] == "completed"
+
+
 def test_fair_detail_and_list_include_adapter_fields(client, auth_headers):
     create_response = client.post(
         "/api/v1/fairs",
@@ -455,3 +612,4 @@ def test_fair_detail_and_list_include_adapter_fields(client, auth_headers):
     matched = next(item for item in items if item["id"] == fair_id)
     assert matched["adapter_key"] == "tuyap_new"
     assert matched["source_url"] == "https://foodist.example/list"
+

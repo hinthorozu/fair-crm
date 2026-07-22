@@ -134,6 +134,8 @@ class Fair:
         now: datetime,
         clear_start_date: bool = False,
         clear_end_date: bool = False,
+        clear_scraper_config: bool = False,
+        auto_planned_from_dates: bool = False,
     ) -> None:
         self.ensure_mutable()
 
@@ -172,8 +174,13 @@ class Fair:
             self.adapter_key = normalize_adapter_key(adapter_key)
         if source_url is not None:
             self.source_url = normalize_source_url(source_url) if source_url else None
-        if scraper_config is not None:
+        if clear_scraper_config:
+            self.scraper_config = None
+        elif scraper_config is not None:
             self.scraper_config = scraper_config
+
+        if auto_planned_from_dates and self.status != FairStatus.ARCHIVED:
+            self.status = FairStatus.PLANNED
 
         _validate_adapter_fields(self.adapter_key, self.source_url)
 

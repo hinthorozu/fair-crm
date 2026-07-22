@@ -632,6 +632,7 @@ export function FairDetailPage({
       {modal === "edit-fair" && (
         <FormModal title={fairLabels.editFair} onClose={closeModal} size="lg">
           <FairForm
+            key={fair.id}
             initial={fairToFormValues(fair)}
             submitLabel={labels.save}
             onCancel={closeModal}

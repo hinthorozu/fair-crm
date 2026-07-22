@@ -295,13 +295,15 @@ def update_fair(
     use_case: UpdateFairUseCase = Depends(get_update_fair_use_case),
 ) -> FairResponse:
     try:
+        fields = body.model_dump(exclude_unset=True)
         result = use_case.execute(
             UpdateFairCommand(
                 organization_id=auth.organization_id,
                 fair_id=fair_id,
                 access_token=_access_token(credentials),
                 user_id=auth.user_id,
-                **body.model_dump(exclude_unset=True),
+                fields_set=frozenset(fields.keys()),
+                **fields,
             )
         )
     except ForbiddenError as exc:

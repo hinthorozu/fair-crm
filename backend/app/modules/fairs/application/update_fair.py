@@ -1,4 +1,5 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from typing import Any, Optional
 
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.client import HttpAuditAdapter
@@ -9,6 +10,44 @@ from app.modules.fairs.domain.exceptions import FairNotFoundError
 from app.modules.fairs.domain.ports import FairRepository
 
 PERMISSION_UPDATE = "fair_crm.fairs.update"
+
+_STRING_CLEAR_FIELDS = (
+    "organizer",
+    "venue",
+    "city",
+    "country",
+    "website",
+    "description",
+    "adapter_key",
+    "source_url",
+)
+
+
+def _clearable_str(command: UpdateFairCommand, field: str) -> Optional[str]:
+    """Omit when unset; convert explicit null to '' so domain clears the field."""
+    if field not in command.fields_set:
+        return None
+    value = getattr(command, field)
+    if value is None:
+        return ""
+    return value
+
+
+def _should_auto_plan(command: UpdateFairCommand, today: date) -> bool:
+    """When start/end is set to today or a future date, force status to planned.
+
+    Explicit status in the same request wins (auto-plan is skipped).
+    """
+    if "status" in command.fields_set:
+        return False
+
+    candidates: list[date] = []
+    if "start_date" in command.fields_set and command.start_date is not None:
+        candidates.append(command.start_date)
+    if "end_date" in command.fields_set and command.end_date is not None:
+        candidates.append(command.end_date)
+
+    return any(value >= today for value in candidates)
 
 
 class UpdateFairUseCase:
@@ -36,21 +75,33 @@ class UpdateFairUseCase:
             raise FairNotFoundError("Fair not found")
 
         now = datetime.now(tz=UTC)
+        string_kwargs: dict[str, Any] = {
+            field: _clearable_str(command, field) for field in _STRING_CLEAR_FIELDS
+        }
+
         fair.update_fields(
-            name=command.name,
-            organizer=command.organizer,
-            venue=command.venue,
-            city=command.city,
-            country=command.country,
-            start_date=command.start_date,
-            end_date=command.end_date,
-            website=command.website,
-            status=command.status,
-            description=command.description,
-            adapter_key=command.adapter_key,
-            source_url=command.source_url,
-            scraper_config=command.scraper_config,
+            name=command.name if "name" in command.fields_set else None,
+            organizer=string_kwargs["organizer"],
+            venue=string_kwargs["venue"],
+            city=string_kwargs["city"],
+            country=string_kwargs["country"],
+            start_date=command.start_date if "start_date" in command.fields_set else None,
+            end_date=command.end_date if "end_date" in command.fields_set else None,
+            website=string_kwargs["website"],
+            status=command.status if "status" in command.fields_set else None,
+            description=string_kwargs["description"],
+            adapter_key=string_kwargs["adapter_key"],
+            source_url=string_kwargs["source_url"],
+            scraper_config=(
+                command.scraper_config if "scraper_config" in command.fields_set else None
+            ),
             now=now,
+            clear_start_date="start_date" in command.fields_set and command.start_date is None,
+            clear_end_date="end_date" in command.fields_set and command.end_date is None,
+            clear_scraper_config=(
+                "scraper_config" in command.fields_set and command.scraper_config is None
+            ),
+            auto_planned_from_dates=_should_auto_plan(command, now.date()),
         )
 
         saved = self._repository.update(fair)

@@ -19,6 +19,12 @@ import {
   parseScraperConfigJson,
   scraperConfigToJsonText,
 } from "../utils/fairIntegration";
+import {
+  buildFairSubmitPayload,
+  isValidFairWebsite,
+  parseFairDateInput,
+  resolveAutoEndDate,
+} from "../utils/fairForm";
 
 export type FairFormValues = CreateFairPayload & {
   scraper_config_json: string;
@@ -70,21 +76,78 @@ interface FairFormProps {
 }
 
 export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormProps) {
-  const [values, setValues] = React.useState<FairFormValues>(initial ?? emptyForm());
+  // Parent should remount via `key` when switching create/edit records.
+  const [values, setValues] = React.useState<FairFormValues>(() => initial ?? emptyForm());
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const baseline = React.useMemo(() => initial ?? emptyForm(), [initial]);
+  const [dateErrors, setDateErrors] = React.useState<{ start_date?: string; end_date?: string }>(
+    {},
+  );
+  const baseline = React.useMemo(() => initial ?? emptyForm(), []);
+  const endDateManualRef = React.useRef(Boolean((initial?.end_date ?? "").trim()));
   const handleCancel = useModalFormCancel(onCancel);
 
   useReportFormDirty(values, baseline);
 
-  React.useEffect(() => {
-    setValues(initial ?? emptyForm());
-    setError(null);
-  }, [initial]);
-
   const set = (field: keyof FairFormValues, value: string) => {
     setValues((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleStartDateChange = (raw: string) => {
+    set("start_date", raw);
+    setDateErrors((prev) => ({ ...prev, start_date: undefined }));
+  };
+
+  const handleStartDateBlur = (event: React.FocusEvent<HTMLInputElement>) => {
+    const raw = event.target.value.trim();
+    if (!raw) {
+      setDateErrors((prev) => ({ ...prev, start_date: undefined }));
+      return;
+    }
+    const parsed = parseFairDateInput(raw);
+    if (!parsed) {
+      setDateErrors((prev) => ({ ...prev, start_date: fairLabels.dateInvalid }));
+      return;
+    }
+    setDateErrors((prev) => ({ ...prev, start_date: undefined }));
+    setValues((prev) => {
+      const endDate = prev.end_date ?? "";
+      const nextEnd = resolveAutoEndDate({
+        startDate: parsed,
+        endDate,
+        endDateManual: endDateManualRef.current,
+      });
+      return {
+        ...prev,
+        start_date: parsed,
+        ...(nextEnd ? { end_date: nextEnd } : {}),
+      };
+    });
+  };
+
+  const handleEndDateChange = (raw: string) => {
+    endDateManualRef.current = Boolean(raw.trim());
+    set("end_date", raw);
+    setDateErrors((prev) => ({ ...prev, end_date: undefined }));
+  };
+
+  const handleEndDateBlur = (event: React.FocusEvent<HTMLInputElement>) => {
+    const raw = event.target.value.trim();
+    if (!raw) {
+      endDateManualRef.current = false;
+      setDateErrors((prev) => ({ ...prev, end_date: undefined }));
+      return;
+    }
+    const parsed = parseFairDateInput(raw);
+    if (!parsed) {
+      setDateErrors((prev) => ({ ...prev, end_date: fairLabels.dateInvalid }));
+      return;
+    }
+    endDateManualRef.current = true;
+    setDateErrors((prev) => ({ ...prev, end_date: undefined }));
+    if (parsed !== raw) {
+      set("end_date", parsed);
+    }
   };
 
   const adapterSelected = Boolean(values.adapter_key?.trim());
@@ -94,6 +157,45 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
     event.preventDefault();
     if (!values.name.trim()) {
       setError(fairLabels.nameRequired);
+      return;
+    }
+
+    const startRaw = values.start_date?.trim() ?? "";
+    const endRaw = values.end_date?.trim() ?? "";
+    const nextDateErrors: { start_date?: string; end_date?: string } = {};
+    let startDate = startRaw;
+    let endDate = endRaw;
+
+    if (startRaw) {
+      const parsedStart = parseFairDateInput(startRaw);
+      if (!parsedStart) {
+        nextDateErrors.start_date = fairLabels.dateInvalid;
+      } else {
+        startDate = parsedStart;
+      }
+    }
+    if (endRaw) {
+      const parsedEnd = parseFairDateInput(endRaw);
+      if (!parsedEnd) {
+        nextDateErrors.end_date = fairLabels.dateInvalid;
+      } else {
+        endDate = parsedEnd;
+      }
+    }
+    if (nextDateErrors.start_date || nextDateErrors.end_date) {
+      setDateErrors(nextDateErrors);
+      setError(fairLabels.dateInvalid);
+      return;
+    }
+    if (startDate && endDate && endDate < startDate) {
+      setDateErrors({ end_date: fairLabels.dateRangeInvalid });
+      setError(fairLabels.dateRangeInvalid);
+      return;
+    }
+
+    const websiteRaw = values.website?.trim() ?? "";
+    if (websiteRaw && !isValidFairWebsite(websiteRaw)) {
+      setError(fairLabels.websiteInvalid);
       return;
     }
 
@@ -123,22 +225,18 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
 
     setSaving(true);
     setError(null);
+    setDateErrors({});
     try {
-      await onSubmit({
-        name: values.name.trim(),
-        organizer: values.organizer?.trim() || null,
-        venue: values.venue?.trim() || null,
-        country: values.country?.trim() || null,
-        city: values.city?.trim() || null,
-        start_date: values.start_date?.trim() || null,
-        end_date: values.end_date?.trim() || null,
-        website: values.website?.trim() || null,
-        description: values.description?.trim() || null,
-        status: values.status,
-        adapter_key: adapterKey,
-        source_url: sourceUrl,
-        scraper_config: scraperConfig,
-      });
+      await onSubmit(
+        buildFairSubmitPayload(
+          {
+            ...values,
+            start_date: startDate,
+            end_date: endDate,
+          },
+          scraperConfig,
+        ),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kayıt başarısız.");
     } finally {
@@ -179,21 +277,37 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
 
       <FormSection title={fairLabels.fairSectionScheduleLocation}>
         <FormGrid>
-          <FormField label={fairLabels.start_date} htmlFor="fair-start-date">
+          <FormField
+            label={fairLabels.start_date}
+            htmlFor="fair-start-date"
+            hint={fairLabels.dateFormatHint}
+            error={dateErrors.start_date}
+          >
             <TextInput
               id="fair-start-date"
               type="date"
+              placeholder={fairLabels.datePlaceholder}
               value={values.start_date ?? ""}
-              onChange={(event) => set("start_date", event.target.value)}
+              onChange={(event) => handleStartDateChange(event.target.value)}
+              onBlur={handleStartDateBlur}
+              aria-invalid={Boolean(dateErrors.start_date)}
             />
           </FormField>
 
-          <FormField label={fairLabels.end_date} htmlFor="fair-end-date">
+          <FormField
+            label={fairLabels.end_date}
+            htmlFor="fair-end-date"
+            hint={fairLabels.dateFormatHint}
+            error={dateErrors.end_date}
+          >
             <TextInput
               id="fair-end-date"
               type="date"
+              placeholder={fairLabels.datePlaceholder}
               value={values.end_date ?? ""}
-              onChange={(event) => set("end_date", event.target.value)}
+              onChange={(event) => handleEndDateChange(event.target.value)}
+              onBlur={handleEndDateBlur}
+              aria-invalid={Boolean(dateErrors.end_date)}
             />
           </FormField>
 
@@ -233,13 +347,19 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
             />
           </FormField>
 
-          <FormField label={labels.website} htmlFor="fair-website">
+          <FormField
+            label={labels.website}
+            htmlFor="fair-website"
+            hint={fairLabels.websiteHint}
+          >
             <TextInput
               id="fair-website"
-              type="url"
+              type="text"
+              inputMode="url"
+              autoComplete="url"
               value={values.website ?? ""}
               onChange={(event) => set("website", event.target.value)}
-              placeholder="https://"
+              placeholder={fairLabels.websitePlaceholder}
             />
           </FormField>
         </FormGrid>

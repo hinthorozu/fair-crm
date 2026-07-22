@@ -157,6 +157,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
       {modal === "create" && (
         <FormModal title={fairLabels.newFair} onClose={closeModal} size="lg">
           <FairForm
+            key="create-fair"
             submitLabel={labels.save}
             onCancel={closeModal}
             onSubmit={handleCreate}
@@ -167,6 +168,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
       {modal === "edit" && editing && (
         <FormModal title={fairLabels.editFair} onClose={closeModal} size="lg">
           <FairForm
+            key={editing.id}
             initial={fairToFormValues(editing)}
             submitLabel={labels.save}
             onCancel={closeModal}

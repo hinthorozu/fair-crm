@@ -51,6 +51,7 @@ class UpdateFairCommand:
     fair_id: UUID
     access_token: str
     user_id: UUID
+    fields_set: frozenset[str] = frozenset()
     name: Optional[str] = None
     organizer: Optional[str] = None
     venue: Optional[str] = None
