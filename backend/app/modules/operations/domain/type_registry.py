@@ -57,11 +57,15 @@ _SCRAPER_STEPS = (
 )
 
 
-def _placeholder_capabilities(*, supports_schedule: bool = False) -> HandlerCapabilities:
+def _placeholder_capabilities(
+    *,
+    supports_schedule: bool = False,
+    supports_retry: bool = False,
+) -> HandlerCapabilities:
     return HandlerCapabilities(
         supports_pause=False,
         supports_resume=False,
-        supports_retry=False,
+        supports_retry=supports_retry,
         supports_schedule=supports_schedule,
         supports_items=True,
     )
@@ -124,12 +128,21 @@ OPERATION_TYPE_DEFINITIONS: dict[str, OperationTypeDefinition] = {
             SourceKind.SEGMENT,
             SourceKind.MANUAL_SELECTION,
             SourceKind.IMPORT,
+            SourceKind.NONE,
         ),
         default_source=SourceKind.FAIR,
-        capabilities=_placeholder_capabilities(supports_schedule=True),
+        capabilities=_placeholder_capabilities(supports_schedule=True, supports_retry=True),
         wizard_steps=_DEFAULT_WIZARD_STEPS,
         type_config_schema={
-            "fields": ["smtp_account_id", "template_id", "subject"],
+            "fields": [
+                "smtp_account_id",
+                "template_id",
+                "subject",
+                "source_type",
+                "manual_emails",
+                "excel_email_tokens",
+                "fair_ids",
+            ],
         },
         run_settings_schema={
             "fields": ["retry", "rate_limit", "schedule", "concurrency", "priority"],

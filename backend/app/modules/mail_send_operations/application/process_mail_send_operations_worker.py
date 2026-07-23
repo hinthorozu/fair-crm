@@ -92,7 +92,16 @@ class ProcessMailSendOperationsWorker:
                 record.id,
                 timeout_minutes=timeout_minutes,
             )
-            self._sync_fair_bulk_failure(record, message="Gönderim zaman aşımına uğradı")
+            # Keep error_code token in outbox message so UI can flag uncertain delivery.
+            self._sync_fair_bulk_failure(
+                record,
+                message=(
+                    f"sending_timeout: Gönderim zaman aşımına uğradı "
+                    f"(eşik: {timeout_minutes} dakika). "
+                    "SMTP maili kabul etmiş olabilir; sonuç belirsiz."
+                ),
+                error_code="sending_timeout",
+            )
             recovered += 1
         return recovered
 

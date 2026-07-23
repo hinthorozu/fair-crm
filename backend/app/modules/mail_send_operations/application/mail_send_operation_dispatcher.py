@@ -130,7 +130,7 @@ class MailSendOperationDispatcher:
         organization_id: UUID,
         batch,
         outbox_id: UUID,
-        fair_id: UUID,
+        fair_id: UUID | None,
         template_id: UUID,
         subject: str,
     ) -> None:
@@ -146,9 +146,11 @@ class MailSendOperationDispatcher:
             return
         from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
 
-        fair = SqlAlchemyFairRepository(self._session).get_by_id(organization_id, fair_id)
+        fair_name = ""
+        if fair_id is not None:
+            fair = SqlAlchemyFairRepository(self._session).get_by_id(organization_id, fair_id)
+            fair_name = fair.name if fair else ""
         template = self._template_repository.get_by_id(organization_id, template_id)
-        fair_name = fair.name if fair else ""
         template_name = template.name if template else ""
         try:
             self._activity_writer.record_terminal_outbox(

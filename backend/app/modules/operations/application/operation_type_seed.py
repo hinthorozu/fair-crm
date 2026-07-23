@@ -52,7 +52,7 @@ CANONICAL_OPERATION_TYPES: tuple[tuple[str, str, int, OperationTypeCapabilitiesS
         {
             "supports_pause": False,
             "supports_resume": False,
-            "supports_retry": False,
+            "supports_retry": True,
             "supports_schedule": True,
             "supports_items": True,
         },

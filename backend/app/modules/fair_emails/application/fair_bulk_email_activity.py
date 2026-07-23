@@ -76,19 +76,21 @@ def build_fair_bulk_email_activity_metadata(
     error_message: str | None = None,
 ) -> dict[str, Any]:
     safe_error = sanitize_error_message(error_message)
+    send_attempt = int(getattr(outbox, "send_attempt", None) or 1)
     metadata: dict[str, Any] = {
         "source": FAIR_BULK_EMAIL_METADATA_SOURCE,
-        "fair_id": str(batch.fair_id),
+        "fair_id": str(batch.fair_id) if batch.fair_id is not None else None,
         "fair_name": fair_name,
         "batch_id": str(batch.id),
         "outbox_id": str(outbox.id),
+        "send_attempt": str(send_attempt),
         "template_id": str(batch.template_id),
         "template_name": template_name,
         "subject": subject,
         "recipient_email": outbox.email,
         "recipient_name": outbox.recipient_name,
         "recipient_source": outbox.source,
-        "customer_id": str(outbox.customer_id),
+        "customer_id": str(outbox.customer_id) if outbox.customer_id is not None else None,
         "status": terminal_status,
     }
     if batch.smtp_account_id is not None:
@@ -133,6 +135,9 @@ class FairBulkEmailActivityWriter:
     def record_terminal_outbox(self, context: FairBulkEmailActivityContext) -> None:
         if context.outbox.status not in ("sent", "failed"):
             return
+        if context.outbox.customer_id is None:
+            # Manual/excel recipients have no CRM customer — skip activity entirely.
+            return
         if context.outbox.organization_id != context.organization_id:
             logger.warning(
                 "fair_bulk_email_activity_tenant_mismatch outbox_id=%s organization_id=%s",
@@ -140,9 +145,12 @@ class FairBulkEmailActivityWriter:
                 context.organization_id,
             )
             return
-        if self._activity_repository.exists_fair_bulk_email_outbox(
+
+        send_attempt = int(getattr(context.outbox, "send_attempt", None) or 1)
+        if self._activity_repository.exists_fair_bulk_email_outbox_attempt(
             context.organization_id,
             context.outbox.id,
+            send_attempt,
         ):
             return
 
@@ -186,8 +194,9 @@ class FairBulkEmailActivityWriter:
         )
         self._activity_repository.add(activity)
         logger.info(
-            "fair_bulk_email_activity_created outbox_id=%s customer_id=%s status=%s",
+            "fair_bulk_email_activity_created outbox_id=%s customer_id=%s status=%s send_attempt=%s",
             context.outbox.id,
             context.outbox.customer_id,
             terminal_status,
+            send_attempt,
         )

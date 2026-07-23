@@ -1,14 +1,23 @@
 import React from "react";
+import {
+  downloadBulkEmailOperationExport,
+  listBulkEmailOperationLogs,
+  listBulkEmailOperationRecipients,
+  openBulkEmailOperationExport,
+  retryBulkEmailOperationFailed,
+} from "../api/bulkEmailOperation";
 import { cancelOperation, getOperation, startOperation } from "../api/operations";
 import { getFair } from "../api/fairs";
 import { getAdapter } from "../api/scraper";
 import { getTodo } from "../api/todos";
 import { ApiError } from "../api/client";
 import { AdapterRunLogConsole } from "../components/scraper/AdapterRunLogConsole";
+import { BulkEmailOperationResultsTable } from "../components/operations/BulkEmailOperationResultsTable";
 import { OperationRunStatusBadge } from "../components/operations/OperationRunStatusBadge";
 import { Banner } from "../components/ui/Banner";
 import { Badge, type BadgeVariant } from "../components/ui/Badge";
 import { Card } from "../components/ui/Card";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
 import { LoadingState } from "../components/ui/LoadingState";
 import { PageHeader } from "../components/ui/PageHeader";
@@ -21,6 +30,10 @@ import {
   sourceKindLabels,
 } from "../labels/operationLabels";
 import { todoPriorityLabels, todoStatusLabels } from "../labels/todoLabels";
+import type {
+  BulkEmailOperationLogLine,
+  BulkEmailOperationRecipientRow,
+} from "../types/bulkEmailOperation";
 import type {
   OperationDetail,
   OperationRun,
@@ -101,6 +114,16 @@ export function OperationDetailPage({
   const [error, setError] = React.useState<string | null>(null);
   const [banner, setBanner] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const [bulkRecipients, setBulkRecipients] = React.useState<BulkEmailOperationRecipientRow[]>([]);
+  const [bulkRecipientsVersion, setBulkRecipientsVersion] = React.useState("");
+  const [bulkRecipientsError, setBulkRecipientsError] = React.useState<string | null>(null);
+  const [bulkRecipientsLoading, setBulkRecipientsLoading] = React.useState(false);
+  const [bulkLogs, setBulkLogs] = React.useState<BulkEmailOperationLogLine[]>([]);
+  const [bulkLogsError, setBulkLogsError] = React.useState<string | null>(null);
+  const [bulkLogsLoading, setBulkLogsLoading] = React.useState(false);
+  const [retryConfirmOpen, setRetryConfirmOpen] = React.useState(false);
+  const [retrying, setRetrying] = React.useState(false);
+  const [exportBusy, setExportBusy] = React.useState<string | null>(null);
 
   const load = React.useCallback(
     async (options?: { silent?: boolean }) => {
@@ -202,14 +225,80 @@ export function OperationDetailPage({
   const latestStatus =
     detail?.operation.latest_run?.status ?? detail?.runs[0]?.status ?? null;
   const shouldPoll = latestStatus === "queued" || latestStatus === "running";
+  const isBulkEmailOp = detail?.operation.operation_type === "bulk_email";
+
+  const loadBulkEmailExtras = React.useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!isBulkEmailOp) return;
+      if (!options?.silent) {
+        setBulkRecipientsLoading(true);
+        setBulkLogsLoading(true);
+      }
+      setBulkRecipientsError(null);
+      setBulkLogsError(null);
+      const [recipientsResult, logsResult] = await Promise.allSettled([
+        listBulkEmailOperationRecipients(operationId),
+        listBulkEmailOperationLogs(operationId),
+      ]);
+      if (recipientsResult.status === "fulfilled") {
+        setBulkRecipients(recipientsResult.value.items);
+        setBulkRecipientsVersion(
+          `${recipientsResult.value.batch_id}:${recipientsResult.value.items.length}:${Date.now()}`,
+        );
+      } else {
+        const err = recipientsResult.reason;
+        if (err instanceof ApiError && err.status === 404) {
+          setBulkRecipients([]);
+          setBulkRecipientsError(null);
+        } else {
+          setBulkRecipientsError(
+            err instanceof ApiError ? err.message : operationLabels.bulkEmailRecipientsLoadError,
+          );
+        }
+      }
+      if (logsResult.status === "fulfilled") {
+        setBulkLogs(logsResult.value.items);
+      } else {
+        const err = logsResult.reason;
+        if (err instanceof ApiError && err.status === 404) {
+          setBulkLogs([]);
+          setBulkLogsError(null);
+        } else {
+          setBulkLogsError(
+            err instanceof ApiError ? err.message : operationLabels.bulkEmailLogsLoadError,
+          );
+        }
+      }
+      if (!options?.silent) {
+        setBulkRecipientsLoading(false);
+        setBulkLogsLoading(false);
+      }
+    },
+    [isBulkEmailOp, operationId],
+  );
 
   React.useEffect(() => {
     if (!shouldPoll) return;
     const timer = window.setInterval(() => {
       void load({ silent: true });
+      if (isBulkEmailOp) {
+        void loadBulkEmailExtras({ silent: true });
+      }
     }, POLL_INTERVAL_MS);
     return () => window.clearInterval(timer);
-  }, [shouldPoll, load]);
+  }, [shouldPoll, load, isBulkEmailOp, loadBulkEmailExtras]);
+
+  React.useEffect(() => {
+    if (!isBulkEmailOp) {
+      setBulkRecipients([]);
+      setBulkLogs([]);
+      setBulkRecipientsVersion("");
+      setBulkRecipientsError(null);
+      setBulkLogsError(null);
+      return;
+    }
+    void loadBulkEmailExtras();
+  }, [isBulkEmailOp, loadBulkEmailExtras]);
 
   const handleStart = async () => {
     setBusy(true);
@@ -236,6 +325,44 @@ export function OperationDetailPage({
       setError(err instanceof ApiError ? err.message : operationLabels.loadError);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleRetryFailed = async () => {
+    setRetrying(true);
+    setBanner(null);
+    setError(null);
+    try {
+      await retryBulkEmailOperationFailed(operationId);
+      setRetryConfirmOpen(false);
+      setBanner(operationLabels.bulkEmailRetrySuccess);
+      await load();
+      await loadBulkEmailExtras();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : operationLabels.loadError);
+      setRetryConfirmOpen(false);
+    } finally {
+      setRetrying(false);
+    }
+  };
+
+  const handleBulkExport = async (
+    format: "json" | "excel",
+    mode: "download" | "open",
+  ) => {
+    const key = `${mode}-${format}`;
+    setExportBusy(key);
+    setError(null);
+    try {
+      if (mode === "download") {
+        await downloadBulkEmailOperationExport(operationId, format);
+      } else {
+        await openBulkEmailOperationExport(operationId, format);
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : operationLabels.bulkEmailExportError);
+    } finally {
+      setExportBusy(null);
     }
   };
 
@@ -326,6 +453,7 @@ export function OperationDetailPage({
   const latest = operation.latest_run ?? runs[0] ?? null;
   const isManualTask = operation.operation_type === "manual_task";
   const isScraper = operation.operation_type === "scraper";
+  const isBulkEmail = operation.operation_type === "bulk_email";
   const latestRunActive = latest?.status === "queued" || latest?.status === "running";
   const canStart =
     ["draft", "ready", "active"].includes(operation.status) &&
@@ -334,6 +462,12 @@ export function OperationDetailPage({
   const canCancel =
     ["draft", "ready", "active"].includes(operation.status) ||
     (isScraper && latestRunActive);
+  const failedRecipientCount = bulkRecipients.filter((item) => item.status === "failed").length;
+  const failedCount = Math.max(latest?.failed_items ?? 0, failedRecipientCount);
+  const canRetryFailed =
+    isBulkEmail &&
+    !latestRunActive &&
+    (Boolean(operation.capabilities?.supports_retry) || failedCount > 0);
   const progressPct = Math.round((latest?.progress ?? 0) * 100);
   const scraperResult = isScraper ? extractScraperResult(latest) : null;
   const liveLogTarget = isScraper
@@ -363,6 +497,18 @@ export function OperationDetailPage({
                 onClick={() => void handleStart()}
               >
                 {operationLabels.actionStart}
+              </button>
+            ) : null}
+            {canRetryFailed ? (
+              <button
+                type="button"
+                className="btn"
+                disabled={busy || retrying}
+                onClick={() => setRetryConfirmOpen(true)}
+              >
+                {retrying
+                  ? operationLabels.bulkEmailRetryRunning
+                  : operationLabels.bulkEmailRetryFailed}
               </button>
             ) : null}
             {canCancel ? (
@@ -610,6 +756,101 @@ export function OperationDetailPage({
           </Card>
         ) : null}
 
+        {isBulkEmail ? (
+          <Card>
+            <h3 className="section-title">{operationLabels.bulkEmailLiveLogTitle}</h3>
+            {bulkLogsError ? <Banner variant="error">{bulkLogsError}</Banner> : null}
+            {bulkLogsLoading && bulkLogs.length === 0 ? <LoadingState variant="inline" /> : null}
+            <div className="adapter-console-log" aria-live="polite">
+              {bulkLogs.map((log, index) => (
+                <div
+                  key={log.outbox_id ?? `${log.at ?? "log"}-${index}`}
+                  className={`adapter-console-line adapter-console-${log.level === "error" ? "error" : "info"}`}
+                >
+                  <div className="adapter-console-header">
+                    <span className="adapter-console-time">
+                      {log.at
+                        ? new Date(log.at).toLocaleTimeString("tr-TR")
+                        : "—"}
+                    </span>
+                    {log.status ? (
+                      <span className="adapter-console-step">[{log.status}]</span>
+                    ) : null}
+                  </div>
+                  <div className="adapter-console-message">{log.message}</div>
+                </div>
+              ))}
+              {!bulkLogsLoading && bulkLogs.length === 0 && !bulkLogsError ? (
+                <p className="text-muted">{operationLabels.bulkEmailLogsEmpty}</p>
+              ) : null}
+            </div>
+          </Card>
+        ) : null}
+
+        {isBulkEmail ? (
+          <Card>
+            <div className="stack gap-sm">
+              <div
+                className="row gap-sm"
+                style={{ flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}
+              >
+                <h3 className="section-title" style={{ margin: 0 }}>
+                  {operationLabels.bulkEmailResultsTitle}
+                </h3>
+                <div className="row gap-sm" style={{ flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={Boolean(exportBusy)}
+                    onClick={() => void handleBulkExport("json", "download")}
+                  >
+                    {exportBusy === "download-json"
+                      ? "…"
+                      : operationLabels.bulkEmailExportJsonDownload}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={Boolean(exportBusy)}
+                    onClick={() => void handleBulkExport("json", "open")}
+                  >
+                    {exportBusy === "open-json" ? "…" : operationLabels.bulkEmailExportJsonOpen}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={Boolean(exportBusy)}
+                    onClick={() => void handleBulkExport("excel", "download")}
+                  >
+                    {exportBusy === "download-excel"
+                      ? "…"
+                      : operationLabels.bulkEmailExportExcelDownload}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={Boolean(exportBusy)}
+                    onClick={() => void handleBulkExport("excel", "open")}
+                  >
+                    {exportBusy === "open-excel" ? "…" : operationLabels.bulkEmailExportExcelOpen}
+                  </button>
+                </div>
+              </div>
+              {bulkRecipientsError ? (
+                <Banner variant="error">{bulkRecipientsError}</Banner>
+              ) : null}
+              {bulkRecipientsLoading && bulkRecipients.length === 0 ? (
+                <LoadingState variant="inline" />
+              ) : (
+                <BulkEmailOperationResultsTable
+                  recipients={bulkRecipients}
+                  dataVersion={bulkRecipientsVersion || operationId}
+                />
+              )}
+            </div>
+          </Card>
+        ) : null}
+
         <Card>
           <h3 className="section-title">{operationLabels.runsTitle}</h3>
           {runs.length === 0 ? (
@@ -624,6 +865,20 @@ export function OperationDetailPage({
           )}
         </Card>
       </div>
+
+      {retryConfirmOpen ? (
+        <ConfirmDialog
+          title={operationLabels.bulkEmailRetryFailed}
+          message={operationLabels.bulkEmailRetryConfirm}
+          confirmLabel={operationLabels.bulkEmailRetryFailed}
+          loading={retrying}
+          onConfirm={() => void handleRetryFailed()}
+          onCancel={() => {
+            if (retrying) return;
+            setRetryConfirmOpen(false);
+          }}
+        />
+      ) : null}
     </PageShell>
   );
 }

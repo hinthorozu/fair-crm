@@ -91,16 +91,19 @@ describe("operationWizardTypes", () => {
 
   it("maps only known per-type wizard routes", () => {
     expect(getOperationTypeWizardPath("scraper")).toBe("/operations/new/scraper");
+    expect(getOperationTypeWizardPath("bulk_email")).toBe("/operations/new/bulk-email");
     expect(getOperationTypeWizardPath("email")).toBeNull();
   });
 
   it("enables continue only for types with a wizard route", () => {
     const map = new Map([
       ["scraper", meta("scraper")],
+      ["bulk_email", meta("bulk_email")],
       ["email", meta("email")],
     ]);
     expect(canContinueOperationType("", map)).toBe(false);
     expect(canContinueOperationType("scraper", map)).toBe(true);
+    expect(canContinueOperationType("bulk_email", map)).toBe(true);
     expect(canContinueOperationType("email", map)).toBe(false);
   });
 

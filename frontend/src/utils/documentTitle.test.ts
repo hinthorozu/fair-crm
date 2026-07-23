@@ -36,6 +36,9 @@ describe("resolvePageTitle", () => {
     expect(resolvePageTitle({ route: "/operations/new/scraper" })).toBe(
       operationLabels.scraperWizardTitle,
     );
+    expect(resolvePageTitle({ route: "/operations/new/bulk-email" })).toBe(
+      operationLabels.bulkEmailWizardTitle,
+    );
     expect(resolvePageTitle({ route: "/operations/:id" })).toBe(operationLabels.detailTitle);
     expect(operationLabels.typeSelectTitle).toBe("Otomasyon Türü");
     expect(operationLabels.detailTitle).toBe("Otomasyon Detayı");

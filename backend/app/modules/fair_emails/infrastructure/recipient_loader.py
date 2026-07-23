@@ -10,6 +10,7 @@ from app.modules.customers.infrastructure.persistence.communication_models impor
 from app.modules.customers.infrastructure.persistence.models import CustomerModel
 from app.modules.fair_emails.application.recipient_resolution import iter_valid_emails
 from app.modules.fair_emails.domain.value_objects import RawRecipientCandidate, RecipientOptions
+from app.modules.fairs.infrastructure.persistence.models import FairModel
 from app.modules.participations.infrastructure.persistence.models import CustomerFairParticipationModel
 from app.shared.email import is_valid_email_address
 
@@ -23,6 +24,8 @@ class ParticipationContext:
     customer_email_allowed: bool
     hall: str | None
     stand: str | None
+    fair_id: UUID | None = None
+    fair_name: str | None = None
 
 
 @dataclass(frozen=True)
@@ -36,22 +39,54 @@ class ContactContext:
     is_active: bool
 
 
+@dataclass(frozen=True)
+class ParticipationFilters:
+    country: str | None = None
+    city: str | None = None
+    company_name_contains: str | None = None
+
+
 class FairBulkEmailRecipientLoader:
     def __init__(self, session: Session) -> None:
         self._session = session
 
     def load_participations(self, organization_id: UUID, fair_id: UUID) -> list[ParticipationContext]:
-        rows = (
-            self._session.query(CustomerFairParticipationModel, CustomerModel)
+        return self.load_participations_for_fairs(organization_id, [fair_id])
+
+    def load_participations_for_fairs(
+        self,
+        organization_id: UUID,
+        fair_ids: list[UUID],
+        filters: ParticipationFilters | None = None,
+    ) -> list[ParticipationContext]:
+        if not fair_ids:
+            return []
+
+        query = (
+            self._session.query(CustomerFairParticipationModel, CustomerModel, FairModel)
             .join(CustomerModel, CustomerFairParticipationModel.customer_id == CustomerModel.id)
+            .join(FairModel, CustomerFairParticipationModel.fair_id == FairModel.id)
             .filter(
                 CustomerFairParticipationModel.organization_id == organization_id,
-                CustomerFairParticipationModel.fair_id == fair_id,
+                CustomerFairParticipationModel.fair_id.in_(fair_ids),
                 CustomerFairParticipationModel.deleted_at.is_(None),
                 CustomerModel.deleted_at.is_(None),
+                FairModel.deleted_at.is_(None),
             )
-            .all()
         )
+
+        applied = filters or ParticipationFilters()
+        country = (applied.country or "").strip()
+        city = (applied.city or "").strip()
+        company = (applied.company_name_contains or "").strip()
+        if country:
+            query = query.filter(CustomerModel.country.ilike(f"%{country}%"))
+        if city:
+            query = query.filter(CustomerModel.city.ilike(f"%{city}%"))
+        if company:
+            query = query.filter(CustomerModel.display_name.ilike(f"%{company}%"))
+
+        rows = query.all()
         return [
             ParticipationContext(
                 participation_id=participation.id,
@@ -61,8 +96,10 @@ class FairBulkEmailRecipientLoader:
                 customer_email_allowed=customer.email_allowed,
                 hall=participation.hall,
                 stand=participation.stand,
+                fair_id=fair.id,
+                fair_name=fair.name,
             )
-            for participation, customer in rows
+            for participation, customer, fair in rows
         ]
 
     def load_customer_email_candidates(
@@ -74,8 +111,13 @@ class FairBulkEmailRecipientLoader:
         if not options.include_customer_emails or not participations:
             return []
 
-        customer_ids = [item.customer_id for item in participations]
-        participation_by_customer = {item.customer_id: item for item in participations}
+        # Preserve multi-fair participation rows so each fair can appear in preview;
+        # email dedupe still collapses identical addresses when enabled.
+        participation_by_customer: dict[UUID, list[ParticipationContext]] = {}
+        for item in participations:
+            participation_by_customer.setdefault(item.customer_id, []).append(item)
+
+        customer_ids = list(participation_by_customer.keys())
         email_rows = (
             self._session.query(CustomerEmailModel)
             .filter(CustomerEmailModel.customer_id.in_(customer_ids))
@@ -85,23 +127,25 @@ class FairBulkEmailRecipientLoader:
 
         candidates: list[RawRecipientCandidate] = []
         for email_row in email_rows:
-            participation = participation_by_customer[email_row.customer_id]
-            email = (email_row.email or "").strip().lower()
-            candidates.append(
-                RawRecipientCandidate(
-                    recipient_name=participation.company_name,
-                    company_name=participation.company_name,
-                    email=email,
-                    source="customer",
-                    customer_id=participation.customer_id,
-                    contact_id=None,
-                    participation_id=participation.participation_id,
-                    is_active=participation.customer_active,
-                    email_valid=is_valid_email_address(email),
-                    customer_email_allowed=participation.customer_email_allowed,
-                    contact_email_allowed=True,
+            for participation in participation_by_customer[email_row.customer_id]:
+                email = (email_row.email or "").strip().lower()
+                candidates.append(
+                    RawRecipientCandidate(
+                        recipient_name=participation.company_name,
+                        company_name=participation.company_name,
+                        email=email,
+                        source="customer",
+                        customer_id=participation.customer_id,
+                        contact_id=None,
+                        participation_id=participation.participation_id,
+                        is_active=participation.customer_active,
+                        email_valid=is_valid_email_address(email),
+                        customer_email_allowed=participation.customer_email_allowed,
+                        contact_email_allowed=True,
+                        fair_id=participation.fair_id,
+                        fair_name=participation.fair_name,
+                    )
                 )
-            )
         return candidates
 
     def load_contact_email_candidates(
@@ -113,8 +157,11 @@ class FairBulkEmailRecipientLoader:
         if not options.include_contact_emails or not participations:
             return []
 
-        customer_ids = [item.customer_id for item in participations]
-        participation_by_customer = {item.customer_id: item for item in participations}
+        participation_by_customer: dict[UUID, list[ParticipationContext]] = {}
+        for item in participations:
+            participation_by_customer.setdefault(item.customer_id, []).append(item)
+
+        customer_ids = list(participation_by_customer.keys())
         contact_rows = (
             self._session.query(ContactModel)
             .filter(
@@ -127,48 +174,53 @@ class FairBulkEmailRecipientLoader:
 
         candidates: list[RawRecipientCandidate] = []
         for contact in contact_rows:
-            participation = participation_by_customer[contact.customer_id]
-            recipient_name = f"{contact.first_name} {contact.last_name}".strip()
-            for email in iter_valid_emails(contact.email):
-                candidates.append(
-                    RawRecipientCandidate(
-                        recipient_name=recipient_name or None,
-                        company_name=participation.company_name,
-                        email=email,
-                        source="contact",
-                        customer_id=participation.customer_id,
-                        contact_id=contact.id,
-                        participation_id=participation.participation_id,
-                        is_active=participation.customer_active and contact.is_active,
-                        email_valid=True,
-                        customer_email_allowed=participation.customer_email_allowed,
-                        contact_email_allowed=contact.email_allowed,
+            for participation in participation_by_customer[contact.customer_id]:
+                recipient_name = f"{contact.first_name} {contact.last_name}".strip()
+                for email in iter_valid_emails(contact.email):
+                    candidates.append(
+                        RawRecipientCandidate(
+                            recipient_name=recipient_name or None,
+                            company_name=participation.company_name,
+                            email=email,
+                            source="contact",
+                            customer_id=participation.customer_id,
+                            contact_id=contact.id,
+                            participation_id=participation.participation_id,
+                            is_active=participation.customer_active and contact.is_active,
+                            email_valid=True,
+                            customer_email_allowed=participation.customer_email_allowed,
+                            contact_email_allowed=contact.email_allowed,
+                            fair_id=participation.fair_id,
+                            fair_name=participation.fair_name,
+                        )
                     )
-                )
-            if contact.email and not iter_valid_emails(contact.email):
-                candidates.append(
-                    RawRecipientCandidate(
-                        recipient_name=recipient_name or None,
-                        company_name=participation.company_name,
-                        email=contact.email.strip(),
-                        source="contact",
-                        customer_id=participation.customer_id,
-                        contact_id=contact.id,
-                        participation_id=participation.participation_id,
-                        is_active=participation.customer_active and contact.is_active,
-                        email_valid=False,
-                        customer_email_allowed=participation.customer_email_allowed,
-                        contact_email_allowed=contact.email_allowed,
+                if contact.email and not iter_valid_emails(contact.email):
+                    candidates.append(
+                        RawRecipientCandidate(
+                            recipient_name=recipient_name or None,
+                            company_name=participation.company_name,
+                            email=contact.email.strip(),
+                            source="contact",
+                            customer_id=participation.customer_id,
+                            contact_id=contact.id,
+                            participation_id=participation.participation_id,
+                            is_active=participation.customer_active and contact.is_active,
+                            email_valid=False,
+                            customer_email_allowed=participation.customer_email_allowed,
+                            contact_email_allowed=contact.email_allowed,
+                            fair_id=participation.fair_id,
+                            fair_name=participation.fair_name,
+                        )
                     )
-                )
         return candidates
 
     def load_participation_by_id(
         self, organization_id: UUID, participation_id: UUID
     ) -> ParticipationContext | None:
         row = (
-            self._session.query(CustomerFairParticipationModel, CustomerModel)
+            self._session.query(CustomerFairParticipationModel, CustomerModel, FairModel)
             .join(CustomerModel, CustomerFairParticipationModel.customer_id == CustomerModel.id)
+            .join(FairModel, CustomerFairParticipationModel.fair_id == FairModel.id)
             .filter(
                 CustomerFairParticipationModel.organization_id == organization_id,
                 CustomerFairParticipationModel.id == participation_id,
@@ -179,7 +231,7 @@ class FairBulkEmailRecipientLoader:
         )
         if row is None:
             return None
-        participation, customer = row
+        participation, customer, fair = row
         return ParticipationContext(
             participation_id=participation.id,
             customer_id=customer.id,
@@ -188,6 +240,8 @@ class FairBulkEmailRecipientLoader:
             customer_email_allowed=customer.email_allowed,
             hall=participation.hall,
             stand=participation.stand,
+            fair_id=fair.id,
+            fair_name=fair.name,
         )
 
     def load_contact(self, organization_id: UUID, contact_id: UUID) -> ContactContext | None:

@@ -175,3 +175,131 @@ class UpdateOperationTypeCapabilitiesRequest(BaseModel):
 
 class ErrorResponse(BaseModel):
     detail: str
+
+
+class BulkEmailOperationRecipientOptionsRequest(BaseModel):
+    include_customer_emails: bool = True
+    include_contact_emails: bool = True
+    skip_no_email: bool = True
+    exclude_inactive: bool = True
+    dedupe_emails: bool = True
+
+
+class BulkEmailOperationPreviewPayload(BaseModel):
+    source_type: Literal["manual", "fair_list"]
+    template_id: UUID
+    smtp_account_id: UUID
+    subject_override: str | None = None
+    manual_emails: str | None = None
+    fair_ids: list[UUID] = Field(default_factory=list)
+    country_filter: str | None = None
+    city_filter: str | None = None
+    company_name_contains: str | None = None
+    recipient_options: BulkEmailOperationRecipientOptionsRequest = Field(
+        default_factory=BulkEmailOperationRecipientOptionsRequest
+    )
+
+
+class BulkEmailOperationPreviewRecipientResponse(BaseModel):
+    recipient_key: str
+    email: str
+    source: str
+    status: str
+    skip_reason: str | None = None
+    recipient_name: str | None = None
+    company_name: str | None = None
+    fair_id: UUID | None = None
+    fair_name: str | None = None
+    customer_id: UUID | None = None
+    contact_id: UUID | None = None
+    participation_id: UUID | None = None
+
+
+class BulkEmailOperationRecipientSummaryResponse(BaseModel):
+    source_type: Literal["manual", "fair_list"]
+    total_found: int | None = None
+    valid_email_count: int
+    duplicate_count: int | None = None
+    invalid_count: int | None = None
+    deduped_recipient_count: int
+    skipped_count: int
+    selected_fair_count: int | None = None
+    selected_fair_names: list[str] | None = None
+    total_customers: int | None = None
+    total_contacts: int | None = None
+    recipients: list[BulkEmailOperationPreviewRecipientResponse]
+
+
+class BulkEmailOperationMailPreviewResponse(BaseModel):
+    template_id: UUID
+    template_name: str
+    smtp_account_id: UUID
+    smtp_account_name: str
+    rendered_subject: str
+    body_html: str | None = None
+    body_text: str | None = None
+
+
+class BulkEmailOperationPreviewResponse(BaseModel):
+    recipients: BulkEmailOperationRecipientSummaryResponse
+    mail: BulkEmailOperationMailPreviewResponse
+
+
+class BulkEmailOperationSendPayload(BaseModel):
+    source_type: Literal["manual", "fair_list"]
+    template_id: UUID
+    smtp_account_id: UUID
+    subject: str
+    title: str | None = None
+    manual_emails: str | None = None
+    fair_ids: list[UUID] = Field(default_factory=list)
+    country_filter: str | None = None
+    city_filter: str | None = None
+    company_name_contains: str | None = None
+    recipient_options: BulkEmailOperationRecipientOptionsRequest = Field(
+        default_factory=BulkEmailOperationRecipientOptionsRequest
+    )
+    client_token: str | None = None
+
+
+class BulkEmailOperationSendResponse(BaseModel):
+    operation_id: UUID
+    batch_id: UUID | None = None
+    status: str
+    total_count: int = 0
+    message: str = ""
+
+
+class BulkEmailOperationRecipientRowResponse(BaseModel):
+    id: UUID
+    email: str
+    company_name: str
+    recipient_name: str | None = None
+    source: str
+    status: str
+    error_message: str | None = None
+    send_attempt: int = 1
+    sent_at: datetime | None = None
+    customer_id: UUID | None = None
+    contact_id: UUID | None = None
+    participation_id: UUID | None = None
+    fair_name: str | None = None
+
+
+class BulkEmailOperationRecipientsResponse(BaseModel):
+    batch_id: UUID
+    items: list[BulkEmailOperationRecipientRowResponse]
+
+
+class BulkEmailOperationLogLineResponse(BaseModel):
+    at: datetime | None = None
+    level: str = "info"
+    message: str
+    outbox_id: UUID | None = None
+    email: str | None = None
+    status: str | None = None
+
+
+class BulkEmailOperationLogsResponse(BaseModel):
+    batch_id: UUID
+    items: list[BulkEmailOperationLogLineResponse]

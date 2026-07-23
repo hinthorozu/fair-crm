@@ -12,7 +12,7 @@ from app.modules.fair_emails.infrastructure.persistence.models import FairEmailB
 class FairEmailBatchRecord:
     id: UUID
     organization_id: UUID
-    fair_id: UUID
+    fair_id: UUID | None
     template_id: UUID
     smtp_account_id: UUID | None
     subject_override: str | None
@@ -21,6 +21,7 @@ class FairEmailBatchRecord:
     sent_count: int
     failed_count: int
     skipped_count: int
+    operation_id: UUID | None
 
 
 @dataclass(frozen=True)
@@ -34,7 +35,7 @@ class FairEmailBatchListRecord(FairEmailBatchRecord):
 class FairEmailOutboxItemRecord:
     id: UUID
     batch_id: UUID
-    customer_id: UUID
+    customer_id: UUID | None
     contact_id: UUID | None
     recipient_name: str | None
     company_name: str
@@ -45,6 +46,9 @@ class FairEmailOutboxItemRecord:
     sent_at: datetime | None
     created_at: datetime
     updated_at: datetime
+    send_attempt: int = 1
+    participation_id: UUID | None = None
+    fair_name: str | None = None
 
 
 class SqlAlchemyFairEmailBatchRepository:
@@ -55,33 +59,40 @@ class SqlAlchemyFairEmailBatchRepository:
         self,
         *,
         organization_id: UUID,
-        fair_id: UUID,
+        fair_id: UUID | None,
         template_id: UUID,
         smtp_account_id: UUID | None,
         subject_override: str | None,
         recipient_options: RecipientOptions,
         created_by_user_id: UUID,
         recipients: list[ResolvedRecipient],
+        operation_id: UUID | None = None,
+        recipient_options_extra: dict | None = None,
     ) -> FairEmailBatchRecord:
         now = datetime.now(timezone.utc)
         batch_id = uuid4()
         will_send = [item for item in recipients if item.status == "will_send"]
         skipped = [item for item in recipients if item.status != "will_send"]
 
+        options_json: dict = {
+            "include_customer_emails": recipient_options.include_customer_emails,
+            "include_contact_emails": recipient_options.include_contact_emails,
+            "skip_no_email": recipient_options.skip_no_email,
+            "exclude_inactive": recipient_options.exclude_inactive,
+            "dedupe_emails": recipient_options.dedupe_emails,
+        }
+        if recipient_options_extra:
+            options_json.update(recipient_options_extra)
+
         batch = FairEmailBatchModel(
             id=batch_id,
             organization_id=organization_id,
             fair_id=fair_id,
+            operation_id=operation_id,
             template_id=template_id,
             smtp_account_id=smtp_account_id,
             subject_override=subject_override,
-            recipient_options_json={
-                "include_customer_emails": recipient_options.include_customer_emails,
-                "include_contact_emails": recipient_options.include_contact_emails,
-                "skip_no_email": recipient_options.skip_no_email,
-                "exclude_inactive": recipient_options.exclude_inactive,
-                "dedupe_emails": recipient_options.dedupe_emails,
-            },
+            recipient_options_json=options_json,
             status="queued",
             total_count=len(will_send),
             sent_count=0,
@@ -94,6 +105,7 @@ class SqlAlchemyFairEmailBatchRepository:
         self._session.add(batch)
 
         for item in will_send:
+            company_name = (item.company_name or "").strip() or item.email
             self._session.add(
                 FairEmailOutboxModel(
                     id=uuid4(),
@@ -103,11 +115,13 @@ class SqlAlchemyFairEmailBatchRepository:
                     contact_id=item.contact_id,
                     participation_id=item.participation_id,
                     recipient_name=item.recipient_name,
-                    company_name=item.company_name,
+                    company_name=company_name,
                     email=item.email,
                     source=item.source,
+                    fair_name=item.fair_name,
                     status="pending",
                     skip_reason=None,
+                    send_attempt=1,
                     created_at=now,
                     updated_at=now,
                 )
@@ -124,6 +138,22 @@ class SqlAlchemyFairEmailBatchRepository:
                 FairEmailBatchModel.id == batch_id,
             )
             .one_or_none()
+        )
+        return self._to_record(model) if model else None
+
+    def get_batch_by_operation_id(
+        self,
+        organization_id: UUID,
+        operation_id: UUID,
+    ) -> FairEmailBatchRecord | None:
+        model = (
+            self._session.query(FairEmailBatchModel)
+            .filter(
+                FairEmailBatchModel.organization_id == organization_id,
+                FairEmailBatchModel.operation_id == operation_id,
+            )
+            .order_by(FairEmailBatchModel.created_at.desc())
+            .first()
         )
         return self._to_record(model) if model else None
 
@@ -179,6 +209,17 @@ class SqlAlchemyFairEmailBatchRepository:
             .all()
         )
 
+    def list_failed_outbox(self, batch_id: UUID) -> list[FairEmailOutboxModel]:
+        return (
+            self._session.query(FairEmailOutboxModel)
+            .filter(
+                FairEmailOutboxModel.batch_id == batch_id,
+                FairEmailOutboxModel.status == "failed",
+            )
+            .order_by(FairEmailOutboxModel.created_at.asc())
+            .all()
+        )
+
     def get_outbox_by_mail_send_operation_id(
         self,
         organization_id: UUID,
@@ -196,6 +237,9 @@ class SqlAlchemyFairEmailBatchRepository:
     def prepare_outbox_for_retry(self, outbox_id: UUID) -> None:
         now = datetime.now(timezone.utc)
         model = self._session.query(FairEmailOutboxModel).filter(FairEmailOutboxModel.id == outbox_id).one()
+        if model.status != "failed":
+            raise ValueError("Only failed outbox items can be prepared for retry")
+        model.send_attempt = int(model.send_attempt or 1) + 1
         model.status = "pending"
         model.error_message = None
         model.sent_at = None
@@ -262,6 +306,31 @@ class SqlAlchemyFairEmailBatchRepository:
         model.updated_at = now
         model.completed_at = now
 
+    def recount_batch_from_outbox(self, batch_id: UUID) -> tuple[int, int, str]:
+        """Return (sent_count, failed_count, status) based on current outbox rows."""
+        models = (
+            self._session.query(FairEmailOutboxModel)
+            .filter(FairEmailOutboxModel.batch_id == batch_id)
+            .all()
+        )
+        sent_count = sum(1 for item in models if item.status == "sent")
+        failed_count = sum(1 for item in models if item.status == "failed")
+        pending = sum(1 for item in models if item.status in ("pending", "sending"))
+        if pending > 0:
+            status = "processing"
+        elif failed_count == 0:
+            status = "completed"
+        else:
+            # Match historical process_batch semantics: any failures → completed_with_errors
+            # (including all-failed). Explicit batch abort paths still set status="failed".
+            status = "completed_with_errors"
+        return sent_count, failed_count, status
+
+    def link_operation(self, batch_id: UUID, operation_id: UUID) -> None:
+        model = self._session.query(FairEmailBatchModel).filter(FairEmailBatchModel.id == batch_id).one()
+        model.operation_id = operation_id
+        model.updated_at = datetime.now(timezone.utc)
+
     @staticmethod
     def _to_record(model: FairEmailBatchModel) -> FairEmailBatchRecord:
         return FairEmailBatchRecord(
@@ -276,6 +345,7 @@ class SqlAlchemyFairEmailBatchRepository:
             sent_count=model.sent_count,
             failed_count=model.failed_count,
             skipped_count=model.skipped_count,
+            operation_id=model.operation_id,
         )
 
     @staticmethod
@@ -292,6 +362,7 @@ class SqlAlchemyFairEmailBatchRepository:
             sent_count=model.sent_count,
             failed_count=model.failed_count,
             skipped_count=model.skipped_count,
+            operation_id=model.operation_id,
             created_at=model.created_at,
             completed_at=model.completed_at,
             created_by_user_id=model.created_by_user_id,
@@ -313,4 +384,7 @@ class SqlAlchemyFairEmailBatchRepository:
             sent_at=model.sent_at,
             created_at=model.created_at,
             updated_at=model.updated_at,
+            send_attempt=int(model.send_attempt or 1),
+            participation_id=model.participation_id,
+            fair_name=model.fair_name,
         )

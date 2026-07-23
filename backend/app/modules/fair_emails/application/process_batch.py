@@ -99,13 +99,13 @@ class ProcessFairEmailBatchUseCase:
             return
 
         account, account_error = self._resolve_smtp_account(command.organization_id, batch)
-        fair_name = self._load_fair_name(command.organization_id, batch.fair_id)
+        batch_fair_name = self._load_fair_name(command.organization_id, batch.fair_id)
         if account is None:
             self._fail_entire_batch(
                 command.organization_id,
                 batch,
                 account_error or MISSING_SMTP_MESSAGE,
-                fair_name=fair_name,
+                fair_name=batch_fair_name,
                 template_name=template.name,
                 default_subject=batch.subject_override or template.subject,
             )
@@ -131,6 +131,7 @@ class ProcessFairEmailBatchUseCase:
         failed_count = 0
 
         for outbox in self._batch_repository.list_pending_outbox(batch.id):
+            fair_name = (getattr(outbox, "fair_name", None) or "").strip() or batch_fair_name
             self._batch_repository.mark_outbox_sending(outbox.id)
             self._mail_operation_sync.sync_outbox_sending(command.organization_id, outbox)
             self._session.commit()
@@ -265,7 +266,7 @@ class ProcessFairEmailBatchUseCase:
                 outbox.email,
             )
 
-        status = "completed" if failed_count == 0 else "completed_with_errors"
+        sent_count, failed_count, status = self._batch_repository.recount_batch_from_outbox(batch.id)
         self._batch_repository.update_batch_counts(
             batch.id,
             status=status,
@@ -273,6 +274,7 @@ class ProcessFairEmailBatchUseCase:
             failed_count=failed_count,
         )
         self._session.commit()
+        self._sync_linked_operation(command.organization_id, batch.id)
         logger.info(
             "fair_email_batch_completed batch_id=%s status=%s sent_count=%s failed_count=%s",
             batch.id,
@@ -350,6 +352,7 @@ class ProcessFairEmailBatchUseCase:
                 subject=default_subject,
                 error_message=message,
             )
+        self._sync_linked_operation(organization_id, batch.id)
 
     def _fail_unprocessed_batch(self, organization_id: UUID, batch_id: UUID, message: str) -> None:
         batch = self._batch_repository.get_batch(organization_id, batch_id)
@@ -372,14 +375,16 @@ class ProcessFairEmailBatchUseCase:
                 error_code="batch_failure",
                 error_message=message,
             )
-        sent_count = batch.sent_count
-        failed_count = max(batch.failed_count, len(pending))
-        status = "failed" if sent_count == 0 else "completed_with_errors"
+        sent_count, failed_count, status = self._batch_repository.recount_batch_from_outbox(batch_id)
+        if sent_count == 0:
+            status = "failed"
+        elif status == "processing":
+            status = "completed_with_errors"
         self._batch_repository.update_batch_counts(
             batch_id,
             status=status,
             sent_count=sent_count,
-            failed_count=failed_count,
+            failed_count=max(failed_count, len(pending)),
         )
         fair_name = self._load_fair_name(organization_id, batch.fair_id)
         for outbox in pending:
@@ -392,6 +397,7 @@ class ProcessFairEmailBatchUseCase:
                 subject=default_subject,
                 error_message=message,
             )
+        self._sync_linked_operation(organization_id, batch_id)
 
     def _record_terminal_outbox_activity(
         self,
@@ -435,7 +441,9 @@ class ProcessFairEmailBatchUseCase:
                 outbox_id,
             )
 
-    def _load_fair_name(self, organization_id: UUID, fair_id: UUID) -> str:
+    def _load_fair_name(self, organization_id: UUID, fair_id: UUID | None) -> str:
+        if fair_id is None:
+            return ""
         from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
 
         fair = SqlAlchemyFairRepository(self._session).get_by_id(organization_id, fair_id)
@@ -454,23 +462,47 @@ class ProcessFairEmailBatchUseCase:
 
         hall = ""
         stand = ""
-        participation = self._recipient_loader.load_participation_by_id(
-            organization_id,
-            outbox.participation_id,
-        )
-        if participation is not None:
-            hall = participation.hall or ""
-            stand = participation.stand or ""
+        if outbox.participation_id is not None:
+            participation = self._recipient_loader.load_participation_by_id(
+                organization_id,
+                outbox.participation_id,
+            )
+            if participation is not None:
+                hall = participation.hall or ""
+                stand = participation.stand or ""
 
         return build_render_variables(
             fair_name=fair_name,
-            customer_name=outbox.company_name,
+            customer_name=outbox.company_name or "",
             contact_first_name=contact_first_name,
             contact_last_name=contact_last_name,
             contact_title=contact_title,
             hall=hall,
             stand=stand,
         )
+
+    def _sync_linked_operation(self, organization_id: UUID, batch_id: UUID) -> None:
+        batch = self._batch_repository.get_batch(organization_id, batch_id)
+        if batch is None or batch.operation_id is None:
+            return
+        try:
+            from app.modules.operations.infrastructure.handlers.bulk_email_operation_sync import (
+                sync_operation_run_from_batch,
+            )
+
+            sync_operation_run_from_batch(
+                self._session,
+                organization_id=organization_id,
+                operation_id=batch.operation_id,
+                batch=batch,
+            )
+            self._session.commit()
+        except Exception:
+            logger.exception(
+                "fair_email_batch_operation_sync_failed batch_id=%s operation_id=%s",
+                batch_id,
+                batch.operation_id,
+            )
 
 
 _batch_session_factory: Callable[[], Session] | None = None

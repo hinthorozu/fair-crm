@@ -2237,7 +2237,8 @@ textarea.form-control-textarea {
   background: rgba(185, 28, 28, 0.08);
 }
 
-.fair-bulk-email-wizard .checkbox-list {
+.fair-bulk-email-wizard .checkbox-list,
+.bulk-email-operation-wizard .checkbox-list {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
@@ -2245,7 +2246,9 @@ textarea.form-control-textarea {
 }
 
 .fair-bulk-email-wizard .checkbox-list .checkbox-field,
-.fair-bulk-email-wizard .checkbox-row {
+.fair-bulk-email-wizard .checkbox-row,
+.bulk-email-operation-wizard .checkbox-list .checkbox-field,
+.bulk-email-operation-wizard .checkbox-row {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
@@ -6190,7 +6193,8 @@ textarea.form-control-textarea {
   white-space: nowrap;
 }
 
-.manual-task-mail-recipient-list {
+.manual-task-mail-recipient-list,
+.bulk-email-operation-wizard .selected-entity-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -6199,7 +6203,8 @@ textarea.form-control-textarea {
   gap: 0.35rem;
 }
 
-.manual-task-mail-recipient-item {
+.manual-task-mail-recipient-item,
+.bulk-email-operation-wizard .selected-entity-item {
   display: flex;
   align-items: center;
   justify-content: space-between;

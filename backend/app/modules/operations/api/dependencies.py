@@ -32,6 +32,9 @@ from app.modules.operations.application.update_operation_type_capabilities impor
 )
 from app.modules.operations.domain.type_registry import default_operation_type_registry
 from app.modules.operations.domain.handler_registry import InMemoryHandlerRegistry
+from app.modules.operations.infrastructure.handlers.bulk_email_handler import (
+    BulkEmailBatchJobCommand,
+)
 from app.modules.operations.infrastructure.handlers.registry import (
     build_handler_registry,
     default_handler_registry,
@@ -81,8 +84,27 @@ class ScraperJobBuffer:
         return commands
 
 
+class BulkEmailJobBuffer:
+    """Request-scoped collector for bulk-email batch background jobs."""
+
+    def __init__(self) -> None:
+        self._commands: list[BulkEmailBatchJobCommand] = []
+
+    def __call__(self, command: BulkEmailBatchJobCommand) -> None:
+        self._commands.append(command)
+
+    def drain(self) -> list[BulkEmailBatchJobCommand]:
+        commands = list(self._commands)
+        self._commands.clear()
+        return commands
+
+
 def get_scraper_job_buffer() -> ScraperJobBuffer:
     return ScraperJobBuffer()
+
+
+def get_bulk_email_job_buffer() -> BulkEmailJobBuffer:
+    return BulkEmailJobBuffer()
 
 
 def get_operation_repository(db: Session = Depends(get_db)) -> SqlAlchemyOperationRepository:
@@ -134,28 +156,6 @@ def get_scraper_run_history_service_for_operations(
     return create_run_history_service(db)
 
 
-def get_handler_registry(
-    todo_repository: SqlAlchemyTodoRepository = Depends(get_todo_repository_for_operations),
-    fair_repository: SqlAlchemyFairRepository = Depends(get_fair_repository_for_operations),
-    customer_repository: SqlAlchemyCustomerRepository = Depends(
-        get_customer_repository_for_operations
-    ),
-    adapter_service: ScraperAdapterService = Depends(get_scraper_adapter_service_for_operations),
-    run_history_service: ScraperRunHistoryService = Depends(
-        get_scraper_run_history_service_for_operations
-    ),
-    scraper_job_buffer: ScraperJobBuffer = Depends(get_scraper_job_buffer),
-) -> InMemoryHandlerRegistry:
-    return build_handler_registry(
-        todo_repository=todo_repository,
-        fair_repository=fair_repository,
-        customer_repository=customer_repository,
-        adapter_service=adapter_service,
-        run_history_service=run_history_service,
-        scraper_job_scheduler=scraper_job_buffer,
-    )
-
-
 def get_authorization_adapter() -> AuthorizationPort:
     if dev_bypass_enabled():
         return AllowAllAuthorizationAdapter()
@@ -173,6 +173,66 @@ def get_audit_adapter() -> HttpAuditAdapter | NoOpAuditAdapter:
     if dev_bypass_enabled():
         return NoOpAuditAdapter()
     return HttpAuditAdapter()
+
+
+def get_handler_registry(
+    db: Session = Depends(get_db),
+    todo_repository: SqlAlchemyTodoRepository = Depends(get_todo_repository_for_operations),
+    fair_repository: SqlAlchemyFairRepository = Depends(get_fair_repository_for_operations),
+    customer_repository: SqlAlchemyCustomerRepository = Depends(
+        get_customer_repository_for_operations
+    ),
+    adapter_service: ScraperAdapterService = Depends(get_scraper_adapter_service_for_operations),
+    run_history_service: ScraperRunHistoryService = Depends(
+        get_scraper_run_history_service_for_operations
+    ),
+    scraper_job_buffer: ScraperJobBuffer = Depends(get_scraper_job_buffer),
+    bulk_email_job_buffer: BulkEmailJobBuffer = Depends(get_bulk_email_job_buffer),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
+) -> InMemoryHandlerRegistry:
+    from app.modules.fair_emails.application.fair_bulk_mail_operation_sync import (
+        FairBulkEmailMailOperationSync,
+    )
+    from app.modules.fair_emails.application.recipient_service import FairBulkEmailRecipientService
+    from app.modules.fair_emails.application.send_bulk_email_operation import (
+        SendBulkEmailOperationUseCase,
+    )
+    from app.modules.fair_emails.infrastructure.repositories.fair_email_batch_repository import (
+        SqlAlchemyFairEmailBatchRepository,
+    )
+    from app.modules.mail_templates.infrastructure.repositories.mail_template_repository import (
+        SqlAlchemyMailTemplateRepository,
+    )
+    from app.modules.smtp.infrastructure.repositories.smtp_account_repository import (
+        SqlAlchemySmtpAccountRepository,
+    )
+
+    batch_repository = SqlAlchemyFairEmailBatchRepository(db)
+    mail_sync = FairBulkEmailMailOperationSync(db)
+    send_use_case = SendBulkEmailOperationUseCase(
+        fair_repository,
+        SqlAlchemyMailTemplateRepository(db),
+        SqlAlchemySmtpAccountRepository(db),
+        batch_repository,
+        FairBulkEmailRecipientService(db),
+        mail_sync,
+        authorization,
+        audit,
+    )
+    return build_handler_registry(
+        todo_repository=todo_repository,
+        fair_repository=fair_repository,
+        customer_repository=customer_repository,
+        adapter_service=adapter_service,
+        run_history_service=run_history_service,
+        scraper_job_scheduler=scraper_job_buffer,
+        session=db,
+        send_bulk_email_use_case=send_use_case,
+        fair_email_batch_repository=batch_repository,
+        fair_email_mail_operation_sync=mail_sync,
+        bulk_email_job_scheduler=bulk_email_job_buffer,
+    )
 
 
 def get_auth_context(
@@ -245,6 +305,7 @@ def get_create_operation_use_case(
 
 
 def get_get_operation_use_case(
+    db: Session = Depends(get_db),
     operation_repository: SqlAlchemyOperationRepository = Depends(get_operation_repository),
     run_repository: SqlAlchemyOperationRunRepository = Depends(get_operation_run_repository),
     handler_registry: InMemoryHandlerRegistry = Depends(get_handler_registry),
@@ -257,6 +318,7 @@ def get_get_operation_use_case(
         run_repository,
         handler_registry,
         run_history_service=run_history_service,
+        db=db,
     )
 
 
@@ -316,4 +378,32 @@ def get_wizard_metadata_use_case(
         default_operation_type_registry,
         default_handler_registry,
         operation_type_repository,
+    )
+
+
+def get_preview_bulk_email_operation_use_case(
+    db: Session = Depends(get_db),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+):
+    from app.modules.fair_emails.application.preview_bulk_email_operation import (
+        PreviewBulkEmailOperationUseCase,
+    )
+    from app.modules.fair_emails.application.recipient_service import FairBulkEmailRecipientService
+    from app.modules.fair_emails.infrastructure.recipient_loader import FairBulkEmailRecipientLoader
+    from app.modules.mail_templates.infrastructure.repositories.mail_template_repository import (
+        SqlAlchemyMailTemplateRepository,
+    )
+    from app.modules.mail_templates.infrastructure.template_renderer import JinjaMailTemplateRenderer
+    from app.modules.smtp.infrastructure.repositories.smtp_account_repository import (
+        SqlAlchemySmtpAccountRepository,
+    )
+
+    return PreviewBulkEmailOperationUseCase(
+        SqlAlchemyFairRepository(db),
+        SqlAlchemyMailTemplateRepository(db),
+        SqlAlchemySmtpAccountRepository(db),
+        JinjaMailTemplateRenderer(),
+        FairBulkEmailRecipientService(db),
+        FairBulkEmailRecipientLoader(db),
+        authorization,
     )

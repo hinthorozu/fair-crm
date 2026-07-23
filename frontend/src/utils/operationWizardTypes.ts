@@ -7,11 +7,12 @@ import type {
 /** Human todos belong under Görevler; keep them out of the automation type picker. */
 export const WIZARD_EXCLUDED_TYPES: OperationType[] = ["manual_task"];
 
-const PROMOTED_TYPES: OperationType[] = ["scraper"];
+const PROMOTED_TYPES: OperationType[] = ["scraper", "bulk_email"];
 
 /** Per-type wizard routes — no shared multi-type configuration wizard. */
 export const OPERATION_TYPE_WIZARD_PATHS: Partial<Record<OperationType, string>> = {
   scraper: "/operations/new/scraper",
+  bulk_email: "/operations/new/bulk-email",
 };
 
 export function getOperationTypeWizardPath(type: OperationType): string | null {

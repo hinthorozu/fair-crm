@@ -71,6 +71,8 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
       return uiLabels.navOperations;
     case "/operations/new/scraper":
       return operationLabels.scraperWizardTitle;
+    case "/operations/new/bulk-email":
+      return operationLabels.bulkEmailWizardTitle;
     case "/operations/:id":
       return operationLabels.detailTitle;
     case "/follow-ups":

@@ -53,6 +53,9 @@ class FairBulkEmailOperationRetryHandler:
         self._batch_repository.prepare_outbox_for_retry(outbox_id)
 
     def validate_consent(self, organization_id: UUID, outbox: FairEmailOutboxModel) -> None:
+        if outbox.customer_id is None:
+            # Manual/excel recipients are outside CRM consent tracking.
+            return
         customer = (
             self._session.query(CustomerModel)
             .filter(
@@ -141,7 +144,9 @@ class FairBulkEmailOperationRetryHandler:
     def sync_outbox_failed(self, outbox_id: UUID, *, message: str) -> None:
         self._batch_repository.update_outbox_failed(outbox_id, message=message)
 
-    def _load_fair_name(self, organization_id: UUID, fair_id: UUID) -> str:
+    def _load_fair_name(self, organization_id: UUID, fair_id: UUID | None) -> str:
+        if fair_id is None:
+            return ""
         from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
 
         fair = SqlAlchemyFairRepository(self._session).get_by_id(organization_id, fair_id)
@@ -160,17 +165,18 @@ class FairBulkEmailOperationRetryHandler:
 
         hall = ""
         stand = ""
-        participation = self._recipient_loader.load_participation_by_id(
-            organization_id,
-            outbox.participation_id,
-        )
-        if participation is not None:
-            hall = participation.hall or ""
-            stand = participation.stand or ""
+        if outbox.participation_id is not None:
+            participation = self._recipient_loader.load_participation_by_id(
+                organization_id,
+                outbox.participation_id,
+            )
+            if participation is not None:
+                hall = participation.hall or ""
+                stand = participation.stand or ""
 
         return build_render_variables(
             fair_name=fair_name,
-            customer_name=outbox.company_name,
+            customer_name=outbox.company_name or "",
             contact_first_name=contact_first_name,
             contact_last_name=contact_last_name,
             contact_title=contact_title,

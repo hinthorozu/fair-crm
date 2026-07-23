@@ -26,6 +26,7 @@ import { TodoDetailPage } from "./pages/TodoDetailPage";
 import { TodosPage } from "./pages/TodosPage";
 import { OperationsPage } from "./pages/OperationsPage";
 import { OperationDetailPage } from "./pages/OperationDetailPage";
+import { BulkEmailOperationWizardPage } from "./pages/BulkEmailOperationWizardPage";
 import { ScraperOperationWizardPage } from "./pages/ScraperOperationWizardPage";
 import { CustomersResponsivePilotPage } from "./dev/CustomersResponsivePilotPage";
 import { TableStandardSmokePage } from "./dev/TableStandardSmokePage";
@@ -60,6 +61,7 @@ import { scraperLabels } from "./labels/scraperLabels";
 import { fairLabels } from "./labels/fairLabels";
 import { dashboardLabels } from "./labels/dashboardLabels";
 import { resolveRunDetailPath } from "./utils/enrichmentRunRouting";
+import { getOperationTypeWizardPath } from "./utils/operationWizardTypes";
 import {
   CUSTOMER_CONTACT_ENRICHMENT_ADAPTER_KEY,
   isCustomerContactEnrichmentAdapter,
@@ -80,6 +82,7 @@ type AppRoute =
   | "/todos/:id"
   | "/operations"
   | "/operations/new/scraper"
+  | "/operations/new/bulk-email"
   | "/operations/:id"
   | "/follow-ups"
   | "/activities"
@@ -249,6 +252,9 @@ function parseRoute(location: string): ParsedRoute {
   if (pathname === "/operations" || pathname.startsWith("/operations/")) {
     if (pathname === "/operations/new/scraper" || pathname === "/operations/new/scraper/") {
       return { route: "/operations/new/scraper" };
+    }
+    if (pathname === "/operations/new/bulk-email" || pathname === "/operations/new/bulk-email/") {
+      return { route: "/operations/new/bulk-email" };
     }
     // Legacy: type picker is a modal on /operations (not a standalone page).
     if (
@@ -580,13 +586,13 @@ export function App() {
   };
 
   const goToOperationTypeWizard = (type: OperationType) => {
-    if (type === "scraper") {
-      runGuardedNav(() => {
-        navigate("/operations/new/scraper");
-        setParsed({ route: "/operations/new/scraper" });
-        setSidebarOpen(false);
-      });
-    }
+    const wizardPath = getOperationTypeWizardPath(type);
+    if (!wizardPath) return;
+    runGuardedNav(() => {
+      navigate(wizardPath);
+      setParsed({ route: wizardPath as AppRoute });
+      setSidebarOpen(false);
+    });
   };
 
   const goToAdapters = () => {
@@ -684,6 +690,7 @@ export function App() {
   const isOperationsActive =
     parsed.route === "/operations" ||
     parsed.route === "/operations/new/scraper" ||
+    parsed.route === "/operations/new/bulk-email" ||
     parsed.route === "/operations/:id";
   const isActivitiesActive = parsed.route === "/activities";
   const isDiActive = isDataIntegrationRoute(parsed.route);
@@ -739,6 +746,12 @@ export function App() {
                 { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
                 { label: uiLabels.navOperations, onClick: goToOperations },
                 { label: operationLabels.scraperWizardTitle, current: true },
+              ]
+          : parsed.route === "/operations/new/bulk-email"
+            ? [
+                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
+                { label: uiLabels.navOperations, onClick: goToOperations },
+                { label: operationLabels.bulkEmailWizardTitle, current: true },
               ]
           : parsed.route === "/operations"
             ? [
@@ -1088,6 +1101,12 @@ export function App() {
       )}
       {parsed.route === "/operations/new/scraper" && (
         <ScraperOperationWizardPage
+          onCancel={goToOperations}
+          onCreated={goToOperationDetail}
+        />
+      )}
+      {parsed.route === "/operations/new/bulk-email" && (
+        <BulkEmailOperationWizardPage
           onCancel={goToOperations}
           onCreated={goToOperationDetail}
         />
