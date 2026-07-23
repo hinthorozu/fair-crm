@@ -44,6 +44,21 @@ class SqlAlchemyOperationRunRepository:
         )
         return run_to_entity(model) if model else None
 
+    def get_by_ids(
+        self, organization_id: UUID, run_ids: list[UUID]
+    ) -> dict[UUID, OperationRun]:
+        if not run_ids:
+            return {}
+        models = (
+            self._session.query(OperationRunModel)
+            .filter(
+                OperationRunModel.organization_id == organization_id,
+                OperationRunModel.id.in_(run_ids),
+            )
+            .all()
+        )
+        return {model.id: run_to_entity(model) for model in models}
+
     def update(self, run: OperationRun) -> OperationRun:
         model = (
             self._session.query(OperationRunModel)

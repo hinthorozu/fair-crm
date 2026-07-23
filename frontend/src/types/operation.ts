@@ -9,6 +9,38 @@ export type OperationType =
   | "manual_task"
   | "reminder";
 
+/** DB-backed operation type catalog row (display + capability metadata). */
+export interface OperationTypeCatalogItem {
+  key: string;
+  name: string;
+  is_active: boolean;
+  sort_order: number;
+  supports_pause: boolean;
+  supports_resume: boolean;
+  supports_retry: boolean;
+  supports_schedule: boolean;
+  supports_items: boolean;
+  updated_at: string;
+}
+
+export type OperationTypeCapabilityKey =
+  | "supports_pause"
+  | "supports_resume"
+  | "supports_retry"
+  | "supports_schedule"
+  | "supports_items";
+
+export type UpdateOperationTypeCapabilitiesPayload = Record<
+  OperationTypeCapabilityKey,
+  boolean
+> & {
+  is_active: boolean;
+};
+
+export interface OperationTypeCatalogListResponse {
+  items: OperationTypeCatalogItem[];
+}
+
 export type OperationStatus =
   | "draft"
   | "ready"
@@ -41,8 +73,6 @@ export interface HandlerCapabilities {
   supports_retry: boolean;
   supports_schedule: boolean;
   supports_items: boolean;
-  requires_worker: boolean;
-  execution_ready: boolean;
 }
 
 export interface OperationRun {
@@ -114,7 +144,6 @@ export interface OperationTypeMetadata {
   run_settings_schema: Record<string, unknown>;
   available_in_wizard: boolean;
   handler_registered: boolean;
-  execution_ready: boolean;
 }
 
 export interface WizardMetadata {

@@ -11,6 +11,7 @@ import {
   TextareaInput,
   TextInput,
 } from "../ui/form";
+import { useReportFormDirty } from "../../hooks/useModalForm";
 import {
   isCreatableTodoCategory,
   todoCategoryLabels,
@@ -119,6 +120,9 @@ export function TodoForm({ initial, onSubmit, onSavingChange }: TodoFormProps) {
   const [values, setValues] = React.useState<TodoFormValues>(initial ?? defaultTodoFormValues());
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const baseline = React.useMemo(() => initial ?? defaultTodoFormValues(), [initial]);
+
+  useReportFormDirty(values, baseline);
 
   React.useEffect(() => {
     setValues(initial ?? defaultTodoFormValues());

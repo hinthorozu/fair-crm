@@ -50,6 +50,12 @@ _MANUAL_TASK_STEPS = (
     WizardStepDefinition(id="confirm", required=True, order=7),
 )
 
+_SCRAPER_STEPS = (
+    WizardStepDefinition(id="fair", required=True, order=1),
+    WizardStepDefinition(id="scraper_info", required=True, order=2),
+    WizardStepDefinition(id="summary", required=True, order=3),
+)
+
 
 def _placeholder_capabilities(*, supports_schedule: bool = False) -> HandlerCapabilities:
     return HandlerCapabilities(
@@ -58,8 +64,6 @@ def _placeholder_capabilities(*, supports_schedule: bool = False) -> HandlerCapa
         supports_retry=False,
         supports_schedule=supports_schedule,
         supports_items=True,
-        requires_worker=True,
-        execution_ready=False,
     )
 
 
@@ -68,16 +72,28 @@ OPERATION_TYPE_DEFINITIONS: dict[str, OperationTypeDefinition] = {
         type=OperationType.SCRAPER,
         label_key="scraper",
         description_key="scraper_description",
-        supported_sources=(SourceKind.FAIR, SourceKind.NONE),
+        supported_sources=(SourceKind.FAIR,),
         default_source=SourceKind.FAIR,
-        capabilities=_placeholder_capabilities(),
-        wizard_steps=_DEFAULT_WIZARD_STEPS,
+        capabilities=HandlerCapabilities(
+            supports_pause=False,
+            supports_resume=False,
+            supports_retry=True,
+            supports_schedule=False,
+            supports_items=False,
+        ),
+        wizard_steps=_SCRAPER_STEPS,
         type_config_schema={
-            "fields": ["adapter_key", "source_url", "scraper_config"],
+            "fields": [
+                "adapter_key",
+                "requested_fields",
+                "source_url",
+                "scraper_config",
+                "max_pages",
+                "use_http",
+                "scrape_detail",
+            ],
         },
-        run_settings_schema={
-            "fields": ["retry", "rate_limit", "concurrency", "priority"],
-        },
+        run_settings_schema={"fields": []},
         available_in_wizard=True,
     ),
     OperationType.EMAIL: OperationTypeDefinition(
@@ -201,8 +217,6 @@ OPERATION_TYPE_DEFINITIONS: dict[str, OperationTypeDefinition] = {
             supports_retry=False,
             supports_schedule=True,
             supports_items=False,
-            requires_worker=False,
-            execution_ready=True,
         ),
         wizard_steps=_MANUAL_TASK_STEPS,
         type_config_schema={

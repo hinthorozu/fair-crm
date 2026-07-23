@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, Uuid
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON
@@ -10,6 +10,23 @@ from sqlalchemy.types import JSON
 from app.db.base import Base
 
 JsonType = JSON().with_variant(JSONB(), "postgresql")
+
+
+class OperationTypeModel(Base):
+    __tablename__ = "operation_types"
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
+    key: Mapped[str] = mapped_column(String(50), nullable=False, unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, index=True)
+    supports_pause: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    supports_resume: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    supports_retry: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    supports_schedule: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    supports_items: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 class OperationModel(Base):

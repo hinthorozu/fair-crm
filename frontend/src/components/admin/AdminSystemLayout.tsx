@@ -58,6 +58,14 @@ export function AdminSystemLayout({
     },
   ];
 
+  const operationCapabilityItems = [
+    {
+      id: "operation-capabilities",
+      label: adminLabels.navOperationCapabilities,
+      path: "/admin/operation-capabilities",
+    },
+  ];
+
   const renderSectionTitle = (title: string, first = false) =>
     !subnavCollapsed ? (
       <h2
@@ -137,6 +145,22 @@ export function AdminSystemLayout({
         {renderSectionTitle(adminLabels.navDataOperations)}
         <nav className="admin-subnav-links" aria-label={adminLabels.navDataOperations}>
           {dataOperationItems.map((item) => (
+            <NavLink
+              key={item.id}
+              variant="admin"
+              href={item.path}
+              label={item.label}
+              icon={<AdminNavIcon id={item.id} />}
+              active={activeSection === item.id}
+              collapsed={subnavCollapsed}
+              onClick={(e) => onNavigate(item.path, e)}
+            />
+          ))}
+        </nav>
+
+        {renderSectionTitle(adminLabels.navOperationCapabilities)}
+        <nav className="admin-subnav-links" aria-label={adminLabels.navOperationCapabilities}>
+          {operationCapabilityItems.map((item) => (
             <NavLink
               key={item.id}
               variant="admin"

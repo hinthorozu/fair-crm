@@ -7,6 +7,9 @@ import type {
   Operation,
   OperationDetail,
   OperationRun,
+  OperationTypeCatalogItem,
+  OperationTypeCatalogListResponse,
+  UpdateOperationTypeCapabilitiesPayload,
   WizardMetadata,
 } from "../types/operation";
 
@@ -15,8 +18,36 @@ export interface ListOperationsParams extends Partial<ServerTableFetchParams> {
   status?: string;
 }
 
+export interface ListOperationTypesParams {
+  activeOnly?: boolean;
+}
+
 export async function getOperationWizardMetadata(): Promise<WizardMetadata> {
   return apiRequest<WizardMetadata>("/api/v1/operations/wizard-metadata");
+}
+
+export async function listOperationTypes(
+  params: ListOperationTypesParams = {},
+): Promise<OperationTypeCatalogListResponse> {
+  const query = new URLSearchParams();
+  if (params.activeOnly) {
+    query.set("active_only", "true");
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return apiRequest<OperationTypeCatalogListResponse>(`/api/v1/operations/types${suffix}`);
+}
+
+export function updateOperationTypeCapabilities(
+  typeKey: string,
+  payload: UpdateOperationTypeCapabilitiesPayload,
+): Promise<OperationTypeCatalogItem> {
+  return apiRequest<OperationTypeCatalogItem>(
+    `/api/v1/operations/types/${encodeURIComponent(typeKey)}/capabilities`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export async function listOperations(

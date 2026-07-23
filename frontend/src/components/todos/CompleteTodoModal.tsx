@@ -1,6 +1,7 @@
 import React from "react";
 import { ApiError } from "../../api/client";
 import { completeTodo } from "../../api/todos";
+import { useModalFormCancel, useReportFormDirty } from "../../hooks/useModalForm";
 import { todoLabels } from "../../labels/todoLabels";
 import type { Todo } from "../../types/todo";
 import { Button } from "../ui/Button";
@@ -10,8 +11,10 @@ import {
   FormModal,
   TextareaInput,
 } from "../ui/form";
+import { FormDirtyHost } from "../ui/form/FormDirty";
 
 const COMPLETE_FORM_ID = "todo-complete-form";
+const EMPTY_NOTE = { note: "" };
 
 interface CompleteTodoModalProps {
   todo: Todo;
@@ -20,9 +23,21 @@ interface CompleteTodoModalProps {
 }
 
 export function CompleteTodoModal({ todo, onClose, onCompleted }: CompleteTodoModalProps) {
+  return (
+    <FormDirtyHost onClose={onClose} confirmClassName="modal-backdrop-nested">
+      <CompleteTodoModalInner todo={todo} onClose={onClose} onCompleted={onCompleted} />
+    </FormDirtyHost>
+  );
+}
+
+function CompleteTodoModalInner({ todo, onClose, onCompleted }: CompleteTodoModalProps) {
   const [note, setNote] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const requestClose = useModalFormCancel(onClose);
+  const formValues = React.useMemo(() => ({ note }), [note]);
+
+  useReportFormDirty(formValues, EMPTY_NOTE);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -47,7 +62,7 @@ export function CompleteTodoModal({ todo, onClose, onCompleted }: CompleteTodoMo
       formWidth="standard"
       footer={
         <>
-          <Button type="button" variant="secondary" onClick={onClose} disabled={saving}>
+          <Button type="button" variant="secondary" onClick={requestClose} disabled={saving}>
             {todoLabels.cancel}
           </Button>
           <Button type="submit" form={COMPLETE_FORM_ID} variant="primary" loading={saving}>

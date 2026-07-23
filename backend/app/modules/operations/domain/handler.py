@@ -54,6 +54,7 @@ class OperationHandler(Protocol):
         source_config: dict[str, Any],
         type_config: dict[str, Any],
         run_settings: dict[str, Any],
+        organization_id: UUID | None = None,
     ) -> HandlerValidationResult: ...
 
     def validate_start(

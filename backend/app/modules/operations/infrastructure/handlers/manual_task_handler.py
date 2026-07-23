@@ -73,8 +73,6 @@ class ManualTaskHandler:
             supports_retry=False,
             supports_schedule=True,
             supports_items=False,
-            requires_worker=False,
-            execution_ready=True,
         )
 
     def validate_create(
@@ -84,8 +82,9 @@ class ManualTaskHandler:
         source_config: dict[str, Any],
         type_config: dict[str, Any],
         run_settings: dict[str, Any],
+        organization_id: UUID | None = None,
     ) -> HandlerValidationResult:
-        _ = run_settings
+        _ = (run_settings, organization_id)
         errors: list[str] = []
 
         if source_kind not in {SourceKind.CUSTOMER, SourceKind.NONE, SourceKind.FAIR}:

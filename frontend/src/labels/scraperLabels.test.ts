@@ -43,4 +43,8 @@ describe("scraper run history delete labels", () => {
     expect(message).toContain("Devam etmek istiyor musunuz?");
     expect(message).not.toContain("halen çalışıyor");
   });
+
+  it("exposes empty console copy for completed runs with no logs", () => {
+    expect(scraperLabels.testNoLogsYet).toBe("Henüz log kaydı yok.");
+  });
 });

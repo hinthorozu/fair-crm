@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 AUDIT_READ_PERMISSION: Final = "audit.logs.read"
-ROLE_MATRIX_VERSION: Final = 1
+ROLE_MATRIX_VERSION: Final = 2
 
 ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.customers.create",
@@ -39,6 +39,9 @@ ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.scraper.delete",
     "fair_crm.scraper.run",
     "fair_crm.scraper.download",
+    "fair_crm.operations.read",
+    "fair_crm.operations.create",
+    "fair_crm.operations.execute",
     "fair_crm.smtp.read",
     "fair_crm.smtp.create",
     "fair_crm.smtp.update",
@@ -125,6 +128,9 @@ _MANAGER_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.scraper.read",
     "fair_crm.scraper.run",
     "fair_crm.scraper.download",
+    "fair_crm.operations.read",
+    "fair_crm.operations.create",
+    "fair_crm.operations.execute",
     "fair_crm.todos.read",
     "fair_crm.todos.create",
     "fair_crm.todos.update",
@@ -167,6 +173,7 @@ _VIEWER_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.participations.read",
     "fair_crm.activities.read",
     "fair_crm.scraper.read",
+    "fair_crm.operations.read",
     "fair_crm.smtp.read",
     "fair_crm.mail_templates.read",
     "fair_crm.fair_emails.preview",
@@ -180,6 +187,9 @@ _SCRAPER_OPERATOR_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.scraper.read",
     "fair_crm.scraper.run",
     "fair_crm.scraper.download",
+    "fair_crm.operations.read",
+    "fair_crm.operations.create",
+    "fair_crm.operations.execute",
 )
 
 _FULL_ACCESS_PERMISSIONS: tuple[str, ...] = ALL_FAIR_CRM_PERMISSIONS + (AUDIT_READ_PERMISSION,)

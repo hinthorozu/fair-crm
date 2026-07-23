@@ -1,7 +1,11 @@
 import React from "react";
 import { cancelOperation, getOperation, startOperation } from "../api/operations";
+import { getFair } from "../api/fairs";
+import { getAdapter } from "../api/scraper";
 import { getTodo } from "../api/todos";
 import { ApiError } from "../api/client";
+import { AdapterRunLogConsole } from "../components/scraper/AdapterRunLogConsole";
+import { OperationRunStatusBadge } from "../components/operations/OperationRunStatusBadge";
 import { Banner } from "../components/ui/Banner";
 import { Badge, type BadgeVariant } from "../components/ui/Badge";
 import { Card } from "../components/ui/Card";
@@ -13,26 +17,30 @@ import { UniversalDataTable, type UniversalDataTableColumn } from "../components
 import {
   operationLabels,
   operationPriorityLabels,
-  operationStatusLabels,
   operationTypeLabels,
-  runStatusLabels,
   sourceKindLabels,
 } from "../labels/operationLabels";
 import { todoPriorityLabels, todoStatusLabels } from "../labels/todoLabels";
 import type {
   OperationDetail,
   OperationRun,
-  OperationStatus,
   OperationType,
-  RunStatus,
   SourceKind,
 } from "../types/operation";
 import type { Todo, TodoPriority, TodoStatus } from "../types/todo";
+import { getOutputFieldLabel } from "../utils/outputFieldDefinitions";
+import type { RequestedOutputField } from "../types/scraper";
+import {
+  extractScraperResult,
+  resolveOperationLiveLogTarget,
+} from "../utils/operationScraperRun";
+import { resolveRunUserFacingStatus } from "../utils/operationRunStatus";
 
 interface OperationDetailPageProps {
   operationId: string;
   onBack: () => void;
   onOpenTodo?: (todoId: string) => void;
+  onOpenImportBatch?: (batchId: string) => void;
 }
 
 function statusBadgeVariant(status: string): BadgeVariant {
@@ -58,45 +66,150 @@ function statusBadgeVariant(status: string): BadgeVariant {
   }
 }
 
+function formatRequestedFields(value: unknown): string | null {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  const labels = value
+    .filter((field): field is string => typeof field === "string" && field.trim().length > 0)
+    .map((field) => getOutputFieldLabel(field as RequestedOutputField));
+  return labels.length > 0 ? labels.join(", ") : null;
+}
+
+function isNonEmptyScraperConfig(value: unknown): value is Record<string, unknown> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.keys(value as Record<string, unknown>).length > 0
+  );
+}
+
+const POLL_INTERVAL_MS = 3000;
+
 export function OperationDetailPage({
   operationId,
   onBack,
   onOpenTodo,
+  onOpenImportBatch,
 }: OperationDetailPageProps) {
   const [detail, setDetail] = React.useState<OperationDetail | null>(null);
   const [linkedTodo, setLinkedTodo] = React.useState<Todo | null>(null);
   const [linkedTodoError, setLinkedTodoError] = React.useState<string | null>(null);
+  const [sourceFairName, setSourceFairName] = React.useState<string | null>(null);
+  const [sourceFairResolveFailed, setSourceFairResolveFailed] = React.useState(false);
+  const [adapterDisplayName, setAdapterDisplayName] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [banner, setBanner] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
 
-  const load = React.useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    setLinkedTodo(null);
-    setLinkedTodoError(null);
-    try {
-      const nextDetail = await getOperation(operationId);
-      setDetail(nextDetail);
-      const relatedTodoId = nextDetail.operation.related_todo_id;
-      if (relatedTodoId) {
-        try {
-          setLinkedTodo(await getTodo(relatedTodoId));
-        } catch {
-          setLinkedTodoError(operationLabels.linkedTodoMissing);
-        }
+  const load = React.useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!options?.silent) {
+        setLoading(true);
+        setLinkedTodo(null);
+        setLinkedTodoError(null);
       }
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : operationLabels.loadError);
-    } finally {
-      setLoading(false);
-    }
-  }, [operationId]);
+      setError(null);
+      try {
+        const nextDetail = await getOperation(operationId);
+        setDetail(nextDetail);
+        const relatedTodoId = nextDetail.operation.related_todo_id;
+        if (relatedTodoId && !options?.silent) {
+          try {
+            setLinkedTodo(await getTodo(relatedTodoId));
+          } catch {
+            setLinkedTodoError(operationLabels.linkedTodoMissing);
+          }
+        } else if (!relatedTodoId) {
+          setLinkedTodo(null);
+          setLinkedTodoError(null);
+        }
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : operationLabels.loadError);
+      } finally {
+        if (!options?.silent) setLoading(false);
+      }
+    },
+    [operationId],
+  );
 
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  const scraperSourceFairId =
+    detail?.operation.operation_type === "scraper" &&
+    detail.operation.source_kind === "fair"
+      ? detail.operation.source_ids?.[0] ?? null
+      : null;
+
+  React.useEffect(() => {
+    if (!scraperSourceFairId) {
+      setSourceFairName(null);
+      setSourceFairResolveFailed(false);
+      return;
+    }
+    let cancelled = false;
+    setSourceFairName(null);
+    setSourceFairResolveFailed(false);
+    void getFair(scraperSourceFairId)
+      .then((fair) => {
+        if (!cancelled) {
+          setSourceFairName(fair.name);
+          setSourceFairResolveFailed(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSourceFairName(null);
+          setSourceFairResolveFailed(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [scraperSourceFairId]);
+
+  const scraperAdapterKey =
+    detail?.operation.operation_type === "scraper" &&
+    typeof detail.operation.type_config?.adapter_key === "string"
+      ? detail.operation.type_config.adapter_key.trim() || null
+      : null;
+
+  React.useEffect(() => {
+    if (!scraperAdapterKey) {
+      setAdapterDisplayName(null);
+      return;
+    }
+    let cancelled = false;
+    setAdapterDisplayName(null);
+    void getAdapter(scraperAdapterKey)
+      .then((adapter) => {
+        if (!cancelled) {
+          // AdapterDetail.name is the registry/API display name (not adapter_key).
+          const name = (adapter.name || "").trim();
+          setAdapterDisplayName(name || null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setAdapterDisplayName(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [scraperAdapterKey]);
+
+  const latestStatus =
+    detail?.operation.latest_run?.status ?? detail?.runs[0]?.status ?? null;
+  const shouldPoll = latestStatus === "queued" || latestStatus === "running";
+
+  React.useEffect(() => {
+    if (!shouldPoll) return;
+    const timer = window.setInterval(() => {
+      void load({ silent: true });
+    }, POLL_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [shouldPoll, load]);
 
   const handleStart = async () => {
     setBusy(true);
@@ -139,9 +252,7 @@ export function OperationDetailPage({
         title: operationLabels.colStatus,
         sortable: false,
         render: (item) => (
-          <Badge variant={statusBadgeVariant(item.status)}>
-            {runStatusLabels[item.status as RunStatus] ?? item.status}
-          </Badge>
+          <OperationRunStatusBadge status={resolveRunUserFacingStatus(item)} />
         ),
       },
       {
@@ -214,12 +325,24 @@ export function OperationDetailPage({
   const { operation, runs } = detail;
   const latest = operation.latest_run ?? runs[0] ?? null;
   const isManualTask = operation.operation_type === "manual_task";
+  const isScraper = operation.operation_type === "scraper";
+  const latestRunActive = latest?.status === "queued" || latest?.status === "running";
   const canStart =
-    Boolean(operation.capabilities.execution_ready) &&
     ["draft", "ready", "active"].includes(operation.status) &&
-    !(isManualTask && operation.related_todo_id);
-  const canCancel = ["draft", "ready", "active"].includes(operation.status);
+    !(isManualTask && operation.related_todo_id) &&
+    !latestRunActive;
+  const canCancel =
+    ["draft", "ready", "active"].includes(operation.status) ||
+    (isScraper && latestRunActive);
   const progressPct = Math.round((latest?.progress ?? 0) * 100);
+  const scraperResult = isScraper ? extractScraperResult(latest) : null;
+  const liveLogTarget = isScraper
+    ? resolveOperationLiveLogTarget(latest, scraperAdapterKey)
+    : null;
+  const typeConfig = operation.type_config ?? {};
+  const requestedFieldsSummary = formatRequestedFields(typeConfig.requested_fields);
+  const sourceUrlSummary =
+    typeof typeConfig.source_url === "string" ? typeConfig.source_url.trim() : "";
 
   return (
     <PageShell>
@@ -263,9 +386,9 @@ export function OperationDetailPage({
         <Card>
           <div className="stack gap-md">
             <div className="row gap-sm" style={{ flexWrap: "wrap" }}>
-              <Badge variant={statusBadgeVariant(operation.status)}>
-                {operationStatusLabels[operation.status as OperationStatus] ?? operation.status}
-              </Badge>
+              <OperationRunStatusBadge
+                status={resolveRunUserFacingStatus(latest, operation.run_settings)}
+              />
               <Badge variant="neutral">
                 {operationTypeLabels[operation.operation_type as OperationType] ??
                   operation.operation_type}
@@ -281,10 +404,21 @@ export function OperationDetailPage({
               <div>
                 <dt>Kaynak</dt>
                 <dd>
-                  {sourceKindLabels[operation.source_kind as SourceKind] ?? operation.source_kind}
-                  {operation.source_kind === "fair" && (operation.source_ids?.length ?? 0) > 0
-                    ? ` (${operation.source_ids.length})`
-                    : ""}
+                  {isScraper && operation.source_kind === "fair" ? (
+                    sourceFairName ??
+                    (sourceFairResolveFailed && scraperSourceFairId
+                      ? scraperSourceFairId
+                      : "—")
+                  ) : (
+                    <>
+                      {sourceKindLabels[operation.source_kind as SourceKind] ??
+                        operation.source_kind}
+                      {operation.source_kind === "fair" &&
+                      (operation.source_ids?.length ?? 0) > 0
+                        ? ` (${operation.source_ids.length})`
+                        : ""}
+                    </>
+                  )}
                 </dd>
               </div>
               <div>
@@ -298,6 +432,85 @@ export function OperationDetailPage({
             </dl>
           </div>
         </Card>
+
+        {isScraper ? (
+          <Card>
+            <h3 className="section-title">{operationLabels.scraperConfigTitle}</h3>
+            <dl className="detail-grid">
+              {adapterDisplayName ? (
+                <div>
+                  <dt>{operationLabels.adapterKeyLabel}</dt>
+                  <dd>{adapterDisplayName}</dd>
+                </div>
+              ) : null}
+              {sourceUrlSummary ? (
+                <div>
+                  <dt>{operationLabels.fairSourceUrlLabel}</dt>
+                  <dd>{sourceUrlSummary}</dd>
+                </div>
+              ) : null}
+              {isNonEmptyScraperConfig(typeConfig.scraper_config) ? (
+                <div className="full-width">
+                  <dt>{operationLabels.fairScraperConfigLabel}</dt>
+                  <dd className="detail-multiline">
+                    <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
+                      {JSON.stringify(typeConfig.scraper_config, null, 2)}
+                    </pre>
+                  </dd>
+                </div>
+              ) : null}
+              {requestedFieldsSummary ? (
+                <div className="full-width">
+                  <dt>{operationLabels.requestedFieldsLabel}</dt>
+                  <dd>{requestedFieldsSummary}</dd>
+                </div>
+              ) : null}
+            </dl>
+          </Card>
+        ) : null}
+
+        {isScraper ? (
+          <Card>
+            <h3 className="section-title">{operationLabels.linkedScraperRunTitle}</h3>
+            {scraperResult ? (
+              <div className="stack gap-sm">
+                <dl className="detail-grid">
+                  <div>
+                    <dt>{operationLabels.linkedScraperRunId}</dt>
+                    <dd>{scraperResult.scraper_run_id || "—"}</dd>
+                  </div>
+                  <div>
+                    <dt>{operationLabels.linkedImportBatchId}</dt>
+                    <dd>{scraperResult.import_batch_id || "—"}</dd>
+                  </div>
+                  <div>
+                    <dt>{operationLabels.linkedTotalRows}</dt>
+                    <dd>
+                      {scraperResult.total_rows != null ? String(scraperResult.total_rows) : "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{operationLabels.linkedInputUrl}</dt>
+                    <dd>{scraperResult.input_url || "—"}</dd>
+                  </div>
+                </dl>
+                {scraperResult.import_batch_id && onOpenImportBatch ? (
+                  <div>
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => onOpenImportBatch(scraperResult.import_batch_id!)}
+                    >
+                      {operationLabels.linkedImportBatchOpen}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <p className="text-muted">{operationLabels.runsEmpty}</p>
+            )}
+          </Card>
+        ) : null}
 
         {isManualTask ? (
           <Card>
@@ -345,9 +558,9 @@ export function OperationDetailPage({
           {latest ? (
             <div className="stack gap-sm">
               <div className="row gap-sm" style={{ flexWrap: "wrap" }}>
-                <Badge variant={statusBadgeVariant(latest.status)}>
-                  {runStatusLabels[latest.status as RunStatus] ?? latest.status}
-                </Badge>
+                <OperationRunStatusBadge
+                  status={resolveRunUserFacingStatus(latest, operation.run_settings)}
+                />
                 <span>
                   {progressPct}% — {latest.processed_items}/{latest.total_items}
                 </span>
@@ -381,16 +594,21 @@ export function OperationDetailPage({
           )}
         </Card>
 
-        <Card>
-          <h3 className="section-title">{operationLabels.capabilitiesTitle}</h3>
-          <ul>
-            {Object.entries(operation.capabilities).map(([key, value]) => (
-              <li key={key}>
-                {key}: {value ? "evet" : "hayır"}
-              </li>
-            ))}
-          </ul>
-        </Card>
+        {isScraper ? (
+          <Card>
+            <h3 className="section-title">{operationLabels.liveLogTitle}</h3>
+            {liveLogTarget ? (
+              <AdapterRunLogConsole
+                key={liveLogTarget.scraperRunId}
+                adapterKey={liveLogTarget.adapterKey}
+                focusRunId={liveLogTarget.scraperRunId}
+                hideRunForm
+              />
+            ) : (
+              <p className="text-muted">{operationLabels.linkedScraperRunMissing}</p>
+            )}
+          </Card>
+        ) : null}
 
         <Card>
           <h3 className="section-title">{operationLabels.runsTitle}</h3>

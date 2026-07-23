@@ -2767,7 +2767,9 @@ textarea.form-control-textarea {
   font-weight: 700;
 }
 
-.import-wizard .wizard-stepper {
+.wizard-stepper,
+.import-wizard .wizard-stepper,
+.operation-wizard .wizard-stepper {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -2776,24 +2778,32 @@ textarea.form-control-textarea {
   border-bottom: 1px solid var(--border);
 }
 
-.import-wizard .wizard-step {
+.wizard-step,
+.import-wizard .wizard-step,
+.operation-wizard .wizard-step {
   font-size: 0.78rem;
   color: var(--muted);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
 }
 
-.import-wizard .wizard-step.active {
+.wizard-step.active,
+.import-wizard .wizard-step.active,
+.operation-wizard .wizard-step.active {
   background: var(--primary-soft, #eef4ff);
   color: var(--primary);
   font-weight: 600;
 }
 
-.import-wizard .wizard-step.done {
+.wizard-step.done,
+.import-wizard .wizard-step.done,
+.operation-wizard .wizard-step.done {
   color: var(--success, #15803d);
 }
 
-.import-wizard .wizard-nav {
+.wizard-nav,
+.import-wizard .wizard-nav,
+.operation-wizard .wizard-nav {
   display: flex;
   justify-content: space-between;
   margin-top: 1.5rem;
@@ -7210,5 +7220,20 @@ textarea.form-control-textarea {
   .app-content {
     overflow-x: hidden;
   }
+}
+
+.operation-capabilities-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  max-width: 28rem;
+}
+
+.operation-capabilities-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
 }
 

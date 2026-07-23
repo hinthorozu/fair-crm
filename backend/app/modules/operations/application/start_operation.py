@@ -8,7 +8,6 @@ from app.modules.operations.domain.entities import OperationRun
 from app.modules.operations.domain.exceptions import (
     HandlerNotRegisteredError,
     InvalidOperationConfigError,
-    OperationExecutionNotReadyError,
     OperationNotFoundError,
 )
 from app.modules.operations.domain.handler import HandlerExecutionContext
@@ -54,10 +53,6 @@ class StartOperationUseCase:
             raise HandlerNotRegisteredError(
                 f"No handler registered for operation type: {operation.operation_type}"
             )
-        if not handler.capabilities.execution_ready:
-            raise OperationExecutionNotReadyError(
-                f"Handler for {operation.operation_type} is not execution-ready yet"
-            )
 
         # Idempotent manual_task start: Todo already linked → return current state.
         if (
@@ -93,15 +88,15 @@ class StartOperationUseCase:
         )
 
         saved_run.total_items = start_result.total_items
+        if start_result.result_payload:
+            saved_run.error_details = {
+                **saved_run.error_details,
+                "result": start_result.result_payload,
+            }
         if start_result.run_status == RunStatus.COMPLETED:
             if saved_run.status == RunStatus.QUEUED:
                 saved_run.transition_status(RunStatus.RUNNING, now=now)
             saved_run.transition_status(RunStatus.COMPLETED, now=now)
-            if start_result.result_payload:
-                saved_run.error_details = {
-                    **saved_run.error_details,
-                    "result": start_result.result_payload,
-                }
         elif start_result.run_status == RunStatus.RUNNING:
             saved_run.transition_status(RunStatus.RUNNING, now=now)
         elif start_result.run_status == RunStatus.FAILED:
@@ -109,6 +104,7 @@ class StartOperationUseCase:
                 now=now,
                 error_code="handler_start_failed",
                 error_message=start_result.message or "Handler start failed",
+                error_details=dict(saved_run.error_details or {}),
             )
         elif start_result.run_status != RunStatus.QUEUED:
             saved_run.transition_status(start_result.run_status, now=now)
@@ -120,11 +116,10 @@ class StartOperationUseCase:
                 OperationStatus.ACTIVE, now=now, updated_by=command.user_id
             )
 
-        # Non-worker manual_task orchestration finishes when Todo is created.
+        # Manual task orchestration finishes when Todo is created (no background worker).
         if (
             operation.operation_type == OperationType.MANUAL_TASK
             and start_result.run_status == RunStatus.COMPLETED
-            and not handler.capabilities.requires_worker
             and operation.status == OperationStatus.ACTIVE
         ):
             operation.transition_status(

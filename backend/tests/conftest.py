@@ -108,6 +108,7 @@ from app.modules.operations.infrastructure.persistence.models import (  # noqa: 
     OperationModel,
     OperationRunItemModel,
     OperationRunModel,
+    OperationTypeModel,
 )
 from app.modules.todos.api.outcome_dependencies import (
     get_audit_adapter as get_outcome_audit_adapter,

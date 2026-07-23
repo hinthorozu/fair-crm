@@ -6,16 +6,25 @@ import {
   runAdapterTest,
 } from "../../api/scraper";
 import { ApiError } from "../../api/client";
-import { Badge } from "../ui/Badge";
+import { OperationRunStatusBadge } from "../operations/OperationRunStatusBadge";
 import { LoadingState } from "../ui/LoadingState";
 import { CheckboxField, TextInput } from "../ui/form";
 import { scraperLabels } from "../../labels/scraperLabels";
-import { runStatusBadgeVariant, runStatusLabel } from "../../utils/scraperBadges";
 import { formatScraperConsoleTime } from "../../utils/formatScraperConsoleLogTxt";
 import { formatScraperLogStepLabel } from "../../utils/scraperLogStepLabels";
+import { mapTechnicalRunStatusToUserFacing } from "../../utils/operationRunStatus";
 import type { ScraperRunLog } from "../../types/scraper";
 
 const POLL_INTERVAL_MS = 2000;
+
+function scraperRunStatusToUserFacing(status: string | null) {
+  if (!status) return null;
+  // Scraper cancel transitions map to OperationRun running (shared engine model).
+  if (status === "cancel_requested" || status === "cancelling") {
+    return mapTechnicalRunStatusToUserFacing("running");
+  }
+  return mapTechnicalRunStatusToUserFacing(status);
+}
 
 interface AdapterRunLogConsoleProps {
   adapterKey: string;
@@ -272,7 +281,7 @@ export function AdapterRunLogConsole({
       {runStatus ? (
         <div className="adapter-console-status">
           <span className="text-muted">{scraperLabels.testStatusLabel}</span>
-          <Badge variant={runStatusBadgeVariant(runStatus)}>{runStatusLabel(runStatus)}</Badge>
+          <OperationRunStatusBadge status={scraperRunStatusToUserFacing(runStatus)} />
           {polling ? <span className="text-muted adapter-console-polling">{scraperLabels.consolePolling}</span> : null}
         </div>
       ) : null}
@@ -345,6 +354,13 @@ export function AdapterRunLogConsole({
         ))}
         {selectedRunId && !loading && logs.length === 0 && runStatus === "running" ? (
           <p className="text-muted">{scraperLabels.testWaitingLogs}</p>
+        ) : null}
+        {selectedRunId &&
+        !loading &&
+        logs.length === 0 &&
+        runStatus != null &&
+        runStatus !== "running" ? (
+          <p className="text-muted">{scraperLabels.testNoLogsYet}</p>
         ) : null}
       </div>
     </div>

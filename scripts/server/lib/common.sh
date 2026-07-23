@@ -18,7 +18,7 @@ DEV_LOGIN_PASSWORD="${DEV_LOGIN_PASSWORD:-}"
 DEV_LOGIN_ORG_ID="${DEV_LOGIN_ORG_ID:-00000000-0000-4000-8000-000000000010}"
 DEV_SEED_ENV_FILE="${DEV_SEED_ENV_FILE:-/etc/fair-crm/dev-seed.env}"
 
-MIN_CORE_SEED_MIGRATION_REVISION="${MIN_CORE_SEED_MIGRATION_REVISION:-20260701_0030}"
+MIN_CORE_SEED_MIGRATION_REVISION="${MIN_CORE_SEED_MIGRATION_REVISION:-20260701_0031}"
 EXPECTED_FAIR_CRM_BRANCH="${EXPECTED_FAIR_CRM_BRANCH:-${FAIR_CRM_BRANCH:-main}}"
 EXPECTED_KYROX_CORE_BRANCH="${EXPECTED_KYROX_CORE_BRANCH:-${KYROX_CORE_BRANCH:-main}}"
 
@@ -136,6 +136,29 @@ read_env_key() {
   printf '%s' "$value"
 }
 
+# Non-reversible short fingerprint for safe password identity checks (never log plaintext).
+dev_password_fingerprint() {
+  local password="$1"
+  if command -v sha256sum >/dev/null 2>&1; then
+    printf '%s' "$password" | sha256sum | awk '{print substr($1,1,12)}'
+  elif command -v shasum >/dev/null 2>&1; then
+    printf '%s' "$password" | shasum -a 256 | awk '{print substr($1,1,12)}'
+  elif command -v openssl >/dev/null 2>&1; then
+    printf '%s' "$password" | openssl dgst -sha256 | awk '{print substr($NF,1,12)}'
+  else
+    printf '%s' "unavailable"
+  fi
+}
+
+dev_password_meta_log() {
+  local source="$1"
+  local password="$2"
+  local length="${#password}"
+  local fingerprint
+  fingerprint="$(dev_password_fingerprint "$password")"
+  log "DEV_USER_PASSWORD from ${source} (length=${length} fingerprint=${fingerprint}; value not shown)"
+}
+
 dev_seed_password_missing_help() {
   cat <<EOF
 DEV_USER_PASSWORD is required for Core dev identity seed and login smoke tests.
@@ -172,19 +195,24 @@ $(dev_seed_password_missing_help)"
 
   export DEV_USER_PASSWORD="$password"
   export DEV_LOGIN_PASSWORD="$password"
-  log "Loaded DEV_USER_PASSWORD from ${seed_env} (value not shown)"
+  dev_password_meta_log "$seed_env" "$password"
+  export DEV_PASSWORD_META_LOGGED=1
 }
 
 # Resolve password for smoke tests: env override, else seed env file.
 # Never falls back to a hardcoded default.
 require_dev_login_password() {
   local password=""
+  local source=""
   if [[ -n "${DEV_USER_PASSWORD:-}" ]]; then
     password="$DEV_USER_PASSWORD"
+    source="env:DEV_USER_PASSWORD"
   elif [[ -n "${DEV_LOGIN_PASSWORD:-}" ]]; then
     password="$DEV_LOGIN_PASSWORD"
+    source="env:DEV_LOGIN_PASSWORD"
   elif [[ -f "${DEV_SEED_ENV_FILE}" ]]; then
     password="$(read_env_key "$DEV_SEED_ENV_FILE" DEV_USER_PASSWORD || true)"
+    source="${DEV_SEED_ENV_FILE}"
   fi
 
   if [[ -z "$password" ]]; then
@@ -195,6 +223,10 @@ $(dev_seed_password_missing_help)"
 
   export DEV_USER_PASSWORD="$password"
   export DEV_LOGIN_PASSWORD="$password"
+  if [[ -z "${DEV_PASSWORD_META_LOGGED:-}" ]]; then
+    dev_password_meta_log "${source:-unknown}" "$password"
+    export DEV_PASSWORD_META_LOGGED=1
+  fi
 }
 
 parse_database_url() {
@@ -1708,10 +1740,18 @@ run_login_smoke_test() {
 }
 
 print_core_seed_identity_report() {
+  local pw_len=0
+  local pw_fp="n/a"
+  if [[ -n "${DEV_USER_PASSWORD:-}" ]]; then
+    pw_len="${#DEV_USER_PASSWORD}"
+    pw_fp="$(dev_password_fingerprint "$DEV_USER_PASSWORD")"
+  fi
   echo ""
   echo "Core dev seed identity (idempotent):"
   echo "  email: ${DEV_LOGIN_EMAIL}"
   echo "  password: (from DEV_USER_PASSWORD / ${DEV_SEED_ENV_FILE}; not shown)"
+  echo "  password_length: ${pw_len}"
+  echo "  password_fingerprint: ${pw_fp}"
   echo "  org id: ${DEV_LOGIN_ORG_ID}"
   echo "  role: owner/admin"
   echo "  permissions: all fair_crm.* permissions in Core catalog"

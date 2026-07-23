@@ -4,11 +4,12 @@
 Runs against the Core database only (fair-crm repo script; does not modify kyrox-core code).
 Creates dev organization, role templates with FAIR CRM permission matrix, and dev users per role.
 
-Requires Core Alembic revision >= 20260701_0030 (fair_crm product permission catalog).
+Requires Core Alembic revision >= 20260701_0031 (fair_crm operations permission catalog).
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sys
@@ -47,7 +48,7 @@ CORE_DB_URL = os.environ.get(
     "postgresql://postgres:postgres@localhost:5432/kyrox_core",
 )
 
-MIN_CORE_MIGRATION_REVISION = "20260701_0030"
+MIN_CORE_MIGRATION_REVISION = "20260701_0031"
 DEV_SEED_ENV_FILE_HINT = "/etc/fair-crm/dev-seed.env"
 
 
@@ -55,17 +56,39 @@ class SeedError(RuntimeError):
     pass
 
 
+def password_fingerprint(password: str) -> str:
+    """Non-reversible short fingerprint for safe length/identity checks (never log plaintext)."""
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()[:12]
+
+
 def require_dev_password() -> str:
-    """Resolve DEV_USER_PASSWORD; never fall back to a hardcoded default."""
-    password = os.environ.get("DEV_USER_PASSWORD", "").strip()
-    if password:
-        return password
-    raise SeedError(
-        "DEV_USER_PASSWORD is required and must not be empty.\n"
-        "Local: export DEV_USER_PASSWORD before running this script.\n"
-        f"Server: create {DEV_SEED_ENV_FILE_HINT} with DEV_USER_PASSWORD=<value>, "
-        "then chmod 600 and chown root:root. deploy-all.sh loads that file before seed."
-    )
+    """Resolve DEV_USER_PASSWORD; never fall back to a hardcoded default.
+
+    Uses the env value as-is except for stripping outer whitespace that env/file
+    loaders often introduce. If trimming changes length, emit a stderr warning so
+    silent truncation cannot be mistaken for a different password.
+    """
+    raw = os.environ.get("DEV_USER_PASSWORD", "")
+    password = raw.strip()
+    if not password:
+        raise SeedError(
+            "DEV_USER_PASSWORD is required and must not be empty.\n"
+            "Local: export DEV_USER_PASSWORD before running this script.\n"
+            f"Server: create {DEV_SEED_ENV_FILE_HINT} with DEV_USER_PASSWORD=<value>, "
+            "then chmod 600 and chown root:root. deploy-all.sh loads that file before seed."
+        )
+    if password != raw:
+        print(
+            "DEV_USER_PASSWORD: trimmed outer whitespace "
+            f"(raw_len={len(raw)} used_len={len(password)} fingerprint={password_fingerprint(password)})",
+            file=sys.stderr,
+        )
+    else:
+        print(
+            "DEV_USER_PASSWORD loaded "
+            f"(length={len(password)} fingerprint={password_fingerprint(password)}; value not shown)"
+        )
+    return password
 
 
 def password_hash_matches(stored_hash: str, password: str) -> bool:
@@ -565,9 +588,12 @@ def main() -> int:
 
     owner = role_users_state["owner"]
     # Never persist the plaintext password; consumers must use DEV_USER_PASSWORD.
+    # length + fingerprint let seed/login callers verify identity without the secret.
     state = {
         "email": owner["email"],
         "password_source": "DEV_USER_PASSWORD",
+        "password_length": len(dev_password),
+        "password_fingerprint": password_fingerprint(dev_password),
         "user_id": owner["user_id"],
         "organization_id": org_id,
         "owner_role_id": role_template_ids["owner"],

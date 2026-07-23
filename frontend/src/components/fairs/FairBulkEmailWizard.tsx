@@ -33,6 +33,14 @@ import { CheckboxField, FormField, FormGrid, FormSection, SelectInput, TextInput
 import { UniversalDataTable, type UniversalDataTableColumn } from "../ui/UniversalDataTable";
 import type { RecipientPreviewItem } from "../../types/fairBulkEmail";
 import { Banner } from "../ui/Banner";
+import { useModalFormCancel, useReportFormDirty } from "../../hooks/useModalForm";
+
+const EMPTY_BULK_EMAIL_FORM = {
+  templateId: "",
+  smtpAccountId: "",
+  subject: "",
+  recipientOptions: DEFAULT_RECIPIENT_OPTIONS,
+};
 
 function skipReasonLabel(reason: string | null): string {
   switch (reason) {
@@ -86,6 +94,28 @@ export function FairBulkEmailWizard({
   const [error, setError] = React.useState<string | null>(null);
   const [templateError, setTemplateError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
+
+  const formValues = React.useMemo(
+    () => ({ templateId, smtpAccountId, subject, recipientOptions }),
+    [templateId, smtpAccountId, subject, recipientOptions],
+  );
+  const [dirtyBaseline, setDirtyBaseline] = React.useState<typeof EMPTY_BULK_EMAIL_FORM | null>(
+    null,
+  );
+  React.useEffect(() => {
+    if (!templatesLoading && dirtyBaseline === null) {
+      setDirtyBaseline({ templateId, smtpAccountId, subject, recipientOptions });
+    }
+  }, [
+    templatesLoading,
+    dirtyBaseline,
+    templateId,
+    smtpAccountId,
+    subject,
+    recipientOptions,
+  ]);
+  useReportFormDirty(formValues, dirtyBaseline ?? formValues);
+  const requestCancel = useModalFormCancel(onCancel);
 
   const recipientPreviewColumns = React.useMemo<UniversalDataTableColumn<RecipientPreviewItem>[]>(
     () => [
@@ -505,7 +535,7 @@ export function FairBulkEmailWizard({
       ) : null}
 
       <div className="form-actions">
-        <button type="button" className="btn secondary" onClick={onCancel} disabled={sending}>
+        <button type="button" className="btn secondary" onClick={requestCancel} disabled={sending}>
           {labels.cancel}
         </button>
         {canSend ? (

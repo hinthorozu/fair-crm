@@ -2,27 +2,36 @@ from dataclasses import asdict
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import AliasChoices
+from sqlalchemy.orm import Session
 
 from app.api.dependencies.list_query import parse_list_query, resolve_page_size_from_request
 from app.api.list_helpers import standard_list_from_result
 from app.core.config import get_settings
 from app.core.exceptions import ForbiddenError
+from app.db.session import get_db
 from app.integrations.kyrox_core.auth import AuthContext
+from app.modules.fairs.api.dependencies import get_fair_scraper_job_runner
 from app.modules.operations.api.dependencies import (
+    ScraperJobBuffer,
     get_auth_context,
     get_cancel_operation_use_case,
     get_create_operation_use_case,
     get_get_operation_use_case,
     get_list_operation_runs_use_case,
+    get_list_operation_types_use_case,
     get_list_operations_use_case,
     get_retry_operation_use_case,
+    get_scraper_job_buffer,
     get_start_operation_use_case,
+    get_update_operation_type_capabilities_use_case,
     get_wizard_metadata_use_case,
     require_read_permission,
 )
+from app.modules.scraper.application.fair_scraper_job_runner import FairScraperJobRunner
+from app.shared.background_jobs import run_blocking_background_task
 from app.modules.operations.api.schemas import (
     CreateOperationRequest,
     ErrorResponse,
@@ -31,6 +40,9 @@ from app.modules.operations.api.schemas import (
     OperationResponse,
     OperationRunListResponse,
     OperationRunResponse,
+    OperationTypeCatalogItemResponse,
+    OperationTypeCatalogListResponse,
+    UpdateOperationTypeCapabilitiesRequest,
     WizardMetadataResponse,
 )
 from app.modules.operations.application.cancel_operation import CancelOperationUseCase
@@ -47,9 +59,17 @@ from app.modules.operations.application.create_operation import CreateOperationU
 from app.modules.operations.application.get_operation import GetOperationUseCase
 from app.modules.operations.application.get_wizard_metadata import GetWizardMetadataUseCase
 from app.modules.operations.application.list_operation_runs import ListOperationRunsUseCase
+from app.modules.operations.application.list_operation_types import (
+    ListOperationTypesUseCase,
+    OperationTypeListItem,
+)
 from app.modules.operations.application.list_operations import ListOperationsUseCase
 from app.modules.operations.application.retry_operation import RetryOperationUseCase
 from app.modules.operations.application.start_operation import StartOperationUseCase
+from app.modules.operations.application.update_operation_type_capabilities import (
+    UpdateOperationTypeCapabilitiesCommand,
+    UpdateOperationTypeCapabilitiesUseCase,
+)
 from app.modules.operations.domain.exceptions import (
     HandlerCapabilityNotSupportedError,
     HandlerNotRegisteredError,
@@ -59,10 +79,10 @@ from app.modules.operations.domain.exceptions import (
     InvalidOperationTypeError,
     InvalidRunStatusTransitionError,
     InvalidSourceKindError,
-    OperationExecutionNotReadyError,
     OperationNotFoundError,
     OperationRunNotFoundError,
 )
+from app.modules.operations.domain.value_objects import HandlerCapabilities
 
 router = APIRouter(prefix="/operations", tags=["operations"])
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -75,6 +95,21 @@ DEFAULT_SORT_DIRECTION = "desc"
 RUN_ALLOWED_SORT_FIELDS = frozenset(
     {"created_at", "updated_at", "started_at", "finished_at", "status", "attempt"}
 )
+
+
+def _to_operation_type_catalog_item(item: OperationTypeListItem) -> OperationTypeCatalogItemResponse:
+    return OperationTypeCatalogItemResponse(
+        key=item.key,
+        name=item.name,
+        is_active=item.is_active,
+        sort_order=item.sort_order,
+        supports_pause=item.supports_pause,
+        supports_resume=item.supports_resume,
+        supports_retry=item.supports_retry,
+        supports_schedule=item.supports_schedule,
+        supports_items=item.supports_items,
+        updated_at=item.updated_at,
+    )
 
 
 def _access_token(credentials: HTTPAuthorizationCredentials | None) -> str:
@@ -100,6 +135,20 @@ def _to_run_response(result) -> OperationRunResponse:
     return OperationRunResponse.model_validate(asdict(result))
 
 
+def _schedule_scraper_jobs(
+    *,
+    background_tasks: BackgroundTasks,
+    scraper_job_buffer: ScraperJobBuffer,
+    job_runner: FairScraperJobRunner,
+) -> None:
+    for command in scraper_job_buffer.drain():
+        background_tasks.add_task(
+            run_blocking_background_task,
+            job_runner.run_fair_scraper,
+            command,
+        )
+
+
 def _map_domain_error(exc: Exception) -> HTTPException:
     if isinstance(exc, ForbiddenError):
         return HTTPException(status_code=403, detail=str(exc))
@@ -122,7 +171,6 @@ def _map_domain_error(exc: Exception) -> HTTPException:
         (
             HandlerNotRegisteredError,
             HandlerCapabilityNotSupportedError,
-            OperationExecutionNotReadyError,
         ),
     ):
         return HTTPException(status_code=409, detail=str(exc))
@@ -142,6 +190,66 @@ def get_wizard_metadata(
     return WizardMetadataResponse.model_validate(asdict(result))
 
 
+@router.get(
+    "/types",
+    response_model=OperationTypeCatalogListResponse,
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+)
+def list_operation_types(
+    _: AuthContext = Depends(require_read_permission),
+    active_only: bool = Query(False),
+    use_case: ListOperationTypesUseCase = Depends(get_list_operation_types_use_case),
+) -> OperationTypeCatalogListResponse:
+    result = use_case.execute(active_only=active_only)
+    return OperationTypeCatalogListResponse(
+        items=[_to_operation_type_catalog_item(item) for item in result.items]
+    )
+
+
+@router.patch(
+    "/types/{type_key}/capabilities",
+    response_model=OperationTypeCatalogItemResponse,
+    responses={
+        400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+    },
+)
+def update_operation_type_capabilities(
+    type_key: str,
+    body: UpdateOperationTypeCapabilitiesRequest,
+    auth: AuthContext = Depends(get_auth_context),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    use_case: UpdateOperationTypeCapabilitiesUseCase = Depends(
+        get_update_operation_type_capabilities_use_case
+    ),
+) -> OperationTypeCatalogItemResponse:
+    try:
+        item = use_case.execute(
+            UpdateOperationTypeCapabilitiesCommand(
+                organization_id=auth.organization_id,
+                user_id=auth.user_id,
+                access_token=_access_token(credentials),
+                key=type_key,
+                capabilities=HandlerCapabilities(
+                    supports_pause=body.supports_pause,
+                    supports_resume=body.supports_resume,
+                    supports_retry=body.supports_retry,
+                    supports_schedule=body.supports_schedule,
+                    supports_items=body.supports_items,
+                ),
+                is_active=body.is_active,
+            )
+        )
+    except Exception as exc:
+        mapped = _map_domain_error(exc)
+        if mapped.status_code == 400 and isinstance(exc, InvalidOperationTypeError):
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise mapped from exc
+    return _to_operation_type_catalog_item(item)
+
+
 @router.post(
     "",
     response_model=OperationResponse,
@@ -154,9 +262,13 @@ def get_wizard_metadata(
 )
 def create_operation(
     body: CreateOperationRequest,
+    background_tasks: BackgroundTasks,
     auth: AuthContext = Depends(get_auth_context),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     use_case: CreateOperationUseCase = Depends(get_create_operation_use_case),
+    scraper_job_buffer: ScraperJobBuffer = Depends(get_scraper_job_buffer),
+    job_runner: FairScraperJobRunner = Depends(get_fair_scraper_job_runner),
+    db: Session = Depends(get_db),
 ) -> OperationResponse:
     try:
         result = use_case.execute(
@@ -184,11 +296,16 @@ def create_operation(
         InvalidOperationTypeError,
         InvalidSourceKindError,
         HandlerNotRegisteredError,
-        OperationExecutionNotReadyError,
         InvalidOperationStatusTransitionError,
         InvalidRunStatusTransitionError,
     ) as exc:
         raise _map_domain_error(exc) from exc
+    db.commit()
+    _schedule_scraper_jobs(
+        background_tasks=background_tasks,
+        scraper_job_buffer=scraper_job_buffer,
+        job_runner=job_runner,
+    )
     return _to_operation_response(result)
 
 
@@ -345,9 +462,13 @@ def list_operation_runs(
 )
 def start_operation(
     operation_id: UUID,
+    background_tasks: BackgroundTasks,
     auth: AuthContext = Depends(get_auth_context),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     use_case: StartOperationUseCase = Depends(get_start_operation_use_case),
+    scraper_job_buffer: ScraperJobBuffer = Depends(get_scraper_job_buffer),
+    job_runner: FairScraperJobRunner = Depends(get_fair_scraper_job_runner),
+    db: Session = Depends(get_db),
 ) -> OperationResponse:
     try:
         result = use_case.execute(
@@ -362,12 +483,17 @@ def start_operation(
         ForbiddenError,
         OperationNotFoundError,
         HandlerNotRegisteredError,
-        OperationExecutionNotReadyError,
         InvalidOperationConfigError,
         InvalidOperationStatusTransitionError,
         InvalidRunStatusTransitionError,
     ) as exc:
         raise _map_domain_error(exc) from exc
+    db.commit()
+    _schedule_scraper_jobs(
+        background_tasks=background_tasks,
+        scraper_job_buffer=scraper_job_buffer,
+        job_runner=job_runner,
+    )
     return _to_operation_response(result)
 
 
@@ -423,9 +549,13 @@ def cancel_operation(
 )
 def retry_operation(
     operation_id: UUID,
+    background_tasks: BackgroundTasks,
     auth: AuthContext = Depends(get_auth_context),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     use_case: RetryOperationUseCase = Depends(get_retry_operation_use_case),
+    scraper_job_buffer: ScraperJobBuffer = Depends(get_scraper_job_buffer),
+    job_runner: FairScraperJobRunner = Depends(get_fair_scraper_job_runner),
+    db: Session = Depends(get_db),
     run_id: UUID | None = Query(default=None),
 ) -> OperationResponse:
     try:
@@ -449,4 +579,10 @@ def retry_operation(
         InvalidRunStatusTransitionError,
     ) as exc:
         raise _map_domain_error(exc) from exc
+    db.commit()
+    _schedule_scraper_jobs(
+        background_tasks=background_tasks,
+        scraper_job_buffer=scraper_job_buffer,
+        job_runner=job_runner,
+    )
     return _to_operation_response(result)

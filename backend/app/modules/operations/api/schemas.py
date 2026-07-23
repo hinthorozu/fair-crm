@@ -139,13 +139,38 @@ class OperationTypeMetadataResponse(BaseModel):
     run_settings_schema: dict[str, Any]
     available_in_wizard: bool
     handler_registered: bool
-    execution_ready: bool
 
 
 class WizardMetadataResponse(BaseModel):
     types: list[OperationTypeMetadataResponse]
     source_kinds: list[str]
     capabilities_keys: list[str]
+
+
+class OperationTypeCatalogItemResponse(BaseModel):
+    key: str
+    name: str
+    is_active: bool
+    sort_order: int
+    supports_pause: bool
+    supports_resume: bool
+    supports_retry: bool
+    supports_schedule: bool
+    supports_items: bool
+    updated_at: datetime
+
+
+class OperationTypeCatalogListResponse(BaseModel):
+    items: list[OperationTypeCatalogItemResponse]
+
+
+class UpdateOperationTypeCapabilitiesRequest(BaseModel):
+    supports_pause: bool
+    supports_resume: bool
+    supports_retry: bool
+    supports_schedule: bool
+    supports_items: bool
+    is_active: bool
 
 
 class ErrorResponse(BaseModel):

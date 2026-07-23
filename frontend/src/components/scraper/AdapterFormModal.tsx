@@ -1,5 +1,6 @@
 import React from "react";
 import { FieldError } from "../ui/form";
+import { FormDirtyHost } from "../ui/form/FormDirty";
 import { Modal } from "../ui/Modal";
 import { useModalFormCancel, useReportFormDirty } from "../../hooks/useModalForm";
 import { listAdapterEngines } from "../../api/scraper";
@@ -28,6 +29,14 @@ interface AdapterFormModalProps {
 const FORM_ID = "adapter-create-form";
 
 export function AdapterFormModal({ saving, error, onClose, onSubmit }: AdapterFormModalProps) {
+  return (
+    <FormDirtyHost onClose={onClose} confirmClassName="modal-backdrop-nested">
+      <AdapterFormModalInner saving={saving} error={error} onClose={onClose} onSubmit={onSubmit} />
+    </FormDirtyHost>
+  );
+}
+
+function AdapterFormModalInner({ saving, error, onClose, onSubmit }: AdapterFormModalProps) {
   const emptyValues = React.useMemo(() => createEmptyFormState(), []);
   const [values, setValues] = React.useState<AdapterFormState>(emptyValues);
   const [engines, setEngines] = React.useState<AdapterEngine[]>([]);

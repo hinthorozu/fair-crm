@@ -28,6 +28,7 @@ import { Card } from "../components/ui/Card";
 import { EmptyState } from "../components/ui/EmptyState";
 import { FilterPanel } from "../components/ui/FilterPanel";
 import { FormModal, TextInput } from "../components/ui/form";
+import { useModalFormCancel } from "../hooks/useModalForm";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import {
   todoCategoryLabels,
@@ -74,6 +75,21 @@ function formatDateTime(value: string | null | undefined): string {
 
 function canCompleteTodo(todo: Todo): boolean {
   return todo.status !== "done" && todo.status !== "archived" && todo.status !== "cancelled";
+}
+
+function TodoFormModalCancel({
+  onClose,
+  disabled,
+}: {
+  onClose: () => void;
+  disabled?: boolean;
+}) {
+  const requestClose = useModalFormCancel(onClose);
+  return (
+    <Button type="button" variant="secondary" onClick={requestClose} disabled={disabled}>
+      {todoLabels.cancel}
+    </Button>
+  );
 }
 
 function statusBadgeVariant(status: TodoStatus): BadgeVariant {
@@ -604,14 +620,7 @@ export function TodoDetailPage({
           formWidth="standard"
           footer={
             <>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setEditOpen(false)}
-                disabled={formSaving}
-              >
-                {todoLabels.cancel}
-              </Button>
+              <TodoFormModalCancel onClose={() => setEditOpen(false)} disabled={formSaving} />
               <Button type="submit" form={TODO_FORM_ID} variant="primary" loading={formSaving}>
                 {formSaving ? todoLabels.saving : todoLabels.save}
               </Button>

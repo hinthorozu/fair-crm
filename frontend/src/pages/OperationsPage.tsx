@@ -1,8 +1,10 @@
 import React from "react";
-import { cancelOperation, listOperations, startOperation } from "../api/operations";
+import { cancelOperation, listOperationTypes, listOperations, startOperation } from "../api/operations";
 import { ApiError } from "../api/client";
+import { NewOperationTypeModal } from "../components/operations/NewOperationTypeModal";
+import { OperationRunStatusBadge } from "../components/operations/OperationRunStatusBadge";
 import { Banner } from "../components/ui/Banner";
-import { Badge, type BadgeVariant } from "../components/ui/Badge";
+import { Button } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
 import { FilterPanel } from "../components/ui/FilterPanel";
 import { SelectInput, TextInput } from "../components/ui/form";
@@ -16,29 +18,22 @@ import { useServerDataTable } from "../hooks/useServerDataTable";
 import {
   operationLabels,
   operationPriorityLabels,
-  operationStatusLabels,
   operationTypeLabels,
 } from "../labels/operationLabels";
-import type { Operation, OperationStatus, OperationType } from "../types/operation";
+import type {
+  Operation,
+  OperationType,
+  OperationTypeCatalogItem,
+} from "../types/operation";
+import { buildCatalogNameMap } from "../utils/operationWizardTypes";
+import {
+  operationUserFacingStatusFilterOptions,
+  resolveOperationUserFacingStatus,
+} from "../utils/operationRunStatus";
 
 interface OperationsPageProps {
   onOpenDetail: (operationId: string) => void;
-  onCreate: () => void;
-}
-
-function statusBadgeVariant(status: string): BadgeVariant {
-  switch (status) {
-    case "active":
-      return "info";
-    case "completed":
-      return "success";
-    case "cancelled":
-      return "neutral";
-    case "ready":
-      return "warning";
-    default:
-      return "neutral";
-  }
+  onSelectType: (type: OperationType) => void;
 }
 
 function formatProgress(operation: Operation): string {
@@ -48,10 +43,12 @@ function formatProgress(operation: Operation): string {
   return `${pct}% (${run.processed_items}/${run.total_items})`;
 }
 
-export function OperationsPage({ onOpenDetail, onCreate }: OperationsPageProps) {
+export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPageProps) {
   const [banner, setBanner] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
+  const [typeModalOpen, setTypeModalOpen] = React.useState(false);
+  const [typeCatalog, setTypeCatalog] = React.useState<OperationTypeCatalogItem[]>([]);
 
   const table = useServerDataTable<Operation>({
     fetchFn: (params) =>
@@ -65,6 +62,22 @@ export function OperationsPage({ onOpenDetail, onCreate }: OperationsPageProps) 
     urlSync: true,
     urlPath: "/operations",
   });
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void listOperationTypes({ activeOnly: true })
+      .then((response) => {
+        if (!cancelled) setTypeCatalog(response.items);
+      })
+      .catch(() => {
+        if (!cancelled) setTypeCatalog([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const typeNameByKey = React.useMemo(() => buildCatalogNameMap(typeCatalog), [typeCatalog]);
 
   React.useEffect(() => {
     if (!banner) return undefined;
@@ -120,17 +133,17 @@ export function OperationsPage({ onOpenDetail, onCreate }: OperationsPageProps) 
         sortField: "operation_type",
         priority: "primary",
         render: (item) =>
-          operationTypeLabels[item.operation_type as OperationType] ?? item.operation_type,
+          typeNameByKey.get(item.operation_type) ??
+          operationTypeLabels[item.operation_type as OperationType] ??
+          item.operation_type,
       },
       {
         key: "status",
         title: operationLabels.colStatus,
-        sortField: "status",
+        sortable: false,
         priority: "primary",
         render: (item) => (
-          <Badge variant={statusBadgeVariant(item.status)}>
-            {operationStatusLabels[item.status as OperationStatus] ?? item.status}
-          </Badge>
+          <OperationRunStatusBadge status={resolveOperationUserFacingStatus(item)} />
         ),
       },
       {
@@ -173,8 +186,7 @@ export function OperationsPage({ onOpenDetail, onCreate }: OperationsPageProps) 
               >
                 {operationLabels.actionOpen}
               </button>
-              {item.capabilities.execution_ready &&
-              ["draft", "ready", "active"].includes(item.status) ? (
+              {["draft", "ready", "active"].includes(item.status) ? (
                 <button
                   type="button"
                   className="btn link"
@@ -199,7 +211,12 @@ export function OperationsPage({ onOpenDetail, onCreate }: OperationsPageProps) 
         },
       },
     ],
-    [busyId, onOpenDetail],
+    [busyId, onOpenDetail, typeNameByKey],
+  );
+
+  const statusFilterOptions = React.useMemo(
+    () => operationUserFacingStatusFilterOptions(),
+    [],
   );
 
   return (
@@ -208,10 +225,18 @@ export function OperationsPage({ onOpenDetail, onCreate }: OperationsPageProps) 
         title={operationLabels.pageTitle}
         subtitle={`${table.pagination.totalItems} kayıt`}
         actions={
-          <button type="button" className="btn primary" onClick={onCreate}>
+          <Button type="button" variant="primary" onClick={() => setTypeModalOpen(true)}>
             {operationLabels.newOperation}
-          </button>
+          </Button>
         }
+      />
+      <NewOperationTypeModal
+        open={typeModalOpen}
+        onClose={() => setTypeModalOpen(false)}
+        onContinue={(type) => {
+          setTypeModalOpen(false);
+          onSelectType(type);
+        }}
       />
       {banner ? <Banner variant="success">{banner}</Banner> : null}
       {actionError ? <Banner variant="error">{actionError}</Banner> : null}
@@ -259,9 +284,9 @@ export function OperationsPage({ onOpenDetail, onCreate }: OperationsPageProps) 
               aria-label={operationLabels.filterType}
             >
               <option value="">{operationLabels.filterAll}</option>
-              {Object.entries(operationTypeLabels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
+              {typeCatalog.map((item) => (
+                <option key={item.key} value={item.key}>
+                  {item.name}
                 </option>
               ))}
             </SelectInput>
@@ -272,9 +297,9 @@ export function OperationsPage({ onOpenDetail, onCreate }: OperationsPageProps) 
               aria-label={operationLabels.filterStatus}
             >
               <option value="">{operationLabels.filterAll}</option>
-              {Object.entries(operationStatusLabels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
+              {statusFilterOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </SelectInput>

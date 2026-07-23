@@ -33,9 +33,11 @@ describe("resolvePageTitle", () => {
   });
 
   it("resolves operations wizard and detail titles", () => {
-    expect(resolvePageTitle({ route: "/operations/new" })).toBe(operationLabels.wizardTitle);
+    expect(resolvePageTitle({ route: "/operations/new/scraper" })).toBe(
+      operationLabels.scraperWizardTitle,
+    );
     expect(resolvePageTitle({ route: "/operations/:id" })).toBe(operationLabels.detailTitle);
-    expect(operationLabels.wizardTitle).toBe("Yeni Otomasyon");
+    expect(operationLabels.typeSelectTitle).toBe("Otomasyon Türü");
     expect(operationLabels.detailTitle).toBe("Otomasyon Detayı");
   });
 

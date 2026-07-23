@@ -80,6 +80,7 @@ class CreateOperationUseCase:
                 source_config=source_config,
                 type_config=command.type_config,
                 run_settings=command.run_settings,
+                organization_id=command.organization_id,
             )
             if not validation.ok:
                 raise InvalidOperationConfigError("; ".join(validation.errors))

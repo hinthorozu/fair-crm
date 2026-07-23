@@ -17,7 +17,16 @@ import { FairEntitySelect } from "../components/FairEntitySelect";
 import { listParticipantsByFair } from "../api/participations";
 import { Banner } from "../components/ui/Banner";
 import { Card } from "../components/ui/Card";
-import { CheckboxField, FieldError, RadioField, SelectInput, TextInput, FormField } from "../components/ui/form";
+import {
+  CheckboxField,
+  FieldError,
+  FormDirtyHost,
+  FormField,
+  RadioField,
+  SelectInput,
+  TextInput,
+  clearNavigationDirtySources,
+} from "../components/ui/form";
 import { DataTableShell } from "../components/ui/DataTable";
 import { EmptyState } from "../components/ui/EmptyState";
 import { FilterPanel } from "../components/ui/FilterPanel";
@@ -26,6 +35,7 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { Badge } from "../components/ui/Badge";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
+import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 import { useServerDataTable, type ServerTableFetchParams } from "../hooks/useServerDataTable";
 import { DEFAULT_PAGE } from "../types/listTable";
 import {
@@ -51,7 +61,6 @@ import type {
   ExcelHeaderMode,
   MappingColumnPreview,
 } from "../types/import";
-import { uiLabels } from "../labels/uiLabels";
 import { dataIntegrationLabels } from "../labels/dataIntegrationLabels";
 import { WIZARD_MAPPING_FIELDS as MAPPING_FIELDS } from "../types/import";
 import type { Fair } from "../types/fair";
@@ -98,13 +107,27 @@ function isApplySummaryOnlyMessage(message: string): boolean {
   return false;
 }
 
-export function ImportWizardPage({
+export function ImportWizardPage(props: ImportWizardPageProps) {
+  const leave = React.useCallback(() => {
+    (props.onFinished ?? props.onMappingSaved)?.();
+  }, [props.onFinished, props.onMappingSaved]);
+
+  return (
+    <FormDirtyHost onClose={leave}>
+      <ImportWizardPageInner {...props} onLeave={leave} />
+    </FormDirtyHost>
+  );
+}
+
+function ImportWizardPageInner({
   preselectedFairId,
   resumeBatchId,
   onUploadComplete,
   onMappingSaved,
   onFinished,
-}: ImportWizardPageProps) {
+  onLeave,
+}: ImportWizardPageProps & { onLeave: () => void }) {
+  const requestLeave = useModalFormCancel(onLeave);
   const [wizardMode, setWizardMode] = React.useState<"setup" | "continue">("setup");
   const isContinueMode = wizardMode === "continue";
   const [isSetupResume, setIsSetupResume] = React.useState(false);
@@ -121,12 +144,18 @@ export function ImportWizardPage({
   const [manualHeaderRow, setManualHeaderRow] = React.useState(1);
   const [availableSheets, setAvailableSheets] = React.useState<string[]>([]);
   const [selectedSheet, setSelectedSheet] = React.useState<string>("");
+  const [persistedSheet, setPersistedSheet] = React.useState<string>("");
+  const [persistedHeaderMode, setPersistedHeaderMode] =
+    React.useState<ExcelHeaderMode>("first_row_header");
+  const [persistedManualHeaderRow, setPersistedManualHeaderRow] = React.useState(1);
   const [mappings, setMappings] = React.useState<Record<string, number>>({});
   const [columnFieldMap, setColumnFieldMap] = React.useState<Record<number, string>>({});
   const [gridColumns, setGridColumns] = React.useState<{ index: number; letter: string; header: string | null }[]>([]);
   const [gridRows, setGridRows] = React.useState<unknown[][]>([]);
   const [gridMeta, setGridMeta] = React.useState<{ totalDataRows?: number; previewRowCount?: number }>({});
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+  const [mappingOrDecisionTouched, setMappingOrDecisionTouched] = React.useState(false);
+  const [exitUnlocked, setExitUnlocked] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [selectedRowIds, setSelectedRowIds] = React.useState<Set<string>>(() => new Set());
@@ -160,6 +189,56 @@ export function ImportWizardPage({
     batch?.status === "decision_required" ||
     batch?.status === "applying" ||
     batch?.status === "previewed";
+
+  const sheetHeaderDirty = React.useMemo(() => {
+    if (selectedSheet !== persistedSheet) return true;
+    if (headerMode !== persistedHeaderMode) return true;
+    if (headerMode === "manual_header_row" && manualHeaderRow !== persistedManualHeaderRow) {
+      return true;
+    }
+    return false;
+  }, [
+    selectedSheet,
+    persistedSheet,
+    headerMode,
+    persistedHeaderMode,
+    manualHeaderRow,
+    persistedManualHeaderRow,
+  ]);
+
+  const sessionDirty = React.useMemo(() => {
+    if (sheetHeaderDirty) return true;
+    if (resumeBatchId) {
+      return mappingOrDecisionTouched || Boolean(selectedFile);
+    }
+    const fairChanged = selectedFairId !== (preselectedFairId ?? "");
+    return (
+      Boolean(selectedFile) ||
+      batchId != null ||
+      stepIndex > 0 ||
+      fairChanged ||
+      mappingOrDecisionTouched
+    );
+  }, [
+    sheetHeaderDirty,
+    resumeBatchId,
+    mappingOrDecisionTouched,
+    selectedFile,
+    selectedFairId,
+    preselectedFairId,
+    batchId,
+    stepIndex,
+  ]);
+  useReportFormDirty(
+    { sessionDirty: sessionDirty && !exitUnlocked },
+    { sessionDirty: false },
+  );
+
+  const leaveUnlocked = React.useCallback((action?: () => void) => {
+    setExitUnlocked(true);
+    clearNavigationDirtySources();
+    action?.();
+  }, []);
 
   const decisionListFilters = React.useMemo(
     () => (isPreviewStep ? { filter: "pending" } : {}),
@@ -209,12 +288,20 @@ export function ImportWizardPage({
 
   const hydrateBatchForResume = React.useCallback((b: ImportBatch) => {
     if (b.available_sheets?.length) setAvailableSheets(b.available_sheets);
-    if (b.selected_sheet_name) setSelectedSheet(b.selected_sheet_name);
+    if (b.selected_sheet_name) {
+      setSelectedSheet(b.selected_sheet_name);
+      setPersistedSheet(b.selected_sheet_name);
+    }
     if (b.header_mode) {
       setHeaderMode(b.header_mode);
+      setPersistedHeaderMode(b.header_mode);
       setHasHeaderRow(b.header_mode !== "no_header");
     }
-    if (b.header_row_index != null) setManualHeaderRow(b.header_row_index + 1);
+    if (b.header_row_index != null) {
+      const row = b.header_row_index + 1;
+      setManualHeaderRow(row);
+      setPersistedManualHeaderRow(row);
+    }
     const savedMappings = extractFieldMappingsFromColumnConfig(b.column_mapping_json);
     if (Object.keys(savedMappings).length > 0) {
       setColumnFieldMap(mappingsToColumnFieldMap(savedMappings));
@@ -308,11 +395,16 @@ export function ImportWizardPage({
       setBatchId(result.batch_id);
       setUploadPreview(result);
       setAvailableSheets(result.available_sheets ?? []);
-      setSelectedSheet(result.selected_sheet_name ?? result.available_sheets?.[0] ?? "");
+      const sheet = result.selected_sheet_name ?? result.available_sheets?.[0] ?? "";
+      setSelectedSheet(sheet);
+      setPersistedSheet(sheet);
       const mode = result.suggested_mapping.header_mode ?? (result.suggested_mapping.has_header_row ? "first_row_header" : "no_header");
       setHeaderMode(mode);
+      setPersistedHeaderMode(mode);
       setHasHeaderRow(mode !== "no_header");
-      setManualHeaderRow((result.suggested_mapping.header_row_index ?? 0) + 1);
+      const headerRow = (result.suggested_mapping.header_row_index ?? 0) + 1;
+      setManualHeaderRow(headerRow);
+      setPersistedManualHeaderRow(headerRow);
       const initial: Record<string, number> = {};
       for (const [k, v] of Object.entries(result.suggested_mapping.mappings)) {
         initial[k] = v.value;
@@ -320,7 +412,7 @@ export function ImportWizardPage({
       setMappings(initial);
       setColumnFieldMap(mappingsToColumnFieldMap(result.suggested_mapping.mappings));
       setMappingColumns(result.mapping_columns ?? []);
-      onUploadComplete?.();
+      leaveUnlocked(() => onUploadComplete?.());
     } catch (err) {
       setError(err instanceof ApiError ? err.message : importLabels.uploadError);
     } finally {
@@ -344,7 +436,7 @@ export function ImportWizardPage({
         mappings: mappingPayload,
       };
       await setColumnMapping(batchId, payload);
-      (onMappingSaved ?? onFinished)?.();
+      leaveUnlocked(() => (onMappingSaved ?? onFinished)?.());
     } catch (err) {
       setError(err instanceof ApiError ? err.message : importLabels.loadError);
     } finally {
@@ -358,8 +450,12 @@ export function ImportWizardPage({
     setError(null);
     try {
       const res = await selectImportSheet(batchId, selectedSheet);
+      setPersistedSheet(selectedSheet);
       const sm = res.suggested_mapping as { header_mode?: ExcelHeaderMode; mappings?: Record<string, { value: number }> };
-      if (sm.header_mode) setHeaderMode(sm.header_mode);
+      if (sm.header_mode) {
+        setHeaderMode(sm.header_mode);
+        setPersistedHeaderMode(sm.header_mode);
+      }
       if (sm.mappings) {
         setMappings(
           Object.fromEntries(Object.entries(sm.mappings).map(([k, v]) => [k, v.value])),
@@ -385,6 +481,8 @@ export function ImportWizardPage({
         header_mode: headerMode,
         header_row_index: headerMode === "manual_header_row" ? manualHeaderRow - 1 : headerMode === "first_row_header" ? 0 : null,
       });
+      setPersistedHeaderMode(headerMode);
+      setPersistedManualHeaderRow(manualHeaderRow);
       await refreshMappingPreview();
       setStepIndex(4);
     } catch (err) {
@@ -397,6 +495,7 @@ export function ImportWizardPage({
   const handleDecision = async (row: ImportRow, decision: ImportDecision) => {
     if (!batchId) return;
     try {
+      setMappingOrDecisionTouched(true);
       await setImportRowDecision(batchId, row.id, { decision });
       await previewTable.refresh();
       await refreshBatch(batchId);
@@ -494,6 +593,7 @@ export function ImportWizardPage({
     setBulkAssignErrors([]);
     setError(null);
     try {
+      setMappingOrDecisionTouched(true);
       const result = await bulkAssignRowDecisions(
         batchId,
         Array.from(selectedRowIds),
@@ -940,9 +1040,10 @@ export function ImportWizardPage({
         columns={gridColumns}
         rows={gridRows}
         columnFieldMap={columnFieldMap}
-        onColumnFieldChange={(colIndex, field) =>
-          setColumnFieldMap((prev) => ({ ...prev, [colIndex]: field }))
-        }
+        onColumnFieldChange={(colIndex, field) => {
+          setMappingOrDecisionTouched(true);
+          setColumnFieldMap((prev) => ({ ...prev, [colIndex]: field }));
+        }}
         totalDataRows={gridMeta.totalDataRows}
         previewRowCount={gridMeta.previewRowCount}
       />
@@ -993,9 +1094,13 @@ export function ImportWizardPage({
               if (!batchId) return;
               try {
                 const res = await selectImportSheet(batchId, sheet);
+                setPersistedSheet(sheet);
                 setHasHeaderRow(Boolean(res.suggested_mapping?.has_header_row));
                 const sm = res.suggested_mapping as { header_mode?: ExcelHeaderMode; mappings?: Record<string, { value: number }> };
-                if (sm.header_mode) setHeaderMode(sm.header_mode);
+                if (sm.header_mode) {
+                  setHeaderMode(sm.header_mode);
+                  setPersistedHeaderMode(sm.header_mode);
+                }
                 const initial: Record<string, number> = {};
                 for (const [k, v] of Object.entries(sm.mappings ?? {})) {
                   initial[k] = v.value;
@@ -1006,7 +1111,7 @@ export function ImportWizardPage({
                   setUploadPreview({ ...uploadPreview, detected_headers: res.detected_headers });
                 }
               } catch {
-                /* best effort */
+                /* best effort — selection remains dirty until persist succeeds */
               }
             }}
           >
@@ -1232,7 +1337,11 @@ export function ImportWizardPage({
             <h3>✅ {importLabels.importCompletedTitle}</h3>
             <p>{importLabels.importCompletedMessage(processedRowCount)}</p>
             <p className="text-muted">{importLabels.importCompletedNoPending}</p>
-            <button type="button" className="btn btn-primary" onClick={() => onFinished?.()}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => leaveUnlocked(() => onFinished?.())}
+            >
               {importLabels.importCompletedBack}
             </button>
           </div>
@@ -1347,11 +1456,21 @@ export function ImportWizardPage({
 
   return (
     <PageShell className="import-wizard" fullWidth>
-      <PageHeader title={importLabels.wizardTitle} subtitle={importLabels.wizardSubtitle} />
+      <PageHeader
+        title={importLabels.wizardTitle}
+        subtitle={importLabels.wizardSubtitle}
+        breadcrumbs={[
+          { label: dataIntegrationLabels.navImports, onClick: requestLeave },
+          { label: importLabels.wizardTitle, current: true },
+        ]}
+      />
       {renderStepper()}
       {error ? <Banner variant="error">{error}</Banner> : null}
       {loading ? <LoadingState message="Yükleniyor…" /> : stepContent[currentStep]}
       <div className="wizard-nav">
+        <button type="button" className="btn btn-secondary" onClick={requestLeave}>
+          İptal
+        </button>
         <button
           type="button"
           className="btn btn-secondary"

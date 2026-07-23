@@ -2,7 +2,8 @@ import React from "react";
 import { getFair } from "../api/fairs";
 import { FairEntitySelect } from "./FairEntitySelect";
 import { Modal } from "./ui/Modal";
-import { useModalFormCancel } from "../hooks/useModalForm";
+import { FormDirtyHost } from "./ui/form/FormDirty";
+import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 import { adminLabels } from "../labels/adminLabels";
 
 export interface AssignCustomersToFairModalProps {
@@ -15,8 +16,19 @@ export interface AssignCustomersToFairModalProps {
   onAssign: () => void;
 }
 
-export function AssignCustomersToFairModal({
-  open,
+const EMPTY_FAIR = { fairId: "" };
+
+export function AssignCustomersToFairModal(props: AssignCustomersToFairModalProps) {
+  if (!props.open) return null;
+
+  return (
+    <FormDirtyHost onClose={props.onClose} confirmClassName="modal-backdrop-nested">
+      <AssignCustomersToFairModalInner {...props} />
+    </FormDirtyHost>
+  );
+}
+
+function AssignCustomersToFairModalInner({
   selectedCount,
   fairId,
   assigning,
@@ -26,6 +38,8 @@ export function AssignCustomersToFairModal({
 }: AssignCustomersToFairModalProps) {
   const requestClose = useModalFormCancel(onClose);
   const [fairName, setFairName] = React.useState<string | null>(null);
+
+  useReportFormDirty({ fairId }, EMPTY_FAIR);
 
   React.useEffect(() => {
     if (!fairId) {
@@ -37,12 +51,10 @@ export function AssignCustomersToFairModal({
       .catch(() => setFairName(null));
   }, [fairId]);
 
-  if (!open) return null;
-
   return (
     <Modal
       title={adminLabels.dataOpAssignToFairTitle}
-      onClose={requestClose}
+      onClose={onClose}
       footer={
         <>
           <button type="button" className="btn secondary" onClick={requestClose} disabled={assigning}>

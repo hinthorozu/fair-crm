@@ -5,10 +5,16 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.modules.operations.application.operation_type_seed import (
+    CANONICAL_OPERATION_TYPES,
+    ensure_default_operation_types,
+)
 from app.modules.operations.domain.type_registry import default_operation_type_registry
 from app.modules.operations.domain.value_objects import OperationType
+from app.modules.fairs.api.dependencies import get_fair_scraper_job_runner
 from app.modules.operations.infrastructure.handlers.manual_task_handler import ManualTaskHandler
 from app.modules.operations.infrastructure.handlers.registry import default_handler_registry
+from app.modules.operations.infrastructure.handlers.scraper_handler import ScraperHandler
 from app.modules.operations.infrastructure.persistence.models import OperationModel
 from app.modules.todos.infrastructure.persistence.models import TodoModel
 
@@ -26,28 +32,136 @@ def test_wizard_metadata_includes_manual_task(client: TestClient, auth_headers: 
     assert OperationType.MANUAL_TASK in types
     manual = types[OperationType.MANUAL_TASK]
     assert manual["handler_registered"] is True
-    assert manual["execution_ready"] is True
-    assert manual["capabilities"]["requires_worker"] is False
+    assert "execution_ready" not in manual
+    assert "requires_worker" not in manual["capabilities"]
+    assert "execution_ready" not in manual["capabilities"]
+    assert "requires_worker" not in body["capabilities_keys"]
+    assert "execution_ready" not in body["capabilities_keys"]
     assert "customer" in manual["supported_sources"]
     assert "fair" in manual["supported_sources"]
     assert "multiple_fairs" not in body["source_kinds"]
     assert "fair" in body["source_kinds"]
     assert "multiple_fairs" not in types["scraper"]["supported_sources"]
     assert "fair" in types["scraper"]["supported_sources"]
+    scraper = types["scraper"]
+    assert scraper["handler_registered"] is True
+    assert "execution_ready" not in scraper
+    step_ids = [step["id"] for step in scraper["wizard_steps"]]
+    assert step_ids == ["fair", "scraper_info", "summary"]
+    assert "adapter_key" in scraper["type_config_schema"]["fields"]
+    assert "requested_fields" in scraper["type_config_schema"]["fields"]
+    assert "source_url" in scraper["type_config_schema"]["fields"]
+    assert "scraper_config" in scraper["type_config_schema"]["fields"]
 
 
-def _create_fair(client: TestClient, auth_headers: dict, name: str) -> str:
+def test_list_operation_types_returns_seeded_catalog(
+    client: TestClient,
+    auth_headers: dict,
+    db_session: Session,
+):
+    ensure_default_operation_types(db_session)
+
+    response = client.get("/api/v1/operations/types?active_only=true", headers=auth_headers)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    items = body["items"]
+    assert len(items) == len(CANONICAL_OPERATION_TYPES)
+    by_key = {item["key"]: item for item in items}
+    assert by_key["scraper"]["name"] == "Web Scraper"
+    assert by_key["scraper"]["is_active"] is True
+    assert by_key["scraper"]["sort_order"] == 10
+    assert by_key["scraper"]["supports_retry"] is True
+    assert "execution_ready" not in by_key["scraper"]
+    assert "requires_worker" not in by_key["scraper"]
+    assert "execution_ready" not in by_key["email"]
+    assert "requires_worker" not in by_key["email"]
+    keys_in_order = [item["key"] for item in items]
+    assert keys_in_order == [key for key, _name, _sort, _caps in CANONICAL_OPERATION_TYPES]
+
+    ensure_default_operation_types(db_session)
+    again = client.get("/api/v1/operations/types?active_only=true", headers=auth_headers)
+    assert again.status_code == 200
+    assert len(again.json()["items"]) == len(CANONICAL_OPERATION_TYPES)
+
+
+def test_update_operation_type_capabilities_persists(
+    client: TestClient,
+    auth_headers: dict,
+    db_session: Session,
+):
+    ensure_default_operation_types(db_session)
+
+    response = client.patch(
+        "/api/v1/operations/types/email/capabilities",
+        headers=auth_headers,
+        json={
+            "supports_pause": True,
+            "supports_resume": False,
+            "supports_retry": True,
+            "supports_schedule": True,
+            "supports_items": True,
+            "is_active": True,
+        },
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["key"] == "email"
+    assert body["supports_pause"] is True
+    assert body["supports_retry"] is True
+    assert "execution_ready" not in body
+    assert "requires_worker" not in body
+    assert body["is_active"] is True
+
+    listed = client.get("/api/v1/operations/types?active_only=true", headers=auth_headers)
+    assert listed.status_code == 200
+    email = next(item for item in listed.json()["items"] if item["key"] == "email")
+    assert email["supports_pause"] is True
+    assert "execution_ready" not in email
+
+    scraper = next(item for item in listed.json()["items"] if item["key"] == "scraper")
+    assert scraper["supports_pause"] is False
+    assert "execution_ready" not in scraper
+
+    wizard = client.get("/api/v1/operations/wizard-metadata", headers=auth_headers)
+    assert wizard.status_code == 200
+    email_meta = next(item for item in wizard.json()["types"] if item["type"] == "email")
+    assert email_meta["capabilities"]["supports_pause"] is True
+    assert "execution_ready" not in email_meta
+    assert "requires_worker" not in email_meta["capabilities"]
+
+
+def _create_fair(client: TestClient, auth_headers: dict, name: str, **extra) -> str:
+    payload = {"name": name, **extra}
     response = client.post(
         "/api/v1/fairs",
         headers=auth_headers,
-        json={"name": name},
+        json=payload,
     )
     assert response.status_code == 201, response.text
     return response.json()["id"]
 
 
+def _scraper_type_config(**overrides) -> dict:
+    payload = {
+        "adapter_key": "tuyap_new",
+        "requested_fields": ["customerName", "email", "website"],
+        "max_pages": 2,
+        "use_http": True,
+        "scrape_detail": False,
+    }
+    payload.update(overrides)
+    return payload
+
+
 def test_create_fair_source_with_one_fair(client: TestClient, auth_headers: dict):
-    fair_id = _create_fair(client, auth_headers, "Single Fair Source")
+    fair_id = _create_fair(
+        client,
+        auth_headers,
+        "Single Fair Source",
+        adapter_key="tuyap_new",
+        source_url="https://example.com/list",
+        scraper_config={"max_pages": 1},
+    )
     response = client.post(
         "/api/v1/operations",
         headers=auth_headers,
@@ -56,7 +170,7 @@ def test_create_fair_source_with_one_fair(client: TestClient, auth_headers: dict
             "title": "One fair scraper",
             "source_kind": "fair",
             "source_ids": [fair_id],
-            "type_config": {"adapter_key": "tuyap_new"},
+            "type_config": _scraper_type_config(),
         },
     )
     assert response.status_code == 201, response.text
@@ -65,6 +179,9 @@ def test_create_fair_source_with_one_fair(client: TestClient, auth_headers: dict
     assert body["source_ids"] == [fair_id]
     assert body["source_config"]["source_ids"] == [fair_id]
     assert "fair_id" not in body["source_config"]
+    assert "execution_ready" not in body["capabilities"]
+    assert "requires_worker" not in body["capabilities"]
+    assert body["capabilities"]["supports_retry"] is True
 
 
 def test_create_fair_source_with_multiple_fairs(client: TestClient, auth_headers: dict):
@@ -96,6 +213,7 @@ def test_create_fair_source_rejects_empty_source_ids(client: TestClient, auth_he
             "title": "Missing fairs",
             "source_kind": "fair",
             "source_ids": [],
+            "type_config": _scraper_type_config(),
         },
     )
     assert response.status_code == 400
@@ -112,11 +230,12 @@ def test_create_fair_source_rejects_unknown_fair_id(client: TestClient, auth_hea
             "title": "Unknown fair",
             "source_kind": "fair",
             "source_ids": [missing_id],
+            "type_config": _scraper_type_config(),
         },
     )
     assert response.status_code == 400
     detail = response.json()["detail"]
-    assert "source_ids" in detail
+    assert "source_ids" in detail or "fair" in detail.lower()
     assert missing_id in detail
 
 
@@ -149,10 +268,12 @@ def test_type_registry_covers_all_planned_types():
     }
 
 
-def test_handler_registry_only_manual_task_ready():
-    assert default_handler_registry.list_types() == ["manual_task"]
-    handler = default_handler_registry.require("manual_task")
-    assert isinstance(handler, ManualTaskHandler)
+def test_handler_registry_includes_manual_task_and_scraper():
+    assert set(default_handler_registry.list_types()) == {"manual_task", "scraper"}
+    assert isinstance(default_handler_registry.require("manual_task"), ManualTaskHandler)
+    scraper = default_handler_registry.require("scraper")
+    assert isinstance(scraper, ScraperHandler)
+    assert scraper.capabilities.supports_retry is True
 
 
 def test_create_list_detail_manual_task(
@@ -186,7 +307,8 @@ def test_create_list_detail_manual_task(
     assert created["operation_type"] == "manual_task"
     assert created["status"] == "draft"
     assert created["organization_id"] == str(organization_id)
-    assert created["capabilities"]["requires_worker"] is False
+    assert "requires_worker" not in created["capabilities"]
+    assert "execution_ready" not in created["capabilities"]
     assert created["related_todo_id"] is None
 
     list_response = client.get("/api/v1/operations", headers=auth_headers)
@@ -246,7 +368,8 @@ def test_start_manual_task_creates_todo_with_mapping(
     assert start_response.status_code == 200, start_response.text
     started = start_response.json()
     assert started["status"] == "completed"
-    assert started["capabilities"]["requires_worker"] is False
+    assert "requires_worker" not in started["capabilities"]
+    assert "execution_ready" not in started["capabilities"]
     assert started["related_todo_id"] is not None
     assert started["related_resource"] == {
         "type": "todo",
@@ -437,31 +560,337 @@ def test_retry_manual_task_not_supported(
     assert retry_response.status_code == 409
 
 
-def test_create_scraper_without_handler_ok_but_start_conflicts(
+def test_create_and_start_scraper_links_run_and_schedules_job(
     client: TestClient,
     auth_headers: dict,
 ):
-    fair_id = _create_fair(client, auth_headers, "Future scraper fair")
-    create_response = client.post(
+    scheduled: list = []
+
+    class _FakeJobRunner:
+        def run_fair_scraper(self, command) -> None:
+            scheduled.append(command)
+
+    client.app.dependency_overrides[get_fair_scraper_job_runner] = lambda: _FakeJobRunner()
+    try:
+        fair_id = _create_fair(
+            client,
+            auth_headers,
+            "Executable scraper fair",
+            adapter_key="tuyap_new",
+            source_url="https://example.com/brands",
+            scraper_config={"max_pages": 1, "use_http": True},
+        )
+        create_response = client.post(
+            "/api/v1/operations",
+            headers=auth_headers,
+            json={
+                "operation_type": "scraper",
+                "title": "Executable scraper op",
+                "source_kind": "fair",
+                "source_ids": [fair_id],
+                "type_config": _scraper_type_config(),
+                "start_immediately": True,
+            },
+        )
+        assert create_response.status_code == 201, create_response.text
+        body = create_response.json()
+        assert body["status"] == "active"
+        assert body["latest_run"] is not None
+        assert body["latest_run"]["status"] == "running"
+        result = (body["latest_run"].get("error_details") or {}).get("result") or {}
+        assert result.get("scraper_run_id")
+        assert result.get("adapter_key") == "tuyap_new"
+        assert result.get("requested_fields") == ["customerName", "email", "website"]
+        assert len(scheduled) == 1
+        assert str(scheduled[0].fair_id) == fair_id
+        assert scheduled[0].requested_fields == ["customerName", "email", "website"]
+        assert scheduled[0].option_overrides == {
+            "max_pages": 2,
+            "use_http": True,
+            "scrape_detail": False,
+        }
+
+        detail = client.get(f"/api/v1/operations/{body['id']}", headers=auth_headers)
+        assert detail.status_code == 200, detail.text
+        assert detail.json()["operation"]["latest_run"]["status"] == "running"
+
+        cancel = client.post(f"/api/v1/operations/{body['id']}/cancel", headers=auth_headers)
+        assert cancel.status_code == 200, cancel.text
+        assert cancel.json()["status"] == "cancelled"
+    finally:
+        client.app.dependency_overrides.pop(get_fair_scraper_job_runner, None)
+
+
+def test_create_scraper_rejects_enrichment_adapter(
+    client: TestClient,
+    auth_headers: dict,
+):
+    fair_id = _create_fair(
+        client,
+        auth_headers,
+        "Enrichment fair",
+        adapter_key="tuyap_new",
+        source_url="https://example.com/enrich",
+    )
+    response = client.post(
         "/api/v1/operations",
         headers=auth_headers,
         json={
             "operation_type": "scraper",
-            "title": "Future scraper op",
+            "title": "Bad enrichment scraper",
             "source_kind": "fair",
             "source_ids": [fair_id],
-            "type_config": {"adapter_key": "tuyap_new"},
+            "type_config": _scraper_type_config(
+                adapter_key="customer_contact_enrichment",
+                requested_fields=["email", "phone"],
+            ),
         },
     )
-    assert create_response.status_code == 201, create_response.text
-    operation_id = create_response.json()["id"]
-    assert create_response.json()["related_todo_id"] is None
+    assert response.status_code == 400
+    assert "enrichment" in response.json()["detail"].lower()
 
-    start_response = client.post(
-        f"/api/v1/operations/{operation_id}/start",
-        headers=auth_headers,
+
+def test_create_scraper_rejects_invalid_adapter(
+    client: TestClient,
+    auth_headers: dict,
+):
+    fair_id = _create_fair(
+        client,
+        auth_headers,
+        "Invalid adapter fair",
+        adapter_key="tuyap_new",
+        source_url="https://example.com/list",
     )
-    assert start_response.status_code == 409
+    response = client.post(
+        "/api/v1/operations",
+        headers=auth_headers,
+        json={
+            "operation_type": "scraper",
+            "title": "Bad adapter",
+            "source_kind": "fair",
+            "source_ids": [fair_id],
+            "type_config": _scraper_type_config(adapter_key="does_not_exist"),
+        },
+    )
+    assert response.status_code == 400
+    assert "adapter" in response.json()["detail"].lower()
+
+
+def test_create_scraper_allows_adapter_override_different_from_fair(
+    client: TestClient,
+    auth_headers: dict,
+):
+    fair_id = _create_fair(
+        client,
+        auth_headers,
+        "Override fair",
+        adapter_key="tuyap_old",
+        source_url="https://example.com/old",
+    )
+    response = client.post(
+        "/api/v1/operations",
+        headers=auth_headers,
+        json={
+            "operation_type": "scraper",
+            "title": "Adapter override",
+            "source_kind": "fair",
+            "source_ids": [fair_id],
+            "type_config": _scraper_type_config(
+                adapter_key="tuyap_new",
+                source_url="https://example.com/override",
+                scraper_config={"max_pages": 1, "use_http": True},
+            ),
+        },
+    )
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["type_config"]["adapter_key"] == "tuyap_new"
+    assert body["type_config"]["source_url"] == "https://example.com/override"
+
+
+def test_create_scraper_rejects_invalid_requested_fields(
+    client: TestClient,
+    auth_headers: dict,
+):
+    fair_id = _create_fair(
+        client,
+        auth_headers,
+        "Fields fair",
+        adapter_key="tuyap_new",
+        source_url="https://example.com/fields",
+    )
+    response = client.post(
+        "/api/v1/operations",
+        headers=auth_headers,
+        json={
+            "operation_type": "scraper",
+            "title": "Bad fields",
+            "source_kind": "fair",
+            "source_ids": [fair_id],
+            "type_config": _scraper_type_config(
+                requested_fields=["customerName", "notARealField"],
+            ),
+        },
+    )
+    assert response.status_code == 400
+    assert "requested_fields" in response.json()["detail"]
+
+
+def test_scraper_operation_successful_scrape_and_handoff(
+    client: TestClient,
+    auth_headers: dict,
+    db_session: Session,
+    organization_id: UUID,
+    user_id: UUID,
+):
+    from app.modules.scraper.application.fair_scraper_job_runner import (
+        FairScraperJobCommand,
+        FairScraperJobRunner,
+    )
+    from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
+
+    scheduled: list[FairScraperJobCommand] = []
+
+    class _CaptureRunner:
+        def run_fair_scraper(self, command: FairScraperJobCommand) -> None:
+            scheduled.append(command)
+
+    client.app.dependency_overrides[get_fair_scraper_job_runner] = lambda: _CaptureRunner()
+    try:
+        fair_id = _create_fair(
+            client,
+            auth_headers,
+            "Handoff scraper fair",
+            adapter_key="tuyap_new",
+            source_url="https://handoff.example/list",
+            scraper_config={"use_http": True},
+        )
+        create_response = client.post(
+            "/api/v1/operations",
+            headers=auth_headers,
+            json={
+                "operation_type": "scraper",
+                "title": "Handoff scraper",
+                "source_kind": "fair",
+                "source_ids": [fair_id],
+                "type_config": _scraper_type_config(max_pages=1),
+                "start_immediately": True,
+            },
+        )
+        assert create_response.status_code == 201, create_response.text
+        body = create_response.json()
+        assert len(scheduled) == 1
+        command = scheduled[0]
+
+        def _mock_scrape_executor(**_kwargs) -> ScraperImportHandoff:
+            return ScraperImportHandoff(
+                canonical_rows=[
+                    {
+                        "company_name": "Handoff Co",
+                        "website": "https://handoff.co",
+                        "email": "a@handoff.co",
+                        "phone": "",
+                    }
+                ],
+                row_metadata=[{}],
+            )
+
+        runner = FairScraperJobRunner(
+            session_factory=lambda: db_session,
+            scrape_executor=_mock_scrape_executor,
+        )
+        runner.run_fair_scraper(command)
+        db_session.expire_all()
+
+        detail = client.get(f"/api/v1/operations/{body['id']}", headers=auth_headers)
+        assert detail.status_code == 200, detail.text
+        operation = detail.json()["operation"]
+        latest = operation["latest_run"]
+        assert latest["status"] == "completed"
+        result = (latest.get("error_details") or {}).get("result") or {}
+        assert result.get("total_rows") == 1
+        assert result.get("import_batch_id")
+        assert operation["status"] == "completed"
+
+        batch = client.get(
+            f"/api/v1/imports/{result['import_batch_id']}",
+            headers=auth_headers,
+        )
+        assert batch.status_code == 200
+        assert batch.json()["source_type"] == "scraper"
+    finally:
+        client.app.dependency_overrides.pop(get_fair_scraper_job_runner, None)
+
+
+def test_scraper_operation_failed_scrape_maps_status(
+    client: TestClient,
+    auth_headers: dict,
+    db_session: Session,
+):
+    from app.modules.scraper.application.fair_scraper_job_runner import (
+        FairScraperJobCommand,
+        FairScraperJobRunner,
+    )
+
+    scheduled: list[FairScraperJobCommand] = []
+
+    class _CaptureRunner:
+        def run_fair_scraper(self, command: FairScraperJobCommand) -> None:
+            scheduled.append(command)
+
+    client.app.dependency_overrides[get_fair_scraper_job_runner] = lambda: _CaptureRunner()
+    try:
+        fair_id = _create_fair(
+            client,
+            auth_headers,
+            "Fail scraper fair",
+            adapter_key="tuyap_new",
+            source_url="https://fail.example/list",
+        )
+        create_response = client.post(
+            "/api/v1/operations",
+            headers=auth_headers,
+            json={
+                "operation_type": "scraper",
+                "title": "Failing scraper",
+                "source_kind": "fair",
+                "source_ids": [fair_id],
+                "type_config": _scraper_type_config(),
+                "start_immediately": True,
+            },
+        )
+        assert create_response.status_code == 201, create_response.text
+        body = create_response.json()
+        command = scheduled[0]
+
+        def _boom(**_kwargs):
+            raise RuntimeError("scrape exploded")
+
+        runner = FairScraperJobRunner(
+            session_factory=lambda: db_session,
+            scrape_executor=_boom,
+        )
+        runner.run_fair_scraper(command)
+        db_session.expire_all()
+
+        detail = client.get(f"/api/v1/operations/{body['id']}", headers=auth_headers)
+        assert detail.status_code == 200
+        latest = detail.json()["operation"]["latest_run"]
+        assert latest["status"] == "failed"
+        assert "exploded" in (latest.get("error_message") or "")
+
+        # Retry creates a new OperationRun and re-schedules scraper execution.
+        scheduled.clear()
+        retry = client.post(f"/api/v1/operations/{body['id']}/retry", headers=auth_headers)
+        assert retry.status_code == 200, retry.text
+        retried = retry.json()
+        assert retried["latest_run"] is not None
+        assert retried["latest_run"]["id"] != latest["id"]
+        assert retried["latest_run"]["status"] in {"queued", "running"}
+        assert retried["latest_run"]["attempt"] >= 2
+        assert len(scheduled) == 1
+    finally:
+        client.app.dependency_overrides.pop(get_fair_scraper_job_runner, None)
 
 
 def test_org_isolation(

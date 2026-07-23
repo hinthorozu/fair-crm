@@ -7,6 +7,7 @@ import {
   DEFAULT_RENDER_VARIABLES_JSON,
   parseRenderVariablesJson,
 } from "../../utils/mailTemplateForm";
+import { useReportFormDirty } from "../../hooks/useModalForm";
 
 interface MailTemplatePreviewPanelProps {
   variablesJson: string;
@@ -18,6 +19,8 @@ interface MailTemplatePreviewPanelProps {
   canRender: boolean;
 }
 
+const PREVIEW_BASELINE = { variablesJson: DEFAULT_RENDER_VARIABLES_JSON };
+
 export function MailTemplatePreviewPanel({
   variablesJson,
   onVariablesJsonChange,
@@ -28,6 +31,8 @@ export function MailTemplatePreviewPanel({
   canRender,
 }: MailTemplatePreviewPanelProps) {
   const [localError, setLocalError] = React.useState<string | null>(null);
+
+  useReportFormDirty({ variablesJson }, PREVIEW_BASELINE);
 
   const handleRender = async () => {
     setLocalError(null);

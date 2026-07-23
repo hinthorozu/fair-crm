@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
 from app.modules.scraper.types.scraper_context import ScraperContext
+
+if TYPE_CHECKING:
+    from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
 
 REQUESTED_OUTPUT_FIELD_KEYS: tuple[str, ...] = (
     "customerName",

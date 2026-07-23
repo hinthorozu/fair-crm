@@ -58,9 +58,5 @@ class HandlerCapabilityNotSupportedError(OperationError):
     pass
 
 
-class OperationExecutionNotReadyError(OperationError):
-    pass
-
-
 class InvalidManualTaskStatusError(OperationError):
     pass

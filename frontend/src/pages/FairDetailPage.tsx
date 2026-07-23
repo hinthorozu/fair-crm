@@ -1,6 +1,6 @@
 import React from "react";
-import { getFair, archiveFair, updateFair, runFairScraper } from "../api/fairs";
-import { getScraperRun, listAdapters, listScraperRuns } from "../api/scraper";
+import { getFair, archiveFair, updateFair } from "../api/fairs";
+import { listAdapters, listScraperRuns } from "../api/scraper";
 import {
   createParticipation,
   deleteParticipation,
@@ -68,7 +68,6 @@ interface FairDetailPageProps {
   onFairLoaded?: (name: string) => void;
   onOpenCustomer?: (customerId: string) => void;
   onImportParticipants?: () => void;
-  onOpenImportDecisions?: (batchId: string) => void;
   onOpenFairEnrichment?: (fairId: string) => void;
 }
 
@@ -88,7 +87,6 @@ export function FairDetailPage({
   onFairLoaded,
   onOpenCustomer,
   onImportParticipants,
-  onOpenImportDecisions,
   onOpenFairEnrichment,
 }: FairDetailPageProps) {
   const [fair, setFair] = React.useState<Fair | null>(null);
@@ -103,7 +101,6 @@ export function FairDetailPage({
   const [confirmArchive, setConfirmArchive] = React.useState(false);
   const [participantCount, setParticipantCount] = React.useState(0);
   const [adapters, setAdapters] = React.useState<AdapterListItem[]>([]);
-  const [runningScraper, setRunningScraper] = React.useState(false);
   const [runSuccess, setRunSuccess] = React.useState<string | null>(null);
   const [lastImportAt, setLastImportAt] = React.useState<string | null>(null);
   const [logsRefreshToken, setLogsRefreshToken] = React.useState(0);
@@ -256,57 +253,6 @@ export function FairDetailPage({
   const canPreviewFairEmail = canPerformFairEmailAction(fairEmailPermissions, "preview");
   const canSendFairEmail = canPerformFairEmailAction(fairEmailPermissions, "send");
   const canRunEnrichment = canRunScraperActions(scraperPermissions);
-
-  const canRunScraper =
-    Boolean(fair?.adapter_key?.trim() && fair?.source_url?.trim()) &&
-    fair?.status !== "archived" &&
-    fair?.deleted_at == null;
-
-  const pollScraperRun = React.useCallback(
-    async (runId: string): Promise<{ importBatchId: string | null; totalRows: number }> => {
-      for (let attempt = 0; attempt < 90; attempt += 1) {
-        await new Promise((resolve) => window.setTimeout(resolve, 2000));
-        const run = await getScraperRun(runId);
-        if (run.status === "completed") {
-          setLastImportAt(run.finished_at);
-          return {
-            importBatchId: run.import_batch_id ?? null,
-            totalRows: run.total_rows ?? 0,
-          };
-        }
-        if (run.status === "failed") {
-          throw new ApiError(run.error_message || fairLabels.runScraperError, 500);
-        }
-      }
-      throw new ApiError(fairLabels.runScraperError, 504);
-    },
-    [],
-  );
-
-  const handleRunScraper = async () => {
-    setRunningScraper(true);
-    setRunSuccess(null);
-    setError(null);
-    try {
-      const run = await runFairScraper(fairId);
-      setRunSuccess(fairLabels.runScraperRunning);
-      const result = await pollScraperRun(run.id);
-      if (result.importBatchId && onOpenImportDecisions) {
-        setRunSuccess(fairLabels.runScraperComplete);
-        onOpenImportDecisions(result.importBatchId);
-        return;
-      }
-      if (result.totalRows === 0) {
-        setRunSuccess(fairLabels.runScraperNoRows);
-        return;
-      }
-      setRunSuccess(fairLabels.runScraperSuccess);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : fairLabels.runScraperError);
-    } finally {
-      setRunningScraper(false);
-    }
-  };
 
   const openFairEnrichment = () => {
     if (!canRunEnrichment) {
@@ -490,19 +436,7 @@ export function FairDetailPage({
         </Card>
 
         <Card className="detail-card-spaced">
-          <SectionHeader
-            title={fairLabels.dataIntegration}
-            actions={
-              <button
-                type="button"
-                className="btn primary"
-                disabled={!canRunScraper || runningScraper}
-                onClick={() => void handleRunScraper()}
-              >
-                {runningScraper ? fairLabels.runScraperRunning : fairLabels.runScraper}
-              </button>
-            }
-          />
+          <SectionHeader title={fairLabels.dataIntegration} />
           <dl className="detail-grid">
             <div>
               <dt>{fairLabels.adapter}</dt>

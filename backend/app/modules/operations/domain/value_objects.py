@@ -71,5 +71,3 @@ class HandlerCapabilities:
     supports_retry: bool = False
     supports_schedule: bool = False
     supports_items: bool = False
-    requires_worker: bool = True
-    execution_ready: bool = False

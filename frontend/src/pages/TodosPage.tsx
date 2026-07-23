@@ -26,6 +26,7 @@ import {
 } from "../components/ui/form";
 import { FormModal } from "../components/ui/form";
 import { Button } from "../components/ui/Button";
+import { useModalFormCancel } from "../hooks/useModalForm";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Badge, type BadgeVariant } from "../components/ui/Badge";
 import { FilterPanel } from "../components/ui/FilterPanel";
@@ -100,6 +101,21 @@ function setTodosViewInUrl(view: TodosHubView) {
     window.history.pushState(null, "", next);
   }
   window.dispatchEvent(new PopStateEvent("popstate"));
+}
+
+function TodoFormModalCancel({
+  onClose,
+  disabled,
+}: {
+  onClose: () => void;
+  disabled?: boolean;
+}) {
+  const requestClose = useModalFormCancel(onClose);
+  return (
+    <Button type="button" variant="secondary" onClick={requestClose} disabled={disabled}>
+      {todoLabels.cancel}
+    </Button>
+  );
 }
 
 type ConfirmAction =
@@ -673,14 +689,7 @@ export function TodosPage({ onOpenDetail, onOpenCustomer }: TodosPageProps) {
           formWidth="standard"
           footer={
             <>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setModal(null)}
-                disabled={formSaving}
-              >
-                {todoLabels.cancel}
-              </Button>
+              <TodoFormModalCancel onClose={() => setModal(null)} disabled={formSaving} />
               <Button
                 type="submit"
                 form={TODO_FORM_ID}
@@ -704,14 +713,7 @@ export function TodosPage({ onOpenDetail, onOpenCustomer }: TodosPageProps) {
           formWidth="standard"
           footer={
             <>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setModal(null)}
-                disabled={formSaving}
-              >
-                {todoLabels.cancel}
-              </Button>
+              <TodoFormModalCancel onClose={() => setModal(null)} disabled={formSaving} />
               <Button
                 type="submit"
                 form={TODO_FORM_ID}

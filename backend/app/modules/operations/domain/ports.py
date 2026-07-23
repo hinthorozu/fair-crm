@@ -58,6 +58,10 @@ class OperationRunRepository(Protocol):
 
     def get_by_id(self, organization_id: UUID, run_id: UUID) -> OperationRun | None: ...
 
+    def get_by_ids(
+        self, organization_id: UUID, run_ids: list[UUID]
+    ) -> dict[UUID, OperationRun]: ...
+
     def update(self, run: OperationRun) -> OperationRun: ...
 
     def list_by_operation(

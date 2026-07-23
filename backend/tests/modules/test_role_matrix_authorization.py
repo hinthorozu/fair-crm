@@ -21,6 +21,9 @@ from app.modules.imports.api.dependencies import get_authorization_adapter as ge
 from app.modules.participations.api.dependencies import (
     get_authorization_adapter as get_participation_authorization_adapter,
 )
+from app.modules.operations.api.dependencies import (
+    get_authorization_adapter as get_operations_authorization_adapter,
+)
 from app.modules.scraper.api.dependencies import get_authorization_adapter as get_scraper_authorization_adapter
 from app.modules.scraper.types.scraper_site import ScraperSiteKey
 from app.modules.smtp.api.dependencies import get_authorization_adapter as get_smtp_authorization_adapter
@@ -72,6 +75,7 @@ AUTH_DEPENDENCIES = (
     get_import_authorization_adapter,
     get_participation_authorization_adapter,
     get_scraper_authorization_adapter,
+    get_operations_authorization_adapter,
     get_smtp_authorization_adapter,
     get_mail_templates_authorization_adapter,
     get_fair_emails_authorization_adapter,
@@ -218,6 +222,18 @@ def test_role_matrix_scraper_read(
     with install_role_matrix_auth(client, role_slug):
         response = client.get("/api/v1/scraper/runs", headers=auth_headers)
     expected = 200 if _role_has(role_slug, "fair_crm.scraper.read") else 403
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
+def test_role_matrix_operations_read(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    role_slug: str,
+) -> None:
+    with install_role_matrix_auth(client, role_slug):
+        response = client.get("/api/v1/operations", headers=auth_headers)
+    expected = 200 if _role_has(role_slug, "fair_crm.operations.read") else 403
     assert response.status_code == expected
 
 

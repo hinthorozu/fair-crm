@@ -13,6 +13,7 @@ import {
 } from "../../utils/mailTemplateForm";
 import { formatSmtpTestMailError } from "../../utils/smtpForm";
 import { Banner } from "../ui/Banner";
+import { useModalFormCancel, useReportFormDirty } from "../../hooks/useModalForm";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -63,6 +64,22 @@ export function MailTemplateTestEmailPanel({
     setVariablesJson(DEFAULT_RENDER_VARIABLES_JSON);
     setVariablesSnapshot(DEFAULT_RENDER_VARIABLES_JSON);
   }, [template.id]);
+
+  const formValues = React.useMemo(
+    () => ({ toEmail, subject, smtpAccountId, variablesJson }),
+    [toEmail, subject, smtpAccountId, variablesJson],
+  );
+  const formBaseline = React.useMemo(
+    () => ({
+      toEmail: "",
+      subject: template.subject,
+      smtpAccountId: defaultAccount?.id ?? "",
+      variablesJson: DEFAULT_RENDER_VARIABLES_JSON,
+    }),
+    [template.subject, defaultAccount?.id],
+  );
+  useReportFormDirty(formValues, formBaseline);
+  const requestCancel = useModalFormCancel(onCancel);
 
   const handleSubjectChange = (value: string) => {
     setSubject(value);
@@ -304,7 +321,7 @@ export function MailTemplateTestEmailPanel({
       ) : null}
 
       <div className="form-actions">
-        <button type="button" className="btn secondary" onClick={onCancel} disabled={sending}>
+        <button type="button" className="btn secondary" onClick={requestCancel} disabled={sending}>
           {labels.cancel}
         </button>
         <button

@@ -4,6 +4,10 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.pagination import build_order_clause, build_paginated_meta, normalize_page_params
+from app.modules.operations.application.user_facing_run_status import (
+    USER_FACING_STATUSES,
+    expand_user_facing_status_filter,
+)
 from app.modules.operations.domain.entities import Operation
 from app.modules.operations.domain.ports import OperationListResult
 from app.modules.operations.infrastructure.persistence.mappers import (
@@ -11,7 +15,10 @@ from app.modules.operations.infrastructure.persistence.mappers import (
     operation_to_model,
     update_operation_model,
 )
-from app.modules.operations.infrastructure.persistence.models import OperationModel
+from app.modules.operations.infrastructure.persistence.models import (
+    OperationModel,
+    OperationRunModel,
+)
 
 OPERATION_SORT_FIELDS = {
     "title": OperationModel.title,
@@ -78,7 +85,26 @@ class SqlAlchemyOperationRepository:
         if operation_type:
             query = query.filter(OperationModel.operation_type == operation_type)
         if status:
-            query = query.filter(OperationModel.status == status)
+            # User-facing run status filter (shared Operation Engine model).
+            # Filters by latest run technical status — not operation lifecycle / type is_active.
+            status_key = status.strip().lower()
+            if status_key in USER_FACING_STATUSES or status_key in {
+                "queued",
+                "running",
+                "paused",
+                "completed",
+                "failed",
+                "cancelled",
+                "scheduled",
+            }:
+                technical = expand_user_facing_status_filter(status_key) or (status_key,)
+                query = query.join(
+                    OperationRunModel,
+                    OperationRunModel.id == OperationModel.latest_run_id,
+                ).filter(OperationRunModel.status.in_(technical))
+            else:
+                # Legacy lifecycle filter (draft/ready/active/archived) for API compatibility.
+                query = query.filter(OperationModel.status == status)
         if search and search.strip():
             term = f"%{search.strip()}%"
             query = query.filter(

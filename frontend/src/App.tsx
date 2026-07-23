@@ -18,6 +18,7 @@ import { MailTemplatesPage } from "./pages/MailTemplatesPage";
 import { MailOperationsPage } from "./pages/MailOperationsPage";
 import { DataOperationsPage } from "./pages/DataOperationsPage";
 import { DataOperationRunResultPage } from "./pages/DataOperationRunResultPage";
+import { OperationCapabilitiesAdminPage } from "./pages/OperationCapabilitiesAdminPage";
 import { ActivitiesPage } from "./pages/ActivitiesPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -25,7 +26,7 @@ import { TodoDetailPage } from "./pages/TodoDetailPage";
 import { TodosPage } from "./pages/TodosPage";
 import { OperationsPage } from "./pages/OperationsPage";
 import { OperationDetailPage } from "./pages/OperationDetailPage";
-import { OperationWizardPage } from "./pages/OperationWizardPage";
+import { ScraperOperationWizardPage } from "./pages/ScraperOperationWizardPage";
 import { CustomersResponsivePilotPage } from "./dev/CustomersResponsivePilotPage";
 import { TableStandardSmokePage } from "./dev/TableStandardSmokePage";
 import { DataIntegrationLayout } from "./components/dataIntegration/DataIntegrationLayout";
@@ -43,7 +44,12 @@ import {
 } from "./components/layout/NavIcons";
 import { activityLabels } from "./labels/activityLabels";
 import { operationLabels } from "./labels/operationLabels";
+import type { OperationType } from "./types/operation";
 import { EmptyState } from "./components/ui/EmptyState";
+import {
+  isNavigationDirty,
+  useNavigationDirtyGate,
+} from "./components/ui/form/FormDirty";
 import { PageHeader } from "./components/ui/PageHeader";
 import { PageShell } from "./components/ui/PageShell";
 import { uiLabels } from "./labels/uiLabels";
@@ -73,7 +79,7 @@ type AppRoute =
   | "/todos"
   | "/todos/:id"
   | "/operations"
-  | "/operations/new"
+  | "/operations/new/scraper"
   | "/operations/:id"
   | "/follow-ups"
   | "/activities"
@@ -95,6 +101,7 @@ type AppRoute =
   | "/admin/smtp-operations/mail-operations"
   | "/admin/data-operations"
   | "/admin/data-operations/runs/:runId"
+  | "/admin/operation-capabilities"
   | "/imports"
   | "/imports/fair/:fairId"
   | "/customers/:id";
@@ -152,6 +159,12 @@ function parseRoute(location: string): ParsedRoute {
     }
     if (pathname === "/admin/system/backups" || pathname.startsWith("/admin/system/backups")) {
       return { route: "/admin/system/backups" };
+    }
+    if (
+      pathname === "/admin/operation-capabilities" ||
+      pathname.startsWith("/admin/operation-capabilities/")
+    ) {
+      return { route: "/admin/operation-capabilities" };
     }
     return { route: "/admin/system/backups" };
   }
@@ -234,8 +247,17 @@ function parseRoute(location: string): ParsedRoute {
     return { route: "/todos" };
   }
   if (pathname === "/operations" || pathname.startsWith("/operations/")) {
-    if (pathname === "/operations/new" || pathname === "/operations/new/") {
-      return { route: "/operations/new" };
+    if (pathname === "/operations/new/scraper" || pathname === "/operations/new/scraper/") {
+      return { route: "/operations/new/scraper" };
+    }
+    // Legacy: type picker is a modal on /operations (not a standalone page).
+    if (
+      pathname === "/operations/new" ||
+      pathname === "/operations/new/" ||
+      pathname === "/operations/new/manual_task" ||
+      pathname === "/operations/new/manual_task/"
+    ) {
+      return { route: "/operations" };
     }
     const operationMatch = pathname.match(/^\/operations\/([^/]+)$/);
     if (operationMatch) {
@@ -292,6 +314,7 @@ function isAdminRoute(route: AppRoute): boolean {
 function adminSection(route: AppRoute): string {
   if (route.includes("/data-operations/runs/")) return "data-operations";
   if (route.includes("/data-operations")) return "data-operations";
+  if (route.includes("/operation-capabilities")) return "operation-capabilities";
   if (route.includes("/smtp-operations/templates")) return "mail-templates";
   if (route.includes("/smtp-operations/mail-operations")) return "mail-operations";
   if (route.includes("/smtp-operations/accounts")) return "smtp";
@@ -322,6 +345,20 @@ export function App() {
   const [adapterName, setAdapterName] = React.useState<string | null>(null);
   const [diNotice, setDiNotice] = React.useState<string | null>(null);
   const [adminNotice, setAdminNotice] = React.useState<string | null>(null);
+  const { requestNavigation, confirmDialog } = useNavigationDirtyGate();
+  const allowedUrlRef = React.useRef(
+    `${window.location.pathname}${window.location.search}`,
+  );
+
+  const runGuardedNav = React.useCallback(
+    (action: () => void) => {
+      requestNavigation(() => {
+        action();
+        allowedUrlRef.current = `${window.location.pathname}${window.location.search}`;
+      });
+    },
+    [requestNavigation],
+  );
 
   useDocumentTitle({
     route: parsed.route,
@@ -371,6 +408,16 @@ export function App() {
       setParsed(parseRoute("/todos?view=follow_ups"));
       return;
     }
+    if (
+      path === "/operations/new" ||
+      path === "/operations/new/" ||
+      path === "/operations/new/manual_task" ||
+      path === "/operations/new/manual_task/"
+    ) {
+      window.history.replaceState(null, "", "/operations");
+      setParsed({ route: "/operations" });
+      return;
+    }
     const legacyFair = path.match(/^\/imports\/fair\/([^/]+)$/);
     if (legacyFair) {
       const next = `/data-integration/imports/fair/${legacyFair[1]}`;
@@ -389,55 +436,79 @@ export function App() {
 
   React.useEffect(() => {
     const onPopState = () => {
-      setParsed(parseRoute(`${window.location.pathname}${window.location.search}`));
+      const next = `${window.location.pathname}${window.location.search}`;
+      if (isNavigationDirty()) {
+        window.history.pushState(null, "", allowedUrlRef.current);
+        requestNavigation(() => {
+          window.history.pushState(null, "", next);
+          allowedUrlRef.current = next;
+          setParsed(parseRoute(next));
+          setSidebarOpen(false);
+        });
+        return;
+      }
+      allowedUrlRef.current = next;
+      setParsed(parseRoute(next));
       setSidebarOpen(false);
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, []);
+  }, [requestNavigation]);
 
   const handleNav = (path: string, e: React.MouseEvent) => {
     e.preventDefault();
-    navigate(path);
-    setParsed(parseRoute(path));
-    setSidebarOpen(false);
-    const { pathname } = splitPath(path);
-    if (pathname === "/customers") setCustomerName(null);
-    if (pathname === "/fairs") setFairName(null);
-    if (!pathname.match(/^\/data-integration\/adapters\/[^/]+$/)) setAdapterName(null);
+    runGuardedNav(() => {
+      navigate(path);
+      setParsed(parseRoute(path));
+      setSidebarOpen(false);
+      const { pathname } = splitPath(path);
+      if (pathname === "/customers") setCustomerName(null);
+      if (pathname === "/fairs") setFairName(null);
+      if (!pathname.match(/^\/data-integration\/adapters\/[^/]+$/)) setAdapterName(null);
+    });
   };
 
   const goToCustomerDetail = (customerId: string) => {
     const path = `/customers/${customerId}`;
-    navigate(path);
-    setParsed(parseRoute(path));
-    setSidebarOpen(false);
+    runGuardedNav(() => {
+      navigate(path);
+      setParsed(parseRoute(path));
+      setSidebarOpen(false);
+    });
   };
 
   const goToDashboard = () => {
-    navigate("/dashboard");
-    setParsed({ route: "/dashboard" });
-    setSidebarOpen(false);
+    runGuardedNav(() => {
+      navigate("/dashboard");
+      setParsed({ route: "/dashboard" });
+      setSidebarOpen(false);
+    });
   };
 
   const goToCustomers = () => {
-    navigate("/customers");
-    setParsed({ route: "/customers" });
-    setCustomerName(null);
-    setSidebarOpen(false);
+    runGuardedNav(() => {
+      navigate("/customers");
+      setParsed({ route: "/customers" });
+      setCustomerName(null);
+      setSidebarOpen(false);
+    });
   };
 
   const goToFairs = () => {
-    navigate("/fairs");
-    setParsed({ route: "/fairs" });
-    setFairName(null);
-    setSidebarOpen(false);
+    runGuardedNav(() => {
+      navigate("/fairs");
+      setParsed({ route: "/fairs" });
+      setFairName(null);
+      setSidebarOpen(false);
+    });
   };
 
   const goToDataIntegration = (subpath = "/data-integration/imports") => {
-    navigate(subpath);
-    setParsed(parseRoute(subpath));
-    setSidebarOpen(false);
+    runGuardedNav(() => {
+      navigate(subpath);
+      setParsed(parseRoute(subpath));
+      setSidebarOpen(false);
+    });
   };
 
   const goToImportWizard = (fairId?: string) => {
@@ -449,78 +520,102 @@ export function App() {
 
   const goToFairDetail = (fairId: string) => {
     const path = `/fairs/${fairId}`;
-    navigate(path);
-    setParsed(parseRoute(path));
-    setSidebarOpen(false);
+    runGuardedNav(() => {
+      navigate(path);
+      setParsed(parseRoute(path));
+      setSidebarOpen(false);
+    });
   };
 
   const goToFairEnrichment = (fairId: string) => {
     const path = `/fairs/${fairId}/enrichment`;
-    navigate(path);
-    setParsed(parseRoute(path));
-    setSidebarOpen(false);
+    runGuardedNav(() => {
+      navigate(path);
+      setParsed(parseRoute(path));
+      setSidebarOpen(false);
+    });
   };
 
   const goToTodos = () => {
-    navigate("/todos");
-    setParsed({ route: "/todos" });
-    setTodoTitle(null);
-    setSidebarOpen(false);
+    runGuardedNav(() => {
+      navigate("/todos");
+      setParsed({ route: "/todos" });
+      setTodoTitle(null);
+      setSidebarOpen(false);
+    });
   };
 
   const goToActivities = () => {
-    navigate("/activities");
-    setParsed({ route: "/activities" });
-    setSidebarOpen(false);
+    runGuardedNav(() => {
+      navigate("/activities");
+      setParsed({ route: "/activities" });
+      setSidebarOpen(false);
+    });
   };
 
   const goToTodoDetail = (todoId: string) => {
     const path = `/todos/${todoId}`;
-    navigate(path);
-    setParsed(parseRoute(path));
-    setSidebarOpen(false);
+    runGuardedNav(() => {
+      navigate(path);
+      setParsed(parseRoute(path));
+      setSidebarOpen(false);
+    });
   };
 
   const goToOperations = () => {
-    navigate("/operations");
-    setParsed({ route: "/operations" });
-    setSidebarOpen(false);
+    runGuardedNav(() => {
+      navigate("/operations");
+      setParsed({ route: "/operations" });
+      setSidebarOpen(false);
+    });
   };
 
   const goToOperationDetail = (operationId: string) => {
     const path = `/operations/${operationId}`;
-    navigate(path);
-    setParsed(parseRoute(path));
-    setSidebarOpen(false);
+    runGuardedNav(() => {
+      navigate(path);
+      setParsed(parseRoute(path));
+      setSidebarOpen(false);
+    });
   };
 
-  const goToOperationWizard = () => {
-    navigate("/operations/new");
-    setParsed({ route: "/operations/new" });
-    setSidebarOpen(false);
+  const goToOperationTypeWizard = (type: OperationType) => {
+    if (type === "scraper") {
+      runGuardedNav(() => {
+        navigate("/operations/new/scraper");
+        setParsed({ route: "/operations/new/scraper" });
+        setSidebarOpen(false);
+      });
+    }
   };
 
   const goToAdapters = () => {
-    navigate("/data-integration/adapters");
-    setParsed({ route: "/data-integration/adapters" });
-    setAdapterName(null);
-    setSidebarOpen(false);
+    runGuardedNav(() => {
+      navigate("/data-integration/adapters");
+      setParsed({ route: "/data-integration/adapters" });
+      setAdapterName(null);
+      setSidebarOpen(false);
+    });
   };
 
   const goToAdapterDetail = (adapterKey: string) => {
     const path = `/data-integration/adapters/${encodeURIComponent(adapterKey)}`;
-    navigate(path);
-    setParsed(parseRoute(path));
-    setSidebarOpen(false);
+    runGuardedNav(() => {
+      navigate(path);
+      setParsed(parseRoute(path));
+      setSidebarOpen(false);
+    });
   };
 
   const goToRunHistory = (adapterKey?: string) => {
     const path = adapterKey
       ? `/data-integration/run-history?adapter_key=${encodeURIComponent(adapterKey)}`
       : "/data-integration/run-history";
-    navigate(path);
-    setParsed(parseRoute(path));
-    setSidebarOpen(false);
+    runGuardedNav(() => {
+      navigate(path);
+      setParsed(parseRoute(path));
+      setSidebarOpen(false);
+    });
   };
 
   const goToScraperTest = (adapterKey?: string, runId?: string) => {
@@ -529,41 +624,54 @@ export function App() {
     if (runId) params.set("run", runId);
     const qs = params.toString();
     const path = `/data-integration/scraper-test${qs ? `?${qs}` : ""}`;
-    navigate(path);
-    setParsed(parseRoute(path));
-    setSidebarOpen(false);
+    runGuardedNav(() => {
+      navigate(path);
+      setParsed(parseRoute(path));
+      setSidebarOpen(false);
+    });
   };
 
   const goToAdapterRunDetail = (adapterKey: string, runId: string) => {
     const path = resolveRunDetailPath(adapterKey, runId);
-    navigate(path);
-    setParsed(parseRoute(path));
-    setSidebarOpen(false);
+    runGuardedNav(() => {
+      navigate(path);
+      setParsed(parseRoute(path));
+      setSidebarOpen(false);
+    });
   };
 
   const goToAdmin = (subpath = "/admin/system/backups") => {
-    navigate(subpath);
-    setParsed(parseRoute(subpath));
-    setSidebarOpen(false);
+    runGuardedNav(() => {
+      navigate(subpath);
+      setParsed(parseRoute(subpath));
+      setSidebarOpen(false);
+    });
   };
 
   const handleLoginSuccess = React.useCallback(() => {
     window.history.replaceState(null, "", "/dashboard");
     setParsed({ route: "/dashboard" });
     setSidebarOpen(false);
+    allowedUrlRef.current = "/dashboard";
   }, []);
 
   const handleLogout = React.useCallback(async () => {
-    await logout();
-    // VITE_DEV_BYPASS_ENABLED keeps the app usable without a Core session.
-    if (config.devBypassEnabled) {
+    const finishLogout = async () => {
+      await logout();
+      // VITE_DEV_BYPASS_ENABLED keeps the app usable without a Core session.
+      if (config.devBypassEnabled) {
+        setSidebarOpen(false);
+        return;
+      }
+      window.history.replaceState(null, "", "/login");
+      setParsed({ route: "/login" });
       setSidebarOpen(false);
-      return;
-    }
-    window.history.replaceState(null, "", "/login");
-    setParsed({ route: "/login" });
-    setSidebarOpen(false);
-  }, [logout]);
+      allowedUrlRef.current = "/login";
+    };
+    requestNavigation(() => {
+      void finishLogout();
+    });
+  }, [logout, requestNavigation]);
 
   const isDashboardActive = parsed.route === "/dashboard";
   const isCustomersActive = parsed.route === "/customers" || parsed.route === "/customers/:id";
@@ -575,7 +683,7 @@ export function App() {
     parsed.route === "/todos" || parsed.route === "/todos/:id";
   const isOperationsActive =
     parsed.route === "/operations" ||
-    parsed.route === "/operations/new" ||
+    parsed.route === "/operations/new/scraper" ||
     parsed.route === "/operations/:id";
   const isActivitiesActive = parsed.route === "/activities";
   const isDiActive = isDataIntegrationRoute(parsed.route);
@@ -626,11 +734,11 @@ export function App() {
                 { label: uiLabels.navOperations, onClick: goToOperations },
                 { label: operationLabels.detailTitle, current: true },
               ]
-          : parsed.route === "/operations/new"
+          : parsed.route === "/operations/new/scraper"
             ? [
                 { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
                 { label: uiLabels.navOperations, onClick: goToOperations },
-                { label: operationLabels.wizardTitle, current: true },
+                { label: operationLabels.scraperWizardTitle, current: true },
               ]
           : parsed.route === "/operations"
             ? [
@@ -704,6 +812,8 @@ export function App() {
                               ? adminLabels.navMailOperations
                             : parsed.route === "/admin/data-operations"
                           ? adminLabels.navDataOperations
+                          : parsed.route === "/admin/operation-capabilities"
+                            ? adminLabels.navOperationCapabilities
                           : adminLabels.navDatabaseBackups,
                     current: true,
                   },
@@ -792,6 +902,7 @@ export function App() {
           preselectedFairId={parsed.fairId}
           onUploadComplete={() => goToDataIntegration("/data-integration/imports")}
           onMappingSaved={() => goToDataIntegration("/data-integration/imports")}
+          onFinished={() => goToDataIntegration("/data-integration/imports")}
         />
       )}
       {parsed.route === "/data-integration/imports/continue/:batchId" && (
@@ -899,6 +1010,7 @@ export function App() {
           onBack={() => goToAdmin("/admin/data-operations")}
         />
       )}
+      {parsed.route === "/admin/operation-capabilities" && <OperationCapabilitiesAdminPage />}
     </AdminSystemLayout>
   );
 
@@ -926,9 +1038,11 @@ export function App() {
         <DashboardPage
           onOpenCustomer={goToCustomerDetail}
           onNavigate={(path) => {
-            navigate(path);
-            setParsed(parseRoute(path));
-            setSidebarOpen(false);
+            runGuardedNav(() => {
+              navigate(path);
+              setParsed(parseRoute(path));
+              setSidebarOpen(false);
+            });
           }}
         />
       )}
@@ -940,9 +1054,6 @@ export function App() {
           onFairLoaded={setFairName}
           onOpenCustomer={goToCustomerDetail}
           onImportParticipants={() => goToImportWizard(parsed.fairId)}
-          onOpenImportDecisions={(batchId) =>
-            goToDataIntegration(`/data-integration/imports/continue/${batchId}`)
-          }
           onOpenFairEnrichment={goToFairEnrichment}
         />
       )}
@@ -970,10 +1081,13 @@ export function App() {
         />
       )}
       {parsed.route === "/operations" && (
-        <OperationsPage onOpenDetail={goToOperationDetail} onCreate={goToOperationWizard} />
+        <OperationsPage
+          onOpenDetail={goToOperationDetail}
+          onSelectType={goToOperationTypeWizard}
+        />
       )}
-      {parsed.route === "/operations/new" && (
-        <OperationWizardPage
+      {parsed.route === "/operations/new/scraper" && (
+        <ScraperOperationWizardPage
           onCancel={goToOperations}
           onCreated={goToOperationDetail}
         />
@@ -983,6 +1097,9 @@ export function App() {
           operationId={parsed.operationId}
           onBack={goToOperations}
           onOpenTodo={goToTodoDetail}
+          onOpenImportBatch={(batchId) =>
+            goToDataIntegration(`/data-integration/imports/continue/${batchId}`)
+          }
         />
       )}
       {parsed.route === "/activities" && (
@@ -999,6 +1116,7 @@ export function App() {
           }
         />
       )}
+      {confirmDialog}
     </AppLayout>
   );
 }

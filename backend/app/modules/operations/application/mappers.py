@@ -117,12 +117,16 @@ def type_definition_to_dict(
     definition: OperationTypeDefinition,
     *,
     handler: OperationHandler | None,
+    db_capabilities: HandlerCapabilities | None = None,
 ) -> dict:
-    capabilities = (
-        capabilities_to_dict(handler.capabilities)
-        if handler is not None
-        else capabilities_to_dict(definition.capabilities)
-    )
+    if db_capabilities is not None:
+        capabilities = capabilities_to_dict(db_capabilities)
+    else:
+        capabilities = (
+            capabilities_to_dict(handler.capabilities)
+            if handler is not None
+            else capabilities_to_dict(definition.capabilities)
+        )
     return {
         "type": definition.type,
         "label_key": definition.label_key,
@@ -142,7 +146,6 @@ def type_definition_to_dict(
         "run_settings_schema": definition.run_settings_schema,
         "available_in_wizard": definition.available_in_wizard,
         "handler_registered": handler is not None,
-        "execution_ready": capabilities.get("execution_ready", False),
     }
 
 
@@ -150,11 +153,19 @@ def build_wizard_metadata(
     *,
     type_registry,
     handler_registry,
+    capability_by_key: dict[str, HandlerCapabilities] | None = None,
 ) -> WizardMetadataResult:
+    catalog = capability_by_key or {}
     types = []
     for definition in type_registry.list_wizard_types():
         handler = handler_registry.get(definition.type)
-        types.append(type_definition_to_dict(definition, handler=handler))
+        types.append(
+            type_definition_to_dict(
+                definition,
+                handler=handler,
+                db_capabilities=catalog.get(definition.type),
+            )
+        )
     return WizardMetadataResult(
         types=types,
         source_kinds=[
@@ -171,7 +182,5 @@ def build_wizard_metadata(
             "supports_retry",
             "supports_schedule",
             "supports_items",
-            "requires_worker",
-            "execution_ready",
         ],
     )

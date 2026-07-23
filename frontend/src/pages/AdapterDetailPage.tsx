@@ -29,7 +29,9 @@ import { adapterDetailToListItem } from "../utils/scraperAdapters";
 import { isCustomerContactEnrichmentAdapter } from "../utils/enrichmentAdapter";
 import { buildLocationSearch, navigateWithSearch, readSearchParams } from "../utils/urlState";
 import { Banner } from "../components/ui/Banner";
+import { FormDirtyHost } from "../components/ui/form";
 import { PageShell } from "../components/ui/PageShell";
+import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 
 interface AdapterDetailPageProps {
   adapterKey: string;
@@ -108,6 +110,7 @@ export function AdapterDetailPage({
   const [manifestError, setManifestError] = React.useState<string | null>(null);
   const [isEditing, setIsEditing] = React.useState(false);
   const [draft, setDraft] = React.useState<AdapterFormState | null>(null);
+  const [editBaseline, setEditBaseline] = React.useState<AdapterFormState | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [deletePreview, setDeletePreview] = React.useState<AdapterDeletePreview | null>(null);
   const [deletePreviewLoading, setDeletePreviewLoading] = React.useState(false);
@@ -166,6 +169,7 @@ export function AdapterDetailPage({
   React.useEffect(() => {
     setIsEditing(false);
     setDraft(null);
+    setEditBaseline(null);
     void loadDetail({ showPageLoader: true });
   }, [adapterKey, loadDetail]);
 
@@ -205,6 +209,7 @@ export function AdapterDetailPage({
 
   const startEdit = React.useCallback(() => {
     if (!manifest) return;
+    setEditBaseline(manifestToFormState(manifest));
     setDraft(manifestToFormState(manifest));
     setIsEditing(true);
     setError(null);
@@ -213,6 +218,7 @@ export function AdapterDetailPage({
   const cancelEdit = React.useCallback(() => {
     setIsEditing(false);
     setDraft(null);
+    setEditBaseline(null);
     setError(null);
   }, []);
 
@@ -266,6 +272,7 @@ export function AdapterDetailPage({
       await refreshSavedData();
       setIsEditing(false);
       setDraft(null);
+      setEditBaseline(null);
     } catch (err) {
       setError(resolveSaveError(err));
     } finally {
@@ -327,6 +334,115 @@ export function AdapterDetailPage({
     );
   }
 
+  return (
+    <FormDirtyHost onClose={cancelEdit} enabled={isEditing}>
+      <AdapterDetailPageLoaded
+        adapterKey={adapterKey}
+        adapterItem={adapterItem}
+        manifest={manifest}
+        runs={runs}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        error={error}
+        manifestLoading={manifestLoading}
+        manifestError={manifestError}
+        isEditing={isEditing}
+        draft={draft}
+        editBaseline={editBaseline}
+        saving={saving}
+        deletePreview={deletePreview}
+        deletePreviewLoading={deletePreviewLoading}
+        deleting={deleting}
+        isEnrichmentAdapter={isEnrichmentAdapter}
+        isEditableTab={isEditableTab}
+        onBack={onBack}
+        onOpenFair={onOpenFair}
+        onViewAllRuns={onViewAllRuns}
+        onOpenScraperTest={onOpenScraperTest}
+        onOpenRunDetail={onOpenRunDetail}
+        onRunsChanged={() => void loadDetail({ showPageLoader: false })}
+        onDraftChange={handleDraftChange}
+        cancelEdit={cancelEdit}
+        startEdit={startEdit}
+        saveEdit={saveEdit}
+        openDeleteConfirm={openDeleteConfirm}
+        closeDeleteConfirm={closeDeleteConfirm}
+        handleDeleteAdapter={handleDeleteAdapter}
+      />
+    </FormDirtyHost>
+  );
+}
+
+interface AdapterDetailPageLoadedProps {
+  adapterKey: string;
+  adapterItem: AdapterListItem;
+  manifest: ScraperManifest | null;
+  runs: ScraperRun[];
+  activeTab: AdapterDetailTab;
+  setActiveTab: (tab: AdapterDetailTab) => void;
+  error: string | null;
+  manifestLoading: boolean;
+  manifestError: string | null;
+  isEditing: boolean;
+  draft: AdapterFormState | null;
+  editBaseline: AdapterFormState | null;
+  saving: boolean;
+  deletePreview: AdapterDeletePreview | null;
+  deletePreviewLoading: boolean;
+  deleting: boolean;
+  isEnrichmentAdapter: boolean;
+  isEditableTab: boolean;
+  onBack: () => void;
+  onOpenFair?: (fairId: string) => void;
+  onViewAllRuns?: (adapterKey: string) => void;
+  onOpenScraperTest?: (adapterKey: string, runId?: string) => void;
+  onOpenRunDetail?: (adapterKey: string, runId: string) => void;
+  onRunsChanged: () => void;
+  onDraftChange: (updater: (current: AdapterFormState) => AdapterFormState) => void;
+  cancelEdit: () => void;
+  startEdit: () => void;
+  saveEdit: () => Promise<void>;
+  openDeleteConfirm: () => Promise<void>;
+  closeDeleteConfirm: () => void;
+  handleDeleteAdapter: () => Promise<void>;
+}
+
+function AdapterDetailPageLoaded({
+  adapterKey,
+  adapterItem,
+  manifest,
+  runs,
+  activeTab,
+  setActiveTab,
+  error,
+  manifestLoading,
+  manifestError,
+  isEditing,
+  draft,
+  editBaseline,
+  saving,
+  deletePreview,
+  deletePreviewLoading,
+  deleting,
+  isEnrichmentAdapter,
+  isEditableTab,
+  onBack,
+  onOpenFair,
+  onViewAllRuns,
+  onOpenScraperTest,
+  onOpenRunDetail,
+  onRunsChanged,
+  onDraftChange,
+  cancelEdit,
+  startEdit,
+  saveEdit,
+  openDeleteConfirm,
+  closeDeleteConfirm,
+  handleDeleteAdapter,
+}: AdapterDetailPageLoadedProps) {
+  const requestCancelEdit = useModalFormCancel(cancelEdit);
+  useReportFormDirty(draft ?? editBaseline, editBaseline ?? draft);
+
   const headerTitle = isEditing && draft ? draft.display_name : adapterItem.display_name;
 
   const headerActions: PageHeaderAction[] = isEditing
@@ -335,7 +451,7 @@ export function AdapterDetailPage({
           id: "cancel",
           label: scraperLabels.formCancel,
           variant: "secondary",
-          onClick: cancelEdit,
+          onClick: requestCancelEdit,
           disabled: saving,
         },
         {
@@ -404,13 +520,13 @@ export function AdapterDetailPage({
         onViewAllRuns={onViewAllRuns}
         onOpenScraperTest={onOpenScraperTest}
         onOpenRunDetail={onOpenRunDetail}
-        onRunsChanged={() => void loadDetail({ showPageLoader: false })}
+        onRunsChanged={onRunsChanged}
         manifest={manifest}
         manifestLoading={manifestLoading}
         manifestError={manifestError}
         isEditing={isEditing}
         draft={draft}
-        onDraftChange={handleDraftChange}
+        onDraftChange={onDraftChange}
       />
 
       {deletePreview ? (

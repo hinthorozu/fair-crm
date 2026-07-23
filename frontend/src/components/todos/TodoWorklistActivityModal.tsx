@@ -12,6 +12,7 @@ import {
   TextInput,
 } from "../ui/form";
 import { FormModal } from "../ui/form/FormModal";
+import { FormDirtyHost } from "../ui/form/FormDirty";
 import { LoadingState } from "../ui/LoadingState";
 import { useModalFormCancel, useReportFormDirty } from "../../hooks/useModalForm";
 import { todoLabels } from "../../labels/todoLabels";
@@ -127,8 +128,17 @@ function CustomerSummarySection({ context }: { context: TodoWorklistModalContext
   );
 }
 
-export function TodoWorklistActivityModal({
-  open,
+export function TodoWorklistActivityModal(props: TodoWorklistActivityModalProps) {
+  if (!props.open) return null;
+
+  return (
+    <FormDirtyHost onClose={props.onClose} confirmClassName="modal-backdrop-nested">
+      <TodoWorklistActivityModalInner {...props} />
+    </FormDirtyHost>
+  );
+}
+
+function TodoWorklistActivityModalInner({
   context,
   loading,
   saving,
@@ -206,11 +216,9 @@ export function TodoWorklistActivityModal({
   const canSubmit = Boolean(outcomeId && note.trim()) && !saving;
   const modalTitle = context?.customer_name ?? todoWorklistLabels.activityPanelTitle;
 
-  if (!open) return null;
-
   return (
     <>
-      <FormModal title={modalTitle} onClose={requestClose} size="lg">
+      <FormModal title={modalTitle} onClose={onClose} size="lg">
         {loading ? (
           <div className="todo-worklist-modal-loading">
             <LoadingState variant="inline" />

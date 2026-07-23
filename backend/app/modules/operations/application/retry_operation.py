@@ -89,6 +89,11 @@ class RetryOperationUseCase:
         )
 
         saved_run.total_items = start_result.total_items
+        if start_result.result_payload:
+            saved_run.error_details = {
+                **saved_run.error_details,
+                "result": start_result.result_payload,
+            }
         if start_result.run_status == RunStatus.RUNNING:
             saved_run.transition_status(RunStatus.RUNNING, now=now)
         elif start_result.run_status == RunStatus.COMPLETED:
@@ -99,6 +104,7 @@ class RetryOperationUseCase:
                 now=now,
                 error_code="handler_retry_failed",
                 error_message=start_result.message or "Handler retry failed",
+                error_details=dict(saved_run.error_details or {}),
             )
         saved_run = self._run_repository.update(saved_run)
 

@@ -69,8 +69,8 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
       return context.todoTitle?.trim() || todoLabels.pageTitle;
     case "/operations":
       return uiLabels.navOperations;
-    case "/operations/new":
-      return operationLabels.wizardTitle;
+    case "/operations/new/scraper":
+      return operationLabels.scraperWizardTitle;
     case "/operations/:id":
       return operationLabels.detailTitle;
     case "/follow-ups":
@@ -122,6 +122,8 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
           : adminLabels.dataOpDuplicateGroupsTitle;
       }
       return adminLabels.dataOpAnalyzeResultTitle;
+    case "/admin/operation-capabilities":
+      return adminLabels.operationCapabilitiesTitle;
     default:
       return labels.customers;
   }

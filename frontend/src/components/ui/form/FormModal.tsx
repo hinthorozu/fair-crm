@@ -5,7 +5,7 @@ interface FormModalProps {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
-  size?: "default" | "lg";
+  size?: "default" | "md" | "lg";
   /** Sticky action footer (ADR-032 mobile bottom-sheet). */
   footer?: React.ReactNode;
   /** Constrains form content width by intent. Default: standard CRUD width. */

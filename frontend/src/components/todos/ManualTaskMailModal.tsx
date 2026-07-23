@@ -28,6 +28,7 @@ import {
   type ManualMailPreviewSnapshot,
 } from "../../utils/manualTaskMailPreview";
 import { FormField, FormGrid, FormSection, SelectInput, TextareaInput, TextInput } from "../ui/form";
+import { FormDirtyHost } from "../ui/form/FormDirty";
 import { FormModal } from "../ui/form/FormModal";
 import { IconButton } from "../ui/IconButton";
 import { LoadingState } from "../ui/LoadingState";
@@ -74,7 +75,17 @@ function formatRecipientsPayload(recipients: string[]): string {
   return `${recipients.join("; ")};`;
 }
 
-export function ManualTaskMailModal({
+export function ManualTaskMailModal(props: ManualTaskMailModalProps) {
+  if (!props.open) return null;
+
+  return (
+    <FormDirtyHost onClose={props.onClose} confirmClassName="modal-backdrop-nested">
+      <ManualTaskMailModalInner {...props} />
+    </FormDirtyHost>
+  );
+}
+
+function ManualTaskMailModalInner({
   open,
   todoId,
   customerId,
@@ -403,14 +414,12 @@ export function ManualTaskMailModal({
     }
   };
 
-  if (!open) return null;
-
   const title = customerName
     ? `${todoWorklistLabels.manualMailModalTitle} — ${customerName}`
     : todoWorklistLabels.manualMailModalTitle;
 
   return (
-    <FormModal title={title} onClose={requestClose} size="lg">
+    <FormModal title={title} onClose={onClose} size="lg">
       {loading ? (
         <div className="todo-worklist-modal-loading">
           <LoadingState variant="inline" />

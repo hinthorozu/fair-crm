@@ -36,8 +36,8 @@ DEFAULT_DEV_ORG_ID = os.environ.get(
     "00000000-0000-4000-8000-000000000010",
 )
 
-MIN_CORE_MIGRATION_REVISION = "20260701_0030"
-EXPECTED_FAIR_CRM_PERMISSION_COUNT = 48
+MIN_CORE_MIGRATION_REVISION = "20260701_0031"
+EXPECTED_FAIR_CRM_PERMISSION_COUNT = 61
 FOREIGN_ORG_ID = "00000000-0000-4000-8000-000000099999"
 
 REQUIRED_PERMISSIONS = (
@@ -332,14 +332,20 @@ def load_dev_state() -> dict:
 
 def require_dev_password() -> str:
     """Login/seed password from DEV_USER_PASSWORD only (no hardcoded default)."""
-    password = os.environ.get("DEV_USER_PASSWORD", "").strip()
-    if password:
-        return password
-    raise RuntimeError(
-        "DEV_USER_PASSWORD is required for e2e login and seed. "
-        "Set the environment variable before running this script. "
-        "On servers, load it from /etc/fair-crm/dev-seed.env."
-    )
+    raw = os.environ.get("DEV_USER_PASSWORD", "")
+    password = raw.strip()
+    if not password:
+        raise RuntimeError(
+            "DEV_USER_PASSWORD is required for e2e login and seed. "
+            "Set the environment variable before running this script. "
+            "On servers, load it from /etc/fair-crm/dev-seed.env."
+        )
+    if password != raw:
+        print(
+            f"DEV_USER_PASSWORD: trimmed outer whitespace (raw_len={len(raw)} used_len={len(password)})",
+            file=sys.stderr,
+        )
+    return password
 
 
 def verify_seed_state(state: dict) -> tuple[bool, str]:
