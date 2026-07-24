@@ -23,6 +23,8 @@ import { LoadingState } from "../components/ui/LoadingState";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
+import type { BulkEmailOperationLogLine, BulkEmailOperationRecipientRow } from "../types/bulkEmailOperation";
+import { mergeBulkEmailLogLines } from "../utils/bulkEmailOperationLogs";
 import {
   operationLabels,
   operationPriorityLabels,
@@ -30,10 +32,6 @@ import {
   sourceKindLabels,
 } from "../labels/operationLabels";
 import { todoPriorityLabels, todoStatusLabels } from "../labels/todoLabels";
-import type {
-  BulkEmailOperationLogLine,
-  BulkEmailOperationRecipientRow,
-} from "../types/bulkEmailOperation";
 import type {
   OperationDetail,
   OperationRun,
@@ -121,6 +119,7 @@ export function OperationDetailPage({
   const [bulkLogs, setBulkLogs] = React.useState<BulkEmailOperationLogLine[]>([]);
   const [bulkLogsError, setBulkLogsError] = React.useState<string | null>(null);
   const [bulkLogsLoading, setBulkLogsLoading] = React.useState(false);
+  const bulkLogConsoleRef = React.useRef<HTMLDivElement>(null);
   const [retryConfirmOpen, setRetryConfirmOpen] = React.useState(false);
   const [retrying, setRetrying] = React.useState(false);
   const [exportBusy, setExportBusy] = React.useState<string | null>(null);
@@ -241,9 +240,18 @@ export function OperationDetailPage({
         listBulkEmailOperationLogs(operationId),
       ]);
       if (recipientsResult.status === "fulfilled") {
-        setBulkRecipients(recipientsResult.value.items);
+        const items = recipientsResult.value.items;
+        setBulkRecipients(items);
+        // Stable fingerprint — avoid Date.now() remount/reset signals on every poll tick.
         setBulkRecipientsVersion(
-          `${recipientsResult.value.batch_id}:${recipientsResult.value.items.length}:${Date.now()}`,
+          [
+            recipientsResult.value.batch_id,
+            String(items.length),
+            ...items.map(
+              (row) =>
+                `${row.id}:${row.status}:${row.send_attempt}:${row.sent_at ?? ""}:${row.error_message ?? ""}`,
+            ),
+          ].join("|"),
         );
       } else {
         const err = recipientsResult.reason;
@@ -257,11 +265,20 @@ export function OperationDetailPage({
         }
       }
       if (logsResult.status === "fulfilled") {
-        setBulkLogs(logsResult.value.items);
+        const incoming = logsResult.value.items;
+        if (options?.silent) {
+          setBulkLogs((prev) =>
+            prev.length === 0 ? incoming : mergeBulkEmailLogLines(prev, incoming),
+          );
+        } else {
+          setBulkLogs(incoming);
+        }
       } else {
         const err = logsResult.reason;
         if (err instanceof ApiError && err.status === 404) {
-          setBulkLogs([]);
+          if (!options?.silent) {
+            setBulkLogs([]);
+          }
           setBulkLogsError(null);
         } else {
           setBulkLogsError(
@@ -299,6 +316,11 @@ export function OperationDetailPage({
     }
     void loadBulkEmailExtras();
   }, [isBulkEmailOp, loadBulkEmailExtras]);
+
+  React.useEffect(() => {
+    if (!bulkLogConsoleRef.current) return;
+    bulkLogConsoleRef.current.scrollTop = bulkLogConsoleRef.current.scrollHeight;
+  }, [bulkLogs]);
 
   const handleStart = async () => {
     setBusy(true);
@@ -761,10 +783,14 @@ export function OperationDetailPage({
             <h3 className="section-title">{operationLabels.bulkEmailLiveLogTitle}</h3>
             {bulkLogsError ? <Banner variant="error">{bulkLogsError}</Banner> : null}
             {bulkLogsLoading && bulkLogs.length === 0 ? <LoadingState variant="inline" /> : null}
-            <div className="adapter-console-log" aria-live="polite">
-              {bulkLogs.map((log, index) => (
+            <div className="adapter-console-log" aria-live="polite" ref={bulkLogConsoleRef}>
+              {bulkLogs.map((log) => (
                 <div
-                  key={log.outbox_id ?? `${log.at ?? "log"}-${index}`}
+                  key={
+                    log.outbox_id
+                      ? `outbox:${log.outbox_id}`
+                      : [log.at ?? "", log.status ?? "", log.message].join("\u0001")
+                  }
                   className={`adapter-console-line adapter-console-${log.level === "error" ? "error" : "info"}`}
                 >
                   <div className="adapter-console-header">

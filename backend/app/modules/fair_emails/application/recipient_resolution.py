@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from app.shared.email import is_valid_email_address
+from app.shared.email import is_valid_email_address, normalize_bulk_recipient_email
 
 from app.modules.fair_emails.domain.value_objects import (
     ManualRecipientPreviewResult,
@@ -28,6 +28,8 @@ def resolve_recipients(
     customer_ids: set[UUID] = set()
     contact_ids: set[UUID] = set()
     valid_email_count = 0
+    invalid_count = 0
+    duplicate_count = 0
     resolved: list[ResolvedRecipient] = []
     seen_emails: set[str] = set()
 
@@ -37,39 +39,53 @@ def resolve_recipients(
         if candidate.source == "contact" and candidate.contact_id is not None:
             contact_ids.add(candidate.contact_id)
 
+        # raw → normalize → validate → (invalid skip) → dedupe → final
+        normalized_email = normalize_bulk_recipient_email(candidate.email)
         status = "will_send"
         skip_reason: str | None = None
+        email_for_row = normalized_email
 
         if options.exclude_inactive and not candidate.is_active:
             status = "skip"
             skip_reason = "inactive_record"
+            email_for_row = normalized_email or (candidate.email or "")
         elif not candidate.customer_email_allowed:
             status = "skip"
             skip_reason = CUSTOMER_EMAIL_CONSENT_SKIP
+            email_for_row = normalized_email or (candidate.email or "")
         elif candidate.source == "contact" and not candidate.contact_email_allowed:
             status = "skip"
             skip_reason = CONTACT_EMAIL_CONSENT_SKIP
-        elif not candidate.email:
+            email_for_row = normalized_email or (candidate.email or "")
+        elif not normalized_email:
             if options.skip_no_email:
                 status = "skip"
                 skip_reason = "no_email"
-        elif not candidate.email_valid:
+            email_for_row = candidate.email or ""
+        elif not is_valid_email_address(normalized_email):
             status = "skip"
             skip_reason = "invalid_email"
-        elif options.dedupe_emails and candidate.email.lower() in seen_emails:
+            invalid_count += 1
+            email_for_row = normalized_email or (candidate.email or "").strip()
+        elif options.dedupe_emails and normalized_email in seen_emails:
             status = "skip"
             skip_reason = "duplicate_email"
+            duplicate_count += 1
+            email_for_row = normalized_email
         else:
             valid_email_count += 1
+            email_for_row = normalized_email
             if options.dedupe_emails:
-                seen_emails.add(candidate.email.lower())
+                seen_emails.add(normalized_email)
 
         resolved.append(
             ResolvedRecipient(
-                recipient_key=recipient_key(candidate.customer_id, candidate.contact_id, candidate.email),
+                recipient_key=recipient_key(
+                    candidate.customer_id, candidate.contact_id, email_for_row or "none"
+                ),
                 recipient_name=candidate.recipient_name,
                 company_name=candidate.company_name,
-                email=candidate.email,
+                email=email_for_row,
                 source=candidate.source,
                 customer_id=candidate.customer_id,
                 contact_id=candidate.contact_id,
@@ -91,6 +107,8 @@ def resolve_recipients(
         deduped_recipient_count=len(will_send),
         skipped_count=skipped_count,
         recipients=resolved,
+        invalid_count=invalid_count,
+        duplicate_count=duplicate_count,
     )
 
 
@@ -109,16 +127,26 @@ def tokenize_email_field(value: str | None) -> list[str]:
 def resolve_manual_and_excel_emails(
     *,
     manual_emails_text: str | None,
-    excel_email_tokens: list[str],
+    excel_email_tokens: list[str] | None = None,
+    excel_recipient_rows: list[tuple[str, str]] | None = None,
 ) -> ManualRecipientPreviewResult:
-    """Merge manual + Excel email tokens, validate, and dedupe (manual first)."""
-    entries: list[tuple[str, str]] = []
+    """Merge manual + Excel recipients, validate, and dedupe (manual first).
+
+    ``excel_recipient_rows`` items are ``(display_name, raw_email)``.
+    Legacy ``excel_email_tokens`` are treated as email-only rows (no display name).
+    """
+    entries: list[tuple[str, str, str | None]] = []
     for token in tokenize_email_field(manual_emails_text):
-        entries.append((token, "manual"))
-    for token in excel_email_tokens:
+        entries.append((token, "manual", None))
+    for display_name, raw_email in excel_recipient_rows or []:
+        email = (raw_email or "").strip()
+        if not email and not (display_name or "").strip():
+            continue
+        entries.append((email, "excel", (display_name or "").strip() or None))
+    for token in excel_email_tokens or []:
         cleaned = token.strip()
         if cleaned:
-            entries.append((cleaned, "excel"))
+            entries.append((cleaned, "excel", None))
 
     resolved: list[WizardPreviewRecipient] = []
     seen_emails: set[str] = set()
@@ -126,25 +154,31 @@ def resolve_manual_and_excel_emails(
     duplicate_count = 0
     invalid_count = 0
 
-    for raw, source in entries:
-        email_lower = raw.lower()
+    for raw, source, display_name in entries:
+        # raw → normalize → validate → (invalid skip) → dedupe → final
+        normalized = normalize_bulk_recipient_email(raw)
         status = "will_send"
         skip_reason: str | None = None
-        email_for_row = raw
+        email_for_row = raw.strip() if raw else ""
 
-        if not is_valid_email_address(raw):
+        if not normalized or not is_valid_email_address(normalized):
             status = "skip"
             skip_reason = "invalid_email"
             invalid_count += 1
-        elif email_lower in seen_emails:
+            email_for_row = normalized or raw.strip() or raw or ""
+        elif normalized in seen_emails:
             status = "skip"
             skip_reason = "duplicate_email"
             duplicate_count += 1
-            email_for_row = email_lower
+            email_for_row = normalized
         else:
-            email_for_row = email_lower
-            seen_emails.add(email_lower)
+            email_for_row = normalized
+            seen_emails.add(normalized)
             valid_email_count += 1
+
+        # Excel col1 is a free-form display name (person or company) — not CRM.
+        name_for_row = display_name if source == "excel" else None
+        company_for_row = display_name if source == "excel" else None
 
         resolved.append(
             WizardPreviewRecipient(
@@ -153,6 +187,8 @@ def resolve_manual_and_excel_emails(
                 source=source,
                 status=status,
                 skip_reason=skip_reason,
+                recipient_name=name_for_row,
+                company_name=company_for_row,
             )
         )
 
@@ -210,7 +246,7 @@ def iter_valid_emails(value: str | None) -> list[str]:
     emails: list[str] = []
     seen: set[str] = set()
     for part in value.replace(",", ";").split(";"):
-        email = part.strip().lower()
+        email = normalize_bulk_recipient_email(part)
         if not email:
             continue
         if not is_valid_email_address(email):

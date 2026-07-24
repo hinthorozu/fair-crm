@@ -5,7 +5,7 @@ from uuid import UUID
 
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.ports import AuthorizationPort
-from app.modules.fair_emails.application.excel_email_extract import extract_email_tokens_from_xlsx
+from app.modules.fair_emails.application.excel_email_extract import extract_excel_recipient_rows
 from app.modules.fair_emails.application.recipient_resolution import (
     build_render_variables,
     resolve_manual_and_excel_emails,
@@ -157,22 +157,23 @@ class PreviewBulkEmailOperationUseCase:
     def _preview_manual(
         self, command: PreviewBulkEmailOperationCommand
     ) -> BulkEmailOperationRecipientSummary:
-        excel_tokens: list[str] = []
+        excel_rows: list[tuple[str, str]] = []
         if command.excel_bytes:
             try:
-                excel_tokens = extract_email_tokens_from_xlsx(command.excel_bytes)
+                extracted = extract_excel_recipient_rows(command.excel_bytes)
+                excel_rows = [(row.display_name, row.email) for row in extracted]
             except InvalidImportFileError:
                 raise
             except Exception as exc:  # noqa: BLE001
                 raise InvalidImportFileError("Excel dosyası okunamadı") from exc
 
         manual_text = (command.manual_emails or "").strip()
-        if not manual_text and not excel_tokens:
+        if not manual_text and not excel_rows:
             raise ValueError("Excel dosyası yükleyin veya en az bir e-posta girin.")
 
         result = resolve_manual_and_excel_emails(
             manual_emails_text=manual_text,
-            excel_email_tokens=excel_tokens,
+            excel_recipient_rows=excel_rows,
         )
         return BulkEmailOperationRecipientSummary(
             source_type="manual",
@@ -223,8 +224,8 @@ class PreviewBulkEmailOperationUseCase:
                 source_type="fair_list",
                 total_found=None,
                 valid_email_count=preview.valid_email_count,
-                duplicate_count=None,
-                invalid_count=None,
+                duplicate_count=preview.duplicate_count,
+                invalid_count=preview.invalid_count,
                 deduped_recipient_count=preview.deduped_recipient_count,
                 skipped_count=preview.skipped_count,
                 selected_fair_count=len(fair_ids),

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from collections.abc import Callable
 from typing import TypeVar
@@ -18,6 +19,14 @@ from app.core.performance_monitoring import (
 logger = logging.getLogger("fair_crm.performance")
 
 T = TypeVar("T")
+
+# When True (pytest), run detached jobs inline so request-scoped test sessions stay valid.
+_detached_jobs_inline = False
+
+
+def configure_detached_jobs_inline(enabled: bool) -> None:
+    global _detached_jobs_inline
+    _detached_jobs_inline = enabled
 
 
 def _operation_label(func: Callable[..., T], args: tuple) -> tuple[str, str | None]:
@@ -50,3 +59,40 @@ async def run_blocking_background_task(func: Callable[..., T], /, *args, **kwarg
             duration_ms=(time.perf_counter() - start) * 1000,
             success=success,
         )
+
+
+def schedule_detached_blocking_job(func: Callable[..., T], /, *args, **kwargs) -> None:
+    """Fire-and-forget blocking work that must not delay the HTTP response.
+
+    Starlette ``BackgroundTasks`` can execute before the client receives the
+    response body when ``BaseHTTPMiddleware`` is in the stack (e.g. request
+    timing). Long SMTP / batch work is therefore detached onto a daemon thread.
+
+    Tests may force inline execution via ``configure_detached_jobs_inline(True)``
+    so the shared request-scoped DB session remains usable.
+    """
+
+    def _runner() -> None:
+        operation, run_id = _operation_label(func, args)
+        register_background_job_started(operation, run_id)
+        start = time.perf_counter()
+        success = False
+        try:
+            func(*args, **kwargs)
+            success = True
+        except Exception:
+            logger.exception("detached_background_job_failed operation=%s", operation)
+        finally:
+            register_background_job_finished(
+                operation,
+                run_id=run_id,
+                duration_ms=(time.perf_counter() - start) * 1000,
+                success=success,
+            )
+
+    if _detached_jobs_inline:
+        _runner()
+        return
+
+    thread_name = f"detached-{getattr(func, '__name__', 'job')}"
+    threading.Thread(target=_runner, name=thread_name, daemon=True).start()

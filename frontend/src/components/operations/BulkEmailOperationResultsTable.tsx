@@ -18,6 +18,7 @@ import {
   fairEmailOutboxStatusVariant,
   formatFairEmailDateTime,
 } from "../../utils/fairBulkEmailLogs";
+import { formatBulkEmailRecipientDisplay } from "../../utils/bulkEmailRecipientDisplay";
 
 function sourceLabel(source: string): string {
   if (source === "excel") return operationLabels.bulkEmailSourceExcelShort;
@@ -127,7 +128,8 @@ export function BulkEmailOperationResultsTable({
   });
 
   React.useEffect(() => {
-    void table.refresh({ page: 1 });
+    // Polling / dataVersion bumps must not reset page, search, filters, or show skeleton.
+    void table.refresh({ silent: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataVersion]);
 
@@ -138,14 +140,7 @@ export function BulkEmailOperationResultsTable({
         title: operationLabels.bulkEmailColRecipient,
         sortable: false,
         allowWrap: true,
-        render: (item) => item.recipient_name?.trim() || "—",
-      },
-      {
-        key: "company_name",
-        title: operationLabels.bulkEmailColCompany,
-        sortable: false,
-        allowWrap: true,
-        render: (item) => item.company_name?.trim() || "—",
+        render: (item) => formatBulkEmailRecipientDisplay(item),
       },
       {
         key: "email",

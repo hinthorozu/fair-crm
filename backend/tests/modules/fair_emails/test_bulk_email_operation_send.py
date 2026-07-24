@@ -123,6 +123,7 @@ def test_crm_less_manual_creates_no_activity(db_session, organization_id):
         failed_count=0,
         skipped_count=0,
         operation_id=None,
+        created_at=now,
     )
     outbox = FairEmailOutboxModel(
         id=outbox_id,
@@ -426,3 +427,190 @@ def test_preview_still_creates_no_batch(
     )
     assert response.status_code == 200, response.text
     assert db_session.query(FairEmailBatchModel).count() == before
+
+
+def test_preview_manual_marks_invalid_email_skip(
+    client,
+    auth_headers,
+):
+    template_id = _create_template(client, auth_headers, key=f"ops_inv_{uuid4().hex[:8]}")
+    smtp = _create_smtp(client, auth_headers)
+    response = client.post(
+        "/api/v1/operations/bulk-email/preview",
+        headers=auth_headers,
+        data={
+            "payload": (
+                '{"source_type":"manual","template_id":"%s","smtp_account_id":"%s",'
+                '"manual_emails":"valid@example.com; bad-email; second@example.com"}'
+                % (template_id, smtp.json()["id"])
+            )
+        },
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()["recipients"]
+    assert body["valid_email_count"] == 2
+    assert body["invalid_count"] == 1
+    assert body["deduped_recipient_count"] == 2
+    skipped = [row for row in body["recipients"] if row["status"] == "skip"]
+    assert len(skipped) == 1
+    assert skipped[0]["skip_reason"] == "invalid_email"
+    assert skipped[0]["email"] == "bad-email"
+
+
+def test_send_manual_excludes_invalid_from_outbox_and_mail_ops(
+    db_session,
+    client,
+    auth_headers,
+    organization_id,
+    user_id,
+):
+    from app.modules.fair_emails.application.fair_bulk_mail_operation_sync import (
+        FairBulkEmailMailOperationSync,
+    )
+    from app.modules.fair_emails.application.recipient_service import FairBulkEmailRecipientService
+    from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
+    from app.modules.mail_send_operations.infrastructure.persistence.models import MailSendOperationModel
+    from app.modules.mail_templates.infrastructure.repositories.mail_template_repository import (
+        SqlAlchemyMailTemplateRepository,
+    )
+    from app.modules.smtp.infrastructure.repositories.smtp_account_repository import (
+        SqlAlchemySmtpAccountRepository,
+    )
+
+    template_id = _create_template(client, auth_headers, key=f"ops_send_inv_{uuid4().hex[:8]}")
+    smtp = _create_smtp(client, auth_headers)
+    smtp_id = UUID(smtp.json()["id"])
+
+    use_case = SendBulkEmailOperationUseCase(
+        SqlAlchemyFairRepository(db_session),
+        SqlAlchemyMailTemplateRepository(db_session),
+        SqlAlchemySmtpAccountRepository(db_session),
+        SqlAlchemyFairEmailBatchRepository(db_session),
+        FairBulkEmailRecipientService(db_session),
+        FairBulkEmailMailOperationSync(db_session),
+        _auth_ok(),
+    )
+    before_ops = (
+        db_session.query(MailSendOperationModel)
+        .filter(MailSendOperationModel.organization_id == organization_id)
+        .count()
+    )
+    result = use_case.execute(
+        SendBulkEmailOperationCommand(
+            organization_id=organization_id,
+            user_id=user_id,
+            access_token="token",
+            source_type="manual",
+            template_id=UUID(template_id),
+            smtp_account_id=smtp_id,
+            subject="Merhaba",
+            manual_emails="valid@example.com; bad-email; second@example.com",
+        )
+    )
+    db_session.commit()
+
+    assert result.will_send_count == 2
+    outbox = (
+        db_session.query(FairEmailOutboxModel)
+        .filter(FairEmailOutboxModel.batch_id == result.batch_id)
+        .all()
+    )
+    assert len(outbox) == 2
+    assert {row.email for row in outbox} == {"valid@example.com", "second@example.com"}
+    assert all(row.email != "bad-email" for row in outbox)
+
+    after_ops = (
+        db_session.query(MailSendOperationModel)
+        .filter(MailSendOperationModel.organization_id == organization_id)
+        .count()
+    )
+    assert after_ops - before_ops == 2
+
+
+def test_fair_list_preview_skips_invalid_db_email(
+    db_session,
+    client,
+    auth_headers,
+    organization_id,
+):
+    from datetime import datetime, timezone
+
+    from app.modules.customers.infrastructure.persistence.communication_models import CustomerEmailModel
+
+    fair_id = _create_fair(client, auth_headers)
+    customer = create_test_customer(
+        db_session,
+        organization_id,
+        display_name="Invalid Email Co",
+        email="good@firma.com",
+    )
+    db_session.flush()
+    db_session.add(
+        CustomerEmailModel(
+            id=uuid4(),
+            organization_id=organization_id,
+            customer_id=customer.id,
+            email="not-a-valid-email",
+            is_primary=False,
+            created_at=datetime.now(timezone.utc),
+        )
+    )
+    db_session.commit()
+    _create_participation(client, auth_headers, fair_id, str(customer.id))
+    template_id = _create_template(client, auth_headers, key=f"ops_fair_inv_{uuid4().hex[:8]}")
+    smtp = _create_smtp(client, auth_headers)
+
+    response = client.post(
+        "/api/v1/operations/bulk-email/preview",
+        headers=auth_headers,
+        data={
+            "payload": (
+                '{"source_type":"fair_list","template_id":"%s","smtp_account_id":"%s",'
+                '"fair_ids":["%s"],'
+                '"recipient_options":{"include_customer_emails":true,"include_contact_emails":false}}'
+                % (template_id, smtp.json()["id"], fair_id)
+            )
+        },
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()["recipients"]
+    assert body["invalid_count"] == 1
+    assert body["deduped_recipient_count"] == 1
+    will_send = [row for row in body["recipients"] if row["status"] == "will_send"]
+    skipped = [row for row in body["recipients"] if row["skip_reason"] == "invalid_email"]
+    assert {row["email"] for row in will_send} == {"good@firma.com"}
+    assert len(skipped) == 1
+    assert skipped[0]["email"] == "not-a-valid-email"
+
+
+def test_bulk_email_operation_logs_endpoint_ok_after_send(
+    client,
+    auth_headers,
+):
+    """Regression: GET .../bulk-email/logs must not 500 (batch.created_at required)."""
+    template_id = _create_template(client, auth_headers, key=f"ops_logs_{uuid4().hex[:8]}")
+    smtp = _create_smtp(client, auth_headers)
+    send = client.post(
+        "/api/v1/operations/bulk-email/send",
+        headers=auth_headers,
+        data={
+            "payload": (
+                '{"source_type":"manual","template_id":"%s","smtp_account_id":"%s",'
+                '"subject":"Log check","manual_emails":"logcheck@example.com",'
+                '"client_token":"%s"}'
+                % (template_id, smtp.json()["id"], uuid4().hex)
+            )
+        },
+    )
+    assert send.status_code == 201, send.text
+    operation_id = send.json()["operation_id"]
+    logs = client.get(
+        f"/api/v1/operations/{operation_id}/bulk-email/logs",
+        headers=auth_headers,
+    )
+    assert logs.status_code == 200, logs.text
+    items = logs.json()["items"]
+    assert len(items) >= 2
+    messages = " ".join(item["message"] for item in items)
+    assert "Toplu e-posta gönderimi başladı" in messages
+    assert "alıcı kuyruğa alındı" in messages

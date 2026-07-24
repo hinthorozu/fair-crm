@@ -52,6 +52,8 @@ class RecipientPreviewResult:
     deduped_recipient_count: int
     skipped_count: int
     recipients: list[ResolvedRecipient]
+    invalid_count: int = 0
+    duplicate_count: int = 0
 
 
 @dataclass(frozen=True)

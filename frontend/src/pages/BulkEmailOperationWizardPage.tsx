@@ -13,6 +13,7 @@ import { Card } from "../components/ui/Card";
 import { EmptyState } from "../components/ui/EmptyState";
 import { IconButton } from "../components/ui/IconButton";
 import { LoadingState } from "../components/ui/LoadingState";
+import { Modal } from "../components/ui/Modal";
 import {
   CheckboxField,
   FieldError,
@@ -24,6 +25,7 @@ import {
   SelectInput,
   TextareaInput,
   TextInput,
+  clearNavigationDirtySources,
 } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
@@ -38,6 +40,10 @@ import {
 import type { BulkEmailOperationPreviewResponse } from "../types/bulkEmailOperation";
 import type { MailTemplate } from "../types/mailTemplates";
 import type { SmtpAccount } from "../types/smtp";
+import {
+  BULK_EMAIL_WIZARD_STEPS,
+  type BulkEmailWizardStepId,
+} from "../utils/bulkEmailWizardSteps";
 import {
   formatMailTemplateOptionLabel,
   resolveSubjectAfterPreview,
@@ -57,7 +63,7 @@ function newClientToken(): string {
 }
 
 type RecipientSourceType = "manual" | "fair_list";
-type WizardStepId = "recipient_source" | "mail_settings" | "summary" | "send";
+type WizardStepId = BulkEmailWizardStepId;
 
 type SelectedFair = {
   id: string;
@@ -86,12 +92,7 @@ const EMPTY_WIZARD_STATE = {
   subject: "",
 };
 
-const STEPS: Array<{ id: WizardStepId }> = [
-  { id: "recipient_source" },
-  { id: "mail_settings" },
-  { id: "summary" },
-  { id: "send" },
-];
+const STEPS: Array<{ id: WizardStepId }> = BULK_EMAIL_WIZARD_STEPS.map((id) => ({ id }));
 
 export function BulkEmailOperationWizardPage({
   onCancel,
@@ -121,6 +122,7 @@ function BulkEmailOperationWizardPageInner({
   const [fieldError, setFieldError] = React.useState<string | null>(null);
 
   const [sourceType, setSourceType] = React.useState<RecipientSourceType | "">("");
+  const [excelFormatModalOpen, setExcelFormatModalOpen] = React.useState(false);
   const [excelFile, setExcelFile] = React.useState<File | null>(null);
   const [manualEmails, setManualEmails] = React.useState("");
   const [fairPickerId, setFairPickerId] = React.useState("");
@@ -423,10 +425,14 @@ function BulkEmailOperationWizardPageInner({
     invalidatePreview();
     if (typed === "manual") {
       resetFairForm();
+      setExcelFormatModalOpen(true);
     } else {
       resetManualForm();
+      setExcelFormatModalOpen(false);
     }
   };
+
+  const closeExcelFormatModal = () => setExcelFormatModalOpen(false);
 
   const handleFairPickerChange = (nextId: string) => {
     setFairPickerId(nextId);
@@ -484,14 +490,12 @@ function BulkEmailOperationWizardPageInner({
       ? canProceedRecipientSource
       : currentStep.id === "mail_settings"
         ? canProceedMailSettings
-        : currentStep.id === "summary"
-          ? canProceedSummary
-          : false;
+        : false;
 
   const showContinue =
-    currentStep.id === "recipient_source" ||
-    currentStep.id === "mail_settings" ||
-    currentStep.id === "summary";
+    currentStep.id === "recipient_source" || currentStep.id === "mail_settings";
+
+  const canSend = canProceedSummary && !sending;
 
   const validateCurrentStep = (): boolean => {
     if (currentStep.id === "recipient_source") {
@@ -614,6 +618,8 @@ function BulkEmailOperationWizardPageInner({
         },
         client_token: clientToken,
       });
+      // Successful create/send is not an unsaved form — allow immediate detail nav.
+      clearNavigationDirtySources();
       onCreated?.(result.operation_id);
     } catch (err) {
       sendLockRef.current = false;
@@ -1036,6 +1042,14 @@ function BulkEmailOperationWizardPageInner({
                         <div>{preview.recipients.valid_email_count}</div>
                       </div>
                       <div>
+                        <strong>{operationLabels.bulkEmailSummaryDuplicates}</strong>
+                        <div>{preview.recipients.duplicate_count ?? 0}</div>
+                      </div>
+                      <div>
+                        <strong>{operationLabels.bulkEmailSummaryInvalid}</strong>
+                        <div>{preview.recipients.invalid_count ?? 0}</div>
+                      </div>
+                      <div>
                         <strong>{operationLabels.bulkEmailSummaryDeduped}</strong>
                         <div>{preview.recipients.deduped_recipient_count}</div>
                       </div>
@@ -1114,43 +1128,8 @@ function BulkEmailOperationWizardPageInner({
           )
         ) : null}
 
-        {currentStep.id === "send" ? (
-          <FormSection title={operationLabels.bulkEmailSendSummaryTitle}>
-            {sendError ? <Banner variant="error">{sendError}</Banner> : null}
-            <div className="detail-grid compact">
-              <div>
-                <strong>{operationLabels.bulkEmailSummarySource}</strong>
-                <div>
-                  {sourceType === "manual"
-                    ? operationLabels.bulkEmailSourceManual
-                    : operationLabels.bulkEmailSourceFairList}
-                </div>
-              </div>
-              <div>
-                <strong>{operationLabels.bulkEmailSummaryDeduped}</strong>
-                <div>{preview?.recipients.deduped_recipient_count ?? 0}</div>
-              </div>
-              <div>
-                <strong>{operationLabels.bulkEmailTemplateLabel}</strong>
-                <div>
-                  {preview?.mail.template_name ||
-                    selectedTemplate?.name ||
-                    templateId ||
-                    "—"}
-                </div>
-              </div>
-              <div>
-                <strong>{operationLabels.bulkEmailSmtpLabel}</strong>
-                <div>
-                  {preview?.mail.smtp_account_name || selectedSmtp?.name || smtpAccountId || "—"}
-                </div>
-              </div>
-              <div>
-                <strong>{operationLabels.bulkEmailSubjectLabel}</strong>
-                <div>{subject.trim() || preview?.mail.rendered_subject || "—"}</div>
-              </div>
-            </div>
-          </FormSection>
+        {currentStep.id === "summary" && sendError ? (
+          <Banner variant="error">{sendError}</Banner>
         ) : null}
 
         {fieldError ? <FieldError>{fieldError}</FieldError> : null}
@@ -1174,18 +1153,63 @@ function BulkEmailOperationWizardPageInner({
               {operationLabels.continue}
             </Button>
           ) : null}
-          {currentStep.id === "send" ? (
+          {currentStep.id === "summary" ? (
             <Button
               type="button"
               variant="primary"
               onClick={() => void handleSend()}
-              disabled={sending || !previewReady}
+              disabled={!canSend || navDisabled}
             >
               {sending ? operationLabels.bulkEmailSending : operationLabels.bulkEmailSendAction}
             </Button>
           ) : null}
         </div>
       </Card>
+
+      {excelFormatModalOpen ? (
+        <FormDirtyHost
+          onClose={closeExcelFormatModal}
+          confirmClassName="modal-backdrop-nested"
+        >
+          <Modal
+            title={operationLabels.bulkEmailExcelFormatTitle}
+            onClose={closeExcelFormatModal}
+            size="md"
+            footer={
+              <Button type="button" variant="primary" onClick={closeExcelFormatModal}>
+                {operationLabels.bulkEmailExcelFormatGotIt}
+              </Button>
+            }
+          >
+            <p>{operationLabels.bulkEmailExcelFormatIntro}</p>
+            <ul>
+              <li>{operationLabels.bulkEmailExcelFormatCol1}</li>
+              <li>{operationLabels.bulkEmailExcelFormatCol2}</li>
+            </ul>
+            <p>
+              <strong>{operationLabels.bulkEmailExcelFormatExampleHeading}</strong>
+            </p>
+            <table className="data-table compact">
+              <thead>
+                <tr>
+                  <th>{operationLabels.bulkEmailExcelFormatColNameHeader}</th>
+                  <th>{operationLabels.bulkEmailExcelFormatColEmailHeader}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>ERMED TIP MEDİKAL</td>
+                  <td>info@ermedmedical.com.tr</td>
+                </tr>
+                <tr>
+                  <td>Ahmet Yılmaz</td>
+                  <td>ahmet@example.com</td>
+                </tr>
+              </tbody>
+            </table>
+          </Modal>
+        </FormDirtyHost>
+      ) : null}
     </PageShell>
   );
 }

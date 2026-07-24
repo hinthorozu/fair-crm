@@ -124,10 +124,35 @@ def test_update_operation_type_capabilities_persists(
 
     wizard = client.get("/api/v1/operations/wizard-metadata", headers=auth_headers)
     assert wizard.status_code == 200
-    email_meta = next(item for item in wizard.json()["types"] if item["type"] == "email")
-    assert email_meta["capabilities"]["supports_pause"] is True
-    assert "execution_ready" not in email_meta
-    assert "requires_worker" not in email_meta["capabilities"]
+    wizard_types = {item["type"] for item in wizard.json()["types"]}
+    assert "email" not in wizard_types
+    assert "bulk_email" in wizard_types
+
+
+def test_wizard_metadata_excludes_legacy_email_type(client: TestClient, auth_headers: dict):
+    response = client.get("/api/v1/operations/wizard-metadata", headers=auth_headers)
+    assert response.status_code == 200
+    types = {item["type"]: item for item in response.json()["types"]}
+    assert "email" not in types
+    assert "bulk_email" in types
+    assert types["bulk_email"]["available_in_wizard"] is True
+    assert default_operation_type_registry.require("email").available_in_wizard is False
+
+
+def test_create_rejects_legacy_email_operation_type(client: TestClient, auth_headers: dict):
+    response = client.post(
+        "/api/v1/operations",
+        headers=auth_headers,
+        json={
+            "operation_type": "email",
+            "title": "Legacy email should fail",
+            "source_kind": "none",
+            "source_ids": [],
+            "type_config": {},
+        },
+    )
+    assert response.status_code == 400, response.text
+    assert "not available for create" in response.json()["detail"]
 
 
 def _create_fair(client: TestClient, auth_headers: dict, name: str, **extra) -> str:

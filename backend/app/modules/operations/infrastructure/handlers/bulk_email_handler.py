@@ -170,11 +170,17 @@ class BulkEmailHandler:
                 errors.append("manual requires source_kind=manual_selection or none")
             manual_emails = str(type_config.get("manual_emails") or "").strip()
             excel_tokens = type_config.get("excel_email_tokens") or []
+            excel_rows = type_config.get("excel_recipient_rows") or []
             if not isinstance(excel_tokens, (list, tuple)):
                 errors.append("type_config.excel_email_tokens must be a list")
                 excel_tokens = []
-            if not manual_emails and not excel_tokens:
-                errors.append("manual requires manual_emails and/or excel_email_tokens")
+            if not isinstance(excel_rows, (list, tuple)):
+                errors.append("type_config.excel_recipient_rows must be a list")
+                excel_rows = []
+            if not manual_emails and not excel_tokens and not excel_rows:
+                errors.append(
+                    "manual requires manual_emails and/or excel_recipient_rows"
+                )
 
         if errors:
             return HandlerValidationResult.failure(*errors)
@@ -326,6 +332,18 @@ class BulkEmailHandler:
 
         excel_tokens_raw = type_config.get("excel_email_tokens") or []
         excel_tokens = [str(item).strip() for item in excel_tokens_raw if str(item).strip()]
+        excel_rows_raw = type_config.get("excel_recipient_rows") or []
+        excel_recipient_rows: list[dict[str, str]] = []
+        if isinstance(excel_rows_raw, (list, tuple)):
+            for item in excel_rows_raw:
+                if not isinstance(item, dict):
+                    continue
+                excel_recipient_rows.append(
+                    {
+                        "display_name": str(item.get("display_name") or "").strip(),
+                        "email": str(item.get("email") or "").strip(),
+                    }
+                )
 
         result = self._send_use_case.execute(
             SendBulkEmailOperationCommand(
@@ -339,6 +357,7 @@ class BulkEmailHandler:
                 fair_ids=fair_ids if source_type == "fair_list" else None,
                 manual_emails=str(type_config.get("manual_emails") or "") or None,
                 excel_email_tokens=excel_tokens or None,
+                excel_recipient_rows=excel_recipient_rows or None,
                 country_filter=str(type_config.get("country_filter") or "").strip() or None,
                 city_filter=str(type_config.get("city_filter") or "").strip() or None,
                 company_name_contains=(

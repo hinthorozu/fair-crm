@@ -52,17 +52,19 @@ function catalog(
 }
 
 describe("operationWizardTypes", () => {
-  it("excludes manual_task from the picker list", () => {
+  it("excludes manual_task and legacy email from the picker list", () => {
     expect(WIZARD_EXCLUDED_TYPES).toContain("manual_task");
+    expect(WIZARD_EXCLUDED_TYPES).toContain("email");
     const sorted = sortWizardTypes(
-      [meta("manual_task"), meta("scraper"), meta("email")],
+      [meta("manual_task"), meta("scraper"), meta("email"), meta("bulk_email")],
       catalog([
         ["scraper", "Web Scraper", 10],
         ["email", "E-posta", 20],
+        ["bulk_email", "Toplu E-posta", 30],
         ["manual_task", "Manuel Görev", 80],
       ]),
     );
-    expect(sorted.map((item) => item.type)).toEqual(["scraper", "email"]);
+    expect(sorted.map((item) => item.type)).toEqual(["scraper", "bulk_email"]);
   });
 
   it("orders by DB sort_order and uses catalog intersection", () => {
@@ -72,18 +74,20 @@ describe("operationWizardTypes", () => {
         meta("enrichment"),
         meta("scraper"),
         meta("email"),
+        meta("bulk_email"),
         meta("reminder"),
       ],
       catalog([
         ["scraper", "Web Scraper", 10],
         ["email", "E-posta", 20],
+        ["bulk_email", "Toplu E-posta", 30],
         ["enrichment", "Zenginleştirme", 40],
         ["whatsapp", "WhatsApp", 70],
       ]),
     );
     expect(sorted.map((item) => item.type)).toEqual([
       "scraper",
-      "email",
+      "bulk_email",
       "enrichment",
       "whatsapp",
     ]);

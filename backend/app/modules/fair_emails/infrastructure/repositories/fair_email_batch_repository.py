@@ -22,11 +22,11 @@ class FairEmailBatchRecord:
     failed_count: int
     skipped_count: int
     operation_id: UUID | None
+    created_at: datetime
 
 
 @dataclass(frozen=True)
 class FairEmailBatchListRecord(FairEmailBatchRecord):
-    created_at: datetime
     completed_at: datetime | None
     created_by_user_id: UUID
 
@@ -69,10 +69,19 @@ class SqlAlchemyFairEmailBatchRepository:
         operation_id: UUID | None = None,
         recipient_options_extra: dict | None = None,
     ) -> FairEmailBatchRecord:
+        from app.shared.email import is_valid_email_address
+
         now = datetime.now(timezone.utc)
         batch_id = uuid4()
-        will_send = [item for item in recipients if item.status == "will_send"]
-        skipped = [item for item in recipients if item.status != "will_send"]
+        # Defense: never enqueue structurally invalid addresses even if status is wrong.
+        will_send = [
+            item
+            for item in recipients
+            if item.status == "will_send"
+            and is_valid_email_address((item.email or "").strip())
+        ]
+        will_send_keys = {item.recipient_key for item in will_send}
+        skipped = [item for item in recipients if item.recipient_key not in will_send_keys]
 
         options_json: dict = {
             "include_customer_emails": recipient_options.include_customer_emails,
@@ -346,6 +355,7 @@ class SqlAlchemyFairEmailBatchRepository:
             failed_count=model.failed_count,
             skipped_count=model.skipped_count,
             operation_id=model.operation_id,
+            created_at=model.created_at,
         )
 
     @staticmethod

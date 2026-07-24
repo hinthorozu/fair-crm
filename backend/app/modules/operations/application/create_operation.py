@@ -56,6 +56,11 @@ class CreateOperationUseCase:
         except InvalidOperationTypeError:
             raise
 
+        if not definition.available_in_wizard:
+            raise InvalidOperationTypeError(
+                f"Operation type '{command.operation_type}' is not available for create"
+            )
+
         try:
             source_kind, source_config, source_ids = build_normalized_source_config(
                 source_kind=command.source_kind,

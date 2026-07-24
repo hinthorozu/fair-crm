@@ -169,10 +169,13 @@ def _schedule_bulk_email_jobs(
     bulk_email_job_buffer: BulkEmailJobBuffer,
 ) -> None:
     from app.modules.fair_emails.application.process_batch import process_fair_email_batch
+    from app.shared.background_jobs import schedule_detached_blocking_job
 
+    # Do not use Starlette BackgroundTasks here: BaseHTTPMiddleware can run them
+    # before the client receives the 201, making wizard "Gönder" wait for SMTP.
+    _ = background_tasks
     for command in bulk_email_job_buffer.drain():
-        background_tasks.add_task(
-            run_blocking_background_task,
+        schedule_detached_blocking_job(
             process_fair_email_batch,
             command.batch_id,
             command.organization_id,
@@ -800,7 +803,7 @@ async def send_bulk_email_operation(
     db: Session = Depends(get_db),
 ) -> BulkEmailOperationSendResponse:
     """Create + start a bulk_email operation (multipart like preview)."""
-    from app.modules.fair_emails.application.excel_email_extract import extract_email_tokens_from_xlsx
+    from app.modules.fair_emails.application.excel_email_extract import extract_excel_recipient_rows
     from app.modules.fair_emails.domain.exceptions import FairBulkEmailRecipientNotFoundError
     from app.modules.imports.domain.exceptions import InvalidImportFileError
     from app.modules.mail_templates.domain.exceptions import (
@@ -852,14 +855,17 @@ async def send_bulk_email_operation(
                         message="Toplu mail operasyonu zaten başlatılmış.",
                     )
 
-    excel_tokens: list[str] = []
+    excel_recipient_rows: list[dict[str, str]] = []
     if excel_file is not None and excel_file.filename:
         name = excel_file.filename.lower()
         if not name.endswith(".xlsx"):
             raise HTTPException(status_code=400, detail="Yalnızca .xlsx dosyası desteklenir")
         excel_bytes = await excel_file.read()
         try:
-            excel_tokens = extract_email_tokens_from_xlsx(excel_bytes)
+            excel_recipient_rows = [
+                {"display_name": row.display_name, "email": row.email}
+                for row in extract_excel_recipient_rows(excel_bytes)
+            ]
         except InvalidImportFileError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -878,7 +884,8 @@ async def send_bulk_email_operation(
         "smtp_account_id": str(payload.smtp_account_id),
         "subject": payload.subject,
         "manual_emails": payload.manual_emails,
-        "excel_email_tokens": excel_tokens,
+        "excel_recipient_rows": excel_recipient_rows,
+        "excel_email_tokens": [row["email"] for row in excel_recipient_rows if row.get("email")],
         "fair_ids": [str(item) for item in payload.fair_ids],
         "country_filter": payload.country_filter,
         "city_filter": payload.city_filter,
@@ -1059,11 +1066,13 @@ def list_bulk_email_operation_logs(
     items = repo.list_outbox_for_batch(auth.organization_id, batch.id)
     lines: list[BulkEmailOperationLogLineResponse] = []
 
-    started_at = batch.created_at
+    started_at = getattr(batch, "created_at", None)
     if items:
-        earliest = min((item.created_at for item in items if item.created_at is not None), default=None)
-        if earliest is not None and (started_at is None or earliest < started_at):
-            started_at = earliest
+        created_times = [item.created_at for item in items if item.created_at is not None]
+        if created_times:
+            earliest = min(created_times)
+            if started_at is None or earliest < started_at:
+                started_at = earliest
 
     lines.append(
         BulkEmailOperationLogLineResponse(
@@ -1209,7 +1218,7 @@ def list_bulk_email_operation_logs(
             )
         )
 
-    lines.sort(key=lambda line: (line.at is None, line.at))
+    lines.sort(key=lambda line: (line.at is None, line.at.isoformat() if line.at is not None else ""))
     return BulkEmailOperationLogsResponse(batch_id=batch.id, items=lines)
 
 

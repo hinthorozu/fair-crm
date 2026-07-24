@@ -15,6 +15,7 @@ import type {
 } from "../../types/bulkEmailOperation";
 import type { StandardListResponse } from "../../types/listTable";
 import { DEFAULT_PAGE_SIZE } from "../../types/listTable";
+import { formatBulkEmailRecipientDisplay } from "../../utils/bulkEmailRecipientDisplay";
 
 type StatusFilter = "" | "will_send" | "skip";
 
@@ -141,14 +142,7 @@ export function BulkEmailPreviewRecipientsTable({
         title: operationLabels.bulkEmailColRecipient,
         sortable: false,
         allowWrap: true,
-        render: (item) => item.recipient_name ?? "—",
-      },
-      {
-        key: "company_name",
-        title: operationLabels.bulkEmailColCompany,
-        sortable: false,
-        allowWrap: true,
-        render: (item) => item.company_name ?? "—",
+        render: (item) => formatBulkEmailRecipientDisplay(item),
       },
       {
         key: "email",

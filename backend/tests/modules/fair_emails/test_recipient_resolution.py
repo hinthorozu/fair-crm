@@ -2,6 +2,8 @@
 
 from uuid import uuid4
 
+import pytest
+
 from app.modules.fair_emails.application.recipient_resolution import resolve_recipients
 from app.modules.fair_emails.domain.value_objects import RawRecipientCandidate, RecipientOptions
 
@@ -39,6 +41,65 @@ def test_resolve_recipients_dedupes_emails():
     will_send = [item for item in result.recipients if item.status == "will_send"]
     assert len(will_send) == 1
     assert result.skipped_count == 1
+    assert result.duplicate_count == 1
+    assert result.invalid_count == 0
+
+
+def test_resolve_recipients_skips_invalid_email_before_dedupe():
+    customer_id = uuid4()
+    result = resolve_recipients(
+        [
+            _candidate(customer_id=customer_id, email="valid@example.com", email_valid=True),
+            _candidate(
+                customer_id=customer_id,
+                email="bad-email",
+                email_valid=True,  # loader flag must not override shared validator
+            ),
+            _candidate(
+                customer_id=customer_id,
+                email="second@example.com",
+                email_valid=True,
+                contact_id=uuid4(),
+                source="contact",
+            ),
+        ],
+        RecipientOptions(),
+    )
+    will_send = [item for item in result.recipients if item.status == "will_send"]
+    skipped = [item for item in result.recipients if item.status == "skip"]
+    assert len(will_send) == 2
+    assert {item.email for item in will_send} == {"valid@example.com", "second@example.com"}
+    assert len(skipped) == 1
+    assert skipped[0].skip_reason == "invalid_email"
+    assert result.invalid_count == 1
+    assert result.valid_email_count == 2
+    assert result.deduped_recipient_count == 2
+
+
+def test_resolve_recipients_whitespace_email_normalized():
+    result = resolve_recipients(
+        [_candidate(email="  Valid@Example.com  ", email_valid=True)],
+        RecipientOptions(),
+    )
+    assert result.recipients[0].status == "will_send"
+    assert result.recipients[0].email == "valid@example.com"
+
+
+def test_resolve_recipients_invalid_not_counted_as_duplicate():
+    customer_id = uuid4()
+    result = resolve_recipients(
+        [
+            _candidate(customer_id=customer_id, email="one@example.com"),
+            _candidate(customer_id=customer_id, email="not-an-email", email_valid=False),
+            _candidate(customer_id=customer_id, email="two@example.com", contact_id=uuid4(), source="contact"),
+            _candidate(customer_id=customer_id, email="one@example.com", contact_id=uuid4(), source="contact"),
+        ],
+        RecipientOptions(),
+    )
+    assert result.valid_email_count == 2
+    assert result.invalid_count == 1
+    assert result.duplicate_count == 1
+    assert result.deduped_recipient_count == 2
 
 
 def test_resolve_recipients_excludes_inactive():
@@ -97,3 +158,77 @@ def test_resolve_recipients_contact_email_consent_blocks_contact_only():
     assert will_send[0].source == "customer"
     assert len(skipped) == 1
     assert skipped[0].skip_reason == "contact_email_consent"
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("Üinfo@example.com", "uinfo@example.com"),
+        ("Şinfo@example.com", "sinfo@example.com"),
+        ("Ğinfo@example.com", "ginfo@example.com"),
+        ("Çinfo@example.com", "cinfo@example.com"),
+        ("Öinfo@example.com", "oinfo@example.com"),
+        ("Iinfo@example.com", "iinfo@example.com"),
+        ("BİLGİ@EXAMPLE.COM", "bilgi@example.com"),
+    ],
+)
+def test_resolve_fair_company_email_turkish_char_normalization(raw: str, expected: str):
+    result = resolve_recipients(
+        [_candidate(email=raw, source="customer")],
+        RecipientOptions(),
+    )
+    assert result.recipients[0].status == "will_send"
+    assert result.recipients[0].email == expected
+    assert result.recipients[0].source == "customer"
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("Üinfo@example.com", "uinfo@example.com"),
+        ("Şinfo@example.com", "sinfo@example.com"),
+        ("Ğinfo@example.com", "ginfo@example.com"),
+        ("Çinfo@example.com", "cinfo@example.com"),
+        ("Öinfo@example.com", "oinfo@example.com"),
+        ("Iinfo@example.com", "iinfo@example.com"),
+        ("BİLGİ@EXAMPLE.COM", "bilgi@example.com"),
+    ],
+)
+def test_resolve_fair_contact_email_turkish_char_normalization(raw: str, expected: str):
+    result = resolve_recipients(
+        [
+            _candidate(
+                email=raw,
+                source="contact",
+                contact_id=uuid4(),
+                recipient_name="Yetkili",
+            )
+        ],
+        RecipientOptions(),
+    )
+    assert result.recipients[0].status == "will_send"
+    assert result.recipients[0].email == expected
+    assert result.recipients[0].source == "contact"
+
+
+def test_resolve_fair_emails_dedupe_after_turkish_normalization():
+    customer_id = uuid4()
+    result = resolve_recipients(
+        [
+            _candidate(customer_id=customer_id, email="Üinfo@example.com", source="customer"),
+            _candidate(
+                customer_id=customer_id,
+                email="uinfo@example.com",
+                source="contact",
+                contact_id=uuid4(),
+            ),
+        ],
+        RecipientOptions(dedupe_emails=True),
+    )
+    will_send = [item for item in result.recipients if item.status == "will_send"]
+    skipped = [item for item in result.recipients if item.status == "skip"]
+    assert len(will_send) == 1
+    assert will_send[0].email == "uinfo@example.com"
+    assert len(skipped) == 1
+    assert skipped[0].skip_reason == "duplicate_email"
+    assert result.duplicate_count == 1

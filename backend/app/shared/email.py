@@ -4,6 +4,47 @@ from __future__ import annotations
 
 from email_validator import EmailNotValidError, validate_email
 
+# Bulk-email recipient addresses only: explicit Turkish letter fold before lowercase.
+# Do not map ı. Do not add general Unicode/ASCII transliteration.
+_BULK_RECIPIENT_EMAIL_TR_MAP = str.maketrans(
+    {
+        "Ü": "u",
+        "ü": "u",
+        "Ş": "s",
+        "ş": "s",
+        "Ğ": "g",
+        "ğ": "g",
+        "Ç": "c",
+        "ç": "c",
+        "Ö": "o",
+        "ö": "o",
+        "I": "i",
+        "İ": "i",
+    }
+)
+
+
+# Exact ASCII i + COMBINING DOT ABOVE (U+0307). Not a general combining-mark wipe.
+_COMBINING_DOT_ABOVE = "\u0307"
+
+
+def normalize_bulk_recipient_email(value: str | None) -> str:
+    """Normalize a single bulk-email recipient address.
+
+    Order: trim → Turkish letter map (ÜŞĞÇÖIİ + lower forms of ÜŞĞÇÖ) → lowercase
+    → exact ``i`` + U+0307 → ``i``.
+    İ maps to ASCII i (not Python default i+combining-dot). ı is not remapped.
+    Safe to call repeatedly; does not change names or other fields.
+    """
+    if not value:
+        return ""
+    text = value.strip()
+    if not text:
+        return ""
+    normalized = text.translate(_BULK_RECIPIENT_EMAIL_TR_MAP).lower()
+    # Collapse i + combining-dot (e.g. legacy/corrupt local-part from İ mishandling).
+    return normalized.replace(f"i{_COMBINING_DOT_ABOVE}", "i")
+
 
 def is_valid_email_address(email: str) -> bool:
     """Return True only for a structurally valid single email address.

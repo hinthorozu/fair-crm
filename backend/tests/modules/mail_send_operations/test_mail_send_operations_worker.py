@@ -339,6 +339,45 @@ def test_worker_marks_stuck_sending_as_failed(mock_send, db_session, organizatio
     assert "sending_timeout" in events
     assert events[-1] == "failed"
     mock_send.assert_not_called()
+    get_settings.cache_clear()
+
+
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+def test_worker_keeps_sending_before_timeout(mock_send, db_session, organization_id, monkeypatch):
+    monkeypatch.setenv("MAIL_SENDING_TIMEOUT_MINUTES", "15")
+    get_settings.cache_clear()
+    stuck = _create_queued_operation(db_session, organization_id, recipient_email="not-yet@example.com")
+    stuck.status = MailSendOperationStatus.SENDING
+    stuck.sending_started_at = datetime.now(timezone.utc) - timedelta(minutes=5)
+    db_session.flush()
+
+    result = ProcessMailSendOperationsWorker(db_session).run()
+    assert result.recovered_stuck_count == 0
+    refreshed = db_session.query(MailSendOperationModel).filter(MailSendOperationModel.id == stuck.id).one()
+    assert refreshed.status == MailSendOperationStatus.SENDING
+    mock_send.assert_not_called()
+    get_settings.cache_clear()
+
+
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+def test_worker_stuck_timeout_recovery_is_idempotent(mock_send, db_session, organization_id, monkeypatch):
+    monkeypatch.setenv("MAIL_SENDING_TIMEOUT_MINUTES", "15")
+    get_settings.cache_clear()
+    stuck = _create_queued_operation(db_session, organization_id, recipient_email="once-timeout@example.com")
+    stuck.status = MailSendOperationStatus.SENDING
+    stuck.sending_started_at = datetime.now(timezone.utc) - timedelta(minutes=20)
+    db_session.flush()
+
+    first = ProcessMailSendOperationsWorker(db_session).run()
+    second = ProcessMailSendOperationsWorker(db_session).run()
+    assert first.recovered_stuck_count == 1
+    assert second.recovered_stuck_count == 0
+    refreshed = db_session.query(MailSendOperationModel).filter(MailSendOperationModel.id == stuck.id).one()
+    assert refreshed.status == MailSendOperationStatus.FAILED
+    assert refreshed.error_code == "sending_timeout"
+    assert _operation_events(refreshed.operation_logs).count("sending_timeout") == 1
+    mock_send.assert_not_called()
+    get_settings.cache_clear()
 
 
 @patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")

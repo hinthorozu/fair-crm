@@ -7,7 +7,7 @@ from uuid import UUID
 
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.ports import AuthorizationPort, AuditPort
-from app.modules.fair_emails.application.excel_email_extract import extract_email_tokens_from_xlsx
+from app.modules.fair_emails.application.excel_email_extract import extract_excel_recipient_rows
 from app.modules.fair_emails.application.fair_bulk_mail_operation_sync import FairBulkEmailMailOperationSync
 from app.modules.fair_emails.application.recipient_resolution import (
     resolve_manual_and_excel_emails,
@@ -53,6 +53,7 @@ class SendBulkEmailOperationCommand:
     fair_ids: list[UUID] | None = None
     manual_emails: str | None = None
     excel_email_tokens: list[str] | None = None
+    excel_recipient_rows: list[dict[str, str]] | None = None
     excel_bytes: bytes | None = None
     country_filter: str | None = None
     city_filter: str | None = None
@@ -193,22 +194,36 @@ class SendBulkEmailOperationUseCase:
     def _resolve_manual(
         self, command: SendBulkEmailOperationCommand
     ) -> tuple[list[ResolvedRecipient], UUID | None, list[UUID]]:
-        excel_tokens = list(command.excel_email_tokens or [])
+        excel_rows: list[tuple[str, str]] = []
+        for item in command.excel_recipient_rows or []:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("display_name") or "").strip()
+            email = str(item.get("email") or "").strip()
+            if name or email:
+                excel_rows.append((name, email))
+        # Legacy token list only when structured rows were not stored.
+        if not excel_rows:
+            for token in command.excel_email_tokens or []:
+                cleaned = str(token).strip()
+                if cleaned:
+                    excel_rows.append(("", cleaned))
         if command.excel_bytes:
             try:
-                excel_tokens.extend(extract_email_tokens_from_xlsx(command.excel_bytes))
+                extracted = extract_excel_recipient_rows(command.excel_bytes)
+                excel_rows.extend((row.display_name, row.email) for row in extracted)
             except InvalidImportFileError:
                 raise
             except Exception as exc:  # noqa: BLE001
                 raise InvalidImportFileError("Excel dosyası okunamadı") from exc
 
         manual_text = (command.manual_emails or "").strip()
-        if not manual_text and not excel_tokens:
+        if not manual_text and not excel_rows:
             raise ValueError("Excel dosyası yükleyin veya en az bir e-posta girin.")
 
         preview = resolve_manual_and_excel_emails(
             manual_emails_text=manual_text,
-            excel_email_tokens=excel_tokens,
+            excel_recipient_rows=excel_rows,
         )
         recipients = [wizard_to_resolved_recipient(item) for item in preview.recipients]
         return recipients, None, []

@@ -2,7 +2,11 @@
 
 import pytest
 
-from app.shared.email import is_valid_email_address, normalize_email_field
+from app.shared.email import (
+    is_valid_email_address,
+    normalize_bulk_recipient_email,
+    normalize_email_field,
+)
 
 
 def test_single_email():
@@ -77,3 +81,41 @@ def test_internal_space_is_not_normalized_away():
     """Do not strip internal spaces to coerce validity."""
     with pytest.raises(ValueError, match=r"Invalid email address: abc @\.oxom"):
         normalize_email_field("abc @.oxom")
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("Üinfo@example.com", "uinfo@example.com"),
+        ("Şinfo@example.com", "sinfo@example.com"),
+        ("Ğinfo@example.com", "ginfo@example.com"),
+        ("Çinfo@example.com", "cinfo@example.com"),
+        ("Öinfo@example.com", "oinfo@example.com"),
+        ("Iinfo@example.com", "iinfo@example.com"),
+        ("BİLGİ@EXAMPLE.COM", "bilgi@example.com"),
+        ("  ÜInfo@Example.COM  ", "uinfo@example.com"),
+    ],
+)
+def test_normalize_bulk_recipient_email_turkish_chars(raw: str, expected: str):
+    assert normalize_bulk_recipient_email(raw) == expected
+    assert "\u0307" not in normalize_bulk_recipient_email(raw)
+
+
+def test_normalize_bulk_recipient_email_dotted_capital_i_is_ascii_i():
+    result = normalize_bulk_recipient_email("BİLGİ@EXAMPLE.COM")
+    assert result == "bilgi@example.com"
+    assert all(ord(ch) < 128 for ch in result)
+
+
+def test_normalize_bulk_recipient_email_collapses_i_plus_combining_dot():
+    """ASCII i + U+0307 (COMBINING DOT ABOVE) → ASCII i only."""
+    raw = "si\u0307nan@umaay.com"
+    result = normalize_bulk_recipient_email(raw)
+    assert result == "sinan@umaay.com"
+    assert "\u0307" not in result
+    assert all(ord(ch) < 128 for ch in result)
+
+
+def test_normalize_bulk_recipient_email_does_not_special_case_dotless_i():
+    # ı must stay ı (only general lower applies; no extra map).
+    assert "ı" in normalize_bulk_recipient_email("ıinfo@example.com")

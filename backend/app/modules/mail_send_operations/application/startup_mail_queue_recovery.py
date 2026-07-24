@@ -1,4 +1,9 @@
-"""Startup recovery: drain queued mail_send_operations without blocking API boot."""
+"""Mail queue recovery: drain queued ops and re-check stuck ``sending`` while alive.
+
+Immediate pass on app startup, then periodic re-evaluation so orphan ``sending``
+rows past ``mail_sending_timeout_minutes`` become terminal FAILED even when
+startup ran before the timeout elapsed. Never auto-retries or resends.
+"""
 
 from __future__ import annotations
 
@@ -93,21 +98,53 @@ def run_mail_queue_startup_recovery() -> MailSendOperationWorkerResult | None:
         return None
 
 
-async def _startup_mail_recovery_task() -> None:
-    try:
-        await asyncio.to_thread(run_mail_queue_startup_recovery)
-    except Exception:
-        # Belt-and-suspenders: never let a recovery task crash the event loop.
-        logger.exception("mail_queue_startup_recovery_task_failed")
+def _stuck_sending_poll_seconds() -> int:
+    """How often to re-evaluate stuck ``sending`` while the process is alive.
+
+    Startup alone is not enough: if recovery runs before ``sending_timeout`` has
+    elapsed, an orphan ``sending`` row would otherwise stay stuck forever. Keep
+    the existing timeout semantics; only re-check on a short poll interval.
+    """
+    settings = get_settings()
+    # Default 15m timeout → 60s poll; clamp so checks stay frequent but not frantic.
+    return max(30, min(120, int(settings.mail_sending_timeout_minutes) * 4))
+
+
+async def _mail_queue_recovery_supervisor() -> None:
+    """Run startup drain immediately, then periodically while the app lives.
+
+    Each pass reuses ``run_mail_queue_startup_recovery`` (stuck-sending timeout
+    failure + queued drain). Does not resend, does not auto-retry.
+    """
+    poll_seconds = _stuck_sending_poll_seconds()
+    logger.info(
+        "mail_queue_recovery_supervisor_started poll_seconds=%s",
+        poll_seconds,
+    )
+    while True:
+        try:
+            await asyncio.to_thread(run_mail_queue_startup_recovery)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            # Belt-and-suspenders: never let a recovery pass crash the event loop.
+            logger.exception("mail_queue_startup_recovery_task_failed")
+        try:
+            await asyncio.sleep(poll_seconds)
+        except asyncio.CancelledError:
+            raise
 
 
 def schedule_mail_queue_startup_recovery() -> asyncio.Task | None:
-    """Schedule non-blocking recovery. Returns the task, or None when disabled."""
+    """Schedule non-blocking recovery (+ periodic stuck-sending checks).
+
+    Returns the supervisor task, or None when disabled.
+    """
     settings = get_settings()
     if not settings.mail_startup_recovery_enabled:
         logger.info("mail_queue_startup_recovery_disabled")
         return None
 
-    task = asyncio.create_task(_startup_mail_recovery_task())
+    task = asyncio.create_task(_mail_queue_recovery_supervisor())
     logger.info("mail_queue_startup_recovery_scheduled")
     return task

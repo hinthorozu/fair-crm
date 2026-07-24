@@ -33,6 +33,8 @@ CANONICAL_OPERATION_TYPES: tuple[tuple[str, str, int, OperationTypeCapabilitiesS
             "supports_items": False,
         },
     ),
+    # Legacy Automation "E-posta" catalog key (historical list/filter labels).
+    # New creates are blocked via type_registry.available_in_wizard=False.
     (
         "email",
         "E-posta",

@@ -100,6 +100,8 @@ OPERATION_TYPE_DEFINITIONS: dict[str, OperationTypeDefinition] = {
         run_settings_schema={"fields": []},
         available_in_wizard=True,
     ),
+    # Legacy Automation "E-posta" — kept for historical operation rows only.
+    # Not creatable / not shown in Yeni Otomasyon. Use bulk_email for mail automation.
     OperationType.EMAIL: OperationTypeDefinition(
         type=OperationType.EMAIL,
         label_key="email",
@@ -118,6 +120,7 @@ OPERATION_TYPE_DEFINITIONS: dict[str, OperationTypeDefinition] = {
         run_settings_schema={
             "fields": ["retry", "rate_limit", "schedule", "priority"],
         },
+        available_in_wizard=False,
     ),
     OperationType.BULK_EMAIL: OperationTypeDefinition(
         type=OperationType.BULK_EMAIL,
@@ -141,6 +144,7 @@ OPERATION_TYPE_DEFINITIONS: dict[str, OperationTypeDefinition] = {
                 "source_type",
                 "manual_emails",
                 "excel_email_tokens",
+                "excel_recipient_rows",
                 "fair_ids",
             ],
         },

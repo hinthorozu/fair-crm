@@ -196,6 +196,8 @@ export function useServerDataTable<T>({
       setResponseSorting(res.sorting);
       setResponseFilters(res.filters);
       setFilterCounts(res.counts ?? null);
+      // Usable data applied → initial skeleton must end (incl. silent winning a race).
+      setLoading(false);
       if (silent) setError(null);
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
@@ -203,12 +205,11 @@ export function useServerDataTable<T>({
         setError(err instanceof Error ? err.message : "Liste yüklenemedi.");
       }
     } finally {
+      // Winning request always clears load flags. A silent refresh that supersedes an
+      // in-flight initial fetch must not leave loading=true forever (stale finally skips).
       if (requestId === requestIdRef.current) {
-        if (silent) {
-          setIsRefreshing(false);
-        } else {
-          setLoading(false);
-        }
+        setIsRefreshing(false);
+        setLoading(false);
       }
     }
   }, [

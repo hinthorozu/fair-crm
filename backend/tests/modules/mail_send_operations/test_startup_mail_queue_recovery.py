@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import threading
 import time
 from datetime import datetime, timedelta, timezone
@@ -18,6 +19,7 @@ from app.modules.mail_send_operations.application.process_mail_send_operations_w
     set_mail_worker_session_factory,
 )
 from app.modules.mail_send_operations.application.startup_mail_queue_recovery import (
+    _mail_queue_recovery_supervisor,
     run_mail_queue_startup_recovery,
     schedule_mail_queue_startup_recovery,
 )
@@ -302,6 +304,117 @@ def test_startup_recovery_marks_stuck_sending_failed_without_resend(
     refreshed = db_session.query(MailSendOperationModel).filter(MailSendOperationModel.id == stuck.id).one()
     assert refreshed.status == MailSendOperationStatus.FAILED
     assert refreshed.error_code == "sending_timeout"
+    get_settings.cache_clear()
+
+
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+def test_startup_recovery_leaves_sending_before_timeout(
+    mock_send,
+    db_session,
+    organization_id,
+    recovery_session_factory,
+    monkeypatch,
+):
+    monkeypatch.setenv("MAIL_SENDING_TIMEOUT_MINUTES", "15")
+    get_settings.cache_clear()
+
+    stuck = _create_queued_operation(
+        db_session,
+        organization_id,
+        recipient_email="startup-not-yet@example.com",
+    )
+    stuck.status = MailSendOperationStatus.SENDING
+    stuck.sending_started_at = datetime.now(timezone.utc) - timedelta(minutes=5)
+    db_session.flush()
+
+    with patch(
+        "app.modules.mail_send_operations.application.startup_mail_queue_recovery."
+        "process_mail_send_operations_background"
+    ) as mock_worker:
+        result = run_mail_queue_startup_recovery()
+
+    assert result is not None
+    assert result.recovered_stuck_count == 0
+    mock_worker.assert_not_called()
+    mock_send.assert_not_called()
+    refreshed = db_session.query(MailSendOperationModel).filter(MailSendOperationModel.id == stuck.id).one()
+    assert refreshed.status == MailSendOperationStatus.SENDING
+    get_settings.cache_clear()
+
+
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+def test_startup_recovery_catches_orphan_after_timeout_elapses(
+    mock_send,
+    db_session,
+    organization_id,
+    recovery_session_factory,
+    monkeypatch,
+):
+    """Early empty pass must not prevent a later pass once timeout has elapsed."""
+    monkeypatch.setenv("MAIL_SENDING_TIMEOUT_MINUTES", "15")
+    get_settings.cache_clear()
+
+    stuck = _create_queued_operation(
+        db_session,
+        organization_id,
+        recipient_email="startup-orphan-later@example.com",
+    )
+    stuck.status = MailSendOperationStatus.SENDING
+    stuck.sending_started_at = datetime.now(timezone.utc) - timedelta(minutes=5)
+    db_session.flush()
+
+    early = run_mail_queue_startup_recovery()
+    assert early is not None
+    assert early.recovered_stuck_count == 0
+    still = db_session.query(MailSendOperationModel).filter(MailSendOperationModel.id == stuck.id).one()
+    assert still.status == MailSendOperationStatus.SENDING
+
+    stuck.sending_started_at = datetime.now(timezone.utc) - timedelta(minutes=20)
+    db_session.flush()
+
+    later = run_mail_queue_startup_recovery()
+    assert later is not None
+    assert later.recovered_stuck_count == 1
+    mock_send.assert_not_called()
+    refreshed = db_session.query(MailSendOperationModel).filter(MailSendOperationModel.id == stuck.id).one()
+    assert refreshed.status == MailSendOperationStatus.FAILED
+    assert refreshed.error_code == "sending_timeout"
+
+    again = run_mail_queue_startup_recovery()
+    assert again is not None
+    assert again.recovered_stuck_count == 0
+    mock_send.assert_not_called()
+    get_settings.cache_clear()
+
+
+@pytest.mark.asyncio
+async def test_recovery_supervisor_reruns_after_poll(monkeypatch):
+    monkeypatch.setenv("MAIL_SENDING_TIMEOUT_MINUTES", "15")
+    get_settings.cache_clear()
+    calls = {"n": 0}
+
+    def _recovery():
+        calls["n"] += 1
+        return MailSendOperationWorkerResult(0, 0, 0, 0, 0)
+
+    async def _sleep(_seconds: float) -> None:
+        if calls["n"] >= 2:
+            raise asyncio.CancelledError()
+        return None
+
+    with patch(
+        "app.modules.mail_send_operations.application.startup_mail_queue_recovery."
+        "run_mail_queue_startup_recovery",
+        side_effect=_recovery,
+    ), patch(
+        "app.modules.mail_send_operations.application.startup_mail_queue_recovery."
+        "asyncio.sleep",
+        side_effect=_sleep,
+    ):
+        with pytest.raises(asyncio.CancelledError):
+            await _mail_queue_recovery_supervisor()
+
+    assert calls["n"] >= 2
     get_settings.cache_clear()
 
 

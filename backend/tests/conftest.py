@@ -273,8 +273,11 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     from app.modules.mail_send_operations.application import (
         process_mail_send_operations_worker as mail_send_operations_worker,
     )
+    from app.shared.background_jobs import configure_detached_jobs_inline
 
     fair_email_process_batch.configure_batch_session_factory(lambda: db_session)
     mail_send_operations_worker.configure_mail_worker_session_factory(lambda: db_session)
+    # Detached mail jobs must run inline under TestClient shared sessions.
+    configure_detached_jobs_inline(True)
 
     return TestClient(app)

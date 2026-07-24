@@ -12,7 +12,7 @@ from app.modules.fair_emails.application.recipient_resolution import iter_valid_
 from app.modules.fair_emails.domain.value_objects import RawRecipientCandidate, RecipientOptions
 from app.modules.fairs.infrastructure.persistence.models import FairModel
 from app.modules.participations.infrastructure.persistence.models import CustomerFairParticipationModel
-from app.shared.email import is_valid_email_address
+from app.shared.email import is_valid_email_address, normalize_bulk_recipient_email
 
 
 @dataclass(frozen=True)
@@ -128,7 +128,7 @@ class FairBulkEmailRecipientLoader:
         candidates: list[RawRecipientCandidate] = []
         for email_row in email_rows:
             for participation in participation_by_customer[email_row.customer_id]:
-                email = (email_row.email or "").strip().lower()
+                email = normalize_bulk_recipient_email(email_row.email)
                 candidates.append(
                     RawRecipientCandidate(
                         recipient_name=participation.company_name,
