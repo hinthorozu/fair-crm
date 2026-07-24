@@ -59,12 +59,29 @@ def _address_contains_filter(address_contains: str):
     )
 
 
+def normalize_enrichment_fair_ids(
+    *,
+    fair_id: UUID | None,
+    fair_ids: list[UUID] | None,
+) -> list[UUID]:
+    """Merge legacy single fair_id with fair_ids; preserve order, drop duplicates."""
+    merged: list[UUID] = []
+    seen: set[UUID] = set()
+    for item in list(fair_ids or []) + ([fair_id] if fair_id is not None else []):
+        if item in seen:
+            continue
+        seen.add(item)
+        merged.append(item)
+    return merged
+
+
 def list_enrichment_candidates(
     session: Session,
     organization_id: UUID,
     *,
     limit: int | None = None,
     fair_id: UUID | None = None,
+    fair_ids: list[UUID] | None = None,
     ignore_previous_scan_state: bool = False,
     include_existing_email: bool = False,
     company_name: str | None = None,
@@ -85,9 +102,10 @@ def list_enrichment_candidates(
     (default), only website-holding customers without any CRM email are returned — the
     original enrichment behaviour.
 
-    Optional filters (``company_name``, ``address_contains``, ``fair_id``) narrow the
-    candidate pool; all are optional so a run can target a limited subset without
-    requiring every filter.
+    Optional filters (``company_name``, ``address_contains``, ``fair_id`` / ``fair_ids``)
+    narrow the candidate pool; all are optional so a run can target a limited subset
+    without requiring every filter. When multiple fairs are selected, a customer that
+    participates in more than one is returned at most once (existing customer-id dedupe).
     """
     filters = [
         CustomerModel.organization_id == organization_id,
@@ -112,13 +130,14 @@ def list_enrichment_candidates(
         .join(CustomerModel, CustomerModel.id == CustomerWebsiteModel.customer_id)
         .filter(*filters)
     )
-    if fair_id is not None:
+    resolved_fair_ids = normalize_enrichment_fair_ids(fair_id=fair_id, fair_ids=fair_ids)
+    if resolved_fair_ids:
         query = query.join(
             CustomerFairParticipationModel,
             and_(
                 CustomerFairParticipationModel.customer_id == CustomerModel.id,
                 CustomerFairParticipationModel.organization_id == organization_id,
-                CustomerFairParticipationModel.fair_id == fair_id,
+                CustomerFairParticipationModel.fair_id.in_(resolved_fair_ids),
                 CustomerFairParticipationModel.deleted_at.is_(None),
             ),
         )

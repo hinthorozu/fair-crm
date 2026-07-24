@@ -8,20 +8,31 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { dataIntegrationLabels } from "../labels/dataIntegrationLabels";
 import { fairLabels } from "../labels/fairLabels";
 import { canRunScraperActions, getGrantedScraperPermissions } from "../permissions/scraperPermissions";
-import type { ScraperManifest } from "../types/scraper";
+import type { EnrichmentRunPayload, ScraperManifest } from "../types/scraper";
 import { CUSTOMER_CONTACT_ENRICHMENT_ADAPTER_KEY } from "../utils/enrichmentAdapter";
 import { Banner } from "../components/ui/Banner";
 import { PageShell } from "../components/ui/PageShell";
 
 interface CustomerEnrichmentPageProps {
   onRunStarted: (runId: string) => void;
+  /** Optional header override (e.g. Automations → Zenginleştirme entry). */
+  title?: string;
+  subtitle?: string;
+  /** When set, starts via Operations create+start instead of direct enrichment API. */
+  startVia?: (payload: EnrichmentRunPayload) => Promise<string>;
 }
 
 /**
- * Org-wide customer contact enrichment screen under Veri Entegrasyonu.
+ * Org-wide customer contact enrichment screen.
+ * Shared by Veri Entegrasyonu and Otomasyonlar → Zenginleştirme.
  * Reuses EnrichmentRunPanel (optional fair/company/address filters + email include flag).
  */
-export function CustomerEnrichmentPage({ onRunStarted }: CustomerEnrichmentPageProps) {
+export function CustomerEnrichmentPage({
+  onRunStarted,
+  title = dataIntegrationLabels.enrichmentTitle,
+  subtitle = dataIntegrationLabels.enrichmentSubtitle,
+  startVia,
+}: CustomerEnrichmentPageProps) {
   const [manifest, setManifest] = React.useState<ScraperManifest | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -58,10 +69,7 @@ export function CustomerEnrichmentPage({ onRunStarted }: CustomerEnrichmentPageP
 
   return (
     <PageShell className="customer-enrichment-page">
-      <PageHeader
-        title={dataIntegrationLabels.enrichmentTitle}
-        subtitle={dataIntegrationLabels.enrichmentSubtitle}
-      />
+      <PageHeader title={title} subtitle={subtitle} />
 
       {error ? <Banner variant="error">{error}</Banner> : null}
 
@@ -74,6 +82,7 @@ export function CustomerEnrichmentPage({ onRunStarted }: CustomerEnrichmentPageP
               adapterKey={CUSTOMER_CONTACT_ENRICHMENT_ADAPTER_KEY}
               manifest={manifest}
               onRunStarted={onRunStarted}
+              startVia={startVia}
             />
           ) : (
             <p className="text-muted">{dataIntegrationLabels.enrichmentLoadError}</p>

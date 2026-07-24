@@ -23,6 +23,7 @@ from app.modules.scraper.services.enrichment_candidate_service import (
     CompanyNameMatchMode,
     EnrichmentCandidate,
     list_enrichment_candidates,
+    normalize_enrichment_fair_ids,
 )
 from app.modules.scraper.services.customer_enrichment_state_service import record_scan_result
 from app.modules.scraper.services.enrichment_customer_run_logger import EnrichmentCustomerRunLogger
@@ -96,6 +97,7 @@ def execute_enrichment_run(
     fetcher: Callable[[str], str] | None = None,
     customer_ids: list[UUID] | None = None,
     fair_id: UUID | None = None,
+    fair_ids: list[UUID] | None = None,
     ignore_previous_scan_state: bool = False,
     include_existing_email: bool = False,
     company_name: str | None = None,
@@ -128,20 +130,9 @@ def execute_enrichment_run(
     match_mode: CompanyNameMatchMode = (
         company_name_match if company_name_match in _VALID_COMPANY_NAME_MATCH else "contains"
     )
+    resolved_fair_ids = normalize_enrichment_fair_ids(fair_id=fair_id, fair_ids=fair_ids)
     query_started_at = time.perf_counter()
-    if fair_id is not None:
-        candidates = list_enrichment_candidates(
-            session,
-            organization_id,
-            limit=limit,
-            fair_id=fair_id,
-            ignore_previous_scan_state=ignore_previous_scan_state,
-            include_existing_email=include_existing_email,
-            company_name=company_name,
-            company_name_match=match_mode,
-            address_contains=address_contains,
-        )
-    elif customer_ids:
+    if customer_ids:
         from app.modules.scraper.services.single_customer_enrichment_service import (
             list_enrichment_candidates_for_customer_ids,
         )
@@ -156,6 +147,8 @@ def execute_enrichment_run(
             session,
             organization_id,
             limit=limit,
+            fair_ids=resolved_fair_ids or None,
+            ignore_previous_scan_state=ignore_previous_scan_state,
             include_existing_email=include_existing_email,
             company_name=company_name,
             company_name_match=match_mode,
@@ -170,6 +163,7 @@ def execute_enrichment_run(
             "limit": limit,
             "customer_ids_filter": [str(item) for item in customer_ids or []],
             "fair_id": str(fair_id) if fair_id is not None else None,
+            "fair_ids": [str(item) for item in resolved_fair_ids],
             "ignore_previous_scan_state": ignore_previous_scan_state,
             "include_existing_email": include_existing_email,
             "company_name": company_name,

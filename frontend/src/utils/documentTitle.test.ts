@@ -62,6 +62,12 @@ describe("resolvePageTitle", () => {
     );
   });
 
+  it("resolves enrichment automation wizard title", () => {
+    expect(resolvePageTitle({ route: "/operations/new/enrichment" })).toBe(
+      operationLabels.enrichmentWizardTitle,
+    );
+  });
+
   it("resolves duplicate groups title", () => {
     expect(
       resolvePageTitle({

@@ -494,3 +494,65 @@ def test_list_enrichment_candidates_combines_filters_and_limit(db_session, organ
         limit=10,
     )
     assert {item.customer_id for item in candidates} == {match.id}
+
+
+def test_list_enrichment_candidates_multi_fair_dedupes_shared_participant(
+    db_session, organization_id
+):
+    now = datetime.now(tz=UTC)
+    fair_a = FairModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        name="Fair A",
+        normalized_name="fair a",
+        status="planned",
+        created_at=now,
+        updated_at=now,
+    )
+    fair_b = FairModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        name="Fair B",
+        normalized_name="fair b",
+        status="planned",
+        created_at=now,
+        updated_at=now,
+    )
+    db_session.add_all([fair_a, fair_b])
+    db_session.flush()
+
+    shared = _seed_customer(db_session, organization_id, display_name="Shared Co")
+    only_a = _seed_customer(db_session, organization_id, display_name="Only A Co")
+    only_b = _seed_customer(db_session, organization_id, display_name="Only B Co")
+    outsider = _seed_customer(db_session, organization_id, display_name="Outsider Co")
+    for customer, website in (
+        (shared, "https://shared.test"),
+        (only_a, "https://only-a.test"),
+        (only_b, "https://only-b.test"),
+        (outsider, "https://outsider.test"),
+    ):
+        _seed_website(db_session, organization_id, customer.id, website)
+
+    for customer, fair in ((shared, fair_a), (shared, fair_b), (only_a, fair_a), (only_b, fair_b)):
+        db_session.add(
+            CustomerFairParticipationModel(
+                id=uuid4(),
+                organization_id=organization_id,
+                customer_id=customer.id,
+                fair_id=fair.id,
+                participation_status="exhibitor",
+                created_at=now,
+                updated_at=now,
+            )
+        )
+    db_session.commit()
+
+    candidates = list_enrichment_candidates(
+        db_session,
+        organization_id,
+        fair_ids=[fair_a.id, fair_b.id],
+    )
+    ids = [item.customer_id for item in candidates]
+    assert set(ids) == {shared.id, only_a.id, only_b.id}
+    assert ids.count(shared.id) == 1
+    assert outsider.id not in ids

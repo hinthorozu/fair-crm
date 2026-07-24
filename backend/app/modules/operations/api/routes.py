@@ -16,11 +16,13 @@ from app.integrations.kyrox_core.auth import AuthContext
 from app.modules.fairs.api.dependencies import get_fair_scraper_job_runner
 from app.modules.operations.api.dependencies import (
     BulkEmailJobBuffer,
+    EnrichmentJobBuffer,
     ScraperJobBuffer,
     get_auth_context,
     get_bulk_email_job_buffer,
     get_cancel_operation_use_case,
     get_create_operation_use_case,
+    get_enrichment_job_buffer,
     get_get_operation_use_case,
     get_list_operation_runs_use_case,
     get_list_operation_types_use_case,
@@ -33,6 +35,8 @@ from app.modules.operations.api.dependencies import (
     get_wizard_metadata_use_case,
     require_read_permission,
 )
+from app.modules.scraper.api.dependencies import get_enrichment_run_job_runner
+from app.modules.scraper.application.enrichment_run_job_runner import EnrichmentRunJobRunner
 from app.modules.scraper.application.fair_scraper_job_runner import FairScraperJobRunner
 from app.shared.background_jobs import run_blocking_background_task
 from app.modules.operations.api.schemas import (
@@ -163,6 +167,20 @@ def _schedule_scraper_jobs(
         )
 
 
+def _schedule_enrichment_jobs(
+    *,
+    background_tasks: BackgroundTasks,
+    enrichment_job_buffer: EnrichmentJobBuffer,
+    enrichment_job_runner: EnrichmentRunJobRunner,
+) -> None:
+    for command in enrichment_job_buffer.drain():
+        background_tasks.add_task(
+            run_blocking_background_task,
+            enrichment_job_runner.run_enrichment,
+            command,
+        )
+
+
 def _schedule_bulk_email_jobs(
     *,
     background_tasks: BackgroundTasks,
@@ -186,13 +204,20 @@ def _schedule_background_jobs(
     *,
     background_tasks: BackgroundTasks,
     scraper_job_buffer: ScraperJobBuffer,
+    enrichment_job_buffer: EnrichmentJobBuffer,
     bulk_email_job_buffer: BulkEmailJobBuffer,
     job_runner: FairScraperJobRunner,
+    enrichment_job_runner: EnrichmentRunJobRunner,
 ) -> None:
     _schedule_scraper_jobs(
         background_tasks=background_tasks,
         scraper_job_buffer=scraper_job_buffer,
         job_runner=job_runner,
+    )
+    _schedule_enrichment_jobs(
+        background_tasks=background_tasks,
+        enrichment_job_buffer=enrichment_job_buffer,
+        enrichment_job_runner=enrichment_job_runner,
     )
     _schedule_bulk_email_jobs(
         background_tasks=background_tasks,
@@ -318,8 +343,10 @@ def create_operation(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     use_case: CreateOperationUseCase = Depends(get_create_operation_use_case),
     scraper_job_buffer: ScraperJobBuffer = Depends(get_scraper_job_buffer),
+    enrichment_job_buffer: EnrichmentJobBuffer = Depends(get_enrichment_job_buffer),
     bulk_email_job_buffer: BulkEmailJobBuffer = Depends(get_bulk_email_job_buffer),
     job_runner: FairScraperJobRunner = Depends(get_fair_scraper_job_runner),
+    enrichment_job_runner: EnrichmentRunJobRunner = Depends(get_enrichment_run_job_runner),
     db: Session = Depends(get_db),
 ) -> OperationResponse:
     try:
@@ -356,8 +383,10 @@ def create_operation(
     _schedule_background_jobs(
         background_tasks=background_tasks,
         scraper_job_buffer=scraper_job_buffer,
+        enrichment_job_buffer=enrichment_job_buffer,
         bulk_email_job_buffer=bulk_email_job_buffer,
         job_runner=job_runner,
+        enrichment_job_runner=enrichment_job_runner,
     )
     return _to_operation_response(result)
 
@@ -520,8 +549,10 @@ def start_operation(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     use_case: StartOperationUseCase = Depends(get_start_operation_use_case),
     scraper_job_buffer: ScraperJobBuffer = Depends(get_scraper_job_buffer),
+    enrichment_job_buffer: EnrichmentJobBuffer = Depends(get_enrichment_job_buffer),
     bulk_email_job_buffer: BulkEmailJobBuffer = Depends(get_bulk_email_job_buffer),
     job_runner: FairScraperJobRunner = Depends(get_fair_scraper_job_runner),
+    enrichment_job_runner: EnrichmentRunJobRunner = Depends(get_enrichment_run_job_runner),
     db: Session = Depends(get_db),
 ) -> OperationResponse:
     try:
@@ -546,8 +577,10 @@ def start_operation(
     _schedule_background_jobs(
         background_tasks=background_tasks,
         scraper_job_buffer=scraper_job_buffer,
+        enrichment_job_buffer=enrichment_job_buffer,
         bulk_email_job_buffer=bulk_email_job_buffer,
         job_runner=job_runner,
+        enrichment_job_runner=enrichment_job_runner,
     )
     return _to_operation_response(result)
 
@@ -609,8 +642,10 @@ def retry_operation(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     use_case: RetryOperationUseCase = Depends(get_retry_operation_use_case),
     scraper_job_buffer: ScraperJobBuffer = Depends(get_scraper_job_buffer),
+    enrichment_job_buffer: EnrichmentJobBuffer = Depends(get_enrichment_job_buffer),
     bulk_email_job_buffer: BulkEmailJobBuffer = Depends(get_bulk_email_job_buffer),
     job_runner: FairScraperJobRunner = Depends(get_fair_scraper_job_runner),
+    enrichment_job_runner: EnrichmentRunJobRunner = Depends(get_enrichment_run_job_runner),
     db: Session = Depends(get_db),
     run_id: UUID | None = Query(default=None),
 ) -> OperationResponse:
@@ -639,8 +674,10 @@ def retry_operation(
     _schedule_background_jobs(
         background_tasks=background_tasks,
         scraper_job_buffer=scraper_job_buffer,
+        enrichment_job_buffer=enrichment_job_buffer,
         bulk_email_job_buffer=bulk_email_job_buffer,
         job_runner=job_runner,
+        enrichment_job_runner=enrichment_job_runner,
     )
     return _to_operation_response(result)
 
@@ -798,8 +835,10 @@ async def send_bulk_email_operation(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     use_case: CreateOperationUseCase = Depends(get_create_operation_use_case),
     scraper_job_buffer: ScraperJobBuffer = Depends(get_scraper_job_buffer),
+    enrichment_job_buffer: EnrichmentJobBuffer = Depends(get_enrichment_job_buffer),
     bulk_email_job_buffer: BulkEmailJobBuffer = Depends(get_bulk_email_job_buffer),
     job_runner: FairScraperJobRunner = Depends(get_fair_scraper_job_runner),
+    enrichment_job_runner: EnrichmentRunJobRunner = Depends(get_enrichment_run_job_runner),
     db: Session = Depends(get_db),
 ) -> BulkEmailOperationSendResponse:
     """Create + start a bulk_email operation (multipart like preview)."""
@@ -947,8 +986,10 @@ async def send_bulk_email_operation(
     _schedule_background_jobs(
         background_tasks=background_tasks,
         scraper_job_buffer=scraper_job_buffer,
+        enrichment_job_buffer=enrichment_job_buffer,
         bulk_email_job_buffer=bulk_email_job_buffer,
         job_runner=job_runner,
+        enrichment_job_runner=enrichment_job_runner,
     )
 
     batch_id = None
@@ -1311,8 +1352,10 @@ def retry_bulk_email_operation_failed(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     use_case: RetryOperationUseCase = Depends(get_retry_operation_use_case),
     scraper_job_buffer: ScraperJobBuffer = Depends(get_scraper_job_buffer),
+    enrichment_job_buffer: EnrichmentJobBuffer = Depends(get_enrichment_job_buffer),
     bulk_email_job_buffer: BulkEmailJobBuffer = Depends(get_bulk_email_job_buffer),
     job_runner: FairScraperJobRunner = Depends(get_fair_scraper_job_runner),
+    enrichment_job_runner: EnrichmentRunJobRunner = Depends(get_enrichment_run_job_runner),
     db: Session = Depends(get_db),
 ) -> OperationResponse:
     """Retry failed recipients via RetryOperationUseCase (handler.on_retry)."""
@@ -1341,7 +1384,9 @@ def retry_bulk_email_operation_failed(
     _schedule_background_jobs(
         background_tasks=background_tasks,
         scraper_job_buffer=scraper_job_buffer,
+        enrichment_job_buffer=enrichment_job_buffer,
         bulk_email_job_buffer=bulk_email_job_buffer,
         job_runner=job_runner,
+        enrichment_job_runner=enrichment_job_runner,
     )
     return _to_operation_response(result)

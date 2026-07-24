@@ -337,6 +337,7 @@ class EnrichmentRunRequest(BaseModel):
     include_existing_email: bool = False
     # Optional candidate filters — none are required; empty/null means no filter.
     fair_id: UUID | None = None
+    fair_ids: list[UUID] | None = None
     company_name: str | None = Field(default=None, max_length=255)
     company_name_match: Literal["contains", "starts_with"] = "contains"
     address_contains: str | None = Field(default=None, max_length=500)

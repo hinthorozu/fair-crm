@@ -27,6 +27,7 @@ import { TodosPage } from "./pages/TodosPage";
 import { OperationsPage } from "./pages/OperationsPage";
 import { OperationDetailPage } from "./pages/OperationDetailPage";
 import { BulkEmailOperationWizardPage } from "./pages/BulkEmailOperationWizardPage";
+import { EnrichmentOperationPage } from "./pages/EnrichmentOperationPage";
 import { ScraperOperationWizardPage } from "./pages/ScraperOperationWizardPage";
 import { CustomersResponsivePilotPage } from "./dev/CustomersResponsivePilotPage";
 import { TableStandardSmokePage } from "./dev/TableStandardSmokePage";
@@ -83,6 +84,7 @@ type AppRoute =
   | "/operations"
   | "/operations/new/scraper"
   | "/operations/new/bulk-email"
+  | "/operations/new/enrichment"
   | "/operations/:id"
   | "/follow-ups"
   | "/activities"
@@ -255,6 +257,9 @@ function parseRoute(location: string): ParsedRoute {
     }
     if (pathname === "/operations/new/bulk-email" || pathname === "/operations/new/bulk-email/") {
       return { route: "/operations/new/bulk-email" };
+    }
+    if (pathname === "/operations/new/enrichment" || pathname === "/operations/new/enrichment/") {
+      return { route: "/operations/new/enrichment" };
     }
     // Legacy: type picker is a modal on /operations (not a standalone page).
     if (
@@ -691,6 +696,7 @@ export function App() {
     parsed.route === "/operations" ||
     parsed.route === "/operations/new/scraper" ||
     parsed.route === "/operations/new/bulk-email" ||
+    parsed.route === "/operations/new/enrichment" ||
     parsed.route === "/operations/:id";
   const isActivitiesActive = parsed.route === "/activities";
   const isDiActive = isDataIntegrationRoute(parsed.route);
@@ -752,6 +758,12 @@ export function App() {
                 { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
                 { label: uiLabels.navOperations, onClick: goToOperations },
                 { label: operationLabels.bulkEmailWizardTitle, current: true },
+              ]
+          : parsed.route === "/operations/new/enrichment"
+            ? [
+                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
+                { label: uiLabels.navOperations, onClick: goToOperations },
+                { label: operationLabels.enrichmentWizardTitle, current: true },
               ]
           : parsed.route === "/operations"
             ? [
@@ -1110,6 +1122,9 @@ export function App() {
           onCancel={goToOperations}
           onCreated={goToOperationDetail}
         />
+      )}
+      {parsed.route === "/operations/new/enrichment" && (
+        <EnrichmentOperationPage onCreated={goToOperationDetail} />
       )}
       {parsed.route === "/operations/:id" && parsed.operationId && (
         <OperationDetailPage

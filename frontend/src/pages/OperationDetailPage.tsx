@@ -12,6 +12,7 @@ import { getAdapter } from "../api/scraper";
 import { getTodo } from "../api/todos";
 import { ApiError } from "../api/client";
 import { AdapterRunLogConsole } from "../components/scraper/AdapterRunLogConsole";
+import { EnrichmentRunDetailPanel } from "../components/scraper/EnrichmentRunDetailPanel";
 import { BulkEmailOperationResultsTable } from "../components/operations/BulkEmailOperationResultsTable";
 import { OperationRunStatusBadge } from "../components/operations/OperationRunStatusBadge";
 import { Banner } from "../components/ui/Banner";
@@ -31,6 +32,7 @@ import {
   operationTypeLabels,
   sourceKindLabels,
 } from "../labels/operationLabels";
+import { scraperLabels } from "../labels/scraperLabels";
 import { todoPriorityLabels, todoStatusLabels } from "../labels/todoLabels";
 import type {
   OperationDetail,
@@ -46,6 +48,10 @@ import {
   resolveOperationLiveLogTarget,
 } from "../utils/operationScraperRun";
 import { resolveRunUserFacingStatus } from "../utils/operationRunStatus";
+import {
+  buildEnrichmentSourceFilterRows,
+  extractEnrichmentFairIds,
+} from "../utils/enrichmentOperationSource";
 
 interface OperationDetailPageProps {
   operationId: string;
@@ -107,6 +113,7 @@ export function OperationDetailPage({
   const [linkedTodoError, setLinkedTodoError] = React.useState<string | null>(null);
   const [sourceFairName, setSourceFairName] = React.useState<string | null>(null);
   const [sourceFairResolveFailed, setSourceFairResolveFailed] = React.useState(false);
+  const [enrichmentFairNames, setEnrichmentFairNames] = React.useState<string[]>([]);
   const [adapterDisplayName, setAdapterDisplayName] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -191,6 +198,35 @@ export function OperationDetailPage({
       cancelled = true;
     };
   }, [scraperSourceFairId]);
+
+  const enrichmentFairIdsKey =
+    detail?.operation.operation_type === "enrichment"
+      ? extractEnrichmentFairIds(detail.operation).join("|")
+      : "";
+
+  React.useEffect(() => {
+    if (!enrichmentFairIdsKey) {
+      setEnrichmentFairNames([]);
+      return;
+    }
+    const fairIds = enrichmentFairIdsKey.split("|").filter(Boolean);
+    let cancelled = false;
+    void Promise.all(
+      fairIds.map((fairId) =>
+        getFair(fairId)
+          .then((fair) => ({ id: fairId, name: (fair.name || "").trim() || fairId }))
+          .catch(() => ({ id: fairId, name: fairId })),
+      ),
+    ).then((resolved) => {
+      if (cancelled) return;
+      // Preserve persisted order from fairIds.
+      const byId = new Map(resolved.map((item) => [item.id, item.name]));
+      setEnrichmentFairNames(fairIds.map((id) => byId.get(id) || id));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [enrichmentFairIdsKey]);
 
   const scraperAdapterKey =
     detail?.operation.operation_type === "scraper" &&
@@ -475,6 +511,7 @@ export function OperationDetailPage({
   const latest = operation.latest_run ?? runs[0] ?? null;
   const isManualTask = operation.operation_type === "manual_task";
   const isScraper = operation.operation_type === "scraper";
+  const isEnrichment = operation.operation_type === "enrichment";
   const isBulkEmail = operation.operation_type === "bulk_email";
   const latestRunActive = latest?.status === "queued" || latest?.status === "running";
   const canStart =
@@ -483,7 +520,7 @@ export function OperationDetailPage({
     !latestRunActive;
   const canCancel =
     ["draft", "ready", "active"].includes(operation.status) ||
-    (isScraper && latestRunActive);
+    ((isScraper || isEnrichment) && latestRunActive);
   const failedRecipientCount = bulkRecipients.filter((item) => item.status === "failed").length;
   const failedCount = Math.max(latest?.failed_items ?? 0, failedRecipientCount);
   const canRetryFailed =
@@ -491,11 +528,19 @@ export function OperationDetailPage({
     !latestRunActive &&
     (Boolean(operation.capabilities?.supports_retry) || failedCount > 0);
   const progressPct = Math.round((latest?.progress ?? 0) * 100);
-  const scraperResult = isScraper ? extractScraperResult(latest) : null;
+  const typeConfig = operation.type_config ?? {};
+  const scraperResult = isScraper || isEnrichment ? extractScraperResult(latest) : null;
   const liveLogTarget = isScraper
     ? resolveOperationLiveLogTarget(latest, scraperAdapterKey)
     : null;
-  const typeConfig = operation.type_config ?? {};
+  const enrichmentRunId = isEnrichment ? scraperResult?.scraper_run_id?.trim() || "" : "";
+  const enrichmentAdapterKey =
+    (typeof typeConfig.adapter_key === "string" ? typeConfig.adapter_key.trim() : "") ||
+    scraperResult?.adapter_key ||
+    "";
+  const enrichmentSourceRows = isEnrichment
+    ? buildEnrichmentSourceFilterRows(operation, enrichmentFairNames)
+    : [];
   const requestedFieldsSummary = formatRequestedFields(typeConfig.requested_fields);
   const sourceUrlSummary =
     typeof typeConfig.source_url === "string" ? typeConfig.source_url.trim() : "";
@@ -568,27 +613,54 @@ export function OperationDetailPage({
               </Badge>
             </div>
             {operation.description ? <p className="text-muted">{operation.description}</p> : null}
-            <dl className="detail-grid">
-              <div>
-                <dt>Kaynak</dt>
-                <dd>
-                  {isScraper && operation.source_kind === "fair" ? (
-                    sourceFairName ??
-                    (sourceFairResolveFailed && scraperSourceFairId
-                      ? scraperSourceFairId
-                      : "—")
-                  ) : (
-                    <>
-                      {sourceKindLabels[operation.source_kind as SourceKind] ??
-                        operation.source_kind}
-                      {operation.source_kind === "fair" &&
-                      (operation.source_ids?.length ?? 0) > 0
-                        ? ` (${operation.source_ids.length})`
-                        : ""}
-                    </>
-                  )}
-                </dd>
+
+            {isEnrichment && enrichmentSourceRows.length > 0 ? (
+              <div className="stack gap-sm">
+                <h3 className="section-title">{scraperLabels.enrichmentSourceSectionTitle}</h3>
+                <dl className="detail-grid">
+                  {enrichmentSourceRows.map((row) => (
+                    <div key={row.key} className={row.values.length > 1 ? "full-width" : undefined}>
+                      <dt>{row.label}</dt>
+                      <dd>
+                        {row.values.length <= 1 ? (
+                          row.values[0] ?? "—"
+                        ) : (
+                          <ul className="selected-entity-list enrichment-source-fair-list">
+                            {row.values.map((value) => (
+                              <li key={`${row.key}:${value}`}>{value}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
+            ) : null}
+
+            <dl className="detail-grid">
+              {!isEnrichment ? (
+                <div>
+                  <dt>{scraperLabels.enrichmentSourceSectionTitle}</dt>
+                  <dd>
+                    {isScraper && operation.source_kind === "fair" ? (
+                      sourceFairName ??
+                      (sourceFairResolveFailed && scraperSourceFairId
+                        ? scraperSourceFairId
+                        : "—")
+                    ) : (
+                      <>
+                        {sourceKindLabels[operation.source_kind as SourceKind] ??
+                          operation.source_kind}
+                        {operation.source_kind === "fair" &&
+                        (operation.source_ids?.length ?? 0) > 0
+                          ? ` (${operation.source_ids.length})`
+                          : ""}
+                      </>
+                    )}
+                  </dd>
+                </div>
+              ) : null}
               <div>
                 <dt>Oluşturma</dt>
                 <dd>{new Date(operation.created_at).toLocaleString("tr-TR")}</dd>
@@ -680,6 +752,23 @@ export function OperationDetailPage({
           </Card>
         ) : null}
 
+        {isEnrichment ? (
+          <Card>
+            <h3 className="section-title">{scraperLabels.enrichmentRunDetailTitle}</h3>
+            {enrichmentRunId ? (
+              <EnrichmentRunDetailPanel
+                key={enrichmentRunId}
+                runId={enrichmentRunId}
+                adapterKey={enrichmentAdapterKey || undefined}
+                onOpenImportBatch={onOpenImportBatch}
+                showActions
+              />
+            ) : (
+              <p className="text-muted">{operationLabels.linkedScraperRunMissing}</p>
+            )}
+          </Card>
+        ) : null}
+
         {isManualTask ? (
           <Card>
             <h3 className="section-title">{operationLabels.linkedTodoTitle}</h3>
@@ -721,46 +810,48 @@ export function OperationDetailPage({
           </Card>
         ) : null}
 
-        <Card>
-          <h3 className="section-title">{operationLabels.progressTitle}</h3>
-          {latest ? (
-            <div className="stack gap-sm">
-              <div className="row gap-sm" style={{ flexWrap: "wrap" }}>
-                <OperationRunStatusBadge
-                  status={resolveRunUserFacingStatus(latest, operation.run_settings)}
-                />
-                <span>
-                  {progressPct}% — {latest.processed_items}/{latest.total_items}
-                </span>
-              </div>
-              <div
-                role="progressbar"
-                aria-valuenow={progressPct}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                style={{
-                  height: 8,
-                  borderRadius: 999,
-                  background: "var(--color-border, #ddd)",
-                  overflow: "hidden",
-                }}
-              >
+        {!isEnrichment ? (
+          <Card>
+            <h3 className="section-title">{operationLabels.progressTitle}</h3>
+            {latest ? (
+              <div className="stack gap-sm">
+                <div className="row gap-sm" style={{ flexWrap: "wrap" }}>
+                  <OperationRunStatusBadge
+                    status={resolveRunUserFacingStatus(latest, operation.run_settings)}
+                  />
+                  <span>
+                    {progressPct}% — {latest.processed_items}/{latest.total_items}
+                  </span>
+                </div>
                 <div
+                  role="progressbar"
+                  aria-valuenow={progressPct}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
                   style={{
-                    width: `${progressPct}%`,
-                    height: "100%",
-                    background: "var(--color-primary, #2563eb)",
+                    height: 8,
+                    borderRadius: 999,
+                    background: "var(--color-border, #ddd)",
+                    overflow: "hidden",
                   }}
-                />
+                >
+                  <div
+                    style={{
+                      width: `${progressPct}%`,
+                      height: "100%",
+                      background: "var(--color-primary, #2563eb)",
+                    }}
+                  />
+                </div>
+                <p className="text-muted">
+                  Başarılı: {latest.succeeded_items} · Başarısız: {latest.failed_items}
+                </p>
               </div>
-              <p className="text-muted">
-                Başarılı: {latest.succeeded_items} · Başarısız: {latest.failed_items}
-              </p>
-            </div>
-          ) : (
-            <p className="text-muted">{operationLabels.runsEmpty}</p>
-          )}
-        </Card>
+            ) : (
+              <p className="text-muted">{operationLabels.runsEmpty}</p>
+            )}
+          </Card>
+        ) : null}
 
         {isScraper ? (
           <Card>

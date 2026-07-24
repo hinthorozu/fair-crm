@@ -48,11 +48,14 @@ class EnrichmentRunJobCommand:
     max_pages: int = 10
     customer_ids: list[UUID] | None = None
     fair_id: UUID | None = None
+    fair_ids: list[UUID] | None = None
     ignore_previous_scan_state: bool = False
     include_existing_email: bool = False
     company_name: str | None = None
     company_name_match: str = "contains"
     address_contains: str | None = None
+    operation_id: UUID | None = None
+    operation_run_id: UUID | None = None
 
 
 class EnrichmentRunJobRunner:
@@ -102,6 +105,7 @@ class EnrichmentRunJobRunner:
                     "requested_fields": requested_fields,
                     "customer_ids": [str(item) for item in command.customer_ids or []],
                     "fair_id": str(command.fair_id) if command.fair_id is not None else None,
+                    "fair_ids": [str(item) for item in command.fair_ids or []],
                     "include_existing_email": command.include_existing_email,
                     "company_name": command.company_name,
                     "company_name_match": command.company_name_match,
@@ -124,6 +128,7 @@ class EnrichmentRunJobRunner:
                 max_pages=command.max_pages,
                 customer_ids=command.customer_ids,
                 fair_id=command.fair_id,
+                fair_ids=command.fair_ids,
                 ignore_previous_scan_state=command.ignore_previous_scan_state,
                 include_existing_email=command.include_existing_email,
                 company_name=command.company_name,
@@ -198,6 +203,7 @@ class EnrichmentRunJobRunner:
                         command.run_id,
                         f"Import batch oluşturulamadı: {exc}",
                         run_logger=run_logger,
+                        command=command,
                     )
                     return
             elif command.dry_run:
@@ -227,12 +233,14 @@ class EnrichmentRunJobRunner:
                 "Müşteri iletişim zenginleştirme tamamlandı",
                 metadata=summary,
             )
-            history_service.complete_run(
+            completed = history_service.complete_run(
                 command.run_id,
                 handoff=handoff,
                 output_json_path=output_json_path,
                 import_batch_id=import_batch_id,
             )
+            if completed is not None:
+                self._sync_linked_operation(db, command, completed)
             db.commit()
             logger.info(
                 "Completed enrichment run id=%s scanned=%s import_rows=%s",
@@ -247,6 +255,7 @@ class EnrichmentRunJobRunner:
                 command.run_id,
                 str(exc),
                 run_logger=run_logger,
+                command=command,
             )
         finally:
             db.close()
@@ -328,6 +337,7 @@ class EnrichmentRunJobRunner:
                     command.run_id,
                     f"Import batch oluşturulamadı: {exc}",
                     run_logger=run_logger,
+                    command=command,
                 )
                 return
 
@@ -355,12 +365,14 @@ class EnrichmentRunJobRunner:
                 ),
             },
         )
-        history_service.complete_cancelled_run(
+        cancelled = history_service.complete_cancelled_run(
             command.run_id,
             handoff=handoff,
             output_json_path=output_json_path,
             import_batch_id=import_batch_id,
         )
+        if cancelled is not None:
+            self._sync_linked_operation(db, command, cancelled)
         db.commit()
         logger.info(
             "Cancelled enrichment run id=%s processed=%s import_rows=%s",
@@ -376,6 +388,7 @@ class EnrichmentRunJobRunner:
         error_message: str,
         *,
         run_logger: ScraperRunLogger | None,
+        command: EnrichmentRunJobCommand | None = None,
     ) -> None:
         try:
             db.rollback()
@@ -395,12 +408,21 @@ class EnrichmentRunJobRunner:
                 except Exception:
                     logger.exception("Failed to rollback after enrichment failure log id=%s", run_id)
 
-        self._fail_run(db, run_id, error_message)
+        self._fail_run(db, run_id, error_message, command=command)
 
-    def _fail_run(self, db: Session, run_id: UUID, error_message: str) -> None:
+    def _fail_run(
+        self,
+        db: Session,
+        run_id: UUID,
+        error_message: str,
+        *,
+        command: EnrichmentRunJobCommand | None = None,
+    ) -> None:
         try:
             history_service = create_run_history_service(db)
-            history_service.fail_run(run_id, error_message=error_message)
+            failed = history_service.fail_run(run_id, error_message=error_message)
+            if command is not None and failed is not None:
+                self._sync_linked_operation(db, command, failed)
             db.commit()
             return
         except Exception:
@@ -413,10 +435,42 @@ class EnrichmentRunJobRunner:
         fresh = self._session_factory()
         try:
             history_service = create_run_history_service(fresh)
-            history_service.fail_run(run_id, error_message=error_message)
+            failed = history_service.fail_run(run_id, error_message=error_message)
+            if command is not None and failed is not None:
+                self._sync_linked_operation(fresh, command, failed)
             fresh.commit()
         except Exception:
             logger.exception("Failed to record enrichment run failure with fresh session id=%s", run_id)
-            fresh.rollback()
+            try:
+                fresh.rollback()
+            except Exception:
+                logger.exception("Failed to rollback fresh enrichment failure session id=%s", run_id)
         finally:
             fresh.close()
+
+    def _sync_linked_operation(
+        self,
+        db: Session,
+        command: EnrichmentRunJobCommand,
+        scraper_run,
+    ) -> None:
+        if command.operation_id is None or command.operation_run_id is None:
+            return
+        try:
+            from app.modules.operations.infrastructure.handlers.scraper_operation_sync import (
+                sync_operation_run_from_scraper,
+            )
+
+            sync_operation_run_from_scraper(
+                db,
+                organization_id=command.organization_id,
+                operation_id=command.operation_id,
+                operation_run_id=command.operation_run_id,
+                scraper_run=scraper_run,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to sync operation from enrichment run id=%s operation_id=%s",
+                command.run_id,
+                command.operation_id,
+            )

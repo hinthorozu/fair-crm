@@ -53,6 +53,9 @@ export const operationLabels = {
   scraperWizardSubtitle: "Fuar seçerek Web Scraper otomasyonu oluşturun",
   bulkEmailWizardTitle: "Toplu E-posta Otomasyonu",
   bulkEmailWizardSubtitle: "Alıcı kaynağını seçerek toplu e-posta otomasyonu oluşturun",
+  enrichmentWizardTitle: "Zenginleştirme Otomasyonu",
+  enrichmentWizardSubtitle:
+    "Website'i olan müşterileri filtreleyerek iletişim bilgilerini tarayın. Bulunan veriler Import Önizleme'de onayınıza sunulur.",
   stepType: "İş tipi",
   stepSource: "Kaynak",
   stepTypeConfig: "İş ayarları",
@@ -260,9 +263,10 @@ export const operationTypeInfo: Record<OperationType, OperationTypeInfo> = {
     how: "Kaynak, SMTP hesabı, şablon ve konu ile yapılandırılır.",
   },
   enrichment: {
-    summary: "Müşteri verisi araştırma ve öneri üretimi.",
-    purpose: "Müşteri kayıtları için web sitesi, e-posta ve telefon araştırması yapar.",
-    how: "Kaynak seçilir; araştırma alanları yapılandırılır.",
+    summary: "Website'i olan müşterilerden iletişim bilgisi tarama.",
+    purpose:
+      "Website'i olan müşterileri filtreleyerek iletişim bilgilerini tarar; bulunan veriler Import Önizleme'de onaylanır.",
+    how: "Fuar, firma, adres ve limit filtreleri ile çıktı alanları seçilir; mevcut zenginleştirme motoru çalıştırılır.",
   },
   duplicate_check: {
     summary: "Yinelenen kayıt eşleştirme.",

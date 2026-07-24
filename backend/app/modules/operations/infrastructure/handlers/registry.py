@@ -12,6 +12,7 @@ from app.modules.operations.infrastructure.handlers.bulk_email_handler import (
     BulkEmailBatchJobCommand,
     BulkEmailHandler,
 )
+from app.modules.operations.infrastructure.handlers.enrichment_handler import EnrichmentHandler
 from app.modules.operations.infrastructure.handlers.manual_task_handler import (
     ManualTaskHandler,
 )
@@ -28,7 +29,9 @@ if TYPE_CHECKING:
     from app.modules.fair_emails.infrastructure.repositories.fair_email_batch_repository import (
         SqlAlchemyFairEmailBatchRepository,
     )
+    from app.modules.scraper.application.enrichment_run_job_runner import EnrichmentRunJobCommand
     from app.modules.scraper.application.fair_scraper_job_runner import FairScraperJobCommand
+    from app.modules.scraper.application.run_enrichment import RunEnrichmentUseCase
     from app.modules.scraper.services.scraper_adapter_service import ScraperAdapterService
     from app.modules.scraper.services.scraper_run_history_service import ScraperRunHistoryService
 
@@ -41,6 +44,8 @@ def build_handler_registry(
     adapter_service: ScraperAdapterService | None = None,
     run_history_service: ScraperRunHistoryService | None = None,
     scraper_job_scheduler: Callable[[FairScraperJobCommand], None] | None = None,
+    run_enrichment_use_case: RunEnrichmentUseCase | None = None,
+    enrichment_job_scheduler: Callable[[EnrichmentRunJobCommand], None] | None = None,
     session: Session | None = None,
     send_bulk_email_use_case: SendBulkEmailOperationUseCase | None = None,
     fair_email_batch_repository: SqlAlchemyFairEmailBatchRepository | None = None,
@@ -61,6 +66,13 @@ def build_handler_registry(
             adapter_service=adapter_service,
             run_history_service=run_history_service,
             job_scheduler=scraper_job_scheduler,
+        )
+    )
+    registry.register(
+        EnrichmentHandler(
+            run_enrichment_use_case=run_enrichment_use_case,
+            run_history_service=run_history_service,
+            job_scheduler=enrichment_job_scheduler,
         )
     )
     registry.register(

@@ -251,8 +251,10 @@ export interface EnrichmentRunPayload {
   max_pages?: number;
   /** When true, customers who already have a CRM email are also scanned for new data. */
   include_existing_email?: boolean;
-  /** Optional fair scope — only participants of this fair are candidates. */
+  /** Optional single fair scope (legacy / fair-detail page). */
   fair_id?: string | null;
+  /** Optional multi-fair scope — customer pool is the union of participants (deduped). */
+  fair_ids?: string[] | null;
   /** Optional company-name filter (contains / starts_with). */
   company_name?: string | null;
   company_name_match?: CompanyNameMatchMode;

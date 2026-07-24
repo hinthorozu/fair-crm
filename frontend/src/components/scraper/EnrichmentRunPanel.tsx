@@ -1,7 +1,9 @@
 import React from "react";
-import { runFairContactEnrichment } from "../../api/fairs";
+import { getFair, runFairContactEnrichment } from "../../api/fairs";
 import { getScraperRun, runCustomerContactEnrichment } from "../../api/scraper";
 import { FairEntitySelect } from "../FairEntitySelect";
+import { NavIconClose } from "../layout/NavIcons";
+import { IconButton } from "../ui/IconButton";
 import { CheckboxField, FormField, FormGrid, RadioField, TextInput } from "../ui/form";
 import { scraperLabels } from "../../labels/scraperLabels";
 import type {
@@ -20,6 +22,8 @@ import {
 import { OutputFieldsSection, toggleRequestedFieldSelection } from "./OutputFieldsSection";
 import { EnrichmentStateResetPanel } from "./EnrichmentStateResetPanel";
 
+type SelectedFair = { id: string; name: string };
+
 interface EnrichmentRunPanelProps {
   adapterKey: string;
   manifest: ScraperManifest;
@@ -30,6 +34,11 @@ interface EnrichmentRunPanelProps {
   /** When set, called immediately after the run starts (instead of polling in-place) so the
    * caller can navigate straight to the run detail + live log screen. */
   onRunStarted?: (runId: string) => void;
+  /**
+   * When set, called instead of the direct enrichment-run API (Operations path).
+   * Return value is passed to onRunStarted (typically operation_id).
+   */
+  startVia?: (payload: EnrichmentRunPayload) => Promise<string>;
 }
 
 const POLL_INTERVAL_MS = 2000;
@@ -52,11 +61,14 @@ export function EnrichmentRunPanel({
   onRunFinished,
   onOpenRunDetail,
   onRunStarted,
+  startVia,
 }: EnrichmentRunPanelProps) {
   /** Empty string = no limit (all eligible customers); the "50" shown to the user is only a placeholder hint. */
   const [limitInput, setLimitInput] = React.useState("");
   const [includeExistingEmail, setIncludeExistingEmail] = React.useState(false);
-  const [selectedFairId, setSelectedFairId] = React.useState("");
+  const [fairPickerId, setFairPickerId] = React.useState("");
+  const [selectedFairs, setSelectedFairs] = React.useState<SelectedFair[]>([]);
+  const [fairAddError, setFairAddError] = React.useState<string | null>(null);
   const [companyName, setCompanyName] = React.useState("");
   const [companyNameMatch, setCompanyNameMatch] = React.useState<CompanyNameMatchMode>("contains");
   const [addressContains, setAddressContains] = React.useState("");
@@ -70,7 +82,31 @@ export function EnrichmentRunPanel({
   const [summary, setSummary] = React.useState<EnrichmentRunSummary | null>(null);
 
   const fairScoped = Boolean(fairId);
-  const effectiveFairId = fairId || selectedFairId || undefined;
+  const selectedFairIds = selectedFairs.map((fair) => fair.id);
+
+  const handleFairPickerChange = React.useCallback((nextId: string) => {
+    setFairPickerId(nextId);
+    setFairAddError(null);
+    if (!nextId) return;
+
+    if (selectedFairs.some((fair) => fair.id === nextId)) {
+      setFairAddError(scraperLabels.enrichmentRunFairAlreadySelected);
+      setFairPickerId("");
+      return;
+    }
+
+    void getFair(nextId)
+      .then((fair) => {
+        setSelectedFairs((current) => {
+          if (current.some((item) => item.id === fair.id)) return current;
+          return [...current, { id: fair.id, name: fair.name }];
+        });
+        setFairPickerId("");
+      })
+      .catch(() => {
+        setFairPickerId("");
+      });
+  }, [selectedFairs]);
 
   const capabilities = React.useMemo(() => {
     const all = manifestCapabilities(manifest);
@@ -125,13 +161,33 @@ export function EnrichmentRunPanel({
         company_name_match: companyNameMatch,
         address_contains: optionalTrimmed(addressContains),
       };
+
+      if (startVia) {
+        const startedId = await startVia({
+          ...payload,
+          fair_ids: selectedFairIds,
+          fair_id: selectedFairIds.length === 1 ? selectedFairIds[0] : null,
+        });
+        if (!startedId) {
+          throw new Error(scraperLabels.enrichmentRunMissingId);
+        }
+        if (onRunStarted) {
+          setRedirecting(true);
+          onRunStarted(startedId);
+          return;
+        }
+        onRunFinished?.();
+        return;
+      }
+
       // Fair-detail page uses the fair-scoped endpoint (ignores prior scan state).
-      // Org-wide panel with an optional fair filter stays on the org endpoint and passes fair_id.
+      // Org-wide panel with optional fair filters stays on the org endpoint and passes fair_ids.
       const started = fairScoped && fairId
         ? await runFairContactEnrichment(fairId, payload)
         : await runCustomerContactEnrichment(adapterKey, {
             ...payload,
-            fair_id: effectiveFairId,
+            fair_id: selectedFairIds.length === 1 ? selectedFairIds[0] : null,
+            fair_ids: selectedFairIds.length > 0 ? selectedFairIds : null,
           });
       if (!started?.id) {
         // The run may genuinely have been created server-side, but without an id we cannot
@@ -163,7 +219,6 @@ export function EnrichmentRunPanel({
     addressContains,
     companyName,
     companyNameMatch,
-    effectiveFairId,
     fairId,
     fairScoped,
     includeExistingEmail,
@@ -172,6 +227,8 @@ export function EnrichmentRunPanel({
     onRunStarted,
     pollRun,
     requestedFields,
+    selectedFairs,
+    startVia,
   ]);
 
   return (
@@ -181,28 +238,49 @@ export function EnrichmentRunPanel({
 
       <FormGrid columns={3}>
         {!fairScoped ? (
-          <div className="field full-width">
-            <span className="field-label">{scraperLabels.enrichmentRunFairFilter}</span>
-            <div className="enrichment-run-fair-row">
+          <>
+            <FormField
+              label={scraperLabels.enrichmentRunFairSelectLabel}
+              htmlFor="enrichment-fair-picker"
+              fullWidth
+              hint={scraperLabels.enrichmentRunFairFilterHint}
+              error={fairAddError ?? undefined}
+            >
               <FairEntitySelect
-                value={selectedFairId}
-                onChange={setSelectedFairId}
+                id="enrichment-fair-picker"
+                value={fairPickerId}
+                onChange={handleFairPickerChange}
                 disabled={running}
+                allowClear
                 placeholder={scraperLabels.enrichmentRunFairFilterPlaceholder}
               />
-              {selectedFairId ? (
-                <button
-                  type="button"
-                  className="btn link"
-                  disabled={running}
-                  onClick={() => setSelectedFairId("")}
-                >
-                  {scraperLabels.enrichmentRunFairFilterClear}
-                </button>
-              ) : null}
-            </div>
-            <span className="field-hint">{scraperLabels.enrichmentRunFairFilterHint}</span>
-          </div>
+            </FormField>
+
+            <FormField label={scraperLabels.enrichmentRunFairSelectedLabel} fullWidth>
+              {selectedFairs.length === 0 ? (
+                <p className="field-hint">{scraperLabels.enrichmentRunFairSelectedEmpty}</p>
+              ) : (
+                <ul className="selected-entity-list">
+                  {selectedFairs.map((fair) => (
+                    <li key={fair.id} className="selected-entity-item">
+                      <span>{fair.name}</span>
+                      <IconButton
+                        label={scraperLabels.enrichmentRunFairRemove}
+                        icon={<NavIconClose />}
+                        onClick={() => {
+                          if (running) return;
+                          setSelectedFairs((current) =>
+                            current.filter((item) => item.id !== fair.id),
+                          );
+                          setFairAddError(null);
+                        }}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </FormField>
+          </>
         ) : null}
 
         <FormField

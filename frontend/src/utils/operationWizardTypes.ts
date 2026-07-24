@@ -17,6 +17,7 @@ const PROMOTED_TYPES: OperationType[] = ["scraper", "bulk_email"];
 export const OPERATION_TYPE_WIZARD_PATHS: Partial<Record<OperationType, string>> = {
   scraper: "/operations/new/scraper",
   bulk_email: "/operations/new/bulk-email",
+  enrichment: "/operations/new/enrichment",
 };
 
 export function getOperationTypeWizardPath(type: OperationType): string | null {

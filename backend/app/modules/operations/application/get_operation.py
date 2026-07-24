@@ -51,6 +51,8 @@ class GetOperationUseCase:
         runs = list(runs_page.items)
         if operation.operation_type == OperationType.SCRAPER:
             runs = [self._hydrate_scraper_run(run) for run in runs]
+        elif operation.operation_type == OperationType.ENRICHMENT:
+            runs = [self._hydrate_scraper_run(run) for run in runs]
         elif operation.operation_type == OperationType.BULK_EMAIL:
             runs = [self._hydrate_bulk_email_run(operation.organization_id, operation.id, run) for run in runs]
 
@@ -64,7 +66,10 @@ class GetOperationUseCase:
                 latest_run = self._run_repository.get_by_id(
                     query.organization_id, operation.latest_run_id
                 )
-                if latest_run is not None and operation.operation_type == OperationType.SCRAPER:
+                if latest_run is not None and operation.operation_type in {
+                    OperationType.SCRAPER,
+                    OperationType.ENRICHMENT,
+                }:
                     latest_run = self._hydrate_scraper_run(latest_run)
                 elif latest_run is not None and operation.operation_type == OperationType.BULK_EMAIL:
                     latest_run = self._hydrate_bulk_email_run(

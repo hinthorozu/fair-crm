@@ -49,7 +49,9 @@ from app.modules.operations.infrastructure.repositories.operation_type_repositor
     SqlAlchemyOperationTypeRepository,
 )
 from app.modules.scraper.api.dependencies import get_default_scraper_manager
+from app.modules.scraper.application.enrichment_run_job_runner import EnrichmentRunJobCommand
 from app.modules.scraper.application.fair_scraper_job_runner import FairScraperJobCommand
+from app.modules.scraper.application.run_enrichment import RunEnrichmentUseCase
 from app.modules.scraper.core.scraper_manager import ScraperManager
 from app.modules.scraper.infrastructure.repositories.scraper_adapter_repository import (
     ScraperAdapterRepository,
@@ -84,6 +86,21 @@ class ScraperJobBuffer:
         return commands
 
 
+class EnrichmentJobBuffer:
+    """Request-scoped collector for enrichment background jobs."""
+
+    def __init__(self) -> None:
+        self._commands: list[EnrichmentRunJobCommand] = []
+
+    def __call__(self, command: EnrichmentRunJobCommand) -> None:
+        self._commands.append(command)
+
+    def drain(self) -> list[EnrichmentRunJobCommand]:
+        commands = list(self._commands)
+        self._commands.clear()
+        return commands
+
+
 class BulkEmailJobBuffer:
     """Request-scoped collector for bulk-email batch background jobs."""
 
@@ -101,6 +118,10 @@ class BulkEmailJobBuffer:
 
 def get_scraper_job_buffer() -> ScraperJobBuffer:
     return ScraperJobBuffer()
+
+
+def get_enrichment_job_buffer() -> EnrichmentJobBuffer:
+    return EnrichmentJobBuffer()
 
 
 def get_bulk_email_job_buffer() -> BulkEmailJobBuffer:
@@ -187,6 +208,7 @@ def get_handler_registry(
         get_scraper_run_history_service_for_operations
     ),
     scraper_job_buffer: ScraperJobBuffer = Depends(get_scraper_job_buffer),
+    enrichment_job_buffer: EnrichmentJobBuffer = Depends(get_enrichment_job_buffer),
     bulk_email_job_buffer: BulkEmailJobBuffer = Depends(get_bulk_email_job_buffer),
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
@@ -227,6 +249,8 @@ def get_handler_registry(
         adapter_service=adapter_service,
         run_history_service=run_history_service,
         scraper_job_scheduler=scraper_job_buffer,
+        run_enrichment_use_case=RunEnrichmentUseCase(run_history_service, db),
+        enrichment_job_scheduler=enrichment_job_buffer,
         session=db,
         send_bulk_email_use_case=send_use_case,
         fair_email_batch_repository=batch_repository,
