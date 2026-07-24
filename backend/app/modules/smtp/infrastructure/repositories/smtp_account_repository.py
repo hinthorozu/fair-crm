@@ -78,3 +78,6 @@ class SqlAlchemySmtpAccountRepository:
             stmt = stmt.where(SmtpAccountModel.id != exclude_account_id)
         for model in self._session.scalars(stmt).all():
             model.is_default = False
+
+    def flush(self) -> None:
+        self._session.flush()

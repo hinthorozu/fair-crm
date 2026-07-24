@@ -35,7 +35,9 @@ class CreateSmtpAccountUseCase:
         should_be_default = command.is_default or len(existing_accounts) == 0
 
         if should_be_default:
+            # Flush cleared defaults before inserting the new default row.
             self._repository.clear_default_for_organization(command.organization_id)
+            self._repository.flush()
 
         now = datetime.now(tz=UTC)
         account = SmtpAccount.create(

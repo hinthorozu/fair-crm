@@ -197,6 +197,179 @@ def test_set_default_makes_single_default(client, auth_headers):
     assert first_after.json()["is_default"] is False
 
 
+def _ensure_org_default_unique_index(db_session) -> None:
+    """Mirror alembic ``uq_smtp_accounts_org_default`` on the test SQLite DB.
+
+    Production Postgres enforces one default per org; in-memory create_all does not
+    install this partial unique index, so set-default UniqueViolation would not
+    surface without it.
+    """
+    from sqlalchemy import text
+
+    db_session.execute(
+        text(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS uq_smtp_accounts_org_default
+            ON smtp_accounts (organization_id)
+            WHERE deleted_at IS NULL AND is_default = 1
+            """
+        )
+    )
+    db_session.commit()
+
+
+def test_set_default_respects_org_unique_default_and_is_idempotent(
+    client,
+    auth_headers,
+    db_session,
+    other_organization_id,
+    user_id,
+):
+    _ensure_org_default_unique_index(db_session)
+
+    first = _create_smtp_account(client, auth_headers, name="Default A")
+    second = _create_smtp_account(client, auth_headers, name="Candidate B")
+    assert first.status_code == 201
+    assert second.status_code == 201
+    assert first.json()["is_default"] is True
+    assert second.json()["is_default"] is False
+
+    first_id = first.json()["id"]
+    second_id = second.json()["id"]
+
+    set_default_response = client.post(
+        f"/api/v1/smtp/accounts/{second_id}/set-default",
+        headers=auth_headers,
+    )
+    assert set_default_response.status_code == 200, set_default_response.text
+    assert set_default_response.json()["is_default"] is True
+
+    first_after = client.get(f"/api/v1/smtp/accounts/{first_id}", headers=auth_headers)
+    second_after = client.get(f"/api/v1/smtp/accounts/{second_id}", headers=auth_headers)
+    assert first_after.json()["is_default"] is False
+    assert second_after.json()["is_default"] is True
+
+    list_response = client.get("/api/v1/smtp/accounts", headers=auth_headers)
+    defaults = [item for item in list_response.json()["items"] if item["is_default"]]
+    assert len(defaults) == 1
+    assert defaults[0]["id"] == second_id
+
+    # Idempotent: already-default account can be set-default again.
+    again = client.post(
+        f"/api/v1/smtp/accounts/{second_id}/set-default",
+        headers=auth_headers,
+    )
+    assert again.status_code == 200, again.text
+    assert again.json()["is_default"] is True
+
+    other_headers = {
+        "Authorization": f"Bearer {create_test_token(user_id=user_id)}",
+        "X-Organization-Id": str(other_organization_id),
+    }
+    other = _create_smtp_account(client, other_headers, name="Other Org Default")
+    assert other.status_code == 201
+    assert other.json()["is_default"] is True
+
+    still_second = client.get(f"/api/v1/smtp/accounts/{second_id}", headers=auth_headers)
+    assert still_second.json()["is_default"] is True
+    other_get = client.get(f"/api/v1/smtp/accounts/{other.json()['id']}", headers=other_headers)
+    assert other_get.json()["is_default"] is True
+
+
+def test_create_default_respects_org_unique_index(
+    client,
+    auth_headers,
+    db_session,
+    other_organization_id,
+    user_id,
+):
+    _ensure_org_default_unique_index(db_session)
+
+    first = _create_smtp_account(client, auth_headers, name="Create Default A")
+    assert first.status_code == 201
+    assert first.json()["is_default"] is True
+
+    second = _create_smtp_account(
+        client,
+        auth_headers,
+        name="Create Default B",
+        is_default=True,
+    )
+    assert second.status_code == 201, second.text
+    assert second.json()["is_default"] is True
+
+    first_after = client.get(f"/api/v1/smtp/accounts/{first.json()['id']}", headers=auth_headers)
+    assert first_after.json()["is_default"] is False
+
+    listed = client.get("/api/v1/smtp/accounts", headers=auth_headers)
+    defaults = [item for item in listed.json()["items"] if item["is_default"]]
+    assert len(defaults) == 1
+    assert defaults[0]["id"] == second.json()["id"]
+
+    non_default = _create_smtp_account(
+        client,
+        auth_headers,
+        name="Create Non Default C",
+        is_default=False,
+    )
+    assert non_default.status_code == 201, non_default.text
+    assert non_default.json()["is_default"] is False
+    still_b = client.get(f"/api/v1/smtp/accounts/{second.json()['id']}", headers=auth_headers)
+    assert still_b.json()["is_default"] is True
+
+    other_headers = {
+        "Authorization": f"Bearer {create_test_token(user_id=user_id)}",
+        "X-Organization-Id": str(other_organization_id),
+    }
+    other = _create_smtp_account(client, other_headers, name="Other Org Create Default")
+    assert other.status_code == 201
+    assert other.json()["is_default"] is True
+    assert still_b.json()["is_default"] is True
+
+
+def test_update_default_respects_org_unique_index(client, auth_headers, db_session):
+    _ensure_org_default_unique_index(db_session)
+
+    first = _create_smtp_account(client, auth_headers, name="Update Default A")
+    second = _create_smtp_account(client, auth_headers, name="Update Candidate B")
+    assert first.status_code == 201
+    assert second.status_code == 201
+    assert first.json()["is_default"] is True
+    assert second.json()["is_default"] is False
+
+    first_id = first.json()["id"]
+    second_id = second.json()["id"]
+
+    update_response = client.patch(
+        f"/api/v1/smtp/accounts/{second_id}",
+        json={"is_default": True},
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200, update_response.text
+    assert update_response.json()["is_default"] is True
+
+    first_after = client.get(f"/api/v1/smtp/accounts/{first_id}", headers=auth_headers)
+    second_after = client.get(f"/api/v1/smtp/accounts/{second_id}", headers=auth_headers)
+    assert first_after.json()["is_default"] is False
+    assert second_after.json()["is_default"] is True
+
+    listed = client.get("/api/v1/smtp/accounts", headers=auth_headers)
+    defaults = [item for item in listed.json()["items"] if item["is_default"]]
+    assert len(defaults) == 1
+    assert defaults[0]["id"] == second_id
+
+    keep_false = client.patch(
+        f"/api/v1/smtp/accounts/{first_id}",
+        json={"name": "Still Not Default", "is_default": False},
+        headers=auth_headers,
+    )
+    assert keep_false.status_code == 200, keep_false.text
+    assert keep_false.json()["is_default"] is False
+    assert client.get(f"/api/v1/smtp/accounts/{second_id}", headers=auth_headers).json()[
+        "is_default"
+    ] is True
+
+
 def test_get_smtp_account_detail(client, auth_headers):
     create_response = _create_smtp_account(client, auth_headers)
     account_id = create_response.json()["id"]

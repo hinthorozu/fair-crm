@@ -36,10 +36,13 @@ class SetDefaultSmtpAccountUseCase:
             raise SmtpAccountNotFoundError("SMTP account not found")
 
         now = datetime.now(tz=UTC)
+        # Flush cleared defaults first so uq_smtp_accounts_org_default never sees
+        # two is_default=true rows in the same organization during one flush.
         self._repository.clear_default_for_organization(
             command.organization_id,
             exclude_account_id=account.id,
         )
+        self._repository.flush()
         account.mark_as_default(now=now)
         saved = self._repository.update(account)
 

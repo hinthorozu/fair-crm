@@ -55,10 +55,12 @@ class UpdateSmtpAccountUseCase:
         )
 
         if command.is_default is True:
+            # Flush cleared defaults before writing this account as default.
             self._repository.clear_default_for_organization(
                 command.organization_id,
                 exclude_account_id=account.id,
             )
+            self._repository.flush()
 
         saved = self._repository.update(account)
 
