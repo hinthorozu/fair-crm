@@ -95,10 +95,10 @@ export function FairBulkEmailBatchLogs({
         render: (item) => item.template_name ?? "—",
       },
       {
-        key: "smtp_account_name",
+        key: "email_account_name",
         title: fairLabels.bulkEmailLogsColSmtp,
         sortable: false,
-        render: (item) => item.smtp_account_name ?? "—",
+        render: (item) => item.email_account_name ?? "—",
       },
       {
         key: "status",

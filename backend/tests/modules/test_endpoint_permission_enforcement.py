@@ -240,10 +240,10 @@ def test_scraper_read_denied_returns_403(client: TestClient, auth_headers: dict[
 
 def test_smtp_read_denied_returns_403(client: TestClient, auth_headers: dict[str, str]) -> None:
     client.app.dependency_overrides[get_smtp_authorization_adapter] = lambda: SelectiveAuthorization(
-        denied={"fair_crm.smtp.read"}
+        denied={"fair_crm.email_accounts.read"}
     )
     try:
-        response = client.get("/api/v1/smtp/accounts", headers=auth_headers)
+        response = client.get("/api/v1/email-accounts", headers=auth_headers)
         assert response.status_code == 403
     finally:
         client.app.dependency_overrides.pop(get_smtp_authorization_adapter, None)
@@ -251,11 +251,11 @@ def test_smtp_read_denied_returns_403(client: TestClient, auth_headers: dict[str
 
 def test_smtp_create_denied_returns_403(client: TestClient, auth_headers: dict[str, str]) -> None:
     client.app.dependency_overrides[get_smtp_authorization_adapter] = lambda: SelectiveAuthorization(
-        denied={"fair_crm.smtp.create"}
+        denied={"fair_crm.email_accounts.create"}
     )
     try:
         response = client.post(
-            "/api/v1/smtp/accounts",
+            "/api/v1/email-accounts",
             json={
                 "name": "Denied SMTP",
                 "from_email": "noreply@example.com",
@@ -271,7 +271,7 @@ def test_smtp_create_denied_returns_403(client: TestClient, auth_headers: dict[s
 
 def test_smtp_update_denied_returns_403(client: TestClient, auth_headers: dict[str, str]) -> None:
     create = client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json={
             "name": "Patch Target",
             "from_email": "noreply@example.com",
@@ -284,11 +284,11 @@ def test_smtp_update_denied_returns_403(client: TestClient, auth_headers: dict[s
     account_id = create.json()["id"]
 
     client.app.dependency_overrides[get_smtp_authorization_adapter] = lambda: SelectiveAuthorization(
-        denied={"fair_crm.smtp.update"}
+        denied={"fair_crm.email_accounts.update"}
     )
     try:
         response = client.patch(
-            f"/api/v1/smtp/accounts/{account_id}",
+            f"/api/v1/email-accounts/{account_id}",
             json={"name": "Denied Rename"},
             headers=auth_headers,
         )
@@ -299,7 +299,7 @@ def test_smtp_update_denied_returns_403(client: TestClient, auth_headers: dict[s
 
 def test_smtp_delete_denied_returns_403(client: TestClient, auth_headers: dict[str, str]) -> None:
     create = client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json={
             "name": "Delete Target",
             "from_email": "noreply@example.com",
@@ -311,10 +311,10 @@ def test_smtp_delete_denied_returns_403(client: TestClient, auth_headers: dict[s
     account_id = create.json()["id"]
 
     client.app.dependency_overrides[get_smtp_authorization_adapter] = lambda: SelectiveAuthorization(
-        denied={"fair_crm.smtp.delete"}
+        denied={"fair_crm.email_accounts.delete"}
     )
     try:
-        response = client.delete(f"/api/v1/smtp/accounts/{account_id}", headers=auth_headers)
+        response = client.delete(f"/api/v1/email-accounts/{account_id}", headers=auth_headers)
         assert response.status_code == 403
     finally:
         client.app.dependency_overrides.pop(get_smtp_authorization_adapter, None)
@@ -322,7 +322,7 @@ def test_smtp_delete_denied_returns_403(client: TestClient, auth_headers: dict[s
 
 def test_smtp_test_mail_denied_returns_403(client: TestClient, auth_headers: dict[str, str]) -> None:
     create = client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json={
             "name": "Test Target",
             "from_email": "noreply@example.com",
@@ -335,11 +335,11 @@ def test_smtp_test_mail_denied_returns_403(client: TestClient, auth_headers: dic
     account_id = create.json()["id"]
 
     client.app.dependency_overrides[get_smtp_authorization_adapter] = lambda: SelectiveAuthorization(
-        denied={"fair_crm.smtp.update"}
+        denied={"fair_crm.email_accounts.update"}
     )
     try:
         response = client.post(
-            f"/api/v1/smtp/accounts/{account_id}/test",
+            f"/api/v1/email-accounts/{account_id}/test",
             json={"recipient": "admin@example.com"},
             headers=auth_headers,
         )
@@ -350,7 +350,7 @@ def test_smtp_test_mail_denied_returns_403(client: TestClient, auth_headers: dic
 
 def test_dev_bypass_token_rejected_on_smtp_list(client: TestClient, organization_id: UUID) -> None:
     response = client.get(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         headers={
             "Authorization": "Bearer dev-bypass",
             "X-Organization-Id": str(organization_id),

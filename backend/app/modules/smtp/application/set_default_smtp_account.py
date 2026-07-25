@@ -8,7 +8,7 @@ from app.modules.smtp.application.mappers import smtp_account_to_result
 from app.modules.smtp.domain.exceptions import SmtpAccountNotFoundError
 from app.modules.smtp.domain.ports import SmtpAccountRepository
 
-PERMISSION_UPDATE = "fair_crm.smtp.update"
+PERMISSION_UPDATE = "fair_crm.email_accounts.update"
 
 
 class SetDefaultSmtpAccountUseCase:
@@ -49,8 +49,8 @@ class SetDefaultSmtpAccountUseCase:
         self._audit.record_event(
             organization_id=command.organization_id,
             access_token=command.access_token,
-            action="fair_crm.smtp_account.set_default",
-            resource_type="smtp_account",
+            action="fair_crm.email_account.set_default",
+            resource_type="email_account",
             resource_id=str(saved.id),
             metadata={"user_id": str(command.user_id)},
         )

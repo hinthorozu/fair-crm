@@ -23,8 +23,8 @@ class MailSendOperationListItemResponse(BaseModel):
     customer_name: str | None
     recipient_email: str
     recipient_name: str | None
-    smtp_account_id: UUID | None
-    smtp_account_name: str | None
+    email_account_id: UUID | None
+    email_account_name: str | None
     template_id: UUID | None
     template_name: str | None
     subject: str

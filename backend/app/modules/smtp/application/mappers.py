@@ -20,5 +20,6 @@ def smtp_account_to_result(account: SmtpAccount) -> SmtpAccountResult:
         created_at=account.created_at,
         updated_at=account.updated_at,
         deleted_at=account.deleted_at,
+        max_delivery_attempts=account.max_delivery_attempts,
         config_warnings=tuple(smtp_config_warnings(account.port, account.encryption_type)),
     )

@@ -30,10 +30,10 @@ def _create_smtp_account(client, auth_headers, **overrides):
         "is_active": True,
     }
     payload.update(overrides)
-    return client.post("/api/v1/smtp/accounts", json=payload, headers=auth_headers)
+    return client.post("/api/v1/email-accounts", json=payload, headers=auth_headers)
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.send_smtp_message")
+@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
 def test_smtp_test_mail_timeout_records_failed_operation(mock_send, client, auth_headers, db_session, organization_id):
     mock_send.side_effect = SmtpMailDeliveryError(
         "SMTP gönderimi zaman aşımına uğradı.",
@@ -44,7 +44,7 @@ def test_smtp_test_mail_timeout_records_failed_operation(mock_send, client, auth
     account_id = create.json()["id"]
 
     response = client.post(
-        f"/api/v1/smtp/accounts/{account_id}/test",
+        f"/api/v1/email-accounts/{account_id}/test",
         json={"recipient": "timeout@example.com"},
         headers=auth_headers,
     )
@@ -64,7 +64,7 @@ def test_smtp_test_mail_timeout_records_failed_operation(mock_send, client, auth
     assert events == ["queued", "sending_started", SMTP_TIMEOUT_CODE, "failed"]
 
 
-@patch("app.modules.mail_templates.application.send_test_mail_template.send_smtp_message")
+@patch("app.modules.mail_templates.application.send_test_mail_template.deliver_smtp_account_with_dispatcher")
 def test_template_test_mail_timeout_records_failed_operation(
     mock_send,
     client,
@@ -98,7 +98,7 @@ def test_template_test_mail_timeout_records_failed_operation(
         json={
             "to_email": "tpl-timeout@example.com",
             "variables": {},
-            "smtp_account_id": smtp.json()["id"],
+            "email_account_id": smtp.json()["id"],
         },
         headers=auth_headers,
     )
@@ -119,7 +119,7 @@ def test_template_test_mail_timeout_records_failed_operation(
     assert events[-1] == "failed"
 
 
-@patch("app.modules.fair_emails.application.process_batch.send_smtp_message")
+@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
 def test_fair_bulk_timeout_fails_single_outbox_and_continues_batch(
     mock_send,
     db_session,

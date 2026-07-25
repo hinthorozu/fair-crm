@@ -45,7 +45,7 @@ class PreviewBulkEmailOperationCommand:
     access_token: str
     source_type: str
     template_id: UUID
-    smtp_account_id: UUID
+    email_account_id: UUID
     subject_override: str | None = None
     manual_emails: str | None = None
     excel_bytes: bytes | None = None
@@ -60,8 +60,8 @@ class PreviewBulkEmailOperationCommand:
 class BulkEmailOperationMailPreview:
     template_id: UUID
     template_name: str
-    smtp_account_id: UUID
-    smtp_account_name: str
+    email_account_id: UUID
+    email_account_name: str
     rendered_subject: str
     body_html: str | None
     body_text: str | None
@@ -129,7 +129,7 @@ class PreviewBulkEmailOperationUseCase:
         if not template.is_active:
             raise MailTemplateInactiveForTestError(INACTIVE_TEMPLATE_MESSAGE)
 
-        smtp = self._smtp_repository.get_by_id(command.organization_id, command.smtp_account_id)
+        smtp = self._smtp_repository.get_by_id(command.organization_id, command.email_account_id)
         if smtp is None:
             raise SmtpAccountNotFoundError("SMTP account not found")
         if smtp.deleted_at is not None:
@@ -276,8 +276,8 @@ class PreviewBulkEmailOperationUseCase:
         return BulkEmailOperationMailPreview(
             template_id=command.template_id,
             template_name=template_name,
-            smtp_account_id=command.smtp_account_id,
-            smtp_account_name=smtp_name,
+            email_account_id=command.email_account_id,
+            email_account_name=smtp_name,
             rendered_subject=final_subject,
             body_html=rendered_body_html,
             body_text=rendered_body_text,

@@ -1,7 +1,9 @@
 from uuid import UUID, uuid4
 
 from app.integrations.kyrox_core.auth import create_test_token
+from app.modules.email_accounts.infrastructure.persistence.models import EmailAccountSmtpConfigModel
 from app.modules.smtp.infrastructure.persistence.models import SmtpAccountModel
+from app.shared.secret_encryption import decrypt_secret, is_encrypted_secret
 
 
 def _smtp_payload(**overrides):
@@ -23,7 +25,7 @@ def _smtp_payload(**overrides):
 
 def _create_smtp_account(client, auth_headers, **overrides):
     return client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json=_smtp_payload(**overrides),
         headers=auth_headers,
     )
@@ -52,14 +54,14 @@ def test_only_one_default_smtp_account_per_organization(client, auth_headers):
     assert first.status_code == 201
     assert second.status_code == 201
 
-    list_response = client.get("/api/v1/smtp/accounts", headers=auth_headers)
+    list_response = client.get("/api/v1/email-accounts", headers=auth_headers)
     assert list_response.status_code == 200
     items = list_response.json()["items"]
     defaults = [item for item in items if item["is_default"]]
     assert len(defaults) == 1
     assert defaults[0]["name"] == "Second SMTP"
 
-    first_after = client.get(f"/api/v1/smtp/accounts/{first.json()['id']}", headers=auth_headers)
+    first_after = client.get(f"/api/v1/email-accounts/{first.json()['id']}", headers=auth_headers)
     assert first_after.json()["is_default"] is False
 
 
@@ -76,13 +78,13 @@ def test_cannot_access_smtp_account_from_other_organization(
         "Authorization": f"Bearer {create_test_token(user_id=user_id)}",
         "X-Organization-Id": str(other_organization_id),
     }
-    get_response = client.get(f"/api/v1/smtp/accounts/{account_id}", headers=other_headers)
+    get_response = client.get(f"/api/v1/email-accounts/{account_id}", headers=other_headers)
     assert get_response.status_code == 404
 
 
 def test_list_response_does_not_include_password(client, auth_headers):
     _create_smtp_account(client, auth_headers)
-    response = client.get("/api/v1/smtp/accounts", headers=auth_headers)
+    response = client.get("/api/v1/email-accounts", headers=auth_headers)
     assert response.status_code == 200
     for item in response.json()["items"]:
         assert "password" not in item
@@ -94,7 +96,7 @@ def test_update_password_empty_keeps_existing(client, auth_headers, db_session):
     account_id = create_response.json()["id"]
 
     update_response = client.patch(
-        f"/api/v1/smtp/accounts/{account_id}",
+        f"/api/v1/email-accounts/{account_id}",
         json={"name": "Renamed SMTP", "password": ""},
         headers=auth_headers,
     )
@@ -104,10 +106,10 @@ def test_update_password_empty_keeps_existing(client, auth_headers, db_session):
 
     model = db_session.get(SmtpAccountModel, UUID(account_id))
     assert model is not None
-    from app.shared.secret_encryption import decrypt_secret, is_encrypted_secret
-
-    assert is_encrypted_secret(model.password)
-    assert decrypt_secret(model.password) == "keep-me"
+    smtp_config = db_session.get(EmailAccountSmtpConfigModel, UUID(account_id))
+    assert smtp_config is not None
+    assert is_encrypted_secret(smtp_config.password)
+    assert decrypt_secret(smtp_config.password) == "keep-me"
 
 
 def test_update_password_replaces_existing(client, auth_headers, db_session):
@@ -115,7 +117,7 @@ def test_update_password_replaces_existing(client, auth_headers, db_session):
     account_id = create_response.json()["id"]
 
     update_response = client.patch(
-        f"/api/v1/smtp/accounts/{account_id}",
+        f"/api/v1/email-accounts/{account_id}",
         json={"password": "new-secret"},
         headers=auth_headers,
     )
@@ -123,10 +125,10 @@ def test_update_password_replaces_existing(client, auth_headers, db_session):
 
     model = db_session.get(SmtpAccountModel, UUID(account_id))
     assert model is not None
-    from app.shared.secret_encryption import decrypt_secret, is_encrypted_secret
-
-    assert is_encrypted_secret(model.password)
-    assert decrypt_secret(model.password) == "new-secret"
+    smtp_config = db_session.get(EmailAccountSmtpConfigModel, UUID(account_id))
+    assert smtp_config is not None
+    assert is_encrypted_secret(smtp_config.password)
+    assert decrypt_secret(smtp_config.password) == "new-secret"
 
 
 def test_set_default_rejects_inactive_account(client, auth_headers):
@@ -134,14 +136,14 @@ def test_set_default_rejects_inactive_account(client, auth_headers):
     account_id = create_response.json()["id"]
 
     deactivate_response = client.patch(
-        f"/api/v1/smtp/accounts/{account_id}",
+        f"/api/v1/email-accounts/{account_id}",
         json={"is_active": False},
         headers=auth_headers,
     )
     assert deactivate_response.status_code == 200
 
     set_default_response = client.post(
-        f"/api/v1/smtp/accounts/{account_id}/set-default",
+        f"/api/v1/email-accounts/{account_id}/set-default",
         headers=auth_headers,
     )
     assert set_default_response.status_code == 400
@@ -152,11 +154,11 @@ def test_set_default_rejects_deleted_account(client, auth_headers):
     create_response = _create_smtp_account(client, auth_headers, name="Deleted SMTP")
     account_id = create_response.json()["id"]
 
-    delete_response = client.delete(f"/api/v1/smtp/accounts/{account_id}", headers=auth_headers)
+    delete_response = client.delete(f"/api/v1/email-accounts/{account_id}", headers=auth_headers)
     assert delete_response.status_code == 200
 
     set_default_response = client.post(
-        f"/api/v1/smtp/accounts/{account_id}/set-default",
+        f"/api/v1/email-accounts/{account_id}/set-default",
         headers=auth_headers,
     )
     assert set_default_response.status_code == 404
@@ -166,17 +168,17 @@ def test_soft_delete_smtp_account(client, auth_headers):
     create_response = _create_smtp_account(client, auth_headers, name="Delete Me", is_default=True)
     account_id = create_response.json()["id"]
 
-    delete_response = client.delete(f"/api/v1/smtp/accounts/{account_id}", headers=auth_headers)
+    delete_response = client.delete(f"/api/v1/email-accounts/{account_id}", headers=auth_headers)
     assert delete_response.status_code == 200
     body = delete_response.json()
     assert body["deleted_at"] is not None
     assert body["is_active"] is False
     assert body["is_default"] is False
 
-    get_response = client.get(f"/api/v1/smtp/accounts/{account_id}", headers=auth_headers)
+    get_response = client.get(f"/api/v1/email-accounts/{account_id}", headers=auth_headers)
     assert get_response.status_code == 404
 
-    list_response = client.get("/api/v1/smtp/accounts", headers=auth_headers)
+    list_response = client.get("/api/v1/email-accounts", headers=auth_headers)
     assert list_response.status_code == 200
     assert list_response.json()["items"] == []
 
@@ -187,18 +189,18 @@ def test_set_default_makes_single_default(client, auth_headers):
     second_id = second.json()["id"]
 
     set_default_response = client.post(
-        f"/api/v1/smtp/accounts/{second_id}/set-default",
+        f"/api/v1/email-accounts/{second_id}/set-default",
         headers=auth_headers,
     )
     assert set_default_response.status_code == 200
     assert set_default_response.json()["is_default"] is True
 
-    first_after = client.get(f"/api/v1/smtp/accounts/{first.json()['id']}", headers=auth_headers)
+    first_after = client.get(f"/api/v1/email-accounts/{first.json()['id']}", headers=auth_headers)
     assert first_after.json()["is_default"] is False
 
 
 def _ensure_org_default_unique_index(db_session) -> None:
-    """Mirror alembic ``uq_smtp_accounts_org_default`` on the test SQLite DB.
+    """Mirror alembic ``uq_email_accounts_org_default`` on the test SQLite DB.
 
     Production Postgres enforces one default per org; in-memory create_all does not
     install this partial unique index, so set-default UniqueViolation would not
@@ -209,8 +211,8 @@ def _ensure_org_default_unique_index(db_session) -> None:
     db_session.execute(
         text(
             """
-            CREATE UNIQUE INDEX IF NOT EXISTS uq_smtp_accounts_org_default
-            ON smtp_accounts (organization_id)
+            CREATE UNIQUE INDEX IF NOT EXISTS uq_email_accounts_org_default
+            ON email_accounts (organization_id)
             WHERE deleted_at IS NULL AND is_default = 1
             """
         )
@@ -238,25 +240,25 @@ def test_set_default_respects_org_unique_default_and_is_idempotent(
     second_id = second.json()["id"]
 
     set_default_response = client.post(
-        f"/api/v1/smtp/accounts/{second_id}/set-default",
+        f"/api/v1/email-accounts/{second_id}/set-default",
         headers=auth_headers,
     )
     assert set_default_response.status_code == 200, set_default_response.text
     assert set_default_response.json()["is_default"] is True
 
-    first_after = client.get(f"/api/v1/smtp/accounts/{first_id}", headers=auth_headers)
-    second_after = client.get(f"/api/v1/smtp/accounts/{second_id}", headers=auth_headers)
+    first_after = client.get(f"/api/v1/email-accounts/{first_id}", headers=auth_headers)
+    second_after = client.get(f"/api/v1/email-accounts/{second_id}", headers=auth_headers)
     assert first_after.json()["is_default"] is False
     assert second_after.json()["is_default"] is True
 
-    list_response = client.get("/api/v1/smtp/accounts", headers=auth_headers)
+    list_response = client.get("/api/v1/email-accounts", headers=auth_headers)
     defaults = [item for item in list_response.json()["items"] if item["is_default"]]
     assert len(defaults) == 1
     assert defaults[0]["id"] == second_id
 
     # Idempotent: already-default account can be set-default again.
     again = client.post(
-        f"/api/v1/smtp/accounts/{second_id}/set-default",
+        f"/api/v1/email-accounts/{second_id}/set-default",
         headers=auth_headers,
     )
     assert again.status_code == 200, again.text
@@ -270,9 +272,9 @@ def test_set_default_respects_org_unique_default_and_is_idempotent(
     assert other.status_code == 201
     assert other.json()["is_default"] is True
 
-    still_second = client.get(f"/api/v1/smtp/accounts/{second_id}", headers=auth_headers)
+    still_second = client.get(f"/api/v1/email-accounts/{second_id}", headers=auth_headers)
     assert still_second.json()["is_default"] is True
-    other_get = client.get(f"/api/v1/smtp/accounts/{other.json()['id']}", headers=other_headers)
+    other_get = client.get(f"/api/v1/email-accounts/{other.json()['id']}", headers=other_headers)
     assert other_get.json()["is_default"] is True
 
 
@@ -298,10 +300,10 @@ def test_create_default_respects_org_unique_index(
     assert second.status_code == 201, second.text
     assert second.json()["is_default"] is True
 
-    first_after = client.get(f"/api/v1/smtp/accounts/{first.json()['id']}", headers=auth_headers)
+    first_after = client.get(f"/api/v1/email-accounts/{first.json()['id']}", headers=auth_headers)
     assert first_after.json()["is_default"] is False
 
-    listed = client.get("/api/v1/smtp/accounts", headers=auth_headers)
+    listed = client.get("/api/v1/email-accounts", headers=auth_headers)
     defaults = [item for item in listed.json()["items"] if item["is_default"]]
     assert len(defaults) == 1
     assert defaults[0]["id"] == second.json()["id"]
@@ -314,7 +316,7 @@ def test_create_default_respects_org_unique_index(
     )
     assert non_default.status_code == 201, non_default.text
     assert non_default.json()["is_default"] is False
-    still_b = client.get(f"/api/v1/smtp/accounts/{second.json()['id']}", headers=auth_headers)
+    still_b = client.get(f"/api/v1/email-accounts/{second.json()['id']}", headers=auth_headers)
     assert still_b.json()["is_default"] is True
 
     other_headers = {
@@ -341,31 +343,31 @@ def test_update_default_respects_org_unique_index(client, auth_headers, db_sessi
     second_id = second.json()["id"]
 
     update_response = client.patch(
-        f"/api/v1/smtp/accounts/{second_id}",
+        f"/api/v1/email-accounts/{second_id}",
         json={"is_default": True},
         headers=auth_headers,
     )
     assert update_response.status_code == 200, update_response.text
     assert update_response.json()["is_default"] is True
 
-    first_after = client.get(f"/api/v1/smtp/accounts/{first_id}", headers=auth_headers)
-    second_after = client.get(f"/api/v1/smtp/accounts/{second_id}", headers=auth_headers)
+    first_after = client.get(f"/api/v1/email-accounts/{first_id}", headers=auth_headers)
+    second_after = client.get(f"/api/v1/email-accounts/{second_id}", headers=auth_headers)
     assert first_after.json()["is_default"] is False
     assert second_after.json()["is_default"] is True
 
-    listed = client.get("/api/v1/smtp/accounts", headers=auth_headers)
+    listed = client.get("/api/v1/email-accounts", headers=auth_headers)
     defaults = [item for item in listed.json()["items"] if item["is_default"]]
     assert len(defaults) == 1
     assert defaults[0]["id"] == second_id
 
     keep_false = client.patch(
-        f"/api/v1/smtp/accounts/{first_id}",
+        f"/api/v1/email-accounts/{first_id}",
         json={"name": "Still Not Default", "is_default": False},
         headers=auth_headers,
     )
     assert keep_false.status_code == 200, keep_false.text
     assert keep_false.json()["is_default"] is False
-    assert client.get(f"/api/v1/smtp/accounts/{second_id}", headers=auth_headers).json()[
+    assert client.get(f"/api/v1/email-accounts/{second_id}", headers=auth_headers).json()[
         "is_default"
     ] is True
 
@@ -374,7 +376,7 @@ def test_get_smtp_account_detail(client, auth_headers):
     create_response = _create_smtp_account(client, auth_headers)
     account_id = create_response.json()["id"]
 
-    get_response = client.get(f"/api/v1/smtp/accounts/{account_id}", headers=auth_headers)
+    get_response = client.get(f"/api/v1/email-accounts/{account_id}", headers=auth_headers)
     assert get_response.status_code == 200
     body = get_response.json()
     assert body["id"] == account_id

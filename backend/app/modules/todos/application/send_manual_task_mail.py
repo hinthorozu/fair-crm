@@ -127,7 +127,7 @@ class SendManualTaskMailUseCase:
         if participation is None:
             raise WorklistCustomerNotInTodoError("Customer is not in this todo worklist")
 
-        account = self._smtp_repository.get_by_id(command.organization_id, command.smtp_account_id)
+        account = self._smtp_repository.get_by_id(command.organization_id, command.email_account_id)
         if account is None:
             raise SmtpAccountNotFoundError("SMTP account not found")
         if account.deleted_at is not None:
@@ -151,7 +151,7 @@ class SendManualTaskMailUseCase:
                 "todo_id": str(command.todo_id),
                 "customer_id": str(command.customer_id),
                 "recipient": recipient,
-                "smtp_account_id": str(command.smtp_account_id),
+                "email_account_id": str(command.email_account_id),
             }
             if template_id is not None:
                 metadata["template_id"] = str(template_id)
@@ -164,9 +164,10 @@ class SendManualTaskMailUseCase:
                     subject=subject,
                     body_text=body,
                     body_html=body_html,
-                    smtp_account_id=command.smtp_account_id,
+                    email_account_id=command.email_account_id,
                     template_id=template_id,
                     customer_id=command.customer_id,
+                    max_retry_count=account.max_delivery_attempts,
                     metadata_json=metadata,
                 )
             )

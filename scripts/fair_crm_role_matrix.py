@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 AUDIT_READ_PERMISSION: Final = "audit.logs.read"
-ROLE_MATRIX_VERSION: Final = 2
+ROLE_MATRIX_VERSION: Final = 3
 
 ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.customers.create",
@@ -42,10 +42,10 @@ ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.operations.read",
     "fair_crm.operations.create",
     "fair_crm.operations.execute",
-    "fair_crm.smtp.read",
-    "fair_crm.smtp.create",
-    "fair_crm.smtp.update",
-    "fair_crm.smtp.delete",
+    "fair_crm.email_accounts.read",
+    "fair_crm.email_accounts.create",
+    "fair_crm.email_accounts.update",
+    "fair_crm.email_accounts.delete",
     "fair_crm.mail_templates.read",
     "fair_crm.mail_templates.create",
     "fair_crm.mail_templates.update",
@@ -78,9 +78,9 @@ ADMIN_ONLY_PERMISSIONS: frozenset[str] = frozenset(
         "fair_crm.admin.backups.download",
         "fair_crm.admin.data_operations.read",
         "fair_crm.admin.data_operations.run",
-        "fair_crm.smtp.create",
-        "fair_crm.smtp.update",
-        "fair_crm.smtp.delete",
+        "fair_crm.email_accounts.create",
+        "fair_crm.email_accounts.update",
+        "fair_crm.email_accounts.delete",
         "fair_crm.mail_templates.create",
         "fair_crm.mail_templates.update",
         "fair_crm.mail_templates.delete",
@@ -122,7 +122,7 @@ _MANAGER_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.activities.create",
     "fair_crm.activities.update",
     "fair_crm.activities.delete",
-    "fair_crm.smtp.read",
+    "fair_crm.email_accounts.read",
     "fair_crm.mail_templates.read",
     "fair_crm.fair_emails.preview",
     "fair_crm.scraper.read",
@@ -154,7 +154,7 @@ _SALES_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.activities.read",
     "fair_crm.activities.create",
     "fair_crm.activities.update",
-    "fair_crm.smtp.read",
+    "fair_crm.email_accounts.read",
     "fair_crm.mail_templates.read",
     "fair_crm.fair_emails.preview",
     "fair_crm.todos.read",
@@ -174,7 +174,7 @@ _VIEWER_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.activities.read",
     "fair_crm.scraper.read",
     "fair_crm.operations.read",
-    "fair_crm.smtp.read",
+    "fair_crm.email_accounts.read",
     "fair_crm.mail_templates.read",
     "fair_crm.fair_emails.preview",
     "fair_crm.todos.read",

@@ -93,8 +93,8 @@ def build_fair_bulk_email_activity_metadata(
         "customer_id": str(outbox.customer_id) if outbox.customer_id is not None else None,
         "status": terminal_status,
     }
-    if batch.smtp_account_id is not None:
-        metadata["smtp_account_id"] = str(batch.smtp_account_id)
+    if batch.email_account_id is not None:
+        metadata["email_account_id"] = str(batch.email_account_id)
     if outbox.contact_id is not None:
         metadata["contact_id"] = str(outbox.contact_id)
     if safe_error:

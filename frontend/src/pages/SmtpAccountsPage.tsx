@@ -1,14 +1,14 @@
 import React from "react";
 import {
-  createSmtpAccount,
-  deleteSmtpAccount,
-  listSmtpAccounts,
-  sendTestSmtpMail,
-  setDefaultSmtpAccount,
-  updateSmtpAccount,
+  createEmailAccount,
+  deleteEmailAccount,
+  listEmailAccounts,
+  sendTestEmailAccountMail,
+  setDefaultEmailAccount,
+  updateEmailAccount,
   ApiError,
-} from "../api/smtp";
-import { SmtpAccountForm } from "../components/smtp/SmtpAccountForm";
+} from "../api/emailAccounts";
+import { EmailAccountForm, resolveEmailAccountType } from "../components/smtp/EmailAccountForm";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
 import { FormModal } from "../components/ui/form";
@@ -18,12 +18,20 @@ import { TableRowActions } from "../components/ui/TableRowActions";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { adminLabels } from "../labels/adminLabels";
 import {
-  canPerformSmtpAction,
-  canSetDefaultSmtpAccount,
+  canPerformEmailAccountAction,
+  canSetDefaultEmailAccount,
   getGrantedPermissions,
-} from "../permissions/smtpPermissions";
-import type { SmtpAccount } from "../types/smtp";
-import { responseContainsPassword, smtpPasswordSet, formatSmtpTestMailError } from "../utils/smtpForm";
+} from "../permissions/emailAccountPermissions";
+import type { EmailAccount, EmailAccountType, UpdateEmailAccountPayload } from "../types/smtp";
+import {
+  clearIdIfMatches,
+  shouldApplyAccountScopedResult,
+} from "../utils/emailAccountAsyncIsolation";
+import {
+  responseContainsPassword,
+  emailAccountPasswordSet,
+  formatSmtpTestMailError,
+} from "../utils/emailAccountForm";
 import { Banner } from "../components/ui/Banner";
 import { PageShell } from "../components/ui/PageShell";
 
@@ -32,23 +40,29 @@ function formatDateTime(value: string | null | undefined): string {
   return new Date(value).toLocaleString("tr-TR");
 }
 
-function encryptionLabel(value: SmtpAccount["encryption_type"]): string {
+function encryptionLabel(value: EmailAccount["encryption_type"]): string {
   return value.toUpperCase();
+}
+
+function accountTypeLabel(accountType: EmailAccountType): string {
+  return accountType === "provider"
+    ? adminLabels.smtpAccountTypeProvider
+    : adminLabels.smtpAccountTypeSmtp;
 }
 
 export function SmtpAccountsPage() {
   const grantedPermissions = React.useMemo(() => getGrantedPermissions(), []);
-  const canRead = canPerformSmtpAction(grantedPermissions, "read");
-  const canCreate = canPerformSmtpAction(grantedPermissions, "create");
-  const canUpdate = canPerformSmtpAction(grantedPermissions, "update");
-  const canDelete = canPerformSmtpAction(grantedPermissions, "delete");
+  const canRead = canPerformEmailAccountAction(grantedPermissions, "read");
+  const canCreate = canPerformEmailAccountAction(grantedPermissions, "create");
+  const canUpdate = canPerformEmailAccountAction(grantedPermissions, "update");
+  const canDelete = canPerformEmailAccountAction(grantedPermissions, "delete");
 
-  const [accounts, setAccounts] = React.useState<SmtpAccount[]>([]);
+  const [accounts, setAccounts] = React.useState<EmailAccount[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
   const [modal, setModal] = React.useState<"create" | "edit" | null>(null);
-  const [editing, setEditing] = React.useState<SmtpAccount | null>(null);
+  const [editing, setEditing] = React.useState<EmailAccount | null>(null);
   const [formSaving, setFormSaving] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
   const [testMailRunning, setTestMailRunning] = React.useState(false);
@@ -56,7 +70,42 @@ export function SmtpAccountsPage() {
   const [testMailSuccess, setTestMailSuccess] = React.useState<string | null>(null);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [settingDefaultId, setSettingDefaultId] = React.useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = React.useState<SmtpAccount | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<EmailAccount | null>(null);
+  const [deactivateConfirmPayload, setDeactivateConfirmPayload] =
+    React.useState<UpdateEmailAccountPayload | null>(null);
+
+  const editingRef = React.useRef<EmailAccount | null>(null);
+  const modalRef = React.useRef<"create" | "edit" | null>(null);
+  const testMailAbortRef = React.useRef<AbortController | null>(null);
+  const testMailRequestIdRef = React.useRef(0);
+  const testMailAccountIdRef = React.useRef<string | null>(null);
+  const formRequestIdRef = React.useRef(0);
+  const formTargetIdRef = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    editingRef.current = editing;
+  }, [editing]);
+
+  React.useEffect(() => {
+    modalRef.current = modal;
+  }, [modal]);
+
+  const invalidateTestMail = React.useCallback(() => {
+    testMailAbortRef.current?.abort();
+    testMailAbortRef.current = null;
+    testMailRequestIdRef.current += 1;
+    testMailAccountIdRef.current = null;
+    setTestMailRunning(false);
+    setTestMailError(null);
+    setTestMailSuccess(null);
+  }, []);
+
+  const invalidateFormOp = React.useCallback(() => {
+    formRequestIdRef.current += 1;
+    formTargetIdRef.current = null;
+    setFormSaving(false);
+    setFormError(null);
+  }, []);
 
   const loadAccounts = React.useCallback(async () => {
     if (!canRead) {
@@ -68,7 +117,7 @@ export function SmtpAccountsPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await listSmtpAccounts();
+      const response = await listEmailAccounts();
       if (response.items.some((item) => responseContainsPassword(item))) {
         throw new Error(adminLabels.smtpUnexpectedPasswordField);
       }
@@ -90,108 +139,211 @@ export function SmtpAccountsPage() {
     return () => window.clearTimeout(timer);
   }, [success]);
 
+  React.useEffect(() => {
+    return () => {
+      testMailAbortRef.current?.abort();
+    };
+  }, []);
+
   const openCreate = () => {
+    invalidateTestMail();
+    invalidateFormOp();
     setEditing(null);
-    setFormError(null);
     setModal("create");
   };
 
-  const openEdit = (account: SmtpAccount) => {
+  const openEdit = (account: EmailAccount) => {
+    invalidateTestMail();
+    invalidateFormOp();
     setEditing(account);
-    setFormError(null);
-    setTestMailError(null);
-    setTestMailSuccess(null);
     setModal("edit");
   };
 
   const closeModal = React.useCallback(() => {
+    invalidateTestMail();
+    invalidateFormOp();
+    setDeactivateConfirmPayload(null);
     setModal(null);
     setEditing(null);
-    setFormError(null);
-    setTestMailError(null);
-    setTestMailSuccess(null);
-  }, []);
+  }, [invalidateFormOp, invalidateTestMail]);
 
-  const handleCreate = async (payload: Parameters<typeof createSmtpAccount>[0]) => {
+  const handleCreate = async (payload: Parameters<typeof createEmailAccount>[0]) => {
+    const requestId = ++formRequestIdRef.current;
+    formTargetIdRef.current = "__create__";
     setFormSaving(true);
     setFormError(null);
     try {
-      await createSmtpAccount(payload);
+      await createEmailAccount(payload);
+      if (
+        requestId !== formRequestIdRef.current ||
+        formTargetIdRef.current !== "__create__" ||
+        modalRef.current !== "create"
+      ) {
+        return;
+      }
       closeModal();
       setSuccess(adminLabels.smtpCreateSuccess);
       await loadAccounts();
     } catch (err) {
+      if (
+        requestId !== formRequestIdRef.current ||
+        formTargetIdRef.current !== "__create__" ||
+        modalRef.current !== "create"
+      ) {
+        return;
+      }
       setFormError(err instanceof ApiError ? err.message : adminLabels.smtpCreateError);
     } finally {
-      setFormSaving(false);
+      if (requestId === formRequestIdRef.current && formTargetIdRef.current === "__create__") {
+        setFormSaving(false);
+      }
     }
   };
 
-  const handleUpdate = async (payload: Parameters<typeof updateSmtpAccount>[1]) => {
-    if (!editing) return;
+  const performUpdate = async (payload: UpdateEmailAccountPayload) => {
+    const accountId = editingRef.current?.id;
+    if (!accountId) return;
+    const requestId = ++formRequestIdRef.current;
+    formTargetIdRef.current = accountId;
     setFormSaving(true);
     setFormError(null);
     try {
-      await updateSmtpAccount(editing.id, payload);
+      await updateEmailAccount(accountId, payload);
+      if (
+        !shouldApplyAccountScopedResult({
+          requestId,
+          activeRequestId: formRequestIdRef.current,
+          operationAccountId: accountId,
+          activeOperationAccountId: formTargetIdRef.current,
+          modalAccountId: modalRef.current === "edit" ? editingRef.current?.id ?? null : null,
+        })
+      ) {
+        return;
+      }
+      setDeactivateConfirmPayload(null);
       closeModal();
       setSuccess(adminLabels.smtpUpdateSuccess);
       await loadAccounts();
     } catch (err) {
+      if (
+        !shouldApplyAccountScopedResult({
+          requestId,
+          activeRequestId: formRequestIdRef.current,
+          operationAccountId: accountId,
+          activeOperationAccountId: formTargetIdRef.current,
+          modalAccountId: modalRef.current === "edit" ? editingRef.current?.id ?? null : null,
+        })
+      ) {
+        return;
+      }
       setFormError(err instanceof ApiError ? err.message : adminLabels.smtpUpdateError);
     } finally {
-      setFormSaving(false);
+      if (requestId === formRequestIdRef.current && formTargetIdRef.current === accountId) {
+        setFormSaving(false);
+      }
     }
   };
 
-  const handleSetDefault = async (account: SmtpAccount) => {
-    if (!canSetDefaultSmtpAccount(account, grantedPermissions)) {
+  const handleUpdate = async (payload: Parameters<typeof updateEmailAccount>[1]) => {
+    if (editingRef.current?.is_default && payload.is_active === false) {
+      setDeactivateConfirmPayload(payload);
       return;
     }
-    setSettingDefaultId(account.id);
+    await performUpdate(payload);
+  };
+
+  const handleSetDefault = async (account: EmailAccount) => {
+    if (!canSetDefaultEmailAccount(account, grantedPermissions)) {
+      return;
+    }
+    const accountId = account.id;
+    setSettingDefaultId(accountId);
     setError(null);
     try {
-      await setDefaultSmtpAccount(account.id);
+      await setDefaultEmailAccount(accountId);
       setSuccess(adminLabels.smtpSetDefaultSuccess);
       await loadAccounts();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : adminLabels.smtpSetDefaultError);
     } finally {
-      setSettingDefaultId(null);
+      setSettingDefaultId((current) => clearIdIfMatches(current, accountId));
     }
   };
 
   const handleTestMail = async (recipient: string) => {
-    if (!editing || !canUpdate) return;
+    const accountId = editingRef.current?.id;
+    if (!accountId || !canUpdate || modalRef.current !== "edit") return;
+
+    testMailAbortRef.current?.abort();
+    const controller = new AbortController();
+    testMailAbortRef.current = controller;
+    const requestId = ++testMailRequestIdRef.current;
+    testMailAccountIdRef.current = accountId;
+
     setTestMailRunning(true);
     setTestMailError(null);
     setTestMailSuccess(null);
+
     try {
-      const result = await sendTestSmtpMail(editing.id, { recipient });
+      const result = await sendTestEmailAccountMail(
+        accountId,
+        { recipient },
+        { signal: controller.signal },
+      );
+      if (
+        !shouldApplyAccountScopedResult({
+          requestId,
+          activeRequestId: testMailRequestIdRef.current,
+          operationAccountId: accountId,
+          activeOperationAccountId: testMailAccountIdRef.current,
+          modalAccountId: modalRef.current === "edit" ? editingRef.current?.id ?? null : null,
+        })
+      ) {
+        return;
+      }
       setTestMailSuccess(result.message || adminLabels.smtpTestMailSuccess);
     } catch (err) {
+      if (controller.signal.aborted) return;
+      if (
+        !shouldApplyAccountScopedResult({
+          requestId,
+          activeRequestId: testMailRequestIdRef.current,
+          operationAccountId: accountId,
+          activeOperationAccountId: testMailAccountIdRef.current,
+          modalAccountId: modalRef.current === "edit" ? editingRef.current?.id ?? null : null,
+        })
+      ) {
+        return;
+      }
       const rawMessage = err instanceof ApiError ? err.message : adminLabels.smtpTestMailError;
       setTestMailError(formatSmtpTestMailError(rawMessage));
     } finally {
-      setTestMailRunning(false);
+      if (
+        requestId === testMailRequestIdRef.current &&
+        testMailAccountIdRef.current === accountId
+      ) {
+        setTestMailRunning(false);
+      }
     }
   };
 
-  const handleDelete = async (account: SmtpAccount) => {
-    setDeletingId(account.id);
+  const handleDelete = async (account: EmailAccount) => {
+    const accountId = account.id;
+    setDeletingId(accountId);
     setError(null);
     try {
-      await deleteSmtpAccount(account.id);
-      setDeleteTarget(null);
+      await deleteEmailAccount(accountId);
+      setDeleteTarget((current) => (current?.id === accountId ? null : current));
       setSuccess(adminLabels.smtpDeleteSuccess);
       await loadAccounts();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : adminLabels.smtpDeleteError);
     } finally {
-      setDeletingId(null);
+      setDeletingId((current) => clearIdIfMatches(current, accountId));
     }
   };
 
-  const columns = React.useMemo<UniversalDataTableColumn<SmtpAccount>[]>(
+  const columns = React.useMemo<UniversalDataTableColumn<EmailAccount>[]>(
     () => [
       {
         key: "name",
@@ -202,6 +354,14 @@ export function SmtpAccountsPage() {
             <span>{account.name}</span>
             {account.is_default ? <Badge variant="info">{adminLabels.smtpDefaultBadge}</Badge> : null}
           </div>
+        ),
+      },
+      {
+        key: "account_type",
+        title: adminLabels.smtpColAccountType,
+        sortable: true,
+        render: (account) => (
+          <Badge variant="neutral">{accountTypeLabel(resolveEmailAccountType(account))}</Badge>
         ),
       },
       {
@@ -220,19 +380,24 @@ export function SmtpAccountsPage() {
         key: "host",
         title: adminLabels.smtpColHost,
         sortable: true,
-        render: (account) => account.host,
+        render: (account) =>
+          resolveEmailAccountType(account) === "smtp" ? account.host : "—",
       },
       {
         key: "port",
         title: adminLabels.smtpColPort,
         sortable: true,
-        render: (account) => account.port,
+        render: (account) =>
+          resolveEmailAccountType(account) === "smtp" ? account.port : "—",
       },
       {
         key: "encryption_type",
         title: adminLabels.smtpColEncryption,
         sortable: true,
-        render: (account) => encryptionLabel(account.encryption_type),
+        render: (account) =>
+          resolveEmailAccountType(account) === "smtp"
+            ? encryptionLabel(account.encryption_type)
+            : "—",
       },
       {
         key: "is_active",
@@ -250,9 +415,11 @@ export function SmtpAccountsPage() {
         title: adminLabels.smtpColHasPassword,
         sortable: true,
         render: (account) =>
-          smtpPasswordSet(account)
-            ? adminLabels.smtpPasswordConfigured
-            : adminLabels.smtpPasswordMissing,
+          resolveEmailAccountType(account) === "smtp"
+            ? emailAccountPasswordSet(account)
+              ? adminLabels.smtpPasswordConfigured
+              : adminLabels.smtpPasswordMissing
+            : "—",
       },
       {
         key: "updated_at",
@@ -276,7 +443,7 @@ export function SmtpAccountsPage() {
                 type="button"
                 className="btn btn-sm secondary"
                 disabled={
-                  !canSetDefaultSmtpAccount(account, grantedPermissions) ||
+                  !canSetDefaultEmailAccount(account, grantedPermissions) ||
                   settingDefaultId === account.id
                 }
                 title={
@@ -309,7 +476,7 @@ export function SmtpAccountsPage() {
   );
 
   return (
-    <PageShell className="smtp-accounts-page">
+    <PageShell className="smtp-accounts-page email-accounts-page">
       <PageHeader
         title={adminLabels.smtpTitle}
         subtitle={adminLabels.smtpSubtitle}
@@ -345,8 +512,9 @@ export function SmtpAccountsPage() {
       />
 
       {modal === "create" ? (
-        <FormModal title={adminLabels.smtpNewAccount} onClose={closeModal}>
-          <SmtpAccountForm
+        <FormModal title={adminLabels.smtpCreateModalTitle} onClose={closeModal}>
+          <EmailAccountForm
+            key="create"
             mode="create"
             saving={formSaving}
             error={formError}
@@ -361,7 +529,8 @@ export function SmtpAccountsPage() {
 
       {modal === "edit" && editing ? (
         <FormModal title={adminLabels.smtpEditAccount} onClose={closeModal}>
-          <SmtpAccountForm
+          <EmailAccountForm
+            key={editing.id}
             mode="edit"
             initial={editing}
             saving={formSaving}
@@ -380,12 +549,28 @@ export function SmtpAccountsPage() {
       {deleteTarget ? (
         <ConfirmDialog
           title={adminLabels.smtpDeleteTitle}
-          message={adminLabels.smtpDeleteConfirm.replace("{name}", deleteTarget.name)}
+          message={
+            deleteTarget.is_default
+              ? adminLabels.smtpDeleteDefaultConfirm.replace("{name}", deleteTarget.name)
+              : adminLabels.smtpDeleteConfirm.replace("{name}", deleteTarget.name)
+          }
           confirmLabel={adminLabels.actionDelete}
           variant="danger"
           loading={deletingId === deleteTarget.id}
           onCancel={() => setDeleteTarget(null)}
           onConfirm={() => void handleDelete(deleteTarget)}
+        />
+      ) : null}
+
+      {deactivateConfirmPayload ? (
+        <ConfirmDialog
+          title={adminLabels.smtpDeactivateDefaultTitle}
+          message={adminLabels.smtpDeactivateDefaultConfirm}
+          confirmLabel={adminLabels.smtpDeactivateDefaultConfirmLabel}
+          variant="danger"
+          loading={formSaving}
+          onCancel={() => setDeactivateConfirmPayload(null)}
+          onConfirm={() => void performUpdate(deactivateConfirmPayload)}
         />
       ) : null}
     </PageShell>

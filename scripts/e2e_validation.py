@@ -46,7 +46,7 @@ REQUIRED_PERMISSIONS = (
     "fair_crm.imports.apply",
     "fair_crm.scraper.read",
     "fair_crm.scraper.download",
-    "fair_crm.smtp.read",
+    "fair_crm.email_accounts.read",
     "fair_crm.admin.backups.read",
     "fair_crm.admin.data_operations.run",
 )

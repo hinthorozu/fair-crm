@@ -1,9 +1,9 @@
 import { adminLabels } from "../labels/adminLabels";
 import type {
-  CreateSmtpAccountPayload,
-  SmtpAccount,
+  CreateEmailAccountPayload,
+  EmailAccount,
   SmtpEncryptionType,
-  UpdateSmtpAccountPayload,
+  UpdateEmailAccountPayload,
 } from "../types/smtp";
 
 export const SMTP_ENCRYPTION_TYPES: SmtpEncryptionType[] = [
@@ -16,7 +16,7 @@ export const SMTP_ENCRYPTION_TYPES: SmtpEncryptionType[] = [
 const SSL_PORT = 465;
 const STARTTLS_PORT = 587;
 
-export interface SmtpAccountFormValues {
+export interface EmailAccountFormValues {
   name: string;
   from_email: string;
   from_name: string;
@@ -27,9 +27,10 @@ export interface SmtpAccountFormValues {
   encryption_type: SmtpEncryptionType;
   is_default: boolean;
   is_active: boolean;
+  max_delivery_attempts: string;
 }
 
-export const EMPTY_SMTP_FORM_VALUES: SmtpAccountFormValues = {
+export const EMPTY_EMAIL_ACCOUNT_FORM_VALUES: EmailAccountFormValues = {
   name: "",
   from_email: "",
   from_name: "",
@@ -40,11 +41,12 @@ export const EMPTY_SMTP_FORM_VALUES: SmtpAccountFormValues = {
   encryption_type: "starttls",
   is_default: false,
   is_active: true,
+  max_delivery_attempts: "3",
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function smtpAccountToFormValues(account: SmtpAccount): SmtpAccountFormValues {
+export function emailAccountToFormValues(account: EmailAccount): EmailAccountFormValues {
   return {
     name: account.name,
     from_email: account.from_email,
@@ -56,10 +58,13 @@ export function smtpAccountToFormValues(account: SmtpAccount): SmtpAccountFormVa
     encryption_type: account.encryption_type,
     is_default: account.is_default,
     is_active: account.is_active,
+    max_delivery_attempts: String(account.max_delivery_attempts ?? 3),
   };
 }
 
-export function smtpPasswordSet(account: Pick<SmtpAccount, "password_set" | "has_password">): boolean {
+export function emailAccountPasswordSet(
+  account: Pick<EmailAccount, "password_set" | "has_password">,
+): boolean {
   return account.password_set ?? account.has_password ?? false;
 }
 
@@ -116,7 +121,10 @@ export function formatSmtpTestMailError(message: string): string {
   return message;
 }
 
-export function validateSmtpFormValues(values: SmtpAccountFormValues): string | null {
+export function validateEmailAccountFormValues(
+  values: EmailAccountFormValues,
+  mode: "create" | "edit" = "create",
+): string | null {
   if (!values.name.trim()) {
     return "SMTP adı zorunludur.";
   }
@@ -133,10 +141,18 @@ export function validateSmtpFormValues(values: SmtpAccountFormValues): string | 
   if (!SMTP_ENCRYPTION_TYPES.includes(values.encryption_type)) {
     return "Geçersiz şifreleme türü.";
   }
+  if (mode === "create") {
+    const attempts = Number(values.max_delivery_attempts);
+    if (!Number.isInteger(attempts) || attempts < 1 || attempts > 5) {
+      return adminLabels.smtpMaxDeliveryAttemptsInvalid;
+    }
+  }
   return null;
 }
 
-export function buildCreateSmtpPayload(values: SmtpAccountFormValues): CreateSmtpAccountPayload {
+export function buildCreateEmailAccountPayload(
+  values: EmailAccountFormValues,
+): CreateEmailAccountPayload {
   return {
     name: values.name.trim(),
     from_email: values.from_email.trim(),
@@ -148,11 +164,14 @@ export function buildCreateSmtpPayload(values: SmtpAccountFormValues): CreateSmt
     encryption_type: values.encryption_type,
     is_default: values.is_default,
     is_active: values.is_active,
+    max_delivery_attempts: Number(values.max_delivery_attempts),
   };
 }
 
-export function buildUpdateSmtpPayload(values: SmtpAccountFormValues): UpdateSmtpAccountPayload {
-  const payload: UpdateSmtpAccountPayload = {
+export function buildUpdateEmailAccountPayload(
+  values: EmailAccountFormValues,
+): UpdateEmailAccountPayload {
+  const payload: UpdateEmailAccountPayload = {
     name: values.name.trim(),
     from_email: values.from_email.trim(),
     from_name: values.from_name.trim() || null,

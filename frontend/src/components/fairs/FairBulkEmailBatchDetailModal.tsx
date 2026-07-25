@@ -143,7 +143,7 @@ export function FairBulkEmailBatchDetailModal({
             </div>
             <div>
               <strong>{fairLabels.bulkEmailLogsColSmtp}</strong>
-              <div>{data.batch.smtp_account_name ?? "—"}</div>
+              <div>{data.batch.email_account_name ?? "—"}</div>
             </div>
             <div>
               <strong>{fairLabels.bulkEmailLogsColStatus}</strong>

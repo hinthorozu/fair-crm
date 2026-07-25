@@ -62,7 +62,7 @@ export interface RenderMailTemplateResponse {
 
 export interface SendTestMailTemplatePayload {
   to_email: string;
-  smtp_account_id?: string | null;
+  email_account_id?: string | null;
   variables: Record<string, unknown>;
   subject_override?: string | null;
 }

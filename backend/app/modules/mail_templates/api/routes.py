@@ -297,7 +297,7 @@ def send_test_mail_template(
                 access_token=_access_token(credentials),
                 user_id=auth.user_id,
                 to_email=body.to_email,
-                smtp_account_id=body.smtp_account_id,
+                email_account_id=body.email_account_id,
                 variables=body.variables,
                 subject_override=body.subject_override,
             )

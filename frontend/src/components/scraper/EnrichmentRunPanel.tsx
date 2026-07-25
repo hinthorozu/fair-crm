@@ -1,9 +1,7 @@
 import React from "react";
-import { getFair, runFairContactEnrichment } from "../../api/fairs";
+import { runFairContactEnrichment } from "../../api/fairs";
 import { getScraperRun, runCustomerContactEnrichment } from "../../api/scraper";
-import { FairEntitySelect } from "../FairEntitySelect";
-import { NavIconClose } from "../layout/NavIcons";
-import { IconButton } from "../ui/IconButton";
+import { FairMultiSelect, type FairMultiSelectItem } from "../fairs/FairMultiSelect";
 import { CheckboxField, FormField, FormGrid, RadioField, TextInput } from "../ui/form";
 import { scraperLabels } from "../../labels/scraperLabels";
 import type {
@@ -21,8 +19,6 @@ import {
 } from "../../utils/enrichmentAdapter";
 import { OutputFieldsSection, toggleRequestedFieldSelection } from "./OutputFieldsSection";
 import { EnrichmentStateResetPanel } from "./EnrichmentStateResetPanel";
-
-type SelectedFair = { id: string; name: string };
 
 interface EnrichmentRunPanelProps {
   adapterKey: string;
@@ -66,9 +62,8 @@ export function EnrichmentRunPanel({
   /** Empty string = no limit (all eligible customers); the "50" shown to the user is only a placeholder hint. */
   const [limitInput, setLimitInput] = React.useState("");
   const [includeExistingEmail, setIncludeExistingEmail] = React.useState(false);
-  const [fairPickerId, setFairPickerId] = React.useState("");
-  const [selectedFairs, setSelectedFairs] = React.useState<SelectedFair[]>([]);
-  const [fairAddError, setFairAddError] = React.useState<string | null>(null);
+  const [selectedFairs, setSelectedFairs] = React.useState<FairMultiSelectItem[]>([]);
+  const [fairFieldError, setFairFieldError] = React.useState<string | null>(null);
   const [companyName, setCompanyName] = React.useState("");
   const [companyNameMatch, setCompanyNameMatch] = React.useState<CompanyNameMatchMode>("contains");
   const [addressContains, setAddressContains] = React.useState("");
@@ -83,30 +78,6 @@ export function EnrichmentRunPanel({
 
   const fairScoped = Boolean(fairId);
   const selectedFairIds = selectedFairs.map((fair) => fair.id);
-
-  const handleFairPickerChange = React.useCallback((nextId: string) => {
-    setFairPickerId(nextId);
-    setFairAddError(null);
-    if (!nextId) return;
-
-    if (selectedFairs.some((fair) => fair.id === nextId)) {
-      setFairAddError(scraperLabels.enrichmentRunFairAlreadySelected);
-      setFairPickerId("");
-      return;
-    }
-
-    void getFair(nextId)
-      .then((fair) => {
-        setSelectedFairs((current) => {
-          if (current.some((item) => item.id === fair.id)) return current;
-          return [...current, { id: fair.id, name: fair.name }];
-        });
-        setFairPickerId("");
-      })
-      .catch(() => {
-        setFairPickerId("");
-      });
-  }, [selectedFairs]);
 
   const capabilities = React.useMemo(() => {
     const all = manifestCapabilities(manifest);
@@ -236,53 +207,25 @@ export function EnrichmentRunPanel({
       <p className="form-hint">{scraperLabels.enrichmentRunHint}</p>
       <p className="form-hint">{scraperLabels.enrichmentRunFiltersHint}</p>
 
+      {!fairScoped ? (
+        <FairMultiSelect
+          id="enrichment-fair-picker"
+          selected={selectedFairs}
+          onChange={setSelectedFairs}
+          disabled={running}
+          selectLabel={scraperLabels.enrichmentRunFairSelectLabel}
+          selectHint={scraperLabels.enrichmentRunFairFilterHint}
+          selectedLabel={scraperLabels.enrichmentRunFairSelectedLabel}
+          emptyLabel={scraperLabels.enrichmentRunFairSelectedEmpty}
+          removeLabel={scraperLabels.enrichmentRunFairRemove}
+          alreadySelectedMessage={scraperLabels.enrichmentRunFairAlreadySelected}
+          placeholder={scraperLabels.enrichmentRunFairFilterPlaceholder}
+          error={fairFieldError}
+          onSelectionMutated={() => setFairFieldError(null)}
+        />
+      ) : null}
+
       <FormGrid columns={3}>
-        {!fairScoped ? (
-          <>
-            <FormField
-              label={scraperLabels.enrichmentRunFairSelectLabel}
-              htmlFor="enrichment-fair-picker"
-              fullWidth
-              hint={scraperLabels.enrichmentRunFairFilterHint}
-              error={fairAddError ?? undefined}
-            >
-              <FairEntitySelect
-                id="enrichment-fair-picker"
-                value={fairPickerId}
-                onChange={handleFairPickerChange}
-                disabled={running}
-                allowClear
-                placeholder={scraperLabels.enrichmentRunFairFilterPlaceholder}
-              />
-            </FormField>
-
-            <FormField label={scraperLabels.enrichmentRunFairSelectedLabel} fullWidth>
-              {selectedFairs.length === 0 ? (
-                <p className="field-hint">{scraperLabels.enrichmentRunFairSelectedEmpty}</p>
-              ) : (
-                <ul className="selected-entity-list">
-                  {selectedFairs.map((fair) => (
-                    <li key={fair.id} className="selected-entity-item">
-                      <span>{fair.name}</span>
-                      <IconButton
-                        label={scraperLabels.enrichmentRunFairRemove}
-                        icon={<NavIconClose />}
-                        onClick={() => {
-                          if (running) return;
-                          setSelectedFairs((current) =>
-                            current.filter((item) => item.id !== fair.id),
-                          );
-                          setFairAddError(null);
-                        }}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </FormField>
-          </>
-        ) : null}
-
         <FormField
           label={scraperLabels.enrichmentRunCompanyName}
           htmlFor="enrichment-company-name"

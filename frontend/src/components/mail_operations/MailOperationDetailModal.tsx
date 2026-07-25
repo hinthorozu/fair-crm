@@ -41,7 +41,7 @@ export function MailOperationDetailModal({ record, onClose }: MailOperationDetai
         </div>
         <div>
           <strong>{adminLabels.mailOperationsColSmtpAccount}</strong>
-          <div>{record.smtp_account_name ?? "—"}</div>
+          <div>{record.email_account_name ?? "—"}</div>
         </div>
         <div>
           <strong>{adminLabels.mailOperationsColTemplate}</strong>

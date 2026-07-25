@@ -41,8 +41,8 @@ export type BulkEmailOperationRecipientSummary = {
 export type BulkEmailOperationMailPreview = {
   template_id: string;
   template_name: string;
-  smtp_account_id: string;
-  smtp_account_name: string;
+  email_account_id: string;
+  email_account_name: string;
   rendered_subject: string;
   body_html: string | null;
   body_text: string | null;
@@ -56,7 +56,7 @@ export type BulkEmailOperationPreviewResponse = {
 export type PreviewBulkEmailOperationPayload = {
   source_type: BulkEmailOperationSourceType;
   template_id: string;
-  smtp_account_id: string;
+  email_account_id: string;
   subject_override: string | null;
   manual_emails?: string | null;
   fair_ids?: string[];
@@ -70,7 +70,7 @@ export type PreviewBulkEmailOperationPayload = {
 export type SendBulkEmailOperationPayload = {
   source_type: BulkEmailOperationSourceType;
   template_id: string;
-  smtp_account_id: string;
+  email_account_id: string;
   subject: string;
   title?: string | null;
   manual_emails?: string | null;

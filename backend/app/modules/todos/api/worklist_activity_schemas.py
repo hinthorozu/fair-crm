@@ -68,7 +68,7 @@ class TodoWorklistModalContextResponse(BaseModel):
 
 
 class SendManualTaskMailRequest(BaseModel):
-    smtp_account_id: UUID
+    email_account_id: UUID
     recipients: str = Field(min_length=1)
     subject: str = Field(min_length=1)
     body: str = Field(min_length=1)

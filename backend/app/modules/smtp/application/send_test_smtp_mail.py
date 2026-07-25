@@ -21,9 +21,9 @@ from app.modules.smtp.domain.exceptions import (
 )
 from app.modules.smtp.domain.ports import SmtpAccountRepository
 from app.modules.smtp.domain.smtp_config_validation import smtp_config_warnings
-from app.modules.smtp.infrastructure.smtp_mailer import send_smtp_message
+from app.modules.email_delivery.application.deliver import deliver_smtp_account_with_dispatcher
 
-PERMISSION_UPDATE = "fair_crm.smtp.update"
+PERMISSION_UPDATE = "fair_crm.email_accounts.update"
 _RECIPIENT_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 
@@ -84,8 +84,9 @@ class SendTestSmtpMailUseCase:
                     recipient_email=recipient,
                     subject=subject,
                     body_text=body,
-                    smtp_account_id=account.id,
-                    metadata_json={"smtp_account_name": account.name},
+                    email_account_id=account.id,
+                    max_retry_count=account.max_delivery_attempts,
+                    metadata_json={"email_account_name": account.name},
                 ),
                 error_code="InactiveAccount",
                 error_message="SMTP account is inactive",
@@ -98,14 +99,15 @@ class SendTestSmtpMailUseCase:
             recipient_email=recipient,
             subject=subject,
             body_text=body,
-            smtp_account_id=account.id,
-            metadata_json={"smtp_account_name": account.name},
+            email_account_id=account.id,
+            max_retry_count=account.max_delivery_attempts,
+            metadata_json={"email_account_name": account.name},
         )
 
         try:
             self._mail_send_operations.execute_synchronous_send(
                 operation_params,
-                send_fn=lambda: send_smtp_message(
+                send_fn=lambda: deliver_smtp_account_with_dispatcher(
                     account,
                     recipient=recipient,
                     subject=subject,
@@ -124,8 +126,8 @@ class SendTestSmtpMailUseCase:
         self._audit.record_event(
             organization_id=command.organization_id,
             access_token=command.access_token,
-            action="fair_crm.smtp_account.test_mail_sent",
-            resource_type="smtp_account",
+            action="fair_crm.email_account.test_mail_sent",
+            resource_type="email_account",
             resource_id=str(account.id),
             new_values={"recipient": recipient},
             metadata={"user_id": str(command.user_id)},

@@ -27,8 +27,8 @@ export interface MailOperationRecord {
   customer_name: string | null;
   recipient_email: string;
   recipient_name: string | null;
-  smtp_account_id: string | null;
-  smtp_account_name: string | null;
+  email_account_id: string | null;
+  email_account_name: string | null;
   template_id: string | null;
   template_name: string | null;
   subject: string;
@@ -57,7 +57,7 @@ export interface ListMailOperationsParams {
   search?: string;
   status?: MailOperationStatus | "all";
   sourceType?: MailOperationSourceType | "all";
-  smtpAccountId?: string | "all";
+  emailAccountId?: string | "all";
   fairId?: string | "all";
   dateFrom?: string;
   dateTo?: string;

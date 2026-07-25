@@ -15,7 +15,7 @@ from app.modules.mail_send_operations.infrastructure.repositories.mail_send_oper
 from app.modules.mail_templates.domain.ports import MailTemplateRepository
 from app.modules.smtp.domain.ports import SmtpAccountRepository
 
-PERMISSION_READ = "fair_crm.smtp.read"
+PERMISSION_READ = "fair_crm.email_accounts.read"
 
 
 @dataclass(frozen=True)
@@ -30,8 +30,8 @@ class MailSendOperationListItem:
     customer_name: str | None
     recipient_email: str
     recipient_name: str | None
-    smtp_account_id: UUID | None
-    smtp_account_name: str | None
+    email_account_id: UUID | None
+    email_account_name: str | None
     template_id: UUID | None
     template_name: str | None
     subject: str
@@ -78,7 +78,7 @@ class ListMailSendOperationsUseCase:
             search=query.search,
             status=query.status,
             source_type=query.source_type,
-            smtp_account_id=query.smtp_account_id,
+            email_account_id=query.email_account_id,
             fair_id=query.fair_id,
             date_from=query.date_from,
             date_to=query.date_to,
@@ -157,14 +157,14 @@ def build_mail_send_operation_list_item(
     fair_cache = fair_names if fair_names is not None else {}
     customer_cache = customer_names if customer_names is not None else {}
 
-    smtp_account_name = None
-    if record.smtp_account_id is not None:
-        smtp_account_name = smtp_cache.get(record.smtp_account_id)
-        if smtp_account_name is None:
-            account = smtp_repository.get_by_id(organization_id, record.smtp_account_id)
-            smtp_account_name = account.name if account is not None else None
-            if smtp_account_name is not None:
-                smtp_cache[record.smtp_account_id] = smtp_account_name
+    email_account_name = None
+    if record.email_account_id is not None:
+        email_account_name = smtp_cache.get(record.email_account_id)
+        if email_account_name is None:
+            account = smtp_repository.get_by_id(organization_id, record.email_account_id)
+            email_account_name = account.name if account is not None else None
+            if email_account_name is not None:
+                smtp_cache[record.email_account_id] = email_account_name
 
     template_name = None
     if record.template_id is not None:
@@ -204,8 +204,8 @@ def build_mail_send_operation_list_item(
         customer_name=customer_name,
         recipient_email=record.recipient_email,
         recipient_name=record.recipient_name,
-        smtp_account_id=record.smtp_account_id,
-        smtp_account_name=smtp_account_name,
+        email_account_id=record.email_account_id,
+        email_account_name=email_account_name,
         template_id=record.template_id,
         template_name=template_name,
         subject=record.subject,

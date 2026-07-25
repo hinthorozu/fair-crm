@@ -33,7 +33,7 @@ def log_mail_template_test_email_failure(
     if smtp_account is not None:
         payload.update(
             {
-                "smtp_account_id": str(smtp_account.id),
+                "email_account_id": str(smtp_account.id),
                 "smtp_host": smtp_account.host,
                 "smtp_port": smtp_account.port,
                 "encryption_type": smtp_account.encryption_type.value,

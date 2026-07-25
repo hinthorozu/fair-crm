@@ -31,7 +31,7 @@ class CreateMailSendOperationParams:
     body_text: str | None = None
     body_html: str | None = None
     recipient_name: str | None = None
-    smtp_account_id: UUID | None = None
+    email_account_id: UUID | None = None
     template_id: UUID | None = None
     fair_id: UUID | None = None
     customer_id: UUID | None = None
@@ -77,7 +77,7 @@ class SqlAlchemyMailSendOperationRepository:
             subject=params.subject.strip(),
             body_html=params.body_html,
             body_text=params.body_text,
-            smtp_account_id=params.smtp_account_id,
+            email_account_id=params.email_account_id,
             template_id=params.template_id,
             fair_id=params.fair_id,
             customer_id=params.customer_id,
@@ -124,7 +124,7 @@ class SqlAlchemyMailSendOperationRepository:
             subject=params.subject.strip(),
             body_html=params.body_html,
             body_text=params.body_text,
-            smtp_account_id=params.smtp_account_id,
+            email_account_id=params.email_account_id,
             template_id=params.template_id,
             fair_id=params.fair_id,
             customer_id=params.customer_id,
@@ -177,7 +177,7 @@ class SqlAlchemyMailSendOperationRepository:
             subject=params.subject.strip(),
             body_html=params.body_html,
             body_text=params.body_text,
-            smtp_account_id=params.smtp_account_id,
+            email_account_id=params.email_account_id,
             template_id=params.template_id,
             fair_id=params.fair_id,
             customer_id=params.customer_id,
@@ -357,7 +357,7 @@ class SqlAlchemyMailSendOperationRepository:
         search: str | None = None,
         status: str | None = None,
         source_type: str | None = None,
-        smtp_account_id: UUID | None = None,
+        email_account_id: UUID | None = None,
         fair_id: UUID | None = None,
         date_from: datetime | None = None,
         date_to: datetime | None = None,
@@ -376,8 +376,8 @@ class SqlAlchemyMailSendOperationRepository:
             query = query.filter(MailSendOperationModel.status == status)
         if source_type:
             query = query.filter(MailSendOperationModel.source_type == source_type)
-        if smtp_account_id is not None:
-            query = query.filter(MailSendOperationModel.smtp_account_id == smtp_account_id)
+        if email_account_id is not None:
+            query = query.filter(MailSendOperationModel.email_account_id == email_account_id)
         if fair_id is not None:
             query = query.filter(MailSendOperationModel.fair_id == fair_id)
         if date_from is not None:
@@ -441,6 +441,36 @@ class SqlAlchemyMailSendOperationRepository:
         model.failed_at = None
         model.cancelled_at = None
         model.updated_at = now
+        self._session.flush()
+        return self._to_record(model)
+
+    def requeue_for_auto_retry(
+        self,
+        organization_id: UUID,
+        operation_id: UUID,
+    ) -> MailSendOperationRecord:
+        """Requeue a sending/failed attempt for worker auto-retry (increments retry_count)."""
+        now = datetime.now(timezone.utc)
+        model = self._get_model(organization_id, operation_id)
+        model.retry_count += 1
+        model.status = MailSendOperationStatus.QUEUED
+        model.error_code = None
+        model.error_message = None
+        model.queued_at = now
+        model.sending_started_at = None
+        model.sent_at = None
+        model.failed_at = None
+        model.cancelled_at = None
+        model.updated_at = now
+        logs = list(model.operation_logs or [])
+        logs.append(
+            {
+                "time": now.isoformat().replace("+00:00", "Z"),
+                "event": "auto_retry_scheduled",
+                "message": f"Auto retry scheduled (attempt {model.retry_count})",
+            }
+        )
+        model.operation_logs = logs
         self._session.flush()
         return self._to_record(model)
 
@@ -578,7 +608,7 @@ class SqlAlchemyMailSendOperationRepository:
             subject=model.subject,
             body_html=model.body_html,
             body_text=model.body_text,
-            smtp_account_id=model.smtp_account_id,
+            email_account_id=model.email_account_id,
             template_id=model.template_id,
             fair_id=model.fair_id,
             customer_id=model.customer_id,

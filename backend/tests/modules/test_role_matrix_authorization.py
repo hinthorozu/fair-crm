@@ -308,8 +308,8 @@ def test_role_matrix_smtp_read(
     role_slug: str,
 ) -> None:
     with install_role_matrix_auth(client, role_slug):
-        response = client.get("/api/v1/smtp/accounts", headers=auth_headers)
-    expected = 200 if _role_has(role_slug, "fair_crm.smtp.read") else 403
+        response = client.get("/api/v1/email-accounts", headers=auth_headers)
+    expected = 200 if _role_has(role_slug, "fair_crm.email_accounts.read") else 403
     assert response.status_code == expected
 
 
@@ -321,7 +321,7 @@ def test_role_matrix_smtp_create(
 ) -> None:
     with install_role_matrix_auth(client, role_slug):
         response = client.post(
-            "/api/v1/smtp/accounts",
+            "/api/v1/email-accounts",
             json={
                 "name": "Matrix SMTP",
                 "from_email": "noreply@example.com",
@@ -330,7 +330,7 @@ def test_role_matrix_smtp_create(
             },
             headers=auth_headers,
         )
-    expected = 201 if _role_has(role_slug, "fair_crm.smtp.create") else 403
+    expected = 201 if _role_has(role_slug, "fair_crm.email_accounts.create") else 403
     assert response.status_code == expected
 
 
@@ -341,7 +341,7 @@ def test_role_matrix_smtp_update(
     role_slug: str,
 ) -> None:
     create = client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json={
             "name": f"Matrix Update Target {role_slug}",
             "from_email": "noreply@example.com",
@@ -355,11 +355,11 @@ def test_role_matrix_smtp_update(
 
     with install_role_matrix_auth(client, role_slug):
         response = client.patch(
-            f"/api/v1/smtp/accounts/{account_id}",
+            f"/api/v1/email-accounts/{account_id}",
             json={"name": f"Matrix Updated {role_slug}"},
             headers=auth_headers,
         )
-    expected = 200 if _role_has(role_slug, "fair_crm.smtp.update") else 403
+    expected = 200 if _role_has(role_slug, "fair_crm.email_accounts.update") else 403
     assert response.status_code == expected
 
 
@@ -370,7 +370,7 @@ def test_role_matrix_smtp_delete(
     role_slug: str,
 ) -> None:
     create = client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json={
             "name": f"Matrix Delete Target {role_slug}",
             "from_email": "noreply@example.com",
@@ -384,15 +384,15 @@ def test_role_matrix_smtp_delete(
 
     with install_role_matrix_auth(client, role_slug):
         response = client.delete(
-            f"/api/v1/smtp/accounts/{account_id}",
+            f"/api/v1/email-accounts/{account_id}",
             headers=auth_headers,
         )
-    expected = 200 if _role_has(role_slug, "fair_crm.smtp.delete") else 403
+    expected = 200 if _role_has(role_slug, "fair_crm.email_accounts.delete") else 403
     assert response.status_code == expected
 
 
 @pytest.mark.parametrize("role_slug", MATRIX_ROLES)
-@patch("app.modules.smtp.application.send_test_smtp_mail.send_smtp_message")
+@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
 def test_role_matrix_smtp_test_mail(
     mock_send,
     client: TestClient,
@@ -400,7 +400,7 @@ def test_role_matrix_smtp_test_mail(
     role_slug: str,
 ) -> None:
     create = client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json={
             "name": f"Matrix Test Mail Target {role_slug}",
             "from_email": "noreply@example.com",
@@ -415,11 +415,11 @@ def test_role_matrix_smtp_test_mail(
 
     with install_role_matrix_auth(client, role_slug):
         response = client.post(
-            f"/api/v1/smtp/accounts/{account_id}/test",
+            f"/api/v1/email-accounts/{account_id}/test",
             json={"recipient": "admin@example.com"},
             headers=auth_headers,
         )
-    expected = 200 if _role_has(role_slug, "fair_crm.smtp.update") else 403
+    expected = 200 if _role_has(role_slug, "fair_crm.email_accounts.update") else 403
     assert response.status_code == expected
     if expected == 200:
         mock_send.assert_called_once()

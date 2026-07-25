@@ -296,6 +296,7 @@ export function DataIntegrationNavIcon({ id }: { id: string }) {
 const ADMIN_NAV_ICONS: Record<string, React.ComponentType<IconProps>> = {
   backups: NavIconDatabase,
   smtp: NavIconMail,
+  "email-accounts": NavIconMail,
   "mail-templates": NavIconTemplate,
   "mail-operations": NavIconRunHistory,
   "data-operations": NavIconDataOperations,

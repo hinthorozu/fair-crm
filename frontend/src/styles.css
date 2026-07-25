@@ -6194,7 +6194,7 @@ textarea.form-control-textarea {
 }
 
 .manual-task-mail-recipient-list,
-.bulk-email-operation-wizard .selected-entity-list {
+.selected-entity-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -6204,7 +6204,7 @@ textarea.form-control-textarea {
 }
 
 .manual-task-mail-recipient-item,
-.bulk-email-operation-wizard .selected-entity-item {
+.selected-entity-item {
   display: flex;
   align-items: center;
   justify-content: space-between;

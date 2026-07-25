@@ -91,8 +91,7 @@ def test_list_operation_types_returns_seeded_catalog(
     assert by_key["scraper"]["supports_retry"] is True
     assert "execution_ready" not in by_key["scraper"]
     assert "requires_worker" not in by_key["scraper"]
-    assert "execution_ready" not in by_key["email"]
-    assert "requires_worker" not in by_key["email"]
+    assert "email" not in by_key
     keys_in_order = [item["key"] for item in items]
     assert keys_in_order == [key for key, _name, _sort, _caps in CANONICAL_OPERATION_TYPES]
 
@@ -110,7 +109,7 @@ def test_update_operation_type_capabilities_persists(
     ensure_default_operation_types(db_session)
 
     response = client.patch(
-        "/api/v1/operations/types/email/capabilities",
+        "/api/v1/operations/types/reminder/capabilities",
         headers=auth_headers,
         json={
             "supports_pause": True,
@@ -123,7 +122,7 @@ def test_update_operation_type_capabilities_persists(
     )
     assert response.status_code == 200, response.text
     body = response.json()
-    assert body["key"] == "email"
+    assert body["key"] == "reminder"
     assert body["supports_pause"] is True
     assert body["supports_retry"] is True
     assert "execution_ready" not in body
@@ -132,9 +131,9 @@ def test_update_operation_type_capabilities_persists(
 
     listed = client.get("/api/v1/operations/types?active_only=true", headers=auth_headers)
     assert listed.status_code == 200
-    email = next(item for item in listed.json()["items"] if item["key"] == "email")
-    assert email["supports_pause"] is True
-    assert "execution_ready" not in email
+    reminder = next(item for item in listed.json()["items"] if item["key"] == "reminder")
+    assert reminder["supports_pause"] is True
+    assert "execution_ready" not in reminder
 
     scraper = next(item for item in listed.json()["items"] if item["key"] == "scraper")
     assert scraper["supports_pause"] is False
@@ -147,17 +146,17 @@ def test_update_operation_type_capabilities_persists(
     assert "bulk_email" in wizard_types
 
 
-def test_wizard_metadata_excludes_legacy_email_type(client: TestClient, auth_headers: dict):
+def test_wizard_metadata_excludes_removed_email_type(client: TestClient, auth_headers: dict):
     response = client.get("/api/v1/operations/wizard-metadata", headers=auth_headers)
     assert response.status_code == 200
     types = {item["type"]: item for item in response.json()["types"]}
     assert "email" not in types
     assert "bulk_email" in types
     assert types["bulk_email"]["available_in_wizard"] is True
-    assert default_operation_type_registry.require("email").available_in_wizard is False
+    assert "email" not in {item.value for item in OperationType}
 
 
-def test_create_rejects_legacy_email_operation_type(client: TestClient, auth_headers: dict):
+def test_create_rejects_removed_email_operation_type(client: TestClient, auth_headers: dict):
     response = client.post(
         "/api/v1/operations",
         headers=auth_headers,
@@ -169,8 +168,7 @@ def test_create_rejects_legacy_email_operation_type(client: TestClient, auth_hea
             "type_config": {},
         },
     )
-    assert response.status_code == 400, response.text
-    assert "not available for create" in response.json()["detail"]
+    assert response.status_code == 422, response.text
 
 
 def _create_fair(client: TestClient, auth_headers: dict, name: str, **extra) -> str:
@@ -300,7 +298,6 @@ def test_type_registry_covers_all_planned_types():
     types = {item.type for item in default_operation_type_registry.list_all()}
     assert types == {
         "scraper",
-        "email",
         "bulk_email",
         "enrichment",
         "duplicate_check",

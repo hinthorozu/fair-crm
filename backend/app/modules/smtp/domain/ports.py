@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
@@ -13,6 +14,13 @@ class SmtpAccountRepository(Protocol):
 
     def list_by_organization(self, organization_id: UUID) -> list[SmtpAccount]: ...
 
+    def list_active_accounts(
+        self,
+        organization_id: UUID,
+        *,
+        exclude_account_id: UUID | None = None,
+    ) -> list[SmtpAccount]: ...
+
     def get_default_for_organization(self, organization_id: UUID) -> SmtpAccount | None: ...
 
     def clear_default_for_organization(
@@ -20,6 +28,14 @@ class SmtpAccountRepository(Protocol):
         organization_id: UUID,
         *,
         exclude_account_id: UUID | None = None,
+    ) -> None: ...
+
+    def promote_next_active_default(
+        self,
+        organization_id: UUID,
+        *,
+        exclude_account_id: UUID,
+        now: datetime,
     ) -> None: ...
 
     def flush(self) -> None: ...

@@ -194,10 +194,10 @@ export const scraperLabels = {
   enrichmentRunFiltersHint:
     "Tüm filtreler isteğe bağlıdır. Amaç tüm datayı değil, filtreye uyan sınırlı müşteri grubunu zenginleştirmektir.",
   enrichmentRunFairFilter: "Fuar",
-  enrichmentRunFairFilterHint: "Boş bırakılırsa tüm organizasyon müşterileri aday havuzuna girer.",
+  enrichmentRunFairFilterHint: "Bir veya birden fazla fuar seçin.",
   enrichmentRunFairFilterClear: "Fuarı temizle",
   enrichmentRunFairFilterPlaceholder: "Fuar seçin (isteğe bağlı)",
-  enrichmentRunFairSelectLabel: "Fuar ekle",
+  enrichmentRunFairSelectLabel: "Fuar",
   enrichmentRunFairSelectedLabel: "Seçilen fuarlar",
   enrichmentRunFairSelectedEmpty: "Henüz fuar seçilmedi.",
   enrichmentRunFairRemove: "Fuarı kaldır",

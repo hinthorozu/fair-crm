@@ -15,7 +15,7 @@ class FairEmailBatchModel(Base):
     fair_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True, index=True)
     operation_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True, index=True)
     template_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
-    smtp_account_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    email_account_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     subject_override: Mapped[str | None] = mapped_column(Text, nullable=True)
     recipient_options_json: Mapped[dict] = mapped_column(JSON, nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="queued", index=True)

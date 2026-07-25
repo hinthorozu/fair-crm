@@ -5,9 +5,17 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.ports import AuthorizationPort
+from app.modules.customers.domain.ports import CustomerRepository
+from app.modules.email_accounts.domain.entities import EmailAccount, EmailAccountSmtpConfig
+from app.modules.email_accounts.domain.value_objects import EmailAccountType
+from app.modules.email_accounts.infrastructure.repositories.email_account_repository import (
+    SqlAlchemyEmailAccountRepository,
+)
+from app.modules.email_delivery.application.deliver import deliver_with_dispatcher
 from app.modules.fair_emails.application.retry_fair_bulk_email_operation import (
     FairBulkEmailOperationRetryHandler,
 )
+from app.modules.fairs.domain.ports import FairRepository
 from app.modules.mail_send_operations.application.commands import RetryMailSendOperationCommand
 from app.modules.mail_send_operations.application.list_mail_send_operations import (
     MailSendOperationListItem,
@@ -29,16 +37,14 @@ from app.modules.mail_send_operations.infrastructure.repositories.mail_send_oper
 from app.modules.mail_templates.domain.ports import MailTemplateRepository
 from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
 from app.modules.smtp.domain.ports import SmtpAccountRepository
-from app.modules.smtp.infrastructure.smtp_mailer import send_smtp_message
-from app.modules.customers.domain.ports import CustomerRepository
-from app.modules.fairs.domain.ports import FairRepository
 
-PERMISSION_UPDATE = "fair_crm.smtp.update"
+PERMISSION_UPDATE = "fair_crm.email_accounts.update"
 
 RETRYABLE_SOURCE_TYPES = frozenset(
     {
         MailSendSourceType.SMTP_TEST,
         MailSendSourceType.TEMPLATE_TEST,
+        MailSendSourceType.MANUAL_TASK_MAIL,
     }
 )
 
@@ -69,6 +75,7 @@ class RetryMailSendOperationUseCase:
         self._customer_repository = customer_repository
         self._authorization = authorization
         self._session = session
+        self._email_account_repository = SqlAlchemyEmailAccountRepository(session)
 
     def execute(self, command: RetryMailSendOperationCommand) -> RetryMailSendOperationResult:
         if not self._authorization.check_permission(
@@ -97,7 +104,7 @@ class RetryMailSendOperationUseCase:
             )
 
         try:
-            account = self._resolve_smtp_account(command.organization_id, record)
+            account, smtp_config = self._resolve_email_account(command.organization_id, record)
             if record.source_type == MailSendSourceType.TEMPLATE_TEST:
                 self._validate_template(command.organization_id, record)
         except SmtpMailDeliveryError as exc:
@@ -106,12 +113,13 @@ class RetryMailSendOperationUseCase:
         body_text = record.body_text or record.subject
 
         def send_fn() -> None:
-            send_smtp_message(
+            deliver_with_dispatcher(
                 account,
                 recipient=record.recipient_email,
                 subject=record.subject,
-                body=body_text,
+                body_text=body_text,
                 body_html=record.body_html,
+                smtp_config=smtp_config,
             )
 
         try:
@@ -144,7 +152,7 @@ class RetryMailSendOperationUseCase:
 
         try:
             handler.validate_consent(command.organization_id, outbox)
-            account = self._resolve_smtp_account(command.organization_id, record)
+            account, smtp_config = self._resolve_email_account(command.organization_id, record)
             final_subject, body_text, body_html = handler.build_send_payload(
                 command.organization_id,
                 batch=batch,
@@ -162,12 +170,13 @@ class RetryMailSendOperationUseCase:
 
         def send_fn() -> None:
             handler.mark_outbox_sending(outbox.id)
-            send_smtp_message(
+            deliver_with_dispatcher(
                 account,
                 recipient=recipient,
                 subject=final_subject,
-                body=body_text,
+                body_text=body_text,
                 body_html=body_html,
+                smtp_config=smtp_config,
             )
 
         try:
@@ -248,13 +257,17 @@ class RetryMailSendOperationUseCase:
             raise MailSendOperationNotFoundError("Mail send operation not found")
         return self._build_result(command, updated)
 
-    def _resolve_smtp_account(self, organization_id: UUID, record):
-        if record.smtp_account_id is None:
+    def _resolve_email_account(
+        self,
+        organization_id: UUID,
+        record,
+    ) -> tuple[EmailAccount, EmailAccountSmtpConfig | None]:
+        if record.email_account_id is None:
             raise SmtpMailDeliveryError(
                 "SMTP account is required for retry",
                 error_type="MissingSmtpAccount",
             )
-        account = self._smtp_repository.get_by_id(organization_id, record.smtp_account_id)
+        account = self._email_account_repository.get_by_id(organization_id, record.email_account_id)
         if account is None or account.deleted_at is not None:
             raise SmtpMailDeliveryError(
                 "SMTP account not found",
@@ -265,7 +278,16 @@ class RetryMailSendOperationUseCase:
                 "SMTP account is inactive",
                 error_type="InactiveAccount",
             )
-        return account
+
+        smtp_config: EmailAccountSmtpConfig | None = None
+        if account.account_type == EmailAccountType.SMTP:
+            smtp_config = self._email_account_repository.get_smtp_config(account.id)
+            if smtp_config is None:
+                raise SmtpMailDeliveryError(
+                    "SMTP config not found",
+                    error_type="MissingSmtpConfig",
+                )
+        return account, smtp_config
 
     def _validate_template(self, organization_id: UUID, record) -> None:
         if record.template_id is None:

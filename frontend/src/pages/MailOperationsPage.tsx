@@ -1,7 +1,7 @@
 import React from "react";
 import { listFairs } from "../api/fairs";
 import { ApiError, listMailOperations, retryMailOperation } from "../api/mailOperations";
-import { ApiError as SmtpApiError, listSmtpAccounts } from "../api/smtp";
+import { ApiError as EmailAccountApiError, listEmailAccounts } from "../api/emailAccounts";
 import { MailOperationActionsMenu } from "../components/mail_operations/MailOperationActionsMenu";
 import { MailOperationDetailModal } from "../components/mail_operations/MailOperationDetailModal";
 import { MailOperationErrorModal } from "../components/mail_operations/MailOperationErrorModal";
@@ -17,7 +17,7 @@ import { adminLabels } from "../labels/adminLabels";
 import { fairLabels } from "../labels/fairLabels";
 import type { Fair } from "../types/fair";
 import type { MailOperationRecord, MailOperationSourceType, MailOperationStatus } from "../types/mailOperations";
-import type { SmtpAccount } from "../types/smtp";
+import type { EmailAccount } from "../types/smtp";
 import { Banner } from "../components/ui/Banner";
 import { PageShell } from "../components/ui/PageShell";
 import {
@@ -64,15 +64,15 @@ export function MailOperationsPage() {
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
   const [status, setStatus] = React.useState<MailOperationStatus | "all">("all");
   const [sourceType, setSourceType] = React.useState<MailOperationSourceType | "all">("all");
-  const [smtpAccount, setSmtpAccount] = React.useState("all");
+  const [emailAccount, setEmailAccount] = React.useState("all");
   const [fair, setFair] = React.useState("all");
   const [dateFrom, setDateFrom] = React.useState("");
   const [dateTo, setDateTo] = React.useState("");
   const [dialog, setDialog] = React.useState<DialogState>(null);
   const [toast, setToast] = React.useState<string | null>(null);
-  const [smtpAccounts, setSmtpAccounts] = React.useState<SmtpAccount[]>([]);
-  const [smtpAccountsLoading, setSmtpAccountsLoading] = React.useState(true);
-  const [smtpAccountsError, setSmtpAccountsError] = React.useState<string | null>(null);
+  const [emailAccounts, setEmailAccounts] = React.useState<EmailAccount[]>([]);
+  const [emailAccountsLoading, setEmailAccountsLoading] = React.useState(true);
+  const [emailAccountsError, setEmailAccountsError] = React.useState<string | null>(null);
   const [fairs, setFairs] = React.useState<Fair[]>([]);
   const [fairsLoading, setFairsLoading] = React.useState(true);
   const [fairsError, setFairsError] = React.useState<string | null>(null);
@@ -85,20 +85,20 @@ export function MailOperationsPage() {
 
   React.useEffect(() => {
     let cancelled = false;
-    setSmtpAccountsLoading(true);
-    setSmtpAccountsError(null);
+    setEmailAccountsLoading(true);
+    setEmailAccountsError(null);
 
     void (async () => {
       try {
-        const response = await listSmtpAccounts();
+        const response = await listEmailAccounts();
         if (cancelled) return;
-        setSmtpAccounts(response.items);
+        setEmailAccounts(response.items);
       } catch (err) {
         if (cancelled) return;
-        setSmtpAccounts([]);
-        setSmtpAccountsError(err instanceof SmtpApiError ? err.message : adminLabels.smtpLoadError);
+        setEmailAccounts([]);
+        setEmailAccountsError(err instanceof EmailAccountApiError ? err.message : adminLabels.smtpLoadError);
       } finally {
-        if (!cancelled) setSmtpAccountsLoading(false);
+        if (!cancelled) setEmailAccountsLoading(false);
       }
     })();
 
@@ -132,11 +132,11 @@ export function MailOperationsPage() {
   }, []);
 
   React.useEffect(() => {
-    if (smtpAccount === "all") return;
-    if (!smtpAccounts.some((account) => account.id === smtpAccount)) {
-      setSmtpAccount("all");
+    if (emailAccount === "all") return;
+    if (!emailAccounts.some((account) => account.id === emailAccount)) {
+      setEmailAccount("all");
     }
-  }, [smtpAccount, smtpAccounts]);
+  }, [emailAccount, emailAccounts]);
 
   React.useEffect(() => {
     if (fair === "all") return;
@@ -155,7 +155,7 @@ export function MailOperationsPage() {
         search: debouncedSearch,
         status,
         sourceType,
-        smtpAccountId: smtpAccount,
+        emailAccountId: emailAccount,
         fairId: fair,
         dateFrom,
         dateTo,
@@ -167,7 +167,7 @@ export function MailOperationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, status, sourceType, smtpAccount, fair, dateFrom, dateTo]);
+  }, [debouncedSearch, status, sourceType, emailAccount, fair, dateFrom, dateTo]);
 
   React.useEffect(() => {
     void loadOperations();
@@ -253,7 +253,7 @@ export function MailOperationsPage() {
       {
         key: "smtp",
         title: adminLabels.mailOperationsColSmtpAccount,
-        render: (record) => record.smtp_account_name ?? "—",
+        render: (record) => record.email_account_name ?? "—",
       },
       {
         key: "template",
@@ -363,17 +363,17 @@ export function MailOperationsPage() {
         <FormField
           label={adminLabels.mailOperationsFilterSmtp}
           htmlFor="mail-operations-smtp"
-          hint={smtpAccountsLoading ? adminLabels.dataOpLoading : undefined}
-          error={smtpAccountsError ?? undefined}
+          hint={emailAccountsLoading ? adminLabels.dataOpLoading : undefined}
+          error={emailAccountsError ?? undefined}
         >
           <SelectInput
             id="mail-operations-smtp"
-            value={smtpAccount}
-            disabled={smtpAccountsLoading}
-            onChange={(event) => setSmtpAccount(event.target.value)}
+            value={emailAccount}
+            disabled={emailAccountsLoading}
+            onChange={(event) => setEmailAccount(event.target.value)}
           >
             <option value="all">{adminLabels.mailOperationsFilterAll}</option>
-            {smtpAccounts.map((account) => (
+            {emailAccounts.map((account) => (
               <option key={account.id} value={account.id}>
                 {account.name}
               </option>

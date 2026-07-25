@@ -54,7 +54,7 @@ class BulkEmailContentPreviewResponse(BaseModel):
 
 class SendBulkEmailRequest(BaseModel):
     template_id: UUID
-    smtp_account_id: UUID | None = None
+    email_account_id: UUID | None = None
     subject_override: str | None = None
     recipient_options: RecipientOptionsRequest = Field(default_factory=RecipientOptionsRequest)
 
@@ -76,8 +76,8 @@ class FairEmailBatchListItemResponse(BaseModel):
     status: str
     template_id: UUID
     template_name: str | None
-    smtp_account_id: UUID | None
-    smtp_account_name: str | None
+    email_account_id: UUID | None
+    email_account_name: str | None
     subject: str | None
     total_recipients: int
     queued_count: int
@@ -98,8 +98,8 @@ class FairEmailBatchDetailResponse(BaseModel):
     status: str
     template_id: UUID
     template_name: str | None
-    smtp_account_id: UUID | None
-    smtp_account_name: str | None
+    email_account_id: UUID | None
+    email_account_name: str | None
     subject: str | None
     subject_override: str | None
     total_recipients: int

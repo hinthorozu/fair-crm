@@ -7,9 +7,8 @@ import type {
 /**
  * Keep out of the Yeni Otomasyon picker:
  * - manual_task: human todos belong under Görevler
- * - email: legacy Automation "E-posta" retired; use bulk_email
  */
-export const WIZARD_EXCLUDED_TYPES: OperationType[] = ["manual_task", "email"];
+export const WIZARD_EXCLUDED_TYPES: OperationType[] = ["manual_task"];
 
 const PROMOTED_TYPES: OperationType[] = ["scraper", "bulk_email"];
 

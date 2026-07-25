@@ -30,7 +30,7 @@ from app.modules.smtp.infrastructure.repositories.smtp_account_repository import
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
-PERMISSION_READ = "fair_crm.smtp.read"
+PERMISSION_READ = "fair_crm.email_accounts.read"
 
 
 def get_smtp_account_repository(db: Session = Depends(get_db)) -> SqlAlchemySmtpAccountRepository:

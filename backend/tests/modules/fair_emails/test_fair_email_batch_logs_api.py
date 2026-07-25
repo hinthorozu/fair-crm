@@ -29,7 +29,7 @@ def _seed_batch_with_outbox(db_session, organization_id, user_id, fair_id, templ
         organization_id=organization_id,
         fair_id=fair_uuid,
         template_id=template_uuid,
-        smtp_account_id=smtp_uuid,
+        email_account_id=smtp_uuid,
         subject_override="Fuar daveti",
         recipient_options_json={"include_customer_emails": True},
         status="completed_with_errors",
@@ -105,7 +105,7 @@ def test_list_email_batches_returns_items(client, auth_headers, db_session, orga
     assert item["id"] == batch_id
     assert item["status"] == "completed_with_errors"
     assert item["template_name"] == "Fuar Daveti"
-    assert item["smtp_account_name"] == "Primary SMTP"
+    assert item["email_account_name"] == "Primary SMTP"
     assert item["subject"] == "Fuar daveti"
     assert item["total_recipients"] == 2
     assert item["sent_count"] == 1

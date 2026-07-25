@@ -8,6 +8,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.modules.email_accounts.application.account_ref import resolve_email_account_id
 from app.modules.fair_emails.application.fair_bulk_mail_operation_sync import FairBulkEmailMailOperationSync
 from app.modules.fair_emails.application.send_bulk_email_operation import (
     SendBulkEmailOperationCommand,
@@ -114,7 +115,13 @@ class BulkEmailHandler:
         # Allow draft create with incomplete type_config; start validates strictly.
         has_bulk_fields = any(
             type_config.get(key)
-            for key in ("template_id", "smtp_account_id", "subject", "subject_override", "source_type")
+            for key in (
+                "template_id",
+                "email_account_id",
+                "subject",
+                "subject_override",
+                "source_type",
+            )
         )
         if not has_bulk_fields:
             return HandlerValidationResult.success()
@@ -141,14 +148,14 @@ class BulkEmailHandler:
         errors: list[str] = []
 
         template_id = _parse_uuid(type_config.get("template_id"))
-        smtp_account_id = _parse_uuid(type_config.get("smtp_account_id"))
+        email_account_id = resolve_email_account_id(type_config)
         subject = str(type_config.get("subject") or type_config.get("subject_override") or "").strip()
         source_type = str(type_config.get("source_type") or "").strip().lower()
 
         if template_id is None:
             errors.append("type_config.template_id is required")
-        if smtp_account_id is None:
-            errors.append("type_config.smtp_account_id is required")
+        if email_account_id is None:
+            errors.append("type_config.email_account_id is required")
         if not subject:
             errors.append("type_config.subject is required")
         if source_type not in {"manual", "fair_list"}:
@@ -317,9 +324,9 @@ class BulkEmailHandler:
         type_config = dict(operation.type_config or {})
         source_type = str(type_config.get("source_type") or "").strip().lower()
         template_id = _parse_uuid(type_config.get("template_id"))
-        smtp_account_id = _parse_uuid(type_config.get("smtp_account_id"))
+        email_account_id = resolve_email_account_id(type_config)
         subject = str(type_config.get("subject") or type_config.get("subject_override") or "").strip()
-        assert template_id is not None and smtp_account_id is not None
+        assert template_id is not None and email_account_id is not None
 
         source_ids = extract_source_ids(operation.source_config)
         fair_ids = source_ids
@@ -352,7 +359,7 @@ class BulkEmailHandler:
                 access_token=context.access_token,
                 source_type=source_type,
                 template_id=template_id,
-                smtp_account_id=smtp_account_id,
+                email_account_id=email_account_id,
                 subject=subject,
                 fair_ids=fair_ids if source_type == "fair_list" else None,
                 manual_emails=str(type_config.get("manual_emails") or "") or None,

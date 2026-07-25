@@ -38,6 +38,6 @@ export const dashboardLabels = {
   actionNewCustomer: "Yeni Müşteri Ekle",
   actionNewTodo: "Yeni Görev Oluştur",
   actionStartImport: "İçe Aktarım Başlat",
-  actionSmtpSettings: "SMTP Ayarları",
+  actionSmtpSettings: "E-Mail Hesapları",
   actionGoToTodos: "Görevler Ekranı",
 } as const;

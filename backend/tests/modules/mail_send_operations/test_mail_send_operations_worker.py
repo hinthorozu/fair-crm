@@ -1,12 +1,16 @@
 """Tests for mail send operation worker (Phase 1)."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from unittest.mock import patch
 from uuid import UUID, uuid4
 
 import pytest
 
 from app.core.config import get_settings
+from app.modules.email_accounts.infrastructure.persistence.models import (
+    EmailAccountModel,
+    EmailAccountSmtpConfigModel,
+)
 from app.modules.fair_emails.application.commands import ProcessBatchCommand
 from app.modules.fair_emails.application.fair_bulk_mail_operation_sync import FairBulkEmailMailOperationSync
 from app.modules.fair_emails.application.process_batch import ProcessFairEmailBatchUseCase
@@ -28,7 +32,7 @@ from app.modules.mail_send_operations.infrastructure.repositories.mail_send_oper
     SqlAlchemyMailSendOperationRepository,
 )
 from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
-from app.modules.smtp.infrastructure.persistence.models import SmtpAccountModel
+from app.shared.secret_encryption import encrypt_secret
 from tests.modules.fair_emails.test_fair_bulk_email_api import _setup_fair_with_recipients
 from tests.modules.fair_emails.test_process_fair_email_batch import _seed_pending_batch
 
@@ -37,28 +41,40 @@ def _operation_events(logs: list) -> list[str]:
     return [entry["event"] for entry in logs]
 
 
-def _create_smtp(db_session, organization_id) -> UUID:
-    now = datetime.now(timezone.utc)
-    account_id = uuid4()
+def _create_smtp_account_row(db_session, organization_id, **kwargs):
+    now = datetime.now(tz=UTC)
+    account_id = kwargs.get("id") or uuid4()
     db_session.add(
-        SmtpAccountModel(
+        EmailAccountModel(
             id=account_id,
             organization_id=organization_id,
-            name="Worker SMTP",
-            from_email="noreply@example.com",
-            host="smtp.example.com",
-            port=587,
-            username="smtp-user",
-            password="secret-password",
-            encryption_type="starttls",
-            is_default=True,
-            is_active=True,
+            name=kwargs.get("name", "SMTP"),
+            account_type="smtp",
+            provider_key=None,
+            from_email=kwargs.get("from_email", "noreply@example.com"),
+            from_name=None,
+            is_default=kwargs.get("is_default", True),
+            is_active=kwargs.get("is_active", True),
             created_at=now,
             updated_at=now,
         )
     )
+    db_session.add(
+        EmailAccountSmtpConfigModel(
+            email_account_id=account_id,
+            host=kwargs.get("host", "smtp.example.com"),
+            port=kwargs.get("port", 587),
+            username=kwargs.get("username", "smtp-user"),
+            password=encrypt_secret(kwargs.get("password", "secret-password")),
+            encryption_type=kwargs.get("encryption_type", "starttls"),
+        )
+    )
     db_session.flush()
     return account_id
+
+
+def _create_smtp(db_session, organization_id) -> UUID:
+    return _create_smtp_account_row(db_session, organization_id, name="Worker SMTP")
 
 
 def _create_queued_operation(
@@ -69,10 +85,10 @@ def _create_queued_operation(
     recipient_email="worker@example.com",
     priority: int | None = None,
     scheduled_at: datetime | None = None,
-    smtp_account_id: UUID | None = None,
+    email_account_id: UUID | None = None,
 ) -> MailSendOperationModel:
     repository = SqlAlchemyMailSendOperationRepository(db_session)
-    account_id = smtp_account_id or _create_smtp(db_session, organization_id)
+    account_id = email_account_id or _create_smtp(db_session, organization_id)
     record = repository.create(
         CreateMailSendOperationParams(
             organization_id=organization_id,
@@ -80,7 +96,7 @@ def _create_queued_operation(
             recipient_email=recipient_email,
             subject="Worker test",
             body_text="Body",
-            smtp_account_id=account_id,
+            email_account_id=account_id,
             scheduled_at=scheduled_at,
         )
     )
@@ -91,7 +107,7 @@ def _create_queued_operation(
     return db_session.query(MailSendOperationModel).filter(MailSendOperationModel.id == record.id).one()
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_worker_processes_manual_task_mail_to_sent(mock_send, db_session, organization_id):
     operation = _create_queued_operation(
         db_session,
@@ -115,9 +131,9 @@ def test_worker_processes_manual_task_mail_to_sent(mock_send, db_session, organi
     assert events[-1] == "sent"
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_worker_marks_manual_task_mail_failed_on_smtp_error(mock_send, db_session, organization_id):
-    mock_send.side_effect = SmtpMailDeliveryError("smtp down", error_type="SMTPConnectError")
+    mock_send.side_effect = SmtpMailDeliveryError("smtp down", error_type="SMTPAuthenticationError")
     operation = _create_queued_operation(
         db_session,
         organization_id,
@@ -131,16 +147,69 @@ def test_worker_marks_manual_task_mail_failed_on_smtp_error(mock_send, db_sessio
 
     refreshed = db_session.query(MailSendOperationModel).filter(MailSendOperationModel.id == operation.id).one()
     assert refreshed.status == MailSendOperationStatus.FAILED
-    assert refreshed.error_code == "SMTPConnectError"
+    assert refreshed.error_code == "SMTPAuthenticationError"
     events = _operation_events(refreshed.operation_logs)
     assert "sending_started" in events
     assert events[-1] == "failed"
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
+def test_worker_auto_retries_retryable_smtp_error(mock_send, db_session, organization_id):
+    mock_send.side_effect = SmtpMailDeliveryError("smtp down", error_type="SMTPConnectError")
+    operation = _create_queued_operation(
+        db_session,
+        organization_id,
+        source_type=MailSendSourceType.MANUAL_TASK_MAIL,
+        recipient_email="manual-retry@example.com",
+    )
+
+    result = ProcessMailSendOperationsWorker(db_session).run()
+    assert result.picked_count == 1
+    assert result.failed_count == 0
+    assert result.retried_count == 1
+
+    refreshed = db_session.query(MailSendOperationModel).filter(MailSendOperationModel.id == operation.id).one()
+    assert refreshed.status == MailSendOperationStatus.QUEUED
+    assert refreshed.retry_count == 1
+    assert refreshed.error_code is None
+    assert refreshed.sending_started_at is None
+    events = _operation_events(refreshed.operation_logs)
+    assert "auto_retry_scheduled" in events
+
+
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
+def test_worker_fails_after_exhausting_auto_retries(mock_send, db_session, organization_id):
+    mock_send.side_effect = SmtpMailDeliveryError("smtp down", error_type="SMTPConnectError")
+    repository = SqlAlchemyMailSendOperationRepository(db_session)
+    account_id = _create_smtp(db_session, organization_id)
+    record = repository.create(
+        CreateMailSendOperationParams(
+            organization_id=organization_id,
+            source_type=MailSendSourceType.MANUAL_TASK_MAIL,
+            recipient_email="manual-exhausted@example.com",
+            subject="Worker test",
+            body_text="Body",
+            email_account_id=account_id,
+            max_retry_count=2,
+        )
+    )
+    model = db_session.query(MailSendOperationModel).filter(MailSendOperationModel.id == record.id).one()
+    model.retry_count = 1  # already used one retry; next failure should mark failed
+    db_session.flush()
+
+    result = ProcessMailSendOperationsWorker(db_session).run()
+    assert result.failed_count == 1
+    assert result.retried_count == 0
+
+    refreshed = db_session.query(MailSendOperationModel).filter(MailSendOperationModel.id == record.id).one()
+    assert refreshed.status == MailSendOperationStatus.FAILED
+    assert refreshed.error_code == "SMTPConnectError"
+
+
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_worker_manual_task_mail_failure_does_not_stop_other_queued(mock_send, db_session, organization_id):
     mock_send.side_effect = [
-        SmtpMailDeliveryError("fail-one", error_type="SMTPConnectError"),
+        SmtpMailDeliveryError("fail-one", error_type="SMTPAuthenticationError"),
         None,
     ]
     _create_queued_operation(
@@ -187,7 +256,7 @@ def test_manual_task_mail_is_selected_by_worker_queue_query(db_session, organiza
     assert any(item.source_type == MailSendSourceType.MANUAL_TASK_MAIL for item in candidates)
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_background_drain_processes_manual_task_mail(mock_send, db_session, organization_id):
     from app.modules.mail_send_operations.application.process_mail_send_operations_worker import (
         process_mail_send_operations_background,
@@ -221,7 +290,7 @@ def test_background_drain_processes_manual_task_mail(mock_send, db_session, orga
     assert refreshed.status == MailSendOperationStatus.SENT
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_worker_processes_max_batch_size(mock_send, db_session, organization_id, monkeypatch):
     monkeypatch.setenv("MAIL_WORKER_MAX_BATCH_SIZE", "3")
     get_settings.cache_clear()
@@ -247,7 +316,7 @@ def test_worker_processes_max_batch_size(mock_send, db_session, organization_id,
     assert queued_remaining == 2
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_worker_processes_only_queued_records(mock_send, db_session, organization_id):
     queued = _create_queued_operation(db_session, organization_id, recipient_email="queued@example.com")
     sent = _create_queued_operation(db_session, organization_id, recipient_email="sent@example.com")
@@ -278,7 +347,7 @@ def test_worker_skips_consent_skipped_records(db_session, organization_id):
             source_type=MailSendSourceType.FAIR_BULK_EMAIL,
             recipient_email="skipped@example.com",
             subject="Skipped",
-            smtp_account_id=_create_smtp(db_session, organization_id),
+            email_account_id=_create_smtp(db_session, organization_id),
         ),
         error_code="consent_blocked",
         error_message="Consent blocked",
@@ -293,7 +362,7 @@ def test_worker_skips_consent_skipped_records(db_session, organization_id):
     assert skipped.status == MailSendOperationStatus.SKIPPED
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_worker_respects_priority_order(mock_send, db_session, organization_id, monkeypatch):
     monkeypatch.setenv("MAIL_WORKER_MAX_BATCH_SIZE", "1")
     get_settings.cache_clear()
@@ -321,7 +390,7 @@ def test_fair_bulk_email_priority_is_low():
     assert priority_for_source(MailSendSourceType.SMTP_TEST) < priority_for_source(MailSendSourceType.FAIR_BULK_EMAIL)
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_worker_marks_stuck_sending_as_failed(mock_send, db_session, organization_id, monkeypatch):
     monkeypatch.setenv("MAIL_SENDING_TIMEOUT_MINUTES", "15")
     get_settings.cache_clear()
@@ -342,7 +411,7 @@ def test_worker_marks_stuck_sending_as_failed(mock_send, db_session, organizatio
     get_settings.cache_clear()
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_worker_keeps_sending_before_timeout(mock_send, db_session, organization_id, monkeypatch):
     monkeypatch.setenv("MAIL_SENDING_TIMEOUT_MINUTES", "15")
     get_settings.cache_clear()
@@ -359,7 +428,7 @@ def test_worker_keeps_sending_before_timeout(mock_send, db_session, organization
     get_settings.cache_clear()
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_worker_stuck_timeout_recovery_is_idempotent(mock_send, db_session, organization_id, monkeypatch):
     monkeypatch.setenv("MAIL_SENDING_TIMEOUT_MINUTES", "15")
     get_settings.cache_clear()
@@ -380,10 +449,10 @@ def test_worker_stuck_timeout_recovery_is_idempotent(mock_send, db_session, orga
     get_settings.cache_clear()
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_worker_continues_after_single_failure(mock_send, db_session, organization_id):
     mock_send.side_effect = [
-        SmtpMailDeliveryError("fail", error_type="SMTPConnectError"),
+        SmtpMailDeliveryError("fail", error_type="SMTPAuthenticationError"),
         None,
     ]
     _create_queued_operation(db_session, organization_id, recipient_email="fail@example.com")
@@ -395,7 +464,7 @@ def test_worker_continues_after_single_failure(mock_send, db_session, organizati
     assert mock_send.call_count == 2
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_worker_writes_controlled_operation_logs(mock_send, db_session, organization_id):
     operation = _create_queued_operation(db_session, organization_id, recipient_email="logs@example.com")
     ProcessMailSendOperationsWorker(db_session).run()
@@ -460,14 +529,14 @@ def test_fair_bulk_duplicate_operation_is_not_created(db_session, organization_i
     )
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.send_smtp_message")
+@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
 def test_smtp_test_existing_behavior_unchanged(mock_send, client, auth_headers, db_session, organization_id):
     from tests.modules.smtp.test_smtp_test_mail_api import _create_account
 
     create = _create_account(client, auth_headers)
     account_id = create.json()["id"]
     response = client.post(
-        f"/api/v1/smtp/accounts/{account_id}/test",
+        f"/api/v1/email-accounts/{account_id}/test",
         json={"recipient": "unchanged@example.com"},
         headers=auth_headers,
     )
@@ -484,7 +553,7 @@ def test_smtp_test_existing_behavior_unchanged(mock_send, client, auth_headers, 
     assert _operation_events(operation.operation_logs) == ["queued", "sending_started", "sent"]
 
 
-@patch("app.modules.mail_templates.application.send_test_mail_template.send_smtp_message")
+@patch("app.modules.mail_templates.application.send_test_mail_template.deliver_smtp_account_with_dispatcher")
 def test_template_test_existing_behavior_unchanged(mock_send, client, auth_headers, db_session, organization_id):
     from tests.modules.smtp.test_smtp_test_mail_api import _create_account
 
@@ -507,7 +576,7 @@ def test_template_test_existing_behavior_unchanged(mock_send, client, auth_heade
         json={
             "to_email": "tpl-worker@example.com",
             "variables": {},
-            "smtp_account_id": smtp.json()["id"],
+            "email_account_id": smtp.json()["id"],
         },
         headers=auth_headers,
     )
@@ -523,7 +592,7 @@ def test_template_test_existing_behavior_unchanged(mock_send, client, auth_heade
     assert operation.status == MailSendOperationStatus.SENT
 
 
-@patch("app.modules.fair_emails.application.process_batch.send_smtp_message")
+@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
 def test_fair_bulk_existing_behavior_unchanged(
     mock_send,
     db_session,
@@ -545,7 +614,7 @@ def test_fair_bulk_existing_behavior_unchanged(
     assert all(item.status == MailSendOperationStatus.SENT for item in operations)
 
 
-@patch("app.modules.fair_emails.application.process_batch.send_smtp_message")
+@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
 def test_fair_bulk_customer_activity_unchanged(
     mock_send,
     client,

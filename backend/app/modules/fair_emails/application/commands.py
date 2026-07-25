@@ -32,7 +32,7 @@ class SendBulkEmailCommand:
     access_token: str
     user_id: UUID
     template_id: UUID
-    smtp_account_id: UUID | None
+    email_account_id: UUID | None
     subject_override: str | None
     recipient_options: RecipientOptions
 

@@ -6,9 +6,12 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.modules.email_accounts.infrastructure.repositories.email_account_repository import (
+    SqlAlchemyEmailAccountRepository,
+)
+from app.modules.fair_emails.domain.value_objects import ResolvedRecipient
 from app.modules.fair_emails.infrastructure.persistence.models import FairEmailOutboxModel
 from app.modules.fair_emails.infrastructure.repositories.fair_email_batch_repository import FairEmailBatchRecord
-from app.modules.fair_emails.domain.value_objects import ResolvedRecipient
 from app.modules.mail_send_operations.application.mail_send_operation_service import MailSendOperationService
 from app.modules.mail_send_operations.domain.value_objects import MailSendOperationStatus, MailSendSourceType
 from app.modules.mail_send_operations.infrastructure.repositories.mail_send_operation_repository import (
@@ -17,12 +20,15 @@ from app.modules.mail_send_operations.infrastructure.repositories.mail_send_oper
 )
 from app.shared.consent import CONSENT_ERROR_CODE, CONSENT_SKIP_MESSAGES, CONSENT_SKIP_REASONS
 
+_DEFAULT_MAX_RETRY_COUNT = 3
+
 
 class FairBulkEmailMailOperationSync:
     def __init__(self, session: Session) -> None:
         self._session = session
         self._operation_repository = SqlAlchemyMailSendOperationRepository(session)
         self._mail_service = MailSendOperationService(self._operation_repository)
+        self._email_accounts = SqlAlchemyEmailAccountRepository(session)
 
     def ensure_operations_for_batch(
         self,
@@ -31,6 +37,7 @@ class FairBulkEmailMailOperationSync:
         batch: FairEmailBatchRecord,
         default_subject: str,
     ) -> None:
+        max_retry_count = self._max_retry_count_for_batch(organization_id, batch)
         outbox_items = (
             self._session.query(FairEmailOutboxModel)
             .filter(
@@ -46,6 +53,7 @@ class FairBulkEmailMailOperationSync:
                 batch=batch,
                 outbox=outbox,
                 default_subject=default_subject,
+                max_retry_count=max_retry_count,
             )
 
     def create_skipped_operations_for_consent(
@@ -56,6 +64,7 @@ class FairBulkEmailMailOperationSync:
         default_subject: str,
         recipients: list[ResolvedRecipient],
     ) -> None:
+        max_retry_count = self._max_retry_count_for_batch(organization_id, batch)
         for recipient in recipients:
             if recipient.status != "skip" or recipient.skip_reason not in CONSENT_SKIP_REASONS:
                 continue
@@ -72,11 +81,12 @@ class FairBulkEmailMailOperationSync:
                     recipient_email=recipient.email,
                     recipient_name=recipient.recipient_name or recipient.company_name,
                     subject=default_subject,
-                    smtp_account_id=batch.smtp_account_id,
+                    email_account_id=batch.email_account_id,
                     template_id=batch.template_id,
                     fair_id=batch.fair_id,
                     customer_id=recipient.customer_id,
                     batch_id=batch.id,
+                    max_retry_count=max_retry_count,
                     metadata_json={
                         "contact_id": str(recipient.contact_id) if recipient.contact_id else None,
                         "recipient_source": recipient.source,
@@ -184,6 +194,18 @@ class FairBulkEmailMailOperationSync:
                 log_message=error_message,
             )
 
+    def _max_retry_count_for_batch(
+        self,
+        organization_id: UUID,
+        batch: FairEmailBatchRecord,
+    ) -> int:
+        if batch.email_account_id is None:
+            return _DEFAULT_MAX_RETRY_COUNT
+        account = self._email_accounts.get_by_id(organization_id, batch.email_account_id)
+        if account is None:
+            return _DEFAULT_MAX_RETRY_COUNT
+        return account.max_delivery_attempts
+
     def _ensure_operation_for_outbox(
         self,
         *,
@@ -191,6 +213,7 @@ class FairBulkEmailMailOperationSync:
         batch: FairEmailBatchRecord,
         outbox: FairEmailOutboxModel,
         default_subject: str,
+        max_retry_count: int,
     ) -> None:
         if outbox.mail_send_operation_id is not None:
             return
@@ -209,11 +232,12 @@ class FairBulkEmailMailOperationSync:
                 recipient_email=outbox.email,
                 recipient_name=outbox.recipient_name or outbox.company_name,
                 subject=default_subject,
-                smtp_account_id=batch.smtp_account_id,
+                email_account_id=batch.email_account_id,
                 template_id=batch.template_id,
                 fair_id=batch.fair_id,
                 customer_id=outbox.customer_id,
                 batch_id=batch.id,
+                max_retry_count=max_retry_count,
                 metadata_json={
                     "outbox_id": str(outbox.id),
                     "contact_id": str(outbox.contact_id) if outbox.contact_id else None,

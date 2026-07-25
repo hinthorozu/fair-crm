@@ -39,7 +39,7 @@ TABLE_SCREENS = [
     ("/data-integration/adapters", "adapters", "h1"),
     ("/data-integration/run-history", "run-history", "h1"),
     ("/admin/system/backups", "backups", "h1"),
-    ("/admin/smtp-operations/accounts", "smtp-accounts", "h1"),
+    ("/admin/email-accounts", "smtp-accounts", "h1"),
     ("/admin/smtp-operations/templates", "mail-templates", "h1"),
     ("/admin/smtp-operations/mail-operations", "mail-operations", "h1"),
     ("/admin/data-operations", "data-operations", "h1"),

@@ -2,8 +2,9 @@ import React from "react";
 import { renderMailTemplate, sendTestMailTemplate, ApiError } from "../../api/mailTemplates";
 import { adminLabels } from "../../labels/adminLabels";
 import { labels } from "../../labels";
-import { FormField, FormGrid, FormSection, SelectInput, TextInput, TextareaInput } from "../ui/form";
-import type { SmtpAccount } from "../../types/smtp";
+import { FormField, FormGrid, FormSection, TextInput, TextareaInput } from "../ui/form";
+import { EmailAccountPicker } from "../email/EmailAccountPicker";
+import type { EmailAccount } from "../../types/smtp";
 import type { MailTemplate, RenderMailTemplateResponse } from "../../types/mailTemplates";
 import {
   DEFAULT_RENDER_VARIABLES_JSON,
@@ -11,7 +12,11 @@ import {
   parseRenderVariablesJson,
   resolveSubjectAfterPreview,
 } from "../../utils/mailTemplateForm";
-import { formatSmtpTestMailError } from "../../utils/smtpForm";
+import { formatSmtpTestMailError } from "../../utils/emailAccountForm";
+import {
+  resolveDefaultEmailAccountId,
+  selectActiveEmailAccounts,
+} from "../../utils/emailAccountSelection";
 import { Banner } from "../ui/Banner";
 import { useModalFormCancel, useReportFormDirty } from "../../hooks/useModalForm";
 
@@ -19,7 +24,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface MailTemplateTestEmailPanelProps {
   template: MailTemplate;
-  smtpAccounts: SmtpAccount[];
+  emailAccounts: EmailAccount[];
   canRender: boolean;
   canTestSend: boolean;
   onCancel: () => void;
@@ -27,21 +32,24 @@ interface MailTemplateTestEmailPanelProps {
 
 export function MailTemplateTestEmailPanel({
   template,
-  smtpAccounts,
+  emailAccounts,
   canRender,
   canTestSend,
   onCancel,
 }: MailTemplateTestEmailPanelProps) {
   const activeAccounts = React.useMemo(
-    () => smtpAccounts.filter((account) => account.is_active),
-    [smtpAccounts],
+    () => selectActiveEmailAccounts(emailAccounts),
+    [emailAccounts],
   );
-  const defaultAccount = activeAccounts.find((account) => account.is_default) ?? activeAccounts[0];
+  const defaultAccountId = React.useMemo(
+    () => resolveDefaultEmailAccountId(activeAccounts),
+    [activeAccounts],
+  );
 
   const [toEmail, setToEmail] = React.useState("");
   const [subject, setSubject] = React.useState(template.subject);
   const [subjectTouched, setSubjectTouched] = React.useState(false);
-  const [smtpAccountId, setSmtpAccountId] = React.useState("");
+  const [emailAccountId, setEmailAccountId] = React.useState(defaultAccountId);
   const [variablesJson, setVariablesJson] = React.useState(DEFAULT_RENDER_VARIABLES_JSON);
   const [variablesSnapshot, setVariablesSnapshot] = React.useState(DEFAULT_RENDER_VARIABLES_JSON);
 
@@ -53,8 +61,8 @@ export function MailTemplateTestEmailPanel({
   const [success, setSuccess] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    setSmtpAccountId(defaultAccount?.id ?? "");
-  }, [defaultAccount?.id]);
+    setEmailAccountId(defaultAccountId);
+  }, [defaultAccountId]);
 
   React.useEffect(() => {
     setSubject(template.subject);
@@ -66,17 +74,17 @@ export function MailTemplateTestEmailPanel({
   }, [template.id]);
 
   const formValues = React.useMemo(
-    () => ({ toEmail, subject, smtpAccountId, variablesJson }),
-    [toEmail, subject, smtpAccountId, variablesJson],
+    () => ({ toEmail, subject, emailAccountId, variablesJson }),
+    [toEmail, subject, emailAccountId, variablesJson],
   );
   const formBaseline = React.useMemo(
     () => ({
       toEmail: "",
       subject: template.subject,
-      smtpAccountId: defaultAccount?.id ?? "",
+      emailAccountId: defaultAccountId,
       variablesJson: DEFAULT_RENDER_VARIABLES_JSON,
     }),
-    [template.subject, defaultAccount?.id],
+    [template.subject, defaultAccountId],
   );
   useReportFormDirty(formValues, formBaseline);
   const requestCancel = useModalFormCancel(onCancel);
@@ -96,6 +104,7 @@ export function MailTemplateTestEmailPanel({
     !previewStale &&
     emailValid &&
     subjectValid &&
+    Boolean(emailAccountId) &&
     !previewing &&
     !sending;
 
@@ -149,7 +158,7 @@ export function MailTemplateTestEmailPanel({
   };
 
   const handleSend = async () => {
-    if (!canSend) return;
+    if (!canSend || !emailAccountId) return;
     setError(null);
     setSuccess(null);
     setSending(true);
@@ -163,7 +172,7 @@ export function MailTemplateTestEmailPanel({
       }
       const result = await sendTestMailTemplate(template.id, {
         to_email: toEmail.trim(),
-        smtp_account_id: smtpAccountId || null,
+        email_account_id: emailAccountId,
         variables,
         subject_override: subject.trim(),
       });
@@ -236,25 +245,15 @@ export function MailTemplateTestEmailPanel({
             ) : null}
           </FormField>
 
-          <FormField
+          <EmailAccountPicker
+            id="mail-template-test-email-smtp"
             label={adminLabels.mailTemplatesTestEmailSmtpAccount}
-            htmlFor="mail-template-test-email-smtp"
-            fullWidth
-          >
-            <SelectInput
-              id="mail-template-test-email-smtp"
-              value={smtpAccountId}
-              onChange={(event) => setSmtpAccountId(event.target.value)}
-            >
-              <option value="">{adminLabels.mailTemplatesTestEmailDefaultSmtp}</option>
-              {activeAccounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                  {account.is_default ? ` (${adminLabels.mailTemplatesDefaultBadge})` : ""}
-                </option>
-              ))}
-            </SelectInput>
-          </FormField>
+            value={emailAccountId}
+            onChange={setEmailAccountId}
+            accounts={activeAccounts}
+            required
+            disabled={sending || previewing}
+          />
 
           <FormField
             label={adminLabels.mailTemplatesFieldSampleVariables}

@@ -21,6 +21,7 @@ class CreateSmtpAccountCommand:
     encryption_type: str | SmtpEncryptionType = SmtpEncryptionType.STARTTLS
     is_default: bool = False
     is_active: bool = True
+    max_delivery_attempts: int = 3
 
 
 @dataclass(frozen=True)
@@ -106,6 +107,7 @@ class SmtpAccountResult:
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime]
+    max_delivery_attempts: int = 3
     config_warnings: tuple[str, ...] = ()
 
 

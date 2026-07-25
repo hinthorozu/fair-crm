@@ -2,14 +2,12 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.modules.smtp.domain.value_objects import SmtpEncryptionType
 
 
-class CreateSmtpAccountRequest(BaseModel):
+class CreateEmailAccountRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     from_email: str = Field(..., min_length=3, max_length=255)
     from_name: Optional[str] = Field(default=None, max_length=255)
@@ -20,9 +18,12 @@ class CreateSmtpAccountRequest(BaseModel):
     encryption_type: SmtpEncryptionType = SmtpEncryptionType.STARTTLS
     is_default: bool = False
     is_active: bool = True
+    max_delivery_attempts: int = Field(default=3, ge=1, le=5)
+    account_type: str = Field(default="smtp", max_length=32)
+    provider_key: Optional[str] = Field(default=None, max_length=64)
 
 
-class UpdateSmtpAccountRequest(BaseModel):
+class UpdateEmailAccountRequest(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=255)
     from_email: Optional[str] = Field(default=None, min_length=3, max_length=255)
     from_name: Optional[str] = Field(default=None, max_length=255)
@@ -33,13 +34,15 @@ class UpdateSmtpAccountRequest(BaseModel):
     encryption_type: Optional[SmtpEncryptionType] = None
     is_default: Optional[bool] = None
     is_active: Optional[bool] = None
+    account_type: Optional[str] = Field(default=None, max_length=32)
+    provider_key: Optional[str] = Field(default=None, max_length=64)
 
 
-class SendTestSmtpMailRequest(BaseModel):
+class SendTestEmailAccountMailRequest(BaseModel):
     recipient: str = Field(..., min_length=3, max_length=255)
 
 
-class SendTestSmtpMailResponse(BaseModel):
+class SendTestEmailAccountMailResponse(BaseModel):
     success: bool
     message: str
     debug_error_type: Optional[str] = None
@@ -50,7 +53,7 @@ class SendTestSmtpMailResponse(BaseModel):
     config_warnings: list[str] = Field(default_factory=list)
 
 
-class SmtpAccountResponse(BaseModel):
+class EmailAccountResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
@@ -65,14 +68,17 @@ class SmtpAccountResponse(BaseModel):
     is_default: bool
     is_active: bool
     password_set: bool
+    max_delivery_attempts: int = 3
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime] = None
     config_warnings: list[str] = Field(default_factory=list)
+    account_type: str = "smtp"
+    provider_key: Optional[str] = None
 
 
-class SmtpAccountListResponse(BaseModel):
-    items: list[SmtpAccountResponse]
+class EmailAccountListResponse(BaseModel):
+    items: list[EmailAccountResponse]
 
 
 class ErrorResponse(BaseModel):

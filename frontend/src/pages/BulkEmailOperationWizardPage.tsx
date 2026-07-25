@@ -1,17 +1,15 @@
 import React from "react";
 import { previewBulkEmailOperation, sendBulkEmailOperation } from "../api/bulkEmailOperation";
 import { ApiError } from "../api/client";
-import { getFair } from "../api/fairs";
+import { listEmailAccounts } from "../api/emailAccounts";
 import { listMailTemplates } from "../api/mailTemplates";
-import { listSmtpAccounts } from "../api/smtp";
-import { FairEntitySelect } from "../components/FairEntitySelect";
-import { NavIconClose } from "../components/layout/NavIcons";
+import { FairMultiSelect, type FairMultiSelectItem } from "../components/fairs/FairMultiSelect";
+import { EmailAccountPicker } from "../components/email/EmailAccountPicker";
 import { BulkEmailPreviewRecipientsTable } from "../components/operations/BulkEmailPreviewRecipientsTable";
 import { Banner } from "../components/ui/Banner";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { EmptyState } from "../components/ui/EmptyState";
-import { IconButton } from "../components/ui/IconButton";
 import { LoadingState } from "../components/ui/LoadingState";
 import { Modal } from "../components/ui/Modal";
 import {
@@ -39,7 +37,7 @@ import {
 } from "../permissions/mailTemplatePermissions";
 import type { BulkEmailOperationPreviewResponse } from "../types/bulkEmailOperation";
 import type { MailTemplate } from "../types/mailTemplates";
-import type { SmtpAccount } from "../types/smtp";
+import type { EmailAccount } from "../types/smtp";
 import {
   BULK_EMAIL_WIZARD_STEPS,
   type BulkEmailWizardStepId,
@@ -49,6 +47,10 @@ import {
   resolveSubjectAfterPreview,
   selectActiveMailTemplates,
 } from "../utils/mailTemplateForm";
+import {
+  resolveDefaultEmailAccountId,
+  selectActiveEmailAccounts,
+} from "../utils/emailAccountSelection";
 
 interface BulkEmailOperationWizardPageProps {
   onCancel: () => void;
@@ -64,11 +66,6 @@ function newClientToken(): string {
 
 type RecipientSourceType = "manual" | "fair_list";
 type WizardStepId = BulkEmailWizardStepId;
-
-type SelectedFair = {
-  id: string;
-  name: string;
-};
 
 const DEFAULT_FAIR_OPTIONS = {
   includeCompanyEmails: true,
@@ -88,7 +85,7 @@ const EMPTY_WIZARD_STATE = {
   companyNameSearch: "",
   ...DEFAULT_FAIR_OPTIONS,
   templateId: "",
-  smtpAccountId: "",
+  emailAccountId: "",
   subject: "",
 };
 
@@ -125,9 +122,7 @@ function BulkEmailOperationWizardPageInner({
   const [excelFormatModalOpen, setExcelFormatModalOpen] = React.useState(false);
   const [excelFile, setExcelFile] = React.useState<File | null>(null);
   const [manualEmails, setManualEmails] = React.useState("");
-  const [fairPickerId, setFairPickerId] = React.useState("");
-  const [selectedFairs, setSelectedFairs] = React.useState<SelectedFair[]>([]);
-  const [fairAddError, setFairAddError] = React.useState<string | null>(null);
+  const [selectedFairs, setSelectedFairs] = React.useState<FairMultiSelectItem[]>([]);
   const [countryFilter, setCountryFilter] = React.useState("");
   const [cityFilter, setCityFilter] = React.useState("");
   const [companyNameSearch, setCompanyNameSearch] = React.useState("");
@@ -144,11 +139,11 @@ function BulkEmailOperationWizardPageInner({
   const [dedupeEmails, setDedupeEmails] = React.useState(DEFAULT_FAIR_OPTIONS.dedupeEmails);
 
   const [templates, setTemplates] = React.useState<MailTemplate[]>([]);
-  const [smtpAccounts, setSmtpAccounts] = React.useState<SmtpAccount[]>([]);
+  const [emailAccounts, setEmailAccounts] = React.useState<EmailAccount[]>([]);
   const [templatesLoading, setTemplatesLoading] = React.useState(false);
   const [mailSettingsError, setMailSettingsError] = React.useState<string | null>(null);
   const [templateId, setTemplateId] = React.useState("");
-  const [smtpAccountId, setSmtpAccountId] = React.useState("");
+  const [emailAccountId, setEmailAccountId] = React.useState("");
   const [subject, setSubject] = React.useState("");
   const [subjectTouched, setSubjectTouched] = React.useState(false);
 
@@ -161,7 +156,7 @@ function BulkEmailOperationWizardPageInner({
 
   const currentStep = STEPS[stepIndex] ?? STEPS[0];
   const selectedTemplate = templates.find((item) => item.id === templateId) ?? null;
-  const selectedSmtp = smtpAccounts.find((item) => item.id === smtpAccountId) ?? null;
+  const selectedEmailAccount = emailAccounts.find((item) => item.id === emailAccountId) ?? null;
 
   const wizardValues = React.useMemo(
     () => ({
@@ -180,7 +175,7 @@ function BulkEmailOperationWizardPageInner({
       excludeInactive,
       dedupeEmails,
       templateId,
-      smtpAccountId,
+      emailAccountId,
       subject,
       subjectTouched,
     }),
@@ -198,7 +193,7 @@ function BulkEmailOperationWizardPageInner({
       excludeInactive,
       dedupeEmails,
       templateId,
-      smtpAccountId,
+      emailAccountId,
       subject,
       subjectTouched,
     ],
@@ -223,7 +218,7 @@ function BulkEmailOperationWizardPageInner({
         excludeInactive,
         dedupeEmails,
         templateId,
-        smtpAccountId,
+        emailAccountId,
         subjectTouched,
         subject: subjectTouched ? subject : "",
       }),
@@ -241,7 +236,7 @@ function BulkEmailOperationWizardPageInner({
       excludeInactive,
       dedupeEmails,
       templateId,
-      smtpAccountId,
+      emailAccountId,
       subject,
       subjectTouched,
     ],
@@ -261,7 +256,7 @@ function BulkEmailOperationWizardPageInner({
 
     if (!canReadMailTemplates) {
       setTemplates([]);
-      setSmtpAccounts([]);
+      setEmailAccounts([]);
       setMailSettingsError(fairLabels.bulkEmailTemplateReadDenied);
       setTemplatesLoading(false);
       return () => {
@@ -276,14 +271,14 @@ function BulkEmailOperationWizardPageInner({
       try {
         const [templateResponse, smtpResponse] = await Promise.all([
           listMailTemplates(),
-          listSmtpAccounts(),
+          listEmailAccounts(),
         ]);
         if (cancelled) return;
 
         const activeTemplates = selectActiveMailTemplates(templateResponse.items);
-        const activeSmtp = smtpResponse.items.filter((item) => item.is_active);
+        const activeEmailAccounts = selectActiveEmailAccounts(smtpResponse.items);
         setTemplates(activeTemplates);
-        setSmtpAccounts(activeSmtp);
+        setEmailAccounts(activeEmailAccounts);
 
         if (activeTemplates.length === 0) {
           setMailSettingsError(fairLabels.bulkEmailNoTemplates);
@@ -296,18 +291,13 @@ function BulkEmailOperationWizardPageInner({
           }
         }
 
-        setSmtpAccountId((current) => {
-          if (current) return current;
-          const defaultSmtp =
-            activeSmtp.find((item) => item.is_default) ?? activeSmtp[0] ?? null;
-          return defaultSmtp?.id ?? "";
-        });
+        setEmailAccountId((current) => current || resolveDefaultEmailAccountId(activeEmailAccounts));
 
         mailSettingsLoadedRef.current = true;
       } catch (err) {
         if (!cancelled) {
           setTemplates([]);
-          setSmtpAccounts([]);
+          setEmailAccounts([]);
           setMailSettingsError(
             err instanceof ApiError ? err.message : fairLabels.bulkEmailLoadTemplatesError,
           );
@@ -332,7 +322,7 @@ function BulkEmailOperationWizardPageInner({
   // Step 3 entry: build real recipient + mail preview (no send).
   React.useEffect(() => {
     if (currentStep.id !== "summary") return;
-    if (!sourceType || !templateId || !smtpAccountId) return;
+    if (!sourceType || !templateId || !emailAccountId) return;
     if (preview && !previewStale && previewFingerprint === previewInputFingerprint) return;
 
     let cancelled = false;
@@ -346,7 +336,7 @@ function BulkEmailOperationWizardPageInner({
         const result = await previewBulkEmailOperation({
           source_type: sourceType,
           template_id: templateId,
-          smtp_account_id: smtpAccountId,
+          email_account_id: emailAccountId,
           subject_override: subjectTouched ? subject.trim() : null,
           manual_emails: sourceType === "manual" ? manualEmails : null,
           excel_file: sourceType === "manual" ? excelFile : null,
@@ -397,9 +387,7 @@ function BulkEmailOperationWizardPageInner({
   };
 
   const resetFairForm = () => {
-    setFairPickerId("");
     setSelectedFairs([]);
-    setFairAddError(null);
     setCountryFilter("");
     setCityFilter("");
     setCompanyNameSearch("");
@@ -434,32 +422,6 @@ function BulkEmailOperationWizardPageInner({
 
   const closeExcelFormatModal = () => setExcelFormatModalOpen(false);
 
-  const handleFairPickerChange = (nextId: string) => {
-    setFairPickerId(nextId);
-    setFairAddError(null);
-    setFieldError(null);
-    if (!nextId) return;
-
-    if (selectedFairs.some((fair) => fair.id === nextId)) {
-      setFairAddError(operationLabels.bulkEmailFairAlreadySelected);
-      setFairPickerId("");
-      return;
-    }
-
-    void getFair(nextId)
-      .then((fair) => {
-        setSelectedFairs((current) => {
-          if (current.some((item) => item.id === fair.id)) return current;
-          return [...current, { id: fair.id, name: fair.name }];
-        });
-        setFairPickerId("");
-        invalidatePreview();
-      })
-      .catch(() => {
-        setFairPickerId("");
-      });
-  };
-
   const canProceedRecipientSource = (() => {
     if (!sourceType) return false;
     if (sourceType === "manual") {
@@ -471,7 +433,7 @@ function BulkEmailOperationWizardPageInner({
   const canProceedMailSettings =
     !templatesLoading &&
     Boolean(templateId.trim()) &&
-    Boolean(smtpAccountId.trim()) &&
+    Boolean(emailAccountId.trim()) &&
     Boolean(subject.trim()) &&
     !mailSettingsError;
 
@@ -523,7 +485,7 @@ function BulkEmailOperationWizardPageInner({
         setFieldError(operationLabels.bulkEmailTemplateRequired);
         return false;
       }
-      if (!smtpAccountId.trim()) {
+      if (!emailAccountId.trim()) {
         setFieldError(operationLabels.bulkEmailSmtpRequired);
         return false;
       }
@@ -580,7 +542,7 @@ function BulkEmailOperationWizardPageInner({
 
   const handleSend = async () => {
     if (sendLockRef.current || sending) return;
-    if (!sourceType || !templateId || !smtpAccountId || !subject.trim()) {
+    if (!sourceType || !templateId || !emailAccountId || !subject.trim()) {
       setSendError(operationLabels.bulkEmailSendError);
       return;
     }
@@ -599,7 +561,7 @@ function BulkEmailOperationWizardPageInner({
       const result = await sendBulkEmailOperation({
         source_type: sourceType,
         template_id: templateId,
-        smtp_account_id: smtpAccountId,
+        email_account_id: emailAccountId,
         subject: subject.trim(),
         title: null,
         manual_emails: sourceType === "manual" ? manualEmails : null,
@@ -752,48 +714,16 @@ function BulkEmailOperationWizardPageInner({
             {sourceType === "fair_list" ? (
               <>
                 <FormSection title={operationLabels.bulkEmailSourceFairList}>
-                  <FormGrid>
-                    <FormField
-                      label={operationLabels.bulkEmailFairSelectLabel}
-                      htmlFor="bulk-email-fair-picker"
-                      required
-                      fullWidth
-                      hint={operationLabels.bulkEmailFairSelectHint}
-                      error={fairAddError ?? undefined}
-                    >
-                      <FairEntitySelect
-                        id="bulk-email-fair-picker"
-                        value={fairPickerId}
-                        onChange={handleFairPickerChange}
-                        allowClear
-                      />
-                    </FormField>
-
-                    <FormField label={operationLabels.bulkEmailFairSelectedLabel} fullWidth>
-                      {selectedFairs.length === 0 ? (
-                        <p className="field-hint">{operationLabels.bulkEmailFairSelectedEmpty}</p>
-                      ) : (
-                        <ul className="selected-entity-list">
-                          {selectedFairs.map((fair) => (
-                            <li key={fair.id} className="selected-entity-item">
-                              <span>{fair.name}</span>
-                              <IconButton
-                                label={operationLabels.bulkEmailFairRemove}
-                                icon={<NavIconClose />}
-                                onClick={() => {
-                                  setSelectedFairs((current) =>
-                                    current.filter((item) => item.id !== fair.id),
-                                  );
-                                  setFieldError(null);
-                                  invalidatePreview();
-                                }}
-                              />
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </FormField>
-                  </FormGrid>
+                  <FairMultiSelect
+                    id="bulk-email-fair-picker"
+                    selected={selectedFairs}
+                    onChange={setSelectedFairs}
+                    required
+                    onSelectionMutated={() => {
+                      setFieldError(null);
+                      invalidatePreview();
+                    }}
+                  />
                 </FormSection>
 
                 <FormSection title={operationLabels.bulkEmailFiltersSection}>
@@ -931,33 +861,18 @@ function BulkEmailOperationWizardPageInner({
                   </SelectInput>
                 </FormField>
 
-                <FormField
+                <EmailAccountPicker
+                  id="bulk-email-smtp"
                   label={operationLabels.bulkEmailSmtpLabel}
-                  htmlFor="bulk-email-smtp"
+                  value={emailAccountId}
+                  onChange={(accountId) => {
+                    setEmailAccountId(accountId);
+                    setFieldError(null);
+                    invalidatePreview();
+                  }}
+                  accounts={emailAccounts}
                   required
-                  fullWidth
-                >
-                  <SelectInput
-                    id="bulk-email-smtp"
-                    value={smtpAccountId}
-                    disabled={smtpAccounts.length === 0}
-                    onChange={(event) => {
-                      setSmtpAccountId(event.target.value);
-                      setFieldError(null);
-                      invalidatePreview();
-                    }}
-                  >
-                    <option value="">{operationLabels.bulkEmailSmtpPlaceholder}</option>
-                    {smtpAccounts.map((account) => (
-                      <option key={account.id} value={account.id}>
-                        {account.name}
-                        {account.is_default
-                          ? ` (${adminLabels.mailTemplatesDefaultBadge})`
-                          : ""}
-                      </option>
-                    ))}
-                  </SelectInput>
-                </FormField>
+                />
 
                 <FormField
                   label={operationLabels.bulkEmailSubjectLabel}
@@ -1085,9 +1000,9 @@ function BulkEmailOperationWizardPageInner({
                   <div>
                     <strong>{operationLabels.bulkEmailSmtpLabel}</strong>
                     <div>
-                      {preview.mail.smtp_account_name ||
-                        selectedSmtp?.name ||
-                        preview.mail.smtp_account_id}
+                      {preview.mail.email_account_name ||
+                        selectedEmailAccount?.name ||
+                        preview.mail.email_account_id}
                     </div>
                   </div>
                   <div>

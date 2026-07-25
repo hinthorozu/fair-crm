@@ -33,20 +33,6 @@ CANONICAL_OPERATION_TYPES: tuple[tuple[str, str, int, OperationTypeCapabilitiesS
             "supports_items": False,
         },
     ),
-    # Legacy Automation "E-posta" catalog key (historical list/filter labels).
-    # New creates are blocked via type_registry.available_in_wizard=False.
-    (
-        "email",
-        "E-posta",
-        20,
-        {
-            "supports_pause": False,
-            "supports_resume": False,
-            "supports_retry": False,
-            "supports_schedule": True,
-            "supports_items": True,
-        },
-    ),
     (
         "bulk_email",
         "Toplu E-posta",
@@ -135,7 +121,15 @@ CANONICAL_OPERATION_TYPES: tuple[tuple[str, str, int, OperationTypeCapabilitiesS
 
 
 def ensure_default_operation_types(session: Session) -> None:
-    """Insert missing catalog rows; never overwrite existing names/flags/capabilities."""
+    """Insert missing catalog rows; never overwrite existing names/flags/capabilities.
+
+    Also removes the retired legacy ``email`` catalog row (replaced by ``bulk_email``).
+    """
+    # Retired OperationType.EMAIL — drop from catalog so it cannot surface in UI/API lists.
+    session.query(OperationTypeModel).filter(OperationTypeModel.key == "email").delete(
+        synchronize_session=False
+    )
+
     existing = {row.key for row in session.query(OperationTypeModel.key).all()}
     now = datetime.now(UTC)
     for key, name, sort_order, caps in CANONICAL_OPERATION_TYPES:

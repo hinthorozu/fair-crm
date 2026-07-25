@@ -5,7 +5,7 @@ import {
   sendFairBulkEmail,
 } from "../../api/fairBulkEmail";
 import { listMailTemplates } from "../../api/mailTemplates";
-import { listSmtpAccounts } from "../../api/smtp";
+import { listEmailAccounts } from "../../api/emailAccounts";
 import { ApiError } from "../../api/client";
 import { fairLabels } from "../../labels/fairLabels";
 import { labels } from "../../labels";
@@ -16,7 +16,7 @@ import {
 } from "../../permissions/mailTemplatePermissions";
 import type { Fair } from "../../types/fair";
 import type { MailTemplate } from "../../types/mailTemplates";
-import type { SmtpAccount } from "../../types/smtp";
+import type { EmailAccount } from "../../types/smtp";
 import {
   DEFAULT_RECIPIENT_OPTIONS,
   type BulkEmailContentPreview,
@@ -29,7 +29,12 @@ import {
   resolveSubjectAfterPreview,
   selectActiveMailTemplates,
 } from "../../utils/mailTemplateForm";
+import {
+  resolveDefaultEmailAccountId,
+  selectActiveEmailAccounts,
+} from "../../utils/emailAccountSelection";
 import { CheckboxField, FormField, FormGrid, FormSection, SelectInput, TextInput } from "../ui/form";
+import { EmailAccountPicker } from "../email/EmailAccountPicker";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../ui/UniversalDataTable";
 import type { RecipientPreviewItem } from "../../types/fairBulkEmail";
 import { Banner } from "../ui/Banner";
@@ -37,7 +42,7 @@ import { useModalFormCancel, useReportFormDirty } from "../../hooks/useModalForm
 
 const EMPTY_BULK_EMAIL_FORM = {
   templateId: "",
-  smtpAccountId: "",
+  emailAccountId: "",
   subject: "",
   recipientOptions: DEFAULT_RECIPIENT_OPTIONS,
 };
@@ -80,9 +85,9 @@ export function FairBulkEmailWizard({
   const [optionsSnapshot, setOptionsSnapshot] = React.useState(JSON.stringify(DEFAULT_RECIPIENT_OPTIONS));
   const [templates, setTemplates] = React.useState<MailTemplate[]>([]);
   const [templatesLoading, setTemplatesLoading] = React.useState(true);
-  const [smtpAccounts, setSmtpAccounts] = React.useState<SmtpAccount[]>([]);
+  const [emailAccounts, setEmailAccounts] = React.useState<EmailAccount[]>([]);
   const [templateId, setTemplateId] = React.useState("");
-  const [smtpAccountId, setSmtpAccountId] = React.useState("");
+  const [emailAccountId, setEmailAccountId] = React.useState("");
   const [subject, setSubject] = React.useState("");
   const [subjectTouched, setSubjectTouched] = React.useState(false);
 
@@ -96,21 +101,21 @@ export function FairBulkEmailWizard({
   const [success, setSuccess] = React.useState<string | null>(null);
 
   const formValues = React.useMemo(
-    () => ({ templateId, smtpAccountId, subject, recipientOptions }),
-    [templateId, smtpAccountId, subject, recipientOptions],
+    () => ({ templateId, emailAccountId, subject, recipientOptions }),
+    [templateId, emailAccountId, subject, recipientOptions],
   );
   const [dirtyBaseline, setDirtyBaseline] = React.useState<typeof EMPTY_BULK_EMAIL_FORM | null>(
     null,
   );
   React.useEffect(() => {
     if (!templatesLoading && dirtyBaseline === null) {
-      setDirtyBaseline({ templateId, smtpAccountId, subject, recipientOptions });
+      setDirtyBaseline({ templateId, emailAccountId, subject, recipientOptions });
     }
   }, [
     templatesLoading,
     dirtyBaseline,
     templateId,
-    smtpAccountId,
+    emailAccountId,
     subject,
     recipientOptions,
   ]);
@@ -185,6 +190,7 @@ export function FairBulkEmailWizard({
     !previewStale &&
     subjectValid &&
     templateId &&
+    Boolean(emailAccountId) &&
     (recipientPreview?.deduped_recipient_count ?? 0) > 0 &&
     !previewing &&
     !sending;
@@ -209,7 +215,7 @@ export function FairBulkEmailWizard({
       try {
         const [templateResponse, smtpResponse] = await Promise.all([
           listMailTemplates(),
-          listSmtpAccounts(),
+          listEmailAccounts(),
         ]);
         if (cancelled) return;
 
@@ -224,7 +230,8 @@ export function FairBulkEmailWizard({
         }
 
         setTemplates(activeTemplates);
-        setSmtpAccounts(smtpResponse.items.filter((item) => item.is_active));
+        const activeEmailAccounts = selectActiveEmailAccounts(smtpResponse.items);
+        setEmailAccounts(activeEmailAccounts);
 
         if (activeTemplates.length === 0) {
           setTemplateId("");
@@ -239,11 +246,7 @@ export function FairBulkEmailWizard({
           }
         }
 
-        const defaultSmtp =
-          smtpResponse.items.find((item) => item.is_active && item.is_default) ??
-          smtpResponse.items.find((item) => item.is_active) ??
-          null;
-        setSmtpAccountId(defaultSmtp?.id ?? "");
+        setEmailAccountId(resolveDefaultEmailAccountId(activeEmailAccounts));
       } catch (err) {
         if (!cancelled) {
           setTemplates([]);
@@ -344,7 +347,7 @@ export function FairBulkEmailWizard({
     try {
       const result = await sendFairBulkEmail(fair.id, {
         template_id: templateId,
-        smtp_account_id: smtpAccountId || null,
+        email_account_id: emailAccountId,
         subject_override: subject.trim(),
         recipient_options: recipientOptions,
       });
@@ -433,21 +436,15 @@ export function FairBulkEmailWizard({
               ))}
             </SelectInput>
           </FormField>
-          <FormField label={adminLabels.mailTemplatesTestEmailSmtpAccount} htmlFor="fair-bulk-email-smtp" fullWidth>
-            <SelectInput
-              id="fair-bulk-email-smtp"
-              value={smtpAccountId}
-              onChange={(event) => setSmtpAccountId(event.target.value)}
-            >
-              <option value="">{fairLabels.bulkEmailSmtpPlaceholder}</option>
-              {smtpAccounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                  {account.is_default ? ` (${adminLabels.mailTemplatesDefaultBadge})` : ""}
-                </option>
-              ))}
-            </SelectInput>
-          </FormField>
+          <EmailAccountPicker
+            id="fair-bulk-email-smtp"
+            label={adminLabels.mailTemplatesTestEmailSmtpAccount}
+            value={emailAccountId}
+            onChange={setEmailAccountId}
+            accounts={emailAccounts}
+            required
+            disabled={sending || previewing}
+          />
           <FormField label={fairLabels.bulkEmailSubjectLabel} htmlFor="fair-bulk-email-subject" required fullWidth>
             <TextInput
               id="fair-bulk-email-subject"

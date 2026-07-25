@@ -45,7 +45,7 @@ class RenderMailTemplateResponse(BaseModel):
 
 class SendTestMailTemplateRequest(BaseModel):
     to_email: str = Field(..., min_length=3, max_length=255)
-    smtp_account_id: Optional[UUID] = None
+    email_account_id: Optional[UUID] = None
     variables: dict[str, Any] = Field(default_factory=dict)
     subject_override: Optional[str] = Field(default=None, min_length=1)
 

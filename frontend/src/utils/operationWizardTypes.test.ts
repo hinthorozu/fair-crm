@@ -52,14 +52,13 @@ function catalog(
 }
 
 describe("operationWizardTypes", () => {
-  it("excludes manual_task and legacy email from the picker list", () => {
+  it("excludes manual_task from the picker list", () => {
     expect(WIZARD_EXCLUDED_TYPES).toContain("manual_task");
-    expect(WIZARD_EXCLUDED_TYPES).toContain("email");
+    expect(WIZARD_EXCLUDED_TYPES).not.toContain("email" as never);
     const sorted = sortWizardTypes(
-      [meta("manual_task"), meta("scraper"), meta("email"), meta("bulk_email")],
+      [meta("manual_task"), meta("scraper"), meta("bulk_email")],
       catalog([
         ["scraper", "Web Scraper", 10],
-        ["email", "E-posta", 20],
         ["bulk_email", "Toplu E-posta", 30],
         ["manual_task", "Manuel Görev", 80],
       ]),
@@ -73,13 +72,11 @@ describe("operationWizardTypes", () => {
         meta("whatsapp"),
         meta("enrichment"),
         meta("scraper"),
-        meta("email"),
         meta("bulk_email"),
         meta("reminder"),
       ],
       catalog([
         ["scraper", "Web Scraper", 10],
-        ["email", "E-posta", 20],
         ["bulk_email", "Toplu E-posta", 30],
         ["enrichment", "Zenginleştirme", 40],
         ["whatsapp", "WhatsApp", 70],
@@ -97,7 +94,7 @@ describe("operationWizardTypes", () => {
     expect(getOperationTypeWizardPath("scraper")).toBe("/operations/new/scraper");
     expect(getOperationTypeWizardPath("bulk_email")).toBe("/operations/new/bulk-email");
     expect(getOperationTypeWizardPath("enrichment")).toBe("/operations/new/enrichment");
-    expect(getOperationTypeWizardPath("email")).toBeNull();
+    expect(getOperationTypeWizardPath("manual_task")).toBeNull();
   });
 
   it("enables continue only for types with a wizard route", () => {
@@ -105,13 +102,13 @@ describe("operationWizardTypes", () => {
       ["scraper", meta("scraper")],
       ["bulk_email", meta("bulk_email")],
       ["enrichment", meta("enrichment")],
-      ["email", meta("email")],
+      ["manual_task", meta("manual_task")],
     ]);
     expect(canContinueOperationType("", map)).toBe(false);
     expect(canContinueOperationType("scraper", map)).toBe(true);
     expect(canContinueOperationType("bulk_email", map)).toBe(true);
     expect(canContinueOperationType("enrichment", map)).toBe(true);
-    expect(canContinueOperationType("email", map)).toBe(false);
+    expect(canContinueOperationType("manual_task", map)).toBe(false);
   });
 
   it("keeps scraper picker copy aligned with the product example", () => {

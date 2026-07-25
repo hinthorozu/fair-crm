@@ -53,7 +53,7 @@ def _create_template(client, auth_headers, **overrides):
 
 def _create_smtp(client, auth_headers):
     response = client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json={
             "name": "Primary SMTP",
             "from_email": "noreply@example.com",

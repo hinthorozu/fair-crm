@@ -20,7 +20,7 @@ def test_validate_create_fair_list_requires_fair_source():
         source_config={},
         type_config={
             "template_id": str(uuid4()),
-            "smtp_account_id": str(uuid4()),
+            "email_account_id": str(uuid4()),
             "subject": "Hi",
             "source_type": "fair_list",
         },
@@ -37,7 +37,7 @@ def test_validate_create_manual_requires_emails():
         source_config={},
         type_config={
             "template_id": str(uuid4()),
-            "smtp_account_id": str(uuid4()),
+            "email_account_id": str(uuid4()),
             "subject": "Hi",
             "source_type": "manual",
         },
@@ -54,7 +54,7 @@ def test_validate_create_manual_ok():
         source_config={},
         type_config={
             "template_id": str(uuid4()),
-            "smtp_account_id": str(uuid4()),
+            "email_account_id": str(uuid4()),
             "subject": "Hi",
             "source_type": "manual",
             "manual_emails": "a@example.com",

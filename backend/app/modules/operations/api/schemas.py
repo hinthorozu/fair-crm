@@ -8,7 +8,6 @@ from app.api.schemas.list_response import StandardListResponse
 
 OperationTypeField = Literal[
     "scraper",
-    "email",
     "bulk_email",
     "enrichment",
     "duplicate_check",
@@ -188,7 +187,7 @@ class BulkEmailOperationRecipientOptionsRequest(BaseModel):
 class BulkEmailOperationPreviewPayload(BaseModel):
     source_type: Literal["manual", "fair_list"]
     template_id: UUID
-    smtp_account_id: UUID
+    email_account_id: UUID
     subject_override: str | None = None
     manual_emails: str | None = None
     fair_ids: list[UUID] = Field(default_factory=list)
@@ -233,8 +232,8 @@ class BulkEmailOperationRecipientSummaryResponse(BaseModel):
 class BulkEmailOperationMailPreviewResponse(BaseModel):
     template_id: UUID
     template_name: str
-    smtp_account_id: UUID
-    smtp_account_name: str
+    email_account_id: UUID
+    email_account_name: str
     rendered_subject: str
     body_html: str | None = None
     body_text: str | None = None
@@ -248,7 +247,7 @@ class BulkEmailOperationPreviewResponse(BaseModel):
 class BulkEmailOperationSendPayload(BaseModel):
     source_type: Literal["manual", "fair_list"]
     template_id: UUID
-    smtp_account_id: UUID
+    email_account_id: UUID
     subject: str
     title: str | None = None
     manual_emails: str | None = None

@@ -1,67 +1,89 @@
-"""Repository for tenant-scoped SMTP account records."""
+"""Repository for tenant-scoped SMTP accounts (backed by email_accounts)."""
 
 from __future__ import annotations
 
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.modules.email_accounts.infrastructure.repositories.email_account_repository import (
+    SqlAlchemyEmailAccountRepository,
+)
 from app.modules.smtp.domain.entities import SmtpAccount
 from app.modules.smtp.infrastructure.persistence.mappers import (
-    entity_to_model,
-    model_to_entity,
-    update_model_from_entity,
+    email_parts_to_smtp_account,
+    smtp_account_to_email_parts,
 )
-from app.modules.smtp.infrastructure.persistence.models import SmtpAccountModel
 
 
 class SqlAlchemySmtpAccountRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
+        self._email_accounts = SqlAlchemyEmailAccountRepository(session)
 
     def add(self, account: SmtpAccount) -> SmtpAccount:
-        model = entity_to_model(account)
-        self._session.add(model)
-        self._session.flush()
-        return model_to_entity(model)
+        email_account, smtp_config = smtp_account_to_email_parts(account)
+        saved_account, saved_config = self._email_accounts.add_smtp_account(
+            email_account,
+            smtp_config,
+        )
+        return email_parts_to_smtp_account(saved_account, saved_config)
 
     def update(self, account: SmtpAccount) -> SmtpAccount:
-        model = self._session.get(SmtpAccountModel, account.id)
-        if model is None:
-            raise ValueError(f"SMTP account not found: {account.id}")
-        update_model_from_entity(model, account)
-        self._session.flush()
-        return model_to_entity(model)
+        email_account, smtp_config = smtp_account_to_email_parts(account)
+        saved_account, saved_config = self._email_accounts.update_smtp_account(
+            email_account,
+            smtp_config,
+        )
+        return email_parts_to_smtp_account(saved_account, saved_config)
 
     def get_by_id(self, organization_id: UUID, account_id: UUID) -> SmtpAccount | None:
-        stmt = select(SmtpAccountModel).where(
-            SmtpAccountModel.organization_id == organization_id,
-            SmtpAccountModel.id == account_id,
-            SmtpAccountModel.deleted_at.is_(None),
-        )
-        model = self._session.scalars(stmt).first()
-        return model_to_entity(model) if model is not None else None
+        pair = self._email_accounts.get_with_smtp_config(organization_id, account_id)
+        if pair is None:
+            return None
+        account, smtp_config = pair
+        if account.account_type.value != "smtp":
+            return None
+        return email_parts_to_smtp_account(account, smtp_config)
 
     def list_by_organization(self, organization_id: UUID) -> list[SmtpAccount]:
-        stmt = (
-            select(SmtpAccountModel)
-            .where(
-                SmtpAccountModel.organization_id == organization_id,
-                SmtpAccountModel.deleted_at.is_(None),
+        return [
+            email_parts_to_smtp_account(account, smtp_config)
+            for account, smtp_config in self._email_accounts.list_smtp_by_organization(
+                organization_id
             )
-            .order_by(SmtpAccountModel.name.asc(), SmtpAccountModel.id.asc())
-        )
-        return [model_to_entity(model) for model in self._session.scalars(stmt).all()]
+        ]
+
+    def list_active_accounts(
+        self,
+        organization_id: UUID,
+        *,
+        exclude_account_id: UUID | None = None,
+    ) -> list[SmtpAccount]:
+        """Active, non-deleted SMTP accounts ordered by name, id (for default transfer)."""
+        result: list[SmtpAccount] = []
+        for account, smtp_config in self._email_accounts.list_smtp_by_organization(
+            organization_id
+        ):
+            if not account.is_active:
+                continue
+            if exclude_account_id is not None and account.id == exclude_account_id:
+                continue
+            result.append(email_parts_to_smtp_account(account, smtp_config))
+        return result
 
     def get_default_for_organization(self, organization_id: UUID) -> SmtpAccount | None:
-        stmt = select(SmtpAccountModel).where(
-            SmtpAccountModel.organization_id == organization_id,
-            SmtpAccountModel.is_default.is_(True),
-            SmtpAccountModel.deleted_at.is_(None),
-        )
-        model = self._session.scalars(stmt).first()
-        return model_to_entity(model) if model is not None else None
+        """Org-wide default; only returned when the default account is SMTP and active."""
+        default = self._email_accounts.get_default_for_organization(organization_id)
+        if default is None:
+            return None
+        if default.account_type.value != "smtp":
+            return None
+        smtp_config = self._email_accounts.get_smtp_config(default.id)
+        if smtp_config is None:
+            return None
+        return email_parts_to_smtp_account(default, smtp_config)
 
     def clear_default_for_organization(
         self,
@@ -69,15 +91,31 @@ class SqlAlchemySmtpAccountRepository:
         *,
         exclude_account_id: UUID | None = None,
     ) -> None:
-        stmt = select(SmtpAccountModel).where(
-            SmtpAccountModel.organization_id == organization_id,
-            SmtpAccountModel.is_default.is_(True),
-            SmtpAccountModel.deleted_at.is_(None),
+        self._email_accounts.clear_default_for_organization(
+            organization_id,
+            exclude_account_id=exclude_account_id,
         )
-        if exclude_account_id is not None:
-            stmt = stmt.where(SmtpAccountModel.id != exclude_account_id)
-        for model in self._session.scalars(stmt).all():
-            model.is_default = False
+
+    def promote_next_active_default(
+        self,
+        organization_id: UUID,
+        *,
+        exclude_account_id: UUID,
+        now: datetime,
+    ) -> None:
+        """Before losing a default account: promote next active account (name, id ASC)."""
+        candidates = self._email_accounts.list_active_accounts(
+            organization_id,
+            exclude_account_id=exclude_account_id,
+        )
+        if not candidates:
+            return
+        self._email_accounts.clear_default_for_organization(organization_id)
+        self._email_accounts.flush()
+        successor = candidates[0]
+        successor.mark_as_default(now=now)
+        self._email_accounts.update_account(successor)
+        self._email_accounts.flush()
 
     def flush(self) -> None:
-        self._session.flush()
+        self._email_accounts.flush()

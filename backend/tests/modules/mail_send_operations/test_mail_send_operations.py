@@ -20,10 +20,10 @@ def _operation_events(logs: list) -> list[str]:
     return [entry["event"] for entry in logs]
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.send_smtp_message")
+@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
 def test_smtp_test_mail_creates_sent_operation(mock_send, client, auth_headers, db_session, organization_id):
     create = client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json={
             "name": "Ops SMTP",
             "from_email": "noreply@example.com",
@@ -39,7 +39,7 @@ def test_smtp_test_mail_creates_sent_operation(mock_send, client, auth_headers, 
     )
     account_id = create.json()["id"]
     response = client.post(
-        f"/api/v1/smtp/accounts/{account_id}/test",
+        f"/api/v1/email-accounts/{account_id}/test",
         json={"recipient": "admin@example.com"},
         headers=auth_headers,
     )
@@ -57,21 +57,21 @@ def test_smtp_test_mail_creates_sent_operation(mock_send, client, auth_headers, 
     assert operation.organization_id == organization_id
     assert operation.status == MailSendOperationStatus.SENT
     assert operation.recipient_email == "admin@example.com"
-    assert operation.smtp_account_id is not None
+    assert operation.email_account_id is not None
     assert operation.subject == "FAIR CRM SMTP Test"
     assert operation.priority == 40
     assert operation.sent_at is not None
     assert _operation_events(operation.operation_logs) == ["queued", "sending_started", "sent"]
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.send_smtp_message")
+@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
 def test_smtp_test_mail_creates_failed_operation(mock_send, client, auth_headers, db_session, organization_id):
     mock_send.side_effect = SmtpMailDeliveryError(
         "SMTP kimlik doğrulaması başarısız.",
         error_type="SMTPAuthenticationError",
     )
     create = client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json={
             "name": "Ops SMTP Fail",
             "from_email": "noreply@example.com",
@@ -87,7 +87,7 @@ def test_smtp_test_mail_creates_failed_operation(mock_send, client, auth_headers
     )
     account_id = create.json()["id"]
     response = client.post(
-        f"/api/v1/smtp/accounts/{account_id}/test",
+        f"/api/v1/email-accounts/{account_id}/test",
         json={"recipient": "admin@example.com"},
         headers=auth_headers,
     )
@@ -107,7 +107,7 @@ def test_smtp_test_mail_creates_failed_operation(mock_send, client, auth_headers
     assert _operation_events(operation.operation_logs) == ["queued", "sending_started", "failed"]
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.send_smtp_message")
+@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
 def test_smtp_test_mail_inactive_account_creates_immediate_failure(
     mock_send,
     client,
@@ -116,7 +116,7 @@ def test_smtp_test_mail_inactive_account_creates_immediate_failure(
     organization_id,
 ):
     create = client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json={
             "name": "Inactive SMTP",
             "from_email": "noreply@example.com",
@@ -132,7 +132,7 @@ def test_smtp_test_mail_inactive_account_creates_immediate_failure(
     )
     account_id = create.json()["id"]
     response = client.post(
-        f"/api/v1/smtp/accounts/{account_id}/test",
+        f"/api/v1/email-accounts/{account_id}/test",
         json={"recipient": "admin@example.com"},
         headers=auth_headers,
     )
@@ -150,12 +150,12 @@ def test_smtp_test_mail_inactive_account_creates_immediate_failure(
     )
     assert operation.status == MailSendOperationStatus.FAILED
     assert operation.error_code == "InactiveAccount"
-    assert str(operation.smtp_account_id) == account_id
+    assert str(operation.email_account_id) == account_id
     assert operation.priority == 40
     assert _operation_events(operation.operation_logs) == ["failed"]
 
 
-@patch("app.modules.mail_templates.application.send_test_mail_template.send_smtp_message")
+@patch("app.modules.mail_templates.application.send_test_mail_template.deliver_smtp_account_with_dispatcher")
 def test_template_test_mail_creates_sent_operation(
     mock_send,
     client,
@@ -164,7 +164,7 @@ def test_template_test_mail_creates_sent_operation(
     organization_id,
 ):
     smtp = client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json={
             "name": "Template SMTP",
             "from_email": "noreply@example.com",
@@ -197,7 +197,7 @@ def test_template_test_mail_creates_sent_operation(
         json={
             "to_email": "tester@example.com",
             "variables": {"customer_name": "Ali"},
-            "smtp_account_id": smtp.json()["id"],
+            "email_account_id": smtp.json()["id"],
         },
         headers=auth_headers,
     )
@@ -238,7 +238,7 @@ def test_list_by_organization_requires_organization_id(db_session):
         repository.list_by_organization(None)  # type: ignore[arg-type]
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.send_smtp_message")
+@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
 def test_list_mail_send_operations_returns_smtp_test_record(
     mock_send,
     client,
@@ -246,7 +246,7 @@ def test_list_mail_send_operations_returns_smtp_test_record(
     organization_id,
 ):
     create = client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json={
             "name": "List API SMTP",
             "from_email": "noreply@example.com",
@@ -262,7 +262,7 @@ def test_list_mail_send_operations_returns_smtp_test_record(
     )
     account_id = create.json()["id"]
     send = client.post(
-        f"/api/v1/smtp/accounts/{account_id}/test",
+        f"/api/v1/email-accounts/{account_id}/test",
         json={"recipient": "list-api@example.com"},
         headers=auth_headers,
     )
@@ -278,19 +278,19 @@ def test_list_mail_send_operations_returns_smtp_test_record(
     assert item["status"] == MailSendOperationStatus.SENT
     assert item["status_label"] == "Gönderildi"
     assert item["priority"] == 40
-    assert item["smtp_account_id"] == account_id
-    assert item["smtp_account_name"] == "List API SMTP"
+    assert item["email_account_id"] == account_id
+    assert item["email_account_name"] == "List API SMTP"
     assert _operation_events(item["operation_logs"]) == ["queued", "sending_started", "sent"]
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.send_smtp_message")
+@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
 def test_list_mail_send_operations_filters_by_status(
     mock_send,
     client,
     auth_headers,
 ):
     create = client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json={
             "name": "Filter SMTP",
             "from_email": "noreply@example.com",
@@ -306,7 +306,7 @@ def test_list_mail_send_operations_filters_by_status(
     )
     account_id = create.json()["id"]
     client.post(
-        f"/api/v1/smtp/accounts/{account_id}/test",
+        f"/api/v1/email-accounts/{account_id}/test",
         json={"recipient": "filter@example.com"},
         headers=auth_headers,
     )
@@ -326,7 +326,7 @@ def test_list_mail_send_operations_denied_without_read_permission(client, auth_h
     from tests.modules.test_endpoint_permission_enforcement import SelectiveAuthorization
 
     client.app.dependency_overrides[get_authorization_adapter] = lambda: SelectiveAuthorization(
-        denied={"fair_crm.smtp.read"}
+        denied={"fair_crm.email_accounts.read"}
     )
     try:
         response = client.get("/api/v1/mail-send-operations", headers=auth_headers)

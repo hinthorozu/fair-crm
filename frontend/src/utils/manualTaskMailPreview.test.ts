@@ -81,7 +81,7 @@ describe("preview stale detection", () => {
   it("requires a new preview after content changes", () => {
     const snapshot = buildManualMailPreviewSnapshot({
       recipients: ["a@example.com"],
-      smtpAccountId: "smtp-1",
+      emailAccountId: "smtp-1",
       templateId: "tpl-1",
       subject: "Konu",
       body: "Gövde",

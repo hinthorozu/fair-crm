@@ -4,7 +4,6 @@ from enum import StrEnum
 
 class OperationType(StrEnum):
     SCRAPER = "scraper"
-    EMAIL = "email"
     BULK_EMAIL = "bulk_email"
     ENRICHMENT = "enrichment"
     DUPLICATE_CHECK = "duplicate_check"

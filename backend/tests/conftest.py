@@ -81,6 +81,10 @@ from app.modules.scraper.infrastructure.persistence.models import ScraperRunLogM
 from app.modules.scraper.infrastructure.persistence.models import ScraperAdapterModel  # noqa: F401
 from app.modules.scraper.infrastructure.persistence.models import ScraperRegistryAdapterHideModel  # noqa: F401
 from app.modules.scraper.infrastructure.persistence.models import CustomerEnrichmentStateModel  # noqa: F401
+from app.modules.email_accounts.infrastructure.persistence.models import (  # noqa: F401
+    EmailAccountModel,
+    EmailAccountSmtpConfigModel,
+)
 from app.modules.smtp.infrastructure.persistence.models import SmtpAccountModel  # noqa: F401
 from app.modules.mail_templates.infrastructure.persistence.models import MailTemplateModel  # noqa: F401
 from app.modules.fair_emails.infrastructure.persistence.models import (  # noqa: F401

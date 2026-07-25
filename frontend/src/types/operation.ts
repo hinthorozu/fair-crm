@@ -1,6 +1,5 @@
 export type OperationType =
   | "scraper"
-  | "email"
   | "bulk_email"
   | "enrichment"
   | "duplicate_check"

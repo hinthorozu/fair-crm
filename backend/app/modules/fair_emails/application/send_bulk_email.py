@@ -88,7 +88,7 @@ class SendFairBulkEmailUseCase:
 
         account = self._resolve_smtp_account(command)
         if account is None:
-            if command.smtp_account_id is not None:
+            if command.email_account_id is not None:
                 raise SmtpAccountNotFoundError("SMTP account not found")
             raise MailTemplateDefaultSmtpNotFoundError(DEFAULT_SMTP_MESSAGE)
         if account.deleted_at is not None:
@@ -112,7 +112,7 @@ class SendFairBulkEmailUseCase:
             organization_id=command.organization_id,
             fair_id=command.fair_id,
             template_id=command.template_id,
-            smtp_account_id=account.id,
+            email_account_id=account.id,
             subject_override=command.subject_override.strip() if command.subject_override else None,
             recipient_options=command.recipient_options,
             created_by_user_id=command.user_id,
@@ -155,6 +155,6 @@ class SendFairBulkEmailUseCase:
         )
 
     def _resolve_smtp_account(self, command: SendBulkEmailCommand):
-        if command.smtp_account_id is not None:
-            return self._smtp_repository.get_by_id(command.organization_id, command.smtp_account_id)
+        if command.email_account_id is not None:
+            return self._smtp_repository.get_by_id(command.organization_id, command.email_account_id)
         return self._smtp_repository.get_default_for_organization(command.organization_id)

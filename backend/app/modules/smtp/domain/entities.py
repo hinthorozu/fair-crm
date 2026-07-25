@@ -18,6 +18,18 @@ from app.modules.smtp.domain.exceptions import (
 )
 from app.modules.smtp.domain.value_objects import SmtpEncryptionType
 
+_MIN_DELIVERY_ATTEMPTS = 1
+_MAX_DELIVERY_ATTEMPTS = 5
+_DEFAULT_DELIVERY_ATTEMPTS = 3
+
+
+def _validate_max_delivery_attempts(value: int) -> int:
+    if value < _MIN_DELIVERY_ATTEMPTS or value > _MAX_DELIVERY_ATTEMPTS:
+        raise ValueError(
+            f"max_delivery_attempts must be between {_MIN_DELIVERY_ATTEMPTS} and {_MAX_DELIVERY_ATTEMPTS}"
+        )
+    return value
+
 
 def _normalize_encryption_type(value: str | SmtpEncryptionType) -> SmtpEncryptionType:
     if isinstance(value, SmtpEncryptionType):
@@ -54,6 +66,7 @@ class SmtpAccount:
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime]
+    max_delivery_attempts: int = _DEFAULT_DELIVERY_ATTEMPTS
 
     @classmethod
     def create(
@@ -70,6 +83,7 @@ class SmtpAccount:
         encryption_type: str | SmtpEncryptionType = SmtpEncryptionType.STARTTLS,
         is_default: bool = False,
         is_active: bool = True,
+        max_delivery_attempts: int = _DEFAULT_DELIVERY_ATTEMPTS,
         now: datetime,
     ) -> SmtpAccount:
         trimmed_name = name.strip()
@@ -100,6 +114,7 @@ class SmtpAccount:
             created_at=now,
             updated_at=now,
             deleted_at=None,
+            max_delivery_attempts=_validate_max_delivery_attempts(max_delivery_attempts),
         )
 
     def ensure_mutable(self) -> None:

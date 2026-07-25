@@ -8,7 +8,7 @@ from app.modules.smtp.application.mappers import smtp_account_to_result
 from app.modules.smtp.domain.entities import SmtpAccount
 from app.modules.smtp.domain.ports import SmtpAccountRepository
 
-PERMISSION_CREATE = "fair_crm.smtp.create"
+PERMISSION_CREATE = "fair_crm.email_accounts.create"
 
 
 class CreateSmtpAccountUseCase:
@@ -52,6 +52,7 @@ class CreateSmtpAccountUseCase:
             encryption_type=command.encryption_type,
             is_default=should_be_default,
             is_active=command.is_active,
+            max_delivery_attempts=command.max_delivery_attempts,
             now=now,
         )
         saved = self._repository.add(account)
@@ -59,8 +60,8 @@ class CreateSmtpAccountUseCase:
         self._audit.record_event(
             organization_id=command.organization_id,
             access_token=command.access_token,
-            action="fair_crm.smtp_account.created",
-            resource_type="smtp_account",
+            action="fair_crm.email_account.created",
+            resource_type="email_account",
             resource_id=str(saved.id),
             new_values={"name": saved.name, "from_email": saved.from_email},
             metadata={"user_id": str(command.user_id)},

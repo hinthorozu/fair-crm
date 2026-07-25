@@ -65,7 +65,7 @@ export function recordTodoWorklistActivity(
 export interface SendManualTaskMailPayload {
   todo_id?: string;
   customer_id?: string;
-  smtp_account_id: string;
+  email_account_id: string;
   template_id?: string | null;
   recipients: string;
   subject: string;

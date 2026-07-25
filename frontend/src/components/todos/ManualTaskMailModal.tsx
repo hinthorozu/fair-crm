@@ -2,7 +2,7 @@ import React from "react";
 import { listContactsByCustomer } from "../../api/contacts";
 import { getCustomer } from "../../api/customers";
 import { listMailTemplates, renderMailTemplate } from "../../api/mailTemplates";
-import { listSmtpAccounts } from "../../api/smtp";
+import { listEmailAccounts } from "../../api/emailAccounts";
 import { sendManualTaskMail } from "../../api/todoWorklist";
 import { ApiError } from "../../api/client";
 import { todoLabels } from "../../labels/todoLabels";
@@ -10,11 +10,15 @@ import { todoWorklistLabels } from "../../labels/todoWorklistLabels";
 import { adminLabels } from "../../labels/adminLabels";
 import type { Customer } from "../../types/customer";
 import type { MailTemplate } from "../../types/mailTemplates";
-import type { SmtpAccount } from "../../types/smtp";
+import type { EmailAccount } from "../../types/smtp";
 import {
   formatMailTemplateOptionLabel,
   selectActiveMailTemplates,
 } from "../../utils/mailTemplateForm";
+import {
+  resolveDefaultEmailAccountId,
+  selectActiveEmailAccounts,
+} from "../../utils/emailAccountSelection";
 import { isValidSingleEmail, parseManualRecipientInput, splitEmailInputParts } from "../../utils/email";
 import {
   buildManualMailCustomerVariables,
@@ -28,6 +32,7 @@ import {
   type ManualMailPreviewSnapshot,
 } from "../../utils/manualTaskMailPreview";
 import { FormField, FormGrid, FormSection, SelectInput, TextareaInput, TextInput } from "../ui/form";
+import { EmailAccountPicker } from "../email/EmailAccountPicker";
 import { FormDirtyHost } from "../ui/form/FormDirty";
 import { FormModal } from "../ui/form/FormModal";
 import { IconButton } from "../ui/IconButton";
@@ -54,7 +59,7 @@ type ModalStep = "compose" | "preview";
 
 const EMPTY_FORM = {
   recipients: [] as string[],
-  smtpAccountId: "",
+  emailAccountId: "",
   templateId: "",
   subject: "",
   body: "",
@@ -103,12 +108,12 @@ function ManualTaskMailModalInner({
   const [customer, setCustomer] = React.useState<Customer | null>(null);
   const [recipientOptions, setRecipientOptions] = React.useState<RecipientOption[]>([]);
   const [templates, setTemplates] = React.useState<MailTemplate[]>([]);
-  const [smtpAccounts, setSmtpAccounts] = React.useState<SmtpAccount[]>([]);
+  const [emailAccounts, setEmailAccounts] = React.useState<EmailAccount[]>([]);
   const [recipients, setRecipients] = React.useState<string[]>([]);
   const [pickerValue, setPickerValue] = React.useState("");
   const [manualEmail, setManualEmail] = React.useState("");
   const [manualEmailError, setManualEmailError] = React.useState<string | null>(null);
-  const [smtpAccountId, setSmtpAccountId] = React.useState("");
+  const [emailAccountId, setEmailAccountId] = React.useState("");
   const [templateId, setTemplateId] = React.useState("");
   const [subject, setSubject] = React.useState("");
   const [body, setBody] = React.useState("");
@@ -118,8 +123,8 @@ function ManualTaskMailModalInner({
   const [previewSnapshot, setPreviewSnapshot] = React.useState<ManualMailPreviewSnapshot | null>(null);
 
   const formValues = React.useMemo(
-    () => ({ recipients, smtpAccountId, templateId, subject, body, manualEmail }),
-    [recipients, smtpAccountId, templateId, subject, body, manualEmail],
+    () => ({ recipients, emailAccountId, templateId, subject, body, manualEmail }),
+    [recipients, emailAccountId, templateId, subject, body, manualEmail],
   );
   useReportFormDirty(formValues, EMPTY_FORM);
 
@@ -127,12 +132,12 @@ function ManualTaskMailModalInner({
     () =>
       buildManualMailPreviewSnapshot({
         recipients,
-        smtpAccountId,
+        emailAccountId,
         templateId,
         subject,
         body,
       }),
-    [recipients, smtpAccountId, templateId, subject, body],
+    [recipients, emailAccountId, templateId, subject, body],
   );
   const previewStale = isManualMailPreviewStale(previewSnapshot, currentSnapshot);
 
@@ -149,7 +154,7 @@ function ManualTaskMailModalInner({
     setPickerValue("");
     setManualEmail("");
     setManualEmailError(null);
-    setSmtpAccountId("");
+    setEmailAccountId("");
     setTemplateId("");
     setSubject("");
     setBody("");
@@ -165,7 +170,7 @@ function ManualTaskMailModalInner({
             getCustomer(customerId),
             listContactsByCustomer(customerId, { pageSize: 100 }),
             listMailTemplates(),
-            listSmtpAccounts(),
+            listEmailAccounts(),
           ]);
         if (cancelled) return;
 
@@ -203,11 +208,9 @@ function ManualTaskMailModalInner({
         const activeTemplates = selectActiveMailTemplates(templateResponse.items);
         setTemplates(activeTemplates);
 
-        const activeSmtp = smtpResponse.items.filter((item) => item.is_active);
-        setSmtpAccounts(activeSmtp);
-        const defaultSmtp =
-          activeSmtp.find((item) => item.is_default) ?? activeSmtp[0] ?? null;
-        setSmtpAccountId(defaultSmtp?.id ?? "");
+        const activeEmailAccounts = selectActiveEmailAccounts(smtpResponse.items);
+        setEmailAccounts(activeEmailAccounts);
+        setEmailAccountId(resolveDefaultEmailAccountId(activeEmailAccounts));
       } catch (err) {
         if (!cancelled) {
           setError(
@@ -283,7 +286,7 @@ function ManualTaskMailModalInner({
 
   const formComplete =
     recipients.length > 0 &&
-    Boolean(smtpAccountId) &&
+    Boolean(emailAccountId) &&
     subject.trim().length > 0 &&
     body.trim().length > 0;
 
@@ -308,8 +311,8 @@ function ManualTaskMailModalInner({
 
     try {
       const selectedTemplate = templates.find((item) => item.id === templateId) ?? null;
-      const selectedSmtp = smtpAccounts.find((item) => item.id === smtpAccountId) ?? null;
-      if (!selectedSmtp) {
+      const selectedEmailAccount = emailAccounts.find((item) => item.id === emailAccountId) ?? null;
+      if (!selectedEmailAccount) {
         setError(todoWorklistLabels.manualMailPreviewFormIncomplete);
         return;
       }
@@ -365,7 +368,7 @@ function ManualTaskMailModalInner({
 
       const snapshot = buildManualMailPreviewSnapshot({
         recipients,
-        smtpAccountId,
+        emailAccountId,
         templateId,
         subject: resolved.subject,
         body: resolved.body,
@@ -375,7 +378,7 @@ function ManualTaskMailModalInner({
       setPreviewPayload({
         ...snapshot,
         templateName: selectedTemplate?.name ?? null,
-        smtpAccountName: selectedSmtp.name,
+        emailAccountName: selectedEmailAccount.name,
         htmlDocument: toPreviewHtmlDocument(resolved.body),
         unresolvedVariables,
       });
@@ -395,7 +398,7 @@ function ManualTaskMailModalInner({
       const result = await sendManualTaskMail(todoId, customerId, {
         todo_id: todoId,
         customer_id: customerId,
-        smtp_account_id: previewPayload.smtpAccountId,
+        email_account_id: previewPayload.emailAccountId,
         template_id: previewPayload.templateId || null,
         recipients: formatRecipientsPayload(previewPayload.recipients),
         subject: previewPayload.subject,
@@ -455,7 +458,7 @@ function ManualTaskMailModalInner({
               </div>
               <div className="mail-template-preview-block">
                 <h4>{todoWorklistLabels.manualMailPreviewSmtp}</h4>
-                <pre className="mail-template-preview-text">{previewPayload.smtpAccountName}</pre>
+                <pre className="mail-template-preview-text">{previewPayload.emailAccountName}</pre>
               </div>
               <div className="mail-template-preview-block">
                 <h4>{todoWorklistLabels.manualMailPreviewSubject}</h4>
@@ -593,30 +596,19 @@ function ManualTaskMailModalInner({
 
           <FormSection title={todoWorklistLabels.manualMailContentSection}>
             <FormGrid>
-              <FormField
+              <EmailAccountPicker
+                id="manual-mail-smtp"
                 label={todoWorklistLabels.manualMailSmtpAccount}
-                htmlFor="manual-mail-smtp"
+                value={emailAccountId}
+                onChange={(accountId) => {
+                  setEmailAccountId(accountId);
+                  invalidatePreview();
+                }}
+                accounts={emailAccounts}
                 required
-              >
-                <SelectInput
-                  id="manual-mail-smtp"
-                  value={smtpAccountId}
-                  onChange={(event) => {
-                    setSmtpAccountId(event.target.value);
-                    invalidatePreview();
-                  }}
-                  disabled={sending || previewing}
-                  required
-                >
-                  <option value="">{todoWorklistLabels.manualMailSmtpPlaceholder}</option>
-                  {smtpAccounts.map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {account.name}
-                      {account.is_default ? ` (${adminLabels.smtpDefaultBadge})` : ""}
-                    </option>
-                  ))}
-                </SelectInput>
-              </FormField>
+                disabled={sending || previewing}
+                fullWidth={false}
+              />
 
               <FormField
                 label={todoWorklistLabels.manualMailTemplate}

@@ -322,7 +322,7 @@ async def send_manual_task_mail(
                 user_id=auth.user_id,
                 todo_id=todo_id,
                 customer_id=customer_id,
-                smtp_account_id=body.smtp_account_id,
+                email_account_id=body.email_account_id,
                 recipients=body.recipients,
                 subject=body.subject,
                 body=body.body,

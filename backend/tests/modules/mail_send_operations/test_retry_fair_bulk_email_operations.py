@@ -26,7 +26,7 @@ def _failed_fair_bulk_operation_id(
 ) -> tuple[str, UUID]:
     batch_id = _seed_pending_batch(db_session, organization_id, user_id, client, auth_headers)
     with patch(
-        "app.modules.fair_emails.application.process_batch.send_smtp_message",
+        "app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send",
         side_effect=SmtpMailDeliveryError("Authentication failed", error_type="SMTPAuthenticationError"),
     ):
         ProcessFairEmailBatchUseCase(db_session).execute(
@@ -48,7 +48,7 @@ def _failed_fair_bulk_operation_id(
     return str(operation.id), outbox.id
 
 
-@patch("app.modules.mail_send_operations.application.retry_mail_send_operation.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.retry_mail_send_operation.deliver_with_dispatcher")
 def test_retry_failed_fair_bulk_email_success(
     mock_send,
     client,
@@ -86,7 +86,7 @@ def test_retry_failed_fair_bulk_email_success(
     assert outbox.error_message is None
 
 
-@patch("app.modules.mail_send_operations.application.retry_mail_send_operation.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.retry_mail_send_operation.deliver_with_dispatcher")
 def test_retry_failed_fair_bulk_email_delivery_error(
     mock_send,
     client,
@@ -119,7 +119,7 @@ def test_retry_failed_fair_bulk_email_delivery_error(
     assert outbox.error_message == "Connection refused"
 
 
-@patch("app.modules.fair_emails.application.process_batch.send_smtp_message")
+@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
 def test_retry_skipped_fair_bulk_email_rejected(
     mock_send,
     client,
@@ -180,7 +180,7 @@ def test_retry_skipped_fair_bulk_email_rejected(
     assert retry_response.status_code == 400
 
 
-@patch("app.modules.fair_emails.application.process_batch.send_smtp_message")
+@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
 def test_retry_sent_fair_bulk_email_rejected(
     mock_send,
     client,
@@ -211,7 +211,7 @@ def test_retry_sent_fair_bulk_email_rejected(
     assert response.status_code == 400
 
 
-@patch("app.modules.mail_send_operations.application.retry_mail_send_operation.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.retry_mail_send_operation.deliver_with_dispatcher")
 def test_retry_fair_bulk_email_other_organization_not_found(
     mock_send,
     client,
@@ -236,7 +236,7 @@ def test_retry_fair_bulk_email_other_organization_not_found(
     mock_send.assert_not_called()
 
 
-@patch("app.modules.mail_send_operations.application.retry_mail_send_operation.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.retry_mail_send_operation.deliver_with_dispatcher")
 def test_retry_fair_bulk_email_does_not_create_duplicate_operation(
     mock_send,
     client,

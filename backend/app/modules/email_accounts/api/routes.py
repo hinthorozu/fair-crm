@@ -7,33 +7,33 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.core.config import get_settings
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.auth import AuthContext
-from app.modules.smtp.api.dependencies import (
+from app.modules.email_accounts.api.dependencies import (
     get_auth_context,
-    get_create_smtp_account_use_case,
-    get_delete_smtp_account_use_case,
-    get_get_smtp_account_use_case,
-    get_list_smtp_accounts_use_case,
-    get_send_test_smtp_mail_use_case,
-    get_set_default_smtp_account_use_case,
-    get_update_smtp_account_use_case,
+    get_create_email_account_use_case,
+    get_delete_email_account_use_case,
+    get_get_email_account_use_case,
+    get_list_email_accounts_use_case,
+    get_send_test_email_account_mail_use_case,
+    get_set_default_email_account_use_case,
+    get_update_email_account_use_case,
     require_read_permission,
 )
-from app.modules.smtp.api.schemas import (
-    CreateSmtpAccountRequest,
+from app.modules.email_accounts.api.schemas import (
+    CreateEmailAccountRequest,
+    EmailAccountListResponse,
+    EmailAccountResponse,
     ErrorResponse,
-    SendTestSmtpMailRequest,
-    SendTestSmtpMailResponse,
-    SmtpAccountListResponse,
-    SmtpAccountResponse,
-    UpdateSmtpAccountRequest,
+    SendTestEmailAccountMailRequest,
+    SendTestEmailAccountMailResponse,
+    UpdateEmailAccountRequest,
 )
 from app.modules.smtp.application.commands import (
     CreateSmtpAccountCommand,
     DeleteSmtpAccountCommand,
     GetSmtpAccountQuery,
     ListSmtpAccountsQuery,
-    SetDefaultSmtpAccountCommand,
     SendTestSmtpMailCommand,
+    SetDefaultSmtpAccountCommand,
     UpdateSmtpAccountCommand,
 )
 from app.modules.smtp.application.create_smtp_account import CreateSmtpAccountUseCase
@@ -41,8 +41,8 @@ from app.modules.smtp.application.delete_smtp_account import DeleteSmtpAccountUs
 from app.modules.smtp.application.get_smtp_account import GetSmtpAccountUseCase
 from app.modules.smtp.application.list_smtp_accounts import ListSmtpAccountsUseCase
 from app.modules.smtp.application.send_test_smtp_mail import SendTestSmtpMailUseCase
-from app.modules.smtp.application.smtp_test_debug import smtp_debug_response_enabled
 from app.modules.smtp.application.set_default_smtp_account import SetDefaultSmtpAccountUseCase
+from app.modules.smtp.application.smtp_test_debug import smtp_debug_response_enabled
 from app.modules.smtp.application.update_smtp_account import UpdateSmtpAccountUseCase
 from app.modules.smtp.domain.exceptions import (
     InvalidSmtpAccountEmailError,
@@ -56,8 +56,24 @@ from app.modules.smtp.domain.exceptions import (
     SmtpAccountNotFoundError,
 )
 
-router = APIRouter(prefix="/smtp/accounts", tags=["smtp"])
+router = APIRouter(prefix="/email-accounts", tags=["email-accounts"])
 bearer_scheme = HTTPBearer(auto_error=False)
+
+_SMTP_COMMAND_FIELDS = frozenset(
+    {
+        "name",
+        "from_email",
+        "from_name",
+        "host",
+        "port",
+        "username",
+        "password",
+        "encryption_type",
+        "is_default",
+        "is_active",
+        "max_delivery_attempts",
+    }
+)
 
 
 def _access_token(credentials: HTTPAuthorizationCredentials | None) -> str:
@@ -70,13 +86,19 @@ def _access_token(credentials: HTTPAuthorizationCredentials | None) -> str:
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
 
-def _to_response(result) -> SmtpAccountResponse:
+def _smtp_fields(data: dict) -> dict:
+    return {key: value for key, value in data.items() if key in _SMTP_COMMAND_FIELDS}
+
+
+def _to_response(result) -> EmailAccountResponse:
     data = result.__dict__.copy()
     data["config_warnings"] = list(data.get("config_warnings") or ())
-    return SmtpAccountResponse.model_validate(data)
+    data.setdefault("account_type", "smtp")
+    data.setdefault("provider_key", None)
+    return EmailAccountResponse.model_validate(data)
 
 
-def _to_test_mail_response(result) -> SendTestSmtpMailResponse:
+def _to_test_mail_response(result) -> SendTestEmailAccountMailResponse:
     data = {
         "success": result.success,
         "message": result.message,
@@ -92,31 +114,31 @@ def _to_test_mail_response(result) -> SendTestSmtpMailResponse:
                 "encryption_type": result.encryption_type,
             }
         )
-    return SendTestSmtpMailResponse.model_validate(data)
+    return SendTestEmailAccountMailResponse.model_validate(data)
 
 
 @router.post(
     "",
-    response_model=SmtpAccountResponse,
+    response_model=EmailAccountResponse,
     status_code=status.HTTP_201_CREATED,
     responses={
         400: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
     },
 )
-def create_smtp_account(
-    body: CreateSmtpAccountRequest,
+def create_email_account(
+    body: CreateEmailAccountRequest,
     auth: AuthContext = Depends(get_auth_context),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    use_case: CreateSmtpAccountUseCase = Depends(get_create_smtp_account_use_case),
-) -> SmtpAccountResponse:
+    use_case: CreateSmtpAccountUseCase = Depends(get_create_email_account_use_case),
+) -> EmailAccountResponse:
     try:
         result = use_case.execute(
             CreateSmtpAccountCommand(
                 organization_id=auth.organization_id,
                 access_token=_access_token(credentials),
                 user_id=auth.user_id,
-                **body.model_dump(),
+                **_smtp_fields(body.model_dump()),
             )
         )
     except ForbiddenError as exc:
@@ -127,6 +149,7 @@ def create_smtp_account(
         InvalidSmtpAccountHostError,
         InvalidSmtpAccountPortError,
         InvalidSmtpEncryptionTypeError,
+        ValueError,
     ) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _to_response(result)
@@ -134,27 +157,27 @@ def create_smtp_account(
 
 @router.get(
     "",
-    response_model=SmtpAccountListResponse,
+    response_model=EmailAccountListResponse,
     responses={403: {"model": ErrorResponse}},
 )
-def list_smtp_accounts(
+def list_email_accounts(
     auth: AuthContext = Depends(require_read_permission),
-    use_case: ListSmtpAccountsUseCase = Depends(get_list_smtp_accounts_use_case),
-) -> SmtpAccountListResponse:
+    use_case: ListSmtpAccountsUseCase = Depends(get_list_email_accounts_use_case),
+) -> EmailAccountListResponse:
     result = use_case.execute(ListSmtpAccountsQuery(organization_id=auth.organization_id))
-    return SmtpAccountListResponse(items=[_to_response(item) for item in result.items])
+    return EmailAccountListResponse(items=[_to_response(item) for item in result.items])
 
 
 @router.get(
     "/{account_id}",
-    response_model=SmtpAccountResponse,
+    response_model=EmailAccountResponse,
     responses={404: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
 )
-def get_smtp_account(
+def get_email_account(
     account_id: UUID,
     auth: AuthContext = Depends(require_read_permission),
-    use_case: GetSmtpAccountUseCase = Depends(get_get_smtp_account_use_case),
-) -> SmtpAccountResponse:
+    use_case: GetSmtpAccountUseCase = Depends(get_get_email_account_use_case),
+) -> EmailAccountResponse:
     try:
         result = use_case.execute(
             GetSmtpAccountQuery(
@@ -169,20 +192,20 @@ def get_smtp_account(
 
 @router.patch(
     "/{account_id}",
-    response_model=SmtpAccountResponse,
+    response_model=EmailAccountResponse,
     responses={
         400: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
     },
 )
-def update_smtp_account(
+def update_email_account(
     account_id: UUID,
-    body: UpdateSmtpAccountRequest,
+    body: UpdateEmailAccountRequest,
     auth: AuthContext = Depends(get_auth_context),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    use_case: UpdateSmtpAccountUseCase = Depends(get_update_smtp_account_use_case),
-) -> SmtpAccountResponse:
+    use_case: UpdateSmtpAccountUseCase = Depends(get_update_email_account_use_case),
+) -> EmailAccountResponse:
     try:
         result = use_case.execute(
             UpdateSmtpAccountCommand(
@@ -190,7 +213,7 @@ def update_smtp_account(
                 account_id=account_id,
                 access_token=_access_token(credentials),
                 user_id=auth.user_id,
-                **body.model_dump(exclude_unset=True),
+                **_smtp_fields(body.model_dump(exclude_unset=True)),
             )
         )
     except ForbiddenError as exc:
@@ -212,19 +235,19 @@ def update_smtp_account(
 
 @router.post(
     "/{account_id}/set-default",
-    response_model=SmtpAccountResponse,
+    response_model=EmailAccountResponse,
     responses={
         400: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
     },
 )
-def set_default_smtp_account(
+def set_default_email_account(
     account_id: UUID,
     auth: AuthContext = Depends(get_auth_context),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    use_case: SetDefaultSmtpAccountUseCase = Depends(get_set_default_smtp_account_use_case),
-) -> SmtpAccountResponse:
+    use_case: SetDefaultSmtpAccountUseCase = Depends(get_set_default_email_account_use_case),
+) -> EmailAccountResponse:
     try:
         result = use_case.execute(
             SetDefaultSmtpAccountCommand(
@@ -245,20 +268,20 @@ def set_default_smtp_account(
 
 @router.post(
     "/{account_id}/test",
-    response_model=SendTestSmtpMailResponse,
+    response_model=SendTestEmailAccountMailResponse,
     responses={
         400: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
     },
 )
-def send_test_smtp_mail(
+def send_test_email_account_mail(
     account_id: UUID,
-    body: SendTestSmtpMailRequest,
+    body: SendTestEmailAccountMailRequest,
     auth: AuthContext = Depends(get_auth_context),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    use_case: SendTestSmtpMailUseCase = Depends(get_send_test_smtp_mail_use_case),
-) -> SendTestSmtpMailResponse:
+    use_case: SendTestSmtpMailUseCase = Depends(get_send_test_email_account_mail_use_case),
+) -> SendTestEmailAccountMailResponse:
     try:
         result = use_case.execute(
             SendTestSmtpMailCommand(
@@ -286,15 +309,15 @@ def send_test_smtp_mail(
 
 @router.delete(
     "/{account_id}",
-    response_model=SmtpAccountResponse,
+    response_model=EmailAccountResponse,
     responses={404: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
 )
-def delete_smtp_account(
+def delete_email_account(
     account_id: UUID,
     auth: AuthContext = Depends(get_auth_context),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    use_case: DeleteSmtpAccountUseCase = Depends(get_delete_smtp_account_use_case),
-) -> SmtpAccountResponse:
+    use_case: DeleteSmtpAccountUseCase = Depends(get_delete_email_account_use_case),
+) -> EmailAccountResponse:
     try:
         result = use_case.execute(
             DeleteSmtpAccountCommand(

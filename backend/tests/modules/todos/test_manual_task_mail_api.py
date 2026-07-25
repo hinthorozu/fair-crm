@@ -24,7 +24,7 @@ def _create_smtp_account(client, auth_headers, **overrides):
         "is_active": True,
     }
     payload.update(overrides)
-    return client.post("/api/v1/smtp/accounts", json=payload, headers=auth_headers)
+    return client.post("/api/v1/email-accounts", json=payload, headers=auth_headers)
 
 
 def _create_mail_template(client, auth_headers, **overrides):
@@ -74,7 +74,7 @@ def test_send_manual_task_mail_queues_one_operation_per_recipient(
         json={
             "todo_id": todo_id,
             "customer_id": customer_id,
-            "smtp_account_id": smtp_id,
+            "email_account_id": smtp_id,
             "template_id": template_id,
             "recipients": "one@example.com; two@example.com; one@example.com;",
             "subject": "Final Subject From UI",
@@ -101,15 +101,15 @@ def test_send_manual_task_mail_queues_one_operation_per_recipient(
         assert op.subject == "Final Subject From UI"
         assert op.body_html == "<p>Final Body From UI</p>"
         assert op.body_text == "<p>Final Body From UI</p>"
-        assert op.smtp_account_id is not None
-        assert str(op.smtp_account_id) == smtp_id
+        assert op.email_account_id is not None
+        assert str(op.email_account_id) == smtp_id
         assert str(op.template_id) == template_id
         assert str(op.customer_id) == customer_id
         assert op.metadata_json["source"] == "manual_task_mail"
         assert op.metadata_json["todo_id"] == todo_id
         assert op.metadata_json["customer_id"] == customer_id
         assert op.metadata_json["recipient"] == op.recipient_email
-        assert op.metadata_json["smtp_account_id"] == smtp_id
+        assert op.metadata_json["email_account_id"] == smtp_id
         assert op.metadata_json["template_id"] == template_id
         events = [entry["event"] for entry in (op.operation_logs or [])]
         assert events == ["queued"]
@@ -129,7 +129,7 @@ def test_send_manual_task_mail_does_not_require_template(
         f"{WORKLIST_BASE.format(todo_id=todo_id)}/customers/{customer_id}/manual-mail",
         headers=auth_headers,
         json={
-            "smtp_account_id": smtp.json()["id"],
+            "email_account_id": smtp.json()["id"],
             "recipients": "solo@example.com",
             "subject": "Plain subject",
             "body": "Plain body text",
@@ -150,7 +150,7 @@ def test_send_manual_task_mail_does_not_require_template(
     assert "template_id" not in (operation.metadata_json or {})
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_send_manual_task_mail_background_worker_moves_to_sent(
     mock_send, client, auth_headers, db_session, organization_id, user_id
 ):
@@ -164,7 +164,7 @@ def test_send_manual_task_mail_background_worker_moves_to_sent(
         f"{WORKLIST_BASE.format(todo_id=todo_id)}/customers/{customer_id}/manual-mail",
         headers=auth_headers,
         json={
-            "smtp_account_id": smtp.json()["id"],
+            "email_account_id": smtp.json()["id"],
             "recipients": "worker-seen@example.com; worker-seen-2@example.com",
             "subject": "Worker subject",
             "body": "Worker body",
@@ -211,7 +211,7 @@ def test_send_manual_task_mail_rejects_invalid_recipients(
             f"{WORKLIST_BASE.format(todo_id=todo_id)}/customers/{customer_id}/manual-mail",
             headers=auth_headers,
             json={
-                "smtp_account_id": smtp_id,
+                "email_account_id": smtp_id,
                 "recipients": recipients,
                 "subject": "Subject",
                 "body": "Body",
@@ -227,7 +227,7 @@ def test_send_manual_task_mail_rejects_invalid_recipients(
         f"{WORKLIST_BASE.format(todo_id=todo_id)}/customers/{customer_id}/manual-mail",
         headers=auth_headers,
         json={
-            "smtp_account_id": smtp_id,
+            "email_account_id": smtp_id,
             "recipients": "abc@example.com; abc @.oxom",
             "subject": "Subject",
             "body": "Body",
@@ -257,7 +257,7 @@ def test_send_manual_task_mail_accepts_valid_recipient(
         f"{WORKLIST_BASE.format(todo_id=todo_id)}/customers/{customer_id}/manual-mail",
         headers=auth_headers,
         json={
-            "smtp_account_id": smtp.json()["id"],
+            "email_account_id": smtp.json()["id"],
             "recipients": "abc@example.com",
             "subject": "Subject",
             "body": "Body",

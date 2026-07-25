@@ -92,7 +92,7 @@ type AppRoute =
   | "/data-integration/runs/:runId"
   | "/data-integration/scraper-test"
   | "/admin/system/backups"
-  | "/admin/smtp-operations/accounts"
+  | "/admin/email-accounts"
   | "/admin/smtp-operations/templates"
   | "/admin/smtp-operations/mail-operations"
   | "/admin/data-operations"
@@ -135,11 +135,8 @@ function parseRoute(location: string): ParsedRoute {
     if (pathname.startsWith("/admin/data-operations")) {
       return { route: "/admin/data-operations" };
     }
-    if (
-      pathname === "/admin/smtp-operations/accounts" ||
-      pathname.startsWith("/admin/smtp-operations/accounts/")
-    ) {
-      return { route: "/admin/smtp-operations/accounts" };
+    if (pathname === "/admin/email-accounts" || pathname.startsWith("/admin/email-accounts/")) {
+      return { route: "/admin/email-accounts" };
     }
     if (
       pathname === "/admin/smtp-operations/templates" ||
@@ -312,7 +309,9 @@ function adminSection(route: AppRoute): string {
   if (route.includes("/operation-capabilities")) return "operation-capabilities";
   if (route.includes("/smtp-operations/templates")) return "mail-templates";
   if (route.includes("/smtp-operations/mail-operations")) return "mail-operations";
-  if (route.includes("/smtp-operations/accounts")) return "smtp";
+  if (route.includes("/email-accounts")) {
+    return "email-accounts";
+  }
   if (route.includes("/backups")) return "backups";
   return "backups";
 }
@@ -789,7 +788,7 @@ export function App() {
                     label:
                       parsed.route === "/admin/data-operations/runs/:runId"
                         ? adminLabels.dataOpAnalyzeResultTitle
-                        : parsed.route === "/admin/smtp-operations/accounts"
+                        : parsed.route === "/admin/email-accounts"
                           ? adminLabels.navSmtpAccounts
                           : parsed.route === "/admin/smtp-operations/templates"
                             ? adminLabels.navMailTemplates
@@ -963,7 +962,7 @@ export function App() {
     >
       {adminNotice && <p className="text-muted">{adminNotice}</p>}
       {parsed.route === "/admin/system/backups" && <DatabaseBackupsPage />}
-      {parsed.route === "/admin/smtp-operations/accounts" && <SmtpAccountsPage />}
+      {parsed.route === "/admin/email-accounts" && <SmtpAccountsPage />}
       {parsed.route === "/admin/smtp-operations/templates" && <MailTemplatesPage />}
       {parsed.route === "/admin/smtp-operations/mail-operations" && <MailOperationsPage />}
       {parsed.route === "/admin/data-operations" && (

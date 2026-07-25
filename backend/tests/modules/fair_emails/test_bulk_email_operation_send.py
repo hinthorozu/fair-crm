@@ -83,7 +83,7 @@ def test_manual_send_creates_batch_with_null_fair_and_crm_ids(
             access_token="token",
             source_type="manual",
             template_id=UUID(template_id),
-            smtp_account_id=smtp_id,
+            email_account_id=smtp_id,
             subject="Merhaba",
             manual_emails="one@example.com;two@example.com",
         )
@@ -115,7 +115,7 @@ def test_crm_less_manual_creates_no_activity(db_session, organization_id):
         organization_id=organization_id,
         fair_id=None,
         template_id=uuid4(),
-        smtp_account_id=None,
+        email_account_id=None,
         subject_override="Konu",
         status="processing",
         total_count=1,
@@ -196,7 +196,7 @@ def test_crm_recipient_creates_activity_and_retry_creates_second_attempt(
             organization_id=organization_id,
             fair_id=UUID(fair_id),
             template_id=UUID(template_id),
-            smtp_account_id=UUID(smtp.json()["id"]),
+            email_account_id=UUID(smtp.json()["id"]),
             subject_override="Konu",
             recipient_options_json={},
             status="queued",
@@ -230,7 +230,7 @@ def test_crm_recipient_creates_activity_and_retry_creates_second_attempt(
     db_session.commit()
 
     with patch(
-        "app.modules.fair_emails.application.process_batch.send_smtp_message",
+        "app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send",
         side_effect=SmtpMailDeliveryError("boom"),
     ):
         ProcessFairEmailBatchUseCase(db_session).execute(
@@ -256,7 +256,7 @@ def test_crm_recipient_creates_activity_and_retry_creates_second_attempt(
     assert outbox.status == "pending"
     assert outbox.send_attempt == 2
 
-    with patch("app.modules.fair_emails.application.process_batch.send_smtp_message"):
+    with patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send"):
         ProcessFairEmailBatchUseCase(db_session).execute(
             ProcessBatchCommand(batch_id=batch_id, organization_id=organization_id)
         )
@@ -286,7 +286,7 @@ def test_prepare_outbox_for_retry_rejects_sent(db_session, organization_id, user
             organization_id=organization_id,
             fair_id=None,
             template_id=uuid4(),
-            smtp_account_id=None,
+            email_account_id=None,
             subject_override=None,
             recipient_options_json={},
             status="completed",
@@ -335,7 +335,7 @@ def test_retry_only_failed_not_sent(db_session, organization_id, user_id):
             organization_id=organization_id,
             fair_id=None,
             template_id=uuid4(),
-            smtp_account_id=None,
+            email_account_id=None,
             subject_override=None,
             recipient_options_json={},
             status="completed_with_errors",
@@ -419,7 +419,7 @@ def test_preview_still_creates_no_batch(
         headers=auth_headers,
         data={
             "payload": (
-                '{"source_type":"manual","template_id":"%s","smtp_account_id":"%s",'
+                '{"source_type":"manual","template_id":"%s","email_account_id":"%s",'
                 '"manual_emails":"preview@example.com"}'
                 % (template_id, smtp.json()["id"])
             )
@@ -440,7 +440,7 @@ def test_preview_manual_marks_invalid_email_skip(
         headers=auth_headers,
         data={
             "payload": (
-                '{"source_type":"manual","template_id":"%s","smtp_account_id":"%s",'
+                '{"source_type":"manual","template_id":"%s","email_account_id":"%s",'
                 '"manual_emails":"valid@example.com; bad-email; second@example.com"}'
                 % (template_id, smtp.json()["id"])
             )
@@ -502,7 +502,7 @@ def test_send_manual_excludes_invalid_from_outbox_and_mail_ops(
             access_token="token",
             source_type="manual",
             template_id=UUID(template_id),
-            smtp_account_id=smtp_id,
+            email_account_id=smtp_id,
             subject="Merhaba",
             manual_emails="valid@example.com; bad-email; second@example.com",
         )
@@ -565,7 +565,7 @@ def test_fair_list_preview_skips_invalid_db_email(
         headers=auth_headers,
         data={
             "payload": (
-                '{"source_type":"fair_list","template_id":"%s","smtp_account_id":"%s",'
+                '{"source_type":"fair_list","template_id":"%s","email_account_id":"%s",'
                 '"fair_ids":["%s"],'
                 '"recipient_options":{"include_customer_emails":true,"include_contact_emails":false}}'
                 % (template_id, smtp.json()["id"], fair_id)
@@ -595,7 +595,7 @@ def test_bulk_email_operation_logs_endpoint_ok_after_send(
         headers=auth_headers,
         data={
             "payload": (
-                '{"source_type":"manual","template_id":"%s","smtp_account_id":"%s",'
+                '{"source_type":"manual","template_id":"%s","email_account_id":"%s",'
                 '"subject":"Log check","manual_emails":"logcheck@example.com",'
                 '"client_token":"%s"}'
                 % (template_id, smtp.json()["id"], uuid4().hex)

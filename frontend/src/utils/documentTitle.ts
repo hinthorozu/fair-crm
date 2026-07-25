@@ -107,7 +107,7 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
       return dataIntegrationLabels.navReports;
     case "/admin/system/backups":
       return adminLabels.backupsTitle;
-    case "/admin/smtp-operations/accounts":
+    case "/admin/email-accounts":
       return adminLabels.smtpTitle;
     case "/admin/smtp-operations/templates":
       return adminLabels.mailTemplatesTitle;

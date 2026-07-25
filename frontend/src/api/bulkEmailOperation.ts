@@ -71,7 +71,7 @@ function appendBulkEmailFormPayload(
       JSON.stringify({
         source_type: preview.source_type,
         template_id: preview.template_id,
-        smtp_account_id: preview.smtp_account_id,
+        email_account_id: preview.email_account_id,
         subject_override: preview.subject_override,
         manual_emails: preview.manual_emails ?? null,
         fair_ids: preview.fair_ids ?? [],
@@ -90,7 +90,7 @@ function appendBulkEmailFormPayload(
     JSON.stringify({
       source_type: send.source_type,
       template_id: send.template_id,
-      smtp_account_id: send.smtp_account_id,
+      email_account_id: send.email_account_id,
       subject: send.subject,
       title: send.title ?? null,
       manual_emails: send.manual_emails ?? null,

@@ -8,7 +8,7 @@ from app.modules.smtp.application.mappers import smtp_account_to_result
 from app.modules.smtp.domain.exceptions import SmtpAccountNotFoundError
 from app.modules.smtp.domain.ports import SmtpAccountRepository
 
-PERMISSION_DELETE = "fair_crm.smtp.delete"
+PERMISSION_DELETE = "fair_crm.email_accounts.delete"
 
 
 class DeleteSmtpAccountUseCase:
@@ -36,14 +36,21 @@ class DeleteSmtpAccountUseCase:
             raise SmtpAccountNotFoundError("SMTP account not found")
 
         now = datetime.now(tz=UTC)
+        if account.is_default:
+            self._repository.promote_next_active_default(
+                command.organization_id,
+                exclude_account_id=account.id,
+                now=now,
+            )
+
         account.soft_delete(now=now)
         saved = self._repository.update(account)
 
         self._audit.record_event(
             organization_id=command.organization_id,
             access_token=command.access_token,
-            action="fair_crm.smtp_account.deleted",
-            resource_type="smtp_account",
+            action="fair_crm.email_account.deleted",
+            resource_type="email_account",
             resource_id=str(saved.id),
             metadata={"user_id": str(command.user_id)},
         )

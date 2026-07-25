@@ -174,7 +174,7 @@ function QuickActions({ onNavigate }: { onNavigate: (path: string) => void }) {
     { label: dashboardLabels.actionNewCustomer, path: "/customers" },
     { label: dashboardLabels.actionNewTodo, path: "/todos" },
     { label: dashboardLabels.actionStartImport, path: "/data-integration/imports/new" },
-    { label: dashboardLabels.actionSmtpSettings, path: "/admin/smtp-operations/accounts" },
+    { label: dashboardLabels.actionSmtpSettings, path: "/admin/email-accounts" },
     { label: dashboardLabels.actionGoToTodos, path: "/todos" },
   ];
 

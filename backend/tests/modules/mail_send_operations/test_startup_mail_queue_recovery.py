@@ -30,31 +30,47 @@ from app.modules.mail_send_operations.infrastructure.repositories.mail_send_oper
     SqlAlchemyMailSendOperationRepository,
 )
 from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
-from app.modules.smtp.infrastructure.persistence.models import SmtpAccountModel
+from app.modules.email_accounts.infrastructure.persistence.models import (
+    EmailAccountModel,
+    EmailAccountSmtpConfigModel,
+)
+from app.shared.secret_encryption import encrypt_secret
 
 
-def _create_smtp(db_session, organization_id):
+def _create_smtp_account_row(db_session, organization_id, **kwargs):
     now = datetime.now(timezone.utc)
-    account_id = uuid4()
+    account_id = kwargs.get("id") or uuid4()
     db_session.add(
-        SmtpAccountModel(
+        EmailAccountModel(
             id=account_id,
             organization_id=organization_id,
-            name="Startup Recovery SMTP",
-            from_email="noreply@example.com",
-            host="smtp.example.com",
-            port=587,
-            username="smtp-user",
-            password="secret-password",
-            encryption_type="starttls",
-            is_default=True,
-            is_active=True,
+            name=kwargs.get("name", "SMTP"),
+            account_type="smtp",
+            provider_key=None,
+            from_email=kwargs.get("from_email", "noreply@example.com"),
+            from_name=None,
+            is_default=kwargs.get("is_default", True),
+            is_active=kwargs.get("is_active", True),
             created_at=now,
             updated_at=now,
         )
     )
+    db_session.add(
+        EmailAccountSmtpConfigModel(
+            email_account_id=account_id,
+            host=kwargs.get("host", "smtp.example.com"),
+            port=kwargs.get("port", 587),
+            username=kwargs.get("username", "smtp-user"),
+            password=encrypt_secret(kwargs.get("password", "secret-password")),
+            encryption_type=kwargs.get("encryption_type", "starttls"),
+        )
+    )
     db_session.flush()
     return account_id
+
+
+def _create_smtp(db_session, organization_id):
+    return _create_smtp_account_row(db_session, organization_id, name="Startup Recovery SMTP")
 
 
 def _create_queued_operation(db_session, organization_id, *, recipient_email: str):
@@ -67,7 +83,7 @@ def _create_queued_operation(db_session, organization_id, *, recipient_email: st
             recipient_email=recipient_email,
             subject="Startup recovery",
             body_text="Body",
-            smtp_account_id=account_id,
+            email_account_id=account_id,
         )
     )
     return db_session.query(MailSendOperationModel).filter(MailSendOperationModel.id == record.id).one()
@@ -97,7 +113,7 @@ def test_startup_recovery_empty_queue_is_noop(db_session, recovery_session_facto
     mock_worker.assert_not_called()
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_startup_recovery_triggers_worker_for_queued(
     mock_send,
     db_session,
@@ -124,7 +140,7 @@ def test_startup_recovery_triggers_worker_for_queued(
     assert events[-1] == "sent"
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_startup_recovery_queued_advances_to_failed_on_smtp_error(
     mock_send,
     db_session,
@@ -205,7 +221,7 @@ def test_run_mail_queue_startup_recovery_swallows_worker_errors(recovery_session
     assert result is None
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_repeated_startup_recovery_sends_once(
     mock_send,
     db_session,
@@ -246,7 +262,7 @@ def test_atomic_claim_rejects_second_pickup(db_session, organization_id):
     assert second is None
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_recovery_skips_already_claimed_operation(
     mock_send,
     db_session,
@@ -276,7 +292,7 @@ def test_recovery_skips_already_claimed_operation(
     assert refreshed.status == MailSendOperationStatus.SENDING
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_startup_recovery_marks_stuck_sending_failed_without_resend(
     mock_send,
     db_session,
@@ -307,7 +323,7 @@ def test_startup_recovery_marks_stuck_sending_failed_without_resend(
     get_settings.cache_clear()
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_startup_recovery_leaves_sending_before_timeout(
     mock_send,
     db_session,
@@ -342,7 +358,7 @@ def test_startup_recovery_leaves_sending_before_timeout(
     get_settings.cache_clear()
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.send_smtp_message")
+@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
 def test_startup_recovery_catches_orphan_after_timeout_elapses(
     mock_send,
     db_session,

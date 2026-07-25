@@ -37,7 +37,7 @@ ROUTES = [
     ("di-scraper-test", "/data-integration/scraper-test"),
     ("di-enrichment", "/data-integration/enrichment"),
     ("admin-backups", "/admin/system/backups"),
-    ("admin-smtp", "/admin/smtp-operations/accounts"),
+    ("admin-email-accounts", "/admin/email-accounts"),
     ("admin-templates", "/admin/smtp-operations/templates"),
     ("admin-mail-ops", "/admin/smtp-operations/mail-operations"),
     ("admin-data-ops", "/admin/data-operations"),

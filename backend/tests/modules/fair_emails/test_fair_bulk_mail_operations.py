@@ -17,7 +17,7 @@ def _operation_events(operation: MailSendOperationModel) -> list[str]:
     return [entry["event"] for entry in operation.operation_logs]
 
 
-@patch("app.modules.fair_emails.application.process_batch.send_smtp_message")
+@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
 def test_bulk_send_creates_mail_send_operations(
     mock_send,
     client,
@@ -63,7 +63,7 @@ def test_bulk_send_creates_mail_send_operations(
         assert operation.customer_id is not None
         assert operation.recipient_email
         assert operation.subject == "Fuar daveti"
-        assert operation.smtp_account_id is not None
+        assert operation.email_account_id is not None
         assert operation.template_id == UUID(data["template_id"])
         assert operation.status in (
             MailSendOperationStatus.QUEUED,
@@ -73,7 +73,7 @@ def test_bulk_send_creates_mail_send_operations(
         assert "queued" in _operation_events(operation)
 
 
-@patch("app.modules.fair_emails.application.process_batch.send_smtp_message")
+@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
 def test_process_batch_marks_mail_operations_sent(
     mock_send,
     db_session,
@@ -112,7 +112,7 @@ def test_process_batch_marks_mail_operations_sent(
         assert operation.sent_at is not None
 
 
-@patch("app.modules.fair_emails.application.process_batch.send_smtp_message")
+@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
 def test_process_batch_marks_mail_operations_failed(
     mock_send,
     db_session,
@@ -150,7 +150,7 @@ def test_process_batch_marks_mail_operations_failed(
         assert operation.error_message == "Authentication failed"
 
 
-@patch("app.modules.fair_emails.application.process_batch.send_smtp_message")
+@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
 def test_process_batch_does_not_create_duplicate_operations(
     mock_send,
     db_session,

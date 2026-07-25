@@ -44,7 +44,7 @@ def _seed_pending_batch(db_session, organization_id, user_id, client, auth_heade
         organization_id=organization_id,
         fair_id=UUID(fair_id),
         template_id=UUID(template_id),
-        smtp_account_id=UUID(smtp.json()["id"]),
+        email_account_id=UUID(smtp.json()["id"]),
         subject_override="Fuar daveti",
         recipient_options_json={"include_customer_emails": True},
         status="queued",
@@ -82,7 +82,7 @@ def _seed_pending_batch(db_session, organization_id, user_id, client, auth_heade
     return batch_id
 
 
-@patch("app.modules.fair_emails.application.process_batch.send_smtp_message")
+@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
 def test_process_batch_inactive_smtp_fails_all_items(
     mock_send,
     db_session,
@@ -95,7 +95,7 @@ def test_process_batch_inactive_smtp_fails_all_items(
 
     batch_id = _seed_pending_batch(db_session, organization_id, user_id, client, auth_headers)
     batch = db_session.query(FairEmailBatchModel).filter(FairEmailBatchModel.id == batch_id).one()
-    smtp = db_session.query(SmtpAccountModel).filter(SmtpAccountModel.id == batch.smtp_account_id).one()
+    smtp = db_session.query(SmtpAccountModel).filter(SmtpAccountModel.id == batch.email_account_id).one()
     smtp.is_active = False
     db_session.commit()
 
@@ -113,7 +113,7 @@ def test_process_batch_inactive_smtp_fails_all_items(
     mock_send.assert_not_called()
 
 
-@patch("app.modules.fair_emails.application.process_batch.send_smtp_message")
+@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
 def test_process_batch_marks_items_sent(mock_send, db_session, client, auth_headers, organization_id, user_id):
     batch_id = _seed_pending_batch(db_session, organization_id, user_id, client, auth_headers)
 
@@ -131,7 +131,7 @@ def test_process_batch_marks_items_sent(mock_send, db_session, client, auth_head
     assert mock_send.call_count == 2
 
 
-@patch("app.modules.fair_emails.application.process_batch.send_smtp_message")
+@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
 def test_process_batch_marks_smtp_failure(mock_send, db_session, client, auth_headers, organization_id, user_id):
     mock_send.side_effect = SmtpMailDeliveryError("Authentication failed")
     batch_id = _seed_pending_batch(db_session, organization_id, user_id, client, auth_headers)
@@ -149,7 +149,7 @@ def test_process_batch_marks_smtp_failure(mock_send, db_session, client, auth_he
     assert all(item.error_message == "Authentication failed" for item in outbox)
 
 
-@patch("app.modules.fair_emails.application.process_batch.send_smtp_message")
+@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
 def test_process_batch_exception_does_not_leave_items_queued(
     mock_send,
     db_session,
@@ -174,7 +174,7 @@ def test_process_batch_exception_does_not_leave_items_queued(
     assert all(item.status != "pending" for item in outbox)
 
 
-@patch("app.modules.fair_emails.application.process_batch.send_smtp_message")
+@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
 def test_send_then_background_processor_updates_outbox(
     mock_send,
     client,

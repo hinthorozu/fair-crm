@@ -7,7 +7,7 @@ import {
   updateMailTemplate,
   ApiError,
 } from "../api/mailTemplates";
-import { listSmtpAccounts } from "../api/smtp";
+import { listEmailAccounts } from "../api/emailAccounts";
 import { MailTemplateActionsMenu } from "../components/mail_templates/MailTemplateActionsMenu";
 import { MailTemplateForm } from "../components/mail_templates/MailTemplateForm";
 import { MailTemplatePreviewPanel } from "../components/mail_templates/MailTemplatePreviewPanel";
@@ -27,7 +27,7 @@ import {
   getGrantedMailTemplatePermissions,
 } from "../permissions/mailTemplatePermissions";
 import type { MailTemplate, MailTemplateType, RenderMailTemplateResponse } from "../types/mailTemplates";
-import type { SmtpAccount } from "../types/smtp";
+import type { EmailAccount } from "../types/smtp";
 import { DEFAULT_RENDER_VARIABLES_JSON, MAIL_TEMPLATE_TYPES } from "../utils/mailTemplateForm";
 import { Banner } from "../components/ui/Banner";
 import { PageShell } from "../components/ui/PageShell";
@@ -67,7 +67,7 @@ export function MailTemplatesPage() {
   const [setDefaultTarget, setSetDefaultTarget] = React.useState<MailTemplate | null>(null);
   const [settingDefaultId, setSettingDefaultId] = React.useState<string | null>(null);
   const [testEmailTarget, setTestEmailTarget] = React.useState<MailTemplate | null>(null);
-  const [smtpAccounts, setSmtpAccounts] = React.useState<SmtpAccount[]>([]);
+  const [emailAccounts, setEmailAccounts] = React.useState<EmailAccount[]>([]);
 
   const [filterType, setFilterType] = React.useState<MailTemplateType | "all">("all");
   const [filterLanguage, setFilterLanguage] = React.useState<string>("all");
@@ -215,16 +215,16 @@ export function MailTemplatesPage() {
   const openTestEmail = async (template: MailTemplate) => {
     setTestEmailTarget(template);
     try {
-      const response = await listSmtpAccounts();
-      setSmtpAccounts(response.items);
+      const response = await listEmailAccounts();
+      setEmailAccounts(response.items);
     } catch {
-      setSmtpAccounts([]);
+      setEmailAccounts([]);
     }
   };
 
   const closeTestEmail = () => {
     setTestEmailTarget(null);
-    setSmtpAccounts([]);
+    setEmailAccounts([]);
   };
 
   const handleSetDefault = async (template: MailTemplate) => {
@@ -493,7 +493,7 @@ export function MailTemplatesPage() {
         <FormModal title={adminLabels.mailTemplatesTestEmailTitle} onClose={closeTestEmail} size="lg">
           <MailTemplateTestEmailPanel
             template={testEmailTarget}
-            smtpAccounts={smtpAccounts}
+            emailAccounts={emailAccounts}
             canRender={canRender}
             canTestSend={canTestSend}
             onCancel={closeTestEmail}

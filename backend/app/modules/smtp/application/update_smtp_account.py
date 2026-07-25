@@ -8,7 +8,7 @@ from app.modules.smtp.application.mappers import smtp_account_to_result
 from app.modules.smtp.domain.exceptions import SmtpAccountNotFoundError
 from app.modules.smtp.domain.ports import SmtpAccountRepository
 
-PERMISSION_UPDATE = "fair_crm.smtp.update"
+PERMISSION_UPDATE = "fair_crm.email_accounts.update"
 
 
 class UpdateSmtpAccountUseCase:
@@ -40,6 +40,19 @@ class UpdateSmtpAccountUseCase:
         if password_update is not None and password_update == "":
             password_update = None
 
+        will_deactivate = command.is_active is False and account.is_active
+        if account.is_default and will_deactivate:
+            self._repository.promote_next_active_default(
+                command.organization_id,
+                exclude_account_id=account.id,
+                now=now,
+            )
+
+        is_default = command.is_default
+        if will_deactivate:
+            # Deactivating a default account always clears is_default on current.
+            is_default = False
+
         account.update_fields(
             name=command.name,
             from_email=command.from_email,
@@ -49,12 +62,12 @@ class UpdateSmtpAccountUseCase:
             username=command.username,
             password=password_update,
             encryption_type=command.encryption_type,
-            is_default=command.is_default,
+            is_default=is_default,
             is_active=command.is_active,
             now=now,
         )
 
-        if command.is_default is True:
+        if is_default is True:
             # Flush cleared defaults before writing this account as default.
             self._repository.clear_default_for_organization(
                 command.organization_id,
@@ -67,8 +80,8 @@ class UpdateSmtpAccountUseCase:
         self._audit.record_event(
             organization_id=command.organization_id,
             access_token=command.access_token,
-            action="fair_crm.smtp_account.updated",
-            resource_type="smtp_account",
+            action="fair_crm.email_account.updated",
+            resource_type="email_account",
             resource_id=str(saved.id),
             new_values={"name": saved.name},
             metadata={"user_id": str(command.user_id)},

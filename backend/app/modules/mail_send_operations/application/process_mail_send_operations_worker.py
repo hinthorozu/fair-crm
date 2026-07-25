@@ -26,6 +26,7 @@ from app.modules.mail_send_operations.domain.worker_constants import WORKER_LOG_
 from app.modules.mail_send_operations.infrastructure.repositories.mail_send_operation_repository import (
     SqlAlchemyMailSendOperationRepository,
 )
+from app.modules.email_delivery.domain.retryability import is_retryable_delivery_error
 from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ class MailSendOperationWorkerResult:
     sent_count: int
     failed_count: int
     skipped_count: int
+    retried_count: int = 0
 
 
 class ProcessMailSendOperationsWorker:
@@ -63,6 +65,7 @@ class ProcessMailSendOperationsWorker:
         sent_count = 0
         failed_count = 0
         skipped_count = 0
+        retried_count = 0
 
         for candidate in candidates:
             outcome = self._process_candidate(candidate, now=now)
@@ -70,6 +73,8 @@ class ProcessMailSendOperationsWorker:
                 sent_count += 1
             elif outcome == "failed":
                 failed_count += 1
+            elif outcome == "retried":
+                retried_count += 1
             else:
                 skipped_count += 1
 
@@ -80,6 +85,7 @@ class ProcessMailSendOperationsWorker:
             sent_count=sent_count,
             failed_count=failed_count,
             skipped_count=skipped_count,
+            retried_count=retried_count,
         )
 
     def _recover_stuck_sending(self, *, now: datetime, timeout_minutes: int) -> int:
@@ -124,6 +130,8 @@ class ProcessMailSendOperationsWorker:
             self._dispatcher.dispatch(claimed)
         except SmtpMailDeliveryError as exc:
             message = exc.args[0] if exc.args else "Mail gönderimi başarısız oldu."
+            if self._try_auto_retry(claimed, error_code=exc.error_type, error_message=message):
+                return "retried"
             self._mail_service.mark_failed(
                 claimed.organization_id,
                 claimed.id,
@@ -134,13 +142,16 @@ class ProcessMailSendOperationsWorker:
             return "failed"
         except Exception as exc:
             message = str(exc).strip() or "Mail gönderimi başarısız oldu."
+            error_code = type(exc).__name__
+            if self._try_auto_retry(claimed, error_code=error_code, error_message=message):
+                return "retried"
             self._mail_service.mark_failed(
                 claimed.organization_id,
                 claimed.id,
-                error_code=type(exc).__name__,
+                error_code=error_code,
                 error_message=message,
             )
-            self._sync_fair_bulk_failure(claimed, message=message, error_code=type(exc).__name__)
+            self._sync_fair_bulk_failure(claimed, message=message, error_code=error_code)
             logger.exception(
                 "mail_worker_operation_failed operation_id=%s organization_id=%s",
                 claimed.id,
@@ -169,6 +180,20 @@ class ProcessMailSendOperationsWorker:
             log_message=WORKER_LOG_SENT,
         )
         return "sent"
+
+    def _try_auto_retry(
+        self,
+        record: MailSendOperationRecord,
+        *,
+        error_code: str | None,
+        error_message: str | None,
+    ) -> bool:
+        if not is_retryable_delivery_error(error_code, error_message=error_message):
+            return False
+        if record.retry_count >= record.max_retry_count - 1:
+            return False
+        self._repository.requeue_for_auto_retry(record.organization_id, record.id)
+        return True
 
     def _sync_fair_bulk_failure(
         self,
@@ -230,6 +255,7 @@ def process_mail_send_operations_background(*, max_drain_rounds: int = 100) -> M
     sent = 0
     failed = 0
     skipped = 0
+    retried = 0
     try:
         logger.info("mail_worker_background_started")
         for round_index in range(max(1, max_drain_rounds)):
@@ -240,22 +266,25 @@ def process_mail_send_operations_background(*, max_drain_rounds: int = 100) -> M
             sent += result.sent_count
             failed += result.failed_count
             skipped += result.skipped_count
+            retried += result.retried_count
             if result.picked_count == 0:
                 break
             logger.info(
-                "mail_worker_background_round round=%s picked=%s sent=%s failed=%s",
+                "mail_worker_background_round round=%s picked=%s sent=%s failed=%s retried=%s",
                 round_index + 1,
                 result.picked_count,
                 result.sent_count,
                 result.failed_count,
+                result.retried_count,
             )
         logger.info(
-            "mail_worker_background_completed recovered=%s picked=%s sent=%s failed=%s skipped=%s",
+            "mail_worker_background_completed recovered=%s picked=%s sent=%s failed=%s skipped=%s retried=%s",
             recovered,
             picked,
             sent,
             failed,
             skipped,
+            retried,
         )
         return MailSendOperationWorkerResult(
             recovered_stuck_count=recovered,
@@ -263,6 +292,7 @@ def process_mail_send_operations_background(*, max_drain_rounds: int = 100) -> M
             sent_count=sent,
             failed_count=failed,
             skipped_count=skipped,
+            retried_count=retried,
         )
     except Exception:
         session.rollback()

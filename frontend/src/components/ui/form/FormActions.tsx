@@ -6,6 +6,8 @@ interface FormActionsProps {
   cancelLabel: string;
   saving?: boolean;
   savingLabel?: string;
+  /** When true, primary submit is disabled (in addition to saving/loading). */
+  submitDisabled?: boolean;
 }
 
 export function FormActions({
@@ -14,13 +16,14 @@ export function FormActions({
   cancelLabel,
   saving,
   savingLabel,
+  submitDisabled = false,
 }: FormActionsProps) {
   return (
     <div className="form-actions span-2">
       <Button type="button" variant="secondary" onClick={onCancel} disabled={saving}>
         {cancelLabel}
       </Button>
-      <Button type="submit" variant="primary" loading={saving}>
+      <Button type="submit" variant="primary" loading={saving} disabled={submitDisabled || saving}>
         {saving ? (savingLabel ?? "…") : submitLabel}
       </Button>
     </div>

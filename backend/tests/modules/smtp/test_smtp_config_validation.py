@@ -50,7 +50,7 @@ def test_user_facing_connection_error_generic_os_error():
 
 def test_create_smtp_account_includes_ssl_port_warning(client, auth_headers):
     response = client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json={
             "name": "Mismatch SMTP",
             "from_email": "noreply@example.com",
@@ -69,7 +69,7 @@ def test_create_smtp_account_includes_ssl_port_warning(client, auth_headers):
 
 def test_create_smtp_account_no_warning_for_starttls_587(client, auth_headers):
     response = client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json={
             "name": "Valid SMTP",
             "from_email": "noreply@example.com",
@@ -90,7 +90,7 @@ def test_send_test_smtp_mail_maps_ssl_wrong_version_error(client, auth_headers, 
     from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
 
     create = client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json={
             "name": "Test Mail SMTP",
             "from_email": "noreply@example.com",
@@ -112,12 +112,12 @@ def test_send_test_smtp_mail_maps_ssl_wrong_version_error(client, auth_headers, 
         raise SmtpMailDeliveryError(SSL_WRONG_VERSION_USER_MESSAGE)
 
     monkeypatch.setattr(
-        "app.modules.smtp.application.send_test_smtp_mail.send_smtp_message",
+        "app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher",
         _raise_ssl_error,
     )
 
     response = client.post(
-        f"/api/v1/smtp/accounts/{account_id}/test",
+        f"/api/v1/email-accounts/{account_id}/test",
         json={"recipient": "admin@example.com"},
         headers=auth_headers,
     )

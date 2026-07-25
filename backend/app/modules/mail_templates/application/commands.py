@@ -108,7 +108,7 @@ class SendTestMailTemplateCommand:
     user_id: UUID
     to_email: str
     variables: dict[str, Any]
-    smtp_account_id: UUID | None = None
+    email_account_id: UUID | None = None
     subject_override: str | None = None
 
 

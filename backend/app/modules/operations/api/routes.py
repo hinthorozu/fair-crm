@@ -738,7 +738,7 @@ async def preview_bulk_email_operation(
                 access_token=_access_token(credentials),
                 source_type=payload.source_type,
                 template_id=payload.template_id,
-                smtp_account_id=payload.smtp_account_id,
+                email_account_id=payload.email_account_id,
                 subject_override=payload.subject_override,
                 manual_emails=payload.manual_emails,
                 excel_bytes=excel_bytes,
@@ -808,8 +808,8 @@ async def preview_bulk_email_operation(
         mail=BulkEmailOperationMailPreviewResponse(
             template_id=mail.template_id,
             template_name=mail.template_name,
-            smtp_account_id=mail.smtp_account_id,
-            smtp_account_name=mail.smtp_account_name,
+            email_account_id=mail.email_account_id,
+            email_account_name=mail.email_account_name,
             rendered_subject=mail.rendered_subject,
             body_html=mail.body_html,
             body_text=mail.body_text,
@@ -920,7 +920,6 @@ async def send_bulk_email_operation(
     type_config: dict = {
         "source_type": source_type,
         "template_id": str(payload.template_id),
-        "smtp_account_id": str(payload.smtp_account_id),
         "subject": payload.subject,
         "manual_emails": payload.manual_emails,
         "excel_recipient_rows": excel_recipient_rows,
@@ -937,6 +936,9 @@ async def send_bulk_email_operation(
             "dedupe_emails": opts.dedupe_emails,
         },
     }
+    from app.modules.email_accounts.application.account_ref import stamp_email_account_id
+
+    type_config = stamp_email_account_id(type_config, payload.email_account_id)
     if payload.client_token:
         type_config["client_token"] = payload.client_token
 

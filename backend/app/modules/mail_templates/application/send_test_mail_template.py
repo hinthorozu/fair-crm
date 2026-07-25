@@ -29,7 +29,7 @@ from app.modules.smtp.domain.exceptions import (
     SmtpMailDeliveryError,
 )
 from app.modules.smtp.domain.ports import SmtpAccountRepository
-from app.modules.smtp.infrastructure.smtp_mailer import send_smtp_message
+from app.modules.email_delivery.application.deliver import deliver_smtp_account_with_dispatcher
 
 PERMISSION_TEST_SEND = "fair_crm.mail_templates.test_send"
 _RECIPIENT_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
@@ -101,7 +101,7 @@ class SendTestMailTemplateUseCase:
 
         account = self._resolve_smtp_account(command)
         if account is None:
-            if command.smtp_account_id is not None:
+            if command.email_account_id is not None:
                 raise SmtpAccountNotFoundError("SMTP account not found")
             raise MailTemplateDefaultSmtpNotFoundError(DEFAULT_SMTP_USER_MESSAGE)
         if account.deleted_at is not None:
@@ -124,8 +124,9 @@ class SendTestMailTemplateUseCase:
                     subject=final_subject,
                     body_text=body_text,
                     body_html=rendered_body_html,
-                    smtp_account_id=account.id,
+                    email_account_id=account.id,
                     template_id=template.id,
+                    max_retry_count=account.max_delivery_attempts,
                     metadata_json={"template_key": template.key},
                 ),
                 error_code="InactiveAccount",
@@ -146,15 +147,16 @@ class SendTestMailTemplateUseCase:
             subject=final_subject,
             body_text=body_text,
             body_html=rendered_body_html,
-            smtp_account_id=account.id,
+            email_account_id=account.id,
             template_id=template.id,
+            max_retry_count=account.max_delivery_attempts,
             metadata_json={"template_key": template.key},
         )
 
         try:
             self._mail_send_operations.execute_synchronous_send(
                 operation_params,
-                send_fn=lambda: send_smtp_message(
+                send_fn=lambda: deliver_smtp_account_with_dispatcher(
                     account,
                     recipient=recipient,
                     subject=final_subject,
@@ -189,7 +191,7 @@ class SendTestMailTemplateUseCase:
             resource_id=str(template.id),
             new_values={
                 "to_email": recipient,
-                "smtp_account_id": str(account.id),
+                "email_account_id": str(account.id),
                 "template_key": template.key,
             },
             metadata={"user_id": str(command.user_id)},
@@ -204,6 +206,6 @@ class SendTestMailTemplateUseCase:
         )
 
     def _resolve_smtp_account(self, command: SendTestMailTemplateCommand):
-        if command.smtp_account_id is not None:
-            return self._smtp_repository.get_by_id(command.organization_id, command.smtp_account_id)
+        if command.email_account_id is not None:
+            return self._smtp_repository.get_by_id(command.organization_id, command.email_account_id)
         return self._smtp_repository.get_default_for_organization(command.organization_id)

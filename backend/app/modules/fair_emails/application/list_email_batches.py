@@ -23,8 +23,8 @@ class FairEmailBatchListItem:
     status: str
     template_id: UUID
     template_name: str | None
-    smtp_account_id: UUID | None
-    smtp_account_name: str | None
+    email_account_id: UUID | None
+    email_account_name: str | None
     subject: str | None
     total_recipients: int
     queued_count: int
@@ -81,8 +81,8 @@ class ListFairEmailBatchesUseCase:
         subject = batch.subject_override or (template.subject if template is not None else None)
 
         smtp_name = None
-        if batch.smtp_account_id is not None:
-            account = self._smtp_repository.get_by_id(organization_id, batch.smtp_account_id)
+        if batch.email_account_id is not None:
+            account = self._smtp_repository.get_by_id(organization_id, batch.email_account_id)
             smtp_name = account.name if account is not None else None
 
         queued_count = max(0, batch.total_count - batch.sent_count - batch.failed_count)
@@ -91,8 +91,8 @@ class ListFairEmailBatchesUseCase:
             status=batch.status,
             template_id=batch.template_id,
             template_name=template_name,
-            smtp_account_id=batch.smtp_account_id,
-            smtp_account_name=smtp_name,
+            email_account_id=batch.email_account_id,
+            email_account_name=smtp_name,
             subject=subject,
             total_recipients=batch.total_count,
             queued_count=queued_count,

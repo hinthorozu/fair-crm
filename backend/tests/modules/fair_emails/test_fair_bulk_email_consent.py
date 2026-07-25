@@ -18,7 +18,7 @@ from tests.modules.fair_emails.test_fair_bulk_email_api import (
 )
 
 
-@patch("app.modules.fair_emails.application.process_batch.send_smtp_message")
+@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
 def test_bulk_send_skips_customer_with_email_consent_disabled(
     mock_send,
     client,
@@ -42,7 +42,7 @@ def test_bulk_send_skips_customer_with_email_consent_disabled(
     assert response.status_code == 400
 
 
-@patch("app.modules.fair_emails.application.process_batch.send_smtp_message")
+@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
 def test_bulk_send_creates_skipped_operation_for_contact_consent(
     mock_send,
     client,
@@ -94,7 +94,7 @@ def test_bulk_send_creates_skipped_operation_for_contact_consent(
     mock_send.assert_called()
 
 
-@patch("app.modules.fair_emails.application.process_batch.send_smtp_message")
+@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
 def test_customer_consent_blocks_contact_even_when_contact_allowed(
     mock_send,
     client,

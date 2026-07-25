@@ -19,15 +19,19 @@ from app.modules.fair_emails.infrastructure.repositories.fair_email_batch_reposi
     FairEmailBatchRecord,
     SqlAlchemyFairEmailBatchRepository,
 )
+from app.modules.email_accounts.domain.entities import EmailAccount, EmailAccountSmtpConfig
+from app.modules.email_accounts.domain.value_objects import EmailAccountType
+from app.modules.email_accounts.infrastructure.repositories.email_account_repository import (
+    SqlAlchemyEmailAccountRepository,
+)
+from app.modules.email_delivery.application.dispatcher import EmailDeliveryDispatcher
+from app.modules.email_delivery.domain.exceptions import EmailDeliveryError, UnsupportedProviderError
 from app.modules.mail_templates.domain.exceptions import MailTemplateRenderError
 from app.modules.mail_templates.infrastructure.repositories.mail_template_repository import (
     SqlAlchemyMailTemplateRepository,
 )
 from app.modules.mail_templates.infrastructure.template_renderer import JinjaMailTemplateRenderer
-from app.modules.smtp.domain.entities import SmtpAccount
 from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
-from app.modules.smtp.infrastructure.repositories.smtp_account_repository import SqlAlchemySmtpAccountRepository
-from app.modules.smtp.infrastructure.smtp_mailer import send_smtp_message
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +46,8 @@ class ProcessFairEmailBatchUseCase:
         self._session = session
         self._batch_repository = SqlAlchemyFairEmailBatchRepository(session)
         self._template_repository = SqlAlchemyMailTemplateRepository(session)
-        self._smtp_repository = SqlAlchemySmtpAccountRepository(session)
+        self._email_account_repository = SqlAlchemyEmailAccountRepository(session)
+        self._delivery = EmailDeliveryDispatcher()
         self._recipient_loader = FairBulkEmailRecipientLoader(session)
         self._renderer = JinjaMailTemplateRenderer()
         self._activity_writer = FairBulkEmailActivityWriter(session)
@@ -98,7 +103,7 @@ class ProcessFairEmailBatchUseCase:
             )
             return
 
-        account, account_error = self._resolve_smtp_account(command.organization_id, batch)
+        account, smtp_config, account_error = self._resolve_email_account(command.organization_id, batch)
         batch_fair_name = self._load_fair_name(command.organization_id, batch.fair_id)
         if account is None:
             self._fail_entire_batch(
@@ -173,20 +178,26 @@ class ProcessFairEmailBatchUseCase:
             final_subject = batch.subject_override or rendered_subject
             body_text = rendered_body_text or final_subject
             try:
-                send_smtp_message(
+                self._delivery.send(
                     account,
                     recipient=outbox.email,
                     subject=final_subject,
-                    body=body_text,
+                    body_text=body_text,
                     body_html=rendered_body_html,
+                    smtp_config=smtp_config,
                 )
-            except SmtpMailDeliveryError as exc:
-                message = exc.args[0] if exc.args else "SMTP gönderimi başarısız oldu."
+            except (SmtpMailDeliveryError, EmailDeliveryError, UnsupportedProviderError) as exc:
+                if isinstance(exc, SmtpMailDeliveryError):
+                    message = exc.args[0] if exc.args else "SMTP gönderimi başarısız oldu."
+                    error_code = exc.error_type
+                else:
+                    message = exc.args[0] if exc.args else "Email gönderimi başarısız oldu."
+                    error_code = exc.error_code or type(exc).__name__
                 self._batch_repository.update_outbox_failed(outbox.id, message=message)
                 self._mail_operation_sync.sync_outbox_failed(
                     command.organization_id,
                     outbox,
-                    error_code=exc.error_type,
+                    error_code=error_code,
                     error_message=message,
                 )
                 failed_count += 1
@@ -283,34 +294,41 @@ class ProcessFairEmailBatchUseCase:
             failed_count,
         )
 
-    def _resolve_smtp_account(
+    def _resolve_email_account(
         self,
         organization_id: UUID,
         batch: FairEmailBatchRecord,
-    ) -> tuple[SmtpAccount | None, str | None]:
+    ) -> tuple[EmailAccount | None, EmailAccountSmtpConfig | None, str | None]:
         account = None
         try:
-            if batch.smtp_account_id is not None:
-                account = self._smtp_repository.get_by_id(organization_id, batch.smtp_account_id)
+            if batch.email_account_id is not None:
+                account = self._email_account_repository.get_by_id(
+                    organization_id,
+                    batch.email_account_id,
+                )
             if account is None:
-                account = self._smtp_repository.get_default_for_organization(organization_id)
+                account = self._email_account_repository.get_default_for_organization(organization_id)
         except Exception as exc:
             logger.exception(
-                "fair_email_batch_smtp_load_failed batch_id=%s smtp_account_id=%s",
+                "fair_email_batch_email_account_load_failed batch_id=%s email_account_id=%s",
                 batch.id,
-                batch.smtp_account_id,
+                batch.email_account_id,
             )
-            return None, str(exc)
+            return None, None, str(exc)
 
         if account is None:
-            return None, MISSING_SMTP_MESSAGE
+            return None, None, MISSING_SMTP_MESSAGE
         if account.deleted_at is not None:
-            return None, "SMTP account is deleted"
+            return None, None, "SMTP account is deleted"
         if not account.is_active:
-            return None, INACTIVE_SMTP_MESSAGE
-        if not account.password:
-            return None, "SMTP password is not configured"
-        return account, None
+            return None, None, INACTIVE_SMTP_MESSAGE
+
+        smtp_config: EmailAccountSmtpConfig | None = None
+        if account.account_type == EmailAccountType.SMTP:
+            smtp_config = self._email_account_repository.get_smtp_config(account.id)
+            if smtp_config is None or not smtp_config.password:
+                return None, None, "SMTP password is not configured"
+        return account, smtp_config, None
 
     def _fail_entire_batch(
         self,

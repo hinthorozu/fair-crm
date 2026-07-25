@@ -61,7 +61,7 @@ export const todoWorklistLabels = {
   manualMailNoRecipients: "Henüz alıcı eklenmedi.",
   manualMailCustomerEmail: "Müşteri",
   manualMailContactEmail: "Contact",
-  manualMailSmtpAccount: "SMTP hesabı",
+  manualMailSmtpAccount: "Gönderim hesabı",
   manualMailSmtpPlaceholder: "SMTP hesabı seçin",
   manualMailTemplate: "Mail şablonu",
   manualMailTemplatePlaceholder: "Şablon seçin (opsiyonel)",

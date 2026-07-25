@@ -136,7 +136,7 @@ class SendManualTaskMailCommand:
     user_id: UUID
     todo_id: UUID
     customer_id: UUID
-    smtp_account_id: UUID
+    email_account_id: UUID
     recipients: str
     subject: str
     body: str

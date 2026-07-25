@@ -6,7 +6,7 @@ export const MANUAL_MAIL_UNRESOLVED_VARIABLES_MESSAGE =
 
 export interface ManualMailPreviewSnapshot {
   recipients: string[];
-  smtpAccountId: string;
+  emailAccountId: string;
   templateId: string;
   subject: string;
   body: string;
@@ -14,7 +14,7 @@ export interface ManualMailPreviewSnapshot {
 
 export interface ManualMailPreviewPayload extends ManualMailPreviewSnapshot {
   templateName: string | null;
-  smtpAccountName: string;
+  emailAccountName: string;
   htmlDocument: string;
   unresolvedVariables: boolean;
 }
@@ -117,14 +117,14 @@ export function resolveManualMailPreviewContent(args: {
 
 export function buildManualMailPreviewSnapshot(args: {
   recipients: string[];
-  smtpAccountId: string;
+  emailAccountId: string;
   templateId: string;
   subject: string;
   body: string;
 }): ManualMailPreviewSnapshot {
   return {
     recipients: [...args.recipients],
-    smtpAccountId: args.smtpAccountId,
+    emailAccountId: args.emailAccountId,
     templateId: args.templateId,
     subject: args.subject.trim(),
     body: args.body.trim(),

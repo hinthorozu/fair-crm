@@ -53,7 +53,7 @@ def test_map_dns_error():
     assert "çözümlenemedi" in message
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.send_smtp_message")
+@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
 def test_test_mail_failure_returns_structured_response_without_debug(mock_send, client, auth_headers):
     mock_send.side_effect = SmtpMailDeliveryError(
         AUTHENTICATION_USER_MESSAGE,
@@ -61,7 +61,7 @@ def test_test_mail_failure_returns_structured_response_without_debug(mock_send, 
         raw_message="535 Authentication failed",
     )
     create = client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json={
             "name": "Debug SMTP",
             "from_email": "noreply@example.com",
@@ -77,7 +77,7 @@ def test_test_mail_failure_returns_structured_response_without_debug(mock_send, 
     account_id = create.json()["id"]
 
     response = client.post(
-        f"/api/v1/smtp/accounts/{account_id}/test",
+        f"/api/v1/email-accounts/{account_id}/test",
         json={"recipient": "admin@example.com"},
         headers=auth_headers,
     )
@@ -90,7 +90,7 @@ def test_test_mail_failure_returns_structured_response_without_debug(mock_send, 
     assert body.get("debug_error_message") is None
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.send_smtp_message")
+@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
 def test_test_mail_failure_includes_debug_fields_when_enabled(
     mock_send,
     client,
@@ -108,7 +108,7 @@ def test_test_mail_failure_includes_debug_fields_when_enabled(
         raw_message="535 Authentication failed",
     )
     create = client.post(
-        "/api/v1/smtp/accounts",
+        "/api/v1/email-accounts",
         json={
             "name": "Debug SMTP Enabled",
             "from_email": "noreply@example.com",
@@ -124,7 +124,7 @@ def test_test_mail_failure_includes_debug_fields_when_enabled(
     account_id = create.json()["id"]
 
     response = client.post(
-        f"/api/v1/smtp/accounts/{account_id}/test",
+        f"/api/v1/email-accounts/{account_id}/test",
         json={"recipient": "admin@example.com"},
         headers=auth_headers,
     )

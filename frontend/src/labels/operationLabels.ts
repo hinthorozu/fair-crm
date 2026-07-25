@@ -225,7 +225,6 @@ export const operationLabels = {
 
 export const operationTypeLabels: Record<OperationType, string> = {
   scraper: "Web Scraper",
-  email: "E-posta",
   bulk_email: "Toplu E-posta",
   enrichment: "Zenginleştirme",
   duplicate_check: "Duplicate Kontrolü",
@@ -251,11 +250,6 @@ export const operationTypeInfo: Record<OperationType, OperationTypeInfo> = {
     summary: "Web sitelerinden veri toplama otomasyonu.",
     purpose: "Fuar/katılımcı/firma verilerini web sitesinden toplar.",
     how: "Fuar seçilir, Web Scraper bilgileri ve çıktı alanları belirlenir, otomasyon başlatılır.",
-  },
-  email: {
-    summary: "Tekil e-posta gönderimi.",
-    purpose: "Müşteriye tekil e-posta gönderir.",
-    how: "SMTP hesabı, şablon ve konu alanlarıyla yapılandırılır.",
   },
   bulk_email: {
     summary: "Toplu e-posta kampanyası.",
@@ -297,7 +291,6 @@ export const operationTypeInfo: Record<OperationType, OperationTypeInfo> = {
 
 export const operationTypeDescriptions: Record<OperationType, string> = {
   scraper: operationTypeInfo.scraper.summary,
-  email: operationTypeInfo.email.summary,
   bulk_email: operationTypeInfo.bulk_email.summary,
   enrichment: operationTypeInfo.enrichment.summary,
   duplicate_check: operationTypeInfo.duplicate_check.summary,

@@ -80,7 +80,7 @@ export function buildMailOperationSummary(record: MailOperationRecord): string {
     `${adminLabels.mailOperationsColFair}: ${record.fair_name ?? "—"}`,
     `${adminLabels.mailOperationsColCustomer}: ${record.customer_name ?? "—"}`,
     `${adminLabels.mailOperationsColRecipientEmail}: ${record.recipient_email}`,
-    `${adminLabels.mailOperationsColSmtpAccount}: ${record.smtp_account_name ?? "—"}`,
+    `${adminLabels.mailOperationsColSmtpAccount}: ${record.email_account_name ?? "—"}`,
     `${adminLabels.mailOperationsColTemplate}: ${record.template_name ?? "—"}`,
     `${adminLabels.mailOperationsColSubject}: ${record.subject}`,
     `${adminLabels.mailOperationsColStatus}: ${mailOperationStatusLabel(record.status, record)}`,

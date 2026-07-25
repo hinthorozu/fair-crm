@@ -9,8 +9,8 @@ export async function listMailOperations(
   const filters: Record<string, string> = {};
   if (params.status && params.status !== "all") filters.status = params.status;
   if (params.sourceType && params.sourceType !== "all") filters.source_type = params.sourceType;
-  if (params.smtpAccountId && params.smtpAccountId !== "all") {
-    filters.smtp_account_id = params.smtpAccountId;
+  if (params.emailAccountId && params.emailAccountId !== "all") {
+    filters.email_account_id = params.emailAccountId;
   }
   if (params.fairId && params.fairId !== "all") filters.fair_id = params.fairId;
   if (params.dateFrom) filters.date_from = params.dateFrom;

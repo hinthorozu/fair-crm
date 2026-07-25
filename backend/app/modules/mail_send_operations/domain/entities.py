@@ -15,7 +15,7 @@ class MailSendOperationRecord:
     subject: str
     body_html: str | None
     body_text: str | None
-    smtp_account_id: UUID | None
+    email_account_id: UUID | None
     template_id: UUID | None
     fair_id: UUID | None
     customer_id: UUID | None

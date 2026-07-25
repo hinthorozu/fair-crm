@@ -14,7 +14,7 @@ class FairEmailBatchRecord:
     organization_id: UUID
     fair_id: UUID | None
     template_id: UUID
-    smtp_account_id: UUID | None
+    email_account_id: UUID | None
     subject_override: str | None
     status: str
     total_count: int
@@ -61,7 +61,7 @@ class SqlAlchemyFairEmailBatchRepository:
         organization_id: UUID,
         fair_id: UUID | None,
         template_id: UUID,
-        smtp_account_id: UUID | None,
+        email_account_id: UUID | None,
         subject_override: str | None,
         recipient_options: RecipientOptions,
         created_by_user_id: UUID,
@@ -99,7 +99,7 @@ class SqlAlchemyFairEmailBatchRepository:
             fair_id=fair_id,
             operation_id=operation_id,
             template_id=template_id,
-            smtp_account_id=smtp_account_id,
+            email_account_id=email_account_id,
             subject_override=subject_override,
             recipient_options_json=options_json,
             status="queued",
@@ -347,7 +347,7 @@ class SqlAlchemyFairEmailBatchRepository:
             organization_id=model.organization_id,
             fair_id=model.fair_id,
             template_id=model.template_id,
-            smtp_account_id=model.smtp_account_id,
+            email_account_id=model.email_account_id,
             subject_override=model.subject_override,
             status=model.status,
             total_count=model.total_count,
@@ -365,7 +365,7 @@ class SqlAlchemyFairEmailBatchRepository:
             organization_id=model.organization_id,
             fair_id=model.fair_id,
             template_id=model.template_id,
-            smtp_account_id=model.smtp_account_id,
+            email_account_id=model.email_account_id,
             subject_override=model.subject_override,
             status=model.status,
             total_count=model.total_count,

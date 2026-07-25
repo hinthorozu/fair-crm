@@ -48,7 +48,7 @@ class SendBulkEmailOperationCommand:
     access_token: str
     source_type: str
     template_id: UUID
-    smtp_account_id: UUID
+    email_account_id: UUID
     subject: str
     fair_ids: list[UUID] | None = None
     manual_emails: str | None = None
@@ -120,7 +120,7 @@ class SendBulkEmailOperationUseCase:
         if not template.is_active:
             raise MailTemplateInactiveForTestError(INACTIVE_TEMPLATE_MESSAGE)
 
-        smtp = self._smtp_repository.get_by_id(command.organization_id, command.smtp_account_id)
+        smtp = self._smtp_repository.get_by_id(command.organization_id, command.email_account_id)
         if smtp is None:
             raise SmtpAccountNotFoundError("SMTP account not found")
         if smtp.deleted_at is not None:
@@ -141,7 +141,7 @@ class SendBulkEmailOperationUseCase:
             organization_id=command.organization_id,
             fair_id=fair_id,
             template_id=command.template_id,
-            smtp_account_id=smtp.id,
+            email_account_id=smtp.id,
             subject_override=subject,
             recipient_options=command.recipient_options,
             created_by_user_id=command.user_id,

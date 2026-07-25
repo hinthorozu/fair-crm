@@ -34,9 +34,9 @@ export function AdminSystemLayout({
 
   const smtpOperationsItems = [
     {
-      id: "smtp",
+      id: "email-accounts",
       label: adminLabels.navSmtpAccounts,
-      path: "/admin/smtp-operations/accounts",
+      path: "/admin/email-accounts",
     },
     {
       id: "mail-templates",

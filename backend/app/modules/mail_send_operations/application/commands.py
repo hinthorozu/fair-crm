@@ -11,7 +11,7 @@ class ListMailSendOperationsQuery:
     search: str | None = None
     status: str | None = None
     source_type: str | None = None
-    smtp_account_id: UUID | None = None
+    email_account_id: UUID | None = None
     fair_id: UUID | None = None
     date_from: datetime | None = None
     date_to: datetime | None = None

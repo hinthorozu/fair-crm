@@ -63,7 +63,7 @@ export interface PreviewBulkEmailPayload {
 
 export interface SendBulkEmailPayload {
   template_id: string;
-  smtp_account_id?: string | null;
+  email_account_id?: string | null;
   subject_override?: string | null;
   recipient_options: RecipientOptions;
 }
@@ -73,8 +73,8 @@ export interface FairEmailBatchListItem {
   status: string;
   template_id: string;
   template_name: string | null;
-  smtp_account_id: string | null;
-  smtp_account_name: string | null;
+  email_account_id: string | null;
+  email_account_name: string | null;
   subject: string | null;
   total_recipients: number;
   queued_count: number;
@@ -95,8 +95,8 @@ export interface FairEmailBatchDetail {
   status: string;
   template_id: string;
   template_name: string | null;
-  smtp_account_id: string | null;
-  smtp_account_name: string | null;
+  email_account_id: string | null;
+  email_account_name: string | null;
   subject: string | null;
   subject_override: string | null;
   total_recipients: number;

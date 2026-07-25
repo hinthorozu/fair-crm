@@ -20,7 +20,7 @@ class MailSendOperationModel(Base):
     subject: Mapped[str] = mapped_column(String(500), nullable=False)
     body_html: Mapped[str | None] = mapped_column(Text)
     body_text: Mapped[str | None] = mapped_column(Text)
-    smtp_account_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True))
+    email_account_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True))
     template_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True))
     fair_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True))
     customer_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True))
