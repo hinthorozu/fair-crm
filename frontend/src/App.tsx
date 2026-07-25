@@ -3,7 +3,6 @@ import { CustomersPage } from "./pages/CustomersPage";
 import { CustomerDetailPage } from "./pages/CustomerDetailPage";
 import { FairsPage } from "./pages/FairsPage";
 import { FairDetailPage } from "./pages/FairDetailPage";
-import { FairEnrichmentRunPage } from "./pages/FairEnrichmentRunPage";
 import { ImportWizardPage } from "./pages/ImportWizardPage";
 import { DataIntegrationImportsPage } from "./pages/DataIntegrationImportsPage";
 import { AdapterManagementPage } from "./pages/AdapterManagementPage";
@@ -11,7 +10,6 @@ import { AdapterDetailPage } from "./pages/AdapterDetailPage";
 import { ScraperRunHistoryPage } from "./pages/ScraperRunHistoryPage";
 import { ScraperTestPage } from "./pages/ScraperTestPage";
 import { EnrichmentRunDetailPage } from "./pages/EnrichmentRunDetailPage";
-import { CustomerEnrichmentPage } from "./pages/CustomerEnrichmentPage";
 import { DatabaseBackupsPage } from "./pages/DatabaseBackupsPage";
 import { SmtpAccountsPage } from "./pages/SmtpAccountsPage";
 import { MailTemplatesPage } from "./pages/MailTemplatesPage";
@@ -59,14 +57,9 @@ import { dataIntegrationLabels } from "./labels/dataIntegrationLabels";
 import { adminLabels } from "./labels/adminLabels";
 import { labels } from "./labels";
 import { scraperLabels } from "./labels/scraperLabels";
-import { fairLabels } from "./labels/fairLabels";
 import { dashboardLabels } from "./labels/dashboardLabels";
 import { resolveRunDetailPath } from "./utils/enrichmentRunRouting";
 import { getOperationTypeWizardPath } from "./utils/operationWizardTypes";
-import {
-  CUSTOMER_CONTACT_ENRICHMENT_ADAPTER_KEY,
-  isCustomerContactEnrichmentAdapter,
-} from "./utils/enrichmentAdapter";
 import { useDocumentTitle } from "./hooks/useDocumentTitle";
 import { useAuth } from "./auth/AuthContext";
 import { config } from "./config";
@@ -78,7 +71,6 @@ type AppRoute =
   | "/customers"
   | "/fairs"
   | "/fairs/:id"
-  | "/fairs/:id/enrichment"
   | "/todos"
   | "/todos/:id"
   | "/operations"
@@ -99,7 +91,6 @@ type AppRoute =
   | "/data-integration/run-history"
   | "/data-integration/runs/:runId"
   | "/data-integration/scraper-test"
-  | "/data-integration/enrichment"
   | "/admin/system/backups"
   | "/admin/smtp-operations/accounts"
   | "/admin/smtp-operations/templates"
@@ -205,9 +196,6 @@ function parseRoute(location: string): ParsedRoute {
     if (pathname === "/data-integration/scraper-test" || pathname === "/data-integration/scraper-test/") {
       return { route: "/data-integration/scraper-test" };
     }
-    if (pathname === "/data-integration/enrichment" || pathname === "/data-integration/enrichment/") {
-      return { route: "/data-integration/enrichment" };
-    }
     const adapterDetail = pathname.match(/^\/data-integration\/adapters\/([^/]+)$/);
     if (adapterDetail) {
       return {
@@ -228,10 +216,6 @@ function parseRoute(location: string): ParsedRoute {
     return { route: "/imports" };
   }
   if (pathname === "/fairs" || pathname.startsWith("/fairs/")) {
-    const fairEnrichment = pathname.match(/^\/fairs\/([^/]+)\/enrichment$/);
-    if (fairEnrichment) {
-      return { route: "/fairs/:id/enrichment", fairId: fairEnrichment[1] };
-    }
     const fairMatch = pathname.match(/^\/fairs\/([^/]+)$/);
     if (fairMatch) {
       return { route: "/fairs/:id", fairId: fairMatch[1] };
@@ -335,8 +319,7 @@ function adminSection(route: AppRoute): string {
 
 function diSection(route: AppRoute): string {
   if (route.includes("/scraper-test")) return "scraper-test";
-  if (route.includes("/enrichment") || route.includes("/runs/")) return "enrichment";
-  if (route.includes("/run-history")) return "run-history";
+  if (route.includes("/runs/") || route.includes("/run-history")) return "run-history";
   if (route.includes("/adapters")) return "adapters";
   if (route.includes("/new") || route.includes("/fair/")) return "new";
   if (route.includes("/jobs")) return "jobs";
@@ -538,15 +521,6 @@ export function App() {
     });
   };
 
-  const goToFairEnrichment = (fairId: string) => {
-    const path = `/fairs/${fairId}/enrichment`;
-    runGuardedNav(() => {
-      navigate(path);
-      setParsed(parseRoute(path));
-      setSidebarOpen(false);
-    });
-  };
-
   const goToTodos = () => {
     runGuardedNav(() => {
       navigate("/todos");
@@ -688,8 +662,7 @@ export function App() {
   const isCustomersActive = parsed.route === "/customers" || parsed.route === "/customers/:id";
   const isFairsActive =
     parsed.route === "/fairs" ||
-    parsed.route === "/fairs/:id" ||
-    parsed.route === "/fairs/:id/enrichment";
+    parsed.route === "/fairs/:id";
   const isTodosActive =
     parsed.route === "/todos" || parsed.route === "/todos/:id";
   const isOperationsActive =
@@ -711,13 +684,6 @@ export function App() {
           { label: labels.customers, onClick: goToCustomers },
           { label: customerName ?? uiLabels.navCustomers, current: true },
         ]
-      : parsed.route === "/fairs/:id/enrichment" && parsed.fairId
-        ? [
-            { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-            { label: uiLabels.navFairs, onClick: goToFairs },
-            { label: fairName ?? uiLabels.navFairs, onClick: () => goToFairDetail(parsed.fairId!) },
-            { label: fairLabels.enrichFairAction, current: true },
-          ]
       : parsed.route === "/fairs/:id" && parsed.fairId
         ? [
             { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
@@ -793,16 +759,10 @@ export function App() {
                   { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
                   { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
                   {
-                    label: dataIntegrationLabels.navEnrichment,
-                    onClick: () => goToDataIntegration("/data-integration/enrichment"),
+                    label: scraperLabels.runHistoryTitle,
+                    onClick: () => goToRunHistory(parsed.adapterKey),
                   },
                   { label: scraperLabels.enrichmentRunDetailTitle, current: true },
-                ]
-            : parsed.route === "/data-integration/enrichment"
-              ? [
-                  { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                  { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
-                  { label: dataIntegrationLabels.navEnrichment, current: true },
                 ]
             : parsed.route === "/data-integration/scraper-test"
               ? [
@@ -980,22 +940,9 @@ export function App() {
         <EnrichmentRunDetailPage
           runId={parsed.runId}
           adapterKey={parsed.adapterKey}
-          onBack={() => {
-            if (parsed.adapterKey && isCustomerContactEnrichmentAdapter(parsed.adapterKey)) {
-              goToDataIntegration("/data-integration/enrichment");
-              return;
-            }
-            goToRunHistory(parsed.adapterKey);
-          }}
+          onBack={() => goToRunHistory(parsed.adapterKey)}
           onOpenImportBatch={(batchId) =>
             goToDataIntegration(`/data-integration/imports/continue/${batchId}`)
-          }
-        />
-      )}
-      {parsed.route === "/data-integration/enrichment" && (
-        <CustomerEnrichmentPage
-          onRunStarted={(runId) =>
-            goToAdapterRunDetail(CUSTOMER_CONTACT_ENRICHMENT_ADAPTER_KEY, runId)
           }
         />
       )}
@@ -1079,17 +1026,6 @@ export function App() {
           onFairLoaded={setFairName}
           onOpenCustomer={goToCustomerDetail}
           onImportParticipants={() => goToImportWizard(parsed.fairId)}
-          onOpenFairEnrichment={goToFairEnrichment}
-        />
-      )}
-      {parsed.route === "/fairs/:id/enrichment" && parsed.fairId && (
-        <FairEnrichmentRunPage
-          fairId={parsed.fairId}
-          onBack={() => goToFairDetail(parsed.fairId!)}
-          onFairLoaded={setFairName}
-          onRunStarted={(runId) =>
-            goToAdapterRunDetail(CUSTOMER_CONTACT_ENRICHMENT_ADAPTER_KEY, runId)
-          }
         />
       )}
       {isDiActive && renderDataIntegration()}
@@ -1145,9 +1081,6 @@ export function App() {
           customerId={parsed.customerId}
           onBack={goToCustomers}
           onCustomerLoaded={setCustomerName}
-          onOpenImportBatch={(batchId) =>
-            goToDataIntegration(`/data-integration/imports/continue/${batchId}`)
-          }
         />
       )}
       {confirmDialog}

@@ -234,7 +234,7 @@ export const scraperLabels = {
   enrichmentRunAction: "Çalıştır",
   enrichmentStateResetTitle: "Durum / Reset",
   enrichmentStateResetIntro:
-    "Organizasyondaki tüm müşterilerin enrichment durum kayıtlarını sıfırlar. Tek müşteri sıfırlama müşteri kartındaki İletişim Zenginleştirme sekmesinden yapılır.",
+    "Organizasyondaki tüm müşterilerin enrichment durum kayıtlarını sıfırlar.",
   enrichmentStateResetInfoCrm:
     "Bu işlem CRM'deki email/telefon verilerini silmez. Sadece enrichment state kayıtlarını temizler.",
   enrichmentStateResetAll: "Tüm enrichment state'i sıfırla",

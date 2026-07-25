@@ -56,12 +56,6 @@ describe("resolvePageTitle", () => {
     );
   });
 
-  it("resolves customer enrichment title", () => {
-    expect(resolvePageTitle({ route: "/data-integration/enrichment" })).toBe(
-      dataIntegrationLabels.enrichmentTitle,
-    );
-  });
-
   it("resolves enrichment automation wizard title", () => {
     expect(resolvePageTitle({ route: "/operations/new/enrichment" })).toBe(
       operationLabels.enrichmentWizardTitle,

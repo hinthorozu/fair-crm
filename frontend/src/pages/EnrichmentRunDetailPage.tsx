@@ -29,7 +29,7 @@ export function EnrichmentRunDetailPage({
         subtitle={scraperLabels.enrichmentRunDetailSubtitle}
         actions={
           <button type="button" className="btn secondary" onClick={onBack}>
-            {scraperLabels.enrichmentRunDetailBackEnrichment}
+            {scraperLabels.enrichmentRunDetailBackHistory}
           </button>
         }
       />

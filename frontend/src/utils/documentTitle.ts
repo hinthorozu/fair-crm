@@ -61,8 +61,6 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
       return fairLabels.fairs;
     case "/fairs/:id":
       return context.fairName?.trim() || fairLabels.fairs;
-    case "/fairs/:id/enrichment":
-      return fairLabels.enrichFairAction;
     case "/todos":
       return todoLabels.pageTitle;
     case "/todos/:id":
@@ -103,8 +101,6 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
       return scraperLabels.enrichmentRunDetailTitle;
     case "/data-integration/scraper-test":
       return scraperLabels.testPageTitle;
-    case "/data-integration/enrichment":
-      return dataIntegrationLabels.enrichmentTitle;
     case "/data-integration/jobs":
       return dataIntegrationLabels.navJobs;
     case "/data-integration/reports":

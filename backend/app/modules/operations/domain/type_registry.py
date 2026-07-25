@@ -166,7 +166,17 @@ OPERATION_TYPE_DEFINITIONS: dict[str, OperationTypeDefinition] = {
         capabilities=_placeholder_capabilities(),
         wizard_steps=_DEFAULT_WIZARD_STEPS,
         type_config_schema={
-            "fields": ["research_website", "research_email", "research_phone"],
+            "fields": [
+                "adapter_key",
+                "requested_fields",
+                "limit",
+                "include_existing_email",
+                "company_name",
+                "company_name_match",
+                "address_contains",
+                "fair_ids",
+                "fair_id",
+            ],
         },
         run_settings_schema={
             "fields": ["retry", "rate_limit", "concurrency", "priority"],

@@ -50,10 +50,6 @@ import {
   canPerformFairEmailAction,
   getGrantedFairEmailPermissions,
 } from "../permissions/fairEmailPermissions";
-import {
-  canRunScraperActions,
-  getGrantedScraperPermissions,
-} from "../permissions/scraperPermissions";
 import { Banner } from "../components/ui/Banner";
 import { PageShell } from "../components/ui/PageShell";
 import {
@@ -68,7 +64,6 @@ interface FairDetailPageProps {
   onFairLoaded?: (name: string) => void;
   onOpenCustomer?: (customerId: string) => void;
   onImportParticipants?: () => void;
-  onOpenFairEnrichment?: (fairId: string) => void;
 }
 
 type TabId = "overview" | "participants";
@@ -87,7 +82,6 @@ export function FairDetailPage({
   onFairLoaded,
   onOpenCustomer,
   onImportParticipants,
-  onOpenFairEnrichment,
 }: FairDetailPageProps) {
   const [fair, setFair] = React.useState<Fair | null>(null);
   const [activeTab, setActiveTabState] = React.useState<TabId>(tabFromUrl);
@@ -249,18 +243,8 @@ export function FairDetailPage({
   }, [fair?.scraper_config]);
 
   const fairEmailPermissions = React.useMemo(() => getGrantedFairEmailPermissions(), []);
-  const scraperPermissions = React.useMemo(() => getGrantedScraperPermissions(), []);
   const canPreviewFairEmail = canPerformFairEmailAction(fairEmailPermissions, "preview");
   const canSendFairEmail = canPerformFairEmailAction(fairEmailPermissions, "send");
-  const canRunEnrichment = canRunScraperActions(scraperPermissions);
-
-  const openFairEnrichment = () => {
-    if (!canRunEnrichment) {
-      setError(fairLabels.enrichFairPermissionDenied);
-      return;
-    }
-    onOpenFairEnrichment?.(fairId);
-  };
 
   const tabItems = [
     { id: "overview" as const, label: uiLabels.tabOverview },
@@ -328,14 +312,6 @@ export function FairDetailPage({
       variant: "secondary",
       onClick: () => onImportParticipants?.(),
       disabled: isArchived || !onImportParticipants,
-    },
-    {
-      id: "enrich",
-      label: fairLabels.enrichFairAction,
-      variant: "secondary",
-      onClick: openFairEnrichment,
-      disabled: isArchived || !canRunEnrichment || !onOpenFairEnrichment,
-      title: !canRunEnrichment ? fairLabels.enrichFairPermissionDenied : undefined,
     },
     {
       id: "activity",

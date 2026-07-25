@@ -53,6 +53,24 @@ def test_wizard_metadata_includes_manual_task(client: TestClient, auth_headers: 
     assert "source_url" in scraper["type_config_schema"]["fields"]
     assert "scraper_config" in scraper["type_config_schema"]["fields"]
 
+    enrichment = types[OperationType.ENRICHMENT]
+    enrichment_fields = enrichment["type_config_schema"]["fields"]
+    assert "research_website" not in enrichment_fields
+    assert "research_email" not in enrichment_fields
+    assert "research_phone" not in enrichment_fields
+    for field in (
+        "adapter_key",
+        "requested_fields",
+        "limit",
+        "include_existing_email",
+        "company_name",
+        "company_name_match",
+        "address_contains",
+        "fair_ids",
+        "fair_id",
+    ):
+        assert field in enrichment_fields
+
 
 def test_list_operation_types_returns_seeded_catalog(
     client: TestClient,
@@ -293,8 +311,32 @@ def test_type_registry_covers_all_planned_types():
     }
 
 
+def test_enrichment_type_config_schema_matches_real_payload_contract():
+    enrichment = default_operation_type_registry.require(OperationType.ENRICHMENT)
+    fields = enrichment.type_config_schema["fields"]
+    assert "research_website" not in fields
+    assert "research_email" not in fields
+    assert "research_phone" not in fields
+    assert fields == [
+        "adapter_key",
+        "requested_fields",
+        "limit",
+        "include_existing_email",
+        "company_name",
+        "company_name_match",
+        "address_contains",
+        "fair_ids",
+        "fair_id",
+    ]
+
+
 def test_handler_registry_includes_manual_task_and_scraper():
-    assert set(default_handler_registry.list_types()) == {"manual_task", "scraper", "bulk_email"}
+    assert set(default_handler_registry.list_types()) == {
+        "manual_task",
+        "scraper",
+        "enrichment",
+        "bulk_email",
+    }
     assert isinstance(default_handler_registry.require("manual_task"), ManualTaskHandler)
     scraper = default_handler_registry.require("scraper")
     assert isinstance(scraper, ScraperHandler)

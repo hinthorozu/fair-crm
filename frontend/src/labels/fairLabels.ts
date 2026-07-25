@@ -49,10 +49,6 @@ export const fairLabels = {
   runScraperError: "Scraper çalıştırılamadı.",
   runScraperRunning: "Scraper çalışıyor…",
 
-  enrichFairAction: "Zenginleştir",
-  enrichFairModalTitle: "Fuar Katılımcılarını Zenginleştir",
-  enrichFairModalLoadError: "Zenginleştirme ayarları yüklenemedi.",
-  enrichFairBackToFair: "Fuara geri dön",
   enrichFairPermissionDenied: "Zenginleştirme çalıştırma yetkiniz yok (fair_crm.scraper.run).",
 
   bulkEmailCardTitle: "Toplu Mail Gönderimi",
