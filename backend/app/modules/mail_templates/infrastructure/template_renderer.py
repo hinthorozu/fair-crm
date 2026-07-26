@@ -12,7 +12,9 @@ class JinjaMailTemplateRenderer:
 
     def render(self, template: str, variables: dict[str, Any]) -> str:
         try:
+            # MailerSend reserved: leave {{unsubscribe}} literal for provider-side link injection.
+            render_variables = {**variables, "unsubscribe": "{{unsubscribe}}"}
             compiled = self._environment.from_string(template)
-            return compiled.render(**variables)
+            return compiled.render(**render_variables)
         except (TemplateSyntaxError, UndefinedError, TypeError, ValueError) as exc:
             raise MailTemplateRenderError(f"Template render failed: {exc}") from exc
