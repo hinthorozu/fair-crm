@@ -26,11 +26,13 @@
 #   DEPLOY_SERVICE_USER=ubuntu
 #   SERVER_PUBLIC_URL=http://203.0.113.10
 #   SKIP_FRONTEND_BUILD=1
+#   SKIP_NODE=1
 #   SKIP_CORE_DEV_SEED=1
 #   SKIP_SYSTEMD=1
 #   SKIP_NGINX_RELOAD=1
 #   RUN_POST_CHECK=1
 #   DEV_SEED_ENV_FILE=/etc/fair-crm/dev-seed.env
+#   REQUIRED_NODEJS_VERSION=22.12.0
 #
 # Dev seed password:
 #   Required file (no hardcoded default): /etc/fair-crm/dev-seed.env
@@ -182,6 +184,19 @@ build_frontend() {
   if [[ "${SKIP_FRONTEND_BUILD:-0}" == "1" ]]; then
     REPORT_FRONTEND_BUILD="skipped (SKIP_FRONTEND_BUILD=1)"
     return 0
+  fi
+
+  # Node runtime must meet package engines before npm install/build.
+  if [[ "${SKIP_NODE:-0}" != "1" ]]; then
+    ensure_nodejs
+  else
+    require_cmd node
+    require_cmd npm
+    local current
+    current="$(get_installed_node_version)"
+    if [[ -z "$current" ]] || ! node_version_meets_minimum "$current" "$REQUIRED_NODEJS_VERSION"; then
+      die "SKIP_NODE=1 but Node.js ${current:-missing} does not meet >= ${REQUIRED_NODEJS_VERSION}"
+    fi
   fi
 
   step "Frontend npm install + build"

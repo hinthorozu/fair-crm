@@ -150,7 +150,7 @@ main() {
 
   if [[ "${SKIP_NODE:-0}" != "1" ]]; then
     ensure_nodejs
-    REPORT_NODE="ready"
+    REPORT_NODE="$(get_installed_node_version) (required >=${REQUIRED_NODEJS_VERSION})"
   fi
 
   prepare_env_files

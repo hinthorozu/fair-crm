@@ -30,6 +30,8 @@ main() {
   echo "FAIR CRM Server Check"
   echo ""
 
+  check_nodejs_runtime
+
   if command -v docker >/dev/null 2>&1; then
     :
   else

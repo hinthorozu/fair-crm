@@ -22,6 +22,10 @@ MIN_CORE_SEED_MIGRATION_REVISION="${MIN_CORE_SEED_MIGRATION_REVISION:-20260701_0
 EXPECTED_FAIR_CRM_BRANCH="${EXPECTED_FAIR_CRM_BRANCH:-${FAIR_CRM_BRANCH:-main}}"
 EXPECTED_KYROX_CORE_BRANCH="${EXPECTED_KYROX_CORE_BRANCH:-${KYROX_CORE_BRANCH:-main}}"
 
+# Frontend engine requirements (vite / tooling) need Node 22.12+.
+REQUIRED_NODEJS_VERSION="${REQUIRED_NODEJS_VERSION:-22.12.0}"
+NODEJS_MAJOR_CHANNEL="${NODEJS_MAJOR_CHANNEL:-22}"
+
 log() {
   echo "${DEPLOY_LOG_PREFIX} $*"
 }
@@ -1275,14 +1279,91 @@ install_apt_packages() {
 }
 
 ensure_nodejs() {
-  step "Ensure Node.js + npm"
-  if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
-    log "node $(node --version), npm $(npm --version)"
+  step "Ensure Node.js >= ${REQUIRED_NODEJS_VERSION}"
+  local current
+  current="$(get_installed_node_version)"
+  if [[ -n "$current" ]] && node_version_meets_minimum "$current" "$REQUIRED_NODEJS_VERSION"; then
+    log "Node.js ${current} already satisfies >= ${REQUIRED_NODEJS_VERSION} (npm $(npm --version 2>/dev/null || echo '?'))"
     return 0
   fi
+
+  if [[ -n "$current" ]]; then
+    log "Node.js ${current} is below required ${REQUIRED_NODEJS_VERSION}; installing Node.js ${NODEJS_MAJOR_CHANNEL}.x"
+  else
+    log "Node.js not found; installing Node.js ${NODEJS_MAJOR_CHANNEL}.x"
+  fi
+
+  install_nodejs_from_nodesource
+  hash -r 2>/dev/null || true
+
+  current="$(get_installed_node_version)"
+  if [[ -z "$current" ]] || ! node_version_meets_minimum "$current" "$REQUIRED_NODEJS_VERSION"; then
+    die "Node.js >= ${REQUIRED_NODEJS_VERSION} required after install; found: ${current:-missing}"
+  fi
+  require_cmd npm
+  log "Node.js ${current}, npm $(npm --version)"
+}
+
+# Normalize versions like "v22.12.0", "22.12.0-rc.1" -> "22.12.0"
+normalize_node_version() {
+  local v="${1:-}"
+  v="${v#v}"
+  v="${v%%[-+]*}"
+  printf '%s' "$v"
+}
+
+# Return 0 when current >= required (sort -V).
+node_version_meets_minimum() {
+  local current required
+  current="$(normalize_node_version "${1:-}")"
+  required="$(normalize_node_version "${2:-$REQUIRED_NODEJS_VERSION}")"
+  [[ -n "$current" && -n "$required" ]] || return 1
+  [[ "$(printf '%s\n' "$required" "$current" | sort -V | head -n1)" == "$required" ]]
+}
+
+get_installed_node_version() {
+  if ! command -v node >/dev/null 2>&1; then
+    return 0
+  fi
+  node --version 2>/dev/null || true
+}
+
+install_nodejs_from_nodesource() {
   require_cmd apt-get
-  run_root apt-get update -qq
-  run_root apt-get install -y -qq nodejs npm
+  require_cmd curl
+  require_cmd gpg
+
+  run_root mkdir -p /etc/apt/keyrings
+  # Non-interactive, idempotent NodeSource apt repo for Node 22.x
+  run_root bash -c "
+    set -euo pipefail
+    export DEBIAN_FRONTEND=noninteractive
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+      | gpg --dearmor --batch --yes -o /etc/apt/keyrings/nodesource.gpg
+    chmod a+r /etc/apt/keyrings/nodesource.gpg
+    printf 'deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_%s.x nodistro main\n' \
+      '${NODEJS_MAJOR_CHANNEL}' > /etc/apt/sources.list.d/nodesource.list
+    apt-get update -qq
+    apt-get install -y -qq nodejs
+  "
+}
+
+check_nodejs_runtime() {
+  local current
+  current="$(get_installed_node_version)"
+  if [[ -z "$current" ]]; then
+    check_fail "Node.js version (required >=${REQUIRED_NODEJS_VERSION})"
+  elif node_version_meets_minimum "$current" "$REQUIRED_NODEJS_VERSION"; then
+    check_pass "Node.js version ${current} (required >=${REQUIRED_NODEJS_VERSION})"
+  else
+    check_fail "Node.js version ${current} (required >=${REQUIRED_NODEJS_VERSION})"
+  fi
+
+  if command -v npm >/dev/null 2>&1; then
+    check_pass "npm installed ($(npm --version 2>/dev/null || echo unknown))"
+  else
+    check_fail "npm installed"
+  fi
 }
 
 ensure_docker() {
