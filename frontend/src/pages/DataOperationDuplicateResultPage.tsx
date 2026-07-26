@@ -44,7 +44,7 @@ function writeGroupKeyToUrl(runId: string, groupKey: string | null) {
   } else {
     params.delete("group");
   }
-  const next = `/admin/data-operations/runs/${runId}?${params.toString()}`;
+  const next = `/operations/duplicate-check/runs/${runId}?${params.toString()}`;
   if (`${window.location.pathname}${window.location.search}` !== next) {
     window.history.pushState(null, "", next);
     window.dispatchEvent(new PopStateEvent("popstate"));
@@ -234,7 +234,7 @@ export function DataOperationDuplicateResultPage({
     defaultSort: { field: "group_key", direction: "asc" },
     filterKeys: [],
     urlSync: !selectedGroupKey,
-    urlPath: `/admin/data-operations/runs/${runId}`,
+    urlPath: `/operations/duplicate-check/runs/${runId}`,
     enabled: runReady && !selectedGroupKey,
   });
 

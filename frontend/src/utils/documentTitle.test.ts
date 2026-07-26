@@ -65,7 +65,7 @@ describe("resolvePageTitle", () => {
   it("resolves duplicate groups title", () => {
     expect(
       resolvePageTitle({
-        route: "/admin/data-operations/runs/:runId",
+        route: "/operations/duplicate-check/runs/:runId",
         dataOperationKey: DUPLICATE_OPERATION_KEY,
       }),
     ).toBe(adminLabels.dataOpDuplicateGroupsTitle);
@@ -74,7 +74,7 @@ describe("resolvePageTitle", () => {
   it("resolves merge preparation title when group is selected", () => {
     expect(
       resolvePageTitle({
-        route: "/admin/data-operations/runs/:runId",
+        route: "/operations/duplicate-check/runs/:runId",
         search: "?group=company_name:acme",
         dataOperationKey: DUPLICATE_OPERATION_KEY,
       }),
@@ -84,7 +84,7 @@ describe("resolvePageTitle", () => {
   it("resolves analyze customers without fair title", () => {
     expect(
       resolvePageTitle({
-        route: "/admin/data-operations/runs/:runId",
+        route: "/operations/duplicate-check/runs/:runId",
         dataOperationKey: "analyze_customers_without_fair",
       }),
     ).toBe(adminLabels.dataOpAnalyzeResultTitle);

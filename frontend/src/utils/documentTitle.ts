@@ -9,7 +9,7 @@ import { dashboardLabels } from "../labels/dashboardLabels";
 import { authLabels } from "../labels/authLabels";
 import { todoLabels } from "../labels/todoLabels";
 import { activityLabels } from "../labels/activityLabels";
-import { operationLabels } from "../labels/operationLabels";
+import { operationLabels, operationTypeLabels } from "../labels/operationLabels";
 import { uiLabels } from "../labels/uiLabels";
 
 export const DOCUMENT_TITLE_BRAND = labels.appTitle;
@@ -113,9 +113,9 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
       return adminLabels.mailTemplatesTitle;
     case "/admin/smtp-operations/mail-operations":
       return adminLabels.mailOperationsTitle;
-    case "/admin/data-operations":
-      return adminLabels.dataOperationsTitle;
-    case "/admin/data-operations/runs/:runId":
+    case "/operations/new/duplicate-check":
+      return operationTypeLabels.duplicate_check;
+    case "/operations/duplicate-check/runs/:runId":
       if (isDuplicateDataOperationRoute(operationKey, groupKey)) {
         return groupKey
           ? adminLabels.dataOpDuplicateGroupDetailTitle

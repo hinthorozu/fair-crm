@@ -94,6 +94,7 @@ describe("operationWizardTypes", () => {
     expect(getOperationTypeWizardPath("scraper")).toBe("/operations/new/scraper");
     expect(getOperationTypeWizardPath("bulk_email")).toBe("/operations/new/bulk-email");
     expect(getOperationTypeWizardPath("enrichment")).toBe("/operations/new/enrichment");
+    expect(getOperationTypeWizardPath("duplicate_check")).toBe("/operations/new/duplicate-check");
     expect(getOperationTypeWizardPath("manual_task")).toBeNull();
   });
 
@@ -102,12 +103,14 @@ describe("operationWizardTypes", () => {
       ["scraper", meta("scraper")],
       ["bulk_email", meta("bulk_email")],
       ["enrichment", meta("enrichment")],
+      ["duplicate_check", meta("duplicate_check")],
       ["manual_task", meta("manual_task")],
     ]);
     expect(canContinueOperationType("", map)).toBe(false);
     expect(canContinueOperationType("scraper", map)).toBe(true);
     expect(canContinueOperationType("bulk_email", map)).toBe(true);
     expect(canContinueOperationType("enrichment", map)).toBe(true);
+    expect(canContinueOperationType("duplicate_check", map)).toBe(true);
     expect(canContinueOperationType("manual_task", map)).toBe(false);
   });
 

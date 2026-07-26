@@ -50,14 +50,6 @@ export function AdminSystemLayout({
     },
   ];
 
-  const dataOperationItems = [
-    {
-      id: "data-operations",
-      label: adminLabels.navDataOperations,
-      path: "/admin/data-operations",
-    },
-  ];
-
   const operationCapabilityItems = [
     {
       id: "operation-capabilities",
@@ -129,22 +121,6 @@ export function AdminSystemLayout({
         {renderSectionTitle(adminLabels.smtpOperationsTitle)}
         <nav className="admin-subnav-links" aria-label={adminLabels.smtpOperationsTitle}>
           {smtpOperationsItems.map((item) => (
-            <NavLink
-              key={item.id}
-              variant="admin"
-              href={item.path}
-              label={item.label}
-              icon={<AdminNavIcon id={item.id} />}
-              active={activeSection === item.id}
-              collapsed={subnavCollapsed}
-              onClick={(e) => onNavigate(item.path, e)}
-            />
-          ))}
-        </nav>
-
-        {renderSectionTitle(adminLabels.navDataOperations)}
-        <nav className="admin-subnav-links" aria-label={adminLabels.navDataOperations}>
-          {dataOperationItems.map((item) => (
             <NavLink
               key={item.id}
               variant="admin"

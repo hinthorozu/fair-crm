@@ -148,6 +148,7 @@ class CreateOperationUseCase:
                     user_id=command.user_id,
                     access_token=command.access_token,
                     operation_id=saved.id,
+                    user_email=command.user_email,
                 )
             )
             return started

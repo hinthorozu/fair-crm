@@ -17,6 +17,7 @@ export const OPERATION_TYPE_WIZARD_PATHS: Partial<Record<OperationType, string>>
   scraper: "/operations/new/scraper",
   bulk_email: "/operations/new/bulk-email",
   enrichment: "/operations/new/enrichment",
+  duplicate_check: "/operations/new/duplicate-check",
 };
 
 export function getOperationTypeWizardPath(type: OperationType): string | null {

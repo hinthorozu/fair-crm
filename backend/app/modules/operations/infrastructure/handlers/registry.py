@@ -12,6 +12,9 @@ from app.modules.operations.infrastructure.handlers.bulk_email_handler import (
     BulkEmailBatchJobCommand,
     BulkEmailHandler,
 )
+from app.modules.operations.infrastructure.handlers.duplicate_check_handler import (
+    DuplicateCheckHandler,
+)
 from app.modules.operations.infrastructure.handlers.enrichment_handler import EnrichmentHandler
 from app.modules.operations.infrastructure.handlers.manual_task_handler import (
     ManualTaskHandler,
@@ -34,6 +37,8 @@ if TYPE_CHECKING:
     from app.modules.scraper.application.run_enrichment import RunEnrichmentUseCase
     from app.modules.scraper.services.scraper_adapter_service import ScraperAdapterService
     from app.modules.scraper.services.scraper_run_history_service import ScraperRunHistoryService
+    from app.modules.system_admin.application.data_operation_job_runner import DataOperationJobCommand
+    from app.modules.system_admin.application.data_operation_service import RunDataOperationUseCase
 
 
 def build_handler_registry(
@@ -51,6 +56,8 @@ def build_handler_registry(
     fair_email_batch_repository: SqlAlchemyFairEmailBatchRepository | None = None,
     fair_email_mail_operation_sync: FairBulkEmailMailOperationSync | None = None,
     bulk_email_job_scheduler: Callable[[BulkEmailBatchJobCommand], None] | None = None,
+    run_data_operation_use_case: RunDataOperationUseCase | None = None,
+    data_operation_job_scheduler: Callable[[DataOperationJobCommand], None] | None = None,
 ) -> InMemoryHandlerRegistry:
     registry = InMemoryHandlerRegistry()
     registry.register(
@@ -82,6 +89,12 @@ def build_handler_registry(
             batch_repository=fair_email_batch_repository,
             mail_operation_sync=fair_email_mail_operation_sync,
             job_scheduler=bulk_email_job_scheduler,
+        )
+    )
+    registry.register(
+        DuplicateCheckHandler(
+            run_data_operation_use_case=run_data_operation_use_case,
+            job_scheduler=data_operation_job_scheduler,
         )
     )
     return registry

@@ -333,6 +333,7 @@ def test_handler_registry_includes_manual_task_and_scraper():
         "scraper",
         "enrichment",
         "bulk_email",
+        "duplicate_check",
     }
     assert isinstance(default_handler_registry.require("manual_task"), ManualTaskHandler)
     scraper = default_handler_registry.require("scraper")
@@ -340,6 +341,8 @@ def test_handler_registry_includes_manual_task_and_scraper():
     assert scraper.capabilities.supports_retry is True
     bulk = default_handler_registry.require("bulk_email")
     assert bulk.capabilities.supports_retry is True
+    duplicate = default_handler_registry.require("duplicate_check")
+    assert duplicate.capabilities.supports_retry is True
 
 
 def test_create_list_detail_manual_task(

@@ -54,6 +54,9 @@ export const operationLabels = {
   bulkEmailWizardTitle: "Toplu E-posta Otomasyonu",
   bulkEmailWizardSubtitle: "Alıcı kaynağını seçerek toplu e-posta otomasyonu oluşturun",
   enrichmentWizardTitle: "Zenginleştirme Otomasyonu",
+  duplicateCheckSubtitle:
+    "Fuarı olmayan müşteri analizi ve duplicate müşteri analizi işlerini çalıştırın.",
+  duplicateCheckWizardTitle: "Duplicate Kontrolü",
   enrichmentWizardSubtitle:
     "Website'i olan müşterileri filtreleyerek iletişim bilgilerini tarayın. Bulunan veriler Import Önizleme'de onayınıza sunulur.",
   stepType: "İş tipi",

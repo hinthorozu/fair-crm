@@ -73,6 +73,7 @@ class StartOperationUseCase:
         context = HandlerExecutionContext(
             user_id=command.user_id,
             access_token=command.access_token,
+            user_email=command.user_email,
         )
         run = OperationRun.create(
             organization_id=operation.organization_id,

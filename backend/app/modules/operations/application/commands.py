@@ -8,6 +8,15 @@ from app.modules.operations.domain.value_objects import OperationPriority, Opera
 
 
 @dataclass
+class StartOperationCommand:
+    organization_id: UUID
+    user_id: UUID
+    access_token: str
+    operation_id: UUID
+    user_email: str | None = None
+
+
+@dataclass
 class CreateOperationCommand:
     organization_id: UUID
     user_id: UUID
@@ -23,6 +32,7 @@ class CreateOperationCommand:
     priority: str = OperationPriority.NORMAL
     status: str = OperationStatus.DRAFT
     start_immediately: bool = False
+    user_email: str | None = None
 
 
 @dataclass
@@ -41,14 +51,6 @@ class ListOperationsQuery:
     page_size: int = 25
     sort_by: str = "created_at"
     sort_dir: str = "desc"
-
-
-@dataclass
-class StartOperationCommand:
-    organization_id: UUID
-    user_id: UUID
-    access_token: str
-    operation_id: UUID
 
 
 @dataclass

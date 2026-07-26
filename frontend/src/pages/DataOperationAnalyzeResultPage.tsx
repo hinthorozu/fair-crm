@@ -103,7 +103,7 @@ export function DataOperationAnalyzeResultPage({ runId, onBack }: DataOperationA
     defaultSort: { field: "name", direction: "asc" },
     filterKeys: ["status", "customer_type"],
     urlSync: true,
-    urlPath: `/admin/data-operations/runs/${runId}`,
+    urlPath: `/operations/duplicate-check/runs/${runId}`,
     enabled: runReady,
   });
 

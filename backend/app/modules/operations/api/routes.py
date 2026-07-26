@@ -366,6 +366,7 @@ def create_operation(
                 priority=body.priority,
                 status=body.status,
                 start_immediately=body.start_immediately,
+                user_email=auth.email,
             )
         )
     except (
@@ -562,6 +563,7 @@ def start_operation(
                 user_id=auth.user_id,
                 access_token=_access_token(credentials),
                 operation_id=operation_id,
+                user_email=auth.email,
             )
         )
     except (

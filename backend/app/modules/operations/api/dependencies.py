@@ -229,6 +229,15 @@ def get_handler_registry(
     from app.modules.smtp.infrastructure.repositories.smtp_account_repository import (
         SqlAlchemySmtpAccountRepository,
     )
+    from app.modules.system_admin.application.data_operation_job_runner import (
+        DataOperationJobCommand,
+        DataOperationJobRunner,
+    )
+    from app.modules.system_admin.application.data_operation_service import RunDataOperationUseCase
+    from app.modules.system_admin.infrastructure.repositories.data_operation_run_repository import (
+        SqlAlchemyDataOperationRunRepository,
+    )
+    from app.shared.background_jobs import schedule_detached_blocking_job
 
     batch_repository = SqlAlchemyFairEmailBatchRepository(db)
     mail_sync = FairBulkEmailMailOperationSync(db)
@@ -243,6 +252,10 @@ def get_handler_registry(
         audit,
         session=db,
     )
+
+    def _schedule_data_operation(command: DataOperationJobCommand) -> None:
+        schedule_detached_blocking_job(DataOperationJobRunner().run_operation, command)
+
     return build_handler_registry(
         todo_repository=todo_repository,
         fair_repository=fair_repository,
@@ -257,6 +270,11 @@ def get_handler_registry(
         fair_email_batch_repository=batch_repository,
         fair_email_mail_operation_sync=mail_sync,
         bulk_email_job_scheduler=bulk_email_job_buffer,
+        run_data_operation_use_case=RunDataOperationUseCase(
+            SqlAlchemyDataOperationRunRepository(db),
+            authorization,
+        ),
+        data_operation_job_scheduler=_schedule_data_operation,
     )
 
 

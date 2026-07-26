@@ -3,15 +3,17 @@ import {
   downloadDataOperationFile,
   getDataOperationRun,
   listDataOperations,
-  runDataOperation,
   ApiError,
 } from "../api/dataOperations";
+import { createOperation } from "../api/operations";
 import { PageHeader } from "../components/ui/PageHeader";
 import { LoadingState } from "../components/ui/LoadingState";
 import { Badge } from "../components/ui/Badge";
 import { RadioField } from "../components/ui/form";
 import { adminLabels } from "../labels/adminLabels";
+import { operationLabels, operationTypeLabels } from "../labels/operationLabels";
 import type { DataOperationDefinition, DataOperationRun, DuplicateGroupByField } from "../types/dataOperations";
+import type { Operation } from "../types/operation";
 import type { BadgeVariant } from "../components/ui/Badge";
 import { Card } from "../components/ui/Card";
 import { PageShell } from "../components/ui/PageShell";
@@ -48,6 +50,14 @@ function currentRun(operation: DataOperationDefinition): DataOperationRun | null
 
 function isActive(run: DataOperationRun | null): boolean {
   return run?.status === "queued" || run?.status === "running";
+}
+
+function extractDataOperationRunId(operation: Operation): string | null {
+  const result = operation.latest_run?.error_details?.result;
+  if (!result || typeof result !== "object") return null;
+  const raw = (result as { data_operation_run_id?: unknown }).data_operation_run_id;
+  if (raw == null) return null;
+  return String(raw);
 }
 
 interface DataOperationsPageProps {
@@ -149,10 +159,23 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
 
     setRunningKeys((prev) => new Set(prev).add(operation.key));
     try {
-      const payload =
-        operation.key === DUPLICATE_ANALYSIS_KEY ? { group_by: duplicateGroupBy } : undefined;
-      const started = await runDataOperation(operation.key, payload);
-      const run = await getDataOperationRun(started.id);
+      const typeConfig: Record<string, unknown> = { job_key: operation.key };
+      if (operation.key === DUPLICATE_ANALYSIS_KEY) {
+        typeConfig.group_by = duplicateGroupBy;
+      }
+      const startedOperation = await createOperation({
+        operation_type: "duplicate_check",
+        title: operation.name,
+        description: operation.description,
+        source_kind: "none",
+        type_config: typeConfig,
+        start_immediately: true,
+      });
+      const dataRunId = extractDataOperationRunId(startedOperation);
+      if (!dataRunId) {
+        throw new Error(adminLabels.dataOpRunError);
+      }
+      const run = await getDataOperationRun(dataRunId);
       setOperations((prev) =>
         prev.map((item) =>
           item.key === operation.key
@@ -172,6 +195,7 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
         onOpenResult(run.id, operation.key);
       }
       setError(null);
+      void loadOperations();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : adminLabels.dataOpRunError);
     } finally {
@@ -197,7 +221,10 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
 
   return (
     <PageShell className="data-operations-page">
-      <PageHeader title={adminLabels.dataOperationsTitle} subtitle={adminLabels.dataOperationsSubtitle} />
+      <PageHeader
+        title={operationTypeLabels.duplicate_check}
+        subtitle={operationLabels.duplicateCheckSubtitle}
+      />
 
       {error && <p className="text-danger">{error}</p>}
       {loading && <LoadingState />}

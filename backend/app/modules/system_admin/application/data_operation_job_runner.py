@@ -43,6 +43,8 @@ _DATASET_BUILDERS = {
 class DataOperationJobCommand:
     organization_id: UUID
     run_id: UUID
+    operation_id: UUID | None = None
+    operation_run_id: UUID | None = None
 
 
 class DataOperationJobRunner:
@@ -71,6 +73,7 @@ class DataOperationJobRunner:
 
             if definition.result_mode == "dataset":
                 self._run_dataset_operation(
+                    command=command,
                     db=db,
                     repo=repo,
                     run=run,
@@ -266,6 +269,7 @@ class DataOperationJobRunner:
     def _run_dataset_operation(
         self,
         *,
+        command: DataOperationJobCommand,
         db: Session,
         repo: SqlAlchemyDataOperationRunRepository,
         run: DataOperationRun,
@@ -281,6 +285,7 @@ class DataOperationJobRunner:
             )
             repo.update(run)
             db.commit()
+            self._sync_linked_operation(command, run)
             return
 
         builder = _DATASET_BUILDERS.get(definition.dataset_kind)
@@ -292,6 +297,7 @@ class DataOperationJobRunner:
             )
             repo.update(run)
             db.commit()
+            self._sync_linked_operation(command, run)
             return
 
         try:
@@ -324,6 +330,7 @@ class DataOperationJobRunner:
             )
             repo.update(run)
             db.commit()
+            self._sync_linked_operation(command, run)
         except Exception as exc:
             db.rollback()
             run = repo.get_by_id(organization_id, run_id)
@@ -331,6 +338,31 @@ class DataOperationJobRunner:
                 run.mark_failed(error_message=str(exc), stdout_text=None, now=datetime.now(tz=UTC))
                 repo.update(run)
                 db.commit()
+                self._sync_linked_operation(command, run)
+
+    def _sync_linked_operation(self, command: DataOperationJobCommand, run: DataOperationRun) -> None:
+        if command.operation_id is None or command.operation_run_id is None:
+            return
+        from app.modules.operations.infrastructure.handlers.duplicate_check_operation_sync import (
+            sync_operation_run_from_data_operation,
+        )
+
+        db = self._session_factory()
+        try:
+            repo = SqlAlchemyDataOperationRunRepository(db)
+            fresh = repo.get_by_id(command.organization_id, command.run_id) or run
+            sync_operation_run_from_data_operation(
+                db,
+                organization_id=command.organization_id,
+                operation_id=command.operation_id,
+                operation_run_id=command.operation_run_id,
+                data_run=fresh,
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+        finally:
+            db.close()
 
 
 def _collect_output_files(stdout: str, *, maintenance_dir: Path) -> list[DataOperationOutputFile]:

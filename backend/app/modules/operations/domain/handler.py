@@ -26,6 +26,7 @@ class HandlerExecutionContext:
 
     user_id: UUID
     access_token: str
+    user_email: str | None = None
 
 
 @dataclass(frozen=True)

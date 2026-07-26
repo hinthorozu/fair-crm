@@ -77,6 +77,8 @@ type AppRoute =
   | "/operations/new/scraper"
   | "/operations/new/bulk-email"
   | "/operations/new/enrichment"
+  | "/operations/new/duplicate-check"
+  | "/operations/duplicate-check/runs/:runId"
   | "/operations/:id"
   | "/follow-ups"
   | "/activities"
@@ -95,8 +97,6 @@ type AppRoute =
   | "/admin/email-accounts"
   | "/admin/smtp-operations/templates"
   | "/admin/smtp-operations/mail-operations"
-  | "/admin/data-operations"
-  | "/admin/data-operations/runs/:runId"
   | "/admin/operation-capabilities"
   | "/imports"
   | "/imports/fair/:fairId"
@@ -121,19 +121,20 @@ function parseRoute(location: string): ParsedRoute {
   const dataOperationKey = searchParams.get("operation") ?? undefined;
 
   if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    // Legacy admin data-operations URLs → Operations → Duplicate Kontrolü
     if (pathname === "/admin/data-operations" || pathname === "/admin/data-operations/") {
-      return { route: "/admin/data-operations" };
+      return { route: "/operations/new/duplicate-check" };
     }
-    const dataOpRun = pathname.match(/^\/admin\/data-operations\/runs\/([^/]+)$/);
-    if (dataOpRun) {
+    const legacyDataOpRun = pathname.match(/^\/admin\/data-operations\/runs\/([^/]+)$/);
+    if (legacyDataOpRun) {
       return {
-        route: "/admin/data-operations/runs/:runId",
-        dataOperationRunId: dataOpRun[1],
+        route: "/operations/duplicate-check/runs/:runId",
+        dataOperationRunId: legacyDataOpRun[1],
         dataOperationKey,
       };
     }
     if (pathname.startsWith("/admin/data-operations")) {
-      return { route: "/admin/data-operations" };
+      return { route: "/operations/new/duplicate-check" };
     }
     if (pathname === "/admin/email-accounts" || pathname.startsWith("/admin/email-accounts/")) {
       return { route: "/admin/email-accounts" };
@@ -242,6 +243,20 @@ function parseRoute(location: string): ParsedRoute {
     if (pathname === "/operations/new/enrichment" || pathname === "/operations/new/enrichment/") {
       return { route: "/operations/new/enrichment" };
     }
+    if (
+      pathname === "/operations/new/duplicate-check" ||
+      pathname === "/operations/new/duplicate-check/"
+    ) {
+      return { route: "/operations/new/duplicate-check" };
+    }
+    const duplicateCheckRun = pathname.match(/^\/operations\/duplicate-check\/runs\/([^/]+)$/);
+    if (duplicateCheckRun) {
+      return {
+        route: "/operations/duplicate-check/runs/:runId",
+        dataOperationRunId: duplicateCheckRun[1],
+        dataOperationKey,
+      };
+    }
     // Legacy: type picker is a modal on /operations (not a standalone page).
     if (
       pathname === "/operations/new" ||
@@ -304,8 +319,6 @@ function isAdminRoute(route: AppRoute): boolean {
 }
 
 function adminSection(route: AppRoute): string {
-  if (route.includes("/data-operations/runs/")) return "data-operations";
-  if (route.includes("/data-operations")) return "data-operations";
   if (route.includes("/operation-capabilities")) return "operation-capabilities";
   if (route.includes("/smtp-operations/templates")) return "mail-templates";
   if (route.includes("/smtp-operations/mail-operations")) return "mail-operations";
@@ -573,6 +586,23 @@ export function App() {
     });
   };
 
+  const goToDuplicateCheck = () => {
+    runGuardedNav(() => {
+      navigate("/operations/new/duplicate-check");
+      setParsed({ route: "/operations/new/duplicate-check" });
+      setSidebarOpen(false);
+    });
+  };
+
+  const goToDuplicateCheckResult = (runId: string, operationKey: string) => {
+    const path = `/operations/duplicate-check/runs/${runId}?operation=${encodeURIComponent(operationKey)}`;
+    runGuardedNav(() => {
+      navigate(path);
+      setParsed(parseRoute(path));
+      setSidebarOpen(false);
+    });
+  };
+
   const goToAdapters = () => {
     runGuardedNav(() => {
       navigate("/data-integration/adapters");
@@ -669,6 +699,8 @@ export function App() {
     parsed.route === "/operations/new/scraper" ||
     parsed.route === "/operations/new/bulk-email" ||
     parsed.route === "/operations/new/enrichment" ||
+    parsed.route === "/operations/new/duplicate-check" ||
+    parsed.route === "/operations/duplicate-check/runs/:runId" ||
     parsed.route === "/operations/:id";
   const isActivitiesActive = parsed.route === "/activities";
   const isDiActive = isDataIntegrationRoute(parsed.route);
@@ -730,6 +762,28 @@ export function App() {
                 { label: uiLabels.navOperations, onClick: goToOperations },
                 { label: operationLabels.enrichmentWizardTitle, current: true },
               ]
+          : parsed.route === "/operations/new/duplicate-check"
+            ? [
+                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
+                { label: uiLabels.navOperations, onClick: goToOperations },
+                { label: operationLabels.duplicateCheckWizardTitle, current: true },
+              ]
+          : parsed.route === "/operations/duplicate-check/runs/:runId"
+            ? [
+                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
+                { label: uiLabels.navOperations, onClick: goToOperations },
+                {
+                  label: operationLabels.duplicateCheckWizardTitle,
+                  onClick: goToDuplicateCheck,
+                },
+                {
+                  label:
+                    parsed.dataOperationKey === "duplicate_customer_analysis"
+                      ? adminLabels.dataOpDuplicateResultTitle
+                      : adminLabels.dataOpAnalyzeResultTitle,
+                  current: true,
+                },
+              ]
           : parsed.route === "/operations"
             ? [
                 { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
@@ -786,16 +840,12 @@ export function App() {
                   { label: uiLabels.navAdmin, onClick: () => goToAdmin() },
                   {
                     label:
-                      parsed.route === "/admin/data-operations/runs/:runId"
-                        ? adminLabels.dataOpAnalyzeResultTitle
-                        : parsed.route === "/admin/email-accounts"
+                      parsed.route === "/admin/email-accounts"
                           ? adminLabels.navSmtpAccounts
                           : parsed.route === "/admin/smtp-operations/templates"
                             ? adminLabels.navMailTemplates
                             : parsed.route === "/admin/smtp-operations/mail-operations"
                               ? adminLabels.navMailOperations
-                            : parsed.route === "/admin/data-operations"
-                          ? adminLabels.navDataOperations
                           : parsed.route === "/admin/operation-capabilities"
                             ? adminLabels.navOperationCapabilities
                           : adminLabels.navDatabaseBackups,
@@ -965,22 +1015,6 @@ export function App() {
       {parsed.route === "/admin/email-accounts" && <SmtpAccountsPage />}
       {parsed.route === "/admin/smtp-operations/templates" && <MailTemplatesPage />}
       {parsed.route === "/admin/smtp-operations/mail-operations" && <MailOperationsPage />}
-      {parsed.route === "/admin/data-operations" && (
-        <DataOperationsPage
-          onOpenResult={(runId, operationKey) =>
-            goToAdmin(
-              `/admin/data-operations/runs/${runId}?operation=${encodeURIComponent(operationKey)}`,
-            )
-          }
-        />
-      )}
-      {parsed.route === "/admin/data-operations/runs/:runId" && parsed.dataOperationRunId && (
-        <DataOperationRunResultPage
-          runId={parsed.dataOperationRunId}
-          operationKey={parsed.dataOperationKey}
-          onBack={() => goToAdmin("/admin/data-operations")}
-        />
-      )}
       {parsed.route === "/admin/operation-capabilities" && <OperationCapabilitiesAdminPage />}
     </AdminSystemLayout>
   );
@@ -1060,6 +1094,18 @@ export function App() {
       )}
       {parsed.route === "/operations/new/enrichment" && (
         <EnrichmentOperationPage onCreated={goToOperationDetail} />
+      )}
+      {parsed.route === "/operations/new/duplicate-check" && (
+        <DataOperationsPage
+          onOpenResult={(runId, operationKey) => goToDuplicateCheckResult(runId, operationKey)}
+        />
+      )}
+      {parsed.route === "/operations/duplicate-check/runs/:runId" && parsed.dataOperationRunId && (
+        <DataOperationRunResultPage
+          runId={parsed.dataOperationRunId}
+          operationKey={parsed.dataOperationKey}
+          onBack={goToDuplicateCheck}
+        />
       )}
       {parsed.route === "/operations/:id" && parsed.operationId && (
         <OperationDetailPage

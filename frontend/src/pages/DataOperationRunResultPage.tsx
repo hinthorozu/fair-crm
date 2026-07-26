@@ -1,6 +1,7 @@
 import React from "react";
 import { getDataOperationRun, ApiError } from "../api/dataOperations";
 import { adminLabels } from "../labels/adminLabels";
+import { operationTypeLabels } from "../labels/operationLabels";
 import { Banner } from "../components/ui/Banner";
 import { LoadingState } from "../components/ui/LoadingState";
 import { PageHeader } from "../components/ui/PageHeader";
@@ -72,7 +73,7 @@ export function DataOperationRunResultPage({
   if (loading && !operationKeyFromRoute) {
     return (
       <PageShell>
-        <PageHeader title={adminLabels.dataOperationsTitle} />
+        <PageHeader title={operationTypeLabels.duplicate_check} />
         <LoadingState message={adminLabels.dataOpLoading} />
       </PageShell>
     );
@@ -82,7 +83,7 @@ export function DataOperationRunResultPage({
     return (
       <PageShell>
         <PageHeader
-          title={adminLabels.dataOperationsTitle}
+          title={operationTypeLabels.duplicate_check}
           actions={
             <button type="button" className="btn secondary" onClick={onBack}>
               {adminLabels.dataOpBackToOperations}

@@ -10,12 +10,18 @@ from app.modules.operations.infrastructure.handlers.bulk_email_operation_sync im
     hydrate_run_from_batch,
     resolve_batch_for_operation,
 )
+from app.modules.operations.infrastructure.handlers.duplicate_check_operation_sync import (
+    extract_data_operation_run_id,
+    hydrate_run_from_data_operation,
+)
 from app.modules.operations.infrastructure.handlers.scraper_operation_sync import (
     extract_scraper_run_id,
     hydrate_run_from_scraper_history,
 )
 from app.modules.scraper.services.scraper_run_history_service import ScraperRunHistoryService
-
+from app.modules.system_admin.infrastructure.repositories.data_operation_run_repository import (
+    SqlAlchemyDataOperationRunRepository,
+)
 
 class GetOperationUseCase:
     def __init__(
@@ -55,6 +61,8 @@ class GetOperationUseCase:
             runs = [self._hydrate_scraper_run(run) for run in runs]
         elif operation.operation_type == OperationType.BULK_EMAIL:
             runs = [self._hydrate_bulk_email_run(operation.organization_id, operation.id, run) for run in runs]
+        elif operation.operation_type == OperationType.DUPLICATE_CHECK:
+            runs = [self._hydrate_data_operation_run(operation.organization_id, run) for run in runs]
 
         latest_run = None
         if operation.latest_run_id:
@@ -74,6 +82,10 @@ class GetOperationUseCase:
                 elif latest_run is not None and operation.operation_type == OperationType.BULK_EMAIL:
                     latest_run = self._hydrate_bulk_email_run(
                         operation.organization_id, operation.id, latest_run
+                    )
+                elif latest_run is not None and operation.operation_type == OperationType.DUPLICATE_CHECK:
+                    latest_run = self._hydrate_data_operation_run(
+                        operation.organization_id, latest_run
                     )
 
         return OperationDetailResult(
@@ -116,3 +128,16 @@ class GetOperationUseCase:
         if batch is None:
             return run
         return hydrate_run_from_batch(run, batch)
+
+    def _hydrate_data_operation_run(self, organization_id, run):
+        if self._db is None:
+            return run
+        data_run_id = extract_data_operation_run_id(run)
+        if data_run_id is None:
+            return run
+        data_run = SqlAlchemyDataOperationRunRepository(self._db).get_by_id(
+            organization_id, data_run_id
+        )
+        if data_run is None:
+            return run
+        return hydrate_run_from_data_operation(run, data_run)
