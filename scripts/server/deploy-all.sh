@@ -24,7 +24,6 @@
 #   FAIR_CRM_BRANCH=main
 #   KYROX_CORE_REPO=https://github.com/hinthorozu/kyrox-core.git
 #   DEPLOY_SERVICE_USER=ubuntu
-#   SERVER_PUBLIC_URL=http://203.0.113.10
 #   SKIP_FRONTEND_BUILD=1
 #   SKIP_NODE=1
 #   SKIP_CORE_DEV_SEED=1
@@ -52,7 +51,6 @@ KYROX_CORE_REPO="${KYROX_CORE_REPO:-https://github.com/hinthorozu/kyrox-core.git
 KYROX_CORE_BRANCH="${KYROX_CORE_BRANCH:-main}"
 FAIR_CRM_BRANCH="${FAIR_CRM_BRANCH:-main}"
 DEPLOY_SERVICE_USER="${DEPLOY_SERVICE_USER:-${SUDO_USER:-$(id -un)}}"
-SERVER_PUBLIC_URL="${SERVER_PUBLIC_URL:-$(detect_server_public_url)}"
 
 CORE_PORT="${CORE_PORT:-8000}"
 FAIR_CRM_PORT="${FAIR_CRM_PORT:-8001}"
@@ -338,7 +336,6 @@ print_final_report() {
   echo ""
   echo "Core API: http://127.0.0.1:${CORE_PORT}"
   echo "Fair CRM API: http://127.0.0.1:${FAIR_CRM_PORT}"
-  echo "Public UI: ${SERVER_PUBLIC_URL}/"
   echo "=============================================="
 }
 
@@ -365,7 +362,6 @@ main() {
   log "KYROX_CORE_DIR=${KYROX_CORE_DIR} (branch ${KYROX_CORE_BRANCH})"
   log "FAIR_CRM_DIR=${FAIR_CRM_DIR} (branch ${FAIR_CRM_BRANCH})"
   log "DEPLOY_SERVICE_USER=${DEPLOY_SERVICE_USER}"
-  log "SERVER_PUBLIC_URL=${SERVER_PUBLIC_URL}"
 
   clone_or_update_repo "$KYROX_CORE_DIR" "$KYROX_CORE_REPO" "$KYROX_CORE_BRANCH" "${PROTECTED_KYROX_CORE_PATHS[@]}"
 

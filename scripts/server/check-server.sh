@@ -18,7 +18,6 @@ source "${SCRIPT_DIR}/lib/common.sh"
 CHECK_QUIET=1
 KYROX_CORE_DIR="${KYROX_CORE_DIR:-/opt/kyrox-core}"
 FAIR_CRM_DIR="${FAIR_CRM_DIR:-$(cd "${SCRIPT_DIR}/../.." && pwd)}"
-SERVER_PUBLIC_URL="${SERVER_PUBLIC_URL:-$(detect_server_public_url)}"
 CORE_PORT="${CORE_PORT:-8000}"
 FAIR_CRM_PORT="${FAIR_CRM_PORT:-8001}"
 CORE_HEALTH_PATH="${CORE_HEALTH_PATH:-/api/v1/health}"
@@ -91,11 +90,7 @@ main() {
 
   local core_url="http://127.0.0.1:${CORE_PORT}${CORE_HEALTH_PATH}"
   local fair_url="http://127.0.0.1:${FAIR_CRM_PORT}${FAIR_CRM_HEALTH_PATH}"
-  local public_url=""
-  if [[ "${SKIP_PUBLIC_CHECKS:-0}" != "1" ]]; then
-    public_url="${SERVER_PUBLIC_URL}"
-  fi
-  check_http_endpoints "$core_url" "$fair_url" "$public_url"
+  check_http_endpoints "$core_url" "$fair_url"
   run_login_smoke_test "$CORE_PORT" "check"
   run_admin_backups_smoke_test "$FAIR_CRM_PORT" "$CORE_PORT" "check"
 

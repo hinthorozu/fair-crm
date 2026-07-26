@@ -23,7 +23,6 @@
 #   FAIR_CRM_BRANCH=main
 #   KYROX_CORE_DIR=/opt/kyrox-core
 #   DEPLOY_SERVICE_USER=ubuntu
-#   SERVER_PUBLIC_URL=http://203.0.113.10
 #   SKIP_APT=1
 #   SKIP_DOCKER=1
 #   SKIP_NODE=1
@@ -43,7 +42,6 @@ KYROX_CORE_DIR="${KYROX_CORE_DIR:-/opt/kyrox-core}"
 FAIR_CRM_REPO="${FAIR_CRM_REPO:-https://github.com/hinthorozu/fair-crm.git}"
 FAIR_CRM_BRANCH="${FAIR_CRM_BRANCH:-main}"
 DEPLOY_SERVICE_USER="${DEPLOY_SERVICE_USER:-${SUDO_USER:-$(id -un)}}"
-SERVER_PUBLIC_URL="${SERVER_PUBLIC_URL:-$(detect_server_public_url)}"
 
 REPORT_APT="skipped"
 REPORT_DOCKER="skipped"
@@ -117,7 +115,6 @@ print_bootstrap_report() {
   echo "Nginx site: ${REPORT_NGINX}"
   echo "FAIR_CRM_DIR: ${FAIR_CRM_DIR}"
   echo "KYROX_CORE_DIR: ${KYROX_CORE_DIR}"
-  echo "SERVER_PUBLIC_URL: ${SERVER_PUBLIC_URL}"
   echo ""
   echo "Next steps:"
   echo "  1) Edit /opt/fair-crm/backend/.env (JWT, DATABASE_URL, KYROX_CORE_BASE_URL)"
@@ -134,7 +131,6 @@ main() {
   log "FAIR_CRM_DIR=${FAIR_CRM_DIR}"
   log "KYROX_CORE_DIR=${KYROX_CORE_DIR}"
   log "DEPLOY_SERVICE_USER=${DEPLOY_SERVICE_USER}"
-  log "SERVER_PUBLIC_URL=${SERVER_PUBLIC_URL}"
 
   if [[ "${SKIP_APT:-0}" != "1" ]]; then
     install_apt_packages

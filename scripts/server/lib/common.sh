@@ -437,21 +437,6 @@ ensure_core_backend_env() {
   return 1
 }
 
-detect_server_public_url() {
-  local configured="${SERVER_PUBLIC_URL:-}"
-  if [[ -n "$configured" ]]; then
-    printf '%s' "${configured%/}"
-    return 0
-  fi
-  local ip
-  ip="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
-  if [[ -n "$ip" ]]; then
-    printf '%s' "http://${ip}"
-    return 0
-  fi
-  printf '%s' "http://127.0.0.1"
-}
-
 write_frontend_production_env_if_missing() {
   local fair_dir="$1"
   local target="${fair_dir}/frontend/.env.production"
@@ -972,12 +957,11 @@ normalize_template_output() {
 render_template() {
   local template="$1"
   local output="$2"
-  local service_user core_dir fair_dir public_url
+  local service_user core_dir fair_dir
   local -a tokens=(
     DEPLOY_SERVICE_USER
     KYROX_CORE_DIR
     FAIR_CRM_DIR
-    SERVER_PUBLIC_URL
   )
   local token value escaped pattern
 
@@ -986,11 +970,10 @@ render_template() {
   resolve_deploy_service_user
   core_dir="${KYROX_CORE_DIR:-/opt/kyrox-core}"
   fair_dir="${FAIR_CRM_DIR:-/opt/fair-crm}"
-  public_url="${SERVER_PUBLIC_URL:-$(detect_server_public_url)}"
   service_user="$DEPLOY_SERVICE_USER"
 
-  [[ -n "$core_dir" && -n "$fair_dir" && -n "$public_url" ]] \
-    || die "Template render requires KYROX_CORE_DIR, FAIR_CRM_DIR, and SERVER_PUBLIC_URL"
+  [[ -n "$core_dir" && -n "$fair_dir" ]] \
+    || die "Template render requires KYROX_CORE_DIR and FAIR_CRM_DIR"
 
   cp "$template" "$output"
 
@@ -999,7 +982,6 @@ render_template() {
       DEPLOY_SERVICE_USER) value="$service_user" ;;
       KYROX_CORE_DIR) value="$core_dir" ;;
       FAIR_CRM_DIR) value="$fair_dir" ;;
-      SERVER_PUBLIC_URL) value="$public_url" ;;
       *) die "Unknown template token: ${token}" ;;
     esac
     escaped="$(escape_sed_replacement "$value")"
@@ -1017,7 +999,7 @@ assert_rendered_systemd_unit() {
 
   [[ -f "$unit_file" ]] || die "${label} missing after render: ${unit_file}"
 
-  if grep -Eq '@(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR|SERVER_PUBLIC_URL)@|__(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR|SERVER_PUBLIC_URL)__' "$unit_file"; then
+  if grep -Eq '@(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR)@|__(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR)__' "$unit_file"; then
     die "${label} has unreplaced template placeholders"
   fi
 
@@ -1639,7 +1621,6 @@ wait_for_http_health() {
 check_http_endpoints() {
   local core_url="$1"
   local fair_url="$2"
-  local public_url="${3:-}"
 
   local core_status fair_status
   core_status="$(http_status "$core_url")"
@@ -1655,16 +1636,6 @@ check_http_endpoints() {
     check_pass "Fair CRM health ${fair_status}"
   else
     check_fail "Fair CRM health ${fair_status}"
-  fi
-
-  if [[ -n "$public_url" ]]; then
-    local ui_status
-    ui_status="$(http_status "${public_url}/")"
-    if [[ "$ui_status" == "200" ]]; then
-      check_pass "Frontend ${ui_status}"
-    else
-      check_fail "Frontend ${ui_status}"
-    fi
   fi
 }
 
@@ -1882,7 +1853,7 @@ print_systemd_service_audit() {
       fi
       if [[ "$verify_rc" -ne 0 ]]; then
         check_fail "${service} unit valid (systemd-analyze: ${verify_out})"
-      elif grep -Eq '@(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR|SERVER_PUBLIC_URL)@|__(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR|SERVER_PUBLIC_URL)__' "$installed"; then
+      elif grep -Eq '@(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR)@|__(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR)__' "$installed"; then
         check_fail "${service} unit valid (unreplaced template placeholders in ${installed})"
       elif grep -q '127.0.0.1' "$installed" && grep -q 'Restart=always' "$installed"; then
         check_pass "${service} unit configured (127.0.0.1:${port}, Restart=always)"
