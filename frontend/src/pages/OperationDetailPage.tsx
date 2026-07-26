@@ -314,13 +314,14 @@ export function OperationDetailPage({
         const items = recipientsResult.value.items;
         setBulkRecipients(items);
         // Stable fingerprint — avoid Date.now() remount/reset signals on every poll tick.
+        // Include provider webhook fields so soft refresh updates accepted→delivered/etc.
         setBulkRecipientsVersion(
           [
             recipientsResult.value.batch_id,
             String(items.length),
             ...items.map(
               (row) =>
-                `${row.id}:${row.status}:${row.send_attempt}:${row.sent_at ?? ""}:${row.error_message ?? ""}`,
+                `${row.id}:${row.status}:${row.send_attempt}:${row.sent_at ?? ""}:${row.error_message ?? ""}:${row.provider_status ?? ""}:${row.external_message_id ?? ""}`,
             ),
           ].join("|"),
         );
@@ -366,9 +367,13 @@ export function OperationDetailPage({
   );
 
   React.useEffect(() => {
-    if (!shouldPoll) return;
+    // Operation status poll while queued/running; bulk email recipient soft-refresh
+    // also continues after completion so webhook provider_status updates appear without F5.
+    if (!shouldPoll && !isBulkEmailOp) return;
     const timer = window.setInterval(() => {
-      void load({ silent: true });
+      if (shouldPoll) {
+        void load({ silent: true });
+      }
       if (isBulkEmailOp) {
         void loadBulkEmailExtras({ silent: true });
       }

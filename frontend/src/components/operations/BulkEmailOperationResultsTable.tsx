@@ -61,11 +61,25 @@ function filterRecipients(
   params: ServerTableFetchParams,
 ): BulkEmailOperationRecipientRow[] {
   const status = (params.filters.status ?? "").trim();
+  const providerStatus = (params.filters.provider_status ?? "").trim();
   return recipients.filter((item) => {
     if (status && item.status !== status) return false;
+    if (providerStatus && (item.provider_status ?? "").trim() !== providerStatus) return false;
     return matchesSearch(item, params.search);
   });
 }
+
+const PROVIDER_STATUS_FILTER_OPTIONS = [
+  "accepted",
+  "sent",
+  "delivered",
+  "opened",
+  "clicked",
+  "soft_bounced",
+  "hard_bounced",
+  "unsubscribed",
+  "spam_complaint",
+] as const;
 
 function toClientListResponse(
   items: BulkEmailOperationRecipientRow[],
@@ -119,8 +133,8 @@ export function BulkEmailOperationResultsTable({
 
   const table = useServerDataTable<BulkEmailOperationRecipientRow>({
     fetchFn,
-    filterKeys: ["status"],
-    defaultFilters: { status: "" },
+    filterKeys: ["status", "provider_status"],
+    defaultFilters: { status: "", provider_status: "" },
     pageSize: DEFAULT_PAGE_SIZE,
     urlSync: false,
     debounceMs: 200,
@@ -211,6 +225,7 @@ export function BulkEmailOperationResultsTable({
   );
 
   const statusValue = (table.filters.status ?? "") as string;
+  const providerStatusValue = (table.filters.provider_status ?? "") as string;
 
   return (
     <UniversalDataTable
@@ -249,6 +264,24 @@ export function BulkEmailOperationResultsTable({
               {statusOptions.map((status) => (
                 <option key={status} value={status}>
                   {fairEmailOutboxStatusLabel(status)}
+                </option>
+              ))}
+            </SelectInput>
+          </FormField>
+          <FormField
+            label={operationLabels.bulkEmailRecipientsProviderStatusFilter}
+            htmlFor="bulk-email-results-provider-status"
+          >
+            <SelectInput
+              id="bulk-email-results-provider-status"
+              value={providerStatusValue}
+              onChange={(event) => table.setFilter("provider_status", event.target.value)}
+              aria-label={operationLabels.bulkEmailRecipientsProviderStatusFilter}
+            >
+              <option value="">{operationLabels.bulkEmailRecipientsStatusAll}</option>
+              {PROVIDER_STATUS_FILTER_OPTIONS.map((status) => (
+                <option key={status} value={status}>
+                  {status}
                 </option>
               ))}
             </SelectInput>

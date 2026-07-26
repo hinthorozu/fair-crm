@@ -192,6 +192,7 @@ export const operationLabels = {
   bulkEmailRecipientsSearchLabel: "Arama",
   bulkEmailRecipientsSearchPlaceholder: "Alıcı, firma, e-posta veya fuar ara…",
   bulkEmailRecipientsStatusFilter: "Durum",
+  bulkEmailRecipientsProviderStatusFilter: "Provider Durumu",
   bulkEmailRecipientsStatusAll: "Tümü",
   bulkEmailRecipientsFilterAria: "Alıcı tablosu filtreleri",
   bulkEmailRecipientsEmptyFiltered: "Arama veya durum filtresine uyan alıcı yok.",
