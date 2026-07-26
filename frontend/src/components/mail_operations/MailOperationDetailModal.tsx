@@ -55,6 +55,18 @@ export function MailOperationDetailModal({ record, onClose }: MailOperationDetai
           <strong>{adminLabels.mailOperationsColStatus}</strong>
           <div>{mailOperationStatusLabel(record.status, record)}</div>
         </div>
+        {record.external_message_id ? (
+          <div>
+            <strong>{adminLabels.mailOperationsColProviderMessageId}</strong>
+            <div>{record.external_message_id}</div>
+          </div>
+        ) : null}
+        {record.provider_status ? (
+          <div>
+            <strong>{adminLabels.mailOperationsColProviderStatus}</strong>
+            <div>{record.provider_status}</div>
+          </div>
+        ) : null}
         <div className="span-2">
           <strong>{adminLabels.mailOperationsColError}</strong>
           <div>{record.error_message ?? "—"}</div>

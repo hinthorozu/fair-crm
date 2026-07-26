@@ -21,7 +21,15 @@ from app.modules.smtp.domain.exceptions import (
 )
 from app.modules.smtp.domain.ports import SmtpAccountRepository
 from app.modules.smtp.domain.smtp_config_validation import smtp_config_warnings
-from app.modules.email_delivery.application.deliver import deliver_smtp_account_with_dispatcher
+from app.modules.email_delivery.application.email_delivery_service import EmailDeliveryService
+from app.modules.smtp.domain.exceptions import (
+    InvalidSmtpTestRecipientError,
+    SmtpAccountAlreadyDeletedError,
+    SmtpAccountNotFoundError,
+    SmtpMailDeliveryError,
+)
+from app.modules.smtp.domain.ports import SmtpAccountRepository
+from app.modules.smtp.domain.smtp_config_validation import smtp_config_warnings
 
 PERMISSION_UPDATE = "fair_crm.email_accounts.update"
 _RECIPIENT_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
@@ -34,11 +42,14 @@ class SendTestSmtpMailUseCase:
         authorization: AuthorizationPort,
         audit: HttpAuditAdapter,
         mail_send_operations: MailSendOperationService,
+        session,
     ) -> None:
         self._repository = repository
         self._authorization = authorization
         self._audit = audit
         self._mail_send_operations = mail_send_operations
+        self._session = session
+        self._delivery = EmailDeliveryService(session)
 
     def execute(self, command: SendTestSmtpMailCommand) -> SendTestSmtpMailResult:
         if not self._authorization.check_permission(
@@ -107,11 +118,12 @@ class SendTestSmtpMailUseCase:
         try:
             self._mail_send_operations.execute_synchronous_send(
                 operation_params,
-                send_fn=lambda: deliver_smtp_account_with_dispatcher(
-                    account,
-                    recipient=recipient,
+                send_fn=lambda: self._delivery.send(
+                    organization_id=command.organization_id,
+                    email_account_id=account.id,
+                    to=recipient,
                     subject=subject,
-                    body=body,
+                    body_text=body,
                 ),
             )
         except SmtpMailDeliveryError as exc:

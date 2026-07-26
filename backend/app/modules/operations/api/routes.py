@@ -787,6 +787,8 @@ async def preview_bulk_email_operation(
             selected_fair_names=recipients.selected_fair_names,
             total_customers=recipients.total_customers,
             total_contacts=recipients.total_contacts,
+            customer_consent_skipped_count=recipients.customer_consent_skipped_count,
+            contact_consent_skipped_count=recipients.contact_consent_skipped_count,
             recipients=[
                 BulkEmailOperationPreviewRecipientResponse(
                     recipient_key=item.recipient_key,
@@ -1082,6 +1084,8 @@ def list_bulk_email_operation_recipients(
                 contact_id=item.contact_id,
                 participation_id=item.participation_id,
                 fair_name=item.fair_name,
+                external_message_id=item.external_message_id,
+                provider_status=item.provider_status,
             )
             for item in items
         ],

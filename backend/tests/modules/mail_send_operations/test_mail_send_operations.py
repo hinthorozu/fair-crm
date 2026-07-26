@@ -20,7 +20,7 @@ def _operation_events(logs: list) -> list[str]:
     return [entry["event"] for entry in logs]
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.smtp.application.send_test_smtp_mail.EmailDeliveryService.send")
 def test_smtp_test_mail_creates_sent_operation(mock_send, client, auth_headers, db_session, organization_id):
     create = client.post(
         "/api/v1/email-accounts",
@@ -64,7 +64,7 @@ def test_smtp_test_mail_creates_sent_operation(mock_send, client, auth_headers, 
     assert _operation_events(operation.operation_logs) == ["queued", "sending_started", "sent"]
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.smtp.application.send_test_smtp_mail.EmailDeliveryService.send")
 def test_smtp_test_mail_creates_failed_operation(mock_send, client, auth_headers, db_session, organization_id):
     mock_send.side_effect = SmtpMailDeliveryError(
         "SMTP kimlik doğrulaması başarısız.",
@@ -107,7 +107,7 @@ def test_smtp_test_mail_creates_failed_operation(mock_send, client, auth_headers
     assert _operation_events(operation.operation_logs) == ["queued", "sending_started", "failed"]
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.smtp.application.send_test_smtp_mail.EmailDeliveryService.send")
 def test_smtp_test_mail_inactive_account_creates_immediate_failure(
     mock_send,
     client,
@@ -155,7 +155,7 @@ def test_smtp_test_mail_inactive_account_creates_immediate_failure(
     assert _operation_events(operation.operation_logs) == ["failed"]
 
 
-@patch("app.modules.mail_templates.application.send_test_mail_template.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.mail_templates.application.send_test_mail_template.EmailDeliveryService.send")
 def test_template_test_mail_creates_sent_operation(
     mock_send,
     client,
@@ -238,7 +238,7 @@ def test_list_by_organization_requires_organization_id(db_session):
         repository.list_by_organization(None)  # type: ignore[arg-type]
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.smtp.application.send_test_smtp_mail.EmailDeliveryService.send")
 def test_list_mail_send_operations_returns_smtp_test_record(
     mock_send,
     client,
@@ -283,7 +283,7 @@ def test_list_mail_send_operations_returns_smtp_test_record(
     assert _operation_events(item["operation_logs"]) == ["queued", "sending_started", "sent"]
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.smtp.application.send_test_smtp_mail.EmailDeliveryService.send")
 def test_list_mail_send_operations_filters_by_status(
     mock_send,
     client,

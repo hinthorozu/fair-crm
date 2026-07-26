@@ -35,7 +35,8 @@ import {
 } from "../../utils/emailAccountSelection";
 import { CheckboxField, FormField, FormGrid, FormSection, SelectInput, TextInput } from "../ui/form";
 import { EmailAccountPicker } from "../email/EmailAccountPicker";
-import { UniversalDataTable, type UniversalDataTableColumn } from "../ui/UniversalDataTable";
+import { BulkEmailPreviewRecipientsTable } from "../operations/BulkEmailPreviewRecipientsTable";
+import type { BulkEmailOperationPreviewRecipient } from "../../types/bulkEmailOperation";
 import type { RecipientPreviewItem } from "../../types/fairBulkEmail";
 import { Banner } from "../ui/Banner";
 import { useModalFormCancel, useReportFormDirty } from "../../hooks/useModalForm";
@@ -47,19 +48,24 @@ const EMPTY_BULK_EMAIL_FORM = {
   recipientOptions: DEFAULT_RECIPIENT_OPTIONS,
 };
 
-function skipReasonLabel(reason: string | null): string {
-  switch (reason) {
-    case "inactive_record":
-      return fairLabels.bulkEmailSkipReasonInactive;
-    case "no_email":
-      return fairLabels.bulkEmailSkipReasonNoEmail;
-    case "invalid_email":
-      return fairLabels.bulkEmailSkipReasonInvalidEmail;
-    case "duplicate_email":
-      return fairLabels.bulkEmailSkipReasonDuplicate;
-    default:
-      return reason ?? "—";
-  }
+function toOperationPreviewRecipients(
+  fair: Fair,
+  items: RecipientPreviewItem[],
+): BulkEmailOperationPreviewRecipient[] {
+  return items.map((item) => ({
+    recipient_key: item.recipient_key,
+    email: item.email,
+    source: item.source,
+    status: item.status,
+    skip_reason: item.skip_reason,
+    recipient_name: item.recipient_name,
+    company_name: item.company_name,
+    fair_id: fair.id,
+    fair_name: fair.name,
+    customer_id: item.customer_id,
+    contact_id: item.contact_id,
+    participation_id: item.participation_id,
+  }));
 }
 
 interface FairBulkEmailWizardProps {
@@ -122,56 +128,9 @@ export function FairBulkEmailWizard({
   useReportFormDirty(formValues, dirtyBaseline ?? formValues);
   const requestCancel = useModalFormCancel(onCancel);
 
-  const recipientPreviewColumns = React.useMemo<UniversalDataTableColumn<RecipientPreviewItem>[]>(
-    () => [
-      {
-        key: "recipient_name",
-        title: fairLabels.bulkEmailColRecipient,
-        sortable: false,
-        allowWrap: true,
-        render: (item) => item.recipient_name ?? "—",
-      },
-      {
-        key: "company_name",
-        title: fairLabels.bulkEmailColCompany,
-        sortable: false,
-        allowWrap: true,
-        render: (item) => item.company_name,
-      },
-      {
-        key: "email",
-        title: fairLabels.bulkEmailColEmail,
-        sortable: false,
-        allowWrap: true,
-        render: (item) => item.email || "—",
-      },
-      {
-        key: "source",
-        title: fairLabels.bulkEmailColSource,
-        sortable: false,
-        render: (item) =>
-          item.source === "contact"
-            ? fairLabels.bulkEmailSourceContact
-            : fairLabels.bulkEmailSourceCustomer,
-      },
-      {
-        key: "status",
-        title: fairLabels.bulkEmailColStatus,
-        sortable: false,
-        render: (item) =>
-          item.status === "will_send"
-            ? fairLabels.bulkEmailStatusWillSend
-            : fairLabels.bulkEmailStatusSkip,
-      },
-      {
-        key: "skip_reason",
-        title: fairLabels.bulkEmailColSkipReason,
-        sortable: false,
-        allowWrap: true,
-        render: (item) => skipReasonLabel(item.skip_reason),
-      },
-    ],
-    [],
+  const operationPreviewRecipients = React.useMemo(
+    () => (recipientPreview ? toOperationPreviewRecipients(fair, recipientPreview.recipients) : []),
+    [fair, recipientPreview],
   );
 
   const selectedTemplate = templates.find((item) => item.id === templateId) ?? null;
@@ -494,12 +453,19 @@ export function FairBulkEmailWizard({
               <strong>{fairLabels.bulkEmailSummarySkipped}</strong>
               <div>{recipientPreview.skipped_count}</div>
             </div>
+            <div>
+              <strong>{fairLabels.bulkEmailSummaryCustomerConsentSkipped}</strong>
+              <div>{recipientPreview.customer_consent_skipped_count ?? 0}</div>
+            </div>
+            <div>
+              <strong>{fairLabels.bulkEmailSummaryContactConsentSkipped}</strong>
+              <div>{recipientPreview.contact_consent_skipped_count ?? 0}</div>
+            </div>
           </div>
-          <UniversalDataTable
-            items={recipientPreview.recipients}
-            columns={recipientPreviewColumns}
-            rowKey={(item) => item.recipient_key}
-            className="fair-bulk-email-recipients-table"
+          <BulkEmailPreviewRecipientsTable
+            recipients={operationPreviewRecipients}
+            sourceType="fair_list"
+            dataVersion={`${fair.id}:${recipientPreview.recipients.length}:${recipientPreview.skipped_count}:${recipientPreview.customer_consent_skipped_count ?? 0}:${recipientPreview.contact_consent_skipped_count ?? 0}`}
           />
         </FormSection>
       ) : null}

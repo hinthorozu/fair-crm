@@ -38,3 +38,21 @@ class EmailAccountSmtpConfigModel(Base):
     username: Mapped[str | None] = mapped_column(String(255))
     password: Mapped[str | None] = mapped_column(Text)
     encryption_type: Mapped[str] = mapped_column(String(32), nullable=False, default="starttls")
+
+
+class EmailAccountProviderConfigModel(Base):
+    """Generic provider credentials + error policy (not SMTP-shaped)."""
+
+    __tablename__ = "email_account_provider_configs"
+
+    email_account_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("email_accounts.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    provider_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    # JSON object; secret field values stored via encrypt_secret.
+    config_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    error_policy_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

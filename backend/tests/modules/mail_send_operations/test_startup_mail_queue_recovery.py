@@ -29,6 +29,7 @@ from app.modules.mail_send_operations.infrastructure.repositories.mail_send_oper
     CreateMailSendOperationParams,
     SqlAlchemyMailSendOperationRepository,
 )
+from app.modules.email_delivery.domain.results import EmailDeliveryResult
 from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
 from app.modules.email_accounts.infrastructure.persistence.models import (
     EmailAccountModel,
@@ -113,7 +114,10 @@ def test_startup_recovery_empty_queue_is_noop(db_session, recovery_session_facto
     mock_worker.assert_not_called()
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
+@patch(
+    "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send",
+    return_value=EmailDeliveryResult(success=True, transport="smtp"),
+)
 def test_startup_recovery_triggers_worker_for_queued(
     mock_send,
     db_session,
@@ -140,7 +144,10 @@ def test_startup_recovery_triggers_worker_for_queued(
     assert events[-1] == "sent"
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
+@patch(
+    "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send",
+    return_value=EmailDeliveryResult(success=True, transport="smtp"),
+)
 def test_startup_recovery_queued_advances_to_failed_on_smtp_error(
     mock_send,
     db_session,
@@ -221,7 +228,10 @@ def test_run_mail_queue_startup_recovery_swallows_worker_errors(recovery_session
     assert result is None
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
+@patch(
+    "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send",
+    return_value=EmailDeliveryResult(success=True, transport="smtp"),
+)
 def test_repeated_startup_recovery_sends_once(
     mock_send,
     db_session,
@@ -262,7 +272,10 @@ def test_atomic_claim_rejects_second_pickup(db_session, organization_id):
     assert second is None
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
+@patch(
+    "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send",
+    return_value=EmailDeliveryResult(success=True, transport="smtp"),
+)
 def test_recovery_skips_already_claimed_operation(
     mock_send,
     db_session,
@@ -292,7 +305,10 @@ def test_recovery_skips_already_claimed_operation(
     assert refreshed.status == MailSendOperationStatus.SENDING
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
+@patch(
+    "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send",
+    return_value=EmailDeliveryResult(success=True, transport="smtp"),
+)
 def test_startup_recovery_marks_stuck_sending_failed_without_resend(
     mock_send,
     db_session,
@@ -323,7 +339,10 @@ def test_startup_recovery_marks_stuck_sending_failed_without_resend(
     get_settings.cache_clear()
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
+@patch(
+    "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send",
+    return_value=EmailDeliveryResult(success=True, transport="smtp"),
+)
 def test_startup_recovery_leaves_sending_before_timeout(
     mock_send,
     db_session,
@@ -358,7 +377,10 @@ def test_startup_recovery_leaves_sending_before_timeout(
     get_settings.cache_clear()
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
+@patch(
+    "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send",
+    return_value=EmailDeliveryResult(success=True, transport="smtp"),
+)
 def test_startup_recovery_catches_orphan_after_timeout_elapses(
     mock_send,
     db_session,

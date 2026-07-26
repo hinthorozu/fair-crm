@@ -34,6 +34,8 @@ class RecipientPreviewSummaryResponse(BaseModel):
     valid_email_count: int
     deduped_recipient_count: int
     skipped_count: int
+    customer_consent_skipped_count: int = 0
+    contact_consent_skipped_count: int = 0
     recipients: list[RecipientPreviewItemResponse]
 
 

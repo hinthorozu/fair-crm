@@ -49,6 +49,8 @@ class FairEmailOutboxItemRecord:
     send_attempt: int = 1
     participation_id: UUID | None = None
     fair_name: str | None = None
+    external_message_id: str | None = None
+    provider_status: str | None = None
 
 
 class SqlAlchemyFairEmailBatchRepository:
@@ -196,8 +198,16 @@ class SqlAlchemyFairEmailBatchRepository:
         return [self._to_list_record(model) for model in models]
 
     def list_outbox_for_batch(self, organization_id: UUID, batch_id: UUID) -> list[FairEmailOutboxItemRecord]:
-        models = (
-            self._session.query(FairEmailOutboxModel)
+        from app.modules.mail_send_operations.infrastructure.persistence.models import (
+            MailSendOperationModel,
+        )
+
+        rows = (
+            self._session.query(FairEmailOutboxModel, MailSendOperationModel)
+            .outerjoin(
+                MailSendOperationModel,
+                MailSendOperationModel.id == FairEmailOutboxModel.mail_send_operation_id,
+            )
             .filter(
                 FairEmailOutboxModel.organization_id == organization_id,
                 FairEmailOutboxModel.batch_id == batch_id,
@@ -205,7 +215,14 @@ class SqlAlchemyFairEmailBatchRepository:
             .order_by(FairEmailOutboxModel.created_at.asc())
             .all()
         )
-        return [self._to_outbox_record(model) for model in models]
+        return [
+            self._to_outbox_record(
+                outbox,
+                external_message_id=mso.external_message_id if mso is not None else None,
+                provider_status=mso.provider_status if mso is not None else None,
+            )
+            for outbox, mso in rows
+        ]
 
     def list_pending_outbox(self, batch_id: UUID) -> list[FairEmailOutboxModel]:
         return (
@@ -379,7 +396,12 @@ class SqlAlchemyFairEmailBatchRepository:
         )
 
     @staticmethod
-    def _to_outbox_record(model: FairEmailOutboxModel) -> FairEmailOutboxItemRecord:
+    def _to_outbox_record(
+        model: FairEmailOutboxModel,
+        *,
+        external_message_id: str | None = None,
+        provider_status: str | None = None,
+    ) -> FairEmailOutboxItemRecord:
         return FairEmailOutboxItemRecord(
             id=model.id,
             batch_id=model.batch_id,
@@ -397,4 +419,6 @@ class SqlAlchemyFairEmailBatchRepository:
             send_attempt=int(model.send_attempt or 1),
             participation_id=model.participation_id,
             fair_name=model.fair_name,
+            external_message_id=external_message_id,
+            provider_status=provider_status,
         )

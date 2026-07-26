@@ -54,6 +54,8 @@ class RecipientPreviewResult:
     recipients: list[ResolvedRecipient]
     invalid_count: int = 0
     duplicate_count: int = 0
+    customer_consent_skipped_count: int = 0
+    contact_consent_skipped_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -65,6 +67,8 @@ class ManualRecipientPreviewResult:
     deduped_recipient_count: int
     skipped_count: int
     recipients: list["WizardPreviewRecipient"]
+    customer_consent_skipped_count: int = 0
+    contact_consent_skipped_count: int = 0
 
 
 @dataclass(frozen=True)

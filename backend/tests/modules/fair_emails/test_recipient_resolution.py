@@ -135,6 +135,40 @@ def test_resolve_recipients_customer_email_consent_blocks_all():
     assert all(item.status == "skip" for item in result.recipients)
     assert result.recipients[0].skip_reason == "customer_email_consent"
     assert result.recipients[1].skip_reason == "customer_email_consent"
+    assert result.customer_consent_skipped_count == 2
+    assert result.contact_consent_skipped_count == 0
+    assert result.deduped_recipient_count == 0
+    assert result.skipped_count == 2
+
+
+def test_resolve_recipients_consent_claims_email_once_most_restrictive():
+    customer_id = uuid4()
+    result = resolve_recipients(
+        [
+            _candidate(
+                customer_id=customer_id,
+                source="customer",
+                email="shared@abc.com",
+                customer_email_allowed=True,
+            ),
+            _candidate(
+                customer_id=customer_id,
+                source="contact",
+                contact_id=uuid4(),
+                email="shared@abc.com",
+                customer_email_allowed=True,
+                contact_email_allowed=False,
+            ),
+        ],
+        RecipientOptions(),
+    )
+    # Contact denial applies to the shared address for every candidate.
+    assert result.contact_consent_skipped_count == 1
+    assert result.duplicate_count == 1
+    assert result.deduped_recipient_count == 0
+    assert result.recipients[0].status == "skip"
+    assert result.recipients[0].skip_reason == "contact_email_consent"
+    assert result.recipients[1].skip_reason == "duplicate_email"
 
 
 def test_resolve_recipients_contact_email_consent_blocks_contact_only():
@@ -158,6 +192,9 @@ def test_resolve_recipients_contact_email_consent_blocks_contact_only():
     assert will_send[0].source == "customer"
     assert len(skipped) == 1
     assert skipped[0].skip_reason == "contact_email_consent"
+    assert result.contact_consent_skipped_count == 1
+    assert result.customer_consent_skipped_count == 0
+    assert result.deduped_recipient_count == 1
 
 
 @pytest.mark.parametrize(

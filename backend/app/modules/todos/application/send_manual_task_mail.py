@@ -87,6 +87,7 @@ class SendManualTaskMailUseCase:
         template_repository: MailTemplateRepository,
         mail_send_operations: MailSendOperationService,
         authorization: AuthorizationPort,
+        session=None,
     ) -> None:
         self._todo_repository = todo_repository
         self._participation_repository = participation_repository
@@ -94,6 +95,7 @@ class SendManualTaskMailUseCase:
         self._template_repository = template_repository
         self._mail_send_operations = mail_send_operations
         self._authorization = authorization
+        self._session = session
 
     def execute(self, command: SendManualTaskMailCommand) -> SendManualTaskMailResult:
         if not self._authorization.check_permission(
@@ -143,9 +145,33 @@ class SendManualTaskMailUseCase:
             if template.deleted_at is not None:
                 raise MailTemplateAlreadyDeletedError("Mail template is deleted")
 
+        from app.shared.consent import EmailConsentBlockedError
+        from app.shared.email_consent_policy import EmailConsentPolicy
+
+        policy = EmailConsentPolicy(self._session) if self._session is not None else None
+        allowed_recipients: list[str] = []
+        blocked_messages: list[str] = []
+        for recipient in recipients:
+            if policy is None:
+                allowed_recipients.append(recipient)
+                continue
+            decision = policy.evaluate(
+                command.organization_id,
+                email=recipient,
+                customer_id=command.customer_id,
+            )
+            if decision.allowed:
+                allowed_recipients.append(recipient)
+            else:
+                blocked_messages.append(decision.message or "E-posta iletişim izni kapalı")
+
+        if not allowed_recipients:
+            detail = blocked_messages[0] if blocked_messages else "E-posta iletişim izni kapalı"
+            raise InvalidManualTaskMailRecipientsError(detail)
+
         body_html = body if _looks_like_html(body) else None
         operation_ids: list[UUID] = []
-        for recipient in recipients:
+        for recipient in allowed_recipients:
             metadata = {
                 "source": MailSendSourceType.MANUAL_TASK_MAIL.value,
                 "todo_id": str(command.todo_id),
@@ -156,21 +182,26 @@ class SendManualTaskMailUseCase:
             if template_id is not None:
                 metadata["template_id"] = str(template_id)
 
-            operation = self._mail_send_operations.create_mail_send_operation(
-                CreateMailSendOperationParams(
-                    organization_id=command.organization_id,
-                    source_type=MailSendSourceType.MANUAL_TASK_MAIL,
-                    recipient_email=recipient,
-                    subject=subject,
-                    body_text=body,
-                    body_html=body_html,
-                    email_account_id=command.email_account_id,
-                    template_id=template_id,
-                    customer_id=command.customer_id,
-                    max_retry_count=account.max_delivery_attempts,
-                    metadata_json=metadata,
+            try:
+                operation = self._mail_send_operations.create_mail_send_operation(
+                    CreateMailSendOperationParams(
+                        organization_id=command.organization_id,
+                        source_type=MailSendSourceType.MANUAL_TASK_MAIL,
+                        recipient_email=recipient,
+                        subject=subject,
+                        body_text=body,
+                        body_html=body_html,
+                        email_account_id=command.email_account_id,
+                        template_id=template_id,
+                        customer_id=command.customer_id,
+                        max_retry_count=account.max_delivery_attempts,
+                        metadata_json=metadata,
+                    )
                 )
-            )
+            except EmailConsentBlockedError as exc:
+                raise InvalidManualTaskMailRecipientsError(
+                    exc.decision.message or "E-posta iletişim izni kapalı"
+                ) from exc
             operation_ids.append(operation.id)
 
         return SendManualTaskMailResult(

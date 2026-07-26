@@ -37,5 +37,7 @@ class MailSendOperationModel(Base):
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    external_message_id: Mapped[str | None] = mapped_column(String(255))
+    provider_status: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

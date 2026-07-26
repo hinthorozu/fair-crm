@@ -35,6 +35,8 @@ export type BulkEmailOperationRecipientSummary = {
   selected_fair_names: string[] | null;
   total_customers: number | null;
   total_contacts: number | null;
+  customer_consent_skipped_count?: number;
+  contact_consent_skipped_count?: number;
   recipients: BulkEmailOperationPreviewRecipient[];
 };
 
@@ -105,6 +107,8 @@ export type BulkEmailOperationRecipientRow = {
   customer_id: string | null;
   contact_id: string | null;
   participation_id: string | null;
+  external_message_id: string | null;
+  provider_status: string | null;
 };
 
 export type BulkEmailOperationRecipientsResponse = {

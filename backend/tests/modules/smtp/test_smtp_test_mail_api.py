@@ -27,7 +27,7 @@ def _create_account(client, auth_headers, **overrides):
     return client.post("/api/v1/email-accounts", json=payload, headers=auth_headers)
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.smtp.application.send_test_smtp_mail.EmailDeliveryService.send")
 def test_send_test_smtp_mail_success(mock_send, client, auth_headers, db_session, organization_id):
     create = _create_account(client, auth_headers)
     assert create.status_code == 201
@@ -43,7 +43,7 @@ def test_send_test_smtp_mail_success(mock_send, client, auth_headers, db_session
     assert body["success"] is True
     assert "password" not in body
     mock_send.assert_called_once()
-    assert mock_send.call_args.kwargs["recipient"] == "admin@example.com"
+    assert mock_send.call_args.kwargs["to"] == "admin@example.com"
 
     operation = (
         db_session.query(MailSendOperationModel)
@@ -78,7 +78,7 @@ def test_send_test_smtp_mail_invalid_recipient(client, auth_headers):
     assert response.status_code == 400
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.smtp.application.send_test_smtp_mail.EmailDeliveryService.send")
 def test_send_test_smtp_mail_delivery_error(mock_send, client, auth_headers, db_session, organization_id):
     mock_send.side_effect = SmtpMailDeliveryError(
         "SMTP kimlik doğrulaması başarısız. Kullanıcı adı veya şifreyi kontrol edin.",
@@ -111,7 +111,7 @@ def test_send_test_smtp_mail_delivery_error(mock_send, client, auth_headers, db_
     assert _operation_events(operation.operation_logs) == ["queued", "sending_started", "failed"]
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.smtp.application.send_test_smtp_mail.EmailDeliveryService.send")
 def test_send_test_smtp_mail_inactive_account_creates_failed_operation(
     mock_send,
     client,

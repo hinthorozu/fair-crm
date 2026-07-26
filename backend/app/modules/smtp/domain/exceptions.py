@@ -41,10 +41,14 @@ class SmtpMailDeliveryError(SmtpAccountError):
         *,
         error_type: str | None = None,
         raw_message: str | None = None,
+        retryable: bool | None = None,
+        retry_after_seconds: int | None = None,
     ) -> None:
         super().__init__(message)
         self.error_type = error_type
         self.raw_message = raw_message
+        self.retryable = retryable
+        self.retry_after_seconds = retry_after_seconds
 
 
 class InvalidSmtpTestRecipientError(SmtpAccountError):

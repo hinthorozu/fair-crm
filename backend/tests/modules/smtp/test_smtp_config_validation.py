@@ -112,7 +112,7 @@ def test_send_test_smtp_mail_maps_ssl_wrong_version_error(client, auth_headers, 
         raise SmtpMailDeliveryError(SSL_WRONG_VERSION_USER_MESSAGE)
 
     monkeypatch.setattr(
-        "app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher",
+        "app.modules.smtp.application.send_test_smtp_mail.EmailDeliveryService.send",
         _raise_ssl_error,
     )
 

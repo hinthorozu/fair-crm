@@ -40,6 +40,7 @@ class UpdateSmtpAccountCommand:
     encryption_type: str | SmtpEncryptionType | None = None
     is_default: Optional[bool] = None
     is_active: Optional[bool] = None
+    max_delivery_attempts: Optional[int] = None
 
 
 @dataclass(frozen=True)

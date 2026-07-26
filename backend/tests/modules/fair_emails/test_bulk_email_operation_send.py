@@ -230,7 +230,7 @@ def test_crm_recipient_creates_activity_and_retry_creates_second_attempt(
     db_session.commit()
 
     with patch(
-        "app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send",
+        "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send",
         side_effect=SmtpMailDeliveryError("boom"),
     ):
         ProcessFairEmailBatchUseCase(db_session).execute(
@@ -256,7 +256,7 @@ def test_crm_recipient_creates_activity_and_retry_creates_second_attempt(
     assert outbox.status == "pending"
     assert outbox.send_attempt == 2
 
-    with patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send"):
+    with patch("app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send"):
         ProcessFairEmailBatchUseCase(db_session).execute(
             ProcessBatchCommand(batch_id=batch_id, organization_id=organization_id)
         )

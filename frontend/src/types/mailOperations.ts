@@ -41,6 +41,8 @@ export interface MailOperationRecord {
   sent_at: string | null;
   failed_at: string | null;
   cancelled_at: string | null;
+  external_message_id?: string | null;
+  provider_status?: string | null;
 }
 
 export type MailOperationActionId =

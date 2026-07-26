@@ -1,7 +1,9 @@
 """Retry tests for failed fair bulk email mail send operations."""
 
 from unittest.mock import patch
-from uuid import UUID
+
+from app.modules.email_delivery.domain.results import EmailDeliveryResult
+from uuid import UUID, uuid4
 
 from app.integrations.kyrox_core.auth import create_test_token
 from app.modules.fair_emails.application.commands import ProcessBatchCommand
@@ -9,6 +11,10 @@ from app.modules.fair_emails.application.process_batch import ProcessFairEmailBa
 from app.modules.fair_emails.infrastructure.persistence.models import FairEmailOutboxModel
 from app.modules.mail_send_operations.domain.value_objects import MailSendOperationStatus, MailSendSourceType
 from app.modules.mail_send_operations.infrastructure.persistence.models import MailSendOperationModel
+from app.modules.mail_send_operations.infrastructure.repositories.mail_send_operation_repository import (
+    CreateMailSendOperationParams,
+    SqlAlchemyMailSendOperationRepository,
+)
 from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
 from tests.modules.fair_emails.test_process_fair_email_batch import _seed_pending_batch
 
@@ -26,7 +32,7 @@ def _failed_fair_bulk_operation_id(
 ) -> tuple[str, UUID]:
     batch_id = _seed_pending_batch(db_session, organization_id, user_id, client, auth_headers)
     with patch(
-        "app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send",
+        "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryService.send",
         side_effect=SmtpMailDeliveryError("Authentication failed", error_type="SMTPAuthenticationError"),
     ):
         ProcessFairEmailBatchUseCase(db_session).execute(
@@ -48,7 +54,10 @@ def _failed_fair_bulk_operation_id(
     return str(operation.id), outbox.id
 
 
-@patch("app.modules.mail_send_operations.application.retry_mail_send_operation.deliver_with_dispatcher")
+@patch(
+    "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryService.send",
+    return_value=EmailDeliveryResult(success=True, transport="smtp"),
+)
 def test_retry_failed_fair_bulk_email_success(
     mock_send,
     client,
@@ -86,7 +95,10 @@ def test_retry_failed_fair_bulk_email_success(
     assert outbox.error_message is None
 
 
-@patch("app.modules.mail_send_operations.application.retry_mail_send_operation.deliver_with_dispatcher")
+@patch(
+    "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryService.send",
+    return_value=EmailDeliveryResult(success=True, transport="smtp"),
+)
 def test_retry_failed_fair_bulk_email_delivery_error(
     mock_send,
     client,
@@ -119,7 +131,10 @@ def test_retry_failed_fair_bulk_email_delivery_error(
     assert outbox.error_message == "Connection refused"
 
 
-@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
+@patch(
+    "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryService.send",
+    return_value=EmailDeliveryResult(success=True, transport="smtp"),
+)
 def test_retry_skipped_fair_bulk_email_rejected(
     mock_send,
     client,
@@ -127,60 +142,37 @@ def test_retry_skipped_fair_bulk_email_rejected(
     db_session,
     organization_id,
 ):
-    from app.modules.contacts.infrastructure.persistence.models import ContactModel
-    from tests.conftest_customer_helpers import create_test_customer
-    from tests.modules.fair_emails.test_fair_bulk_email_api import (
-        _create_contact,
-        _create_fair,
-        _create_participation,
-        _create_smtp,
-        _create_template,
+    """Skipped MSO (e.g. consent) must not be retryable — seed skipped row directly."""
+    from app.modules.mail_send_operations.application.mail_send_operation_service import (
+        MailSendOperationService,
     )
+    from app.shared.consent import CONSENT_ERROR_CODE
 
-    fair_id = _create_fair(client, auth_headers)
-    customer = create_test_customer(
-        db_session,
-        organization_id,
-        display_name="Skip Retry Co",
-        email="info@skip.com",
+    service = MailSendOperationService(SqlAlchemyMailSendOperationRepository(db_session))
+    skipped = service.create_consent_skipped_operation(
+        CreateMailSendOperationParams(
+            organization_id=organization_id,
+            source_type=MailSendSourceType.FAIR_BULK_EMAIL,
+            recipient_email="blocked@skip.com",
+            subject="Skip retry",
+            body_text="body",
+            batch_id=uuid4(),
+            max_retry_count=3,
+        ),
+        error_code=CONSENT_ERROR_CODE,
+        error_message="Contact email consent disabled",
     )
-    db_session.commit()
-    contact_id = _create_contact(client, auth_headers, str(customer.id), email="blocked@skip.com")
-    _create_participation(client, auth_headers, fair_id, str(customer.id), primary_contact_id=contact_id)
-    template_id = _create_template(client, auth_headers, key=f"skip_retry_{fair_id[:8]}")
-    _create_smtp(client, auth_headers)
-
-    contact = db_session.query(ContactModel).filter(ContactModel.id == UUID(contact_id)).one()
-    contact.email_allowed = False
-    db_session.commit()
-
-    response = client.post(
-        f"/api/v1/fairs/{fair_id}/bulk-email/send",
-        json={
-            "template_id": template_id,
-            "recipient_options": {"include_customer_emails": True, "include_contact_emails": True},
-        },
-        headers=auth_headers,
-    )
-    assert response.status_code == 200
-    batch_id = UUID(response.json()["batch_id"])
-    skipped = (
-        db_session.query(MailSendOperationModel)
-        .filter(
-            MailSendOperationModel.batch_id == batch_id,
-            MailSendOperationModel.status == MailSendOperationStatus.SKIPPED,
-        )
-        .one()
-    )
+    db_session.flush()
 
     retry_response = client.post(
         f"/api/v1/mail-send-operations/{skipped.id}/retry",
         headers=auth_headers,
     )
     assert retry_response.status_code == 400
+    mock_send.assert_not_called()
 
 
-@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
+@patch("app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send")
 def test_retry_sent_fair_bulk_email_rejected(
     mock_send,
     client,
@@ -211,7 +203,10 @@ def test_retry_sent_fair_bulk_email_rejected(
     assert response.status_code == 400
 
 
-@patch("app.modules.mail_send_operations.application.retry_mail_send_operation.deliver_with_dispatcher")
+@patch(
+    "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryService.send",
+    return_value=EmailDeliveryResult(success=True, transport="smtp"),
+)
 def test_retry_fair_bulk_email_other_organization_not_found(
     mock_send,
     client,
@@ -236,7 +231,10 @@ def test_retry_fair_bulk_email_other_organization_not_found(
     mock_send.assert_not_called()
 
 
-@patch("app.modules.mail_send_operations.application.retry_mail_send_operation.deliver_with_dispatcher")
+@patch(
+    "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryService.send",
+    return_value=EmailDeliveryResult(success=True, transport="smtp"),
+)
 def test_retry_fair_bulk_email_does_not_create_duplicate_operation(
     mock_send,
     client,

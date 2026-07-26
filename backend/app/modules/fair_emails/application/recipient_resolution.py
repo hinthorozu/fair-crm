@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from app.shared.consent import (
+    CONTACT_EMAIL_CONSENT_SKIP,
+    CUSTOMER_EMAIL_CONSENT_SKIP,
+    evaluate_candidate_email_consent,
+)
 from app.shared.email import is_valid_email_address, normalize_bulk_recipient_email
 
 from app.modules.fair_emails.domain.value_objects import (
@@ -12,13 +17,39 @@ from app.modules.fair_emails.domain.value_objects import (
     ResolvedRecipient,
     WizardPreviewRecipient,
 )
-from app.shared.consent import CONTACT_EMAIL_CONSENT_SKIP, CUSTOMER_EMAIL_CONSENT_SKIP
 
 
 def recipient_key(customer_id: UUID | None, contact_id: UUID | None, email: str) -> str:
     customer_part = str(customer_id) if customer_id else "none"
     contact_part = str(contact_id) if contact_id else "none"
     return f"{customer_part}:{contact_part}:{email.lower()}"
+
+
+def _most_restrictive_consent_blocks(
+    candidates: list[RawRecipientCandidate],
+    options: RecipientOptions,
+) -> dict[str, str]:
+    """Map normalized email → consent skip_reason (customer denial wins)."""
+    blocks: dict[str, str] = {}
+    for candidate in candidates:
+        if options.exclude_inactive and not candidate.is_active:
+            continue
+        normalized = normalize_bulk_recipient_email(candidate.email)
+        if not normalized:
+            continue
+        consent = evaluate_candidate_email_consent(
+            customer_email_allowed=candidate.customer_email_allowed,
+            contact_email_allowed=candidate.contact_email_allowed,
+            is_contact_source=candidate.source == "contact",
+        )
+        if consent.allowed or not consent.skip_reason:
+            continue
+        previous = blocks.get(normalized)
+        if previous == CUSTOMER_EMAIL_CONSENT_SKIP:
+            continue
+        if consent.skip_reason == CUSTOMER_EMAIL_CONSENT_SKIP or previous is None:
+            blocks[normalized] = consent.skip_reason
+    return blocks
 
 
 def resolve_recipients(
@@ -30,8 +61,11 @@ def resolve_recipients(
     valid_email_count = 0
     invalid_count = 0
     duplicate_count = 0
+    customer_consent_skipped_count = 0
+    contact_consent_skipped_count = 0
     resolved: list[ResolvedRecipient] = []
     seen_emails: set[str] = set()
+    consent_blocks = _most_restrictive_consent_blocks(candidates, options)
 
     for candidate in candidates:
         if candidate.source == "customer":
@@ -39,7 +73,7 @@ def resolve_recipients(
         if candidate.source == "contact" and candidate.contact_id is not None:
             contact_ids.add(candidate.contact_id)
 
-        # raw → normalize → validate → (invalid skip) → dedupe → final
+        # raw → normalize → inactive → consent → validate → dedupe → final
         normalized_email = normalize_bulk_recipient_email(candidate.email)
         status = "will_send"
         skip_reason: str | None = None
@@ -49,14 +83,21 @@ def resolve_recipients(
             status = "skip"
             skip_reason = "inactive_record"
             email_for_row = normalized_email or (candidate.email or "")
-        elif not candidate.customer_email_allowed:
-            status = "skip"
-            skip_reason = CUSTOMER_EMAIL_CONSENT_SKIP
-            email_for_row = normalized_email or (candidate.email or "")
-        elif candidate.source == "contact" and not candidate.contact_email_allowed:
-            status = "skip"
-            skip_reason = CONTACT_EMAIL_CONSENT_SKIP
-            email_for_row = normalized_email or (candidate.email or "")
+        elif normalized_email and normalized_email in consent_blocks:
+            email_for_row = normalized_email
+            if options.dedupe_emails and normalized_email in seen_emails:
+                status = "skip"
+                skip_reason = "duplicate_email"
+                duplicate_count += 1
+            else:
+                status = "skip"
+                skip_reason = consent_blocks[normalized_email]
+                if skip_reason == CUSTOMER_EMAIL_CONSENT_SKIP:
+                    customer_consent_skipped_count += 1
+                elif skip_reason == CONTACT_EMAIL_CONSENT_SKIP:
+                    contact_consent_skipped_count += 1
+                if options.dedupe_emails:
+                    seen_emails.add(normalized_email)
         elif not normalized_email:
             if options.skip_no_email:
                 status = "skip"
@@ -109,6 +150,8 @@ def resolve_recipients(
         recipients=resolved,
         invalid_count=invalid_count,
         duplicate_count=duplicate_count,
+        customer_consent_skipped_count=customer_consent_skipped_count,
+        contact_consent_skipped_count=contact_consent_skipped_count,
     )
 
 
@@ -126,14 +169,15 @@ def tokenize_email_field(value: str | None) -> list[str]:
 
 def resolve_manual_and_excel_emails(
     *,
-    manual_emails_text: str | None,
+    manual_emails_text: str | None = None,
     excel_email_tokens: list[str] | None = None,
     excel_recipient_rows: list[tuple[str, str]] | None = None,
 ) -> ManualRecipientPreviewResult:
-    """Merge manual + Excel recipients, validate, and dedupe (manual first).
+    """Merge manual + Excel recipients: validate, normalize, and dedupe only.
 
-    ``excel_recipient_rows`` items are ``(display_name, raw_email)``.
-    Legacy ``excel_email_tokens`` are treated as email-only rows (no display name).
+    Manual/Excel addresses are treated as external recipients — no CRM
+    Customer/Contact lookup and no EmailConsentPolicy evaluation.
+    ``customer_id`` / ``contact_id`` remain unset (NULL downstream).
     """
     entries: list[tuple[str, str, str | None]] = []
     for token in tokenize_email_field(manual_emails_text):
@@ -156,6 +200,7 @@ def resolve_manual_and_excel_emails(
 
     for raw, source, display_name in entries:
         # raw → normalize → validate → (invalid skip) → dedupe → final
+        # No CRM lookup / consent for manual|excel sources.
         normalized = normalize_bulk_recipient_email(raw)
         status = "will_send"
         skip_reason: str | None = None
@@ -201,6 +246,8 @@ def resolve_manual_and_excel_emails(
         deduped_recipient_count=len(will_send),
         skipped_count=len(resolved) - len(will_send),
         recipients=resolved,
+        customer_consent_skipped_count=0,
+        contact_consent_skipped_count=0,
     )
 
 

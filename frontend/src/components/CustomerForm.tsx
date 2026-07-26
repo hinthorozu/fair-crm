@@ -106,24 +106,41 @@ const sourceOptions = Object.keys(customerSourceLabels) as Array<"manual" | "exc
 
 interface CustomerFormProps {
   initial?: CustomerFormValues;
+  /**
+   * Stable identity for hydrating API → form state.
+   * Re-hydrate only when this changes (modal open / switched customer).
+   * Create flow: omit or pass a constant like `"create"`.
+   */
+  hydrateKey?: string;
   submitLabel: string;
   onSubmit: (values: CreateCustomerPayload) => Promise<void>;
   onCancel: () => void;
 }
 
-export function CustomerForm({ initial, submitLabel, onCancel, onSubmit }: CustomerFormProps) {
-  const [values, setValues] = React.useState<CustomerFormValues>(initial ?? emptyForm());
+export function CustomerForm({
+  initial,
+  hydrateKey = "create",
+  submitLabel,
+  onCancel,
+  onSubmit,
+}: CustomerFormProps) {
+  const [values, setValues] = React.useState<CustomerFormValues>(() => initial ?? emptyForm());
+  const [baseline, setBaseline] = React.useState<CustomerFormValues>(() => initial ?? emptyForm());
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const baseline = React.useMemo(() => initial ?? emptyForm(), [initial]);
   const handleCancel = useModalFormCancel(onCancel);
 
   useReportFormDirty(values, baseline);
 
   React.useEffect(() => {
-    setValues(initial ?? emptyForm());
+    const next = initial ?? emptyForm();
+    setValues(next);
+    setBaseline(next);
     setError(null);
-  }, [initial]);
+    // Hydrate only when the edited customer (or create session) changes —
+    // not when parent re-renders with a fresh `initial` object reference.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: hydrateKey only
+  }, [hydrateKey]);
 
   const set = <K extends keyof CustomerFormValues>(field: K, value: CustomerFormValues[K]) => {
     setValues((prev) => ({ ...prev, [field]: value }));

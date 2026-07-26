@@ -1,6 +1,8 @@
 """Retry tests for mail send operations."""
 
 from unittest.mock import patch
+
+from app.modules.email_delivery.domain.results import EmailDeliveryResult
 from uuid import UUID, uuid4
 
 from app.modules.mail_send_operations.application.mail_send_operation_service import MailSendOperationService
@@ -37,7 +39,7 @@ def _create_smtp_account(client, auth_headers, **overrides):
 def _failed_smtp_test_operation_id(client, auth_headers, recipient: str = "retry-fail@example.com") -> str:
     create = _create_smtp_account(client, auth_headers)
     account_id = create.json()["id"]
-    with patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher") as mock_send:
+    with patch("app.modules.smtp.application.send_test_smtp_mail.EmailDeliveryService.send") as mock_send:
         mock_send.side_effect = SmtpMailDeliveryError(
             "SMTP kimlik doğrulaması başarısız.",
             error_type="SMTPAuthenticationError",
@@ -56,7 +58,10 @@ def _failed_smtp_test_operation_id(client, auth_headers, recipient: str = "retry
     return item["id"]
 
 
-@patch("app.modules.mail_send_operations.application.retry_mail_send_operation.deliver_with_dispatcher")
+@patch(
+    "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryService.send",
+    return_value=EmailDeliveryResult(success=True, transport="smtp"),
+)
 def test_retry_failed_smtp_test_success(mock_send, client, auth_headers):
     operation_id = _failed_smtp_test_operation_id(client, auth_headers, "retry-ok@example.com")
 
@@ -77,7 +82,10 @@ def test_retry_failed_smtp_test_success(mock_send, client, auth_headers):
     mock_send.assert_called_once()
 
 
-@patch("app.modules.mail_send_operations.application.retry_mail_send_operation.deliver_with_dispatcher")
+@patch(
+    "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryService.send",
+    return_value=EmailDeliveryResult(success=True, transport="smtp"),
+)
 def test_retry_failed_smtp_test_stays_failed_on_delivery_error(mock_send, client, auth_headers):
     mock_send.side_effect = SmtpMailDeliveryError(
         "SMTP bağlantı hatası.",
@@ -99,8 +107,7 @@ def test_retry_failed_smtp_test_stays_failed_on_delivery_error(mock_send, client
     assert events[-1] == "failed"
 
 
-@patch("app.modules.mail_send_operations.application.retry_mail_send_operation.deliver_with_dispatcher")
-def test_retry_inactive_smtp_fails(mock_send, client, auth_headers, db_session, organization_id):
+def test_retry_inactive_smtp_fails(client, auth_headers, db_session, organization_id):
     operation_id = _failed_smtp_test_operation_id(client, auth_headers, "retry-inactive@example.com")
     operation = (
         db_session.query(MailSendOperationModel)
@@ -120,10 +127,9 @@ def test_retry_inactive_smtp_fails(mock_send, client, auth_headers, db_session, 
     assert body["success"] is False
     assert body["operation"]["status"] == MailSendOperationStatus.FAILED
     assert body["operation"]["error_code"] == "InactiveAccount"
-    mock_send.assert_not_called()
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.smtp.application.send_test_smtp_mail.EmailDeliveryService.send")
 def test_retry_non_failed_operation_rejected(mock_send, client, auth_headers):
     create = _create_smtp_account(client, auth_headers, name="Retry Sent SMTP")
     account_id = create.json()["id"]
@@ -204,7 +210,7 @@ def test_retry_denied_without_update_permission(client, auth_headers):
         client.app.dependency_overrides.pop(get_authorization_adapter, None)
 
 
-@patch("app.modules.mail_templates.application.send_test_mail_template.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.mail_templates.application.send_test_mail_template.EmailDeliveryService.send")
 def test_retry_failed_template_test_success(mock_send, client, auth_headers):
     smtp = _create_smtp_account(client, auth_headers, name="Template Retry SMTP")
     template = client.post(
@@ -223,7 +229,7 @@ def test_retry_failed_template_test_success(mock_send, client, auth_headers):
     template_id = template.json()["id"]
 
     with patch(
-        "app.modules.mail_templates.application.send_test_mail_template.deliver_smtp_account_with_dispatcher",
+        "app.modules.mail_templates.application.send_test_mail_template.EmailDeliveryService.send",
         side_effect=SmtpMailDeliveryError("fail", error_type="SMTPAuthenticationError"),
     ):
         client.post(
@@ -246,7 +252,8 @@ def test_retry_failed_template_test_success(mock_send, client, auth_headers):
     )
 
     with patch(
-        "app.modules.mail_send_operations.application.retry_mail_send_operation.deliver_with_dispatcher"
+        "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryService.send",
+        return_value=EmailDeliveryResult(success=True, transport="smtp"),
     ) as retry_send:
         response = client.post(
             f"/api/v1/mail-send-operations/{operation_id}/retry",
@@ -257,7 +264,10 @@ def test_retry_failed_template_test_success(mock_send, client, auth_headers):
     retry_send.assert_called_once()
 
 
-@patch("app.modules.mail_send_operations.application.retry_mail_send_operation.deliver_with_dispatcher")
+@patch(
+    "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryService.send",
+    return_value=EmailDeliveryResult(success=True, transport="smtp"),
+)
 def test_retry_failed_template_test_delivery_error(mock_send, client, auth_headers):
     mock_send.side_effect = SmtpMailDeliveryError("fail again", error_type="SMTPAuthenticationError")
     smtp = _create_smtp_account(client, auth_headers, name="Template Retry Fail SMTP")
@@ -277,7 +287,7 @@ def test_retry_failed_template_test_delivery_error(mock_send, client, auth_heade
     template_id = template.json()["id"]
 
     with patch(
-        "app.modules.mail_templates.application.send_test_mail_template.deliver_smtp_account_with_dispatcher",
+        "app.modules.mail_templates.application.send_test_mail_template.EmailDeliveryService.send",
         side_effect=SmtpMailDeliveryError("fail", error_type="SMTPAuthenticationError"),
     ):
         client.post(

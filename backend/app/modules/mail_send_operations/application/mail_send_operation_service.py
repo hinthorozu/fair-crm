@@ -14,6 +14,7 @@ from app.modules.mail_send_operations.infrastructure.repositories.mail_send_oper
     CreateMailSendOperationParams,
     SqlAlchemyMailSendOperationRepository,
 )
+from app.modules.email_delivery.domain.results import EmailDeliveryResult
 from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
 from app.modules.smtp.domain.smtp_timeout_errors import (
     SMTP_CONNECT_TIMEOUT_CODE,
@@ -25,17 +26,42 @@ SMTP_TIMEOUT_ERROR_CODES = frozenset({SMTP_CONNECT_TIMEOUT_CODE, SMTP_TIMEOUT_CO
 WORKER_FAILURE_ERROR_CODES = SMTP_TIMEOUT_ERROR_CODES | {SENDING_TIMEOUT_ERROR_CODE}
 
 
+def _provider_fields_from_delivery_result(
+    result: EmailDeliveryResult | None,
+) -> tuple[str | None, str | None]:
+    """Extract provider persistence fields; ignore non-result return values (e.g. test mocks)."""
+    if not isinstance(result, EmailDeliveryResult):
+        return None, None
+    return result.external_message_id, result.provider_status
+
+
 class MailSendOperationService:
     def __init__(self, repository: SqlAlchemyMailSendOperationRepository) -> None:
         self._repository = repository
 
-    def create_mail_send_operation(self, params: CreateMailSendOperationParams):
+    def create_mail_send_operation(
+        self,
+        params: CreateMailSendOperationParams,
+        *,
+        check_consent: bool = True,
+    ):
+        if check_consent:
+            self._assert_recipient_email_consent(params)
         operation = self._repository.create(params)
         return self._repository.append_operation_log(
             operation.organization_id,
             operation.id,
             event="queued",
             message="Mail kuyruğa alındı",
+        )
+
+    def _assert_recipient_email_consent(self, params: CreateMailSendOperationParams) -> None:
+        from app.shared.email_consent_policy import EmailConsentPolicy
+
+        EmailConsentPolicy(self._repository._session).ensure_allowed(
+            params.organization_id,
+            email=params.recipient_email,
+            customer_id=params.customer_id,
         )
 
     def mark_sending(
@@ -59,8 +85,15 @@ class MailSendOperationService:
         operation_id: UUID,
         *,
         log_message: str = "Mail başarıyla gönderildi",
+        external_message_id: str | None = None,
+        provider_status: str | None = None,
     ):
-        operation = self._repository.mark_sent(organization_id, operation_id)
+        operation = self._repository.mark_sent(
+            organization_id,
+            operation_id,
+            external_message_id=external_message_id,
+            provider_status=provider_status,
+        )
         return self._repository.append_operation_log(
             organization_id,
             operation_id,
@@ -201,12 +234,12 @@ class MailSendOperationService:
         self,
         params: CreateMailSendOperationParams,
         *,
-        send_fn: Callable[[], None],
+        send_fn: Callable[[], EmailDeliveryResult | None],
     ) -> UUID:
         operation = self.create_mail_send_operation(params)
         self.mark_sending(operation.organization_id, operation.id)
         try:
-            send_fn()
+            delivery_result = send_fn()
         except SmtpMailDeliveryError as exc:
             message = exc.args[0] if exc.args else "SMTP gönderimi başarısız oldu."
             self.mark_failed(
@@ -224,7 +257,13 @@ class MailSendOperationService:
                 error_message=str(exc).strip() or "Mail gönderimi başarısız oldu.",
             )
             raise
-        self.mark_sent(operation.organization_id, operation.id)
+        external_message_id, provider_status = _provider_fields_from_delivery_result(delivery_result)
+        self.mark_sent(
+            operation.organization_id,
+            operation.id,
+            external_message_id=external_message_id,
+            provider_status=provider_status,
+        )
         return operation.id
 
     def execute_retry_synchronous(
@@ -232,7 +271,7 @@ class MailSendOperationService:
         organization_id: UUID,
         operation_id: UUID,
         *,
-        send_fn: Callable[[], None],
+        send_fn: Callable[[], EmailDeliveryResult | None],
     ):
         self.append_operation_log(
             organization_id,
@@ -253,7 +292,7 @@ class MailSendOperationService:
             log_message="Retry gönderimi başladı",
         )
         try:
-            send_fn()
+            delivery_result = send_fn()
         except SmtpMailDeliveryError as exc:
             message = exc.args[0] if exc.args else "SMTP gönderimi başarısız oldu."
             self.mark_failed(
@@ -271,10 +310,13 @@ class MailSendOperationService:
                 error_message=str(exc).strip() or "Mail gönderimi başarısız oldu.",
             )
             raise
+        external_message_id, provider_status = _provider_fields_from_delivery_result(delivery_result)
         return self.mark_sent(
             organization_id,
             operation_id,
             log_message="Retry başarılı",
+            external_message_id=external_message_id,
+            provider_status=provider_status,
         )
 
     def create_consent_skipped_operation(

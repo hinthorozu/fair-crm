@@ -64,7 +64,7 @@ def _create_smtp_account(client, auth_headers, **overrides):
     return client.post("/api/v1/email-accounts", json=payload, headers=auth_headers)
 
 
-@patch("app.modules.mail_templates.application.send_test_mail_template.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.mail_templates.application.send_test_mail_template.EmailDeliveryService.send")
 def test_send_test_mail_template_success(mock_send, client, auth_headers):
     smtp = _create_smtp_account(client, auth_headers)
     assert smtp.status_code == 201
@@ -85,12 +85,12 @@ def test_send_test_mail_template_success(mock_send, client, auth_headers):
     assert body["success"] is True
     assert "password" not in body
     mock_send.assert_called_once()
-    assert mock_send.call_args.kwargs["recipient"] == "test@example.com"
+    assert mock_send.call_args.kwargs["to"] == "test@example.com"
     assert mock_send.call_args.kwargs["subject"] == "Hello Ada"
     assert mock_send.call_args.kwargs["body_html"] == "<p>Hello Ada</p>"
 
 
-@patch("app.modules.mail_templates.application.send_test_mail_template.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.mail_templates.application.send_test_mail_template.EmailDeliveryService.send")
 def test_send_test_mail_template_subject_override(mock_send, client, auth_headers):
     smtp = _create_smtp_account(client, auth_headers)
     assert smtp.status_code == 201
@@ -144,7 +144,7 @@ def test_send_test_mail_template_without_default_smtp(client, auth_headers):
         headers=auth_headers,
     )
     assert response.status_code == 400
-    assert "varsayılan smtp" in response.json()["detail"].lower()
+    assert "varsayılan e-posta" in response.json()["detail"].lower()
 
 
 def test_send_test_mail_template_inactive_template_blocked(client, auth_headers):
@@ -179,7 +179,7 @@ def test_send_test_mail_template_inactive_smtp_blocked(client, auth_headers):
     assert "pasif" in response.json()["message"].lower()
 
 
-@patch("app.modules.mail_templates.application.send_test_mail_template.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.mail_templates.application.send_test_mail_template.EmailDeliveryService.send")
 def test_send_test_mail_template_other_org_smtp_not_allowed(mock_send, client, auth_headers, other_organization_id, user_id):
     from app.integrations.kyrox_core.auth import create_test_token
 
@@ -204,7 +204,7 @@ def test_send_test_mail_template_other_org_smtp_not_allowed(mock_send, client, a
     mock_send.assert_not_called()
 
 
-@patch("app.modules.mail_templates.application.send_test_mail_template.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.mail_templates.application.send_test_mail_template.EmailDeliveryService.send")
 def test_send_test_mail_template_render_error(mock_send, client, auth_headers):
     _create_smtp_account(client, auth_headers)
     template = _create_template(client, auth_headers, key="test_send_render_error")
@@ -220,7 +220,7 @@ def test_send_test_mail_template_render_error(mock_send, client, auth_headers):
     mock_send.assert_not_called()
 
 
-@patch("app.modules.mail_templates.application.send_test_mail_template.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.mail_templates.application.send_test_mail_template.EmailDeliveryService.send")
 def test_send_test_mail_template_missing_password_safe_message(mock_send, client, auth_headers):
     _create_smtp_account(client, auth_headers)
     template = _create_template(client, auth_headers, key="test_send_missing_password")

@@ -150,7 +150,7 @@ def test_send_manual_task_mail_does_not_require_template(
     assert "template_id" not in (operation.metadata_json or {})
 
 
-@patch("app.modules.mail_send_operations.application.mail_send_operation_dispatcher.EmailDeliveryDispatcher.send")
+@patch("app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send")
 def test_send_manual_task_mail_background_worker_moves_to_sent(
     mock_send, client, auth_headers, db_session, organization_id, user_id
 ):

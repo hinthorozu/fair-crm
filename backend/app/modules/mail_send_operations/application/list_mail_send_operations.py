@@ -45,6 +45,8 @@ class MailSendOperationListItem:
     sent_at: datetime | None
     failed_at: datetime | None
     cancelled_at: datetime | None
+    external_message_id: str | None
+    provider_status: str | None
 
 
 @dataclass(frozen=True)
@@ -219,4 +221,6 @@ def build_mail_send_operation_list_item(
         sent_at=record.sent_at,
         failed_at=record.failed_at,
         cancelled_at=record.cancelled_at,
+        external_message_id=record.external_message_id,
+        provider_status=record.provider_status,
     )

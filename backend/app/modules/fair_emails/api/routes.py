@@ -263,6 +263,8 @@ def preview_recipients(
         valid_email_count=result.valid_email_count,
         deduped_recipient_count=result.deduped_recipient_count,
         skipped_count=result.skipped_count,
+        customer_consent_skipped_count=result.customer_consent_skipped_count,
+        contact_consent_skipped_count=result.contact_consent_skipped_count,
         recipients=[_recipient_item(item) for item in result.recipients],
     )
 

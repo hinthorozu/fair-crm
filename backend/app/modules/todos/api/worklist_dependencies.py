@@ -195,6 +195,7 @@ def get_send_manual_task_mail_use_case(
         template_repository=SqlAlchemyMailTemplateRepository(db),
         mail_send_operations=MailSendOperationService(mail_ops_repo),
         authorization=authorization,
+        session=db,
     )
 
 

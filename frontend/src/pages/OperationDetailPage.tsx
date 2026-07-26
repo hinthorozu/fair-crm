@@ -52,6 +52,10 @@ import {
   buildEnrichmentSourceFilterRows,
   extractEnrichmentFairIds,
 } from "../utils/enrichmentOperationSource";
+import {
+  extractOperationFairIds,
+  formatOperationFairSourceLabel,
+} from "../utils/operationFairSource";
 
 interface OperationDetailPageProps {
   operationId: string;
@@ -114,6 +118,7 @@ export function OperationDetailPage({
   const [sourceFairName, setSourceFairName] = React.useState<string | null>(null);
   const [sourceFairResolveFailed, setSourceFairResolveFailed] = React.useState(false);
   const [enrichmentFairNames, setEnrichmentFairNames] = React.useState<string[]>([]);
+  const [bulkEmailFairNames, setBulkEmailFairNames] = React.useState<string[]>([]);
   const [adapterDisplayName, setAdapterDisplayName] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -204,6 +209,12 @@ export function OperationDetailPage({
       ? extractEnrichmentFairIds(detail.operation).join("|")
       : "";
 
+  const bulkEmailFairIdsKey =
+    detail?.operation.operation_type === "bulk_email" &&
+    detail.operation.source_kind === "fair"
+      ? extractOperationFairIds(detail.operation).join("|")
+      : "";
+
   React.useEffect(() => {
     if (!enrichmentFairIdsKey) {
       setEnrichmentFairNames([]);
@@ -227,6 +238,30 @@ export function OperationDetailPage({
       cancelled = true;
     };
   }, [enrichmentFairIdsKey]);
+
+  React.useEffect(() => {
+    if (!bulkEmailFairIdsKey) {
+      setBulkEmailFairNames([]);
+      return;
+    }
+    const fairIds = bulkEmailFairIdsKey.split("|").filter(Boolean);
+    let cancelled = false;
+    void Promise.all(
+      fairIds.map((fairId) =>
+        getFair(fairId)
+          .then((fair) => ({ id: fairId, name: (fair.name || "").trim() }))
+          .catch(() => ({ id: fairId, name: "" })),
+      ),
+    ).then((resolved) => {
+      if (cancelled) return;
+      const byId = new Map(resolved.map((item) => [item.id, item.name]));
+      // Empty string when getFair fails — format helper then uses Fuar (n) fallback.
+      setBulkEmailFairNames(fairIds.map((id) => byId.get(id) || ""));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [bulkEmailFairIdsKey]);
 
   const scraperAdapterKey =
     detail?.operation.operation_type === "scraper" &&
@@ -643,7 +678,13 @@ export function OperationDetailPage({
                 <div>
                   <dt>{scraperLabels.enrichmentSourceSectionTitle}</dt>
                   <dd>
-                    {isScraper && operation.source_kind === "fair" ? (
+                    {isBulkEmail && operation.source_kind === "fair" ? (
+                      formatOperationFairSourceLabel(
+                        sourceKindLabels.fair,
+                        bulkEmailFairNames,
+                        extractOperationFairIds(operation).length,
+                      )
+                    ) : isScraper && operation.source_kind === "fair" ? (
                       sourceFairName ??
                       (sourceFairResolveFailed && scraperSourceFairId
                         ? scraperSourceFairId

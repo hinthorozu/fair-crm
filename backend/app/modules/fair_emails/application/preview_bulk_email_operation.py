@@ -81,6 +81,8 @@ class BulkEmailOperationRecipientSummary:
     total_customers: int | None
     total_contacts: int | None
     recipients: list[WizardPreviewRecipient]
+    customer_consent_skipped_count: int = 0
+    contact_consent_skipped_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -99,6 +101,7 @@ class PreviewBulkEmailOperationUseCase:
         recipient_service: FairBulkEmailRecipientService,
         recipient_loader: FairBulkEmailRecipientLoader,
         authorization: AuthorizationPort,
+        session=None,
     ) -> None:
         self._fair_repository = fair_repository
         self._template_repository = template_repository
@@ -107,6 +110,7 @@ class PreviewBulkEmailOperationUseCase:
         self._recipient_service = recipient_service
         self._recipient_loader = recipient_loader
         self._authorization = authorization
+        self._session = session
 
     def execute(self, command: PreviewBulkEmailOperationCommand) -> BulkEmailOperationPreviewResult:
         if not self._authorization.check_permission(
@@ -188,6 +192,8 @@ class PreviewBulkEmailOperationUseCase:
             total_customers=None,
             total_contacts=None,
             recipients=result.recipients,
+            customer_consent_skipped_count=result.customer_consent_skipped_count,
+            contact_consent_skipped_count=result.contact_consent_skipped_count,
         )
 
     def _preview_fair_list(
@@ -233,6 +239,8 @@ class PreviewBulkEmailOperationUseCase:
                 total_customers=preview.total_customers,
                 total_contacts=preview.total_contacts,
                 recipients=recipients,
+                customer_consent_skipped_count=preview.customer_consent_skipped_count,
+                contact_consent_skipped_count=preview.contact_consent_skipped_count,
             ),
             fair_names,
         )

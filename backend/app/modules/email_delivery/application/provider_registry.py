@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from app.modules.email_delivery.domain.exceptions import UnsupportedProviderError
 from app.modules.email_delivery.domain.ports import EmailProviderAdapter
+from app.modules.email_delivery.infrastructure.mailersend_adapter import MailerSendAdapter
 
 
 class EmailProviderRegistry:
@@ -21,10 +22,15 @@ class EmailProviderRegistry:
                 f"No adapter registered for provider_key={provider_key!r}",
                 error_code="UnsupportedProvider",
                 transport=f"provider:{provider_key}",
+                retryable=False,
             )
         return adapter
 
+    def registered_keys(self) -> list[str]:
+        return sorted(self._adapters.keys())
+
 
 def create_default_provider_registry() -> EmailProviderRegistry:
-    """Return an empty registry (no real providers registered by default)."""
-    return EmailProviderRegistry()
+    registry = EmailProviderRegistry()
+    registry.register(MailerSendAdapter())
+    return registry

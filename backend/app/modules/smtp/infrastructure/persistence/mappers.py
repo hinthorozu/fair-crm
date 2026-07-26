@@ -10,13 +10,18 @@ from app.modules.smtp.domain.value_objects import SmtpEncryptionType
 
 def smtp_account_to_email_parts(
     account: SmtpAccount,
-) -> tuple[EmailAccount, EmailAccountSmtpConfig]:
+) -> tuple[EmailAccount, EmailAccountSmtpConfig | None]:
+    account_type = (
+        EmailAccountType.PROVIDER
+        if (account.account_type or "smtp") == "provider"
+        else EmailAccountType.SMTP
+    )
     email_account = EmailAccount(
         id=account.id,
         organization_id=account.organization_id,
         name=account.name,
-        account_type=EmailAccountType.SMTP,
-        provider_key=None,
+        account_type=account_type,
+        provider_key=account.provider_key if account_type == EmailAccountType.PROVIDER else None,
         from_email=account.from_email,
         from_name=account.from_name,
         is_default=account.is_default,
@@ -26,6 +31,8 @@ def smtp_account_to_email_parts(
         deleted_at=account.deleted_at,
         max_delivery_attempts=account.max_delivery_attempts,
     )
+    if account_type == EmailAccountType.PROVIDER:
+        return email_account, None
     smtp_config = EmailAccountSmtpConfig(
         email_account_id=account.id,
         host=account.host,
@@ -39,8 +46,29 @@ def smtp_account_to_email_parts(
 
 def email_parts_to_smtp_account(
     account: EmailAccount,
-    smtp_config: EmailAccountSmtpConfig,
+    smtp_config: EmailAccountSmtpConfig | None = None,
 ) -> SmtpAccount:
+    if account.account_type == EmailAccountType.PROVIDER or smtp_config is None:
+        return SmtpAccount(
+            id=account.id,
+            organization_id=account.organization_id,
+            name=account.name,
+            from_email=account.from_email,
+            from_name=account.from_name,
+            host="",
+            port=0,
+            username=None,
+            password=None,
+            encryption_type=SmtpEncryptionType.NONE,
+            is_default=account.is_default,
+            is_active=account.is_active,
+            created_at=account.created_at,
+            updated_at=account.updated_at,
+            deleted_at=account.deleted_at,
+            max_delivery_attempts=account.max_delivery_attempts,
+            account_type="provider",
+            provider_key=account.provider_key,
+        )
     return SmtpAccount(
         id=account.id,
         organization_id=account.organization_id,
@@ -58,4 +86,6 @@ def email_parts_to_smtp_account(
         updated_at=account.updated_at,
         deleted_at=account.deleted_at,
         max_delivery_attempts=account.max_delivery_attempts,
+        account_type="smtp",
+        provider_key=None,
     )

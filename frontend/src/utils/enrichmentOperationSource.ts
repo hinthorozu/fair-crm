@@ -1,6 +1,7 @@
 import { scraperLabels } from "../labels/scraperLabels";
 import type { CompanyNameMatchMode } from "../types/scraper";
 import type { Operation } from "../types/operation";
+import { extractOperationFairIds } from "./operationFairSource";
 
 export type EnrichmentSourceFilterRow = {
   key: string;
@@ -24,20 +25,7 @@ function companyNameMatchLabel(match: string | null): string | null {
 
 /** Fair IDs persisted on enrichment Operation (source_ids or type_config.fair_ids). */
 export function extractEnrichmentFairIds(operation: Operation): string[] {
-  const fromSource =
-    operation.source_kind === "fair"
-      ? (operation.source_ids ?? []).map((id) => String(id).trim()).filter(Boolean)
-      : [];
-  if (fromSource.length > 0) return [...new Set(fromSource)];
-
-  const typeConfig = operation.type_config ?? {};
-  const fromList = Array.isArray(typeConfig.fair_ids)
-    ? typeConfig.fair_ids.map((id) => String(id).trim()).filter(Boolean)
-    : [];
-  if (fromList.length > 0) return [...new Set(fromList)];
-
-  const legacy = trimOptional(typeConfig.fair_id);
-  return legacy ? [legacy] : [];
+  return extractOperationFairIds(operation);
 }
 
 /**

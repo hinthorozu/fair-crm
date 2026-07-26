@@ -19,13 +19,13 @@ from app.modules.fair_emails.infrastructure.repositories.fair_email_batch_reposi
     FairEmailBatchRecord,
     SqlAlchemyFairEmailBatchRepository,
 )
-from app.modules.email_accounts.domain.entities import EmailAccount, EmailAccountSmtpConfig
-from app.modules.email_accounts.domain.value_objects import EmailAccountType
+from app.modules.email_accounts.domain.entities import EmailAccount
 from app.modules.email_accounts.infrastructure.repositories.email_account_repository import (
     SqlAlchemyEmailAccountRepository,
 )
-from app.modules.email_delivery.application.dispatcher import EmailDeliveryDispatcher
+from app.modules.email_delivery.application.email_delivery_service import EmailDeliveryService
 from app.modules.email_delivery.domain.exceptions import EmailDeliveryError, UnsupportedProviderError
+from app.modules.email_delivery.domain.results import EmailDeliveryResult
 from app.modules.mail_templates.domain.exceptions import MailTemplateRenderError
 from app.modules.mail_templates.infrastructure.repositories.mail_template_repository import (
     SqlAlchemyMailTemplateRepository,
@@ -47,7 +47,7 @@ class ProcessFairEmailBatchUseCase:
         self._batch_repository = SqlAlchemyFairEmailBatchRepository(session)
         self._template_repository = SqlAlchemyMailTemplateRepository(session)
         self._email_account_repository = SqlAlchemyEmailAccountRepository(session)
-        self._delivery = EmailDeliveryDispatcher()
+        self._delivery = EmailDeliveryService(session)
         self._recipient_loader = FairBulkEmailRecipientLoader(session)
         self._renderer = JinjaMailTemplateRenderer()
         self._activity_writer = FairBulkEmailActivityWriter(session)
@@ -103,7 +103,10 @@ class ProcessFairEmailBatchUseCase:
             )
             return
 
-        account, smtp_config, account_error = self._resolve_email_account(command.organization_id, batch)
+        account, account_error = self._resolve_email_account(
+            command.organization_id,
+            batch,
+        )
         batch_fair_name = self._load_fair_name(command.organization_id, batch.fair_id)
         if account is None:
             self._fail_entire_batch(
@@ -178,13 +181,13 @@ class ProcessFairEmailBatchUseCase:
             final_subject = batch.subject_override or rendered_subject
             body_text = rendered_body_text or final_subject
             try:
-                self._delivery.send(
-                    account,
-                    recipient=outbox.email,
+                delivery_result = self._delivery.send(
+                    organization_id=command.organization_id,
+                    email_account_id=account.id,
+                    to=outbox.email,
                     subject=final_subject,
                     body_text=body_text,
                     body_html=rendered_body_html,
-                    smtp_config=smtp_config,
                 )
             except (SmtpMailDeliveryError, EmailDeliveryError, UnsupportedProviderError) as exc:
                 if isinstance(exc, SmtpMailDeliveryError):
@@ -259,6 +262,16 @@ class ProcessFairEmailBatchUseCase:
                 subject=final_subject,
                 body_html=rendered_body_html,
                 body_text=rendered_body_text,
+                external_message_id=(
+                    delivery_result.external_message_id
+                    if isinstance(delivery_result, EmailDeliveryResult)
+                    else None
+                ),
+                provider_status=(
+                    delivery_result.provider_status
+                    if isinstance(delivery_result, EmailDeliveryResult)
+                    else None
+                ),
             )
             sent_count += 1
             self._session.commit()
@@ -298,7 +311,8 @@ class ProcessFairEmailBatchUseCase:
         self,
         organization_id: UUID,
         batch: FairEmailBatchRecord,
-    ) -> tuple[EmailAccount | None, EmailAccountSmtpConfig | None, str | None]:
+    ) -> tuple[EmailAccount | None, str | None]:
+        """Resolve active EmailAccount identity only — configs/secrets via EmailDeliveryService."""
         account = None
         try:
             if batch.email_account_id is not None:
@@ -314,21 +328,15 @@ class ProcessFairEmailBatchUseCase:
                 batch.id,
                 batch.email_account_id,
             )
-            return None, None, str(exc)
+            return None, str(exc)
 
         if account is None:
-            return None, None, MISSING_SMTP_MESSAGE
+            return None, MISSING_SMTP_MESSAGE
         if account.deleted_at is not None:
-            return None, None, "SMTP account is deleted"
+            return None, "SMTP account is deleted"
         if not account.is_active:
-            return None, None, INACTIVE_SMTP_MESSAGE
-
-        smtp_config: EmailAccountSmtpConfig | None = None
-        if account.account_type == EmailAccountType.SMTP:
-            smtp_config = self._email_account_repository.get_smtp_config(account.id)
-            if smtp_config is None or not smtp_config.password:
-                return None, None, "SMTP password is not configured"
-        return account, smtp_config, None
+            return None, INACTIVE_SMTP_MESSAGE
+        return account, None
 
     def _fail_entire_batch(
         self,

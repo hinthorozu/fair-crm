@@ -86,7 +86,7 @@ def test_bulk_email_excel_multipart_preview_and_send_e2e(
     }
 
     with patch(
-        "app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send",
+        "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send",
     ):
         send = client.post(
             "/api/v1/operations/bulk-email/send",

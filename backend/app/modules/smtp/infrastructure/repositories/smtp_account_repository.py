@@ -24,6 +24,8 @@ class SqlAlchemySmtpAccountRepository:
 
     def add(self, account: SmtpAccount) -> SmtpAccount:
         email_account, smtp_config = smtp_account_to_email_parts(account)
+        if smtp_config is None:
+            raise ValueError("SMTP config required when adding SMTP account")
         saved_account, saved_config = self._email_accounts.add_smtp_account(
             email_account,
             smtp_config,
@@ -32,6 +34,13 @@ class SqlAlchemySmtpAccountRepository:
 
     def update(self, account: SmtpAccount) -> SmtpAccount:
         email_account, smtp_config = smtp_account_to_email_parts(account)
+        if email_account.account_type.value == "provider":
+            return email_parts_to_smtp_account(
+                self._email_accounts.update_account(email_account),
+                None,
+            )
+        if smtp_config is None:
+            raise ValueError("SMTP config required when updating SMTP account")
         saved_account, saved_config = self._email_accounts.update_smtp_account(
             email_account,
             smtp_config,
@@ -39,21 +48,27 @@ class SqlAlchemySmtpAccountRepository:
         return email_parts_to_smtp_account(saved_account, saved_config)
 
     def get_by_id(self, organization_id: UUID, account_id: UUID) -> SmtpAccount | None:
-        pair = self._email_accounts.get_with_smtp_config(organization_id, account_id)
-        if pair is None:
+        account = self._email_accounts.get_by_id(organization_id, account_id)
+        if account is None:
             return None
-        account, smtp_config = pair
-        if account.account_type.value != "smtp":
+        if account.account_type.value == "provider":
+            return email_parts_to_smtp_account(account, None)
+        smtp_config = self._email_accounts.get_smtp_config(account.id)
+        if smtp_config is None:
             return None
         return email_parts_to_smtp_account(account, smtp_config)
 
     def list_by_organization(self, organization_id: UUID) -> list[SmtpAccount]:
-        return [
-            email_parts_to_smtp_account(account, smtp_config)
-            for account, smtp_config in self._email_accounts.list_smtp_by_organization(
-                organization_id
-            )
-        ]
+        """List all non-deleted accounts (SMTP + provider) for picker/default flows."""
+        result: list[SmtpAccount] = []
+        for account in self._email_accounts.list_by_organization(organization_id):
+            if account.account_type.value == "provider":
+                result.append(email_parts_to_smtp_account(account, None))
+                continue
+            smtp_config = self._email_accounts.get_smtp_config(account.id)
+            if smtp_config is not None:
+                result.append(email_parts_to_smtp_account(account, smtp_config))
+        return result
 
     def list_active_accounts(
         self,
@@ -74,12 +89,12 @@ class SqlAlchemySmtpAccountRepository:
         return result
 
     def get_default_for_organization(self, organization_id: UUID) -> SmtpAccount | None:
-        """Org-wide default; only returned when the default account is SMTP and active."""
+        """Org-wide default account (SMTP or provider)."""
         default = self._email_accounts.get_default_for_organization(organization_id)
         if default is None:
             return None
-        if default.account_type.value != "smtp":
-            return None
+        if default.account_type.value == "provider":
+            return email_parts_to_smtp_account(default, None)
         smtp_config = self._email_accounts.get_smtp_config(default.id)
         if smtp_config is None:
             return None

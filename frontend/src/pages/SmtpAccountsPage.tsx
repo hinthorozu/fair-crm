@@ -2,6 +2,7 @@ import React from "react";
 import {
   createEmailAccount,
   deleteEmailAccount,
+  listEmailAccountProviders,
   listEmailAccounts,
   sendTestEmailAccountMail,
   setDefaultEmailAccount,
@@ -28,9 +29,11 @@ import {
   shouldApplyAccountScopedResult,
 } from "../utils/emailAccountAsyncIsolation";
 import {
+  buildProviderDisplayNameMap,
   responseContainsPassword,
   emailAccountPasswordSet,
   formatSmtpTestMailError,
+  resolveEmailAccountServerOrProviderLabel,
 } from "../utils/emailAccountForm";
 import { Banner } from "../components/ui/Banner";
 import { PageShell } from "../components/ui/PageShell";
@@ -41,7 +44,7 @@ function formatDateTime(value: string | null | undefined): string {
 }
 
 function encryptionLabel(value: EmailAccount["encryption_type"]): string {
-  return value.toUpperCase();
+  return value ? value.toUpperCase() : "—";
 }
 
 function accountTypeLabel(accountType: EmailAccountType): string {
@@ -58,6 +61,9 @@ export function SmtpAccountsPage() {
   const canDelete = canPerformEmailAccountAction(grantedPermissions, "delete");
 
   const [accounts, setAccounts] = React.useState<EmailAccount[]>([]);
+  const [providerDisplayNames, setProviderDisplayNames] = React.useState<Map<string, string>>(
+    () => new Map(),
+  );
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
@@ -110,6 +116,7 @@ export function SmtpAccountsPage() {
   const loadAccounts = React.useCallback(async () => {
     if (!canRead) {
       setAccounts([]);
+      setProviderDisplayNames(new Map());
       setLoading(false);
       setError(adminLabels.smtpPermissionDenied);
       return;
@@ -117,13 +124,23 @@ export function SmtpAccountsPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await listEmailAccounts();
-      if (response.items.some((item) => responseContainsPassword(item))) {
+      const accountsResponse = await listEmailAccounts();
+      if (accountsResponse.items.some((item) => responseContainsPassword(item))) {
         throw new Error(adminLabels.smtpUnexpectedPasswordField);
       }
-      setAccounts(response.items);
+      setAccounts(accountsResponse.items);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : adminLabels.smtpLoadError);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const providersResponse = await listEmailAccountProviders();
+      setProviderDisplayNames(buildProviderDisplayNameMap(providersResponse.items));
+    } catch {
+      // List still works for SMTP; provider rows fall back to provider_key.
+      setProviderDisplayNames(new Map());
     } finally {
       setLoading(false);
     }
@@ -381,14 +398,14 @@ export function SmtpAccountsPage() {
         title: adminLabels.smtpColHost,
         sortable: true,
         render: (account) =>
-          resolveEmailAccountType(account) === "smtp" ? account.host : "—",
+          resolveEmailAccountServerOrProviderLabel(account, providerDisplayNames),
       },
       {
         key: "port",
         title: adminLabels.smtpColPort,
         sortable: true,
         render: (account) =>
-          resolveEmailAccountType(account) === "smtp" ? account.port : "—",
+          resolveEmailAccountType(account) === "smtp" ? account.port ?? "—" : "—",
       },
       {
         key: "encryption_type",
@@ -472,7 +489,14 @@ export function SmtpAccountsPage() {
         ),
       },
     ],
-    [canDelete, canUpdate, deletingId, grantedPermissions, settingDefaultId],
+    [
+      canDelete,
+      canUpdate,
+      deletingId,
+      grantedPermissions,
+      providerDisplayNames,
+      settingDefaultId,
+    ],
   );
 
   return (

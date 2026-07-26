@@ -392,7 +392,7 @@ def test_role_matrix_smtp_delete(
 
 
 @pytest.mark.parametrize("role_slug", MATRIX_ROLES)
-@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.smtp.application.send_test_smtp_mail.EmailDeliveryService.send")
 def test_role_matrix_smtp_test_mail(
     mock_send,
     client: TestClient,

@@ -6,12 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.ports import AuthorizationPort
 from app.modules.customers.domain.ports import CustomerRepository
-from app.modules.email_accounts.domain.entities import EmailAccount, EmailAccountSmtpConfig
-from app.modules.email_accounts.domain.value_objects import EmailAccountType
-from app.modules.email_accounts.infrastructure.repositories.email_account_repository import (
-    SqlAlchemyEmailAccountRepository,
-)
-from app.modules.email_delivery.application.deliver import deliver_with_dispatcher
+from app.modules.email_delivery.application.email_delivery_service import EmailDeliveryService
 from app.modules.fair_emails.application.retry_fair_bulk_email_operation import (
     FairBulkEmailOperationRetryHandler,
 )
@@ -75,7 +70,7 @@ class RetryMailSendOperationUseCase:
         self._customer_repository = customer_repository
         self._authorization = authorization
         self._session = session
-        self._email_account_repository = SqlAlchemyEmailAccountRepository(session)
+        self._delivery = EmailDeliveryService(session)
 
     def execute(self, command: RetryMailSendOperationCommand) -> RetryMailSendOperationResult:
         if not self._authorization.check_permission(
@@ -104,22 +99,34 @@ class RetryMailSendOperationUseCase:
             )
 
         try:
-            account, smtp_config = self._resolve_email_account(command.organization_id, record)
+            if record.email_account_id is None:
+                raise SmtpMailDeliveryError(
+                    "SMTP account is required for retry",
+                    error_type="MissingSmtpAccount",
+                )
             if record.source_type == MailSendSourceType.TEMPLATE_TEST:
                 self._validate_template(command.organization_id, record)
+            from app.shared.email_consent_policy import EmailConsentPolicy
+
+            EmailConsentPolicy(self._session).ensure_allowed_or_delivery_error(
+                command.organization_id,
+                email=record.recipient_email,
+                customer_id=record.customer_id,
+            )
         except SmtpMailDeliveryError as exc:
             return self._complete_failed_retry(command, record, exc)
 
         body_text = record.body_text or record.subject
+        email_account_id = record.email_account_id
 
-        def send_fn() -> None:
-            deliver_with_dispatcher(
-                account,
-                recipient=record.recipient_email,
+        def send_fn():
+            return self._delivery.send(
+                organization_id=command.organization_id,
+                email_account_id=email_account_id,
+                to=record.recipient_email,
                 subject=record.subject,
                 body_text=body_text,
                 body_html=record.body_html,
-                smtp_config=smtp_config,
             )
 
         try:
@@ -152,7 +159,11 @@ class RetryMailSendOperationUseCase:
 
         try:
             handler.validate_consent(command.organization_id, outbox)
-            account, smtp_config = self._resolve_email_account(command.organization_id, record)
+            if record.email_account_id is None:
+                raise SmtpMailDeliveryError(
+                    "SMTP account is required for retry",
+                    error_type="MissingSmtpAccount",
+                )
             final_subject, body_text, body_html = handler.build_send_payload(
                 command.organization_id,
                 batch=batch,
@@ -167,16 +178,17 @@ class RetryMailSendOperationUseCase:
         handler.prepare_outbox_for_retry(outbox.id)
         self._session.flush()
         recipient = record.recipient_email or outbox.email
+        email_account_id = record.email_account_id
 
-        def send_fn() -> None:
+        def send_fn():
             handler.mark_outbox_sending(outbox.id)
-            deliver_with_dispatcher(
-                account,
-                recipient=recipient,
+            return self._delivery.send(
+                organization_id=command.organization_id,
+                email_account_id=email_account_id,
+                to=recipient,
                 subject=final_subject,
                 body_text=body_text,
                 body_html=body_html,
-                smtp_config=smtp_config,
             )
 
         try:
@@ -256,38 +268,6 @@ class RetryMailSendOperationUseCase:
         if updated is None:
             raise MailSendOperationNotFoundError("Mail send operation not found")
         return self._build_result(command, updated)
-
-    def _resolve_email_account(
-        self,
-        organization_id: UUID,
-        record,
-    ) -> tuple[EmailAccount, EmailAccountSmtpConfig | None]:
-        if record.email_account_id is None:
-            raise SmtpMailDeliveryError(
-                "SMTP account is required for retry",
-                error_type="MissingSmtpAccount",
-            )
-        account = self._email_account_repository.get_by_id(organization_id, record.email_account_id)
-        if account is None or account.deleted_at is not None:
-            raise SmtpMailDeliveryError(
-                "SMTP account not found",
-                error_type="SmtpAccountNotFound",
-            )
-        if not account.is_active:
-            raise SmtpMailDeliveryError(
-                "SMTP account is inactive",
-                error_type="InactiveAccount",
-            )
-
-        smtp_config: EmailAccountSmtpConfig | None = None
-        if account.account_type == EmailAccountType.SMTP:
-            smtp_config = self._email_account_repository.get_smtp_config(account.id)
-            if smtp_config is None:
-                raise SmtpMailDeliveryError(
-                    "SMTP config not found",
-                    error_type="MissingSmtpConfig",
-                )
-        return account, smtp_config
 
     def _validate_template(self, organization_id: UUID, record) -> None:
         if record.template_id is None:

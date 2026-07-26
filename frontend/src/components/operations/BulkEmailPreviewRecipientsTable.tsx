@@ -29,6 +29,10 @@ function skipReasonLabel(reason: string | null): string {
       return operationLabels.bulkEmailSkipReasonInvalidEmail;
     case "duplicate_email":
       return operationLabels.bulkEmailSkipReasonDuplicate;
+    case "customer_email_consent":
+      return operationLabels.bulkEmailSkipReasonCustomerConsent;
+    case "contact_email_consent":
+      return operationLabels.bulkEmailSkipReasonContactConsent;
     default:
       return reason ?? "—";
   }

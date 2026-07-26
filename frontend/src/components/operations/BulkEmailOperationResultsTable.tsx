@@ -173,6 +173,19 @@ export function BulkEmailOperationResultsTable({
         ),
       },
       {
+        key: "external_message_id",
+        title: operationLabels.bulkEmailColMessageId,
+        sortable: false,
+        allowWrap: true,
+        render: (item) => item.external_message_id?.trim() || "—",
+      },
+      {
+        key: "provider_status",
+        title: operationLabels.bulkEmailColProviderStatus,
+        sortable: false,
+        render: (item) => item.provider_status?.trim() || "—",
+      },
+      {
         key: "error_message",
         title: operationLabels.bulkEmailColError,
         sortable: false,

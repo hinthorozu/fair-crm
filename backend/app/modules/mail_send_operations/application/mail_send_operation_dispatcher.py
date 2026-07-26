@@ -1,4 +1,4 @@
-"""Dispatch queued mail send operations via EmailDeliveryDispatcher."""
+"""Dispatch queued mail send operations via the central EmailDeliveryService."""
 
 from __future__ import annotations
 
@@ -6,13 +6,8 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.modules.email_accounts.domain.entities import EmailAccount, EmailAccountSmtpConfig
-from app.modules.email_accounts.domain.value_objects import EmailAccountType
-from app.modules.email_accounts.infrastructure.repositories.email_account_repository import (
-    SqlAlchemyEmailAccountRepository,
-)
-from app.modules.email_delivery.application.dispatcher import EmailDeliveryDispatcher
-from app.modules.email_delivery.domain.exceptions import EmailDeliveryError, UnsupportedProviderError
+from app.modules.email_delivery.application.email_delivery_service import EmailDeliveryService
+from app.modules.email_delivery.domain.results import EmailDeliveryResult
 from app.modules.fair_emails.application.fair_bulk_email_activity import (
     FairBulkEmailActivityContext,
     FairBulkEmailActivityWriter,
@@ -31,41 +26,48 @@ from app.modules.mail_templates.infrastructure.repositories.mail_template_reposi
     SqlAlchemyMailTemplateRepository,
 )
 from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
+from app.shared.email_consent_policy import EmailConsentPolicy
 
 
 class MailSendOperationDispatcher:
     def __init__(self, session: Session) -> None:
         self._session = session
-        self._email_account_repository = SqlAlchemyEmailAccountRepository(session)
         self._batch_repository = SqlAlchemyFairEmailBatchRepository(session)
         self._template_repository = SqlAlchemyMailTemplateRepository(session)
         self._fair_bulk_handler = FairBulkEmailOperationRetryHandler(session)
         self._mail_operation_sync = FairBulkEmailMailOperationSync(session)
         self._activity_writer = FairBulkEmailActivityWriter(session)
-        self._delivery = EmailDeliveryDispatcher()
+        self._consent_policy = EmailConsentPolicy(session)
+        self._delivery = EmailDeliveryService(session)
 
-    def dispatch(self, operation: MailSendOperationRecord) -> None:
+    def dispatch(self, operation: MailSendOperationRecord) -> EmailDeliveryResult:
         if operation.source_type == MailSendSourceType.FAIR_BULK_EMAIL:
-            self._dispatch_fair_bulk_email(operation)
-            return
-        self._dispatch_generic(operation)
+            return self._dispatch_fair_bulk_email(operation)
+        return self._dispatch_generic(operation)
 
-    def _dispatch_generic(self, operation: MailSendOperationRecord) -> None:
-        account, smtp_config = self._resolve_email_account(
+    def _dispatch_generic(self, operation: MailSendOperationRecord) -> EmailDeliveryResult:
+        self._consent_policy.ensure_allowed_or_delivery_error(
             operation.organization_id,
-            operation.email_account_id,
+            email=operation.recipient_email,
+            customer_id=operation.customer_id,
         )
+        if operation.email_account_id is None:
+            raise SmtpMailDeliveryError(
+                "Email account is required for mail delivery",
+                error_type="MissingEmailAccount",
+                retryable=False,
+            )
         body_text = operation.body_text or operation.subject
-        self._send(
-            account,
-            recipient=operation.recipient_email,
+        return self._delivery.send(
+            organization_id=operation.organization_id,
+            email_account_id=operation.email_account_id,
+            to=operation.recipient_email,
             subject=operation.subject,
             body_text=body_text,
             body_html=operation.body_html,
-            smtp_config=smtp_config,
         )
 
-    def _dispatch_fair_bulk_email(self, operation: MailSendOperationRecord) -> None:
+    def _dispatch_fair_bulk_email(self, operation: MailSendOperationRecord) -> EmailDeliveryResult:
         outbox = self._fair_bulk_handler.get_outbox_for_operation(
             operation.organization_id,
             operation.id,
@@ -85,10 +87,12 @@ class MailSendOperationDispatcher:
             )
 
         self._fair_bulk_handler.validate_consent(operation.organization_id, outbox)
-        account, smtp_config = self._resolve_email_account(
-            operation.organization_id,
-            operation.email_account_id,
-        )
+        if operation.email_account_id is None:
+            raise SmtpMailDeliveryError(
+                "Email account is required for mail delivery",
+                error_type="MissingEmailAccount",
+                retryable=False,
+            )
         final_subject, body_text, body_html = self._fair_bulk_handler.build_send_payload(
             operation.organization_id,
             batch=batch,
@@ -96,13 +100,13 @@ class MailSendOperationDispatcher:
         )
 
         self._batch_repository.mark_outbox_sending(outbox.id)
-        self._send(
-            account,
-            recipient=operation.recipient_email or outbox.email,
+        delivery_result = self._delivery.send(
+            organization_id=operation.organization_id,
+            email_account_id=operation.email_account_id,
+            to=operation.recipient_email or outbox.email,
             subject=final_subject,
             body_text=body_text,
             body_html=body_html,
-            smtp_config=smtp_config,
         )
         self._batch_repository.update_outbox_sent(
             outbox.id,
@@ -118,65 +122,7 @@ class MailSendOperationDispatcher:
             template_id=batch.template_id,
             subject=final_subject,
         )
-
-    def _send(
-        self,
-        account: EmailAccount,
-        *,
-        recipient: str,
-        subject: str,
-        body_text: str | None,
-        body_html: str | None,
-        smtp_config: EmailAccountSmtpConfig | None,
-    ) -> None:
-        try:
-            self._delivery.send(
-                account,
-                recipient=recipient,
-                subject=subject,
-                body_html=body_html,
-                body_text=body_text,
-                smtp_config=smtp_config,
-            )
-        except SmtpMailDeliveryError:
-            raise
-        except (EmailDeliveryError, UnsupportedProviderError) as exc:
-            raise SmtpMailDeliveryError(
-                str(exc.args[0]) if exc.args else "Email delivery failed",
-                error_type=exc.error_code or type(exc).__name__,
-            ) from exc
-
-    def _resolve_email_account(
-        self,
-        organization_id: UUID,
-        email_account_id: UUID | None,
-    ) -> tuple[EmailAccount, EmailAccountSmtpConfig | None]:
-        if email_account_id is None:
-            raise SmtpMailDeliveryError(
-                "SMTP account is required for mail delivery",
-                error_type="MissingSmtpAccount",
-            )
-        account = self._email_account_repository.get_by_id(organization_id, email_account_id)
-        if account is None or account.deleted_at is not None:
-            raise SmtpMailDeliveryError(
-                "SMTP account not found",
-                error_type="SmtpAccountNotFound",
-            )
-        if not account.is_active:
-            raise SmtpMailDeliveryError(
-                "SMTP account is inactive",
-                error_type="InactiveAccount",
-            )
-
-        smtp_config: EmailAccountSmtpConfig | None = None
-        if account.account_type == EmailAccountType.SMTP:
-            smtp_config = self._email_account_repository.get_smtp_config(account.id)
-            if smtp_config is None:
-                raise SmtpMailDeliveryError(
-                    "SMTP config not found",
-                    error_type="MissingSmtpConfig",
-                )
-        return account, smtp_config
+        return delivery_result
 
     def _record_fair_bulk_activity(
         self,

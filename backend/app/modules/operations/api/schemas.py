@@ -226,6 +226,8 @@ class BulkEmailOperationRecipientSummaryResponse(BaseModel):
     selected_fair_names: list[str] | None = None
     total_customers: int | None = None
     total_contacts: int | None = None
+    customer_consent_skipped_count: int = 0
+    contact_consent_skipped_count: int = 0
     recipients: list[BulkEmailOperationPreviewRecipientResponse]
 
 
@@ -283,6 +285,8 @@ class BulkEmailOperationRecipientRowResponse(BaseModel):
     contact_id: UUID | None = None
     participation_id: UUID | None = None
     fair_name: str | None = None
+    external_message_id: str | None = None
+    provider_status: str | None = None
 
 
 class BulkEmailOperationRecipientsResponse(BaseModel):

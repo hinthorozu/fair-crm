@@ -42,7 +42,7 @@ def _activities_for_customer(db_session, organization_id, customer_id):
     )
 
 
-@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
+@patch("app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send")
 def test_sent_outbox_item_creates_customer_activity(
     mock_send,
     db_session,
@@ -68,7 +68,7 @@ def test_sent_outbox_item_creates_customer_activity(
     assert all(item.metadata_json and item.metadata_json.get("status") == "sent" for item in activities)
 
 
-@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
+@patch("app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send")
 def test_failed_outbox_item_creates_customer_activity(
     mock_send,
     db_session,
@@ -98,7 +98,7 @@ def test_failed_outbox_item_creates_customer_activity(
     assert all(item.metadata_json and item.metadata_json.get("status") == "failed" for item in activities)
 
 
-@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
+@patch("app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send")
 def test_contact_recipient_activity_links_contact_id(
     mock_send,
     db_session,
@@ -132,7 +132,7 @@ def test_contact_recipient_activity_links_contact_id(
     assert activity.metadata_json["contact_id"] == str(contact_outbox.contact_id)
 
 
-@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
+@patch("app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send")
 def test_customer_recipient_activity_has_no_contact_id(
     mock_send,
     db_session,
@@ -166,7 +166,7 @@ def test_customer_recipient_activity_has_no_contact_id(
     assert "contact_id" not in activity.metadata_json
 
 
-@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
+@patch("app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send")
 def test_pending_outbox_does_not_create_activity(
     mock_send,
     db_session,
@@ -186,7 +186,7 @@ def test_pending_outbox_does_not_create_activity(
     assert _activities_for_customer(db_session, organization_id, customer_id) == []
 
 
-@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
+@patch("app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send")
 def test_processor_rerun_does_not_duplicate_activities(
     mock_send,
     db_session,
@@ -211,7 +211,7 @@ def test_processor_rerun_does_not_duplicate_activities(
     assert len(activities) == 2
 
 
-@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
+@patch("app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send")
 def test_activity_note_contains_fair_template_subject_recipient(
     mock_send,
     db_session,

@@ -109,6 +109,8 @@ def _to_response(item: MailSendOperationListItem) -> MailSendOperationListItemRe
         sent_at=item.sent_at,
         failed_at=item.failed_at,
         cancelled_at=item.cancelled_at,
+        external_message_id=item.external_message_id,
+        provider_status=item.provider_status,
     )
 
 

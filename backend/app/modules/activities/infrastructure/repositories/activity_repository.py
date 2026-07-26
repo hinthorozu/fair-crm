@@ -69,6 +69,35 @@ class SqlAlchemyActivityRepository:
                 return True
         return False
 
+    def exists_mailersend_webhook_consent_activity(
+        self,
+        organization_id: UUID,
+        *,
+        mail_send_operation_id: UUID,
+        provider_event: str,
+    ) -> bool:
+        """Idempotency for webhook-driven unsubscribe / spam_complaint activities."""
+        mso_id_text = str(mail_send_operation_id)
+        models = (
+            self._session.query(ActivityModel)
+            .filter(
+                ActivityModel.organization_id == organization_id,
+                ActivityModel.source == ActivitySource.EMAIL_AUTOMATION,
+                ActivityModel.deleted_at.is_(None),
+                ActivityModel.metadata_json.isnot(None),
+            )
+            .all()
+        )
+        for model in models:
+            metadata = model.metadata_json or {}
+            if metadata.get("source") != "mailersend_webhook":
+                continue
+            if metadata.get("mail_send_operation_id") != mso_id_text:
+                continue
+            if metadata.get("provider_event") == provider_event:
+                return True
+        return False
+
     def exists_fair_bulk_email_outbox_attempt(
         self,
         organization_id: UUID,

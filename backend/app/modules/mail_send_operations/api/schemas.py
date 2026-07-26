@@ -38,6 +38,8 @@ class MailSendOperationListItemResponse(BaseModel):
     sent_at: datetime | None
     failed_at: datetime | None
     cancelled_at: datetime | None
+    external_message_id: str | None = None
+    provider_status: str | None = None
 
 
 class MailSendOperationListResponse(BaseModel):

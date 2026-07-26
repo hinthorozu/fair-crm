@@ -156,6 +156,7 @@ def get_send_test_mail_template_use_case(
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
     mail_send_operations: MailSendOperationService = Depends(get_mail_send_operation_service),
+    db: Session = Depends(get_db),
 ) -> SendTestMailTemplateUseCase:
     return SendTestMailTemplateUseCase(
         repository,
@@ -164,4 +165,5 @@ def get_send_test_mail_template_use_case(
         authorization,
         audit,
         mail_send_operations,
+        session=db,
     )

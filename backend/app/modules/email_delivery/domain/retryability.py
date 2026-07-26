@@ -29,6 +29,7 @@ _NON_RETRYABLE_ERROR_CODES = frozenset(
         "EmailAccountAlreadyDeleted",
         "UnsupportedProviderError",
         "InvalidSmtpTestRecipientError",
+        "consent_blocked",
     }
 )
 

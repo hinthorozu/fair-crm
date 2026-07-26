@@ -3,6 +3,7 @@ import type {
   CreateEmailAccountPayload,
   EmailAccount,
   EmailAccountListResponse,
+  EmailAccountProviderListResponse,
   UpdateEmailAccountPayload,
   SendTestEmailAccountPayload,
   SendTestEmailAccountResponse,
@@ -14,6 +15,10 @@ const EMAIL_ACCOUNTS_BASE = "/api/v1/email-accounts";
 
 export async function listEmailAccounts(): Promise<EmailAccountListResponse> {
   return apiRequest<EmailAccountListResponse>(EMAIL_ACCOUNTS_BASE);
+}
+
+export async function listEmailAccountProviders(): Promise<EmailAccountProviderListResponse> {
+  return apiRequest<EmailAccountProviderListResponse>(`${EMAIL_ACCOUNTS_BASE}/providers`);
 }
 
 export function createEmailAccount(payload: CreateEmailAccountPayload): Promise<EmailAccount> {

@@ -85,6 +85,7 @@ class SendBulkEmailOperationUseCase:
         mail_operation_sync: FairBulkEmailMailOperationSync,
         authorization: AuthorizationPort,
         audit: AuditPort | None = None,
+        session=None,
     ) -> None:
         self._fair_repository = fair_repository
         self._template_repository = template_repository
@@ -94,6 +95,7 @@ class SendBulkEmailOperationUseCase:
         self._mail_operation_sync = mail_operation_sync
         self._authorization = authorization
         self._audit = audit
+        self._session = session
 
     def execute(self, command: SendBulkEmailOperationCommand) -> SendBulkEmailOperationResult:
         if not self._authorization.check_permission(
@@ -158,13 +160,8 @@ class SendBulkEmailOperationUseCase:
             batch=batch,
             default_subject=subject,
         )
-        if source_type == "fair_list":
-            self._mail_operation_sync.create_skipped_operations_for_consent(
-                organization_id=command.organization_id,
-                batch=batch,
-                default_subject=subject,
-                recipients=recipients,
-            )
+        # Consent-blocked recipients stay in preview as status=skip only;
+        # they must not create MSO / outbox / delivery work.
 
         if self._audit is not None:
             self._audit.record_event(

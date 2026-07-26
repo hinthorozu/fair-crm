@@ -23,6 +23,18 @@ from app.shared.consent import CONSENT_ERROR_CODE, CONSENT_SKIP_MESSAGES, CONSEN
 _DEFAULT_MAX_RETRY_COUNT = 3
 
 
+def _sanitize_provider_fields(
+    external_message_id: object,
+    provider_status: object,
+) -> tuple[str | None, str | None]:
+    """Persist only real string provider fields (ignore MagicMock from tests)."""
+    if not isinstance(external_message_id, str):
+        external_message_id = None
+    if not isinstance(provider_status, str):
+        provider_status = None
+    return external_message_id, provider_status
+
+
 class FairBulkEmailMailOperationSync:
     def __init__(self, session: Session) -> None:
         self._session = session
@@ -119,10 +131,16 @@ class FairBulkEmailMailOperationSync:
         subject: str,
         body_html: str | None,
         body_text: str | None,
+        external_message_id: str | None = None,
+        provider_status: str | None = None,
     ) -> None:
         operation_id = outbox.mail_send_operation_id
         if operation_id is None:
             return
+        external_message_id, provider_status = _sanitize_provider_fields(
+            external_message_id,
+            provider_status,
+        )
         record = self._operation_repository.get_by_id(organization_id, operation_id)
         if record is None or record.status == MailSendOperationStatus.SENT:
             return
@@ -138,6 +156,8 @@ class FairBulkEmailMailOperationSync:
                 organization_id,
                 operation_id,
                 log_message="Fuar toplu mail gönderildi",
+                external_message_id=external_message_id,
+                provider_status=provider_status,
             )
             return
         if record.status == MailSendOperationStatus.QUEUED:
@@ -157,6 +177,8 @@ class FairBulkEmailMailOperationSync:
                 organization_id,
                 operation_id,
                 log_message="Fuar toplu mail gönderildi",
+                external_message_id=external_message_id,
+                provider_status=provider_status,
             )
 
     def sync_outbox_failed(
@@ -243,7 +265,9 @@ class FairBulkEmailMailOperationSync:
                     "contact_id": str(outbox.contact_id) if outbox.contact_id else None,
                     "recipient_source": outbox.source,
                 },
-            )
+            ),
+            # Manual/Excel are external recipients — no CRM email consent lookup.
+            check_consent=outbox.source not in ("manual", "excel"),
         )
         outbox.mail_send_operation_id = operation.id
         self._session.flush()

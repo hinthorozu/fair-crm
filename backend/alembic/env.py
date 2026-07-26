@@ -15,6 +15,7 @@ from app.modules.customers.infrastructure.persistence.communication_models impor
 from app.modules.customers.infrastructure.persistence.models import CustomerModel  # noqa: F401
 from app.modules.email_accounts.infrastructure.persistence.models import (  # noqa: F401
     EmailAccountModel,
+    EmailAccountProviderConfigModel,
     EmailAccountSmtpConfigModel,
 )
 from app.modules.smtp.infrastructure.persistence.models import SmtpAccountModel  # noqa: F401

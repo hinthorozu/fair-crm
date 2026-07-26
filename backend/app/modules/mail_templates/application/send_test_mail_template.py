@@ -29,14 +29,20 @@ from app.modules.smtp.domain.exceptions import (
     SmtpMailDeliveryError,
 )
 from app.modules.smtp.domain.ports import SmtpAccountRepository
-from app.modules.email_delivery.application.deliver import deliver_smtp_account_with_dispatcher
+from app.modules.email_delivery.application.email_delivery_service import EmailDeliveryService
+from app.modules.smtp.domain.exceptions import (
+    SmtpAccountAlreadyDeletedError,
+    SmtpAccountNotFoundError,
+    SmtpMailDeliveryError,
+)
+from app.modules.smtp.domain.ports import SmtpAccountRepository
 
 PERMISSION_TEST_SEND = "fair_crm.mail_templates.test_send"
 _RECIPIENT_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 RENDER_USER_MESSAGE = "Mail şablonu render edilirken hata oluştu. Değişkenleri kontrol edin."
-DEFAULT_SMTP_USER_MESSAGE = "Bu kuruluş için varsayılan SMTP hesabı bulunamadı."
+DEFAULT_SMTP_USER_MESSAGE = "Bu kuruluş için varsayılan e-posta hesabı bulunamadı."
 INACTIVE_TEMPLATE_USER_MESSAGE = "Pasif mail şablonu ile test email gönderilemez."
-INACTIVE_SMTP_USER_MESSAGE = "Seçilen SMTP hesabı pasif durumda."
+INACTIVE_SMTP_USER_MESSAGE = "Seçilen e-posta hesabı pasif durumda."
 
 
 class SendTestMailTemplateUseCase:
@@ -48,6 +54,7 @@ class SendTestMailTemplateUseCase:
         authorization: AuthorizationPort,
         audit: HttpAuditAdapter,
         mail_send_operations: MailSendOperationService,
+        session=None,
     ) -> None:
         self._template_repository = template_repository
         self._smtp_repository = smtp_repository
@@ -55,6 +62,8 @@ class SendTestMailTemplateUseCase:
         self._authorization = authorization
         self._audit = audit
         self._mail_send_operations = mail_send_operations
+        self._session = session
+        self._delivery = EmailDeliveryService(session) if session is not None else None
 
     def execute(self, command: SendTestMailTemplateCommand) -> SendTestMailTemplateResult:
         if not self._authorization.check_permission(
@@ -107,6 +116,20 @@ class SendTestMailTemplateUseCase:
         if account.deleted_at is not None:
             raise SmtpAccountAlreadyDeletedError("SMTP account is deleted")
 
+        if self._session is not None:
+            from app.shared.consent import EmailConsentBlockedError
+            from app.shared.email_consent_policy import EmailConsentPolicy
+
+            try:
+                EmailConsentPolicy(self._session).ensure_allowed(
+                    command.organization_id,
+                    email=recipient,
+                )
+            except EmailConsentBlockedError as exc:
+                raise InvalidMailTemplateTestRecipientError(
+                    exc.decision.message or "E-posta iletişim izni kapalı"
+                ) from exc
+
         body_text = rendered_body_text or final_subject
         if not account.is_active:
             log_mail_template_test_email_failure(
@@ -154,13 +177,20 @@ class SendTestMailTemplateUseCase:
         )
 
         try:
+            if self._delivery is None:
+                raise SmtpMailDeliveryError(
+                    "Provider delivery requires a database session",
+                    error_type="MissingProviderSession",
+                    retryable=False,
+                )
             self._mail_send_operations.execute_synchronous_send(
                 operation_params,
-                send_fn=lambda: deliver_smtp_account_with_dispatcher(
-                    account,
-                    recipient=recipient,
+                send_fn=lambda: self._delivery.send(
+                    organization_id=command.organization_id,
+                    email_account_id=account.id,
+                    to=recipient,
                     subject=final_subject,
-                    body=body_text,
+                    body_text=body_text,
                     body_html=rendered_body_html,
                 ),
             )

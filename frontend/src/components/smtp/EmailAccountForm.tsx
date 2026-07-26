@@ -13,16 +13,25 @@ import {
   SelectInput,
   TextInput,
 } from "../ui/form";
-import type { EmailAccount, EmailAccountType } from "../../types/smtp";
+import type {
+  CreateEmailAccountPayload,
+  EmailAccount,
+  EmailAccountProviderDefinition,
+  EmailAccountType,
+  ErrorPolicyCategory,
+  UpdateEmailAccountPayload,
+} from "../../types/smtp";
 import { Banner } from "../ui/Banner";
 import {
   EMPTY_EMAIL_ACCOUNT_FORM_VALUES,
   SMTP_ENCRYPTION_TYPES,
   buildCreateEmailAccountPayload,
   buildUpdateEmailAccountPayload,
+  defaultErrorPolicyGroups,
   getSmtpPortEncryptionHints,
   emailAccountToFormValues,
   emailAccountPasswordSet,
+  providerConfigToFormValues,
   validateEmailAccountFormValues,
   type EmailAccountFormValues,
 } from "../../utils/emailAccountForm";
@@ -41,8 +50,8 @@ interface EmailAccountFormProps {
   testError: string | null;
   testSuccess: string | null;
   onCancel: () => void;
-  onSubmitCreate: (payload: ReturnType<typeof buildCreateEmailAccountPayload>) => Promise<void>;
-  onSubmitUpdate: (payload: ReturnType<typeof buildUpdateEmailAccountPayload>) => Promise<void>;
+  onSubmitCreate: (payload: CreateEmailAccountPayload) => Promise<void>;
+  onSubmitUpdate: (payload: UpdateEmailAccountPayload) => Promise<void>;
   onTestMail?: (recipient: string) => Promise<void>;
 }
 
@@ -60,19 +69,33 @@ export function EmailAccountForm({
   onTestMail,
 }: EmailAccountFormProps) {
   const baseline = React.useMemo(
-    () => (initial ? emailAccountToFormValues(initial) : EMPTY_EMAIL_ACCOUNT_FORM_VALUES),
+    () =>
+      initial
+        ? emailAccountToFormValues(initial)
+        : {
+            ...EMPTY_EMAIL_ACCOUNT_FORM_VALUES,
+            provider_config: {},
+            error_policy_groups: defaultErrorPolicyGroups(),
+          },
     [initial],
   );
   const [values, setValues] = React.useState<EmailAccountFormValues>(baseline);
   const [accountType, setAccountType] = React.useState<EmailAccountType>(() =>
     resolveEmailAccountType(initial),
   );
+  const [providerDefinitions, setProviderDefinitions] = React.useState<
+    EmailAccountProviderDefinition[]
+  >([]);
   const [testRecipient, setTestRecipient] = React.useState("");
   const [localError, setLocalError] = React.useState<string | null>(null);
   const formError = localError ?? error;
   const accountTypeLocked = mode === "edit";
   const providerSelected = accountType === "provider";
-  const submitDisabled = saving || providerSelected;
+
+  const selectedProviderDefinition = React.useMemo(
+    () => providerDefinitions.find((item) => item.provider_key === values.provider_key) ?? null,
+    [providerDefinitions, values.provider_key],
+  );
 
   React.useEffect(() => {
     setValues(baseline);
@@ -80,7 +103,10 @@ export function EmailAccountForm({
     setLocalError(null);
   }, [baseline, initial]);
 
-  useReportFormDirty({ ...values, accountType }, { ...baseline, accountType: resolveEmailAccountType(initial) });
+  useReportFormDirty(
+    { ...values, accountType },
+    { ...baseline, accountType: resolveEmailAccountType(initial) },
+  );
   const handleCancel = useModalFormCancel(onCancel);
 
   const setField = <K extends keyof EmailAccountFormValues>(
@@ -97,22 +123,85 @@ export function EmailAccountForm({
     setLocalError(null);
   };
 
+  const handleProvidersLoaded = React.useCallback(
+    (providers: EmailAccountProviderDefinition[]) => {
+      setProviderDefinitions(providers);
+      if (!initial?.provider_key) return;
+      const definition = providers.find((item) => item.provider_key === initial.provider_key);
+      if (!definition) return;
+      setValues((current) => ({
+        ...current,
+        provider_config: {
+          ...providerConfigToFormValues(initial.provider_config, definition.fields),
+          // Keep any in-progress secret edits typed before schema arrived.
+          ...Object.fromEntries(
+            Object.entries(current.provider_config).filter(([, value]) => value.trim() !== ""),
+          ),
+        },
+      }));
+    },
+    [initial],
+  );
+
+  const handleProviderKeyChange = (
+    providerKey: string,
+    definition: EmailAccountProviderDefinition | null,
+  ) => {
+    setValues((current) => ({
+      ...current,
+      provider_key: providerKey,
+      provider_config: definition
+        ? providerConfigToFormValues(undefined, definition.fields)
+        : {},
+      error_policy_groups:
+        current.error_policy_groups.length > 0
+          ? current.error_policy_groups
+          : defaultErrorPolicyGroups(),
+    }));
+    setLocalError(null);
+  };
+
+  const handleProviderConfigChange = (key: string, value: string) => {
+    setValues((current) => ({
+      ...current,
+      provider_config: { ...current.provider_config, [key]: value },
+    }));
+    setLocalError(null);
+  };
+
+  const handleErrorPolicyGroupChange = (
+    category: ErrorPolicyCategory,
+    patch: Partial<{ identifiersText: string; action: string }>,
+  ) => {
+    setValues((current) => ({
+      ...current,
+      error_policy_groups: current.error_policy_groups.map((group) =>
+        group.category === category ? { ...group, ...patch } : group,
+      ),
+    }));
+    setLocalError(null);
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (providerSelected) {
-      setLocalError(adminLabels.smtpProviderSaveDisabledHint);
-      return;
-    }
-    const validationError = validateEmailAccountFormValues(values, mode);
+    const validationError = validateEmailAccountFormValues(values, mode, {
+      accountType,
+      providerDefinition: selectedProviderDefinition,
+      secretsSet: initial?.secrets_set,
+    });
     if (validationError) {
       setLocalError(validationError);
       return;
     }
     if (mode === "create") {
-      await onSubmitCreate(buildCreateEmailAccountPayload(values));
+      await onSubmitCreate(
+        buildCreateEmailAccountPayload(values, accountType, selectedProviderDefinition),
+      );
       return;
     }
-    await onSubmitUpdate(buildUpdateEmailAccountPayload(values));
+    await onSubmitUpdate(
+      buildUpdateEmailAccountPayload(values, accountType, selectedProviderDefinition),
+    );
   };
 
   const passwordHint =
@@ -163,22 +252,37 @@ export function EmailAccountForm({
         </FormGrid>
       </FormSection>
 
+      <FormSection title={adminLabels.smtpSectionGeneral}>
+        <FormGrid>
+          <FormField label={adminLabels.smtpFieldName} htmlFor="smtp-name" required fullWidth>
+            <TextInput
+              id="smtp-name"
+              type="text"
+              value={values.name}
+              onChange={(event) => setField("name", event.target.value)}
+              required
+            />
+          </FormField>
+        </FormGrid>
+      </FormSection>
+
       {providerSelected ? (
-        <ProviderAccountConfigPanel providerKey={initial?.provider_key ?? null} />
+        <ProviderAccountConfigPanel
+          mode={mode}
+          providerKey={values.provider_key}
+          providerConfig={values.provider_config}
+          errorPolicyGroups={values.error_policy_groups}
+          secretsSet={initial?.secrets_set}
+          providerKeyLocked={accountTypeLocked}
+          onProviderKeyChange={handleProviderKeyChange}
+          onProviderConfigChange={handleProviderConfigChange}
+          onErrorPolicyGroupChange={handleErrorPolicyGroupChange}
+          onProvidersLoaded={handleProvidersLoaded}
+        />
       ) : (
         <>
-          <FormSection title={adminLabels.smtpSectionGeneral}>
+          <FormSection title={adminLabels.smtpSectionServer}>
             <FormGrid>
-              <FormField label={adminLabels.smtpFieldName} htmlFor="smtp-name" required fullWidth>
-                <TextInput
-                  id="smtp-name"
-                  type="text"
-                  value={values.name}
-                  onChange={(event) => setField("name", event.target.value)}
-                  required
-                />
-              </FormField>
-
               <FormField label={adminLabels.smtpFieldFromEmail} htmlFor="smtp-from-email" required>
                 <TextInput
                   id="smtp-from-email"
@@ -197,11 +301,7 @@ export function EmailAccountForm({
                   onChange={(event) => setField("from_name", event.target.value)}
                 />
               </FormField>
-            </FormGrid>
-          </FormSection>
 
-          <FormSection title={adminLabels.smtpSectionServer}>
-            <FormGrid>
               <FormField label={adminLabels.smtpFieldHost} htmlFor="smtp-host" required>
                 <TextInput
                   id="smtp-host"
@@ -282,95 +382,76 @@ export function EmailAccountForm({
               </FormField>
             </FormGrid>
           </FormSection>
-
-          <FormSection title={adminLabels.smtpSectionStatus}>
-            <FormGrid>
-              <CheckboxField
-                id="smtp-is-default"
-                label={adminLabels.smtpFieldIsDefault}
-                checked={values.is_default}
-                onChange={(checked) => setField("is_default", checked)}
-              />
-              <CheckboxField
-                id="smtp-is-active"
-                label={adminLabels.smtpFieldIsActive}
-                checked={values.is_active}
-                onChange={(checked) => setField("is_active", checked)}
-              />
-              {mode === "create" ? (
-                <FormField
-                  label={adminLabels.smtpFieldMaxDeliveryAttempts}
-                  htmlFor="smtp-max-delivery-attempts"
-                  required
-                >
-                  <SelectInput
-                    id="smtp-max-delivery-attempts"
-                    value={values.max_delivery_attempts}
-                    onChange={(event) => setField("max_delivery_attempts", event.target.value)}
-                    required
-                  >
-                    {[1, 2, 3, 4, 5].map((attempts) => (
-                      <option key={attempts} value={String(attempts)}>
-                        {attempts}
-                      </option>
-                    ))}
-                  </SelectInput>
-                </FormField>
-              ) : (
-                <FormField
-                  label={adminLabels.smtpFieldMaxDeliveryAttempts}
-                  htmlFor="smtp-max-delivery-attempts"
-                >
-                  <TextInput
-                    id="smtp-max-delivery-attempts"
-                    type="text"
-                    value={values.max_delivery_attempts}
-                    readOnly
-                    disabled
-                  />
-                </FormField>
-              )}
-            </FormGrid>
-          </FormSection>
-
-          {mode === "edit" && onTestMail ? (
-            <FormSection title={adminLabels.smtpSectionTestMail}>
-              <div className="smtp-test-mail-panel">
-                <FormGrid>
-                  <FormField
-                    label={adminLabels.smtpFieldTestRecipient}
-                    htmlFor="smtp-test-recipient"
-                    fullWidth
-                  >
-                    <TextInput
-                      id="smtp-test-recipient"
-                      type="email"
-                      value={testRecipient}
-                      onChange={(event) => setTestRecipient(event.target.value)}
-                      placeholder="admin@example.com"
-                    />
-                  </FormField>
-                </FormGrid>
-                {testError ? <Banner variant="error">{testError}</Banner> : null}
-                {testSuccess ? <Banner variant="success">{testSuccess}</Banner> : null}
-                <div className="smtp-test-mail-actions">
-                  <button
-                    type="button"
-                    className="btn secondary"
-                    disabled={testing || saving || !testRecipient.trim()}
-                    onClick={() => void onTestMail(testRecipient.trim())}
-                  >
-                    {testing ? adminLabels.smtpTestMailSending : adminLabels.smtpActionTestMail}
-                  </button>
-                </div>
-              </div>
-            </FormSection>
-          ) : null}
         </>
       )}
 
-      {providerSelected ? (
-        <Banner variant="warning">{adminLabels.smtpProviderSaveDisabledHint}</Banner>
+      <FormSection title={adminLabels.smtpSectionStatus}>
+        <FormGrid>
+          <CheckboxField
+            id="smtp-is-default"
+            label={adminLabels.smtpFieldIsDefault}
+            checked={values.is_default}
+            onChange={(checked) => setField("is_default", checked)}
+          />
+          <CheckboxField
+            id="smtp-is-active"
+            label={adminLabels.smtpFieldIsActive}
+            checked={values.is_active}
+            onChange={(checked) => setField("is_active", checked)}
+          />
+          <FormField
+            label={adminLabels.smtpFieldMaxDeliveryAttempts}
+            htmlFor="smtp-max-delivery-attempts"
+            required
+          >
+            <SelectInput
+              id="smtp-max-delivery-attempts"
+              value={values.max_delivery_attempts}
+              onChange={(event) => setField("max_delivery_attempts", event.target.value)}
+              required
+            >
+              {[1, 2, 3, 4, 5].map((attempts) => (
+                <option key={attempts} value={String(attempts)}>
+                  {attempts}
+                </option>
+              ))}
+            </SelectInput>
+          </FormField>
+        </FormGrid>
+      </FormSection>
+
+      {mode === "edit" && onTestMail ? (
+        <FormSection title={adminLabels.smtpSectionTestMail}>
+          <div className="smtp-test-mail-panel">
+            <FormGrid>
+              <FormField
+                label={adminLabels.smtpFieldTestRecipient}
+                htmlFor="smtp-test-recipient"
+                fullWidth
+              >
+                <TextInput
+                  id="smtp-test-recipient"
+                  type="email"
+                  value={testRecipient}
+                  onChange={(event) => setTestRecipient(event.target.value)}
+                  placeholder="admin@example.com"
+                />
+              </FormField>
+            </FormGrid>
+            {testError ? <Banner variant="error">{testError}</Banner> : null}
+            {testSuccess ? <Banner variant="success">{testSuccess}</Banner> : null}
+            <div className="smtp-test-mail-actions">
+              <button
+                type="button"
+                className="btn secondary"
+                disabled={testing || saving || !testRecipient.trim()}
+                onClick={() => void onTestMail(testRecipient.trim())}
+              >
+                {testing ? adminLabels.smtpTestMailSending : adminLabels.smtpActionTestMail}
+              </button>
+            </div>
+          </div>
+        </FormSection>
       ) : null}
 
       <FormActions
@@ -379,7 +460,7 @@ export function EmailAccountForm({
         submitLabel={labels.save}
         saving={saving}
         savingLabel={adminLabels.smtpSaving}
-        submitDisabled={submitDisabled}
+        submitDisabled={saving}
       />
     </form>
   );

@@ -27,9 +27,18 @@ from app.modules.mail_send_operations.infrastructure.repositories.mail_send_oper
     SqlAlchemyMailSendOperationRepository,
 )
 from app.modules.email_delivery.domain.retryability import is_retryable_delivery_error
+from app.modules.email_delivery.domain.results import EmailDeliveryResult
 from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
 
 logger = logging.getLogger(__name__)
+
+
+def _provider_fields_from_delivery_result(
+    result: EmailDeliveryResult | None,
+) -> tuple[str | None, str | None]:
+    if not isinstance(result, EmailDeliveryResult):
+        return None, None
+    return result.external_message_id, result.provider_status
 
 
 @dataclass(frozen=True)
@@ -126,11 +135,17 @@ class ProcessMailSendOperationsWorker:
             return "skipped"
 
         self._mail_service.mark_worker_sending(claimed.organization_id, claimed.id)
+        delivery_result: EmailDeliveryResult | None = None
         try:
-            self._dispatcher.dispatch(claimed)
+            delivery_result = self._dispatcher.dispatch(claimed)
         except SmtpMailDeliveryError as exc:
             message = exc.args[0] if exc.args else "Mail gönderimi başarısız oldu."
-            if self._try_auto_retry(claimed, error_code=exc.error_type, error_message=message):
+            if self._try_auto_retry(
+                claimed,
+                error_code=exc.error_type,
+                error_message=message,
+                retryable=exc.retryable,
+            ):
                 return "retried"
             self._mail_service.mark_failed(
                 claimed.organization_id,
@@ -143,7 +158,12 @@ class ProcessMailSendOperationsWorker:
         except Exception as exc:
             message = str(exc).strip() or "Mail gönderimi başarısız oldu."
             error_code = type(exc).__name__
-            if self._try_auto_retry(claimed, error_code=error_code, error_message=message):
+            if self._try_auto_retry(
+                claimed,
+                error_code=error_code,
+                error_message=message,
+                retryable=None,
+            ):
                 return "retried"
             self._mail_service.mark_failed(
                 claimed.organization_id,
@@ -159,6 +179,8 @@ class ProcessMailSendOperationsWorker:
             )
             return "failed"
 
+        external_message_id, provider_status = _provider_fields_from_delivery_result(delivery_result)
+
         if claimed.source_type == MailSendSourceType.FAIR_BULK_EMAIL:
             outbox = self._fair_bulk_handler.get_outbox_for_operation(
                 claimed.organization_id,
@@ -171,6 +193,8 @@ class ProcessMailSendOperationsWorker:
                     subject=outbox.rendered_subject or claimed.subject,
                     body_html=outbox.rendered_body_html,
                     body_text=outbox.rendered_body_text,
+                    external_message_id=external_message_id,
+                    provider_status=provider_status,
                 )
             return "sent"
 
@@ -178,6 +202,8 @@ class ProcessMailSendOperationsWorker:
             claimed.organization_id,
             claimed.id,
             log_message=WORKER_LOG_SENT,
+            external_message_id=external_message_id,
+            provider_status=provider_status,
         )
         return "sent"
 
@@ -187,8 +213,13 @@ class ProcessMailSendOperationsWorker:
         *,
         error_code: str | None,
         error_message: str | None,
+        retryable: bool | None = None,
     ) -> bool:
-        if not is_retryable_delivery_error(error_code, error_message=error_message):
+        if retryable is False:
+            return False
+        if retryable is True:
+            pass
+        elif not is_retryable_delivery_error(error_code, error_message=error_message):
             return False
         if record.retry_count >= record.max_retry_count - 1:
             return False

@@ -157,6 +157,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
       {modal === "create" && (
         <FormModal title={labels.newCustomer} onClose={closeModal} size="lg">
           <CustomerForm
+            hydrateKey="create"
             submitLabel={labels.save}
             onCancel={closeModal}
             onSubmit={handleCreate}
@@ -167,6 +168,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
       {modal === "edit" && editing && (
         <FormModal title={labels.editCustomer} onClose={closeModal} size="lg">
           <CustomerForm
+            hydrateKey={editing.id}
             initial={customerToFormValues(editing)}
             submitLabel={labels.save}
             onCancel={closeModal}

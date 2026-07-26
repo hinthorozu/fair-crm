@@ -147,7 +147,7 @@ def test_set_default_rejects_inactive_account(client, auth_headers):
         headers=auth_headers,
     )
     assert set_default_response.status_code == 400
-    assert "Inactive SMTP account cannot be default" in set_default_response.json()["detail"]
+    assert "Inactive email account cannot be default" in set_default_response.json()["detail"]
 
 
 def test_set_default_rejects_deleted_account(client, auth_headers):

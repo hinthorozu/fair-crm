@@ -94,6 +94,8 @@ class SqlAlchemyMailSendOperationRepository:
             sent_at=None,
             failed_at=None,
             cancelled_at=None,
+            external_message_id=None,
+            provider_status=None,
             created_at=now,
             updated_at=now,
         )
@@ -147,6 +149,8 @@ class SqlAlchemyMailSendOperationRepository:
             sent_at=None,
             failed_at=now,
             cancelled_at=None,
+            external_message_id=None,
+            provider_status=None,
             created_at=now,
             updated_at=now,
         )
@@ -200,6 +204,8 @@ class SqlAlchemyMailSendOperationRepository:
             sent_at=None,
             failed_at=None,
             cancelled_at=None,
+            external_message_id=None,
+            provider_status=None,
             created_at=now,
             updated_at=now,
         )
@@ -440,6 +446,8 @@ class SqlAlchemyMailSendOperationRepository:
         model.sent_at = None
         model.failed_at = None
         model.cancelled_at = None
+        model.external_message_id = None
+        model.provider_status = None
         model.updated_at = now
         self._session.flush()
         return self._to_record(model)
@@ -461,6 +469,8 @@ class SqlAlchemyMailSendOperationRepository:
         model.sent_at = None
         model.failed_at = None
         model.cancelled_at = None
+        model.external_message_id = None
+        model.provider_status = None
         model.updated_at = now
         logs = list(model.operation_logs or [])
         logs.append(
@@ -483,13 +493,57 @@ class SqlAlchemyMailSendOperationRepository:
         self._session.flush()
         return self._to_record(model)
 
-    def mark_sent(self, organization_id: UUID, operation_id: UUID) -> MailSendOperationRecord:
+    def mark_sent(
+        self,
+        organization_id: UUID,
+        operation_id: UUID,
+        *,
+        external_message_id: str | None = None,
+        provider_status: str | None = None,
+    ) -> MailSendOperationRecord:
         now = datetime.now(timezone.utc)
         model = self._get_model(organization_id, operation_id)
         model.status = MailSendOperationStatus.SENT
         model.sent_at = now
         model.error_code = None
         model.error_message = None
+        model.external_message_id = external_message_id
+        model.provider_status = provider_status
+        model.updated_at = now
+        self._session.flush()
+        return self._to_record(model)
+
+    def find_by_email_account_and_external_message_id(
+        self,
+        *,
+        email_account_id: UUID,
+        external_message_id: str,
+    ) -> MailSendOperationRecord | None:
+        message_id = (external_message_id or "").strip()
+        if not message_id:
+            return None
+        model = (
+            self._session.query(MailSendOperationModel)
+            .filter(
+                MailSendOperationModel.email_account_id == email_account_id,
+                MailSendOperationModel.external_message_id == message_id,
+            )
+            .order_by(desc(MailSendOperationModel.created_at))
+            .first()
+        )
+        return self._to_record(model) if model is not None else None
+
+    def update_provider_status(
+        self,
+        organization_id: UUID,
+        operation_id: UUID,
+        *,
+        provider_status: str,
+    ) -> MailSendOperationRecord:
+        """Update provider_status only — never mutates pipeline ``status``."""
+        now = datetime.now(timezone.utc)
+        model = self._get_model(organization_id, operation_id)
+        model.provider_status = provider_status
         model.updated_at = now
         self._session.flush()
         return self._to_record(model)
@@ -625,6 +679,8 @@ class SqlAlchemyMailSendOperationRepository:
             sent_at=model.sent_at,
             failed_at=model.failed_at,
             cancelled_at=model.cancelled_at,
+            external_message_id=model.external_message_id,
+            provider_status=model.provider_status,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )

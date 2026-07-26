@@ -744,6 +744,7 @@ export function CustomerDetailPage({
       {modal === "edit-customer" && (
         <FormModal title={labels.editCustomer} onClose={closeModal} size="lg">
           <CustomerForm
+            hydrateKey={customer.id}
             initial={customerToFormValues(customer)}
             submitLabel={labels.save}
             onCancel={closeModal}
@@ -755,6 +756,7 @@ export function CustomerDetailPage({
       {modal === "create-contact" && (
         <FormModal title={contactLabels.newContact} onClose={closeModal}>
           <ContactForm
+            hydrateKey="create"
             submitLabel={contactLabels.save}
             onCancel={closeModal}
             onSubmit={handleCreateContact}
@@ -767,6 +769,7 @@ export function CustomerDetailPage({
       {modal === "edit-contact" && editingContact && (
         <FormModal title={contactLabels.editContact} onClose={closeModal}>
           <ContactForm
+            hydrateKey={editingContact.id}
             initial={contactToFormValues(editingContact)}
             submitLabel={contactLabels.save}
             onCancel={closeModal}

@@ -64,6 +64,7 @@ class UpdateSmtpAccountUseCase:
             encryption_type=command.encryption_type,
             is_default=is_default,
             is_active=command.is_active,
+            max_delivery_attempts=command.max_delivery_attempts,
             now=now,
         )
 

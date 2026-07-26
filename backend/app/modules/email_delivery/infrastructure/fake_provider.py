@@ -16,7 +16,8 @@ class FakeProviderAdapter:
     fail: bool = False
     fail_error_code: str = "FakeProviderFailure"
     fail_message: str = "Fake provider configured to fail"
-    external_message_id: str = "fake-msg-1"
+    external_message_id: str | None = "fake-msg-1"
+    provider_status: str | None = "accepted"
     sent: list[dict[str, Any]] = field(default_factory=list)
 
     def send(
@@ -27,6 +28,7 @@ class FakeProviderAdapter:
         subject: str,
         body_html: str | None = None,
         body_text: str | None = None,
+        provider_config: dict[str, str] | None = None,
     ) -> EmailDeliveryResult:
         self.sent.append(
             {
@@ -35,6 +37,7 @@ class FakeProviderAdapter:
                 "subject": subject,
                 "body_html": body_html,
                 "body_text": body_text,
+                "provider_config": provider_config or {},
             }
         )
         if self.fail:
@@ -47,4 +50,5 @@ class FakeProviderAdapter:
             success=True,
             transport=f"provider:{self.provider_key}",
             external_message_id=self.external_message_id,
+            provider_status=self.provider_status,
         )

@@ -6,8 +6,6 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.modules.contacts.infrastructure.persistence.models import ContactModel
-from app.modules.customers.infrastructure.persistence.models import CustomerModel
 from app.modules.fair_emails.application.recipient_resolution import build_render_variables
 from app.modules.fair_emails.infrastructure.persistence.models import FairEmailOutboxModel
 from app.modules.fair_emails.infrastructure.recipient_loader import FairBulkEmailRecipientLoader
@@ -21,7 +19,7 @@ from app.modules.mail_templates.infrastructure.repositories.mail_template_reposi
 )
 from app.modules.mail_templates.infrastructure.template_renderer import JinjaMailTemplateRenderer
 from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
-from app.shared.consent import CONSENT_ERROR_CODE
+from app.shared.email_consent_policy import EmailConsentPolicy
 
 
 class FairBulkEmailOperationRetryHandler:
@@ -31,6 +29,7 @@ class FairBulkEmailOperationRetryHandler:
         self._template_repository = SqlAlchemyMailTemplateRepository(session)
         self._recipient_loader = FairBulkEmailRecipientLoader(session)
         self._renderer = JinjaMailTemplateRenderer()
+        self._consent_policy = EmailConsentPolicy(session)
 
     def get_outbox_for_operation(
         self,
@@ -53,36 +52,15 @@ class FairBulkEmailOperationRetryHandler:
         self._batch_repository.prepare_outbox_for_retry(outbox_id)
 
     def validate_consent(self, organization_id: UUID, outbox: FairEmailOutboxModel) -> None:
-        if outbox.customer_id is None:
-            # Manual/excel recipients are outside CRM consent tracking.
+        # Manual/Excel outbox rows are external recipients — never CRM-match by email.
+        if outbox.source in ("manual", "excel"):
             return
-        customer = (
-            self._session.query(CustomerModel)
-            .filter(
-                CustomerModel.organization_id == organization_id,
-                CustomerModel.id == outbox.customer_id,
-            )
-            .one_or_none()
+        self._consent_policy.ensure_allowed_or_delivery_error(
+            organization_id,
+            email=outbox.email,
+            customer_id=outbox.customer_id,
+            contact_id=outbox.contact_id,
         )
-        if customer is None or not customer.email_allowed:
-            raise SmtpMailDeliveryError(
-                "Customer email consent disabled",
-                error_type=CONSENT_ERROR_CODE,
-            )
-        if outbox.contact_id is not None:
-            contact = (
-                self._session.query(ContactModel)
-                .filter(
-                    ContactModel.organization_id == organization_id,
-                    ContactModel.id == outbox.contact_id,
-                )
-                .one_or_none()
-            )
-            if contact is None or not contact.email_allowed:
-                raise SmtpMailDeliveryError(
-                    "Contact email consent disabled",
-                    error_type=CONSENT_ERROR_CODE,
-                )
 
     def build_send_payload(
         self,

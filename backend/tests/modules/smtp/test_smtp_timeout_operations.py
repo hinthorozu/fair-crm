@@ -33,7 +33,7 @@ def _create_smtp_account(client, auth_headers, **overrides):
     return client.post("/api/v1/email-accounts", json=payload, headers=auth_headers)
 
 
-@patch("app.modules.smtp.application.send_test_smtp_mail.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.smtp.application.send_test_smtp_mail.EmailDeliveryService.send")
 def test_smtp_test_mail_timeout_records_failed_operation(mock_send, client, auth_headers, db_session, organization_id):
     mock_send.side_effect = SmtpMailDeliveryError(
         "SMTP gönderimi zaman aşımına uğradı.",
@@ -64,7 +64,7 @@ def test_smtp_test_mail_timeout_records_failed_operation(mock_send, client, auth
     assert events == ["queued", "sending_started", SMTP_TIMEOUT_CODE, "failed"]
 
 
-@patch("app.modules.mail_templates.application.send_test_mail_template.deliver_smtp_account_with_dispatcher")
+@patch("app.modules.mail_templates.application.send_test_mail_template.EmailDeliveryService.send")
 def test_template_test_mail_timeout_records_failed_operation(
     mock_send,
     client,
@@ -119,7 +119,7 @@ def test_template_test_mail_timeout_records_failed_operation(
     assert events[-1] == "failed"
 
 
-@patch("app.modules.fair_emails.application.process_batch.EmailDeliveryDispatcher.send")
+@patch("app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send")
 def test_fair_bulk_timeout_fails_single_outbox_and_continues_batch(
     mock_send,
     db_session,

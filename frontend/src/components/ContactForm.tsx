@@ -54,6 +54,12 @@ export { emptyForm };
 
 interface ContactFormProps {
   initial?: ContactFormValues;
+  /**
+   * Stable identity for hydrating API → form state.
+   * Re-hydrate only when this changes (modal open / switched contact).
+   * Create flow: omit or pass a constant like `"create"`.
+   */
+  hydrateKey?: string;
   submitLabel: string;
   onSubmit: (values: ContactFormValues) => Promise<void>;
   onCancel: () => void;
@@ -63,24 +69,30 @@ interface ContactFormProps {
 
 export function ContactForm({
   initial,
+  hydrateKey = "create",
   submitLabel,
   onSubmit,
   onCancel,
   customerEmailAllowed = true,
   customerSmsAllowed = true,
 }: ContactFormProps) {
-  const [values, setValues] = React.useState<ContactFormValues>(initial ?? emptyForm());
+  const [values, setValues] = React.useState<ContactFormValues>(() => initial ?? emptyForm());
+  const [baseline, setBaseline] = React.useState<ContactFormValues>(() => initial ?? emptyForm());
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const baseline = React.useMemo(() => initial ?? emptyForm(), [initial]);
   const handleCancel = useModalFormCancel(onCancel);
 
   useReportFormDirty(values, baseline);
 
   React.useEffect(() => {
-    setValues(initial ?? emptyForm());
+    const next = initial ?? emptyForm();
+    setValues(next);
+    setBaseline(next);
     setError(null);
-  }, [initial]);
+    // Hydrate only when the edited contact (or create session) changes —
+    // not when parent re-renders with a fresh `initial` object reference.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: hydrateKey only
+  }, [hydrateKey]);
 
   const set = (field: keyof ContactFormValues, value: string | boolean) => {
     setValues((prev) => ({ ...prev, [field]: value }));

@@ -35,6 +35,8 @@ export interface RecipientPreviewSummary {
   valid_email_count: number;
   deduped_recipient_count: number;
   skipped_count: number;
+  customer_consent_skipped_count?: number;
+  contact_consent_skipped_count?: number;
   recipients: RecipientPreviewItem[];
 }
 

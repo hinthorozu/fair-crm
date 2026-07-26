@@ -156,6 +156,7 @@ class EmailAccount:
         provider_key: Optional[str] = None,
         is_default: Optional[bool] = None,
         is_active: Optional[bool] = None,
+        max_delivery_attempts: Optional[int] = None,
         now: datetime,
     ) -> None:
         self.ensure_mutable()
@@ -195,6 +196,9 @@ class EmailAccount:
 
         if is_active is not None:
             self.is_active = is_active
+
+        if max_delivery_attempts is not None:
+            self.max_delivery_attempts = _validate_max_delivery_attempts(max_delivery_attempts)
 
         self.updated_at = now
 

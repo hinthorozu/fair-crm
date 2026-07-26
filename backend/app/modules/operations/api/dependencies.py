@@ -241,6 +241,7 @@ def get_handler_registry(
         mail_sync,
         authorization,
         audit,
+        session=db,
     )
     return build_handler_registry(
         todo_repository=todo_repository,
@@ -430,4 +431,5 @@ def get_preview_bulk_email_operation_use_case(
         FairBulkEmailRecipientService(db),
         FairBulkEmailRecipientLoader(db),
         authorization,
+        session=db,
     )

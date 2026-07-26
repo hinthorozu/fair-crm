@@ -931,6 +931,10 @@ function BulkEmailOperationWizardPageInner({
                         <strong>{operationLabels.bulkEmailSummaryDeduped}</strong>
                         <div>{preview.recipients.deduped_recipient_count}</div>
                       </div>
+                      <div>
+                        <strong>{operationLabels.bulkEmailSummarySkipped}</strong>
+                        <div>{preview.recipients.skipped_count}</div>
+                      </div>
                     </>
                   ) : (
                     <>
@@ -974,6 +978,14 @@ function BulkEmailOperationWizardPageInner({
                       </div>
                     </>
                   )}
+                  <div>
+                    <strong>{operationLabels.bulkEmailSummaryCustomerConsentSkipped}</strong>
+                    <div>{preview.recipients.customer_consent_skipped_count ?? 0}</div>
+                  </div>
+                  <div>
+                    <strong>{operationLabels.bulkEmailSummaryContactConsentSkipped}</strong>
+                    <div>{preview.recipients.contact_consent_skipped_count ?? 0}</div>
+                  </div>
                 </div>
 
                 {preview.recipients.recipients.length === 0 ? (

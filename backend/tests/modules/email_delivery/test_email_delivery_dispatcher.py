@@ -86,7 +86,7 @@ def test_smtp_route_calls_smtp_sender():
 
 
 def test_unsupported_provider_raises():
-    account = _provider_account(provider_key="mailersend")
+    account = _provider_account(provider_key="not-a-real-provider")
     dispatcher = EmailDeliveryDispatcher()
 
     with pytest.raises(UnsupportedProviderError) as exc_info:
@@ -117,6 +117,7 @@ def test_fake_provider_adapter_dispatches_successfully():
     assert result.success is True
     assert result.transport == "provider:fake"
     assert result.external_message_id == "fake-msg-1"
+    assert result.provider_status == "accepted"
     assert len(fake.sent) == 1
     assert fake.sent[0]["recipient"] == "to@example.com"
     assert fake.sent[0]["subject"] == "Hello"

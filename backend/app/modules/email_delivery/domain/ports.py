@@ -16,6 +16,7 @@ class EmailDeliveryPort(Protocol):
         body_html: str | None = None,
         body_text: str | None = None,
         smtp_config: EmailAccountSmtpConfig | None = None,
+        provider_config: dict[str, str] | None = None,
     ) -> EmailDeliveryResult: ...
 
 
@@ -30,4 +31,5 @@ class EmailProviderAdapter(Protocol):
         subject: str,
         body_html: str | None = None,
         body_text: str | None = None,
+        provider_config: dict[str, str] | None = None,
     ) -> EmailDeliveryResult: ...

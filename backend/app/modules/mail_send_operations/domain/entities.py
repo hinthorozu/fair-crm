@@ -32,5 +32,7 @@ class MailSendOperationRecord:
     sent_at: datetime | None
     failed_at: datetime | None
     cancelled_at: datetime | None
+    external_message_id: str | None
+    provider_status: str | None
     created_at: datetime
     updated_at: datetime
