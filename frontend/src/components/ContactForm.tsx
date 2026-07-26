@@ -1,6 +1,7 @@
 import React from "react";
 import type { Contact, CreateContactPayload } from "../types/contact";
 import { contactLabels } from "../labels/contactLabels";
+import { labels } from "../labels";
 import { emailPlaceholder, validateMultiEmailInput } from "../utils/email";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 import { Banner } from "./ui/Banner";
@@ -62,6 +63,8 @@ interface ContactFormProps {
   hydrateKey?: string;
   submitLabel: string;
   onSubmit: (values: ContactFormValues) => Promise<void>;
+  /** When set, shows "Kaydet ve Yeni" and calls this instead of closing the create modal. */
+  onSubmitAndNew?: (values: ContactFormValues) => Promise<void>;
   onCancel: () => void;
   customerEmailAllowed?: boolean;
   customerSmsAllowed?: boolean;
@@ -72,6 +75,7 @@ export function ContactForm({
   hydrateKey = "create",
   submitLabel,
   onSubmit,
+  onSubmitAndNew,
   onCancel,
   customerEmailAllowed = true,
   customerSmsAllowed = true,
@@ -100,6 +104,10 @@ export function ContactForm({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    await submitContact("save");
+  };
+
+  const submitContact = async (mode: "save" | "saveAndNew") => {
     if (!values.first_name.trim()) {
       setError(contactLabels.firstNameRequired);
       return;
@@ -116,7 +124,7 @@ export function ContactForm({
     setSaving(true);
     setError(null);
     try {
-      await onSubmit({
+      const payload: ContactFormValues = {
         ...values,
         first_name: values.first_name.trim(),
         last_name: values.last_name.trim(),
@@ -129,7 +137,12 @@ export function ContactForm({
         notes: values.notes?.trim() || undefined,
         email_allowed: customerEmailAllowed ? values.email_allowed : false,
         sms_allowed: customerSmsAllowed ? values.sms_allowed : false,
-      });
+      };
+      if (mode === "saveAndNew" && onSubmitAndNew) {
+        await onSubmitAndNew(payload);
+      } else {
+        await onSubmit(payload);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : contactLabels.createError);
     } finally {
@@ -285,6 +298,10 @@ export function ContactForm({
         cancelLabel={contactLabels.cancel}
         submitLabel={submitLabel}
         saving={saving}
+        secondarySubmitLabel={onSubmitAndNew ? labels.saveAndNew : undefined}
+        onSecondarySubmit={
+          onSubmitAndNew ? () => void submitContact("saveAndNew") : undefined
+        }
       />
     </form>
   );

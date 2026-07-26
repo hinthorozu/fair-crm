@@ -133,6 +133,7 @@ export function CustomerDetailPage({
   const [deletingParticipationId, setDeletingParticipationId] = React.useState<string | null>(null);
   const [archiving, setArchiving] = React.useState(false);
   const [confirm, setConfirm] = React.useState<ConfirmState>(null);
+  const [createContactSessionKey, setCreateContactSessionKey] = React.useState(0);
 
   const closeModal = React.useCallback(() => setModal(null), []);
   const closeConfirm = React.useCallback(() => setConfirm(null), []);
@@ -244,6 +245,12 @@ export function CustomerDetailPage({
   const handleCreateContact = async (values: ContactFormValues) => {
     await createContact({ customer_id: customerId, ...values });
     setModal(null);
+    await contactsTable.refresh();
+  };
+
+  const handleCreateContactAndNew = async (values: ContactFormValues) => {
+    await createContact({ customer_id: customerId, ...values });
+    setCreateContactSessionKey((key) => key + 1);
     await contactsTable.refresh();
   };
 
@@ -756,10 +763,11 @@ export function CustomerDetailPage({
       {modal === "create-contact" && (
         <FormModal title={contactLabels.newContact} onClose={closeModal}>
           <ContactForm
-            hydrateKey="create"
+            hydrateKey={`create-${createContactSessionKey}`}
             submitLabel={contactLabels.save}
             onCancel={closeModal}
             onSubmit={handleCreateContact}
+            onSubmitAndNew={handleCreateContactAndNew}
             customerEmailAllowed={customer.email_allowed ?? true}
             customerSmsAllowed={customer.sms_allowed ?? true}
           />
