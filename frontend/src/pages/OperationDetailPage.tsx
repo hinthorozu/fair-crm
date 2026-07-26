@@ -321,7 +321,7 @@ export function OperationDetailPage({
             String(items.length),
             ...items.map(
               (row) =>
-                `${row.id}:${row.status}:${row.send_attempt}:${row.sent_at ?? ""}:${row.error_message ?? ""}:${row.provider_status ?? ""}:${row.external_message_id ?? ""}`,
+                `${row.id}:${row.status}:${row.send_attempt}:${row.sent_at ?? ""}:${row.error_message ?? ""}:${row.provider_status ?? ""}:${row.external_message_id ?? ""}:${row.updated_at ?? ""}`,
             ),
           ].join("|"),
         );

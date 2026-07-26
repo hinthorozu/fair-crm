@@ -287,6 +287,7 @@ class BulkEmailOperationRecipientRowResponse(BaseModel):
     fair_name: str | None = None
     external_message_id: str | None = None
     provider_status: str | None = None
+    updated_at: datetime | None = None
 
 
 class BulkEmailOperationRecipientsResponse(BaseModel):

@@ -109,6 +109,7 @@ export type BulkEmailOperationRecipientRow = {
   participation_id: string | null;
   external_message_id: string | null;
   provider_status: string | null;
+  updated_at: string | null;
 };
 
 export type BulkEmailOperationRecipientsResponse = {

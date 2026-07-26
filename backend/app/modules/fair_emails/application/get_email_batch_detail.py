@@ -160,5 +160,5 @@ class GetFairEmailBatchDetailUseCase:
             attempts=attempts,
             sent_at=item.sent_at,
             created_at=item.created_at,
-            updated_at=item.updated_at,
+            updated_at=item.updated_at if item.updated_at is not None else item.created_at,
         )

@@ -200,6 +200,12 @@ export function BulkEmailOperationResultsTable({
         render: (item) => item.provider_status?.trim() || "—",
       },
       {
+        key: "updated_at",
+        title: operationLabels.bulkEmailColUpdatedAt,
+        sortable: false,
+        render: (item) => formatFairEmailDateTime(item.updated_at),
+      },
+      {
         key: "error_message",
         title: operationLabels.bulkEmailColError,
         sortable: false,

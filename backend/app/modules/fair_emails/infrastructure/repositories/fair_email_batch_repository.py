@@ -45,7 +45,7 @@ class FairEmailOutboxItemRecord:
     error_message: str | None
     sent_at: datetime | None
     created_at: datetime
-    updated_at: datetime
+    updated_at: datetime | None
     send_attempt: int = 1
     participation_id: UUID | None = None
     fair_name: str | None = None
@@ -220,6 +220,8 @@ class SqlAlchemyFairEmailBatchRepository:
                 outbox,
                 external_message_id=mso.external_message_id if mso is not None else None,
                 provider_status=mso.provider_status if mso is not None else None,
+                # Prefer MailSendOperation.updated_at (webhook/provider updates bump this).
+                updated_at=mso.updated_at if mso is not None else None,
             )
             for outbox, mso in rows
         ]
@@ -401,6 +403,7 @@ class SqlAlchemyFairEmailBatchRepository:
         *,
         external_message_id: str | None = None,
         provider_status: str | None = None,
+        updated_at: datetime | None = None,
     ) -> FairEmailOutboxItemRecord:
         return FairEmailOutboxItemRecord(
             id=model.id,
@@ -415,7 +418,7 @@ class SqlAlchemyFairEmailBatchRepository:
             error_message=model.error_message,
             sent_at=model.sent_at,
             created_at=model.created_at,
-            updated_at=model.updated_at,
+            updated_at=updated_at,
             send_attempt=int(model.send_attempt or 1),
             participation_id=model.participation_id,
             fair_name=model.fair_name,

@@ -1086,6 +1086,7 @@ def list_bulk_email_operation_recipients(
                 fair_name=item.fair_name,
                 external_message_id=item.external_message_id,
                 provider_status=item.provider_status,
+                updated_at=item.updated_at,
             )
             for item in items
         ],

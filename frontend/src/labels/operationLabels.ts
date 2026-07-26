@@ -182,6 +182,7 @@ export const operationLabels = {
   bulkEmailColStatus: "Durum",
   bulkEmailColMessageId: "Message ID",
   bulkEmailColProviderStatus: "Provider Durumu",
+  bulkEmailColUpdatedAt: "Güncellenme Zamanı",
   bulkEmailColSkipReason: "Atlama nedeni",
   bulkEmailSourceManualShort: "Manuel",
   bulkEmailSourceExcelShort: "Excel",
