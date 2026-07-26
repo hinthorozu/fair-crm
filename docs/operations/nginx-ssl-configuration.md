@@ -2,6 +2,77 @@
 
 Bu doküman FAIR CRM uygulamasının domain üzerinden Nginx reverse proxy ile yayınlanması, Let's Encrypt SSL kurulması, 80/443 erişiminin açılması, doğrulama ve rollback adımlarını kapsar.
 
+## Hızlı Kurulum — Önerilen Yöntem
+
+Domain + Nginx + firewall + SSL kurulumu için repo içindeki scripti kullan:
+
+```text
+scripts/server/setup-domain-ssl.sh
+```
+
+Bu script `bootstrap-server.sh` ve uygulama deploy işlemi tamamlandıktan sonra çalıştırılır.
+
+### 1. Domain DNS kaydını sunucuya yönlendir
+
+Örnek:
+
+```text
+Type: A
+Host: faircrm
+Value: 64.226.110.223
+```
+
+DNS kaydının sunucu IP'sine çözülmesini bekle.
+
+### 2. Sunucuda FAIR CRM reposunu güncelle
+
+```bash
+cd /opt/fair-crm
+git pull --ff-only origin main
+```
+
+### 3. Kurulum scriptini çalıştır
+
+```bash
+sudo bash /opt/fair-crm/scripts/server/setup-domain-ssl.sh \
+  --domain faircrm.umaay.com \
+  --email admin@umaay.com
+```
+
+Script sırasıyla şunları yapar:
+
+- root/sudo ve gerekli komut kontrolleri,
+- domain DNS kaydının bu sunucunun public IP'sine yönlendiğini doğrulama,
+- FAIR CRM frontend ile `127.0.0.1:8000` ve `127.0.0.1:8001` servis kontrolleri,
+- mevcut Nginx config yedeği,
+- Nginx `server_name` domain ayarı,
+- `nginx -t` ve reload,
+- UFW `80/tcp` ve `443/tcp` kuralları,
+- HTTP erişim kontrolü,
+- Certbot kurulumu,
+- mevcut geçerli sertifika varsa yeniden oluşturmama,
+- yoksa Let's Encrypt sertifikası alma ve HTTP -> HTTPS yönlendirmesi,
+- `certbot.timer` otomatik yenileme kontrolü/aktivasyonu,
+- `certbot renew --dry-run`,
+- final HTTPS / API / Kyrox Core kontrolleri.
+
+Public IP otomatik tespit edilemezse açıkça verilebilir:
+
+```bash
+sudo bash /opt/fair-crm/scripts/server/setup-domain-ssl.sh \
+  --domain faircrm.umaay.com \
+  --email admin@umaay.com \
+  --server-ip 64.226.110.223
+```
+
+Script tamamlandığında aşağıdaki adres HTTPS üzerinden çalışmalıdır:
+
+```text
+https://faircrm.umaay.com
+```
+
+Aşağıdaki bölümler manuel kurulum, doğrulama, troubleshooting ve rollback referansıdır.
+
 ## 1. Ön Koşullar
 
 - FAIR CRM sunucuda çalışıyor olmalı.
@@ -402,4 +473,4 @@ server_name _;
 
 kullanır.
 
-Domain + SSL kurulumu şu an deploy scriptlerinin dışında operasyonel olarak yapılmaktadır. İleride otomasyona alınırken mevcut reverse proxy yapısı korunarak domain, firewall ve Certbot adımları deploy/setup scriptine eklenmelidir.
+Domain + SSL kurulumu için `scripts/server/setup-domain-ssl.sh` kullanılır; `deploy-all.sh` uygulama deploy akışında domain/sertifika kurulumunu tekrar çalıştırmaz.
