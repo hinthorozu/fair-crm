@@ -37,6 +37,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
   const [archivingId, setArchivingId] = React.useState<string | null>(null);
   const [restoringId, setRestoringId] = React.useState<string | null>(null);
   const [confirm, setConfirm] = React.useState<ConfirmAction>(null);
+  const [createSessionKey, setCreateSessionKey] = React.useState(0);
 
   const table = useServerDataTable<Fair>({
     fetchFn: (params) =>
@@ -51,16 +52,30 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
   });
 
   const handleCreate = async (values: CreateFairPayload) => {
-    await createFair(values);
+    const created = await createFair(values);
     setModal(null);
+    if (onOpenDetail) {
+      onOpenDetail(created.id);
+      return;
+    }
+    await table.refresh();
+  };
+
+  const handleCreateAndNew = async (values: CreateFairPayload) => {
+    await createFair(values);
+    setCreateSessionKey((key) => key + 1);
     await table.refresh();
   };
 
   const handleUpdate = async (values: CreateFairPayload) => {
     if (!editing) return;
-    await updateFair(editing.id, values);
+    const updated = await updateFair(editing.id, values);
     setModal(null);
     setEditing(null);
+    if (onOpenDetail) {
+      onOpenDetail(updated.id);
+      return;
+    }
     await table.refresh();
   };
 
@@ -157,10 +172,11 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
       {modal === "create" && (
         <FormModal title={fairLabels.newFair} onClose={closeModal} size="lg">
           <FairForm
-            key="create-fair"
+            key={`create-fair-${createSessionKey}`}
             submitLabel={labels.save}
             onCancel={closeModal}
             onSubmit={handleCreate}
+            onSubmitAndNew={handleCreateAndNew}
           />
         </FormModal>
       )}

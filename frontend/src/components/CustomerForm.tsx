@@ -114,6 +114,8 @@ interface CustomerFormProps {
   hydrateKey?: string;
   submitLabel: string;
   onSubmit: (values: CreateCustomerPayload) => Promise<void>;
+  /** When set, shows "Kaydet ve Yeni" and calls this instead of navigating away. */
+  onSubmitAndNew?: (values: CreateCustomerPayload) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -123,6 +125,7 @@ export function CustomerForm({
   submitLabel,
   onCancel,
   onSubmit,
+  onSubmitAndNew,
 }: CustomerFormProps) {
   const [values, setValues] = React.useState<CustomerFormValues>(() => initial ?? emptyForm());
   const [baseline, setBaseline] = React.useState<CustomerFormValues>(() => initial ?? emptyForm());
@@ -148,6 +151,10 @@ export function CustomerForm({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    await submitCustomer("save");
+  };
+
+  const submitCustomer = async (mode: "save" | "saveAndNew") => {
     if (!values.display_name.trim()) {
       setError("Müşteri adı zorunludur.");
       return;
@@ -175,7 +182,11 @@ export function CustomerForm({
         linkedin_url: values.linkedin_url?.trim() || null,
         youtube_url: values.youtube_url?.trim() || null,
       });
-      await onSubmit(payload);
+      if (mode === "saveAndNew" && onSubmitAndNew) {
+        await onSubmitAndNew(payload);
+      } else {
+        await onSubmit(payload);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kayıt başarısız.");
     } finally {
@@ -399,6 +410,10 @@ export function CustomerForm({
         submitLabel={submitLabel}
         saving={saving}
         savingLabel={labels.loading}
+        secondarySubmitLabel={onSubmitAndNew ? labels.saveAndNew : undefined}
+        onSecondarySubmit={
+          onSubmitAndNew ? () => void submitCustomer("saveAndNew") : undefined
+        }
       />
     </form>
   );

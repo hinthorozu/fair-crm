@@ -73,6 +73,8 @@ interface FairFormProps {
   initial?: FairFormValues;
   submitLabel: string;
   onSubmit: (values: CreateFairPayload) => Promise<void>;
+  /** When set, shows "Kaydet ve Yeni" and calls this instead of navigating away. */
+  onSubmitAndNew?: (values: CreateFairPayload) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -81,7 +83,15 @@ function isoForDatePicker(value: string): string {
   return parsed ?? "";
 }
 
-export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormProps) {
+/** Show GG.AA.YYYY for valid dates; keep in-progress / invalid typed text as-is. */
+function toFairDateDisplay(value: string): string {
+  const parsed = parseFairDateInput(value);
+  if (!parsed) return value;
+  const [year, month, day] = parsed.split("-");
+  return `${day}.${month}.${year}`;
+}
+
+export function FairForm({ initial, submitLabel, onSubmit, onSubmitAndNew, onCancel }: FairFormProps) {
   // Parent remounts via `key` when switching create/edit records — no syncing useEffect.
   const [values, setValues] = React.useState<FairFormValues>(() => initial ?? emptyForm());
   const [saving, setSaving] = React.useState(false);
@@ -141,6 +151,10 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    await submitFair("save");
+  };
+
+  const submitFair = async (mode: "save" | "saveAndNew") => {
     if (!values.name.trim()) {
       setError(fairLabels.nameRequired);
       return;
@@ -213,16 +227,19 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
     setError(null);
     setDateErrors({});
     try {
-      await onSubmit(
-        buildFairSubmitPayload(
-          {
-            ...values,
-            start_date: startDate || null,
-            end_date: endDate || null,
-          },
-          scraperConfig,
-        ),
+      const payload = buildFairSubmitPayload(
+        {
+          ...values,
+          start_date: startDate || null,
+          end_date: endDate || null,
+        },
+        scraperConfig,
       );
+      if (mode === "saveAndNew" && onSubmitAndNew) {
+        await onSubmitAndNew(payload);
+      } else {
+        await onSubmit(payload);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kayıt başarısız.");
     } finally {
@@ -266,7 +283,6 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
           <FormField
             label={fairLabels.start_date}
             htmlFor="fair-start-date"
-            hint={fairLabels.dateFormatHint}
             error={dateErrors.start_date}
           >
             <div className="fair-date-input">
@@ -275,19 +291,20 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
                 type="text"
                 inputMode="numeric"
                 autoComplete="off"
-                placeholder={fairLabels.datePlaceholder}
-                value={values.start_date ?? ""}
+                placeholder="GG.AA.YYYY"
+                value={toFairDateDisplay(values.start_date ?? "")}
                 onChange={(event) => handleStartDateChange(event.target.value)}
+                onBlur={(event) => handleStartDateChange(event.target.value)}
                 aria-invalid={Boolean(dateErrors.start_date)}
               />
               <TextInput
                 id="fair-start-date-picker"
                 type="date"
                 className="fair-date-input__picker"
-                aria-label={fairLabels.start_date}
+                aria-label={`${fairLabels.start_date} takvim`}
+                tabIndex={-1}
                 value={isoForDatePicker(values.start_date ?? "")}
                 onChange={(event) => handleStartDateChange(event.target.value)}
-                onBlur={(event) => handleStartDateChange(event.target.value)}
               />
             </div>
           </FormField>
@@ -295,7 +312,6 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
           <FormField
             label={fairLabels.end_date}
             htmlFor="fair-end-date"
-            hint={fairLabels.dateFormatHint}
             error={dateErrors.end_date}
           >
             <div className="fair-date-input">
@@ -304,19 +320,20 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
                 type="text"
                 inputMode="numeric"
                 autoComplete="off"
-                placeholder={fairLabels.datePlaceholder}
-                value={values.end_date ?? ""}
+                placeholder="GG.AA.YYYY"
+                value={toFairDateDisplay(values.end_date ?? "")}
                 onChange={(event) => handleEndDateChange(event.target.value)}
+                onBlur={(event) => handleEndDateChange(event.target.value)}
                 aria-invalid={Boolean(dateErrors.end_date)}
               />
               <TextInput
                 id="fair-end-date-picker"
                 type="date"
                 className="fair-date-input__picker"
-                aria-label={fairLabels.end_date}
+                aria-label={`${fairLabels.end_date} takvim`}
+                tabIndex={-1}
                 value={isoForDatePicker(values.end_date ?? "")}
                 onChange={(event) => handleEndDateChange(event.target.value)}
-                onBlur={(event) => handleEndDateChange(event.target.value)}
               />
             </div>
           </FormField>
@@ -434,6 +451,10 @@ export function FairForm({ initial, submitLabel, onSubmit, onCancel }: FairFormP
         submitLabel={submitLabel}
         saving={saving}
         savingLabel={labels.loading}
+        secondarySubmitLabel={onSubmitAndNew ? labels.saveAndNew : undefined}
+        onSecondarySubmit={
+          onSubmitAndNew ? () => void submitFair("saveAndNew") : undefined
+        }
       />
     </form>
   );

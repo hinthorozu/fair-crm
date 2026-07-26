@@ -33,6 +33,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
   const [archivingId, setArchivingId] = React.useState<string | null>(null);
   const [restoringId, setRestoringId] = React.useState<string | null>(null);
   const [confirm, setConfirm] = React.useState<ConfirmAction>(null);
+  const [createSessionKey, setCreateSessionKey] = React.useState(0);
 
   const table = useServerDataTable<Customer>({
     fetchFn: (params) =>
@@ -49,16 +50,30 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
   });
 
   const handleCreate = async (values: CreateCustomerPayload) => {
-    await createCustomer(values);
+    const created = await createCustomer(values);
     setModal(null);
+    if (onOpenDetail) {
+      onOpenDetail(created.id);
+      return;
+    }
+    await table.refresh();
+  };
+
+  const handleCreateAndNew = async (values: CreateCustomerPayload) => {
+    await createCustomer(values);
+    setCreateSessionKey((key) => key + 1);
     await table.refresh();
   };
 
   const handleUpdate = async (values: CreateCustomerPayload) => {
     if (!editing) return;
-    await updateCustomer(editing.id, values);
+    const updated = await updateCustomer(editing.id, values);
     setModal(null);
     setEditing(null);
+    if (onOpenDetail) {
+      onOpenDetail(updated.id);
+      return;
+    }
     await table.refresh();
   };
 
@@ -157,10 +172,11 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
       {modal === "create" && (
         <FormModal title={labels.newCustomer} onClose={closeModal} size="lg">
           <CustomerForm
-            hydrateKey="create"
+            hydrateKey={`create-${createSessionKey}`}
             submitLabel={labels.save}
             onCancel={closeModal}
             onSubmit={handleCreate}
+            onSubmitAndNew={handleCreateAndNew}
           />
         </FormModal>
       )}

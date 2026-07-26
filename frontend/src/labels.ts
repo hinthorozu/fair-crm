@@ -4,6 +4,7 @@ export const labels = {
   newCustomer: "Yeni Müşteri",
   editCustomer: "Müşteri Düzenle",
   save: "Kaydet",
+  saveAndNew: "Kaydet ve Yeni",
   cancel: "İptal",
   archive: "Arşivle",
   archiveConfirm: "Bu müşteriyi arşivlemek istediğinize emin misiniz?",
