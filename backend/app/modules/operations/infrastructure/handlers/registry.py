@@ -39,6 +39,9 @@ if TYPE_CHECKING:
     from app.modules.scraper.services.scraper_run_history_service import ScraperRunHistoryService
     from app.modules.system_admin.application.data_operation_job_runner import DataOperationJobCommand
     from app.modules.system_admin.application.data_operation_service import RunDataOperationUseCase
+    from app.modules.system_admin.infrastructure.repositories.data_operation_run_repository import (
+        SqlAlchemyDataOperationRunRepository,
+    )
 
 
 def build_handler_registry(
@@ -58,6 +61,7 @@ def build_handler_registry(
     bulk_email_job_scheduler: Callable[[BulkEmailBatchJobCommand], None] | None = None,
     run_data_operation_use_case: RunDataOperationUseCase | None = None,
     data_operation_job_scheduler: Callable[[DataOperationJobCommand], None] | None = None,
+    data_operation_run_repository: SqlAlchemyDataOperationRunRepository | None = None,
 ) -> InMemoryHandlerRegistry:
     registry = InMemoryHandlerRegistry()
     registry.register(
@@ -95,6 +99,7 @@ def build_handler_registry(
         DuplicateCheckHandler(
             run_data_operation_use_case=run_data_operation_use_case,
             job_scheduler=data_operation_job_scheduler,
+            data_operation_run_repository=data_operation_run_repository,
         )
     )
     return registry

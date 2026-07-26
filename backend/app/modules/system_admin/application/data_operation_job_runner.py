@@ -22,7 +22,10 @@ from app.modules.system_admin.application.data_operation_dataset_builders import
 from app.modules.customers.application.customer_field_grouping import GROUP_BY_FIELDS
 from app.modules.system_admin.application.data_operation_registry import get_operation_definition
 from app.modules.system_admin.domain.data_operation_entities import DataOperationOutputFile, DataOperationRun
-from app.modules.system_admin.domain.data_operation_value_objects import DataOperationRunResult
+from app.modules.system_admin.domain.data_operation_value_objects import (
+    DataOperationRunResult,
+    DataOperationRunStatus,
+)
 from app.modules.system_admin.infrastructure.repositories.data_operation_run_repository import (
     SqlAlchemyDataOperationRunRepository,
 )
@@ -57,6 +60,9 @@ class DataOperationJobRunner:
             repo = SqlAlchemyDataOperationRunRepository(db)
             run = repo.get_by_id(command.organization_id, command.run_id)
             if run is None:
+                return
+            # Cancel may have terminalized the run before this background job starts.
+            if run.status != DataOperationRunStatus.QUEUED:
                 return
 
             definition = get_operation_definition(run.operation_key)
@@ -321,6 +327,9 @@ class DataOperationJobRunner:
             run = repo.get_by_id(organization_id, run_id)
             if run is None:
                 return
+            # Operation cancel marks the data-op failed while this job may still be finishing.
+            if run.status == DataOperationRunStatus.FAILED:
+                return
             run.mark_completed(
                 result=DataOperationRunResult.SUCCESS,
                 output_files=[],
@@ -334,11 +343,14 @@ class DataOperationJobRunner:
         except Exception as exc:
             db.rollback()
             run = repo.get_by_id(organization_id, run_id)
-            if run:
-                run.mark_failed(error_message=str(exc), stdout_text=None, now=datetime.now(tz=UTC))
-                repo.update(run)
-                db.commit()
-                self._sync_linked_operation(command, run)
+            if run is None:
+                return
+            if run.status == DataOperationRunStatus.FAILED:
+                return
+            run.mark_failed(error_message=str(exc), stdout_text=None, now=datetime.now(tz=UTC))
+            repo.update(run)
+            db.commit()
+            self._sync_linked_operation(command, run)
 
     def _sync_linked_operation(self, command: DataOperationJobCommand, run: DataOperationRun) -> None:
         if command.operation_id is None or command.operation_run_id is None:

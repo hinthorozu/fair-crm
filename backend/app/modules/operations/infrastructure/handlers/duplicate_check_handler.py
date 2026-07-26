@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Callable
 from uuid import UUID
 
@@ -27,13 +28,18 @@ from app.modules.system_admin.application.data_operation_registry import (
     DATA_OPERATIONS_BY_KEY,
     get_operation_definition,
 )
+from app.modules.system_admin.domain.data_operation_value_objects import DataOperationRunStatus
 
 if TYPE_CHECKING:
     from app.modules.system_admin.application.data_operation_job_runner import DataOperationJobCommand
     from app.modules.system_admin.application.data_operation_service import RunDataOperationUseCase
+    from app.modules.system_admin.infrastructure.repositories.data_operation_run_repository import (
+        SqlAlchemyDataOperationRunRepository,
+    )
 
 VALID_JOB_KEYS = frozenset(DATA_OPERATIONS_BY_KEY.keys())
 DUPLICATE_CUSTOMER_ANALYSIS_KEY = "duplicate_customer_analysis"
+_CANCEL_MESSAGE = "Cancelled by operation cancel"
 
 
 class DuplicateCheckHandler:
@@ -46,9 +52,11 @@ class DuplicateCheckHandler:
         *,
         run_data_operation_use_case: RunDataOperationUseCase | None = None,
         job_scheduler: Callable[[DataOperationJobCommand], None] | None = None,
+        data_operation_run_repository: SqlAlchemyDataOperationRunRepository | None = None,
     ) -> None:
         self._run_data_operation_use_case = run_data_operation_use_case
         self._job_scheduler = job_scheduler
+        self._data_operation_run_repository = data_operation_run_repository
 
     @property
     def capabilities(self) -> HandlerCapabilities:
@@ -129,8 +137,30 @@ class DuplicateCheckHandler:
         run: OperationRun | None,
         context: HandlerExecutionContext | None = None,
     ) -> None:
-        _ = operation, run, context
-        return
+        _ = context
+        # CRM Operation cancel must clear the linked data-op active_run (queued/running),
+        # otherwise Duplicate Kontrolü still shows Queued / Running… and blocks new runs.
+        if run is None or self._data_operation_run_repository is None:
+            return
+        data_run_id = extract_data_operation_run_id(run)
+        if data_run_id is None:
+            return
+        data_run = self._data_operation_run_repository.get_by_id(
+            operation.organization_id, data_run_id
+        )
+        if data_run is None:
+            return
+        if data_run.status not in {
+            DataOperationRunStatus.QUEUED,
+            DataOperationRunStatus.RUNNING,
+        }:
+            return
+        data_run.mark_failed(
+            error_message=_CANCEL_MESSAGE,
+            stdout_text=None,
+            now=datetime.now(tz=UTC),
+        )
+        self._data_operation_run_repository.update(data_run)
 
     def _start_job(
         self,

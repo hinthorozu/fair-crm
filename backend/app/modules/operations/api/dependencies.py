@@ -276,6 +276,8 @@ def get_handler_registry(
         session=db,
     )
 
+    data_operation_run_repository = SqlAlchemyDataOperationRunRepository(db)
+
     return build_handler_registry(
         todo_repository=todo_repository,
         fair_repository=fair_repository,
@@ -291,11 +293,12 @@ def get_handler_registry(
         fair_email_mail_operation_sync=mail_sync,
         bulk_email_job_scheduler=bulk_email_job_buffer,
         run_data_operation_use_case=RunDataOperationUseCase(
-            SqlAlchemyDataOperationRunRepository(db),
+            data_operation_run_repository,
             authorization,
         ),
         # Buffer only — drained after db.commit() in routes (avoids queued-run race).
         data_operation_job_scheduler=data_operation_job_buffer,
+        data_operation_run_repository=data_operation_run_repository,
     )
 
 
