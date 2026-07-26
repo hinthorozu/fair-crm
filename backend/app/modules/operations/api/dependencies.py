@@ -116,6 +116,29 @@ class BulkEmailJobBuffer:
         return commands
 
 
+class DataOperationJobBuffer:
+    """Request-scoped collector for duplicate-check data-operation jobs.
+
+    Jobs must be drained only after the request DB transaction commits; otherwise
+    the background runner opens a new session and cannot see the queued run.
+    """
+
+    def __init__(self) -> None:
+        from app.modules.system_admin.application.data_operation_job_runner import (
+            DataOperationJobCommand,
+        )
+
+        self._commands: list[DataOperationJobCommand] = []
+
+    def __call__(self, command: object) -> None:
+        self._commands.append(command)  # type: ignore[arg-type]
+
+    def drain(self) -> list[object]:
+        commands = list(self._commands)
+        self._commands.clear()
+        return commands
+
+
 def get_scraper_job_buffer() -> ScraperJobBuffer:
     return ScraperJobBuffer()
 
@@ -126,6 +149,10 @@ def get_enrichment_job_buffer() -> EnrichmentJobBuffer:
 
 def get_bulk_email_job_buffer() -> BulkEmailJobBuffer:
     return BulkEmailJobBuffer()
+
+
+def get_data_operation_job_buffer() -> DataOperationJobBuffer:
+    return DataOperationJobBuffer()
 
 
 def get_operation_repository(db: Session = Depends(get_db)) -> SqlAlchemyOperationRepository:
@@ -210,6 +237,7 @@ def get_handler_registry(
     scraper_job_buffer: ScraperJobBuffer = Depends(get_scraper_job_buffer),
     enrichment_job_buffer: EnrichmentJobBuffer = Depends(get_enrichment_job_buffer),
     bulk_email_job_buffer: BulkEmailJobBuffer = Depends(get_bulk_email_job_buffer),
+    data_operation_job_buffer: DataOperationJobBuffer = Depends(get_data_operation_job_buffer),
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
 ) -> InMemoryHandlerRegistry:
@@ -229,15 +257,10 @@ def get_handler_registry(
     from app.modules.smtp.infrastructure.repositories.smtp_account_repository import (
         SqlAlchemySmtpAccountRepository,
     )
-    from app.modules.system_admin.application.data_operation_job_runner import (
-        DataOperationJobCommand,
-        DataOperationJobRunner,
-    )
     from app.modules.system_admin.application.data_operation_service import RunDataOperationUseCase
     from app.modules.system_admin.infrastructure.repositories.data_operation_run_repository import (
         SqlAlchemyDataOperationRunRepository,
     )
-    from app.shared.background_jobs import schedule_detached_blocking_job
 
     batch_repository = SqlAlchemyFairEmailBatchRepository(db)
     mail_sync = FairBulkEmailMailOperationSync(db)
@@ -252,9 +275,6 @@ def get_handler_registry(
         audit,
         session=db,
     )
-
-    def _schedule_data_operation(command: DataOperationJobCommand) -> None:
-        schedule_detached_blocking_job(DataOperationJobRunner().run_operation, command)
 
     return build_handler_registry(
         todo_repository=todo_repository,
@@ -274,7 +294,8 @@ def get_handler_registry(
             SqlAlchemyDataOperationRunRepository(db),
             authorization,
         ),
-        data_operation_job_scheduler=_schedule_data_operation,
+        # Buffer only — drained after db.commit() in routes (avoids queued-run race).
+        data_operation_job_scheduler=data_operation_job_buffer,
     )
 
 

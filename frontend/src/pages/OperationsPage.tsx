@@ -32,7 +32,7 @@ import {
 } from "../utils/operationRunStatus";
 
 interface OperationsPageProps {
-  onOpenDetail: (operationId: string) => void;
+  onOpenDetail: (operation: Operation) => void;
   onSelectType: (type: OperationType) => void;
 }
 
@@ -122,7 +122,7 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
         priority: "primary",
         allowWrap: true,
         render: (item) => (
-          <TableEntityLink onClick={() => onOpenDetail(item.id)}>
+          <TableEntityLink onClick={() => onOpenDetail(item)}>
             <TruncatedText value={item.title} />
           </TableEntityLink>
         ),
@@ -182,7 +182,7 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
               <button
                 type="button"
                 className="btn link"
-                onClick={() => onOpenDetail(item.id)}
+                onClick={() => onOpenDetail(item)}
               >
                 {operationLabels.actionOpen}
               </button>

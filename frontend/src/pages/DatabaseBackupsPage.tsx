@@ -422,6 +422,7 @@ function CreateBackupModalContent({
     );
   };
 
+  const canSubmit = selectedDatabaseKeys.length > 0;
   const includesKyroxCore = selectedDatabaseKeys.includes("kyrox_core");
   const visibleFormatOptions = BACKUP_FORMAT_OPTIONS.filter(
     (option) => !(includesKyroxCore && option.value === "universal_data_package"),

@@ -44,7 +44,7 @@ import {
 } from "./components/layout/NavIcons";
 import { activityLabels } from "./labels/activityLabels";
 import { operationLabels } from "./labels/operationLabels";
-import type { OperationType } from "./types/operation";
+import type { Operation, OperationType } from "./types/operation";
 import { EmptyState } from "./components/ui/EmptyState";
 import {
   isNavigationDirty,
@@ -59,6 +59,7 @@ import { labels } from "./labels";
 import { scraperLabels } from "./labels/scraperLabels";
 import { dashboardLabels } from "./labels/dashboardLabels";
 import { resolveRunDetailPath } from "./utils/enrichmentRunRouting";
+import { extractDuplicateCheckResultNav } from "./utils/duplicateCheckOperation";
 import { getOperationTypeWizardPath } from "./utils/operationWizardTypes";
 import { useDocumentTitle } from "./hooks/useDocumentTitle";
 import { useAuth } from "./auth/AuthContext";
@@ -603,6 +604,15 @@ export function App() {
     });
   };
 
+  const openOperationFromList = (operation: Operation) => {
+    const duplicateResult = extractDuplicateCheckResultNav(operation);
+    if (duplicateResult) {
+      goToDuplicateCheckResult(duplicateResult.runId, duplicateResult.operationKey);
+      return;
+    }
+    goToOperationDetail(operation.id);
+  };
+
   const goToAdapters = () => {
     runGuardedNav(() => {
       navigate("/data-integration/adapters");
@@ -1076,7 +1086,7 @@ export function App() {
       )}
       {parsed.route === "/operations" && (
         <OperationsPage
-          onOpenDetail={goToOperationDetail}
+          onOpenDetail={openOperationFromList}
           onSelectType={goToOperationTypeWizard}
         />
       )}
