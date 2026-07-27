@@ -1082,3 +1082,56 @@ def test_repository_persists_related_todo_id(
     assert model is not None
     assert model.related_todo_id == saved_todo.id
     assert db_session.get(TodoModel, saved_todo.id) is not None
+
+
+def test_duplicate_start_rejected_with_409(
+    client: TestClient,
+    auth_headers: dict,
+):
+    """Second /start while latest run is active must return 409."""
+    scheduled = []
+
+    class _FakeJobRunner:
+        def run_fair_scraper(self, command) -> None:
+            scheduled.append(command)
+
+    client.app.dependency_overrides[get_fair_scraper_job_runner] = lambda: _FakeJobRunner()
+    try:
+        fair_id = _create_fair(
+            client,
+            auth_headers,
+            "Duplicate start test fair",
+            adapter_key="tuyap_new",
+            source_url="https://example.com/dup-test",
+            scraper_config={"max_pages": 1, "use_http": True},
+        )
+        create_response = client.post(
+            "/api/v1/operations",
+            headers=auth_headers,
+            json={
+                "operation_type": "scraper",
+                "title": "Duplicate start test",
+                "source_kind": "fair",
+                "source_ids": [fair_id],
+                "type_config": _scraper_type_config(),
+                "start_immediately": True,
+            },
+        )
+        assert create_response.status_code == 201, create_response.text
+        operation_id = create_response.json()["id"]
+        assert create_response.json()["latest_run"]["status"] == "running"
+
+        # Second start while the run is running → must be rejected
+        second = client.post(f"/api/v1/operations/{operation_id}/start", headers=auth_headers)
+        assert second.status_code == 409, second.text
+        assert "active run" in second.json()["detail"].lower()
+
+        # Verify only one OperationRun exists for this operation
+        runs_response = client.get(
+            f"/api/v1/operations/{operation_id}/runs",
+            headers=auth_headers,
+        )
+        assert runs_response.status_code == 200, runs_response.text
+        assert runs_response.json()["pagination"]["totalItems"] == 1
+    finally:
+        client.app.dependency_overrides.pop(get_fair_scraper_job_runner, None)
