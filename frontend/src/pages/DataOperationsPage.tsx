@@ -6,6 +6,7 @@ import {
   ApiError,
 } from "../api/dataOperations";
 import { createOperation } from "../api/operations";
+import { FairEntitySelect } from "../components/FairEntitySelect";
 import { PageHeader } from "../components/ui/PageHeader";
 import { LoadingState } from "../components/ui/LoadingState";
 import { Badge } from "../components/ui/Badge";
@@ -80,6 +81,7 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
   const [runningKeys, setRunningKeys] = React.useState<Set<string>>(new Set());
   const [downloadingKey, setDownloadingKey] = React.useState<string | null>(null);
   const [duplicateGroupBy, setDuplicateGroupBy] = React.useState<DuplicateGroupByField>("company_name");
+  const [duplicateFairId, setDuplicateFairId] = React.useState<string>("");
 
   const loadOperations = React.useCallback(async () => {
     try {
@@ -162,6 +164,9 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
       const typeConfig: Record<string, unknown> = { job_key: operation.key };
       if (operation.key === DUPLICATE_ANALYSIS_KEY) {
         typeConfig.group_by = duplicateGroupBy;
+        if (duplicateFairId) {
+          typeConfig.fair_id = duplicateFairId;
+        }
       }
       const startedOperation = await createOperation({
         operation_type: "duplicate_check",
@@ -249,24 +254,38 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
                     <h3>{operation.name}</h3>
                     <p className="text-muted">{operation.description}</p>
                     {operation.key === DUPLICATE_ANALYSIS_KEY && (
-                      <fieldset className="data-operation-group-by">
-                        <legend>{adminLabels.dataOpGroupByLabel}</legend>
-                        <div className="data-operation-group-by-options">
-                          {DUPLICATE_GROUP_BY_OPTIONS.map((option) => (
-                            <RadioField
-                              key={option.value}
-                              id={`duplicate-group-by-${option.value}`}
-                              name="duplicate-group-by"
-                              label={option.label}
-                              value={option.value}
-                              checked={duplicateGroupBy === option.value}
-                              disabled={busy}
-                              onChange={(value) => setDuplicateGroupBy(value as DuplicateGroupByField)}
-                              className="data-operation-group-by-option"
-                            />
-                          ))}
+                      <div className="data-operation-duplicate-filters">
+                        <fieldset className="data-operation-group-by">
+                          <legend>{adminLabels.dataOpGroupByLabel}</legend>
+                          <div className="data-operation-group-by-options">
+                            {DUPLICATE_GROUP_BY_OPTIONS.map((option) => (
+                              <RadioField
+                                key={option.value}
+                                id={`duplicate-group-by-${option.value}`}
+                                name="duplicate-group-by"
+                                label={option.label}
+                                value={option.value}
+                                checked={duplicateGroupBy === option.value}
+                                disabled={busy}
+                                onChange={(value) => setDuplicateGroupBy(value as DuplicateGroupByField)}
+                                className="data-operation-group-by-option"
+                              />
+                            ))}
+                          </div>
+                        </fieldset>
+                        <div className="data-operation-fair-filter">
+                          <label htmlFor="duplicate-fair-filter">{adminLabels.dataOpFairFilterLabel}</label>
+                          <FairEntitySelect
+                            id="duplicate-fair-filter"
+                            value={duplicateFairId}
+                            onChange={setDuplicateFairId}
+                            disabled={busy}
+                            allowClear
+                            placeholder={adminLabels.dataOpFairFilterAll}
+                            clearOptionLabel={adminLabels.dataOpFairFilterAll}
+                          />
                         </div>
-                      </fieldset>
+                      </div>
                     )}
                   </div>
                   <button

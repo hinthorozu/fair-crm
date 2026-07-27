@@ -13,6 +13,7 @@ import { MergeCustomersConfirmModal } from "./duplicateMerge/MergeCustomersConfi
 import { buildMergePreviewRequest } from "./duplicateMerge/mergePreviewRequest";
 import { Banner } from "./ui/Banner";
 import { Card } from "./ui/Card";
+import { LoadingState } from "./ui/LoadingState";
 import {
   allCommunicationKeys,
   commSelectionKey,
@@ -510,11 +511,15 @@ export function DuplicateGroupDetailView({
   }, []);
 
   if (error) {
-    return <p className="text-danger">{error}</p>;
+    return (
+      <Banner variant="error" role="alert">
+        {error}
+      </Banner>
+    );
   }
 
   if (loading) {
-    return <p className="text-muted">{adminLabels.dataOpLoading}</p>;
+    return <LoadingState message={adminLabels.dataOpDuplicateGroupDetailLoading} />;
   }
 
   return (

@@ -4,6 +4,7 @@ import {
   type WidthResponsiveColumn,
 } from "./WidthResponsiveDataTable";
 import { ServerDataTableFrame } from "./ServerDataTableFrame";
+import { TableSkeleton } from "./LoadingState";
 import type { ServerDataTableRowSelectionController } from "../../hooks/useServerDataTableRowSelection";
 import type { ServerDataTableController } from "../../hooks/useServerDataTable";
 import type { SortDirection } from "../../types/listTable";
@@ -164,7 +165,8 @@ export function UniversalDataTable<T>(props: UniversalDataTableProps<T>) {
     const { main, detailOnly } = splitColumns(resolvedColumns);
     const dataColumns = resolvedColumns.filter((column) => column.sortable !== false).length;
     const selectionColCount = rowSelection ? 1 : 0;
-    const showEmpty = !table.loading && !table.error && table.items.length === 0;
+    const showEmpty =
+      !table.loading && !table.isRefreshing && !table.error && table.items.length === 0;
 
     return (
       <ServerDataTableFrame
@@ -192,6 +194,20 @@ export function UniversalDataTable<T>(props: UniversalDataTableProps<T>) {
   }
 
   const { items, sorting, onSortChange, loading, error, onRetry } = props;
+  const skeletonCols = Math.max(columns.length, 4);
+
+  if (loading && items.length === 0) {
+    return (
+      <div className="server-data-table-frame">
+        <div className="server-data-table-body">
+          <div className="table-wrap table-skeleton-wrap">
+            <TableSkeleton rows={6} cols={skeletonCols} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!loading && items.length === 0 && emptyState) {
     return <>{emptyState}</>;
   }

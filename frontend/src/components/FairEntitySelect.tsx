@@ -13,6 +13,8 @@ export interface FairEntitySelectProps {
   id?: string;
   placeholder?: string;
   allowClear?: boolean;
+  /** Label for the clear option when allowClear is true (defaults to fairLabels.clearSelection). */
+  clearOptionLabel?: string;
 }
 
 function isArchived(fair: Fair): boolean {
@@ -26,7 +28,9 @@ export function FairEntitySelect({
   id,
   placeholder,
   allowClear = false,
+  clearOptionLabel,
 }: FairEntitySelectProps) {
+  const clearLabel = clearOptionLabel ?? fairLabels.clearSelection;
   const [open, setOpen] = React.useState(false);
   const [searchText, setSearchText] = React.useState("");
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
@@ -225,7 +229,7 @@ export function FairEntitySelect({
               onMouseDown={(event) => event.preventDefault()}
               onClick={clearSelection}
             >
-              <span className="entity-select-option-label">{fairLabels.clearSelection}</span>
+              <span className="entity-select-option-label">{clearLabel}</span>
             </button>
           ) : null}
           {loading && items.length === 0 ? (

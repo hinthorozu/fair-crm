@@ -51,4 +51,10 @@ export const uiLabels = {
   collapseRow: "Satırı daralt",
   expandDetails: "Detayları göster",
   collapseDetails: "Detayları gizle",
+  loadingCustomers: "Müşteriler yükleniyor…",
+  loadingFairs: "Fuarlar yükleniyor…",
+  loadingOperations: "Otomasyonlar yükleniyor…",
+  loadingImports: "Import işleri yükleniyor…",
+  loadingBackups: "Yedekler yükleniyor…",
+  loadingBulkEmailRecipients: "Alıcı listesi yükleniyor…",
 } as const;

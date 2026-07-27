@@ -1,6 +1,6 @@
 import React from "react";
 import { PaginationBar } from "../Pagination";
-import { TableSkeleton } from "./LoadingState";
+import { shouldShowServerTableLoadingSkeleton, TableSkeleton } from "./LoadingState";
 import type { ServerDataTableController } from "../../hooks/useServerDataTable";
 import { Banner } from "./Banner";
 
@@ -52,6 +52,10 @@ export function ServerDataTableFrame<T>({
 }: ServerDataTableFrameProps<T>) {
   const showToolbarPanel = Boolean(toolbar) || showPagination;
   const showBottom = showBottomPagination && showPagination;
+  const showLoadingSkeleton = shouldShowServerTableLoadingSkeleton(
+    table.loading,
+    table.isRefreshing,
+  );
 
   return (
     <div className="server-data-table-frame">
@@ -74,7 +78,7 @@ export function ServerDataTableFrame<T>({
         </Banner>
       )}
       <div className="server-data-table-body">
-        {table.loading ? (
+        {showLoadingSkeleton ? (
           <div className="table-wrap table-skeleton-wrap">
             <TableSkeleton rows={skeletonRows} cols={skeletonCols} />
           </div>

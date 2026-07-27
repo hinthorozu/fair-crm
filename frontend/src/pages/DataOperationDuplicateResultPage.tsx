@@ -20,9 +20,11 @@ import { uiLabels } from "../labels/uiLabels";
 import type { DataOperationRun, DuplicateDatasetGroup } from "../types/dataOperations";
 import { Banner } from "../components/ui/Banner";
 import { Card } from "../components/ui/Card";
+import { LoadingState } from "../components/ui/LoadingState";
 import { PageShell } from "../components/ui/PageShell";
 
 const POLL_INTERVAL_MS = 2000;
+const NO_GROUP_CUSTOMERS: never[] = [];
 
 interface DataOperationDuplicateResultPageProps {
   runId: string;
@@ -47,8 +49,15 @@ function writeGroupKeyToUrl(runId: string, groupKey: string | null) {
   const next = `/operations/duplicate-check/runs/${runId}?${params.toString()}`;
   if (`${window.location.pathname}${window.location.search}` !== next) {
     window.history.pushState(null, "", next);
-    window.dispatchEvent(new PopStateEvent("popstate"));
   }
+}
+
+function formatFairFilterLabel(summary: DataOperationRun["summary_json"]): string {
+  if (!summary) return adminLabels.dataOpSummaryAllFairs;
+  const fairName = summary.fair_name;
+  if (typeof fairName === "string" && fairName.trim()) return fairName;
+  if (summary.fair_id) return String(summary.fair_id);
+  return adminLabels.dataOpSummaryAllFairs;
 }
 
 function formatGroupByLabel(groupBy: string): string {
@@ -146,14 +155,16 @@ export function DataOperationDuplicateResultPage({
   onBack,
 }: DataOperationDuplicateResultPageProps) {
   const [run, setRun] = React.useState<DataOperationRun | null>(null);
+  const [runInitialLoading, setRunInitialLoading] = React.useState(true);
   const [runError, setRunError] = React.useState<string | null>(null);
   const [exporting, setExporting] = React.useState(false);
   const [selectedGroupKey, setSelectedGroupKey] = React.useState<string | null>(() =>
     readGroupKeyFromUrl(),
   );
-  const [groupDetail, setGroupDetail] = React.useState<Awaited<
-    ReturnType<typeof getDataOperationDuplicateGroupDetail>
-  > | null>(null);
+  const [groupDetailMeta, setGroupDetailMeta] = React.useState<{
+    groupKey: string;
+    detail: Awaited<ReturnType<typeof getDataOperationDuplicateGroupDetail>>;
+  } | null>(null);
   const [groupDetailLoading, setGroupDetailLoading] = React.useState(false);
   const [groupDetailError, setGroupDetailError] = React.useState<string | null>(null);
   const [mergeSuccessMessage, setMergeSuccessMessage] = React.useState<string | null>(null);
@@ -168,6 +179,8 @@ export function DataOperationDuplicateResultPage({
     } catch (err) {
       setRunError(err instanceof ApiError ? err.message : adminLabels.dataOpLoadError);
       return null;
+    } finally {
+      setRunInitialLoading(false);
     }
   }, [runId]);
 
@@ -195,25 +208,26 @@ export function DataOperationDuplicateResultPage({
 
   React.useEffect(() => {
     if (!selectedGroupKey) {
-      setGroupDetail(null);
+      setGroupDetailMeta(null);
       setGroupDetailError(null);
       return;
     }
 
     let cancelled = false;
-    setGroupDetail(null);
+    const requestGroupKey = selectedGroupKey;
+    setGroupDetailMeta(null);
     setGroupDetailLoading(true);
     setGroupDetailError(null);
     void (async () => {
       try {
-        const detail = await getDataOperationDuplicateGroupDetail(runId, selectedGroupKey);
+        const detail = await getDataOperationDuplicateGroupDetail(runId, requestGroupKey);
         if (!cancelled) {
-          setGroupDetail(detail);
+          setGroupDetailMeta({ groupKey: requestGroupKey, detail });
         }
       } catch (err) {
         if (!cancelled) {
           setGroupDetailError(err instanceof ApiError ? err.message : adminLabels.dataOpLoadError);
-          setGroupDetail(null);
+          setGroupDetailMeta(null);
         }
       } finally {
         if (!cancelled) {
@@ -228,6 +242,10 @@ export function DataOperationDuplicateResultPage({
   }, [runId, selectedGroupKey]);
 
   const runReady = run?.result === "success";
+
+  const groupDetail =
+    groupDetailMeta?.groupKey === selectedGroupKey ? groupDetailMeta.detail : null;
+  const groupDetailReady = Boolean(groupDetail) && !groupDetailLoading;
 
   const table = useServerDataTable<DuplicateDatasetGroup>({
     fetchFn: (params) => listDataOperationDuplicateGroups(runId, params),
@@ -345,7 +363,15 @@ export function DataOperationDuplicateResultPage({
         }
       />
 
-      {runError && <p className="text-danger">{runError}</p>}
+      {runError && (
+        <Banner variant="error" role="alert">
+          {runError}
+        </Banner>
+      )}
+
+      {runInitialLoading && !run && !runError ? (
+        <LoadingState message={adminLabels.dataOpDuplicateGroupsLoading} />
+      ) : null}
 
       {mergeSuccessMessage && showingGroupsList && (
         <Banner variant="success" className="duplicate-groups-merge-success" role="status">
@@ -361,6 +387,10 @@ export function DataOperationDuplicateResultPage({
 
       {showingGroupsList && summary && (
         <div className="duplicate-groups-summary-grid">
+          <Card padding="none" className="duplicate-groups-summary-card">
+            <p className="duplicate-groups-summary-label">{adminLabels.dataOpSummaryFairFilter}</p>
+            <p className="duplicate-groups-summary-value">{formatFairFilterLabel(summary)}</p>
+          </Card>
           <Card padding="none" className="duplicate-groups-summary-card">
             <p className="duplicate-groups-summary-label">{adminLabels.dataOpSummaryGroupBy}</p>
             <p className="duplicate-groups-summary-value">
@@ -413,10 +443,8 @@ export function DataOperationDuplicateResultPage({
           runId={runId}
           groupKey={selectedGroupKey}
           groupBy={groupDetail?.group_by}
-          customers={
-            groupDetail?.group_key === selectedGroupKey ? groupDetail.customers : []
-          }
-          loading={groupDetailLoading || groupDetail?.group_key !== selectedGroupKey}
+          customers={groupDetailReady ? groupDetail.customers : NO_GROUP_CUSTOMERS}
+          loading={groupDetailLoading || (Boolean(selectedGroupKey) && !groupDetailReady && !groupDetailError)}
           error={groupDetailError}
           onMergeSuccess={handleMergeSuccess}
         />

@@ -20,6 +20,8 @@ import { uiLabels } from "../labels/uiLabels";
 import type { Customer, CustomerStatus, CustomerType } from "../types/customer";
 import type { DataOperationRun } from "../types/dataOperations";
 import { Card } from "../components/ui/Card";
+import { Banner } from "../components/ui/Banner";
+import { LoadingState } from "../components/ui/LoadingState";
 import { PageShell } from "../components/ui/PageShell";
 
 const POLL_INTERVAL_MS = 2000;
@@ -50,6 +52,7 @@ function isRunInProgress(run: DataOperationRun | null): boolean {
 
 export function DataOperationAnalyzeResultPage({ runId, onBack }: DataOperationAnalyzeResultPageProps) {
   const [run, setRun] = React.useState<DataOperationRun | null>(null);
+  const [runInitialLoading, setRunInitialLoading] = React.useState(true);
   const [runError, setRunError] = React.useState<string | null>(null);
   const [exporting, setExporting] = React.useState(false);
   const [assignModalOpen, setAssignModalOpen] = React.useState(false);
@@ -73,6 +76,8 @@ export function DataOperationAnalyzeResultPage({ runId, onBack }: DataOperationA
     } catch (err) {
       setRunError(err instanceof ApiError ? err.message : adminLabels.dataOpLoadError);
       return null;
+    } finally {
+      setRunInitialLoading(false);
     }
   }, [runId]);
 
@@ -262,7 +267,15 @@ export function DataOperationAnalyzeResultPage({ runId, onBack }: DataOperationA
         }
       />
 
-      {runError && <p className="text-danger">{runError}</p>}
+      {runError && (
+        <Banner variant="error" role="alert">
+          {runError}
+        </Banner>
+      )}
+
+      {runInitialLoading && !run && !runError ? (
+        <LoadingState message={adminLabels.dataOpAnalyzeRunLoading} />
+      ) : null}
       {assignMessage && <p className="text-muted">{assignMessage}</p>}
       {deleteMessage && <p className="text-muted">{deleteMessage}</p>}
       {assigning && <p className="text-muted">{adminLabels.dataOpAssignToFairProgress}</p>}
