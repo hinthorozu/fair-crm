@@ -16,36 +16,24 @@ import { dataIntegrationLabels } from "../labels/dataIntegrationLabels";
 import { importBatchStatusLabels } from "../labels/importLabels";
 import type { ImportBatch } from "../types/import";
 import { importBatchStatusBadgeVariant } from "../utils/importBadges";
-import { canResumeDecisions, canResumeSetup } from "../utils/importResume";
+import {
+  canAnalyzeImportBatch,
+  isImportBatchOperationInProgress,
+  showContinueImportBatch,
+} from "../utils/importListActions";
 import { Banner } from "../components/ui/Banner";
 import { TableRowActions } from "../components/ui/TableRowActions";
 import { TableEntityLink } from "../components/ui/TableEntityLink";
 import { TruncatedText } from "../components/ui/TruncatedText";
 import { PageShell } from "../components/ui/PageShell";
 
+const canAnalyze = canAnalyzeImportBatch;
+const isOperationInProgress = isImportBatchOperationInProgress;
+const showContinue = showContinueImportBatch;
+
 interface DataIntegrationImportsPageProps {
   onOpenBatch?: (batchId: string) => void;
   onContinueBatch?: (batchId: string) => void;
-}
-
-function canAnalyze(status: string): boolean {
-  return status === "mapping_completed" || status === "mapped" || status === "analysis_failed";
-}
-
-function canReanalyze(status: string): boolean {
-  return status === "decision_required" || status === "analyzed" || status === "previewed";
-}
-
-function showContinue(status: string): boolean {
-  return canResumeSetup(status) || canResumeDecisions(status);
-}
-
-function isOperationInProgress(status: string): boolean {
-  return (
-    status === "analyzing" ||
-    status === "analysis_queued" ||
-    status === "applying"
-  );
 }
 
 function displayOptionalText(value: string | null | undefined): string {
@@ -143,18 +131,6 @@ const IMPORT_COLUMNS = (
             {handlers.analyzingBatchId === batch.id
               ? dataIntegrationLabels.analyzeBatchRunning
               : dataIntegrationLabels.analyzeBatch}
-          </button>
-        )}
-        {canReanalyze(batch.status) && (
-          <button
-            type="button"
-            className="btn btn-sm btn-secondary"
-            disabled={handlers.analyzingBatchId === batch.id}
-            onClick={() => handlers.onAnalyze?.(batch, { reanalyze: true })}
-          >
-            {handlers.analyzingBatchId === batch.id
-              ? dataIntegrationLabels.reanalyzeBatchRunning
-              : dataIntegrationLabels.reanalyzeBatch}
           </button>
         )}
         {isOperationInProgress(batch.status) && (

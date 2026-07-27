@@ -10,6 +10,7 @@ const SETUP_RESUME_STATUSES: ImportBatchStatus[] = [
 const DECISION_RESUME_STATUSES: ImportBatchStatus[] = [
   "analyzed",
   "decision_required",
+  "previewed",
   "applying",
 ];
 
