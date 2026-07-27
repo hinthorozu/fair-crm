@@ -18,8 +18,20 @@ def test_create_customer_computes_normalized_name():
         now=now,
     )
     assert customer.normalized_name == "ACME"
-    assert customer.customer_type == CustomerType.LEAD
+    assert customer.customer_type == CustomerType.EXHIBITOR
+    assert customer.status == CustomerStatus.ACTIVE
+
+
+def test_create_customer_preserves_explicit_status():
+    now = datetime.now(tz=UTC)
+    customer = Customer.create(
+        organization_id=__import__("uuid").uuid4(),
+        display_name="Lead Co",
+        status=CustomerStatus.LEAD,
+        now=now,
+    )
     assert customer.status == CustomerStatus.LEAD
+    assert customer.customer_type == CustomerType.EXHIBITOR
 
 
 def test_empty_display_name_raises():

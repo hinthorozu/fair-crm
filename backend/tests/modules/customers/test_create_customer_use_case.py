@@ -7,6 +7,7 @@ from app.modules.customers.application.commands import CreateCustomerCommand
 from app.modules.customers.application.customer_communication_sync import CustomerCommunicationSyncService
 from app.modules.customers.application.create_customer import CreateCustomerUseCase
 from app.modules.customers.domain.entities import Customer
+from app.modules.customers.domain.value_objects import CustomerStatus, CustomerType
 from app.modules.customers.infrastructure.repositories.customer_communication_repository import (
     SqlAlchemyCustomerCommunicationRepository,
 )
@@ -41,6 +42,26 @@ def test_create_customer_use_case(db_session, organization_id):
     assert result.display_name == "Delta Otomasyon Ltd. Şti."
     assert result.normalized_name == "DELTA OTOMASYON"
     assert result.city == "Istanbul"
+    assert result.customer_type == CustomerType.EXHIBITOR
+    assert result.status == CustomerStatus.ACTIVE
+
+
+def test_create_customer_preserves_explicit_status(db_session, organization_id):
+    use_case = _create_use_case(db_session)
+
+    result = use_case.execute(
+        CreateCustomerCommand(
+            organization_id=organization_id,
+            access_token="token",
+            user_id=uuid4(),
+            display_name="Explicit Lead Co",
+            status=CustomerStatus.LEAD,
+            customer_type=CustomerType.VISITOR,
+        )
+    )
+
+    assert result.status == CustomerStatus.LEAD
+    assert result.customer_type == CustomerType.VISITOR
 
 
 def test_create_customer_forbidden(db_session, organization_id):

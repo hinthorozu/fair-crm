@@ -32,8 +32,8 @@ class CreateCustomerCommand:
     display_name: str
     legal_name: Optional[str] = None
     trade_name: Optional[str] = None
-    customer_type: CustomerType = CustomerType.LEAD
-    status: CustomerStatus = CustomerStatus.LEAD
+    customer_type: CustomerType = CustomerType.EXHIBITOR
+    status: CustomerStatus = CustomerStatus.ACTIVE
     website: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None

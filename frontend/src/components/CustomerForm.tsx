@@ -53,7 +53,7 @@ const emptyForm = (): CustomerFormValues => ({
   display_name: "",
   legal_name: "",
   trade_name: "",
-  customer_type: "lead",
+  customer_type: "exhibitor",
   status: "active",
   country: "Türkiye",
   city: "",

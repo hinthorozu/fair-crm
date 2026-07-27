@@ -32,6 +32,34 @@ def test_create_customer_does_not_run_duplicate_grouping(client, auth_headers, m
     assert response.status_code == 201
 
 
+def test_create_customer_defaults_type_and_status(client, auth_headers):
+    response = client.post(
+        "/api/v1/customers",
+        json={"display_name": "Default Type Status Co"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["customer_type"] == "exhibitor"
+    assert body["status"] == "active"
+
+
+def test_create_customer_preserves_explicit_status(client, auth_headers):
+    response = client.post(
+        "/api/v1/customers",
+        json={
+            "display_name": "Explicit Status Co",
+            "customer_type": "visitor",
+            "status": "lead",
+        },
+        headers=auth_headers,
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["customer_type"] == "visitor"
+    assert body["status"] == "lead"
+
+
 def test_health(client):
     response = client.get("/health")
     assert response.status_code == 200

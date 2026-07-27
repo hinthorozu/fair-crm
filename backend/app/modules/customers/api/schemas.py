@@ -28,8 +28,8 @@ class CreateCustomerRequest(BaseModel):
     display_name: str = Field(..., min_length=1, max_length=255)
     legal_name: Optional[str] = Field(default=None, max_length=500)
     trade_name: Optional[str] = Field(default=None, max_length=255)
-    customer_type: CustomerType = CustomerType.LEAD
-    status: CustomerStatus = CustomerStatus.LEAD
+    customer_type: CustomerType = CustomerType.EXHIBITOR
+    status: CustomerStatus = CustomerStatus.ACTIVE
     website: Optional[str] = Field(default=None, max_length=255)
     phone: Optional[str] = Field(default=None, max_length=50)
     email: Optional[str] = Field(

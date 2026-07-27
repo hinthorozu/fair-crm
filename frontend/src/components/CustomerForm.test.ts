@@ -62,6 +62,11 @@ describe("customer form hydrate contract", () => {
     expect(emptyForm().sms_allowed).toBe(true);
   });
 
+  it("emptyForm defaults customer_type to exhibitor for create", () => {
+    expect(emptyForm().customer_type).toBe("exhibitor");
+    expect(emptyForm().status).toBe("active");
+  });
+
   it("hydrate should key off customer id, not object identity", () => {
     const customer = sampleCustomer({ email_allowed: false });
     const first = customerToFormValues(customer);
