@@ -60,7 +60,15 @@ export function FairBulkEmailBatchLogs({
   React.useEffect(() => {
     setLoading(true);
     void loadBatches();
-  }, [loadBatches, refreshToken]);
+  }, [loadBatches]);
+
+  React.useEffect(() => {
+    // Parent bumps refreshToken after send — silent status refresh (keep rows visible).
+    if (refreshToken === 0) return;
+    void loadBatches();
+    // Intentionally only refreshToken: fairId/canView changes are handled above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshToken]);
 
   React.useEffect(() => {
     if (highlightBatchId) {

@@ -145,9 +145,12 @@ export function MailOperationsPage() {
     }
   }, [fair, fairs]);
 
-  const loadOperations = React.useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadOperations = React.useCallback(async (options?: { silent?: boolean }) => {
+    const silent = Boolean(options?.silent);
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const response = await listMailOperations({
         page: 1,
@@ -161,9 +164,12 @@ export function MailOperationsPage() {
         dateTo,
       });
       setItems(response.items);
+      if (silent) setError(null);
     } catch (err) {
-      setItems([]);
-      setError(err instanceof ApiError ? err.message : adminLabels.mailOperationsLoadError);
+      if (!silent) {
+        setItems([]);
+        setError(err instanceof ApiError ? err.message : adminLabels.mailOperationsLoadError);
+      }
     } finally {
       setLoading(false);
     }
@@ -185,7 +191,7 @@ export function MailOperationsPage() {
     try {
       const result = await retryMailOperation(record.id);
       setDialog(null);
-      await loadOperations();
+      await loadOperations({ silent: true });
       showToast(
         result.success
           ? adminLabels.mailOperationsRetrySuccess

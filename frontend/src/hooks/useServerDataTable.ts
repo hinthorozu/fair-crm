@@ -21,9 +21,13 @@ export interface ServerTableRefreshOverrides {
   filters?: Record<string, string>;
   page?: number;
   /**
-   * When true, keep existing rows on screen (no skeleton / loading flip).
+   * Silent refresh: keep existing rows (no skeleton / loading flip).
    * Failures leave current data untouched and do not surface a new error banner.
-   * Default callers are unchanged: omit or pass false for a normal loading fetch.
+   *
+   * On `refresh()`: when omitted, defaults to silent **if rows are already shown**
+   * (post-action / polling / manual Yenile). Pass `false` to force a hard reload.
+   * Param-driven loads (page/filter/sort/search) still go through internal `load()`
+   * without this default — they keep the normal loading skeleton.
    */
   silent?: boolean;
 }
@@ -107,6 +111,10 @@ export function useServerDataTable<T>({
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const requestIdRef = React.useRef(0);
+  const itemsRef = React.useRef(items);
+  React.useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
   const [search, setSearchState] = React.useState(urlState.search);
   const [debouncedSearch, setDebouncedSearch] = React.useState(urlState.search);
   const [page, setPageState] = React.useState(urlState.page);
@@ -242,8 +250,24 @@ export function useServerDataTable<T>({
       setLoading(false);
       return;
     }
+    // Param-driven fetch (initial + page/filter/sort/search): always hard loading.
     void load();
   }, [enabled, load]);
+
+  /**
+   * Explicit refresh (post-action, polling, Yenile). Defaults to silent when the
+   * table already has rows so status/progress updates do not flicker the skeleton.
+   */
+  const refresh = React.useCallback(
+    (overrides?: ServerTableRefreshOverrides) => {
+      const silent =
+        overrides?.silent !== undefined
+          ? Boolean(overrides.silent)
+          : itemsRef.current.length > 0;
+      return load({ ...overrides, silent });
+    },
+    [load],
+  );
 
   React.useEffect(() => {
     if (!enabled || Object.keys(defaultFilters).length === 0) return;
@@ -349,7 +373,7 @@ export function useServerDataTable<T>({
       applyState({ sortBy: field, sortOrder: direction, page: DEFAULT_PAGE }),
     setPage: (value: number) => applyState({ page: value }),
     setPageSize: (value: number) => applyState({ pageSize: value, page: DEFAULT_PAGE }),
-    refresh: load,
+    refresh,
     isEmpty: !loading && !error && items.length === 0,
     hasActiveFilters:
       Boolean(debouncedSearch.trim()) ||

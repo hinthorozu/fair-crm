@@ -201,7 +201,8 @@ describe("useServerDataTable silent/initial race", () => {
       void latest!.refresh({ silent: true });
     });
     await act(async () => {
-      void latest!.refresh();
+      // Force hard reload (explicit silent: false) so this stays a non-silent race case.
+      void latest!.refresh({ silent: false });
     });
 
     await act(async () => {
@@ -217,5 +218,48 @@ describe("useServerDataTable silent/initial race", () => {
     });
     expect(latest!.items).toEqual([{ id: "new", name: "newest" }]);
     expect(latest!.loading).toBe(false);
+  });
+
+  it("defaults refresh() to silent when rows are already shown", async () => {
+    const deferred = createDeferred<StandardListResponse<Row>>();
+    let call = 0;
+    const fetchFn = vi.fn(async () => {
+      call += 1;
+      if (call === 1) {
+        return listResponse([{ id: "boot", name: "boot" }]);
+      }
+      return deferred.promise;
+    });
+
+    await act(async () => {
+      root.render(
+        React.createElement(HookHost, {
+          fetchFn,
+          onReady: (api: TableApi) => {
+            latest = api;
+          },
+        }),
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(latest!.items).toEqual([{ id: "boot", name: "boot" }]);
+    expect(latest!.loading).toBe(false);
+
+    await act(async () => {
+      void latest!.refresh();
+    });
+    expect(latest!.loading).toBe(false);
+    expect(latest!.isRefreshing).toBe(true);
+    expect(latest!.items).toEqual([{ id: "boot", name: "boot" }]);
+
+    await act(async () => {
+      deferred.resolve(listResponse([{ id: "upd", name: "updated" }]));
+      await deferred.promise;
+    });
+    expect(latest!.items).toEqual([{ id: "upd", name: "updated" }]);
+    expect(latest!.loading).toBe(false);
+    expect(latest!.isRefreshing).toBe(false);
   });
 });
