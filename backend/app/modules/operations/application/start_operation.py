@@ -8,6 +8,7 @@ from app.modules.operations.domain.entities import OperationRun
 from app.modules.operations.domain.exceptions import (
     HandlerNotRegisteredError,
     InvalidOperationConfigError,
+    OperationAlreadyRunningError,
     OperationNotFoundError,
 )
 from app.modules.operations.domain.handler import HandlerExecutionContext
@@ -63,6 +64,18 @@ class StartOperationUseCase:
                 operation,
                 handler=handler,
                 latest_run=self._load_latest_run(operation),
+            )
+
+        # Central duplicate-start guard: reject if a run is already active.
+        latest_run = self._load_latest_run(operation)
+        if latest_run is not None and latest_run.status in {
+            RunStatus.QUEUED,
+            RunStatus.RUNNING,
+            RunStatus.PAUSED,
+        }:
+            raise OperationAlreadyRunningError(
+                f"Operation already has an active run ({latest_run.status}). "
+                "Cancel or wait for it to complete before starting again."
             )
 
         validation = handler.validate_start(operation=operation)

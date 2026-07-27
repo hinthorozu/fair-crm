@@ -177,6 +177,12 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
         className: "actions",
         render: (item) => {
           const loading = busyId === item.id;
+          const latestRunActive =
+            item.latest_run?.status === "queued" ||
+            item.latest_run?.status === "running" ||
+            item.latest_run?.status === "paused";
+          const canStartItem =
+            ["draft", "ready", "active"].includes(item.status) && !latestRunActive;
           return (
             <TableRowActions>
               <button
@@ -186,7 +192,7 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
               >
                 {operationLabels.actionOpen}
               </button>
-              {["draft", "ready", "active"].includes(item.status) ? (
+              {canStartItem ? (
                 <button
                   type="button"
                   className="btn link"

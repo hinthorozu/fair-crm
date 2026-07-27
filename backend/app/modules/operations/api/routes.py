@@ -99,6 +99,7 @@ from app.modules.operations.domain.exceptions import (
     InvalidOperationTypeError,
     InvalidRunStatusTransitionError,
     InvalidSourceKindError,
+    OperationAlreadyRunningError,
     OperationNotFoundError,
     OperationRunNotFoundError,
 )
@@ -268,6 +269,8 @@ def _map_domain_error(exc: Exception) -> HTTPException:
         ),
     ):
         return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, OperationAlreadyRunningError):
+        return HTTPException(status_code=409, detail=str(exc))
     if isinstance(
         exc,
         (
@@ -602,6 +605,7 @@ def start_operation(
         InvalidOperationConfigError,
         InvalidOperationStatusTransitionError,
         InvalidRunStatusTransitionError,
+        OperationAlreadyRunningError,
     ) as exc:
         raise _map_domain_error(exc) from exc
     db.commit()

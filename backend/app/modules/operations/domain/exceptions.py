@@ -54,6 +54,10 @@ class HandlerNotRegisteredError(OperationError):
     pass
 
 
+class OperationAlreadyRunningError(OperationError):
+    """Raised when a start is attempted while an active run already exists."""
+
+
 class HandlerCapabilityNotSupportedError(OperationError):
     pass
 
