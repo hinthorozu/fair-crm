@@ -44,6 +44,8 @@ export function resolveEmailAccountType(account?: EmailAccount | null): EmailAcc
 interface EmailAccountFormProps {
   mode: "create" | "edit";
   initial?: EmailAccount | null;
+  /** Hydrate when the edited account (or create session) changes — not on fresh `initial` refs. */
+  hydrateKey?: string;
   saving: boolean;
   testing?: boolean;
   error: string | null;
@@ -55,9 +57,18 @@ interface EmailAccountFormProps {
   onTestMail?: (recipient: string) => Promise<void>;
 }
 
+function emptyEmailAccountFormValues(): EmailAccountFormValues {
+  return {
+    ...EMPTY_EMAIL_ACCOUNT_FORM_VALUES,
+    provider_config: {},
+    error_policy_groups: defaultErrorPolicyGroups(),
+  };
+}
+
 export function EmailAccountForm({
   mode,
   initial = null,
+  hydrateKey = "create",
   saving,
   testing = false,
   error,
@@ -68,18 +79,12 @@ export function EmailAccountForm({
   onSubmitUpdate,
   onTestMail,
 }: EmailAccountFormProps) {
-  const baseline = React.useMemo(
-    () =>
-      initial
-        ? emailAccountToFormValues(initial)
-        : {
-            ...EMPTY_EMAIL_ACCOUNT_FORM_VALUES,
-            provider_config: {},
-            error_policy_groups: defaultErrorPolicyGroups(),
-          },
-    [initial],
+  const [values, setValues] = React.useState<EmailAccountFormValues>(() =>
+    initial ? emailAccountToFormValues(initial) : emptyEmailAccountFormValues(),
   );
-  const [values, setValues] = React.useState<EmailAccountFormValues>(baseline);
+  const [baseline, setBaseline] = React.useState<EmailAccountFormValues>(() =>
+    initial ? emailAccountToFormValues(initial) : emptyEmailAccountFormValues(),
+  );
   const [accountType, setAccountType] = React.useState<EmailAccountType>(() =>
     resolveEmailAccountType(initial),
   );
@@ -98,10 +103,13 @@ export function EmailAccountForm({
   );
 
   React.useEffect(() => {
-    setValues(baseline);
+    const next = initial ? emailAccountToFormValues(initial) : emptyEmailAccountFormValues();
+    setValues(next);
+    setBaseline(next);
     setAccountType(resolveEmailAccountType(initial));
     setLocalError(null);
-  }, [baseline, initial]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: hydrateKey only
+  }, [hydrateKey]);
 
   useReportFormDirty(
     { ...values, accountType },

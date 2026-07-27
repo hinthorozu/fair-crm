@@ -73,12 +73,17 @@ export function OperationCapabilitiesEditForm({
   onCancel,
   onSubmit,
 }: OperationCapabilitiesEditFormProps) {
-  const baseline = React.useMemo(() => draftFromItem(item), [item]);
-  const [values, setValues] = React.useState(baseline);
+  const [values, setValues] = React.useState(() => draftFromItem(item));
+  const [baseline, setBaseline] = React.useState(() => draftFromItem(item));
 
   React.useEffect(() => {
-    setValues(baseline);
-  }, [baseline]);
+    const next = draftFromItem(item);
+    setValues(next);
+    setBaseline(next);
+    // Hydrate only when the catalog item identity changes —
+    // not when parent re-renders with a fresh `item` object reference.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: item.key only
+  }, [item.key]);
 
   useReportFormDirty(values, baseline);
   const handleCancel = useModalFormCancel(onCancel);

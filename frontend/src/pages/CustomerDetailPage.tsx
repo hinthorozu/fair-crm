@@ -803,6 +803,7 @@ export function CustomerDetailPage({
         <FormModal title={activityLabels.editActivity} onClose={closeModal}>
           <ActivityForm
             contacts={contactsForForm}
+            hydrateKey={editingActivity.id}
             initial={activityToFormValues(editingActivity)}
             submitLabel={activityLabels.save}
             onCancel={closeModal}
@@ -826,6 +827,7 @@ export function CustomerDetailPage({
         <FormModal title={participationLabels.editParticipation} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="customer"
+            hydrateKey={editingParticipation.id}
             initial={participationFormInitial}
             lockFair
             submitLabel={participationLabels.save}

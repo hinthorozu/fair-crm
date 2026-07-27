@@ -726,6 +726,7 @@ export function TodosPage({ onOpenDetail, onOpenCustomer }: TodosPageProps) {
           }
         >
           <TodoForm
+            hydrateKey={editing.id}
             initial={todoToFormValues(editing)}
             onSubmit={handleUpdate}
             onSavingChange={setFormSaving}

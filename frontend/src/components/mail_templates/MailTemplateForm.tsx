@@ -27,6 +27,8 @@ import {
 interface MailTemplateFormProps {
   mode: "create" | "edit";
   initial?: MailTemplate | null;
+  /** Hydrate when the edited template (or create session) changes — not on fresh `initial` refs. */
+  hydrateKey?: string;
   saving: boolean;
   error: string | null;
   onCancel: () => void;
@@ -37,24 +39,29 @@ interface MailTemplateFormProps {
 export function MailTemplateForm({
   mode,
   initial = null,
+  hydrateKey = "create",
   saving,
   error,
   onCancel,
   onSubmitCreate,
   onSubmitUpdate,
 }: MailTemplateFormProps) {
-  const baseline = React.useMemo(
-    () => (initial ? mailTemplateToFormValues(initial) : EMPTY_MAIL_TEMPLATE_FORM_VALUES),
-    [initial],
+  const [values, setValues] = React.useState<MailTemplateFormValues>(() =>
+    initial ? mailTemplateToFormValues(initial) : EMPTY_MAIL_TEMPLATE_FORM_VALUES,
   );
-  const [values, setValues] = React.useState<MailTemplateFormValues>(baseline);
+  const [baseline, setBaseline] = React.useState<MailTemplateFormValues>(() =>
+    initial ? mailTemplateToFormValues(initial) : EMPTY_MAIL_TEMPLATE_FORM_VALUES,
+  );
   const [localError, setLocalError] = React.useState<string | null>(null);
   const formError = localError ?? error;
 
   React.useEffect(() => {
-    setValues(baseline);
+    const next = initial ? mailTemplateToFormValues(initial) : EMPTY_MAIL_TEMPLATE_FORM_VALUES;
+    setValues(next);
+    setBaseline(next);
     setLocalError(null);
-  }, [baseline]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: hydrateKey only
+  }, [hydrateKey]);
 
   useReportFormDirty(values, baseline);
   const handleCancel = useModalFormCancel(onCancel);

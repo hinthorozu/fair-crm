@@ -437,6 +437,7 @@ export function MailTemplatesPage() {
         <FormModal title={adminLabels.mailTemplatesEdit} onClose={closeModal} size="lg">
           <MailTemplateForm
             mode="edit"
+            hydrateKey={editing.id}
             initial={editing}
             saving={formSaving}
             error={formError}

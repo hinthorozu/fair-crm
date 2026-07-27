@@ -540,6 +540,7 @@ export function SmtpAccountsPage() {
           <EmailAccountForm
             key="create"
             mode="create"
+            hydrateKey="create"
             saving={formSaving}
             error={formError}
             testError={null}
@@ -556,6 +557,7 @@ export function SmtpAccountsPage() {
           <EmailAccountForm
             key={editing.id}
             mode="edit"
+            hydrateKey={editing.id}
             initial={editing}
             saving={formSaving}
             testing={testMailRunning}

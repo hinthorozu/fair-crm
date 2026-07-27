@@ -628,6 +628,7 @@ export function TodoDetailPage({
           }
         >
           <TodoForm
+            hydrateKey={todo.id}
             initial={todoToFormValues(todo)}
             onSubmit={handleEditSubmit}
             onSavingChange={setFormSaving}

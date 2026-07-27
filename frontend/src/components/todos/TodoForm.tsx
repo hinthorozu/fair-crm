@@ -112,22 +112,38 @@ export function canEditTodo(todo: Todo): boolean {
 
 interface TodoFormProps {
   initial?: TodoFormValues;
+  /** Hydrate when the edited todo (or create session) changes — not on fresh `initial` refs. */
+  hydrateKey?: string;
   onSubmit: (values: TodoFormValues) => Promise<void>;
   onSavingChange?: (saving: boolean) => void;
 }
 
-export function TodoForm({ initial, onSubmit, onSavingChange }: TodoFormProps) {
-  const [values, setValues] = React.useState<TodoFormValues>(initial ?? defaultTodoFormValues());
+export function TodoForm({
+  initial,
+  hydrateKey = "create",
+  onSubmit,
+  onSavingChange,
+}: TodoFormProps) {
+  const [values, setValues] = React.useState<TodoFormValues>(
+    () => initial ?? defaultTodoFormValues(),
+  );
+  const [baseline, setBaseline] = React.useState<TodoFormValues>(
+    () => initial ?? defaultTodoFormValues(),
+  );
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const baseline = React.useMemo(() => initial ?? defaultTodoFormValues(), [initial]);
 
   useReportFormDirty(values, baseline);
 
   React.useEffect(() => {
-    setValues(initial ?? defaultTodoFormValues());
+    const next = initial ?? defaultTodoFormValues();
+    setValues(next);
+    setBaseline(next);
     setError(null);
-  }, [initial]);
+    // Hydrate only when the edited todo (or create session) changes —
+    // not when parent re-renders with a fresh `initial` object reference.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: hydrateKey only
+  }, [hydrateKey]);
 
   React.useEffect(() => {
     onSavingChange?.(saving);

@@ -547,6 +547,7 @@ export function FairDetailPage({
         <FormModal title={participationLabels.editParticipant} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="fair"
+            hydrateKey={editing.id}
             initial={fairParticipantToFormValues(editing, editing.customer_id)}
             lockCustomer
             submitLabel={participationLabels.save}
