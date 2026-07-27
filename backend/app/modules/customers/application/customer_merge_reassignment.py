@@ -245,3 +245,4 @@ def _reassign_import_row_customer_references(
             changed = True
         if changed:
             row.updated_at = now
+    session.flush()

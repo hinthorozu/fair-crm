@@ -842,6 +842,122 @@ def test_duplicate_group_merge_execute_endpoint(client, auth_headers, db_session
     assert body["audit_log_id"] == str(audit_log.id)
     assert execute.headers.get("access-control-allow-origin") == "http://localhost:5173"
 
+
+def test_duplicate_group_merge_execute_reassigns_import_rows_on_loser(
+    client, auth_headers, db_session, organization_id
+):
+    """Regression: loser import row FKs must flush before assert (autoflush=False sessions)."""
+    from app.modules.customers.domain.value_objects import CustomerStatus
+    from app.modules.customers.infrastructure.persistence.communication_models import CustomerEmailModel
+    from app.modules.imports.infrastructure.persistence.models import ImportBatchModel, ImportRowModel
+
+    now = datetime.now(tz=UTC)
+    first_id = uuid4()
+    second_id = uuid4()
+    email_one = uuid4()
+    email_two = uuid4()
+    first = CustomerModel(
+        id=first_id,
+        organization_id=organization_id,
+        display_name="Import Dup A",
+        normalized_name="import dup a",
+        customer_type=CustomerType.LEAD.value,
+        status=CustomerStatus.ACTIVE.value,
+        source="manual",
+        created_at=now,
+        updated_at=now,
+    )
+    second = CustomerModel(
+        id=second_id,
+        organization_id=organization_id,
+        display_name="Import Dup B",
+        normalized_name="import dup b",
+        customer_type=CustomerType.LEAD.value,
+        status=CustomerStatus.ACTIVE.value,
+        source="manual",
+        created_at=now,
+        updated_at=now,
+    )
+    batch = ImportBatchModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        file_name="rows.xlsx",
+        status="completed",
+        created_at=now,
+        updated_at=now,
+    )
+    import_row_id = uuid4()
+    import_row = ImportRowModel(
+        id=import_row_id,
+        batch_id=batch.id,
+        organization_id=organization_id,
+        row_number=1,
+        raw_data_json={},
+        normalized_data_json={},
+        status="applied",
+        match_customer_id=second_id,
+        created_at=now,
+        updated_at=now,
+    )
+    db_session.add_all([first, second, batch, import_row])
+    db_session.flush()
+    db_session.add_all(
+        [
+            CustomerEmailModel(
+                id=email_one,
+                organization_id=organization_id,
+                customer_id=first_id,
+                email="import-dup@example.com",
+                is_primary=True,
+                created_at=now,
+            ),
+            CustomerEmailModel(
+                id=email_two,
+                organization_id=organization_id,
+                customer_id=second_id,
+                email="import-dup@example.com",
+                is_primary=True,
+                created_at=now,
+            ),
+        ]
+    )
+    db_session.flush()
+
+    create = client.post(
+        "/api/v1/admin/data-operations/duplicate_customer_analysis/run",
+        headers=auth_headers,
+        json={"group_by": "email"},
+    )
+    assert create.status_code == 202
+    run_id = create.json()["id"]
+    group_key = "import-dup@example.com"
+
+    execute = client.post(
+        f"/api/v1/admin/data-operations/duplicate-groups/{group_key}/merge-execute",
+        headers=auth_headers,
+        json={
+            "run_id": run_id,
+            "surviving_customer_id": str(first_id),
+            "scalar_selections": {
+                "company_name": str(first_id),
+                "legal_name": str(first_id),
+                "trade_name": str(first_id),
+                "city": str(first_id),
+                "country": str(first_id),
+            },
+            "selected_email_ids": [str(email_one), str(email_two)],
+            "selected_phone_ids": [],
+            "selected_website_ids": [],
+        },
+    )
+    assert execute.status_code == 200, execute.text
+
+    row_id = import_row_id
+    db_session.expire_all()
+    updated = db_session.get(ImportRowModel, row_id)
+    assert updated is not None
+    assert updated.match_customer_id == first_id
+
     groups_after = client.get(
         f"/api/v1/admin/data-operations/runs/{run_id}/dataset/duplicate-groups",
         headers=auth_headers,

@@ -189,6 +189,13 @@ class DuplicateCheckHandler:
         type_config = dict(operation.type_config or {})
         job_key = str(type_config.get("job_key") or "").strip()
         group_by = str(type_config.get("group_by") or "").strip() or None
+        fair_id: UUID | None = None
+        fair_id_raw = type_config.get("fair_id")
+        if fair_id_raw:
+            try:
+                fair_id = UUID(str(fair_id_raw))
+            except (TypeError, ValueError) as exc:
+                raise InvalidOperationConfigError("type_config.fair_id is invalid") from exc
         definition = get_operation_definition(job_key)
 
         # Link an already-created data-operation run (UI may start the job then register Operation).
@@ -206,6 +213,7 @@ class DuplicateCheckHandler:
                 "dataset_kind": definition.dataset_kind if definition else None,
                 "result_mode": definition.result_mode if definition else None,
                 "group_by": group_by,
+                "fair_id": str(fair_id) if fair_id else None,
             }
             merge_result_payload(run, result_payload)
             return HandlerStartResult(
@@ -223,6 +231,7 @@ class DuplicateCheckHandler:
                 access_token=context.access_token,
                 operation_key=job_key,
                 group_by=group_by,
+                fair_id=fair_id,
             )
         except Exception as exc:
             return HandlerStartResult(
@@ -238,6 +247,7 @@ class DuplicateCheckHandler:
             "dataset_kind": definition.dataset_kind if definition else None,
             "result_mode": definition.result_mode if definition else None,
             "group_by": group_by,
+            "fair_id": str(fair_id) if fair_id else None,
         }
         merge_result_payload(run, result_payload)
 

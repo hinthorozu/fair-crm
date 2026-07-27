@@ -189,6 +189,106 @@ def test_reassign_participations_with_autoflush_disabled_soft_deletes_before_bul
     session.close()
 
 
+def test_reassign_import_rows_with_autoflush_disabled_persists_before_assert(
+    test_engine, organization_id
+):
+    """Production sessions use autoflush=False; import row FK updates must flush before assert."""
+    from sqlalchemy.orm import sessionmaker
+
+    now = datetime.now(tz=UTC)
+    Session = sessionmaker(bind=test_engine, autocommit=False, autoflush=False)
+    session = Session()
+    survivor = _seed_customer(session, organization_id, display_name="Survivor Co")
+    loser = _seed_customer(session, organization_id, display_name="Loser Co")
+    batch = ImportBatchModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        file_name="import.xlsx",
+        status="completed",
+        created_at=now,
+        updated_at=now,
+    )
+    import_row = ImportRowModel(
+        id=uuid4(),
+        batch_id=batch.id,
+        organization_id=organization_id,
+        row_number=1,
+        raw_data_json={},
+        normalized_data_json={},
+        status="applied",
+        match_customer_id=loser.id,
+        created_at=now,
+        updated_at=now,
+    )
+    session.add_all([batch, import_row])
+    session.flush()
+
+    reassign_loser_customer_relationships(
+        session,
+        organization_id=organization_id,
+        survivor_id=survivor.id,
+        loser_ids=[loser.id],
+        now=now,
+    )
+
+    session.refresh(import_row)
+    assert import_row.match_customer_id == survivor.id
+    session.close()
+
+
+def test_reassign_import_rows_assert_no_stale_db_read_with_autoflush_disabled(
+    test_engine, organization_id
+):
+    """assert_no_loser_customer_relationships_remain must see flushed import row FK updates."""
+    from sqlalchemy.orm import sessionmaker
+
+    from app.modules.customers.application.customer_merge_reassignment import (
+        assert_no_loser_customer_relationships_remain,
+    )
+
+    now = datetime.now(tz=UTC)
+    Session = sessionmaker(bind=test_engine, autocommit=False, autoflush=False)
+    session = Session()
+    survivor = _seed_customer(session, organization_id, display_name="Survivor Co")
+    loser = _seed_customer(session, organization_id, display_name="Loser Co")
+    batch = ImportBatchModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        file_name="import.xlsx",
+        status="completed",
+        created_at=now,
+        updated_at=now,
+    )
+    import_row = ImportRowModel(
+        id=uuid4(),
+        batch_id=batch.id,
+        organization_id=organization_id,
+        row_number=1,
+        raw_data_json={},
+        normalized_data_json={},
+        status="applied",
+        match_customer_id=loser.id,
+        created_at=now,
+        updated_at=now,
+    )
+    session.add_all([batch, import_row])
+    session.flush()
+
+    reassign_loser_customer_relationships(
+        session,
+        organization_id=organization_id,
+        survivor_id=survivor.id,
+        loser_ids=[loser.id],
+        now=now,
+    )
+    assert_no_loser_customer_relationships_remain(
+        session,
+        organization_id=organization_id,
+        loser_ids=[loser.id],
+    )
+    session.close()
+
+
 def test_reassign_participations_dedupes_active_fair_and_preserves_soft_deleted_history(
     db_session, organization_id
 ):

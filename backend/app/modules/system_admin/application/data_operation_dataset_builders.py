@@ -95,15 +95,22 @@ class DuplicateCustomerGroupsDatasetSummary:
     total_customers: int
     duplicate_groups: int
     customers_in_duplicate_groups: int
+    fair_id: str | None = None
+    fair_name: str | None = None
 
-    def to_json(self) -> dict[str, int | str]:
-        return {
+    def to_json(self) -> dict[str, int | str | None]:
+        payload: dict[str, int | str | None] = {
             "dataset_kind": self.dataset_kind,
             "group_by": self.group_by,
             "total_customers": self.total_customers,
             "duplicate_groups": self.duplicate_groups,
             "customers_in_duplicate_groups": self.customers_in_duplicate_groups,
         }
+        if self.fair_id is not None:
+            payload["fair_id"] = self.fair_id
+        if self.fair_name is not None:
+            payload["fair_name"] = self.fair_name
+        return payload
 
 
 def build_duplicate_customer_groups_dataset(
@@ -112,12 +119,14 @@ def build_duplicate_customer_groups_dataset(
     organization_id: UUID,
     run_id: UUID,
     group_by: GroupByField,
+    fair_id: UUID | None = None,
 ) -> DuplicateCustomerGroupsDatasetSummary:
     summary, member_rows = analyze_customer_groups_by_field(
         session,
         organization_id=organization_id,
         group_by=group_by,
         company_name_fuzzy_matching=(group_by == "company_name"),
+        fair_id=fair_id,
     )
 
     dataset_repo = SqlAlchemyDataOperationDatasetRepository(session)
@@ -144,4 +153,6 @@ def build_duplicate_customer_groups_dataset(
         total_customers=summary.total_customers,
         duplicate_groups=summary.duplicate_groups,
         customers_in_duplicate_groups=summary.customers_in_duplicate_groups,
+        fair_id=summary.fair_id,
+        fair_name=summary.fair_name,
     )

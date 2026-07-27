@@ -51,15 +51,22 @@ class FieldGroupAnalysisSummary:
     total_customers: int
     duplicate_groups: int
     customers_in_duplicate_groups: int
+    fair_id: str | None = None
+    fair_name: str | None = None
 
-    def to_json(self) -> dict[str, int | str]:
-        return {
+    def to_json(self) -> dict[str, int | str | None]:
+        payload: dict[str, int | str | None] = {
             "dataset_kind": self.dataset_kind,
             "group_by": self.group_by,
             "total_customers": self.total_customers,
             "duplicate_groups": self.duplicate_groups,
             "customers_in_duplicate_groups": self.customers_in_duplicate_groups,
         }
+        if self.fair_id is not None:
+            payload["fair_id"] = self.fair_id
+        if self.fair_name is not None:
+            payload["fair_name"] = self.fair_name
+        return payload
 
 
 def grouping_keys_for_customer(
@@ -207,26 +214,52 @@ def analyze_customer_groups_by_field(
     organization_id: UUID,
     group_by: GroupByField,
     company_name_fuzzy_matching: bool = False,
+    fair_id: UUID | None = None,
 ) -> tuple[FieldGroupAnalysisSummary, list[FieldGroupMemberRow]]:
     if group_by not in GROUP_BY_FIELDS:
         raise ValueError(f"Unsupported group_by field: {group_by}")
 
-    models = (
-        exclude_merge_deleted_customers(
-            session.query(CustomerModel)
-            .options(
-                load_only(
-                    CustomerModel.id,
-                    CustomerModel.display_name,
-                    CustomerModel.legal_name,
-                    CustomerModel.normalized_name,
-                )
+    fair_name: str | None = None
+    if fair_id is not None:
+        from app.modules.fairs.infrastructure.persistence.models import FairModel
+
+        fair_row = (
+            session.query(FairModel)
+            .filter(
+                FairModel.organization_id == organization_id,
+                FairModel.id == fair_id,
             )
-            .filter(CustomerModel.organization_id == organization_id)
+            .one_or_none()
         )
-        .order_by(CustomerModel.display_name.asc(), CustomerModel.id.asc())
-        .all()
+        if fair_row is None:
+            raise ValueError("Fair not found")
+        fair_name = fair_row.name
+
+    customer_query = exclude_merge_deleted_customers(
+        session.query(CustomerModel)
+        .options(
+            load_only(
+                CustomerModel.id,
+                CustomerModel.display_name,
+                CustomerModel.legal_name,
+                CustomerModel.normalized_name,
+            )
+        )
+        .filter(CustomerModel.organization_id == organization_id)
     )
+    if fair_id is not None:
+        participating_customer_ids = (
+            session.query(CustomerFairParticipationModel.customer_id)
+            .filter(
+                CustomerFairParticipationModel.fair_id == fair_id,
+                CustomerFairParticipationModel.deleted_at.is_(None),
+                CustomerFairParticipationModel.is_active.is_(True),
+            )
+            .distinct()
+        )
+        customer_query = customer_query.filter(CustomerModel.id.in_(participating_customer_ids))
+
+    models = customer_query.order_by(CustomerModel.display_name.asc(), CustomerModel.id.asc()).all()
     fair_counts, first_fair_names = _load_fair_metadata(session)
 
     communications: dict[UUID, CustomerCommunications] = {}
@@ -329,5 +362,7 @@ def analyze_customer_groups_by_field(
         total_customers=len(models),
         duplicate_groups=group_count,
         customers_in_duplicate_groups=len(member_rows),
+        fair_id=str(fair_id) if fair_id is not None else None,
+        fair_name=fair_name,
     )
     return summary, member_rows

@@ -506,6 +506,7 @@ def run_data_operation(
             access_token=access_token(credentials),
             operation_key=operation_key,
             group_by=request_body.group_by,
+            fair_id=request_body.fair_id,
         )
     except ForbiddenError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc

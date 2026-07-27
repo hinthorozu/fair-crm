@@ -315,11 +315,14 @@ class DataOperationJobRunner:
                         "group_by is required for duplicate customer analysis "
                         "(company_name, email, website, or phone)"
                     )
+                fair_id_raw = payload.get("fair_id")
+                fair_id = UUID(str(fair_id_raw)) if fair_id_raw else None
                 summary = build_duplicate_customer_groups_dataset(
                     db,
                     organization_id=organization_id,
                     run_id=run_id,
                     group_by=group_by_raw,  # type: ignore[arg-type]
+                    fair_id=fair_id,
                 )
             else:
                 summary = builder(db, organization_id=organization_id, run_id=run_id)

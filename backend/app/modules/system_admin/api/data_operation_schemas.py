@@ -57,6 +57,10 @@ class RunDataOperationRequest(BaseModel):
         default=None,
         description="Grouping field for duplicate customer analysis: company_name, email, website, or phone",
     )
+    fair_id: UUID | None = Field(
+        default=None,
+        description="Optional fair scope: only customers with active participation in this fair",
+    )
 
 
 class RunDataOperationResponse(BaseModel):

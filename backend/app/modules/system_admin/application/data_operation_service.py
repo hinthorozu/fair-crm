@@ -150,6 +150,7 @@ class RunDataOperationUseCase:
         access_token: str,
         operation_key: str,
         group_by: str | None = None,
+        fair_id: UUID | None = None,
     ) -> DataOperationRun:
         if not self._authorization.check_permission(
             organization_id=organization_id,
@@ -183,7 +184,10 @@ class RunDataOperationUseCase:
             now=now,
         )
         if operation_key == DUPLICATE_CUSTOMER_ANALYSIS_OPERATION_KEY and group_by:
-            run.summary_json = {"group_by": group_by}
+            summary_payload: dict[str, str] = {"group_by": group_by}
+            if fair_id is not None:
+                summary_payload["fair_id"] = str(fair_id)
+            run.summary_json = summary_payload
         return self._repository.add(run)
 
 
