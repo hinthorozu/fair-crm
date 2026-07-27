@@ -23,6 +23,9 @@ export async function listFairs(params: ListFairsParams = {}): Promise<StandardL
       ...params.filters,
     },
   });
+  // FastAPI AliasChoices on `direction` does not bind `sort_order`; `sort_dir` is accepted.
+  const sortOrder = query.get("sort_order");
+  if (sortOrder) query.set("sort_dir", sortOrder);
   const raw = await apiRequest<unknown>(`/api/v1/fairs?${query.toString()}`);
   return normalizeStandardListResponse<Fair>(raw);
 }

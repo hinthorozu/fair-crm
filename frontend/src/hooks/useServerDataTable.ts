@@ -51,6 +51,19 @@ function nextSortCycle(
   if (current.direction === "asc") {
     return { field, direction: "desc" };
   }
+  // Same field, currently desc (or unknown). Clearing the default sort field while it is
+  // already at the default direction is a no-op (load falls back to the same default).
+  // Toggle to the opposite direction instead so header clicks actually change order.
+  if (
+    defaultSort &&
+    field === defaultSort.field &&
+    current.direction === defaultSort.direction
+  ) {
+    return {
+      field,
+      direction: defaultSort.direction === "desc" ? "asc" : "desc",
+    };
+  }
   if (defaultSort && field === defaultSort.field) {
     return { field: null, direction: null };
   }

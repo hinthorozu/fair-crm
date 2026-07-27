@@ -154,11 +154,15 @@ def list_fairs(
         Query(validation_alias=AliasChoices("sort_by", "sort")),
     ] = None,
     sort_by: Annotated[str | None, Query(include_in_schema=False)] = None,
+    sort_order: Annotated[
+        str | None,
+        Query(pattern="^(?i)(asc|desc)$"),
+    ] = None,
     direction: Annotated[
         str | None,
         Query(
             pattern="^(?i)(asc|desc)$",
-            validation_alias=AliasChoices("sort_order", "sort_dir", "direction"),
+            validation_alias=AliasChoices("sort_dir", "direction"),
         ),
     ] = None,
     sort_dir: Annotated[str | None, Query(include_in_schema=False)] = None,
@@ -194,6 +198,7 @@ def list_fairs(
         sort_by=sort_by,
         direction=direction,
         sort_dir=sort_dir,
+        sort_order=sort_order or request.query_params.get("sort_order"),
         default_sort=DEFAULT_SORT_FIELD,
         allowed_sort_fields=ALLOWED_SORT_FIELDS,
         default_direction=DEFAULT_SORT_DIRECTION,
