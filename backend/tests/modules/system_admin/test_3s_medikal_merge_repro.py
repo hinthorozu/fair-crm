@@ -273,6 +273,4 @@ def test_duplicate_group_merge_execute_3s_medikal_group(client, auth_headers, db
     db_session.expire_all()
     for loser_id in body["customers_deleted"]:
         loser = db_session.get(CustomerModel, UUID(loser_id) if isinstance(loser_id, str) else loser_id)
-        assert loser is not None
-        assert loser.status == CustomerStatus.DELETED.value
-        assert loser.deleted_at is not None
+        assert loser is None

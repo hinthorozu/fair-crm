@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.modules.customers.application.customer_merge_reassignment import (
     CustomerMergeReassignmentError,
-    mark_loser_customers_deleted,
+    hard_delete_loser_customers,
     reassign_loser_customer_relationships,
 )
 from app.modules.customers.application.duplicate_group_merge import (
@@ -106,11 +106,10 @@ def execute_duplicate_group_merge(
         survivor_model.updated_at = timestamp
         session.flush()
 
-        mark_loser_customers_deleted(
+        hard_delete_loser_customers(
             session,
             organization_id=organization_id,
             loser_ids=loser_ids,
-            now=timestamp,
         )
         session.flush()
     except IntegrityError as exc:

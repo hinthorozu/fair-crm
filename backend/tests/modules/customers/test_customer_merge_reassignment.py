@@ -4,7 +4,7 @@ from uuid import uuid4
 from app.modules.activities.infrastructure.persistence.models import ActivityModel
 from app.modules.contacts.infrastructure.persistence.models import ContactModel
 from app.modules.customers.application.customer_merge_reassignment import (
-    mark_loser_customers_deleted,
+    hard_delete_loser_customers,
     reassign_loser_customer_relationships,
 )
 from app.modules.customers.domain.value_objects import CustomerStatus, CustomerType
@@ -91,26 +91,23 @@ def test_reassign_loser_customer_relationships_moves_all_related_rows(db_session
         loser_ids=[loser.id],
         now=now,
     )
-    mark_loser_customers_deleted(
+    hard_delete_loser_customers(
         db_session,
         organization_id=organization_id,
         loser_ids=[loser.id],
-        now=now,
     )
     db_session.flush()
 
     db_session.refresh(contact)
     db_session.refresh(activity)
     db_session.refresh(import_row)
-    db_session.refresh(loser)
 
     assert contact.customer_id == survivor.id
     assert activity.customer_id == survivor.id
     assert import_row.match_customer_id == survivor.id
     assert import_row.created_customer_id == survivor.id
     assert import_row.updated_customer_id == survivor.id
-    assert loser.deleted_at is not None
-    assert loser.status == CustomerStatus.DELETED.value
+    assert db_session.get(CustomerModel, loser.id) is None
 
     assert (
         db_session.query(CustomerFairParticipationModel)
