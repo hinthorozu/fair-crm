@@ -3,6 +3,8 @@
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
+from sqlalchemy import text as sa_text
+
 from app.modules.customers.domain.value_objects import CustomerStatus, CustomerType
 from app.modules.customers.infrastructure.persistence.models import CustomerModel
 from app.modules.fairs.infrastructure.persistence.models import FairModel
@@ -803,9 +805,7 @@ def test_duplicate_group_merge_execute_endpoint(client, auth_headers, db_session
     survivor = db_session.get(CustomerModel, first_id)
     deleted = db_session.get(CustomerModel, second_id)
     assert survivor is not None
-    assert deleted is not None
-    assert deleted.deleted_at is not None
-    assert deleted.status == CustomerStatus.DELETED.value
+    assert deleted is None
 
     survivor_emails = (
         db_session.query(CustomerEmailModel)
@@ -1317,6 +1317,127 @@ def test_analyze_customers_without_fair_dataset(client, auth_headers, db_session
     assert data["items"][0]["display_name"] == "Unassigned Co"
 
 
+def test_analyze_customers_without_fair_excludes_live_participations_and_deleted_customers(
+    client, auth_headers, db_session, organization_id
+):
+    """Live participations exclude customer; soft-deleted participation alone does not;
+    merge/soft-deleted customers are out of scope."""
+    now = datetime.now(tz=UTC)
+    live_with_fair = CustomerModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        display_name="Live With Fair Co",
+        normalized_name="live with fair co",
+        customer_type=CustomerType.LEAD.value,
+        status=CustomerStatus.ACTIVE.value,
+        source="manual",
+        created_at=now,
+        updated_at=now,
+    )
+    only_soft_participation = CustomerModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        display_name="Only Soft Participation Co",
+        normalized_name="only soft participation co",
+        customer_type=CustomerType.LEAD.value,
+        status=CustomerStatus.ACTIVE.value,
+        source="manual",
+        created_at=now,
+        updated_at=now,
+    )
+    truly_without = CustomerModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        display_name="Truly Without Fair Co",
+        normalized_name="truly without fair co",
+        customer_type=CustomerType.LEAD.value,
+        status=CustomerStatus.ACTIVE.value,
+        source="manual",
+        created_at=now,
+        updated_at=now,
+    )
+    merge_deleted = CustomerModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        display_name="Merge Deleted Without Fair Co",
+        normalized_name="merge deleted without fair co",
+        customer_type=CustomerType.LEAD.value,
+        status=CustomerStatus.DELETED.value,
+        source="manual",
+        deleted_at=now,
+        created_at=now,
+        updated_at=now,
+    )
+    fair = FairModel(
+        id=uuid4(),
+        organization_id=organization_id,
+        name="Scope Fair",
+        normalized_name="scope fair",
+        status="planned",
+        created_at=now,
+        updated_at=now,
+    )
+    db_session.add_all(
+        [live_with_fair, only_soft_participation, truly_without, merge_deleted, fair]
+    )
+    db_session.flush()
+    db_session.add_all(
+        [
+            CustomerFairParticipationModel(
+                id=uuid4(),
+                organization_id=organization_id,
+                customer_id=live_with_fair.id,
+                fair_id=fair.id,
+                participation_status="exhibitor",
+                is_active=True,
+                created_at=now,
+                updated_at=now,
+            ),
+            CustomerFairParticipationModel(
+                id=uuid4(),
+                organization_id=organization_id,
+                customer_id=only_soft_participation.id,
+                fair_id=fair.id,
+                participation_status="exhibitor",
+                is_active=False,
+                deleted_at=now,
+                created_at=now,
+                updated_at=now,
+            ),
+        ]
+    )
+    db_session.flush()
+    live_with_fair_id = str(live_with_fair.id)
+    only_soft_participation_id = str(only_soft_participation.id)
+    truly_without_id = str(truly_without.id)
+    merge_deleted_id = str(merge_deleted.id)
+
+    create = client.post(
+        "/api/v1/admin/data-operations/analyze_customers_without_fair/run",
+        headers=auth_headers,
+    )
+    assert create.status_code == 202
+    run_id = create.json()["id"]
+
+    listing = client.get(
+        f"/api/v1/admin/data-operations/runs/{run_id}/dataset/customers",
+        headers=auth_headers,
+        params={"page": 1, "page_size": 100},
+    )
+    assert listing.status_code == 200
+    ids = {item["id"] for item in listing.json()["items"]}
+    assert live_with_fair_id not in ids
+    assert merge_deleted_id not in ids
+    assert only_soft_participation_id in ids
+    assert truly_without_id in ids
+
+    detail = client.get(f"/api/v1/admin/data-operations/runs/{run_id}", headers=auth_headers)
+    summary = detail.json()["summary_json"]
+    assert summary["customers_with_fair"] == 1
+    assert summary["customers_without_fair"] == 2
+    assert summary["total_customers"] == 3
+
+
 def test_run_unknown_operation_returns_404(client, auth_headers):
     response = client.post(
         "/api/v1/admin/data-operations/unknown_operation/run",
@@ -1450,4 +1571,11 @@ def test_delete_selected_customers_from_analyze_dataset(client, auth_headers, db
     assert summary["total_customers"] == 1
     assert summary["customers_without_fair"] == 0
 
-    assert db_session.get(CustomerModel, UUID(customer_id)) is None
+    # Hard delete: physical row gone (not soft-deleted leftover).
+    assert (
+        db_session.execute(
+            sa_text("SELECT COUNT(*) FROM crm_customers WHERE id = :id"),
+            {"id": customer_id},
+        ).scalar()
+        == 0
+    )

@@ -4,9 +4,12 @@ from dataclasses import dataclass
 from typing import Literal
 from uuid import UUID
 
-from sqlalchemy import func
+from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 
+from app.modules.customers.application.customer_duplicate_eligibility import (
+    exclude_merge_deleted_customers,
+)
 from app.modules.customers.application.customer_field_grouping import (
     GroupByField,
     analyze_customer_groups_by_field,
@@ -35,38 +38,57 @@ class CustomersWithoutFairDatasetSummary:
         }
 
 
+def _live_customer_query(session: Session, *, organization_id: UUID):
+    """Same live customer scope as customer list/detail: not soft/merge-deleted."""
+    return exclude_merge_deleted_customers(
+        session.query(CustomerModel).filter(
+            CustomerModel.organization_id == organization_id,
+            CustomerModel.deleted_at.is_(None),
+        )
+    )
+
+
+def _live_participation_join():
+    """Match Customer Detail / participation repository: deleted_at IS NULL."""
+    return and_(
+        CustomerModel.id == CustomerFairParticipationModel.customer_id,
+        CustomerFairParticipationModel.organization_id == CustomerModel.organization_id,
+        CustomerFairParticipationModel.deleted_at.is_(None),
+    )
+
+
 def build_customers_without_fair_dataset(
     session: Session,
     *,
     organization_id: UUID,
     run_id: UUID,
 ) -> CustomersWithoutFairDatasetSummary:
-    customer_query = session.query(CustomerModel).filter(CustomerModel.organization_id == organization_id)
-    total_customers = customer_query.count()
+    total_customers = _live_customer_query(session, organization_id=organization_id).count()
 
     assigned_customer_count = (
-        session.query(func.count(func.distinct(CustomerModel.id)))
-        .select_from(CustomerModel)
-        .join(
-            CustomerFairParticipationModel,
-            CustomerModel.id == CustomerFairParticipationModel.customer_id,
-        )
-        .filter(CustomerModel.organization_id == organization_id)
-        .scalar()
+        exclude_merge_deleted_customers(
+            session.query(func.count(func.distinct(CustomerModel.id)))
+            .select_from(CustomerModel)
+            .join(CustomerFairParticipationModel, _live_participation_join())
+            .filter(
+                CustomerModel.organization_id == organization_id,
+                CustomerModel.deleted_at.is_(None),
+            )
+        ).scalar()
         or 0
     )
 
     unassigned_ids = [
         row[0]
         for row in (
-            session.query(CustomerModel.id)
-            .outerjoin(
-                CustomerFairParticipationModel,
-                CustomerModel.id == CustomerFairParticipationModel.customer_id,
-            )
-            .filter(
-                CustomerModel.organization_id == organization_id,
-                CustomerFairParticipationModel.id.is_(None),
+            exclude_merge_deleted_customers(
+                session.query(CustomerModel.id)
+                .outerjoin(CustomerFairParticipationModel, _live_participation_join())
+                .filter(
+                    CustomerModel.organization_id == organization_id,
+                    CustomerModel.deleted_at.is_(None),
+                    CustomerFairParticipationModel.id.is_(None),
+                )
             )
             .order_by(CustomerModel.display_name.asc(), CustomerModel.id.asc())
             .all()

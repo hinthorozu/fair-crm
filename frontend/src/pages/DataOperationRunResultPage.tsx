@@ -23,12 +23,14 @@ interface DataOperationRunResultPageProps {
   runId: string;
   operationKey?: string | null;
   onBack: () => void;
+  onOpenCustomer?: (customerId: string) => void;
 }
 
 export function DataOperationRunResultPage({
   runId,
   operationKey: operationKeyFromRoute,
   onBack,
+  onOpenCustomer,
 }: DataOperationRunResultPageProps) {
   const [resolvedOperationKey, setResolvedOperationKey] = React.useState<string | null>(
     operationKeyFromRoute ?? null,
@@ -99,5 +101,5 @@ export function DataOperationRunResultPage({
     return <DataOperationDuplicateResultPage runId={runId} onBack={onBack} />;
   }
 
-  return <DataOperationAnalyzeResultPage runId={runId} onBack={onBack} />;
+  return <DataOperationAnalyzeResultPage runId={runId} onBack={onBack} onOpenCustomer={onOpenCustomer} />;
 }

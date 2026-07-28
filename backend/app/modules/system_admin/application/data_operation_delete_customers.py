@@ -1,4 +1,9 @@
-"""Delete selected customers from an analyze dataset (background job)."""
+"""Hard-delete selected customers from an analyze dataset (background job).
+
+This path physically removes rows from ``crm_customers`` (SQL DELETE).
+It does not soft-delete (no ``deleted_at``, no ``status=deleted``).
+Child/related rows follow existing DB FK rules (CASCADE / SET NULL).
+"""
 
 from __future__ import annotations
 
@@ -60,6 +65,7 @@ def delete_selected_customers(
     parent_run_id: UUID,
     customer_ids: list[UUID],
 ) -> DeleteSelectedCustomersResult:
+    """Hard-delete selected without-fair customers in one transaction (caller commits)."""
     dataset_repo = SqlAlchemyDataOperationDatasetRepository(db)
     run_repo = SqlAlchemyDataOperationRunRepository(db)
 
@@ -69,9 +75,9 @@ def delete_selected_customers(
         customer_ids=customer_ids,
     )
 
-    deleted = 0
     skipped = 0
     failed = 0
+    to_hard_delete: list[UUID] = []
     removed_ids: list[UUID] = []
     now = datetime.now(tz=UTC)
 
@@ -80,8 +86,15 @@ def delete_selected_customers(
             failed += 1
             continue
 
-        customer_model = db.get(CustomerModel, customer_id)
-        if customer_model is None or customer_model.organization_id != organization_id:
+        customer_model = (
+            db.query(CustomerModel)
+            .filter(
+                CustomerModel.id == customer_id,
+                CustomerModel.organization_id == organization_id,
+            )
+            .one_or_none()
+        )
+        if customer_model is None:
             failed += 1
             continue
 
@@ -90,13 +103,22 @@ def delete_selected_customers(
             removed_ids.append(customer_id)
             continue
 
-        try:
-            db.delete(customer_model)
-            db.flush()
-            deleted += 1
-            removed_ids.append(customer_id)
-        except Exception:
-            failed += 1
+        to_hard_delete.append(customer_id)
+
+    deleted = 0
+    hard_delete_ids = list(dict.fromkeys(to_hard_delete))
+    if hard_delete_ids:
+        # Physical DELETE — DB ON DELETE CASCADE / SET NULL apply to related rows.
+        deleted = (
+            db.query(CustomerModel)
+            .filter(
+                CustomerModel.organization_id == organization_id,
+                CustomerModel.id.in_(hard_delete_ids),
+            )
+            .delete(synchronize_session=False)
+        )
+        db.flush()
+        removed_ids.extend(hard_delete_ids)
 
     removed_count = dataset_repo.remove_customer_rows(
         run_id=parent_run_id,

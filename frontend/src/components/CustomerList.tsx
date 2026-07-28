@@ -236,13 +236,24 @@ export function buildAnalysisCustomerColumns(
     createdAt: string;
     updatedAt: string;
   },
+  options?: {
+    onOpenCustomer?: (customerId: string) => void;
+  },
 ): UniversalDataTableColumn<Customer>[] {
+  const onOpenCustomer = options?.onOpenCustomer;
   return [
     {
       key: "name",
       title: columnTitles.companyName,
       sortable: true,
-      render: (c) => <strong>{c.display_name}</strong>,
+      render: (c) =>
+        onOpenCustomer ? (
+          <TableEntityLink className="name-link" onClick={() => onOpenCustomer(c.id)}>
+            <strong>{c.display_name}</strong>
+          </TableEntityLink>
+        ) : (
+          <strong>{c.display_name}</strong>
+        ),
     },
     {
       key: "legal_name",

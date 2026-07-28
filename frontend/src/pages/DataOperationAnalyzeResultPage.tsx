@@ -29,28 +29,39 @@ const POLL_INTERVAL_MS = 2000;
 interface DataOperationAnalyzeResultPageProps {
   runId: string;
   onBack: () => void;
+  onOpenCustomer?: (customerId: string) => void;
 }
-
-const analysisColumns = buildAnalysisCustomerColumns({
-  companyName: adminLabels.dataOpColCompanyName,
-  legalName: adminLabels.dataOpColLegalName,
-  tradeName: adminLabels.dataOpColTradeName,
-  customerType: adminLabels.dataOpColCustomerType,
-  status: adminLabels.dataOpColStatusField,
-  phone: adminLabels.dataOpColPhone,
-  email: adminLabels.dataOpColEmail,
-  website: adminLabels.dataOpColWebsite,
-  city: adminLabels.dataOpColCity,
-  country: adminLabels.dataOpColCountry,
-  createdAt: adminLabels.dataOpColCreatedAt,
-  updatedAt: adminLabels.dataOpColUpdatedAt,
-});
 
 function isRunInProgress(run: DataOperationRun | null): boolean {
   return run?.status === "queued" || run?.status === "running";
 }
 
-export function DataOperationAnalyzeResultPage({ runId, onBack }: DataOperationAnalyzeResultPageProps) {
+export function DataOperationAnalyzeResultPage({
+  runId,
+  onBack,
+  onOpenCustomer,
+}: DataOperationAnalyzeResultPageProps) {
+  const analysisColumns = React.useMemo(
+    () =>
+      buildAnalysisCustomerColumns(
+        {
+          companyName: adminLabels.dataOpColCompanyName,
+          legalName: adminLabels.dataOpColLegalName,
+          tradeName: adminLabels.dataOpColTradeName,
+          customerType: adminLabels.dataOpColCustomerType,
+          status: adminLabels.dataOpColStatusField,
+          phone: adminLabels.dataOpColPhone,
+          email: adminLabels.dataOpColEmail,
+          website: adminLabels.dataOpColWebsite,
+          city: adminLabels.dataOpColCity,
+          country: adminLabels.dataOpColCountry,
+          createdAt: adminLabels.dataOpColCreatedAt,
+          updatedAt: adminLabels.dataOpColUpdatedAt,
+        },
+        { onOpenCustomer },
+      ),
+    [onOpenCustomer],
+  );
   const [run, setRun] = React.useState<DataOperationRun | null>(null);
   const [runInitialLoading, setRunInitialLoading] = React.useState(true);
   const [runError, setRunError] = React.useState<string | null>(null);

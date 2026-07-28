@@ -1115,6 +1115,7 @@ export function App() {
           runId={parsed.dataOperationRunId}
           operationKey={parsed.dataOperationKey}
           onBack={goToDuplicateCheck}
+          onOpenCustomer={goToCustomerDetail}
         />
       )}
       {parsed.route === "/operations/:id" && parsed.operationId && (
