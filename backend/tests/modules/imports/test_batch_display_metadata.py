@@ -45,6 +45,7 @@ def _batch(
         created_at=now,
         updated_at=now,
         completed_at=None,
+        analyzed_at=None,
         notes=None,
     )
 

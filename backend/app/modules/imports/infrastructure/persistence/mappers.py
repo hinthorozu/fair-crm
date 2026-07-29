@@ -37,6 +37,7 @@ def batch_model_to_entity(model: ImportBatchModel) -> ImportBatch:
         created_at=model.created_at,
         updated_at=model.updated_at,
         completed_at=model.completed_at,
+        analyzed_at=model.analyzed_at,
         notes=model.notes,
     )
 
@@ -68,6 +69,7 @@ def batch_entity_to_model(entity: ImportBatch) -> ImportBatchModel:
         created_at=entity.created_at,
         updated_at=entity.updated_at,
         completed_at=entity.completed_at,
+        analyzed_at=entity.analyzed_at,
         notes=entity.notes,
     )
 
@@ -95,6 +97,7 @@ def update_batch_model_from_entity(model: ImportBatchModel, entity: ImportBatch)
     model.stored_file_content = entity.stored_file_content
     model.updated_at = entity.updated_at
     model.completed_at = entity.completed_at
+    model.analyzed_at = entity.analyzed_at
     model.notes = entity.notes
 
 

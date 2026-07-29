@@ -215,6 +215,7 @@ class ImportBatchResult:
     column_mapping_json: Optional[dict[str, Any]] = None
     fair_name: Optional[str] = None
     adapter_key: Optional[str] = None
+    analyzed_at: Optional[datetime] = None
 
 
 @dataclass(frozen=True)

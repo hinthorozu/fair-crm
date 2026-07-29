@@ -38,6 +38,7 @@ def batch_to_result(
         created_at=batch.created_at,
         updated_at=batch.updated_at,
         completed_at=batch.completed_at,
+        analyzed_at=batch.analyzed_at,
         notes=batch.notes,
         selected_sheet_name=batch.selected_sheet_name,
         available_sheets=(batch.raw_preview_json or {}).get("available_sheets") or [],

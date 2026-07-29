@@ -18,9 +18,14 @@ import type { ImportBatch } from "../types/import";
 import { importBatchStatusBadgeVariant } from "../utils/importBadges";
 import {
   canAnalyzeImportBatch,
+  canReanalyzeImportBatch,
   isImportBatchOperationInProgress,
   showContinueImportBatch,
 } from "../utils/importListActions";
+import {
+  formatImportLastAnalyzedAt,
+  importAnalysisStatusLabel,
+} from "../utils/importAnalysisDisplay";
 import { Banner } from "../components/ui/Banner";
 import { TableRowActions } from "../components/ui/TableRowActions";
 import { TableEntityLink } from "../components/ui/TableEntityLink";
@@ -28,6 +33,7 @@ import { TruncatedText } from "../components/ui/TruncatedText";
 import { PageShell } from "../components/ui/PageShell";
 
 const canAnalyze = canAnalyzeImportBatch;
+const canReanalyze = canReanalyzeImportBatch;
 const isOperationInProgress = isImportBatchOperationInProgress;
 const showContinue = showContinueImportBatch;
 
@@ -101,6 +107,20 @@ const IMPORT_COLUMNS = (
     ),
   },
   {
+    key: "analysis_status",
+    title: dataIntegrationLabels.colAnalysisStatus,
+    sortable: false,
+    priority: "primary",
+    render: (batch) => importAnalysisStatusLabel(batch),
+  },
+  {
+    key: "analyzed_at",
+    title: dataIntegrationLabels.colLastAnalyzed,
+    sortable: false,
+    priority: "secondary",
+    render: (batch) => formatImportLastAnalyzedAt(batch.analyzed_at),
+  },
+  {
     key: "total_rows",
     title: dataIntegrationLabels.colRows,
     sortable: true,
@@ -131,6 +151,18 @@ const IMPORT_COLUMNS = (
             {handlers.analyzingBatchId === batch.id
               ? dataIntegrationLabels.analyzeBatchRunning
               : dataIntegrationLabels.analyzeBatch}
+          </button>
+        )}
+        {canReanalyze(batch.status) && (
+          <button
+            type="button"
+            className="btn btn-sm btn-secondary"
+            disabled={handlers.analyzingBatchId === batch.id}
+            onClick={() => handlers.onAnalyze?.(batch, { reanalyze: true })}
+          >
+            {handlers.analyzingBatchId === batch.id
+              ? dataIntegrationLabels.reanalyzeBatchRunning
+              : dataIntegrationLabels.reanalyzeBatch}
           </button>
         )}
         {isOperationInProgress(batch.status) && (
@@ -263,7 +295,7 @@ export function DataIntegrationImportsPage({
         table={table}
         columns={columns}
         rowKey={(batch) => batch.id}
-        skeletonCols={5}
+        skeletonCols={7}
         emptyState={<EmptyState title={dataIntegrationLabels.importsEmpty} description="" />}
       />
       {(table.error || actionError) && (

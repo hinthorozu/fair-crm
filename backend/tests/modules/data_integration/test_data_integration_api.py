@@ -136,6 +136,8 @@ def test_reanalyze_job_on_decision_required_batch(client, auth_headers):
 
     batch = client.get(f"/api/v1/data-integration/imports/{batch_id}", headers=auth_headers)
     assert batch.json()["status"] == "decision_required"
+    assert batch.json()["analyzed_at"] is not None
+    first_analyzed_at = batch.json()["analyzed_at"]
 
     second = client.post(f"/api/v1/data-integration/imports/{batch_id}/analyze-job", headers=auth_headers)
     assert second.status_code == 202
@@ -148,6 +150,8 @@ def test_reanalyze_job_on_decision_required_batch(client, auth_headers):
 
     batch_after = client.get(f"/api/v1/data-integration/imports/{batch_id}", headers=auth_headers)
     assert batch_after.json()["status"] == "decision_required"
+    assert batch_after.json()["analyzed_at"] is not None
+    assert batch_after.json()["analyzed_at"] >= first_analyzed_at
 
 
 def _canonical_payload(*, fair_id: str):

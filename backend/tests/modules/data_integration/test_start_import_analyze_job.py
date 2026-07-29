@@ -43,6 +43,7 @@ def _batch(*, status: ImportBatchStatus) -> ImportBatch:
         created_at=now,
         updated_at=now,
         completed_at=None,
+        analyzed_at=None,
         notes=None,
     )
 

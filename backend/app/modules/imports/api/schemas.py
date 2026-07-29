@@ -33,6 +33,7 @@ class ImportBatchResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     completed_at: Optional[datetime] = None
+    analyzed_at: Optional[datetime] = None
     notes: Optional[str] = None
     selected_sheet_name: Optional[str] = None
     available_sheets: list[str] = Field(default_factory=list)

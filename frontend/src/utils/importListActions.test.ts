@@ -8,10 +8,9 @@ describe("importBatchListPrimaryActions", () => {
     expect(importBatchListPrimaryActions("analysis_failed")).toEqual(["analyze"]);
   });
 
-  it("does not offer analyze after analysis completes", () => {
+  it("offers reanalyze and continue after analysis completes", () => {
     for (const status of ["decision_required", "analyzed", "previewed"] as const) {
-      expect(importBatchListPrimaryActions(status)).toEqual(["continue"]);
-      expect(importBatchListPrimaryActions(status)).not.toContain("analyze");
+      expect(importBatchListPrimaryActions(status)).toEqual(["reanalyze", "continue"]);
     }
   });
 

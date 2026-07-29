@@ -40,6 +40,7 @@ class ImportBatchModel(Base):
     created_at: Mapped[datetime] = mapped_column()
     updated_at: Mapped[datetime] = mapped_column()
     completed_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    analyzed_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
 

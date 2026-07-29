@@ -136,6 +136,7 @@ export interface ImportBatch {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  analyzed_at?: string | null;
   notes: string | null;
   selected_sheet_name?: string | null;
   available_sheets?: string[];

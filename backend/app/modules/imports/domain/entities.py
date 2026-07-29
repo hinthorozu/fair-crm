@@ -42,6 +42,7 @@ class ImportBatch:
     created_at: datetime
     updated_at: datetime
     completed_at: Optional[datetime]
+    analyzed_at: Optional[datetime]
     notes: Optional[str]
 
     @classmethod
@@ -84,6 +85,7 @@ class ImportBatch:
             created_at=now,
             updated_at=now,
             completed_at=None,
+            analyzed_at=None,
             notes=None,
         )
 
@@ -127,6 +129,7 @@ class ImportBatch:
             created_at=now,
             updated_at=now,
             completed_at=None,
+            analyzed_at=None,
             notes=None,
         )
 
@@ -166,6 +169,7 @@ class ImportBatch:
             created_at=now,
             updated_at=now,
             completed_at=None,
+            analyzed_at=None,
             notes=None,
         )
 
@@ -239,11 +243,13 @@ class ImportBatch:
 
     def mark_analyzed(self, *, now: datetime) -> None:
         self.status = ImportBatchStatus.ANALYZED
+        self.analyzed_at = now
         self.updated_at = now
 
     def mark_decision_required(self, *, now: datetime) -> None:
         self.status = ImportBatchStatus.DECISION_REQUIRED
         self.notes = None
+        self.analyzed_at = now
         self.updated_at = now
 
     def mark_analysis_failed(self, *, now: datetime, notes: str | None = None) -> None:
