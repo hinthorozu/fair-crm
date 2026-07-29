@@ -17,6 +17,7 @@ from app.modules.participations.api.dependencies import (
     get_get_participation_use_case,
     get_list_by_customer_use_case,
     get_list_by_fair_use_case,
+    get_move_participations_to_fair_use_case,
     get_update_participation_use_case,
     require_read_permission,
 )
@@ -27,6 +28,8 @@ from app.modules.participations.api.schemas import (
     ErrorResponse,
     FairParticipantListItemResponse,
     FairParticipantListResponse,
+    MoveParticipationsToFairRequest,
+    MoveParticipationsToFairResponse,
     ParticipationResponse,
     UpdateParticipationRequest,
 )
@@ -36,6 +39,7 @@ from app.modules.participations.application.commands import (
     GetParticipationQuery,
     ListParticipationsByCustomerQuery,
     ListParticipantsByFairQuery,
+    MoveParticipationsToFairCommand,
     UpdateParticipationCommand,
 )
 from app.modules.participations.application.create_participation import CreateParticipationUseCase
@@ -53,6 +57,9 @@ from app.modules.participations.application.list_by_fair import (
     DEFAULT_SORT_FIELD as FAIR_DEFAULT_SORT_FIELD,
     ListParticipantsByFairUseCase,
 )
+from app.modules.participations.application.move_participations_to_fair import (
+    MoveParticipationsToFairUseCase,
+)
 from app.modules.participations.application.update_participation import UpdateParticipationUseCase
 from app.modules.participations.domain.exceptions import (
     CustomerArchivedForParticipationError,
@@ -60,8 +67,10 @@ from app.modules.participations.domain.exceptions import (
     DuplicateParticipationError,
     FairArchivedForParticipationError,
     FairNotFoundForParticipationError,
+    MoveParticipationsIncompleteError,
     ParticipationAlreadyDeletedError,
     ParticipationNotFoundError,
+    SameFairMoveError,
 )
 
 router = APIRouter(prefix="/fair-participations", tags=["fair-participations"])
@@ -243,6 +252,53 @@ def list_participants_by_fair(
                 FairParticipantListItemResponse.model_validate(i.__dict__) for i in result.items
             ]
         },
+    )
+
+
+@fair_participants_router.post(
+    "/move-to-fair",
+    response_model=MoveParticipationsToFairResponse,
+    responses={
+        400: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        409: {"model": ErrorResponse},
+    },
+    summary="Move all participants from this fair to a target fair",
+)
+def move_participants_to_fair(
+    fair_id: UUID,
+    body: MoveParticipationsToFairRequest,
+    auth: AuthContext = Depends(get_auth_context),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case: MoveParticipationsToFairUseCase = Depends(get_move_participations_to_fair_use_case),
+) -> MoveParticipationsToFairResponse:
+    try:
+        result = use_case.execute(
+            MoveParticipationsToFairCommand(
+                organization_id=auth.organization_id,
+                user_id=auth.user_id,
+                access_token=_access_token(credentials),
+                source_fair_id=fair_id,
+                target_fair_id=body.target_fair_id,
+            )
+        )
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except FairNotFoundForParticipationError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except FairArchivedForParticipationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except SameFairMoveError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except MoveParticipationsIncompleteError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return MoveParticipationsToFairResponse(
+        source_fair_id=result.source_fair_id,
+        target_fair_id=result.target_fair_id,
+        moved_count=result.moved_count,
+        already_on_target_count=result.already_on_target_count,
+        source_remaining=result.source_remaining,
     )
 
 

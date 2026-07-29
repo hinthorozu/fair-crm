@@ -5,6 +5,7 @@ import {
   createParticipation,
   deleteParticipation,
   listParticipantsByFair,
+  moveParticipantsToFair,
   updateParticipation,
 } from "../api/participations";
 import { ApiError } from "../api/client";
@@ -16,6 +17,7 @@ import {
   formValuesToUpdatePayload,
   type ParticipationFormValues,
 } from "../components/ParticipationForm";
+import { MoveCustomersToFairModal } from "../components/MoveCustomersToFairModal";
 import { FairBulkEmailWizard } from "../components/fairs/FairBulkEmailWizard";
 import { FairBulkEmailBatchLogs } from "../components/fairs/FairBulkEmailBatchLogs";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
@@ -87,7 +89,9 @@ export function FairDetailPage({
   const [activeTab, setActiveTabState] = React.useState<TabId>(tabFromUrl);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [modal, setModal] = React.useState<"edit-fair" | "create" | "edit" | "bulk-email" | null>(null);
+  const [modal, setModal] = React.useState<
+    "edit-fair" | "create" | "edit" | "bulk-email" | "move-customers" | null
+  >(null);
   const [editing, setEditing] = React.useState<FairParticipantListItem | null>(null);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [archiving, setArchiving] = React.useState(false);
@@ -99,6 +103,8 @@ export function FairDetailPage({
   const [lastImportAt, setLastImportAt] = React.useState<string | null>(null);
   const [logsRefreshToken, setLogsRefreshToken] = React.useState(0);
   const [highlightBatchId, setHighlightBatchId] = React.useState<string | null>(null);
+  const [moveTargetFairId, setMoveTargetFairId] = React.useState("");
+  const [movingCustomers, setMovingCustomers] = React.useState(false);
 
   const detailPath = `/fairs/${fairId}`;
 
@@ -166,12 +172,17 @@ export function FairDetailPage({
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
+  const refreshParticipantCount = React.useCallback(async () => {
+    const res = await listParticipantsByFair(fairId, { page: 1, pageSize: 1 });
+    setParticipantCount(res.pagination.totalItems);
+  }, [fairId]);
+
   React.useEffect(() => {
     if (!fair) return;
-    void listParticipantsByFair(fairId, { page: 1, pageSize: 1 }).then((res) => {
-      setParticipantCount(res.pagination.totalItems);
+    void refreshParticipantCount().catch(() => {
+      // best-effort count
     });
-  }, [fairId, fair]);
+  }, [fair, refreshParticipantCount]);
 
   React.useEffect(() => {
     if (activeTab === "participants") {
@@ -179,9 +190,32 @@ export function FairDetailPage({
     }
   }, [activeTab, participantsTable.pagination.totalItems]);
 
-  const closeModal = React.useCallback(() => setModal(null), []);
+  const closeModal = React.useCallback(() => {
+    setModal(null);
+    setMoveTargetFairId("");
+  }, []);
   const closeConfirmDelete = React.useCallback(() => setConfirmDelete(null), []);
   const closeConfirmArchive = React.useCallback(() => setConfirmArchive(false), []);
+
+  const handleMoveCustomers = async () => {
+    if (!moveTargetFairId) return;
+    setMovingCustomers(true);
+    setError(null);
+    try {
+      await moveParticipantsToFair(fairId, moveTargetFairId);
+      setModal(null);
+      setMoveTargetFairId("");
+      setRunSuccess(fairLabels.moveCustomersSuccess);
+      await refreshParticipantCount();
+      if (activeTab === "participants") {
+        await participantsTable.refresh();
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : fairLabels.moveCustomersError);
+    } finally {
+      setMovingCustomers(false);
+    }
+  };
 
   const handleBulkEmailSent = React.useCallback((result: SendBulkEmailResponse) => {
     setRunSuccess(result.message || fairLabels.bulkEmailSuccess);
@@ -304,6 +338,16 @@ export function FairDetailPage({
       label: participationLabels.addCompany,
       variant: "secondary",
       onClick: openCreateParticipant,
+      disabled: isArchived,
+    },
+    {
+      id: "move-customers",
+      label: fairLabels.moveCustomersAction,
+      variant: "secondary",
+      onClick: () => {
+        setMoveTargetFairId("");
+        setModal("move-customers");
+      },
       disabled: isArchived,
     },
     {
@@ -568,6 +612,16 @@ export function FairDetailPage({
           />
         </FormModal>
       )}
+
+      <MoveCustomersToFairModal
+        open={modal === "move-customers"}
+        sourceFairId={fairId}
+        targetFairId={moveTargetFairId}
+        moving={movingCustomers}
+        onTargetFairChange={setMoveTargetFairId}
+        onClose={closeModal}
+        onConfirm={() => void handleMoveCustomers()}
+      />
 
       {confirmDelete && (
         <ConfirmDialog

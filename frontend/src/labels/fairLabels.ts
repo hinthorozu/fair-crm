@@ -150,6 +150,21 @@ export const fairLabels = {
     failed: "Hatalı",
     skipped: "Atlandı",
   } as Record<string, string>,
+
+  moveCustomersAction: "Müşterileri Başka Fuara Taşı",
+  moveCustomersTitle: "Müşterileri Başka Fuara Taşı",
+  moveCustomersDescription:
+    "Bu fuardaki tüm müşteri katılımları seçtiğiniz hedef fuara taşınır. Kaynak fuar silinmez.",
+  moveCustomersTargetLabel: "Hedef Fuar",
+  moveCustomersTargetPlaceholder: "Hedef fuar ara…",
+  moveCustomersConfirm:
+    "Bu fuardaki tüm müşteriler [Target Fair] fuarına taşınacak. Source fuarda müşteri kalmayacak.",
+  moveCustomersConfirmHint: "Hedef fuarı seçin. Source fuarda müşteri kalmayacak.",
+  moveCustomersConfirmAction: "Taşı",
+  moveCustomersCancel: "İptal",
+  moveCustomersMoving: "Taşınıyor…",
+  moveCustomersSuccess: "Müşteriler hedef fuara taşındı.",
+  moveCustomersError: "Müşteriler taşınamadı.",
 } as const;
 
 export const fairStatusLabels: Record<string, string> = {

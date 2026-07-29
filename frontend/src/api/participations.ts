@@ -72,3 +72,24 @@ export function deleteParticipation(id: string): Promise<Participation> {
 export function getParticipation(id: string): Promise<Participation> {
   return apiRequest<Participation>(`/api/v1/fair-participations/${id}`);
 }
+
+export interface MoveParticipantsToFairResult {
+  source_fair_id: string;
+  target_fair_id: string;
+  moved_count: number;
+  already_on_target_count: number;
+  source_remaining: number;
+}
+
+export function moveParticipantsToFair(
+  sourceFairId: string,
+  targetFairId: string,
+): Promise<MoveParticipantsToFairResult> {
+  return apiRequest<MoveParticipantsToFairResult>(
+    `/api/v1/fairs/${sourceFairId}/participants/move-to-fair`,
+    {
+      method: "POST",
+      body: JSON.stringify({ target_fair_id: targetFairId }),
+    },
+  );
+}

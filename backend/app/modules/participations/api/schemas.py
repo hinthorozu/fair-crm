@@ -73,5 +73,17 @@ class FairParticipantListResponse(StandardListResponse[FairParticipantListItemRe
     pass
 
 
+class MoveParticipationsToFairRequest(BaseModel):
+    target_fair_id: UUID
+
+
+class MoveParticipationsToFairResponse(BaseModel):
+    source_fair_id: UUID
+    target_fair_id: UUID
+    moved_count: int
+    already_on_target_count: int
+    source_remaining: int
+
+
 class ErrorResponse(BaseModel):
     detail: str

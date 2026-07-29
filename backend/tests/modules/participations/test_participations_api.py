@@ -287,3 +287,110 @@ def test_get_participation(client, auth_headers):
     assert body["id"] == participation_id
     assert body["notes"] == "Salon notu"
     assert "participation_status" not in body
+
+
+def test_move_all_participants_to_fair(client, auth_headers):
+    source = _create_fair(client, auth_headers, "Move Source Fair")
+    target = _create_fair(client, auth_headers, "Move Target Fair")
+    customer_a = _create_customer(client, auth_headers, "Move Co A")
+    customer_b = _create_customer(client, auth_headers, "Move Co B")
+    customer_c = _create_customer(client, auth_headers, "Move Co C")
+    customer_d = _create_customer(client, auth_headers, "Move Co D")
+
+    for customer_id, fair_id, hall in (
+        (customer_a, source, "SA"),
+        (customer_b, source, "SB"),
+        (customer_c, source, "SC"),
+        (customer_c, target, "TC"),
+        (customer_d, target, "TD"),
+    ):
+        created = client.post(
+            "/api/v1/fair-participations",
+            json=_participation_payload(customer_id, fair_id, hall=hall),
+            headers=auth_headers,
+        )
+        assert created.status_code == 201
+
+    moved = client.post(
+        f"/api/v1/fairs/{source}/participants/move-to-fair",
+        json={"target_fair_id": target},
+        headers=auth_headers,
+    )
+    assert moved.status_code == 200, moved.text
+    body = moved.json()
+    assert body["moved_count"] == 2
+    assert body["already_on_target_count"] == 1
+    assert body["source_remaining"] == 0
+
+    source_list = client.get(f"/api/v1/fairs/{source}/participants", headers=auth_headers)
+    assert pagination_from(source_list.json())["totalItems"] == 0
+
+    target_list = client.get(
+        f"/api/v1/fairs/{target}/participants?pageSize=50",
+        headers=auth_headers,
+    )
+    assert pagination_from(target_list.json())["totalItems"] == 4
+    names = {item["company_name"] for item in target_list.json()["items"]}
+    assert names == {"Move Co A", "Move Co B", "Move Co C", "Move Co D"}
+    by_customer = {item["customer_id"]: item for item in target_list.json()["items"]}
+    assert by_customer[customer_c]["hall"] == "TC"
+    assert by_customer[customer_a]["hall"] == "SA"
+
+    same = client.post(
+        f"/api/v1/fairs/{source}/participants/move-to-fair",
+        json={"target_fair_id": source},
+        headers=auth_headers,
+    )
+    assert same.status_code == 400
+
+
+def test_move_all_participants_hard_deletes_source_rows(client, auth_headers, db_session):
+    """Duplicate source rows are physically deleted; source fair_id count is 0."""
+    from uuid import UUID
+
+    from app.modules.participations.infrastructure.persistence.models import (
+        CustomerFairParticipationModel,
+    )
+
+    source = _create_fair(client, auth_headers, "Hard Move Source")
+    target = _create_fair(client, auth_headers, "Hard Move Target")
+    customer_a = _create_customer(client, auth_headers, "Hard Move A")
+    customer_c = _create_customer(client, auth_headers, "Hard Move C")
+
+    for customer_id, fair_id in (
+        (customer_a, source),
+        (customer_c, source),
+        (customer_c, target),
+    ):
+        created = client.post(
+            "/api/v1/fair-participations",
+            json=_participation_payload(customer_id, fair_id),
+            headers=auth_headers,
+        )
+        assert created.status_code == 201
+
+    moved = client.post(
+        f"/api/v1/fairs/{source}/participants/move-to-fair",
+        json={"target_fair_id": target},
+        headers=auth_headers,
+    )
+    assert moved.status_code == 200, moved.text
+
+    source_uuid = UUID(source)
+    target_uuid = UUID(target)
+    source_physical = (
+        db_session.query(CustomerFairParticipationModel)
+        .filter(CustomerFairParticipationModel.fair_id == source_uuid)
+        .count()
+    )
+    assert source_physical == 0
+
+    target_active = (
+        db_session.query(CustomerFairParticipationModel)
+        .filter(
+            CustomerFairParticipationModel.fair_id == target_uuid,
+            CustomerFairParticipationModel.deleted_at.is_(None),
+        )
+        .count()
+    )
+    assert target_active == 2

@@ -123,3 +123,21 @@ class FairParticipantListResultDto:
     page_size: int
     total: int
     total_pages: int
+
+
+@dataclass(frozen=True)
+class MoveParticipationsToFairCommand:
+    organization_id: UUID
+    user_id: UUID
+    access_token: str
+    source_fair_id: UUID
+    target_fair_id: UUID
+
+
+@dataclass(frozen=True)
+class MoveParticipationsToFairResult:
+    source_fair_id: UUID
+    target_fair_id: UUID
+    moved_count: int
+    already_on_target_count: int
+    source_remaining: int

@@ -36,3 +36,11 @@ class ContactCustomerMismatchForParticipationError(Exception):
 
 class InvalidParticipationStatusError(Exception):
     pass
+
+
+class SameFairMoveError(Exception):
+    pass
+
+
+class MoveParticipationsIncompleteError(Exception):
+    pass

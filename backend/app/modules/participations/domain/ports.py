@@ -6,6 +6,13 @@ from uuid import UUID
 from app.modules.participations.domain.entities import CustomerFairParticipation
 
 
+@dataclass(frozen=True)
+class MoveParticipationsBulkResult:
+    moved_count: int
+    already_on_target_count: int
+    source_remaining: int
+
+
 @dataclass
 class ParticipationListResult:
     items: list[CustomerFairParticipation]
@@ -85,3 +92,12 @@ class ParticipationRepository(Protocol):
         sort_by: str = "company_name",
         sort_dir: str = "asc",
     ) -> FairParticipantListResult: ...
+
+    def move_all_active_to_fair(
+        self,
+        organization_id: UUID,
+        source_fair_id: UUID,
+        target_fair_id: UUID,
+        *,
+        now: datetime,
+    ) -> MoveParticipationsBulkResult: ...

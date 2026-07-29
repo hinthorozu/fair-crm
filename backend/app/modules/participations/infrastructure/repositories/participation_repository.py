@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import or_
@@ -13,11 +14,13 @@ from app.modules.customers.infrastructure.persistence.communication_query_helper
 from app.modules.customers.infrastructure.persistence.models import CustomerModel
 from app.modules.fairs.infrastructure.persistence.models import FairModel
 from app.modules.participations.domain.entities import CustomerFairParticipation
+from app.modules.participations.domain.exceptions import MoveParticipationsIncompleteError
 from app.modules.participations.domain.ports import (
     CustomerParticipationListResult,
     CustomerParticipationRow,
     FairParticipantListResult,
     FairParticipantRow,
+    MoveParticipationsBulkResult,
 )
 from app.modules.participations.infrastructure.persistence.mappers import (
     entity_to_model,
@@ -267,5 +270,89 @@ class SqlAlchemyParticipationRepository:
             page_size=meta.page_size,
             total=meta.total,
             total_pages=meta.total_pages,
+        )
+
+    def move_all_active_to_fair(
+        self,
+        organization_id: UUID,
+        source_fair_id: UUID,
+        target_fair_id: UUID,
+        *,
+        now: datetime,
+    ) -> MoveParticipationsBulkResult:
+        """Move every active source-fair participation onto target fair.
+
+        Customers already on the target keep their existing target participation;
+        the source row is **hard-deleted**. Other rows have ``fair_id`` updated in
+        place so hall/stand/notes and identity are preserved. Any leftover source
+        rows (including previously soft-deleted) are hard-deleted. After flush,
+        ``COUNT(*)`` for ``fair_id = source`` must be 0 or the transaction aborts.
+        """
+        target_customer_ids = {
+            customer_id
+            for (customer_id,) in self._session.query(CustomerFairParticipationModel.customer_id)
+            .filter(
+                CustomerFairParticipationModel.organization_id == organization_id,
+                CustomerFairParticipationModel.fair_id == target_fair_id,
+                CustomerFairParticipationModel.deleted_at.is_(None),
+            )
+            .all()
+        }
+
+        source_rows = (
+            self._session.query(CustomerFairParticipationModel)
+            .filter(
+                CustomerFairParticipationModel.organization_id == organization_id,
+                CustomerFairParticipationModel.fair_id == source_fair_id,
+                CustomerFairParticipationModel.deleted_at.is_(None),
+            )
+            .all()
+        )
+
+        moved_count = 0
+        already_on_target_count = 0
+        for row in source_rows:
+            if row.customer_id in target_customer_ids:
+                self._session.delete(row)
+                already_on_target_count += 1
+                continue
+            row.fair_id = target_fair_id
+            row.updated_at = now
+            target_customer_ids.add(row.customer_id)
+            moved_count += 1
+
+        self._session.flush()
+
+        # Physically remove any remaining source-fair rows (e.g. prior soft-deletes).
+        leftover = (
+            self._session.query(CustomerFairParticipationModel)
+            .filter(
+                CustomerFairParticipationModel.organization_id == organization_id,
+                CustomerFairParticipationModel.fair_id == source_fair_id,
+            )
+            .all()
+        )
+        for row in leftover:
+            self._session.delete(row)
+
+        self._session.flush()
+
+        source_remaining = (
+            self._session.query(CustomerFairParticipationModel.id)
+            .filter(
+                CustomerFairParticipationModel.organization_id == organization_id,
+                CustomerFairParticipationModel.fair_id == source_fair_id,
+            )
+            .count()
+        )
+        if source_remaining != 0:
+            raise MoveParticipationsIncompleteError(
+                f"Source fair still has {source_remaining} participation row(s) after move"
+            )
+
+        return MoveParticipationsBulkResult(
+            moved_count=moved_count,
+            already_on_target_count=already_on_target_count,
+            source_remaining=source_remaining,
         )
 

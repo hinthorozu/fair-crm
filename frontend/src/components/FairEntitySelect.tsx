@@ -15,6 +15,8 @@ export interface FairEntitySelectProps {
   allowClear?: boolean;
   /** Label for the clear option when allowClear is true (defaults to fairLabels.clearSelection). */
   clearOptionLabel?: string;
+  /** Fair ids that must not appear in the dropdown (e.g. current source fair). */
+  excludeFairIds?: string[];
 }
 
 function isArchived(fair: Fair): boolean {
@@ -29,8 +31,14 @@ export function FairEntitySelect({
   placeholder,
   allowClear = false,
   clearOptionLabel,
+  excludeFairIds = [],
 }: FairEntitySelectProps) {
   const clearLabel = clearOptionLabel ?? fairLabels.clearSelection;
+  const excludedKey = excludeFairIds.filter(Boolean).slice().sort().join("|");
+  const excludedIds = React.useMemo(
+    () => new Set(excludedKey ? excludedKey.split("|") : []),
+    [excludedKey],
+  );
   const [open, setOpen] = React.useState(false);
   const [searchText, setSearchText] = React.useState("");
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
@@ -81,7 +89,9 @@ export function FairEntitySelect({
       });
       if (reqId !== requestIdRef.current) return;
 
-      const visible = res.items.filter((fair) => !isArchived(fair));
+      const visible = res.items.filter(
+        (fair) => !isArchived(fair) && !excludedIds.has(fair.id),
+      );
       setItems((prev) => {
         if (!append) return visible;
         const seen = new Set(prev.map((fair) => fair.id));
@@ -97,13 +107,18 @@ export function FairEntitySelect({
         setLoadingMore(false);
       }
     }
-  }, []);
+  }, [excludedIds]);
 
   React.useEffect(() => {
     if (!open) return;
     void fetchPage(1, debouncedSearch, false);
   }, [open, debouncedSearch, fetchPage]);
 
+  React.useEffect(() => {
+    if (value && excludedIds.has(value)) {
+      onChange("");
+    }
+  }, [excludedIds, onChange, value]);
   React.useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
       if (containerRef.current?.contains(event.target as Node)) return;

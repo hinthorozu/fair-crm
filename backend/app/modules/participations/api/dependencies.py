@@ -21,6 +21,9 @@ from app.modules.participations.application.delete_participation import DeletePa
 from app.modules.participations.application.get_participation import GetParticipationUseCase
 from app.modules.participations.application.list_by_customer import ListParticipationsByCustomerUseCase
 from app.modules.participations.application.list_by_fair import ListParticipantsByFairUseCase
+from app.modules.participations.application.move_participations_to_fair import (
+    MoveParticipationsToFairUseCase,
+)
 from app.modules.participations.application.update_participation import UpdateParticipationUseCase
 from app.modules.participations.infrastructure.repositories.participation_repository import (
     SqlAlchemyParticipationRepository,
@@ -137,3 +140,17 @@ def get_list_by_fair_use_case(
     fair_repository: SqlAlchemyFairRepository = Depends(get_fair_repository),
 ) -> ListParticipantsByFairUseCase:
     return ListParticipantsByFairUseCase(participation_repository, fair_repository)
+
+
+def get_move_participations_to_fair_use_case(
+    participation_repository: SqlAlchemyParticipationRepository = Depends(get_participation_repository),
+    fair_repository: SqlAlchemyFairRepository = Depends(get_fair_repository),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
+) -> MoveParticipationsToFairUseCase:
+    return MoveParticipationsToFairUseCase(
+        participation_repository,
+        fair_repository,
+        authorization,
+        audit,
+    )
