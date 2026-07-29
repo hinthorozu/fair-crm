@@ -2446,6 +2446,54 @@ textarea.form-control-textarea {
   align-self: flex-start;
 }
 
+.todo-step-field-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.todo-checklist-section {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border, #d8dde6);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+}
+
+.todo-checklist-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.todo-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.todo-checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.todo-checklist-checkbox {
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.todo-checklist-text {
+  line-height: 1.4;
+  padding-top: 0.1rem;
+}
+
+.todo-checklist-text.is-completed {
+  text-decoration: line-through;
+  color: var(--muted, #6b7280);
+}
+
+
 .btn-sm {
   min-height: var(--control-height-sm);
   padding: 0.3rem 0.7rem;

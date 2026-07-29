@@ -2,6 +2,7 @@ import React from "react";
 import { getCustomer } from "../api/customers";
 import { getFair } from "../api/fairs";
 import { getTodo, updateTodo } from "../api/todos";
+import { listTodoSteps, replaceTodoSteps } from "../api/todoSteps";
 import {
   getTodoWorklistModalContext,
   getTodoWorklistProgress,
@@ -10,6 +11,7 @@ import {
 } from "../api/todoWorklist";
 import { ApiError } from "../api/client";
 import { CompleteTodoModal } from "../components/todos/CompleteTodoModal";
+import { TodoChecklist } from "../components/todos/TodoChecklist";
 import {
   TODO_FORM_ID,
   TodoForm,
@@ -19,6 +21,8 @@ import {
   type TodoFormValues,
 } from "../components/todos/TodoForm";
 import { TodoWorklistActivityModal } from "../components/todos/TodoWorklistActivityModal";
+import { formItemsToReplacePayload, stepsToFormItems } from "../utils/todoStepForm";
+import type { TodoStep } from "../types/todoStep";
 import { LoadingState } from "../components/ui/LoadingState";
 import { PageHeader, type PageHeaderAction } from "../components/ui/PageHeader";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
@@ -128,6 +132,7 @@ export function TodoDetailPage({
   onOpenCustomer,
 }: TodoDetailPageProps) {
   const [todo, setTodo] = React.useState<Todo | null>(null);
+  const [steps, setSteps] = React.useState<TodoStep[]>([]);
   const [loadingTodo, setLoadingTodo] = React.useState(true);
   const [todoError, setTodoError] = React.useState<string | null>(null);
   const [customerName, setCustomerName] = React.useState<string | null>(null);
@@ -200,16 +205,18 @@ export function TodoDetailPage({
   React.useEffect(() => {
     let cancelled = false;
     setLoadingTodo(true);
-    getTodo(todoId)
-      .then((loaded) => {
+    Promise.all([getTodo(todoId), listTodoSteps(todoId)])
+      .then(([loaded, loadedSteps]) => {
         if (cancelled) return;
         setTodo(loaded);
+        setSteps(loadedSteps);
         setTodoError(null);
         onTodoLoaded?.(loaded.title);
       })
       .catch((err) => {
         if (cancelled) return;
         setTodo(null);
+        setSteps([]);
         setTodoError(err instanceof ApiError ? err.message : todoLabels.loadError);
       })
       .finally(() => {
@@ -315,7 +322,11 @@ export function TodoDetailPage({
 
   const handleEditSubmit = async (values: TodoFormValues) => {
     const updated = await updateTodo(todoId, formValuesToUpdatePayload(values));
+    const nextSteps = await replaceTodoSteps(todoId, {
+      steps: formItemsToReplacePayload(values.steps),
+    });
     setTodo(updated);
+    setSteps(nextSteps);
     setEditOpen(false);
     setSaveSuccess(todoLabels.updateSuccess);
     onTodoLoaded?.(updated.title);
@@ -530,6 +541,13 @@ export function TodoDetailPage({
         </dl>
       </Card>
 
+      <TodoChecklist
+        todoId={todoId}
+        steps={steps}
+        onStepsChange={setSteps}
+        canToggle={canUpdate && canEditTodo(todo)}
+      />
+
       {hasSourceFair ? (
         <>
           {progress && (
@@ -628,8 +646,8 @@ export function TodoDetailPage({
           }
         >
           <TodoForm
-            hydrateKey={todo.id}
-            initial={todoToFormValues(todo)}
+            hydrateKey={`${todo.id}:${steps.map((s) => s.id).join(",")}`}
+            initial={todoToFormValues(todo, stepsToFormItems(steps))}
             onSubmit={handleEditSubmit}
             onSavingChange={setFormSaving}
           />

@@ -26,6 +26,7 @@ from app.modules.todos.api.routes import router as todos_router
 from app.modules.todos.api.outcome_routes import router as todo_outcomes_router
 from app.modules.todos.api.follow_up_routes import router as follow_ups_router
 from app.modules.todos.api.worklist_routes import router as todo_worklist_router
+from app.modules.todos.api.step_routes import router as todo_steps_router
 from app.modules.dashboard.api.routes import router as dashboard_router
 from app.modules.operations.api.routes import router as operations_router
 from app.modules.email_webhooks.api.routes import router as email_webhooks_router
@@ -53,6 +54,7 @@ api_v1_router.include_router(mail_templates_router)
 api_v1_router.include_router(mail_send_operations_router)
 api_v1_router.include_router(fair_emails_router)
 api_v1_router.include_router(todos_router)
+api_v1_router.include_router(todo_steps_router)
 api_v1_router.include_router(todo_outcomes_router)
 api_v1_router.include_router(todo_worklist_router)
 api_v1_router.include_router(dashboard_router)

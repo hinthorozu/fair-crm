@@ -6,6 +6,7 @@ import {
   listTodos,
   updateTodo,
 } from "../api/todos";
+import { listTodoSteps, replaceTodoSteps } from "../api/todoSteps";
 import { ApiError } from "../api/client";
 import { CompleteTodoModal } from "../components/todos/CompleteTodoModal";
 import {
@@ -17,6 +18,7 @@ import {
   todoToFormValues,
   type TodoFormValues,
 } from "../components/todos/TodoForm";
+import { formItemsToReplacePayload, stepsToFormItems, type TodoStepFormItem } from "../utils/todoStepForm";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
 import {
@@ -190,6 +192,7 @@ export function TodosPage({ onOpenDetail, onOpenCustomer }: TodosPageProps) {
   const [success, setSuccess] = React.useState<string | null>(null);
   const [modal, setModal] = React.useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = React.useState<Todo | null>(null);
+  const [editingSteps, setEditingSteps] = React.useState<TodoStepFormItem[]>([]);
   const [completingTodo, setCompletingTodo] = React.useState<Todo | null>(null);
   const [confirm, setConfirm] = React.useState<ConfirmAction>(null);
   const [actionLoadingId, setActionLoadingId] = React.useState<string | null>(null);
@@ -266,7 +269,11 @@ export function TodosPage({ onOpenDetail, onOpenCustomer }: TodosPageProps) {
   };
 
   const handleCreate = async (values: TodoFormValues) => {
-    await createTodo(formValuesToCreatePayload(values));
+    const created = await createTodo(formValuesToCreatePayload(values));
+    const stepPayload = formItemsToReplacePayload(values.steps);
+    if (stepPayload.length > 0) {
+      await replaceTodoSteps(created.id, { steps: stepPayload });
+    }
     setModal(null);
     setSuccess(todoLabels.createSuccess);
     await refreshAfterAction();
@@ -275,11 +282,27 @@ export function TodosPage({ onOpenDetail, onOpenCustomer }: TodosPageProps) {
   const handleUpdate = async (values: TodoFormValues) => {
     if (!editing) return;
     await updateTodo(editing.id, formValuesToUpdatePayload(values));
+    await replaceTodoSteps(editing.id, { steps: formItemsToReplacePayload(values.steps) });
     setModal(null);
     setEditing(null);
+    setEditingSteps([]);
     setSuccess(todoLabels.updateSuccess);
     await refreshAfterAction();
   };
+
+  const openEdit = React.useCallback(async (todo: Todo) => {
+    setActionLoadingId(todo.id);
+    try {
+      const steps = await listTodoSteps(todo.id);
+      setEditingSteps(stepsToFormItems(steps));
+      setEditing(todo);
+      setModal("edit");
+    } catch (err) {
+      console.error(err instanceof ApiError ? err.message : todoLabels.stepsLoadError);
+    } finally {
+      setActionLoadingId(null);
+    }
+  }, []);
 
   const handleCompleteSuccess = async () => {
     setCompletingTodo(null);
@@ -406,8 +429,7 @@ export function TodosPage({ onOpenDetail, onOpenCustomer }: TodosPageProps) {
                   className="btn link"
                   disabled={loading}
                   onClick={() => {
-                    setEditing(todo);
-                    setModal("edit");
+                    void openEdit(todo);
                   }}
                 >
                   {todoLabels.actionEdit}
@@ -449,7 +471,7 @@ export function TodosPage({ onOpenDetail, onOpenCustomer }: TodosPageProps) {
       },
     ];
     return cols;
-  }, [actionLoadingId, canArchive, canDelete, canUpdate, onOpenDetail]);
+  }, [actionLoadingId, canArchive, canDelete, canUpdate, onOpenDetail, openEdit]);
 
   const tabItems = React.useMemo<TabItem<TodosHubView>[]>(
     () => [
@@ -726,8 +748,8 @@ export function TodosPage({ onOpenDetail, onOpenCustomer }: TodosPageProps) {
           }
         >
           <TodoForm
-            hydrateKey={editing.id}
-            initial={todoToFormValues(editing)}
+            hydrateKey={`${editing.id}:${editingSteps.map((s) => s.serverId ?? s.id).join(",")}`}
+            initial={todoToFormValues(editing, editingSteps)}
             onSubmit={handleUpdate}
             onSavingChange={setFormSaving}
           />

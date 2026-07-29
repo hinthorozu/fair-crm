@@ -88,3 +88,11 @@ class InvalidManualTaskMailRecipientsError(TodoDomainError):
 
 class InvalidManualTaskMailContentError(TodoDomainError):
     pass
+
+
+class TodoStepNotFoundError(TodoDomainError):
+    pass
+
+
+class InvalidTodoStepTitleError(TodoDomainError):
+    pass

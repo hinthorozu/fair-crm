@@ -90,6 +90,13 @@ export const todoLabels = {
   fieldUpdatedAt: "Güncelleme",
   fieldCompletedAt: "Tamamlanma",
   titleRequired: "Başlık zorunludur.",
+  stepsSection: "Görev Adımları",
+  stepsEmpty: "Henüz adım eklenmedi.",
+  stepAdd: "+ Adım Ekle",
+  stepRemove: "Sil",
+  stepPlaceholder: "Adım metni",
+  stepLabel: "Adım",
+  stepsLoadError: "Görev adımları yüklenemedi.",
 } as const;
 
 export const todoStatusLabels: Record<TodoStatus, string> = {

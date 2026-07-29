@@ -30,6 +30,8 @@ import type {
   TodoPriority,
   UpdateTodoPayload,
 } from "../../types/todo";
+import type { TodoStepFormItem } from "../../utils/todoStepForm";
+import { TodoStepFieldList } from "./TodoStepFieldList";
 
 export const TODO_FORM_ID = "todo-entity-form";
 
@@ -43,6 +45,7 @@ export interface TodoFormValues {
   assignee_user_id: string;
   customer_id: string;
   source_fair_id: string;
+  steps: TodoStepFormItem[];
 }
 
 export const defaultTodoFormValues = (): TodoFormValues => ({
@@ -55,9 +58,13 @@ export const defaultTodoFormValues = (): TodoFormValues => ({
   assignee_user_id: "",
   customer_id: "",
   source_fair_id: "",
+  steps: [],
 });
 
-export function todoToFormValues(todo: Todo): TodoFormValues {
+export function todoToFormValues(
+  todo: Todo,
+  steps: TodoStepFormItem[] = [],
+): TodoFormValues {
   const status: TodoFormStatus =
     todo.status === "todo" || todo.status === "in_progress" || todo.status === "cancelled"
       ? todo.status
@@ -75,6 +82,7 @@ export function todoToFormValues(todo: Todo): TodoFormValues {
     assignee_user_id: todo.assignee_user_id ?? "",
     customer_id: todo.customer_id ?? "",
     source_fair_id: todo.source_fair_id ?? "",
+    steps,
   };
 }
 
@@ -293,6 +301,10 @@ export function TodoForm({
             placeholder="00000000-0000-0000-0000-000000000000"
           />
         </FormField>
+        <TodoStepFieldList
+          items={values.steps}
+          onChange={(steps) => setValues((prev) => ({ ...prev, steps }))}
+        />
         {error ? <FieldError className="span-2">{error}</FieldError> : null}
       </FormGrid>
     </form>
