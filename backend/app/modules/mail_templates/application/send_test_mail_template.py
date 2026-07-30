@@ -1,5 +1,3 @@
-import re
-
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.client import HttpAuditAdapter
 from app.integrations.kyrox_core.ports import AuthorizationPort
@@ -23,12 +21,6 @@ from app.modules.mail_templates.domain.exceptions import (
     MailTemplateRenderError,
 )
 from app.modules.mail_templates.domain.ports import MailTemplateRepository, MailTemplateRenderer
-from app.modules.smtp.domain.exceptions import (
-    SmtpAccountAlreadyDeletedError,
-    SmtpAccountNotFoundError,
-    SmtpMailDeliveryError,
-)
-from app.modules.smtp.domain.ports import SmtpAccountRepository
 from app.modules.email_delivery.application.email_delivery_service import EmailDeliveryService
 from app.modules.smtp.domain.exceptions import (
     SmtpAccountAlreadyDeletedError,
@@ -36,9 +28,9 @@ from app.modules.smtp.domain.exceptions import (
     SmtpMailDeliveryError,
 )
 from app.modules.smtp.domain.ports import SmtpAccountRepository
+from app.shared.email import sanitize_scraped_email
 
 PERMISSION_TEST_SEND = "fair_crm.mail_templates.test_send"
-_RECIPIENT_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 RENDER_USER_MESSAGE = "Mail şablonu render edilirken hata oluştu. Değişkenleri kontrol edin."
 DEFAULT_SMTP_USER_MESSAGE = "Bu kuruluş için varsayılan e-posta hesabı bulunamadı."
 INACTIVE_TEMPLATE_USER_MESSAGE = "Pasif mail şablonu ile test email gönderilemez."
@@ -74,8 +66,8 @@ class SendTestMailTemplateUseCase:
         ):
             raise ForbiddenError("Permission denied")
 
-        recipient = command.to_email.strip()
-        if not recipient or not _RECIPIENT_PATTERN.match(recipient):
+        recipient = sanitize_scraped_email(command.to_email)
+        if recipient is None:
             raise InvalidMailTemplateTestRecipientError("Geçerli bir test alıcı e-posta adresi girin.")
 
         template = self._template_repository.get_by_id(command.organization_id, command.template_id)

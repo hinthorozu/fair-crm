@@ -78,7 +78,11 @@ def normalize_phone(value: str) -> str:
 
 
 def normalize_email(value: str) -> str:
-    """Lowercase and trim a single email address."""
+    """Lowercase/trim comparison key for already-stored emails.
+
+    Not a validation/sanitize path. For CRM write paths use
+    ``app.shared.email.sanitize_scraped_email`` / ``normalize_email_field``.
+    """
     return value.strip().lower()
 
 

@@ -33,12 +33,11 @@ from app.modules.smtp.domain.exceptions import (
     InvalidSmtpTestRecipientError,
     SmtpMailDeliveryError,
 )
-import re
+from app.shared.email import sanitize_scraped_email
 
 PERMISSION_READ = "fair_crm.email_accounts.read"
 PERMISSION_UPDATE = "fair_crm.email_accounts.update"
 PERMISSION_DELETE = "fair_crm.email_accounts.delete"
-_RECIPIENT_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 
 @dataclass(frozen=True)
@@ -235,9 +234,10 @@ class SendTestEmailAccountMailUseCase:
         ):
             raise ForbiddenError("Permission denied")
 
-        recipient = recipient.strip()
-        if not recipient or not _RECIPIENT_PATTERN.match(recipient):
+        cleaned_recipient = sanitize_scraped_email(recipient)
+        if cleaned_recipient is None:
             raise InvalidSmtpTestRecipientError("Valid recipient email is required")
+        recipient = cleaned_recipient
 
         from app.shared.consent import EmailConsentBlockedError
         from app.shared.email_consent_policy import EmailConsentPolicy

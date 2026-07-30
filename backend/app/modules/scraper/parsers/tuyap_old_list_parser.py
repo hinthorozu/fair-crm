@@ -8,6 +8,8 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup, Tag
 
+from app.shared.email import sanitize_scraped_email
+
 SALON_PATTERN = re.compile(r"Salon:\s*([A-Za-z0-9 /]+)", re.IGNORECASE)
 STANT_PATTERN = re.compile(r"Stant:\s*([A-Za-z0-9\-/A-Za-z]+)", re.IGNORECASE)
 NO_PRODUCT_GROUPS_TEXT = "ürün grubu bulunmamaktadır"
@@ -121,11 +123,7 @@ def _extract_email(contact_cell: Tag) -> str | None:
     mail_link = contact_cell.select_one('a[href^="mailto:"]')
     if mail_link is None:
         return None
-    href = str(mail_link.get("href", "")).strip()
-    if not href.lower().startswith("mailto:"):
-        return None
-    email = href[7:].split("?")[0].strip().lower()
-    return email or None
+    return sanitize_scraped_email(str(mail_link.get("href", "")))
 
 
 def _extract_website(contact_cell: Tag) -> str | None:

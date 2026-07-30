@@ -6,11 +6,10 @@ from typing import Callable, Optional, TypeVar
 from app.modules.customers.domain.communication_entities import CustomerCommunications
 from app.modules.customers.domain.exceptions import InvalidCustomerEmailError
 from app.modules.customers.domain.services.normalizers import (
-    normalize_email,
     normalize_phone,
     normalize_website,
 )
-from app.shared.email import is_valid_email_address, normalize_email_field
+from app.shared.email import normalize_email_field, sanitize_scraped_email
 
 T = TypeVar("T")
 
@@ -84,19 +83,20 @@ def emails_from_inputs(items: list[CommunicationValueInput]) -> list[str]:
     seen: set[str] = set()
     primary_index: int | None = None
 
-    for index, item in enumerate(items):
+    for item in items:
         raw = item.value.strip()
         if not raw:
             continue
-        email = normalize_email(raw)
-        if not is_valid_email_address(email):
+        # Same shared sanitize+validate path as scalar email / scraper / import.
+        cleaned = sanitize_scraped_email(raw)
+        if cleaned is None:
             raise InvalidCustomerEmailError(f"Invalid email address: {raw}")
-        if email in seen:
+        if cleaned in seen:
             continue
-        seen.add(email)
+        seen.add(cleaned)
         if item.is_primary and primary_index is None:
             primary_index = len(ordered)
-        ordered.append(email)
+        ordered.append(cleaned)
 
     if not ordered:
         return []

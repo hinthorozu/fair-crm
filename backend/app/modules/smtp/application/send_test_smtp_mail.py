@@ -1,5 +1,3 @@
-import re
-
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.client import HttpAuditAdapter
 from app.integrations.kyrox_core.ports import AuthorizationPort
@@ -13,14 +11,6 @@ from app.modules.smtp.application.smtp_test_debug import (
     build_test_mail_failure_result,
     log_smtp_test_mail_failure,
 )
-from app.modules.smtp.domain.exceptions import (
-    InvalidSmtpTestRecipientError,
-    SmtpAccountAlreadyDeletedError,
-    SmtpAccountNotFoundError,
-    SmtpMailDeliveryError,
-)
-from app.modules.smtp.domain.ports import SmtpAccountRepository
-from app.modules.smtp.domain.smtp_config_validation import smtp_config_warnings
 from app.modules.email_delivery.application.email_delivery_service import EmailDeliveryService
 from app.modules.smtp.domain.exceptions import (
     InvalidSmtpTestRecipientError,
@@ -30,9 +20,9 @@ from app.modules.smtp.domain.exceptions import (
 )
 from app.modules.smtp.domain.ports import SmtpAccountRepository
 from app.modules.smtp.domain.smtp_config_validation import smtp_config_warnings
+from app.shared.email import sanitize_scraped_email
 
 PERMISSION_UPDATE = "fair_crm.email_accounts.update"
-_RECIPIENT_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 
 class SendTestSmtpMailUseCase:
@@ -60,8 +50,8 @@ class SendTestSmtpMailUseCase:
         ):
             raise ForbiddenError("Permission denied")
 
-        recipient = command.recipient.strip()
-        if not recipient or not _RECIPIENT_PATTERN.match(recipient):
+        recipient = sanitize_scraped_email(command.recipient)
+        if recipient is None:
             raise InvalidSmtpTestRecipientError("Valid recipient email is required")
 
         account = self._repository.get_by_id(command.organization_id, command.account_id)

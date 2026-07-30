@@ -28,6 +28,7 @@ from app.modules.participations.infrastructure.persistence.models import (
 )
 
 EXPORT_HEADERS = [
+    "Customer UID",
     "Müşteri Adı",
     "Yasal Ünvan",
     "Ticari Ünvan",
@@ -125,6 +126,7 @@ class ExportCustomersUseCase:
             phones = [item.phone for item in (comm.phones if comm else [])]
             sheet.append(
                 [
+                    str(customer.id),
                     customer.display_name,
                     customer.legal_name or "",
                     customer.trade_name or "",

@@ -9,10 +9,10 @@ SAMPLE_DETAIL_HTML = """
     <p>Kategori: Gıda Ürünleri</p>
     <p>Adres: İstanbul Fuar Merkezi No: 12</p>
     <p>Telefon: +90 212 555 66 77</p>
-    <p>E-posta: info@alpha.test</p>
+    <p>E-posta: info@alpha.example</p>
     <p>Açıklama: Organik gıda üreticisi.</p>
     <a href="https://www.alpha.test">Website</a>
-    <a href="mailto:sales@alpha.test">Mail</a>
+    <a href="mailto:sales@alpha.example">Mail</a>
     <a href="tel:+902125556677">Call</a>
   </div>
 </body></html>
@@ -22,7 +22,7 @@ SAMPLE_DETAIL_HTML = """
 def test_foodist_detail_parser_extracts_email_and_phone():
     detail = parse_foodist_detail_html(SAMPLE_DETAIL_HTML)
 
-    assert detail.email == "info@alpha.test"
+    assert detail.email == "info@alpha.example"
     assert detail.phone is not None
     assert "212" in detail.phone
 

@@ -35,7 +35,7 @@ from app.modules.todos.domain.exceptions import (
     WorklistCustomerNotInTodoError,
 )
 from app.modules.todos.domain.ports import TodoRepository
-from app.shared.email import is_valid_email_address
+from app.shared.email import sanitize_scraped_email
 
 PERMISSION_CREATE = "fair_crm.todos.create"
 QUEUED_MESSAGE = "Mail gönderimleri kuyruğa alındı."
@@ -43,10 +43,9 @@ INACTIVE_SMTP_MESSAGE = "Seçilen SMTP hesabı pasif durumda."
 
 
 def parse_manual_task_mail_recipients(value: str) -> list[str]:
-    """Parse semicolon/comma-separated recipients; reject invalid or empty input.
+    """Parse semicolon/comma-separated recipients via shared sanitize+validate.
 
-    Only leading/trailing whitespace around each token is stripped. Internal spaces
-    are not removed — invalid tokens cause the whole parse to fail.
+    Unsalvageable tokens raise; leading/trailing whitespace around tokens is trimmed.
     """
     text = (value or "").strip()
     if not text:
@@ -59,15 +58,13 @@ def parse_manual_task_mail_recipients(value: str) -> list[str]:
         part = raw.strip()
         if not part:
             continue
-        # Validate the stripped token as-is (case preserved for the error message).
-        # Do not delete internal whitespace to coerce validity.
-        if not is_valid_email_address(part):
+        cleaned = sanitize_scraped_email(part)
+        if cleaned is None:
             raise InvalidManualTaskMailRecipientsError(f"Geçersiz e-posta adresi: {part}")
-        email = part.lower()
-        if email in seen:
+        if cleaned in seen:
             continue
-        seen.add(email)
-        normalized.append(email)
+        seen.add(cleaned)
+        normalized.append(cleaned)
 
     if not normalized:
         raise InvalidManualTaskMailRecipientsError("En az bir alıcı e-posta adresi gerekli.")

@@ -15,6 +15,7 @@ from app.modules.email_accounts.domain.error_policy import (
     ProviderErrorPolicy,
     ProviderErrorPolicyValidationError,
 )
+from app.shared.email import sanitize_scraped_email
 
 
 @dataclass
@@ -103,8 +104,12 @@ def normalize_provider_config(
             result[field_def.key] = ""
             continue
 
-        if field_def.field_type == "email" and "@" not in value:
-            raise ValueError(f"{field_def.key} must be a valid email address")
+        if field_def.field_type == "email":
+            cleaned = sanitize_scraped_email(value)
+            if cleaned is None:
+                raise ValueError(f"{field_def.key} must be a valid email address")
+            result[field_def.key] = cleaned
+            continue
         result[field_def.key] = value
 
     for field_def in definition.fields:

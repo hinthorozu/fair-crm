@@ -15,8 +15,9 @@ from app.modules.scraper.parsers.website_filters import (
     normalize_website_url,
     pick_first_company_website,
 )
+from app.shared.email import sanitize_scraped_email
 
-EMAIL_PATTERN = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
+EMAIL_PATTERN = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
 PHONE_PATTERN = re.compile(
     r"(?:\+?\d{1,3}[\s\-]?)?(?:\(?\d{3}\)?[\s\-]?)?\d{3}[\s\-]?\d{2,3}[\s\-]?\d{2,4}"
 )
@@ -225,25 +226,22 @@ def _extract_emails(html: str, text: str) -> list[str]:
     found: list[str] = []
     seen: set[str] = set()
 
+    def _accept(raw: str | None) -> None:
+        cleaned = sanitize_scraped_email(raw)
+        if cleaned is None or cleaned in seen:
+            return
+        seen.add(cleaned)
+        found.append(cleaned)
+
     for source in (html, text):
         for match in EMAIL_PATTERN.findall(source):
-            email = match.strip().lower()
-            if email in seen:
-                continue
-            seen.add(email)
-            found.append(email)
+            _accept(match)
 
     for match in re.finditer(r"""href=["']mailto:([^"']+)["']""", html, re.IGNORECASE):
-        email = match.group(1).split("?")[0].strip().lower()
-        if email and email not in seen:
-            seen.add(email)
-            found.append(email)
+        _accept(match.group(1))
 
     for match in re.finditer(r"""data-cfemail=["']([^"']+)["']""", html, re.IGNORECASE):
-        email = _decode_cfemail(match.group(1))
-        if email and email not in seen:
-            seen.add(email)
-            found.append(email)
+        _accept(_decode_cfemail(match.group(1)))
 
     return found
 
@@ -390,7 +388,7 @@ def _decode_cfemail(encoded: str) -> str | None:
             chars.append(chr(int(encoded[index : index + 2], 16) ^ key))
         except ValueError:
             return None
-    email = "".join(chars).strip().lower()
+    email = "".join(chars).strip()
     return email or None
 
 

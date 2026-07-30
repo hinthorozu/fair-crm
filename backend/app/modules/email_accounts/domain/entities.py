@@ -13,6 +13,7 @@ from app.modules.email_accounts.domain.exceptions import (
     UnsupportedEmailAccountTypeError,
 )
 from app.modules.email_accounts.domain.value_objects import EmailAccountType
+from app.shared.email import sanitize_scraped_email
 
 _ALLOWED_ENCRYPTION_TYPES = frozenset({"none", "ssl", "tls", "starttls"})
 _MIN_DELIVERY_ATTEMPTS = 1
@@ -89,8 +90,8 @@ class EmailAccount:
         if not trimmed_name:
             raise ValueError("name must not be empty")
 
-        trimmed_email = from_email.strip()
-        if not trimmed_email or "@" not in trimmed_email:
+        cleaned_email = sanitize_scraped_email(from_email)
+        if cleaned_email is None:
             raise ValueError("from_email must be a valid email address")
 
         resolved_type = _normalize_account_type(account_type)
@@ -113,7 +114,7 @@ class EmailAccount:
             name=trimmed_name,
             account_type=resolved_type,
             provider_key=trimmed_provider_key,
-            from_email=trimmed_email,
+            from_email=cleaned_email,
             from_name=from_name.strip() if from_name else None,
             is_default=is_default,
             is_active=is_active,
@@ -168,10 +169,10 @@ class EmailAccount:
             self.name = trimmed
 
         if from_email is not None:
-            trimmed = from_email.strip()
-            if not trimmed or "@" not in trimmed:
+            cleaned = sanitize_scraped_email(from_email)
+            if cleaned is None:
                 raise ValueError("from_email must be a valid email address")
-            self.from_email = trimmed
+            self.from_email = cleaned
 
         if from_name is not None:
             self.from_name = from_name.strip() if from_name else None

@@ -12,6 +12,7 @@ from app.modules.email_accounts.application.provider_definitions import MAILERSE
 from app.modules.email_accounts.domain.entities import EmailAccount
 from app.modules.email_delivery.domain.exceptions import EmailDeliveryError
 from app.modules.email_delivery.domain.results import EmailDeliveryResult
+from app.shared.email import is_valid_email_address
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ class MailerSendAdapter:
 
         from_email = (config.get("from_email") or account.from_email or "").strip()
         from_name = (config.get("from_name") or account.from_name or "").strip() or None
-        if not from_email or "@" not in from_email:
+        if not is_valid_email_address(from_email):
             raise EmailDeliveryError(
                 "MailerSend from_email is not configured",
                 error_code="MissingFromEmail",

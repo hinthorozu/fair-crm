@@ -19,8 +19,7 @@ import {
 } from "../../utils/emailAccountSelection";
 import { Banner } from "../ui/Banner";
 import { useModalFormCancel, useReportFormDirty } from "../../hooks/useModalForm";
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { isValidSingleEmail } from "../../utils/email";
 
 interface MailTemplateTestEmailPanelProps {
   template: MailTemplate;
@@ -96,7 +95,7 @@ export function MailTemplateTestEmailPanel({
 
   const previewStale = previewReady && variablesJson.trim() !== variablesSnapshot.trim();
 
-  const emailValid = EMAIL_PATTERN.test(toEmail.trim());
+  const emailValid = isValidSingleEmail(toEmail.trim());
   const subjectValid = subject.trim().length > 0;
   const canSend =
     canTestSend &&
@@ -133,7 +132,7 @@ export function MailTemplateTestEmailPanel({
         setError(adminLabels.mailTemplatesTestEmailRecipientRequired);
         return;
       }
-      if (!EMAIL_PATTERN.test(toEmail.trim())) {
+      if (!isValidSingleEmail(toEmail.trim())) {
         setError(adminLabels.mailTemplatesTestEmailInvalidEmail);
         return;
       }

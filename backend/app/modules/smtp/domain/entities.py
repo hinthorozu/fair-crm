@@ -17,6 +17,7 @@ from app.modules.smtp.domain.exceptions import (
     SmtpAccountNotDefaultEligibleError,
 )
 from app.modules.smtp.domain.value_objects import SmtpEncryptionType
+from app.shared.email import sanitize_scraped_email
 
 _MIN_DELIVERY_ATTEMPTS = 1
 _MAX_DELIVERY_ATTEMPTS = 5
@@ -92,8 +93,8 @@ class SmtpAccount:
         if not trimmed_name:
             raise InvalidSmtpAccountNameError("name must not be empty")
 
-        trimmed_email = from_email.strip()
-        if not trimmed_email or "@" not in trimmed_email:
+        cleaned_email = sanitize_scraped_email(from_email)
+        if cleaned_email is None:
             raise InvalidSmtpAccountEmailError("from_email must be a valid email address")
 
         trimmed_host = host.strip()
@@ -104,7 +105,7 @@ class SmtpAccount:
             id=uuid4(),
             organization_id=organization_id,
             name=trimmed_name,
-            from_email=trimmed_email,
+            from_email=cleaned_email,
             from_name=from_name.strip() if from_name else None,
             host=trimmed_host,
             port=_validate_port(port),
@@ -150,10 +151,10 @@ class SmtpAccount:
             self.name = trimmed
 
         if from_email is not None:
-            trimmed = from_email.strip()
-            if not trimmed or "@" not in trimmed:
+            cleaned = sanitize_scraped_email(from_email)
+            if cleaned is None:
                 raise InvalidSmtpAccountEmailError("from_email must be a valid email address")
-            self.from_email = trimmed
+            self.from_email = cleaned
 
         if from_name is not None:
             self.from_name = from_name.strip() if from_name else None

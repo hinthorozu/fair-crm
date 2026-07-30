@@ -1,4 +1,5 @@
 import { adminLabels } from "../labels/adminLabels";
+import { isValidSingleEmail } from "./email";
 import type {
   CreateEmailAccountPayload,
   EmailAccount,
@@ -86,8 +87,6 @@ export const EMPTY_EMAIL_ACCOUNT_FORM_VALUES: EmailAccountFormValues = {
   provider_config: {},
   error_policy_groups: defaultErrorPolicyGroups(),
 };
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Normalize comma/semicolon-separated identifiers: trim, drop empties, dedupe (order-preserving). */
 export function normalizeErrorIdentifiers(raw: string | string[] | null | undefined): string[] {
@@ -309,7 +308,7 @@ function validateProviderConfigFields(
     if (field.required && !value) {
       return adminLabels.smtpProviderFieldRequired.replace("{field}", field.label);
     }
-    if (value && (field.type === "email" || field.key === "from_email") && !EMAIL_PATTERN.test(value)) {
+    if (value && (field.type === "email" || field.key === "from_email") && !isValidSingleEmail(value)) {
       return adminLabels.smtpProviderFieldInvalidEmail.replace("{field}", field.label);
     }
   }
@@ -355,7 +354,7 @@ export function validateEmailAccountFormValues(
     return validateErrorPolicyGroups(values.error_policy_groups);
   }
 
-  if (!values.from_email.trim() || !EMAIL_PATTERN.test(values.from_email.trim())) {
+  if (!values.from_email.trim() || !isValidSingleEmail(values.from_email.trim())) {
     return "Geçerli bir gönderen e-posta adresi girin.";
   }
   if (!values.host.trim()) {

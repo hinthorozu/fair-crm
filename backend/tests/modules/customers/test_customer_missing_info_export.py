@@ -303,14 +303,28 @@ def test_export_customers_respects_filters_and_format(
     workbook = load_workbook(filename=BytesIO(export_res.content))
     sheet = workbook.active
     rows = list(sheet.iter_rows(values_only=True))
+    assert rows[0][0] == "Customer UID"
+    assert rows[0][1] == "Müşteri Adı"
     assert rows[0][-2:] == ("E-posta", "Telefon")
     assert rows[0][-3] == "Fuarlar"
     data_rows = rows[1:]
     assert len(data_rows) == list_total == 1
-    assert data_rows[0][0] == "Export No Website Co"
+    assert data_rows[0][0] == str(no_website.id)
+    assert data_rows[0][1] == "Export No Website Co"
     assert data_rows[0][-3] in ("", None)
     assert "noweb@export.example" in str(data_rows[0][-2])
     assert "0212 888 0000" in str(data_rows[0][-1])
+
+    # Same customer UID must be stable across repeated exports.
+    export_again = client.get(
+        "/api/v1/customers/export?search=Export&status=active&missing_info=no_website",
+        headers=auth_headers,
+    )
+    assert export_again.status_code == 200
+    again_rows = list(
+        load_workbook(filename=BytesIO(export_again.content)).active.iter_rows(values_only=True)
+    )[1:]
+    assert again_rows[0][0] == str(no_website.id)
 
     multi_export = client.get(
         "/api/v1/customers/export?search=Export+Multi&status=active",
@@ -329,7 +343,9 @@ def test_export_customers_respects_filters_and_format(
     phones_cell = str(multi_rows[0][-1])
     assert "0212 777 0001" in phones_cell
     assert "0212 777 0002" in phones_cell
-    assert other.display_name not in {row[0] for row in multi_rows}
+    assert multi_rows[0][0] == str(multi.id)
+    assert multi_rows[0][1] == multi.display_name
+    assert other.display_name not in {row[1] for row in multi_rows}
 
 
 def test_export_deduplicates_fair_names_for_same_customer(
@@ -412,6 +428,7 @@ def test_export_row_count_matches_list_total_for_combined_filters(
     list_total = pagination_from(list_res.json())["totalItems"]
     assert list_total == 1
     assert list_res.json()["items"][0]["display_name"] == "Parity Match Co"
+    list_uid = list_res.json()["items"][0]["id"]
 
     export_res = client.get(f"/api/v1/customers/export?{query}", headers=auth_headers)
     assert export_res.status_code == 200
@@ -419,4 +436,5 @@ def test_export_row_count_matches_list_total_for_combined_filters(
         load_workbook(filename=BytesIO(export_res.content)).active.iter_rows(values_only=True)
     )[1:]
     assert len(data_rows) == list_total
-    assert data_rows[0][0] == "Parity Match Co"
+    assert data_rows[0][0] == list_uid
+    assert data_rows[0][1] == "Parity Match Co"

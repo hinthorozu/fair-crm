@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from bs4 import BeautifulSoup
 
 from app.modules.scraper.parsers.website_filters import extract_social_urls
+from app.shared.email import sanitize_scraped_email
 
 NO_ABOUT_TEXT = "bulunmamaktadır"
 
@@ -93,5 +94,4 @@ def _extract_mailto_from_tag(tag) -> str | None:
     href = str(tag.get("href", "")).strip()
     if not href.lower().startswith("mailto:"):
         return None
-    email = href[7:].split("?")[0].strip().lower()
-    return email or None
+    return sanitize_scraped_email(href)
