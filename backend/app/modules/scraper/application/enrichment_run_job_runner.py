@@ -28,6 +28,10 @@ from app.modules.scraper.services.customer_enrichment_state_service import (
 )
 from app.modules.scraper.services.enrichment_run_executor import EnrichmentRunExecution, execute_enrichment_run
 from app.modules.scraper.services.adapter_instance_resolver import resolve_requested_fields
+from app.modules.scraper.services.enrichment_progress import (
+    enrichment_success_fail_counts,
+    report_enrichment_progress,
+)
 from app.modules.scraper.services.scraper_run_cancellation import RunCancelChecker
 from app.modules.scraper.services.scraper_run_history_service import create_run_history_service
 from app.modules.scraper.services.scraper_run_log_service import create_run_log_service
@@ -118,6 +122,25 @@ class EnrichmentRunJobRunner:
             db.commit()
 
             cancel_checker = RunCancelChecker(self._session_factory, command.run_id)
+
+            def _progress_callback(
+                processed: int,
+                total: int,
+                succeeded: int,
+                failed: int,
+            ) -> None:
+                report_enrichment_progress(
+                    self._session_factory,
+                    run_id=command.run_id,
+                    organization_id=command.organization_id,
+                    operation_id=command.operation_id,
+                    operation_run_id=command.operation_run_id,
+                    processed=processed,
+                    total=total,
+                    succeeded=succeeded,
+                    failed=failed,
+                )
+
             execution = self._executor(
                 db,
                 command.organization_id,
@@ -136,6 +159,19 @@ class EnrichmentRunJobRunner:
                 address_contains=command.address_contains,
                 dry_run=command.dry_run,
                 cancel_checker=cancel_checker,
+                progress_callback=_progress_callback,
+            )
+            succeeded_final, failed_final = enrichment_success_fail_counts(execution.results)
+            report_enrichment_progress(
+                self._session_factory,
+                run_id=command.run_id,
+                organization_id=command.organization_id,
+                operation_id=command.operation_id,
+                operation_run_id=command.operation_run_id,
+                processed=execution.processed_count,
+                total=execution.total_candidates,
+                succeeded=succeeded_final,
+                failed=failed_final,
             )
             history_service.touch_heartbeat(
                 command.run_id,

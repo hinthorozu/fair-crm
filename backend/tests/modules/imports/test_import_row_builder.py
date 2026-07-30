@@ -38,7 +38,31 @@ def test_validate_rejects_too_short_company_name():
 
 def test_validate_does_not_check_email():
     normalized = normalize_row_data({"company_name": "Acme", "email": "not-an-email"})
+    # Unsalvageable emails are dropped by the shared sanitize pipeline; row stays valid.
+    assert normalized["email"] is None
     assert validate_import_row(normalized) == []
+
+
+def test_normalize_row_data_uses_shared_email_sanitize_pipeline():
+    normalized = normalize_row_data(
+        {
+            "company_name": "Acme",
+            "email": "info [at] company [dot] com?subject=x",
+            "contact_email": "sales(at)ornek.com><i class=",
+        }
+    )
+    assert normalized["email"] == "info@company.com"
+    assert normalized["contact_email"] == "sales@ornek.com"
+
+
+def test_normalize_row_data_keeps_valid_multi_email_and_drops_junk_parts():
+    normalized = normalize_row_data(
+        {
+            "company_name": "Acme",
+            "email": "info@a.com; not-an-email; sales@a.com",
+        }
+    )
+    assert normalized["email"] == "info@a.com;sales@a.com"
 
 
 def test_validate_mapped_rows_detects_batch_duplicate():

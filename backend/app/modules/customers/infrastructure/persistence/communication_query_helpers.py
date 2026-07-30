@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import exists, select
+from sqlalchemy import exists, func, select
 
 from app.modules.customers.infrastructure.persistence.communication_models import (
     CustomerEmailModel,
@@ -10,6 +10,9 @@ from app.modules.customers.infrastructure.persistence.communication_models impor
     CustomerWebsiteModel,
 )
 from app.modules.customers.infrastructure.persistence.models import CustomerModel
+from app.modules.participations.infrastructure.persistence.models import (
+    CustomerFairParticipationModel,
+)
 
 
 def primary_phone_subquery():
@@ -68,5 +71,48 @@ def website_search_exists(pattern: str):
         select(1).where(
             CustomerWebsiteModel.customer_id == CustomerModel.id,
             CustomerWebsiteModel.website.ilike(pattern),
+        )
+    )
+
+
+def has_usable_website_exists():
+    """True when the customer has at least one non-blank website value."""
+    return exists(
+        select(1).where(
+            CustomerWebsiteModel.customer_id == CustomerModel.id,
+            CustomerWebsiteModel.website.isnot(None),
+            func.trim(CustomerWebsiteModel.website) != "",
+        )
+    )
+
+
+def has_usable_phone_exists():
+    """True when the customer has at least one non-blank phone value."""
+    return exists(
+        select(1).where(
+            CustomerPhoneModel.customer_id == CustomerModel.id,
+            CustomerPhoneModel.phone.isnot(None),
+            func.trim(CustomerPhoneModel.phone) != "",
+        )
+    )
+
+
+def has_usable_email_exists():
+    """True when the customer has at least one non-blank email value."""
+    return exists(
+        select(1).where(
+            CustomerEmailModel.customer_id == CustomerModel.id,
+            CustomerEmailModel.email.isnot(None),
+            func.trim(CustomerEmailModel.email) != "",
+        )
+    )
+
+
+def has_live_fair_participation_exists():
+    """True when the customer has any non-deleted fair participation."""
+    return exists(
+        select(1).where(
+            CustomerFairParticipationModel.customer_id == CustomerModel.id,
+            CustomerFairParticipationModel.deleted_at.is_(None),
         )
     )

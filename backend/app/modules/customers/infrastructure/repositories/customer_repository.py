@@ -3,12 +3,20 @@ from uuid import UUID
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Query, Session
 
-from app.core.pagination import PageParams, build_order_clause, build_paginated_meta, normalize_page_params
+from app.core.pagination import build_order_clause, build_paginated_meta, normalize_page_params
 from app.modules.customers.domain.entities import Customer
 from app.modules.customers.domain.ports import CustomerListResult
-from app.modules.customers.domain.value_objects import CustomerStatus, CustomerType
+from app.modules.customers.domain.value_objects import (
+    CustomerMissingInfoFilter,
+    CustomerStatus,
+    CustomerType,
+)
 from app.modules.customers.infrastructure.persistence.communication_query_helpers import (
     email_search_exists,
+    has_live_fair_participation_exists,
+    has_usable_email_exists,
+    has_usable_phone_exists,
+    has_usable_website_exists,
     phone_search_exists,
     primary_email_subquery,
     primary_phone_subquery,
@@ -108,6 +116,7 @@ class SqlAlchemyCustomerRepository:
         customer_type: CustomerType | None = None,
         country: str | None = None,
         search: str | None = None,
+        missing_info: CustomerMissingInfoFilter | None = None,
     ) -> Query:
         query = self._session.query(CustomerModel).filter(
             CustomerModel.organization_id == organization_id,
@@ -137,8 +146,32 @@ class SqlAlchemyCustomerRepository:
                     website_search_exists(pattern),
                 )
             )
+        if missing_info == CustomerMissingInfoFilter.NO_WEBSITE:
+            query = query.filter(~has_usable_website_exists())
+        elif missing_info == CustomerMissingInfoFilter.NO_PHONE:
+            query = query.filter(~has_usable_phone_exists())
+        elif missing_info == CustomerMissingInfoFilter.NO_EMAIL:
+            query = query.filter(~has_usable_email_exists())
+        elif missing_info == CustomerMissingInfoFilter.NO_FAIR:
+            query = query.filter(~has_live_fair_participation_exists())
 
         return query
+
+    def _ordered_query(
+        self,
+        query: Query,
+        *,
+        sort_by: str,
+        sort_dir: str,
+    ) -> Query:
+        sort_column = CUSTOMER_SORT_FIELDS.get(sort_by, func.lower(CustomerModel.display_name))
+        order = build_order_clause(
+            sort_column,
+            sort_dir if sort_dir in ("asc", "desc") else "asc",
+            tie_breaker=CustomerModel.id,
+            nulls_last=sort_by in ("display_name", "company_name", "name"),
+        )
+        return query.order_by(*order)
 
     def list_by_organization(
         self,
@@ -149,6 +182,7 @@ class SqlAlchemyCustomerRepository:
         customer_type: CustomerType | None = None,
         country: str | None = None,
         search: str | None = None,
+        missing_info: CustomerMissingInfoFilter | None = None,
         page: int = 1,
         page_size: int = 25,
         sort_by: str = "display_name",
@@ -162,19 +196,12 @@ class SqlAlchemyCustomerRepository:
             customer_type=customer_type,
             country=country,
             search=search,
+            missing_info=missing_info,
         )
 
         total = query.with_entities(func.count(CustomerModel.id)).order_by(None).scalar() or 0
-        sort_column = CUSTOMER_SORT_FIELDS.get(sort_by, func.lower(CustomerModel.display_name))
-        order = build_order_clause(
-            sort_column,
-            sort_dir if sort_dir in ("asc", "desc") else "asc",
-            tie_breaker=CustomerModel.id,
-            nulls_last=sort_by in ("display_name", "company_name", "name"),
-        )
-
         models = (
-            query.order_by(*order)
+            self._ordered_query(query, sort_by=sort_by, sort_dir=sort_dir)
             .offset(page_params.offset)
             .limit(page_params.page_size)
             .all()
@@ -188,6 +215,31 @@ class SqlAlchemyCustomerRepository:
             total=meta.total,
             total_pages=meta.total_pages,
         )
+
+    def list_all_matching(
+        self,
+        organization_id: UUID,
+        *,
+        status: CustomerStatus | None = None,
+        include_archived: bool = False,
+        customer_type: CustomerType | None = None,
+        country: str | None = None,
+        search: str | None = None,
+        missing_info: CustomerMissingInfoFilter | None = None,
+        sort_by: str = "display_name",
+        sort_dir: str = "asc",
+    ) -> list[Customer]:
+        query = self._filtered_query(
+            organization_id,
+            status=status,
+            include_archived=include_archived,
+            customer_type=customer_type,
+            country=country,
+            search=search,
+            missing_info=missing_info,
+        )
+        models = self._ordered_query(query, sort_by=sort_by, sort_dir=sort_dir).all()
+        return [model_to_entity(model) for model in models]
 
     def list_all_active(self, organization_id: UUID) -> list[Customer]:
         models = (

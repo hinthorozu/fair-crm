@@ -24,3 +24,12 @@ class CustomerSource(StrEnum):
     MANUAL = "manual"
     EXCEL = "excel"
     SCRAPER = "scraper"
+
+
+class CustomerMissingInfoFilter(StrEnum):
+    """Server-side “Eksik Bilgiler” list/export filter values."""
+
+    NO_WEBSITE = "no_website"
+    NO_PHONE = "no_phone"
+    NO_EMAIL = "no_email"
+    NO_FAIR = "no_fair"

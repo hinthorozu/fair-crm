@@ -123,3 +123,87 @@ def test_extract_emails_ranks_site_domain_match_ahead_of_mismatched_mailto():
     values = [item.value for item in extracted["emails"]]
     assert values[0] == "ornektarim@ornektarim.com.tr"
     assert "info@othertld.tr" in values
+
+
+def test_extract_emails_normalizes_mailto_query_and_html_junk():
+    html = """
+    <html><body>
+      <a href="mailto:info@kopernikkitap.com.tr?subject=kopernik%20kitap">Mail</a>
+      <a href="mailto:hello@ornek.com#contact">Hash</a>
+      <p>daymoonpublishing@gmail.com><i class="fa"></i></p>
+      <span>info@gunayyayinlari.com</span><i class="x"></i>
+      <a href="mailto:info@meraklizihinler.com"><i class="fa"></i></a>
+      <script>var e = "spam@evil.com";</script>
+      <style>.x { content: "style@evil.com"; }</style>
+      <p>Contact: info&#64;entity-ornek.com</p>
+      <p>plain@ornek.com</p>
+      <p>bilinci.@necati.balbay</p>
+      <p>abc@@broken.com</p>
+    </body></html>
+    """
+    extracted = extract_contacts_from_html(
+        html,
+        source_url="https://ornek.com/",
+        requested_fields={"email"},
+    )
+    values = {item.value for item in extracted["emails"]}
+    assert "info@kopernikkitap.com.tr" in values
+    assert "hello@ornek.com" in values
+    assert "daymoonpublishing@gmail.com" in values
+    assert "info@gunayyayinlari.com" in values
+    assert "info@meraklizihinler.com" in values
+    assert "info@entity-ornek.com" in values
+    assert "plain@ornek.com" in values
+    assert "spam@evil.com" not in values
+    assert "style@evil.com" not in values
+    assert not any(">" in value or "?" in value or "<" in value for value in values)
+    assert "bilinci.@necati.balbay" not in values
+    assert "abc@@broken.com" not in values
+    assert not any("subject=" in value for value in values)
+    assert not any("class=" in value for value in values)
+
+
+def test_extract_emails_deobfuscates_at_dot_spellings():
+    html = """
+    <html><body>
+      <p>info[at]firma.com</p>
+      <p>sales (at) ornek.com</p>
+      <p>destek [AT] company [dot] com</p>
+      <p>hello{at}ornek{dot}com{dot}tr</p>
+      <p>only [dot] something.com</p>
+    </body></html>
+    """
+    extracted = extract_contacts_from_html(
+        html,
+        source_url="https://ornek.com/",
+        requested_fields={"email"},
+    )
+    values = {item.value for item in extracted["emails"]}
+    assert "info@firma.com" in values
+    assert "sales@ornek.com" in values
+    assert "destek@company.com" in values
+    assert "hello@ornek.com.tr" in values
+    assert not any("[at]" in value or "(at)" in value or "[dot]" in value for value in values)
+
+
+def test_extract_emails_rejects_structurally_invalid_candidates():
+    html = """
+    <p>abc@</p>
+    <p>@abc.com</p>
+    <p>abc..def@ornek.com</p>
+    <p>test@@ornek.com</p>
+    <p>abc.@ornek.com</p>
+    <p>bilinci.@necati.balbay</p>
+    <p>good@ornek.com</p>
+    """
+    extracted = extract_contacts_from_html(
+        html,
+        source_url="https://ornek.com/",
+        requested_fields={"email"},
+    )
+    values = [item.value for item in extracted["emails"]]
+    assert values == ["good@ornek.com"]
+    assert "abc..def@ornek.com" not in values
+    assert "test@@ornek.com" not in values
+    assert "abc.@ornek.com" not in values
+    assert "bilinci.@necati.balbay" not in values

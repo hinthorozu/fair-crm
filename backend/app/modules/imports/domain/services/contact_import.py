@@ -7,8 +7,8 @@ from uuid import UUID
 
 from app.modules.contacts.domain.entities import Contact
 from app.modules.contacts.domain.ports import ContactRepository
-from app.modules.contacts.domain.services.normalizers import normalize_email, normalize_phone
-from app.shared.email import is_valid_email_address, normalize_email_field
+from app.modules.contacts.domain.services.normalizers import normalize_phone
+from app.shared.email import normalize_email_candidates, sanitize_scraped_email
 
 CONTACT_IMPORT_FIELD_KEYS = (
     "contact_first_name",
@@ -73,10 +73,12 @@ def resolve_contact_identity(data: dict[str, Any]) -> tuple[str, str]:
 def _normalize_contact_email(value: str | None) -> str | None:
     if not _is_nonempty(value):
         return None
-    try:
-        return normalize_email(value)
-    except ValueError:
-        return normalize_email_field(str(value).strip())
+    # Shared sanitize pipeline (same as scraper / customer email field).
+    normalized = normalize_email_candidates(str(value))
+    if normalized is None:
+        return None
+    # Contact matching uses a single address (first when multi).
+    return normalized.split(";", 1)[0]
 
 
 def _normalize_contact_phone(value: str | None) -> str | None:
@@ -141,8 +143,7 @@ def build_contact_import_warnings(data: dict[str, Any]) -> list[str]:
         )
 
     if _is_nonempty(email_raw):
-        email_text = str(email_raw).strip().replace(",", ";").split(";")[0].strip().lower()
-        if not is_valid_email_address(email_text):
+        if sanitize_scraped_email(str(email_raw).strip().replace(",", ";").split(";")[0]) is None:
             warnings.append("Yetkili e-posta adresi geçersiz görünüyor.")
 
     if _is_nonempty(phone_raw):

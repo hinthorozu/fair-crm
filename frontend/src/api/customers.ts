@@ -1,5 +1,5 @@
 import { normalizeStandardListResponse, buildListQueryParams } from "./listTable";
-import { apiRequest, ApiError, formatApiErrorMessage } from "./client";
+import { apiRequest, ApiError, formatApiErrorMessage, fetchWithTimeout } from "./client";
 import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
 import type { StandardListResponse } from "../types/listTable";
 import type {
@@ -8,11 +8,18 @@ import type {
   UpdateCustomerPayload,
 } from "../types/customer";
 import type { CustomerStatus, CustomerType } from "../types/customer";
+import { buildApiHeaders, config } from "../config";
+import {
+  buildDownloadRequestHeaders,
+  parseContentDispositionFileName,
+  triggerBlobDownload,
+} from "../utils/downloadBlob";
 
 export interface ListCustomersParams extends Partial<ServerTableFetchParams> {
   status?: CustomerStatus;
   customer_type?: CustomerType;
   country?: string;
+  missing_info?: string;
 }
 
 export async function listCustomers(
@@ -28,11 +35,49 @@ export async function listCustomers(
       ...(params.status ? { status: params.status } : {}),
       ...(params.customer_type ? { customer_type: params.customer_type } : {}),
       ...(params.country ? { country: params.country } : {}),
+      ...(params.missing_info ? { missing_info: params.missing_info } : {}),
       ...params.filters,
     },
   });
   const raw = await apiRequest<unknown>(`/api/v1/customers?${query.toString()}`);
   return normalizeStandardListResponse<Customer>(raw);
+}
+
+export async function exportCustomers(params: ListCustomersParams = {}): Promise<void> {
+  const query = buildListQueryParams({
+    search: params.search,
+    sortBy: params.sortBy,
+    sortOrder: params.sortOrder,
+    filters: {
+      ...(params.status ? { status: params.status } : {}),
+      ...(params.customer_type ? { customer_type: params.customer_type } : {}),
+      ...(params.country ? { country: params.country } : {}),
+      ...(params.missing_info ? { missing_info: params.missing_info } : {}),
+      ...params.filters,
+    },
+  });
+  const response = await fetchWithTimeout(
+    `${config.apiBaseUrl}/api/v1/customers/export?${query.toString()}`,
+    { headers: buildDownloadRequestHeaders(buildApiHeaders({})) },
+    120_000,
+  );
+  if (!response.ok) {
+    const text = await response.text();
+    let detail = `HTTP ${response.status}`;
+    try {
+      const data = JSON.parse(text) as { detail?: string };
+      if (data.detail) detail = data.detail;
+    } catch {
+      if (text) detail = text;
+    }
+    throw new ApiError(detail, response.status);
+  }
+  const blob = await response.blob();
+  const fileName = parseContentDispositionFileName(
+    response.headers.get("Content-Disposition"),
+    "customers.xlsx",
+  );
+  triggerBlobDownload(blob, fileName);
 }
 
 export function getCustomer(id: string): Promise<Customer> {

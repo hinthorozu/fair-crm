@@ -64,6 +64,7 @@ class ListCustomersUseCase:
             customer_type=query.customer_type,
             country=query.country,
             search=query.search,
+            missing_info=query.missing_info,
             page=page_params.page,
             page_size=page_params.page_size,
             sort_by=sort_by,

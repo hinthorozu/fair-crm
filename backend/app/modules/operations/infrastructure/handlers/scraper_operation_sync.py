@@ -71,9 +71,29 @@ def apply_scraper_progress_to_run(
     now: datetime | None = None,
 ) -> None:
     stamp = now or datetime.now(tz=UTC)
+    details = run.error_details or {}
+    result_payload = details.get("result") if isinstance(details, dict) else None
+    enrichment_progress = None
+    if isinstance(result_payload, dict):
+        raw_progress = result_payload.get("enrichment_progress")
+        if isinstance(raw_progress, dict):
+            enrichment_progress = raw_progress
+
     total = scraper_run.progress_total
     current = scraper_run.progress_current or 0
-    if total is not None and total > 0:
+    if enrichment_progress is not None:
+        total = int(enrichment_progress.get("total") or total or 0)
+        current = int(enrichment_progress.get("processed") or current or 0)
+        succeeded = int(enrichment_progress.get("succeeded") or 0)
+        failed = int(enrichment_progress.get("failed") or 0)
+        run.update_progress(
+            now=stamp,
+            total_items=total,
+            processed_items=min(current, total) if total > 0 else current,
+            succeeded_items=succeeded,
+            failed_items=failed,
+        )
+    elif total is not None and total > 0:
         run.update_progress(
             now=stamp,
             total_items=total,
@@ -105,6 +125,8 @@ def apply_scraper_progress_to_run(
     }
     if scraper_run.error_message:
         payload["warning_message"] = scraper_run.error_message
+    if enrichment_progress is not None:
+        payload["enrichment_progress"] = enrichment_progress
     merge_result_payload(run, payload)
 
 
@@ -142,10 +164,33 @@ def sync_operation_run_from_scraper(
                 run.transition_status(RunStatus.RUNNING, now=now)
             run.transition_status(RunStatus.COMPLETED, now=now)
             run.progress = 1.0
-            if scraper_run.total_rows:
+            details = run.error_details or {}
+            result_payload = details.get("result") if isinstance(details, dict) else None
+            enrichment_progress = (
+                result_payload.get("enrichment_progress")
+                if isinstance(result_payload, dict)
+                else None
+            )
+            if isinstance(enrichment_progress, dict) and enrichment_progress.get("total"):
+                total = int(enrichment_progress["total"])
+                succeeded = int(enrichment_progress.get("succeeded") or 0)
+                failed = int(enrichment_progress.get("failed") or 0)
+                run.total_items = total
+                run.processed_items = total
+                run.succeeded_items = succeeded
+                run.failed_items = failed
+            elif scraper_run.progress_total:
+                total = int(scraper_run.progress_total)
+                run.total_items = total
+                run.processed_items = total
+                if run.succeeded_items + run.failed_items != total:
+                    run.succeeded_items = total
+                    run.failed_items = 0
+            elif scraper_run.total_rows:
                 run.total_items = scraper_run.total_rows
                 run.processed_items = scraper_run.total_rows
                 run.succeeded_items = scraper_run.total_rows
+                run.failed_items = 0
         elif target == RunStatus.FAILED and run.status != RunStatus.FAILED:
             run.mark_failed(
                 now=now,

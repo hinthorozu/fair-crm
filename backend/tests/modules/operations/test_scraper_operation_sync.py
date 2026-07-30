@@ -68,3 +68,42 @@ def test_apply_scraper_progress_updates_counts_and_import_batch():
     result = (run.error_details or {}).get("result") or {}
     assert result["import_batch_id"] == str(batch_id)
     assert result["adapter_key"] == "tuyap_new"
+
+
+def test_apply_scraper_progress_uses_enrichment_success_fail_split():
+    run = OperationRun.create(
+        organization_id=uuid4(),
+        operation_id=uuid4(),
+        now=datetime.now(tz=UTC),
+        triggered_by=uuid4(),
+        status=RunStatus.RUNNING,
+    )
+    merge_result_payload(
+        run,
+        {
+            "enrichment_progress": {
+                "total": 313,
+                "processed": 45,
+                "succeeded": 30,
+                "failed": 15,
+            }
+        },
+    )
+    scraper_run = SimpleNamespace(
+        id=uuid4(),
+        adapter_key="customer_contact_enrichment",
+        fair_id=None,
+        progress_total=313,
+        progress_current=45,
+        total_rows=0,
+        import_batch_id=None,
+        input_url=None,
+        status=ScraperRunStatus.RUNNING,
+        error_message=None,
+    )
+    apply_scraper_progress_to_run(run, scraper_run)
+    assert run.total_items == 313
+    assert run.processed_items == 45
+    assert run.succeeded_items == 30
+    assert run.failed_items == 15
+    assert abs(run.progress - (45 / 313)) < 1e-9

@@ -3,7 +3,12 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from app.modules.customers.domain.value_objects import CustomerSource, CustomerStatus, CustomerType
+from app.modules.customers.domain.value_objects import (
+    CustomerMissingInfoFilter,
+    CustomerSource,
+    CustomerStatus,
+    CustomerType,
+)
 
 
 @dataclass(frozen=True)
@@ -71,8 +76,22 @@ class ListCustomersQuery:
     customer_type: CustomerType | None = None
     country: str | None = None
     search: str | None = None
+    missing_info: CustomerMissingInfoFilter | None = None
     page: int = 1
     page_size: int = 25
+    sort_by: str = "name"
+    sort_dir: str = "asc"
+
+
+@dataclass(frozen=True)
+class ExportCustomersQuery:
+    organization_id: UUID
+    status: CustomerStatus | None = None
+    include_archived: bool = False
+    customer_type: CustomerType | None = None
+    country: str | None = None
+    search: str | None = None
+    missing_info: CustomerMissingInfoFilter | None = None
     sort_by: str = "name"
     sort_dir: str = "asc"
 

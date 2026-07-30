@@ -17,6 +17,7 @@ from app.integrations.kyrox_core.dev_bypass import (
 from app.integrations.kyrox_core.ports import AuthorizationPort
 from app.modules.customers.application.archive_customer import ArchiveCustomerUseCase
 from app.modules.customers.application.create_customer import CreateCustomerUseCase
+from app.modules.customers.application.export_customers import ExportCustomersUseCase
 from app.modules.customers.application.get_customer import GetCustomerUseCase
 from app.modules.customers.application.list_customers import ListCustomersUseCase
 from app.modules.customers.application.restore_customer import RestoreCustomerUseCase
@@ -123,6 +124,16 @@ def get_list_customers_use_case(
     ),
 ) -> ListCustomersUseCase:
     return ListCustomersUseCase(repository, communication_repository)
+
+
+def get_export_customers_use_case(
+    repository: SqlAlchemyCustomerRepository = Depends(get_customer_repository),
+    communication_repository: SqlAlchemyCustomerCommunicationRepository = Depends(
+        get_customer_communication_repository
+    ),
+    db: Session = Depends(get_db),
+) -> ExportCustomersUseCase:
+    return ExportCustomersUseCase(repository, communication_repository, db)
 
 
 def get_update_customer_use_case(

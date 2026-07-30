@@ -485,7 +485,7 @@ export function OperationDetailPage({
         title: operationLabels.colProgress,
         sortable: false,
         render: (item) =>
-          `${Math.round((item.progress ?? 0) * 100)}% (${item.processed_items}/${item.total_items})`,
+          `${Math.round((item.progress ?? 0) * 100)}% (${item.total_items}/${item.processed_items})`,
       },
       {
         key: "succeeded_items",

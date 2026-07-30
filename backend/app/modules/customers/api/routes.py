@@ -4,6 +4,7 @@ from uuid import UUID
 from dataclasses import asdict
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import AliasChoices
 
@@ -23,6 +24,7 @@ from app.modules.customers.api.dependencies import (
     get_archive_customer_use_case,
     get_auth_context,
     get_create_customer_use_case,
+    get_export_customers_use_case,
     get_get_customer_use_case,
     get_list_customers_use_case,
     get_restore_customer_use_case,
@@ -43,12 +45,14 @@ from app.modules.customers.application.commands import (
     CustomerEmailInput,
     CustomerPhoneInput,
     CustomerWebsiteInput,
+    ExportCustomersQuery,
     GetCustomerQuery,
     ListCustomersQuery,
     RestoreCustomerCommand,
     UpdateCustomerCommand,
 )
 from app.modules.customers.application.create_customer import CreateCustomerUseCase
+from app.modules.customers.application.export_customers import ExportCustomersUseCase
 from app.modules.customers.application.get_customer import GetCustomerUseCase
 from app.modules.customers.application.list_customers import ListCustomersUseCase
 from app.modules.customers.application.restore_customer import RestoreCustomerUseCase
@@ -60,8 +64,11 @@ from app.modules.customers.domain.exceptions import (
     InvalidCustomerEmailError,
     InvalidCustomerNameError,
 )
-from app.modules.customers.domain.value_objects import CustomerStatus, CustomerType
-
+from app.modules.customers.domain.value_objects import (
+    CustomerMissingInfoFilter,
+    CustomerStatus,
+    CustomerType,
+)
 router = APIRouter(prefix="/customers", tags=["customers"])
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -143,6 +150,27 @@ def _to_response(result) -> CustomerResponse:
     return CustomerResponse.model_validate(data)
 
 
+def _resolve_list_status(
+    *,
+    request: Request,
+    customer_status: CustomerStatus | None,
+    include_archived: bool,
+) -> tuple[CustomerStatus | None, bool]:
+    raw_status = request.query_params.get("status")
+    if customer_status == CustomerStatus.ARCHIVED or raw_status == CustomerStatus.ARCHIVED.value:
+        return CustomerStatus.ARCHIVED, True
+    if include_archived and raw_status is None and customer_status is None:
+        return CustomerStatus.ARCHIVED, True
+    if customer_status is not None:
+        return customer_status, False
+    if raw_status and raw_status != CustomerStatus.ARCHIVED.value:
+        try:
+            return CustomerStatus(raw_status), False
+        except ValueError:
+            return None, False
+    return None, False
+
+
 @router.post(
     "",
     response_model=CustomerResponse,
@@ -178,6 +206,7 @@ def list_customers(
     customer_type: CustomerType | None = Query(default=None),
     country: str | None = Query(default=None, max_length=100),
     search: str | None = Query(default=None),
+    missing_info: CustomerMissingInfoFilter | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: Annotated[
         int,
@@ -203,26 +232,11 @@ def list_customers(
     auth: AuthContext = Depends(require_read_permission),
     use_case: ListCustomersUseCase = Depends(get_list_customers_use_case),
 ) -> CustomerListResponse:
-    raw_status = request.query_params.get("status")
-    if customer_status == CustomerStatus.ARCHIVED or raw_status == CustomerStatus.ARCHIVED.value:
-        list_status = CustomerStatus.ARCHIVED
-        list_include_archived = True
-    elif include_archived and raw_status is None and customer_status is None:
-        list_status = CustomerStatus.ARCHIVED
-        list_include_archived = True
-    elif customer_status is not None:
-        list_status = customer_status
-        list_include_archived = False
-    elif raw_status and raw_status != CustomerStatus.ARCHIVED.value:
-        try:
-            list_status = CustomerStatus(raw_status)
-            list_include_archived = False
-        except ValueError:
-            list_status = None
-            list_include_archived = False
-    else:
-        list_status = None
-        list_include_archived = False
+    list_status, list_include_archived = _resolve_list_status(
+        request=request,
+        customer_status=customer_status,
+        include_archived=include_archived,
+    )
 
     list_query = parse_list_query(
         page=page,
@@ -248,6 +262,7 @@ def list_customers(
             customer_type=customer_type,
             country=country.strip() if country and country.strip() else None,
             search=list_query.search,
+            missing_info=missing_info,
             page=list_query.page,
             page_size=list_query.page_size,
             sort_by=list_query.sort_by,
@@ -263,6 +278,8 @@ def list_customers(
         filters["customerType"] = customer_type.value
     if country and country.strip():
         filters["country"] = country.strip()
+    if missing_info is not None:
+        filters["missing_info"] = missing_info.value
 
     return standard_list_from_result(
         result,
@@ -271,6 +288,77 @@ def list_customers(
         filters=filters,
     ).model_copy(
         update={"items": [_to_response(item) for item in result.items]},
+    )
+
+
+@router.get(
+    "/export",
+    responses={403: {"model": ErrorResponse}},
+    summary="Export filtered customers to Excel",
+)
+def export_customers(
+    request: Request,
+    customer_status: CustomerStatus | None = Query(default=None, alias="status"),
+    include_archived: bool = Query(default=False),
+    customer_type: CustomerType | None = Query(default=None),
+    country: str | None = Query(default=None, max_length=100),
+    search: str | None = Query(default=None),
+    missing_info: CustomerMissingInfoFilter | None = Query(default=None),
+    sort: Annotated[
+        str | None,
+        Query(validation_alias=AliasChoices("sort_by", "sort")),
+    ] = None,
+    sort_by: Annotated[str | None, Query(include_in_schema=False)] = None,
+    sort_order: Annotated[
+        str | None,
+        Query(pattern="^(?i)(asc|desc)$"),
+    ] = None,
+    direction: Annotated[
+        str | None,
+        Query(
+            pattern="^(?i)(asc|desc)$",
+            validation_alias=AliasChoices("sort_dir", "direction"),
+        ),
+    ] = None,
+    sort_dir: Annotated[str | None, Query(include_in_schema=False)] = None,
+    auth: AuthContext = Depends(require_read_permission),
+    use_case: ExportCustomersUseCase = Depends(get_export_customers_use_case),
+):
+    list_status, list_include_archived = _resolve_list_status(
+        request=request,
+        customer_status=customer_status,
+        include_archived=include_archived,
+    )
+    list_query = parse_list_query(
+        page=1,
+        page_size=25,
+        search=search,
+        sort=sort,
+        sort_by=sort_by,
+        direction=direction,
+        sort_dir=sort_dir,
+        sort_order=sort_order or request.query_params.get("sort_order"),
+        default_sort=DEFAULT_SORT_FIELD,
+        allowed_sort_fields=ALLOWED_SORT_FIELDS,
+        default_direction=DEFAULT_SORT_DIRECTION,
+    )
+    file_name, buffer = use_case.execute(
+        ExportCustomersQuery(
+            organization_id=auth.organization_id,
+            status=list_status,
+            include_archived=list_include_archived,
+            customer_type=customer_type,
+            country=country.strip() if country and country.strip() else None,
+            search=list_query.search,
+            missing_info=missing_info,
+            sort_by=list_query.sort_by,
+            sort_dir=list_query.sort_dir,
+        )
+    )
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{file_name}"'},
     )
 
 

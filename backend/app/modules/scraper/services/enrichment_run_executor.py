@@ -36,6 +36,10 @@ from app.modules.scraper.services.enrichment_run_candidate_preview_logger import
     log_customer_scan_finished,
     log_customer_scan_started,
 )
+from app.modules.scraper.services.enrichment_progress import (
+    EnrichmentProgressCallback,
+    enrichment_success_fail_counts,
+)
 from app.modules.scraper.services.scraper_run_cancellation import RunCancelChecker
 from app.modules.scraper.types.scraper_result import ScraperResult
 from app.modules.scraper.types.scraper_site import ScraperSiteKey
@@ -44,6 +48,19 @@ logger = logging.getLogger(__name__)
 
 CANDIDATES_QUERY_SLOW_WARNING_MS = 10_000
 _VALID_COMPANY_NAME_MATCH = frozenset({"contains", "starts_with"})
+
+
+def _emit_progress(
+    progress_callback: EnrichmentProgressCallback | None,
+    results: list[EnrichmentResultDto],
+    *,
+    total_candidates: int,
+) -> None:
+    if progress_callback is None:
+        return
+    succeeded, failed = enrichment_success_fail_counts(results)
+    progress_callback(len(results), total_candidates, succeeded, failed)
+
 
 
 @dataclass(frozen=True)
@@ -105,6 +122,7 @@ def execute_enrichment_run(
     address_contains: str | None = None,
     dry_run: bool = False,
     cancel_checker: RunCancelChecker | None = None,
+    progress_callback: EnrichmentProgressCallback | None = None,
 ) -> EnrichmentRunExecution:
     def _cancelled_execution(
         results: list[EnrichmentResultDto],
@@ -197,6 +215,8 @@ def execute_enrichment_run(
     if cancel_checker is not None and cancel_checker.is_cancel_requested():
         return _cancelled_execution([], total_candidates=candidate_count, last_processed_customer_id=None)
 
+    _emit_progress(progress_callback, [], total_candidates=candidate_count)
+
     is_bulk_enrichment_run = customer_ids is None
     if run_logger is not None and is_bulk_enrichment_run:
         log_bulk_enrichment_candidate_preview(run_logger, candidates)
@@ -258,8 +278,10 @@ def execute_enrichment_run(
                 run_id=run_id,
                 result=result,
             )
+        _emit_progress(progress_callback, results, total_candidates=candidate_count)
 
     cancelled = cancel_checker is not None and cancel_checker.is_cancel_requested()
+    _emit_progress(progress_callback, results, total_candidates=candidate_count)
     raw_rows = enrichment_results_to_raw_companies(results, requested_fields=requested_fields)
     handoff = build_handoff_from_enrichment_results(
         raw_rows,

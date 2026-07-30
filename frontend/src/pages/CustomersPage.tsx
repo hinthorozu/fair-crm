@@ -2,6 +2,7 @@ import React from "react";
 import {
   archiveCustomer,
   createCustomer,
+  exportCustomers,
   listCustomers,
   restoreCustomer,
   updateCustomer,
@@ -10,7 +11,11 @@ import {
 } from "../api/customers";
 import { CustomerForm, customerToFormValues } from "../components/CustomerForm";
 import type { CreateCustomerPayload } from "../types/customer";
-import { CustomerFilters, CustomerTable } from "../components/CustomerList";
+import {
+  CustomerFilters,
+  CustomerTable,
+  type CustomerMissingInfoFilter,
+} from "../components/CustomerList";
 import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { FormModal } from "../components/ui/form";
@@ -28,12 +33,14 @@ type ConfirmAction =
 
 export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: string) => void }) {
   const [success, setSuccess] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
   const [modal, setModal] = React.useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = React.useState<Customer | null>(null);
   const [archivingId, setArchivingId] = React.useState<string | null>(null);
   const [restoringId, setRestoringId] = React.useState<string | null>(null);
   const [confirm, setConfirm] = React.useState<ConfirmAction>(null);
   const [createSessionKey, setCreateSessionKey] = React.useState(0);
+  const [exporting, setExporting] = React.useState(false);
 
   const table = useServerDataTable<Customer>({
     fetchFn: (params) =>
@@ -42,9 +49,10 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
         status: (params.filters.status as CustomerStatus | undefined) || undefined,
         customer_type: (params.filters.customer_type as CustomerType | undefined) || undefined,
         country: params.filters.country,
+        missing_info: params.filters.missing_info || undefined,
       }),
     defaultSort: { field: "name", direction: "asc" },
-    filterKeys: ["status", "customer_type", "country"],
+    filterKeys: ["status", "customer_type", "country", "missing_info"],
     urlSync: true,
     urlPath: "/customers",
   });
@@ -109,6 +117,37 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
     }
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    setError(null);
+    try {
+      await exportCustomers({
+        // Use the same search that produced pagination.totalItems (post-debounce).
+        search: table.appliedSearch,
+        sortBy: table.sorting.field,
+        sortOrder: table.sorting.direction,
+        status: (table.filters.status as CustomerStatus | undefined) || undefined,
+        customer_type: (table.filters.customer_type as CustomerType | undefined) || undefined,
+        country: table.filters.country,
+        missing_info: table.filters.missing_info || undefined,
+        filters: {
+          ...(table.filters.status ? { status: table.filters.status } : {}),
+          ...(table.filters.customer_type
+            ? { customer_type: table.filters.customer_type }
+            : {}),
+          ...(table.filters.country ? { country: table.filters.country } : {}),
+          ...(table.filters.missing_info
+            ? { missing_info: table.filters.missing_info }
+            : {}),
+        },
+      });
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : labels.excelExportError);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const openCreate = () => {
     setEditing(null);
     setModal("create");
@@ -136,15 +175,36 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
             search={table.search}
             status={(table.filters.status as CustomerStatus | "") ?? ""}
             customerType={(table.filters.customer_type as CustomerType | "") ?? ""}
+            missingInfo={(table.filters.missing_info as CustomerMissingInfoFilter | undefined) ?? ""}
             onSearchChange={table.setSearch}
             onStatusChange={(value) => {
               setSuccess(null);
-              table.setFilters({ ...table.filters, status: value, customer_type: table.filters.customer_type ?? "" });
+              table.setFilters({
+                ...table.filters,
+                status: value,
+                customer_type: table.filters.customer_type ?? "",
+                missing_info: table.filters.missing_info ?? "",
+              });
             }}
             onTypeChange={(value) => {
-              table.setFilters({ ...table.filters, customer_type: value, status: table.filters.status ?? "" });
+              table.setFilters({
+                ...table.filters,
+                customer_type: value,
+                status: table.filters.status ?? "",
+                missing_info: table.filters.missing_info ?? "",
+              });
+            }}
+            onMissingInfoChange={(value) => {
+              table.setFilters({
+                ...table.filters,
+                missing_info: value,
+                status: table.filters.status ?? "",
+                customer_type: table.filters.customer_type ?? "",
+              });
             }}
             onRefresh={() => void table.refresh()}
+            onExport={() => void handleExport()}
+            exporting={exporting}
           />
         }
       >
@@ -168,6 +228,11 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
       </ServerDataTableFrame>
 
       {success && <Banner variant="success">{success}</Banner>}
+      {error && (
+        <Banner variant="error" role="alert">
+          {error}
+        </Banner>
+      )}
 
       {modal === "create" && (
         <FormModal title={labels.newCustomer} onClose={closeModal} size="lg">

@@ -2,18 +2,31 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from html import unescape
 from urllib.parse import unquote, urlparse
 
-from app.modules.customers.domain.services.normalizers import normalize_email, normalize_phone
+from app.modules.customers.domain.services.normalizers import normalize_phone
 from app.modules.scraper.dto.enrichment_result_dto import SourcedValue
+from app.shared.email import sanitize_scraped_email
 
+logger = logging.getLogger(__name__)
+
+# Strict token shape for body/text scans (no % — URL encoding is handled in sanitize).
 EMAIL_PATTERN = re.compile(
-    r"\b[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}\b",
+    r"\b[a-zA-Z0-9._+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}\b",
 )
-MAILTO_PATTERN = re.compile(
-    r"""mailto:([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})""",
+# Obfuscated candidates: info[at]firma.com / info [at] company [dot] com
+OBFUSCATED_EMAIL_PATTERN = re.compile(
+    r"[a-zA-Z0-9._+\-]+\s*[\[\(\{]\s*at\s*[\]\)\}]\s*"
+    r"[a-zA-Z0-9][a-zA-Z0-9._+\-]*"
+    r"(?:\s*[\[\(\{]\s*dot\s*[\]\)\}]\s*[a-zA-Z0-9._+\-]+)*",
+    re.IGNORECASE,
+)
+# Capture full mailto target (may include ?subject=); sanitize strips query/junk.
+MAILTO_HREF_PATTERN = re.compile(
+    r"""mailto:([^"'>\s]+)""",
     re.IGNORECASE,
 )
 CFEMAIL_DATA_PATTERN = re.compile(
@@ -24,6 +37,11 @@ CFEMAIL_HREF_PATTERN = re.compile(
     r"""/cdn-cgi/l/email-protection#([0-9a-f]+)""",
     re.IGNORECASE,
 )
+SCRIPT_STYLE_BLOCK_PATTERN = re.compile(
+    r"<(script|style)\b[^>]*>.*?</\1\s*>",
+    re.IGNORECASE | re.DOTALL,
+)
+HTML_TAG_PATTERN = re.compile(r"<[^>]+>")
 TEL_PATTERN = re.compile(r"""tel:([+\d\s().\-/]+)""", re.IGNORECASE)
 HREF_PATTERN = re.compile(r"""href=["']([^"']+)["']""", re.IGNORECASE)
 PHONE_TEXT_PATTERN = re.compile(
@@ -145,6 +163,24 @@ def _append_unique_sourced(
     items.append(SourcedValue(value=value, source_url=source_url))
 
 
+def _accept_extracted_email(
+    emails: list[SourcedValue],
+    *,
+    raw: str,
+    source_url: str,
+    seen: set[str],
+) -> None:
+    cleaned = sanitize_scraped_email(raw)
+    if cleaned is None:
+        candidate = (raw or "").strip()
+        if candidate:
+            logger.info("Invalid email skipped during extraction: %s", candidate[:200])
+        return
+    if is_junk_email(cleaned):
+        return
+    _append_unique_sourced(emails, value=cleaned, source_url=source_url, seen=seen)
+
+
 def decode_cfemail(encoded: str) -> str | None:
     """Decode Cloudflare email-protection hex (data-cfemail / cdn-cgi href)."""
     cleaned = encoded.strip().lower()
@@ -176,10 +212,7 @@ def _append_decoded_email(
     decoded = decode_cfemail(encoded)
     if decoded is None:
         return
-    email = normalize_email(decoded)
-    if is_junk_email(email):
-        return
-    _append_unique_sourced(emails, value=email, source_url=source_url, seen=seen)
+    _accept_extracted_email(emails, raw=decoded, source_url=source_url, seen=seen)
 
 
 def _site_host(source_url: str) -> str:
@@ -216,15 +249,20 @@ def _rank_emails_by_domain_match(items: list[SourcedValue], source_url: str) -> 
     )
 
 
+def _html_text_for_email_scan(html: str) -> str:
+    """Strip script/style and tags so body regex cannot absorb HTML junk."""
+    text = SCRIPT_STYLE_BLOCK_PATTERN.sub(" ", html)
+    text = unescape(text)
+    text = HTML_TAG_PATTERN.sub(" ", text)
+    return re.sub(r"\s+", " ", text)
+
+
 def extract_emails(html: str, source_url: str) -> list[SourcedValue]:
     seen: set[str] = set()
     emails: list[SourcedValue] = []
 
-    for match in MAILTO_PATTERN.findall(html):
-        email = normalize_email(unquote(match))
-        if is_junk_email(email):
-            continue
-        _append_unique_sourced(emails, value=email, source_url=source_url, seen=seen)
+    for match in MAILTO_HREF_PATTERN.findall(html):
+        _accept_extracted_email(emails, raw=match, source_url=source_url, seen=seen)
 
     for match in CFEMAIL_DATA_PATTERN.findall(html):
         _append_decoded_email(emails, encoded=match, source_url=source_url, seen=seen)
@@ -232,11 +270,12 @@ def extract_emails(html: str, source_url: str) -> list[SourcedValue]:
     for match in CFEMAIL_HREF_PATTERN.findall(html):
         _append_decoded_email(emails, encoded=match, source_url=source_url, seen=seen)
 
-    for match in EMAIL_PATTERN.findall(html):
-        email = normalize_email(match)
-        if is_junk_email(email):
-            continue
-        _append_unique_sourced(emails, value=email, source_url=source_url, seen=seen)
+    text_for_scan = _html_text_for_email_scan(html)
+    for match in OBFUSCATED_EMAIL_PATTERN.findall(text_for_scan):
+        _accept_extracted_email(emails, raw=match, source_url=source_url, seen=seen)
+
+    for match in EMAIL_PATTERN.findall(text_for_scan):
+        _accept_extracted_email(emails, raw=match, source_url=source_url, seen=seen)
 
     return _rank_emails_by_domain_match(emails, source_url)
 

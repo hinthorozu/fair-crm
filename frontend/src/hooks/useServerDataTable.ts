@@ -349,12 +349,14 @@ export function useServerDataTable<T>({
       sorting.direction ?? responseSorting.direction ?? defaultSort?.direction ?? "asc",
   };
 
-  return {
+    return {
     items,
     loading,
     isRefreshing,
     error,
     search,
+    /** Search value that drove the latest list fetch (after debounce). */
+    appliedSearch: debouncedSearch,
     filters,
     filterCounts,
     sorting: effectiveSorting,

@@ -12,31 +12,58 @@ import { customerStatusBadgeVariant } from "../utils/badges";
 import { CommunicationListCell } from "./CommunicationListCell";
 import type { SortDirection } from "../types/listTable";
 
+export type CustomerMissingInfoFilter =
+  | ""
+  | "no_website"
+  | "no_phone"
+  | "no_email"
+  | "no_fair";
+
 interface CustomerFiltersProps {
   search: string;
   status: CustomerStatus | "";
   customerType: CustomerType | "";
+  missingInfo?: CustomerMissingInfoFilter;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: CustomerStatus | "") => void;
   onTypeChange: (value: CustomerType | "") => void;
+  onMissingInfoChange?: (value: CustomerMissingInfoFilter) => void;
   onRefresh: () => void;
+  onExport?: () => void;
+  exporting?: boolean;
 }
 
 export function CustomerFilters({
   search,
   status,
   customerType,
+  missingInfo = "",
   onSearchChange,
   onStatusChange,
   onTypeChange,
+  onMissingInfoChange,
   onRefresh,
+  onExport,
+  exporting = false,
 }: CustomerFiltersProps) {
   return (
     <FilterPanel
       actions={
-        <button type="button" className="btn secondary" onClick={onRefresh}>
-          {labels.refresh}
-        </button>
+        <>
+          <button type="button" className="btn secondary" onClick={onRefresh}>
+            {labels.refresh}
+          </button>
+          {onExport ? (
+            <button
+              type="button"
+              className="btn secondary"
+              disabled={exporting}
+              onClick={onExport}
+            >
+              {exporting ? labels.excelExporting : labels.excelExport}
+            </button>
+          ) : null}
+        </>
       }
     >
       <TextInput
@@ -74,6 +101,20 @@ export function CustomerFilters({
           </option>
         ))}
       </SelectInput>
+      {onMissingInfoChange ? (
+        <SelectInput
+          id="customer-filter-missing-info"
+          value={missingInfo}
+          onChange={(e) => onMissingInfoChange(e.target.value as CustomerMissingInfoFilter)}
+          aria-label={labels.missingInfo}
+        >
+          <option value="">{labels.missingInfoAll}</option>
+          <option value="no_website">{labels.missingInfoNoWebsite}</option>
+          <option value="no_phone">{labels.missingInfoNoPhone}</option>
+          <option value="no_email">{labels.missingInfoNoEmail}</option>
+          <option value="no_fair">{labels.missingInfoNoFair}</option>
+        </SelectInput>
+      ) : null}
     </FilterPanel>
   );
 }
