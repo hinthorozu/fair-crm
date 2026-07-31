@@ -4,12 +4,11 @@ from dataclasses import dataclass
 from typing import Callable, Optional, TypeVar
 
 from app.modules.customers.domain.communication_entities import CustomerCommunications
-from app.modules.customers.domain.exceptions import InvalidCustomerEmailError
 from app.modules.customers.domain.services.normalizers import (
     normalize_phone,
     normalize_website,
 )
-from app.shared.email import normalize_email_field, sanitize_scraped_email
+from app.shared.email import normalize_email_candidates
 
 T = TypeVar("T")
 
@@ -20,23 +19,32 @@ class CommunicationValueInput:
     is_primary: bool = False
 
 
+def _normalize_valid_phone(value: str) -> str:
+    """Normalize a phone candidate and drop structurally unusable values.
+
+    Import/enrichment data can contain concatenated phone numbers. Keep plausible
+    phone values only (E.164 maximum is 15 digits) so one malformed phone does not
+    fail or pollute the rest of the customer update.
+    """
+    normalized = normalize_phone(value)
+    if not normalized:
+        return ""
+    digits = "".join(ch for ch in normalized if ch.isdigit())
+    if len(digits) < 7 or len(digits) > 15:
+        return ""
+    return normalized
+
+
 def phones_from_scalar(phone: Optional[str]) -> list[str]:
     if not phone:
         return []
-    normalized = normalize_phone(phone)
+    normalized = _normalize_valid_phone(phone)
     return [normalized] if normalized else []
 
 
 def emails_from_scalar(email: Optional[str]) -> list[str]:
-    if not email:
-        return []
-    try:
-        normalized = normalize_email_field(email)
-    except ValueError as exc:
-        raise InvalidCustomerEmailError(str(exc)) from exc
-    if not normalized:
-        return []
-    return normalized.split(";")
+    normalized = normalize_email_candidates(email)
+    return normalized.split(";") if normalized else []
 
 
 def websites_from_scalar(website: Optional[str]) -> list[str]:
@@ -75,7 +83,7 @@ def _ordered_values_with_primary(
 
 
 def phones_from_inputs(items: list[CommunicationValueInput]) -> list[str]:
-    return _ordered_values_with_primary(items, normalize_phone)
+    return _ordered_values_with_primary(items, _normalize_valid_phone)
 
 
 def emails_from_inputs(items: list[CommunicationValueInput]) -> list[str]:
@@ -84,19 +92,17 @@ def emails_from_inputs(items: list[CommunicationValueInput]) -> list[str]:
     primary_index: int | None = None
 
     for item in items:
-        raw = item.value.strip()
-        if not raw:
+        normalized = normalize_email_candidates(item.value)
+        if not normalized:
             continue
-        # Same shared sanitize+validate path as scalar email / scraper / import.
-        cleaned = sanitize_scraped_email(raw)
-        if cleaned is None:
-            raise InvalidCustomerEmailError(f"Invalid email address: {raw}")
-        if cleaned in seen:
-            continue
-        seen.add(cleaned)
-        if item.is_primary and primary_index is None:
-            primary_index = len(ordered)
-        ordered.append(cleaned)
+
+        for cleaned in normalized.split(";"):
+            if cleaned in seen:
+                continue
+            seen.add(cleaned)
+            if item.is_primary and primary_index is None:
+                primary_index = len(ordered)
+            ordered.append(cleaned)
 
     if not ordered:
         return []
