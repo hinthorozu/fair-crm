@@ -618,10 +618,15 @@ function ImportWizardPageInner({
     setApplyResult(null);
     setError(null);
     try {
-      const result = await applyImportDecisions(batchId, {
-        filter: previewFilter,
-        search: previewTable.search || undefined,
-      });
+      const result = await applyImportDecisions(
+        batchId,
+        selectedRowIds.size > 0
+          ? { row_ids: Array.from(selectedRowIds) }
+          : {
+              filter: previewFilter,
+              search: previewTable.search || undefined,
+            },
+      );
       const executionErrors = result.errors.filter(
         (item) => !isApplySummaryOnlyMessage(item.message),
       );
