@@ -2,7 +2,7 @@ import { buildApiHeaders, config } from "../config";
 import { getAccessToken, clearSession, notifySessionExpired } from "../auth/session";
 import { refreshSessionSingleFlight } from "../auth/refreshCoordinator";
 
-export const API_REQUEST_TIMEOUT_MS = 30_000;
+export const API_REQUEST_TIMEOUT_MS = 120_000;
 /** Import analyze can process large batches against full CRM — allow longer than default list calls. */
 export const ANALYZE_IMPORT_TIMEOUT_MS = 120_000;
 /** Duplicate group listing may aggregate large completed analysis datasets. */
