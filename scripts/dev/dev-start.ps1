@@ -28,7 +28,17 @@ $ErrorActionPreference = "Stop"
 Write-DevStep "Fair CRM dev-start (idempotent)"
 Write-Host "Repository root: $script:DevRepoRoot"
 
-Invoke-DevPrepareRepository -SkipPull:$SkipPull
+# Native Git writes normal progress/status messages to stderr. Under Windows
+# PowerShell 5.1 and ErrorActionPreference=Stop, redirected stderr may surface as
+# NativeCommandError before dev-lib.ps1 can inspect $LASTEXITCODE.
+$previousErrorActionPreference = $ErrorActionPreference
+try {
+    $ErrorActionPreference = "Continue"
+    Invoke-DevPrepareRepository -SkipPull:$SkipPull
+} finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+}
+
 Test-DockerEngineReady
 Start-DevDockerInfra
 Wait-DevPostgresHealthy
