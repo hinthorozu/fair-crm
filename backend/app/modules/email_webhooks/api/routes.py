@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -21,6 +23,11 @@ from app.modules.email_webhooks.application.mailersend_webhook_service import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/webhooks/email", tags=["webhooks"])
+
+# MailerSend emits sent/delivered/open/click events in bursts after a bulk send.
+# Keep those synchronous ORM operations away from the asyncio request loop and
+# bound their database concurrency so interactive API requests remain responsive.
+_mailersend_webhook_slots = asyncio.Semaphore(2)
 
 
 @router.post("/mailersend/{email_account_id}")
@@ -46,14 +53,15 @@ async def mailersend_email_webhook(
             detail="Invalid JSON body",
         )
 
-    service = MailerSendWebhookService(db)
     try:
-        result = service.handle(
-            email_account_id=email_account_id,
-            raw_body=raw_body,
-            signature_header=signature,
-            payload=payload,
-        )
+        async with _mailersend_webhook_slots:
+            result = await run_in_threadpool(
+                MailerSendWebhookService(db).handle,
+                email_account_id=email_account_id,
+                raw_body=raw_body,
+                signature_header=signature,
+                payload=payload,
+            )
     except MailerSendWebhookInvalidSignatureError as exc:
         logger.warning(
             "mailersend_webhook_invalid_signature account_id=%s",
