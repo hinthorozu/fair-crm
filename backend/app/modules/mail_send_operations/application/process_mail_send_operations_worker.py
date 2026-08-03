@@ -232,6 +232,7 @@ class ProcessMailSendOperationsWorker:
                 claimed.id,
                 error_code=exc.error_type,
                 error_message=message,
+                provider_status=getattr(exc, "provider_status", None),
             )
             if exc.retryable is not None:
                 self._repository.set_auto_retry_pending(

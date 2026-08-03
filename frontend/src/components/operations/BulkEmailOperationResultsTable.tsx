@@ -16,6 +16,8 @@ import { DEFAULT_PAGE_SIZE } from "../../types/listTable";
 import {
   fairEmailOutboxStatusLabel,
   fairEmailOutboxStatusVariant,
+  fairEmailDeliveryStatusLabel,
+  fairEmailDeliveryStatusVariant,
   formatFairEmailDateTime,
 } from "../../utils/fairBulkEmailLogs";
 import { formatBulkEmailRecipientDisplay } from "../../utils/bulkEmailRecipientDisplay";
@@ -43,6 +45,7 @@ function formatRecipientError(message: string | null, status: string): string {
 const PROVIDER_STATUS_FILTER_OPTIONS = [
   "accepted",
   "sent",
+  "deferred",
   "delivered",
   "opened",
   "clicked",
@@ -136,8 +139,8 @@ export function BulkEmailOperationResultsTable({
         title: operationLabels.bulkEmailColStatus,
         sortable: false,
         render: (item) => (
-          <Badge variant={fairEmailOutboxStatusVariant(item.status)}>
-            {fairEmailOutboxStatusLabel(item.status)}
+          <Badge variant={fairEmailDeliveryStatusVariant(item.status, item.provider_status)}>
+            {fairEmailDeliveryStatusLabel(item.status, item.provider_status)}
           </Badge>
         ),
       },

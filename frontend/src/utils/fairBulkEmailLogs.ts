@@ -51,6 +51,55 @@ export function fairEmailOutboxStatusVariant(status: string): BadgeVariant {
   }
 }
 
+export function fairEmailDeliveryStatusLabel(status: string, providerStatus?: string | null): string {
+  switch ((providerStatus ?? "").trim()) {
+    case "accepted":
+    case "sent":
+      return "Kabul edildi";
+    case "delivered":
+    case "opened":
+    case "clicked":
+      return "Teslim edildi";
+    case "deferred":
+      return "Gecikmeli";
+    case "soft_bounced":
+    case "hard_bounced":
+    case "suppressed":
+      return "Teslim edilemedi";
+    case "unsubscribed":
+      return "Abonelikten çıktı";
+    case "spam_complaint":
+      return "Spam bildirimi";
+    default:
+      return fairEmailOutboxStatusLabel(status);
+  }
+}
+
+export function fairEmailDeliveryStatusVariant(
+  status: string,
+  providerStatus?: string | null,
+): BadgeVariant {
+  switch ((providerStatus ?? "").trim()) {
+    case "delivered":
+    case "opened":
+    case "clicked":
+      return "success";
+    case "accepted":
+    case "sent":
+      return "info";
+    case "deferred":
+      return "warning";
+    case "soft_bounced":
+    case "hard_bounced":
+    case "suppressed":
+    case "unsubscribed":
+    case "spam_complaint":
+      return "danger";
+    default:
+      return fairEmailOutboxStatusVariant(status);
+  }
+}
+
 export function formatFairEmailDateTime(value: string | null | undefined): string {
   if (!value) return "—";
   return new Date(value).toLocaleString("tr-TR");

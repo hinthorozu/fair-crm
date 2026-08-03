@@ -122,6 +122,40 @@ def test_mailersend_202_without_x_message_id_is_not_successful():
     assert exc_info.value.retryable is False
 
 
+def test_mailersend_202_all_suppressed_uses_provider_warning_code():
+    def transport(method, url, headers=None, json=None):
+        return httpx.Response(
+            202,
+            json={
+                "message": "There are some warnings for your request.",
+                "warnings": [
+                    {
+                        "type": "ALLSUPPRESSED",
+                        "message": "All recipients have been suppressed.",
+                        "recipients": [
+                            {"email": "bounce@example.com", "reasons": ["hardbounced"]}
+                        ],
+                    }
+                ],
+            },
+            request=httpx.Request("POST", url),
+        )
+
+    adapter = MailerSendAdapter(transport=transport)
+    with pytest.raises(EmailDeliveryError) as exc_info:
+        adapter.send(
+            _provider_account(),
+            recipient="bounce@example.com",
+            subject="Hi",
+            provider_config={"api_token": "x", "from_email": "a@b.com"},
+        )
+
+    assert exc_info.value.error_code == "ALLSUPPRESSED"
+    assert exc_info.value.provider_status == "hard_bounced"
+    assert exc_info.value.retryable is False
+    assert "hardbounced" in str(exc_info.value)
+
+
 @pytest.mark.parametrize("status_code", [200, 201])
 def test_mailersend_non_202_success_codes_are_not_accepted(status_code):
     def transport(method, url, headers=None, json=None):

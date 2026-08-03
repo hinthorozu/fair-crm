@@ -186,6 +186,7 @@ def test_provider_status_policy_progression_and_no_regression():
     assert apply_provider_status_transition("opened", "delivered") is None
     assert apply_provider_status_transition("delivered", "sent") is None
     assert apply_provider_status_transition("deferred", "delivered") == "delivered"
+    assert apply_provider_status_transition("deferred", "soft_bounced") == "soft_bounced"
     assert apply_provider_status_transition("soft_bounced", "delivered") == "delivered"
     assert apply_provider_status_transition(None, "hard_bounced") == "hard_bounced"
     assert apply_provider_status_transition("hard_bounced", "sent") is None
@@ -261,7 +262,9 @@ def test_activity_progression_accepted_to_clicked(client, db_session, organizati
         ("activity.sent", "sent"),
         ("activity.delivered", "delivered"),
         ("activity.opened", "opened"),
+        ("activity.opened_unique", "opened"),
         ("activity.clicked", "clicked"),
+        ("activity.clicked_unique", "clicked"),
     ]:
         response = _post_webhook(client, account_id, _activity_payload(event, message_id))
         assert response.status_code == 200
@@ -550,7 +553,7 @@ def test_unsupported_event_2xx_ignore(client, db_session, organization_id):
     response = _post_webhook(
         client,
         account_id,
-        _activity_payload("activity.opened_unique", message_id),
+        _activity_payload("activity.survey_opened", message_id),
     )
     assert response.status_code == 200
     assert response.json()["outcome"] == "ignored"

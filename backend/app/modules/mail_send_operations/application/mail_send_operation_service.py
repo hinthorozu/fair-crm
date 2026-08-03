@@ -109,6 +109,7 @@ class MailSendOperationService:
         error_code: str | None,
         error_message: str | None,
         log_message: str | None = None,
+        provider_status: str | None = None,
     ):
         if error_code in WORKER_FAILURE_ERROR_CODES:
             event = error_code
@@ -127,6 +128,7 @@ class MailSendOperationService:
             operation_id,
             error_code=error_code,
             error_message=error_message,
+            provider_status=provider_status,
         )
         return self._repository.append_operation_log(
             organization_id,

@@ -136,13 +136,23 @@ class MailSendOperationDispatcher:
             body_text=body_text,
             body_html=body_html,
         )
+        external_message_id = (
+            delivery_result.external_message_id
+            if isinstance(delivery_result.external_message_id, str)
+            else None
+        )
+        provider_status = (
+            delivery_result.provider_status
+            if isinstance(delivery_result.provider_status, str)
+            else None
+        )
         self._batch_repository.update_outbox_sent(
             outbox.id,
             subject=final_subject,
             body_html=body_html,
             body_text=body_text,
-            external_message_id=delivery_result.external_message_id,
-            provider_status=delivery_result.provider_status,
+            external_message_id=external_message_id,
+            provider_status=provider_status,
         )
         self._record_fair_bulk_activity(
             organization_id=operation.organization_id,

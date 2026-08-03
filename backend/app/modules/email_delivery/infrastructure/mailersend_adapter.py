@@ -19,6 +19,46 @@ logger = logging.getLogger(__name__)
 MAILERSEND_EMAIL_URL = "https://api.mailersend.com/v1/email"
 
 
+def _extract_accepted_warning(response: httpx.Response) -> tuple[str, str, str] | None:
+    """Return (warning type, normalized provider status, readable message)."""
+    try:
+        payload = response.json()
+    except Exception:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    warnings = payload.get("warnings")
+    if not isinstance(warnings, list):
+        return None
+    for warning in warnings:
+        if not isinstance(warning, dict):
+            continue
+        warning_type = str(warning.get("type") or "").strip()
+        if warning_type != "ALLSUPPRESSED":
+            continue
+        reasons: list[str] = []
+        emails: list[str] = []
+        recipients = warning.get("recipients")
+        if isinstance(recipients, list):
+            for recipient in recipients:
+                if not isinstance(recipient, dict):
+                    continue
+                email = str(recipient.get("email") or "").strip()
+                if email:
+                    emails.append(email)
+                raw_reasons = recipient.get("reasons")
+                if isinstance(raw_reasons, list):
+                    reasons.extend(str(reason).strip() for reason in raw_reasons if str(reason).strip())
+        unique_reasons = sorted(set(reasons))
+        normalized_status = (
+            "hard_bounced" if "hardbounced" in unique_reasons else "suppressed"
+        )
+        reason_text = ", ".join(unique_reasons) or "suppressed"
+        email_text = f" ({', '.join(sorted(set(emails)))})" if emails else ""
+        return warning_type, normalized_status, f"MailerSend suppressed recipient{email_text}: {reason_text}"
+    return None
+
+
 def _extract_error_identifier(response: httpx.Response) -> str:
     """Prefer machine identifiers (type/name/code); fall back to HTTP status string."""
     status = str(response.status_code)
@@ -131,6 +171,16 @@ class MailerSendAdapter:
             ) from exc
 
         if response.status_code == 202:
+            accepted_warning = _extract_accepted_warning(response)
+            if accepted_warning is not None:
+                warning_type, provider_status, warning_message = accepted_warning
+                raise EmailDeliveryError(
+                    warning_message,
+                    error_code=warning_type,
+                    transport=f"provider:{self.provider_key}",
+                    retryable=False,
+                    provider_status=provider_status,
+                )
             external_id = response.headers.get("x-message-id") or response.headers.get("X-Message-Id")
             if not external_id:
                 raise EmailDeliveryError(

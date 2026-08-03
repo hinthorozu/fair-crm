@@ -11,7 +11,7 @@ PROVIDER_STATUS_RANK: dict[str, int] = {
     "accepted": 10,
     "sent": 20,
     "deferred": 25,
-    "soft_bounced": 25,
+    "soft_bounced": 30,
     "delivered": 40,
     "opened": 50,
     "clicked": 60,
@@ -27,7 +27,9 @@ MAILERSEND_EVENT_TO_PROVIDER_STATUS: dict[str, str] = {
     "activity.hard_bounced": "hard_bounced",
     "activity.deferred": "deferred",
     "activity.opened": "opened",
+    "activity.opened_unique": "opened",
     "activity.clicked": "clicked",
+    "activity.clicked_unique": "clicked",
     "activity.unsubscribed": "unsubscribed",
     "activity.spam_complaint": "spam_complaint",
 }

@@ -649,6 +649,7 @@ class SqlAlchemyMailSendOperationRepository:
         *,
         error_code: str | None,
         error_message: str | None,
+        provider_status: str | None = None,
     ) -> MailSendOperationRecord:
         now = datetime.now(timezone.utc)
         model = self._get_model(organization_id, operation_id)
@@ -656,6 +657,8 @@ class SqlAlchemyMailSendOperationRepository:
         model.failed_at = now
         model.error_code = error_code
         model.error_message = error_message
+        if provider_status:
+            model.provider_status = provider_status
         metadata = dict(model.metadata_json or {})
         metadata["auto_retry_pending"] = is_retryable_delivery_error(
             error_code,
