@@ -192,7 +192,7 @@ def assert_no_loser_customer_relationships_remain(
         .count()
     )
     if outbox_count:
-        remaining.append(f"crm_fair_email_outbox={outbox_count}")
+        remaining.append(f"mail_send_operations={outbox_count}")
 
     mail_ops_count = (
         session.query(MailSendOperationModel)

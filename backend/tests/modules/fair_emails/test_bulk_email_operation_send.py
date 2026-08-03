@@ -253,7 +253,7 @@ def test_crm_recipient_creates_activity_and_retry_creates_second_attempt(
     repo.prepare_outbox_for_retry(outbox_id)
     db_session.commit()
     outbox = db_session.query(FairEmailOutboxModel).filter(FairEmailOutboxModel.id == outbox_id).one()
-    assert outbox.status == "pending"
+    assert outbox.status == "queued"
     assert outbox.send_attempt == 2
 
     with patch("app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send"):
@@ -386,7 +386,7 @@ def test_retry_only_failed_not_sent(db_session, organization_id, user_id):
     retried = db_session.query(FairEmailOutboxModel).filter(FairEmailOutboxModel.id == failed_id).one()
     assert sent.status == "sent"
     assert sent.send_attempt == 1
-    assert retried.status == "pending"
+    assert retried.status == "queued"
     assert retried.send_attempt == 2
 
 

@@ -18,9 +18,6 @@ from app.modules.fair_emails.domain.value_objects import RecipientOptions
 from app.modules.fair_emails.infrastructure.repositories.fair_email_batch_repository import (
     SqlAlchemyFairEmailBatchRepository,
 )
-from app.modules.mail_send_operations.infrastructure.repositories.mail_send_operation_repository import (
-    SqlAlchemyMailSendOperationRepository,
-)
 from app.modules.operations.domain.entities import Operation, OperationRun
 from app.modules.operations.domain.exceptions import InvalidOperationConfigError
 from app.modules.operations.domain.handler import (
@@ -244,22 +241,8 @@ class BulkEmailHandler:
         if not failed:
             raise InvalidOperationConfigError("No failed recipients to retry")
 
-        mail_repo = (
-            SqlAlchemyMailSendOperationRepository(self._session)
-            if self._session is not None
-            else None
-        )
         for outbox in failed:
             self._batch_repository.prepare_outbox_for_retry(outbox.id)
-            if mail_repo is not None and outbox.mail_send_operation_id is not None:
-                try:
-                    mail_repo.prepare_for_retry(
-                        operation.organization_id,
-                        outbox.mail_send_operation_id,
-                    )
-                except Exception:
-                    # If mail op cannot be retried, clear link so ensure_operations recreates.
-                    outbox.mail_send_operation_id = None
 
         if self._mail_operation_sync is not None:
             refreshed = self._batch_repository.get_batch(operation.organization_id, batch.id)

@@ -60,13 +60,13 @@ class FairBulkEmailMailOperationSync:
             .all()
         )
         for outbox in outbox_items:
-            self._ensure_operation_for_outbox(
-                organization_id=organization_id,
-                batch=batch,
-                outbox=outbox,
-                default_subject=default_subject,
-                max_retry_count=max_retry_count,
-            )
+            # The fair recipient and its mail operation are the same row now.
+            outbox.subject = default_subject
+            outbox.email_account_id = batch.email_account_id
+            outbox.template_id = batch.template_id
+            outbox.fair_id = batch.fair_id
+            outbox.max_retry_count = max_retry_count
+        self._session.flush()
 
     def create_skipped_operations_for_consent(
         self,

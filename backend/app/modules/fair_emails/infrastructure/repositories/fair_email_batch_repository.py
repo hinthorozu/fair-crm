@@ -46,8 +46,14 @@ class SqlAlchemyFairEmailBatchRepository(_LegacyFairEmailBatchRepository):
         )
         self._refresh_batch_progress_for_outbox(outbox_id)
 
-    def update_outbox_failed(self, outbox_id: UUID, *, message: str) -> None:
-        super().update_outbox_failed(outbox_id, message=message)
+    def update_outbox_failed(
+        self,
+        outbox_id: UUID,
+        *,
+        message: str,
+        error_code: str | None = None,
+    ) -> None:
+        super().update_outbox_failed(outbox_id, message=message, error_code=error_code)
         self._refresh_batch_progress_for_outbox(outbox_id)
 
     def prepare_outbox_for_retry(self, outbox_id: UUID) -> None:

@@ -175,13 +175,10 @@ class RetryMailSendOperationUseCase:
             self._session.flush()
             return self._complete_failed_retry(command, record, exc)
 
-        handler.prepare_outbox_for_retry(outbox.id)
-        self._session.flush()
         recipient = record.recipient_email or outbox.email
         email_account_id = record.email_account_id
 
         def send_fn():
-            handler.mark_outbox_sending(outbox.id)
             return self._delivery.send(
                 organization_id=command.organization_id,
                 email_account_id=email_account_id,
@@ -200,12 +197,6 @@ class RetryMailSendOperationUseCase:
             self._repository.update_rendered_content(
                 command.organization_id,
                 record.id,
-                subject=final_subject,
-                body_html=body_html,
-                body_text=body_text,
-            )
-            handler.sync_outbox_sent(
-                outbox.id,
                 subject=final_subject,
                 body_html=body_html,
                 body_text=body_text,

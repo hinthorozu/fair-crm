@@ -120,6 +120,8 @@ class SqlAlchemyFairEmailBatchRepository:
             self._session.add(
                 FairEmailOutboxModel(
                     id=uuid4(),
+                    source_type="fair_bulk_email",
+                    priority=99,
                     batch_id=batch_id,
                     organization_id=organization_id,
                     customer_id=item.customer_id,
@@ -130,9 +132,23 @@ class SqlAlchemyFairEmailBatchRepository:
                     email=item.email,
                     source=item.source,
                     fair_name=item.fair_name,
-                    status="pending",
+                    status="queued",
+                    subject=subject_override or "Toplu e-posta",
+                    email_account_id=email_account_id,
+                    template_id=template_id,
+                    fair_id=fair_id,
                     skip_reason=None,
                     send_attempt=1,
+                    max_retry_count=3,
+                    operation_logs=[
+                        {
+                            "time": now.isoformat().replace("+00:00", "Z"),
+                            "event": "queued",
+                            "message": "Fuar toplu mail kuyruğa alındı",
+                        }
+                    ],
+                    metadata_json={},
+                    queued_at=now,
                     created_at=now,
                     updated_at=now,
                 )
@@ -198,16 +214,8 @@ class SqlAlchemyFairEmailBatchRepository:
         return [self._to_list_record(model) for model in models]
 
     def list_outbox_for_batch(self, organization_id: UUID, batch_id: UUID) -> list[FairEmailOutboxItemRecord]:
-        from app.modules.mail_send_operations.infrastructure.persistence.models import (
-            MailSendOperationModel,
-        )
-
         rows = (
-            self._session.query(FairEmailOutboxModel, MailSendOperationModel)
-            .outerjoin(
-                MailSendOperationModel,
-                MailSendOperationModel.id == FairEmailOutboxModel.mail_send_operation_id,
-            )
+            self._session.query(FairEmailOutboxModel)
             .filter(
                 FairEmailOutboxModel.organization_id == organization_id,
                 FairEmailOutboxModel.batch_id == batch_id,
@@ -218,12 +226,11 @@ class SqlAlchemyFairEmailBatchRepository:
         return [
             self._to_outbox_record(
                 outbox,
-                external_message_id=mso.external_message_id if mso is not None else None,
-                provider_status=mso.provider_status if mso is not None else None,
-                # Prefer MailSendOperation.updated_at (webhook/provider updates bump this).
-                updated_at=mso.updated_at if mso is not None else None,
+                external_message_id=outbox.external_message_id,
+                provider_status=outbox.provider_status,
+                updated_at=outbox.updated_at,
             )
-            for outbox, mso in rows
+            for outbox in rows
         ]
 
     def list_pending_outbox(self, batch_id: UUID) -> list[FairEmailOutboxModel]:
@@ -231,7 +238,7 @@ class SqlAlchemyFairEmailBatchRepository:
             self._session.query(FairEmailOutboxModel)
             .filter(
                 FairEmailOutboxModel.batch_id == batch_id,
-                FairEmailOutboxModel.status.in_(("pending", "sending")),
+                FairEmailOutboxModel.status.in_(("queued", "pending", "sending")),
             )
             .order_by(FairEmailOutboxModel.created_at.asc())
             .all()
@@ -268,16 +275,26 @@ class SqlAlchemyFairEmailBatchRepository:
         if model.status != "failed":
             raise ValueError("Only failed outbox items can be prepared for retry")
         model.send_attempt = int(model.send_attempt or 1) + 1
-        model.status = "pending"
+        model.status = "queued"
         model.error_message = None
         model.sent_at = None
+        model.failed_at = None
+        model.sending_started_at = None
+        model.external_message_id = None
+        model.provider_status = None
+        model.scheduled_at = None
         model.updated_at = now
+        self._append_log(model, "queued", "Mail retry kuyruğa alındı", now)
 
     def mark_outbox_sending(self, outbox_id: UUID) -> None:
         now = datetime.now(timezone.utc)
         model = self._session.query(FairEmailOutboxModel).filter(FairEmailOutboxModel.id == outbox_id).one()
+        if not model.operation_logs:
+            self._append_log(model, "queued", "Fuar toplu mail kuyruğa alındı", model.created_at or now)
         model.status = "sending"
+        model.sending_started_at = now
         model.updated_at = now
+        self._append_log(model, "sending_started", "Fuar toplu mail gönderimi başladı", now)
 
     def fail_all_pending_outbox(self, batch_id: UUID, *, message: str) -> int:
         now = datetime.now(timezone.utc)
@@ -285,14 +302,17 @@ class SqlAlchemyFairEmailBatchRepository:
             self._session.query(FairEmailOutboxModel)
             .filter(
                 FairEmailOutboxModel.batch_id == batch_id,
-                FairEmailOutboxModel.status.in_(("pending", "sending")),
+                FairEmailOutboxModel.status.in_(("queued", "pending", "sending")),
             )
             .all()
         )
         for model in models:
             model.status = "failed"
+            model.error_code = "batch_failure"
             model.error_message = message
+            model.failed_at = now
             model.updated_at = now
+            self._append_log(model, "failed", message, now)
         return len(models)
 
     def update_outbox_sent(self, outbox_id: UUID, *, subject: str, body_html: str | None, body_text: str | None) -> None:
@@ -304,13 +324,23 @@ class SqlAlchemyFairEmailBatchRepository:
         model.rendered_body_text = body_text
         model.sent_at = now
         model.updated_at = now
+        self._append_log(model, "sent", "Fuar toplu mail gönderildi", now)
 
-    def update_outbox_failed(self, outbox_id: UUID, *, message: str) -> None:
+    def update_outbox_failed(
+        self,
+        outbox_id: UUID,
+        *,
+        message: str,
+        error_code: str | None = None,
+    ) -> None:
         now = datetime.now(timezone.utc)
         model = self._session.query(FairEmailOutboxModel).filter(FairEmailOutboxModel.id == outbox_id).one()
         model.status = "failed"
+        model.error_code = error_code
         model.error_message = message
+        model.failed_at = now
         model.updated_at = now
+        self._append_log(model, "failed", message, now)
 
     def mark_batch_processing(self, batch_id: UUID) -> None:
         now = datetime.now(timezone.utc)
@@ -343,7 +373,7 @@ class SqlAlchemyFairEmailBatchRepository:
         )
         sent_count = sum(1 for item in models if item.status == "sent")
         failed_count = sum(1 for item in models if item.status == "failed")
-        pending = sum(1 for item in models if item.status in ("pending", "sending"))
+        pending = sum(1 for item in models if item.status in ("queued", "pending", "sending"))
         if pending > 0:
             status = "processing"
         elif failed_count == 0:
@@ -425,3 +455,15 @@ class SqlAlchemyFairEmailBatchRepository:
             external_message_id=external_message_id,
             provider_status=provider_status,
         )
+
+    @staticmethod
+    def _append_log(model: FairEmailOutboxModel, event: str, message: str, at: datetime) -> None:
+        logs = list(model.operation_logs or [])
+        logs.append(
+            {
+                "time": at.isoformat().replace("+00:00", "Z"),
+                "event": event,
+                "message": message,
+            }
+        )
+        model.operation_logs = logs
