@@ -50,22 +50,23 @@ class FairBulkEmailMailOperationSync:
         default_subject: str,
     ) -> None:
         max_retry_count = self._max_retry_count_for_batch(organization_id, batch)
-        outbox_items = (
+        (
             self._session.query(FairEmailOutboxModel)
             .filter(
                 FairEmailOutboxModel.organization_id == organization_id,
                 FairEmailOutboxModel.batch_id == batch.id,
             )
-            .order_by(FairEmailOutboxModel.created_at.asc())
-            .all()
+            .update(
+                {
+                    FairEmailOutboxModel.subject: default_subject,
+                    FairEmailOutboxModel.email_account_id: batch.email_account_id,
+                    FairEmailOutboxModel.template_id: batch.template_id,
+                    FairEmailOutboxModel.fair_id: batch.fair_id,
+                    FairEmailOutboxModel.max_retry_count: max_retry_count,
+                },
+                synchronize_session=False,
+            )
         )
-        for outbox in outbox_items:
-            # The fair recipient and its mail operation are the same row now.
-            outbox.subject = default_subject
-            outbox.email_account_id = batch.email_account_id
-            outbox.template_id = batch.template_id
-            outbox.fair_id = batch.fair_id
-            outbox.max_retry_count = max_retry_count
         self._session.flush()
 
     def create_skipped_operations_for_consent(

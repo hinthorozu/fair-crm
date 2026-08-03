@@ -35,6 +35,8 @@ from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
 
 logger = logging.getLogger(__name__)
 
+OUTBOX_CHUNK_SIZE = 30
+
 INACTIVE_SMTP_MESSAGE = "Seçilen SMTP hesabı pasif durumda."
 MISSING_SMTP_MESSAGE = "Bu kuruluş için varsayılan SMTP hesabı bulunamadı."
 MISSING_TEMPLATE_MESSAGE = "Mail şablonu bulunamadı."
@@ -138,7 +140,10 @@ class ProcessFairEmailBatchUseCase:
         sent_count = 0
         failed_count = 0
 
-        for outbox in self._batch_repository.list_pending_outbox(batch.id):
+        for outbox in self._batch_repository.iter_pending_outbox(
+            batch.id,
+            chunk_size=OUTBOX_CHUNK_SIZE,
+        ):
             fair_name = (getattr(outbox, "fair_name", None) or "").strip() or batch_fair_name
             self._batch_repository.mark_outbox_sending(outbox.id)
             self._session.commit()
@@ -169,6 +174,11 @@ class ProcessFairEmailBatchUseCase:
                     template_name=template.name,
                     subject=batch.subject_override or template.subject,
                     error_message=failure_message,
+                )
+                self._sync_progress_after_chunk(
+                    command.organization_id,
+                    batch.id,
+                    sent_count + failed_count,
                 )
                 continue
 
@@ -206,6 +216,11 @@ class ProcessFairEmailBatchUseCase:
                     subject=final_subject,
                     error_message=message,
                 )
+                self._sync_progress_after_chunk(
+                    command.organization_id,
+                    batch.id,
+                    sent_count + failed_count,
+                )
                 logger.warning(
                     "fair_email_outbox_failed batch_id=%s outbox_id=%s email=%s error=%s",
                     batch.id,
@@ -231,6 +246,11 @@ class ProcessFairEmailBatchUseCase:
                     template_name=template.name,
                     subject=final_subject,
                     error_message=message,
+                )
+                self._sync_progress_after_chunk(
+                    command.organization_id,
+                    batch.id,
+                    sent_count + failed_count,
                 )
                 logger.exception(
                     "fair_email_outbox_unexpected_failure batch_id=%s outbox_id=%s email=%s",
@@ -259,6 +279,11 @@ class ProcessFairEmailBatchUseCase:
                 template_name=template.name,
                 subject=final_subject,
             )
+            self._sync_progress_after_chunk(
+                command.organization_id,
+                batch.id,
+                sent_count + failed_count,
+            )
             logger.info(
                 "fair_email_outbox_sent batch_id=%s outbox_id=%s email=%s",
                 batch.id,
@@ -279,6 +304,31 @@ class ProcessFairEmailBatchUseCase:
             "fair_email_batch_completed batch_id=%s status=%s sent_count=%s failed_count=%s",
             batch.id,
             status,
+            sent_count,
+            failed_count,
+        )
+
+    def _sync_progress_after_chunk(
+        self,
+        organization_id: UUID,
+        batch_id: UUID,
+        processed_in_run: int,
+    ) -> None:
+        if processed_in_run % OUTBOX_CHUNK_SIZE != 0:
+            return
+        sent_count, failed_count, status = self._batch_repository.recount_batch_from_outbox(batch_id)
+        self._batch_repository.update_batch_counts(
+            batch_id,
+            status=status,
+            sent_count=sent_count,
+            failed_count=failed_count,
+        )
+        self._session.commit()
+        self._sync_linked_operation(organization_id, batch_id)
+        logger.info(
+            "fair_email_batch_chunk_completed batch_id=%s processed=%s sent_count=%s failed_count=%s",
+            batch_id,
+            processed_in_run,
             sent_count,
             failed_count,
         )

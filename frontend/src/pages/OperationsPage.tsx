@@ -63,6 +63,19 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
     urlPath: "/operations",
   });
 
+  const hasActiveOperation = table.items.some((item) => {
+    const status = item.latest_run?.status;
+    return status === "queued" || status === "running" || status === "paused";
+  });
+
+  React.useEffect(() => {
+    if (!hasActiveOperation) return undefined;
+    const timer = window.setInterval(() => {
+      void table.refresh({ silent: true });
+    }, 3000);
+    return () => window.clearInterval(timer);
+  }, [hasActiveOperation, table.refresh]);
+
   React.useEffect(() => {
     let cancelled = false;
     void listOperationTypes({ activeOnly: true })

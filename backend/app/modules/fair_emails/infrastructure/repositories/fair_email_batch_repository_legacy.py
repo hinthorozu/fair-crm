@@ -244,6 +244,29 @@ class SqlAlchemyFairEmailBatchRepository:
             .all()
         )
 
+    def iter_pending_outbox(
+        self,
+        batch_id: UUID,
+        *,
+        chunk_size: int,
+    ):
+        """Yield pending rows while loading at most ``chunk_size`` rows at once."""
+        size = max(1, chunk_size)
+        while True:
+            rows = (
+                self._session.query(FairEmailOutboxModel)
+                .filter(
+                    FairEmailOutboxModel.batch_id == batch_id,
+                    FairEmailOutboxModel.status.in_(("queued", "pending", "sending")),
+                )
+                .order_by(FairEmailOutboxModel.created_at.asc())
+                .limit(size)
+                .all()
+            )
+            if not rows:
+                return
+            yield from rows
+
     def list_failed_outbox(self, batch_id: UUID) -> list[FairEmailOutboxModel]:
         return (
             self._session.query(FairEmailOutboxModel)
