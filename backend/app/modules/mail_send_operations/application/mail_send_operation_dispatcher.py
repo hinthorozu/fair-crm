@@ -45,6 +45,34 @@ class MailSendOperationDispatcher:
             return self._dispatch_fair_bulk_email(operation)
         return self._dispatch_generic(operation)
 
+    def record_fair_bulk_terminal_activity(
+        self,
+        operation: MailSendOperationRecord,
+    ) -> None:
+        """Write the CRM activity after a fair row reaches sent/failed."""
+        if operation.source_type != MailSendSourceType.FAIR_BULK_EMAIL:
+            return
+        outbox = self._fair_bulk_handler.get_outbox_for_operation(
+            operation.organization_id,
+            operation.id,
+        )
+        if outbox is None or outbox.batch_id is None:
+            return
+        batch = self._fair_bulk_handler.get_batch(
+            operation.organization_id,
+            outbox.batch_id,
+        )
+        if batch is None:
+            return
+        self._record_fair_bulk_activity(
+            organization_id=operation.organization_id,
+            batch=batch,
+            outbox_id=outbox.id,
+            fair_id=batch.fair_id,
+            template_id=batch.template_id,
+            subject=outbox.rendered_subject or operation.subject,
+        )
+
     def _dispatch_generic(self, operation: MailSendOperationRecord) -> EmailDeliveryResult:
         self._consent_policy.ensure_allowed_or_delivery_error(
             operation.organization_id,

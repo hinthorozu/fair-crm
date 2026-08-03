@@ -12,9 +12,6 @@ from app.api.list_helpers import standard_list_from_result
 from app.core.exceptions import ForbiddenError
 from app.db.session import get_db
 from app.integrations.kyrox_core.auth import AuthContext
-from app.modules.mail_send_operations.application.process_mail_send_operations_worker import (
-    process_mail_send_operations_background,
-)
 from app.modules.mail_templates.domain.exceptions import (
     MailTemplateAlreadyDeletedError,
     MailTemplateNotFoundError,
@@ -72,7 +69,6 @@ from app.modules.todos.domain.exceptions import (
     WorklistCustomerNotInTodoError,
 )
 from app.modules.todos.domain.worklist_value_objects import WorklistFilter
-from app.shared.background_jobs import run_blocking_background_task
 
 router = APIRouter(prefix="/todos/{todo_id}/worklist", tags=["todo-worklist"])
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -349,10 +345,7 @@ async def send_manual_task_mail(
 
     # Persist queued operations before the background worker opens a new session.
     db.commit()
-    background_tasks.add_task(
-        run_blocking_background_task,
-        process_mail_send_operations_background,
-    )
+    # The separate mail worker service consumes the committed queue rows.
 
     return SendManualTaskMailResponse(
         queued_count=result.queued_count,

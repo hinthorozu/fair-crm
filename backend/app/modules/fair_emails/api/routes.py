@@ -38,7 +38,6 @@ from app.modules.fair_emails.application.commands import (
     PreviewRecipientsQuery,
     SendBulkEmailCommand,
 )
-from app.modules.fair_emails.application.process_batch import process_fair_email_batch
 from app.modules.fair_emails.domain.exceptions import (
     FairBulkEmailBatchNotFoundError,
     FairBulkEmailRecipientNotFoundError,
@@ -54,7 +53,6 @@ from app.modules.mail_templates.domain.exceptions import (
     MailTemplateRenderError,
 )
 from app.modules.smtp.domain.exceptions import SmtpAccountAlreadyDeletedError, SmtpAccountNotFoundError
-from app.shared.background_jobs import run_blocking_background_task
 
 router = APIRouter(prefix="/fairs/{fair_id}/bulk-email", tags=["fair-bulk-email"])
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -366,12 +364,7 @@ async def send_bulk_email(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     db.commit()
-    background_tasks.add_task(
-        run_blocking_background_task,
-        process_fair_email_batch,
-        result.batch_id,
-        auth.organization_id,
-    )
+    # The separate mail worker service consumes the committed queue rows.
 
     return SendBulkEmailResponse(
         batch_id=result.batch_id,

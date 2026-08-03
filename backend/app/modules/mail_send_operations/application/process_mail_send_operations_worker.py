@@ -13,6 +13,9 @@ from app.modules.fair_emails.application.fair_bulk_mail_operation_sync import Fa
 from app.modules.fair_emails.application.retry_fair_bulk_email_operation import (
     FairBulkEmailOperationRetryHandler,
 )
+from app.modules.fair_emails.infrastructure.repositories.fair_email_batch_repository import (
+    SqlAlchemyFairEmailBatchRepository,
+)
 from app.modules.mail_send_operations.application.mail_send_operation_dispatcher import (
     MailSendOperationDispatcher,
 )
@@ -26,12 +29,10 @@ from app.modules.mail_send_operations.domain.worker_constants import WORKER_LOG_
 from app.modules.mail_send_operations.infrastructure.repositories.mail_send_operation_repository import (
     SqlAlchemyMailSendOperationRepository,
 )
-from app.modules.email_delivery.domain.retryability import is_retryable_delivery_error
 from app.modules.email_delivery.domain.results import EmailDeliveryResult
 from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
 
 logger = logging.getLogger(__name__)
-
 
 def _provider_fields_from_delivery_result(
     result: EmailDeliveryResult | None,
@@ -57,6 +58,7 @@ class ProcessMailSendOperationsWorker:
         self._repository = SqlAlchemyMailSendOperationRepository(session)
         self._mail_service = MailSendOperationService(self._repository)
         self._dispatcher = MailSendOperationDispatcher(session)
+        self._batch_repository = SqlAlchemyFairEmailBatchRepository(session)
         self._fair_bulk_handler = FairBulkEmailOperationRetryHandler(session)
         self._mail_operation_sync = FairBulkEmailMailOperationSync(session)
 
@@ -86,6 +88,24 @@ class ProcessMailSendOperationsWorker:
                 retried_count += 1
             else:
                 skipped_count += 1
+            self._session.commit()
+
+        self._sync_fair_batch_progress(candidates)
+
+        if not candidates:
+            retry_candidates = self._repository.list_failed_for_auto_retry(
+                max_batch_size=settings.mail_worker_max_batch_size,
+                now=now,
+            )
+            for candidate in retry_candidates:
+                self._repository.requeue_for_auto_retry(
+                    candidate.organization_id,
+                    candidate.id,
+                )
+                retried_count += 1
+            if retry_candidates:
+                self._sync_fair_batch_progress(retry_candidates)
+                self._session.commit()
 
         self._session.flush()
         return MailSendOperationWorkerResult(
@@ -97,9 +117,45 @@ class ProcessMailSendOperationsWorker:
             retried_count=retried_count,
         )
 
+    def _sync_fair_batch_progress(
+        self,
+        records: list[MailSendOperationRecord],
+    ) -> None:
+        batch_keys = {
+            (record.organization_id, record.batch_id)
+            for record in records
+            if record.source_type == MailSendSourceType.FAIR_BULK_EMAIL
+            and record.batch_id is not None
+        }
+        for organization_id, batch_id in batch_keys:
+            sent_count, failed_count, status = self._batch_repository.recount_batch_from_outbox(
+                batch_id
+            )
+            self._batch_repository.update_batch_counts(
+                batch_id,
+                status=status,
+                sent_count=sent_count,
+                failed_count=failed_count,
+            )
+            batch = self._batch_repository.get_batch(organization_id, batch_id)
+            if batch is None or batch.operation_id is None:
+                continue
+            from app.modules.operations.infrastructure.handlers.bulk_email_operation_sync import (
+                sync_operation_run_from_batch,
+            )
+
+            sync_operation_run_from_batch(
+                self._session,
+                organization_id=organization_id,
+                operation_id=batch.operation_id,
+                batch=batch,
+            )
+
     def _recover_stuck_sending(self, *, now: datetime, timeout_minutes: int) -> int:
         cutoff = now - timedelta(minutes=timeout_minutes)
-        stuck_records = self._repository.list_stuck_sending(cutoff=cutoff)
+        stuck_records = self._repository.list_stuck_sending(
+            cutoff=cutoff,
+        )
         recovered = 0
         for record in stuck_records:
             self._mail_service.mark_sending_timeout_failed(
@@ -140,31 +196,29 @@ class ProcessMailSendOperationsWorker:
             delivery_result = self._dispatcher.dispatch(claimed)
         except SmtpMailDeliveryError as exc:
             message = exc.args[0] if exc.args else "Mail gönderimi başarısız oldu."
-            if self._try_auto_retry(
-                claimed,
-                error_code=exc.error_type,
-                error_message=message,
-                retryable=exc.retryable,
-            ):
-                return "retried"
             self._mail_service.mark_failed(
                 claimed.organization_id,
                 claimed.id,
                 error_code=exc.error_type,
                 error_message=message,
             )
+            if exc.retryable is not None:
+                self._repository.set_auto_retry_pending(
+                    claimed.organization_id,
+                    claimed.id,
+                    enabled=exc.retryable,
+                )
+            if exc.retry_after_seconds is not None and exc.retry_after_seconds > 0:
+                self._repository.set_retry_not_before(
+                    claimed.organization_id,
+                    claimed.id,
+                    scheduled_at=now + timedelta(seconds=exc.retry_after_seconds),
+                )
             self._sync_fair_bulk_failure(claimed, message=message, error_code=exc.error_type)
             return "failed"
         except Exception as exc:
             message = str(exc).strip() or "Mail gönderimi başarısız oldu."
             error_code = type(exc).__name__
-            if self._try_auto_retry(
-                claimed,
-                error_code=error_code,
-                error_message=message,
-                retryable=None,
-            ):
-                return "retried"
             self._mail_service.mark_failed(
                 claimed.organization_id,
                 claimed.id,
@@ -207,25 +261,6 @@ class ProcessMailSendOperationsWorker:
         )
         return "sent"
 
-    def _try_auto_retry(
-        self,
-        record: MailSendOperationRecord,
-        *,
-        error_code: str | None,
-        error_message: str | None,
-        retryable: bool | None = None,
-    ) -> bool:
-        if retryable is False:
-            return False
-        if retryable is True:
-            pass
-        elif not is_retryable_delivery_error(error_code, error_message=error_message):
-            return False
-        if record.retry_count >= record.max_retry_count - 1:
-            return False
-        self._repository.requeue_for_auto_retry(record.organization_id, record.id)
-        return True
-
     def _sync_fair_bulk_failure(
         self,
         operation: MailSendOperationRecord,
@@ -242,6 +277,7 @@ class ProcessMailSendOperationsWorker:
         if outbox is None:
             return
         self._fair_bulk_handler.sync_outbox_failed(outbox.id, message=message)
+        self._dispatcher.record_fair_bulk_terminal_activity(operation)
         refreshed = self._repository.get_by_id(operation.organization_id, operation.id)
         if refreshed is not None and refreshed.status == MailSendOperationStatus.FAILED:
             return

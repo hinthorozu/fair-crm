@@ -189,18 +189,9 @@ def _schedule_bulk_email_jobs(
     background_tasks: BackgroundTasks,
     bulk_email_job_buffer: BulkEmailJobBuffer,
 ) -> None:
-    from app.modules.fair_emails.application.process_batch import process_fair_email_batch
-    from app.shared.background_jobs import schedule_detached_blocking_job
-
-    # Do not use Starlette BackgroundTasks here: BaseHTTPMiddleware can run them
-    # before the client receives the 201, making wizard "Gönder" wait for SMTP.
+    # All mail types are consumed by the separate mail worker service.
     _ = background_tasks
-    for command in bulk_email_job_buffer.drain():
-        schedule_detached_blocking_job(
-            process_fair_email_batch,
-            command.batch_id,
-            command.organization_id,
-        )
+    bulk_email_job_buffer.drain()
 
 
 def _schedule_data_operation_jobs(

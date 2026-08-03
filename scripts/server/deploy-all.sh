@@ -157,9 +157,11 @@ manage_systemd_services() {
   tmp_dir="$(mktemp -d)"
   render_template "${SCRIPT_DIR}/systemd/kyrox-core.service" "${tmp_dir}/kyrox-core.service"
   render_template "${SCRIPT_DIR}/systemd/fair-crm-backend.service" "${tmp_dir}/fair-crm-backend.service"
+  render_template "${SCRIPT_DIR}/systemd/fair-crm-mail-worker.service" "${tmp_dir}/fair-crm-mail-worker.service"
 
   install_systemd_unit "${tmp_dir}/kyrox-core.service" "kyrox-core.service"
   install_systemd_unit "${tmp_dir}/fair-crm-backend.service" "fair-crm-backend.service"
+  install_systemd_unit "${tmp_dir}/fair-crm-mail-worker.service" "fair-crm-mail-worker.service"
   rm -rf "$tmp_dir"
 
   if [[ "${EUID}" -ne 0 ]]; then
@@ -169,10 +171,11 @@ manage_systemd_services() {
 
   step "Reload and restart systemd services"
   systemctl daemon-reload
-  systemctl enable kyrox-core fair-crm-backend
+  systemctl enable kyrox-core fair-crm-backend fair-crm-mail-worker
   systemctl restart kyrox-core
   sleep 2
   systemctl restart fair-crm-backend
+  systemctl restart fair-crm-mail-worker
 
   REPORT_CORE_STATUS="$(systemctl is-active kyrox-core 2>/dev/null || echo unknown)"
   REPORT_FAIR_STATUS="$(systemctl is-active fair-crm-backend 2>/dev/null || echo unknown)"

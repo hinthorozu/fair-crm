@@ -170,7 +170,7 @@ class Settings(BaseSettings):
         ),
     )
     mail_worker_max_batch_size: int = Field(
-        default=25,
+        default=30,
         validation_alias=AliasChoices(
             "MAIL_WORKER_MAX_BATCH_SIZE",
             "FAIR_CRM_MAIL_WORKER_MAX_BATCH_SIZE",

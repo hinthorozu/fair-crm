@@ -7,6 +7,7 @@ from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
 
 from app.core.pagination import build_paginated_meta, normalize_page_params
+from app.modules.email_delivery.domain.retryability import is_retryable_delivery_error
 
 from app.modules.mail_send_operations.domain.entities import MailSendOperationRecord
 from app.modules.mail_send_operations.domain.exceptions import (
@@ -82,7 +83,7 @@ class SqlAlchemyMailSendOperationRepository:
             fair_id=params.fair_id,
             customer_id=params.customer_id,
             batch_id=params.batch_id,
-            retry_count=0,
+            retry_count=1,
             max_retry_count=params.max_retry_count,
             error_code=None,
             error_message=None,
@@ -258,6 +259,26 @@ class SqlAlchemyMailSendOperationRepository:
         max_batch_size: int,
         now: datetime,
     ) -> list[MailSendOperationRecord]:
+        query = self._session.query(MailSendOperationModel).filter(
+                MailSendOperationModel.status == MailSendOperationStatus.QUEUED,
+                or_(
+                    MailSendOperationModel.scheduled_at.is_(None),
+                    MailSendOperationModel.scheduled_at <= now,
+                ),
+            )
+        query = query.order_by(
+            MailSendOperationModel.priority.asc(),
+            MailSendOperationModel.created_at.asc(),
+        ).limit(max_batch_size)
+        models = self._apply_worker_row_lock(query).all()
+        return [self._to_record(model) for model in models]
+
+    def count_queued_ready(
+        self,
+        *,
+        now: datetime,
+    ) -> int:
+        """Count queued operations that are eligible for worker pickup (no row lock)."""
         query = (
             self._session.query(MailSendOperationModel)
             .filter(
@@ -267,46 +288,64 @@ class SqlAlchemyMailSendOperationRepository:
                     MailSendOperationModel.scheduled_at <= now,
                 ),
             )
-            .order_by(
-                MailSendOperationModel.priority.asc(),
-                MailSendOperationModel.created_at.asc(),
-            )
-            .limit(max_batch_size)
         )
-        models = self._apply_worker_row_lock(query).all()
-        return [self._to_record(model) for model in models]
+        return query.count()
 
-    def count_queued_ready(self, *, now: datetime) -> int:
-        """Count queued operations that are eligible for worker pickup (no row lock)."""
-        return (
-            self._session.query(MailSendOperationModel)
-            .filter(
-                MailSendOperationModel.status == MailSendOperationStatus.QUEUED,
-                or_(
-                    MailSendOperationModel.scheduled_at.is_(None),
-                    MailSendOperationModel.scheduled_at <= now,
-                ),
-            )
-            .count()
-        )
-
-    def count_stuck_sending_past_timeout(self, *, cutoff: datetime) -> int:
+    def count_stuck_sending_past_timeout(
+        self,
+        *,
+        cutoff: datetime,
+    ) -> int:
         """Count stuck sending operations past timeout (no row lock; for startup probe)."""
-        return (
+        query = (
             self._session.query(MailSendOperationModel)
             .filter(
                 MailSendOperationModel.status == MailSendOperationStatus.SENDING,
                 MailSendOperationModel.sending_started_at.isnot(None),
                 MailSendOperationModel.sending_started_at < cutoff,
             )
-            .count()
         )
+        return query.count()
 
-    def list_stuck_sending(self, *, cutoff: datetime) -> list[MailSendOperationRecord]:
+    def list_stuck_sending(
+        self,
+        *,
+        cutoff: datetime,
+    ) -> list[MailSendOperationRecord]:
         query = self._session.query(MailSendOperationModel).filter(
             MailSendOperationModel.status == MailSendOperationStatus.SENDING,
             MailSendOperationModel.sending_started_at.isnot(None),
             MailSendOperationModel.sending_started_at < cutoff,
+        )
+        models = self._apply_worker_row_lock(query).all()
+        return [self._to_record(model) for model in models]
+
+    def list_failed_for_auto_retry(
+        self,
+        *,
+        max_batch_size: int,
+        now: datetime,
+    ) -> list[MailSendOperationRecord]:
+        """Pick failed rows only after the current queued pass is exhausted."""
+        query = (
+            self._session.query(MailSendOperationModel)
+            .filter(
+                MailSendOperationModel.status == MailSendOperationStatus.FAILED,
+                MailSendOperationModel.retry_count < MailSendOperationModel.max_retry_count,
+                MailSendOperationModel.metadata_json["auto_retry_pending"]
+                .as_boolean()
+                .is_(True),
+                or_(
+                    MailSendOperationModel.scheduled_at.is_(None),
+                    MailSendOperationModel.scheduled_at <= now,
+                ),
+            )
+            .order_by(
+                MailSendOperationModel.retry_count.asc(),
+                MailSendOperationModel.priority.asc(),
+                MailSendOperationModel.failed_at.asc(),
+            )
+            .limit(max_batch_size)
         )
         models = self._apply_worker_row_lock(query).all()
         return [self._to_record(model) for model in models]
@@ -350,6 +389,8 @@ class SqlAlchemyMailSendOperationRepository:
             return None
         if model.scheduled_at is not None and model.scheduled_at > now:
             return None
+        if model.retry_count < 1:
+            model.retry_count = 1
         model.status = MailSendOperationStatus.SENDING
         model.sending_started_at = now
         model.updated_at = now
@@ -449,6 +490,9 @@ class SqlAlchemyMailSendOperationRepository:
         model.external_message_id = None
         model.provider_status = None
         model.updated_at = now
+        metadata = dict(model.metadata_json or {})
+        metadata["auto_retry_pending"] = False
+        model.metadata_json = metadata
         self._session.flush()
         return self._to_record(model)
 
@@ -472,6 +516,9 @@ class SqlAlchemyMailSendOperationRepository:
         model.external_message_id = None
         model.provider_status = None
         model.updated_at = now
+        metadata = dict(model.metadata_json or {})
+        metadata["auto_retry_pending"] = False
+        model.metadata_json = metadata
         logs = list(model.operation_logs or [])
         logs.append(
             {
@@ -492,6 +539,32 @@ class SqlAlchemyMailSendOperationRepository:
         model.updated_at = now
         self._session.flush()
         return self._to_record(model)
+
+    def set_retry_not_before(
+        self,
+        organization_id: UUID,
+        operation_id: UUID,
+        *,
+        scheduled_at: datetime,
+    ) -> None:
+        model = self._get_model(organization_id, operation_id)
+        model.scheduled_at = scheduled_at
+        model.updated_at = datetime.now(timezone.utc)
+        self._session.flush()
+
+    def set_auto_retry_pending(
+        self,
+        organization_id: UUID,
+        operation_id: UUID,
+        *,
+        enabled: bool,
+    ) -> None:
+        model = self._get_model(organization_id, operation_id)
+        metadata = dict(model.metadata_json or {})
+        metadata["auto_retry_pending"] = enabled
+        model.metadata_json = metadata
+        model.updated_at = datetime.now(timezone.utc)
+        self._session.flush()
 
     def mark_sent(
         self,
@@ -583,6 +656,12 @@ class SqlAlchemyMailSendOperationRepository:
         model.failed_at = now
         model.error_code = error_code
         model.error_message = error_message
+        metadata = dict(model.metadata_json or {})
+        metadata["auto_retry_pending"] = is_retryable_delivery_error(
+            error_code,
+            error_message=error_message,
+        )
+        model.metadata_json = metadata
         model.updated_at = now
         self._session.flush()
         return self._to_record(model)

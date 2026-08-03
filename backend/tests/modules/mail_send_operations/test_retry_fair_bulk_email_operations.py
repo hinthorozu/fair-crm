@@ -78,20 +78,19 @@ def test_retry_failed_fair_bulk_email_success(
     assert response.status_code == 200
     body = response.json()
     assert body["success"] is True
-    assert body["operation"]["status"] == MailSendOperationStatus.SENT
+    assert body["operation"]["status"] == MailSendOperationStatus.QUEUED
     assert body["operation"]["retry_count"] == 1
     events = _operation_events(body)
     assert "retry_requested" in events
     assert "queued" in events
-    assert "sending_started" in events
-    assert events[-1] == "sent"
-    mock_send.assert_called_once()
+    assert events[-1] == "queued"
+    mock_send.assert_not_called()
 
     db_session.expire_all()
     assert db_session.query(MailSendOperationModel).count() == before_count
     outbox = db_session.query(FairEmailOutboxModel).filter(FairEmailOutboxModel.id == outbox_id).one()
-    assert outbox.status == "sent"
-    assert outbox.sent_at is not None
+    assert outbox.status == "queued"
+    assert outbox.sent_at is None
     assert outbox.error_message is None
 
 
@@ -118,17 +117,18 @@ def test_retry_failed_fair_bulk_email_delivery_error(
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["success"] is False
-    assert body["operation"]["status"] == MailSendOperationStatus.FAILED
+    assert body["success"] is True
+    assert body["operation"]["status"] == MailSendOperationStatus.QUEUED
     assert body["operation"]["retry_count"] == 1
-    assert body["operation"]["error_code"] == "SMTPConnectError"
+    assert body["operation"]["error_code"] is None
     events = _operation_events(body)
-    assert events[-1] == "failed"
+    assert events[-1] == "queued"
+    mock_send.assert_not_called()
 
     db_session.expire_all()
     outbox = db_session.query(FairEmailOutboxModel).filter(FairEmailOutboxModel.id == outbox_id).one()
-    assert outbox.status == "failed"
-    assert outbox.error_message == "Connection refused"
+    assert outbox.status == "queued"
+    assert outbox.error_message is None
 
 
 @patch(

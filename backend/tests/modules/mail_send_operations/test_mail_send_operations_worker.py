@@ -164,7 +164,7 @@ def test_worker_marks_manual_task_mail_failed_on_smtp_error(mock_send, db_sessio
     "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send",
     return_value=EmailDeliveryResult(success=True, transport="smtp"),
 )
-def test_worker_auto_retries_retryable_smtp_error(mock_send, db_session, organization_id):
+def test_worker_retries_only_after_queued_pass_finishes(mock_send, db_session, organization_id):
     mock_send.side_effect = SmtpMailDeliveryError("smtp down", error_type="SMTPConnectError")
     operation = _create_queued_operation(
         db_session,
@@ -175,12 +175,20 @@ def test_worker_auto_retries_retryable_smtp_error(mock_send, db_session, organiz
 
     result = ProcessMailSendOperationsWorker(db_session).run()
     assert result.picked_count == 1
-    assert result.failed_count == 0
-    assert result.retried_count == 1
+    assert result.failed_count == 1
+    assert result.retried_count == 0
+
+    refreshed = db_session.query(MailSendOperationModel).filter(MailSendOperationModel.id == operation.id).one()
+    assert refreshed.status == MailSendOperationStatus.FAILED
+    assert refreshed.retry_count == 1
+
+    retry_pass = ProcessMailSendOperationsWorker(db_session).run()
+    assert retry_pass.picked_count == 0
+    assert retry_pass.retried_count == 1
 
     refreshed = db_session.query(MailSendOperationModel).filter(MailSendOperationModel.id == operation.id).one()
     assert refreshed.status == MailSendOperationStatus.QUEUED
-    assert refreshed.retry_count == 1
+    assert refreshed.retry_count == 2
     assert refreshed.error_code is None
     assert refreshed.sending_started_at is None
     events = _operation_events(refreshed.operation_logs)
@@ -207,7 +215,7 @@ def test_worker_fails_after_exhausting_auto_retries(mock_send, db_session, organ
         )
     )
     model = db_session.query(MailSendOperationModel).filter(MailSendOperationModel.id == record.id).one()
-    model.retry_count = 1  # already used one retry; next failure should mark failed
+    model.retry_count = 2  # maximum two attempts already reached
     db_session.flush()
 
     result = ProcessMailSendOperationsWorker(db_session).run()
@@ -675,8 +683,10 @@ def test_fair_bulk_customer_activity_unchanged(
             "recipient_options": {"include_customer_emails": True, "include_contact_emails": True},
         },
         headers=auth_headers,
-    )
+        )
     assert response.status_code == 200
+    worker_result = ProcessMailSendOperationsWorker(db_session).run()
+    assert worker_result.sent_count >= 1
     activities = db_session.query(ActivityModel).all()
     fair_bulk_activities = [
         activity

@@ -72,14 +72,13 @@ def test_retry_failed_smtp_test_success(mock_send, client, auth_headers):
     assert response.status_code == 200
     body = response.json()
     assert body["success"] is True
-    assert body["operation"]["status"] == MailSendOperationStatus.SENT
-    assert body["operation"]["retry_count"] == 1
+    assert body["operation"]["status"] == MailSendOperationStatus.QUEUED
+    assert body["operation"]["retry_count"] == 2
     events = _operation_events(body["operation"]["operation_logs"])
     assert "retry_requested" in events
     assert "queued" in events
-    assert "sending_started" in events
-    assert events[-1] == "sent"
-    mock_send.assert_called_once()
+    assert events[-1] == "queued"
+    mock_send.assert_not_called()
 
 
 @patch(
@@ -99,12 +98,13 @@ def test_retry_failed_smtp_test_stays_failed_on_delivery_error(mock_send, client
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["success"] is False
-    assert body["operation"]["status"] == MailSendOperationStatus.FAILED
-    assert body["operation"]["retry_count"] == 1
-    assert body["operation"]["error_code"] == "SMTPConnectError"
+    assert body["success"] is True
+    assert body["operation"]["status"] == MailSendOperationStatus.QUEUED
+    assert body["operation"]["retry_count"] == 2
+    assert body["operation"]["error_code"] is None
     events = _operation_events(body["operation"]["operation_logs"])
-    assert events[-1] == "failed"
+    assert events[-1] == "queued"
+    mock_send.assert_not_called()
 
 
 def test_retry_inactive_smtp_fails(client, auth_headers, db_session, organization_id):
@@ -124,9 +124,8 @@ def test_retry_inactive_smtp_fails(client, auth_headers, db_session, organizatio
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["success"] is False
-    assert body["operation"]["status"] == MailSendOperationStatus.FAILED
-    assert body["operation"]["error_code"] == "InactiveAccount"
+    assert body["success"] is True
+    assert body["operation"]["status"] == MailSendOperationStatus.QUEUED
 
 
 @patch("app.modules.smtp.application.send_test_smtp_mail.EmailDeliveryService.send")
@@ -261,7 +260,8 @@ def test_retry_failed_template_test_success(mock_send, client, auth_headers):
         )
     assert response.status_code == 200
     assert response.json()["success"] is True
-    retry_send.assert_called_once()
+    assert response.json()["operation"]["status"] == MailSendOperationStatus.QUEUED
+    retry_send.assert_not_called()
 
 
 @patch(
@@ -314,5 +314,6 @@ def test_retry_failed_template_test_delivery_error(mock_send, client, auth_heade
         headers=auth_headers,
     )
     assert response.status_code == 200
-    assert response.json()["success"] is False
-    assert response.json()["operation"]["status"] == MailSendOperationStatus.FAILED
+    assert response.json()["success"] is True
+    assert response.json()["operation"]["status"] == MailSendOperationStatus.QUEUED
+    mock_send.assert_not_called()

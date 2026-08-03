@@ -5,6 +5,9 @@ from unittest.mock import patch
 import pytest
 
 from app.modules.mail_send_operations.domain.value_objects import MailSendOperationStatus, MailSendSourceType
+from app.modules.mail_send_operations.application.process_mail_send_operations_worker import (
+    ProcessMailSendOperationsWorker,
+)
 from app.modules.mail_send_operations.infrastructure.persistence.models import MailSendOperationModel
 from app.modules.todos.application.send_manual_task_mail import parse_manual_task_mail_recipients
 from app.modules.todos.domain.exceptions import InvalidManualTaskMailRecipientsError
@@ -52,9 +55,8 @@ def test_parse_manual_task_mail_recipients_dedupes_and_validates():
         parse_manual_task_mail_recipients("abc @.oxom")
 
 
-@patch("app.modules.todos.api.worklist_routes.process_mail_send_operations_background")
 def test_send_manual_task_mail_queues_one_operation_per_recipient(
-    mock_worker, client, auth_headers, db_session, organization_id, user_id
+    client, auth_headers, db_session, organization_id, user_id
 ):
     scenario = _seed_worklist_scenario(db_session, organization_id, user_id)
     todo_id = scenario["todo_id"]
@@ -86,7 +88,6 @@ def test_send_manual_task_mail_queues_one_operation_per_recipient(
     assert body["queued_count"] == 2
     assert body["message"] == "Mail gönderimleri kuyruğa alındı."
     assert len(body["operation_ids"]) == 2
-    mock_worker.assert_called_once()
 
     operations = (
         db_session.query(MailSendOperationModel)
@@ -115,9 +116,8 @@ def test_send_manual_task_mail_queues_one_operation_per_recipient(
         assert events == ["queued"]
 
 
-@patch("app.modules.todos.api.worklist_routes.process_mail_send_operations_background")
 def test_send_manual_task_mail_does_not_require_template(
-    mock_worker, client, auth_headers, db_session, organization_id, user_id
+    client, auth_headers, db_session, organization_id, user_id
 ):
     scenario = _seed_worklist_scenario(db_session, organization_id, user_id)
     todo_id = scenario["todo_id"]
@@ -137,7 +137,6 @@ def test_send_manual_task_mail_does_not_require_template(
     )
     assert response.status_code == 202
     assert response.json()["queued_count"] == 1
-    mock_worker.assert_called_once()
 
     operation = (
         db_session.query(MailSendOperationModel)
@@ -172,6 +171,8 @@ def test_send_manual_task_mail_background_worker_moves_to_sent(
     )
     assert response.status_code == 202
     assert len(response.json()["operation_ids"]) == 2
+    worker_result = ProcessMailSendOperationsWorker(db_session).run()
+    assert worker_result.sent_count == 2
 
     operations = (
         db_session.query(MailSendOperationModel)
@@ -243,9 +244,8 @@ def test_send_manual_task_mail_rejects_invalid_recipients(
     )
 
 
-@patch("app.modules.todos.api.worklist_routes.process_mail_send_operations_background")
 def test_send_manual_task_mail_accepts_valid_recipient(
-    mock_worker, client, auth_headers, db_session, organization_id, user_id
+    client, auth_headers, db_session, organization_id, user_id
 ):
     scenario = _seed_worklist_scenario(db_session, organization_id, user_id)
     todo_id = scenario["todo_id"]

@@ -1,0 +1,19 @@
+[Unit]
+Description=Fair CRM Mail Worker
+After=network-online.target fair-crm-backend.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__DEPLOY_SERVICE_USER__
+Group=__DEPLOY_SERVICE_USER__
+WorkingDirectory=__FAIR_CRM_DIR__/backend
+Environment=PYTHONPATH=__FAIR_CRM_DIR__/backend
+EnvironmentFile=-__FAIR_CRM_DIR__/backend/.env
+ExecStart=__FAIR_CRM_DIR__/backend/.venv/bin/python -m app.modules.mail_send_operations.worker_main
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
