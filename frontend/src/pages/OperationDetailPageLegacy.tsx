@@ -165,11 +165,9 @@ export function OperationDetailPage({
         if (!options?.silent) setLoading(false);
         const relatedTodoId = nextDetail.operation.related_todo_id;
         if (relatedTodoId && !options?.silent) {
-          try {
-            setLinkedTodo(await getTodo(relatedTodoId));
-          } catch {
-            setLinkedTodoError(operationLabels.linkedTodoMissing);
-          }
+          void getTodo(relatedTodoId)
+            .then((todo) => setLinkedTodo(todo))
+            .catch(() => setLinkedTodoError(operationLabels.linkedTodoMissing));
         } else if (!relatedTodoId) {
           setLinkedTodo(null);
           setLinkedTodoError(null);
