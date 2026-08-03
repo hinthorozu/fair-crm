@@ -8,6 +8,9 @@ import time
 
 from app.core.logging import setup_logging
 from app.db.session import SessionLocal
+# The standalone worker does not import the FastAPI router tree. Register the
+# table referenced by crm_operations.related_todo_id before ORM flushes.
+from app.modules.todos.infrastructure.persistence import models as _todo_models  # noqa: F401
 from app.modules.mail_send_operations.application.process_mail_send_operations_worker import (
     process_mail_send_operations,
 )
