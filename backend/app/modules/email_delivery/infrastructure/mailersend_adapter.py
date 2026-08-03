@@ -22,6 +22,10 @@ MAILERSEND_EMAIL_URL = "https://api.mailersend.com/v1/email"
 def _extract_error_identifier(response: httpx.Response) -> str:
     """Prefer machine identifiers (type/name/code); fall back to HTTP status string."""
     status = str(response.status_code)
+    # Cloudflare rate-limit payloads may expose a documentation URL as their
+    # JSON code. The actionable identifier remains the HTTP 429 status.
+    if response.status_code == 429:
+        return status
     try:
         payload = response.json()
     except Exception:
@@ -31,7 +35,9 @@ def _extract_error_identifier(response: httpx.Response) -> str:
         for key in ("type", "name", "code"):
             value = payload.get(key)
             if isinstance(value, str) and value.strip() and " " not in value.strip():
-                return value.strip()
+                candidate = value.strip()
+                if not candidate.lower().startswith(("http://", "https://")):
+                    return candidate
     return status
 
 
@@ -124,12 +130,20 @@ class MailerSendAdapter:
                 retryable=True,
             ) from exc
 
-        if response.status_code in {200, 201, 202}:
+        if response.status_code == 202:
             external_id = response.headers.get("x-message-id") or response.headers.get("X-Message-Id")
+            if not external_id:
+                raise EmailDeliveryError(
+                    "MailerSend accepted the request without an x-message-id; delivery was not queued",
+                    error_code="MailerSendMissingMessageId",
+                    transport=f"provider:{self.provider_key}",
+                    retryable=False,
+                    provider_status="202",
+                )
             return EmailDeliveryResult(
                 success=True,
                 transport=f"provider:{self.provider_key}",
-                external_message_id=external_id or None,
+                external_message_id=external_id,
                 # Initial provider acceptance only — webhook updates later statuses.
                 provider_status="accepted",
             )

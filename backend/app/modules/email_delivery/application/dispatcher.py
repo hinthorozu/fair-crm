@@ -114,15 +114,9 @@ class EmailDeliveryDispatcher:
                 policy_action=decision.action,
             )
 
-        # Unmatched identifiers fail closed (non-retryable).
+        # Unknown identifiers fail closed. Retry behavior is controlled by the
+        # error groups configured on the provider account.
         retryable = bool(decision.retryable) if decision.category is not None else False
-        if exc.retryable is True and decision.category is None:
-            # Adapter-marked transport flakes (timeout/connection) may still retry
-            # only when explicitly marked retryable AND unmatched? User said fail-closed
-            # for undefined — keep fail-closed.
-            retryable = False
-        if decision.category is not None:
-            retryable = decision.retryable
 
         raise EmailDeliveryError(
             message,

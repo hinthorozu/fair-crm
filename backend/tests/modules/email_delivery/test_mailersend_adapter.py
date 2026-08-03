@@ -96,7 +96,7 @@ def test_mailersend_success_captures_external_message_id():
     assert result.transport == "provider:mailersend"
 
 
-def test_mailersend_success_without_x_message_id_stays_accepted():
+def test_mailersend_202_without_x_message_id_is_not_successful():
     def transport(method, url, headers=None, json=None):
         return httpx.Response(
             202,
@@ -105,22 +105,41 @@ def test_mailersend_success_without_x_message_id_stays_accepted():
         )
 
     adapter = MailerSendAdapter(transport=transport)
-    result = adapter.send(
-        _provider_account(),
-        recipient="to@example.com",
-        subject="Hi",
-        body_html="<p>Hi</p>",
-        body_text="Hi",
-        provider_config={
-            "api_token": "tok_123",
-            "from_email": "from@example.com",
-            "from_name": "FAIR",
-        },
-    )
-    assert result.success is True
-    assert result.external_message_id is None
-    assert result.provider_status == "accepted"
-    assert result.transport == "provider:mailersend"
+    with pytest.raises(EmailDeliveryError) as exc_info:
+        adapter.send(
+            _provider_account(),
+            recipient="to@example.com",
+            subject="Hi",
+            body_html="<p>Hi</p>",
+            body_text="Hi",
+            provider_config={
+                "api_token": "tok_123",
+                "from_email": "from@example.com",
+                "from_name": "FAIR",
+            },
+        )
+    assert exc_info.value.error_code == "MailerSendMissingMessageId"
+    assert exc_info.value.retryable is False
+
+
+@pytest.mark.parametrize("status_code", [200, 201])
+def test_mailersend_non_202_success_codes_are_not_accepted(status_code):
+    def transport(method, url, headers=None, json=None):
+        return httpx.Response(
+            status_code,
+            headers={"x-message-id": "unexpected-id"},
+            request=httpx.Request("POST", url),
+        )
+
+    adapter = MailerSendAdapter(transport=transport)
+    with pytest.raises(EmailDeliveryError) as exc_info:
+        adapter.send(
+            _provider_account(),
+            recipient="to@example.com",
+            subject="Hi",
+            provider_config={"api_token": "x", "from_email": "a@b.com"},
+        )
+    assert exc_info.value.error_code == str(status_code)
 
 
 def test_mailersend_auth_error_identifier_is_status():
@@ -144,6 +163,30 @@ def test_mailersend_auth_error_identifier_is_status():
             },
         )
     assert exc_info.value.error_code == "401"
+
+
+def test_mailersend_cloudflare_1015_payload_is_normalized_to_retryable_429():
+    def transport(method, url, headers=None, json=None):
+        return httpx.Response(
+            429,
+            json={
+                "code": "https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-1xxx-errors/error-1015/",
+                "message": "MailerSend error",
+            },
+            request=httpx.Request("POST", url),
+        )
+
+    adapter = MailerSendAdapter(transport=transport)
+    with pytest.raises(EmailDeliveryError) as exc_info:
+        adapter.send(
+            _provider_account(),
+            recipient="to@example.com",
+            subject="Hi",
+            provider_config={"api_token": "x", "from_email": "a@b.com"},
+        )
+
+    assert exc_info.value.error_code == "429"
+    assert exc_info.value.retryable is None
 
 
 def test_dispatcher_applies_retry_and_deactivate_and_skip():
