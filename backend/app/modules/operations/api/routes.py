@@ -1093,11 +1093,16 @@ def _resolve_bulk_email_batch(db: Session, organization_id: UUID, operation_id: 
 )
 def list_bulk_email_operation_recipients(
     operation_id: UUID,
+    limit: int | None = Query(default=None, ge=1, le=500),
     auth: AuthContext = Depends(require_read_permission),
     db: Session = Depends(get_db),
 ) -> BulkEmailOperationRecipientsResponse:
     batch, repo = _resolve_bulk_email_batch(db, auth.organization_id, operation_id)
-    items = repo.list_outbox_for_batch(auth.organization_id, batch.id)
+    items = (
+        repo.list_recent_outbox_for_batch(auth.organization_id, batch.id, limit=limit)
+        if limit is not None
+        else repo.list_outbox_for_batch(auth.organization_id, batch.id)
+    )
     return BulkEmailOperationRecipientsResponse(
         batch_id=batch.id,
         items=[
@@ -1142,7 +1147,9 @@ def list_bulk_email_operation_logs(
     )
 
     batch, repo = _resolve_bulk_email_batch(db, auth.organization_id, operation_id)
-    items = repo.list_outbox_for_batch(auth.organization_id, batch.id)
+    # Keep the live console bounded. The recipient result table has its own
+    # full dataset; rendering thousands of historical log lines locks the UI.
+    items = repo.list_recent_outbox_for_batch(auth.organization_id, batch.id, limit=200)
     lines: list[BulkEmailOperationLogLineResponse] = []
 
     started_at = getattr(batch, "created_at", None)
@@ -1209,11 +1216,8 @@ def list_bulk_email_operation_logs(
             )
         )
 
-    sent_count = 0
-    failed_count = 0
     for item in items:
         if item.status == "sent":
-            sent_count += 1
             lines.append(
                 BulkEmailOperationLogLineResponse(
                     at=item.sent_at or item.updated_at,
@@ -1225,7 +1229,6 @@ def list_bulk_email_operation_logs(
                 )
             )
         elif item.status == "failed":
-            failed_count += 1
             err = item.error_message or "bilinmeyen hata"
             if "sending_timeout" in err.lower():
                 message = (
@@ -1256,7 +1259,7 @@ def list_bulk_email_operation_logs(
                 )
             )
 
-    processed = sent_count + failed_count
+    processed = batch.sent_count + batch.failed_count
     if processed > 0 and batch.total_count > 0:
         lines.append(
             BulkEmailOperationLogLineResponse(
@@ -1269,9 +1272,8 @@ def list_bulk_email_operation_logs(
             )
         )
 
-    terminal_batch = batch.status in {"completed", "failed", "cancelled"}
-    still_inflight = any(item.status in {"pending", "sending"} for item in items)
-    if terminal_batch or (items and not still_inflight):
+    terminal_batch = batch.status in {"completed", "completed_with_errors", "failed", "cancelled"}
+    if terminal_batch:
         end_at = max(
             (item.updated_at for item in items if item.updated_at is not None),
             default=started_at,
@@ -1280,7 +1282,7 @@ def list_bulk_email_operation_logs(
             BulkEmailOperationLogLineResponse(
                 at=end_at,
                 level="info",
-                message=f"{sent_count} gönderildi · {failed_count} başarısız",
+                message=f"{batch.sent_count} gönderildi · {batch.failed_count} başarısız",
                 outbox_id=None,
                 email=None,
                 status=None,

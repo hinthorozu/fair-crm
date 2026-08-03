@@ -233,6 +233,35 @@ class SqlAlchemyFairEmailBatchRepository:
             for outbox in rows
         ]
 
+    def list_recent_outbox_for_batch(
+        self,
+        organization_id: UUID,
+        batch_id: UUID,
+        *,
+        limit: int = 200,
+    ) -> list[FairEmailOutboxItemRecord]:
+        """Return only the most recently updated rows needed by the live log."""
+        rows = (
+            self._session.query(FairEmailOutboxModel)
+            .filter(
+                FairEmailOutboxModel.organization_id == organization_id,
+                FairEmailOutboxModel.batch_id == batch_id,
+            )
+            .order_by(FairEmailOutboxModel.updated_at.desc(), FairEmailOutboxModel.created_at.desc())
+            .limit(max(1, limit))
+            .all()
+        )
+        rows.reverse()
+        return [
+            self._to_outbox_record(
+                outbox,
+                external_message_id=outbox.external_message_id,
+                provider_status=outbox.provider_status,
+                updated_at=outbox.updated_at,
+            )
+            for outbox in rows
+        ]
+
     def list_pending_outbox(self, batch_id: UUID) -> list[FairEmailOutboxModel]:
         return (
             self._session.query(FairEmailOutboxModel)

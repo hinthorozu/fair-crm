@@ -25,7 +25,6 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import type { BulkEmailOperationLogLine, BulkEmailOperationRecipientRow } from "../types/bulkEmailOperation";
-import { mergeBulkEmailLogLines } from "../utils/bulkEmailOperationLogs";
 import {
   operationLabels,
   operationPriorityLabels,
@@ -104,7 +103,21 @@ function isNonEmptyScraperConfig(value: unknown): value is Record<string, unknow
   );
 }
 
-const POLL_INTERVAL_MS = 3000;
+function mergeBulkRecipientRows(
+  current: BulkEmailOperationRecipientRow[],
+  incoming: BulkEmailOperationRecipientRow[],
+): BulkEmailOperationRecipientRow[] {
+  if (current.length === 0) return incoming;
+  const incomingById = new Map(incoming.map((row) => [row.id, row]));
+  const merged = current.map((row) => incomingById.get(row.id) ?? row);
+  const knownIds = new Set(current.map((row) => row.id));
+  for (const row of incoming) {
+    if (!knownIds.has(row.id)) merged.push(row);
+  }
+  return merged;
+}
+
+const POLL_INTERVAL_MS = 10000;
 
 export function OperationDetailPage({
   operationId,
@@ -298,8 +311,10 @@ export function OperationDetailPage({
   const isBulkEmailOp = detail?.operation.operation_type === "bulk_email";
 
   const loadBulkEmailExtras = React.useCallback(
-    async (options?: { silent?: boolean }) => {
+    async (options?: { silent?: boolean; includeRecipients?: boolean; includeLogs?: boolean }) => {
       if (!isBulkEmailOp) return;
+      const includeRecipients = options?.includeRecipients !== false;
+      const includeLogs = options?.includeLogs !== false;
       if (!options?.silent) {
         setBulkRecipientsLoading(true);
         setBulkLogsLoading(true);
@@ -307,12 +322,16 @@ export function OperationDetailPage({
       setBulkRecipientsError(null);
       setBulkLogsError(null);
       const [recipientsResult, logsResult] = await Promise.allSettled([
-        listBulkEmailOperationRecipients(operationId),
-        listBulkEmailOperationLogs(operationId),
+        includeRecipients
+          ? listBulkEmailOperationRecipients(operationId, options?.silent ? { limit: 100 } : undefined)
+          : Promise.resolve(null),
+        includeLogs ? listBulkEmailOperationLogs(operationId) : Promise.resolve(null),
       ]);
-      if (recipientsResult.status === "fulfilled") {
+      if (includeRecipients && recipientsResult.status === "fulfilled" && recipientsResult.value) {
         const items = recipientsResult.value.items;
-        setBulkRecipients(items);
+        setBulkRecipients((current) =>
+          options?.silent ? mergeBulkRecipientRows(current, items) : items,
+        );
         // Stable fingerprint — avoid Date.now() remount/reset signals on every poll tick.
         // Include provider webhook fields so soft refresh updates accepted→delivered/etc.
         setBulkRecipientsVersion(
@@ -325,7 +344,7 @@ export function OperationDetailPage({
             ),
           ].join("|"),
         );
-      } else {
+      } else if (includeRecipients && recipientsResult.status === "rejected") {
         const err = recipientsResult.reason;
         if (err instanceof ApiError && err.status === 404) {
           setBulkRecipients([]);
@@ -336,16 +355,10 @@ export function OperationDetailPage({
           );
         }
       }
-      if (logsResult.status === "fulfilled") {
+      if (includeLogs && logsResult.status === "fulfilled" && logsResult.value) {
         const incoming = logsResult.value.items;
-        if (options?.silent) {
-          setBulkLogs((prev) =>
-            prev.length === 0 ? incoming : mergeBulkEmailLogLines(prev, incoming),
-          );
-        } else {
-          setBulkLogs(incoming);
-        }
-      } else {
+        setBulkLogs(incoming);
+      } else if (includeLogs && logsResult.status === "rejected") {
         const err = logsResult.reason;
         if (err instanceof ApiError && err.status === 404) {
           if (!options?.silent) {
@@ -367,9 +380,9 @@ export function OperationDetailPage({
   );
 
   React.useEffect(() => {
-    // Operation status poll while queued/running; bulk email recipient soft-refresh
-    // also continues after completion so webhook provider_status updates appear without F5.
-    if (!shouldPoll && !isBulkEmailOp) return;
+    // Refresh only while the operation is queued/running. Paused and terminal
+    // operations remain stable until the page is opened again.
+    if (!shouldPoll) return;
     const timer = window.setInterval(() => {
       if (shouldPoll) {
         void load({ silent: true });

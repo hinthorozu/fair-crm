@@ -150,9 +150,11 @@ export async function sendBulkEmailOperation(
 
 export function listBulkEmailOperationRecipients(
   operationId: string,
+  options?: { limit?: number },
 ): Promise<BulkEmailOperationRecipientsResponse> {
+  const query = options?.limit ? `?limit=${encodeURIComponent(String(options.limit))}` : "";
   return apiRequest<BulkEmailOperationRecipientsResponse>(
-    `/api/v1/operations/${encodeURIComponent(operationId)}/bulk-email/recipients`,
+    `/api/v1/operations/${encodeURIComponent(operationId)}/bulk-email/recipients${query}`,
   );
 }
 
