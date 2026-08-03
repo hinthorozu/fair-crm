@@ -293,6 +293,10 @@ class BulkEmailOperationRecipientRowResponse(BaseModel):
 class BulkEmailOperationRecipientsResponse(BaseModel):
     batch_id: UUID
     items: list[BulkEmailOperationRecipientRowResponse]
+    page: int
+    page_size: int
+    total_items: int
+    total_pages: int
 
 
 class BulkEmailOperationLogLineResponse(BaseModel):

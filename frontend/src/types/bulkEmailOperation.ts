@@ -115,6 +115,10 @@ export type BulkEmailOperationRecipientRow = {
 export type BulkEmailOperationRecipientsResponse = {
   batch_id: string;
   items: BulkEmailOperationRecipientRow[];
+  page: number;
+  page_size: number;
+  total_items: number;
+  total_pages: number;
 };
 
 export type BulkEmailOperationLogLine = {

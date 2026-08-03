@@ -19,6 +19,7 @@ import {
   formatFairEmailDateTime,
 } from "../../utils/fairBulkEmailLogs";
 import { formatBulkEmailRecipientDisplay } from "../../utils/bulkEmailRecipientDisplay";
+import { listBulkEmailOperationRecipients } from "../../api/bulkEmailOperation";
 
 function sourceLabel(source: string): string {
   if (source === "excel") return operationLabels.bulkEmailSourceExcelShort;
@@ -39,36 +40,6 @@ function formatRecipientError(message: string | null, status: string): string {
   return raw || "—";
 }
 
-function matchesSearch(item: BulkEmailOperationRecipientRow, query: string): boolean {
-  const q = query.trim().toLowerCase();
-  if (!q) return true;
-  const haystack = [
-    item.recipient_name,
-    item.company_name,
-    item.email,
-    item.source,
-    item.fair_name,
-    item.status,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-  return haystack.includes(q);
-}
-
-function filterRecipients(
-  recipients: BulkEmailOperationRecipientRow[],
-  params: ServerTableFetchParams,
-): BulkEmailOperationRecipientRow[] {
-  const status = (params.filters.status ?? "").trim();
-  const providerStatus = (params.filters.provider_status ?? "").trim();
-  return recipients.filter((item) => {
-    if (status && item.status !== status) return false;
-    if (providerStatus && (item.provider_status ?? "").trim() !== providerStatus) return false;
-    return matchesSearch(item, params.search);
-  });
-}
-
 const PROVIDER_STATUS_FILTER_OPTIONS = [
   "accepted",
   "sent",
@@ -81,55 +52,39 @@ const PROVIDER_STATUS_FILTER_OPTIONS = [
   "spam_complaint",
 ] as const;
 
-function toClientListResponse(
-  items: BulkEmailOperationRecipientRow[],
-  page: number,
-  pageSize: number,
-): StandardListResponse<BulkEmailOperationRecipientRow> {
-  const totalItems = items.length;
-  const totalPages = totalItems === 0 ? 0 : Math.max(1, Math.ceil(totalItems / pageSize));
-  const safePage = totalPages === 0 ? 1 : Math.min(Math.max(1, page), totalPages);
-  const start = (safePage - 1) * pageSize;
-  return {
-    items: items.slice(start, start + pageSize),
-    pagination: {
-      page: safePage,
-      pageSize,
-      totalItems,
-      totalPages,
-      hasNext: safePage < totalPages,
-      hasPrevious: safePage > 1,
-    },
-    sorting: { field: "email", direction: "asc" },
-    filters: {},
-  };
-}
-
 export interface BulkEmailOperationResultsTableProps {
-  recipients: BulkEmailOperationRecipientRow[];
-  /** Bumps when recipient list is replaced (e.g. after poll/retry). */
+  operationId: string;
+  /** Bumps when live operation counters change or failed rows are retried. */
   dataVersion: string;
 }
 
-/**
- * Client-side search / status filter / pagination over already-fetched recipient results.
- */
+/** Server-side search, filtering, and pagination for recipient results. */
 export function BulkEmailOperationResultsTable({
-  recipients,
+  operationId,
   dataVersion,
 }: BulkEmailOperationResultsTableProps) {
-  const recipientsRef = React.useRef(recipients);
-  recipientsRef.current = recipients;
-
-  const statusOptions = React.useMemo(() => {
-    const set = new Set(recipients.map((item) => item.status).filter(Boolean));
-    return Array.from(set).sort();
-  }, [recipients]);
-
   const fetchFn = React.useCallback(async (params: ServerTableFetchParams) => {
-    const filtered = filterRecipients(recipientsRef.current, params);
-    return toClientListResponse(filtered, params.page, params.pageSize);
-  }, []);
+    const response = await listBulkEmailOperationRecipients(operationId, {
+      page: params.page,
+      pageSize: params.pageSize,
+      search: params.search.trim() || undefined,
+      status: params.filters.status || undefined,
+      providerStatus: params.filters.provider_status || undefined,
+    });
+    return {
+      items: response.items,
+      pagination: {
+        page: response.page,
+        pageSize: response.page_size,
+        totalItems: response.total_items,
+        totalPages: response.total_pages,
+        hasNext: response.page < response.total_pages,
+        hasPrevious: response.page > 1,
+      },
+      sorting: { field: "created_at", direction: "asc" },
+      filters: params.filters,
+    } satisfies StandardListResponse<BulkEmailOperationRecipientRow>;
+  }, [operationId]);
 
   const table = useServerDataTable<BulkEmailOperationRecipientRow>({
     fetchFn,
@@ -267,7 +222,7 @@ export function BulkEmailOperationResultsTable({
               aria-label={operationLabels.bulkEmailRecipientsStatusFilter}
             >
               <option value="">{operationLabels.bulkEmailRecipientsStatusAll}</option>
-              {statusOptions.map((status) => (
+              {["queued", "sending", "sent", "failed", "cancelled"].map((status) => (
                 <option key={status} value={status}>
                   {fairEmailOutboxStatusLabel(status)}
                 </option>

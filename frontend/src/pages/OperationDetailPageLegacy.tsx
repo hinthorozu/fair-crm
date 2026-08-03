@@ -2,7 +2,6 @@ import React from "react";
 import {
   downloadBulkEmailOperationExport,
   listBulkEmailOperationLogs,
-  listBulkEmailOperationRecipients,
   openBulkEmailOperationExport,
   retryBulkEmailOperationFailed,
 } from "../api/bulkEmailOperation";
@@ -24,7 +23,7 @@ import { LoadingState } from "../components/ui/LoadingState";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
-import type { BulkEmailOperationLogLine, BulkEmailOperationRecipientRow } from "../types/bulkEmailOperation";
+import type { BulkEmailOperationLogLine } from "../types/bulkEmailOperation";
 import {
   operationLabels,
   operationPriorityLabels,
@@ -103,20 +102,6 @@ function isNonEmptyScraperConfig(value: unknown): value is Record<string, unknow
   );
 }
 
-function mergeBulkRecipientRows(
-  current: BulkEmailOperationRecipientRow[],
-  incoming: BulkEmailOperationRecipientRow[],
-): BulkEmailOperationRecipientRow[] {
-  if (current.length === 0) return incoming;
-  const incomingById = new Map(incoming.map((row) => [row.id, row]));
-  const merged = current.map((row) => incomingById.get(row.id) ?? row);
-  const knownIds = new Set(current.map((row) => row.id));
-  for (const row of incoming) {
-    if (!knownIds.has(row.id)) merged.push(row);
-  }
-  return merged;
-}
-
 const POLL_INTERVAL_MS = 10000;
 
 export function OperationDetailPage({
@@ -137,10 +122,7 @@ export function OperationDetailPage({
   const [error, setError] = React.useState<string | null>(null);
   const [banner, setBanner] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
-  const [bulkRecipients, setBulkRecipients] = React.useState<BulkEmailOperationRecipientRow[]>([]);
-  const [bulkRecipientsVersion, setBulkRecipientsVersion] = React.useState("");
-  const [bulkRecipientsError, setBulkRecipientsError] = React.useState<string | null>(null);
-  const [bulkRecipientsLoading, setBulkRecipientsLoading] = React.useState(false);
+  const [bulkRecipientsRefresh, setBulkRecipientsRefresh] = React.useState(0);
   const [bulkLogs, setBulkLogs] = React.useState<BulkEmailOperationLogLine[]>([]);
   const [bulkLogsError, setBulkLogsError] = React.useState<string | null>(null);
   const [bulkLogsLoading, setBulkLogsLoading] = React.useState(false);
@@ -312,50 +294,17 @@ export function OperationDetailPage({
   const isBulkEmailOp = detail?.operation.operation_type === "bulk_email";
 
   const loadBulkEmailExtras = React.useCallback(
-    async (options?: { silent?: boolean; includeRecipients?: boolean; includeLogs?: boolean }) => {
+    async (options?: { silent?: boolean; includeLogs?: boolean }) => {
       if (!isBulkEmailOp) return;
-      const includeRecipients = options?.includeRecipients !== false;
       const includeLogs = options?.includeLogs !== false;
       if (!options?.silent) {
-        setBulkRecipientsLoading(true);
         setBulkLogsLoading(true);
       }
-      setBulkRecipientsError(null);
       setBulkLogsError(null);
-      const [recipientsResult, logsResult] = await Promise.allSettled([
-        includeRecipients
-          ? listBulkEmailOperationRecipients(operationId, options?.silent ? { limit: 100 } : undefined)
-          : Promise.resolve(null),
+      const [, logsResult] = await Promise.allSettled([
+        Promise.resolve(null),
         includeLogs ? listBulkEmailOperationLogs(operationId) : Promise.resolve(null),
       ]);
-      if (includeRecipients && recipientsResult.status === "fulfilled" && recipientsResult.value) {
-        const items = recipientsResult.value.items;
-        setBulkRecipients((current) =>
-          options?.silent ? mergeBulkRecipientRows(current, items) : items,
-        );
-        // Stable fingerprint — avoid Date.now() remount/reset signals on every poll tick.
-        // Include provider webhook fields so soft refresh updates accepted→delivered/etc.
-        setBulkRecipientsVersion(
-          [
-            recipientsResult.value.batch_id,
-            String(items.length),
-            ...items.map(
-              (row) =>
-                `${row.id}:${row.status}:${row.send_attempt}:${row.sent_at ?? ""}:${row.error_message ?? ""}:${row.provider_status ?? ""}:${row.external_message_id ?? ""}:${row.updated_at ?? ""}`,
-            ),
-          ].join("|"),
-        );
-      } else if (includeRecipients && recipientsResult.status === "rejected") {
-        const err = recipientsResult.reason;
-        if (err instanceof ApiError && err.status === 404) {
-          setBulkRecipients([]);
-          setBulkRecipientsError(null);
-        } else {
-          setBulkRecipientsError(
-            err instanceof ApiError ? err.message : operationLabels.bulkEmailRecipientsLoadError,
-          );
-        }
-      }
       if (includeLogs && logsResult.status === "fulfilled" && logsResult.value) {
         const incoming = logsResult.value.items;
         setBulkLogs(incoming);
@@ -373,7 +322,6 @@ export function OperationDetailPage({
         }
       }
       if (!options?.silent) {
-        setBulkRecipientsLoading(false);
         setBulkLogsLoading(false);
       }
     },
@@ -397,10 +345,7 @@ export function OperationDetailPage({
 
   React.useEffect(() => {
     if (!isBulkEmailOp) {
-      setBulkRecipients([]);
       setBulkLogs([]);
-      setBulkRecipientsVersion("");
-      setBulkRecipientsError(null);
       setBulkLogsError(null);
       return;
     }
@@ -450,6 +395,7 @@ export function OperationDetailPage({
       setBanner(operationLabels.bulkEmailRetrySuccess);
       await load();
       await loadBulkEmailExtras();
+      setBulkRecipientsRefresh((value) => value + 1);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : operationLabels.loadError);
       setRetryConfirmOpen(false);
@@ -575,8 +521,7 @@ export function OperationDetailPage({
   const canCancel =
     ["draft", "ready", "active"].includes(operation.status) ||
     ((isScraper || isEnrichment) && latestRunActive);
-  const failedRecipientCount = bulkRecipients.filter((item) => item.status === "failed").length;
-  const failedCount = Math.max(latest?.failed_items ?? 0, failedRecipientCount);
+  const failedCount = latest?.failed_items ?? 0;
   const canRetryFailed =
     isBulkEmail &&
     !latestRunActive &&
@@ -1013,17 +958,10 @@ export function OperationDetailPage({
                   </button>
                 </div>
               </div>
-              {bulkRecipientsError ? (
-                <Banner variant="error">{bulkRecipientsError}</Banner>
-              ) : null}
-              {bulkRecipientsLoading && bulkRecipients.length === 0 ? (
-                <LoadingState variant="inline" />
-              ) : (
-                <BulkEmailOperationResultsTable
-                  recipients={bulkRecipients}
-                  dataVersion={bulkRecipientsVersion || operationId}
-                />
-              )}
+              <BulkEmailOperationResultsTable
+                operationId={operationId}
+                dataVersion={`${latest?.status ?? ""}:${latest?.processed_items ?? 0}:${latest?.succeeded_items ?? 0}:${latest?.failed_items ?? 0}:${bulkRecipientsRefresh}`}
+              />
             </div>
           </Card>
         ) : null}

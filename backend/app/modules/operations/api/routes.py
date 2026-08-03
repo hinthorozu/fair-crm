@@ -1093,18 +1093,31 @@ def _resolve_bulk_email_batch(db: Session, organization_id: UUID, operation_id: 
 )
 def list_bulk_email_operation_recipients(
     operation_id: UUID,
-    limit: int | None = Query(default=None, ge=1, le=500),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=25, ge=1, le=100),
+    search: str | None = Query(default=None, max_length=320),
+    status: str | None = Query(default=None, max_length=32),
+    provider_status: str | None = Query(default=None, max_length=64),
     auth: AuthContext = Depends(require_read_permission),
     db: Session = Depends(get_db),
 ) -> BulkEmailOperationRecipientsResponse:
     batch, repo = _resolve_bulk_email_batch(db, auth.organization_id, operation_id)
-    items = (
-        repo.list_recent_outbox_for_batch(auth.organization_id, batch.id, limit=limit)
-        if limit is not None
-        else repo.list_outbox_for_batch(auth.organization_id, batch.id)
+    items, total_items = repo.list_outbox_page_for_batch(
+        auth.organization_id,
+        batch.id,
+        page=page,
+        page_size=page_size,
+        search=search,
+        status=status,
+        provider_status=provider_status,
     )
+    total_pages = (total_items + page_size - 1) // page_size
     return BulkEmailOperationRecipientsResponse(
         batch_id=batch.id,
+        page=page,
+        page_size=page_size,
+        total_items=total_items,
+        total_pages=total_pages,
         items=[
             BulkEmailOperationRecipientRowResponse(
                 id=item.id,

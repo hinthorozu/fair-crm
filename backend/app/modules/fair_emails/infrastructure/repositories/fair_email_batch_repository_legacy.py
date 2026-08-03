@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.modules.fair_emails.domain.value_objects import RecipientOptions, ResolvedRecipient
@@ -261,6 +262,59 @@ class SqlAlchemyFairEmailBatchRepository:
             )
             for outbox in rows
         ]
+
+    def list_outbox_page_for_batch(
+        self,
+        organization_id: UUID,
+        batch_id: UUID,
+        *,
+        page: int,
+        page_size: int,
+        search: str | None = None,
+        status: str | None = None,
+        provider_status: str | None = None,
+    ) -> tuple[list[FairEmailOutboxItemRecord], int]:
+        """Return one filtered recipient page without loading the whole batch."""
+        query = self._session.query(FairEmailOutboxModel).filter(
+            FairEmailOutboxModel.organization_id == organization_id,
+            FairEmailOutboxModel.batch_id == batch_id,
+        )
+        normalized_search = (search or "").strip()
+        if normalized_search:
+            pattern = f"%{normalized_search}%"
+            query = query.filter(
+                or_(
+                    FairEmailOutboxModel.recipient_email.ilike(pattern),
+                    FairEmailOutboxModel.recipient_name.ilike(pattern),
+                    FairEmailOutboxModel.company_name.ilike(pattern),
+                    FairEmailOutboxModel.fair_name.ilike(pattern),
+                    FairEmailOutboxModel.recipient_source.ilike(pattern),
+                )
+            )
+        if status:
+            query = query.filter(FairEmailOutboxModel.status == status)
+        if provider_status:
+            query = query.filter(FairEmailOutboxModel.provider_status == provider_status)
+
+        total = query.count()
+        rows = (
+            query.order_by(FairEmailOutboxModel.created_at.asc())
+            .offset((max(1, page) - 1) * page_size)
+            .limit(page_size)
+            .all()
+        )
+        return (
+            [
+                self._to_outbox_record(
+                    outbox,
+                    external_message_id=outbox.external_message_id,
+                    provider_status=outbox.provider_status,
+                    updated_at=outbox.updated_at,
+                )
+                for outbox in rows
+            ],
+            total,
+        )
 
     def list_pending_outbox(self, batch_id: UUID) -> list[FairEmailOutboxModel]:
         return (

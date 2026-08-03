@@ -150,9 +150,21 @@ export async function sendBulkEmailOperation(
 
 export function listBulkEmailOperationRecipients(
   operationId: string,
-  options?: { limit?: number },
+  options?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    status?: string;
+    providerStatus?: string;
+  },
 ): Promise<BulkEmailOperationRecipientsResponse> {
-  const query = options?.limit ? `?limit=${encodeURIComponent(String(options.limit))}` : "";
+  const params = new URLSearchParams();
+  if (options?.page) params.set("page", String(options.page));
+  if (options?.pageSize) params.set("page_size", String(options.pageSize));
+  if (options?.search) params.set("search", options.search);
+  if (options?.status) params.set("status", options.status);
+  if (options?.providerStatus) params.set("provider_status", options.providerStatus);
+  const query = params.size > 0 ? `?${params.toString()}` : "";
   return apiRequest<BulkEmailOperationRecipientsResponse>(
     `/api/v1/operations/${encodeURIComponent(operationId)}/bulk-email/recipients${query}`,
   );
