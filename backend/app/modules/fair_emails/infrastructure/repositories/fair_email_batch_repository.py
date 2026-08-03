@@ -37,12 +37,16 @@ class SqlAlchemyFairEmailBatchRepository(_LegacyFairEmailBatchRepository):
         subject: str,
         body_html: str | None,
         body_text: str | None,
+        external_message_id: str | None = None,
+        provider_status: str | None = None,
     ) -> None:
         super().update_outbox_sent(
             outbox_id,
             subject=subject,
             body_html=body_html,
             body_text=body_text,
+            external_message_id=external_message_id,
+            provider_status=provider_status,
         )
 
     def update_outbox_failed(

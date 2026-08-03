@@ -133,7 +133,7 @@ class FairBulkEmailActivityWriter:
         self._activity_repository = SqlAlchemyActivityRepository(session)
 
     def record_terminal_outbox(self, context: FairBulkEmailActivityContext) -> None:
-        if context.outbox.status not in ("sent", "failed"):
+        if context.terminal_status not in ("sent", "failed"):
             return
         if context.outbox.customer_id is None:
             # Manual/excel recipients have no CRM customer — skip activity entirely.
@@ -154,9 +154,7 @@ class FairBulkEmailActivityWriter:
         ):
             return
 
-        terminal_status: Literal["sent", "failed"] = (
-            "sent" if context.outbox.status == "sent" else "failed"
-        )
+        terminal_status: Literal["sent", "failed"] = context.terminal_status
         safe_error = sanitize_error_message(context.error_message or context.outbox.error_message)
         note = build_fair_bulk_email_activity_note(
             terminal_status=terminal_status,

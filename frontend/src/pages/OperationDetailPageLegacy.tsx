@@ -338,6 +338,9 @@ export function OperationDetailPage({
       }
       if (isBulkEmailOp) {
         void loadBulkEmailExtras({ silent: true });
+        // Refresh the visible recipient page even if the aggregate run counters
+        // have not changed yet. The request remains server-paginated.
+        setBulkRecipientsRefresh((current) => current + 1);
       }
     }, POLL_INTERVAL_MS);
     return () => window.clearInterval(timer);

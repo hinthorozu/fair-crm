@@ -421,7 +421,16 @@ class SqlAlchemyFairEmailBatchRepository:
             self._append_log(model, "failed", message, now)
         return len(models)
 
-    def update_outbox_sent(self, outbox_id: UUID, *, subject: str, body_html: str | None, body_text: str | None) -> None:
+    def update_outbox_sent(
+        self,
+        outbox_id: UUID,
+        *,
+        subject: str,
+        body_html: str | None,
+        body_text: str | None,
+        external_message_id: str | None = None,
+        provider_status: str | None = None,
+    ) -> None:
         now = datetime.now(timezone.utc)
         model = self._session.query(FairEmailOutboxModel).filter(FairEmailOutboxModel.id == outbox_id).one()
         model.status = "sent"
@@ -429,6 +438,11 @@ class SqlAlchemyFairEmailBatchRepository:
         model.rendered_body_html = body_html
         model.rendered_body_text = body_text
         model.sent_at = now
+        model.failed_at = None
+        model.error_code = None
+        model.error_message = None
+        model.external_message_id = external_message_id
+        model.provider_status = provider_status
         model.updated_at = now
         self._append_log(model, "sent", "Fuar toplu mail gönderildi", now)
 

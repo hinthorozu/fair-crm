@@ -37,8 +37,16 @@ def test_chunk_progress_refreshes_batch_once_requested(
         subject="Test",
         body_html=None,
         body_text="Test",
+        external_message_id="provider-message-1",
+        provider_status="accepted",
     )
     db_session.flush()
+
+    db_session.refresh(outbox[0])
+    assert outbox[0].external_message_id == "provider-message-1"
+    assert outbox[0].provider_status == "accepted"
+    assert outbox[0].error_code is None
+    assert outbox[0].error_message is None
 
     sent_count, failed_count, status = repository.recount_batch_from_outbox(batch_id)
     repository.update_batch_counts(

@@ -44,8 +44,9 @@ def main() -> None:
                     result.retried_count,
                     result.recovered_stuck_count,
                 )
-            if result.picked_count == 0 and result.retried_count == 0:
-                time.sleep(1)
+            # Yield between fixed-size chunks so the web API and database get a
+            # predictable breathing window under large bulk sends.
+            time.sleep(1)
         except Exception:
             session.rollback()
             logger.exception("mail_worker_cycle_failed")

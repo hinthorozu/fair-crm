@@ -141,6 +141,8 @@ class MailSendOperationDispatcher:
             subject=final_subject,
             body_html=body_html,
             body_text=body_text,
+            external_message_id=delivery_result.external_message_id,
+            provider_status=delivery_result.provider_status,
         )
         self._record_fair_bulk_activity(
             organization_id=operation.organization_id,
@@ -149,6 +151,7 @@ class MailSendOperationDispatcher:
             fair_id=batch.fair_id,
             template_id=batch.template_id,
             subject=final_subject,
+            terminal_status="sent",
         )
         return delivery_result
 
@@ -161,6 +164,7 @@ class MailSendOperationDispatcher:
         fair_id: UUID | None,
         template_id: UUID,
         subject: str,
+        terminal_status: str | None = None,
     ) -> None:
         outbox = (
             self._session.query(FairEmailOutboxModel)
@@ -189,7 +193,11 @@ class MailSendOperationDispatcher:
                     fair_name=fair_name,
                     template_name=template_name,
                     subject=subject,
-                    terminal_status="sent" if outbox.status == "sent" else "failed",
+                    terminal_status=(
+                        terminal_status
+                        if terminal_status in ("sent", "failed")
+                        else ("sent" if outbox.status == "sent" else "failed")
+                    ),
                     error_message=outbox.error_message,
                 )
             )

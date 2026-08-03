@@ -280,6 +280,40 @@ def test_activity_writer_is_idempotent(db_session, organization_id, user_id, cli
     assert count == 1
 
 
+def test_activity_writer_uses_explicit_terminal_result_on_retry(
+    db_session, organization_id, user_id, client, auth_headers
+):
+    batch_id = _seed_pending_batch(db_session, organization_id, user_id, client, auth_headers)
+    batch = db_session.query(FairEmailBatchModel).filter(FairEmailBatchModel.id == batch_id).one()
+    outbox = db_session.query(FairEmailOutboxModel).filter(
+        FairEmailOutboxModel.batch_id == batch_id
+    ).first()
+    # Retry ORM state may still contain the previous attempt's failed status.
+    outbox.status = "failed"
+    outbox.error_message = "previous attempt"
+    db_session.flush()
+
+    FairBulkEmailActivityWriter(db_session).record_terminal_outbox(
+        FairBulkEmailActivityContext(
+            organization_id=organization_id,
+            batch=batch,
+            outbox=outbox,
+            fair_name="Test Fuar",
+            template_name="Davet",
+            subject="Fuar daveti",
+            terminal_status="sent",
+            error_message=None,
+        )
+    )
+    db_session.flush()
+
+    activity = db_session.query(ActivityModel).filter(
+        ActivityModel.metadata_json["outbox_id"].as_string() == str(outbox.id)
+    ).one()
+    assert activity.status == "completed"
+    assert activity.metadata_json["status"] == "sent"
+
+
 def test_activity_writer_respects_tenant_isolation(db_session, organization_id, other_organization_id, user_id, client, auth_headers):
     batch_id = _seed_pending_batch(db_session, organization_id, user_id, client, auth_headers)
     batch = db_session.query(FairEmailBatchModel).filter(FairEmailBatchModel.id == batch_id).one()

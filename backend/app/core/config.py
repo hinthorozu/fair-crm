@@ -184,7 +184,9 @@ class Settings(BaseSettings):
         ),
     )
     mail_startup_recovery_enabled: bool = Field(
-        default=True,
+        # Production owns the queue through the standalone systemd mail worker.
+        # Opt in only for legacy deployments that do not run that service.
+        default=False,
         validation_alias=AliasChoices(
             "MAIL_STARTUP_RECOVERY_ENABLED",
             "FAIR_CRM_MAIL_STARTUP_RECOVERY_ENABLED",
