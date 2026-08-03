@@ -160,6 +160,9 @@ export function OperationDetailPage({
       try {
         const nextDetail = await getOperation(operationId);
         setDetail(nextDetail);
+        // The operation detail is enough to render the page. Optional linked
+        // todo resolution must not keep the entire screen behind a spinner.
+        if (!options?.silent) setLoading(false);
         const relatedTodoId = nextDetail.operation.related_todo_id;
         if (relatedTodoId && !options?.silent) {
           try {
