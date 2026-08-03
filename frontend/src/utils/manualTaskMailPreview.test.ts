@@ -127,6 +127,12 @@ describe("unresolved variables", () => {
       "Şablonda doldurulamayan değişkenler bulunuyor.",
     );
   });
+
+  it("allows the MailerSend unsubscribe provider variable", () => {
+    expect(hasUnresolvedTemplateMarkers("<a href=\"{{unsubscribe}}\">Çık</a>")).toBe(false);
+    expect(hasUnresolvedTemplateMarkers("<a href=\"{{ unsubscribe }}\">Çık</a>")).toBe(false);
+    expect(hasUnresolvedTemplateMarkers("Merhaba {{ customer_name }} {{unsubscribe}}")).toBe(true);
+  });
 });
 
 describe("buildManualMailCustomerVariables", () => {

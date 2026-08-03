@@ -84,7 +84,8 @@ export function toPreviewHtmlDocument(body: string): string {
 }
 
 export function hasUnresolvedTemplateMarkers(value: string): boolean {
-  return /\{\{[\s\S]*?\}\}/.test(value);
+  const withoutProviderVariables = value.replace(/\{\{\s*unsubscribe\s*\}\}/gi, "");
+  return /\{\{[\s\S]*?\}\}/.test(withoutProviderVariables);
 }
 
 export function resolveManualMailPreviewContent(args: {
