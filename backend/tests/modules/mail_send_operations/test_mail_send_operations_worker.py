@@ -14,7 +14,10 @@ from app.modules.email_accounts.infrastructure.persistence.models import (
 from app.modules.fair_emails.application.commands import ProcessBatchCommand
 from app.modules.fair_emails.application.fair_bulk_mail_operation_sync import FairBulkEmailMailOperationSync
 from app.modules.fair_emails.application.process_batch import ProcessFairEmailBatchUseCase
-from app.modules.fair_emails.infrastructure.persistence.models import FairEmailOutboxModel
+from app.modules.fair_emails.infrastructure.persistence.models import (
+    FairEmailBatchModel,
+    FairEmailOutboxModel,
+)
 from app.modules.fair_emails.infrastructure.repositories.fair_email_batch_repository import (
     SqlAlchemyFairEmailBatchRepository,
 )
@@ -663,6 +666,41 @@ def test_fair_bulk_existing_behavior_unchanged(
     )
     assert operations
     assert all(item.status == MailSendOperationStatus.SENT for item in operations)
+
+
+def test_idle_worker_reconciles_stale_processing_batch(
+    db_session,
+    client,
+    auth_headers,
+    organization_id,
+    user_id,
+):
+    batch_id = _seed_pending_batch(db_session, organization_id, user_id, client, auth_headers)
+    rows = (
+        db_session.query(MailSendOperationModel)
+        .filter(MailSendOperationModel.batch_id == batch_id)
+        .all()
+    )
+    assert rows
+    now = datetime.now(tz=UTC)
+    for row in rows:
+        row.status = MailSendOperationStatus.FAILED
+        row.retry_count = row.max_retry_count
+        row.failed_at = now
+        row.updated_at = now
+    batch = db_session.query(FairEmailBatchModel).filter(FairEmailBatchModel.id == batch_id).one()
+    batch.status = "processing"
+    batch.sent_count = 0
+    batch.failed_count = 0
+    db_session.flush()
+
+    result = ProcessMailSendOperationsWorker(db_session).run()
+
+    db_session.refresh(batch)
+    assert result.picked_count == 0
+    assert batch.status == "completed_with_errors"
+    assert batch.failed_count == len(rows)
+    assert batch.completed_at is not None
 
 
 @patch("app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send")

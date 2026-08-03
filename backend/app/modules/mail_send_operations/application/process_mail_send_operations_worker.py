@@ -106,6 +106,12 @@ class ProcessMailSendOperationsWorker:
             if retry_candidates:
                 self._sync_fair_batch_progress(retry_candidates)
                 self._session.commit()
+            else:
+                # A service restart can happen after the last recipient commit
+                # but before batch/run counters are finalized. Reconcile those
+                # non-terminal batches while the queue is idle.
+                self._reconcile_nonterminal_fair_batches()
+                self._session.commit()
 
         self._session.flush()
         return MailSendOperationWorkerResult(
@@ -128,6 +134,31 @@ class ProcessMailSendOperationsWorker:
             and record.batch_id is not None
         }
         for organization_id, batch_id in batch_keys:
+            sent_count, failed_count, status = self._batch_repository.recount_batch_from_outbox(
+                batch_id
+            )
+            self._batch_repository.update_batch_counts(
+                batch_id,
+                status=status,
+                sent_count=sent_count,
+                failed_count=failed_count,
+            )
+            batch = self._batch_repository.get_batch(organization_id, batch_id)
+            if batch is None or batch.operation_id is None:
+                continue
+            from app.modules.operations.infrastructure.handlers.bulk_email_operation_sync import (
+                sync_operation_run_from_batch,
+            )
+
+            sync_operation_run_from_batch(
+                self._session,
+                organization_id=organization_id,
+                operation_id=batch.operation_id,
+                batch=batch,
+            )
+
+    def _reconcile_nonterminal_fair_batches(self) -> None:
+        for organization_id, batch_id in self._batch_repository.list_nonterminal_batch_keys():
             sent_count, failed_count, status = self._batch_repository.recount_batch_from_outbox(
                 batch_id
             )

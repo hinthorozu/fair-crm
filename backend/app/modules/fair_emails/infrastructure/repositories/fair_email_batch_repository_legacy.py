@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from sqlalchemy import or_
+from sqlalchemy import case, func, or_
 from sqlalchemy.orm import Session
 
 from app.modules.fair_emails.domain.value_objects import RecipientOptions, ResolvedRecipient
@@ -472,14 +472,23 @@ class SqlAlchemyFairEmailBatchRepository:
 
     def recount_batch_from_outbox(self, batch_id: UUID) -> tuple[int, int, str]:
         """Return (sent_count, failed_count, status) based on current outbox rows."""
-        models = (
-            self._session.query(FairEmailOutboxModel)
+        sent_count, failed_count, pending = (
+            self._session.query(
+                func.sum(case((FairEmailOutboxModel.status == "sent", 1), else_=0)),
+                func.sum(case((FairEmailOutboxModel.status == "failed", 1), else_=0)),
+                func.sum(
+                    case(
+                        (FairEmailOutboxModel.status.in_(("queued", "pending", "sending")), 1),
+                        else_=0,
+                    )
+                ),
+            )
             .filter(FairEmailOutboxModel.batch_id == batch_id)
-            .all()
+            .one()
         )
-        sent_count = sum(1 for item in models if item.status == "sent")
-        failed_count = sum(1 for item in models if item.status == "failed")
-        pending = sum(1 for item in models if item.status in ("queued", "pending", "sending"))
+        sent_count = int(sent_count or 0)
+        failed_count = int(failed_count or 0)
+        pending = int(pending or 0)
         if pending > 0:
             status = "processing"
         elif failed_count == 0:
@@ -489,6 +498,22 @@ class SqlAlchemyFairEmailBatchRepository:
             # (including all-failed). Explicit batch abort paths still set status="failed".
             status = "completed_with_errors"
         return sent_count, failed_count, status
+
+    def list_nonterminal_batch_keys(self, *, limit: int = 100) -> list[tuple[UUID, UUID]]:
+        """Return batches that may need recovery after a worker restart."""
+        return [
+            (organization_id, batch_id)
+            for organization_id, batch_id in (
+                self._session.query(
+                    FairEmailBatchModel.organization_id,
+                    FairEmailBatchModel.id,
+                )
+                .filter(FairEmailBatchModel.status == "processing")
+                .order_by(FairEmailBatchModel.updated_at.asc())
+                .limit(max(1, limit))
+                .all()
+            )
+        ]
 
     def link_operation(self, batch_id: UUID, operation_id: UUID) -> None:
         model = self._session.query(FairEmailBatchModel).filter(FairEmailBatchModel.id == batch_id).one()
