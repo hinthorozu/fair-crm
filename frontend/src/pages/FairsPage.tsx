@@ -12,7 +12,7 @@ import { FairForm, fairToFormValues } from "../components/FairForm";
 import { FairFilters, FairTable } from "../components/FairList";
 import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
-import { FormModal } from "../components/ui/form";
+import { FormModal, runAfterSuccessfulFormSubmit } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import type { CreateFairPayload, Fair, FairStatus } from "../types/fair";
@@ -53,11 +53,14 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
 
   const handleCreate = async (values: CreateFairPayload) => {
     const created = await createFair(values);
-    setModal(null);
     if (onOpenDetail) {
-      onOpenDetail(created.id);
+      runAfterSuccessfulFormSubmit(() => {
+        setModal(null);
+        onOpenDetail(created.id);
+      });
       return;
     }
+    runAfterSuccessfulFormSubmit(() => setModal(null));
     await table.refresh();
   };
 
@@ -70,12 +73,18 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
   const handleUpdate = async (values: CreateFairPayload) => {
     if (!editing) return;
     const updated = await updateFair(editing.id, values);
-    setModal(null);
-    setEditing(null);
     if (onOpenDetail) {
-      onOpenDetail(updated.id);
+      runAfterSuccessfulFormSubmit(() => {
+        setModal(null);
+        setEditing(null);
+        onOpenDetail(updated.id);
+      });
       return;
     }
+    runAfterSuccessfulFormSubmit(() => {
+      setModal(null);
+      setEditing(null);
+    });
     await table.refresh();
   };
 

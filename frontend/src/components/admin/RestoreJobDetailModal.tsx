@@ -1,5 +1,5 @@
 import React from "react";
-import { getRestoreJob, getRestoreJobLog } from "../../api/systemAdmin";
+import { deleteRestoreJob, getRestoreJob, getRestoreJobLog, startRestoreJob } from "../../api/systemAdmin";
 import { adminLabels } from "../../labels/adminLabels";
 import type { SystemBackupRestoreJobResponse } from "../../types/systemBackup";
 import {
@@ -50,35 +50,48 @@ function formatDateTime(value: string | null | undefined): string {
   return new Date(value).toLocaleString("tr-TR");
 }
 
-function buildRunnerCommand(jobId: string): string {
-  return `$env:ALLOW_RESTORE = "true"\n.\\scripts\\dev\\run-restore-job.ps1 -RestoreJobId "${jobId}"\n\n# sunucu:\nALLOW_RESTORE=true bash scripts/server/run-restore-job.sh ${jobId}`;
-}
 
 type RestoreJobDetailModalProps = {
   job: SystemBackupRestoreJobResponse;
   onClose: () => void;
   onJobUpdated?: (job: SystemBackupRestoreJobResponse) => void;
+  onDeleted?: () => void;
 };
 
-export function RestoreJobDetailModal({ job, onClose, onJobUpdated }: RestoreJobDetailModalProps) {
+export function RestoreJobDetailModal({ job, onClose, onJobUpdated, onDeleted }: RestoreJobDetailModalProps) {
   const [liveJob, setLiveJob] = React.useState(job);
   const [logContent, setLogContent] = React.useState("");
   const [logExists, setLogExists] = React.useState(false);
   const [logTruncated, setLogTruncated] = React.useState(false);
   const [logLoading, setLogLoading] = React.useState(true);
+  const [starting, setStarting] = React.useState(false);
+  const [startError, setStartError] = React.useState("");
+  const [startMessage, setStartMessage] = React.useState("");
+  const [deleting, setDeleting] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState("");
   const logRef = React.useRef<HTMLPreElement | null>(null);
 
   const refreshDetail = React.useCallback(async () => {
-    const [freshJob, freshLog] = await Promise.all([
-      getRestoreJob(job.id),
-      getRestoreJobLog(job.id),
-    ]);
-    setLiveJob(freshJob);
-    onJobUpdated?.(freshJob);
-    setLogExists(freshLog.exists);
-    setLogTruncated(freshLog.truncated);
-    setLogContent(freshLog.exists ? freshLog.content : "");
-    setLogLoading(false);
+    const jobRequest = getRestoreJob(job.id).then((freshJob) => {
+      setLiveJob(freshJob);
+      onJobUpdated?.(freshJob);
+    });
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 8000);
+    try {
+      const freshLog = await getRestoreJobLog(job.id, controller.signal);
+      setLogExists(freshLog.exists);
+      setLogTruncated(freshLog.truncated);
+      setLogContent(freshLog.exists ? freshLog.content : "");
+    } catch {
+      setLogExists(false);
+      setLogTruncated(false);
+      setLogContent("");
+    } finally {
+      window.clearTimeout(timeout);
+      setLogLoading(false);
+    }
+    await jobRequest;
   }, [job.id, onJobUpdated]);
 
   React.useEffect(() => {
@@ -124,9 +137,38 @@ export function RestoreJobDetailModal({ job, onClose, onJobUpdated }: RestoreJob
     node.scrollTop = node.scrollHeight;
   }, [logContent]);
 
+  const handleStart = async () => {
+    if (!window.confirm(adminLabels.restoreJobStartConfirm)) return;
+    setStarting(true);
+    setStartError("");
+    setStartMessage("");
+    try {
+      const startedJob = await startRestoreJob(liveJob.id);
+      setLiveJob(startedJob);
+      onJobUpdated?.(startedJob);
+      setStartMessage(adminLabels.restoreJobStartQueued);
+      await refreshDetail();
+    } catch (error) {
+      setStartError(error instanceof Error ? error.message : adminLabels.restoreJobStartError);
+    } finally {
+      setStarting(false);
+    }
+  };
+  const handleDelete = async () => {
+    if (!window.confirm(adminLabels.restoreJobDeleteConfirm)) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await deleteRestoreJob(liveJob.id);
+      onDeleted?.();
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : adminLabels.restoreJobDeleteError);
+    } finally {
+      setDeleting(false);
+    }
+  };
   const uiStatus = mapRestoreJobUiStatus(liveJob.status);
   const showLogPlaceholder = !logLoading && !logExists;
-  const runnerCommand = buildRunnerCommand(liveJob.id);
 
   return (
     <Modal title={adminLabels.restoreJobDetailsTitle} onClose={onClose} size="lg">
@@ -159,14 +201,19 @@ export function RestoreJobDetailModal({ job, onClose, onJobUpdated }: RestoreJob
         <dd>{formatDateTime(liveJob.completed_at ?? liveJob.failed_at)}</dd>
         <dt>{adminLabels.restoreJobDetailLogPath}</dt>
         <dd className="mono">{liveJob.restore_log_path ?? "—"}</dd>
-        <dt>{adminLabels.restoreJobDetailRunnerCommand}</dt>
-        <dd className="mono restore-job-runner-command">{runnerCommand}</dd>
       </dl>
 
       {uiStatus === "queued" && (
-        <p className="text-muted backup-restore-manual-hint">{adminLabels.restoreJobManualHint}</p>
+        <div className="backup-restore-manual-hint">
+          <p className="text-muted">{adminLabels.restoreJobStartDescription}</p>
+          <button type="button" className="btn danger" disabled={starting} onClick={() => void handleStart()}>
+            {starting ? adminLabels.restoreJobStarting : adminLabels.restoreJobStart}
+          </button>
+        </div>
       )}
-
+      {startError && <div className="restore-job-detail-error" role="alert">{startError}</div>}
+      {startMessage && <p className="text-success">{startMessage}</p>}
+      {deleteError && <div className="restore-job-detail-error" role="alert">{deleteError}</div>}
       <div className="restore-job-live-log-section">
         <div className="restore-job-live-log-header">
           <h3>{adminLabels.restoreJobLiveLogTitle}</h3>
@@ -186,6 +233,17 @@ export function RestoreJobDetailModal({ job, onClose, onJobUpdated }: RestoreJob
             {logContent || adminLabels.restoreJobLiveLogEmpty}
           </pre>
         )}
+      </div>
+      <div className="form-actions">
+        <button
+          type="button"
+          className="btn danger"
+          disabled={deleting || uiStatus === "running"}
+          title={uiStatus === "running" ? adminLabels.restoreJobDeleteRunningHint : undefined}
+          onClick={() => void handleDelete()}
+        >
+          {deleting ? adminLabels.restoreJobDeleting : adminLabels.restoreJobDelete}
+        </button>
       </div>
     </Modal>
   );

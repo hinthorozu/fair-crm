@@ -18,7 +18,7 @@ import {
 } from "../components/CustomerList";
 import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
-import { FormModal } from "../components/ui/form";
+import { FormModal, runAfterSuccessfulFormSubmit } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import type { Customer, CustomerStatus, CustomerType } from "../types/customer";
@@ -59,11 +59,14 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
 
   const handleCreate = async (values: CreateCustomerPayload) => {
     const created = await createCustomer(values);
-    setModal(null);
     if (onOpenDetail) {
-      onOpenDetail(created.id);
+      runAfterSuccessfulFormSubmit(() => {
+        setModal(null);
+        onOpenDetail(created.id);
+      });
       return;
     }
+    runAfterSuccessfulFormSubmit(() => setModal(null));
     await table.refresh();
   };
 
@@ -76,12 +79,18 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
   const handleUpdate = async (values: CreateCustomerPayload) => {
     if (!editing) return;
     const updated = await updateCustomer(editing.id, values);
-    setModal(null);
-    setEditing(null);
     if (onOpenDetail) {
-      onOpenDetail(updated.id);
+      runAfterSuccessfulFormSubmit(() => {
+        setModal(null);
+        setEditing(null);
+        onOpenDetail(updated.id);
+      });
       return;
     }
+    runAfterSuccessfulFormSubmit(() => {
+      setModal(null);
+      setEditing(null);
+    });
     await table.refresh();
   };
 

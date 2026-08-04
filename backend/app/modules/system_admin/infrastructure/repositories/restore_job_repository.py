@@ -118,6 +118,39 @@ class SqlAlchemySystemBackupRestoreJobRepository:
         self._session.refresh(model)
         return _to_entity(model)
 
+    def claim_for_start(self, *, organization_id: UUID, job_id: UUID, now: datetime) -> bool:
+        changed = (
+            self._session.query(SystemBackupRestoreJobModel)
+            .filter(
+                SystemBackupRestoreJobModel.organization_id == organization_id,
+                SystemBackupRestoreJobModel.id == job_id,
+                SystemBackupRestoreJobModel.status == "manual_restore_required",
+            )
+            .update(
+                {
+                    "status": "running",
+                    "started_at": now,
+                    "updated_at": now,
+                },
+                synchronize_session=False,
+            )
+        )
+        self._session.flush()
+        return changed == 1
+
+    def upsert(self, job: SystemBackupRestoreJob) -> SystemBackupRestoreJob:
+        model = (
+            self._session.query(SystemBackupRestoreJobModel)
+            .filter(SystemBackupRestoreJobModel.id == job.id)
+            .one_or_none()
+        )
+        if model is None:
+            return self.add(job)
+        _update_model(model, job)
+        self._session.flush()
+        self._session.refresh(model)
+        return _to_entity(model)
+
     def get_by_id(self, organization_id: UUID, job_id: UUID) -> SystemBackupRestoreJob | None:
         model = (
             self._session.query(SystemBackupRestoreJobModel)
@@ -136,6 +169,19 @@ class SqlAlchemySystemBackupRestoreJobRepository:
             .one_or_none()
         )
         return _to_entity(model) if model else None
+
+    def delete(self, organization_id: UUID, job_id: UUID) -> bool:
+        deleted = (
+            self._session.query(SystemBackupRestoreJobModel)
+            .filter(
+                SystemBackupRestoreJobModel.organization_id == organization_id,
+                SystemBackupRestoreJobModel.id == job_id,
+                SystemBackupRestoreJobModel.status != "running",
+            )
+            .delete(synchronize_session=False)
+        )
+        self._session.flush()
+        return deleted == 1
 
     def list_recent(
         self,

@@ -33,6 +33,8 @@ class SystemBackupRestoreJobRepository(Protocol):
 
     def get_by_id_global(self, job_id: UUID) -> SystemBackupRestoreJob | None: ...
 
+    def delete(self, organization_id: UUID, job_id: UUID) -> bool: ...
+
     def list_recent(
         self,
         organization_id: UUID,

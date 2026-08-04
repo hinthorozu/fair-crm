@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   clearNavigationDirtySources,
   isNavigationDirty,
+  runAfterSuccessfulFormSubmit,
   setNavigationDirtySource,
   subscribeNavigationDirty,
 } from "./FormDirty";
@@ -31,5 +32,17 @@ describe("navigation dirty registry", () => {
     expect(isNavigationDirty()).toBe(false);
 
     unsubscribe();
+  });
+
+  it("clears stale dirty sources before a successful-submit transition", () => {
+    const calls: string[] = [];
+    setNavigationDirtySource("saved-modal", true);
+
+    runAfterSuccessfulFormSubmit(() => {
+      calls.push("navigate");
+      expect(isNavigationDirty()).toBe(false);
+    });
+
+    expect(calls).toEqual(["navigate"]);
   });
 });

@@ -7,6 +7,7 @@ import type {
   BackupFormat,
   CreateSystemBackupBatchResponse,
   DatabaseKey,
+  DeleteRestoreJobResponse,
   DeleteSystemBackupResponse,
   SystemBackup,
   SystemBackupRestoreJobResponse,
@@ -176,6 +177,20 @@ export async function getRestoreJob(id: string): Promise<SystemBackupRestoreJobR
   return apiRequest<SystemBackupRestoreJobResponse>(`/api/v1/admin/backups/restore-jobs/${id}`);
 }
 
-export async function getRestoreJobLog(id: string): Promise<RestoreJobLogResponse> {
-  return apiRequest<RestoreJobLogResponse>(`/api/v1/admin/backups/restore-jobs/${id}/log`);
+export async function getRestoreJobLog(id: string, signal?: AbortSignal): Promise<RestoreJobLogResponse> {
+  return apiRequest<RestoreJobLogResponse>(`/api/v1/admin/backups/restore-jobs/${id}/log`, {
+    signal,
+  });
+}
+
+export async function startRestoreJob(id: string): Promise<SystemBackupRestoreJobResponse> {
+  return apiRequest<SystemBackupRestoreJobResponse>(`/api/v1/admin/backups/restore-jobs/${id}/start`, {
+    method: "POST",
+  });
+}
+
+export async function deleteRestoreJob(id: string): Promise<DeleteRestoreJobResponse> {
+  return apiRequest<DeleteRestoreJobResponse>(`/api/v1/admin/backups/restore-jobs/${id}`, {
+    method: "DELETE",
+  });
 }

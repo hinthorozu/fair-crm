@@ -23,7 +23,7 @@ import {
   SelectInput,
   TextareaInput,
   TextInput,
-  clearNavigationDirtySources,
+  runAfterSuccessfulFormSubmit,
 } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
@@ -581,8 +581,7 @@ function BulkEmailOperationWizardPageInner({
         client_token: clientToken,
       });
       // Successful create/send is not an unsaved form — allow immediate detail nav.
-      clearNavigationDirtySources();
-      onCreated?.(result.operation_id);
+      runAfterSuccessfulFormSubmit(() => onCreated?.(result.operation_id));
     } catch (err) {
       sendLockRef.current = false;
       setSendError(err instanceof ApiError ? err.message : operationLabels.bulkEmailSendError);

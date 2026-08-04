@@ -1,7 +1,7 @@
 import React from "react";
-import { listFairs } from "../api/fairs";
 import { ApiError, listMailOperations, retryMailOperation } from "../api/mailOperations";
 import { ApiError as EmailAccountApiError, listEmailAccounts } from "../api/emailAccounts";
+import { FairEntitySelect } from "../components/FairEntitySelect";
 import { MailOperationActionsMenu } from "../components/mail_operations/MailOperationActionsMenu";
 import { MailOperationDetailModal } from "../components/mail_operations/MailOperationDetailModal";
 import { MailOperationErrorModal } from "../components/mail_operations/MailOperationErrorModal";
@@ -14,8 +14,6 @@ import { FilterPanel } from "../components/ui/FilterPanel";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { FormField, SelectInput, TextInput } from "../components/ui/form";
 import { adminLabels } from "../labels/adminLabels";
-import { fairLabels } from "../labels/fairLabels";
-import type { Fair } from "../types/fair";
 import type { MailOperationRecord, MailOperationSourceType, MailOperationStatus } from "../types/mailOperations";
 import type { EmailAccount } from "../types/smtp";
 import { Banner } from "../components/ui/Banner";
@@ -73,9 +71,6 @@ export function MailOperationsPage() {
   const [emailAccounts, setEmailAccounts] = React.useState<EmailAccount[]>([]);
   const [emailAccountsLoading, setEmailAccountsLoading] = React.useState(true);
   const [emailAccountsError, setEmailAccountsError] = React.useState<string | null>(null);
-  const [fairs, setFairs] = React.useState<Fair[]>([]);
-  const [fairsLoading, setFairsLoading] = React.useState(true);
-  const [fairsError, setFairsError] = React.useState<string | null>(null);
   const [retryingId, setRetryingId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -108,42 +103,11 @@ export function MailOperationsPage() {
   }, []);
 
   React.useEffect(() => {
-    let cancelled = false;
-    setFairsLoading(true);
-    setFairsError(null);
-
-    void (async () => {
-      try {
-        const response = await listFairs({ page: 1, pageSize: 100 });
-        if (cancelled) return;
-        setFairs(response.items);
-      } catch (err) {
-        if (cancelled) return;
-        setFairs([]);
-        setFairsError(err instanceof ApiError ? err.message : fairLabels.loadError);
-      } finally {
-        if (!cancelled) setFairsLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  React.useEffect(() => {
     if (emailAccount === "all") return;
     if (!emailAccounts.some((account) => account.id === emailAccount)) {
       setEmailAccount("all");
     }
   }, [emailAccount, emailAccounts]);
-
-  React.useEffect(() => {
-    if (fair === "all") return;
-    if (!fairs.some((item) => item.id === fair)) {
-      setFair("all");
-    }
-  }, [fair, fairs]);
 
   const loadOperations = React.useCallback(async (options?: { silent?: boolean }) => {
     const silent = Boolean(options?.silent);
@@ -390,22 +354,15 @@ export function MailOperationsPage() {
         <FormField
           label={adminLabels.mailOperationsFilterFair}
           htmlFor="mail-operations-fair"
-          hint={fairsLoading ? adminLabels.dataOpLoading : undefined}
-          error={fairsError ?? undefined}
         >
-          <SelectInput
+          <FairEntitySelect
             id="mail-operations-fair"
-            value={fair}
-            disabled={fairsLoading}
-            onChange={(event) => setFair(event.target.value)}
-          >
-            <option value="all">{adminLabels.mailOperationsFilterAll}</option>
-            {fairs.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </SelectInput>
+            value={fair === "all" ? "" : fair}
+            onChange={(fairId) => setFair(fairId || "all")}
+            allowClear
+            placeholder={adminLabels.mailOperationsFilterAll}
+            clearOptionLabel={adminLabels.mailOperationsFilterAll}
+          />
         </FormField>
 
         <FormField label={adminLabels.mailOperationsFilterDateFrom} htmlFor="mail-operations-date-from">

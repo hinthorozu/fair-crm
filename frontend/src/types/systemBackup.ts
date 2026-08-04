@@ -77,6 +77,12 @@ export interface RestoreJobLogResponse {
   truncated: boolean;
 }
 
+export interface DeleteRestoreJobResponse {
+  id: string;
+  file_deleted: boolean;
+  log_deleted: boolean;
+}
+
 export interface DeleteSystemBackupResponse {
   id: string;
   file_name: string;

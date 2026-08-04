@@ -231,6 +231,21 @@ export const adminLabels = {
   restoreJobManualHint:
     "Gerçek restore işlemi bakım scripti ile yapılır. Dev: $env:ALLOW_RESTORE=\"true\"; .\\scripts\\dev\\run-restore-job.ps1 -RestoreJobId \"<job-id>\". FAIR_CRM_DATABASE_RESTORE_ENABLED=true ve ALLOW_RESTORE=true ise dev API runner'ı otomatik başlatabilir.",
 
+  restoreJobStartDescription:
+    "Geri yükleme butonu, işi ayrı bir bakım sürecinde başlatır; bu pencere durum ve logu takip eder.",
+  restoreJobStart: "Geri Yüklemeyi Başlat",
+  restoreJobStarting: "Başlatılıyor…",
+  restoreJobStartConfirm:
+    "Bu işlem mevcut veritabanının üzerine yazacak. Geri yüklemeyi şimdi başlatmak istediğinize emin misiniz?",
+  restoreJobStartError: "Geri yükleme süreci başlatılamadı.",
+  restoreJobStartQueued:
+    "Geri yükleme bağımsız bakım sürecinde başlatıldı. Durum ve canlı log otomatik takip edilecek.",
+  restoreJobDelete: "Dosyayı / Kaydı Sil",
+  restoreJobDeleting: "Siliniyor…",
+  restoreJobDeleteConfirm:
+    "Bu geri yükleme kaydı, yüklenen dosya ve log kalıcı olarak silinecek. Mevcut sistem yedeği varsa korunacak. Devam edilsin mi?",
+  restoreJobDeleteError: "Geri yükleme kaydı silinemedi.",
+  restoreJobDeleteRunningHint: "Çalışan geri yükleme işlemi silinemez.",
   restoreJobsTitle: "Restore Jobs",
   restoreJobsSubtitle: "Geri yükleme istekleri ve bakım scripti durumu",
   restoreJobColStatus: "Status",

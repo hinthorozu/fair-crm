@@ -403,6 +403,54 @@ def test_restore_from_upload_accepts_custom_dump(client, auth_headers, backups_r
     assert body["checksum_sha256"]
 
 
+def test_delete_uploaded_restore_job_removes_uploaded_file_and_log(client, auth_headers, backups_root, monkeypatch):
+    from app.shared.database_backup.engine import BackupVerificationResult
+
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+
+    files = {"file": ("restore.dump", b"PGDMP" + b"\x00" * 20 + b"uploaded", "application/octet-stream")}
+    restore = client.post("/api/v1/admin/backups/restore/upload", headers=auth_headers, files=files)
+    assert restore.status_code == 202
+    job = restore.json()
+    uploaded_files = list((backups_root / "data" / "restore_uploads").iterdir())
+    assert len(uploaded_files) == 1
+    log_path = backups_root / job["restore_log_path"]
+    log_path.write_text("queued", encoding="utf-8")
+
+    deleted = client.delete(f"/api/v1/admin/backups/restore-jobs/{job['id']}", headers=auth_headers)
+    assert deleted.status_code == 200
+    assert deleted.json() == {"id": job["id"], "file_deleted": True, "log_deleted": True}
+    assert not uploaded_files[0].exists()
+    assert not log_path.exists()
+    assert client.get(f"/api/v1/admin/backups/restore-jobs/{job['id']}", headers=auth_headers).status_code == 404
+
+
+def test_delete_existing_backup_restore_job_preserves_backup_file(client, auth_headers, backups_root, monkeypatch):
+    from app.shared.database_backup.engine import BackupVerificationResult
+
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+    create = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
+    backup = _first_item(create.json())
+    backup_path = backups_root / "backups" / backup["file_name"]
+    assert backup_path.exists()
+    restore = client.post(f"/api/v1/admin/backups/{backup['id']}/restore", headers=auth_headers)
+    assert restore.status_code == 202
+
+    deleted = client.delete(
+        f"/api/v1/admin/backups/restore-jobs/{restore.json()['id']}",
+        headers=auth_headers,
+    )
+    assert deleted.status_code == 200
+    assert deleted.json()["file_deleted"] is False
+    assert backup_path.exists()
+
+
 def test_restore_from_upload_rejects_non_dump(client, auth_headers, backups_root):
     files = {"file": ("restore.sql", b"SELECT 1;", "application/sql")}
     restore = client.post(
@@ -715,3 +763,40 @@ def test_resolve_backup_path_accepts_supported_extensions(tmp_path, monkeypatch)
 
     with pytest.raises(ValueError):
         resolve_backup_path("evil.exe")
+
+
+def test_restore_job_can_be_started_from_api(client, auth_headers, monkeypatch):
+    from types import SimpleNamespace
+
+    launched: list[dict] = []
+    monkeypatch.setattr(
+        "app.modules.system_admin.api.routes.get_settings",
+        lambda: SimpleNamespace(database_restore_enabled=True),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.api.routes.resolve_database_url",
+        lambda database_key: "postgresql://postgres:postgres@localhost:5432/fair_crm",
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.api.routes.launch_restore_job_process",
+        lambda **kwargs: launched.append(kwargs),
+    )
+
+    create = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
+    backup_id = _first_item(create.json())["id"]
+    restore = client.post(f"/api/v1/admin/backups/{backup_id}/restore", headers=auth_headers)
+    job_id = restore.json()["id"]
+
+    started = client.post(f"/api/v1/admin/backups/restore-jobs/{job_id}/start", headers=auth_headers)
+    assert started.status_code == 202
+    assert started.json()["status"] == "running"
+    assert launched == [{
+        "job_id": launched[0]["job_id"],
+        "target_database_url": "postgresql://postgres:postgres@localhost:5432/fair_crm",
+    }]
+
+    duplicate = client.post(f"/api/v1/admin/backups/restore-jobs/{job_id}/start", headers=auth_headers)
+    assert duplicate.status_code == 409
+
+    delete_running = client.delete(f"/api/v1/admin/backups/restore-jobs/{job_id}", headers=auth_headers)
+    assert delete_running.status_code == 409

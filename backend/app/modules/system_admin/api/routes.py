@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -8,6 +9,7 @@ from pydantic import AliasChoices
 
 from app.api.dependencies.list_query import parse_list_query
 from app.api.schemas.list_response import StandardListResponse, build_list_response
+from app.core.config import get_settings
 from app.core.exceptions import ForbiddenError
 from app.db.session import get_db
 from app.integrations.kyrox_core.auth import AuthContext
@@ -32,6 +34,7 @@ from app.modules.system_admin.api.schemas import (
     CreateSystemBackupBatchResponse,
     CreateSystemBackupRequest,
     CreateSystemBackupResponse,
+    DeleteRestoreJobResponse,
     DeleteSystemBackupResponse,
     ErrorResponse,
     RestoreJobLogResponse,
@@ -50,11 +53,24 @@ from app.modules.system_admin.application.backup_service import (
     RestoreSystemBackupFromUploadCommand,
     media_type_for_backup_file,
 )
-from app.shared.database_backup.database_keys import DatabaseKey, parse_database_keys
+from app.shared.database_backup.database_keys import (
+    DatabaseKey,
+    assert_target_url_matches_database_key,
+    parse_database_keys,
+    resolve_database_url,
+)
+from app.modules.system_admin.domain.value_objects import RestoreJobStatus
+from app.modules.system_admin.infrastructure.repositories.restore_job_repository import (
+    SqlAlchemySystemBackupRestoreJobRepository,
+)
 from app.modules.system_admin.application.restore_job_service import (
     RESTORE_JOB_ALLOWED_SORT_FIELDS,
     RESTORE_JOB_DEFAULT_SORT_DIRECTION,
     RESTORE_JOB_DEFAULT_SORT_FIELD,
+    RESTORE_JOB_MESSAGE,
+    launch_restore_job_process,
+    resolve_restore_job_dump_path,
+    resolve_restore_job_log_path,
 )
 from app.shared.database_backup.formats import BackupFormat
 from sqlalchemy.orm import Session
@@ -308,6 +324,94 @@ def get_restore_job_log(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return RestoreJobLogResponse.model_validate(result.__dict__)
+
+
+@router.post(
+    "/backups/restore-jobs/{job_id}/start",
+    response_model=SystemBackupRestoreJobResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+    summary="Start a queued database restore job",
+)
+def start_restore_job(
+    job_id: UUID,
+    auth: AuthContext = Depends(require_admin_create_permission),
+    db: Session = Depends(get_db),
+) -> SystemBackupRestoreJobResponse:
+    settings = get_settings()
+    if not settings.database_restore_enabled:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database restore is disabled. Set FAIR_CRM_DATABASE_RESTORE_ENABLED=true.")
+    repository = SqlAlchemySystemBackupRestoreJobRepository(db)
+    job = repository.get_by_id(auth.organization_id, job_id)
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restore job not found")
+    if job.status != RestoreJobStatus.MANUAL_RESTORE_REQUIRED:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Restore job cannot be started from status {job.status.value}")
+    target_database_url = resolve_database_url(job.target_database_key)
+    assert_target_url_matches_database_key(target_database_url, job.target_database_key)
+    now = datetime.now(tz=UTC)
+    if not repository.claim_for_start(organization_id=auth.organization_id, job_id=job.id, now=now):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Restore job was already started")
+    db.commit()
+    job = repository.get_by_id(auth.organization_id, job_id)
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restore job not found")
+    try:
+        launch_restore_job_process(job_id=job.id, target_database_url=target_database_url)
+    except OSError as exc:
+        job.mark_failed(error_message=f"Restore process could not be started: {exc}", now=datetime.now(tz=UTC))
+        repository.update(job)
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    return SystemBackupRestoreJobResponse.model_validate({
+        **job.__dict__,
+        "message": RESTORE_JOB_MESSAGE,
+        "uploaded": job.uploaded_file_path is not None,
+    })
+
+
+@router.delete(
+    "/backups/restore-jobs/{job_id}",
+    response_model=DeleteRestoreJobResponse,
+    responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
+    summary="Delete a database restore job and its uploaded artifacts",
+)
+def delete_restore_job(
+    job_id: UUID,
+    auth: AuthContext = Depends(require_admin_create_permission),
+    db: Session = Depends(get_db),
+) -> DeleteRestoreJobResponse:
+    repository = SqlAlchemySystemBackupRestoreJobRepository(db)
+    job = repository.get_by_id(auth.organization_id, job_id)
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restore job not found")
+    if job.status == RestoreJobStatus.RUNNING:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="A running restore job cannot be deleted")
+
+    try:
+        uploaded_path = resolve_restore_job_dump_path(job) if job.uploaded_file_path else None
+        log_path = resolve_restore_job_log_path(job)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    if not repository.delete(auth.organization_id, job.id):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Restore job is running or was already deleted")
+
+    file_deleted = False
+    log_deleted = False
+    try:
+        if uploaded_path is not None and uploaded_path.exists():
+            uploaded_path.unlink()
+            file_deleted = True
+        if log_path is not None and log_path.exists():
+            log_path.unlink()
+            log_deleted = True
+        db.commit()
+    except OSError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Restore job files could not be deleted: {exc}") from exc
+
+    return DeleteRestoreJobResponse(id=job.id, file_deleted=file_deleted, log_deleted=log_deleted)
 
 
 @router.get(

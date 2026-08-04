@@ -45,6 +45,16 @@ export function clearNavigationDirtySources(): void {
   notifyNavigationDirtyListeners();
 }
 
+/**
+ * Complete a successful form submission before closing/navigating.
+ * Saved values are no longer unsaved work, so stale modal/page dirty sources
+ * must not block the immediate programmatic transition.
+ */
+export function runAfterSuccessfulFormSubmit(action: () => void): void {
+  clearNavigationDirtySources();
+  action();
+}
+
 export function useFormDirtySetter(): DirtySetter {
   const setter = React.useContext(FormDirtySetContext);
   return React.useCallback((dirty: boolean) => setter?.(dirty), [setter]);

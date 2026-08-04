@@ -21,7 +21,7 @@ import {
   SelectInput,
   TextareaInput,
   TextInput,
-  clearNavigationDirtySources,
+  runAfterSuccessfulFormSubmit,
 } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
@@ -336,8 +336,7 @@ function ScraperOperationWizardPageInner({
     setSubmitError(null);
     try {
       const created = await createOperation(buildPayload());
-      clearNavigationDirtySources();
-      onCreated(created.id);
+      runAfterSuccessfulFormSubmit(() => onCreated(created.id));
     } catch (err) {
       setSubmitError(err instanceof ApiError ? err.message : operationLabels.loadError);
     } finally {

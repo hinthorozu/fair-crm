@@ -94,6 +94,12 @@ class RestoreJobLogResponse(BaseModel):
     truncated: bool = False
 
 
+class DeleteRestoreJobResponse(BaseModel):
+    id: UUID
+    file_deleted: bool
+    log_deleted: bool
+
+
 class DeleteSystemBackupResponse(BaseModel):
     id: UUID
     file_name: str

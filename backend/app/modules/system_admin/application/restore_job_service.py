@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+import os
 import subprocess
 import sys
 from collections.abc import Callable
@@ -13,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.exceptions import ForbiddenError
 from app.core.pagination import normalize_sort_direction
-from app.db.session import SessionLocal
+from app.db.session import SessionLocal, engine
 from app.integrations.kyrox_core.ports import AuditPort, AuthorizationPort
 from app.modules.system_admin.domain.entities import SystemBackupRestoreJob
 from app.modules.system_admin.domain.ports import SystemBackupRepository, SystemBackupRestoreJobRepository
@@ -380,14 +382,38 @@ class RestoreJobMaintenanceCommand:
     allow_restore: bool
 
 
+def launch_restore_job_process(*, job_id: UUID, target_database_url: str) -> None:
+    backend_root = Path(__file__).resolve().parents[4]
+    command = [
+        sys.executable, "-m", "app.modules.system_admin.maintenance.run_restore_job",
+        "--job-id", str(job_id), "--database-url", target_database_url, "--allow-restore",
+    ]
+    kwargs: dict[str, object] = {
+        "cwd": str(backend_root), "env": os.environ.copy(),
+        "stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL,
+        "close_fds": True,
+    }
+    if os.name == "nt":
+        kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW
+    else:
+        kwargs["start_new_session"] = True
+    subprocess.Popen(command, **kwargs)
+
+
 class RestoreJobMaintenanceRunner:
     def __init__(
         self,
         session_factory: Callable[[], Session] | None = None,
         audit: AuditPort | None = None,
+        reset_database_connections: Callable[[], None] | None = None,
     ) -> None:
         self._session_factory = session_factory or SessionLocal
         self._audit = audit
+        self._reset_database_connections = (
+            reset_database_connections
+            if reset_database_connections is not None
+            else (engine.dispose if session_factory is None else lambda: None)
+        )
 
     def run(self, command: RestoreJobMaintenanceCommand) -> int:
         if not command.allow_restore:
@@ -395,6 +421,7 @@ class RestoreJobMaintenanceRunner:
             return 1
 
         db = self._session_factory()
+        job_snapshot: SystemBackupRestoreJob | None = None
         log_handle = None
         relative_log_path = ""
         try:
@@ -403,9 +430,9 @@ class RestoreJobMaintenanceRunner:
             if job is None:
                 print(f"Restore job not found: {command.job_id}", file=sys.stderr)
                 return 1
-            if job.status != RestoreJobStatus.MANUAL_RESTORE_REQUIRED:
+            if job.status not in {RestoreJobStatus.MANUAL_RESTORE_REQUIRED, RestoreJobStatus.RUNNING}:
                 print(
-                    f"Restore job status must be manual_restore_required (current: {job.status.value})",
+                    f"Restore job status must be manual_restore_required or running (current: {job.status.value})",
                     file=sys.stderr,
                 )
                 return 1
@@ -446,9 +473,11 @@ class RestoreJobMaintenanceRunner:
             _log(f"started at: {now.isoformat()}")
             _log(f"runner command: {build_restore_runner_command(job.id)}")
 
-            job.mark_running(now=now, restore_log_path=relative_log_path)
-            repo.update(job)
-            db.commit()
+            if job.status == RestoreJobStatus.MANUAL_RESTORE_REQUIRED:
+                job.mark_running(now=now, restore_log_path=relative_log_path)
+                repo.update(job)
+                db.commit()
+            job_snapshot = copy.deepcopy(job)
 
             _log("validating job")
             self._record_audit(
@@ -472,9 +501,13 @@ class RestoreJobMaintenanceRunner:
             verify_backup_dump(database_url=target_database_url, dump_path=dump_path)
             _log("dump validation OK")
 
+            db.close()
+            self._reset_database_connections()
+            _log("database connections released before pg_restore")
             _log("starting pg_restore")
             pg_restore_custom(database_url=target_database_url, dump_path=dump_path)
             _log("pg_restore completed")
+            self._reset_database_connections()
 
             migration_result = "success"
             try:
@@ -513,13 +546,17 @@ class RestoreJobMaintenanceRunner:
                 raise ValueError(health.error_message or "Post-restore health check failed")
 
             finished = datetime.now(tz=UTC)
-            job = repo.get_by_id_global(command.job_id)
+            db.close()
+            db = self._session_factory()
+            repo = SqlAlchemySystemBackupRestoreJobRepository(db)
+            job = repo.get_by_id_global(command.job_id) or job_snapshot
             if job is None:
                 return 1
             job.notes = _merge_restore_job_notes(job.notes, health.summary_text())
             job.mark_completed(now=finished)
-            repo.update(job)
+            repo.upsert(job)
             db.commit()
+            _log("restore job state persisted")
 
             self._record_audit(
                 organization_id=job.organization_id,
@@ -530,16 +567,30 @@ class RestoreJobMaintenanceRunner:
             _log("completed")
             return 0
         except (DatabaseBackupError, OSError, ValueError, FileNotFoundError) as exc:
-            db.rollback()
+            try:
+                db.rollback()
+                db.close()
+            except Exception:
+                pass
             failed = datetime.now(tz=UTC)
+            self._reset_database_connections()
+            db = self._session_factory()
             repo = SqlAlchemySystemBackupRestoreJobRepository(db)
-            job = repo.get_by_id_global(command.job_id)
+            job = repo.get_by_id_global(command.job_id) or job_snapshot
             if job is not None:
                 job.mark_failed(error_message=str(exc), now=failed)
                 if relative_log_path:
                     job.restore_log_path = relative_log_path
-                repo.update(job)
-                db.commit()
+                try:
+                    repo.upsert(job)
+                    db.commit()
+                except Exception as persistence_exc:
+                    db.rollback()
+                    persistence_message = f"restore job state could not be persisted: {persistence_exc}"
+                    print(persistence_message, file=sys.stderr)
+                    if log_handle:
+                        log_handle.write(persistence_message + "\n")
+                        log_handle.flush()
                 self._record_audit(
                     organization_id=job.organization_id,
                     action="fair_crm.system_backup.restore_failed",

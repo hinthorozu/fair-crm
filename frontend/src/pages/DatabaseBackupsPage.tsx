@@ -1123,24 +1123,28 @@ export function DatabaseBackupsPage() {
     }
   };
 
-  const openDetails = async (backup: SystemBackup) => {
-    try {
-      setDetailBackup(await getSystemBackup(backup.id));
-    } catch (err) {
-      void err;
-    }
+  const openDetails = (backup: SystemBackup) => {
+    setDetailBackup(backup);
+    void getSystemBackup(backup.id)
+      .then((fresh) => {
+        setDetailBackup((current) => (current?.id === backup.id ? fresh : current));
+      })
+      .catch(() => undefined);
   };
 
-  const openRestoreJobDetails = async (job: SystemBackupRestoreJobResponse) => {
-    try {
-      const fresh = await getRestoreJob(job.id);
-      setDetailRestoreJob(fresh);
-      if (!isTerminalRestoreJobStatus(fresh.status)) {
-        trackRestoreJob(fresh);
-      }
-    } catch {
-      /* ignore */
+  const openRestoreJobDetails = (job: SystemBackupRestoreJobResponse) => {
+    setDetailRestoreJob(job);
+    if (!isTerminalRestoreJobStatus(job.status)) {
+      trackRestoreJob(job);
     }
+    void getRestoreJob(job.id)
+      .then((fresh) => {
+        setDetailRestoreJob((current) => (current?.id === job.id ? fresh : current));
+        if (!isTerminalRestoreJobStatus(fresh.status)) {
+          trackRestoreJob(fresh);
+        }
+      })
+      .catch(() => undefined);
   };
 
   const columns = React.useMemo(
@@ -1356,6 +1360,10 @@ export function DatabaseBackupsPage() {
         <RestoreJobDetailModal
           job={visibleDetailRestoreJob}
           onClose={closeRestoreJobDetailModal}
+          onDeleted={() => {
+            setDetailRestoreJob(null);
+            void restoreJobsTable.refresh();
+          }}
           onJobUpdated={(updated) => {
             if (detailRestoreJob?.id === updated.id) {
               setDetailRestoreJob(updated);
