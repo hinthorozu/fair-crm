@@ -188,14 +188,20 @@ export function TodoForm({
     onSavingChange?.(saving);
   }, [saving, onSavingChange]);
 
+  const requiresCustomerAndFair = values.category === "teklif" || values.category === "stand_work";
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!values.title.trim()) {
       setError(todoLabels.titleRequired);
       return;
     }
-    if (values.category === "teklif" && (!values.customer_id || !values.source_fair_id)) {
-      setError("Teklif görevi için müşteri ve kaynak fuar zorunludur.");
+    if (requiresCustomerAndFair && (!values.customer_id || !values.source_fair_id)) {
+      setError(
+        values.category === "stand_work"
+          ? "Stand İşleri görevi için müşteri ve kaynak fuar zorunludur."
+          : "Teklif görevi için müşteri ve kaynak fuar zorunludur.",
+      );
       return;
     }
     setSaving(true);
@@ -304,7 +310,7 @@ export function TodoForm({
           htmlFor="todo-customer"
           fullWidth
           hint={todoLabels.fieldCustomerHint}
-          required={values.category === "teklif"}
+          required={requiresCustomerAndFair}
         >
           <CustomerEntitySelect
             id="todo-customer"
@@ -321,7 +327,7 @@ export function TodoForm({
           htmlFor="todo-source-fair"
           fullWidth
           hint={todoLabels.fieldSourceFairHint}
-          required={values.category === "teklif"}
+          required={requiresCustomerAndFair}
         >
           <FairEntitySelect
             id="todo-source-fair"
