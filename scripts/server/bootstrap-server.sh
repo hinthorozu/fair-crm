@@ -270,10 +270,10 @@ ensure_remote_postgres_access() {
 
   if [[ "$role_exists" == "1" ]]; then
     docker exec -e PGPASSWORD=postgres "$container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
-      -c "ALTER ROLE \"${REMOTE_PG_USER}\" WITH LOGIN PASSWORD '${password//\'/\'\'}';" >/dev/null
+      -c "ALTER ROLE \"${REMOTE_PG_USER}\" WITH LOGIN SUPERUSER CREATEDB CREATEROLE INHERIT REPLICATION BYPASSRLS PASSWORD '${password//\'/\'\'}';" >/dev/null
   else
     docker exec -e PGPASSWORD=postgres "$container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
-      -c "CREATE ROLE \"${REMOTE_PG_USER}\" WITH LOGIN PASSWORD '${password//\'/\'\'}';" >/dev/null
+      -c "CREATE ROLE \"${REMOTE_PG_USER}\" WITH LOGIN SUPERUSER CREATEDB CREATEROLE INHERIT REPLICATION BYPASSRLS PASSWORD '${password//\'/\'\'}';" >/dev/null
   fi
 
   local db_name
@@ -282,9 +282,9 @@ ensure_remote_postgres_access() {
     db_exists="$(docker exec -e PGPASSWORD=postgres "$container" psql -U postgres -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='${db_name}'" 2>/dev/null || true)"
     if [[ "$db_exists" == "1" ]]; then
       docker exec -e PGPASSWORD=postgres "$container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
-        -c "GRANT CONNECT ON DATABASE \"${db_name}\" TO \"${REMOTE_PG_USER}\";" >/dev/null
+        -c "GRANT ALL PRIVILEGES ON DATABASE \"${db_name}\" TO \"${REMOTE_PG_USER}\";" >/dev/null
       docker exec -e PGPASSWORD=postgres "$container" psql -U postgres -d "$db_name" -v ON_ERROR_STOP=1 \
-        -c "GRANT USAGE ON SCHEMA public TO \"${REMOTE_PG_USER}\"; GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO \"${REMOTE_PG_USER}\"; GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO \"${REMOTE_PG_USER}\"; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO \"${REMOTE_PG_USER}\"; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO \"${REMOTE_PG_USER}\";" >/dev/null
+        -c "GRANT ALL PRIVILEGES ON SCHEMA public TO \"${REMOTE_PG_USER}\"; GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO \"${REMOTE_PG_USER}\"; GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO \"${REMOTE_PG_USER}\"; GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO \"${REMOTE_PG_USER}\"; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO \"${REMOTE_PG_USER}\"; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO \"${REMOTE_PG_USER}\"; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON FUNCTIONS TO \"${REMOTE_PG_USER}\";" >/dev/null
     fi
   done
 
@@ -292,8 +292,8 @@ ensure_remote_postgres_access() {
     run_root ufw allow "${REMOTE_PG_PORT}/tcp" >/dev/null
   fi
 
-  REPORT_REMOTE_POSTGRES="ready (${REMOTE_PG_USER}, tcp/${REMOTE_PG_PORT} -> postgres/5432; local 127.0.0.1:5432 preserved)"
-  log "Remote PostgreSQL ready: ${SERVER_PUBLIC_IP:-server-ip}:${REMOTE_PG_PORT} user=${REMOTE_PG_USER}"
+  REPORT_REMOTE_POSTGRES="ready (${REMOTE_PG_USER}=PostgreSQL SUPERUSER, tcp/${REMOTE_PG_PORT} -> postgres/5432; local 127.0.0.1:5432 preserved)"
+  log "Remote PostgreSQL ready with full privileges: ${SERVER_PUBLIC_IP:-server-ip}:${REMOTE_PG_PORT} user=${REMOTE_PG_USER}"
   unset password
 }
 
