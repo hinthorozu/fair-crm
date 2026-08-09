@@ -83,7 +83,7 @@ class Settings(BaseSettings):
         validation_alias="FAIR_CRM_POSTGRES_DOCKER_CONTAINER",
     )
     database_restore_enabled: bool = Field(
-        default=False,
+        default=True,
         validation_alias="FAIR_CRM_DATABASE_RESTORE_ENABLED",
     )
     import_max_file_size_mb: int = Field(
