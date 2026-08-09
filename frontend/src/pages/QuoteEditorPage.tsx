@@ -32,6 +32,7 @@ export function QuoteEditorPage({ todoId, onBack }: Props) {
   const [templateId, setTemplateId] = React.useState("");
   const [quoteDate, setQuoteDate] = React.useState(() => new Date().toISOString().slice(0, 10));
   const [status, setStatus] = React.useState<"draft" | "given">("draft");
+  const [price, setPrice] = React.useState("");
   const [selected, setSelected] = React.useState<Record<string, string>>({});
   const [preview, setPreview] = React.useState("");
   const [previewOpen, setPreviewOpen] = React.useState(false);
@@ -51,6 +52,7 @@ export function QuoteEditorPage({ todoId, onBack }: Props) {
         setExisting(true);
         setQuoteDate(quote.quote_date);
         setStatus(quote.status);
+        setPrice(quote.price ?? "");
         setSelected(Object.fromEntries(quote.selected_items.map((item) => [item.content_id, item.value])));
         try {
           setPreview((await renderQuoteByTodo(todoId)).html);
@@ -70,7 +72,7 @@ export function QuoteEditorPage({ todoId, onBack }: Props) {
     const selected_items: QuoteSelectedItem[] = Object.entries(selected).map(([content_id, value]) => ({ content_id, value: value.trim() })).filter((item) => item.value);
     setSaving(true); setError(null);
     try {
-      const payload = { template_id: templateId, quote_date: quoteDate, status, selected_items };
+      const payload = { template_id: templateId, quote_date: quoteDate, status, price: price.trim(), selected_items };
       if (existing) await updateQuoteByTodo(todoId, payload); else await createQuoteByTodo(todoId, payload);
       setExisting(true);
 
@@ -94,6 +96,7 @@ export function QuoteEditorPage({ todoId, onBack }: Props) {
       <FormField label="Teklif şablonu" htmlFor="quote-template" required><SelectInput id="quote-template" value={templateId} onChange={(e) => setTemplateId(e.target.value)}>{templates.map((item) => <option key={item.id} value={item.id}>{item.name} (v{item.version_number})</option>)}</SelectInput></FormField>
       <FormField label="Teklif tarihi" htmlFor="quote-date" required><TextInput id="quote-date" type="date" value={quoteDate} onChange={(e) => setQuoteDate(e.target.value)} /></FormField>
       <FormField label="Durum" htmlFor="quote-status"><SelectInput id="quote-status" value={status} onChange={(e) => setStatus(e.target.value as "draft" | "given")}><option value="draft">Taslak</option><option value="given">Teklif Verildi</option></SelectInput></FormField>
+      <FormField label="Stand Bedeli" htmlFor="quote-price"><TextInput id="quote-price" value={price} maxLength={255} placeholder="125.000 TL + %20 KDV" onChange={(e) => setPrice(e.target.value)} /></FormField>
     </FormGrid></Card>
     {tags.map((tag) => <Card key={tag.id}><h3>{tag.name}</h3>{contents.filter((item) => item.tag_id === tag.id).map((item) => <div key={item.id} className="form-grid" style={{gridTemplateColumns:"40px 1fr 1fr",alignItems:"center",marginBottom:8}}><input type="checkbox" checked={Object.prototype.hasOwnProperty.call(selected, item.id)} onChange={(e) => toggle(item.id, e.target.checked)} aria-label={`${item.title} seç`} /><span>{item.title}</span><TextInput id={`quote-content-${item.id}`} value={selected[item.id] ?? ""} disabled={!Object.prototype.hasOwnProperty.call(selected, item.id)} placeholder="VAR / 1 ADET" onChange={(e) => setSelected((current) => ({ ...current, [item.id]: e.target.value }))} /></div>)}</Card>)}
     {preview ? <Card><div className="form-actions"><h3 style={{marginRight:"auto"}}>Önizleme</h3><button type="button" className="btn secondary" onClick={() => setPreviewOpen(true)}>Önizlemeyi Aç</button></div></Card> : null}
