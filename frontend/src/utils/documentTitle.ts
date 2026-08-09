@@ -65,6 +65,8 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
       return todoLabels.pageTitle;
     case "/todos/:id":
       return context.todoTitle?.trim() || todoLabels.pageTitle;
+    case "/todos/:id/quote":
+      return "Teklifler";
     case "/operations":
       return uiLabels.navOperations;
     case "/operations/new/scraper":
