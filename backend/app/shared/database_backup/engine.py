@@ -83,6 +83,20 @@ def _get_toolchain(conn: PostgresConnection) -> tuple[str, str | None]:
     )
 
 
+def _get_backup_toolchain(conn: PostgresConnection) -> tuple[str, str | None]:
+    settings = get_settings()
+    container = getattr(settings, "postgres_docker_container", "kyrox-postgres-dev")
+    if conn.is_localhost and _docker_container_running(container):
+        return "docker", container
+    pg_dump = _resolve_pg_tool("pg_dump")
+    if pg_dump:
+        return "local", None
+    raise DatabaseBackupError(
+        "pg_dump not found and Docker fallback unavailable. "
+        f"Install PostgreSQL client tools or start {container}."
+    )
+
+
 def _run_command(args: list[str], *, env: dict[str, str] | None = None) -> None:
     result = subprocess.run(args, capture_output=True, text=True, env=env, check=False)
     if result.returncode != 0:
@@ -173,7 +187,7 @@ def pg_dump_plain(
     on_stage: StageCallback | None = None,
 ) -> BackupRunResult:
     conn = parse_database_url(database_url)
-    toolchain, container = _get_toolchain(conn)
+    toolchain, container = _get_backup_toolchain(conn)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     if on_stage:
@@ -262,7 +276,7 @@ def pg_dump_custom(
     on_stage: StageCallback | None = None,
 ) -> BackupRunResult:
     conn = parse_database_url(database_url)
-    toolchain, container = _get_toolchain(conn)
+    toolchain, container = _get_backup_toolchain(conn)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     if on_stage:
