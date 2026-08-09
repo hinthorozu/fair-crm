@@ -4,7 +4,7 @@
 #
 # Infrastructure only — does not deploy application code, run migrations,
 # restore databases, or touch backup/restore file directories.
-# After restore work, run deploy-all.sh (upgrade head + restart only).
+# After bootstrap, run deploy-all.sh for application deployment/updates.
 #
 # Usage:
 #   sudo bash /opt/fair-crm/scripts/server/bootstrap-server.sh
@@ -18,6 +18,7 @@
 #   sudo bash /opt/fair-crm/scripts/server/check-server.sh
 #
 # Interactive fresh-server setup asks for missing operator-controlled values.
+# Re-runs reuse values persisted in /etc/fair-crm/server-bootstrap.env.
 # Existing files/settings are preserved whenever possible.
 #
 # Optional environment overrides:
@@ -29,6 +30,7 @@
 #   FAIR_CRM_DOMAIN=faircrm.domain.com
 #   SERVER_PUBLIC_IP=203.0.113.10
 #   LETSENCRYPT_EMAIL=admin@example.com
+#   SERVER_BOOTSTRAP_ENV_FILE=/etc/fair-crm/server-bootstrap.env
 #   DEV_SEED_ENV_FILE=/etc/fair-crm/dev-seed.env
 #   REMOTE_PG_USER=faircrm_remote
 #   REMOTE_PG_PORT=15432
@@ -55,12 +57,20 @@ KYROX_CORE_DIR="${KYROX_CORE_DIR:-/opt/kyrox-core}"
 FAIR_CRM_REPO="${FAIR_CRM_REPO:-https://github.com/hinthorozu/fair-crm.git}"
 FAIR_CRM_BRANCH="${FAIR_CRM_BRANCH:-main}"
 DEPLOY_SERVICE_USER="${DEPLOY_SERVICE_USER:-${SUDO_USER:-$(id -un)}}"
-FAIR_CRM_DOMAIN="${FAIR_CRM_DOMAIN:-faircrm.domain.com}"
-SERVER_PUBLIC_IP="${SERVER_PUBLIC_IP:-}"
-LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-}"
+
+FAIR_CRM_DOMAIN_OVERRIDE="${FAIR_CRM_DOMAIN:-}"
+SERVER_PUBLIC_IP_OVERRIDE="${SERVER_PUBLIC_IP:-}"
+LETSENCRYPT_EMAIL_OVERRIDE="${LETSENCRYPT_EMAIL:-}"
+REMOTE_PG_USER_OVERRIDE="${REMOTE_PG_USER:-}"
+REMOTE_PG_PORT_OVERRIDE="${REMOTE_PG_PORT:-}"
+
+FAIR_CRM_DOMAIN="${FAIR_CRM_DOMAIN_OVERRIDE:-faircrm.domain.com}"
+SERVER_PUBLIC_IP="${SERVER_PUBLIC_IP_OVERRIDE:-}"
+LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL_OVERRIDE:-}"
+SERVER_BOOTSTRAP_ENV_FILE="${SERVER_BOOTSTRAP_ENV_FILE:-/etc/fair-crm/server-bootstrap.env}"
 DEV_SEED_ENV_FILE="${DEV_SEED_ENV_FILE:-/etc/fair-crm/dev-seed.env}"
-REMOTE_PG_USER="${REMOTE_PG_USER:-faircrm_remote}"
-REMOTE_PG_PORT="${REMOTE_PG_PORT:-15432}"
+REMOTE_PG_USER="${REMOTE_PG_USER_OVERRIDE:-faircrm_remote}"
+REMOTE_PG_PORT="${REMOTE_PG_PORT_OVERRIDE:-15432}"
 REMOTE_PG_ENV_FILE="${REMOTE_PG_ENV_FILE:-/etc/fair-crm/postgres-remote.env}"
 
 REPORT_APT="skipped"
@@ -74,9 +84,52 @@ REPORT_POSTGRES="skipped"
 REPORT_REMOTE_POSTGRES="skipped"
 REPORT_ENV_FILES="not checked"
 REPORT_DEV_SEED="not checked"
+REPORT_BOOTSTRAP_SETTINGS="not checked"
 
 is_interactive_setup() {
   [[ "${SKIP_INTERACTIVE_SETUP:-0}" != "1" && -t 0 ]]
+}
+
+load_bootstrap_settings() {
+  [[ -f "$SERVER_BOOTSTRAP_ENV_FILE" ]] || return 0
+
+  local saved=""
+  if [[ -z "$FAIR_CRM_DOMAIN_OVERRIDE" ]]; then
+    saved="$(read_env_key "$SERVER_BOOTSTRAP_ENV_FILE" FAIR_CRM_DOMAIN || true)"
+    [[ -n "$saved" ]] && FAIR_CRM_DOMAIN="$saved"
+  fi
+  if [[ -z "$SERVER_PUBLIC_IP_OVERRIDE" ]]; then
+    saved="$(read_env_key "$SERVER_BOOTSTRAP_ENV_FILE" SERVER_PUBLIC_IP || true)"
+    [[ -n "$saved" ]] && SERVER_PUBLIC_IP="$saved"
+  fi
+  if [[ -z "$LETSENCRYPT_EMAIL_OVERRIDE" ]]; then
+    saved="$(read_env_key "$SERVER_BOOTSTRAP_ENV_FILE" LETSENCRYPT_EMAIL || true)"
+    [[ -n "$saved" ]] && LETSENCRYPT_EMAIL="$saved"
+  fi
+  if [[ -z "$REMOTE_PG_USER_OVERRIDE" ]]; then
+    saved="$(read_env_key "$SERVER_BOOTSTRAP_ENV_FILE" REMOTE_PG_USER || true)"
+    [[ -n "$saved" ]] && REMOTE_PG_USER="$saved"
+  fi
+  if [[ -z "$REMOTE_PG_PORT_OVERRIDE" ]]; then
+    saved="$(read_env_key "$SERVER_BOOTSTRAP_ENV_FILE" REMOTE_PG_PORT || true)"
+    [[ -n "$saved" ]] && REMOTE_PG_PORT="$saved"
+  fi
+
+  REPORT_BOOTSTRAP_SETTINGS="loaded (${SERVER_BOOTSTRAP_ENV_FILE})"
+}
+
+save_bootstrap_settings() {
+  run_root mkdir -p "$(dirname "$SERVER_BOOTSTRAP_ENV_FILE")"
+  {
+    printf 'FAIR_CRM_DOMAIN=%s\n' "$FAIR_CRM_DOMAIN"
+    printf 'SERVER_PUBLIC_IP=%s\n' "$SERVER_PUBLIC_IP"
+    printf 'LETSENCRYPT_EMAIL=%s\n' "$LETSENCRYPT_EMAIL"
+    printf 'REMOTE_PG_USER=%s\n' "$REMOTE_PG_USER"
+    printf 'REMOTE_PG_PORT=%s\n' "$REMOTE_PG_PORT"
+  } | run_root tee "$SERVER_BOOTSTRAP_ENV_FILE" >/dev/null
+  run_root chown root:root "$SERVER_BOOTSTRAP_ENV_FILE"
+  run_root chmod 600 "$SERVER_BOOTSTRAP_ENV_FILE"
+  REPORT_BOOTSTRAP_SETTINGS="ready (${SERVER_BOOTSTRAP_ENV_FILE}, chmod 600)"
 }
 
 prompt_with_default() {
@@ -121,6 +174,8 @@ detect_public_ipv4() {
 configure_interactive_settings() {
   step "Interactive server settings"
 
+  load_bootstrap_settings
+
   FAIR_CRM_DOMAIN="$(prompt_with_default "Fair CRM domain" "$FAIR_CRM_DOMAIN")"
 
   local detected_ip=""
@@ -137,6 +192,10 @@ configure_interactive_settings() {
   fi
 
   LETSENCRYPT_EMAIL="$(prompt_optional "Let's Encrypt e-mail" "$LETSENCRYPT_EMAIL")"
+  REMOTE_PG_USER="$(prompt_with_default "Remote PostgreSQL user" "$REMOTE_PG_USER")"
+  REMOTE_PG_PORT="$(prompt_with_default "Remote PostgreSQL port" "$REMOTE_PG_PORT")"
+
+  save_bootstrap_settings
 
   log "FAIR_CRM_DOMAIN=${FAIR_CRM_DOMAIN}"
   if [[ -n "$SERVER_PUBLIC_IP" ]]; then
@@ -414,6 +473,7 @@ print_bootstrap_report() {
   echo ""
   echo "========== BOOTSTRAP REPORT =========="
   echo "Failed step: ${DEPLOY_FAILED_STEP:-none}"
+  echo "Bootstrap settings: ${REPORT_BOOTSTRAP_SETTINGS}"
   echo "APT packages: ${REPORT_APT}"
   echo "Docker: ${REPORT_DOCKER}"
   echo "Node.js: ${REPORT_NODE}"
@@ -427,6 +487,9 @@ print_bootstrap_report() {
   echo "SSL: ${REPORT_SSL}"
   echo "FAIR_CRM_DOMAIN: ${FAIR_CRM_DOMAIN}"
   echo "SERVER_PUBLIC_IP: ${SERVER_PUBLIC_IP:-unknown}"
+  echo "LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-not set}"
+  echo "REMOTE_PG_USER: ${REMOTE_PG_USER}"
+  echo "REMOTE_PG_PORT: ${REMOTE_PG_PORT}"
   echo "FAIR_CRM_DIR: ${FAIR_CRM_DIR}"
   echo "KYROX_CORE_DIR: ${KYROX_CORE_DIR}"
   echo ""
