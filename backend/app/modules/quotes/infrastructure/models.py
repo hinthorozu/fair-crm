@@ -19,6 +19,7 @@ class QuoteModel(Base):
     template_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("crm_quote_templates.id", ondelete="RESTRICT"), nullable=False)
     quote_date: Mapped[date] = mapped_column(Date, nullable=False)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="draft")
+    price: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     selected_items: Mapped[list[dict]] = mapped_column(JSON, nullable=False, default=list)
     created_by: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     updated_by: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
