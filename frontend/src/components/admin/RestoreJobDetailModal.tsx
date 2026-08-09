@@ -70,11 +70,16 @@ export function RestoreJobDetailModal({ job, onClose, onJobUpdated, onDeleted }:
   const [deleting, setDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState("");
   const logRef = React.useRef<HTMLPreElement | null>(null);
+  const onJobUpdatedRef = React.useRef(onJobUpdated);
+
+  React.useEffect(() => {
+    onJobUpdatedRef.current = onJobUpdated;
+  }, [onJobUpdated]);
 
   const refreshDetail = React.useCallback(async () => {
     const jobRequest = getRestoreJob(job.id).then((freshJob) => {
       setLiveJob(freshJob);
-      onJobUpdated?.(freshJob);
+      onJobUpdatedRef.current?.(freshJob);
     });
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 8000);
@@ -84,15 +89,13 @@ export function RestoreJobDetailModal({ job, onClose, onJobUpdated, onDeleted }:
       setLogTruncated(freshLog.truncated);
       setLogContent(freshLog.exists ? freshLog.content : "");
     } catch {
-      setLogExists(false);
-      setLogTruncated(false);
-      setLogContent("");
+      // A transient polling error must not blank a log that is already visible.
     } finally {
       window.clearTimeout(timeout);
       setLogLoading(false);
     }
     await jobRequest;
-  }, [job.id, onJobUpdated]);
+  }, [job.id]);
 
   React.useEffect(() => {
     setLiveJob(job);
@@ -145,7 +148,7 @@ export function RestoreJobDetailModal({ job, onClose, onJobUpdated, onDeleted }:
     try {
       const startedJob = await startRestoreJob(liveJob.id);
       setLiveJob(startedJob);
-      onJobUpdated?.(startedJob);
+      onJobUpdatedRef.current?.(startedJob);
       setStartMessage(adminLabels.restoreJobStartQueued);
       await refreshDetail();
     } catch (error) {
