@@ -155,10 +155,12 @@ export function TodoDetailPage({
   const grantedPermissions = React.useMemo(() => getGrantedTodoPermissions(), []);
   const canUpdate = canPerformTodoAction(grantedPermissions, "update");
 
-  const hasSourceFair = Boolean(todo?.source_fair_id);
+  // A selected fair is context for many task types (quote, visit, etc.).
+  // The customer worklist belongs only to call/search tasks.
+  const hasFairWorklist = Boolean(todo?.source_fair_id) && todo?.category === "arama";
 
   const table = useServerDataTable<TodoWorklistRow>({
-    enabled: hasSourceFair,
+    enabled: hasFairWorklist,
     fetchFn: (params) =>
       listTodoWorklist(todoId, {
         page: params.page,
@@ -266,13 +268,13 @@ export function TodoDetailPage({
   }, [todo?.source_fair_id]);
 
   React.useEffect(() => {
-    if (!hasSourceFair) {
+    if (!hasFairWorklist) {
       setProgress(null);
       setProgressError(null);
       return;
     }
     void refreshProgress();
-  }, [hasSourceFair, refreshProgress]);
+  }, [hasFairWorklist, refreshProgress]);
 
   React.useEffect(() => {
     if (!editOpen) setFormSaving(false);
@@ -332,11 +334,12 @@ export function TodoDetailPage({
     setEditOpen(false);
     setSaveSuccess(todoLabels.updateSuccess);
     onTodoLoaded?.(updated.title);
-    if (updated.source_fair_id) {
+    if (updated.source_fair_id && updated.category === "arama") {
       await table.refresh();
       await refreshProgress();
     } else {
       setProgress(null);
+      setProgressError(null);
     }
   };
 
@@ -553,7 +556,7 @@ export function TodoDetailPage({
         canToggle={canUpdate && canEditTodo(todo)}
       />
 
-      {hasSourceFair ? (
+      {hasFairWorklist ? (
         <>
           {progress && (
             <Card className="todo-worklist-progress">
