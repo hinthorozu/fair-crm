@@ -105,6 +105,67 @@ def _docker_cp_to(container: str, local_path: Path, remote_path: str) -> None:
     _run_command(["docker", "cp", str(local_path), f"{container}:{remote_path}"])
 
 
+def _pg_restore_compat_image() -> str:
+    return os.environ.get("PG_RESTORE_COMPAT_IMAGE", "postgres:18-alpine")
+
+
+def _is_unsupported_archive_version(detail: str) -> bool:
+    lowered = detail.lower()
+    return "unsupported version" in lowered and "file header" in lowered
+
+
+def _docker_pg_restore_compat(
+    *,
+    conn: PostgresConnection,
+    dump_path: Path,
+    list_only: bool,
+) -> subprocess.CompletedProcess[str]:
+    if not shutil.which("docker"):
+        raise DatabaseBackupError(
+            "Backup archive requires a newer pg_restore, but Docker is unavailable for compatibility fallback."
+        )
+
+    image = _pg_restore_compat_image()
+    mount_path = dump_path.resolve()
+    args = [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "host",
+        "-v",
+        f"{mount_path}:/backup.dump:ro",
+    ]
+    if not list_only:
+        args.extend(["-e", f"PGPASSWORD={conn.password}"])
+    args.extend([image, "pg_restore"])
+
+    if list_only:
+        args.extend(["-l", "/backup.dump"])
+    else:
+        args.extend(
+            [
+                "-h",
+                conn.host,
+                "-p",
+                str(conn.port),
+                "-U",
+                conn.user,
+                "-d",
+                conn.database,
+                "--clean",
+                "--if-exists",
+                "--single-transaction",
+                "--no-owner",
+                "--no-acl",
+                "--exit-on-error",
+                "/backup.dump",
+            ]
+        )
+
+    return subprocess.run(args, capture_output=True, text=True, check=False)
+
+
 def pg_dump_plain(
     *,
     database_url: str,
@@ -292,7 +353,11 @@ def verify_backup_dump(*, database_url: str, dump_path: Path) -> BackupVerificat
         assert pg_restore
         result = subprocess.run([pg_restore, "-l", str(dump_path)], capture_output=True, text=True, check=False)
         if result.returncode != 0:
-            raise DatabaseBackupError(result.stderr or result.stdout or "pg_restore -l failed")
+            detail = (result.stderr or result.stdout or "pg_restore -l failed").strip()
+            if _is_unsupported_archive_version(detail):
+                result = _docker_pg_restore_compat(conn=conn, dump_path=dump_path, list_only=True)
+            if result.returncode != 0:
+                raise DatabaseBackupError(result.stderr or result.stdout or detail)
         lines = result.stdout.splitlines()
     else:
         assert container
@@ -306,7 +371,11 @@ def verify_backup_dump(*, database_url: str, dump_path: Path) -> BackupVerificat
                 check=False,
             )
             if proc.returncode != 0:
-                raise DatabaseBackupError(proc.stderr or proc.stdout or "pg_restore -l failed")
+                detail = (proc.stderr or proc.stdout or "pg_restore -l failed").strip()
+                if _is_unsupported_archive_version(detail):
+                    proc = _docker_pg_restore_compat(conn=conn, dump_path=dump_path, list_only=True)
+                if proc.returncode != 0:
+                    raise DatabaseBackupError(proc.stderr or proc.stdout or detail)
             lines = proc.stdout.splitlines()
         finally:
             _docker_exec(container, ["rm", "-f", remote_path])
@@ -327,36 +396,45 @@ def pg_restore_custom(
         assert pg_restore
         env = os.environ.copy()
         env["PGPASSWORD"] = conn.password
-        _run_command(
-            [
-                pg_restore,
-                "-h",
-                conn.host,
-                "-p",
-                str(conn.port),
-                "-U",
-                conn.user,
-                "-d",
-                conn.database,
-                "--clean",
-                "--if-exists",
-                "--single-transaction",
-                "--no-owner",
-                "--no-acl",
-                "--exit-on-error",
-                str(dump_path),
-            ],
-            env=env,
-        )
-        return
+        args = [
+            pg_restore,
+            "-h",
+            conn.host,
+            "-p",
+            str(conn.port),
+            "-U",
+            conn.user,
+            "-d",
+            conn.database,
+            "--clean",
+            "--if-exists",
+            "--single-transaction",
+            "--no-owner",
+            "--no-acl",
+            "--exit-on-error",
+            str(dump_path),
+        ]
+        result = subprocess.run(args, capture_output=True, text=True, env=env, check=False)
+        if result.returncode == 0:
+            return
+        detail = (result.stderr or result.stdout or "").strip()
+        if _is_unsupported_archive_version(detail):
+            compat_result = _docker_pg_restore_compat(conn=conn, dump_path=dump_path, list_only=False)
+            if compat_result.returncode == 0:
+                return
+            compat_detail = (compat_result.stderr or compat_result.stdout or "").strip()
+            raise DatabaseBackupError(compat_detail or detail)
+        raise DatabaseBackupError(detail or f"Command failed: {' '.join(args)}")
 
     assert container
     remote_path = f"/tmp/faircrm_restore_{uuid.uuid4().hex}.dump"
     _docker_cp_to(container, dump_path, remote_path)
     try:
-        _docker_exec(
-            container,
+        result = subprocess.run(
             [
+                "docker",
+                "exec",
+                container,
                 "env",
                 f"PGPASSWORD={conn.password}",
                 "pg_restore",
@@ -372,7 +450,20 @@ def pg_restore_custom(
                 "--exit-on-error",
                 remote_path,
             ],
+            capture_output=True,
+            text=True,
+            check=False,
         )
+        if result.returncode == 0:
+            return
+        detail = (result.stderr or result.stdout or "").strip()
+        if _is_unsupported_archive_version(detail):
+            compat_result = _docker_pg_restore_compat(conn=conn, dump_path=dump_path, list_only=False)
+            if compat_result.returncode == 0:
+                return
+            compat_detail = (compat_result.stderr or compat_result.stdout or "").strip()
+            raise DatabaseBackupError(compat_detail or detail)
+        raise DatabaseBackupError(detail or "docker exec pg_restore failed")
     finally:
         _docker_exec(container, ["rm", "-f", remote_path])
 
