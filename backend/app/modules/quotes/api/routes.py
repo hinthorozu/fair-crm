@@ -81,7 +81,7 @@ def create_quote(todo_id: UUID, body: QuoteWriteRequest, auth: AuthContext = Dep
     if _quote(db, auth.organization_id, todo_id) is not None:
         raise HTTPException(status_code=409, detail="Bu görev için teklif zaten mevcut")
     now = datetime.now(UTC)
-    row = QuoteModel(organization_id=auth.organization_id, todo_id=todo.id, customer_id=todo.customer_id, fair_id=todo.source_fair_id, created_by=auth.user_id, created_at=now, updated_by=auth.user_id, updated_at=now, template_id=body.template_id, quote_date=body.quote_date, status=body.status, selected_items=items)
+    row = QuoteModel(organization_id=auth.organization_id, todo_id=todo.id, customer_id=todo.customer_id, fair_id=todo.source_fair_id, created_by=auth.user_id, created_at=now, updated_by=auth.user_id, updated_at=now, template_id=body.template_id, quote_date=body.quote_date, status=body.status, price=body.price.strip(), selected_items=items)
     db.add(row)
     todo.status = "done" if body.status == "given" else "in_progress"
     todo.completed_at = now if body.status == "given" else None
@@ -100,7 +100,7 @@ def update_quote(todo_id: UUID, body: QuoteWriteRequest, auth: AuthContext = Dep
     if row is None: raise HTTPException(status_code=404, detail="Teklif bulunamadı")
     previous_status = row.status
     now = datetime.now(UTC)
-    row.template_id = body.template_id; row.quote_date = body.quote_date; row.status = body.status; row.selected_items = items; row.updated_by = auth.user_id; row.updated_at = now
+    row.template_id = body.template_id; row.quote_date = body.quote_date; row.status = body.status; row.price = body.price.strip(); row.selected_items = items; row.updated_by = auth.user_id; row.updated_at = now
     todo.status = "done" if body.status == "given" else "in_progress"
     todo.completed_at = now if body.status == "given" else None
     todo.updated_at = now; todo.updated_by = auth.user_id
@@ -134,7 +134,7 @@ def _render(row: QuoteModel, db: Session) -> str:
             group_html = item_pattern.sub(rendered_items, group_template).replace("{{tag_name}}", html.escape(tags[tag_id].name))
             rendered_groups.append(group_html)
         source = block_pattern.sub("".join(rendered_groups), source)
-    replacements = {"{{logo_url}}": _public_logo_url(version.logo_url), "{{customer_display_name}}": customer.display_name, "{{fair_name}}": fair.name, "{{quote_date}}": row.quote_date.strftime("%d.%m.%Y")}
+    replacements = {"{{logo_url}}": _public_logo_url(version.logo_url), "{{customer_display_name}}": customer.display_name, "{{fair_name}}": fair.name, "{{quote_date}}": row.quote_date.strftime("%d.%m.%Y"), "{fiyat}": row.price or ""}
     for key, value in replacements.items(): source = source.replace(key, html.escape(value, quote=True))
     return source
 
