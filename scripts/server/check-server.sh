@@ -22,6 +22,126 @@ CORE_PORT="${CORE_PORT:-8000}"
 FAIR_CRM_PORT="${FAIR_CRM_PORT:-8001}"
 CORE_HEALTH_PATH="${CORE_HEALTH_PATH:-/api/v1/health}"
 FAIR_CRM_HEALTH_PATH="${FAIR_CRM_HEALTH_PATH:-/health}"
+SERVER_BOOTSTRAP_ENV_FILE="${SERVER_BOOTSTRAP_ENV_FILE:-/etc/fair-crm/server-bootstrap.env}"
+DEV_SEED_ENV_FILE="${DEV_SEED_ENV_FILE:-/etc/fair-crm/dev-seed.env}"
+REMOTE_PG_ENV_FILE="${REMOTE_PG_ENV_FILE:-/etc/fair-crm/postgres-remote.env}"
+
+check_bootstrap_settings() {
+  local domain="faircrm.domain.com"
+  local public_ip=""
+  local letsencrypt_email=""
+  local remote_user="faircrm_remote"
+  local remote_port="15432"
+
+  if [[ -f "$SERVER_BOOTSTRAP_ENV_FILE" ]]; then
+    check_pass "Bootstrap settings file present"
+    domain="$(read_env_key "$SERVER_BOOTSTRAP_ENV_FILE" FAIR_CRM_DOMAIN || printf '%s' "$domain")"
+    public_ip="$(read_env_key "$SERVER_BOOTSTRAP_ENV_FILE" SERVER_PUBLIC_IP || true)"
+    letsencrypt_email="$(read_env_key "$SERVER_BOOTSTRAP_ENV_FILE" LETSENCRYPT_EMAIL || true)"
+    remote_user="$(read_env_key "$SERVER_BOOTSTRAP_ENV_FILE" REMOTE_PG_USER || printf '%s' "$remote_user")"
+    remote_port="$(read_env_key "$SERVER_BOOTSTRAP_ENV_FILE" REMOTE_PG_PORT || printf '%s' "$remote_port")"
+  else
+    check_warn_item "Bootstrap settings file present (${SERVER_BOOTSTRAP_ENV_FILE})"
+  fi
+
+  if [[ -n "$domain" ]]; then
+    check_pass "Configured domain: ${domain}"
+  else
+    check_fail "Configured domain present"
+  fi
+
+  if [[ -n "$public_ip" ]]; then
+    check_pass "Configured public IPv4: ${public_ip}"
+  else
+    check_warn_item "Configured public IPv4 present"
+  fi
+
+  if [[ -n "$letsencrypt_email" ]]; then
+    check_pass "Let's Encrypt e-mail configured: ${letsencrypt_email}"
+  else
+    check_warn_item "Let's Encrypt e-mail configured"
+  fi
+
+  local nginx_site="/etc/nginx/sites-available/fair-crm"
+  if [[ -f "$nginx_site" ]] && grep -Eq "^[[:space:]]*server_name[[:space:]]+${domain//./\.};" "$nginx_site"; then
+    check_pass "Nginx server_name=${domain}"
+  else
+    check_fail "Nginx server_name=${domain}"
+  fi
+
+  if [[ -f "/etc/letsencrypt/live/${domain}/fullchain.pem" && -f "/etc/letsencrypt/live/${domain}/privkey.pem" ]]; then
+    check_pass "Let's Encrypt certificate present for ${domain}"
+  else
+    check_warn_item "Let's Encrypt certificate present for ${domain}"
+  fi
+
+  if command -v systemctl >/dev/null 2>&1 && systemctl is-enabled certbot.timer >/dev/null 2>&1; then
+    check_pass "Certbot renewal timer enabled"
+  else
+    check_warn_item "Certbot renewal timer enabled"
+  fi
+
+  local dev_password=""
+  dev_password="$(read_env_key "$DEV_SEED_ENV_FILE" DEV_USER_PASSWORD || true)"
+  if [[ -n "$dev_password" ]]; then
+    check_pass "DEV admin seed password configured"
+  else
+    check_fail "DEV admin seed password configured (${DEV_SEED_ENV_FILE})"
+  fi
+
+  local remote_password=""
+  remote_password="$(read_env_key "$REMOTE_PG_ENV_FILE" REMOTE_PG_PASSWORD || true)"
+  if [[ -n "$remote_password" ]]; then
+    check_pass "Remote PostgreSQL password configured"
+  else
+    check_fail "Remote PostgreSQL password configured (${REMOTE_PG_ENV_FILE})"
+  fi
+
+  local compose_file="${FAIR_CRM_DIR}/docker-compose.yml"
+  if [[ -f "$compose_file" ]] && grep -qE '^[[:space:]]*-[[:space:]]*"127\.0\.0\.1:5432:5432"' "$compose_file"; then
+    check_pass "PostgreSQL local 127.0.0.1:5432 mapping preserved"
+  else
+    check_fail "PostgreSQL local 127.0.0.1:5432 mapping preserved"
+  fi
+
+  if [[ -f "$compose_file" ]] && grep -qE "^[[:space:]]*-[[:space:]]*\"${remote_port}:5432\"" "$compose_file"; then
+    check_pass "PostgreSQL remote ${remote_port}->5432 mapping configured"
+  else
+    check_fail "PostgreSQL remote ${remote_port}->5432 mapping configured"
+  fi
+
+  if command -v ss >/dev/null 2>&1 && ss -ltn "sport = :${remote_port}" 2>/dev/null | grep -q ":${remote_port} "; then
+    check_pass "Remote PostgreSQL tcp/${remote_port} listening"
+  else
+    check_fail "Remote PostgreSQL tcp/${remote_port} listening"
+  fi
+
+  local container="kyrox-postgres-dev"
+  if [[ -f "$compose_file" ]]; then
+    container="$(grep -E 'container_name:' "$compose_file" | head -n1 | sed -E 's/.*container_name:[[:space:]]*//; s/[[:space:]]+$//' || true)"
+    container="${container:-kyrox-postgres-dev}"
+  fi
+
+  if command -v docker >/dev/null 2>&1 && docker ps --format '{{.Names}}' | grep -qx "$container"; then
+    local role_flags=""
+    role_flags="$(docker exec "$container" psql -U postgres -d postgres -tAc "SELECT rolcanlogin::int || ':' || rolsuper::int || ':' || rolcreatedb::int || ':' || rolcreaterole::int FROM pg_roles WHERE rolname='${remote_user}'" 2>/dev/null || true)"
+    if [[ "$role_flags" == "1:1:1:1" ]]; then
+      check_pass "Remote PostgreSQL user ${remote_user} is login superuser"
+    else
+      check_fail "Remote PostgreSQL user ${remote_user} is login superuser"
+    fi
+  else
+    check_fail "Remote PostgreSQL role audit (container unavailable)"
+  fi
+
+  if command -v ufw >/dev/null 2>&1; then
+    if run_root ufw status 2>/dev/null | grep -Eq "${remote_port}/tcp[[:space:]]+ALLOW"; then
+      check_pass "UFW allows tcp/${remote_port}"
+    else
+      check_fail "UFW allows tcp/${remote_port}"
+    fi
+  fi
+}
 
 main() {
   check_reset_counters
@@ -49,6 +169,7 @@ main() {
   check_database_exists "fair_crm"
 
   validate_env_files_check
+  check_bootstrap_settings
 
   if [[ -d "${KYROX_CORE_DIR}" && -x "${KYROX_CORE_DIR}/.venv/bin/python" ]]; then
     check_pass "Core virtualenv present"
