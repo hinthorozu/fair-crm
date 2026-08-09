@@ -7,6 +7,7 @@ import { listTemplateContents, listTemplateContentTags } from "../api/templateCo
 import { createQuoteByTodo, getQuoteByTodo, renderQuoteByTodo, updateQuoteByTodo } from "../api/quotes";
 import { Banner } from "../components/ui/Banner";
 import { LoadingState } from "../components/ui/LoadingState";
+import { Modal } from "../components/ui/Modal";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
 import { Card } from "../components/ui/Card";
@@ -33,6 +34,7 @@ export function QuoteEditorPage({ todoId, onBack }: Props) {
   const [status, setStatus] = React.useState<"draft" | "given">("draft");
   const [selected, setSelected] = React.useState<Record<string, string>>({});
   const [preview, setPreview] = React.useState("");
+  const [previewOpen, setPreviewOpen] = React.useState(false);
   const previewRef = React.useRef<HTMLIFrameElement>(null);
 
   React.useEffect(() => { void (async () => {
@@ -45,7 +47,17 @@ export function QuoteEditorPage({ todoId, onBack }: Props) {
       ]);
       setTodo(task); setCustomer(cust); setFair(fairResult); setTemplates(templateResult.items); setTags(tagResult.items); setContents(contentResult.items);
       setTemplateId(quote?.template_id ?? templateResult.items[0]?.id ?? "");
-      if (quote) { setExisting(true); setQuoteDate(quote.quote_date); setStatus(quote.status); setSelected(Object.fromEntries(quote.selected_items.map((item) => [item.content_id, item.value]))); setPreview((await renderQuoteByTodo(todoId)).html); }
+      if (quote) {
+        setExisting(true);
+        setQuoteDate(quote.quote_date);
+        setStatus(quote.status);
+        setSelected(Object.fromEntries(quote.selected_items.map((item) => [item.content_id, item.value])));
+        try {
+          setPreview((await renderQuoteByTodo(todoId)).html);
+        } catch {
+          setPreview("");
+        }
+      }
     } catch (err) { setError(err instanceof Error ? err.message : "Teklif bilgileri yüklenemedi."); }
     finally { setLoading(false); }
   })(); }, [todoId, permissions]);
@@ -57,14 +69,26 @@ export function QuoteEditorPage({ todoId, onBack }: Props) {
     if (!templateId) { setError("Teklif şablonu seçin."); return; }
     const selected_items: QuoteSelectedItem[] = Object.entries(selected).map(([content_id, value]) => ({ content_id, value: value.trim() })).filter((item) => item.value);
     setSaving(true); setError(null);
-    try { const payload = { template_id: templateId, quote_date: quoteDate, status, selected_items }; if (existing) await updateQuoteByTodo(todoId, payload); else await createQuoteByTodo(todoId, payload); setExisting(true); setPreview((await renderQuoteByTodo(todoId)).html); }
+    try {
+      const payload = { template_id: templateId, quote_date: quoteDate, status, selected_items };
+      if (existing) await updateQuoteByTodo(todoId, payload); else await createQuoteByTodo(todoId, payload);
+      setExisting(true);
+
+      try {
+        const rendered = await renderQuoteByTodo(todoId);
+        setPreview(rendered.html);
+        setPreviewOpen(true);
+      } catch (err) {
+        setError(err instanceof Error ? `Teklif kaydedildi ancak önizleme oluşturulamadı: ${err.message}` : "Teklif kaydedildi ancak önizleme oluşturulamadı.");
+      }
+    }
     catch (err) { setError(err instanceof Error ? err.message : "Teklif kaydedilemedi."); }
     finally { setSaving(false); }
   };
 
   if (loading) return <LoadingState />;
   return <PageShell>
-    <PageHeader title="Teklif Hazırlama" subtitle={todo ? `${customer?.display_name} · ${fair?.name}` : ""} actions={<><button className="btn secondary" onClick={onBack}>Göreve Dön</button><button className="btn primary" onClick={() => void save()} disabled={saving}>{saving ? "Kaydediliyor..." : "Kaydet ve Önizle"}</button></>} />
+    <PageHeader title="Teklif Hazırlama" subtitle={todo ? `${customer?.display_name} · ${fair?.name}` : ""} actions={<><button type="button" className="btn secondary" onClick={onBack}>Göreve Dön</button><button type="button" className="btn primary" onClick={() => void save()} disabled={saving}>{saving ? "Kaydediliyor..." : "Kaydet ve Önizle"}</button></>} />
     {error ? <Banner variant="error">{error}</Banner> : null}
     <Card><FormGrid>
       <FormField label="Teklif şablonu" htmlFor="quote-template" required><SelectInput id="quote-template" value={templateId} onChange={(e) => setTemplateId(e.target.value)}>{templates.map((item) => <option key={item.id} value={item.id}>{item.name} (v{item.version_number})</option>)}</SelectInput></FormField>
@@ -72,6 +96,9 @@ export function QuoteEditorPage({ todoId, onBack }: Props) {
       <FormField label="Durum" htmlFor="quote-status"><SelectInput id="quote-status" value={status} onChange={(e) => setStatus(e.target.value as "draft" | "given")}><option value="draft">Taslak</option><option value="given">Teklif Verildi</option></SelectInput></FormField>
     </FormGrid></Card>
     {tags.map((tag) => <Card key={tag.id}><h3>{tag.name}</h3>{contents.filter((item) => item.tag_id === tag.id).map((item) => <div key={item.id} className="form-grid" style={{gridTemplateColumns:"40px 1fr 1fr",alignItems:"center",marginBottom:8}}><input type="checkbox" checked={Object.prototype.hasOwnProperty.call(selected, item.id)} onChange={(e) => toggle(item.id, e.target.checked)} aria-label={`${item.title} seç`} /><span>{item.title}</span><TextInput id={`quote-content-${item.id}`} value={selected[item.id] ?? ""} disabled={!Object.prototype.hasOwnProperty.call(selected, item.id)} placeholder="VAR / 1 ADET" onChange={(e) => setSelected((current) => ({ ...current, [item.id]: e.target.value }))} /></div>)}</Card>)}
-    {preview ? <Card><div className="form-actions"><h3 style={{marginRight:"auto"}}>Önizleme</h3><button className="btn secondary" onClick={() => previewRef.current?.contentWindow?.print()}>Yazdır / PDF</button></div><iframe ref={previewRef} title="Teklif önizleme" srcDoc={preview} style={{width:"100%",height:"900px",border:"1px solid #d8deea",background:"white"}} /></Card> : null}
+    {preview ? <Card><div className="form-actions"><h3 style={{marginRight:"auto"}}>Önizleme</h3><button type="button" className="btn secondary" onClick={() => setPreviewOpen(true)}>Önizlemeyi Aç</button></div></Card> : null}
+    {previewOpen && preview ? <Modal title="Teklif Önizleme" onClose={() => setPreviewOpen(false)} size="lg" footer={<><button type="button" className="btn secondary" onClick={() => setPreviewOpen(false)}>Kapat</button><button type="button" className="btn primary" onClick={() => previewRef.current?.contentWindow?.print()}>Yazdır / PDF</button></>}>
+      <iframe ref={previewRef} title="Teklif önizleme" srcDoc={preview} style={{width:"100%",height:"75vh",border:"1px solid #d8deea",background:"white"}} />
+    </Modal> : null}
   </PageShell>;
 }
