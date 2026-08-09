@@ -22,14 +22,24 @@ from app.modules.quote_templates.infrastructure.models import QuoteTemplateModel
 
 router = APIRouter(prefix="/quote-templates", tags=["quote-templates"])
 _LOGO_DIR = Path("data/quote-template-logos")
+_LOGO_LEGACY_PREFIX = "/data/quote-template-logos/"
+_LOGO_API_PREFIX = "/api/v1/data/quote-template-logos/"
 _ALLOWED_LOGO_TYPES = {"image/png": ".png", "image/jpeg": ".jpg", "image/svg+xml": ".svg", "image/webp": ".webp"}
+
+
+def _public_logo_url(value: str | None) -> str | None:
+    if not value:
+        return value
+    if value.startswith(_LOGO_LEGACY_PREFIX):
+        return f"{_LOGO_API_PREFIX}{value[len(_LOGO_LEGACY_PREFIX):]}"
+    return value
 
 
 def _response(template: QuoteTemplateModel, version: QuoteTemplateVersionModel) -> QuoteTemplateResponse:
     return QuoteTemplateResponse(
         id=template.id, organization_id=template.organization_id, name=template.name,
         current_version_id=version.id, version_number=version.version_number,
-        logo_url=version.logo_url, source_code=version.source_code,
+        logo_url=_public_logo_url(version.logo_url), source_code=version.source_code,
         created_at=template.created_at, updated_at=template.updated_at,
     )
 
@@ -121,4 +131,4 @@ async def upload_quote_logo(file: UploadFile = File(...), auth: AuthContext = De
     organization_dir.mkdir(parents=True, exist_ok=True)
     filename = f"{uuid4().hex}{extension}"
     (organization_dir / filename).write_bytes(content)
-    return LogoUploadResponse(url=f"/data/quote-template-logos/{auth.organization_id}/{filename}")
+    return LogoUploadResponse(url=f"{_LOGO_API_PREFIX}{auth.organization_id}/{filename}")
