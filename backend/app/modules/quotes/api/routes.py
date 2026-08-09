@@ -21,6 +21,16 @@ from app.modules.template_contents.infrastructure.models import TemplateContentM
 from app.modules.todos.infrastructure.persistence.models import TodoModel
 
 router = APIRouter(prefix="/quotes", tags=["quotes"])
+_LOGO_LEGACY_PREFIX = "/data/quote-template-logos/"
+_LOGO_API_PREFIX = "/api/v1/data/quote-template-logos/"
+
+
+def _public_logo_url(value: str | None) -> str:
+    if not value:
+        return ""
+    if value.startswith(_LOGO_LEGACY_PREFIX):
+        return f"{_LOGO_API_PREFIX}{value[len(_LOGO_LEGACY_PREFIX):]}"
+    return value
 
 
 def _response(row: QuoteModel) -> QuoteResponse:
@@ -124,7 +134,7 @@ def _render(row: QuoteModel, db: Session) -> str:
             group_html = item_pattern.sub(rendered_items, group_template).replace("{{tag_name}}", html.escape(tags[tag_id].name))
             rendered_groups.append(group_html)
         source = block_pattern.sub("".join(rendered_groups), source)
-    replacements = {"{{logo_url}}": version.logo_url or "", "{{customer_display_name}}": customer.display_name, "{{fair_name}}": fair.name, "{{quote_date}}": row.quote_date.strftime("%d.%m.%Y")}
+    replacements = {"{{logo_url}}": _public_logo_url(version.logo_url), "{{customer_display_name}}": customer.display_name, "{{fair_name}}": fair.name, "{{quote_date}}": row.quote_date.strftime("%d.%m.%Y")}
     for key, value in replacements.items(): source = source.replace(key, html.escape(value, quote=True))
     return source
 
