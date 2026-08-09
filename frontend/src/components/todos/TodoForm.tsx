@@ -30,10 +30,41 @@ import type {
   TodoPriority,
   UpdateTodoPayload,
 } from "../../types/todo";
-import type { TodoStepFormItem } from "../../utils/todoStepForm";
+import {
+  createTodoStepFormItem,
+  type TodoStepFormItem,
+} from "../../utils/todoStepForm";
 import { TodoStepFieldList } from "./TodoStepFieldList";
 
 export const TODO_FORM_ID = "todo-entity-form";
+
+const STAND_WORK_DEFAULT_STEPS = [
+  "Sözleşme İmzalandı mı?",
+  "Ön Ödeme",
+  "Kalan Ödeme",
+  "Fatura Kesilecek Mi?",
+  "Tasarım Son Haline Geldi Mi?",
+  "Elektrik Planı Çizildi Mi?",
+  "Karolajlı Plan Formu Çizildi Mi?",
+  "Eşleşme Yapıldı Mı?",
+  "Malzeme Listei Çıktı Mı?",
+  "Ekstra Liste + Sipariş",
+  "Zemin Liste + Sipariş",
+  "Görsel Ölçüleri Müşteriye Verildi Mi?",
+  "Müşteriden Logo, Görsel V.S. Alındı Mı?",
+  "Görsellerin Kontrolleri Yapıldı Mı?",
+  "Reklam (Logo, Görsel VS Baskıya Gönderildi Mi?",
+  "Elektrik Sipariş",
+] as const;
+
+function appendStandWorkDefaultSteps(items: TodoStepFormItem[]): TodoStepFormItem[] {
+  const existingTitles = new Set(items.map((item) => item.title.trim().toLocaleLowerCase("tr-TR")));
+  const missing = STAND_WORK_DEFAULT_STEPS.filter(
+    (title) => !existingTitles.has(title.trim().toLocaleLowerCase("tr-TR")),
+  );
+  if (missing.length === 0) return items;
+  return [...items, ...missing.map((title) => createTodoStepFormItem(title))];
+}
 
 export interface TodoFormValues {
   title: string;
@@ -239,12 +270,17 @@ export function TodoForm({
           <SelectInput
             id="todo-category"
             value={values.category}
-            onChange={(event) =>
+            onChange={(event) => {
+              const category = event.target.value as CreatableTodoCategory;
               setValues((prev) => ({
                 ...prev,
-                category: event.target.value as CreatableTodoCategory,
-              }))
-            }
+                category,
+                steps:
+                  category === "stand_work" && prev.category !== "stand_work"
+                    ? appendStandWorkDefaultSteps(prev.steps)
+                    : prev.steps,
+              }));
+            }}
           >
             {todoCategoryOptions.map((category) => (
               <option key={category} value={category}>
