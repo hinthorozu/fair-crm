@@ -161,14 +161,12 @@ ensure_dev_seed_password() {
   local password=""
   local confirm=""
   while true; do
-    read -r -s -p "DEV admin şifresi (ekranda görünmez): " password
-    echo ""
+    read -r -p "DEV admin şifresi: " password
     if [[ ${#password} -lt 12 ]]; then
       echo "Şifre en az 12 karakter olmalı."
       continue
     fi
-    read -r -s -p "DEV admin şifresini tekrar gir: " confirm
-    echo ""
+    read -r -p "DEV admin şifresini tekrar gir: " confirm
     if [[ "$password" != "$confirm" ]]; then
       echo "Şifreler eşleşmedi; tekrar deneyin."
       continue
