@@ -11,6 +11,7 @@ from app.modules.fair_emails.application.recipient_resolution import (
     resolve_manual_and_excel_emails,
     resolved_to_wizard_recipient,
 )
+from app.modules.fair_emails.application.subject import build_bulk_email_subject
 from app.modules.fair_emails.application.recipient_service import FairBulkEmailRecipientService
 from app.modules.fair_emails.domain.exceptions import FairNotEligibleForBulkEmailError
 from app.modules.fair_emails.domain.value_objects import (
@@ -280,6 +281,10 @@ class PreviewBulkEmailOperationUseCase:
         final_subject = rendered_subject
         if command.subject_override is not None and command.subject_override.strip():
             final_subject = command.subject_override.strip()
+        final_subject = build_bulk_email_subject(
+            final_subject,
+            variables.get("fair_name") or fallback_fair_name,
+        )
 
         return BulkEmailOperationMailPreview(
             template_id=command.template_id,

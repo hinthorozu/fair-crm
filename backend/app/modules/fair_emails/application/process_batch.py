@@ -13,6 +13,7 @@ from app.modules.fair_emails.application.fair_bulk_email_activity import (
 )
 from app.modules.fair_emails.application.fair_bulk_mail_operation_sync import FairBulkEmailMailOperationSync
 from app.modules.fair_emails.application.recipient_resolution import build_render_variables
+from app.modules.fair_emails.application.subject import build_bulk_email_subject
 from app.modules.fair_emails.infrastructure.recipient_loader import FairBulkEmailRecipientLoader
 from app.modules.fair_emails.infrastructure.persistence.models import FairEmailOutboxModel
 from app.modules.fair_emails.infrastructure.repositories.fair_email_batch_repository import (
@@ -182,7 +183,10 @@ class ProcessFairEmailBatchUseCase:
                 )
                 continue
 
-            final_subject = batch.subject_override or rendered_subject
+            final_subject = build_bulk_email_subject(
+                batch.subject_override or rendered_subject,
+                fair_name,
+            )
             body_text = rendered_body_text or final_subject
             try:
                 delivery_result = self._delivery.send(

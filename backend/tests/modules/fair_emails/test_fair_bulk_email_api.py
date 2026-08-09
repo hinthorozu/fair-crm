@@ -170,7 +170,7 @@ def test_preview_bulk_email_subject_override(client, auth_headers, db_session, o
         headers=auth_headers,
     )
     assert response.status_code == 200
-    assert response.json()["subject"] == "Özel fuar konusu"
+    assert response.json()["subject"] == "IFM 2026 - Özel fuar konusu"
 
 
 def test_send_bulk_email_denied_without_permission(client, auth_headers, db_session, organization_id):

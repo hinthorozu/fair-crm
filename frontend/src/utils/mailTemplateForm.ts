@@ -216,3 +216,12 @@ export function resolveSubjectAfterPreview(
 ): string {
   return subjectTouched ? currentSubject : renderedSubject;
 }
+
+export function buildBulkEmailSubject(subject: string, fairName?: string | null): string {
+  const normalizedSubject = subject.trim();
+  const normalizedFairName = fairName?.trim() ?? "";
+  if (!normalizedFairName) return normalizedSubject;
+
+  const prefix = `${normalizedFairName} - `;
+  return normalizedSubject.startsWith(prefix) ? normalizedSubject : `${prefix}${normalizedSubject}`;
+}

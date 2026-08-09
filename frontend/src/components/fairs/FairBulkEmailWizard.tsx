@@ -25,6 +25,7 @@ import {
   type SendBulkEmailResponse,
 } from "../../types/fairBulkEmail";
 import {
+  buildBulkEmailSubject,
   formatMailTemplateOptionLabel,
   resolveSubjectAfterPreview,
   selectActiveMailTemplates,
@@ -287,7 +288,13 @@ export function FairBulkEmailWizard({
         recipient_options: recipientOptions,
       });
       setContentPreview(content);
-      setSubject((current) => resolveSubjectAfterPreview(current, content.subject, subjectTouched));
+      setSubject((current) =>
+        resolveSubjectAfterPreview(
+          current,
+          buildBulkEmailSubject(content.subject, fair.name),
+          subjectTouched,
+        ),
+      );
       setOptionsSnapshot(JSON.stringify(recipientOptions));
       setPreviewReady(true);
     } catch (err) {

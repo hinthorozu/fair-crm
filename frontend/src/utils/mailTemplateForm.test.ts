@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildBulkEmailSubject,
   buildCreateMailTemplatePayload,
   buildUpdateMailTemplatePayload,
   EMPTY_MAIL_TEMPLATE_FORM_VALUES,
@@ -9,6 +10,20 @@ import {
   selectActiveMailTemplates,
   validateMailTemplateFormValues,
 } from "./mailTemplateForm";
+
+describe("buildBulkEmailSubject", () => {
+  it("prefixes the selected fair name", () => {
+    expect(buildBulkEmailSubject("Stant Tasarım ve Yapım Teklifi", "Metal Expo 2026")).toBe(
+      "Metal Expo 2026 - Stant Tasarım ve Yapım Teklifi",
+    );
+  });
+
+  it("does not duplicate a subject already prefixed with the fair name", () => {
+    expect(
+      buildBulkEmailSubject("Metal Expo 2026 - Stant Tasarım ve Yapım Teklifi", "Metal Expo 2026"),
+    ).toBe("Metal Expo 2026 - Stant Tasarım ve Yapım Teklifi");
+  });
+});
 
 describe("validateMailTemplateFormValues", () => {
   it("accepts valid create values with html body", () => {

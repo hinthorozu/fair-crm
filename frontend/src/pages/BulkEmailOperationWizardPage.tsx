@@ -43,6 +43,7 @@ import {
   type BulkEmailWizardStepId,
 } from "../utils/bulkEmailWizardSteps";
 import {
+  buildBulkEmailSubject,
   formatMailTemplateOptionLabel,
   resolveSubjectAfterPreview,
   selectActiveMailTemplates,
@@ -356,8 +357,13 @@ function BulkEmailOperationWizardPageInner({
         if (cancelled || requestId !== previewRequestIdRef.current) return;
         setPreview(result);
         setPreviewFingerprint(previewInputFingerprint);
+        const previewFairName = result.recipients.selected_fair_names?.[0] ?? null;
         setSubject((current) =>
-          resolveSubjectAfterPreview(current, result.mail.rendered_subject, subjectTouched),
+          resolveSubjectAfterPreview(
+            current,
+            buildBulkEmailSubject(result.mail.rendered_subject, previewFairName),
+            subjectTouched,
+          ),
         );
       } catch (err) {
         if (cancelled || requestId !== previewRequestIdRef.current) return;

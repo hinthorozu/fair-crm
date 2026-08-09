@@ -5,6 +5,7 @@ from app.integrations.kyrox_core.ports import AuthorizationPort
 from app.modules.fair_emails.application.commands import PreviewBulkEmailCommand
 from app.modules.fair_emails.application.recipient_resolution import build_render_variables
 from app.modules.fair_emails.application.recipient_service import FairBulkEmailRecipientService
+from app.modules.fair_emails.application.subject import build_bulk_email_subject
 from app.modules.fair_emails.domain.exceptions import (
     FairBulkEmailRecipientNotFoundError,
     FairNotEligibleForBulkEmailError,
@@ -101,6 +102,7 @@ class PreviewFairBulkEmailUseCase:
         final_subject = rendered_subject
         if command.subject_override is not None and command.subject_override.strip():
             final_subject = command.subject_override.strip()
+        final_subject = build_bulk_email_subject(final_subject, fair.name)
 
         return BulkEmailContentPreviewResult(
             subject=final_subject,
