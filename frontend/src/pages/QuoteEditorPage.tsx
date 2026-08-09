@@ -132,9 +132,28 @@ export function QuoteEditorPage({ todoId, onBack }: Props) {
     const frameWindow = previewRef.current?.contentWindow;
     const frameDocument = previewRef.current?.contentDocument;
     if (!frameWindow || !frameDocument) return;
-    frameDocument.title = buildPdfTitle(customer?.display_name, quoteDate);
+
+    const pdfTitle = buildPdfTitle(customer?.display_name, quoteDate);
+    const previousPageTitle = document.title;
+    const previousFrameTitle = frameDocument.title;
+    let restored = false;
+
+    const restoreTitles = () => {
+      if (restored) return;
+      restored = true;
+      document.title = previousPageTitle;
+      frameDocument.title = previousFrameTitle;
+      frameWindow.removeEventListener("afterprint", restoreTitles);
+      window.removeEventListener("afterprint", restoreTitles);
+    };
+
+    document.title = pdfTitle;
+    frameDocument.title = pdfTitle;
+    frameWindow.addEventListener("afterprint", restoreTitles, { once: true });
+    window.addEventListener("afterprint", restoreTitles, { once: true });
     frameWindow.focus();
     frameWindow.print();
+    window.setTimeout(restoreTitles, 1500);
   };
 
   if (loading) return <LoadingState />;
