@@ -17,6 +17,30 @@ import type { QuoteSelectedItem } from "../types/quote";
 
 interface Props { todoId: string; onBack: () => void }
 
+const NEW_QUOTE_DEFAULTS: Record<string, string> = {
+  "KİRALIK STANT TİPİ": "Maksima",
+  "STANT ALANI": "",
+  "STANT YÜKSEKLİĞİ": "3.5 Metre",
+  "ZEMİN": "PARKE",
+  "ASKILIK": "VAR",
+  "DEPO": "VAR",
+  "DEPO İÇİ RAF": "VAR",
+  "KETTLE": "VAR",
+  "MİNİ BUZDOLABI": "VAR",
+  "ÇÖP KOVASI": "VAR",
+};
+
+function buildNewQuoteDefaults(items: any[]): Record<string, string> {
+  const defaults: Record<string, string> = {};
+  for (const item of items) {
+    const title = String(item.title ?? "").trim().toLocaleUpperCase("tr-TR");
+    if (Object.prototype.hasOwnProperty.call(NEW_QUOTE_DEFAULTS, title)) {
+      defaults[item.id] = NEW_QUOTE_DEFAULTS[title];
+    }
+  }
+  return defaults;
+}
+
 export function QuoteEditorPage({ todoId, onBack }: Props) {
   const permissions = React.useMemo(getQuotePermissions, []);
   const [loading, setLoading] = React.useState(true);
@@ -59,6 +83,8 @@ export function QuoteEditorPage({ todoId, onBack }: Props) {
         } catch {
           setPreview("");
         }
+      } else {
+        setSelected(buildNewQuoteDefaults(contentResult.items));
       }
     } catch (err) { setError(err instanceof Error ? err.message : "Teklif bilgileri yüklenemedi."); }
     finally { setLoading(false); }
@@ -69,6 +95,13 @@ export function QuoteEditorPage({ todoId, onBack }: Props) {
     const allowed = existing ? permissions.has(QUOTE_UPDATE) : permissions.has(QUOTE_CREATE);
     if (!allowed) { setError("Teklifi kaydetme yetkiniz yok."); return; }
     if (!templateId) { setError("Teklif şablonu seçin."); return; }
+
+    const standArea = contents.find((item) => String(item.title ?? "").trim().toLocaleUpperCase("tr-TR") === "STANT ALANI");
+    if (standArea && Object.prototype.hasOwnProperty.call(selected, standArea.id) && !selected[standArea.id].trim()) {
+      setError("Stand Alanı değerini girin.");
+      return;
+    }
+
     const selected_items: QuoteSelectedItem[] = Object.entries(selected).map(([content_id, value]) => ({ content_id, value: value.trim() })).filter((item) => item.value);
     setSaving(true); setError(null);
     try {
