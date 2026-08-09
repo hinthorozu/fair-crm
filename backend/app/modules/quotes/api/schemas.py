@@ -14,6 +14,7 @@ class QuoteWriteRequest(BaseModel):
     template_id: UUID
     quote_date: date
     status: Literal["draft", "given"] = "draft"
+    price: str = Field(default="", max_length=255)
     selected_items: list[QuoteSelectedItem] = Field(default_factory=list)
 
 
@@ -26,6 +27,7 @@ class QuoteResponse(BaseModel):
     template_id: UUID
     quote_date: date
     status: str
+    price: str
     selected_items: list[dict]
     created_at: datetime
     updated_at: datetime
