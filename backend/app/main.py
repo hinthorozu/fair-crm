@@ -77,7 +77,16 @@ def create_app() -> FastAPI:
         return {"status": "ok", "service": "fair-crm", "version": settings.app_version}
 
     app.include_router(api_v1_router)
-    app.mount("/data/quote-template-logos", StaticFiles(directory="data/quote-template-logos", check_dir=False), name="quote-template-logos")
+    app.mount(
+        "/api/v1/data/quote-template-logos",
+        StaticFiles(directory="data/quote-template-logos", check_dir=False),
+        name="quote-template-logos-api",
+    )
+    app.mount(
+        "/data/quote-template-logos",
+        StaticFiles(directory="data/quote-template-logos", check_dir=False),
+        name="quote-template-logos",
+    )
     log_dev_bypass_startup_warning()
     log_playwright_browser_startup_check()
 
