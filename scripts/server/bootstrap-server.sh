@@ -170,8 +170,8 @@ ensure_dev_seed_password() {
   local confirm=""
   while true; do
     read -r -p "DEV admin şifresi: " password
-    if [[ ${#password} -lt 12 ]]; then
-      echo "Şifre en az 12 karakter olmalı."
+    if [[ ${#password} -lt 4 ]]; then
+      echo "Şifre en az 4 karakter olmalı."
       continue
     fi
     read -r -p "DEV admin şifresini tekrar gir: " confirm
@@ -211,8 +211,8 @@ ensure_remote_postgres_password() {
   local confirm=""
   while true; do
     read -r -p "${REMOTE_PG_USER} PostgreSQL şifresi: " password
-    if [[ ${#password} -lt 12 ]]; then
-      echo "Şifre en az 12 karakter olmalı."
+    if [[ ${#password} -lt 4 ]]; then
+      echo "Şifre en az 4 karakter olmalı."
       continue
     fi
     read -r -p "${REMOTE_PG_USER} PostgreSQL şifresini tekrar gir: " confirm
