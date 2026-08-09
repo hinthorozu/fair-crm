@@ -144,6 +144,7 @@ export const todoCategoryLabels: Record<TodoCategory, string> = {
   musteri_guncelleme: "Müşteri Güncelleme",
   genel_gorev: "Genel Görev",
   stand_tasarim: "Stand Tasarım",
+  stand_work: "Stand İşleri",
   diger: "Diğer",
 };
 
@@ -156,6 +157,7 @@ export const todoCategoryOptions: CreatableTodoCategory[] = [
   "musteri_guncelleme",
   "genel_gorev",
   "stand_tasarim",
+  "stand_work",
   "diger",
 ];
 
@@ -172,6 +174,7 @@ export const todoCategoryFilterOptions: TodoCategory[] = [
   "musteri_guncelleme",
   "genel_gorev",
   "stand_tasarim",
+  "stand_work",
   "diger",
 ];
 
