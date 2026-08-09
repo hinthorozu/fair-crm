@@ -28,6 +28,7 @@ class TodoCategory(StrEnum):
     MUSTERI_GUNCELLEME = "musteri_guncelleme"
     GENEL_GOREV = "genel_gorev"
     STAND_TASARIM = "stand_tasarim"
+    STAND_WORK = "stand_work"
     DIGER = "diger"
 
 
@@ -40,6 +41,7 @@ CREATABLE_TODO_CATEGORIES = frozenset(
         TodoCategory.MUSTERI_GUNCELLEME,
         TodoCategory.GENEL_GOREV,
         TodoCategory.STAND_TASARIM,
+        TodoCategory.STAND_WORK,
         TodoCategory.DIGER,
     }
 )
