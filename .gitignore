@@ -41,6 +41,11 @@ backups/
 data/restore_uploads/
 data/restore_logs/
 
+# Runtime uploaded images (do not commit)
+backend/data/images/
+# Legacy quote-logo storage kept ignored during migration
+backend/data/quote-template-logos/
+
 # Local build verification artifacts
 build-check.txt
 build-output.txt
