@@ -30,6 +30,9 @@
 #   SERVER_PUBLIC_IP=203.0.113.10
 #   LETSENCRYPT_EMAIL=admin@example.com
 #   DEV_SEED_ENV_FILE=/etc/fair-crm/dev-seed.env
+#   REMOTE_PG_USER=faircrm_remote
+#   REMOTE_PG_PORT=15432
+#   REMOTE_PG_ENV_FILE=/etc/fair-crm/postgres-remote.env
 #   SKIP_APT=1
 #   SKIP_DOCKER=1
 #   SKIP_NODE=1
@@ -38,6 +41,7 @@
 #   SKIP_SSL=1
 #   SKIP_REPO_CLONE=1
 #   SKIP_POSTGRES=1
+#   SKIP_REMOTE_POSTGRES=1
 #   SKIP_INTERACTIVE_SETUP=1
 #
 set -euo pipefail
@@ -55,6 +59,9 @@ FAIR_CRM_DOMAIN="${FAIR_CRM_DOMAIN:-faircrm.domain.com}"
 SERVER_PUBLIC_IP="${SERVER_PUBLIC_IP:-}"
 LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-}"
 DEV_SEED_ENV_FILE="${DEV_SEED_ENV_FILE:-/etc/fair-crm/dev-seed.env}"
+REMOTE_PG_USER="${REMOTE_PG_USER:-faircrm_remote}"
+REMOTE_PG_PORT="${REMOTE_PG_PORT:-15432}"
+REMOTE_PG_ENV_FILE="${REMOTE_PG_ENV_FILE:-/etc/fair-crm/postgres-remote.env}"
 
 REPORT_APT="skipped"
 REPORT_DOCKER="skipped"
@@ -64,6 +71,7 @@ REPORT_NGINX="skipped"
 REPORT_SSL="skipped"
 REPORT_REPO="skipped"
 REPORT_POSTGRES="skipped"
+REPORT_REMOTE_POSTGRES="skipped"
 REPORT_ENV_FILES="not checked"
 REPORT_DEV_SEED="not checked"
 
@@ -182,6 +190,111 @@ ensure_dev_seed_password() {
 
   REPORT_DEV_SEED="ready (created interactively, chmod 600)"
   log "Created root-only dev seed env: ${DEV_SEED_ENV_FILE}"
+}
+
+ensure_remote_postgres_password() {
+  local current=""
+  if [[ -f "$REMOTE_PG_ENV_FILE" ]]; then
+    current="$(read_env_key "$REMOTE_PG_ENV_FILE" REMOTE_PG_PASSWORD || true)"
+  fi
+
+  if [[ -n "$current" ]]; then
+    printf '%s' "$current"
+    return 0
+  fi
+
+  if ! is_interactive_setup; then
+    return 1
+  fi
+
+  local password=""
+  local confirm=""
+  while true; do
+    read -r -p "${REMOTE_PG_USER} PostgreSQL şifresi: " password
+    if [[ ${#password} -lt 12 ]]; then
+      echo "Şifre en az 12 karakter olmalı."
+      continue
+    fi
+    read -r -p "${REMOTE_PG_USER} PostgreSQL şifresini tekrar gir: " confirm
+    if [[ "$password" != "$confirm" ]]; then
+      echo "Şifreler eşleşmedi; tekrar deneyin."
+      continue
+    fi
+    break
+  done
+
+  run_root mkdir -p "$(dirname "$REMOTE_PG_ENV_FILE")"
+  printf 'REMOTE_PG_PASSWORD=%s\n' "$password" | run_root tee "$REMOTE_PG_ENV_FILE" >/dev/null
+  run_root chown root:root "$REMOTE_PG_ENV_FILE"
+  run_root chmod 600 "$REMOTE_PG_ENV_FILE"
+  printf '%s' "$password"
+}
+
+ensure_remote_postgres_access() {
+  if [[ "${SKIP_REMOTE_POSTGRES:-0}" == "1" ]]; then
+    REPORT_REMOTE_POSTGRES="skipped (SKIP_REMOTE_POSTGRES=1)"
+    return 0
+  fi
+
+  step "Configure remote PostgreSQL access (${REMOTE_PG_PORT} -> 5432)"
+
+  local compose_file="${FAIR_CRM_DIR}/docker-compose.yml"
+  [[ -f "$compose_file" ]] || {
+    REPORT_REMOTE_POSTGRES="skipped (docker-compose.yml missing)"
+    warn "Cannot configure remote PostgreSQL port without ${compose_file}"
+    return 0
+  }
+
+  if ! grep -qE "^[[:space:]]*-[[:space:]]*\"${REMOTE_PG_PORT}:5432\"" "$compose_file"; then
+    warn "docker-compose.yml does not publish ${REMOTE_PG_PORT}:5432; add it before using remote PostgreSQL"
+    REPORT_REMOTE_POSTGRES="missing compose mapping"
+    return 0
+  fi
+
+  local password=""
+  password="$(ensure_remote_postgres_password || true)"
+  if [[ -z "$password" ]]; then
+    REPORT_REMOTE_POSTGRES="password missing (interactive setup required)"
+    warn "Remote PostgreSQL password is missing; rerun bootstrap interactively"
+    return 0
+  fi
+
+  local container="kyrox-postgres-dev"
+  container="$(grep -E 'container_name:' "$compose_file" | head -n1 | sed -E 's/.*container_name:[[:space:]]*//; s/[[:space:]]+$//' || true)"
+  container="${container:-kyrox-postgres-dev}"
+
+  docker compose -f "$compose_file" up -d postgres
+
+  local role_exists=""
+  role_exists="$(docker exec -e PGPASSWORD=postgres "$container" psql -U postgres -d postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='${REMOTE_PG_USER}'" 2>/dev/null || true)"
+
+  if [[ "$role_exists" == "1" ]]; then
+    docker exec -e PGPASSWORD=postgres "$container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+      -c "ALTER ROLE \"${REMOTE_PG_USER}\" WITH LOGIN PASSWORD '${password//\'/\'\'}';" >/dev/null
+  else
+    docker exec -e PGPASSWORD=postgres "$container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+      -c "CREATE ROLE \"${REMOTE_PG_USER}\" WITH LOGIN PASSWORD '${password//\'/\'\'}';" >/dev/null
+  fi
+
+  local db_name
+  for db_name in fair_crm kyrox_core; do
+    local db_exists=""
+    db_exists="$(docker exec -e PGPASSWORD=postgres "$container" psql -U postgres -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='${db_name}'" 2>/dev/null || true)"
+    if [[ "$db_exists" == "1" ]]; then
+      docker exec -e PGPASSWORD=postgres "$container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+        -c "GRANT CONNECT ON DATABASE \"${db_name}\" TO \"${REMOTE_PG_USER}\";" >/dev/null
+      docker exec -e PGPASSWORD=postgres "$container" psql -U postgres -d "$db_name" -v ON_ERROR_STOP=1 \
+        -c "GRANT USAGE ON SCHEMA public TO \"${REMOTE_PG_USER}\"; GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO \"${REMOTE_PG_USER}\"; GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO \"${REMOTE_PG_USER}\"; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO \"${REMOTE_PG_USER}\"; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO \"${REMOTE_PG_USER}\";" >/dev/null
+    fi
+  done
+
+  if command -v ufw >/dev/null 2>&1; then
+    run_root ufw allow "${REMOTE_PG_PORT}/tcp" >/dev/null
+  fi
+
+  REPORT_REMOTE_POSTGRES="ready (${REMOTE_PG_USER}, tcp/${REMOTE_PG_PORT} -> postgres/5432; local 127.0.0.1:5432 preserved)"
+  log "Remote PostgreSQL ready: ${SERVER_PUBLIC_IP:-server-ip}:${REMOTE_PG_PORT} user=${REMOTE_PG_USER}"
+  unset password
 }
 
 ensure_fair_crm_checkout() {
@@ -307,6 +420,7 @@ print_bootstrap_report() {
   echo "UFW firewall: ${REPORT_FIREWALL}"
   echo "Fair CRM repo: ${REPORT_REPO}"
   echo "Postgres container: ${REPORT_POSTGRES}"
+  echo "Remote Postgres: ${REPORT_REMOTE_POSTGRES}"
   echo "Env files: ${REPORT_ENV_FILES}"
   echo "Dev/admin seed: ${REPORT_DEV_SEED}"
   echo "Nginx site: ${REPORT_NGINX}"
@@ -357,6 +471,7 @@ main() {
     ensure_compose_localhost_postgres_bind "$FAIR_CRM_DIR" || true
     ensure_postgres_container "$FAIR_CRM_DIR"
     REPORT_POSTGRES="started/verified (127.0.0.1:5432)"
+    ensure_remote_postgres_access
   fi
 
   if [[ "${SKIP_NGINX:-0}" != "1" ]]; then
@@ -369,8 +484,9 @@ main() {
     ensure_ufw_firewall
     if command -v ufw >/dev/null 2>&1; then
       run_root ufw allow 443/tcp >/dev/null
+      run_root ufw allow "${REMOTE_PG_PORT}/tcp" >/dev/null
     fi
-    REPORT_FIREWALL="configured (SSH + 80/tcp + 443/tcp)"
+    REPORT_FIREWALL="configured (SSH + 80/tcp + 443/tcp + ${REMOTE_PG_PORT}/tcp)"
   fi
 
   if [[ "${SKIP_NGINX:-0}" != "1" ]]; then
