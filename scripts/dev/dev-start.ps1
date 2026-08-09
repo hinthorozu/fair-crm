@@ -43,6 +43,7 @@ Test-DockerEngineReady
 Start-DevDockerInfra
 Wait-DevPostgresHealthy
 $alembicStatus = Invoke-DevDatabaseMigrations
+Invoke-DevCoreIdentitySeed
 Wait-DevRedisHealthy
 
 $coreStarted = $false

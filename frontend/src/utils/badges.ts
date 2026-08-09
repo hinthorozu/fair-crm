@@ -10,6 +10,7 @@ export function activityTypeBadgeVariant(type: ActivityType): BadgeVariant {
     note: "warning",
     fair_visit: "primary",
     follow_up: "info",
+    quote: "success",
     task_completed: "neutral",
     other: "neutral",
   };

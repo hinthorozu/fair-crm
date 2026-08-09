@@ -6,6 +6,7 @@ export type ActivityType =
   | "note"
   | "fair_visit"
   | "follow_up"
+  | "quote"
   | "task_completed"
   | "other";
 

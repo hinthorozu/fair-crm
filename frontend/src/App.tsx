@@ -13,6 +13,8 @@ import { EnrichmentRunDetailPage } from "./pages/EnrichmentRunDetailPage";
 import { DatabaseBackupsPage } from "./pages/DatabaseBackupsPage";
 import { SmtpAccountsPage } from "./pages/SmtpAccountsPage";
 import { MailTemplatesPage } from "./pages/MailTemplatesPage";
+import { QuoteTemplatesPage } from "./pages/QuoteTemplatesPage";
+import { TemplateContentsPage } from "./pages/TemplateContentsPage";
 import { MailOperationsPage } from "./pages/MailOperationsPage";
 import { DataOperationsPage } from "./pages/DataOperationsPage";
 import { DataOperationRunResultPage } from "./pages/DataOperationRunResultPage";
@@ -22,6 +24,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { TodoDetailPage } from "./pages/TodoDetailPage";
 import { TodosPage } from "./pages/TodosPage";
+import { QuoteEditorPage } from "./pages/QuoteEditorPage";
 import { OperationsPage } from "./pages/OperationsPage";
 import { OperationDetailPage } from "./pages/OperationDetailPage";
 import { BulkEmailOperationWizardPage } from "./pages/BulkEmailOperationWizardPage";
@@ -74,6 +77,7 @@ type AppRoute =
   | "/fairs/:id"
   | "/todos"
   | "/todos/:id"
+  | "/todos/:id/quote"
   | "/operations"
   | "/operations/new/scraper"
   | "/operations/new/bulk-email"
@@ -97,6 +101,8 @@ type AppRoute =
   | "/admin/system/backups"
   | "/admin/email-accounts"
   | "/admin/smtp-operations/templates"
+  | "/admin/smtp-operations/quote-templates"
+  | "/admin/smtp-operations/template-contents"
   | "/admin/smtp-operations/mail-operations"
   | "/admin/operation-capabilities"
   | "/imports"
@@ -139,6 +145,18 @@ function parseRoute(location: string): ParsedRoute {
     }
     if (pathname === "/admin/email-accounts" || pathname.startsWith("/admin/email-accounts/")) {
       return { route: "/admin/email-accounts" };
+    }
+    if (
+      pathname === "/admin/smtp-operations/template-contents" ||
+      pathname.startsWith("/admin/smtp-operations/template-contents/")
+    ) {
+      return { route: "/admin/smtp-operations/template-contents" };
+    }
+    if (
+      pathname === "/admin/smtp-operations/quote-templates" ||
+      pathname.startsWith("/admin/smtp-operations/quote-templates/")
+    ) {
+      return { route: "/admin/smtp-operations/quote-templates" };
     }
     if (
       pathname === "/admin/smtp-operations/templates" ||
@@ -228,6 +246,10 @@ function parseRoute(location: string): ParsedRoute {
     return { route: "/activities" };
   }
   if (pathname === "/todos" || pathname.startsWith("/todos/")) {
+    const quoteMatch = pathname.match(/^\/todos\/([^/]+)\/quote$/);
+    if (quoteMatch) {
+      return { route: "/todos/:id/quote", todoId: quoteMatch[1] };
+    }
     const todoMatch = pathname.match(/^\/todos\/([^/]+)$/);
     if (todoMatch) {
       return { route: "/todos/:id", todoId: todoMatch[1] };
@@ -321,6 +343,8 @@ function isAdminRoute(route: AppRoute): boolean {
 
 function adminSection(route: AppRoute): string {
   if (route.includes("/operation-capabilities")) return "operation-capabilities";
+  if (route.includes("/smtp-operations/quote-templates")) return "quote-templates";
+  if (route.includes("/smtp-operations/template-contents")) return "template-contents";
   if (route.includes("/smtp-operations/templates")) return "mail-templates";
   if (route.includes("/smtp-operations/mail-operations")) return "mail-operations";
   if (route.includes("/email-accounts")) {
@@ -560,6 +584,15 @@ export function App() {
     });
   };
 
+  const goToQuoteEditor = (todoId: string) => {
+    const path = `/todos/${todoId}/quote`;
+    runGuardedNav(() => {
+      navigate(path);
+      setParsed(parseRoute(path));
+      setSidebarOpen(false);
+    });
+  };
+
   const goToOperations = () => {
     runGuardedNav(() => {
       navigate("/operations");
@@ -703,7 +736,7 @@ export function App() {
     parsed.route === "/fairs" ||
     parsed.route === "/fairs/:id";
   const isTodosActive =
-    parsed.route === "/todos" || parsed.route === "/todos/:id";
+    parsed.route === "/todos" || parsed.route === "/todos/:id" || parsed.route === "/todos/:id/quote";
   const isOperationsActive =
     parsed.route === "/operations" ||
     parsed.route === "/operations/new/scraper" ||
@@ -737,6 +770,12 @@ export function App() {
               { label: uiLabels.navFairs, onClick: goToFairs },
               { label: uiLabels.navFairs, current: true },
             ]
+          : parsed.route === "/todos/:id/quote" && parsed.todoId
+            ? [
+                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
+                { label: uiLabels.navTodos, onClick: goToTodos },
+                { label: "Teklif Hazırlama", current: true },
+              ]
           : parsed.route === "/todos/:id" && parsed.todoId
             ? [
                 { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
@@ -1024,6 +1063,8 @@ export function App() {
       {parsed.route === "/admin/system/backups" && <DatabaseBackupsPage />}
       {parsed.route === "/admin/email-accounts" && <SmtpAccountsPage />}
       {parsed.route === "/admin/smtp-operations/templates" && <MailTemplatesPage />}
+      {parsed.route === "/admin/smtp-operations/quote-templates" && <QuoteTemplatesPage />}
+      {parsed.route === "/admin/smtp-operations/template-contents" && <TemplateContentsPage />}
       {parsed.route === "/admin/smtp-operations/mail-operations" && <MailOperationsPage />}
       {parsed.route === "/admin/operation-capabilities" && <OperationCapabilitiesAdminPage />}
     </AdminSystemLayout>
@@ -1074,7 +1115,7 @@ export function App() {
       {isDiActive && renderDataIntegration()}
       {isAdminActive && renderAdminSystem()}
       {parsed.route === "/todos" && (
-        <TodosPage onOpenDetail={goToTodoDetail} onOpenCustomer={goToCustomerDetail} />
+        <TodosPage onOpenDetail={goToTodoDetail} onOpenQuote={goToQuoteEditor} onOpenCustomer={goToCustomerDetail} />
       )}
       {parsed.route === "/todos/:id" && parsed.todoId && (
         <TodoDetailPage
@@ -1082,7 +1123,11 @@ export function App() {
           onBack={goToTodos}
           onTodoLoaded={setTodoTitle}
           onOpenCustomer={goToCustomerDetail}
+          onOpenQuote={goToQuoteEditor}
         />
+      )}
+      {parsed.route === "/todos/:id/quote" && parsed.todoId && (
+        <QuoteEditorPage todoId={parsed.todoId} onBack={() => goToTodoDetail(parsed.todoId!)} />
       )}
       {parsed.route === "/operations" && (
         <OperationsPage

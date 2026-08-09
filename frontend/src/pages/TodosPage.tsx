@@ -175,10 +175,11 @@ function canArchiveTodo(todo: Todo): boolean {
 
 interface TodosPageProps {
   onOpenDetail?: (todoId: string) => void;
+  onOpenQuote?: (todoId: string) => void;
   onOpenCustomer?: (customerId: string) => void;
 }
 
-export function TodosPage({ onOpenDetail, onOpenCustomer }: TodosPageProps) {
+export function TodosPage({ onOpenDetail, onOpenQuote, onOpenCustomer }: TodosPageProps) {
   const grantedPermissions = React.useMemo(() => getGrantedTodoPermissions(), []);
   const canRead = canPerformTodoAction(grantedPermissions, "read");
   const canCreate = canPerformTodoAction(grantedPermissions, "create");
@@ -277,6 +278,7 @@ export function TodosPage({ onOpenDetail, onOpenCustomer }: TodosPageProps) {
     setModal(null);
     setSuccess(todoLabels.createSuccess);
     await refreshAfterAction();
+    if (created.category === "teklif") onOpenQuote?.(created.id);
   };
 
   const handleUpdate = async (values: TodoFormValues) => {

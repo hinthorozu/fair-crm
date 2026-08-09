@@ -298,6 +298,7 @@ const ADMIN_NAV_ICONS: Record<string, React.ComponentType<IconProps>> = {
   smtp: NavIconMail,
   "email-accounts": NavIconMail,
   "mail-templates": NavIconTemplate,
+  "template-contents": NavIconTemplate,
   "mail-operations": NavIconRunHistory,
   "data-operations": NavIconDataOperations,
   "background-jobs": NavIconJobs,

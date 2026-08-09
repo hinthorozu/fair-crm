@@ -16,6 +16,7 @@ ActivityTypeField = Literal[
     "note",
     "fair_visit",
     "follow_up",
+    "quote",
     "other",
 ]
 
@@ -33,6 +34,7 @@ ActivitySourceField = Literal[
 
 class CreateActivityRequest(BaseModel):
     customer_id: UUID
+    todo_id: Optional[UUID] = None
     type: ActivityTypeField = Field(..., description="Activity type")
     subject: str = Field(..., min_length=1, max_length=500)
     activity_date: datetime

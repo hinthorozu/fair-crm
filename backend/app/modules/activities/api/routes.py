@@ -65,6 +65,8 @@ from app.modules.activities.application.update_activity import UpdateActivityUse
 from app.modules.activities.domain.exceptions import (
     ActivityAlreadyDeletedError,
     ActivityNotFoundError,
+    ActivityTodoCustomerMismatchError,
+    ActivityTodoNotFoundError,
     ContactCustomerMismatchError,
     ContactNotFoundForActivityError,
     CustomerArchivedForActivityError,
@@ -73,6 +75,7 @@ from app.modules.activities.domain.exceptions import (
     InvalidActivityStatusError,
     InvalidActivitySubjectError,
     InvalidActivityTypeError,
+    QuoteActivityTodoRequiredError,
 )
 
 router = APIRouter(prefix="/activities", tags=["activities"])
@@ -339,6 +342,7 @@ def create_activity(
                 access_token=_access_token(credentials),
                 user_id=auth.user_id,
                 customer_id=body.customer_id,
+                todo_id=body.todo_id,
                 contact_id=body.contact_id,
                 activity_type=body.type,
                 subject=body.subject,
@@ -359,6 +363,10 @@ def create_activity(
     except ContactNotFoundForActivityError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ContactCustomerMismatchError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ActivityTodoNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (ActivityTodoCustomerMismatchError, QuoteActivityTodoRequiredError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except InvalidActivitySubjectError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

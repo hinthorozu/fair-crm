@@ -443,6 +443,43 @@ function Invoke-DevDatabaseMigrations {
     return $status
 }
 
+function Invoke-DevCoreIdentitySeed {
+    $seedScript = Join-Path $script:DevRepoRoot "scripts\seed_core_dev_identity.py"
+    if (-not (Test-Path -LiteralPath $seedScript)) {
+        throw "Core dev identity seed script not found: $seedScript"
+    }
+
+    $devPassword = $env:DEV_USER_PASSWORD
+    if (-not $devPassword) {
+        $devPassword = Get-DevBackendEnvValue -Name "DEV_USER_PASSWORD"
+    }
+    if (-not $devPassword) {
+        throw "DEV_USER_PASSWORD is missing. Add it to backend\.env before running dev-start.ps1."
+    }
+
+    Write-DevStep "Checking and synchronizing Core development identity seed"
+    $previousPassword = $env:DEV_USER_PASSWORD
+    try {
+        $env:DEV_USER_PASSWORD = $devPassword
+        Push-Location $script:DevRepoRoot
+        try {
+            & python $seedScript
+            if ($LASTEXITCODE -ne 0) {
+                throw "Core development identity seed failed with exit code $LASTEXITCODE"
+            }
+        } finally {
+            Pop-Location
+        }
+    } finally {
+        if ($null -eq $previousPassword) {
+            Remove-Item Env:\DEV_USER_PASSWORD -ErrorAction SilentlyContinue
+        } else {
+            $env:DEV_USER_PASSWORD = $previousPassword
+        }
+        $devPassword = $null
+    }
+}
+
 function Invoke-DevPrepareRepository {
     param([switch]$SkipPull)
 

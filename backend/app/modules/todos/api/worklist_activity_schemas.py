@@ -14,7 +14,7 @@ from app.modules.todos.api.worklist_schemas import (
 class RecordTodoWorklistActivityRequest(BaseModel):
     outcome_id: UUID
     note: str = Field(min_length=1)
-    activity_type: Literal["call", "meeting", "email", "whatsapp", "note", "fair_visit", "follow_up", "other"] = "call"
+    activity_type: Literal["call", "meeting", "email", "whatsapp", "note", "fair_visit", "follow_up", "quote", "other"] = "call"
     contact_id: Optional[UUID] = None
     follow_up_at: Optional[datetime] = None
     action_required: bool = False

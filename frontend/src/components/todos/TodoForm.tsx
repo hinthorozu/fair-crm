@@ -163,6 +163,10 @@ export function TodoForm({
       setError(todoLabels.titleRequired);
       return;
     }
+    if (values.category === "teklif" && (!values.customer_id || !values.source_fair_id)) {
+      setError("Teklif görevi için müşteri ve kaynak fuar zorunludur.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -264,6 +268,7 @@ export function TodoForm({
           htmlFor="todo-customer"
           fullWidth
           hint={todoLabels.fieldCustomerHint}
+          required={values.category === "teklif"}
         >
           <CustomerEntitySelect
             id="todo-customer"
@@ -280,6 +285,7 @@ export function TodoForm({
           htmlFor="todo-source-fair"
           fullWidth
           hint={todoLabels.fieldSourceFairHint}
+          required={values.category === "teklif"}
         >
           <FairEntitySelect
             id="todo-source-fair"

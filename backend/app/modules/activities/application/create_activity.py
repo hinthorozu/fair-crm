@@ -13,6 +13,12 @@ from app.modules.activities.domain.entities import Activity
 from app.modules.activities.domain.ports import ActivityRepository
 from app.modules.contacts.domain.ports import ContactRepository
 from app.modules.customers.domain.ports import CustomerRepository
+from app.modules.todos.domain.ports import TodoRepository
+from app.modules.activities.domain.exceptions import (
+    ActivityTodoCustomerMismatchError,
+    ActivityTodoNotFoundError,
+    QuoteActivityTodoRequiredError,
+)
 
 PERMISSION_CREATE = "fair_crm.activities.create"
 
@@ -23,12 +29,14 @@ class CreateActivityUseCase:
         activity_repository: ActivityRepository,
         customer_repository: CustomerRepository,
         contact_repository: ContactRepository,
+        todo_repository: TodoRepository,
         authorization: AuthorizationPort,
         audit: HttpAuditAdapter,
     ) -> None:
         self._activity_repository = activity_repository
         self._customer_repository = customer_repository
         self._contact_repository = contact_repository
+        self._todo_repository = todo_repository
         self._authorization = authorization
         self._audit = audit
 
@@ -51,12 +59,21 @@ class CreateActivityUseCase:
             command.customer_id,
             command.contact_id,
         )
+        if command.activity_type == "quote" and command.todo_id is None:
+            raise QuoteActivityTodoRequiredError("Teklif aktivitesi için görev seçimi zorunludur")
+        if command.todo_id is not None:
+            todo = self._todo_repository.get_by_id(command.organization_id, command.todo_id)
+            if todo is None:
+                raise ActivityTodoNotFoundError("Görev bulunamadı")
+            if todo.customer_id != command.customer_id:
+                raise ActivityTodoCustomerMismatchError("Görev bu müşteriye ait değil")
 
         now = datetime.now(tz=UTC)
         activity = Activity.create(
             organization_id=command.organization_id,
             customer_id=command.customer_id,
             contact_id=command.contact_id,
+            todo_id=command.todo_id,
             activity_type=command.activity_type,
             subject=command.subject,
             description=command.description,
@@ -83,6 +100,7 @@ class CreateActivityUseCase:
             new_values={
                 "subject": saved.subject,
                 "customer_id": str(saved.customer_id) if saved.customer_id else None,
+                "todo_id": str(saved.todo_id) if saved.todo_id else None,
             },
             metadata={"user_id": str(command.user_id)},
         )

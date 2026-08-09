@@ -25,6 +25,7 @@ describe("activityTypeSelectOptions", () => {
   it("uses manual options for editable types", () => {
     const options = activityTypeSelectOptions("call");
     expect(options).toContain("call");
+    expect(options).not.toContain("quote");
     expect(options).toContain("other");
     expect(options).not.toContain("task_completed");
   });

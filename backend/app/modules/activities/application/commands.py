@@ -14,6 +14,7 @@ class CreateActivityCommand:
     activity_date: datetime
     status: str
     customer_id: Optional[UUID] = None
+    todo_id: Optional[UUID] = None
     contact_id: Optional[UUID] = None
     description: Optional[str] = None
     follow_up_date: Optional[datetime] = None

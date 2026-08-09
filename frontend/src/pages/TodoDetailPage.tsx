@@ -68,6 +68,7 @@ interface TodoDetailPageProps {
   onBack: () => void;
   onTodoLoaded?: (title: string) => void;
   onOpenCustomer?: (customerId: string) => void;
+  onOpenQuote?: (todoId: string) => void;
 }
 
 function formatDateTime(value: string | null | undefined): string {
@@ -130,6 +131,7 @@ export function TodoDetailPage({
   onBack,
   onTodoLoaded,
   onOpenCustomer,
+  onOpenQuote,
 }: TodoDetailPageProps) {
   const [todo, setTodo] = React.useState<Todo | null>(null);
   const [steps, setSteps] = React.useState<TodoStep[]>([]);
@@ -441,6 +443,9 @@ export function TodoDetailPage({
       onClick: () => setEditOpen(true),
       variant: "secondary",
     });
+  }
+  if (todo.category === "teklif" && onOpenQuote) {
+    headerActions.unshift({ id: "quote", label: "Teklifi Hazırla", onClick: () => onOpenQuote(todo.id), variant: "primary" });
   }
   if (canUpdate && canCompleteTodo(todo)) {
     headerActions.unshift({

@@ -12,6 +12,10 @@ export default defineConfig({
         target: "http://127.0.0.1:8001",
         changeOrigin: true,
       },
+      "/data/quote-template-logos": {
+        target: "http://127.0.0.1:8001",
+        changeOrigin: true,
+      },
       "/kyrox-core": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,

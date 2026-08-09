@@ -78,6 +78,7 @@ export const activityTypeLabels: Record<ActivityType, string> = {
   note: "Not",
   fair_visit: "Fuar Görüşmesi",
   follow_up: "Takip",
+  quote: "Teklif",
   // System type from Todo complete — display as Diğer (not Telefon/E-posta/etc.).
   task_completed: "Diğer",
   other: "Diğer",
@@ -113,6 +114,7 @@ export const activityTypeOptions: ActivityType[] = [
 /** Filter options include system types. task_completed displays as Diğer. */
 export const activityTypeFilterOptions: ActivityType[] = [
   ...activityTypeOptions,
+  "quote",
   "task_completed",
 ];
 

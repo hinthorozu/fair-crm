@@ -165,6 +165,21 @@ def test_activity_type_required(client, auth_headers):
     assert response.status_code == 422
 
 
+def test_quote_activity_requires_task_link(client, auth_headers):
+    customer_id = _create_customer(client, auth_headers, "Quote Activity Customer")
+
+    response = _create_activity(
+        client,
+        auth_headers,
+        customer_id,
+        type="quote",
+        subject="Fiyat teklifi",
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Teklif aktivitesi için görev seçimi zorunludur"
+
+
 def test_activity_subject_required(client, auth_headers):
     customer_id = _create_customer(client, auth_headers, "Subject Required Customer")
 

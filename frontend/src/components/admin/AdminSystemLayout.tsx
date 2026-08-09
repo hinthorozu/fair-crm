@@ -5,6 +5,10 @@ import { usePersistedCollapsed } from "../../hooks/usePersistedCollapsed";
 import { AdminNavIcon, NavIconComingSoon } from "../layout/NavIcons";
 import { NavLink } from "../layout/NavLink";
 import { SidebarCollapseButton } from "../layout/SidebarCollapseButton";
+import {
+  hasQuoteTemplatePermission,
+  QUOTE_TEMPLATE_PERMISSION_READ,
+} from "../../permissions/quoteTemplatePermissions";
 
 interface AdminSystemLayoutProps {
   children: React.ReactNode;
@@ -42,6 +46,16 @@ export function AdminSystemLayout({
       id: "mail-templates",
       label: adminLabels.navMailTemplates,
       path: "/admin/smtp-operations/templates",
+    },
+    ...(hasQuoteTemplatePermission(QUOTE_TEMPLATE_PERMISSION_READ) ? [{
+      id: "quote-templates",
+      label: "Teklif Şablonları",
+      path: "/admin/smtp-operations/quote-templates",
+    }] : []),
+    {
+      id: "template-contents",
+      label: "Şablon İçerikleri",
+      path: "/admin/smtp-operations/template-contents",
     },
     {
       id: "mail-operations",

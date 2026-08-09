@@ -101,11 +101,15 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const url = `${config.apiBaseUrl}${path}`;
   const { _retriedAfterRefresh, ...fetchOptions } = options;
+  const requestHeaders = new Headers(buildApiHeaders(fetchOptions.headers ?? {}));
+  if (fetchOptions.body instanceof FormData) {
+    requestHeaders.delete("Content-Type");
+  }
   const response = await fetchWithTimeout(
     url,
     {
       ...fetchOptions,
-      headers: buildApiHeaders(fetchOptions.headers ?? {}),
+      headers: requestHeaders,
     },
     timeoutMs,
   );

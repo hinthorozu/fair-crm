@@ -22,6 +22,18 @@ class ContactCustomerMismatchError(ActivityDomainError):
     pass
 
 
+class ActivityTodoNotFoundError(ActivityDomainError):
+    pass
+
+
+class ActivityTodoCustomerMismatchError(ActivityDomainError):
+    pass
+
+
+class QuoteActivityTodoRequiredError(ActivityDomainError):
+    pass
+
+
 class InvalidActivitySubjectError(ActivityDomainError):
     pass
 

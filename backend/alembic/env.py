@@ -20,6 +20,15 @@ from app.modules.email_accounts.infrastructure.persistence.models import (  # no
 )
 from app.modules.smtp.infrastructure.persistence.models import SmtpAccountModel  # noqa: F401
 from app.modules.todos.infrastructure.persistence.models import TodoModel  # noqa: F401
+from app.modules.quote_templates.infrastructure.models import (  # noqa: F401
+    QuoteTemplateModel,
+    QuoteTemplateVersionModel,
+)
+from app.modules.template_contents.infrastructure.models import (  # noqa: F401
+    TemplateContentModel,
+    TemplateContentTagModel,
+)
+from app.modules.quotes.infrastructure.models import QuoteModel  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

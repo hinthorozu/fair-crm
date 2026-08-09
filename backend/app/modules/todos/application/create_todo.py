@@ -12,6 +12,7 @@ from app.modules.todos.application.validators import (
     ensure_source_fair_exists,
 )
 from app.modules.todos.domain.entities import Todo
+from app.modules.todos.domain.exceptions import InvalidTodoCustomerError
 from app.modules.todos.domain.ports import TodoRepository
 
 PERMISSION_CREATE = "fair_crm.todos.create"
@@ -40,6 +41,8 @@ class CreateTodoUseCase:
             access_token=command.access_token,
         ):
             raise ForbiddenError("Permission denied")
+        if command.category == "teklif" and (command.customer_id is None or command.source_fair_id is None):
+            raise InvalidTodoCustomerError("Teklif görevi için müşteri ve kaynak fuar zorunludur")
 
         if command.source_fair_id is not None:
             ensure_source_fair_exists(

@@ -11,7 +11,7 @@ from app.modules.todos.application.validators import (
     ensure_customer_exists,
     ensure_source_fair_exists,
 )
-from app.modules.todos.domain.exceptions import TodoNotFoundError
+from app.modules.todos.domain.exceptions import InvalidTodoCustomerError, TodoNotFoundError
 from app.modules.todos.domain.ports import TodoRepository
 from app.modules.todos.domain.worklist_ports import TodoWorklistStateRepository
 
@@ -47,6 +47,12 @@ class UpdateTodoUseCase:
         todo = self._repository.get_by_id(command.organization_id, command.todo_id)
         if todo is None:
             raise TodoNotFoundError("Todo not found")
+
+        target_category = command.category or todo.category
+        target_customer = command.customer_id if command.set_customer_id else todo.customer_id
+        target_fair = command.source_fair_id if command.set_source_fair_id else todo.source_fair_id
+        if target_category == "teklif" and (target_customer is None or target_fair is None):
+            raise InvalidTodoCustomerError("Teklif görevi için müşteri ve kaynak fuar zorunludur")
 
         if command.set_source_fair_id and command.source_fair_id is not None:
             ensure_source_fair_exists(

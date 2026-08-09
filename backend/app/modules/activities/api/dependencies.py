@@ -34,6 +34,7 @@ from app.modules.contacts.infrastructure.repositories.contact_repository import 
 from app.modules.customers.infrastructure.repositories.customer_repository import (
     SqlAlchemyCustomerRepository,
 )
+from app.modules.todos.infrastructure.repositories.todo_repository import SqlAlchemyTodoRepository
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -54,6 +55,12 @@ def get_customer_repository_for_activities(
     db: Session = Depends(get_db),
 ) -> SqlAlchemyCustomerRepository:
     return SqlAlchemyCustomerRepository(db)
+
+
+def get_todo_repository_for_activities(
+    db: Session = Depends(get_db),
+) -> SqlAlchemyTodoRepository:
+    return SqlAlchemyTodoRepository(db)
 
 
 def get_authorization_adapter() -> AuthorizationPort:
@@ -104,11 +111,12 @@ def get_create_activity_use_case(
     activity_repository: SqlAlchemyActivityRepository = Depends(get_activity_repository),
     customer_repository: SqlAlchemyCustomerRepository = Depends(get_customer_repository_for_activities),
     contact_repository: SqlAlchemyContactRepository = Depends(get_contact_repository_for_activities),
+    todo_repository: SqlAlchemyTodoRepository = Depends(get_todo_repository_for_activities),
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
 ) -> CreateActivityUseCase:
     return CreateActivityUseCase(
-        activity_repository, customer_repository, contact_repository, authorization, audit
+        activity_repository, customer_repository, contact_repository, todo_repository, authorization, audit
     )
 
 
