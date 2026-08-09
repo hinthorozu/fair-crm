@@ -18,6 +18,7 @@ export type TodoCategory =
   | "musteri_guncelleme"
   | "genel_gorev"
   | "stand_tasarim"
+  | "stand_work"
   | "diger";
 
 /** Categories allowed when creating or editing a todo. */
@@ -29,6 +30,7 @@ export type CreatableTodoCategory =
   | "musteri_guncelleme"
   | "genel_gorev"
   | "stand_tasarim"
+  | "stand_work"
   | "diger";
 
 export interface Todo {
