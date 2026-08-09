@@ -31,6 +31,7 @@ TodoCategoryField = Literal[
     "musteri_guncelleme",
     "genel_gorev",
     "stand_tasarim",
+    "stand_work",
     "diger",
 ]
 
@@ -42,6 +43,7 @@ CreatableTodoCategoryField = Literal[
     "musteri_guncelleme",
     "genel_gorev",
     "stand_tasarim",
+    "stand_work",
     "diger",
 ]
 
