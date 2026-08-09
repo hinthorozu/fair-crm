@@ -23,11 +23,14 @@
 #   FAIR_CRM_BRANCH=main
 #   KYROX_CORE_DIR=/opt/kyrox-core
 #   DEPLOY_SERVICE_USER=ubuntu
+#   FAIR_CRM_DOMAIN=faircrm.domain.com
+#   LETSENCRYPT_EMAIL=admin@example.com
 #   SKIP_APT=1
 #   SKIP_DOCKER=1
 #   SKIP_NODE=1
 #   SKIP_NGINX=1
 #   SKIP_FIREWALL=1
+#   SKIP_SSL=1
 #   SKIP_REPO_CLONE=1
 #   SKIP_POSTGRES=1
 #
@@ -42,12 +45,15 @@ KYROX_CORE_DIR="${KYROX_CORE_DIR:-/opt/kyrox-core}"
 FAIR_CRM_REPO="${FAIR_CRM_REPO:-https://github.com/hinthorozu/fair-crm.git}"
 FAIR_CRM_BRANCH="${FAIR_CRM_BRANCH:-main}"
 DEPLOY_SERVICE_USER="${DEPLOY_SERVICE_USER:-${SUDO_USER:-$(id -un)}}"
+FAIR_CRM_DOMAIN="${FAIR_CRM_DOMAIN:-faircrm.domain.com}"
+LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-}"
 
 REPORT_APT="skipped"
 REPORT_DOCKER="skipped"
 REPORT_NODE="skipped"
 REPORT_FIREWALL="skipped"
 REPORT_NGINX="skipped"
+REPORT_SSL="skipped"
 REPORT_REPO="skipped"
 REPORT_POSTGRES="skipped"
 REPORT_ENV_FILES="not checked"
@@ -101,6 +107,43 @@ prepare_env_files() {
   REPORT_ENV_FILES="checked (existing files preserved)"
 }
 
+ensure_ssl() {
+  if [[ "${SKIP_SSL:-0}" == "1" ]]; then
+    REPORT_SSL="skipped (SKIP_SSL=1)"
+    return 0
+  fi
+
+  step "Install Certbot and enable HTTPS for ${FAIR_CRM_DOMAIN}"
+  run_root apt-get update -y
+  run_root apt-get install -y certbot python3-certbot-nginx
+
+  if command -v ufw >/dev/null 2>&1; then
+    run_root ufw allow 443/tcp >/dev/null
+  fi
+
+  local -a certbot_args=(
+    certbot --nginx
+    -d "${FAIR_CRM_DOMAIN}"
+    --non-interactive
+    --agree-tos
+    --redirect
+  )
+
+  if [[ -n "${LETSENCRYPT_EMAIL}" ]]; then
+    certbot_args+=(--email "${LETSENCRYPT_EMAIL}")
+  else
+    certbot_args+=(--register-unsafely-without-email)
+  fi
+
+  if run_root "${certbot_args[@]}"; then
+    REPORT_SSL="ready (https://${FAIR_CRM_DOMAIN})"
+    run_root systemctl enable --now certbot.timer >/dev/null 2>&1 || true
+  else
+    REPORT_SSL="pending (certificate issuance failed; rerun after DNS points to this server)"
+    warn "Let's Encrypt certificate could not be issued yet. Confirm DNS for ${FAIR_CRM_DOMAIN} points to this server, then rerun bootstrap."
+  fi
+}
+
 print_bootstrap_report() {
   echo ""
   echo "========== BOOTSTRAP REPORT =========="
@@ -113,6 +156,8 @@ print_bootstrap_report() {
   echo "Postgres container: ${REPORT_POSTGRES}"
   echo "Env files: ${REPORT_ENV_FILES}"
   echo "Nginx site: ${REPORT_NGINX}"
+  echo "SSL: ${REPORT_SSL}"
+  echo "FAIR_CRM_DOMAIN: ${FAIR_CRM_DOMAIN}"
   echo "FAIR_CRM_DIR: ${FAIR_CRM_DIR}"
   echo "KYROX_CORE_DIR: ${KYROX_CORE_DIR}"
   echo ""
@@ -131,6 +176,7 @@ main() {
   log "FAIR_CRM_DIR=${FAIR_CRM_DIR}"
   log "KYROX_CORE_DIR=${KYROX_CORE_DIR}"
   log "DEPLOY_SERVICE_USER=${DEPLOY_SERVICE_USER}"
+  log "FAIR_CRM_DOMAIN=${FAIR_CRM_DOMAIN}"
 
   if [[ "${SKIP_APT:-0}" != "1" ]]; then
     install_apt_packages
@@ -164,7 +210,14 @@ main() {
 
   if [[ "${SKIP_FIREWALL:-0}" != "1" ]]; then
     ensure_ufw_firewall
-    REPORT_FIREWALL="configured"
+    if command -v ufw >/dev/null 2>&1; then
+      run_root ufw allow 443/tcp >/dev/null
+    fi
+    REPORT_FIREWALL="configured (SSH + 80/tcp + 443/tcp)"
+  fi
+
+  if [[ "${SKIP_NGINX:-0}" != "1" ]]; then
+    ensure_ssl
   fi
 
   print_bootstrap_report
