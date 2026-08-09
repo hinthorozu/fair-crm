@@ -21,7 +21,7 @@ from app.modules.quote_templates.api.schemas import (
 from app.modules.quote_templates.infrastructure.models import QuoteTemplateModel, QuoteTemplateVersionModel
 
 router = APIRouter(prefix="/quote-templates", tags=["quote-templates"])
-_LOGO_DIR = Path("data/quote-template-logos")
+_LOGO_DIR = Path("data/images/quote-template-logos")
 _LOGO_LEGACY_PREFIX = "/data/quote-template-logos/"
 _LOGO_API_PREFIX = "/api/v1/data/quote-template-logos/"
 _ALLOWED_LOGO_TYPES = {"image/png": ".png", "image/jpeg": ".jpg", "image/svg+xml": ".svg", "image/webp": ".webp"}
