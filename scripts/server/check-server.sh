@@ -143,6 +143,51 @@ check_bootstrap_settings() {
   fi
 }
 
+# UFW port checks must match the rule's port token exactly. For example,
+# an intentional 15432/tcp rule must not be mistaken for a public 5432/tcp rule.
+check_firewall_rules_exact() {
+  if ! command -v ufw >/dev/null 2>&1; then
+    check_warn_item "UFW installed"
+    return 0
+  fi
+
+  local status
+  status="$(run_root ufw status 2>/dev/null || true)"
+
+  if grep -q "Status: active" <<<"$status"; then
+    check_pass "UFW active"
+  else
+    check_warn_item "UFW active"
+  fi
+
+  if awk '$1 == "22/tcp" || $1 == "22" || $1 == "OpenSSH" { if ($0 ~ /ALLOW/) found=1 } END { exit(found ? 0 : 1) }' <<<"$status"; then
+    check_pass "22 allowed"
+  else
+    check_warn_item "22 allowed"
+  fi
+
+  if awk '$1 == "80/tcp" || $1 == "80" { if ($0 ~ /ALLOW/) found=1 } END { exit(found ? 0 : 1) }' <<<"$status"; then
+    check_pass "80 allowed"
+  else
+    check_warn_item "80 allowed"
+  fi
+
+  if awk '$1 == "443/tcp" || $1 == "443" { if ($0 ~ /ALLOW/) found=1 } END { exit(found ? 0 : 1) }' <<<"$status"; then
+    check_pass "443 allowed"
+  else
+    check_warn_item "443 not configured"
+  fi
+
+  local port
+  for port in 5432 8000 8001; do
+    if awk -v p="$port" '$1 == p || $1 == p "/tcp" { if ($0 ~ /ALLOW/) found=1 } END { exit(found ? 0 : 1) }' <<<"$status"; then
+      check_fail "${port} not publicly exposed"
+    else
+      check_pass "${port} not publicly exposed"
+    fi
+  done
+}
+
 main() {
   check_reset_counters
 
@@ -206,7 +251,7 @@ main() {
   check_systemd_service "fair-crm-backend.service" "Fair CRM backend"
 
   check_port_bindings
-  check_firewall_rules
+  check_firewall_rules_exact
   check_nginx_site
 
   local core_url="http://127.0.0.1:${CORE_PORT}${CORE_HEALTH_PATH}"
