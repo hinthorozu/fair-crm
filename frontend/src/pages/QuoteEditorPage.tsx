@@ -48,6 +48,48 @@ function buildPdfTitle(companyName: string | undefined, quoteDate: string): stri
   return `${company} - ${datePart}`.replace(/[\\/:*?"<>|]/g, "-").replace(/\s+/g, " ").trim();
 }
 
+function ensurePdfFlowStyle(frameDocument: Document): void {
+  const styleId = "fair-crm-quote-print-flow";
+  let style = frameDocument.getElementById(styleId) as HTMLStyleElement | null;
+  if (!style) {
+    style = frameDocument.createElement("style");
+    style.id = styleId;
+    frameDocument.head.appendChild(style);
+  }
+  style.textContent = `
+    @media print {
+      section,
+      .section,
+      .content-group,
+      .quote-content-group,
+      .stand-section,
+      .stand-content,
+      table,
+      tbody {
+        break-inside: auto !important;
+        page-break-inside: auto !important;
+      }
+
+      tr,
+      td,
+      th {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        break-after: avoid-page !important;
+        page-break-after: avoid !important;
+      }
+    }
+  `;
+}
+
 export function QuoteEditorPage({ todoId, onBack }: Props) {
   const permissions = React.useMemo(getQuotePermissions, []);
   const [loading, setLoading] = React.useState(true);
@@ -132,6 +174,8 @@ export function QuoteEditorPage({ todoId, onBack }: Props) {
     const frameWindow = previewRef.current?.contentWindow;
     const frameDocument = previewRef.current?.contentDocument;
     if (!frameWindow || !frameDocument) return;
+
+    ensurePdfFlowStyle(frameDocument);
 
     const pdfTitle = buildPdfTitle(customer?.display_name, quoteDate);
     const previousPageTitle = document.title;
