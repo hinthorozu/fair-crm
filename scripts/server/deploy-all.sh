@@ -119,6 +119,49 @@ setup_python_project() {
   pip_install_requirements "$venv_dir" "$requirements"
 }
 
+repair_local_postgres_password_if_needed() {
+  local host_normalized="${PG_HOST,,}"
+  local container="${POSTGRES_DOCKER_CONTAINER:-kyrox-postgres-dev}"
+
+  if [[ "$PG_USER" != "postgres" ]]; then
+    return 1
+  fi
+  if [[ "$host_normalized" != "localhost" && "$host_normalized" != "127.0.0.1" && "$host_normalized" != "::1" ]]; then
+    return 1
+  fi
+  if [[ -z "${PG_PASS}" ]] || ! command -v docker >/dev/null 2>&1; then
+    return 1
+  fi
+  if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -Fxq "$container"; then
+    return 1
+  fi
+
+  local escaped_password="${PG_PASS//\'/\'\'}"
+  warn "PostgreSQL TCP authentication failed; attempting safe local password resync for role postgres in ${container} (password not shown)"
+  if ! docker exec "$container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+      -c "ALTER USER postgres WITH PASSWORD '${escaped_password}';" >/dev/null 2>&1; then
+    return 1
+  fi
+
+  log "Local PostgreSQL role password resynced from application DATABASE_URL (password not shown)"
+  return 0
+}
+
+verify_postgres_connectivity() {
+  step "PostgreSQL connectivity"
+  if PGPASSWORD="${PG_PASS}" psql -h "${PG_HOST}" -p "${PG_PORT}" -U "${PG_USER}" -d postgres -c "SELECT 1" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if repair_local_postgres_password_if_needed && \
+     PGPASSWORD="${PG_PASS}" psql -h "${PG_HOST}" -p "${PG_PORT}" -U "${PG_USER}" -d postgres -c "SELECT 1" >/dev/null 2>&1; then
+    log "PostgreSQL connectivity restored after local password resync"
+    return 0
+  fi
+
+  die "Cannot connect to PostgreSQL at ${PG_HOST}:${PG_PORT}; verify DATABASE_URL credentials and PostgreSQL role password"
+}
+
 run_core_dev_seed() {
   step "Seed Core dev identity for Fair CRM"
   local core_env="${KYROX_CORE_DIR}/backend/.env"
@@ -390,10 +433,7 @@ main() {
 
   ensure_postgres_container "$FAIR_CRM_DIR"
   resolve_postgres_connection "$FAIR_CRM_DIR" "$KYROX_CORE_DIR"
-
-  step "PostgreSQL connectivity"
-  PGPASSWORD="${PG_PASS}" psql -h "${PG_HOST}" -p "${PG_PORT}" -U "${PG_USER}" -d postgres -c "SELECT 1" >/dev/null \
-    || die "Cannot connect to PostgreSQL at ${PG_HOST}:${PG_PORT}"
+  verify_postgres_connectivity
 
   ensure_database "kyrox_core"
   ensure_database "fair_crm"
