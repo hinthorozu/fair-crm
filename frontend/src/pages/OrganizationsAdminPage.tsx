@@ -1,7 +1,5 @@
 import React from "react";
-import {
-  ApiError,
-} from "../api/client";
+import { ApiError } from "../api/client";
 import {
   createOrganization,
   deleteOrganization,
@@ -74,6 +72,7 @@ export function OrganizationsAdminPage() {
     setSlug("");
     setSlugTouched(false);
     setFormError(null);
+    setSuccess(null);
     setModal("create");
   };
 
@@ -83,6 +82,7 @@ export function OrganizationsAdminPage() {
     setSlug(organization.slug);
     setSlugTouched(true);
     setFormError(null);
+    setSuccess(null);
     setModal("edit");
   };
 
@@ -180,10 +180,10 @@ export function OrganizationsAdminPage() {
         sortable: false,
         render: (organization) => (
           <TableRowActions>
-            <button type="button" className="btn btn-sm secondary" onClick={() => openEdit(organization)}>
+            <button type="button" className="btn link" onClick={() => openEdit(organization)}>
               Düzenle
             </button>
-            <button type="button" className="btn btn-sm danger" onClick={() => setDeleteTarget(organization)}>
+            <button type="button" className="btn link danger" onClick={() => setDeleteTarget(organization)}>
               Sil
             </button>
           </TableRowActions>
@@ -198,15 +198,18 @@ export function OrganizationsAdminPage() {
       <PageHeader
         title="Organizasyonlar"
         subtitle="Kullanıcıların bağlanacağı organizasyonları yönetin."
-        actions={
-          <button type="button" className="btn primary" onClick={openCreate}>
-            Yeni Organizasyon
-          </button>
-        }
+        actions={[
+          {
+            id: "new-organization",
+            label: "+ Yeni Organizasyon",
+            variant: "primary",
+            onClick: openCreate,
+            disabled: loading || Boolean(error),
+          },
+        ]}
       />
 
       {success ? <Banner variant="success">{success}</Banner> : null}
-      {error ? <Banner variant="error">{error}</Banner> : null}
 
       <UniversalDataTable
         items={items}
