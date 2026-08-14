@@ -2,8 +2,9 @@
 """Seed KYROX Core identity data for Fair CRM development.
 
 Platform-level unrestricted access is represented only by
-``identity_users.is_super_admin``. The only organization role seeded here is
-``organization_admin``.
+``identity_users.is_super_admin`` and is never represented by a role
+assignment. The protected ``organization_admin`` role is kept available for
+non-Super-Admin organization members.
 """
 
 from __future__ import annotations
@@ -31,9 +32,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 from fair_crm_role_matrix import (  # noqa: E402
     ALL_FAIR_CRM_PERMISSIONS,
     DEV_ROLE_USERS,
-    ROLE_DEFINITIONS,
     ROLE_MATRIX_VERSION,
-    all_permissions_referenced,
     permissions_for_role,
     role_slugs,
 )
@@ -47,7 +46,7 @@ CORE_DB_URL = os.environ.get(
     "KYROX_CORE_DATABASE_URL",
     "postgresql://postgres:postgres@localhost:5432/kyrox_core",
 )
-MIN_CORE_MIGRATION_REVISION = "20260701_0031"
+MIN_CORE_MIGRATION_REVISION = "20260814_0047"
 DEV_SEED_ENV_FILE_HINT = "/etc/fair-crm/dev-seed.env"
 
 
@@ -125,69 +124,38 @@ def assert_core_migration_ready(cur) -> str:
     return current
 
 
-def load_permission_ids(cur, codes: frozenset[str]) -> dict[str, str]:
-    if not codes:
-        return {}
-    cur.execute(
-        "SELECT code, id FROM identity_permissions WHERE code = ANY(%s)",
-        (sorted(codes),),
-    )
-    found = {str(code): str(permission_id) for code, permission_id in cur.fetchall()}
-    missing = [code for code in sorted(codes) if code not in found]
-    if missing:
-        raise SeedError("Missing Core permissions: " + ", ".join(missing))
-    return found
-
-
-def remove_legacy_owner_role(cur) -> None:
-    """Owner is no longer an RBAC role; Super Admin lives on identity_users."""
-    cur.execute("DELETE FROM identity_roles WHERE slug = 'owner'")
-    if cur.rowcount:
-        print(f"Removed {cur.rowcount} legacy owner role row(s)")
-
-
-def ensure_role_templates(cur) -> dict[str, str]:
+def load_required_roles(cur) -> dict[str, str]:
+    """Load Core-owned roles without creating or modifying governance data."""
     role_ids: dict[str, str] = {}
-    now = _now()
     for slug in role_slugs():
-        definition = ROLE_DEFINITIONS[slug]
         cur.execute(
             """
-            SELECT id FROM identity_roles
-            WHERE scope = 'organization' AND slug = %s AND deleted_at IS NULL
+            SELECT id, role_kind, is_assignable, is_protected,
+                   auto_include_new_permissions
+            FROM identity_roles
+            WHERE scope = 'organization' AND slug = %s
+              AND organization_id IS NULL AND deleted_at IS NULL
             LIMIT 1
             """,
             (slug,),
         )
         row = cur.fetchone()
-        if row:
-            role_ids[slug] = str(row[0])
-            continue
-
-        role_id = str(uuid.uuid4())
-        cur.execute(
-            """
-            INSERT INTO identity_roles (
-                id, name, slug, scope, is_system, created_at, updated_at, deleted_at
-            ) VALUES (%s, %s, %s, 'organization', TRUE, %s, %s, NULL)
-            """,
-            (role_id, str(definition["name"]), slug, now, now),
-        )
-        role_ids[slug] = role_id
-        print(f"Created role template: {slug}")
+        if row is None:
+            raise SeedError(
+                f"Required Core role is missing: {slug}. Run Core migrations first."
+            )
+        if slug == "organization_admin" and tuple(row[1:]) != (
+            "protected_global",
+            True,
+            True,
+            True,
+        ):
+            raise SeedError(
+                "Core OrganizationAdmin governance flags are invalid; "
+                "run the current Core migrations instead of repairing them in Fair CRM seed."
+            )
+        role_ids[slug] = str(row[0])
     return role_ids
-
-
-def sync_role_permissions(cur, role_id: str, codes: frozenset[str], permission_ids: dict[str, str]) -> None:
-    for code in sorted(codes):
-        cur.execute(
-            """
-            INSERT INTO identity_role_permissions (role_id, permission_id)
-            VALUES (%s, %s)
-            ON CONFLICT DO NOTHING
-            """,
-            (role_id, permission_ids[code]),
-        )
 
 
 def ensure_dev_organization(cur) -> str:
@@ -305,45 +273,18 @@ def ensure_membership(cur, user_id: str, organization_id: str) -> None:
     )
 
 
-def ensure_organization_role(cur, organization_id: str, role_template_id: str) -> str:
-    cur.execute(
-        """
-        SELECT id FROM identity_organization_roles
-        WHERE organization_id = %s AND role_id = %s AND deleted_at IS NULL
-        LIMIT 1
-        """,
-        (organization_id, role_template_id),
-    )
-    row = cur.fetchone()
-    if row:
-        return str(row[0])
-
-    now = _now()
-    org_role_id = str(uuid.uuid4())
-    cur.execute(
-        """
-        INSERT INTO identity_organization_roles (
-            id, organization_id, role_id, status, is_default,
-            created_at, updated_at, deleted_at
-        ) VALUES (%s, %s, %s, 'active', FALSE, %s, %s, NULL)
-        """,
-        (org_role_id, organization_id, role_template_id, now, now),
-    )
-    return org_role_id
-
-
 def ensure_user_role_assignment(
-    cur, *, user_id: str, organization_id: str, organization_role_id: str
+    cur, *, user_id: str, organization_id: str, role_id: str
 ) -> None:
     cur.execute(
         """
         SELECT id FROM identity_user_roles
         WHERE user_id = %s AND organization_id = %s
-          AND organization_role_id = %s
+          AND role_id = %s
           AND status = 'active' AND revoked_at IS NULL
         LIMIT 1
         """,
-        (user_id, organization_id, organization_role_id),
+        (user_id, organization_id, role_id),
     )
     if cur.fetchone():
         return
@@ -352,7 +293,7 @@ def ensure_user_role_assignment(
     cur.execute(
         """
         INSERT INTO identity_user_roles (
-            id, user_id, organization_id, organization_role_id,
+            id, user_id, organization_id, role_id,
             status, assigned_at, revoked_at, assigned_by, created_at
         ) VALUES (%s, %s, %s, %s, 'active', %s, NULL, %s, %s)
         """,
@@ -360,12 +301,27 @@ def ensure_user_role_assignment(
             str(uuid.uuid4()),
             user_id,
             organization_id,
-            organization_role_id,
+            role_id,
             now,
             user_id,
             now,
         ),
     )
+
+
+def user_is_super_admin(cur, user_id: str) -> bool:
+    cur.execute(
+        "SELECT is_super_admin FROM identity_users WHERE id = %s LIMIT 1",
+        (user_id,),
+    )
+    row = cur.fetchone()
+    return bool(row and row[0])
+
+
+def remove_super_admin_role_assignments(cur, user_id: str) -> None:
+    cur.execute("DELETE FROM identity_user_roles WHERE user_id = %s", (user_id,))
+    if cur.rowcount:
+        print(f"Removed {cur.rowcount} invalid Super Admin role assignment(s)")
 
 
 def main() -> int:
@@ -389,42 +345,32 @@ def main() -> int:
     try:
         with conn.cursor() as cur:
             assert_core_migration_ready(cur)
-            remove_legacy_owner_role(cur)
-
-            referenced_permissions = all_permissions_referenced()
-            permission_ids = load_permission_ids(cur, referenced_permissions)
-            role_template_ids = ensure_role_templates(cur)
-
-            for slug, role_id in role_template_ids.items():
-                sync_role_permissions(
-                    cur,
-                    role_id,
-                    permissions_for_role(slug),
-                    permission_ids,
-                )
+            role_ids = load_required_roles(cur)
 
             org_id = ensure_dev_organization(cur)
-            organization_role_ids = {
-                slug: ensure_organization_role(cur, org_id, role_id)
-                for slug, role_id in role_template_ids.items()
-            }
 
             for role_slug, email, user_id in DEV_ROLE_USERS:
                 resolved_user_id = ensure_dev_user(
                     cur, user_id=user_id, email=email, password=dev_password
                 )
-                ensure_membership(cur, resolved_user_id, org_id)
-                ensure_user_role_assignment(
-                    cur,
-                    user_id=resolved_user_id,
-                    organization_id=org_id,
-                    organization_role_id=organization_role_ids[role_slug],
-                )
+                is_super_admin = user_is_super_admin(cur, resolved_user_id)
+                if is_super_admin:
+                    remove_super_admin_role_assignments(cur, resolved_user_id)
+                    assignment_source = "identity_users.is_super_admin"
+                else:
+                    ensure_membership(cur, resolved_user_id, org_id)
+                    ensure_user_role_assignment(
+                        cur,
+                        user_id=resolved_user_id,
+                        organization_id=org_id,
+                        role_id=role_ids[role_slug],
+                    )
+                    assignment_source = "identity_user_roles.role_id"
                 role_users_state[role_slug] = {
                     "email": email,
                     "user_id": resolved_user_id,
-                    "role_template_id": role_template_ids[role_slug],
-                    "organization_role_id": organization_role_ids[role_slug],
+                    "role_id": role_ids[role_slug],
+                    "assignment_source": assignment_source,
                     "permission_count": str(len(permissions_for_role(role_slug))),
                 }
 
@@ -444,7 +390,7 @@ def main() -> int:
         "password_fingerprint": password_fingerprint(dev_password),
         "user_id": admin_state["user_id"],
         "organization_id": org_id,
-        "organization_admin_role_id": admin_state["role_template_id"],
+        "organization_admin_role_id": admin_state["role_id"],
         "is_super_admin_source": "identity_users.is_super_admin",
         "fair_crm_permission_count": len(ALL_FAIR_CRM_PERMISSIONS),
         "role_matrix_version": ROLE_MATRIX_VERSION,
@@ -453,8 +399,8 @@ def main() -> int:
     STATE_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
     print(f"Wrote dev state to {STATE_FILE}")
     print(
-        "Seed complete — platform Super Admin is DB-controlled; "
-        "OrganizationAdmin is the only Fair CRM organization role."
+        "Seed complete — platform Super Admin is DB-controlled and has no role assignment; "
+        "OrganizationAdmin remains available to organization members."
     )
     return 0
 

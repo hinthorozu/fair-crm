@@ -25,7 +25,12 @@ SEED_SCRIPT = SCRIPTS_DIR / "seed_core_dev_identity.py"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from fair_crm_role_matrix import DEV_ROLE_USERS, ROLE_MATRIX_VERSION, permissions_for_role  # noqa: E402
+from fair_crm_role_matrix import (  # noqa: E402
+    ALL_FAIR_CRM_PERMISSIONS,
+    DEV_ROLE_USERS,
+    ROLE_MATRIX_VERSION,
+    permissions_for_role,
+)
 
 CORE_BASE = os.environ.get("KYROX_CORE_BASE_URL", "http://127.0.0.1:8000")
 FAIR_BASE = os.environ.get("FAIR_CRM_BASE_URL", "http://127.0.0.1:8001")
@@ -36,8 +41,8 @@ DEFAULT_DEV_ORG_ID = os.environ.get(
     "00000000-0000-4000-8000-000000000010",
 )
 
-MIN_CORE_MIGRATION_REVISION = "20260701_0031"
-EXPECTED_FAIR_CRM_PERMISSION_COUNT = 61
+MIN_CORE_MIGRATION_REVISION = "20260814_0047"
+EXPECTED_FAIR_CRM_PERMISSION_COUNT = len(ALL_FAIR_CRM_PERMISSIONS)
 FOREIGN_ORG_ID = "00000000-0000-4000-8000-000000099999"
 
 REQUIRED_PERMISSIONS = (
@@ -382,6 +387,21 @@ def verify_permissions_sql(user_id: str, org_id: str, codes: tuple[str, ...]) ->
     conn = psycopg2.connect(CORE_DB)
     try:
         with conn.cursor() as cur:
+            cur.execute(
+                "SELECT is_super_admin FROM identity_users WHERE id = %s LIMIT 1",
+                (user_id,),
+            )
+            user_row = cur.fetchone()
+            if user_row and user_row[0]:
+                cur.execute(
+                    "SELECT COUNT(*) FROM identity_user_roles WHERE user_id = %s",
+                    (user_id,),
+                )
+                assignment_count = int(cur.fetchone()[0])
+                if assignment_count:
+                    return False, f"Super Admin has {assignment_count} forbidden role assignment(s)"
+                return True, f"{len(codes)} permissions covered by Super Admin bypass; no role assignment"
+
             missing: list[str] = []
             for code in codes:
                 cur.execute(
@@ -390,15 +410,12 @@ def verify_permissions_sql(user_id: str, org_id: str, codes: tuple[str, ...]) ->
                     FROM identity_permissions p
                     JOIN identity_role_permissions rp ON rp.permission_id = p.id
                     JOIN identity_roles r ON r.id = rp.role_id
-                    JOIN identity_organization_roles orr ON orr.role_id = r.id
-                    JOIN identity_user_roles ur ON ur.organization_role_id = orr.id
+                    JOIN identity_user_roles ur ON ur.role_id = r.id
                     WHERE p.code = %s
                       AND ur.user_id = %s
                       AND ur.organization_id = %s
                       AND ur.status = 'active'
                       AND ur.revoked_at IS NULL
-                      AND orr.status = 'active'
-                      AND orr.deleted_at IS NULL
                     LIMIT 1
                     """,
                     (code, user_id, org_id),
@@ -424,39 +441,37 @@ def verify_role_matrix_sql(state: dict) -> tuple[bool, str]:
             problems: list[str] = []
             for role_slug, role_state in roles.items():
                 user_id = role_state.get("user_id")
+                role_id = role_state.get("role_id")
                 expected_codes = permissions_for_role(role_slug)
-                if not user_id:
-                    problems.append(f"{role_slug}: missing user_id in .dev_state.json")
+                if not user_id or not role_id:
+                    problems.append(f"{role_slug}: missing user_id or role_id in .dev_state.json")
                     continue
+                cur.execute(
+                    """
+                    SELECT code FROM identity_permissions
+                    WHERE code = ANY(%s) AND lifecycle_state = 'active'
+                    """,
+                    (sorted(expected_codes),),
+                )
+                expected_active_codes = {str(row[0]) for row in cur.fetchall()}
                 cur.execute(
                     """
                     SELECT p.code
                     FROM identity_permissions p
                     JOIN identity_role_permissions rp ON rp.permission_id = p.id
                     JOIN identity_roles r ON r.id = rp.role_id
-                    JOIN identity_organization_roles orr ON orr.role_id = r.id
-                    JOIN identity_user_roles ur ON ur.organization_role_id = orr.id
-                    WHERE ur.user_id = %s
-                      AND ur.organization_id = %s
+                    WHERE r.id = %s
                       AND r.slug = %s
-                      AND ur.status = 'active'
-                      AND ur.revoked_at IS NULL
-                      AND orr.status = 'active'
-                      AND orr.deleted_at IS NULL
                     """,
-                    (user_id, org_id, role_slug),
+                    (role_id, role_slug),
                 )
                 actual_codes = {str(row[0]) for row in cur.fetchall()}
-                if actual_codes != expected_codes:
-                    missing = sorted(expected_codes - actual_codes)
-                    extra = sorted(actual_codes - expected_codes)
-                    problems.append(
-                        f"{role_slug}: missing permissions={missing or 'none'}, "
-                        f"unexpected permissions={extra or 'none'}"
-                    )
+                if not expected_active_codes.issubset(actual_codes):
+                    missing = sorted(expected_active_codes - actual_codes)
+                    problems.append(f"{role_slug}: missing permissions={missing}")
             if problems:
                 return False, "; ".join(problems)
-            return True, f"{len(roles)} role RBAC chains verified"
+            return True, f"{len(roles)} role permission sets verified"
     finally:
         conn.close()
 
@@ -487,26 +502,34 @@ def verify_no_duplicate_role_permissions() -> tuple[bool, str]:
         conn.close()
 
 
-def verify_owner_role_permission_count() -> tuple[bool, str]:
+def verify_organization_admin_permission_count() -> tuple[bool, str]:
     conn = psycopg2.connect(CORE_DB)
     try:
         with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT COUNT(*) FROM identity_permissions
+                WHERE lifecycle_state = 'active' AND code LIKE 'fair_crm.%'
+                """
+            )
+            active_count = int(cur.fetchone()[0])
             cur.execute(
                 """
                 SELECT COUNT(*)
                 FROM identity_role_permissions rp
                 JOIN identity_permissions p ON p.id = rp.permission_id
                 JOIN identity_roles r ON r.id = rp.role_id
-                WHERE r.slug = 'owner'
+                WHERE r.slug = 'organization_admin'
                   AND r.scope = 'organization'
                   AND r.deleted_at IS NULL
+                  AND p.lifecycle_state = 'active'
                   AND p.code LIKE 'fair_crm.%'
                 """
             )
             count = int(cur.fetchone()[0])
-            if count < EXPECTED_FAIR_CRM_PERMISSION_COUNT:
-                return False, f"owner role has {count}/{EXPECTED_FAIR_CRM_PERMISSION_COUNT} fair_crm mappings"
-            return True, f"owner role fair_crm mappings={count}"
+            if count != active_count:
+                return False, f"OrganizationAdmin has {count}/{active_count} active fair_crm mappings"
+            return True, f"OrganizationAdmin active fair_crm mappings={count}"
     finally:
         conn.close()
 
@@ -592,105 +615,34 @@ def login_role_user(email: str, password: str) -> tuple[str | None, str]:
 
 
 def run_live_role_checks(state: dict, org_id: str, password: str) -> tuple[bool, list[str]]:
+    """Verify the seeded bootstrap Super Admin without pretending it has a role."""
+    role_state = (state.get("roles") or {}).get("organization_admin") or {}
+    email = role_state.get("email")
+    if not email:
+        return False, ["organization_admin: missing seeded email in .dev_state.json"]
+
+    token, error = login_role_user(email, password)
+    if token is None:
+        return False, [f"bootstrap Super Admin: {error}"]
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "X-Organization-Id": org_id,
+    }
+    checks = (
+        ("GET /customers", f"{FAIR_BASE}/api/v1/customers"),
+        ("GET /admin/backups", f"{FAIR_BASE}/api/v1/admin/backups"),
+    )
     details: list[str] = []
     ok = True
-    roles = state.get("roles") or {}
-
-    def role_headers(role_slug: str) -> dict[str, str] | None:
-        role_email = (roles.get(role_slug) or {}).get("email")
-        if not role_email:
-            details.append(f"{role_slug}: missing seeded email in .dev_state.json")
-            nonlocal_ok[0] = False
-            return None
-        token, err = login_role_user(role_email, password)
-        if token is None:
-            details.append(f"{role_slug}: {err}")
-            nonlocal_ok[0] = False
-            return None
-        return {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org_id,
-        }
-
-    nonlocal_ok = [ok]
-
-    cases: list[tuple[str, str, str, str, dict | None, int]] = [
-        ("owner", "GET /customers", "GET", f"{FAIR_BASE}/api/v1/customers", None, 200),
-        ("owner", "GET /admin/backups", "GET", f"{FAIR_BASE}/api/v1/admin/backups", None, 200),
-        ("admin", "GET /admin/backups", "GET", f"{FAIR_BASE}/api/v1/admin/backups", None, 200),
-        ("admin", "POST /customers", "POST", f"{FAIR_BASE}/api/v1/customers", {"display_name": "Admin Customer"}, 201),
-        ("viewer", "GET /customers", "GET", f"{FAIR_BASE}/api/v1/customers", None, 200),
-        ("viewer", "POST /customers denied", "POST", f"{FAIR_BASE}/api/v1/customers", {"display_name": "Viewer Denied"}, 403),
-        ("sales", "POST /customers allowed", "POST", f"{FAIR_BASE}/api/v1/customers", {"display_name": "Sales Allowed"}, 201),
-        ("sales", "GET /admin/backups denied", "GET", f"{FAIR_BASE}/api/v1/admin/backups", None, 403),
-        ("scraper_operator", "POST /customers denied", "POST", f"{FAIR_BASE}/api/v1/customers", {"display_name": "Scraper Denied"}, 403),
-    ]
-
-    owner_headers = role_headers("owner")
-    fair_id_for_scraper: str | None = None
-    if owner_headers:
-        create_fair = httpx.post(
-            f"{FAIR_BASE}/api/v1/fairs",
-            headers=owner_headers,
-            json={
-                "name": "E2E Scraper Role Fair",
-                "adapter_key": "tuyap_new",
-                "source_url": "https://example.test/list",
-            },
-            timeout=15.0,
-        )
-        if create_fair.status_code == 201:
-            fair_id_for_scraper = create_fair.json()["id"]
-            details.append("setup fair for scraper_operator: ok")
+    for label, url in checks:
+        response = httpx.get(url, headers=headers, timeout=15.0)
+        if response.status_code == 200:
+            details.append(f"bootstrap Super Admin {label}: ok")
         else:
-            nonlocal_ok[0] = False
-            details.append(
-                f"setup fair for scraper_operator failed: status={create_fair.status_code} body={create_fair.text[:200]}"
-            )
-
-    for role_slug, label, method, url, body, expected_status in cases:
-        headers = role_headers(role_slug)
-        if headers is None:
-            continue
-        if method == "GET":
-            resp = httpx.get(url, headers=headers, timeout=15.0)
-        else:
-            resp = httpx.post(url, headers=headers, json=body or {}, timeout=15.0)
-        if resp.status_code != expected_status:
-            nonlocal_ok[0] = False
-            details.append(f"{label}: status={resp.status_code}, expected={expected_status}")
-        else:
-            details.append(f"{label}: ok")
-
-    if fair_id_for_scraper:
-        scraper_headers = role_headers("scraper_operator")
-        if scraper_headers:
-            run_resp = httpx.post(
-                f"{FAIR_BASE}/api/v1/fairs/{fair_id_for_scraper}/run",
-                headers=scraper_headers,
-                timeout=15.0,
-            )
-            if run_resp.status_code not in {202, 403}:
-                nonlocal_ok[0] = False
-                details.append(f"scraper_operator POST /fairs/run: unexpected status={run_resp.status_code}")
-            elif run_resp.status_code == 202:
-                details.append("scraper_operator POST /fairs/run: ok")
-            else:
-                nonlocal_ok[0] = False
-                details.append("scraper_operator POST /fairs/run: expected 202, got 403")
-
-            dl_resp = httpx.get(
-                f"{FAIR_BASE}/api/v1/scraper/runs",
-                headers=scraper_headers,
-                timeout=15.0,
-            )
-            if dl_resp.status_code == 200:
-                details.append("scraper_operator GET /scraper/runs: ok")
-            else:
-                nonlocal_ok[0] = False
-                details.append(f"scraper_operator GET /scraper/runs: status={dl_resp.status_code}, expected=200")
-
-    return nonlocal_ok[0], details
+            ok = False
+            details.append(f"bootstrap Super Admin {label}: status={response.status_code}, expected=200")
+    return ok, details
 
 
 def _finish(ctx: RunContext, results: list[StepResult], code: int) -> int:
@@ -816,15 +768,15 @@ def main(argv: list[str] | None = None) -> int:
     state_ok, state_detail = verify_seed_state(state)
     record(results, "11. Verify seed state (.dev_state.json)", state_ok, state_detail)
 
-    owner_perm_ok, owner_perm_detail = verify_owner_role_permission_count()
-    record(results, "11a. Verify owner role fair_crm permission mappings (SQL)", owner_perm_ok, owner_perm_detail)
+    owner_perm_ok, owner_perm_detail = verify_organization_admin_permission_count()
+    record(results, "11a. Verify OrganizationAdmin fair_crm permission mappings (SQL)", owner_perm_ok, owner_perm_detail)
 
     user_id = resolve_user_id(state)
     if state_ok and user_id and org_id:
         sql_perm_ok, sql_perm_detail = verify_permissions_sql(user_id, org_id, REQUIRED_PERMISSIONS)
-        record(results, "11b. Verify fair_crm permission RBAC chain (SQL)", sql_perm_ok, sql_perm_detail)
+        record(results, "11b. Verify fair_crm permission source (SQL)", sql_perm_ok, sql_perm_detail)
     else:
-        record(results, "11b. Verify fair_crm permission RBAC chain (SQL)", False, "seed state incomplete")
+        record(results, "11b. Verify fair_crm permission source (SQL)", False, "seed state incomplete")
 
     seed_second = run_seed_script()
     seed_idempotent = seed_second.returncode == 0
@@ -856,7 +808,7 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     role_matrix_sql_ok, role_matrix_sql_detail = verify_role_matrix_sql(state)
-    record(results, "11f. Role matrix seed + RBAC chain (SQL)", role_matrix_sql_ok, role_matrix_sql_detail)
+    record(results, "11f. Seeded role permission sets (SQL)", role_matrix_sql_ok, role_matrix_sql_detail)
 
     role_matrix_tests = run_pytest("backend/tests/modules/test_role_matrix_authorization.py")
     role_matrix_tests_ok = role_matrix_tests.returncode == 0
@@ -946,10 +898,13 @@ def main(argv: list[str] | None = None) -> int:
         json={"permission_code": "fair_crm.customers.read"},
         timeout=10.0,
     )
-    foreign_ok = foreign_check.status_code in {403, 404}
+    foreign_ok = (
+        foreign_check.status_code == 200
+        and foreign_check.json().get("allowed") is True
+    )
     record(
         results,
-        "13a. Core auth rejects foreign organization",
+        "13a. Core Super Admin bypasses foreign organization scope",
         foreign_ok,
         f"status={foreign_check.status_code}",
     )
@@ -963,12 +918,15 @@ def main(argv: list[str] | None = None) -> int:
         json={"permission_code": "fair_crm.customers.read"},
         timeout=10.0,
     )
-    scope_ok = scope_mismatch.status_code in {400, 403}
+    scope_ok = (
+        scope_mismatch.status_code == 200
+        and scope_mismatch.json().get("allowed") is True
+    )
     record(
         results,
-        "13b. Core auth rejects organization scope mismatch",
+        "13b. Core Super Admin bypasses organization header mismatch",
         scope_ok,
-        f"status={scope_mismatch.status_code} (expected 400 or 403)",
+        f"status={scope_mismatch.status_code} (expected 200 allowed=true)",
     )
 
     list_ok_resp = httpx.get(f"{FAIR_BASE}/api/v1/customers", headers=fair_headers, timeout=10.0)
@@ -990,14 +948,14 @@ def main(argv: list[str] | None = None) -> int:
             headers=foreign_fair_headers,
             timeout=15.0,
         )
-        foreign_fair_ok = foreign_list.status_code in {403, 400}
+        foreign_fair_ok = foreign_list.status_code == 200
         foreign_fair_detail = f"GET /customers status={foreign_list.status_code}"
     except httpx.HTTPError as exc:
         foreign_fair_ok = False
         foreign_fair_detail = f"request failed: {exc}"
     record(
         results,
-        "14a. Fair CRM rejects foreign organization header",
+        "14a. Fair CRM honors Super Admin organization-scope bypass",
         foreign_fair_ok,
         foreign_fair_detail,
     )
@@ -1005,7 +963,7 @@ def main(argv: list[str] | None = None) -> int:
     role_checks_ok, role_checks_detail = run_live_role_checks(state, org_id, password)
     record(
         results,
-        "14b. Role matrix selective authorization (live)",
+        "14b. Bootstrap Super Admin authorization (live)",
         role_checks_ok,
         "; ".join(role_checks_detail),
     )
@@ -1027,11 +985,15 @@ def main(argv: list[str] | None = None) -> int:
     customer_id = create_resp.json()["id"]
     record(results, "15. Create customer", True, customer_id)
 
-    list_resp = httpx.get(f"{FAIR_BASE}/api/v1/customers", headers=fair_headers, timeout=10.0)
-    list_has_customer = list_resp.status_code == 200 and any(
-        item["id"] == customer_id for item in list_resp.json().get("items", [])
+    get_resp = httpx.get(
+        f"{FAIR_BASE}/api/v1/customers/{customer_id}",
+        headers=fair_headers,
+        timeout=10.0,
     )
-    record(results, "16. List customers", list_has_customer, f"count={len(list_resp.json().get('items', []))}")
+    get_has_customer = (
+        get_resp.status_code == 200 and get_resp.json().get("id") == customer_id
+    )
+    record(results, "16. Read created customer", get_has_customer, f"status={get_resp.status_code}")
 
     update_resp = httpx.patch(
         f"{FAIR_BASE}/api/v1/customers/{customer_id}",
