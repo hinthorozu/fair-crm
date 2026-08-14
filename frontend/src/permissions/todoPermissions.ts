@@ -1,4 +1,4 @@
-import { config } from "../config";
+import { getGrantedCorePermissions } from "./corePermissions";
 
 export const TODO_PERMISSION_READ = "fair_crm.todos.read";
 export const TODO_PERMISSION_CREATE = "fair_crm.todos.create";
@@ -24,27 +24,8 @@ const ACTION_TO_PERMISSION: Record<TodoPermissionAction, string> = {
   delete: TODO_PERMISSION_DELETE,
 };
 
-function parseGrantedPermissions(raw: string | undefined): Set<string> | null {
-  if (!raw?.trim()) {
-    return null;
-  }
-  return new Set(
-    raw
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean),
-  );
-}
-
 export function getGrantedTodoPermissions(): Set<string> {
-  const configured = parseGrantedPermissions(import.meta.env.VITE_GRANTED_PERMISSIONS);
-  if (configured) {
-    return configured;
-  }
-  if (config.devBypassEnabled) {
-    return new Set(TODO_PERMISSIONS_ALL);
-  }
-  return new Set(TODO_PERMISSIONS_ALL);
+  return getGrantedCorePermissions();
 }
 
 export function canPerformTodoAction(
