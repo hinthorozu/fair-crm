@@ -1,14 +1,15 @@
 import React from "react";
 
 import { ApiError } from "../api/client";
-import { listOrganizations, type Organization } from "../api/organizations";
 import {
   createManagedUser,
   deleteManagedUser,
+  getUserManagementContext,
   listAssignableRoles,
   listManagedUsers,
   updateManagedUser,
   type AssignableRole,
+  type ManagedOrganization,
   type ManagedUser,
 } from "../api/userManagement";
 import { NavIconEye, NavIconEyeOff } from "../components/layout/NavIcons";
@@ -41,8 +42,9 @@ const EMPTY_FORM: UserFormState = {
 };
 
 export function UsersAdminPage() {
-  const [organizations, setOrganizations] = React.useState<Organization[]>([]);
+  const [organizations, setOrganizations] = React.useState<ManagedOrganization[]>([]);
   const [organizationId, setOrganizationId] = React.useState("");
+  const [actorIsSuperAdmin, setActorIsSuperAdmin] = React.useState(false);
   const [users, setUsers] = React.useState<ManagedUser[]>([]);
   const [roles, setRoles] = React.useState<AssignableRole[]>([]);
   const [canManageSuperAdmin, setCanManageSuperAdmin] = React.useState(false);
@@ -59,17 +61,18 @@ export function UsersAdminPage() {
 
   React.useEffect(() => {
     let active = true;
-    const loadOrganizations = async () => {
+    const loadContext = async () => {
       try {
-        const items = (await listOrganizations()).filter((item) => item.status === "active");
+        const context = await getUserManagementContext();
         if (!active) return;
-        setOrganizations(items);
-        if (items.length > 0) setOrganizationId((current) => current || items[0].id);
+        setActorIsSuperAdmin(context.is_super_admin);
+        setOrganizations(context.organizations);
+        setOrganizationId(context.organizations[0]?.id ?? "");
       } catch (err) {
-        if (active) setError(err instanceof ApiError ? err.message : "Organizasyonlar yüklenemedi.");
+        if (active) setError(err instanceof ApiError ? err.message : "Organizasyon bilgisi yüklenemedi.");
       }
     };
-    void loadOrganizations();
+    void loadContext();
     return () => {
       active = false;
     };
@@ -200,29 +203,11 @@ export function UsersAdminPage() {
 
   const columns = React.useMemo<UniversalDataTableColumn<ManagedUser>[]>(
     () => [
-      {
-        key: "email",
-        title: "E-posta",
-        render: (user) => <strong>{user.email}</strong>,
-      },
-      {
-        key: "role",
-        title: "Rol",
-        render: (user) => user.role?.name ?? "—",
-      },
-      {
-        key: "status",
-        title: "Durum",
-        render: (user) => (user.status === "active" ? "Aktif" : "Pasif"),
-      },
+      { key: "email", title: "E-posta", render: (user) => <strong>{user.email}</strong> },
+      { key: "role", title: "Rol", render: (user) => user.role?.name ?? "—" },
+      { key: "status", title: "Durum", render: (user) => (user.status === "active" ? "Aktif" : "Pasif") },
       ...(canManageSuperAdmin
-        ? [
-            {
-              key: "super-admin",
-              title: "Super Admin",
-              render: (user: ManagedUser) => (user.is_super_admin ? "Evet" : "Hayır"),
-            } as UniversalDataTableColumn<ManagedUser>,
-          ]
+        ? [{ key: "super-admin", title: "Super Admin", render: (user: ManagedUser) => (user.is_super_admin ? "Evet" : "Hayır") } as UniversalDataTableColumn<ManagedUser>]
         : []),
       {
         key: "actions",
@@ -231,12 +216,8 @@ export function UsersAdminPage() {
         className: "col-actions",
         render: (user) => (
           <TableRowActions>
-            <button type="button" className="btn link" onClick={() => openEdit(user)}>
-              Düzenle
-            </button>
-            <button type="button" className="btn link danger" onClick={() => setDeleteTarget(user)}>
-              Sil
-            </button>
+            <button type="button" className="btn link" onClick={() => openEdit(user)}>Düzenle</button>
+            <button type="button" className="btn link danger" onClick={() => setDeleteTarget(user)}>Sil</button>
           </TableRowActions>
         ),
       },
@@ -245,6 +226,7 @@ export function UsersAdminPage() {
   );
 
   const formOpen = editing !== undefined;
+  const selectedOrganization = organizations.find((item) => item.id === organizationId) ?? null;
 
   return (
     <PageShell>
@@ -261,21 +243,22 @@ export function UsersAdminPage() {
       {error ? <Banner variant="error">{error}</Banner> : null}
 
       <div className="card" style={{ marginBottom: 16, padding: 16 }}>
-        <label className="form-field">
-          <span className="form-label">Organizasyon</span>
-          <select
-            className="input"
-            value={organizationId}
-            onChange={(event) => setOrganizationId(event.target.value)}
-          >
-            <option value="">Organizasyon seçin</option>
-            {organizations.map((organization) => (
-              <option key={organization.id} value={organization.id}>
-                {organization.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        {actorIsSuperAdmin ? (
+          <label className="form-field">
+            <span className="form-label">Organizasyon</span>
+            <select className="input" value={organizationId} onChange={(event) => setOrganizationId(event.target.value)}>
+              <option value="">Organizasyon seçin</option>
+              {organizations.map((organization) => (
+                <option key={organization.id} value={organization.id}>{organization.name}</option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <div className="form-field">
+            <span className="form-label">Organizasyon</span>
+            <strong>{selectedOrganization?.name ?? "Organizasyon bulunamadı"}</strong>
+          </div>
+        )}
       </div>
 
       <UniversalDataTable
@@ -285,145 +268,61 @@ export function UsersAdminPage() {
         loading={loading}
         error={error}
         onRetry={() => void loadUsers()}
-        emptyState={
-          <EmptyState
-            title="Kullanıcı bulunamadı"
-            actionLabel={roles.length ? "Yeni Kullanıcı" : undefined}
-            onAction={roles.length ? openCreate : undefined}
-          />
-        }
+        emptyState={<EmptyState title="Kullanıcı bulunamadı" actionLabel={roles.length ? "Yeni Kullanıcı" : undefined} onAction={roles.length ? openCreate : undefined} />}
       />
 
       {formOpen ? (
-        <FormModal
-          title={editing ? "Kullanıcıyı Düzenle" : "Yeni Kullanıcı"}
-          onClose={closeForm}
-          formWidth="standard"
-        >
+        <FormModal title={editing ? "Kullanıcıyı Düzenle" : "Yeni Kullanıcı"} onClose={closeForm} formWidth="standard">
           <form onSubmit={submit} className="crm-form-stack">
             {formError ? <Banner variant="error">{formError}</Banner> : null}
-
+            <div className="form-field">
+              <span className="form-label">Organizasyon</span>
+              <strong>{selectedOrganization?.name ?? "—"}</strong>
+            </div>
             <label className="form-field">
               <span className="form-label">E-posta *</span>
-              <input
-                className="input"
-                type="email"
-                value={form.email}
-                onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-                required
-                disabled={saving}
-              />
+              <input className="input" type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} required disabled={saving} />
             </label>
-
             <label className="form-field">
               <span className="form-label">Şifre{editing ? "" : " *"}</span>
               <span style={{ position: "relative", display: "block" }}>
-                <input
-                  className="input"
-                  type={showPassword ? "text" : "password"}
-                  value={form.password}
-                  onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-                  required={!editing}
-                  disabled={saving}
-                  autoComplete="new-password"
-                  style={{ width: "100%", paddingRight: 44 }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((current) => !current)}
-                  disabled={saving}
-                  aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
-                  title={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
-                  style={{
-                    position: "absolute",
-                    right: 10,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: 0,
-                    border: 0,
-                    background: "transparent",
-                    color: "inherit",
-                    cursor: "pointer",
-                  }}
-                >
+                <input className="input" type={showPassword ? "text" : "password"} value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} required={!editing} disabled={saving} autoComplete="new-password" style={{ width: "100%", paddingRight: 44 }} />
+                <button type="button" onClick={() => setShowPassword((current) => !current)} disabled={saving} aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"} title={showPassword ? "Şifreyi gizle" : "Şifreyi göster"} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 0, border: 0, background: "transparent", color: "inherit", cursor: "pointer" }}>
                   {showPassword ? <NavIconEyeOff /> : <NavIconEye />}
                 </button>
               </span>
               {editing ? <span className="form-hint">Değiştirmeyecekseniz boş bırakın.</span> : null}
             </label>
-
             <label className="form-field">
               <span className="form-label">Rol *</span>
-              <select
-                className="input"
-                value={form.roleId}
-                onChange={(event) => setForm((current) => ({ ...current, roleId: event.target.value }))}
-                required
-                disabled={saving}
-              >
+              <select className="input" value={form.roleId} onChange={(event) => setForm((current) => ({ ...current, roleId: event.target.value }))} required disabled={saving}>
                 <option value="">Rol seçin</option>
-                {roles.map((role) => (
-                  <option key={role.id} value={role.id}>
-                    {role.name}
-                  </option>
-                ))}
+                {roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
               </select>
             </label>
-
             <label className="form-field">
               <span className="form-label">Durum</span>
-              <select
-                className="input"
-                value={form.status}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, status: event.target.value as "active" | "inactive" }))
-                }
-                disabled={saving}
-              >
+              <select className="input" value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as "active" | "inactive" }))} disabled={saving}>
                 <option value="active">Aktif</option>
                 <option value="inactive">Pasif</option>
               </select>
             </label>
-
             {canManageSuperAdmin ? (
               <label className="form-field">
                 <span className="form-label">Super Admin</span>
-                <input
-                  type="checkbox"
-                  checked={form.isSuperAdmin}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, isSuperAdmin: event.target.checked }))
-                  }
-                  disabled={saving}
-                />
+                <input type="checkbox" checked={form.isSuperAdmin} onChange={(event) => setForm((current) => ({ ...current, isSuperAdmin: event.target.checked }))} disabled={saving} />
               </label>
             ) : null}
-
             <div className="form-actions">
-              <button type="button" className="btn secondary" onClick={closeForm} disabled={saving}>
-                Vazgeç
-              </button>
-              <button type="submit" className="btn primary" disabled={saving}>
-                {saving ? "Kaydediliyor…" : "Kaydet"}
-              </button>
+              <button type="button" className="btn secondary" onClick={closeForm} disabled={saving}>Vazgeç</button>
+              <button type="submit" className="btn primary" disabled={saving}>{saving ? "Kaydediliyor…" : "Kaydet"}</button>
             </div>
           </form>
         </FormModal>
       ) : null}
 
       {deleteTarget ? (
-        <ConfirmDialog
-          title="Kullanıcıyı Sil"
-          message={`${deleteTarget.email} kullanıcısı bu organizasyondan kaldırılacak.`}
-          confirmLabel="Sil"
-          variant="danger"
-          loading={deleting}
-          onCancel={() => setDeleteTarget(null)}
-          onConfirm={() => void confirmDelete()}
-        />
+        <ConfirmDialog title="Kullanıcıyı Sil" message={`${deleteTarget.email} kullanıcısı bu organizasyondan kaldırılacak.`} confirmLabel="Sil" variant="danger" loading={deleting} onCancel={() => setDeleteTarget(null)} onConfirm={() => void confirmDelete()} />
       ) : null}
     </PageShell>
   );
