@@ -23,12 +23,16 @@ interface AuthContextValue {
 const AuthContext = React.createContext<AuthContextValue | null>(null);
 
 async function withCorePermissions(session: AuthSession): Promise<AuthSession> {
-  const permissions = await fetchGrantedCorePermissions(
-    config.coreBaseUrl,
-    session.accessToken,
-    session.organizationId,
-  );
-  return { ...session, permissions };
+  try {
+    const permissions = await fetchGrantedCorePermissions(
+      config.coreBaseUrl,
+      session.accessToken,
+      session.organizationId,
+    );
+    return { ...session, permissions };
+  } catch {
+    return { ...session, permissions: [] };
+  }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -77,14 +81,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const legacy = consumeLegacyRefreshTokenFromStorage();
       const current = readSession();
       if (current?.accessToken && !legacy) {
-        try {
-          const refreshed = await withCorePermissions(current);
-          if (cancelled) return;
-          saveSession(refreshed);
-          setSession(refreshed);
-        } catch {
-          if (!cancelled) setSession(current);
-        }
+        const refreshed = await withCorePermissions(current);
+        if (cancelled) return;
+        saveSession(refreshed);
+        setSession(refreshed);
         return;
       }
       if (!current?.accessToken && !legacy) {
