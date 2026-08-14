@@ -101,6 +101,8 @@ type AppRoute =
   | "/data-integration/runs/:runId"
   | "/data-integration/scraper-test"
   | "/admin/system/organizations"
+  | "/admin/system/users"
+  | "/admin/system/roles"
   | "/admin/system/backups"
   | "/admin/email-accounts"
   | "/admin/smtp-operations/templates"
@@ -177,6 +179,12 @@ function parseRoute(location: string): ParsedRoute {
       pathname.startsWith("/admin/system/organizations/")
     ) {
       return { route: "/admin/system/organizations" };
+    }
+    if (pathname === "/admin/system/users" || pathname.startsWith("/admin/system/users/")) {
+      return { route: "/admin/system/users" };
+    }
+    if (pathname === "/admin/system/roles" || pathname.startsWith("/admin/system/roles/")) {
+      return { route: "/admin/system/roles" };
     }
     if (pathname === "/admin/system/backups" || pathname.startsWith("/admin/system/backups")) {
       return { route: "/admin/system/backups" };
@@ -293,6 +301,8 @@ function isDataIntegrationRoute(route: AppRoute): boolean { return route.startsW
 function isAdminRoute(route: AppRoute): boolean { return route.startsWith("/admin"); }
 function adminSection(route: AppRoute): string {
   if (route.includes("/organizations")) return "organizations";
+  if (route.includes("/users")) return "users";
+  if (route.includes("/roles")) return "roles";
   if (route.includes("/operation-capabilities")) return "operation-capabilities";
   if (route.includes("/smtp-operations/quote-templates")) return "quote-templates";
   if (route.includes("/smtp-operations/template-contents")) return "template-contents";

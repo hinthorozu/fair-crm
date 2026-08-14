@@ -4,6 +4,7 @@ import { organizationLabels } from "../../labels/organizationLabels";
 import { uiLabels } from "../../labels/uiLabels";
 import { usePersistedCollapsed } from "../../hooks/usePersistedCollapsed";
 import { UsersAdminPage } from "../../pages/UsersAdminPage";
+import { RoleManagementPage } from "../../pages/RoleManagementPage";
 import { AdminNavIcon, NavIconComingSoon } from "../layout/NavIcons";
 import { NavLink } from "../layout/NavLink";
 import { SidebarCollapseButton } from "../layout/SidebarCollapseButton";
@@ -30,8 +31,9 @@ export function AdminSystemLayout({
   const { collapsed: subnavCollapsed, toggleCollapsed: toggleSubnavCollapsed } =
     usePersistedCollapsed(ADMIN_SUBNAV_STORAGE_KEY);
   const usersRouteActive = window.location.pathname.replace(/\/$/, "") === "/admin/system/users";
-  const resolvedActiveSection = usersRouteActive ? "users" : activeSection;
-  const resolvedChildren = usersRouteActive ? <UsersAdminPage /> : children;
+  const rolesRouteActive = window.location.pathname.replace(/\/$/, "") === "/admin/system/roles";
+  const resolvedActiveSection = usersRouteActive ? "users" : rolesRouteActive ? "roles" : activeSection;
+  const resolvedChildren = usersRouteActive ? <UsersAdminPage /> : rolesRouteActive ? <RoleManagementPage /> : children;
 
   const systemItems = [
     {
@@ -43,6 +45,11 @@ export function AdminSystemLayout({
       id: "users",
       label: "Kullanıcılar",
       path: "/admin/system/users",
+    },
+    {
+      id: "roles",
+      label: "Roller ve Yetkiler",
+      path: "/admin/system/roles",
     },
     {
       id: "backups",

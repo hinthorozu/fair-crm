@@ -120,7 +120,7 @@ export function UsersAdminPage() {
     event.preventDefault();
     if (!organizationId) { setFormError("Organizasyon seçimi zorunludur."); return; }
     if (!form.email.trim()) { setFormError("E-posta zorunludur."); return; }
-    if (!form.roleId) { setFormError("Rol seçimi zorunludur."); return; }
+    if (!form.isSuperAdmin && !form.roleId) { setFormError("Rol seçimi zorunludur."); return; }
     if (!editing && !form.password) { setFormError("Şifre zorunludur."); return; }
     setSaving(true); setFormError(null); setSuccess(null);
     try {
@@ -128,7 +128,7 @@ export function UsersAdminPage() {
         await updateManagedUser(organizationId, editing.id, { email: form.email.trim(), role_id: form.roleId, status: form.status, ...(form.password ? { password: form.password } : {}), ...(canManageSuperAdmin ? { is_super_admin: form.isSuperAdmin } : {}) });
         setSuccess("Kullanıcı güncellendi.");
       } else {
-        await createManagedUser(organizationId, { email: form.email.trim(), password: form.password, role_id: form.roleId, status: form.status, ...(canManageSuperAdmin ? { is_super_admin: form.isSuperAdmin } : {}) });
+        await createManagedUser(organizationId, { email: form.email.trim(), password: form.password, ...(form.roleId ? { role_id: form.roleId } : {}), status: form.status, ...(canManageSuperAdmin ? { is_super_admin: form.isSuperAdmin } : {}) });
         setSuccess("Kullanıcı oluşturuldu.");
       }
       setEditing(undefined); await loadUsers();
@@ -178,9 +178,9 @@ export function UsersAdminPage() {
       {organizationField}
       <label className="form-field"><span className="form-label">E-posta *</span><input className="input" type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} required disabled={saving} /></label>
       <label className="form-field"><span className="form-label">Şifre{editing ? "" : " *"}</span><span style={{ position: "relative", display: "block" }}><input className="input" type={showPassword ? "text" : "password"} value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} required={!editing} disabled={saving} autoComplete="new-password" style={{ width: "100%", paddingRight: 44 }} /><button type="button" onClick={() => setShowPassword((current) => !current)} disabled={saving} aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"} title={showPassword ? "Şifreyi gizle" : "Şifreyi göster"} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 0, border: 0, background: "transparent", color: "inherit", cursor: "pointer" }}>{showPassword ? <NavIconEyeOff /> : <NavIconEye />}</button></span>{editing ? <span className="form-hint">Değiştirmeyecekseniz boş bırakın.</span> : null}</label>
-      <label className="form-field"><span className="form-label">Rol *</span><select className="input" value={form.roleId} onChange={(event) => setForm((current) => ({ ...current, roleId: event.target.value }))} required disabled={saving}><option value="">Rol seçin</option>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select></label>
+      <label className="form-field"><span className="form-label">Rol{form.isSuperAdmin ? "" : " *"}</span><select className="input" value={form.roleId} onChange={(event) => setForm((current) => ({ ...current, roleId: event.target.value }))} required={!form.isSuperAdmin} disabled={saving || form.isSuperAdmin}><option value="">{form.isSuperAdmin ? "Super Admin rol kullanmaz" : "Rol seçin"}</option>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select></label>
       <label className="form-field"><span className="form-label">Durum</span><select className="input" value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as "active" | "inactive" }))} disabled={saving}><option value="active">Aktif</option><option value="inactive">Pasif</option></select></label>
-      {canManageSuperAdmin ? <label className="form-field"><span className="form-label">Super Admin</span><input type="checkbox" checked={form.isSuperAdmin} onChange={(event) => setForm((current) => ({ ...current, isSuperAdmin: event.target.checked }))} disabled={saving} /></label> : null}
+      {canManageSuperAdmin ? <label className="form-field"><span className="form-label">Super Admin</span><input type="checkbox" checked={form.isSuperAdmin} onChange={(event) => setForm((current) => ({ ...current, isSuperAdmin: event.target.checked, roleId: event.target.checked ? "" : current.roleId }))} disabled={saving} /></label> : null}
       <div className="form-actions"><button type="button" className="btn secondary" onClick={closeForm} disabled={saving}>Vazgeç</button><button type="submit" className="btn primary" disabled={saving}>{saving ? "Kaydediliyor…" : "Kaydet"}</button></div>
     </form></FormModal> : null}
     {deleteTarget ? <ConfirmDialog title="Kullanıcıyı Sil" message={`${deleteTarget.email} kullanıcısı bu organizasyondan kaldırılacak.`} confirmLabel="Sil" variant="danger" loading={deleting} onCancel={() => setDeleteTarget(null)} onConfirm={() => void confirmDelete()} /> : null}
