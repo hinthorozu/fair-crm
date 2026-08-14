@@ -7322,3 +7322,428 @@ textarea.form-control-textarea {
   margin-top: 0.75rem;
 }
 
+/* ── Role and permission management ── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.role-scope-card {
+  display: grid;
+  grid-template-columns: minmax(16rem, 1fr) minmax(24rem, 1.5fr);
+  gap: var(--space-6);
+  align-items: end;
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
+  background: linear-gradient(135deg, var(--surface) 0%, var(--primary-soft) 100%);
+}
+
+.role-organization-field {
+  margin: 0;
+}
+
+.role-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.role-summary-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: var(--space-3) var(--space-4);
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 12%, var(--border));
+  border-radius: var(--radius-sm);
+}
+
+.role-summary-grid strong {
+  color: var(--primary);
+  font-size: var(--text-xl);
+  line-height: 1.15;
+}
+
+.role-summary-grid span {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.role-section-header {
+  margin-bottom: var(--space-4);
+}
+
+.role-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
+  gap: var(--space-4);
+}
+
+.role-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.role-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow);
+}
+
+.role-card-protected {
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+  background: linear-gradient(150deg, var(--surface) 68%, var(--primary-soft));
+}
+
+.role-card-topline,
+.role-card-title,
+.template-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.role-card-topline {
+  justify-content: space-between;
+}
+
+.role-kind-icon {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  color: var(--neutral-text);
+  background: var(--neutral-soft);
+  font-size: 1.1rem;
+}
+
+.role-kind-icon.protected {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.role-card h3,
+.template-card h3 {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.role-card-title code,
+.template-card code,
+.permission-lifecycle-row code,
+.permission-group-header code {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+
+.role-card-description {
+  min-height: 2.7rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-md);
+}
+
+.role-card-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.role-card-metrics > div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  padding: 0.4rem 0.65rem;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+}
+
+.role-card-metrics strong {
+  font-size: var(--text-sm);
+}
+
+.role-card-metrics span {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.role-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+}
+
+.role-permission-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+}
+
+.role-permission-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.32rem 0.55rem;
+  color: var(--neutral-text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: var(--text-xs);
+}
+
+.role-permission-chip strong {
+  color: var(--primary);
+}
+
+.template-list {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.template-card {
+  padding: var(--space-5);
+}
+
+.template-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.template-title-row {
+  align-items: center;
+}
+
+.template-card-header p {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: var(--text-md);
+}
+
+.template-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.permission-matrix {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.permission-matrix-toolbar,
+.permission-lifecycle-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.permission-search {
+  flex: 1;
+}
+
+.permission-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: var(--space-3);
+  max-height: 32rem;
+  padding-right: var(--space-1);
+  overflow: auto;
+}
+
+.permission-group {
+  align-self: start;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.permission-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--border);
+}
+
+.permission-group-header > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.permission-group-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.permission-items {
+  display: grid;
+}
+
+.permission-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: 0.7rem var(--space-3);
+  cursor: pointer;
+}
+
+.permission-item + .permission-item {
+  border-top: 1px solid var(--border);
+}
+
+.permission-item:hover {
+  background: var(--hover-overlay);
+}
+
+.permission-item-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.permission-item-copy code {
+  color: var(--text);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+
+.permission-item-copy small {
+  margin-top: 0.15rem;
+  color: var(--muted);
+}
+
+.permission-lifecycle-notice {
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-4);
+  color: var(--warning-text);
+  background: var(--warning-soft);
+  border-color: color-mix(in srgb, var(--warning) 30%, var(--border));
+}
+
+.permission-lifecycle-notice p {
+  margin: 0.25rem 0 0;
+}
+
+.permission-lifecycle-toolbar {
+  margin-bottom: var(--space-4);
+}
+
+.permission-lifecycle-toolbar input {
+  flex: 1;
+}
+
+.permission-lifecycle-toolbar select {
+  width: min(14rem, 100%);
+}
+
+.permission-lifecycle-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.permission-lifecycle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+}
+
+.permission-lifecycle-copy {
+  min-width: 0;
+}
+
+.permission-lifecycle-copy > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.permission-lifecycle-copy p {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.permission-lifecycle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+}
+
+.role-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+@media (max-width: 800px) {
+  .role-scope-card,
+  .role-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .role-summary-grid {
+    grid-template-columns: repeat(3, minmax(5rem, 1fr));
+  }
+
+  .template-card-header,
+  .permission-lifecycle-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .template-actions,
+  .permission-lifecycle-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .role-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .permission-matrix-toolbar,
+  .permission-lifecycle-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .permission-lifecycle-toolbar select {
+    width: 100%;
+  }
+}
+
