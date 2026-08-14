@@ -11,6 +11,7 @@ import {
   type AssignableRole,
   type ManagedUser,
 } from "../api/userManagement";
+import { NavIconEye, NavIconEyeOff } from "../components/layout/NavIcons";
 import { Banner } from "../components/ui/Banner";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -50,6 +51,7 @@ export function UsersAdminPage() {
   const [success, setSuccess] = React.useState<string | null>(null);
   const [editing, setEditing] = React.useState<ManagedUser | null | undefined>(undefined);
   const [form, setForm] = React.useState<UserFormState>(EMPTY_FORM);
+  const [showPassword, setShowPassword] = React.useState(true);
   const [formError, setFormError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<ManagedUser | null>(null);
@@ -105,6 +107,7 @@ export function UsersAdminPage() {
   const openCreate = () => {
     setEditing(null);
     setForm({ ...EMPTY_FORM, roleId: roles[0]?.id ?? "" });
+    setShowPassword(true);
     setFormError(null);
   };
 
@@ -117,6 +120,7 @@ export function UsersAdminPage() {
       status: user.status === "inactive" ? "inactive" : "active",
       isSuperAdmin: Boolean(user.is_super_admin),
     });
+    setShowPassword(true);
     setFormError(null);
   };
 
@@ -313,15 +317,41 @@ export function UsersAdminPage() {
 
             <label className="form-field">
               <span className="form-label">Şifre{editing ? "" : " *"}</span>
-              <input
-                className="input"
-                type="password"
-                value={form.password}
-                onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-                required={!editing}
-                disabled={saving}
-                autoComplete="new-password"
-              />
+              <span style={{ position: "relative", display: "block" }}>
+                <input
+                  className="input"
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                  required={!editing}
+                  disabled={saving}
+                  autoComplete="new-password"
+                  style={{ width: "100%", paddingRight: 44 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  disabled={saving}
+                  aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
+                  title={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
+                  style={{
+                    position: "absolute",
+                    right: 10,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 0,
+                    border: 0,
+                    background: "transparent",
+                    color: "inherit",
+                    cursor: "pointer",
+                  }}
+                >
+                  {showPassword ? <NavIconEyeOff /> : <NavIconEye />}
+                </button>
+              </span>
               {editing ? <span className="form-hint">Değiştirmeyecekseniz boş bırakın.</span> : null}
             </label>
 
