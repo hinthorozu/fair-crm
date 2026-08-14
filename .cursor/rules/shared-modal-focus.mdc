@@ -1,14 +1,13 @@
 ---
-description: Canonical modal/focus/dirty-form rules live in kyrox-platform
+description: Canonical modal/focus/dirty-form rule lives in kyrox-platform
 alwaysApply: false
 ---
 
 # Canonical rule pointer
 
-Do not maintain a second modal or dirty-form rule in this repository.
+Do not maintain a second modal, focus, or dirty-form rule in this repository.
 
-Canonical sources:
-- `kyrox-platform/projects/fair-crm/frontend/FRONTEND_UI_MASTER_STANDARD.md` → form/dirty/modal standards.
-- `kyrox-platform/projects/fair-crm/decisions/DECISIONS.md` → ADR-028 Universal Modal Standard.
+Canonical source:
+`kyrox-platform/projects/fair-crm/frontend/FRONTEND_UI_MASTER_STANDARD.md`.
 
-Follow those canonical rules. If behavior changes, update the platform documents, not this file.
+ADRs are decision history; the current binding UI behavior is defined by the master standard. If behavior changes, update the master standard in `kyrox-platform`, not this file.
