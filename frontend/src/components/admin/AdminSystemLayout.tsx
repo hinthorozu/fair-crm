@@ -1,5 +1,6 @@
 import React from "react";
 import { adminLabels, DISABLED_ADMIN_NAV_ITEMS } from "../../labels/adminLabels";
+import { organizationLabels } from "../../labels/organizationLabels";
 import { uiLabels } from "../../labels/uiLabels";
 import { usePersistedCollapsed } from "../../hooks/usePersistedCollapsed";
 import { AdminNavIcon, NavIconComingSoon } from "../layout/NavIcons";
@@ -29,6 +30,11 @@ export function AdminSystemLayout({
     usePersistedCollapsed(ADMIN_SUBNAV_STORAGE_KEY);
 
   const systemItems = [
+    {
+      id: "organizations",
+      label: organizationLabels.nav,
+      path: "/admin/system/organizations",
+    },
     {
       id: "backups",
       label: adminLabels.navDatabaseBackups,
