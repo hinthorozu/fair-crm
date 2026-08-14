@@ -1,4 +1,4 @@
-import { config } from "../config";
+import { getGrantedCorePermissions } from "./corePermissions";
 
 export const MAIL_TEMPLATE_PERMISSION_READ = "fair_crm.mail_templates.read";
 export const MAIL_TEMPLATE_PERMISSION_CREATE = "fair_crm.mail_templates.create";
@@ -33,27 +33,8 @@ const ACTION_TO_PERMISSION: Record<MailTemplatePermissionAction, string> = {
   test_send: MAIL_TEMPLATE_PERMISSION_TEST_SEND,
 };
 
-function parseGrantedPermissions(raw: string | undefined): Set<string> | null {
-  if (!raw?.trim()) {
-    return null;
-  }
-  return new Set(
-    raw
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean),
-  );
-}
-
 export function getGrantedMailTemplatePermissions(): Set<string> {
-  if (config.devBypassEnabled) {
-    return new Set(MAIL_TEMPLATE_PERMISSIONS_ALL);
-  }
-  const configured = parseGrantedPermissions(import.meta.env.VITE_GRANTED_PERMISSIONS);
-  if (configured) {
-    return configured;
-  }
-  return new Set(MAIL_TEMPLATE_PERMISSIONS_ALL);
+  return getGrantedCorePermissions();
 }
 
 export function hasMailTemplatePermission(
