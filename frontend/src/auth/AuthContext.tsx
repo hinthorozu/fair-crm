@@ -1,6 +1,7 @@
 import React from "react";
 import { loginWithCredentials, logoutSession } from "../api/auth";
 import { config } from "../config";
+import { fetchGrantedCorePermissions } from "../permissions/corePermissions";
 import { refreshSessionSingleFlight } from "./refreshCoordinator";
 import {
   clearSession,
@@ -21,6 +22,14 @@ interface AuthContextValue {
 
 const AuthContext = React.createContext<AuthContextValue | null>(null);
 
+async function withCorePermissions(session: AuthSession): Promise<AuthSession> {
+  const permissions = await fetchGrantedCorePermissions(
+    session.accessToken,
+    session.organizationId,
+  );
+  return { ...session, permissions };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = React.useState<AuthSession | null>(() => readSession());
 
@@ -32,12 +41,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = React.useCallback(async (email: string, password: string) => {
     const response = await loginWithCredentials({ email, password });
-    const nextSession: AuthSession = {
+    const nextSession = await withCorePermissions({
       accessToken: response.access_token,
       organizationId: config.organizationId,
       email: email.trim(),
       expiresIn: response.expires_in,
-    };
+    });
     saveSession(nextSession);
     setSession(nextSession);
   }, []);
@@ -60,7 +69,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener(SESSION_UPDATED_EVENT, onUpdated);
   }, []);
 
-  // Boot: migrate legacy refresh once; if no access token, probe HttpOnly cookie silently.
   React.useEffect(() => {
     let cancelled = false;
     const boot = async () => {
@@ -68,11 +76,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const legacy = consumeLegacyRefreshTokenFromStorage();
       const current = readSession();
       if (current?.accessToken && !legacy) {
-        setSession(current);
+        try {
+          const refreshed = await withCorePermissions(current);
+          if (cancelled) return;
+          saveSession(refreshed);
+          setSession(refreshed);
+        } catch {
+          if (!cancelled) setSession(current);
+        }
         return;
       }
       if (!current?.accessToken && !legacy) {
-        // Avoid noisy refresh on the login page when there is no prior session.
         if (window.location.pathname === "/login") return;
         const token = await refreshSessionSingleFlight({ silent: true });
         if (cancelled) return;
