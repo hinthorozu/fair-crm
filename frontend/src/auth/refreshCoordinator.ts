@@ -1,5 +1,6 @@
 import { refreshAccessToken } from "../api/auth";
 import { config } from "../config";
+import { fetchGrantedCorePermissions } from "../permissions/corePermissions";
 import {
   clearSession,
   notifySessionExpired,
@@ -10,12 +11,15 @@ import {
 
 let inflightRefresh: Promise<string | null> | null = null;
 
-function applyAccessToken(accessToken: string, expiresIn: number): void {
+async function applyAccessToken(accessToken: string, expiresIn: number): Promise<void> {
   const current = readSession();
+  const organizationId = current?.organizationId ?? config.organizationId;
+  const permissions = await fetchGrantedCorePermissions(accessToken, organizationId);
   const next: AuthSession = {
     accessToken,
-    organizationId: current?.organizationId ?? config.organizationId,
+    organizationId,
     email: current?.email,
+    permissions,
     expiresIn,
   };
   saveSession(next);
@@ -43,7 +47,7 @@ export async function refreshSessionSingleFlight(
   inflightRefresh = (async () => {
     try {
       const result = await refreshAccessToken(legacyRefreshToken);
-      applyAccessToken(result.access_token, result.expires_in);
+      await applyAccessToken(result.access_token, result.expires_in);
       return result.access_token;
     } catch {
       clearSession();
