@@ -1,4 +1,4 @@
-"""Role-matrix authorization tests (non-owner roles, prod-path, dev bypass off)."""
+"""Role-matrix authorization tests (database-backed roles, prod path)."""
 
 from __future__ import annotations
 
@@ -642,58 +642,20 @@ def test_role_matrix_fair_emails_batch_logs(
     assert response.status_code == expected
 
 
-def test_owner_retains_full_fair_crm_access() -> None:
-    owner_perms = permissions_for_role("owner")
+def test_organization_admin_receives_seeded_admin_permissions() -> None:
+    organization_admin_perms = permissions_for_role("organization_admin")
     for code in ADMIN_ONLY_PERMISSIONS:
-        assert code in owner_perms
+        assert code in organization_admin_perms
 
 
-def test_admin_only_permissions_not_granted_to_operational_roles() -> None:
-    for role_slug in ("manager", "sales", "viewer", "scraper_operator"):
-        role_perms = permissions_for_role(role_slug)
-        overlap = ADMIN_ONLY_PERMISSIONS.intersection(role_perms)
-        assert not overlap, f"{role_slug} unexpectedly has admin-only permissions: {sorted(overlap)}"
+def test_organization_admin_does_not_bypass_unseeded_permissions() -> None:
+    assert "fair_crm.future_module.unseeded" not in permissions_for_role("organization_admin")
 
 
-def test_viewer_denied_on_import_detail(client: TestClient, auth_headers: dict[str, str]) -> None:
-    with install_role_matrix_auth(client, "viewer"):
-        response = client.get(f"/api/v1/imports/{uuid4()}", headers=auth_headers)
-    assert response.status_code in {200, 404}
-
-
-def test_sales_denied_admin_data_operations(
-    client: TestClient,
-    auth_headers: dict[str, str],
-) -> None:
-    with install_role_matrix_auth(client, "sales"):
-        response = client.get("/api/v1/admin/data-operations", headers=auth_headers)
-    assert response.status_code == 403
-
-
-def test_scraper_operator_denied_customer_create(
-    client: TestClient,
-    auth_headers: dict[str, str],
-) -> None:
-    with install_role_matrix_auth(client, "scraper_operator"):
-        response = client.post(
-            "/api/v1/customers",
-            json={"display_name": "Denied Scraper Op"},
-            headers=auth_headers,
-        )
-    assert response.status_code == 403
-
-
-def test_manager_allowed_customer_create(
-    client: TestClient,
-    auth_headers: dict[str, str],
-) -> None:
-    with install_role_matrix_auth(client, "manager"):
-        response = client.post(
-            "/api/v1/customers",
-            json={"display_name": "Manager Customer"},
-            headers=auth_headers,
-        )
-    assert response.status_code == 201
+@pytest.mark.parametrize("role_slug", ["manager", "sales", "viewer", "scraper_operator", "owner"])
+def test_undefined_roles_have_no_hardcoded_permission_mapping(role_slug: str) -> None:
+    with pytest.raises(KeyError):
+        permissions_for_role(role_slug)
 
 
 @pytest.mark.parametrize("role_slug", MATRIX_ROLES)
