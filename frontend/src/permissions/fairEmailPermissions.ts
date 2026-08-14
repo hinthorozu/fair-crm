@@ -1,4 +1,4 @@
-import { config } from "../config";
+import { getGrantedCorePermissions } from "./corePermissions";
 
 export const FAIR_EMAIL_PERMISSION_PREVIEW = "fair_crm.fair_emails.preview";
 export const FAIR_EMAIL_PERMISSION_SEND = "fair_crm.fair_emails.send";
@@ -15,25 +15,8 @@ const ACTION_TO_PERMISSION: Record<FairEmailPermissionAction, string> = {
   send: FAIR_EMAIL_PERMISSION_SEND,
 };
 
-function parseGrantedPermissions(raw: string | undefined): Set<string> | null {
-  if (!raw?.trim()) return null;
-  return new Set(
-    raw
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean),
-  );
-}
-
 export function getGrantedFairEmailPermissions(): Set<string> {
-  if (config.devBypassEnabled) {
-    return new Set(FAIR_EMAIL_PERMISSIONS_ALL);
-  }
-  const configured = parseGrantedPermissions(import.meta.env.VITE_GRANTED_PERMISSIONS);
-  if (configured) {
-    return configured;
-  }
-  return new Set(FAIR_EMAIL_PERMISSIONS_ALL);
+  return getGrantedCorePermissions();
 }
 
 export function canPerformFairEmailAction(
