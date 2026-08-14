@@ -20,10 +20,21 @@ import {
   type RolePermission,
 } from "../api/roleManagement";
 import { getUserManagementContext, type ManagedOrganization } from "../api/userManagement";
+import { Badge } from "../components/ui/Badge";
 import { Banner } from "../components/ui/Banner";
+import { Button } from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
-import { FormModal } from "../components/ui/form";
+import {
+  CheckboxField,
+  FormDirtyHost,
+  FormModal,
+  SelectInput,
+  TextInput,
+  useFormDirtyCancel,
+  useReportFormDirty,
+} from "../components/ui/form";
 import { LoadingState } from "../components/ui/LoadingState";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
@@ -37,6 +48,19 @@ interface RoleForm {
   name: string;
   slug: string;
   permissionIds: string[];
+}
+
+interface SyncConfirmTarget {
+  role: ManagedRole;
+  addCount: number;
+  removeCount: number;
+}
+
+interface PermissionStateConfirmTarget {
+  permission: RolePermission;
+  state: RolePermission["lifecycle_state"];
+  affectedRoles: number;
+  affectedUsers: number;
 }
 
 const EMPTY_ROLE: RoleForm = { name: "", slug: "", permissionIds: [] };
@@ -94,31 +118,53 @@ function PermissionMatrix({
   disabled?: boolean;
   onChange: (ids: string[]) => void;
 }) {
+  const instanceId = React.useId().replace(/:/g, "");
   const [query, setQuery] = React.useState("");
+  const [activeGroup, setActiveGroup] = React.useState("");
   const selectedSet = React.useMemo(() => new Set(selected), [selected]);
-  const normalizedQuery = query.trim().toLocaleLowerCase("tr-TR");
-  const visiblePermissions = React.useMemo(
-    () => permissions.filter((permission) => {
-      if (!normalizedQuery) return true;
-      return `${permission.code} ${permission.description}`
-        .toLocaleLowerCase("tr-TR")
-        .includes(normalizedQuery);
-    }),
-    [normalizedQuery, permissions],
-  );
-  const groups = React.useMemo(() => {
+
+  const groupedPermissions = React.useMemo(() => {
     const result = new Map<string, RolePermission[]>();
-    visiblePermissions.forEach((permission) => {
+    permissions.forEach((permission) => {
       const group = permissionGroup(permission.code);
       result.set(group, [...(result.get(group) ?? []), permission]);
     });
-    return [...result.entries()];
-  }, [visiblePermissions]);
+    return result;
+  }, [permissions]);
 
-  const toggleGroup = (items: RolePermission[], checked: boolean) => {
+  const groupKeys = React.useMemo(
+    () => [...groupedPermissions.keys()].sort((left, right) =>
+      groupTitle(left).localeCompare(groupTitle(right), "tr"),
+    ),
+    [groupedPermissions],
+  );
+
+  React.useEffect(() => {
+    if (!groupKeys.length) {
+      setActiveGroup("");
+      return;
+    }
+    if (!activeGroup || !groupedPermissions.has(activeGroup)) {
+      setActiveGroup(groupKeys[0]);
+    }
+  }, [activeGroup, groupKeys, groupedPermissions]);
+
+  const groupItems = activeGroup ? groupedPermissions.get(activeGroup) ?? [] : [];
+  const normalizedQuery = query.trim().toLocaleLowerCase("tr-TR");
+  const visibleItems = groupItems.filter((permission) => {
+    if (!normalizedQuery) return true;
+    return `${permission.code} ${permission.description}`
+      .toLocaleLowerCase("tr-TR")
+      .includes(normalizedQuery);
+  });
+
+  const activeItems = groupItems.filter((item) => item.lifecycle_state === "active");
+  const selectedCount = activeItems.filter((item) => selectedSet.has(item.id)).length;
+  const allSelected = activeItems.length > 0 && selectedCount === activeItems.length;
+
+  const toggleGroup = (checked: boolean) => {
     const next = new Set(selected);
-    items.forEach((permission) => {
-      if (permission.lifecycle_state !== "active") return;
+    activeItems.forEach((permission) => {
       if (checked) next.add(permission.id);
       else next.delete(permission.id);
     });
@@ -128,69 +174,94 @@ function PermissionMatrix({
   return (
     <div className="permission-matrix">
       <div className="permission-matrix-toolbar">
-        <label className="permission-search">
+        <SelectInput
+          id={`permission-group-${instanceId}`}
+          value={activeGroup}
+          onChange={(event) => {
+            setActiveGroup(event.target.value);
+            setQuery("");
+          }}
+          aria-label="İzin kategorisi"
+          disabled={disabled || groupKeys.length === 0}
+        >
+          {groupKeys.map((group) => {
+            const items = groupedPermissions.get(group) ?? [];
+            const count = items.filter((item) => selectedSet.has(item.id)).length;
+            return (
+              <option key={group} value={group}>
+                {groupTitle(group)} ({count}/{items.length})
+              </option>
+            );
+          })}
+        </SelectInput>
+        <label className="permission-search" htmlFor={`permission-search-${instanceId}`}>
           <span className="sr-only">İzin ara</span>
-          <input
-            className="input"
+          <TextInput
+            id={`permission-search-${instanceId}`}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="İzin kodu veya açıklama ara…"
+            placeholder="Seçili kategoride izin ara…"
+            disabled={disabled || !activeGroup}
           />
         </label>
-        <span className="badge badge-primary">{selected.length} izin seçili</span>
+        <Badge variant="primary">{selected.length} izin seçili</Badge>
       </div>
-      <div className="permission-groups">
-        {groups.map(([group, items]) => {
-          const activeItems = items.filter((item) => item.lifecycle_state === "active");
-          const selectedCount = activeItems.filter((item) => selectedSet.has(item.id)).length;
-          const allSelected = activeItems.length > 0 && selectedCount === activeItems.length;
-          return (
-            <section className="permission-group" key={group}>
-              <header className="permission-group-header">
-                <div>
-                  <strong>{groupTitle(group)}</strong>
-                  <code>{group}</code>
-                </div>
-                <label className="permission-group-toggle">
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    disabled={disabled || activeItems.length === 0}
-                    onChange={(event) => toggleGroup(activeItems, event.target.checked)}
-                  />
-                  <span>{selectedCount}/{activeItems.length}</span>
-                </label>
-              </header>
-              <div className="permission-items">
-                {items.map((permission) => (
-                  <label className="permission-item" key={permission.id}>
-                    <input
-                      type="checkbox"
-                      checked={selectedSet.has(permission.id)}
-                      disabled={disabled || permission.lifecycle_state !== "active"}
-                      onChange={(event) => onChange(
-                        event.target.checked
-                          ? [...selected, permission.id]
-                          : selected.filter((id) => id !== permission.id),
-                      )}
-                    />
-                    <span className="permission-item-copy">
-                      <code>{permission.code}</code>
-                      <small>{permission.description}</small>
-                    </span>
-                    {permission.lifecycle_state !== "active" ? (
-                      <span className="badge badge-warning">{permission.lifecycle_state}</span>
-                    ) : null}
-                  </label>
-                ))}
+
+      {activeGroup ? (
+        <section className="permission-group" aria-label={groupTitle(activeGroup)}>
+          <header className="permission-group-header">
+            <div>
+              <strong>{groupTitle(activeGroup)}</strong>
+              <code>{activeGroup}</code>
+            </div>
+            <div className="permission-group-toggle">
+              <CheckboxField
+                id={`permission-group-toggle-${instanceId}`}
+                label={`${groupTitle(activeGroup)} kategorisindeki tüm izinleri seç`}
+                checked={allSelected}
+                indeterminate={selectedCount > 0 && !allSelected}
+                disabled={disabled || activeItems.length === 0}
+                hideLabel
+                onChange={toggleGroup}
+              />
+              <span>{selectedCount}/{activeItems.length}</span>
+            </div>
+          </header>
+          <div className="permission-items">
+            {visibleItems.map((permission) => (
+              <div className="permission-item" key={permission.id}>
+                <CheckboxField
+                  id={`permission-${instanceId}-${permission.id}`}
+                  label={`${permission.code}: ${permission.description}`}
+                  checked={selectedSet.has(permission.id)}
+                  disabled={disabled || permission.lifecycle_state !== "active"}
+                  hideLabel
+                  onChange={(checked) => onChange(
+                    checked
+                      ? [...selected, permission.id]
+                      : selected.filter((id) => id !== permission.id),
+                  )}
+                />
+                <span className="permission-item-copy">
+                  <code>{permission.code}</code>
+                  <small>{permission.description}</small>
+                </span>
+                {permission.lifecycle_state !== "active" ? (
+                  <Badge variant="warning">{permission.lifecycle_state}</Badge>
+                ) : null}
               </div>
-            </section>
-          );
-        })}
-        {!groups.length ? (
-          <EmptyState title="Eşleşen izin bulunamadı" description="Arama ifadesini değiştirin." />
-        ) : null}
-      </div>
+            ))}
+            {!visibleItems.length ? (
+              <EmptyState
+                title="Eşleşen izin bulunamadı"
+                description="Arama ifadesini değiştirin."
+              />
+            ) : null}
+          </div>
+        </section>
+      ) : (
+        <EmptyState title="İzin bulunamadı" description="Bu kapsamda atanabilir izin yok." />
+      )}
     </div>
   );
 }
@@ -211,6 +282,153 @@ function RolePermissionPreview({ role, permissions }: { role: ManagedRole; permi
       ))}
       {!rolePermissions.length ? <span className="muted">Bu role atanmış aktif izin yok.</span> : null}
     </div>
+  );
+}
+
+function RoleEditorModal({
+  editing,
+  form,
+  permissions,
+  saving,
+  onChange,
+  onClose,
+  onSubmit,
+}: {
+  editing: ManagedRole | null;
+  form: RoleForm;
+  permissions: RolePermission[];
+  saving: boolean;
+  onChange: React.Dispatch<React.SetStateAction<RoleForm>>;
+  onClose: () => void;
+  onSubmit: (event: React.FormEvent) => void;
+}) {
+  const baseline = React.useRef(form);
+  useReportFormDirty(form, baseline.current);
+  const requestClose = useFormDirtyCancel(onClose);
+
+  return (
+    <FormModal
+      title={editing ? "Rolü Düzenle" : "Yeni Rol"}
+      onClose={requestClose}
+      formWidth="wide"
+      footer={(
+        <>
+          <Button variant="secondary" onClick={requestClose} disabled={saving}>Vazgeç</Button>
+          <Button
+            variant="primary"
+            type="submit"
+            form="role-management-form"
+            loading={saving}
+            disabled={!form.name.trim() || !form.slug}
+          >
+            Kaydet
+          </Button>
+        </>
+      )}
+    >
+      <form id="role-management-form" className="crm-form-stack" onSubmit={onSubmit}>
+        <div className="role-form-grid">
+          <label className="form-field" htmlFor="role-name">
+            <span className="form-label">Rol adı *</span>
+            <TextInput
+              id="role-name"
+              value={form.name}
+              onChange={(event) => onChange((current) => ({
+                ...current,
+                name: event.target.value,
+                ...(!editing ? { slug: slugify(event.target.value) } : {}),
+              }))}
+              required
+            />
+          </label>
+          <label className="form-field" htmlFor="role-slug">
+            <span className="form-label">Rol kodu *</span>
+            <TextInput
+              id="role-slug"
+              value={form.slug}
+              onChange={(event) => onChange((current) => ({
+                ...current,
+                slug: slugify(event.target.value),
+              }))}
+              required
+            />
+          </label>
+        </div>
+        <PermissionMatrix
+          permissions={permissions}
+          selected={form.permissionIds}
+          disabled={saving}
+          onChange={(ids) => onChange((current) => ({ ...current, permissionIds: ids }))}
+        />
+      </form>
+    </FormModal>
+  );
+}
+
+function DerivedRoleModal({
+  templateName,
+  organizationName,
+  form,
+  saving,
+  onChange,
+  onClose,
+  onSubmit,
+}: {
+  templateName: string;
+  organizationName: string;
+  form: RoleForm;
+  saving: boolean;
+  onChange: React.Dispatch<React.SetStateAction<RoleForm>>;
+  onClose: () => void;
+  onSubmit: (event: React.FormEvent) => void;
+}) {
+  const baseline = React.useRef(form);
+  useReportFormDirty(form, baseline.current);
+  const requestClose = useFormDirtyCancel(onClose);
+
+  return (
+    <FormModal
+      title={`${templateName} şablonundan rol oluştur`}
+      onClose={requestClose}
+      footer={(
+        <>
+          <Button variant="secondary" onClick={requestClose} disabled={saving}>Vazgeç</Button>
+          <Button
+            variant="primary"
+            type="submit"
+            form="derive-role-form"
+            loading={saving}
+            disabled={!form.name.trim() || !form.slug}
+          >
+            Rolü Oluştur
+          </Button>
+        </>
+      )}
+    >
+      <form id="derive-role-form" className="crm-form-stack" onSubmit={onSubmit}>
+        <Banner variant="info">
+          Rol, {organizationName} organizasyonuna atanacak ve şablonun mevcut izinlerini alacak.
+        </Banner>
+        <label className="form-field" htmlFor="derived-role-name">
+          <span className="form-label">Rol adı *</span>
+          <TextInput
+            id="derived-role-name"
+            value={form.name}
+            onChange={(event) => onChange((current) => ({ ...current, name: event.target.value }))}
+            required
+          />
+        </label>
+        <label className="form-field" htmlFor="derived-role-slug">
+          <span className="form-label">Rol kodu *</span>
+          <TextInput
+            id="derived-role-slug"
+            value={form.slug}
+            onChange={(event) => onChange((current) => ({ ...current, slug: slugify(event.target.value) }))}
+            required
+          />
+        </label>
+      </form>
+    </FormModal>
   );
 }
 
@@ -236,6 +454,8 @@ export function RoleManagementPage() {
   const [saving, setSaving] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<ManagedRole | null>(null);
   const [deriveSource, setDeriveSource] = React.useState<ManagedRole | null>(null);
+  const [syncConfirmTarget, setSyncConfirmTarget] = React.useState<SyncConfirmTarget | null>(null);
+  const [permissionStateConfirmTarget, setPermissionStateConfirmTarget] = React.useState<PermissionStateConfirmTarget | null>(null);
 
   const selectedOrganization = organizations.find((item) => item.id === organizationId);
   const canCreateRole = isSuperAdmin || grantedPermissions.has("identity.roles.create");
@@ -371,18 +591,29 @@ export function RoleManagementPage() {
     }
   };
 
-  const sync = async (role: ManagedRole) => {
+  const requestSync = async (role: ManagedRole) => {
     if (!role.source_template_role_id) return;
     setSaving(true);
     setError(null);
     try {
       const preview = (await previewTemplateSync(role.source_template_role_id, [role.id]))[0];
       if (!preview) return;
-      const confirmed = window.confirm(
-        `${role.name}: ${preview.add_count} izin eklenecek, ${preview.remove_count} izin kaldırılacak. Devam edilsin mi?`,
-      );
-      if (!confirmed) return;
-      await syncRoleTemplate(role.source_template_role_id, [role.id]);
+      setSyncConfirmTarget({ role, addCount: preview.add_count, removeCount: preview.remove_count });
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const confirmSync = async () => {
+    const target = syncConfirmTarget;
+    if (!target?.role.source_template_role_id) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await syncRoleTemplate(target.role.source_template_role_id, [target.role.id]);
+      setSyncConfirmTarget(null);
       setSuccess("Rol, kaynak şablonun güncel sürümüyle eşitlendi.");
       await loadOrganization();
     } catch (err) {
@@ -392,7 +623,7 @@ export function RoleManagementPage() {
     }
   };
 
-  const changePermissionState = async (
+  const requestPermissionStateChange = async (
     permission: RolePermission,
     state: RolePermission["lifecycle_state"],
   ) => {
@@ -400,17 +631,33 @@ export function RoleManagementPage() {
     setError(null);
     try {
       const preview = await previewPermissionLifecycle(permission.id, state);
-      const confirmed = window.confirm(
-        `${permission.code}: ${preview.affected_roles} rol ve ${preview.affected_users} kullanıcı etkilenecek. Devam edilsin mi?`,
-      );
-      if (!confirmed) return;
-      await updatePermissionLifecycle(
-        permission.id,
+      setPermissionStateConfirmTarget({
+        permission,
         state,
-        state === "active" ? undefined : "Platform yöneticisi tarafından değiştirildi",
+        affectedRoles: preview.affected_roles,
+        affectedUsers: preview.affected_users,
+      });
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const confirmPermissionStateChange = async () => {
+    const target = permissionStateConfirmTarget;
+    if (!target) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await updatePermissionLifecycle(
+        target.permission.id,
+        target.state,
+        target.state === "active" ? undefined : "Platform yöneticisi tarafından değiştirildi",
       );
+      setPermissionStateConfirmTarget(null);
       await Promise.all([loadContext(), loadOrganization()]);
-      setSuccess(`İzin durumu “${state}” olarak güncellendi.`);
+      setSuccess(`İzin durumu “${target.state}” olarak güncellendi.`);
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -450,35 +697,31 @@ export function RoleManagementPage() {
         title="Roller ve Yetkiler"
         subtitle="Organizasyon rollerini, varsayılan şablonları ve platform izinlerini tek noktadan yönetin."
         actions={tab === "organization" ? (
-          <button className="btn primary" onClick={openCreateRole} disabled={!organizationId || saving || !canCreateRole}>
+          <Button variant="primary" onClick={openCreateRole} disabled={!organizationId || saving || !canCreateRole}>
             Yeni Rol
-          </button>
+          </Button>
         ) : undefined}
       />
 
       {success ? <Banner variant="success">{success}</Banner> : null}
       {error ? <Banner variant="error">{error}</Banner> : null}
 
-      <section className="role-scope-card card" aria-label="Rol kapsamı">
-        <label className="form-field role-organization-field">
+      <Card as="section" className="role-scope-card" aria-label="Rol kapsamı">
+        <label className="form-field role-organization-field" htmlFor="role-organization">
           <span className="form-label">Organizasyon</span>
-          <select
-            className="input"
-            value={organizationId}
-            onChange={(event) => setOrganizationId(event.target.value)}
-          >
+          <SelectInput id="role-organization" value={organizationId} onChange={(event) => setOrganizationId(event.target.value)}>
             <option value="">Organizasyon seçin</option>
             {organizations.map((organization) => (
               <option key={organization.id} value={organization.id}>{organization.name}</option>
             ))}
-          </select>
+          </SelectInput>
         </label>
         <div className="role-summary-grid" aria-label="Rol özeti">
           <div><strong>{roles.length}</strong><span>Atanabilir rol</span></div>
           <div><strong>{roles.filter((role) => !role.is_protected).length}</strong><span>Düzenlenebilir rol</span></div>
           <div><strong>{permissions.filter((item) => item.lifecycle_state === "active").length}</strong><span>Aktif izin</span></div>
         </div>
-      </section>
+      </Card>
 
       <Tabs items={tabs} active={tab} onChange={setTab} ariaLabel="Rol yönetimi bölümleri" />
 
@@ -486,9 +729,7 @@ export function RoleManagementPage() {
         <div className="section-header role-section-header">
           <div>
             <h2 className="section-title">{selectedOrganization?.name ?? "Organizasyon"} rolleri</h2>
-            <p className="section-description muted">
-              Kullanıcılar bu organizasyonda aşağıdaki rollerden birine atanabilir.
-            </p>
+            <p className="section-description muted">Kullanıcılar bu organizasyonda aşağıdaki rollerden birine atanabilir.</p>
           </div>
         </div>
         {organizationLoading ? <LoadingState message="Organizasyon rolleri yükleniyor…" /> : (
@@ -496,28 +737,18 @@ export function RoleManagementPage() {
             {roles.map((role) => {
               const isExpanded = expandedRoles.has(role.id);
               const sourceTemplate = templates.find((item) => item.id === role.source_template_role_id);
-              const isOutdated = Boolean(
-                sourceTemplate
-                && role.source_template_version !== null
-                && role.source_template_version < sourceTemplate.template_version,
-              );
+              const isOutdated = Boolean(sourceTemplate && role.source_template_version !== null && role.source_template_version < sourceTemplate.template_version);
               return (
-                <article className={`role-card card ${role.is_protected ? "role-card-protected" : ""}`} key={role.id}>
+                <Card as="section" className={`role-card ${role.is_protected ? "role-card-protected" : ""}`} key={role.id}>
                   <div className="role-card-topline">
                     <div className="role-card-title">
-                      <span className={`role-kind-icon ${role.is_protected ? "protected" : "custom"}`} aria-hidden="true">
-                        {role.is_protected ? "◆" : "◇"}
-                      </span>
-                      <div>
-                        <h3>{role.name}</h3>
-                        <code>{role.slug}</code>
-                      </div>
+                      <span className={`role-kind-icon ${role.is_protected ? "protected" : "custom"}`} aria-hidden="true">{role.is_protected ? "◆" : "◇"}</span>
+                      <div><h3>{role.name}</h3><code>{role.slug}</code></div>
                     </div>
-                    <span className={`badge ${role.is_protected ? "badge-primary" : role.source_template_role_id ? "badge-info" : "badge-neutral"}`}>
+                    <Badge variant={role.is_protected ? "primary" : role.source_template_role_id ? "info" : "neutral"}>
                       {role.is_protected ? "Sistem rolü" : role.source_template_role_id ? "Şablondan türetildi" : "Özel rol"}
-                    </span>
+                    </Badge>
                   </div>
-
                   <p className="role-card-description">
                     {role.is_protected
                       ? "OrganizationAdmin, organizasyondaki tüm aktif izinleri otomatik olarak alır ve doğrudan değiştirilemez."
@@ -525,287 +756,100 @@ export function RoleManagementPage() {
                         ? `Kaynak şablon sürümü: ${role.source_template_version ?? "—"}${isOutdated ? " · Güncelleme bekliyor" : " · Güncel"}`
                         : "Bu organizasyon için özel olarak oluşturulmuş bağımsız rol."}
                   </p>
-
                   <div className="role-card-metrics">
                     <div><strong>{role.permission_ids.length}</strong><span>izin</span></div>
                     <div><strong>{role.is_assignable ? "Aktif" : "Kapalı"}</strong><span>atanabilirlik</span></div>
-                    {role.source_template_role_id ? (
-                      <div><strong>{role.permissions_customized ? "Özel" : "Standart"}</strong><span>izin seti</span></div>
-                    ) : null}
+                    {role.source_template_role_id ? <div><strong>{role.permissions_customized ? "Özel" : "Standart"}</strong><span>izin seti</span></div> : null}
                   </div>
-
                   {isExpanded ? <RolePermissionPreview role={role} permissions={permissions} /> : null}
-
                   <footer className="role-card-actions">
-                    <button
-                      type="button"
-                      className="btn secondary btn-sm"
-                      onClick={() => setExpandedRoles((current) => {
-                        const next = new Set(current);
-                        if (next.has(role.id)) next.delete(role.id);
-                        else next.add(role.id);
-                        return next;
-                      })}
-                    >
-                      {isExpanded ? "İzinleri gizle" : "İzinleri göster"}
-                    </button>
+                    <Button variant="secondary" size="sm" onClick={() => setExpandedRoles((current) => {
+                      const next = new Set(current);
+                      if (next.has(role.id)) next.delete(role.id); else next.add(role.id);
+                      return next;
+                    })}>{isExpanded ? "İzinleri gizle" : "İzinleri göster"}</Button>
                     {!role.is_protected ? (
                       <>
-                        {canUpdateRole ? (
-                          <button
-                            type="button"
-                            className="btn secondary btn-sm"
-                            onClick={() => {
-                              setEditing(role);
-                              setForm({ name: role.name, slug: role.slug, permissionIds: role.permission_ids });
-                            }}
-                          >
-                            Düzenle
-                          </button>
-                        ) : null}
-                        {role.source_template_role_id && isSuperAdmin ? (
-                          <button type="button" className="btn secondary btn-sm" onClick={() => void sync(role)} disabled={saving}>
-                            Şablondan güncelle
-                          </button>
-                        ) : null}
-                        {canDeleteRole ? (
-                          <button type="button" className="btn danger btn-sm" onClick={() => setDeleteTarget(role)}>
-                            Sil
-                          </button>
-                        ) : null}
+                        {canUpdateRole ? <Button variant="secondary" size="sm" onClick={() => { setEditing(role); setForm({ name: role.name, slug: role.slug, permissionIds: role.permission_ids }); }}>Düzenle</Button> : null}
+                        {role.source_template_role_id && isSuperAdmin ? <Button variant="secondary" size="sm" onClick={() => void requestSync(role)} loading={saving}>Şablondan güncelle</Button> : null}
+                        {canDeleteRole ? <Button variant="danger" size="sm" onClick={() => setDeleteTarget(role)}>Sil</Button> : null}
                       </>
                     ) : null}
                   </footer>
-                </article>
+                </Card>
               );
             })}
-            {!roles.length ? (
-              <EmptyState
-                title="Bu organizasyonda atanabilir rol yok"
-                description="Özel rol oluşturun veya varsayılan bir şablondan rol türetin."
-                actionLabel={canCreateRole ? "Yeni Rol" : undefined}
-                onAction={canCreateRole ? openCreateRole : undefined}
-              />
-            ) : null}
+            {!roles.length ? <EmptyState title="Bu organizasyonda atanabilir rol yok" description="Özel rol oluşturun veya varsayılan bir şablondan rol türetin." actionLabel={canCreateRole ? "Yeni Rol" : undefined} onAction={canCreateRole ? openCreateRole : undefined} /> : null}
           </div>
         )}
       </TabPanel>
 
       <TabPanel id="panel-templates" labelledBy="tab-templates" active={tab === "templates"}>
         <div className="section-header role-section-header">
-          <div>
-            <h2 className="section-title">Varsayılan rol şablonları</h2>
-            <p className="section-description muted">
-              Şablon değişiklikleri yeni türetilecek rollere uygulanır. Mevcut roller ayrıca senkronize edilmelidir.
-            </p>
-          </div>
+          <div><h2 className="section-title">Varsayılan rol şablonları</h2><p className="section-description muted">Şablon değişiklikleri yeni türetilecek rollere uygulanır. Mevcut roller ayrıca senkronize edilmelidir.</p></div>
         </div>
         <div className="template-list">
           {templates.map((template) => {
             const draft = templateDrafts[template.id] ?? template.permission_ids;
             const hasChanges = !samePermissionIds(draft, template.permission_ids);
             return (
-              <article className="template-card card" key={template.id}>
+              <Card as="section" className="template-card" key={template.id}>
                 <header className="template-card-header">
-                  <div>
-                    <div className="template-title-row">
-                      <h3>{template.name}</h3>
-                      <span className="badge badge-info">Şablon</span>
-                    </div>
-                    <p>
-                      <code>{template.slug}</code> · Sürüm {template.template_version} · Doğrudan kullanıcıya atanamaz
-                    </p>
-                  </div>
+                  <div><div className="template-title-row"><h3>{template.name}</h3><Badge variant="info">Şablon</Badge></div><p><code>{template.slug}</code> · Sürüm {template.template_version} · Doğrudan kullanıcıya atanamaz</p></div>
                   <div className="template-actions">
-                    <button
-                      type="button"
-                      className="btn secondary"
-                      onClick={() => {
-                        setDeriveSource(template);
-                        setForm({
-                          ...EMPTY_ROLE,
-                          name: template.name,
-                          slug: `${template.slug}_${selectedOrganization?.slug ?? organizationId.slice(0, 6)}`,
-                        });
-                      }}
-                      disabled={!organizationId || saving}
-                    >
-                      Organizasyona ata
-                    </button>
-                    <button
-                      type="button"
-                      className="btn primary"
-                      onClick={() => void saveTemplate(template)}
-                      disabled={!hasChanges || saving}
-                    >
-                      {hasChanges ? "Şablonu Kaydet" : "Değişiklik Yok"}
-                    </button>
+                    <Button variant="secondary" onClick={() => { setDeriveSource(template); setForm({ ...EMPTY_ROLE, name: template.name, slug: `${template.slug}_${selectedOrganization?.slug ?? organizationId.slice(0, 6)}` }); }} disabled={!organizationId || saving}>Organizasyona ata</Button>
+                    <Button variant="primary" onClick={() => void saveTemplate(template)} loading={saving} disabled={!hasChanges}>{hasChanges ? "Şablonu Kaydet" : "Değişiklik Yok"}</Button>
                   </div>
                 </header>
-                {hasChanges ? (
-                  <Banner variant="info">Kaydedilmemiş izin değişiklikleri var.</Banner>
-                ) : null}
-                <PermissionMatrix
-                  permissions={permissions.filter((item) => item.lifecycle_state === "active")}
-                  selected={draft}
-                  disabled={saving}
-                  onChange={(ids) => setTemplateDrafts((current) => ({ ...current, [template.id]: ids }))}
-                />
-              </article>
+                {hasChanges ? <Banner variant="info">Kaydedilmemiş izin değişiklikleri var.</Banner> : null}
+                <PermissionMatrix permissions={permissions.filter((item) => item.lifecycle_state === "active")} selected={draft} disabled={saving} onChange={(ids) => setTemplateDrafts((current) => ({ ...current, [template.id]: ids }))} />
+              </Card>
             );
           })}
         </div>
       </TabPanel>
 
       <TabPanel id="panel-permissions" labelledBy="tab-permissions" active={tab === "permissions"}>
-        <div className="permission-lifecycle-notice card">
-          <strong>Global etki alanı</strong>
-          <p>
-            Bir izni kilitlemek veya devre dışı bırakmak, OrganizationAdmin dahil tüm rollerden kaldırır.
-            Super Admin erişimi etkilenmez.
-          </p>
-        </div>
+        <Card as="section" className="permission-lifecycle-notice"><strong>Global etki alanı</strong><p>Bir izni kilitlemek veya devre dışı bırakmak, OrganizationAdmin dahil tüm rollerden kaldırır. Super Admin erişimi etkilenmez.</p></Card>
         <div className="permission-lifecycle-toolbar">
-          <input
-            className="input"
-            value={permissionQuery}
-            onChange={(event) => setPermissionQuery(event.target.value)}
-            placeholder="İzin ara…"
-            aria-label="Global izin ara"
-          />
-          <select
-            className="input"
-            value={lifecycleFilter}
-            onChange={(event) => setLifecycleFilter(event.target.value as LifecycleFilter)}
-            aria-label="İzin durumu"
-          >
-            <option value="all">Tüm durumlar</option>
-            <option value="active">Aktif</option>
-            <option value="locked">Kilitli</option>
-            <option value="inactive">Devre dışı</option>
-          </select>
+          <TextInput id="global-permission-search" value={permissionQuery} onChange={(event) => setPermissionQuery(event.target.value)} placeholder="İzin ara…" aria-label="Global izin ara" />
+          <SelectInput id="permission-lifecycle-filter" value={lifecycleFilter} onChange={(event) => setLifecycleFilter(event.target.value as LifecycleFilter)} aria-label="İzin durumu">
+            <option value="all">Tüm durumlar</option><option value="active">Aktif</option><option value="locked">Kilitli</option><option value="inactive">Devre dışı</option>
+          </SelectInput>
         </div>
         <div className="permission-lifecycle-list">
           {filteredPermissions.map((permission) => (
-            <article className="permission-lifecycle-row card" key={permission.id}>
+            <Card as="section" className="permission-lifecycle-row" key={permission.id}>
               <div className="permission-lifecycle-copy">
-                <div>
-                  <code>{permission.code}</code>
-                  <span className={`badge ${permission.lifecycle_state === "active" ? "badge-success" : permission.lifecycle_state === "locked" ? "badge-warning" : "badge-danger"}`}>
-                    {permission.lifecycle_state === "active" ? "Aktif" : permission.lifecycle_state === "locked" ? "Kilitli" : "Devre dışı"}
-                  </span>
-                  {!permission.is_assignable ? <span className="badge badge-neutral">Platform yönetimli</span> : null}
-                </div>
+                <div><code>{permission.code}</code><Badge variant={permission.lifecycle_state === "active" ? "success" : permission.lifecycle_state === "locked" ? "warning" : "danger"}>{permission.lifecycle_state === "active" ? "Aktif" : permission.lifecycle_state === "locked" ? "Kilitli" : "Devre dışı"}</Badge>{!permission.is_assignable ? <Badge variant="neutral">Platform yönetimli</Badge> : null}</div>
                 <p>{permission.description}</p>
               </div>
               <div className="permission-lifecycle-actions">
                 {permission.lifecycle_state === "active" ? (
-                  <>
-                    <button className="btn secondary btn-sm" disabled={saving} onClick={() => void changePermissionState(permission, "locked")}>Kilitle</button>
-                    <button className="btn danger btn-sm" disabled={saving} onClick={() => void changePermissionState(permission, "inactive")}>Devre dışı bırak</button>
-                  </>
-                ) : (
-                  <button className="btn secondary btn-sm" disabled={saving} onClick={() => void changePermissionState(permission, "active")}>Aktifleştir</button>
-                )}
+                  <><Button variant="secondary" size="sm" loading={saving} onClick={() => void requestPermissionStateChange(permission, "locked")}>Kilitle</Button><Button variant="danger" size="sm" loading={saving} onClick={() => void requestPermissionStateChange(permission, "inactive")}>Devre dışı bırak</Button></>
+                ) : <Button variant="secondary" size="sm" loading={saving} onClick={() => void requestPermissionStateChange(permission, "active")}>Aktifleştir</Button>}
               </div>
-            </article>
+            </Card>
           ))}
-          {!filteredPermissions.length ? (
-            <EmptyState title="İzin bulunamadı" description="Arama veya durum filtresini değiştirin." />
-          ) : null}
+          {!filteredPermissions.length ? <EmptyState title="İzin bulunamadı" description="Arama veya durum filtresini değiştirin." /> : null}
         </div>
       </TabPanel>
 
       {editing !== undefined ? (
-        <FormModal
-          title={editing ? "Rolü Düzenle" : "Yeni Rol"}
-          onClose={() => !saving && setEditing(undefined)}
-          formWidth="wide"
-        >
-          <form className="crm-form-stack" onSubmit={saveRole}>
-            <div className="role-form-grid">
-              <label className="form-field">
-                <span className="form-label">Rol adı *</span>
-                <input
-                  className="input"
-                  value={form.name}
-                  onChange={(event) => setForm((current) => ({
-                    ...current,
-                    name: event.target.value,
-                    ...(!editing ? { slug: slugify(event.target.value) } : {}),
-                  }))}
-                  required
-                />
-              </label>
-              <label className="form-field">
-                <span className="form-label">Rol kodu *</span>
-                <input
-                  className="input"
-                  value={form.slug}
-                  onChange={(event) => setForm((current) => ({ ...current, slug: slugify(event.target.value) }))}
-                  required
-                />
-              </label>
-            </div>
-            <PermissionMatrix
-              permissions={permissions.filter((item) => item.lifecycle_state === "active" && item.is_assignable)}
-              selected={form.permissionIds}
-              disabled={saving}
-              onChange={(ids) => setForm((current) => ({ ...current, permissionIds: ids }))}
-            />
-            <div className="form-actions">
-              <button type="button" className="btn secondary" onClick={() => setEditing(undefined)} disabled={saving}>Vazgeç</button>
-              <button className="btn primary" disabled={saving || !form.name.trim() || !form.slug}>Kaydet</button>
-            </div>
-          </form>
-        </FormModal>
+        <FormDirtyHost onClose={() => setEditing(undefined)} confirmClassName="modal-backdrop-nested">
+          <RoleEditorModal editing={editing} form={form} permissions={permissions.filter((item) => item.lifecycle_state === "active" && item.is_assignable)} saving={saving} onChange={setForm} onClose={() => setEditing(undefined)} onSubmit={saveRole} />
+        </FormDirtyHost>
       ) : null}
 
       {deriveSource ? (
-        <FormModal title={`${deriveSource.name} şablonundan rol oluştur`} onClose={() => !saving && setDeriveSource(null)}>
-          <form className="crm-form-stack" onSubmit={derive}>
-            <Banner variant="info">
-              Rol, {selectedOrganization?.name ?? "seçili organizasyon"} organizasyonuna atanacak ve şablonun mevcut izinlerini alacak.
-            </Banner>
-            <label className="form-field">
-              <span className="form-label">Rol adı *</span>
-              <input className="input" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required />
-            </label>
-            <label className="form-field">
-              <span className="form-label">Rol kodu *</span>
-              <input className="input" value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: slugify(event.target.value) }))} required />
-            </label>
-            <div className="form-actions">
-              <button type="button" className="btn secondary" onClick={() => setDeriveSource(null)} disabled={saving}>Vazgeç</button>
-              <button className="btn primary" disabled={saving || !form.name.trim() || !form.slug}>Rolü Oluştur</button>
-            </div>
-          </form>
-        </FormModal>
+        <FormDirtyHost onClose={() => setDeriveSource(null)} confirmClassName="modal-backdrop-nested">
+          <DerivedRoleModal templateName={deriveSource.name} organizationName={selectedOrganization?.name ?? "seçili organizasyon"} form={form} saving={saving} onChange={setForm} onClose={() => setDeriveSource(null)} onSubmit={derive} />
+        </FormDirtyHost>
       ) : null}
 
-      {deleteTarget ? (
-        <ConfirmDialog
-          title="Rolü Sil"
-          message={`${deleteTarget.name} rolü silinecek. Aktif kullanıcıya atanmışsa işlem güvenlik nedeniyle engellenir.`}
-          confirmLabel="Rolü Sil"
-          variant="danger"
-          loading={saving}
-          onCancel={() => setDeleteTarget(null)}
-          onConfirm={() => {
-            if (!organizationId) return;
-            setSaving(true);
-            setError(null);
-            void deleteOrganizationRole(organizationId, deleteTarget.id)
-              .then(async () => {
-                setDeleteTarget(null);
-                setSuccess("Rol silindi.");
-                await loadOrganization();
-              })
-              .catch((err) => setError(errorMessage(err)))
-              .finally(() => setSaving(false));
-          }}
-        />
-      ) : null}
+      {deleteTarget ? <ConfirmDialog title="Rolü Sil" message={`${deleteTarget.name} rolü silinecek. Aktif kullanıcıya atanmışsa işlem güvenlik nedeniyle engellenir.`} confirmLabel="Rolü Sil" variant="danger" loading={saving} onCancel={() => setDeleteTarget(null)} onConfirm={() => { if (!organizationId) return; setSaving(true); setError(null); void deleteOrganizationRole(organizationId, deleteTarget.id).then(async () => { setDeleteTarget(null); setSuccess("Rol silindi."); await loadOrganization(); }).catch((err) => setError(errorMessage(err))).finally(() => setSaving(false)); }} /> : null}
+      {syncConfirmTarget ? <ConfirmDialog title="Rolü Şablonla Güncelle" message={`${syncConfirmTarget.role.name}: ${syncConfirmTarget.addCount} izin eklenecek, ${syncConfirmTarget.removeCount} izin kaldırılacak.`} confirmLabel="Güncelle" loading={saving} onCancel={() => setSyncConfirmTarget(null)} onConfirm={() => void confirmSync()} /> : null}
+      {permissionStateConfirmTarget ? <ConfirmDialog title="İzin Durumunu Değiştir" message={`${permissionStateConfirmTarget.permission.code}: ${permissionStateConfirmTarget.affectedRoles} rol ve ${permissionStateConfirmTarget.affectedUsers} kullanıcı etkilenecek.`} confirmLabel="Uygula" variant={permissionStateConfirmTarget.state === "inactive" ? "danger" : "default"} loading={saving} onCancel={() => setPermissionStateConfirmTarget(null)} onConfirm={() => void confirmPermissionStateChange()} /> : null}
     </PageShell>
   );
 }
