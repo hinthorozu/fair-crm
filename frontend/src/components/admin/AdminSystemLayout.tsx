@@ -9,6 +9,8 @@ import {
   hasQuoteTemplatePermission,
   QUOTE_TEMPLATE_PERMISSION_READ,
 } from "../../permissions/quoteTemplatePermissions";
+import { OrganizationsAdminPage } from "../../pages/OrganizationsAdminPage";
+import { UsersAdminPage } from "../../pages/UsersAdminPage";
 
 interface AdminSystemLayoutProps {
   children: React.ReactNode;
@@ -27,6 +29,23 @@ export function AdminSystemLayout({
 }: AdminSystemLayoutProps) {
   const { collapsed: subnavCollapsed, toggleCollapsed: toggleSubnavCollapsed } =
     usePersistedCollapsed(ADMIN_SUBNAV_STORAGE_KEY);
+
+  // App.tsx currently falls back unknown /admin/* paths to the default admin route.
+  // Keep the identity pages inside the admin shell while preserving the requested URL.
+  const pathname = window.location.pathname.replace(/\/$/, "");
+  const identitySection =
+    pathname === "/admin/organizations"
+      ? "organizations"
+      : pathname === "/admin/users"
+        ? "users"
+        : null;
+  const resolvedActiveSection = identitySection ?? activeSection;
+  const resolvedChildren =
+    identitySection === "organizations"
+      ? <OrganizationsAdminPage />
+      : identitySection === "users"
+        ? <UsersAdminPage />
+        : children;
 
   const identityItems = [
     {
@@ -127,7 +146,7 @@ export function AdminSystemLayout({
               href={item.path}
               label={item.label}
               icon={<AdminNavIcon id={item.id} />}
-              active={activeSection === item.id}
+              active={resolvedActiveSection === item.id}
               collapsed={subnavCollapsed}
               onClick={(e) => onNavigate(item.path, e)}
             />
@@ -143,7 +162,7 @@ export function AdminSystemLayout({
               href={item.path}
               label={item.label}
               icon={<AdminNavIcon id={item.id} />}
-              active={activeSection === item.id}
+              active={resolvedActiveSection === item.id}
               collapsed={subnavCollapsed}
               onClick={(e) => onNavigate(item.path, e)}
             />
@@ -170,7 +189,7 @@ export function AdminSystemLayout({
               href={item.path}
               label={item.label}
               icon={<AdminNavIcon id={item.id} />}
-              active={activeSection === item.id}
+              active={resolvedActiveSection === item.id}
               collapsed={subnavCollapsed}
               onClick={(e) => onNavigate(item.path, e)}
             />
@@ -186,14 +205,14 @@ export function AdminSystemLayout({
               href={item.path}
               label={item.label}
               icon={<AdminNavIcon id={item.id} />}
-              active={activeSection === item.id}
+              active={resolvedActiveSection === item.id}
               collapsed={subnavCollapsed}
               onClick={(e) => onNavigate(item.path, e)}
             />
           ))}
         </nav>
       </aside>
-      <div className="admin-content">{children}</div>
+      <div className="admin-content">{resolvedChildren}</div>
     </div>
   );
 }
