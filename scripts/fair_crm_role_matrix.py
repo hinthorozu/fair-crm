@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 AUDIT_READ_PERMISSION: Final = "audit.logs.read"
-ROLE_MATRIX_VERSION: Final = 8
+ROLE_MATRIX_VERSION: Final = 9
 
 ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.customers.create",
@@ -127,13 +127,10 @@ ROLE_DEFINITIONS: dict[str, dict[str, object]] = {
     },
 }
 
+# Only the platform owner is seeded by default. OrganizationAdmin exists as a
+# role template and is assigned when an organization administrator is created.
 DEV_ROLE_USERS: tuple[tuple[str, str, str], ...] = (
     ("owner", "dev@example.com", "00000000-0000-4000-8000-000000000001"),
-    (
-        "organization_admin",
-        "dev-admin@example.com",
-        "00000000-0000-4000-8000-000000000002",
-    ),
 )
 
 
