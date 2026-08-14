@@ -11,6 +11,7 @@ import { ScraperRunHistoryPage } from "./pages/ScraperRunHistoryPage";
 import { ScraperTestPage } from "./pages/ScraperTestPage";
 import { EnrichmentRunDetailPage } from "./pages/EnrichmentRunDetailPage";
 import { DatabaseBackupsPage } from "./pages/DatabaseBackupsPage";
+import { OrganizationsPage } from "./pages/OrganizationsPage";
 import { SmtpAccountsPage } from "./pages/SmtpAccountsPage";
 import { MailTemplatesPage } from "./pages/MailTemplatesPage";
 import { QuoteTemplatesPage } from "./pages/QuoteTemplatesPage";
@@ -58,6 +59,7 @@ import { PageShell } from "./components/ui/PageShell";
 import { uiLabels } from "./labels/uiLabels";
 import { dataIntegrationLabels } from "./labels/dataIntegrationLabels";
 import { adminLabels } from "./labels/adminLabels";
+import { organizationLabels } from "./labels/organizationLabels";
 import { labels } from "./labels";
 import { scraperLabels } from "./labels/scraperLabels";
 import { dashboardLabels } from "./labels/dashboardLabels";
@@ -98,6 +100,7 @@ type AppRoute =
   | "/data-integration/run-history"
   | "/data-integration/runs/:runId"
   | "/data-integration/scraper-test"
+  | "/admin/system/organizations"
   | "/admin/system/backups"
   | "/admin/email-accounts"
   | "/admin/smtp-operations/templates"
@@ -128,7 +131,6 @@ function parseRoute(location: string): ParsedRoute {
   const dataOperationKey = searchParams.get("operation") ?? undefined;
 
   if (pathname === "/admin" || pathname.startsWith("/admin/")) {
-    // Legacy admin data-operations URLs → Operations → Duplicate Kontrolü
     if (pathname === "/admin/data-operations" || pathname === "/admin/data-operations/") {
       return { route: "/operations/new/duplicate-check" };
     }
@@ -170,6 +172,12 @@ function parseRoute(location: string): ParsedRoute {
     ) {
       return { route: "/admin/smtp-operations/mail-operations" };
     }
+    if (
+      pathname === "/admin/system/organizations" ||
+      pathname.startsWith("/admin/system/organizations/")
+    ) {
+      return { route: "/admin/system/organizations" };
+    }
     if (pathname === "/admin/system/backups" || pathname.startsWith("/admin/system/backups")) {
       return { route: "/admin/system/backups" };
     }
@@ -190,15 +198,9 @@ function parseRoute(location: string): ParsedRoute {
     if (fairImport) {
       return { route: "/data-integration/imports/fair/:fairId", fairId: fairImport[1] };
     }
-    if (pathname === "/data-integration/imports/new") {
-      return { route: "/data-integration/imports/new" };
-    }
-    if (pathname === "/data-integration/jobs") {
-      return { route: "/data-integration/jobs" };
-    }
-    if (pathname === "/data-integration/reports") {
-      return { route: "/data-integration/reports" };
-    }
+    if (pathname === "/data-integration/imports/new") return { route: "/data-integration/imports/new" };
+    if (pathname === "/data-integration/jobs") return { route: "/data-integration/jobs" };
+    if (pathname === "/data-integration/reports") return { route: "/data-integration/reports" };
     if (pathname === "/data-integration/run-history" || pathname === "/data-integration/run-history/") {
       return { route: "/data-integration/run-history" };
     }
@@ -227,51 +229,28 @@ function parseRoute(location: string): ParsedRoute {
   }
   if (pathname === "/imports" || pathname.startsWith("/imports/")) {
     const fairImport = pathname.match(/^\/imports\/fair\/([^/]+)$/);
-    if (fairImport) {
-      return { route: "/imports/fair/:fairId", fairId: fairImport[1] };
-    }
+    if (fairImport) return { route: "/imports/fair/:fairId", fairId: fairImport[1] };
     return { route: "/imports" };
   }
   if (pathname === "/fairs" || pathname.startsWith("/fairs/")) {
     const fairMatch = pathname.match(/^\/fairs\/([^/]+)$/);
-    if (fairMatch) {
-      return { route: "/fairs/:id", fairId: fairMatch[1] };
-    }
+    if (fairMatch) return { route: "/fairs/:id", fairId: fairMatch[1] };
     return { route: "/fairs" };
   }
-  if (pathname === "/follow-ups" || pathname.startsWith("/follow-ups/")) {
-    return { route: "/follow-ups" };
-  }
-  if (pathname === "/activities" || pathname.startsWith("/activities/")) {
-    return { route: "/activities" };
-  }
+  if (pathname === "/follow-ups" || pathname.startsWith("/follow-ups/")) return { route: "/follow-ups" };
+  if (pathname === "/activities" || pathname.startsWith("/activities/")) return { route: "/activities" };
   if (pathname === "/todos" || pathname.startsWith("/todos/")) {
     const quoteMatch = pathname.match(/^\/todos\/([^/]+)\/quote$/);
-    if (quoteMatch) {
-      return { route: "/todos/:id/quote", todoId: quoteMatch[1] };
-    }
+    if (quoteMatch) return { route: "/todos/:id/quote", todoId: quoteMatch[1] };
     const todoMatch = pathname.match(/^\/todos\/([^/]+)$/);
-    if (todoMatch) {
-      return { route: "/todos/:id", todoId: todoMatch[1] };
-    }
+    if (todoMatch) return { route: "/todos/:id", todoId: todoMatch[1] };
     return { route: "/todos" };
   }
   if (pathname === "/operations" || pathname.startsWith("/operations/")) {
-    if (pathname === "/operations/new/scraper" || pathname === "/operations/new/scraper/") {
-      return { route: "/operations/new/scraper" };
-    }
-    if (pathname === "/operations/new/bulk-email" || pathname === "/operations/new/bulk-email/") {
-      return { route: "/operations/new/bulk-email" };
-    }
-    if (pathname === "/operations/new/enrichment" || pathname === "/operations/new/enrichment/") {
-      return { route: "/operations/new/enrichment" };
-    }
-    if (
-      pathname === "/operations/new/duplicate-check" ||
-      pathname === "/operations/new/duplicate-check/"
-    ) {
-      return { route: "/operations/new/duplicate-check" };
-    }
+    if (pathname === "/operations/new/scraper" || pathname === "/operations/new/scraper/") return { route: "/operations/new/scraper" };
+    if (pathname === "/operations/new/bulk-email" || pathname === "/operations/new/bulk-email/") return { route: "/operations/new/bulk-email" };
+    if (pathname === "/operations/new/enrichment" || pathname === "/operations/new/enrichment/") return { route: "/operations/new/enrichment" };
+    if (pathname === "/operations/new/duplicate-check" || pathname === "/operations/new/duplicate-check/") return { route: "/operations/new/duplicate-check" };
     const duplicateCheckRun = pathname.match(/^\/operations\/duplicate-check\/runs\/([^/]+)$/);
     if (duplicateCheckRun) {
       return {
@@ -280,80 +259,49 @@ function parseRoute(location: string): ParsedRoute {
         dataOperationKey,
       };
     }
-    // Legacy: type picker is a modal on /operations (not a standalone page).
     if (
-      pathname === "/operations/new" ||
-      pathname === "/operations/new/" ||
-      pathname === "/operations/new/manual_task" ||
-      pathname === "/operations/new/manual_task/"
-    ) {
-      return { route: "/operations" };
-    }
+      pathname === "/operations/new" || pathname === "/operations/new/" ||
+      pathname === "/operations/new/manual_task" || pathname === "/operations/new/manual_task/"
+    ) return { route: "/operations" };
     const operationMatch = pathname.match(/^\/operations\/([^/]+)$/);
-    if (operationMatch) {
-      return { route: "/operations/:id", operationId: operationMatch[1] };
-    }
+    if (operationMatch) return { route: "/operations/:id", operationId: operationMatch[1] };
     return { route: "/operations" };
   }
-  if (pathname === "/login" || pathname === "/login/") {
-    return { route: "/login" };
-  }
-  if (pathname === "/dashboard" || pathname === "/") {
-    return { route: "/dashboard" };
-  }
-  if (pathname === "/customers") {
-    return { route: "/customers" };
-  }
+  if (pathname === "/login" || pathname === "/login/") return { route: "/login" };
+  if (pathname === "/dashboard" || pathname === "/") return { route: "/dashboard" };
+  if (pathname === "/customers") return { route: "/customers" };
   const customerMatch = pathname.match(/^\/customers\/([^/]+)$/);
-  if (customerMatch) {
-    return { route: "/customers/:id", customerId: customerMatch[1] };
-  }
+  if (customerMatch) return { route: "/customers/:id", customerId: customerMatch[1] };
   return { route: "/dashboard" };
 }
 
 function splitPath(path: string): { pathname: string; search: string } {
   const queryIndex = path.indexOf("?");
-  if (queryIndex === -1) {
-    return { pathname: path, search: "" };
-  }
-  return {
-    pathname: path.slice(0, queryIndex),
-    search: path.slice(queryIndex),
-  };
+  if (queryIndex === -1) return { pathname: path, search: "" };
+  return { pathname: path.slice(0, queryIndex), search: path.slice(queryIndex) };
 }
 
 function navigate(path: string) {
   const { pathname, search } = splitPath(path);
-  const nextSearch =
-    search || (window.location.pathname === pathname ? window.location.search : "");
+  const nextSearch = search || (window.location.pathname === pathname ? window.location.search : "");
   const next = `${pathname}${nextSearch}`;
-  if (`${window.location.pathname}${window.location.search}` !== next) {
-    window.history.pushState(null, "", next);
-  }
+  if (`${window.location.pathname}${window.location.search}` !== next) window.history.pushState(null, "", next);
   window.dispatchEvent(new PopStateEvent("popstate"));
 }
 
-function isDataIntegrationRoute(route: AppRoute): boolean {
-  return route.startsWith("/data-integration");
-}
-
-function isAdminRoute(route: AppRoute): boolean {
-  return route.startsWith("/admin");
-}
-
+function isDataIntegrationRoute(route: AppRoute): boolean { return route.startsWith("/data-integration"); }
+function isAdminRoute(route: AppRoute): boolean { return route.startsWith("/admin"); }
 function adminSection(route: AppRoute): string {
+  if (route.includes("/organizations")) return "organizations";
   if (route.includes("/operation-capabilities")) return "operation-capabilities";
   if (route.includes("/smtp-operations/quote-templates")) return "quote-templates";
   if (route.includes("/smtp-operations/template-contents")) return "template-contents";
   if (route.includes("/smtp-operations/templates")) return "mail-templates";
   if (route.includes("/smtp-operations/mail-operations")) return "mail-operations";
-  if (route.includes("/email-accounts")) {
-    return "email-accounts";
-  }
+  if (route.includes("/email-accounts")) return "email-accounts";
   if (route.includes("/backups")) return "backups";
   return "backups";
 }
-
 function diSection(route: AppRoute): string {
   if (route.includes("/scraper-test")) return "scraper-test";
   if (route.includes("/runs/") || route.includes("/run-history")) return "run-history";
@@ -366,9 +314,7 @@ function diSection(route: AppRoute): string {
 
 export function App() {
   const { isAuthenticated, logout } = useAuth();
-  const [parsed, setParsed] = React.useState<ParsedRoute>(() =>
-    parseRoute(`${window.location.pathname}${window.location.search}`),
-  );
+  const [parsed, setParsed] = React.useState<ParsedRoute>(() => parseRoute(`${window.location.pathname}${window.location.search}`));
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [customerName, setCustomerName] = React.useState<string | null>(null);
   const [fairName, setFairName] = React.useState<string | null>(null);
@@ -377,38 +323,20 @@ export function App() {
   const [diNotice, setDiNotice] = React.useState<string | null>(null);
   const [adminNotice, setAdminNotice] = React.useState<string | null>(null);
   const { requestNavigation, confirmDialog } = useNavigationDirtyGate();
-  const allowedUrlRef = React.useRef(
-    `${window.location.pathname}${window.location.search}`,
-  );
+  const allowedUrlRef = React.useRef(`${window.location.pathname}${window.location.search}`);
 
-  const runGuardedNav = React.useCallback(
-    (action: () => void) => {
-      requestNavigation(() => {
-        action();
-        allowedUrlRef.current = `${window.location.pathname}${window.location.search}`;
-      });
-    },
-    [requestNavigation],
-  );
+  const runGuardedNav = React.useCallback((action: () => void) => {
+    requestNavigation(() => {
+      action();
+      allowedUrlRef.current = `${window.location.pathname}${window.location.search}`;
+    });
+  }, [requestNavigation]);
 
-  useDocumentTitle({
-    route: parsed.route,
-    customerName,
-    fairName,
-    todoTitle,
-    adapterName,
-    adapterKey: parsed.adapterKey,
-    dataOperationKey: parsed.dataOperationKey,
-  });
+  useDocumentTitle({ route: parsed.route, customerName, fairName, todoTitle, adapterName, adapterKey: parsed.adapterKey, dataOperationKey: parsed.dataOperationKey });
 
   React.useLayoutEffect(() => {
     const path = window.location.pathname;
-    if (import.meta.env.DEV && path === "/dev/customers-responsive-pilot") {
-      return;
-    }
-    if (import.meta.env.DEV && path === "/dev/table-standard-smoke") {
-      return;
-    }
+    if (import.meta.env.DEV && (path === "/dev/customers-responsive-pilot" || path === "/dev/table-standard-smoke")) return;
     if (!isAuthenticated && path !== "/login") {
       window.history.replaceState(null, "", "/login");
       setParsed({ route: "/login" });
@@ -439,12 +367,7 @@ export function App() {
       setParsed(parseRoute("/todos?view=follow_ups"));
       return;
     }
-    if (
-      path === "/operations/new" ||
-      path === "/operations/new/" ||
-      path === "/operations/new/manual_task" ||
-      path === "/operations/new/manual_task/"
-    ) {
+    if (path === "/operations/new" || path === "/operations/new/" || path === "/operations/new/manual_task" || path === "/operations/new/manual_task/") {
       window.history.replaceState(null, "", "/operations");
       setParsed({ route: "/operations" });
       return;
@@ -499,567 +422,108 @@ export function App() {
     });
   };
 
-  const goToCustomerDetail = (customerId: string) => {
-    const path = `/customers/${customerId}`;
-    runGuardedNav(() => {
-      navigate(path);
-      setParsed(parseRoute(path));
-      setSidebarOpen(false);
-    });
-  };
+  const goToCustomerDetail = (customerId: string) => { const path = `/customers/${customerId}`; runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); };
+  const goToDashboard = () => runGuardedNav(() => { navigate("/dashboard"); setParsed({ route: "/dashboard" }); setSidebarOpen(false); });
+  const goToCustomers = () => runGuardedNav(() => { navigate("/customers"); setParsed({ route: "/customers" }); setCustomerName(null); setSidebarOpen(false); });
+  const goToFairs = () => runGuardedNav(() => { navigate("/fairs"); setParsed({ route: "/fairs" }); setFairName(null); setSidebarOpen(false); });
+  const goToDataIntegration = (subpath = "/data-integration/imports") => runGuardedNav(() => { navigate(subpath); setParsed(parseRoute(subpath)); setSidebarOpen(false); });
+  const goToImportWizard = (fairId?: string) => goToDataIntegration(fairId ? `/data-integration/imports/fair/${fairId}` : "/data-integration/imports/new");
+  const goToFairDetail = (fairId: string) => { const path = `/fairs/${fairId}`; runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); };
+  const goToTodos = () => runGuardedNav(() => { navigate("/todos"); setParsed({ route: "/todos" }); setTodoTitle(null); setSidebarOpen(false); });
+  const goToActivities = () => runGuardedNav(() => { navigate("/activities"); setParsed({ route: "/activities" }); setSidebarOpen(false); });
+  const goToTodoDetail = (todoId: string) => { const path = `/todos/${todoId}`; runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); };
+  const goToQuoteEditor = (todoId: string) => { const path = `/todos/${todoId}/quote`; runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); };
+  const goToOperations = () => runGuardedNav(() => { navigate("/operations"); setParsed({ route: "/operations" }); setSidebarOpen(false); });
+  const goToOperationDetail = (operationId: string) => { const path = `/operations/${operationId}`; runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); };
+  const goToOperationTypeWizard = (type: OperationType) => { const wizardPath = getOperationTypeWizardPath(type); if (!wizardPath) return; runGuardedNav(() => { navigate(wizardPath); setParsed({ route: wizardPath as AppRoute }); setSidebarOpen(false); }); };
+  const goToDuplicateCheck = () => runGuardedNav(() => { navigate("/operations/new/duplicate-check"); setParsed({ route: "/operations/new/duplicate-check" }); setSidebarOpen(false); });
+  const goToDuplicateCheckResult = (runId: string, operationKey: string) => { const path = `/operations/duplicate-check/runs/${runId}?operation=${encodeURIComponent(operationKey)}`; runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); };
+  const openOperationFromList = (operation: Operation) => { const duplicateResult = extractDuplicateCheckResultNav(operation); if (duplicateResult) { goToDuplicateCheckResult(duplicateResult.runId, duplicateResult.operationKey); return; } goToOperationDetail(operation.id); };
+  const goToAdapters = () => runGuardedNav(() => { navigate("/data-integration/adapters"); setParsed({ route: "/data-integration/adapters" }); setAdapterName(null); setSidebarOpen(false); });
+  const goToAdapterDetail = (adapterKey: string) => { const path = `/data-integration/adapters/${encodeURIComponent(adapterKey)}`; runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); };
+  const goToRunHistory = (adapterKey?: string) => { const path = adapterKey ? `/data-integration/run-history?adapter_key=${encodeURIComponent(adapterKey)}` : "/data-integration/run-history"; runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); };
+  const goToScraperTest = (adapterKey?: string, runId?: string) => { const params = new URLSearchParams(); if (adapterKey) params.set("adapter_key", adapterKey); if (runId) params.set("run", runId); const qs = params.toString(); const path = `/data-integration/scraper-test${qs ? `?${qs}` : ""}`; runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); };
+  const goToAdapterRunDetail = (adapterKey: string, runId: string) => { const path = resolveRunDetailPath(adapterKey, runId); runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); };
+  const goToAdmin = (subpath = "/admin/system/backups") => runGuardedNav(() => { navigate(subpath); setParsed(parseRoute(subpath)); setSidebarOpen(false); });
 
-  const goToDashboard = () => {
-    runGuardedNav(() => {
-      navigate("/dashboard");
-      setParsed({ route: "/dashboard" });
-      setSidebarOpen(false);
-    });
-  };
-
-  const goToCustomers = () => {
-    runGuardedNav(() => {
-      navigate("/customers");
-      setParsed({ route: "/customers" });
-      setCustomerName(null);
-      setSidebarOpen(false);
-    });
-  };
-
-  const goToFairs = () => {
-    runGuardedNav(() => {
-      navigate("/fairs");
-      setParsed({ route: "/fairs" });
-      setFairName(null);
-      setSidebarOpen(false);
-    });
-  };
-
-  const goToDataIntegration = (subpath = "/data-integration/imports") => {
-    runGuardedNav(() => {
-      navigate(subpath);
-      setParsed(parseRoute(subpath));
-      setSidebarOpen(false);
-    });
-  };
-
-  const goToImportWizard = (fairId?: string) => {
-    const path = fairId
-      ? `/data-integration/imports/fair/${fairId}`
-      : "/data-integration/imports/new";
-    goToDataIntegration(path);
-  };
-
-  const goToFairDetail = (fairId: string) => {
-    const path = `/fairs/${fairId}`;
-    runGuardedNav(() => {
-      navigate(path);
-      setParsed(parseRoute(path));
-      setSidebarOpen(false);
-    });
-  };
-
-  const goToTodos = () => {
-    runGuardedNav(() => {
-      navigate("/todos");
-      setParsed({ route: "/todos" });
-      setTodoTitle(null);
-      setSidebarOpen(false);
-    });
-  };
-
-  const goToActivities = () => {
-    runGuardedNav(() => {
-      navigate("/activities");
-      setParsed({ route: "/activities" });
-      setSidebarOpen(false);
-    });
-  };
-
-  const goToTodoDetail = (todoId: string) => {
-    const path = `/todos/${todoId}`;
-    runGuardedNav(() => {
-      navigate(path);
-      setParsed(parseRoute(path));
-      setSidebarOpen(false);
-    });
-  };
-
-  const goToQuoteEditor = (todoId: string) => {
-    const path = `/todos/${todoId}/quote`;
-    runGuardedNav(() => {
-      navigate(path);
-      setParsed(parseRoute(path));
-      setSidebarOpen(false);
-    });
-  };
-
-  const goToOperations = () => {
-    runGuardedNav(() => {
-      navigate("/operations");
-      setParsed({ route: "/operations" });
-      setSidebarOpen(false);
-    });
-  };
-
-  const goToOperationDetail = (operationId: string) => {
-    const path = `/operations/${operationId}`;
-    runGuardedNav(() => {
-      navigate(path);
-      setParsed(parseRoute(path));
-      setSidebarOpen(false);
-    });
-  };
-
-  const goToOperationTypeWizard = (type: OperationType) => {
-    const wizardPath = getOperationTypeWizardPath(type);
-    if (!wizardPath) return;
-    runGuardedNav(() => {
-      navigate(wizardPath);
-      setParsed({ route: wizardPath as AppRoute });
-      setSidebarOpen(false);
-    });
-  };
-
-  const goToDuplicateCheck = () => {
-    runGuardedNav(() => {
-      navigate("/operations/new/duplicate-check");
-      setParsed({ route: "/operations/new/duplicate-check" });
-      setSidebarOpen(false);
-    });
-  };
-
-  const goToDuplicateCheckResult = (runId: string, operationKey: string) => {
-    const path = `/operations/duplicate-check/runs/${runId}?operation=${encodeURIComponent(operationKey)}`;
-    runGuardedNav(() => {
-      navigate(path);
-      setParsed(parseRoute(path));
-      setSidebarOpen(false);
-    });
-  };
-
-  const openOperationFromList = (operation: Operation) => {
-    const duplicateResult = extractDuplicateCheckResultNav(operation);
-    if (duplicateResult) {
-      goToDuplicateCheckResult(duplicateResult.runId, duplicateResult.operationKey);
-      return;
-    }
-    goToOperationDetail(operation.id);
-  };
-
-  const goToAdapters = () => {
-    runGuardedNav(() => {
-      navigate("/data-integration/adapters");
-      setParsed({ route: "/data-integration/adapters" });
-      setAdapterName(null);
-      setSidebarOpen(false);
-    });
-  };
-
-  const goToAdapterDetail = (adapterKey: string) => {
-    const path = `/data-integration/adapters/${encodeURIComponent(adapterKey)}`;
-    runGuardedNav(() => {
-      navigate(path);
-      setParsed(parseRoute(path));
-      setSidebarOpen(false);
-    });
-  };
-
-  const goToRunHistory = (adapterKey?: string) => {
-    const path = adapterKey
-      ? `/data-integration/run-history?adapter_key=${encodeURIComponent(adapterKey)}`
-      : "/data-integration/run-history";
-    runGuardedNav(() => {
-      navigate(path);
-      setParsed(parseRoute(path));
-      setSidebarOpen(false);
-    });
-  };
-
-  const goToScraperTest = (adapterKey?: string, runId?: string) => {
-    const params = new URLSearchParams();
-    if (adapterKey) params.set("adapter_key", adapterKey);
-    if (runId) params.set("run", runId);
-    const qs = params.toString();
-    const path = `/data-integration/scraper-test${qs ? `?${qs}` : ""}`;
-    runGuardedNav(() => {
-      navigate(path);
-      setParsed(parseRoute(path));
-      setSidebarOpen(false);
-    });
-  };
-
-  const goToAdapterRunDetail = (adapterKey: string, runId: string) => {
-    const path = resolveRunDetailPath(adapterKey, runId);
-    runGuardedNav(() => {
-      navigate(path);
-      setParsed(parseRoute(path));
-      setSidebarOpen(false);
-    });
-  };
-
-  const goToAdmin = (subpath = "/admin/system/backups") => {
-    runGuardedNav(() => {
-      navigate(subpath);
-      setParsed(parseRoute(subpath));
-      setSidebarOpen(false);
-    });
-  };
-
-  const handleLoginSuccess = React.useCallback(() => {
-    window.history.replaceState(null, "", "/dashboard");
-    setParsed({ route: "/dashboard" });
-    setSidebarOpen(false);
-    allowedUrlRef.current = "/dashboard";
-  }, []);
-
+  const handleLoginSuccess = React.useCallback(() => { window.history.replaceState(null, "", "/dashboard"); setParsed({ route: "/dashboard" }); setSidebarOpen(false); allowedUrlRef.current = "/dashboard"; }, []);
   const handleLogout = React.useCallback(async () => {
     const finishLogout = async () => {
       await logout();
-      // VITE_DEV_BYPASS_ENABLED keeps the app usable without a Core session.
-      if (config.devBypassEnabled) {
-        setSidebarOpen(false);
-        return;
-      }
+      if (config.devBypassEnabled) { setSidebarOpen(false); return; }
       window.history.replaceState(null, "", "/login");
       setParsed({ route: "/login" });
       setSidebarOpen(false);
       allowedUrlRef.current = "/login";
     };
-    requestNavigation(() => {
-      void finishLogout();
-    });
+    requestNavigation(() => { void finishLogout(); });
   }, [logout, requestNavigation]);
 
   const isDashboardActive = parsed.route === "/dashboard";
   const isCustomersActive = parsed.route === "/customers" || parsed.route === "/customers/:id";
-  const isFairsActive =
-    parsed.route === "/fairs" ||
-    parsed.route === "/fairs/:id";
-  const isTodosActive =
-    parsed.route === "/todos" || parsed.route === "/todos/:id" || parsed.route === "/todos/:id/quote";
-  const isOperationsActive =
-    parsed.route === "/operations" ||
-    parsed.route === "/operations/new/scraper" ||
-    parsed.route === "/operations/new/bulk-email" ||
-    parsed.route === "/operations/new/enrichment" ||
-    parsed.route === "/operations/new/duplicate-check" ||
-    parsed.route === "/operations/duplicate-check/runs/:runId" ||
-    parsed.route === "/operations/:id";
+  const isFairsActive = parsed.route === "/fairs" || parsed.route === "/fairs/:id";
+  const isTodosActive = parsed.route === "/todos" || parsed.route === "/todos/:id" || parsed.route === "/todos/:id/quote";
+  const isOperationsActive = parsed.route === "/operations" || parsed.route === "/operations/new/scraper" || parsed.route === "/operations/new/bulk-email" || parsed.route === "/operations/new/enrichment" || parsed.route === "/operations/new/duplicate-check" || parsed.route === "/operations/duplicate-check/runs/:runId" || parsed.route === "/operations/:id";
   const isActivitiesActive = parsed.route === "/activities";
   const isDiActive = isDataIntegrationRoute(parsed.route);
   const isAdminActive = isAdminRoute(parsed.route);
 
   const breadcrumbs =
-    parsed.route === "/dashboard"
-      ? [{ label: dashboardLabels.pageTitle, current: true }]
-      : parsed.route === "/customers/:id" && parsed.customerId
-      ? [
-          { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-          { label: labels.customers, onClick: goToCustomers },
-          { label: customerName ?? uiLabels.navCustomers, current: true },
-        ]
-      : parsed.route === "/fairs/:id" && parsed.fairId
-        ? [
-            { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-            { label: uiLabels.navFairs, onClick: goToFairs },
-            { label: fairName ?? uiLabels.navFairs, current: true },
-          ]
-        : parsed.route === "/fairs"
-          ? [
-              { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-              { label: uiLabels.navFairs, onClick: goToFairs },
-              { label: uiLabels.navFairs, current: true },
-            ]
-          : parsed.route === "/todos/:id/quote" && parsed.todoId
-            ? [
-                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                { label: uiLabels.navTodos, onClick: goToTodos },
-                { label: "Teklif Hazırlama", current: true },
-              ]
-          : parsed.route === "/todos/:id" && parsed.todoId
-            ? [
-                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                { label: uiLabels.navTodos, onClick: goToTodos },
-                { label: todoTitle ?? uiLabels.navTodos, current: true },
-              ]
-          : parsed.route === "/todos"
-            ? [
-                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                { label: uiLabels.navTodos, current: true },
-              ]
-          : parsed.route === "/operations/:id"
-            ? [
-                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                { label: uiLabels.navOperations, onClick: goToOperations },
-                { label: operationLabels.detailTitle, current: true },
-              ]
-          : parsed.route === "/operations/new/scraper"
-            ? [
-                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                { label: uiLabels.navOperations, onClick: goToOperations },
-                { label: operationLabels.scraperWizardTitle, current: true },
-              ]
-          : parsed.route === "/operations/new/bulk-email"
-            ? [
-                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                { label: uiLabels.navOperations, onClick: goToOperations },
-                { label: operationLabels.bulkEmailWizardTitle, current: true },
-              ]
-          : parsed.route === "/operations/new/enrichment"
-            ? [
-                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                { label: uiLabels.navOperations, onClick: goToOperations },
-                { label: operationLabels.enrichmentWizardTitle, current: true },
-              ]
-          : parsed.route === "/operations/new/duplicate-check"
-            ? [
-                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                { label: uiLabels.navOperations, onClick: goToOperations },
-                { label: operationLabels.duplicateCheckWizardTitle, current: true },
-              ]
-          : parsed.route === "/operations/duplicate-check/runs/:runId"
-            ? [
-                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                { label: uiLabels.navOperations, onClick: goToOperations },
-                {
-                  label: operationLabels.duplicateCheckWizardTitle,
-                  onClick: goToDuplicateCheck,
-                },
-                {
-                  label:
-                    parsed.dataOperationKey === "duplicate_customer_analysis"
-                      ? adminLabels.dataOpDuplicateResultTitle
-                      : adminLabels.dataOpAnalyzeResultTitle,
-                  current: true,
-                },
-              ]
-          : parsed.route === "/operations"
-            ? [
-                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                { label: uiLabels.navOperations, current: true },
-              ]
-          : parsed.route === "/activities"
-            ? [
-                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                { label: activityLabels.pageTitle, current: true },
-              ]
-          : parsed.route === "/data-integration/adapters/:adapterKey" && parsed.adapterKey
-            ? [
-                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
-                { label: scraperLabels.pageTitle, onClick: goToAdapters },
-                { label: adapterName ?? parsed.adapterKey, current: true },
-              ]
-            : parsed.route === "/data-integration/adapters"
-              ? [
-                  { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                  { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
-                  { label: scraperLabels.pageTitle, current: true },
-                ]
-              : parsed.route === "/data-integration/runs/:runId"
-              ? [
-                  { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                  { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
-                  {
-                    label: scraperLabels.runHistoryTitle,
-                    onClick: () => goToRunHistory(parsed.adapterKey),
-                  },
-                  { label: scraperLabels.enrichmentRunDetailTitle, current: true },
-                ]
-            : parsed.route === "/data-integration/scraper-test"
-              ? [
-                  { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                  { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
-                  { label: scraperLabels.testPageTitle, current: true },
-                ]
-            : parsed.route === "/data-integration/run-history"
-              ? [
-                  { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                  { label: uiLabels.navImports, onClick: () => goToDataIntegration() },
-                  { label: scraperLabels.runHistoryTitle, current: true },
-                ]
-            : isDiActive
-            ? [
-                { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                { label: uiLabels.navImports, current: true },
-              ]
-            : isAdminActive
-              ? [
-                  { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                  { label: uiLabels.navAdmin, onClick: () => goToAdmin() },
-                  {
-                    label:
-                      parsed.route === "/admin/email-accounts"
-                          ? adminLabels.navSmtpAccounts
-                          : parsed.route === "/admin/smtp-operations/templates"
-                            ? adminLabels.navMailTemplates
-                            : parsed.route === "/admin/smtp-operations/mail-operations"
-                              ? adminLabels.navMailOperations
-                          : parsed.route === "/admin/operation-capabilities"
-                            ? adminLabels.navOperationCapabilities
-                          : adminLabels.navDatabaseBackups,
-                    current: true,
-                  },
-                ]
-              : parsed.route === "/customers"
-                ? [
-                    { label: uiLabels.breadcrumbHome, onClick: goToDashboard },
-                    { label: labels.customers, current: true },
-                  ]
-              : [{ label: dashboardLabels.pageTitle, current: true }];
+    parsed.route === "/dashboard" ? [{ label: dashboardLabels.pageTitle, current: true }]
+    : parsed.route === "/customers/:id" && parsed.customerId ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: labels.customers, onClick: goToCustomers }, { label: customerName ?? uiLabels.navCustomers, current: true }]
+    : parsed.route === "/fairs/:id" && parsed.fairId ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navFairs, onClick: goToFairs }, { label: fairName ?? uiLabels.navFairs, current: true }]
+    : parsed.route === "/fairs" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navFairs, onClick: goToFairs }, { label: uiLabels.navFairs, current: true }]
+    : parsed.route === "/todos/:id/quote" && parsed.todoId ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navTodos, onClick: goToTodos }, { label: "Teklif Hazırlama", current: true }]
+    : parsed.route === "/todos/:id" && parsed.todoId ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navTodos, onClick: goToTodos }, { label: todoTitle ?? uiLabels.navTodos, current: true }]
+    : parsed.route === "/todos" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navTodos, current: true }]
+    : parsed.route === "/operations/:id" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navOperations, onClick: goToOperations }, { label: operationLabels.detailTitle, current: true }]
+    : parsed.route === "/operations/new/scraper" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navOperations, onClick: goToOperations }, { label: operationLabels.scraperWizardTitle, current: true }]
+    : parsed.route === "/operations/new/bulk-email" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navOperations, onClick: goToOperations }, { label: operationLabels.bulkEmailWizardTitle, current: true }]
+    : parsed.route === "/operations/new/enrichment" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navOperations, onClick: goToOperations }, { label: operationLabels.enrichmentWizardTitle, current: true }]
+    : parsed.route === "/operations/new/duplicate-check" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navOperations, onClick: goToOperations }, { label: operationLabels.duplicateCheckWizardTitle, current: true }]
+    : parsed.route === "/operations/duplicate-check/runs/:runId" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navOperations, onClick: goToOperations }, { label: operationLabels.duplicateCheckWizardTitle, onClick: goToDuplicateCheck }, { label: parsed.dataOperationKey === "duplicate_customer_analysis" ? adminLabels.dataOpDuplicateResultTitle : adminLabels.dataOpAnalyzeResultTitle, current: true }]
+    : parsed.route === "/operations" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navOperations, current: true }]
+    : parsed.route === "/activities" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: activityLabels.pageTitle, current: true }]
+    : parsed.route === "/data-integration/adapters/:adapterKey" && parsed.adapterKey ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navImports, onClick: () => goToDataIntegration() }, { label: scraperLabels.pageTitle, onClick: goToAdapters }, { label: adapterName ?? parsed.adapterKey, current: true }]
+    : parsed.route === "/data-integration/adapters" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navImports, onClick: () => goToDataIntegration() }, { label: scraperLabels.pageTitle, current: true }]
+    : parsed.route === "/data-integration/runs/:runId" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navImports, onClick: () => goToDataIntegration() }, { label: scraperLabels.runHistoryTitle, onClick: () => goToRunHistory(parsed.adapterKey) }, { label: scraperLabels.enrichmentRunDetailTitle, current: true }]
+    : parsed.route === "/data-integration/scraper-test" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navImports, onClick: () => goToDataIntegration() }, { label: scraperLabels.testPageTitle, current: true }]
+    : parsed.route === "/data-integration/run-history" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navImports, onClick: () => goToDataIntegration() }, { label: scraperLabels.runHistoryTitle, current: true }]
+    : isDiActive ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navImports, current: true }]
+    : isAdminActive ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navAdmin, onClick: () => goToAdmin() }, { label: parsed.route === "/admin/system/organizations" ? organizationLabels.title : parsed.route === "/admin/email-accounts" ? adminLabels.navSmtpAccounts : parsed.route === "/admin/smtp-operations/templates" ? adminLabels.navMailTemplates : parsed.route === "/admin/smtp-operations/mail-operations" ? adminLabels.navMailOperations : parsed.route === "/admin/operation-capabilities" ? adminLabels.navOperationCapabilities : adminLabels.navDatabaseBackups, current: true }]
+    : parsed.route === "/customers" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: labels.customers, current: true }]
+    : [{ label: dashboardLabels.pageTitle, current: true }];
 
   const navItems = [
-    {
-      path: "/dashboard",
-      label: uiLabels.navDashboard,
-      icon: <NavIconDashboard />,
-      active: isDashboardActive,
-      onClick: (e: React.MouseEvent) => handleNav("/dashboard", e),
-    },
-    {
-      path: "/customers",
-      label: uiLabels.navCustomers,
-      icon: <NavIconCustomers />,
-      active: isCustomersActive,
-      onClick: (e: React.MouseEvent) => handleNav("/customers", e),
-    },
-    {
-      path: "/fairs",
-      label: uiLabels.navFairs,
-      icon: <NavIconFairs />,
-      active: isFairsActive,
-      onClick: (e: React.MouseEvent) => handleNav("/fairs", e),
-    },
-    {
-      path: "/todos",
-      label: uiLabels.navTodos,
-      icon: <NavIconTodos />,
-      active: isTodosActive,
-      onClick: (e: React.MouseEvent) => handleNav("/todos", e),
-    },
-    {
-      path: "/operations",
-      label: uiLabels.navOperations,
-      icon: <NavIconOperations />,
-      active: isOperationsActive,
-      onClick: (e: React.MouseEvent) => handleNav("/operations", e),
-    },
-    {
-      path: "/activities",
-      label: uiLabels.navActivities,
-      icon: <NavIconActivities />,
-      active: isActivitiesActive,
-      onClick: (e: React.MouseEvent) => handleNav("/activities", e),
-    },
-    {
-      path: "/data-integration/imports",
-      label: uiLabels.navImports,
-      icon: <NavIconDataIntegration />,
-      active: isDiActive,
-      onClick: (e: React.MouseEvent) => handleNav("/data-integration/imports", e),
-    },
-    {
-      path: "/admin/system/backups",
-      label: uiLabels.navAdmin,
-      icon: <NavIconAdmin />,
-      active: isAdminActive,
-      onClick: (e: React.MouseEvent) => handleNav("/admin/system/backups", e),
-    },
+    { path: "/dashboard", label: uiLabels.navDashboard, icon: <NavIconDashboard />, active: isDashboardActive, onClick: (e: React.MouseEvent) => handleNav("/dashboard", e) },
+    { path: "/customers", label: uiLabels.navCustomers, icon: <NavIconCustomers />, active: isCustomersActive, onClick: (e: React.MouseEvent) => handleNav("/customers", e) },
+    { path: "/fairs", label: uiLabels.navFairs, icon: <NavIconFairs />, active: isFairsActive, onClick: (e: React.MouseEvent) => handleNav("/fairs", e) },
+    { path: "/todos", label: uiLabels.navTodos, icon: <NavIconTodos />, active: isTodosActive, onClick: (e: React.MouseEvent) => handleNav("/todos", e) },
+    { path: "/operations", label: uiLabels.navOperations, icon: <NavIconOperations />, active: isOperationsActive, onClick: (e: React.MouseEvent) => handleNav("/operations", e) },
+    { path: "/activities", label: uiLabels.navActivities, icon: <NavIconActivities />, active: isActivitiesActive, onClick: (e: React.MouseEvent) => handleNav("/activities", e) },
+    { path: "/data-integration/imports", label: uiLabels.navImports, icon: <NavIconDataIntegration />, active: isDiActive, onClick: (e: React.MouseEvent) => handleNav("/data-integration/imports", e) },
+    { path: "/admin/system/backups", label: uiLabels.navAdmin, icon: <NavIconAdmin />, active: isAdminActive, onClick: (e: React.MouseEvent) => handleNav("/admin/system/backups", e) },
   ];
 
   const renderDataIntegration = () => (
-    <DataIntegrationLayout
-      activeSection={diSection(parsed.route)}
-      onNavigate={(path, e) => handleNav(path, e)}
-      onDisabledClick={() => setDiNotice(dataIntegrationLabels.comingSoonMessage)}
-    >
+    <DataIntegrationLayout activeSection={diSection(parsed.route)} onNavigate={(path, e) => handleNav(path, e)} onDisabledClick={() => setDiNotice(dataIntegrationLabels.comingSoonMessage)}>
       {diNotice && <p className="text-muted">{diNotice}</p>}
-      {parsed.route === "/data-integration/imports" && (
-        <DataIntegrationImportsPage
-          onContinueBatch={(batchId) => goToDataIntegration(`/data-integration/imports/continue/${batchId}`)}
-        />
-      )}
-      {(parsed.route === "/data-integration/imports/new" ||
-        parsed.route === "/data-integration/imports/fair/:fairId") && (
-        <ImportWizardPage
-          preselectedFairId={parsed.fairId}
-          onUploadComplete={() => goToDataIntegration("/data-integration/imports")}
-          onMappingSaved={() => goToDataIntegration("/data-integration/imports")}
-          onFinished={() => goToDataIntegration("/data-integration/imports")}
-        />
-      )}
-      {parsed.route === "/data-integration/imports/continue/:batchId" && (
-        <ImportWizardPage
-          resumeBatchId={parsed.batchId}
-          onMappingSaved={() => goToDataIntegration("/data-integration/imports")}
-          onFinished={() => goToDataIntegration("/data-integration/imports")}
-        />
-      )}
-      {(parsed.route === "/data-integration/jobs" || parsed.route === "/data-integration/reports") && (
-        <PageShell>
-          <PageHeader
-            title={
-              parsed.route === "/data-integration/jobs"
-                ? dataIntegrationLabels.navJobs
-                : dataIntegrationLabels.navReports
-            }
-          />
-          <EmptyState
-            title={dataIntegrationLabels.comingSoon}
-            description={dataIntegrationLabels.comingSoonMessage}
-          />
-        </PageShell>
-      )}
-      {parsed.route === "/data-integration/adapters" && (
-        <AdapterManagementPage onOpenDetail={goToAdapterDetail} />
-      )}
-      {parsed.route === "/data-integration/adapters/:adapterKey" && parsed.adapterKey && (
-        <AdapterDetailPage
-          adapterKey={parsed.adapterKey}
-          onBack={goToAdapters}
-          onOpenFair={goToFairDetail}
-          onAdapterLoaded={setAdapterName}
-          onViewAllRuns={goToRunHistory}
-          onOpenScraperTest={goToScraperTest}
-          onOpenRunDetail={goToAdapterRunDetail}
-        />
-      )}
-      {parsed.route === "/data-integration/run-history" && (
-        <ScraperRunHistoryPage
-          initialAdapterKey={new URLSearchParams(window.location.search).get("adapter_key") ?? undefined}
-          onOpenAdapter={goToAdapterDetail}
-          onOpenRunDetail={goToAdapterRunDetail}
-          onOpenImportBatch={(batchId) =>
-            goToDataIntegration(`/data-integration/imports/continue/${batchId}`)
-          }
-        />
-      )}
-      {parsed.route === "/data-integration/runs/:runId" && parsed.runId && (
-        <EnrichmentRunDetailPage
-          runId={parsed.runId}
-          adapterKey={parsed.adapterKey}
-          onBack={() => goToRunHistory(parsed.adapterKey)}
-          onOpenImportBatch={(batchId) =>
-            goToDataIntegration(`/data-integration/imports/continue/${batchId}`)
-          }
-        />
-      )}
-      {parsed.route === "/data-integration/scraper-test" && (
-        <ScraperTestPage
-          initialAdapterKey={new URLSearchParams(window.location.search).get("adapter_key") ?? undefined}
-          focusRunId={new URLSearchParams(window.location.search).get("run")}
-        />
-      )}
+      {parsed.route === "/data-integration/imports" && <DataIntegrationImportsPage onContinueBatch={(batchId) => goToDataIntegration(`/data-integration/imports/continue/${batchId}`)} />}
+      {(parsed.route === "/data-integration/imports/new" || parsed.route === "/data-integration/imports/fair/:fairId") && <ImportWizardPage preselectedFairId={parsed.fairId} onUploadComplete={() => goToDataIntegration("/data-integration/imports")} onMappingSaved={() => goToDataIntegration("/data-integration/imports")} onFinished={() => goToDataIntegration("/data-integration/imports")} />}
+      {parsed.route === "/data-integration/imports/continue/:batchId" && <ImportWizardPage resumeBatchId={parsed.batchId} onMappingSaved={() => goToDataIntegration("/data-integration/imports")} onFinished={() => goToDataIntegration("/data-integration/imports")} />}
+      {(parsed.route === "/data-integration/jobs" || parsed.route === "/data-integration/reports") && <PageShell><PageHeader title={parsed.route === "/data-integration/jobs" ? dataIntegrationLabels.navJobs : dataIntegrationLabels.navReports} /><EmptyState title={dataIntegrationLabels.comingSoon} description={dataIntegrationLabels.comingSoonMessage} /></PageShell>}
+      {parsed.route === "/data-integration/adapters" && <AdapterManagementPage onOpenDetail={goToAdapterDetail} />}
+      {parsed.route === "/data-integration/adapters/:adapterKey" && parsed.adapterKey && <AdapterDetailPage adapterKey={parsed.adapterKey} onBack={goToAdapters} onOpenFair={goToFairDetail} onAdapterLoaded={setAdapterName} onViewAllRuns={goToRunHistory} onOpenScraperTest={goToScraperTest} onOpenRunDetail={goToAdapterRunDetail} />}
+      {parsed.route === "/data-integration/run-history" && <ScraperRunHistoryPage initialAdapterKey={new URLSearchParams(window.location.search).get("adapter_key") ?? undefined} onOpenAdapter={goToAdapterDetail} onOpenRunDetail={goToAdapterRunDetail} onOpenImportBatch={(batchId) => goToDataIntegration(`/data-integration/imports/continue/${batchId}`)} />}
+      {parsed.route === "/data-integration/runs/:runId" && parsed.runId && <EnrichmentRunDetailPage runId={parsed.runId} adapterKey={parsed.adapterKey} onBack={() => goToRunHistory(parsed.adapterKey)} onOpenImportBatch={(batchId) => goToDataIntegration(`/data-integration/imports/continue/${batchId}`)} />}
+      {parsed.route === "/data-integration/scraper-test" && <ScraperTestPage initialAdapterKey={new URLSearchParams(window.location.search).get("adapter_key") ?? undefined} focusRunId={new URLSearchParams(window.location.search).get("run")} />}
     </DataIntegrationLayout>
   );
 
   const renderAdminSystem = () => (
-    <AdminSystemLayout
-      activeSection={adminSection(parsed.route)}
-      onNavigate={(path, e) => handleNav(path, e)}
-      onDisabledClick={() => setAdminNotice(adminLabels.comingSoonMessage)}
-    >
+    <AdminSystemLayout activeSection={adminSection(parsed.route)} onNavigate={(path, e) => handleNav(path, e)} onDisabledClick={() => setAdminNotice(adminLabels.comingSoonMessage)}>
       {adminNotice && <p className="text-muted">{adminNotice}</p>}
+      {parsed.route === "/admin/system/organizations" && <OrganizationsPage />}
       {parsed.route === "/admin/system/backups" && <DatabaseBackupsPage />}
       {parsed.route === "/admin/email-accounts" && <SmtpAccountsPage />}
       {parsed.route === "/admin/smtp-operations/templates" && <MailTemplatesPage />}
@@ -1070,120 +534,30 @@ export function App() {
     </AdminSystemLayout>
   );
 
-  if (import.meta.env.DEV && window.location.pathname === "/dev/customers-responsive-pilot") {
-    return <CustomersResponsivePilotPage />;
-  }
-
-  if (import.meta.env.DEV && window.location.pathname === "/dev/table-standard-smoke") {
-    return <TableStandardSmokePage />;
-  }
-
-  if (!isAuthenticated) {
-    return <LoginPage onSuccess={handleLoginSuccess} />;
-  }
+  if (import.meta.env.DEV && window.location.pathname === "/dev/customers-responsive-pilot") return <CustomersResponsivePilotPage />;
+  if (import.meta.env.DEV && window.location.pathname === "/dev/table-standard-smoke") return <TableStandardSmokePage />;
+  if (!isAuthenticated) return <LoginPage onSuccess={handleLoginSuccess} />;
 
   return (
-    <AppLayout
-      breadcrumbs={breadcrumbs}
-      navItems={navItems}
-      sidebarOpen={sidebarOpen}
-      onToggleSidebar={() => setSidebarOpen((v) => !v)}
-      onLogout={handleLogout}
-    >
-      {parsed.route === "/dashboard" && (
-        <DashboardPage
-          onOpenCustomer={goToCustomerDetail}
-          onNavigate={(path) => {
-            runGuardedNav(() => {
-              navigate(path);
-              setParsed(parseRoute(path));
-              setSidebarOpen(false);
-            });
-          }}
-        />
-      )}
+    <AppLayout breadcrumbs={breadcrumbs} navItems={navItems} sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((v) => !v)} onLogout={handleLogout}>
+      {parsed.route === "/dashboard" && <DashboardPage onOpenCustomer={goToCustomerDetail} onNavigate={(path) => { runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); }} />}
       {parsed.route === "/fairs" && <FairsPage onOpenDetail={goToFairDetail} />}
-      {parsed.route === "/fairs/:id" && parsed.fairId && (
-        <FairDetailPage
-          fairId={parsed.fairId}
-          onBack={goToFairs}
-          onFairLoaded={setFairName}
-          onOpenCustomer={goToCustomerDetail}
-          onImportParticipants={() => goToImportWizard(parsed.fairId)}
-        />
-      )}
+      {parsed.route === "/fairs/:id" && parsed.fairId && <FairDetailPage fairId={parsed.fairId} onBack={goToFairs} onFairLoaded={setFairName} onOpenCustomer={goToCustomerDetail} onImportParticipants={() => goToImportWizard(parsed.fairId)} />}
       {isDiActive && renderDataIntegration()}
       {isAdminActive && renderAdminSystem()}
-      {parsed.route === "/todos" && (
-        <TodosPage onOpenDetail={goToTodoDetail} onOpenQuote={goToQuoteEditor} onOpenCustomer={goToCustomerDetail} />
-      )}
-      {parsed.route === "/todos/:id" && parsed.todoId && (
-        <TodoDetailPage
-          todoId={parsed.todoId}
-          onBack={goToTodos}
-          onTodoLoaded={setTodoTitle}
-          onOpenCustomer={goToCustomerDetail}
-          onOpenQuote={goToQuoteEditor}
-        />
-      )}
-      {parsed.route === "/todos/:id/quote" && parsed.todoId && (
-        <QuoteEditorPage todoId={parsed.todoId} onBack={() => goToTodoDetail(parsed.todoId!)} />
-      )}
-      {parsed.route === "/operations" && (
-        <OperationsPage
-          onOpenDetail={openOperationFromList}
-          onSelectType={goToOperationTypeWizard}
-        />
-      )}
-      {parsed.route === "/operations/new/scraper" && (
-        <ScraperOperationWizardPage
-          onCancel={goToOperations}
-          onCreated={goToOperationDetail}
-        />
-      )}
-      {parsed.route === "/operations/new/bulk-email" && (
-        <BulkEmailOperationWizardPage
-          onCancel={goToOperations}
-          onCreated={goToOperationDetail}
-        />
-      )}
-      {parsed.route === "/operations/new/enrichment" && (
-        <EnrichmentOperationPage onCreated={goToOperationDetail} />
-      )}
-      {parsed.route === "/operations/new/duplicate-check" && (
-        <DataOperationsPage
-          onOpenResult={(runId, operationKey) => goToDuplicateCheckResult(runId, operationKey)}
-        />
-      )}
-      {parsed.route === "/operations/duplicate-check/runs/:runId" && parsed.dataOperationRunId && (
-        <DataOperationRunResultPage
-          runId={parsed.dataOperationRunId}
-          operationKey={parsed.dataOperationKey}
-          onBack={goToDuplicateCheck}
-          onOpenCustomer={goToCustomerDetail}
-        />
-      )}
-      {parsed.route === "/operations/:id" && parsed.operationId && (
-        <OperationDetailPage
-          operationId={parsed.operationId}
-          onBack={goToOperations}
-          onOpenTodo={goToTodoDetail}
-          onOpenImportBatch={(batchId) =>
-            goToDataIntegration(`/data-integration/imports/continue/${batchId}`)
-          }
-        />
-      )}
-      {parsed.route === "/activities" && (
-        <ActivitiesPage onOpenCustomer={goToCustomerDetail} />
-      )}
+      {parsed.route === "/todos" && <TodosPage onOpenDetail={goToTodoDetail} onOpenQuote={goToQuoteEditor} onOpenCustomer={goToCustomerDetail} />}
+      {parsed.route === "/todos/:id" && parsed.todoId && <TodoDetailPage todoId={parsed.todoId} onBack={goToTodos} onTodoLoaded={setTodoTitle} onOpenCustomer={goToCustomerDetail} onOpenQuote={goToQuoteEditor} />}
+      {parsed.route === "/todos/:id/quote" && parsed.todoId && <QuoteEditorPage todoId={parsed.todoId} onBack={() => goToTodoDetail(parsed.todoId!)} />}
+      {parsed.route === "/operations" && <OperationsPage onOpenDetail={openOperationFromList} onSelectType={goToOperationTypeWizard} />}
+      {parsed.route === "/operations/new/scraper" && <ScraperOperationWizardPage onCancel={goToOperations} onCreated={goToOperationDetail} />}
+      {parsed.route === "/operations/new/bulk-email" && <BulkEmailOperationWizardPage onCancel={goToOperations} onCreated={goToOperationDetail} />}
+      {parsed.route === "/operations/new/enrichment" && <EnrichmentOperationPage onCreated={goToOperationDetail} />}
+      {parsed.route === "/operations/new/duplicate-check" && <DataOperationsPage onOpenResult={(runId, operationKey) => goToDuplicateCheckResult(runId, operationKey)} />}
+      {parsed.route === "/operations/duplicate-check/runs/:runId" && parsed.dataOperationRunId && <DataOperationRunResultPage runId={parsed.dataOperationRunId} operationKey={parsed.dataOperationKey} onBack={goToDuplicateCheck} onOpenCustomer={goToCustomerDetail} />}
+      {parsed.route === "/operations/:id" && parsed.operationId && <OperationDetailPage operationId={parsed.operationId} onBack={goToOperations} onOpenTodo={goToTodoDetail} onOpenImportBatch={(batchId) => goToDataIntegration(`/data-integration/imports/continue/${batchId}`)} />}
+      {parsed.route === "/activities" && <ActivitiesPage onOpenCustomer={goToCustomerDetail} />}
       {parsed.route === "/customers" && <CustomersPage onOpenDetail={goToCustomerDetail} />}
-      {parsed.route === "/customers/:id" && parsed.customerId && (
-        <CustomerDetailPage
-          customerId={parsed.customerId}
-          onBack={goToCustomers}
-          onCustomerLoaded={setCustomerName}
-        />
-      )}
+      {parsed.route === "/customers/:id" && parsed.customerId && <CustomerDetailPage customerId={parsed.customerId} onBack={goToCustomers} onCustomerLoaded={setCustomerName} />}
       {confirmDialog}
     </AppLayout>
   );
