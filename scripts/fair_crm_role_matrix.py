@@ -1,11 +1,11 @@
-"""Central FAIR CRM dev role → permission matrix (Core RBAC role templates)."""
+"""Central FAIR CRM role → permission matrix (Core RBAC role templates)."""
 
 from __future__ import annotations
 
 from typing import Final
 
 AUDIT_READ_PERMISSION: Final = "audit.logs.read"
-ROLE_MATRIX_VERSION: Final = 9
+ROLE_MATRIX_VERSION: Final = 10
 
 ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.customers.create",
@@ -116,21 +116,20 @@ ADMIN_ONLY_PERMISSIONS: frozenset[str] = frozenset(
 
 _FULL_ACCESS_PERMISSIONS: tuple[str, ...] = ALL_FAIR_CRM_PERMISSIONS + (AUDIT_READ_PERMISSION,)
 
+# Platform-level unrestricted access is NOT a role. It is represented only by
+# identity_users.is_super_admin. OrganizationAdmin is the organization RBAC role.
 ROLE_DEFINITIONS: dict[str, dict[str, object]] = {
-    "owner": {
-        "name": "Owner",
-        "permissions": _FULL_ACCESS_PERMISSIONS,
-    },
     "organization_admin": {
         "name": "OrganizationAdmin",
         "permissions": _FULL_ACCESS_PERMISSIONS,
     },
 }
 
-# Only the platform owner is seeded by default. OrganizationAdmin exists as a
-# role template and is assigned when an organization administrator is created.
+# The bootstrap user is also attached to the default organization as its
+# OrganizationAdmin. Its platform-level Super Admin state is controlled solely
+# by identity_users.is_super_admin in Core, not by this role mapping.
 DEV_ROLE_USERS: tuple[tuple[str, str, str], ...] = (
-    ("owner", "dev@example.com", "00000000-0000-4000-8000-000000000001"),
+    ("organization_admin", "dev@example.com", "00000000-0000-4000-8000-000000000001"),
 )
 
 
