@@ -8,6 +8,17 @@ export interface AssignableRole {
   slug: string;
 }
 
+export interface ManagedOrganization {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface UserManagementContext {
+  is_super_admin: boolean;
+  organizations: ManagedOrganization[];
+}
+
 export interface ManagedUser {
   id: string;
   email: string;
@@ -58,15 +69,13 @@ function errorMessage(data: unknown, fallback: string): string {
   return fallback;
 }
 
-async function coreRequest<T>(
-  organizationId: string,
-  path: string,
-  init: RequestInit = {},
-): Promise<T> {
+async function request<T>(path: string, init: RequestInit = {}, organizationId?: string): Promise<T> {
   if (!getAccessToken() && !config.devBypassEnabled) {
     throw new ApiError("Oturum bulunamadı.", 401);
   }
-  const headers = new Headers(buildApiHeaders({ "X-Organization-Id": organizationId }));
+  const headers = new Headers(
+    buildApiHeaders(organizationId ? { "X-Organization-Id": organizationId } : {}),
+  );
   if (init.headers) new Headers(init.headers).forEach((value, key) => headers.set(key, value));
   const response = await fetchWithTimeout(
     `${config.coreBaseUrl}/api/v1${path}`,
@@ -80,17 +89,23 @@ async function coreRequest<T>(
   return data as T;
 }
 
+export function getUserManagementContext(): Promise<UserManagementContext> {
+  return request<UserManagementContext>("/user-management/context");
+}
+
 export function listManagedUsers(organizationId: string): Promise<ManagedUserList> {
-  return coreRequest<ManagedUserList>(
-    organizationId,
+  return request<ManagedUserList>(
     `/organizations/${encodeURIComponent(organizationId)}/users`,
+    {},
+    organizationId,
   );
 }
 
 export function listAssignableRoles(organizationId: string): Promise<AssignableRole[]> {
-  return coreRequest<AssignableRole[]>(
-    organizationId,
+  return request<AssignableRole[]>(
     `/organizations/${encodeURIComponent(organizationId)}/roles`,
+    {},
+    organizationId,
   );
 }
 
@@ -98,10 +113,10 @@ export function createManagedUser(
   organizationId: string,
   payload: ManualUserCreatePayload,
 ): Promise<ManagedUser> {
-  return coreRequest<ManagedUser>(
-    organizationId,
+  return request<ManagedUser>(
     `/organizations/${encodeURIComponent(organizationId)}/users/manual`,
     { method: "POST", body: JSON.stringify(payload) },
+    organizationId,
   );
 }
 
@@ -110,17 +125,17 @@ export function updateManagedUser(
   userId: string,
   payload: ManualUserUpdatePayload,
 ): Promise<ManagedUser> {
-  return coreRequest<ManagedUser>(
-    organizationId,
+  return request<ManagedUser>(
     `/organizations/${encodeURIComponent(organizationId)}/users/${encodeURIComponent(userId)}`,
     { method: "PATCH", body: JSON.stringify(payload) },
+    organizationId,
   );
 }
 
 export async function deleteManagedUser(organizationId: string, userId: string): Promise<void> {
-  await coreRequest<null>(
-    organizationId,
+  await request<null>(
     `/organizations/${encodeURIComponent(organizationId)}/users/${encodeURIComponent(userId)}`,
     { method: "DELETE" },
+    organizationId,
   );
 }
