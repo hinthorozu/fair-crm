@@ -9,8 +9,6 @@ import {
   hasQuoteTemplatePermission,
   QUOTE_TEMPLATE_PERMISSION_READ,
 } from "../../permissions/quoteTemplatePermissions";
-import { OrganizationsAdminPage } from "../../pages/OrganizationsAdminPage";
-import { UsersAdminPage } from "../../pages/UsersAdminPage";
 
 interface AdminSystemLayoutProps {
   children: React.ReactNode;
@@ -29,36 +27,6 @@ export function AdminSystemLayout({
 }: AdminSystemLayoutProps) {
   const { collapsed: subnavCollapsed, toggleCollapsed: toggleSubnavCollapsed } =
     usePersistedCollapsed(ADMIN_SUBNAV_STORAGE_KEY);
-
-  // App.tsx currently falls back unknown /admin/* paths to the default admin route.
-  // Keep the identity pages inside the admin shell while preserving the requested URL.
-  const pathname = window.location.pathname.replace(/\/$/, "");
-  const identitySection =
-    pathname === "/admin/organizations"
-      ? "organizations"
-      : pathname === "/admin/users"
-        ? "users"
-        : null;
-  const resolvedActiveSection = identitySection ?? activeSection;
-  const resolvedChildren =
-    identitySection === "organizations"
-      ? <OrganizationsAdminPage />
-      : identitySection === "users"
-        ? <UsersAdminPage />
-        : children;
-
-  const identityItems = [
-    {
-      id: "organizations",
-      label: "Organizasyonlar",
-      path: "/admin/organizations",
-    },
-    {
-      id: "users",
-      label: "Kullanıcılar",
-      path: "/admin/users",
-    },
-  ];
 
   const systemItems = [
     {
@@ -137,23 +105,7 @@ export function AdminSystemLayout({
           />
         </div>
 
-        {renderSectionTitle("Kimlik ve Erişim", true)}
-        <nav className="admin-subnav-links" aria-label="Kimlik ve Erişim">
-          {identityItems.map((item) => (
-            <NavLink
-              key={item.id}
-              variant="admin"
-              href={item.path}
-              label={item.label}
-              icon={<AdminNavIcon id={item.id} />}
-              active={resolvedActiveSection === item.id}
-              collapsed={subnavCollapsed}
-              onClick={(e) => onNavigate(item.path, e)}
-            />
-          ))}
-        </nav>
-
-        {renderSectionTitle(adminLabels.systemTitle)}
+        {renderSectionTitle(adminLabels.systemTitle, true)}
         <nav className="admin-subnav-links" aria-label={adminLabels.systemTitle}>
           {systemItems.map((item) => (
             <NavLink
@@ -162,7 +114,7 @@ export function AdminSystemLayout({
               href={item.path}
               label={item.label}
               icon={<AdminNavIcon id={item.id} />}
-              active={resolvedActiveSection === item.id}
+              active={activeSection === item.id}
               collapsed={subnavCollapsed}
               onClick={(e) => onNavigate(item.path, e)}
             />
@@ -189,7 +141,7 @@ export function AdminSystemLayout({
               href={item.path}
               label={item.label}
               icon={<AdminNavIcon id={item.id} />}
-              active={resolvedActiveSection === item.id}
+              active={activeSection === item.id}
               collapsed={subnavCollapsed}
               onClick={(e) => onNavigate(item.path, e)}
             />
@@ -205,14 +157,14 @@ export function AdminSystemLayout({
               href={item.path}
               label={item.label}
               icon={<AdminNavIcon id={item.id} />}
-              active={resolvedActiveSection === item.id}
+              active={activeSection === item.id}
               collapsed={subnavCollapsed}
               onClick={(e) => onNavigate(item.path, e)}
             />
           ))}
         </nav>
       </aside>
-      <div className="admin-content">{resolvedChildren}</div>
+      <div className="admin-content">{children}</div>
     </div>
   );
 }
