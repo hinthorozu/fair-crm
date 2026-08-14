@@ -1,5 +1,3 @@
-import { config } from "../config";
-
 export const FAIR_CRM_PERMISSION_CODES = [
   "fair_crm.email_accounts.read",
   "fair_crm.email_accounts.create",
@@ -45,12 +43,13 @@ export function getGrantedCorePermissions(): Set<string> {
 }
 
 async function checkCorePermission(
+  coreBaseUrl: string,
   accessToken: string,
   organizationId: string,
   permissionCode: string,
 ): Promise<boolean> {
   const response = await fetch(
-    `${config.coreBaseUrl}/api/v1/organizations/${encodeURIComponent(organizationId)}/authorization/check`,
+    `${coreBaseUrl}/api/v1/organizations/${encodeURIComponent(organizationId)}/authorization/check`,
     {
       method: "POST",
       headers: {
@@ -72,13 +71,19 @@ async function checkCorePermission(
 }
 
 export async function fetchGrantedCorePermissions(
+  coreBaseUrl: string,
   accessToken: string,
   organizationId: string,
 ): Promise<string[]> {
   const decisions = await Promise.all(
     FAIR_CRM_PERMISSION_CODES.map(async (permissionCode) => ({
       permissionCode,
-      allowed: await checkCorePermission(accessToken, organizationId, permissionCode),
+      allowed: await checkCorePermission(
+        coreBaseUrl,
+        accessToken,
+        organizationId,
+        permissionCode,
+      ),
     })),
   );
 
