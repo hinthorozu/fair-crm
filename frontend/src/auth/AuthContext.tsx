@@ -24,6 +24,7 @@ const AuthContext = React.createContext<AuthContextValue | null>(null);
 
 async function withCorePermissions(session: AuthSession): Promise<AuthSession> {
   const permissions = await fetchGrantedCorePermissions(
+    config.coreBaseUrl,
     session.accessToken,
     session.organizationId,
   );
