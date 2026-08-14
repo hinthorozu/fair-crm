@@ -1,4 +1,4 @@
-import { config } from "../config";
+import { getGrantedCorePermissions } from "./corePermissions";
 
 export const EMAIL_ACCOUNTS_PERMISSION_READ = "fair_crm.email_accounts.read";
 export const EMAIL_ACCOUNTS_PERMISSION_CREATE = "fair_crm.email_accounts.create";
@@ -21,27 +21,8 @@ const ACTION_TO_PERMISSION: Record<EmailAccountPermissionAction, string> = {
   delete: EMAIL_ACCOUNTS_PERMISSION_DELETE,
 };
 
-function parseGrantedPermissions(raw: string | undefined): Set<string> | null {
-  if (!raw?.trim()) {
-    return null;
-  }
-  return new Set(
-    raw
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean),
-  );
-}
-
 export function getGrantedPermissions(): Set<string> {
-  const configured = parseGrantedPermissions(import.meta.env.VITE_GRANTED_PERMISSIONS);
-  if (configured) {
-    return configured;
-  }
-  if (config.devBypassEnabled) {
-    return new Set(EMAIL_ACCOUNTS_PERMISSIONS_ALL);
-  }
-  return new Set(EMAIL_ACCOUNTS_PERMISSIONS_ALL);
+  return getGrantedCorePermissions();
 }
 
 export function hasPermission(
