@@ -43,12 +43,16 @@ async function coreRequest<T>(
     throw new ApiError("Oturum bulunamadı.", 401);
   }
 
-  const headers = buildApiHeaders(
-    organizationId ? { "X-Organization-Id": organizationId } : undefined,
+  const headers = new Headers(
+    buildApiHeaders(organizationId ? { "X-Organization-Id": organizationId } : {}),
   );
+  if (init.headers) {
+    new Headers(init.headers).forEach((value, key) => headers.set(key, value));
+  }
+
   const response = await fetchWithTimeout(
     `${config.coreBaseUrl}/api/v1${path}`,
-    { ...init, headers: { ...headers, ...(init.headers ?? {}) } },
+    { ...init, headers },
     15_000,
   );
   const data = await parseResponse(response);
