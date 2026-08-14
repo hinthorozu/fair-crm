@@ -1,8 +1,6 @@
 import React from "react";
 
-import {
-  ApiError,
-} from "../api/client";
+import { ApiError } from "../api/client";
 import {
   createOrganization,
   deleteOrganization,
@@ -12,7 +10,7 @@ import {
 } from "../api/organizations";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
-import { FormField, FormModal } from "../components/ui/form";
+import { FormField, FormModal, TextInput, runAfterSuccessfulFormSubmit } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
 import { TableRowActions } from "../components/ui/TableRowActions";
@@ -20,17 +18,69 @@ import {
   UniversalDataTable,
   type UniversalDataTableColumn,
 } from "../components/ui/UniversalDataTable";
+import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 import { organizationLabels } from "../labels/organizationLabels";
 
-type FormMode = "create" | "edit" | null;
+interface OrganizationFormProps {
+  initialName: string;
+  saving: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onSubmit: (name: string) => Promise<void>;
+}
+
+function OrganizationForm({ initialName, saving, error, onCancel, onSubmit }: OrganizationFormProps) {
+  const [name, setName] = React.useState(initialName);
+  const [validationError, setValidationError] = React.useState<string | null>(null);
+  useReportFormDirty({ name }, { name: initialName });
+  const cancel = useModalFormCancel(onCancel);
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setValidationError(organizationLabels.nameRequired);
+      return;
+    }
+    setValidationError(null);
+    await onSubmit(trimmedName);
+  };
+
+  return (
+    <form id="organization-form" onSubmit={submit}>
+      <FormField
+        label={organizationLabels.organizationName}
+        htmlFor="organization-name"
+        required
+        error={validationError ?? error ?? undefined}
+        fullWidth
+      >
+        <TextInput
+          id="organization-name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          autoFocus
+          disabled={saving}
+          aria-invalid={Boolean(validationError || error)}
+        />
+      </FormField>
+      <div className="form-actions">
+        <button type="button" className="btn secondary" onClick={cancel} disabled={saving}>
+          {organizationLabels.cancel}
+        </button>
+        <button type="submit" className="btn primary" disabled={saving}>
+          {organizationLabels.save}
+        </button>
+      </div>
+    </form>
+  );
+}
 
 export function OrganizationsPage() {
   const [items, setItems] = React.useState<Organization[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
-  const [formMode, setFormMode] = React.useState<FormMode>(null);
-  const [editing, setEditing] = React.useState<Organization | null>(null);
-  const [name, setName] = React.useState("");
+  const [editing, setEditing] = React.useState<Organization | null | undefined>(undefined);
   const [formError, setFormError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [deleting, setDeleting] = React.useState<Organization | null>(null);
@@ -52,45 +102,32 @@ export function OrganizationsPage() {
     void load();
   }, [load]);
 
-  const openCreate = () => {
+  const openCreate = React.useCallback(() => {
     setEditing(null);
-    setName("");
     setFormError(null);
-    setFormMode("create");
-  };
+  }, []);
 
-  const openEdit = (organization: Organization) => {
+  const openEdit = React.useCallback((organization: Organization) => {
     setEditing(organization);
-    setName(organization.name);
     setFormError(null);
-    setFormMode("edit");
-  };
+  }, []);
 
-  const closeForm = () => {
+  const closeForm = React.useCallback(() => {
     if (saving) return;
-    setFormMode(null);
-    setEditing(null);
+    setEditing(undefined);
     setFormError(null);
-  };
+  }, [saving]);
 
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      setFormError(organizationLabels.nameRequired);
-      return;
-    }
-
+  const saveOrganization = async (name: string) => {
     setSaving(true);
     setFormError(null);
     try {
-      if (formMode === "edit" && editing) {
-        await updateOrganization(editing.id, trimmedName);
+      if (editing) {
+        await updateOrganization(editing.id, name);
       } else {
-        await createOrganization(trimmedName);
+        await createOrganization(name);
       }
-      setFormMode(null);
-      setEditing(null);
+      runAfterSuccessfulFormSubmit(() => setEditing(undefined));
       await load();
     } catch (error) {
       setFormError(error instanceof ApiError ? error.message : organizationLabels.saveError);
@@ -143,8 +180,10 @@ export function OrganizationsPage() {
         ),
       },
     ],
-    [],
+    [openEdit],
   );
+
+  const formOpen = editing !== undefined;
 
   return (
     <PageShell>
@@ -173,44 +212,20 @@ export function OrganizationsPage() {
         }
       />
 
-      {formMode && (
+      {formOpen && (
         <FormModal
-          title={
-            formMode === "edit"
-              ? organizationLabels.editOrganization
-              : organizationLabels.newOrganization
-          }
+          title={editing ? organizationLabels.editOrganization : organizationLabels.newOrganization}
           onClose={closeForm}
           formWidth="narrow"
-          footer={
-            <div className="form-actions">
-              <button type="button" className="btn secondary" onClick={closeForm} disabled={saving}>
-                {organizationLabels.cancel}
-              </button>
-              <button type="submit" form="organization-form" className="btn primary" disabled={saving}>
-                {organizationLabels.save}
-              </button>
-            </div>
-          }
         >
-          <form id="organization-form" onSubmit={submit}>
-            <FormField
-              label={organizationLabels.organizationName}
-              htmlFor="organization-name"
-              required
-              error={formError ?? undefined}
-              fullWidth
-            >
-              <input
-                id="organization-name"
-                className="input"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                autoFocus
-                disabled={saving}
-              />
-            </FormField>
-          </form>
+          <OrganizationForm
+            key={editing?.id ?? "new-organization"}
+            initialName={editing?.name ?? ""}
+            saving={saving}
+            error={formError}
+            onCancel={closeForm}
+            onSubmit={saveOrganization}
+          />
         </FormModal>
       )}
 
