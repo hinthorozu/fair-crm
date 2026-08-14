@@ -1,5 +1,4 @@
 import { config } from "../config";
-import { fetchWithTimeout } from "../api/client";
 
 export const FAIR_CRM_PERMISSION_CODES = [
   "fair_crm.email_accounts.read",
@@ -50,7 +49,7 @@ async function checkCorePermission(
   organizationId: string,
   permissionCode: string,
 ): Promise<boolean> {
-  const response = await fetchWithTimeout(
+  const response = await fetch(
     `${config.coreBaseUrl}/api/v1/organizations/${encodeURIComponent(organizationId)}/authorization/check`,
     {
       method: "POST",
