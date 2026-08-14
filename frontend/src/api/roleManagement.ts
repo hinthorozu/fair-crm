@@ -1,5 +1,6 @@
 import { getAccessToken } from "../auth/session";
 import { buildApiHeaders, config } from "../config";
+import { formatPermissionDescription } from "../labels/permissionLabels";
 import { ApiError, fetchWithTimeout } from "./client";
 
 export interface RolePermission {
@@ -54,10 +55,17 @@ async function request<T>(path: string, init: RequestInit = {}, organizationId?:
   return data as T;
 }
 
+function localizePermissions(items: RolePermission[]): RolePermission[] {
+  return items.map((permission) => ({
+    ...permission,
+    description: formatPermissionDescription(permission.code, permission.description),
+  }));
+}
+
 export const listRoleTemplates = () => request<ManagedRole[]>("/role-templates");
-export const listPlatformPermissions = () => request<RolePermission[]>("/permissions");
+export const listPlatformPermissions = async () => localizePermissions(await request<RolePermission[]>("/permissions"));
 export const listManagedRoles = (organizationId: string) => request<ManagedRole[]>(`/organizations/${organizationId}/managed-roles`, {}, organizationId);
-export const listRolePermissions = (organizationId: string) => request<RolePermission[]>(`/organizations/${organizationId}/role-permissions`, {}, organizationId);
+export const listRolePermissions = async (organizationId: string) => localizePermissions(await request<RolePermission[]>(`/organizations/${organizationId}/role-permissions`, {}, organizationId));
 export const createOrganizationRole = (organizationId: string, payload: { name: string; slug: string; permission_ids: string[] }) => request<ManagedRole>(`/organizations/${organizationId}/roles`, { method: "POST", body: JSON.stringify(payload) }, organizationId);
 export const updateOrganizationRole = (organizationId: string, roleId: string, payload: { name?: string; slug?: string }) => request<ManagedRole>(`/organizations/${organizationId}/roles/${roleId}`, { method: "PATCH", body: JSON.stringify(payload) }, organizationId);
 export const updateOrganizationRolePermissions = (organizationId: string, roleId: string, permissionIds: string[]) => request<ManagedRole>(`/organizations/${organizationId}/roles/${roleId}/permissions`, { method: "PUT", body: JSON.stringify({ permission_ids: permissionIds }) }, organizationId);
