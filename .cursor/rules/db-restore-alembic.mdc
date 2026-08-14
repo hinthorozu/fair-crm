@@ -1,40 +1,13 @@
 ---
-description: After any DB restore, always run alembic upgrade head before using the app
+description: Canonical DB restore/migration rule lives in kyrox-platform
 alwaysApply: true
 ---
 
-# Database Restore → Alembic Upgrade (mandatory)
+# Canonical rule pointer
 
-## Rule
+Do not maintain a second DB restore rule in this repository.
 
-After **any** PostgreSQL restore (`pg_restore`, `restore-db.ps1`, manual dump import), **always** run pending migrations from the **repository root**:
+Canonical source:
+`kyrox-platform/projects/fair-crm/CONSTITUTION.md` → **Migrations / After database restore (mandatory)**.
 
-```powershell
-cd fair-crm
-python -m alembic upgrade head
-```
-
-Then restart dev runtime (`.\scripts\dev\reset-dev.ps1`).
-
-`restore-db.ps1` runs this automatically at the end — if restore was manual, you must run it yourself.
-
-## Why
-
-A `.dump` carries the **schema version at backup time** (e.g. Alembic `0011`). Application code expects **current head** (e.g. `0017`). Missing columns cause API **500** errors.
-
-## Symptom
-
-- Admin → System → **Database Backups**: **"Failed to fetch"**, empty table, cannot create backup
-- `GET /api/v1/admin/backups` → 500 (often missing `system_backups.backup_format` / `manifest_json` from migration `0014`)
-
-## Verify
-
-```powershell
-python -m alembic current   # must show head revision
-curl http://127.0.0.1:8001/health
-```
-
-## Do not
-
-- Skip migrations because `/health` returns 200 — health does not validate schema
-- Assume restore + backend restart is enough without `alembic upgrade head`
+Follow that canonical rule. If the behavior changes, update the platform document, not this file.
