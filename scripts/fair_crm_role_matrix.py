@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 AUDIT_READ_PERMISSION: Final = "audit.logs.read"
-ROLE_MATRIX_VERSION: Final = 10
+ROLE_MATRIX_VERSION: Final = 11
 
 ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.customers.create",
@@ -82,6 +82,14 @@ ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.dashboard.read",
 )
 
+IDENTITY_ADMIN_PERMISSIONS: tuple[str, ...] = (
+    "identity.users.read",
+    "identity.users.create",
+    "identity.users.update",
+    "identity.roles.read",
+    "identity.roles.update",
+)
+
 ADMIN_ONLY_PERMISSIONS: frozenset[str] = frozenset(
     {
         "fair_crm.admin.backups.read",
@@ -114,7 +122,9 @@ ADMIN_ONLY_PERMISSIONS: frozenset[str] = frozenset(
     }
 )
 
-_FULL_ACCESS_PERMISSIONS: tuple[str, ...] = ALL_FAIR_CRM_PERMISSIONS + (AUDIT_READ_PERMISSION,)
+_FULL_ACCESS_PERMISSIONS: tuple[str, ...] = (
+    ALL_FAIR_CRM_PERMISSIONS + IDENTITY_ADMIN_PERMISSIONS + (AUDIT_READ_PERMISSION,)
+)
 
 # Platform-level unrestricted access is NOT a role. It is represented only by
 # identity_users.is_super_admin. OrganizationAdmin is the organization RBAC role.
