@@ -38,7 +38,7 @@ export interface ManagedUserList {
 export interface ManualUserCreatePayload {
   email: string;
   password: string;
-  role_id: string;
+  role_id?: string;
   status: "active" | "inactive";
   is_super_admin?: boolean;
 }
