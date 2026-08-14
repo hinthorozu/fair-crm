@@ -14,7 +14,11 @@ let inflightRefresh: Promise<string | null> | null = null;
 async function applyAccessToken(accessToken: string, expiresIn: number): Promise<void> {
   const current = readSession();
   const organizationId = current?.organizationId ?? config.organizationId;
-  const permissions = await fetchGrantedCorePermissions(accessToken, organizationId);
+  const permissions = await fetchGrantedCorePermissions(
+    config.coreBaseUrl,
+    accessToken,
+    organizationId,
+  );
   const next: AuthSession = {
     accessToken,
     organizationId,
