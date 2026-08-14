@@ -3,6 +3,7 @@ import { adminLabels, DISABLED_ADMIN_NAV_ITEMS } from "../../labels/adminLabels"
 import { organizationLabels } from "../../labels/organizationLabels";
 import { uiLabels } from "../../labels/uiLabels";
 import { usePersistedCollapsed } from "../../hooks/usePersistedCollapsed";
+import { UsersAdminPage } from "../../pages/UsersAdminPage";
 import { AdminNavIcon, NavIconComingSoon } from "../layout/NavIcons";
 import { NavLink } from "../layout/NavLink";
 import { SidebarCollapseButton } from "../layout/SidebarCollapseButton";
@@ -28,12 +29,20 @@ export function AdminSystemLayout({
 }: AdminSystemLayoutProps) {
   const { collapsed: subnavCollapsed, toggleCollapsed: toggleSubnavCollapsed } =
     usePersistedCollapsed(ADMIN_SUBNAV_STORAGE_KEY);
+  const usersRouteActive = window.location.pathname.replace(/\/$/, "") === "/admin/system/users";
+  const resolvedActiveSection = usersRouteActive ? "users" : activeSection;
+  const resolvedChildren = usersRouteActive ? <UsersAdminPage /> : children;
 
   const systemItems = [
     {
       id: "organizations",
       label: organizationLabels.nav,
       path: "/admin/system/organizations",
+    },
+    {
+      id: "users",
+      label: "Kullanıcılar",
+      path: "/admin/system/users",
     },
     {
       id: "backups",
@@ -120,7 +129,7 @@ export function AdminSystemLayout({
               href={item.path}
               label={item.label}
               icon={<AdminNavIcon id={item.id} />}
-              active={activeSection === item.id}
+              active={resolvedActiveSection === item.id}
               collapsed={subnavCollapsed}
               onClick={(e) => onNavigate(item.path, e)}
             />
@@ -147,7 +156,7 @@ export function AdminSystemLayout({
               href={item.path}
               label={item.label}
               icon={<AdminNavIcon id={item.id} />}
-              active={activeSection === item.id}
+              active={resolvedActiveSection === item.id}
               collapsed={subnavCollapsed}
               onClick={(e) => onNavigate(item.path, e)}
             />
@@ -163,14 +172,14 @@ export function AdminSystemLayout({
               href={item.path}
               label={item.label}
               icon={<AdminNavIcon id={item.id} />}
-              active={activeSection === item.id}
+              active={resolvedActiveSection === item.id}
               collapsed={subnavCollapsed}
               onClick={(e) => onNavigate(item.path, e)}
             />
           ))}
         </nav>
       </aside>
-      <div className="admin-content">{children}</div>
+      <div className="admin-content">{resolvedChildren}</div>
     </div>
   );
 }
