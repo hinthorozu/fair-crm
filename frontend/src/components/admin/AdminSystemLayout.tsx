@@ -28,6 +28,19 @@ export function AdminSystemLayout({
   const { collapsed: subnavCollapsed, toggleCollapsed: toggleSubnavCollapsed } =
     usePersistedCollapsed(ADMIN_SUBNAV_STORAGE_KEY);
 
+  const identityItems = [
+    {
+      id: "organizations",
+      label: "Organizasyonlar",
+      path: "/admin/organizations",
+    },
+    {
+      id: "users",
+      label: "Kullanıcılar",
+      path: "/admin/users",
+    },
+  ];
+
   const systemItems = [
     {
       id: "backups",
@@ -105,7 +118,23 @@ export function AdminSystemLayout({
           />
         </div>
 
-        {renderSectionTitle(adminLabels.systemTitle, true)}
+        {renderSectionTitle("Kimlik ve Erişim", true)}
+        <nav className="admin-subnav-links" aria-label="Kimlik ve Erişim">
+          {identityItems.map((item) => (
+            <NavLink
+              key={item.id}
+              variant="admin"
+              href={item.path}
+              label={item.label}
+              icon={<AdminNavIcon id={item.id} />}
+              active={activeSection === item.id}
+              collapsed={subnavCollapsed}
+              onClick={(e) => onNavigate(item.path, e)}
+            />
+          ))}
+        </nav>
+
+        {renderSectionTitle(adminLabels.systemTitle)}
         <nav className="admin-subnav-links" aria-label={adminLabels.systemTitle}>
           {systemItems.map((item) => (
             <NavLink
