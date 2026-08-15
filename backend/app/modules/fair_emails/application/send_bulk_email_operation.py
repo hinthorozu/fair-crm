@@ -36,7 +36,7 @@ from app.modules.mail_templates.domain.ports import MailTemplateRepository
 from app.modules.smtp.domain.exceptions import SmtpAccountAlreadyDeletedError, SmtpAccountNotFoundError
 from app.modules.smtp.domain.ports import SmtpAccountRepository
 
-PERMISSION_SEND = "fair_crm.fair_emails.send"
+PERMISSION_EXECUTE = "fair_crm.fair_emails.execute"
 INACTIVE_TEMPLATE_MESSAGE = "Pasif mail şablonu ile toplu mail gönderilemez."
 INACTIVE_SMTP_MESSAGE = "Seçilen SMTP hesabı pasif durumda."
 
@@ -101,7 +101,7 @@ class SendBulkEmailOperationUseCase:
         if not self._authorization.check_permission(
             organization_id=command.organization_id,
             user_id=command.user_id,
-            permission_code=PERMISSION_SEND,
+            permission_code=PERMISSION_EXECUTE,
             access_token=command.access_token,
         ):
             raise ForbiddenError("Permission denied")
