@@ -9,7 +9,7 @@ from app.modules.mail_templates.domain.exceptions import (
 )
 from app.modules.mail_templates.domain.ports import MailTemplateRepository, MailTemplateRenderer
 
-PERMISSION_RENDER = "fair_crm.mail_templates.render"
+PERMISSION_EXECUTE = "fair_crm.mail_templates.execute"
 
 
 class RenderMailTemplateUseCase:
@@ -29,7 +29,7 @@ class RenderMailTemplateUseCase:
         if not self._authorization.check_permission(
             organization_id=command.organization_id,
             user_id=command.user_id,
-            permission_code=PERMISSION_RENDER,
+            permission_code=PERMISSION_EXECUTE,
             access_token=command.access_token,
         ):
             raise ForbiddenError("Permission denied")
