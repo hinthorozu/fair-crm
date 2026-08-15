@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 AUDIT_READ_PERMISSION: Final = "audit.logs.read"
-ROLE_MATRIX_VERSION: Final = 11
+ROLE_MATRIX_VERSION: Final = 12
 
 ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.customers.create",
@@ -37,8 +37,7 @@ ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.scraper.create",
     "fair_crm.scraper.update",
     "fair_crm.scraper.delete",
-    "fair_crm.scraper.run",
-    "fair_crm.scraper.download",
+    "fair_crm.scraper.execute",
     "fair_crm.operations.read",
     "fair_crm.operations.create",
     "fair_crm.operations.execute",
@@ -50,7 +49,7 @@ ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.mail_templates.create",
     "fair_crm.mail_templates.update",
     "fair_crm.mail_templates.delete",
-    "fair_crm.mail_templates.render",
+    "fair_crm.mail_templates.execute",
     "fair_crm.mail_templates.test_send",
     "fair_crm.quote_templates.read",
     "fair_crm.quote_templates.create",
@@ -67,9 +66,9 @@ ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.fair_emails.send",
     "fair_crm.admin.backups.read",
     "fair_crm.admin.backups.create",
-    "fair_crm.admin.backups.download",
+    "fair_crm.admin.backups.execute",
     "fair_crm.admin.data_operations.read",
-    "fair_crm.admin.data_operations.run",
+    "fair_crm.admin.data_operations.execute",
     "fair_crm.todos.read",
     "fair_crm.todos.create",
     "fair_crm.todos.update",
@@ -94,16 +93,16 @@ ADMIN_ONLY_PERMISSIONS: frozenset[str] = frozenset(
     {
         "fair_crm.admin.backups.read",
         "fair_crm.admin.backups.create",
-        "fair_crm.admin.backups.download",
+        "fair_crm.admin.backups.execute",
         "fair_crm.admin.data_operations.read",
-        "fair_crm.admin.data_operations.run",
+        "fair_crm.admin.data_operations.execute",
         "fair_crm.email_accounts.create",
         "fair_crm.email_accounts.update",
         "fair_crm.email_accounts.delete",
         "fair_crm.mail_templates.create",
         "fair_crm.mail_templates.update",
         "fair_crm.mail_templates.delete",
-        "fair_crm.mail_templates.render",
+        "fair_crm.mail_templates.execute",
         "fair_crm.mail_templates.test_send",
         "fair_crm.quote_templates.create",
         "fair_crm.quote_templates.update",
