@@ -72,7 +72,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 PERMISSION_READ = "fair_crm.admin.backups.read"
 PERMISSION_CREATE = "fair_crm.admin.backups.create"
-PERMISSION_DOWNLOAD = "fair_crm.admin.backups.download"
+PERMISSION_DOWNLOAD = "fair_crm.admin.backups.execute"
 
 
 def get_authorization_adapter() -> AuthorizationPort:
