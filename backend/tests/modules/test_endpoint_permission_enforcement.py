@@ -449,7 +449,7 @@ def test_mail_templates_render_denied_returns_403(client: TestClient, auth_heade
     template_id = create_response.json()["id"]
 
     client.app.dependency_overrides[get_mail_templates_authorization_adapter] = lambda: SelectiveAuthorization(
-        denied={"fair_crm.mail_templates.render"}
+        denied={"fair_crm.mail_templates.execute"}
     )
     try:
         response = client.post(
@@ -524,7 +524,7 @@ def test_admin_backups_create_denied_returns_403(client: TestClient, auth_header
 
 def test_admin_backups_download_denied_returns_403(client: TestClient, auth_headers: dict[str, str]) -> None:
     client.app.dependency_overrides[get_system_admin_authorization_adapter] = lambda: SelectiveAuthorization(
-        denied={"fair_crm.admin.backups.download"}
+        denied={"fair_crm.admin.backups.execute"}
     )
     try:
         response = client.get(
@@ -549,7 +549,7 @@ def test_admin_data_operations_read_denied_returns_403(client: TestClient, auth_
 
 def test_admin_data_operations_run_denied_returns_403(client: TestClient, auth_headers: dict[str, str]) -> None:
     client.app.dependency_overrides[get_system_admin_authorization_adapter] = lambda: SelectiveAuthorization(
-        denied={"fair_crm.admin.data_operations.run"}
+        denied={"fair_crm.admin.data_operations.execute"}
     )
     try:
         response = client.post(
