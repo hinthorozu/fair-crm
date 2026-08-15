@@ -8,7 +8,7 @@ from app.modules.fairs.application.mappers import fair_to_result
 from app.modules.fairs.domain.exceptions import FairNotFoundError
 from app.modules.fairs.domain.ports import FairRepository
 
-PERMISSION_ARCHIVE = "fair_crm.fairs.archive"
+PERMISSION_DELETE = "fair_crm.fairs.delete"
 
 
 class ArchiveFairUseCase:
@@ -26,7 +26,7 @@ class ArchiveFairUseCase:
         if not self._authorization.check_permission(
             organization_id=command.organization_id,
             user_id=command.user_id,
-            permission_code=PERMISSION_ARCHIVE,
+            permission_code=PERMISSION_DELETE,
             access_token=command.access_token,
         ):
             raise ForbiddenError("Permission denied")
