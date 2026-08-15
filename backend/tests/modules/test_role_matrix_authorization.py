@@ -257,7 +257,7 @@ def test_role_matrix_scraper_run(
 
     with install_role_matrix_auth(client, role_slug):
         response = client.post(f"/api/v1/fairs/{fair_id}/run", headers=auth_headers)
-    expected = 202 if _role_has(role_slug, "fair_crm.scraper.run") else 403
+    expected = 202 if _role_has(role_slug, "fair_crm.scraper.execute") else 403
     assert response.status_code == expected
 
 
@@ -534,7 +534,7 @@ def test_role_matrix_mail_templates_render(
             json={"variables": {"name": "Ada"}},
             headers=auth_headers,
         )
-    expected = 200 if _role_has(role_slug, "fair_crm.mail_templates.render") else 403
+    expected = 200 if _role_has(role_slug, "fair_crm.mail_templates.execute") else 403
     assert response.status_code == expected
 
 
