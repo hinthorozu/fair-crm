@@ -7,7 +7,7 @@ from app.modules.fair_emails.domain.value_objects import RecipientPreviewResult
 from app.modules.fairs.domain.exceptions import FairNotFoundError
 from app.modules.fairs.domain.ports import FairRepository
 
-PERMISSION_PREVIEW = "fair_crm.fair_emails.preview"
+PERMISSION_PREVIEW = "fair_crm.fair_emails.read"
 
 
 class PreviewFairEmailRecipientsUseCase:
