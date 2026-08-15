@@ -43,7 +43,7 @@ from app.modules.imports.domain.services.social_url_fields import social_urls_fr
 from app.shared.email import normalize_email_field
 from app.shared.url_normalization import normalize_optional_url
 
-PERMISSION_APPLY = "fair_crm.imports.apply"
+PERMISSION_EXECUTE = "fair_crm.imports.execute"
 
 
 @dataclass
@@ -119,7 +119,7 @@ class ApplyImportUseCase:
         if not self._authorization.check_permission(
             organization_id=command.organization_id,
             user_id=command.user_id,
-            permission_code=PERMISSION_APPLY,
+            permission_code=PERMISSION_EXECUTE,
             access_token=command.access_token,
         ):
             raise ForbiddenError("Permission denied")
