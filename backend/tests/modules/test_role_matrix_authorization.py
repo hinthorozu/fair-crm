@@ -558,7 +558,7 @@ def test_role_matrix_mail_templates_test_send(
             json={"to_email": "test@example.com", "variables": {"name": "Ada"}},
             headers=auth_headers,
         )
-    expected = 200 if _role_has(role_slug, "fair_crm.mail_templates.test_send") else 403
+    expected = 200 if _role_has(role_slug, "fair_crm.mail_templates.execute") else 403
     if expected == 200:
         assert response.status_code in {200, 400}
     else:
@@ -612,7 +612,7 @@ def test_role_matrix_fair_emails_send(
             },
             headers=auth_headers,
         )
-    expected = 200 if _role_has(role_slug, "fair_crm.fair_emails.send") else 403
+    expected = 200 if _role_has(role_slug, "fair_crm.fair_emails.execute") else 403
     if expected == 200:
         assert response.status_code in {200, 404, 400}
     else:
