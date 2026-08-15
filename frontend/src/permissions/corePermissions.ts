@@ -61,6 +61,7 @@ export const FAIR_CRM_PERMISSION_CODES = [
   "fair_crm.operations.create",
   "fair_crm.operations.execute",
   "fair_crm.operations.read",
+  "fair_crm.operations.update",
   "fair_crm.participations.create",
   "fair_crm.participations.delete",
   "fair_crm.participations.read",
