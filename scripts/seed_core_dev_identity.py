@@ -46,7 +46,7 @@ CORE_DB_URL = os.environ.get(
     "KYROX_CORE_DATABASE_URL",
     "postgresql://postgres:postgres@localhost:5432/kyrox_core",
 )
-MIN_CORE_MIGRATION_REVISION = "20260814_0047"
+MIN_CORE_MIGRATION_REVISION = "20260815_0049"
 DEV_SEED_ENV_FILE_HINT = "/etc/fair-crm/dev-seed.env"
 
 
