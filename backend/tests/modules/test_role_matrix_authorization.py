@@ -585,7 +585,7 @@ def test_role_matrix_fair_emails_preview(
             json={"recipient_options": {"include_customer_emails": True, "include_contact_emails": False}},
             headers=auth_headers,
         )
-    expected = 200 if _role_has(role_slug, "fair_crm.fair_emails.preview") else 403
+    expected = 200 if _role_has(role_slug, "fair_crm.fair_emails.read") else 403
     assert response.status_code == expected
 
 
@@ -638,7 +638,7 @@ def test_role_matrix_fair_emails_batch_logs(
             f"/api/v1/fairs/{fair_id}/bulk-email/batches",
             headers=auth_headers,
         )
-    expected = 200 if _role_has(role_slug, "fair_crm.fair_emails.preview") else 403
+    expected = 200 if _role_has(role_slug, "fair_crm.fair_emails.read") else 403
     assert response.status_code == expected
 
 
