@@ -33,7 +33,7 @@ from app.modules.scraper.services.scraper_run_history_service import (
 bearer_scheme = HTTPBearer(auto_error=False)
 
 PERMISSION_READ = "fair_crm.fairs.read"
-PERMISSION_SCRAPER_RUN = "fair_crm.scraper.run"
+PERMISSION_SCRAPER_RUN = "fair_crm.scraper.execute"
 
 
 def get_fair_repository(db: Session = Depends(get_db)) -> SqlAlchemyFairRepository:
