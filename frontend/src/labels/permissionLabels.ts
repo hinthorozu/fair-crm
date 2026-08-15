@@ -64,7 +64,7 @@ const ACTIONS: Record<string, { title: string; describe: (resource: ResourceCopy
   read: { title: "görüntüleme", describe: (resource) => `${capitalize(resource.object)} görüntüleyebilir.` },
   create: { title: "oluşturma", describe: (resource) => `Yeni ${resource.singular} oluşturabilir.` },
   update: { title: "düzenleme", describe: (resource) => `${capitalize(resource.object)} düzenleyebilir.` },
-  delete: { title: "silme", describe: (resource) => `${capitalize(resource.object)} silebilir veya arşivleyebilir/devre dışı bırakabilir.` },
+  delete: { title: "silme", describe: (resource) => `${capitalize(resource.object)} silebilir.` },
   download: { title: "indirme", describe: (resource) => `${capitalize(resource.object)} indirebilir.` },
   preview: { title: "önizleme", describe: (resource) => `${capitalize(resource.object)} önizleyebilir.` },
   send: { title: "gönderme", describe: (resource) => `${capitalize(resource.object)} gönderebilir.` },
