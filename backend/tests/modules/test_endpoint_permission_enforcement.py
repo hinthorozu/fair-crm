@@ -472,7 +472,7 @@ def test_mail_templates_test_send_denied_returns_403(client: TestClient, auth_he
     template_id = create_response.json()["id"]
 
     client.app.dependency_overrides[get_mail_templates_authorization_adapter] = lambda: SelectiveAuthorization(
-        denied={"fair_crm.mail_templates.test_send"}
+        denied={"fair_crm.mail_templates.execute"}
     )
     try:
         response = client.post(
