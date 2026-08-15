@@ -14,7 +14,7 @@ from app.modules.imports.domain.batch_status import is_batch_terminal
 from app.modules.imports.domain.services.merge_preview import default_decision_for_row, row_matches_filter
 from app.modules.imports.domain.value_objects import ImportDecision
 
-PERMISSION_APPLY = "fair_crm.imports.apply"
+PERMISSION_EXECUTE = "fair_crm.imports.execute"
 
 
 @dataclass
@@ -62,7 +62,7 @@ class ApplyImportDecisionsUseCase:
         if not self._authorization.check_permission(
             organization_id=command.organization_id,
             user_id=command.user_id,
-            permission_code=PERMISSION_APPLY,
+            permission_code=PERMISSION_EXECUTE,
             access_token=command.access_token,
         ):
             raise ForbiddenError("Permission denied")
