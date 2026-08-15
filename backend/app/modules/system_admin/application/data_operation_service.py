@@ -52,7 +52,7 @@ from app.modules.system_admin.infrastructure.repositories.data_operation_run_rep
 )
 
 PERMISSION_READ = "fair_crm.admin.data_operations.read"
-PERMISSION_RUN = "fair_crm.admin.data_operations.run"
+PERMISSION_RUN = "fair_crm.admin.data_operations.execute"
 
 DATASET_CUSTOMER_ALLOWED_SORT_FIELDS = frozenset(
     ALLOWED_SORT_FIELDS | {"legal_name", "trade_name", "website", "company_name"}
