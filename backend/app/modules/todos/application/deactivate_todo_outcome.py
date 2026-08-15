@@ -8,7 +8,7 @@ from app.modules.todos.application.outcome_mappers import outcome_to_result
 from app.modules.todos.domain.exceptions import TodoOutcomeDefinitionNotFoundError
 from app.modules.todos.domain.worklist_ports import TodoOutcomeDefinitionRepository
 
-PERMISSION_DEACTIVATE = "fair_crm.todos.outcomes.deactivate"
+PERMISSION_DELETE = "fair_crm.todos.outcomes.delete"
 
 
 class DeactivateTodoOutcomeUseCase:
@@ -26,7 +26,7 @@ class DeactivateTodoOutcomeUseCase:
         if not self._authorization.check_permission(
             organization_id=command.organization_id,
             user_id=command.user_id,
-            permission_code=PERMISSION_DEACTIVATE,
+            permission_code=PERMISSION_DELETE,
             access_token=command.access_token,
         ):
             raise ForbiddenError("Permission denied")
