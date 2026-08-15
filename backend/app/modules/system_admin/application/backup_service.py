@@ -251,7 +251,7 @@ class DownloadSystemBackupUseCase:
         if not self._authorization.check_permission(
             organization_id=organization_id,
             user_id=user_id,
-            permission_code="fair_crm.admin.backups.download",
+            permission_code="fair_crm.admin.backups.execute",
             access_token=access_token,
         ):
             raise ForbiddenError("Permission denied")
