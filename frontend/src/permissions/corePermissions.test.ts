@@ -11,13 +11,19 @@ afterEach(() => {
 describe("Core permission synchronization", () => {
   it("contains every permission code enforced by the Fair CRM backend", () => {
     expect(new Set(FAIR_CRM_PERMISSION_CODES).size).toBe(FAIR_CRM_PERMISSION_CODES.length);
-    expect(FAIR_CRM_PERMISSION_CODES).toHaveLength(85);
+    expect(FAIR_CRM_PERMISSION_CODES).toHaveLength(84);
     expect(FAIR_CRM_PERMISSION_CODES).toContain("identity.roles.create");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("identity.permissions.lifecycle");
-    expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.customers.create");
+    expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.customers.delete");
+    expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.fairs.delete");
+    expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.todos.delete");
+    expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.todos.outcomes.delete");
+    expect(FAIR_CRM_PERMISSION_CODES).not.toContain("fair_crm.customers.archive");
+    expect(FAIR_CRM_PERMISSION_CODES).not.toContain("fair_crm.fairs.archive");
+    expect(FAIR_CRM_PERMISSION_CODES).not.toContain("fair_crm.todos.archive");
+    expect(FAIR_CRM_PERMISSION_CODES).not.toContain("fair_crm.todos.outcomes.deactivate");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.admin.backups.download");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.scraper.download");
-    expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.todos.outcomes.deactivate");
   });
 
   it("asks Core about every known permission and keeps only allowed results", async () => {
