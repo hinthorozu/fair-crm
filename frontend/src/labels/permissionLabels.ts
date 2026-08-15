@@ -51,7 +51,6 @@ const SPECIAL: Record<string, PermissionDisplayCopy> = {
   "fair_crm.fair_emails.send": { title: "Fuar e-postası gönderme", description: "Fuar e-postalarını alıcılara gönderebilir." },
   "fair_crm.operations.execute": { title: "Operasyon çalıştırma", description: "Hazırlanmış operasyonları çalıştırabilir." },
   "fair_crm.scraper.run": { title: "Web veri toplama işlemini çalıştırma", description: "Web veri toplama işlemlerini başlatabilir." },
-  "fair_crm.todos.outcomes.deactivate": { title: "Görev sonucunu devre dışı bırakma", description: "Kullanılmayacak görev sonuçlarını devre dışı bırakabilir." },
   "jobs.platform.enqueue": { title: "Arka plan işi başlatma", description: "Organizasyon için yeni bir arka plan işi kuyruğa ekleyebilir." },
   "jobs.platform.read": { title: "Arka plan işi durumunu görüntüleme", description: "Arka plan işlerinin çalışma durumunu görüntüleyebilir." },
   "notifications.platform.send": { title: "Bildirim gönderme", description: "Organizasyon bildirimlerini gönderebilir." },
@@ -65,14 +64,12 @@ const ACTIONS: Record<string, { title: string; describe: (resource: ResourceCopy
   read: { title: "görüntüleme", describe: (resource) => `${capitalize(resource.object)} görüntüleyebilir.` },
   create: { title: "oluşturma", describe: (resource) => `Yeni ${resource.singular} oluşturabilir.` },
   update: { title: "düzenleme", describe: (resource) => `${capitalize(resource.object)} düzenleyebilir.` },
-  delete: { title: "silme", describe: (resource) => `${capitalize(resource.object)} silebilir.` },
-  archive: { title: "arşivleme", describe: (resource) => `${capitalize(resource.object)} arşivleyebilir.` },
+  delete: { title: "silme", describe: (resource) => `${capitalize(resource.object)} silebilir veya arşivleyebilir/devre dışı bırakabilir.` },
   download: { title: "indirme", describe: (resource) => `${capitalize(resource.object)} indirebilir.` },
   preview: { title: "önizleme", describe: (resource) => `${capitalize(resource.object)} önizleyebilir.` },
   send: { title: "gönderme", describe: (resource) => `${capitalize(resource.object)} gönderebilir.` },
   run: { title: "çalıştırma", describe: (resource) => `${capitalize(resource.object)} çalıştırabilir.` },
   execute: { title: "çalıştırma", describe: (resource) => `${capitalize(resource.object)} çalıştırabilir.` },
-  deactivate: { title: "devre dışı bırakma", describe: (resource) => `${capitalize(resource.object)} devre dışı bırakabilir.` },
 };
 
 function capitalize(value: string): string {
