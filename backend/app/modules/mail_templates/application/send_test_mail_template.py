@@ -30,7 +30,7 @@ from app.modules.smtp.domain.exceptions import (
 from app.modules.smtp.domain.ports import SmtpAccountRepository
 from app.shared.email import sanitize_scraped_email
 
-PERMISSION_TEST_SEND = "fair_crm.mail_templates.test_send"
+PERMISSION_TEST_SEND = "fair_crm.mail_templates.execute"
 RENDER_USER_MESSAGE = "Mail şablonu render edilirken hata oluştu. Değişkenleri kontrol edin."
 DEFAULT_SMTP_USER_MESSAGE = "Bu kuruluş için varsayılan e-posta hesabı bulunamadı."
 INACTIVE_TEMPLATE_USER_MESSAGE = "Pasif mail şablonu ile test email gönderilemez."

@@ -179,7 +179,7 @@ def test_send_bulk_email_denied_without_permission(client, auth_headers, db_sess
 
     data = _setup_fair_with_recipients(client, auth_headers, db_session, organization_id)
     client.app.dependency_overrides[get_fair_emails_authorization_adapter] = lambda: SelectiveAuthorization(
-        denied={"fair_crm.fair_emails.send"}
+        denied={"fair_crm.fair_emails.execute"}
     )
     try:
         response = client.post(

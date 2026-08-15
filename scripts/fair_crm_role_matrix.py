@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 AUDIT_READ_PERMISSION: Final = "audit.logs.read"
-ROLE_MATRIX_VERSION: Final = 12
+ROLE_MATRIX_VERSION: Final = 13
 
 ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.customers.create",
@@ -50,7 +50,6 @@ ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.mail_templates.update",
     "fair_crm.mail_templates.delete",
     "fair_crm.mail_templates.execute",
-    "fair_crm.mail_templates.test_send",
     "fair_crm.quote_templates.read",
     "fair_crm.quote_templates.create",
     "fair_crm.quote_templates.update",
@@ -63,7 +62,7 @@ ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.quotes.update",
     "fair_crm.quotes.delete",
     "fair_crm.fair_emails.preview",
-    "fair_crm.fair_emails.send",
+    "fair_crm.fair_emails.execute",
     "fair_crm.admin.backups.read",
     "fair_crm.admin.backups.create",
     "fair_crm.admin.backups.execute",
@@ -103,14 +102,13 @@ ADMIN_ONLY_PERMISSIONS: frozenset[str] = frozenset(
         "fair_crm.mail_templates.update",
         "fair_crm.mail_templates.delete",
         "fair_crm.mail_templates.execute",
-        "fair_crm.mail_templates.test_send",
         "fair_crm.quote_templates.create",
         "fair_crm.quote_templates.update",
         "fair_crm.template_contents.create",
         "fair_crm.template_contents.update",
         "fair_crm.template_contents.delete",
         "fair_crm.quotes.delete",
-        "fair_crm.fair_emails.send",
+        "fair_crm.fair_emails.execute",
         "fair_crm.scraper.create",
         "fair_crm.scraper.update",
         "fair_crm.scraper.delete",

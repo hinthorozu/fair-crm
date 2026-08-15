@@ -121,7 +121,7 @@ def test_send_test_mail_template_denied_without_permission(client, auth_headers)
     template = _create_template(client, auth_headers, key="test_send_denied")
     template_id = template.json()["id"]
     client.app.dependency_overrides[get_mail_templates_authorization_adapter] = lambda: SelectiveAuthorization(
-        denied={"fair_crm.mail_templates.test_send"}
+        denied={"fair_crm.mail_templates.execute"}
     )
     try:
         response = client.post(
