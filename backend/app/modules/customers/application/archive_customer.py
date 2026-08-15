@@ -8,7 +8,7 @@ from app.modules.customers.application.mappers import customer_to_result
 from app.modules.customers.domain.exceptions import CustomerNotFoundError
 from app.modules.customers.domain.ports import CustomerRepository
 
-PERMISSION_ARCHIVE = "fair_crm.customers.archive"
+PERMISSION_DELETE = "fair_crm.customers.delete"
 
 
 class ArchiveCustomerUseCase:
@@ -26,7 +26,7 @@ class ArchiveCustomerUseCase:
         if not self._authorization.check_permission(
             organization_id=command.organization_id,
             user_id=command.user_id,
-            permission_code=PERMISSION_ARCHIVE,
+            permission_code=PERMISSION_DELETE,
             access_token=command.access_token,
         ):
             raise ForbiddenError("Permission denied")
