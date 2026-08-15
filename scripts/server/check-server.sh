@@ -24,22 +24,17 @@ CORE_HEALTH_PATH="${CORE_HEALTH_PATH:-/api/v1/health}"
 FAIR_CRM_HEALTH_PATH="${FAIR_CRM_HEALTH_PATH:-/health}"
 SERVER_BOOTSTRAP_ENV_FILE="${SERVER_BOOTSTRAP_ENV_FILE:-/etc/fair-crm/server-bootstrap.env}"
 DEV_SEED_ENV_FILE="${DEV_SEED_ENV_FILE:-/etc/fair-crm/dev-seed.env}"
-REMOTE_PG_ENV_FILE="${REMOTE_PG_ENV_FILE:-/etc/fair-crm/postgres-remote.env}"
 
 check_bootstrap_settings() {
   local domain="faircrm.domain.com"
   local public_ip=""
   local letsencrypt_email=""
-  local remote_user="faircrm_remote"
-  local remote_port="15432"
 
   if [[ -f "$SERVER_BOOTSTRAP_ENV_FILE" ]]; then
     check_pass "Bootstrap settings file present"
     domain="$(read_env_key "$SERVER_BOOTSTRAP_ENV_FILE" FAIR_CRM_DOMAIN || printf '%s' "$domain")"
     public_ip="$(read_env_key "$SERVER_BOOTSTRAP_ENV_FILE" SERVER_PUBLIC_IP || true)"
     letsencrypt_email="$(read_env_key "$SERVER_BOOTSTRAP_ENV_FILE" LETSENCRYPT_EMAIL || true)"
-    remote_user="$(read_env_key "$SERVER_BOOTSTRAP_ENV_FILE" REMOTE_PG_USER || printf '%s' "$remote_user")"
-    remote_port="$(read_env_key "$SERVER_BOOTSTRAP_ENV_FILE" REMOTE_PG_PORT || printf '%s' "$remote_port")"
   else
     check_warn_item "Bootstrap settings file present (${SERVER_BOOTSTRAP_ENV_FILE})"
   fi
@@ -63,7 +58,7 @@ check_bootstrap_settings() {
   fi
 
   local nginx_site="/etc/nginx/sites-available/fair-crm"
-  if [[ -f "$nginx_site" ]] && grep -Eq "^[[:space:]]*server_name[[:space:]]+${domain//./\.};" "$nginx_site"; then
+  if [[ -f "$nginx_site" ]] && grep -Eq "^[[:space:]]*server_name[[:space:]]+${domain//./\\.};" "$nginx_site"; then
     check_pass "Nginx server_name=${domain}"
   else
     check_fail "Nginx server_name=${domain}"
@@ -89,62 +84,32 @@ check_bootstrap_settings() {
     check_fail "DEV admin seed password configured (${DEV_SEED_ENV_FILE})"
   fi
 
-  local remote_password=""
-  remote_password="$(read_env_key "$REMOTE_PG_ENV_FILE" REMOTE_PG_PASSWORD || true)"
-  if [[ -n "$remote_password" ]]; then
-    check_pass "Remote PostgreSQL password configured"
-  else
-    check_fail "Remote PostgreSQL password configured (${REMOTE_PG_ENV_FILE})"
-  fi
-
   local compose_file="${FAIR_CRM_DIR}/docker-compose.yml"
-  if [[ -f "$compose_file" ]] && grep -qE '^[[:space:]]*-[[:space:]]*"127\.0\.0\.1:5432:5432"' "$compose_file"; then
+  if [[ -f "$compose_file" ]] && grep -qE '^[[:space:]]*-[[:space:]]*"127\\.0\\.0\\.1:5432:5432"' "$compose_file"; then
     check_pass "PostgreSQL local 127.0.0.1:5432 mapping preserved"
   else
     check_fail "PostgreSQL local 127.0.0.1:5432 mapping preserved"
   fi
 
-  if [[ -f "$compose_file" ]] && grep -qE "^[[:space:]]*-[[:space:]]*\"${remote_port}:5432\"" "$compose_file"; then
-    check_pass "PostgreSQL remote ${remote_port}->5432 mapping configured"
+  # Security contract: PostgreSQL is local-only. Remote database exposure was
+  # intentionally retired after the server hardening incident. A public Docker
+  # publish or UFW allow for 15432 is therefore a failure, not a requirement.
+  if [[ -f "$compose_file" ]] && grep -qE '^[[:space:]]*-[[:space:]]*"([0-9.]+:)?15432:5432"' "$compose_file"; then
+    check_fail "PostgreSQL remote tcp/15432 not published by Docker"
   else
-    check_fail "PostgreSQL remote ${remote_port}->5432 mapping configured"
-  fi
-
-  if command -v ss >/dev/null 2>&1 && ss -ltn "sport = :${remote_port}" 2>/dev/null | grep -q ":${remote_port} "; then
-    check_pass "Remote PostgreSQL tcp/${remote_port} listening"
-  else
-    check_fail "Remote PostgreSQL tcp/${remote_port} listening"
-  fi
-
-  local container="kyrox-postgres-dev"
-  if [[ -f "$compose_file" ]]; then
-    container="$(grep -E 'container_name:' "$compose_file" | head -n1 | sed -E 's/.*container_name:[[:space:]]*//; s/[[:space:]]+$//' || true)"
-    container="${container:-kyrox-postgres-dev}"
-  fi
-
-  if command -v docker >/dev/null 2>&1 && docker ps --format '{{.Names}}' | grep -qx "$container"; then
-    local role_flags=""
-    role_flags="$(docker exec "$container" psql -U postgres -d postgres -tAc "SELECT rolcanlogin::int || ':' || rolsuper::int || ':' || rolcreatedb::int || ':' || rolcreaterole::int FROM pg_roles WHERE rolname='${remote_user}'" 2>/dev/null || true)"
-    if [[ "$role_flags" == "1:1:1:1" ]]; then
-      check_pass "Remote PostgreSQL user ${remote_user} is login superuser"
-    else
-      check_fail "Remote PostgreSQL user ${remote_user} is login superuser"
-    fi
-  else
-    check_fail "Remote PostgreSQL role audit (container unavailable)"
+    check_pass "PostgreSQL remote tcp/15432 not published by Docker"
   fi
 
   if command -v ufw >/dev/null 2>&1; then
-    if run_root ufw status 2>/dev/null | grep -Eq "${remote_port}/tcp[[:space:]]+ALLOW"; then
-      check_pass "UFW allows tcp/${remote_port}"
+    if run_root ufw status 2>/dev/null | awk '$1 == "15432" || $1 == "15432/tcp" { if ($0 ~ /ALLOW/) found=1 } END { exit(found ? 0 : 1) }'; then
+      check_fail "UFW blocks tcp/15432"
     else
-      check_fail "UFW allows tcp/${remote_port}"
+      check_pass "UFW blocks tcp/15432"
     fi
   fi
 }
 
-# UFW port checks must match the rule's port token exactly. For example,
-# an intentional 15432/tcp rule must not be mistaken for a public 5432/tcp rule.
+# UFW port checks must match the rule's port token exactly.
 check_firewall_rules_exact() {
   if ! command -v ufw >/dev/null 2>&1; then
     check_warn_item "UFW installed"
@@ -179,7 +144,7 @@ check_firewall_rules_exact() {
   fi
 
   local port
-  for port in 5432 8000 8001; do
+  for port in 5432 8000 8001 15432; do
     if awk -v p="$port" '$1 == p || $1 == p "/tcp" { if ($0 ~ /ALLOW/) found=1 } END { exit(found ? 0 : 1) }' <<<"$status"; then
       check_fail "${port} not publicly exposed"
     else
