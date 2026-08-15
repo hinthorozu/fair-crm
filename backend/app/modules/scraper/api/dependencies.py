@@ -24,8 +24,7 @@ PERMISSION_READ = "fair_crm.scraper.read"
 PERMISSION_CREATE = "fair_crm.scraper.create"
 PERMISSION_UPDATE = "fair_crm.scraper.update"
 PERMISSION_DELETE = "fair_crm.scraper.delete"
-PERMISSION_RUN = "fair_crm.scraper.run"
-PERMISSION_DOWNLOAD = "fair_crm.scraper.download"
+PERMISSION_EXECUTE = "fair_crm.scraper.execute"
 
 
 def get_authorization_adapter() -> AuthorizationPort:
@@ -73,8 +72,8 @@ require_read_permission = _require_permission(PERMISSION_READ)
 require_create_permission = _require_permission(PERMISSION_CREATE)
 require_update_permission = _require_permission(PERMISSION_UPDATE)
 require_delete_permission = _require_permission(PERMISSION_DELETE)
-require_run_permission = _require_permission(PERMISSION_RUN)
-require_download_permission = _require_permission(PERMISSION_DOWNLOAD)
+require_run_permission = _require_permission(PERMISSION_EXECUTE)
+require_download_permission = _require_permission(PERMISSION_EXECUTE)
 from app.modules.scraper.core.browser_service import BrowserConfig, BrowserService, create_browser_service
 from app.modules.scraper.core.manifest_registry import ManifestRegistry, get_manifest_registry
 from app.modules.scraper.core.scraper_manager import ScraperManager
