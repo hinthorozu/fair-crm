@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   canPerformTodoAction,
-  TODO_PERMISSION_ARCHIVE,
   TODO_PERMISSION_CREATE,
   TODO_PERMISSION_DELETE,
   TODO_PERMISSION_READ,
@@ -19,7 +18,7 @@ describe("todoPermissions", () => {
     expect(canPerformTodoAction(readOnly, "delete")).toBe(false);
   });
 
-  it("grants create/update/archive/delete when respective permissions are present", () => {
+  it("uses delete permission for both archive and delete actions", () => {
     expect(
       canPerformTodoAction(
         new Set([TODO_PERMISSION_READ, TODO_PERMISSION_CREATE]),
@@ -32,17 +31,8 @@ describe("todoPermissions", () => {
         "update",
       ),
     ).toBe(true);
-    expect(
-      canPerformTodoAction(
-        new Set([TODO_PERMISSION_READ, TODO_PERMISSION_ARCHIVE]),
-        "archive",
-      ),
-    ).toBe(true);
-    expect(
-      canPerformTodoAction(
-        new Set([TODO_PERMISSION_READ, TODO_PERMISSION_DELETE]),
-        "delete",
-      ),
-    ).toBe(true);
+    const deleteGranted = new Set([TODO_PERMISSION_READ, TODO_PERMISSION_DELETE]);
+    expect(canPerformTodoAction(deleteGranted, "archive")).toBe(true);
+    expect(canPerformTodoAction(deleteGranted, "delete")).toBe(true);
   });
 });
