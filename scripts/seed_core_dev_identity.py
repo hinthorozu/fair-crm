@@ -16,6 +16,7 @@ import sys
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 import psycopg2
 from argon2 import PasswordHasher
@@ -58,8 +59,26 @@ def _now() -> datetime:
     return datetime.now(tz=UTC)
 
 
+def _normalize_psycopg_url(db_url: str) -> str:
+    return db_url.replace("postgresql+psycopg2://", "postgresql://", 1)
+
+
 def _connect(db_url: str):
-    return psycopg2.connect(db_url)
+    return psycopg2.connect(_normalize_psycopg_url(db_url))
+
+
+def admin_url_from_database_url(db_url: str) -> str:
+    """Reuse the configured DB credentials while targeting the postgres admin DB.
+
+    This prevents the seed path from silently falling back to a hardcoded
+    postgres/postgres credential when production/dev server passwords have been
+    rotated. POSTGRES_ADMIN_URL may still explicitly override this behavior.
+    """
+    normalized = _normalize_psycopg_url(db_url)
+    parsed = urlsplit(normalized)
+    if parsed.scheme not in {"postgres", "postgresql"} or not parsed.netloc:
+        raise SeedError("KYROX_CORE_DATABASE_URL is not a valid PostgreSQL URL.")
+    return urlunsplit((parsed.scheme, parsed.netloc, "/postgres", parsed.query, parsed.fragment))
 
 
 def password_fingerprint(password: str) -> str:
@@ -327,14 +346,11 @@ def remove_super_admin_role_assignments(cur, user_id: str) -> None:
 def main() -> int:
     try:
         dev_password = require_dev_password()
+        admin_url = os.environ.get("POSTGRES_ADMIN_URL") or admin_url_from_database_url(CORE_DB_URL)
     except SeedError as exc:
         print(f"Seed failed: {exc}", file=sys.stderr)
         return 1
 
-    admin_url = os.environ.get(
-        "POSTGRES_ADMIN_URL",
-        "postgresql://postgres:postgres@localhost:5432/postgres",
-    )
     ensure_database_exists(admin_url, "kyrox_core")
 
     conn = _connect(CORE_DB_URL)
