@@ -11,6 +11,9 @@ Group=__DEPLOY_SERVICE_USER__
 WorkingDirectory=__FAIR_CRM_DIR__/backend
 Environment=PYTHONPATH=__FAIR_CRM_DIR__/backend
 EnvironmentFile=-__FAIR_CRM_DIR__/backend/.env
+# Run this pre-start command with full privileges so deploys can update the
+# installed nginx site without granting the application user write access to /etc.
+ExecStartPre=+/bin/bash __FAIR_CRM_DIR__/scripts/server/apply-nginx-upload-limit.sh
 ExecStart=__FAIR_CRM_DIR__/backend/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
 Restart=always
 RestartSec=5
