@@ -8,7 +8,7 @@ from app.modules.todos.application.mappers import todo_to_result
 from app.modules.todos.domain.exceptions import TodoNotFoundError
 from app.modules.todos.domain.ports import TodoRepository
 
-PERMISSION_ARCHIVE = "fair_crm.todos.archive"
+PERMISSION_DELETE = "fair_crm.todos.delete"
 
 
 class ArchiveTodoUseCase:
@@ -26,7 +26,7 @@ class ArchiveTodoUseCase:
         if not self._authorization.check_permission(
             organization_id=command.organization_id,
             user_id=command.user_id,
-            permission_code=PERMISSION_ARCHIVE,
+            permission_code=PERMISSION_DELETE,
             access_token=command.access_token,
         ):
             raise ForbiddenError("Permission denied")
