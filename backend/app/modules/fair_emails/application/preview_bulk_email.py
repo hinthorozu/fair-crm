@@ -22,7 +22,7 @@ from app.modules.mail_templates.domain.exceptions import (
 )
 from app.modules.mail_templates.domain.ports import MailTemplateRepository, MailTemplateRenderer
 
-PERMISSION_PREVIEW = "fair_crm.fair_emails.preview"
+PERMISSION_PREVIEW = "fair_crm.fair_emails.read"
 INACTIVE_TEMPLATE_MESSAGE = "Pasif mail şablonu ile toplu mail gönderilemez."
 
 
