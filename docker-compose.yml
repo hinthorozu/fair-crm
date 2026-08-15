@@ -8,7 +8,6 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - "127.0.0.1:5432:5432"
-      - "15432:5432"
     volumes:
       - kyrox_pg_data:/var/lib/postgresql
     healthcheck:
