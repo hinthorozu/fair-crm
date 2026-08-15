@@ -10,9 +10,8 @@ from app.integrations.kyrox_core.ports import AuthorizationPort
 from app.modules.scraper.api.dependencies import (
     PERMISSION_CREATE,
     PERMISSION_DELETE,
-    PERMISSION_DOWNLOAD,
+    PERMISSION_EXECUTE,
     PERMISSION_READ,
-    PERMISSION_RUN,
     PERMISSION_UPDATE,
     get_authorization_adapter as get_scraper_authorization_adapter,
 )
@@ -192,7 +191,7 @@ def test_scraper_run_delete_not_visible_from_other_organization(
 
 def test_scraper_run_permission_denied_returns_403(client: TestClient, auth_headers):
     client.app.dependency_overrides[get_scraper_authorization_adapter] = lambda: SelectiveAuthorization(
-        denied={PERMISSION_RUN}
+        denied={PERMISSION_EXECUTE}
     )
     try:
         response = client.post(
@@ -222,7 +221,7 @@ def test_scraper_download_permission_denied_returns_403(
     )
 
     client.app.dependency_overrides[get_scraper_authorization_adapter] = lambda: SelectiveAuthorization(
-        denied={PERMISSION_DOWNLOAD}
+        denied={PERMISSION_EXECUTE}
     )
     try:
         response = client.get(
