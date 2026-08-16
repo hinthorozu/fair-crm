@@ -80,6 +80,11 @@ export function samePermissionIds(left: string[], right: string[]): boolean {
 
 function groupTitle(group: string): string {
   const known: Record<string, string> = {
+    "audit.logs": "Denetim Kayıtları",
+    "settings.platform": "Sistem Ayarları",
+    "jobs.platform": "Arka Plan İşleri",
+    "notifications.platform": "Bildirimler",
+    "identity.organizations": "Organizasyon Yönetimi",
     "identity.users": "Kullanıcı Yönetimi",
     "identity.roles": "Rol Yönetimi",
     "identity.role_templates": "Rol Şablonları",
@@ -87,11 +92,19 @@ function groupTitle(group: string): string {
     "fair_crm.customers": "Müşteriler",
     "fair_crm.contacts": "İletişim Kişileri",
     "fair_crm.fairs": "Fuarlar",
+    "fair_crm.participations": "Fuar Katılımları",
     "fair_crm.activities": "Aktiviteler",
     "fair_crm.todos": "Görevler",
     "fair_crm.imports": "Veri Aktarımı",
+    "fair_crm.scraper": "Scraper",
+    "fair_crm.operations": "Operasyonlar",
     "fair_crm.email_accounts": "E-posta Hesapları",
     "fair_crm.mail_templates": "E-posta Şablonları",
+    "fair_crm.fair_emails": "Fuar E-postaları",
+    "fair_crm.quote_templates": "Teklif Şablonları",
+    "fair_crm.template_contents": "Şablon İçerikleri",
+    "fair_crm.quotes": "Teklifler",
+    "fair_crm.dashboard": "Gösterge Paneli",
     "fair_crm.admin": "Sistem Yönetimi",
   };
   return known[group] ?? group;
