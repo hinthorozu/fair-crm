@@ -6,7 +6,9 @@ import {
   deleteManagedUser,
   getUserManagementContext,
   listAssignableRoles,
+  listDeletedManagedUsers,
   listManagedUsers,
+  restoreManagedUser,
   updateManagedUser,
   type AssignableRole,
   type ManagedOrganization,
@@ -47,6 +49,9 @@ export function UsersAdminPage() {
   const [organizationId, setOrganizationId] = React.useState("");
   const [actorIsSuperAdmin, setActorIsSuperAdmin] = React.useState(false);
   const [users, setUsers] = React.useState<ManagedUser[]>([]);
+  const [deletedUsers, setDeletedUsers] = React.useState<ManagedUser[]>([]);
+  const [canRestoreDeletedUsers, setCanRestoreDeletedUsers] = React.useState(false);
+  const [restoringUserId, setRestoringUserId] = React.useState<string | null>(null);
   const [roles, setRoles] = React.useState<AssignableRole[]>([]);
   const [canManageSuperAdmin, setCanManageSuperAdmin] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
@@ -80,7 +85,13 @@ export function UsersAdminPage() {
 
   const loadUsers = React.useCallback(async () => {
     if (!organizationId) {
-      setUsers([]); setRoles([]); setCanManageSuperAdmin(false); setLoading(false); return;
+      setUsers([]);
+      setDeletedUsers([]);
+      setCanRestoreDeletedUsers(false);
+      setRoles([]);
+      setCanManageSuperAdmin(false);
+      setLoading(false);
+      return;
     }
     setLoading(true); setError(null);
     try {
@@ -91,6 +102,19 @@ export function UsersAdminPage() {
       setUsers(userResult.items);
       setCanManageSuperAdmin(userResult.can_manage_super_admin);
       setRoles(roleResult);
+
+      try {
+        const deletedResult = await listDeletedManagedUsers(organizationId);
+        setDeletedUsers(deletedResult.items);
+        setCanRestoreDeletedUsers(true);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 403) {
+          setDeletedUsers([]);
+          setCanRestoreDeletedUsers(false);
+        } else {
+          throw err;
+        }
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Kullanıcılar yüklenemedi.");
     } finally { setLoading(false); }
@@ -146,6 +170,20 @@ export function UsersAdminPage() {
     finally { setDeleting(false); }
   };
 
+  const restoreDeletedUser = async (user: ManagedUser) => {
+    if (!canRestoreDeletedUsers || !organizationId || restoringUserId) return;
+    setRestoringUserId(user.id); setError(null); setSuccess(null);
+    try {
+      await restoreManagedUser(organizationId, user.id);
+      setSuccess(`${user.email} kullanıcısı geri alındı.`);
+      await loadUsers();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Kullanıcı geri alınamadı.");
+    } finally {
+      setRestoringUserId(null);
+    }
+  };
+
   const columns = React.useMemo<UniversalDataTableColumn<ManagedUser>[]>(() => [
     { key: "email", title: "E-posta", render: (user) => <strong>{user.email}</strong> },
     { key: "role", title: "Rol", render: (user) => user.role?.name ?? "—" },
@@ -153,6 +191,13 @@ export function UsersAdminPage() {
     ...(canManageSuperAdmin ? [{ key: "super-admin", title: "Super Admin", render: (user: ManagedUser) => user.is_super_admin ? "Evet" : "Hayır" } as UniversalDataTableColumn<ManagedUser>] : []),
     { key: "actions", title: "İşlemler", sortable: false, className: "col-actions", render: (user) => <TableRowActions><button type="button" className="btn link" onClick={() => openEdit(user)}>Düzenle</button>{canDeleteUsers ? <button type="button" className="btn link danger" onClick={() => setDeleteTarget(user)}>Sil</button> : null}</TableRowActions> },
   ], [canDeleteUsers, canManageSuperAdmin, roles]);
+
+  const deletedColumns = React.useMemo<UniversalDataTableColumn<ManagedUser>[]>(() => [
+    { key: "email", title: "E-posta", render: (user) => <strong>{user.email}</strong> },
+    { key: "role", title: "Son Rol", render: (user) => user.role?.name ?? "—" },
+    { key: "status", title: "Durum", render: () => "Silindi" },
+    { key: "actions", title: "İşlemler", sortable: false, className: "col-actions", render: (user) => <TableRowActions><button type="button" className="btn link" disabled={restoringUserId !== null} onClick={() => void restoreDeletedUser(user)}>{restoringUserId === user.id ? "Geri alınıyor…" : "Geri Al"}</button></TableRowActions> },
+  ], [canRestoreDeletedUsers, organizationId, restoringUserId]);
 
   const formOpen = editing !== undefined;
   const selectedOrganization = organizations.find((item) => item.id === organizationId) ?? null;
@@ -175,6 +220,7 @@ export function UsersAdminPage() {
     {error ? <Banner variant="error">{error}</Banner> : null}
     <div className="card" style={{ marginBottom: 16, padding: 16 }}>{actorIsSuperAdmin ? <label className="form-field"><span className="form-label">Organizasyon</span><select className="input" value={organizationId} onChange={(event) => changeOrganization(event.target.value)}><option value="">Organizasyon seçin</option>{organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}</select></label> : <div className="form-field"><span className="form-label">Organizasyon</span><strong>{selectedOrganization?.name ?? "Organizasyon bulunamadı"}</strong></div>}</div>
     <UniversalDataTable items={users} columns={columns} rowKey={(user) => user.id} loading={loading} error={error} onRetry={() => void loadUsers()} emptyState={<EmptyState title="Kullanıcı bulunamadı" actionLabel={roles.length ? "Yeni Kullanıcı" : undefined} onAction={roles.length ? openCreate : undefined} />} />
+    {canRestoreDeletedUsers ? <div style={{ marginTop: 24 }}><h3>Silinen Kullanıcılar</h3><UniversalDataTable items={deletedUsers} columns={deletedColumns} rowKey={(user) => user.id} loading={loading} emptyState={<EmptyState title="Silinen kullanıcı bulunamadı" />} /></div> : null}
     {formOpen ? <FormModal title={editing ? "Kullanıcıyı Düzenle" : "Yeni Kullanıcı"} onClose={closeForm} formWidth="standard"><form onSubmit={submit} className="crm-form-stack">
       {formError ? <Banner variant="error">{formError}</Banner> : null}
       {organizationField}

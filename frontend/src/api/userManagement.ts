@@ -101,6 +101,14 @@ export function listManagedUsers(organizationId: string): Promise<ManagedUserLis
   );
 }
 
+export function listDeletedManagedUsers(organizationId: string): Promise<ManagedUserList> {
+  return request<ManagedUserList>(
+    `/organizations/${encodeURIComponent(organizationId)}/users/deleted`,
+    {},
+    organizationId,
+  );
+}
+
 export function listAssignableRoles(organizationId: string): Promise<AssignableRole[]> {
   return request<AssignableRole[]>(
     `/organizations/${encodeURIComponent(organizationId)}/roles`,
@@ -136,6 +144,14 @@ export async function deleteManagedUser(organizationId: string, userId: string):
   await request<null>(
     `/organizations/${encodeURIComponent(organizationId)}/users/${encodeURIComponent(userId)}`,
     { method: "DELETE" },
+    organizationId,
+  );
+}
+
+export function restoreManagedUser(organizationId: string, userId: string): Promise<ManagedUser> {
+  return request<ManagedUser>(
+    `/organizations/${encodeURIComponent(organizationId)}/users/${encodeURIComponent(userId)}/restore`,
+    { method: "POST" },
     organizationId,
   );
 }
