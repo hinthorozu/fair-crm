@@ -11,11 +11,11 @@ ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.customers.create",
     "fair_crm.customers.read",
     "fair_crm.customers.update",
-    "fair_crm.customers.archive",
+    "fair_crm.customers.delete",
     "fair_crm.fairs.read",
     "fair_crm.fairs.create",
     "fair_crm.fairs.update",
-    "fair_crm.fairs.archive",
+    "fair_crm.fairs.delete",
     "fair_crm.imports.read",
     "fair_crm.imports.create",
     "fair_crm.imports.update",
@@ -71,12 +71,11 @@ ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.todos.read",
     "fair_crm.todos.create",
     "fair_crm.todos.update",
-    "fair_crm.todos.archive",
     "fair_crm.todos.delete",
     "fair_crm.todos.outcomes.read",
     "fair_crm.todos.outcomes.create",
     "fair_crm.todos.outcomes.update",
-    "fair_crm.todos.outcomes.deactivate",
+    "fair_crm.todos.outcomes.delete",
     "fair_crm.dashboard.read",
 )
 
@@ -95,6 +94,8 @@ ADMIN_ONLY_PERMISSIONS: frozenset[str] = frozenset(
         "fair_crm.admin.backups.execute",
         "fair_crm.admin.data_operations.read",
         "fair_crm.admin.data_operations.execute",
+        "fair_crm.customers.delete",
+        "fair_crm.fairs.delete",
         "fair_crm.email_accounts.create",
         "fair_crm.email_accounts.update",
         "fair_crm.email_accounts.delete",
@@ -115,7 +116,7 @@ ADMIN_ONLY_PERMISSIONS: frozenset[str] = frozenset(
         "fair_crm.todos.delete",
         "fair_crm.todos.outcomes.create",
         "fair_crm.todos.outcomes.update",
-        "fair_crm.todos.outcomes.deactivate",
+        "fair_crm.todos.outcomes.delete",
     }
 )
 

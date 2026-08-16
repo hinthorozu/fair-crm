@@ -705,7 +705,7 @@ def test_role_matrix_todos_archive(
             f"/api/v1/todos/{todo_id}/archive",
             headers=auth_headers,
         )
-    expected = 200 if _role_has(role_slug, "fair_crm.todos.archive") else 403
+    expected = 200 if _role_has(role_slug, "fair_crm.todos.delete") else 403
     assert response.status_code == expected
 
 
@@ -815,7 +815,7 @@ def test_role_matrix_todo_outcomes_deactivate(
             f"/api/v1/todo-outcomes/{outcome_id}/deactivate",
             headers=auth_headers,
         )
-    expected = 200 if _role_has(role_slug, "fair_crm.todos.outcomes.deactivate") else 403
+    expected = 200 if _role_has(role_slug, "fair_crm.todos.outcomes.delete") else 403
     assert response.status_code == expected
 
 

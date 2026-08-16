@@ -8,7 +8,7 @@ from app.modules.customers.application.mappers import customer_to_result
 from app.modules.customers.domain.exceptions import CustomerNotArchivedError, CustomerNotFoundError
 from app.modules.customers.domain.ports import CustomerRepository
 
-PERMISSION_RESTORE = "fair_crm.customers.archive"
+PERMISSION_RESTORE = "fair_crm.customers.delete"
 
 
 class RestoreCustomerUseCase:

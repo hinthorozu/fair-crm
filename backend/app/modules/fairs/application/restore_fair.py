@@ -8,7 +8,7 @@ from app.modules.fairs.application.mappers import fair_to_result
 from app.modules.fairs.domain.exceptions import FairNotArchivedError, FairNotFoundError
 from app.modules.fairs.domain.ports import FairRepository
 
-PERMISSION_RESTORE = "fair_crm.fairs.archive"
+PERMISSION_RESTORE = "fair_crm.fairs.delete"
 
 
 class RestoreFairUseCase:

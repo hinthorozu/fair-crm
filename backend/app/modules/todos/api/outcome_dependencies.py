@@ -29,7 +29,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 PERMISSION_READ = "fair_crm.todos.outcomes.read"
 PERMISSION_CREATE = "fair_crm.todos.outcomes.create"
 PERMISSION_UPDATE = "fair_crm.todos.outcomes.update"
-PERMISSION_DEACTIVATE = "fair_crm.todos.outcomes.deactivate"
+PERMISSION_DEACTIVATE = "fair_crm.todos.outcomes.delete"
 
 
 def get_outcome_repository(
