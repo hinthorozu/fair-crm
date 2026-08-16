@@ -5,7 +5,18 @@ from __future__ import annotations
 from typing import Final
 
 AUDIT_READ_PERMISSION: Final = "audit.logs.read"
-ROLE_MATRIX_VERSION: Final = 16
+ROLE_MATRIX_VERSION: Final = 17
+
+SYSTEM_PERMISSION_CODES: tuple[str, ...] = (
+    "fair_crm.admin.backups.read",
+    "fair_crm.admin.backups.create",
+    "fair_crm.admin.backups.execute",
+    "identity.permissions.lifecycle",
+    "identity.role_templates.read",
+    "identity.role_templates.manage",
+    "identity.organizations.delete",
+    "identity.organizations.suspend",
+)
 
 ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.customers.create",
@@ -63,9 +74,6 @@ ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.quotes.delete",
     "fair_crm.fair_emails.read",
     "fair_crm.fair_emails.execute",
-    "fair_crm.admin.backups.read",
-    "fair_crm.admin.backups.create",
-    "fair_crm.admin.backups.execute",
     "fair_crm.admin.data_operations.read",
     "fair_crm.admin.data_operations.execute",
     "fair_crm.todos.read",
@@ -89,9 +97,6 @@ IDENTITY_ADMIN_PERMISSIONS: tuple[str, ...] = (
 
 ADMIN_ONLY_PERMISSIONS: frozenset[str] = frozenset(
     {
-        "fair_crm.admin.backups.read",
-        "fair_crm.admin.backups.create",
-        "fair_crm.admin.backups.execute",
         "fair_crm.admin.data_operations.read",
         "fair_crm.admin.data_operations.execute",
         "fair_crm.customers.delete",
@@ -126,6 +131,7 @@ _FULL_ACCESS_PERMISSIONS: tuple[str, ...] = (
 
 # Platform-level unrestricted access is NOT a role. It is represented only by
 # identity_users.is_super_admin. OrganizationAdmin is the organization RBAC role.
+# SYSTEM_PERMISSION_CODES are intentionally excluded from every organization role.
 ROLE_DEFINITIONS: dict[str, dict[str, object]] = {
     "organization_admin": {
         "name": "OrganizationAdmin",
