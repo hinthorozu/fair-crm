@@ -10,14 +10,14 @@ from app.modules.mail_templates.api.dependencies import (
     get_authorization_adapter,
 )
 
-CATEGORY_VIEW = "cost_catalog.category.view"
-CATEGORY_CREATE = "cost_catalog.category.create"
-CATEGORY_UPDATE = "cost_catalog.category.update"
-CATEGORY_DELETE = "cost_catalog.category.delete"
-PRODUCT_VIEW = "cost_catalog.product.view"
-PRODUCT_CREATE = "cost_catalog.product.create"
-PRODUCT_UPDATE = "cost_catalog.product.update"
-PRODUCT_DELETE = "cost_catalog.product.delete"
+CATEGORY_VIEW = "fair_crm.cost_catalog.categories.read"
+CATEGORY_CREATE = "fair_crm.cost_catalog.categories.create"
+CATEGORY_UPDATE = "fair_crm.cost_catalog.categories.update"
+CATEGORY_DELETE = "fair_crm.cost_catalog.categories.delete"
+PRODUCT_VIEW = "fair_crm.cost_catalog.products.read"
+PRODUCT_CREATE = "fair_crm.cost_catalog.products.create"
+PRODUCT_UPDATE = "fair_crm.cost_catalog.products.update"
+PRODUCT_DELETE = "fair_crm.cost_catalog.products.delete"
 
 
 def require_permission(permission_code: str):
