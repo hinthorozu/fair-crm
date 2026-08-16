@@ -104,6 +104,23 @@ def _unique_category_slug(
     return next_available_slug(slugify(requested_slug), existing_slugs)
 
 
+def _unique_product_slug(
+    db: Session,
+    organization_id: UUID,
+    requested_slug: str,
+    *,
+    exclude_product_id: UUID | None = None,
+) -> str:
+    stmt = select(CostProductModel.slug).where(CostProductModel.organization_id == organization_id)
+    if exclude_product_id is not None:
+        stmt = stmt.where(CostProductModel.id != exclude_product_id)
+    existing_slugs = set(db.scalars(stmt).all())
+    return next_available_slug(
+        slugify(requested_slug, fallback="urun"),
+        existing_slugs,
+    )
+
+
 def _token(credentials: HTTPAuthorizationCredentials | None) -> str:
     return credentials.credentials if credentials and credentials.credentials else "dev-bypass"
 
@@ -299,29 +316,44 @@ def create_product(
     audit: AuditPort = Depends(get_audit_adapter),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> CostProductResponse:
-    category = _find_category(db, auth.organization_id, payload.category_id)
-    now = datetime.now(timezone.utc)
-    item = CostProductModel(
-        organization_id=auth.organization_id,
-        category_id=category.id,
-        name=payload.name.strip(),
-        slug=payload.slug.strip(),
-        unit=payload.unit,
-        unit_price=payload.unit_price,
-        currency=payload.currency,
-        created_at=now,
-        updated_at=now,
-    )
-    db.add(item)
-    try:
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(status_code=409, detail="Product slug already exists")
-    db.refresh(item)
-    result = _product_response(item, category.name)
-    _audit(audit, credentials, auth, action="create", resource_type="cost_catalog.product", resource_id=item.id, new_values=result.model_dump(mode="json"))
-    return result
+    name = payload.name.strip()
+    requested_slug = payload.slug.strip() or name
+
+    for _ in range(20):
+        category = _find_category(db, auth.organization_id, payload.category_id)
+        now = datetime.now(timezone.utc)
+        item = CostProductModel(
+            organization_id=auth.organization_id,
+            category_id=category.id,
+            name=name,
+            slug=_unique_product_slug(db, auth.organization_id, requested_slug),
+            unit=payload.unit,
+            unit_price=payload.unit_price,
+            currency=payload.currency,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(item)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            continue
+
+        db.refresh(item)
+        result = _product_response(item, category.name)
+        _audit(
+            audit,
+            credentials,
+            auth,
+            action="create",
+            resource_type="cost_catalog.product",
+            resource_id=item.id,
+            new_values=result.model_dump(mode="json"),
+        )
+        return result
+
+    raise HTTPException(status_code=409, detail="Unique product slug could not be generated")
 
 
 @router.patch("/products/{product_id}", response_model=CostProductResponse)
@@ -334,24 +366,46 @@ def update_product(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> CostProductResponse:
     item = _find_product(db, auth.organization_id, product_id)
-    category = _find_category(db, auth.organization_id, payload.category_id)
     old = _product_response(item, item.category.name).model_dump(mode="json")
-    item.category_id = category.id
-    item.name = payload.name.strip()
-    item.slug = payload.slug.strip()
-    item.unit = payload.unit
-    item.unit_price = payload.unit_price
-    item.currency = payload.currency
-    item.updated_at = datetime.now(timezone.utc)
-    try:
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(status_code=409, detail="Product slug already exists")
-    db.refresh(item)
-    result = _product_response(item, category.name)
-    _audit(audit, credentials, auth, action="update", resource_type="cost_catalog.product", resource_id=item.id, old_values=old, new_values=result.model_dump(mode="json"))
-    return result
+    name = payload.name.strip()
+    requested_slug = payload.slug.strip() or name
+
+    for _ in range(20):
+        item = _find_product(db, auth.organization_id, product_id)
+        category = _find_category(db, auth.organization_id, payload.category_id)
+        item.category_id = category.id
+        item.name = name
+        item.slug = _unique_product_slug(
+            db,
+            auth.organization_id,
+            requested_slug,
+            exclude_product_id=item.id,
+        )
+        item.unit = payload.unit
+        item.unit_price = payload.unit_price
+        item.currency = payload.currency
+        item.updated_at = datetime.now(timezone.utc)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            continue
+
+        db.refresh(item)
+        result = _product_response(item, category.name)
+        _audit(
+            audit,
+            credentials,
+            auth,
+            action="update",
+            resource_type="cost_catalog.product",
+            resource_id=item.id,
+            old_values=old,
+            new_values=result.model_dump(mode="json"),
+        )
+        return result
+
+    raise HTTPException(status_code=409, detail="Unique product slug could not be generated")
 
 
 @router.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
