@@ -74,6 +74,9 @@ ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.quotes.delete",
     "fair_crm.fair_emails.read",
     "fair_crm.fair_emails.execute",
+    "fair_crm.admin.backups.read",
+    "fair_crm.admin.backups.create",
+    "fair_crm.admin.backups.execute",
     "fair_crm.admin.data_operations.read",
     "fair_crm.admin.data_operations.execute",
     "fair_crm.todos.read",
@@ -125,13 +128,17 @@ ADMIN_ONLY_PERMISSIONS: frozenset[str] = frozenset(
     }
 )
 
-_FULL_ACCESS_PERMISSIONS: tuple[str, ...] = (
+_ROLE_CANDIDATE_PERMISSIONS: tuple[str, ...] = (
     ALL_FAIR_CRM_PERMISSIONS + IDENTITY_ADMIN_PERMISSIONS + (AUDIT_READ_PERMISSION,)
+)
+_FULL_ACCESS_PERMISSIONS: tuple[str, ...] = tuple(
+    code for code in _ROLE_CANDIDATE_PERMISSIONS if code not in SYSTEM_PERMISSION_CODES
 )
 
 # Platform-level unrestricted access is NOT a role. It is represented only by
 # identity_users.is_super_admin. OrganizationAdmin is the organization RBAC role.
-# SYSTEM_PERMISSION_CODES are intentionally excluded from every organization role.
+# SYSTEM_PERMISSION_CODES remain in the catalog but are excluded from every
+# organization role.
 ROLE_DEFINITIONS: dict[str, dict[str, object]] = {
     "organization_admin": {
         "name": "OrganizationAdmin",
