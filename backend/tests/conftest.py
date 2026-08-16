@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 import pytest
@@ -118,9 +119,7 @@ from app.modules.todos.api.outcome_dependencies import (
     get_audit_adapter as get_outcome_audit_adapter,
     get_authorization_adapter as get_outcome_authorization_adapter,
 )
-from app.modules.dashboard.api.dependencies import (
-    get_authorization_adapter as get_dashboard_authorization_adapter,
-)
+from app.modules.dashboard.api.dependencies import get_core_http_client as get_dashboard_core_http_client
 
 
 class AllowAllAuthorization(AuthorizationPort):
@@ -147,6 +146,12 @@ class DenyAllAuthorization(AuthorizationPort):
     ) -> bool:
         _ = (organization_id, user_id, permission_code, access_token)
         return False
+
+
+class AllowOrganizationAccess:
+    def request(self, *args, **kwargs):
+        _ = (args, kwargs)
+        return SimpleNamespace(status_code=204)
 
 
 class NoOpAudit:
@@ -259,7 +264,7 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     app.dependency_overrides[get_operations_audit_adapter] = lambda: NoOpAudit()
     app.dependency_overrides[get_outcome_authorization_adapter] = lambda: AllowAllAuthorization()
     app.dependency_overrides[get_outcome_audit_adapter] = lambda: NoOpAudit()
-    app.dependency_overrides[get_dashboard_authorization_adapter] = lambda: AllowAllAuthorization()
+    app.dependency_overrides[get_dashboard_core_http_client] = lambda: AllowOrganizationAccess()
 
     import app.modules.data_integration.api.dependencies as data_integration_dependencies
     import app.modules.imports.api.dependencies as imports_dependencies
