@@ -32,6 +32,7 @@ from app.modules.cost_catalog.api.schemas import (
     CostProductWriteRequest,
 )
 from app.modules.cost_catalog.infrastructure.models import CostCategoryModel, CostProductModel
+from app.modules.cost_catalog.slug import next_available_slug, slugify
 from app.modules.mail_templates.api.dependencies import bearer_scheme, get_audit_adapter
 
 router = APIRouter(prefix="/cost-catalog", tags=["cost-catalog"])
@@ -89,6 +90,20 @@ def _find_product(db: Session, organization_id: UUID, product_id: UUID) -> CostP
     return item
 
 
+def _unique_category_slug(
+    db: Session,
+    organization_id: UUID,
+    requested_slug: str,
+    *,
+    exclude_category_id: UUID | None = None,
+) -> str:
+    stmt = select(CostCategoryModel.slug).where(CostCategoryModel.organization_id == organization_id)
+    if exclude_category_id is not None:
+        stmt = stmt.where(CostCategoryModel.id != exclude_category_id)
+    existing_slugs = set(db.scalars(stmt).all())
+    return next_available_slug(slugify(requested_slug), existing_slugs)
+
+
 def _token(credentials: HTTPAuthorizationCredentials | None) -> str:
     return credentials.credentials if credentials and credentials.credentials else "dev-bypass"
 
@@ -136,25 +151,41 @@ def create_category(
     audit: AuditPort = Depends(get_audit_adapter),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> CostCategoryResponse:
-    now = datetime.now(timezone.utc)
-    item = CostCategoryModel(
-        organization_id=auth.organization_id,
-        name=payload.name.strip(),
-        slug=payload.slug.strip(),
-        description=payload.description.strip() if payload.description else None,
-        created_at=now,
-        updated_at=now,
-    )
-    db.add(item)
-    try:
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(status_code=409, detail="Category slug already exists")
-    db.refresh(item)
-    result = _category_response(item)
-    _audit(audit, credentials, auth, action="create", resource_type="cost_catalog.category", resource_id=item.id, new_values=result.model_dump(mode="json"))
-    return result
+    name = payload.name.strip()
+    requested_slug = payload.slug.strip() or name
+    description = payload.description.strip() if payload.description else None
+
+    for _ in range(20):
+        now = datetime.now(timezone.utc)
+        item = CostCategoryModel(
+            organization_id=auth.organization_id,
+            name=name,
+            slug=_unique_category_slug(db, auth.organization_id, requested_slug),
+            description=description,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(item)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            continue
+
+        db.refresh(item)
+        result = _category_response(item)
+        _audit(
+            audit,
+            credentials,
+            auth,
+            action="create",
+            resource_type="cost_catalog.category",
+            resource_id=item.id,
+            new_values=result.model_dump(mode="json"),
+        )
+        return result
+
+    raise HTTPException(status_code=409, detail="Unique category slug could not be generated")
 
 
 @router.patch("/categories/{category_id}", response_model=CostCategoryResponse)
@@ -168,19 +199,42 @@ def update_category(
 ) -> CostCategoryResponse:
     item = _find_category(db, auth.organization_id, category_id)
     old = _category_response(item).model_dump(mode="json")
-    item.name = payload.name.strip()
-    item.slug = payload.slug.strip()
-    item.description = payload.description.strip() if payload.description else None
-    item.updated_at = datetime.now(timezone.utc)
-    try:
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(status_code=409, detail="Category slug already exists")
-    db.refresh(item)
-    result = _category_response(item)
-    _audit(audit, credentials, auth, action="update", resource_type="cost_catalog.category", resource_id=item.id, old_values=old, new_values=result.model_dump(mode="json"))
-    return result
+    name = payload.name.strip()
+    requested_slug = payload.slug.strip() or name
+    description = payload.description.strip() if payload.description else None
+
+    for _ in range(20):
+        item = _find_category(db, auth.organization_id, category_id)
+        item.name = name
+        item.slug = _unique_category_slug(
+            db,
+            auth.organization_id,
+            requested_slug,
+            exclude_category_id=item.id,
+        )
+        item.description = description
+        item.updated_at = datetime.now(timezone.utc)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            continue
+
+        db.refresh(item)
+        result = _category_response(item)
+        _audit(
+            audit,
+            credentials,
+            auth,
+            action="update",
+            resource_type="cost_catalog.category",
+            resource_id=item.id,
+            old_values=old,
+            new_values=result.model_dump(mode="json"),
+        )
+        return result
+
+    raise HTTPException(status_code=409, detail="Unique category slug could not be generated")
 
 
 @router.delete("/categories/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
