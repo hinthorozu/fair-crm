@@ -6,8 +6,6 @@ from app.modules.dashboard.infrastructure.repositories.dashboard_query_repositor
     SqlAlchemyDashboardQueryRepository,
 )
 
-PERMISSION_READ = "fair_crm.dashboard.read"
-
 
 @dataclass(frozen=True)
 class GetDashboardSummaryQuery:
