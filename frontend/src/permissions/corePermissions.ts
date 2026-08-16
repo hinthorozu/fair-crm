@@ -2,6 +2,7 @@ export const FAIR_CRM_PERMISSION_CODES = [
   "identity.users.read",
   "identity.users.create",
   "identity.users.update",
+  "identity.users.delete",
   "identity.roles.read",
   "identity.roles.create",
   "identity.roles.update",
