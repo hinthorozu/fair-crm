@@ -1,0 +1,30 @@
+---
+description: Mandatory ORGANIZATION vs SYSTEM permission-scope decision for every new module and permission
+alwaysApply: true
+---
+
+# Permission scope is mandatory
+
+Canonical source:
+`kyrox-platform/projects/fair-crm/PERMISSION_SCOPE_GOVERNANCE.md`
+
+Before adding permissions for any new module or feature, determine the permission scope.
+
+If the approved requirement has not already stated it explicitly, ask the product owner before coding:
+
+**Bu modül/permission ORGANIZATION mı, SYSTEM mı?**
+
+Do not infer scope from module names, permission slugs, `admin`, `platform`, route paths, or existing UI grouping.
+
+Core rules:
+
+- `organization`: may be assigned to OrganizationAdmin / organization roles according to RBAC rules and must remain tenant-scoped.
+- `system`: Super Admin only; never assignable to OrganizationAdmin, default templates, or custom organization roles.
+- Every new permission must store `permission_scope` explicitly in the Core catalog/migration.
+- Do not rename existing permission slugs to express scope.
+- If a module mixes security levels, classify each permission separately.
+- Do not silently choose when ambiguous.
+
+Example: before implementing a new `costs` / Maliyet module and creating `fair_crm.costs.*`, confirm its scope first.
+
+Follow the canonical governance document for DB, API, role-template, seed, authorization and test requirements.
