@@ -48,7 +48,7 @@ def require_dashboard_access(
     try:
         response = core_http.request(
             "GET",
-            f"/api/v1/organizations/{auth.organization_id}/membership/verify",
+            f"/api/v1/organizations/{auth.organization_id}/access/verify",
             access_token=credentials.credentials,
             organization_id=auth.organization_id,
         )
