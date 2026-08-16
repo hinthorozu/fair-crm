@@ -24,6 +24,7 @@ import {
   UniversalDataTable,
   type UniversalDataTableColumn,
 } from "../components/ui/UniversalDataTable";
+import { getGrantedCorePermissions } from "../permissions/corePermissions";
 
 interface UserFormState {
   email: string;
@@ -58,6 +59,7 @@ export function UsersAdminPage() {
   const [saving, setSaving] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<ManagedUser | null>(null);
   const [deleting, setDeleting] = React.useState(false);
+  const canDeleteUsers = actorIsSuperAdmin || getGrantedCorePermissions().has("identity.users.delete");
 
   React.useEffect(() => {
     let active = true;
@@ -137,7 +139,7 @@ export function UsersAdminPage() {
   };
 
   const confirmDelete = async () => {
-    if (!deleteTarget || !organizationId) return;
+    if (!canDeleteUsers || !deleteTarget || !organizationId) return;
     setDeleting(true); setError(null);
     try { await deleteManagedUser(organizationId, deleteTarget.id); setDeleteTarget(null); setSuccess("Kullanıcı silindi."); await loadUsers(); }
     catch (err) { setError(err instanceof ApiError ? err.message : "Kullanıcı silinemedi."); setDeleteTarget(null); }
@@ -149,8 +151,8 @@ export function UsersAdminPage() {
     { key: "role", title: "Rol", render: (user) => user.role?.name ?? "—" },
     { key: "status", title: "Durum", render: (user) => user.status === "active" ? "Aktif" : "Pasif" },
     ...(canManageSuperAdmin ? [{ key: "super-admin", title: "Super Admin", render: (user: ManagedUser) => user.is_super_admin ? "Evet" : "Hayır" } as UniversalDataTableColumn<ManagedUser>] : []),
-    { key: "actions", title: "İşlemler", sortable: false, className: "col-actions", render: (user) => <TableRowActions><button type="button" className="btn link" onClick={() => openEdit(user)}>Düzenle</button><button type="button" className="btn link danger" onClick={() => setDeleteTarget(user)}>Sil</button></TableRowActions> },
-  ], [canManageSuperAdmin, roles]);
+    { key: "actions", title: "İşlemler", sortable: false, className: "col-actions", render: (user) => <TableRowActions><button type="button" className="btn link" onClick={() => openEdit(user)}>Düzenle</button>{canDeleteUsers ? <button type="button" className="btn link danger" onClick={() => setDeleteTarget(user)}>Sil</button> : null}</TableRowActions> },
+  ], [canDeleteUsers, canManageSuperAdmin, roles]);
 
   const formOpen = editing !== undefined;
   const selectedOrganization = organizations.find((item) => item.id === organizationId) ?? null;
@@ -183,6 +185,6 @@ export function UsersAdminPage() {
       {canManageSuperAdmin ? <label className="form-field"><span className="form-label">Super Admin</span><input type="checkbox" checked={form.isSuperAdmin} onChange={(event) => setForm((current) => ({ ...current, isSuperAdmin: event.target.checked, roleId: event.target.checked ? "" : current.roleId }))} disabled={saving} /></label> : null}
       <div className="form-actions"><button type="button" className="btn secondary" onClick={closeForm} disabled={saving}>Vazgeç</button><button type="submit" className="btn primary" disabled={saving}>{saving ? "Kaydediliyor…" : "Kaydet"}</button></div>
     </form></FormModal> : null}
-    {deleteTarget ? <ConfirmDialog title="Kullanıcıyı Sil" message={`${deleteTarget.email} kullanıcısı bu organizasyondan kaldırılacak.`} confirmLabel="Sil" variant="danger" loading={deleting} onCancel={() => setDeleteTarget(null)} onConfirm={() => void confirmDelete()} /> : null}
+    {deleteTarget && canDeleteUsers ? <ConfirmDialog title="Kullanıcıyı Sil" message={`${deleteTarget.email} kullanıcısı bu organizasyondan kaldırılacak.`} confirmLabel="Sil" variant="danger" loading={deleting} onCancel={() => setDeleteTarget(null)} onConfirm={() => void confirmDelete()} /> : null}
   </PageShell>;
 }
