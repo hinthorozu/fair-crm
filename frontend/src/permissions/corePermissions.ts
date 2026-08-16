@@ -30,7 +30,6 @@ export const FAIR_CRM_PERMISSION_CODES = [
   "fair_crm.customers.delete",
   "fair_crm.customers.read",
   "fair_crm.customers.update",
-  "fair_crm.dashboard.read",
   "fair_crm.email_accounts.read",
   "fair_crm.email_accounts.create",
   "fair_crm.email_accounts.update",
