@@ -7,28 +7,15 @@ from app.db.alembic_version_compat import ensure_alembic_version_column_width
 
 from app.core.config import get_settings
 from app.db.base import Base
-from app.modules.customers.infrastructure.persistence.communication_models import (  # noqa: F401
-    CustomerEmailModel,
-    CustomerPhoneModel,
-    CustomerWebsiteModel,
-)
+from app.modules.customers.infrastructure.persistence.communication_models import CustomerEmailModel, CustomerPhoneModel, CustomerWebsiteModel  # noqa: F401
 from app.modules.customers.infrastructure.persistence.models import CustomerModel  # noqa: F401
-from app.modules.email_accounts.infrastructure.persistence.models import (  # noqa: F401
-    EmailAccountModel,
-    EmailAccountProviderConfigModel,
-    EmailAccountSmtpConfigModel,
-)
+from app.modules.email_accounts.infrastructure.persistence.models import EmailAccountModel, EmailAccountProviderConfigModel, EmailAccountSmtpConfigModel  # noqa: F401
 from app.modules.smtp.infrastructure.persistence.models import SmtpAccountModel  # noqa: F401
 from app.modules.todos.infrastructure.persistence.models import TodoModel  # noqa: F401
-from app.modules.quote_templates.infrastructure.models import (  # noqa: F401
-    QuoteTemplateModel,
-    QuoteTemplateVersionModel,
-)
-from app.modules.template_contents.infrastructure.models import (  # noqa: F401
-    TemplateContentModel,
-    TemplateContentTagModel,
-)
+from app.modules.quote_templates.infrastructure.models import QuoteTemplateModel, QuoteTemplateVersionModel  # noqa: F401
+from app.modules.template_contents.infrastructure.models import TemplateContentModel, TemplateContentTagModel  # noqa: F401
 from app.modules.quotes.infrastructure.models import QuoteModel  # noqa: F401
+from app.modules.cost_catalog.infrastructure.models import CostCategoryModel, CostProductModel  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:
@@ -41,27 +28,15 @@ config.set_main_option("sqlalchemy.url", settings.database_url)
 
 def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")
-    context.configure(
-        url=url,
-        target_metadata=target_metadata,
-        literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
-    )
-
+    context.configure(url=url, target_metadata=target_metadata, literal_binds=True, dialect_opts={"paramstyle": "named"})
     with context.begin_transaction():
         context.run_migrations()
 
 
 def run_migrations_online() -> None:
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
-
+    connectable = engine_from_config(config.get_section(config.config_ini_section, {}), prefix="sqlalchemy.", poolclass=pool.NullPool)
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
-
         with context.begin_transaction():
             ensure_alembic_version_column_width(connection)
             context.run_migrations()

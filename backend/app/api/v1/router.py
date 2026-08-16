@@ -15,9 +15,7 @@ from app.modules.participations.api.routes import (
     router as participations_router,
 )
 from app.modules.scraper.api.routes import router as scraper_router
-from app.modules.customers.api.contact_enrichment_routes import (
-    router as customer_contact_enrichment_router,
-)
+from app.modules.customers.api.contact_enrichment_routes import router as customer_contact_enrichment_router
 from app.modules.email_accounts.api.routes import router as email_accounts_router
 from app.modules.mail_templates.api.routes import router as mail_templates_router
 from app.modules.quote_templates.api.routes import router as quote_templates_router
@@ -33,6 +31,7 @@ from app.modules.todos.api.step_routes import router as todo_steps_router
 from app.modules.dashboard.api.routes import router as dashboard_router
 from app.modules.operations.api.routes import router as operations_router
 from app.modules.email_webhooks.api.routes import router as email_webhooks_router
+from app.modules.cost_catalog.api.routes import router as cost_catalog_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
 api_v1_router.include_router(auth_router)
@@ -67,3 +66,4 @@ api_v1_router.include_router(dashboard_router)
 api_v1_router.include_router(follow_ups_router)
 api_v1_router.include_router(operations_router)
 api_v1_router.include_router(email_webhooks_router)
+api_v1_router.include_router(cost_catalog_router)
