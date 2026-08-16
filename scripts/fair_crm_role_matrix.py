@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 AUDIT_READ_PERMISSION: Final = "audit.logs.read"
-ROLE_MATRIX_VERSION: Final = 15
+ROLE_MATRIX_VERSION: Final = 16
 
 ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.customers.create",
@@ -76,7 +76,6 @@ ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.todos.outcomes.create",
     "fair_crm.todos.outcomes.update",
     "fair_crm.todos.outcomes.delete",
-    "fair_crm.dashboard.read",
 )
 
 IDENTITY_ADMIN_PERMISSIONS: tuple[str, ...] = (
