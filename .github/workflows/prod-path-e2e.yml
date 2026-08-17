@@ -55,7 +55,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r backend/requirements.txt
-          pip install -r kyrox-core/backend/requirements.txt
+          pip install -r kyrox-core/requirements.txt
           pip install httpx psycopg2-binary argon2-cffi
 
       - name: Prepare databases
