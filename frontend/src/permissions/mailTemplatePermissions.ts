@@ -4,16 +4,19 @@ export const MAIL_TEMPLATE_PERMISSION_READ = "fair_crm.mail_templates.read";
 export const MAIL_TEMPLATE_PERMISSION_CREATE = "fair_crm.mail_templates.create";
 export const MAIL_TEMPLATE_PERMISSION_UPDATE = "fair_crm.mail_templates.update";
 export const MAIL_TEMPLATE_PERMISSION_DELETE = "fair_crm.mail_templates.delete";
-export const MAIL_TEMPLATE_PERMISSION_RENDER = "fair_crm.mail_templates.render";
-export const MAIL_TEMPLATE_PERMISSION_TEST_SEND = "fair_crm.mail_templates.test_send";
+export const MAIL_TEMPLATE_PERMISSION_EXECUTE = "fair_crm.mail_templates.execute";
+
+// Render and test-send are separate UI actions sharing one canonical execution
+// authorization boundary in Core.
+export const MAIL_TEMPLATE_PERMISSION_RENDER = MAIL_TEMPLATE_PERMISSION_EXECUTE;
+export const MAIL_TEMPLATE_PERMISSION_TEST_SEND = MAIL_TEMPLATE_PERMISSION_EXECUTE;
 
 export const MAIL_TEMPLATE_PERMISSIONS_ALL = [
   MAIL_TEMPLATE_PERMISSION_READ,
   MAIL_TEMPLATE_PERMISSION_CREATE,
   MAIL_TEMPLATE_PERMISSION_UPDATE,
   MAIL_TEMPLATE_PERMISSION_DELETE,
-  MAIL_TEMPLATE_PERMISSION_RENDER,
-  MAIL_TEMPLATE_PERMISSION_TEST_SEND,
+  MAIL_TEMPLATE_PERMISSION_EXECUTE,
 ] as const;
 
 export type MailTemplatePermissionAction =
@@ -29,8 +32,8 @@ const ACTION_TO_PERMISSION: Record<MailTemplatePermissionAction, string> = {
   create: MAIL_TEMPLATE_PERMISSION_CREATE,
   update: MAIL_TEMPLATE_PERMISSION_UPDATE,
   delete: MAIL_TEMPLATE_PERMISSION_DELETE,
-  render: MAIL_TEMPLATE_PERMISSION_RENDER,
-  test_send: MAIL_TEMPLATE_PERMISSION_TEST_SEND,
+  render: MAIL_TEMPLATE_PERMISSION_EXECUTE,
+  test_send: MAIL_TEMPLATE_PERMISSION_EXECUTE,
 };
 
 export function getGrantedMailTemplatePermissions(): Set<string> {
