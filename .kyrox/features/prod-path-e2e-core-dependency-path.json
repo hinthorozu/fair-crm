@@ -9,11 +9,12 @@
   "tenant_scope": "system",
   "user_facing": false,
   "affected_paths": [
-    ".github/workflows/prod-path-e2e.yml"
+    ".github/workflows/prod-path-e2e.yml",
+    "scripts/e2e_validation.py"
   ],
   "permissions": {
     "required": false,
-    "reason": "This change only repairs CI dependency installation and does not alter runtime authorization.",
+    "reason": "This maintenance change does not alter runtime permission definitions or grants; it makes CI authorization verification reflect the existing organization/system scope model.",
     "items": []
   },
   "frontend": {
@@ -26,10 +27,10 @@
   "applicability": {
     "database": { "status": "na", "reason": "No database model changes are made." },
     "migration": { "status": "na", "reason": "No migration changes are made." },
-    "permissions": { "status": "na", "reason": "No permission definitions change." },
-    "backend": { "status": "na", "reason": "Application backend code is unchanged." },
+    "permissions": { "status": "na", "reason": "No permission definitions or grants change; E2E only validates the existing scope contract correctly." },
+    "backend": { "status": "na", "reason": "Application backend behavior is unchanged; only CI/runtime validation tooling changes." },
     "api": { "status": "na", "reason": "No API contract changes are made." },
-    "tenant_isolation": { "status": "na", "reason": "Tenant behavior is unchanged." },
+    "tenant_isolation": { "status": "na", "reason": "Tenant behavior is unchanged; the E2E gate verifies it." },
     "audit": { "status": "na", "reason": "Audit behavior is unchanged." },
     "frontend": { "status": "na", "reason": "Frontend is unchanged." },
     "ui_permissions": { "status": "na", "reason": "UI authorization is unchanged." },
@@ -37,11 +38,11 @@
     "route_guard": { "status": "na", "reason": "Routes are unchanged." },
     "forms": { "status": "na", "reason": "Forms are unchanged." },
     "visual_qa": { "status": "na", "reason": "No visual change exists." },
-    "backend_tests": { "status": "na", "reason": "The application test suite is unchanged; the CI E2E workflow itself is the verification target." },
+    "backend_tests": { "status": "na", "reason": "The application test suite is unchanged; the prod-path E2E validator itself is the verification target." },
     "frontend_tests": { "status": "na", "reason": "Frontend is unchanged." },
     "runtime_authorization": { "status": "required" },
     "runtime_verification": { "status": "required" },
-    "deployment": { "status": "na", "reason": "CI workflow changes require no application deployment." }
+    "deployment": { "status": "na", "reason": "CI workflow and validation-tool changes require no application deployment." }
   },
-  "notes": "Prod-Path E2E checks out kyrox-core at repository root; Core dependencies are declared in kyrox-core/requirements.txt, not kyrox-core/backend/requirements.txt."
+  "notes": "Repairs the Core dependency path and database selection, uses masked ephemeral CI credentials with one shared JWT secret for Core and Fair CRM, and makes OrganizationAdmin verification scope-aware so system permissions remain forbidden to organization roles."
 }
