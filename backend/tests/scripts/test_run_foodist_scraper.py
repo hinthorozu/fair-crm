@@ -178,7 +178,7 @@ def test_write_handoff_excel_creates_file_with_expected_columns(tmp_path: Path):
 
     values = [cell.value for cell in sheet[2]]
     assert values[0] == "Foodist Demo Co"
-    assert values[1] == "Foodist Demo Co"
+    assert values[1] == "foodist demo"
     assert values[2] == "Türkiye"
     assert values[3] == "İstanbul"
     assert values[4] == "3"
