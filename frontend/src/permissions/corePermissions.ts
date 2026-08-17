@@ -116,9 +116,8 @@ export function hasGrantedCorePermission(
   granted: GrantedPermissionCollection,
   permissionCode: string,
 ): boolean {
-  return granted instanceof Set
-    ? granted.has(permissionCode)
-    : granted.includes(permissionCode);
+  if (Array.isArray(granted)) return granted.includes(permissionCode);
+  return (granted as ReadonlySet<string>).has(permissionCode);
 }
 
 export function hasAnyGrantedCorePermission(
