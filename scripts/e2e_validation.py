@@ -508,11 +508,15 @@ def verify_organization_admin_permission_count() -> tuple[bool, str]:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT COUNT(*) FROM identity_permissions
-                WHERE lifecycle_state = 'active' AND code LIKE 'fair_crm.%'
+                SELECT COUNT(*)
+                FROM identity_permissions
+                WHERE lifecycle_state = 'active'
+                  AND permission_scope = 'organization'
+                  AND code LIKE 'fair_crm.%'
                 """
             )
-            active_count = int(cur.fetchone()[0])
+            expected_org_count = int(cur.fetchone()[0])
+
             cur.execute(
                 """
                 SELECT COUNT(*)
@@ -523,13 +527,42 @@ def verify_organization_admin_permission_count() -> tuple[bool, str]:
                   AND r.scope = 'organization'
                   AND r.deleted_at IS NULL
                   AND p.lifecycle_state = 'active'
+                  AND p.permission_scope = 'organization'
                   AND p.code LIKE 'fair_crm.%'
                 """
             )
-            count = int(cur.fetchone()[0])
-            if count != active_count:
-                return False, f"OrganizationAdmin has {count}/{active_count} active fair_crm mappings"
-            return True, f"OrganizationAdmin active fair_crm mappings={count}"
+            org_count = int(cur.fetchone()[0])
+
+            cur.execute(
+                """
+                SELECT COUNT(*)
+                FROM identity_role_permissions rp
+                JOIN identity_permissions p ON p.id = rp.permission_id
+                JOIN identity_roles r ON r.id = rp.role_id
+                WHERE r.slug = 'organization_admin'
+                  AND r.scope = 'organization'
+                  AND r.deleted_at IS NULL
+                  AND p.lifecycle_state = 'active'
+                  AND p.permission_scope = 'system'
+                  AND p.code LIKE 'fair_crm.%'
+                """
+            )
+            system_count = int(cur.fetchone()[0])
+
+            if org_count != expected_org_count:
+                return False, (
+                    f"OrganizationAdmin has {org_count}/{expected_org_count} "
+                    "active organization-scope fair_crm mappings"
+                )
+            if system_count:
+                return False, (
+                    f"OrganizationAdmin has {system_count} forbidden "
+                    "system-scope fair_crm mapping(s)"
+                )
+            return True, (
+                f"OrganizationAdmin organization-scope fair_crm mappings={org_count}; "
+                "system-scope mappings=0"
+            )
     finally:
         conn.close()
 
