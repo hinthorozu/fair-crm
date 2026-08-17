@@ -10,6 +10,7 @@ type ResourceCopy = {
 };
 
 const RESOURCES: Record<string, ResourceCopy> = {
+  "identity.organizations": { title: "Organizasyon", object: "organizasyonları", singular: "organizasyon" },
   "identity.users": { title: "Kullanıcı", object: "organizasyon kullanıcılarını", singular: "organizasyon kullanıcısı" },
   "identity.roles": { title: "Rol", object: "organizasyon rollerini", singular: "organizasyon rolü" },
   "identity.role_templates": { title: "Rol şablonu", object: "rol şablonlarını", singular: "rol şablonu" },
@@ -18,6 +19,8 @@ const RESOURCES: Record<string, ResourceCopy> = {
   "fair_crm.admin.backups": { title: "Veritabanı yedeği", object: "veritabanı yedeklerini", singular: "veritabanı yedeği" },
   "fair_crm.admin.data_operations": { title: "Veri işlemi", object: "veri işlemlerini", singular: "veri işlemi" },
   "fair_crm.contacts": { title: "İletişim kişisi", object: "iletişim kişilerini", singular: "iletişim kişisi" },
+  "fair_crm.cost_catalog.categories": { title: "Maliyet kategorisi", object: "maliyet kategorilerini", singular: "maliyet kategorisi" },
+  "fair_crm.cost_catalog.products": { title: "Maliyet ürünü", object: "maliyet ürünlerini", singular: "maliyet ürünü" },
   "fair_crm.customers": { title: "Müşteri", object: "müşterileri", singular: "müşteri" },
   "fair_crm.dashboard": { title: "Gösterge paneli", object: "gösterge panelini", singular: "gösterge paneli" },
   "fair_crm.email_accounts": { title: "E-posta hesabı", object: "e-posta hesaplarını", singular: "e-posta hesabı" },
