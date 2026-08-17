@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "id": "backend-debt-customer-email-validation",
+  "title": "Backend Debt Customer Email Validation Repair",
+  "feature_type": "maintenance",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": false,
+  "affected_paths": [
+    "backend/app/modules/customers/application/communication_parsing.py",
+    "backend/tests/modules/customers/test_communication_parsing.py",
+    "backend/tests/modules/customers/test_customers_api.py",
+    ".kyrox/backend-test-baseline.json"
+  ],
+  "permissions": {
+    "required": false,
+    "reason": "Existing customer create/update permissions are unchanged; this repair only restores validation semantics.",
+    "items": []
+  },
+  "frontend": {
+    "required": false,
+    "reason": "No frontend route, menu, component or browser behavior changes are introduced.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistent data model changes are made." },
+    "migration": { "status": "na", "reason": "No schema or permission catalog changes are made." },
+    "permissions": { "status": "na", "reason": "Existing customer permissions are unchanged." },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "na", "reason": "Validation fails before mutation; no audit behavior changes." },
+    "frontend": { "status": "na", "reason": "No frontend implementation changes are made." },
+    "ui_permissions": { "status": "na", "reason": "No UI authorization behavior changes are made." },
+    "menu": { "status": "na", "reason": "No navigation changes are made." },
+    "route_guard": { "status": "na", "reason": "No frontend route changes are made." },
+    "forms": { "status": "na", "reason": "No form implementation changes are made." },
+    "visual_qa": { "status": "na", "reason": "No rendered UI changes are made." },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "na", "reason": "No frontend executable behavior changes are made." },
+    "runtime_authorization": { "status": "na", "reason": "Authorization boundaries and permission codes are unchanged." },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Customer-entered email values must use strict validation. Invalid candidates must raise InvalidCustomerEmailError instead of being silently dropped by import/scrape-style sanitization."
+}
