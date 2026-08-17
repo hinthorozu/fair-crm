@@ -1,0 +1,69 @@
+name: Development Standard Gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".kyrox/**"
+      - "scripts/validate_feature_contracts.py"
+      - ".github/workflows/development-standard.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".kyrox/**"
+      - "scripts/validate_feature_contracts.py"
+      - ".github/workflows/development-standard.yml"
+
+jobs:
+  feature-contract:
+    name: Feature Contract / Applicability
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate schema JSON
+        run: python -m json.tool .kyrox/feature-contract.schema.json > /dev/null
+
+      - name: Resolve comparison base
+        id: base
+        shell: bash
+        run: |
+          BASE=""
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            BEFORE="${{ github.event.before }}"
+            if [[ -n "$BEFORE" && "$BEFORE" != "0000000000000000000000000000000000000000" ]]; then
+              BASE="$BEFORE"
+            elif git rev-parse HEAD^ >/dev/null 2>&1; then
+              BASE="$(git rev-parse HEAD^)"
+            fi
+          fi
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+
+      - name: Development standard gate
+        shell: bash
+        run: |
+          BASE="${{ steps.base.outputs.base }}"
+          if [[ -n "$BASE" ]]; then
+            python scripts/validate_feature_contracts.py --base "$BASE" --head "$GITHUB_SHA"
+          else
+            python scripts/validate_feature_contracts.py --contracts-only
+          fi
