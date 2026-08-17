@@ -8,6 +8,7 @@ import {
   updateOrganization,
   type Organization,
 } from "../api/organizations";
+import { useAuth } from "../auth/AuthContext";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
 import { FormField, FormModal, TextInput, runAfterSuccessfulFormSubmit } from "../components/ui/form";
@@ -20,7 +21,7 @@ import {
 } from "../components/ui/UniversalDataTable";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 import { organizationLabels } from "../labels/organizationLabels";
-import { getGrantedCorePermissions } from "../permissions/corePermissions";
+import { hasGrantedCorePermission } from "../permissions/corePermissions";
 import {
   PERMISSION_ORGANIZATIONS_SYSTEM,
   PERMISSION_ORGANIZATIONS_UPDATE,
@@ -82,6 +83,7 @@ function OrganizationForm({ initialName, saving, error, onCancel, onSubmit }: Or
 }
 
 export function OrganizationsPage() {
+  const { session } = useAuth();
   const [items, setItems] = React.useState<Organization[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
@@ -90,10 +92,16 @@ export function OrganizationsPage() {
   const [saving, setSaving] = React.useState(false);
   const [deleting, setDeleting] = React.useState<Organization | null>(null);
   const [deleteBusy, setDeleteBusy] = React.useState(false);
-  const grantedPermissions = getGrantedCorePermissions();
-  const canCreateOrganizations = grantedPermissions.has(PERMISSION_ORGANIZATIONS_SYSTEM);
-  const canUpdateOrganizations = grantedPermissions.has(PERMISSION_ORGANIZATIONS_UPDATE);
-  const canDeleteOrganizations = grantedPermissions.has(PERMISSION_ORGANIZATIONS_SYSTEM);
+  const grantedPermissions = session?.permissions ?? [];
+  const canCreateOrganizations = session?.isSuperAdmin === true;
+  const canUpdateOrganizations = hasGrantedCorePermission(
+    grantedPermissions,
+    PERMISSION_ORGANIZATIONS_UPDATE,
+  );
+  const canDeleteOrganizations = hasGrantedCorePermission(
+    grantedPermissions,
+    PERMISSION_ORGANIZATIONS_SYSTEM,
+  );
 
   const load = React.useCallback(async () => {
     setLoading(true);
