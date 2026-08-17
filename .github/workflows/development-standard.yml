@@ -260,7 +260,19 @@ jobs:
 
       - name: Run backend quality check
         if: steps.scope.outputs.run == 'true'
-        run: python scripts/quality_check.py
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/quality_check.py 2>&1 | tee backend-quality.log
+
+      - name: Upload backend quality diagnostics
+        if: always() && steps.scope.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-quality-${{ github.run_id }}
+          path: backend-quality.log
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Report backend N/A
         if: steps.scope.outputs.run != 'true'
