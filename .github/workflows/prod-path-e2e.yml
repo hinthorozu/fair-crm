@@ -63,14 +63,14 @@ jobs:
           PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE kyrox_core;"
           PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE fair_crm;"
           cd kyrox-core
-          PYTHONPATH=backend python -m alembic -c alembic.ini upgrade head
+          DATABASE_URL="$KYROX_CORE_DATABASE_URL" PYTHONPATH=backend python -m alembic -c alembic.ini upgrade head
           cd ..
           PYTHONPATH=backend python -m alembic -c alembic.ini upgrade head
 
       - name: Start KYROX Core
         working-directory: kyrox-core/backend
         run: |
-          nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 > /tmp/core.log 2>&1 &
+          DATABASE_URL="$KYROX_CORE_DATABASE_URL" nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 > /tmp/core.log 2>&1 &
           for i in $(seq 1 30); do
             curl -sf http://127.0.0.1:8000/api/v1/health && break
             sleep 2
