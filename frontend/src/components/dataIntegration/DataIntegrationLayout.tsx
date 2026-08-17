@@ -1,10 +1,13 @@
 import React from "react";
+import { useAuth } from "../../auth/AuthContext";
+import { config } from "../../config";
 import { dataIntegrationLabels, DISABLED_NAV_ITEMS } from "../../labels/dataIntegrationLabels";
+import { uiLabels } from "../../labels/uiLabels";
+import { canAccessDataIntegrationSection } from "../../permissions/navigationPermissions";
 import { usePersistedCollapsed } from "../../hooks/usePersistedCollapsed";
 import { SidebarCollapseButton } from "../layout/SidebarCollapseButton";
 import { DataIntegrationNavIcon, NavIconComingSoon } from "../layout/NavIcons";
 import { NavLink } from "../layout/NavLink";
-import { uiLabels } from "../../labels/uiLabels";
 
 interface DataIntegrationLayoutProps {
   children: React.ReactNode;
@@ -21,8 +24,11 @@ export function DataIntegrationLayout({
   onNavigate,
   onDisabledClick,
 }: DataIntegrationLayoutProps) {
+  const { session } = useAuth();
   const { collapsed: subnavCollapsed, toggleCollapsed: toggleSubnavCollapsed } =
     usePersistedCollapsed(DI_SUBNAV_STORAGE_KEY);
+  const grantedPermissions = session?.permissions ?? [];
+  const bypass = config.devBypassEnabled;
 
   const primaryItems = [
     { id: "imports", label: dataIntegrationLabels.navImports, path: "/data-integration/imports" },
@@ -32,30 +38,30 @@ export function DataIntegrationLayout({
     { id: "adapters", label: dataIntegrationLabels.navAdapters, path: "/data-integration/adapters" },
     { id: "run-history", label: dataIntegrationLabels.navRunHistory, path: "/data-integration/run-history" },
     { id: "scraper-test", label: dataIntegrationLabels.navScraperTest, path: "/data-integration/scraper-test" },
-  ];
+  ].filter((item) => canAccessDataIntegrationSection(item.id, grantedPermissions, bypass));
 
   return (
     <div className={`data-integration-layout ${subnavCollapsed ? "di-layout-collapsed" : ""}`}>
       <aside
-        className={`di-subnav ${subnavCollapsed ? "di-subnav--collapsed" : ""}`}
+        className={`admin-subnav ${subnavCollapsed ? "admin-subnav--collapsed" : ""}`}
         aria-label={dataIntegrationLabels.moduleTitle}
         aria-expanded={!subnavCollapsed}
       >
-        <div className="di-subnav-header">
-          {!subnavCollapsed && <h2 className="di-subnav-title">{dataIntegrationLabels.moduleTitle}</h2>}
+        <div className="admin-subnav-header">
+          {!subnavCollapsed ? <div><p className="admin-subnav-group">{dataIntegrationLabels.moduleTitle}</p></div> : null}
           <SidebarCollapseButton
             collapsed={subnavCollapsed}
             onToggle={toggleSubnavCollapsed}
-            className="di-subnav-collapse-btn"
+            className="admin-subnav-collapse-btn"
             expandLabel={uiLabels.diSubnavExpand}
             collapseLabel={uiLabels.diSubnavCollapse}
           />
         </div>
-        <nav className="di-subnav-links" aria-label={dataIntegrationLabels.moduleTitle}>
+        <nav className="admin-subnav-links" aria-label={dataIntegrationLabels.moduleTitle}>
           {primaryItems.map((item) => (
             <NavLink
               key={item.id}
-              variant="di"
+              variant="admin"
               href={item.path}
               label={item.label}
               icon={<DataIntegrationNavIcon id={item.id} />}
@@ -64,17 +70,17 @@ export function DataIntegrationLayout({
               onClick={(e) => onNavigate(item.path, e)}
             />
           ))}
-          {DISABLED_NAV_ITEMS.map((item) => (
+          {primaryItems.length > 0 ? DISABLED_NAV_ITEMS.map((item) => (
             <NavLink
               key={item.id}
-              variant="di"
+              variant="admin"
               label={item.label}
               icon={<NavIconComingSoon />}
               disabled
               collapsed={subnavCollapsed}
               onClick={onDisabledClick}
             />
-          ))}
+          )) : null}
         </nav>
       </aside>
       <div className="di-content">{children}</div>
