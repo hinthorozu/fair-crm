@@ -3,10 +3,10 @@
   "policy": "zero_new_failures",
   "target_failure_count": 0,
   "source": {
-    "workflow_run_id": 32039794097,
-    "commit": "19a7318c7e85690043d2e520fc7342e7b81ba17b",
-    "passed": 1666,
-    "failed": 16
+    "workflow_run_id": 32041098201,
+    "commit": "e0ed11aba3d5aa573f369a652f2340bb62b8a10c",
+    "passed": 1667,
+    "failed": 15
   },
   "known_failures": [
     "tests/core/test_config.py::test_database_url_prefers_fair_crm_env_file_when_shell_points_at_core",
@@ -20,7 +20,6 @@
     "tests/modules/scraper/test_playwright_availability.py::test_is_playwright_browser_installed_true_when_env_invalid_but_default_has_chromium",
     "tests/modules/scraper/test_playwright_availability.py::test_build_chromium_launch_options_uses_shell_when_env_invalid",
     "tests/modules/scraper/test_tuyap_new_adapter_detail.py::test_scrape_detail_true_merges_detail_fields",
-    "tests/modules/smtp/test_smtp_config_validation.py::test_send_test_smtp_mail_maps_ssl_wrong_version_error",
     "tests/modules/smtp/test_smtp_timeout_operations.py::test_fair_bulk_timeout_fails_single_outbox_and_continues_batch",
     "tests/modules/system_admin/test_admin_backups_api.py::test_restore_job_can_be_started_from_api",
     "tests/shared/test_database_backup_restore.py::test_pg_restore_local_is_atomic",
