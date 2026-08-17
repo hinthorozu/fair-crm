@@ -1,6 +1,7 @@
 import { refreshAccessToken } from "../api/auth";
 import { config } from "../config";
 import { fetchGrantedCorePermissions } from "../permissions/corePermissions";
+import { resolveSessionOrganizationId } from "./organizationResolver";
 import {
   clearSession,
   notifySessionExpired,
@@ -13,7 +14,17 @@ let inflightRefresh: Promise<string | null> | null = null;
 
 async function applyAccessToken(accessToken: string, expiresIn: number): Promise<void> {
   const current = readSession();
-  const organizationId = current?.organizationId ?? config.organizationId;
+  let organizationId = current?.organizationId ?? config.organizationId;
+  try {
+    organizationId = await resolveSessionOrganizationId(
+      config.coreBaseUrl,
+      accessToken,
+      organizationId,
+    );
+  } catch {
+    // Keep the previous organization only as a fail-closed fallback.
+  }
+
   let permissions: string[] = [];
   try {
     permissions = await fetchGrantedCorePermissions(
