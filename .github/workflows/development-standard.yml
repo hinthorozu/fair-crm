@@ -13,6 +13,7 @@ on:
       - "scripts/validate_feature_contracts.py"
       - "scripts/new_feature_contract.py"
       - "scripts/quality_check.py"
+      - "scripts/maintenance/inventory_frontend_ui.py"
       - ".github/workflows/development-standard.yml"
   push:
     branches:
@@ -25,6 +26,7 @@ on:
       - "scripts/validate_feature_contracts.py"
       - "scripts/new_feature_contract.py"
       - "scripts/quality_check.py"
+      - "scripts/maintenance/inventory_frontend_ui.py"
       - ".github/workflows/development-standard.yml"
 
 jobs:
@@ -98,3 +100,130 @@ jobs:
           else
             python scripts/validate_feature_contracts.py --contracts-only
           fi
+
+  frontend-quality:
+    name: Frontend Tests / Build / UI Governance
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect frontend applicability
+        id: scope
+        shell: bash
+        run: |
+          RUN_FRONTEND=false
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            RUN_FRONTEND=true
+          else
+            BASE=""
+            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              BASE="${{ github.event.pull_request.base.sha }}"
+            elif [[ "${{ github.event_name }}" == "push" ]]; then
+              BASE="${{ github.event.before }}"
+            fi
+            if [[ -n "$BASE" && "$BASE" != "0000000000000000000000000000000000000000" ]]; then
+              if ! git diff --quiet "$BASE...$GITHUB_SHA" -- frontend scripts/maintenance/inventory_frontend_ui.py; then
+                RUN_FRONTEND=true
+              fi
+            else
+              RUN_FRONTEND=true
+            fi
+          fi
+          echo "run=$RUN_FRONTEND" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node
+        if: steps.scope.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        if: steps.scope.outputs.run == 'true'
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend tests
+        if: steps.scope.outputs.run == 'true'
+        working-directory: frontend
+        run: npm test
+
+      - name: Build frontend
+        if: steps.scope.outputs.run == 'true'
+        working-directory: frontend
+        run: npm run build
+
+      - name: Set up Python for UI governance
+        if: steps.scope.outputs.run == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run UI governance gate
+        if: steps.scope.outputs.run == 'true'
+        run: python scripts/maintenance/inventory_frontend_ui.py --gate ALL
+
+      - name: Report frontend N/A
+        if: steps.scope.outputs.run != 'true'
+        run: echo "Frontend quality is N/A for this diff; no frontend/UI files changed."
+
+  backend-quality:
+    name: Backend Quality Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect backend applicability
+        id: scope
+        shell: bash
+        run: |
+          RUN_BACKEND=false
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            RUN_BACKEND=true
+          else
+            BASE=""
+            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              BASE="${{ github.event.pull_request.base.sha }}"
+            elif [[ "${{ github.event_name }}" == "push" ]]; then
+              BASE="${{ github.event.before }}"
+            fi
+            if [[ -n "$BASE" && "$BASE" != "0000000000000000000000000000000000000000" ]]; then
+              if ! git diff --quiet "$BASE...$GITHUB_SHA" -- backend scripts/quality_check.py; then
+                RUN_BACKEND=true
+              fi
+            else
+              RUN_BACKEND=true
+            fi
+          fi
+          echo "run=$RUN_BACKEND" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        if: steps.scope.outputs.run == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        if: steps.scope.outputs.run == 'true'
+        run: python -m pip install -r backend/requirements.txt
+
+      - name: Run backend quality check
+        if: steps.scope.outputs.run == 'true'
+        run: python scripts/quality_check.py
+
+      - name: Report backend N/A
+        if: steps.scope.outputs.run != 'true'
+        run: echo "Backend quality is N/A for this diff; no backend files changed."
