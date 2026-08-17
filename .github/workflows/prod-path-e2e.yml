@@ -52,6 +52,17 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Generate CI auth credentials
+        run: |
+          jwt_secret="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+          dev_password="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+          echo "::add-mask::$jwt_secret"
+          echo "::add-mask::$dev_password"
+          {
+            echo "JWT_SECRET_KEY=$jwt_secret"
+            echo "DEV_USER_PASSWORD=$dev_password"
+          } >> "$GITHUB_ENV"
+
       - name: Install dependencies
         run: |
           pip install -r backend/requirements.txt
@@ -90,7 +101,6 @@ jobs:
       - name: Prod-path E2E gate
         env:
           KYROX_CORE_ROOT: ${{ github.workspace }}/kyrox-core
-          DEV_USER_PASSWORD: Kyrox-CI-${{ github.run_id }}-${{ github.run_attempt }}-Only
         run: python scripts/e2e_validation.py --ci
 
       - name: Upload E2E report
