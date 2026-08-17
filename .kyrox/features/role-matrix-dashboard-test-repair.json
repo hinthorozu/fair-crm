@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "id": "role-matrix-dashboard-test-repair",
+  "title": "Role Matrix Dashboard Test Repair",
+  "feature_type": "maintenance",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "none",
+  "tenant_scope": "none",
+  "user_facing": false,
+  "affected_paths": [
+    "backend/tests/modules/test_role_matrix_authorization.py"
+  ],
+  "permissions": {
+    "required": false,
+    "reason": "This repair removes a stale test-only Dashboard RBAC expectation and introduces no permission.",
+    "items": []
+  },
+  "frontend": {
+    "required": false,
+    "reason": "This maintenance change has no user-facing route, page, menu or browser action.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistent data model changes are made." },
+    "migration": { "status": "na", "reason": "No schema or permission catalog changes are made." },
+    "permissions": { "status": "na", "reason": "The repair removes a stale permission expectation rather than introducing authorization." },
+    "backend": { "status": "na", "reason": "Production backend behavior is intentionally unchanged." },
+    "api": { "status": "na", "reason": "No API route or response contract changes are made." },
+    "tenant_isolation": { "status": "na", "reason": "No production data query or tenant behavior changes are made." },
+    "audit": { "status": "na", "reason": "No business mutation or side effect is introduced." },
+    "frontend": { "status": "na", "reason": "No frontend code changes are part of this maintenance repair." },
+    "ui_permissions": { "status": "na", "reason": "No user-facing UI authorization path changes are made." },
+    "menu": { "status": "na", "reason": "No navigation item changes are made." },
+    "route_guard": { "status": "na", "reason": "No frontend route guard changes are made." },
+    "forms": { "status": "na", "reason": "No form behavior changes are made." },
+    "visual_qa": { "status": "na", "reason": "No rendered UI changes are made." },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "na", "reason": "No frontend executable behavior changes are made." },
+    "runtime_authorization": { "status": "na", "reason": "No production authorization boundary changes in this test maintenance task." },
+    "runtime_verification": { "status": "na", "reason": "Production runtime behavior is unchanged; backend test execution is the acceptance evidence." },
+    "deployment": { "status": "na", "reason": "Only test code changes; no runtime artifact requires deployment." }
+  },
+  "notes": "Dashboard access is organization-access based and has dedicated API coverage. Role-matrix tests cover permission-protected modules only."
+}
