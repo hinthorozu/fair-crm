@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import compileall
+import json
 import subprocess
 import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 BACKEND_ROOT = PROJECT_ROOT / "backend"
+FEATURE_CONTRACT_SCHEMA = PROJECT_ROOT / ".kyrox" / "feature-contract.schema.json"
 
 
 def run_step(name: str, command: list[str], cwd: Path) -> bool:
@@ -20,10 +22,30 @@ def run_step(name: str, command: list[str], cwd: Path) -> bool:
     return ok
 
 
+def validate_feature_contract_schema() -> bool:
+    print("\n== feature contract schema ==")
+    try:
+        with FEATURE_CONTRACT_SCHEMA.open("r", encoding="utf-8") as handle:
+            schema = json.load(handle)
+        if not isinstance(schema, dict):
+            raise ValueError("schema root must be a JSON object")
+        if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+            raise ValueError("unexpected or missing JSON Schema draft")
+    except Exception as exc:
+        print(f"FAIL: feature contract schema — {exc}")
+        return False
+
+    print("PASS: feature contract schema")
+    return True
+
+
 def main() -> int:
     print(f"Fair CRM quality check — {PROJECT_ROOT}")
 
     steps_ok = True
+
+    if not validate_feature_contract_schema():
+        steps_ok = False
 
     if not run_step(
         "development standard / feature contracts",
