@@ -3,15 +3,13 @@
   "policy": "zero_new_failures",
   "target_failure_count": 0,
   "source": {
-    "workflow_run_id": 32026088213,
-    "commit": "65ac6d3b1b9f1a5a0d6725e7a3199798b726bc42",
-    "passed": 1663,
-    "failed": 19
+    "workflow_run_id": 32034625057,
+    "commit": "2b195d3da180f44abff93a62922a07f4337c4a78",
+    "passed": 1665,
+    "failed": 17
   },
   "known_failures": [
     "tests/core/test_config.py::test_database_url_prefers_fair_crm_env_file_when_shell_points_at_core",
-    "tests/modules/customers/test_communication_parsing.py::test_emails_from_inputs_rejects_invalid_email",
-    "tests/modules/customers/test_customers_api.py::test_customer_invalid_multi_email_rejected",
     "tests/modules/fair_emails/test_fair_bulk_email_consent.py::test_bulk_send_excludes_contact_consent_from_mso",
     "tests/modules/fair_emails/test_fair_email_batch_logs_api.py::test_list_email_batches_denied_without_preview_permission",
     "tests/modules/fair_emails/test_process_fair_email_batch.py::test_send_then_background_processor_updates_outbox",
