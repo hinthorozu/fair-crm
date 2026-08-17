@@ -13,6 +13,7 @@ import {
   SESSION_UPDATED_EVENT,
   type AuthSession,
 } from "./session";
+import { resolveSessionSuperAdmin } from "./superAdminResolver";
 
 interface AuthContextValue {
   session: AuthSession | null;
@@ -36,15 +37,23 @@ async function withCorePermissions(session: AuthSession): Promise<AuthSession> {
     // below will still fail closed when that organization is not valid.
   }
 
+  let isSuperAdmin = false;
+  try {
+    isSuperAdmin = await resolveSessionSuperAdmin(config.coreBaseUrl, session.accessToken);
+  } catch {
+    // Platform identity resolution fails closed.
+    isSuperAdmin = false;
+  }
+
   try {
     const permissions = await fetchGrantedCorePermissions(
       config.coreBaseUrl,
       session.accessToken,
       organizationId,
     );
-    return { ...session, organizationId, permissions };
+    return { ...session, organizationId, permissions, isSuperAdmin };
   } catch {
-    return { ...session, organizationId, permissions: [] };
+    return { ...session, organizationId, permissions: [], isSuperAdmin };
   }
 }
 
