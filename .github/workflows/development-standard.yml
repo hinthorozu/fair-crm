@@ -12,6 +12,7 @@ on:
       - ".cursor/**"
       - "scripts/validate_feature_contracts.py"
       - "scripts/new_feature_contract.py"
+      - "scripts/backend_test_baseline.py"
       - "scripts/quality_check.py"
       - "scripts/maintenance/inventory_frontend_ui.py"
       - "scripts/maintenance/compare_frontend_ui_inventory.py"
@@ -26,6 +27,7 @@ on:
       - ".cursor/**"
       - "scripts/validate_feature_contracts.py"
       - "scripts/new_feature_contract.py"
+      - "scripts/backend_test_baseline.py"
       - "scripts/quality_check.py"
       - "scripts/maintenance/inventory_frontend_ui.py"
       - "scripts/maintenance/compare_frontend_ui_inventory.py"
@@ -238,13 +240,19 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             RUN_BACKEND=true
           elif [[ -n "$BASE" ]]; then
-            if ! git diff --quiet "$BASE...$GITHUB_SHA" -- backend scripts/quality_check.py .github/workflows/development-standard.yml; then
+            if ! git diff --quiet "$BASE...$GITHUB_SHA" -- \
+              backend \
+              .kyrox/backend-test-baseline.json \
+              scripts/backend_test_baseline.py \
+              scripts/quality_check.py \
+              .github/workflows/development-standard.yml; then
               RUN_BACKEND=true
             fi
           else
             RUN_BACKEND=true
           fi
           echo "run=$RUN_BACKEND" >> "$GITHUB_OUTPUT"
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
 
       - name: Set up Python
         if: steps.scope.outputs.run == 'true'
@@ -253,6 +261,17 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: backend/requirements.txt
+
+      - name: Enforce monotonic backend test baseline
+        if: steps.scope.outputs.run == 'true'
+        shell: bash
+        run: |
+          BASE="${{ steps.scope.outputs.base }}"
+          if [[ -n "$BASE" ]]; then
+            python scripts/backend_test_baseline.py --base "$BASE"
+          else
+            python scripts/backend_test_baseline.py
+          fi
 
       - name: Install backend dependencies
         if: steps.scope.outputs.run == 'true'
