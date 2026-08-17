@@ -127,7 +127,7 @@ jobs:
               BASE="${{ github.event.before }}"
             fi
             if [[ -n "$BASE" && "$BASE" != "0000000000000000000000000000000000000000" ]]; then
-              if ! git diff --quiet "$BASE...$GITHUB_SHA" -- frontend scripts/maintenance/inventory_frontend_ui.py; then
+              if ! git diff --quiet "$BASE...$GITHUB_SHA" -- frontend scripts/maintenance/inventory_frontend_ui.py .github/workflows/development-standard.yml; then
                 RUN_FRONTEND=true
               fi
             else
@@ -199,7 +199,7 @@ jobs:
               BASE="${{ github.event.before }}"
             fi
             if [[ -n "$BASE" && "$BASE" != "0000000000000000000000000000000000000000" ]]; then
-              if ! git diff --quiet "$BASE...$GITHUB_SHA" -- backend scripts/quality_check.py; then
+              if ! git diff --quiet "$BASE...$GITHUB_SHA" -- backend scripts/quality_check.py .github/workflows/development-standard.yml; then
                 RUN_BACKEND=true
               fi
             else
