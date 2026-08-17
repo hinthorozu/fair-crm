@@ -205,8 +205,11 @@ export function canAccessApplicationPath(
     return hasGrantedCorePermission(granted, PERMISSION_OPERATIONS_READ);
   }
 
-  if (pathname === "/data-integration" || pathname === "/imports") {
-    return satisfiesPermissionRequirement(granted, MAIN_NAV_REQUIREMENTS["/data-integration"]);
+  if (pathname === "/data-integration") {
+    return hasGrantedCorePermission(granted, PERMISSION_IMPORTS_READ);
+  }
+  if (pathname === "/imports") {
+    return hasGrantedCorePermission(granted, PERMISSION_IMPORTS_CREATE);
   }
   if (
     pathname === "/data-integration/imports/new" ||
@@ -234,7 +237,7 @@ export function canAccessApplicationPath(
   }
 
   if (pathname === "/admin") {
-    return satisfiesPermissionRequirement(granted, MAIN_NAV_REQUIREMENTS["/admin"]);
+    return canAccessAdminSection("backups", granted);
   }
   if (pathname === "/admin/system/organizations") {
     return canAccessAdminSection("organizations", granted);
