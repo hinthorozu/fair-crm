@@ -3,10 +3,10 @@
   "policy": "zero_new_failures",
   "target_failure_count": 0,
   "source": {
-    "workflow_run_id": 32034625057,
-    "commit": "2b195d3da180f44abff93a62922a07f4337c4a78",
-    "passed": 1665,
-    "failed": 17
+    "workflow_run_id": 32039794097,
+    "commit": "19a7318c7e85690043d2e520fc7342e7b81ba17b",
+    "passed": 1666,
+    "failed": 16
   },
   "known_failures": [
     "tests/core/test_config.py::test_database_url_prefers_fair_crm_env_file_when_shell_points_at_core",
@@ -23,7 +23,6 @@
     "tests/modules/smtp/test_smtp_config_validation.py::test_send_test_smtp_mail_maps_ssl_wrong_version_error",
     "tests/modules/smtp/test_smtp_timeout_operations.py::test_fair_bulk_timeout_fails_single_outbox_and_continues_batch",
     "tests/modules/system_admin/test_admin_backups_api.py::test_restore_job_can_be_started_from_api",
-    "tests/scripts/test_run_foodist_scraper.py::test_write_handoff_excel_creates_file_with_expected_columns",
     "tests/shared/test_database_backup_restore.py::test_pg_restore_local_is_atomic",
     "tests/shared/test_database_backup_restore.py::test_pg_restore_docker_is_atomic"
   ]
