@@ -1,4 +1,7 @@
 export const FAIR_CRM_PERMISSION_CODES = [
+  "identity.organizations.read",
+  "identity.organizations.update",
+  "identity.organizations.delete",
   "identity.users.read",
   "identity.users.create",
   "identity.users.update",
@@ -94,6 +97,8 @@ export const FAIR_CRM_PERMISSION_CODES = [
   "fair_crm.todos.outcomes.update",
 ] as const;
 
+export type GrantedPermissionCollection = ReadonlySet<string> | readonly string[];
+
 const grantedPermissions = new Set<string>();
 
 export function replaceGrantedPermissions(permissionCodes: readonly string[]): void {
@@ -105,6 +110,24 @@ export function replaceGrantedPermissions(permissionCodes: readonly string[]): v
 
 export function getGrantedCorePermissions(): Set<string> {
   return grantedPermissions;
+}
+
+export function hasGrantedCorePermission(
+  granted: GrantedPermissionCollection,
+  permissionCode: string,
+): boolean {
+  return granted instanceof Set
+    ? granted.has(permissionCode)
+    : granted.includes(permissionCode);
+}
+
+export function hasAnyGrantedCorePermission(
+  granted: GrantedPermissionCollection,
+  permissionCodes: readonly string[],
+): boolean {
+  return permissionCodes.some((permissionCode) =>
+    hasGrantedCorePermission(granted, permissionCode),
+  );
 }
 
 async function checkCorePermission(
