@@ -9,7 +9,9 @@ on:
       - "backend/**"
       - "frontend/**"
       - ".kyrox/**"
+      - ".cursor/**"
       - "scripts/validate_feature_contracts.py"
+      - "scripts/new_feature_contract.py"
       - ".github/workflows/development-standard.yml"
   push:
     branches:
@@ -18,7 +20,9 @@ on:
       - "backend/**"
       - "frontend/**"
       - ".kyrox/**"
+      - ".cursor/**"
       - "scripts/validate_feature_contracts.py"
+      - "scripts/new_feature_contract.py"
       - ".github/workflows/development-standard.yml"
 
 jobs:
