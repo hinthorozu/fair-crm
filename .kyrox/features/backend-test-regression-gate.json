@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "id": "backend-test-regression-gate",
+  "title": "Backend Test Zero-New-Regression Gate",
+  "feature_type": "maintenance",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "none",
+  "tenant_scope": "none",
+  "user_facing": false,
+  "affected_paths": [
+    ".kyrox/backend-test-baseline.json",
+    "scripts/backend_test_baseline.py",
+    "scripts/quality_check.py",
+    ".github/workflows/development-standard.yml"
+  ],
+  "permissions": {
+    "required": false,
+    "reason": "This maintenance gate validates repository test health and introduces no runtime permission or user authorization behavior.",
+    "items": []
+  },
+  "frontend": {
+    "required": false,
+    "reason": "This maintenance gate has no user-facing route, page, menu, form or browser interaction.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No product database model or persisted business data changes are made." },
+    "migration": { "status": "na", "reason": "No database schema or permission migration is introduced." },
+    "permissions": { "status": "na", "reason": "The gate does not add or modify any runtime permission." },
+    "backend": { "status": "na", "reason": "Production backend executable behavior is intentionally unchanged." },
+    "api": { "status": "na", "reason": "No HTTP endpoint or API contract is changed." },
+    "tenant_isolation": { "status": "na", "reason": "No production tenant-owned query or mutation behavior is changed." },
+    "audit": { "status": "na", "reason": "No business mutation or runtime side effect is introduced." },
+    "frontend": { "status": "na", "reason": "No frontend source or rendered interface behavior is changed." },
+    "ui_permissions": { "status": "na", "reason": "No user-facing UI authorization behavior is changed." },
+    "menu": { "status": "na", "reason": "No navigation entry is added or changed." },
+    "route_guard": { "status": "na", "reason": "No frontend route or route guard is added or changed." },
+    "forms": { "status": "na", "reason": "No user form behavior is involved." },
+    "visual_qa": { "status": "na", "reason": "There is no rendered UI surface to visually verify." },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "na", "reason": "No frontend executable behavior is changed." },
+    "runtime_authorization": { "status": "na", "reason": "No runtime authentication or authorization boundary is changed." },
+    "runtime_verification": { "status": "na", "reason": "Repository CI execution itself is the acceptance surface for this maintenance gate." },
+    "deployment": { "status": "na", "reason": "GitHub Actions and repository scripts require no application runtime deployment." }
+  },
+  "notes": "Known backend test debt is explicit and machine-readable. The baseline may shrink but must never expand through normal CI; any newly failing test remains a hard failure. Target baseline size is zero."
+}
