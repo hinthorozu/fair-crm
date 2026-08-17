@@ -107,8 +107,17 @@ def test_send_test_smtp_mail_maps_ssl_wrong_version_error(client, auth_headers, 
     assert create.status_code == 201
     account_id = create.json()["id"]
 
-    def _raise_ssl_error(account, *, recipient, subject, body):
-        _ = (account, recipient, subject, body)
+    def _raise_ssl_error(
+        _service,
+        *,
+        organization_id,
+        email_account_id,
+        to,
+        subject,
+        body_html=None,
+        body_text=None,
+    ):
+        _ = (organization_id, email_account_id, to, subject, body_html, body_text)
         raise SmtpMailDeliveryError(SSL_WRONG_VERSION_USER_MESSAGE)
 
     monkeypatch.setattr(
