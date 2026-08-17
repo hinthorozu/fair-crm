@@ -14,6 +14,7 @@ on:
       - "scripts/new_feature_contract.py"
       - "scripts/quality_check.py"
       - "scripts/maintenance/inventory_frontend_ui.py"
+      - "scripts/maintenance/compare_frontend_ui_inventory.py"
       - ".github/workflows/development-standard.yml"
   push:
     branches:
@@ -27,6 +28,7 @@ on:
       - "scripts/new_feature_contract.py"
       - "scripts/quality_check.py"
       - "scripts/maintenance/inventory_frontend_ui.py"
+      - "scripts/maintenance/compare_frontend_ui_inventory.py"
       - ".github/workflows/development-standard.yml"
 
 jobs:
@@ -88,6 +90,8 @@ jobs:
             elif git rev-parse HEAD^ >/dev/null 2>&1; then
               BASE="$(git rev-parse HEAD^)"
             fi
+          elif git rev-parse HEAD^ >/dev/null 2>&1; then
+            BASE="$(git rev-parse HEAD^)"
           fi
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
 
@@ -117,24 +121,30 @@ jobs:
         shell: bash
         run: |
           RUN_FRONTEND=false
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            RUN_FRONTEND=true
-          else
-            BASE=""
-            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-              BASE="${{ github.event.pull_request.base.sha }}"
-            elif [[ "${{ github.event_name }}" == "push" ]]; then
-              BASE="${{ github.event.before }}"
-            fi
-            if [[ -n "$BASE" && "$BASE" != "0000000000000000000000000000000000000000" ]]; then
-              if ! git diff --quiet "$BASE...$GITHUB_SHA" -- frontend scripts/maintenance/inventory_frontend_ui.py .github/workflows/development-standard.yml; then
-                RUN_FRONTEND=true
-              fi
-            else
-              RUN_FRONTEND=true
+          BASE=""
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            BEFORE="${{ github.event.before }}"
+            if [[ -n "$BEFORE" && "$BEFORE" != "0000000000000000000000000000000000000000" ]]; then
+              BASE="$BEFORE"
             fi
           fi
+          if [[ -z "$BASE" ]] && git rev-parse HEAD^ >/dev/null 2>&1; then
+            BASE="$(git rev-parse HEAD^)"
+          fi
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            RUN_FRONTEND=true
+          elif [[ -n "$BASE" ]]; then
+            if ! git diff --quiet "$BASE...$GITHUB_SHA" -- frontend scripts/maintenance/inventory_frontend_ui.py scripts/maintenance/compare_frontend_ui_inventory.py .github/workflows/development-standard.yml; then
+              RUN_FRONTEND=true
+            fi
+          else
+            RUN_FRONTEND=true
+          fi
           echo "run=$RUN_FRONTEND" >> "$GITHUB_OUTPUT"
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
 
       - name: Set up Node
         if: steps.scope.outputs.run == 'true'
@@ -165,8 +175,27 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Run UI governance gate
+      - name: Generate current UI governance inventory
         if: steps.scope.outputs.run == 'true'
+        run: python scripts/maintenance/inventory_frontend_ui.py --report-dir /tmp/ui-current --quiet
+
+      - name: Generate comparison-base UI governance inventory
+        if: steps.scope.outputs.run == 'true' && steps.scope.outputs.base != ''
+        shell: bash
+        run: |
+          BASE="${{ steps.scope.outputs.base }}"
+          git worktree add --detach /tmp/fair-crm-ui-base "$BASE"
+          python /tmp/fair-crm-ui-base/scripts/maintenance/inventory_frontend_ui.py --report-dir /tmp/ui-base --quiet
+
+      - name: Enforce zero new UI governance violations
+        if: steps.scope.outputs.run == 'true' && steps.scope.outputs.base != ''
+        run: |
+          python scripts/maintenance/compare_frontend_ui_inventory.py \
+            --base /tmp/ui-base/inventory.json \
+            --current /tmp/ui-current/inventory.json
+
+      - name: Enforce full UI governance without comparison base
+        if: steps.scope.outputs.run == 'true' && steps.scope.outputs.base == ''
         run: python scripts/maintenance/inventory_frontend_ui.py --gate ALL
 
       - name: Report frontend N/A
@@ -189,22 +218,27 @@ jobs:
         shell: bash
         run: |
           RUN_BACKEND=false
+          BASE=""
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            BEFORE="${{ github.event.before }}"
+            if [[ -n "$BEFORE" && "$BEFORE" != "0000000000000000000000000000000000000000" ]]; then
+              BASE="$BEFORE"
+            fi
+          fi
+          if [[ -z "$BASE" ]] && git rev-parse HEAD^ >/dev/null 2>&1; then
+            BASE="$(git rev-parse HEAD^)"
+          fi
+
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             RUN_BACKEND=true
-          else
-            BASE=""
-            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-              BASE="${{ github.event.pull_request.base.sha }}"
-            elif [[ "${{ github.event_name }}" == "push" ]]; then
-              BASE="${{ github.event.before }}"
-            fi
-            if [[ -n "$BASE" && "$BASE" != "0000000000000000000000000000000000000000" ]]; then
-              if ! git diff --quiet "$BASE...$GITHUB_SHA" -- backend scripts/quality_check.py .github/workflows/development-standard.yml; then
-                RUN_BACKEND=true
-              fi
-            else
+          elif [[ -n "$BASE" ]]; then
+            if ! git diff --quiet "$BASE...$GITHUB_SHA" -- backend scripts/quality_check.py .github/workflows/development-standard.yml; then
               RUN_BACKEND=true
             fi
+          else
+            RUN_BACKEND=true
           fi
           echo "run=$RUN_BACKEND" >> "$GITHUB_OUTPUT"
 
