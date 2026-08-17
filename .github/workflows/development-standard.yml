@@ -12,6 +12,7 @@ on:
       - ".cursor/**"
       - "scripts/validate_feature_contracts.py"
       - "scripts/new_feature_contract.py"
+      - "scripts/quality_check.py"
       - ".github/workflows/development-standard.yml"
   push:
     branches:
@@ -23,6 +24,7 @@ on:
       - ".cursor/**"
       - "scripts/validate_feature_contracts.py"
       - "scripts/new_feature_contract.py"
+      - "scripts/quality_check.py"
       - ".github/workflows/development-standard.yml"
 
 jobs:
@@ -44,6 +46,31 @@ jobs:
 
       - name: Validate schema JSON
         run: python -m json.tool .kyrox/feature-contract.schema.json > /dev/null
+
+      - name: Smoke test scheduled backend-only profile
+        run: |
+          python scripts/new_feature_contract.py ci-scheduled-smoke \
+            --type scheduled_job \
+            --tenant-scope organization \
+            --trigger scheduled \
+            --path backend/app/modules/ci_scheduled_smoke/** \
+            --no-frontend \
+            --output /tmp/ci-scheduled-smoke.json
+
+      - name: Smoke test Super Admin system UI profile
+        run: |
+          python scripts/new_feature_contract.py ci-system-smoke \
+            --type system_admin \
+            --tenant-scope system \
+            --trigger user \
+            --path backend/app/modules/ci_system_smoke/** \
+            --path frontend/src/pages/CiSystemSmokePage.tsx \
+            --permission fair_crm.admin.ci_smoke.read:read:system:false \
+            --route /admin/system/ci-smoke \
+            --menu \
+            --menu-permission fair_crm.admin.ci_smoke.read \
+            --frontend \
+            --output /tmp/ci-system-smoke.json
 
       - name: Resolve comparison base
         id: base
