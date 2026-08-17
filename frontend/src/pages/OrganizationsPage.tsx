@@ -20,6 +20,11 @@ import {
 } from "../components/ui/UniversalDataTable";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 import { organizationLabels } from "../labels/organizationLabels";
+import { getGrantedCorePermissions } from "../permissions/corePermissions";
+import {
+  PERMISSION_ORGANIZATIONS_SYSTEM,
+  PERMISSION_ORGANIZATIONS_UPDATE,
+} from "../permissions/navigationPermissions";
 
 interface OrganizationFormProps {
   initialName: string;
@@ -85,6 +90,10 @@ export function OrganizationsPage() {
   const [saving, setSaving] = React.useState(false);
   const [deleting, setDeleting] = React.useState<Organization | null>(null);
   const [deleteBusy, setDeleteBusy] = React.useState(false);
+  const grantedPermissions = getGrantedCorePermissions();
+  const canCreateOrganizations = grantedPermissions.has(PERMISSION_ORGANIZATIONS_SYSTEM);
+  const canUpdateOrganizations = grantedPermissions.has(PERMISSION_ORGANIZATIONS_UPDATE);
+  const canDeleteOrganizations = grantedPermissions.has(PERMISSION_ORGANIZATIONS_SYSTEM);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -103,14 +112,16 @@ export function OrganizationsPage() {
   }, [load]);
 
   const openCreate = React.useCallback(() => {
+    if (!canCreateOrganizations) return;
     setEditing(null);
     setFormError(null);
-  }, []);
+  }, [canCreateOrganizations]);
 
   const openEdit = React.useCallback((organization: Organization) => {
+    if (!canUpdateOrganizations) return;
     setEditing(organization);
     setFormError(null);
-  }, []);
+  }, [canUpdateOrganizations]);
 
   const closeForm = React.useCallback(() => {
     if (saving) return;
@@ -119,6 +130,7 @@ export function OrganizationsPage() {
   }, [saving]);
 
   const saveOrganization = async (name: string) => {
+    if (editing ? !canUpdateOrganizations : !canCreateOrganizations) return;
     setSaving(true);
     setFormError(null);
     try {
@@ -137,7 +149,7 @@ export function OrganizationsPage() {
   };
 
   const confirmDelete = async () => {
-    if (!deleting) return;
+    if (!canDeleteOrganizations || !deleting) return;
     setDeleteBusy(true);
     try {
       await deleteOrganization(deleting.id);
@@ -159,28 +171,34 @@ export function OrganizationsPage() {
         sortable: false,
         render: (organization) => organization.name,
       },
-      {
-        key: "actions",
-        title: organizationLabels.actions,
-        sortable: false,
-        className: "col-actions",
-        render: (organization) => (
-          <TableRowActions>
-            <button type="button" className="btn link" onClick={() => openEdit(organization)}>
-              {organizationLabels.edit}
-            </button>
-            <button
-              type="button"
-              className="btn link danger"
-              onClick={() => setDeleting(organization)}
-            >
-              {organizationLabels.delete}
-            </button>
-          </TableRowActions>
-        ),
-      },
+      ...(canUpdateOrganizations || canDeleteOrganizations
+        ? [{
+            key: "actions",
+            title: organizationLabels.actions,
+            sortable: false,
+            className: "col-actions",
+            render: (organization: Organization) => (
+              <TableRowActions>
+                {canUpdateOrganizations ? (
+                  <button type="button" className="btn link" onClick={() => openEdit(organization)}>
+                    {organizationLabels.edit}
+                  </button>
+                ) : null}
+                {canDeleteOrganizations ? (
+                  <button
+                    type="button"
+                    className="btn link danger"
+                    onClick={() => setDeleting(organization)}
+                  >
+                    {organizationLabels.delete}
+                  </button>
+                ) : null}
+              </TableRowActions>
+            ),
+          } as UniversalDataTableColumn<Organization>]
+        : []),
     ],
-    [openEdit],
+    [canDeleteOrganizations, canUpdateOrganizations, openEdit],
   );
 
   const formOpen = editing !== undefined;
@@ -190,9 +208,11 @@ export function OrganizationsPage() {
       <PageHeader
         title={organizationLabels.title}
         actions={
-          <button type="button" className="btn primary" onClick={openCreate}>
-            {organizationLabels.newOrganization}
-          </button>
+          canCreateOrganizations ? (
+            <button type="button" className="btn primary" onClick={openCreate}>
+              {organizationLabels.newOrganization}
+            </button>
+          ) : undefined
         }
       />
 
@@ -206,8 +226,8 @@ export function OrganizationsPage() {
         emptyState={
           <EmptyState
             title={organizationLabels.empty}
-            actionLabel={organizationLabels.newOrganization}
-            onAction={openCreate}
+            actionLabel={canCreateOrganizations ? organizationLabels.newOrganization : undefined}
+            onAction={canCreateOrganizations ? openCreate : undefined}
           />
         }
       />
@@ -229,7 +249,7 @@ export function OrganizationsPage() {
         </FormModal>
       )}
 
-      {deleting && (
+      {deleting && canDeleteOrganizations && (
         <ConfirmDialog
           title={organizationLabels.deleteTitle}
           message={organizationLabels.deleteConfirm}
