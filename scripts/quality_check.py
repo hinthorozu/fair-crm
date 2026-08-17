@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fair CRM quality gate — compile, import, pytest."""
+"""Fair CRM quality gate — development standard, compile, import, pytest."""
 
 from __future__ import annotations
 
@@ -24,6 +24,13 @@ def main() -> int:
     print(f"Fair CRM quality check — {PROJECT_ROOT}")
 
     steps_ok = True
+
+    if not run_step(
+        "development standard / feature contracts",
+        [sys.executable, "scripts/validate_feature_contracts.py", "--contracts-only"],
+        PROJECT_ROOT,
+    ):
+        steps_ok = False
 
     if not compileall.compile_dir(BACKEND_ROOT / "app", quiet=1):
         print("FAIL: Python compile")
