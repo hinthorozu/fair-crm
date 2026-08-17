@@ -72,20 +72,35 @@ describe("auth session", () => {
     uninstallLocalStorage();
   });
 
-  it("persists and reads access token without refresh token", () => {
+  it("persists and reads access token and resolved platform identity without refresh token", () => {
     saveSession({
       accessToken: "jwt-token",
       organizationId: "00000000-0000-4000-8000-000000000010",
       email: "dev@example.com",
+      isSuperAdmin: true,
       expiresIn: 900,
     });
 
     expect(isAuthenticated()).toBe(true);
     expect(getAccessToken()).toBe("jwt-token");
     expect(readSession()?.email).toBe("dev@example.com");
+    expect(readSession()?.isSuperAdmin).toBe(true);
     expect(readSession()).not.toHaveProperty("refreshToken");
     const raw = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "{}");
     expect(raw.refreshToken).toBeUndefined();
+    expect(raw.isSuperAdmin).toBe(true);
+  });
+
+  it("fails closed when an older stored session has no Super Admin flag", () => {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        accessToken: "old-access",
+        organizationId: "00000000-0000-4000-8000-000000000010",
+      }),
+    );
+
+    expect(readSession()?.isSuperAdmin).toBe(false);
   });
 
   it("clears session on logout", () => {
@@ -112,5 +127,6 @@ describe("auth session", () => {
     const raw = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "{}");
     expect(raw.refreshToken).toBeUndefined();
     expect(raw.accessToken).toBe("old-access");
+    expect(raw.isSuperAdmin).toBe(false);
   });
 });
