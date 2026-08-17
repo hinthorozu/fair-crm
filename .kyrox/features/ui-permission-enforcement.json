@@ -13,6 +13,7 @@
     "frontend/src/permissions/corePermissions.test.ts",
     "frontend/src/permissions/navigationPermissions.ts",
     "frontend/src/permissions/navigationPermissions.test.ts",
+    "frontend/src/labels/permissionLabels.ts",
     "frontend/src/labels/uiLabels.ts",
     "frontend/src/App.tsx",
     "frontend/src/components/layout/AppLayout.tsx",
