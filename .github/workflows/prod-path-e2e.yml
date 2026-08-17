@@ -90,6 +90,7 @@ jobs:
       - name: Prod-path E2E gate
         env:
           KYROX_CORE_ROOT: ${{ github.workspace }}/kyrox-core
+          DEV_USER_PASSWORD: Kyrox-CI-${{ github.run_id }}-${{ github.run_attempt }}-Only
         run: python scripts/e2e_validation.py --ci
 
       - name: Upload E2E report
