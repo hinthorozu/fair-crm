@@ -9,6 +9,7 @@ Canonical sources:
 
 - `kyrox-platform/projects/fair-crm/DEVELOPMENT_STANDARD.md`
 - `kyrox-platform/projects/fair-crm/FEATURE_APPLICABILITY_STANDARD.md`
+- `kyrox-platform/projects/fair-crm/QUALITY_GATE_STANDARD.md`
 
 Before changing product code for a new module, feature, CRUD flow, service, worker, scheduled job, adapter, permission, route, migration, backend behavior or frontend UI:
 
@@ -26,7 +27,8 @@ Before changing product code for a new module, feature, CRUD flow, service, work
 12. Real JWT + organization + Core authorization + Fair CRM API + UI acceptance is required only where runtime authorization is applicable. Mock/bypass/build-only evidence is insufficient for those paths.
 13. Frontend UI changes also require `kyrox-platform/projects/fair-crm/frontend/FRONTEND_UI_MASTER_STANDARD.md`.
 14. Permission changes also require `kyrox-platform/projects/fair-crm/PERMISSION_SCOPE_GOVERNANCE.md`.
+15. Quality reporting must distinguish strict green from zero-new-regression PASS with known debt. Existing baselines may shrink only; never add a newly introduced failure to make CI green.
 
-Hard stop conditions include ambiguous requirements, guessed applicability, unexplained N/A gates, guessed permission scope, missing tenant scoping, hard-coded authenticated organization IDs, missing route/action permission guards where UI is applicable, invented UI/CRUD for non-user-facing services, duplicated UI primitives, stale-runtime acceptance, or unintended real-runtime 401/403/500.
+Hard stop conditions include ambiguous requirements, guessed applicability, unexplained N/A gates, guessed permission scope, missing tenant scoping, hard-coded authenticated organization IDs, missing route/action permission guards where UI is applicable, invented UI/CRUD for non-user-facing services, duplicated UI primitives, stale-runtime acceptance, unintended real-runtime 401/403/500, or growth of a known-failure/quality-debt baseline.
 
 Do not duplicate the canonical Markdown standards inside this repository. Update `kyrox-platform` when the rule changes.
