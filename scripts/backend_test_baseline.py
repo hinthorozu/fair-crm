@@ -10,14 +10,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import subprocess
 from pathlib import Path
 from typing import Any, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE_PATH = ROOT / ".kyrox" / "backend-test-baseline.json"
-PYTEST_SUMMARY_RE = re.compile(r"^(?:FAILED|ERROR)\s+(.+?)(?:\s+-\s+.*)?$")
 
 
 def validate_baseline_data(data: Any, *, source: str) -> tuple[set[str], list[str]]:
@@ -66,13 +64,54 @@ def load_baseline(path: Path = BASELINE_PATH) -> tuple[set[str], list[str]]:
 
 
 def extract_pytest_failures(lines: Iterable[str]) -> set[str]:
+    """Extract only pytest short-summary test paths from combined output.
+
+    Application logs can legitimately contain lines such as
+    ``ERROR app.main:main.py:117 Unhandled application error`` while a test is
+    exercising an error path. Those are not pytest collection/test node IDs and
+    must never be counted as an additional failing test.
+    """
+
     failures: set[str] = set()
     for raw_line in lines:
         line = raw_line.strip()
-        match = PYTEST_SUMMARY_RE.match(line)
-        if match:
-            failures.add(match.group(1).strip())
+        if line.startswith("FAILED "):
+            candidate = line[len("FAILED ") :].split(" - ", 1)[0].strip()
+        elif line.startswith("ERROR "):
+            candidate = line[len("ERROR ") :].split(" - ", 1)[0].strip()
+        else:
+            continue
+
+        # Pytest short-summary node IDs/collection paths are rooted under the
+        # repository's backend/tests directory, which appears as ``tests/...``
+        # because pytest runs with cwd=backend. Filtering on that namespace
+        # prevents application/logger ERROR lines from becoming false regressions.
+        if candidate.startswith("tests/"):
+            failures.add(candidate)
+
     return failures
+
+
+def _validate_failure_parser() -> list[str]:
+    """Small deterministic guard against parser false positives/regressions."""
+
+    sample = [
+        "FAILED tests/modules/example/test_api.py::test_create - assert 500 == 201",
+        "ERROR tests/modules/example/test_api.py::test_collect - RuntimeError: boom",
+        "ERROR    app.main:main.py:117 Unhandled application error",
+        "INFO     httpx:_client.py:1025 HTTP Request: GET http://testserver/health",
+    ]
+    expected = {
+        "tests/modules/example/test_api.py::test_create",
+        "tests/modules/example/test_api.py::test_collect",
+    }
+    actual = extract_pytest_failures(sample)
+    if actual != expected:
+        return [
+            "pytest failure parser self-check failed: "
+            f"expected={sorted(expected)!r} actual={sorted(actual)!r}"
+        ]
+    return []
 
 
 def _load_baseline_from_git(base: str) -> tuple[set[str] | None, list[str]]:
@@ -128,10 +167,12 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    parser_errors = _validate_failure_parser()
     if args.base:
-        errors = validate_monotonic_baseline(args.base)
+        errors = parser_errors + validate_monotonic_baseline(args.base)
     else:
-        _, errors = load_baseline()
+        _, baseline_errors = load_baseline()
+        errors = parser_errors + baseline_errors
 
     if errors:
         print("BACKEND TEST BASELINE GATE: FAIL")
@@ -141,6 +182,7 @@ def main() -> int:
 
     known, _ = load_baseline()
     print(f"BACKEND TEST BASELINE GATE: PASS ({len(known)} known failures; target=0)")
+    print("Pytest failure parser self-check: PASS")
     if args.base:
         print("Baseline monotonicity: PASS (no new known-failure debt added).")
     return 0
