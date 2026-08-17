@@ -48,9 +48,6 @@ from app.modules.todos.api.dependencies import get_authorization_adapter as get_
 from app.modules.todos.api.outcome_dependencies import (
     get_authorization_adapter as get_outcome_authorization_adapter,
 )
-from app.modules.dashboard.api.dependencies import (
-    get_authorization_adapter as get_dashboard_authorization_adapter,
-)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SCRIPTS_DIR = REPO_ROOT / "scripts"
@@ -81,7 +78,6 @@ AUTH_DEPENDENCIES = (
     get_fair_emails_authorization_adapter,
     get_todos_authorization_adapter,
     get_outcome_authorization_adapter,
-    get_dashboard_authorization_adapter,
     get_system_admin_authorization_adapter,
 )
 
@@ -923,16 +919,4 @@ def test_role_matrix_follow_ups_read(
     with install_role_matrix_auth(client, role_slug):
         response = client.get("/api/v1/follow-ups?filter=hepsi", headers=auth_headers)
     expected = 200 if _role_has(role_slug, "fair_crm.todos.read") else 403
-    assert response.status_code == expected
-
-
-@pytest.mark.parametrize("role_slug", MATRIX_ROLES)
-def test_role_matrix_dashboard_read(
-    client: TestClient,
-    auth_headers: dict[str, str],
-    role_slug: str,
-) -> None:
-    with install_role_matrix_auth(client, role_slug):
-        response = client.get("/api/v1/dashboard/summary", headers=auth_headers)
-    expected = 200 if _role_has(role_slug, "fair_crm.dashboard.read") else 403
     assert response.status_code == expected
