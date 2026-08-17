@@ -40,10 +40,12 @@ describe("navigation permission rules", () => {
     expect(canAccessAdminSection("users", readUser)).toBe(true);
     expect(canAccessAdminSection("backups", readUser)).toBe(false);
     expect(canAccessApplicationPath("/admin/system/backups", readUser)).toBe(false);
+    expect(canAccessApplicationPath("/admin", readUser)).toBe(false);
     expect(firstAccessibleAdminPath(readUser)).toBe("/admin/system/users");
 
     const superAdminEffectivePermissions = granted(PERMISSION_BACKUPS_READ);
     expect(canAccessAdminSection("backups", superAdminEffectivePermissions)).toBe(true);
+    expect(canAccessApplicationPath("/admin", superAdminEffectivePermissions)).toBe(true);
   });
 
   it("separates operation read routes from operation creation routes", () => {
@@ -60,13 +62,17 @@ describe("navigation permission rules", () => {
     const importReader = granted(PERMISSION_IMPORTS_READ);
     expect(canAccessDataIntegrationSection("imports", importReader)).toBe(true);
     expect(canAccessDataIntegrationSection("new", importReader)).toBe(false);
+    expect(canAccessApplicationPath("/data-integration", importReader)).toBe(true);
     expect(canAccessApplicationPath("/data-integration/imports/new", importReader)).toBe(false);
     expect(firstAccessibleDataIntegrationPath(importReader)).toBe("/data-integration/imports");
 
     const importCreator = granted(PERMISSION_IMPORTS_CREATE);
     expect(canAccessDataIntegrationSection("new", importCreator)).toBe(true);
+    expect(canAccessApplicationPath("/imports", importCreator)).toBe(true);
 
     const scraperReader = granted(PERMISSION_SCRAPER_READ);
+    expect(canAccessMainNavigation("/data-integration", scraperReader)).toBe(true);
+    expect(canAccessApplicationPath("/data-integration", scraperReader)).toBe(false);
     expect(canAccessDataIntegrationSection("adapters", scraperReader)).toBe(true);
     expect(canAccessApplicationPath("/data-integration/adapters", scraperReader)).toBe(true);
     expect(firstAccessibleDataIntegrationPath(scraperReader)).toBe("/data-integration/adapters");
