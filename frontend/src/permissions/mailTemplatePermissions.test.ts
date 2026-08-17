@@ -3,6 +3,7 @@ import {
   canPerformMailTemplateAction,
   hasMailTemplatePermission,
   MAIL_TEMPLATE_PERMISSION_CREATE,
+  MAIL_TEMPLATE_PERMISSION_EXECUTE,
   MAIL_TEMPLATE_PERMISSION_READ,
   MAIL_TEMPLATE_PERMISSION_RENDER,
   MAIL_TEMPLATE_PERMISSION_TEST_SEND,
@@ -18,25 +19,28 @@ describe("mailTemplatePermissions", () => {
     expect(canPerformMailTemplateAction(readOnly, "update")).toBe(false);
     expect(canPerformMailTemplateAction(readOnly, "delete")).toBe(false);
     expect(canPerformMailTemplateAction(readOnly, "render")).toBe(false);
+    expect(canPerformMailTemplateAction(readOnly, "test_send")).toBe(false);
   });
 
-  it("grants render only when render permission is present", () => {
-    const withRender = new Set([MAIL_TEMPLATE_PERMISSION_READ, MAIL_TEMPLATE_PERMISSION_RENDER]);
-    expect(canPerformMailTemplateAction(withRender, "render")).toBe(true);
-    expect(hasMailTemplatePermission(withRender, MAIL_TEMPLATE_PERMISSION_RENDER)).toBe(true);
+  it("uses one execute permission for render and test-send actions", () => {
+    const withExecute = new Set([MAIL_TEMPLATE_PERMISSION_READ, MAIL_TEMPLATE_PERMISSION_EXECUTE]);
+    expect(MAIL_TEMPLATE_PERMISSION_RENDER).toBe(MAIL_TEMPLATE_PERMISSION_EXECUTE);
+    expect(MAIL_TEMPLATE_PERMISSION_TEST_SEND).toBe(MAIL_TEMPLATE_PERMISSION_EXECUTE);
+    expect(canPerformMailTemplateAction(withExecute, "render")).toBe(true);
+    expect(canPerformMailTemplateAction(withExecute, "test_send")).toBe(true);
+    expect(hasMailTemplatePermission(withExecute, MAIL_TEMPLATE_PERMISSION_EXECUTE)).toBe(true);
   });
 
-  it("grants create/update when respective permissions are present", () => {
-    const adminLike = new Set([
+  it("keeps create/update separate from execute", () => {
+    const editor = new Set([
       MAIL_TEMPLATE_PERMISSION_READ,
       MAIL_TEMPLATE_PERMISSION_CREATE,
       MAIL_TEMPLATE_PERMISSION_UPDATE,
-      MAIL_TEMPLATE_PERMISSION_TEST_SEND,
     ]);
-    expect(canPerformMailTemplateAction(adminLike, "create")).toBe(true);
-    expect(canPerformMailTemplateAction(adminLike, "update")).toBe(true);
-    expect(canPerformMailTemplateAction(adminLike, "test_send")).toBe(true);
-    expect(canPerformMailTemplateAction(adminLike, "render")).toBe(false);
+    expect(canPerformMailTemplateAction(editor, "create")).toBe(true);
+    expect(canPerformMailTemplateAction(editor, "update")).toBe(true);
+    expect(canPerformMailTemplateAction(editor, "test_send")).toBe(false);
+    expect(canPerformMailTemplateAction(editor, "render")).toBe(false);
   });
 });
 
