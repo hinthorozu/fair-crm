@@ -4,11 +4,12 @@ from dataclasses import dataclass
 from typing import Callable, Optional, TypeVar
 
 from app.modules.customers.domain.communication_entities import CustomerCommunications
+from app.modules.customers.domain.exceptions import InvalidCustomerEmailError
 from app.modules.customers.domain.services.normalizers import (
     normalize_phone,
     normalize_website,
 )
-from app.shared.email import normalize_email_candidates
+from app.shared.email import normalize_email_field
 
 T = TypeVar("T")
 
@@ -35,6 +36,20 @@ def _normalize_valid_phone(value: str) -> str:
     return normalized
 
 
+def _normalize_customer_email(value: str | None) -> str | None:
+    """Strictly validate customer-entered email values.
+
+    Customer create/update is an interactive domain operation: malformed addresses
+    must be reported to the caller instead of being silently dropped like scrape or
+    import candidates. The shared strict normalizer keeps canonical multi-email
+    behavior while this adapter maps validation failures to the customer domain.
+    """
+    try:
+        return normalize_email_field(value)
+    except ValueError as exc:
+        raise InvalidCustomerEmailError(str(exc)) from exc
+
+
 def phones_from_scalar(phone: Optional[str]) -> list[str]:
     if not phone:
         return []
@@ -43,7 +58,7 @@ def phones_from_scalar(phone: Optional[str]) -> list[str]:
 
 
 def emails_from_scalar(email: Optional[str]) -> list[str]:
-    normalized = normalize_email_candidates(email)
+    normalized = _normalize_customer_email(email)
     return normalized.split(";") if normalized else []
 
 
@@ -92,7 +107,7 @@ def emails_from_inputs(items: list[CommunicationValueInput]) -> list[str]:
     primary_index: int | None = None
 
     for item in items:
-        normalized = normalize_email_candidates(item.value)
+        normalized = _normalize_customer_email(item.value)
         if not normalized:
             continue
 
