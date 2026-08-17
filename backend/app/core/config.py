@@ -10,22 +10,6 @@ _BACKEND_ROOT = Path(__file__).resolve().parents[2]
 _ENV_FILE = _BACKEND_ROOT / ".env"
 
 
-def _read_env_file_database_url() -> str | None:
-    if not _ENV_FILE.is_file():
-        return None
-    for line in _ENV_FILE.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#"):
-            continue
-        for key in ("FAIR_CRM_DATABASE_URL", "DATABASE_URL"):
-            prefix = f"{key}="
-            if stripped.startswith(prefix):
-                value = stripped[len(prefix) :].strip().strip('"').strip("'")
-                if value:
-                    return value
-    return None
-
-
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=_ENV_FILE,
@@ -33,6 +17,39 @@ class Settings(BaseSettings):
         extra="ignore",
         populate_by_name=True,
     )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls,
+        init_settings,
+        env_settings,
+        dotenv_settings,
+        file_secret_settings,
+    ):
+        """Prefer the active dotenv DB URL when shell DATABASE_URL points at Core."""
+
+        def prefer_fair_crm_database_url():
+            env_values = env_settings()
+            dotenv_values = dotenv_settings()
+            env_url = env_values.get("FAIR_CRM_DATABASE_URL")
+            file_url = dotenv_values.get("FAIR_CRM_DATABASE_URL")
+            if (
+                isinstance(env_url, str)
+                and "kyrox_core" in env_url.lower()
+                and isinstance(file_url, str)
+                and "fair_crm" in file_url.lower()
+            ):
+                return {"FAIR_CRM_DATABASE_URL": file_url}
+            return {}
+
+        return (
+            init_settings,
+            prefer_fair_crm_database_url,
+            env_settings,
+            dotenv_settings,
+            file_secret_settings,
+        )
 
     database_url: str = Field(
         default="postgresql+psycopg2://postgres:postgres@localhost:5432/fair_crm",
@@ -192,15 +209,6 @@ class Settings(BaseSettings):
             "FAIR_CRM_MAIL_STARTUP_RECOVERY_ENABLED",
         ),
     )
-
-    @model_validator(mode="after")
-    def resolve_fair_crm_database_url(self) -> Self:
-        """Prefer backend/.env when shell DATABASE_URL points at KYROX Core."""
-        if "kyrox_core" in self.database_url.lower():
-            file_url = _read_env_file_database_url()
-            if file_url and "fair_crm" in file_url.lower():
-                self.database_url = file_url
-        return self
 
     @model_validator(mode="after")
     def normalize_refresh_cookie_samesite(self) -> Self:
