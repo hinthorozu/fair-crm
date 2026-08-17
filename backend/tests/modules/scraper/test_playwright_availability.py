@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+import app.modules.scraper.core.playwright_availability as playwright_availability
 from app.modules.scraper.core.browser_service import BrowserConfig
 from app.modules.scraper.core.playwright_availability import (
     PLAYWRIGHT_BROWSER_MISSING_MESSAGE,
@@ -53,13 +54,15 @@ def test_is_playwright_browser_installed_true_when_only_full_chromium_installed(
 def test_is_playwright_browser_installed_true_when_env_invalid_but_default_has_chromium(
     tmp_path, monkeypatch
 ):
-    default_root = tmp_path / "default-ms-playwright"
-    _install_full_chromium(default_root)
     monkeypatch.setenv("PLAYWRIGHT_BROWSERS_PATH", str(tmp_path / "missing-sandbox-playwright"))
-    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
 
     default_install = tmp_path / "ms-playwright"
     _install_full_chromium(default_install)
+    monkeypatch.setattr(
+        playwright_availability,
+        "_default_ms_playwright_root",
+        lambda: default_install,
+    )
 
     assert is_playwright_browser_installed(BrowserConfig(headless=True)) is True
 
@@ -88,10 +91,14 @@ def test_build_chromium_launch_options_uses_full_chromium_when_headless_shell_mi
 
 def test_build_chromium_launch_options_uses_shell_when_env_invalid(tmp_path, monkeypatch):
     monkeypatch.setenv("PLAYWRIGHT_BROWSERS_PATH", str(tmp_path / "missing-sandbox-playwright"))
-    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
 
     install_root = tmp_path / "ms-playwright"
     shell_exe = _install_headless_shell(install_root)
+    monkeypatch.setattr(
+        playwright_availability,
+        "_default_ms_playwright_root",
+        lambda: install_root,
+    )
 
     options = build_chromium_launch_options(MagicMock(), BrowserConfig(headless=True))
 
