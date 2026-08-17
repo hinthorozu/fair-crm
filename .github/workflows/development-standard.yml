@@ -289,7 +289,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: backend-quality-${{ github.run_id }}
-          path: backend-quality.log
+          path: |
+            backend-quality.log
+            .kyrox/backend-test-baseline.json
           if-no-files-found: warn
           retention-days: 7
 
