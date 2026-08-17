@@ -55,7 +55,7 @@ jobs:
             --trigger scheduled \
             --path backend/app/modules/ci_scheduled_smoke/** \
             --no-frontend \
-            --output /tmp/ci-scheduled-smoke.json
+            --output .kyrox/ci-smoke/ci-scheduled-smoke.json
 
       - name: Smoke test Super Admin system UI profile
         run: |
@@ -70,7 +70,7 @@ jobs:
             --menu \
             --menu-permission fair_crm.admin.ci_smoke.read \
             --frontend \
-            --output /tmp/ci-system-smoke.json
+            --output .kyrox/ci-smoke/ci-system-smoke.json
 
       - name: Resolve comparison base
         id: base
