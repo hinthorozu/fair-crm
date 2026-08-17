@@ -8,6 +8,7 @@ export interface AuthSession {
   organizationId: string;
   email?: string;
   permissions?: string[];
+  isSuperAdmin?: boolean;
   /** Access token lifetime from login/refresh (seconds). */
   expiresIn?: number;
 }
@@ -31,6 +32,10 @@ function normalizePermissions(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string" && item.length > 0);
 }
 
+function normalizeSuperAdmin(value: unknown): boolean {
+  return value === true;
+}
+
 export function readSession(): AuthSession | null {
   if (!canUseStorage()) return null;
   const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -51,6 +56,7 @@ export function readSession(): AuthSession | null {
       organizationId: parsed.organizationId,
       email: parsed.email,
       permissions,
+      isSuperAdmin: normalizeSuperAdmin(parsed.isSuperAdmin),
       expiresIn: parsed.expiresIn,
     };
   } catch {
@@ -77,6 +83,7 @@ export function consumeLegacyRefreshTokenFromStorage(): string | undefined {
         organizationId: parsed.organizationId,
         email: parsed.email,
         permissions: normalizePermissions(parsed.permissions),
+        isSuperAdmin: normalizeSuperAdmin(parsed.isSuperAdmin),
         expiresIn: parsed.expiresIn,
       });
     } else {
@@ -96,6 +103,7 @@ export function saveSession(session: AuthSession): void {
     organizationId: session.organizationId,
     email: session.email,
     permissions,
+    isSuperAdmin: normalizeSuperAdmin(session.isSuperAdmin),
     expiresIn: session.expiresIn,
   };
   replaceGrantedPermissions(permissions);
