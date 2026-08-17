@@ -1,26 +1,32 @@
 ---
-description: Mandatory Fair CRM feature-delivery execution order and acceptance gates
+description: Mandatory Fair CRM feature-delivery execution order, applicability and acceptance gates
 alwaysApply: true
 ---
 
 # Fair CRM development standard is mandatory
 
-Canonical source:
-`kyrox-platform/projects/fair-crm/DEVELOPMENT_STANDARD.md`
+Canonical sources:
 
-Before changing product code for a new module, feature, CRUD flow, permission, route, migration, backend behavior or frontend UI:
+- `kyrox-platform/projects/fair-crm/DEVELOPMENT_STANDARD.md`
+- `kyrox-platform/projects/fair-crm/FEATURE_APPLICABILITY_STANDARD.md`
+
+Before changing product code for a new module, feature, CRUD flow, service, worker, scheduled job, adapter, permission, route, migration, backend behavior or frontend UI:
 
 1. Read the canonical development standard.
-2. Complete Gate 0 / Delivery Contract for all applicable fields.
-3. Apply ADR-009 ownership and Tier classification rules.
-4. Decide permission scope for every new permission before implementation.
-5. Follow the gate order; do not jump directly from request to API/page code.
-6. Backend truth, tenant isolation and authorization must exist before UI is accepted.
-7. UI navigation, routes and actions must reflect effective permissions; backend authorization remains mandatory.
-8. Real JWT + organization + Core authorization + Fair CRM API + UI acceptance is required for permission-sensitive work. Mock/bypass/build-only evidence is insufficient.
-9. Frontend UI changes also require `kyrox-platform/projects/fair-crm/frontend/FRONTEND_UI_MASTER_STANDARD.md`.
-10. Permission changes also require `kyrox-platform/projects/fair-crm/PERMISSION_SCOPE_GOVERNANCE.md`.
+2. Classify the Feature Profile and applicability before implementation.
+3. Complete Gate 0 / Delivery Contract for all applicable fields.
+4. Mark every delivery area as REQUIRED or N/A; every N/A needs a concrete architectural reason.
+5. Do not invent CRUD permissions, frontend pages, menus or role checks for backend-only/internal features merely to satisfy a generic checklist.
+6. Apply ADR-009 ownership and Tier classification rules.
+7. Decide permission scope for every new permission before implementation.
+8. For a new material feature, create/update the machine-readable `.kyrox/features/<feature-id>.json` contract so CI can validate applicability and detectable material changes.
+9. Follow the gate order; do not jump directly from request to API/page code.
+10. Backend truth, tenant isolation and authorization must exist before UI is accepted.
+11. UI navigation, routes and actions must reflect effective permissions; backend authorization remains mandatory.
+12. Real JWT + organization + Core authorization + Fair CRM API + UI acceptance is required only where runtime authorization is applicable. Mock/bypass/build-only evidence is insufficient for those paths.
+13. Frontend UI changes also require `kyrox-platform/projects/fair-crm/frontend/FRONTEND_UI_MASTER_STANDARD.md`.
+14. Permission changes also require `kyrox-platform/projects/fair-crm/PERMISSION_SCOPE_GOVERNANCE.md`.
 
-Hard stop conditions include ambiguous requirements, guessed permission scope, missing tenant scoping, hard-coded authenticated organization IDs, missing route/action permission guards, duplicated UI primitives, stale-runtime acceptance, or unintended real-runtime 401/403/500.
+Hard stop conditions include ambiguous requirements, guessed applicability, unexplained N/A gates, guessed permission scope, missing tenant scoping, hard-coded authenticated organization IDs, missing route/action permission guards where UI is applicable, invented UI/CRUD for non-user-facing services, duplicated UI primitives, stale-runtime acceptance, or unintended real-runtime 401/403/500.
 
-Do not duplicate the canonical Markdown standard inside this repository. Update `kyrox-platform` when the rule changes.
+Do not duplicate the canonical Markdown standards inside this repository. Update `kyrox-platform` when the rule changes.
