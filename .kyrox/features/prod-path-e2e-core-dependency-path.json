@@ -5,7 +5,7 @@
   "feature_type": "maintenance",
   "owner": "fair-crm",
   "platform_reusability": "product_specific",
-  "trigger": "ci",
+  "trigger": "internal",
   "tenant_scope": "system",
   "user_facing": false,
   "affected_paths": [
