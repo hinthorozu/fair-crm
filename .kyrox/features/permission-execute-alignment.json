@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "id": "permission-execute-alignment",
+  "title": "Canonical Execute Permission Alignment",
+  "feature_type": "maintenance",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "mixed",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/permissions/corePermissions.ts",
+    "frontend/src/permissions/corePermissions.test.ts",
+    "frontend/src/permissions/scraperPermissions.ts",
+    "frontend/src/permissions/mailTemplatePermissions.ts",
+    "frontend/src/permissions/mailTemplatePermissions.test.ts",
+    "frontend/src/permissions/fairEmailPermissions.ts",
+    "frontend/src/labels/permissionLabels.ts",
+    "backend/tests/modules/test_role_matrix_authorization.py"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.imports.execute", "action": "apply import", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.scraper.execute", "action": "run or download scraper execution output", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.mail_templates.execute", "action": "render or test-send mail templates", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_emails.read", "action": "preview fair email recipients/content", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_emails.execute", "action": "send fair bulk email", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.admin.backups.execute", "action": "download or execute backup operation", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.data_operations.execute", "action": "run admin data operation", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No product data schema changes are introduced." },
+    "migration": { "status": "na", "reason": "Core already migrated these legacy action codes to canonical execute/read permissions." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Production backend already uses the canonical permission codes; only stale test naming is aligned." },
+    "api": { "status": "na", "reason": "No API route or payload contract changes are introduced." },
+    "tenant_isolation": { "status": "na", "reason": "No backend tenant query behavior changes are introduced." },
+    "audit": { "status": "na", "reason": "No new mutation or side effect is introduced." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "This alignment does not add or remove navigation entries." },
+    "route_guard": { "status": "na", "reason": "This alignment does not change route access requirements." },
+    "forms": { "status": "na", "reason": "No form workflow or dirty-state behavior changes are introduced." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Core migrations 0049/0050 and current Fair CRM backend use canonical read/execute permissions. Frontend permission helpers must not request retired run/download/render/test_send/preview/send/apply codes."
+}
