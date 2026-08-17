@@ -2,6 +2,7 @@ import React from "react";
 import { loginWithCredentials, logoutSession } from "../api/auth";
 import { config } from "../config";
 import { fetchGrantedCorePermissions } from "../permissions/corePermissions";
+import { resolveSessionOrganizationId } from "./organizationResolver";
 import { refreshSessionSingleFlight } from "./refreshCoordinator";
 import {
   clearSession,
@@ -23,15 +24,27 @@ interface AuthContextValue {
 const AuthContext = React.createContext<AuthContextValue | null>(null);
 
 async function withCorePermissions(session: AuthSession): Promise<AuthSession> {
+  let organizationId = session.organizationId;
   try {
-    const permissions = await fetchGrantedCorePermissions(
+    organizationId = await resolveSessionOrganizationId(
       config.coreBaseUrl,
       session.accessToken,
       session.organizationId,
     );
-    return { ...session, permissions };
   } catch {
-    return { ...session, permissions: [] };
+    // Keep the current organization as a temporary fallback. Permission loading
+    // below will still fail closed when that organization is not valid.
+  }
+
+  try {
+    const permissions = await fetchGrantedCorePermissions(
+      config.coreBaseUrl,
+      session.accessToken,
+      organizationId,
+    );
+    return { ...session, organizationId, permissions };
+  } catch {
+    return { ...session, organizationId, permissions: [] };
   }
 }
 
