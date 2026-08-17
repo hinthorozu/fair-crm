@@ -31,6 +31,10 @@ on:
       - "scripts/maintenance/compare_frontend_ui_inventory.py"
       - ".github/workflows/development-standard.yml"
 
+concurrency:
+  group: development-standard-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   feature-contract:
     name: Feature Contract / Applicability
