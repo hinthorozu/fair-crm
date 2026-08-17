@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "id": "prod-path-e2e-core-dependency-path",
+  "title": "Prod-Path E2E Core Dependency Path Repair",
+  "feature_type": "maintenance",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "ci",
+  "tenant_scope": "system",
+  "user_facing": false,
+  "affected_paths": [
+    ".github/workflows/prod-path-e2e.yml"
+  ],
+  "permissions": {
+    "required": false,
+    "reason": "This change only repairs CI dependency installation and does not alter runtime authorization.",
+    "items": []
+  },
+  "frontend": {
+    "required": false,
+    "reason": "No frontend code or UI behavior changes are introduced.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No database model changes are made." },
+    "migration": { "status": "na", "reason": "No migration changes are made." },
+    "permissions": { "status": "na", "reason": "No permission definitions change." },
+    "backend": { "status": "na", "reason": "Application backend code is unchanged." },
+    "api": { "status": "na", "reason": "No API contract changes are made." },
+    "tenant_isolation": { "status": "na", "reason": "Tenant behavior is unchanged." },
+    "audit": { "status": "na", "reason": "Audit behavior is unchanged." },
+    "frontend": { "status": "na", "reason": "Frontend is unchanged." },
+    "ui_permissions": { "status": "na", "reason": "UI authorization is unchanged." },
+    "menu": { "status": "na", "reason": "Navigation is unchanged." },
+    "route_guard": { "status": "na", "reason": "Routes are unchanged." },
+    "forms": { "status": "na", "reason": "Forms are unchanged." },
+    "visual_qa": { "status": "na", "reason": "No visual change exists." },
+    "backend_tests": { "status": "na", "reason": "The application test suite is unchanged; the CI E2E workflow itself is the verification target." },
+    "frontend_tests": { "status": "na", "reason": "Frontend is unchanged." },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "na", "reason": "CI workflow changes require no application deployment." }
+  },
+  "notes": "Prod-Path E2E checks out kyrox-core at repository root; Core dependencies are declared in kyrox-core/requirements.txt, not kyrox-core/backend/requirements.txt."
+}
