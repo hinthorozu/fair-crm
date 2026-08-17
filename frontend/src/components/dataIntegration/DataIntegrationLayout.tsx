@@ -2,12 +2,12 @@ import React from "react";
 import { useAuth } from "../../auth/AuthContext";
 import { config } from "../../config";
 import { dataIntegrationLabels, DISABLED_NAV_ITEMS } from "../../labels/dataIntegrationLabels";
-import { uiLabels } from "../../labels/uiLabels";
-import { canAccessDataIntegrationSection } from "../../permissions/navigationPermissions";
 import { usePersistedCollapsed } from "../../hooks/usePersistedCollapsed";
+import { canAccessDataIntegrationSection } from "../../permissions/navigationPermissions";
 import { SidebarCollapseButton } from "../layout/SidebarCollapseButton";
 import { DataIntegrationNavIcon, NavIconComingSoon } from "../layout/NavIcons";
 import { NavLink } from "../layout/NavLink";
+import { uiLabels } from "../../labels/uiLabels";
 
 interface DataIntegrationLayoutProps {
   children: React.ReactNode;
@@ -43,25 +43,25 @@ export function DataIntegrationLayout({
   return (
     <div className={`data-integration-layout ${subnavCollapsed ? "di-layout-collapsed" : ""}`}>
       <aside
-        className={`admin-subnav ${subnavCollapsed ? "admin-subnav--collapsed" : ""}`}
+        className={`di-subnav ${subnavCollapsed ? "di-subnav--collapsed" : ""}`}
         aria-label={dataIntegrationLabels.moduleTitle}
         aria-expanded={!subnavCollapsed}
       >
-        <div className="admin-subnav-header">
-          {!subnavCollapsed ? <div><p className="admin-subnav-group">{dataIntegrationLabels.moduleTitle}</p></div> : null}
+        <div className="di-subnav-header">
+          {!subnavCollapsed && <h2 className="di-subnav-title">{dataIntegrationLabels.moduleTitle}</h2>}
           <SidebarCollapseButton
             collapsed={subnavCollapsed}
             onToggle={toggleSubnavCollapsed}
-            className="admin-subnav-collapse-btn"
+            className="di-subnav-collapse-btn"
             expandLabel={uiLabels.diSubnavExpand}
             collapseLabel={uiLabels.diSubnavCollapse}
           />
         </div>
-        <nav className="admin-subnav-links" aria-label={dataIntegrationLabels.moduleTitle}>
+        <nav className="di-subnav-links" aria-label={dataIntegrationLabels.moduleTitle}>
           {primaryItems.map((item) => (
             <NavLink
               key={item.id}
-              variant="admin"
+              variant="di"
               href={item.path}
               label={item.label}
               icon={<DataIntegrationNavIcon id={item.id} />}
@@ -73,7 +73,7 @@ export function DataIntegrationLayout({
           {primaryItems.length > 0 ? DISABLED_NAV_ITEMS.map((item) => (
             <NavLink
               key={item.id}
-              variant="admin"
+              variant="di"
               label={item.label}
               icon={<NavIconComingSoon />}
               disabled
