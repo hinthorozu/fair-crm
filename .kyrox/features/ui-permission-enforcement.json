@@ -9,6 +9,12 @@
   "tenant_scope": "mixed",
   "user_facing": true,
   "affected_paths": [
+    "frontend/src/auth/AuthContext.tsx",
+    "frontend/src/auth/refreshCoordinator.ts",
+    "frontend/src/auth/session.ts",
+    "frontend/src/auth/session.test.ts",
+    "frontend/src/auth/superAdminResolver.ts",
+    "frontend/src/auth/superAdminResolver.test.ts",
     "frontend/src/permissions/corePermissions.ts",
     "frontend/src/permissions/corePermissions.test.ts",
     "frontend/src/permissions/navigationPermissions.ts",
@@ -27,7 +33,7 @@
     "items": [
       { "code": "identity.organizations.read", "action": "read organizations", "scope": "organization", "assignable": true },
       { "code": "identity.organizations.update", "action": "update organization", "scope": "organization", "assignable": true },
-      { "code": "identity.organizations.delete", "action": "delete organization / Super Admin system sentinel", "scope": "system", "assignable": false },
+      { "code": "identity.organizations.delete", "action": "delete organization", "scope": "system", "assignable": false },
       { "code": "identity.users.read", "action": "read users", "scope": "organization", "assignable": true },
       { "code": "identity.users.create", "action": "create users", "scope": "organization", "assignable": true },
       { "code": "identity.users.update", "action": "update users", "scope": "organization", "assignable": true },
@@ -86,5 +92,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Use effective permissions only. Do not infer normal product capabilities from role names. Backend authorization remains the security boundary."
+  "notes": "Use effective permissions for normal product capabilities and Core's resolved is_super_admin identity for platform-only actions that intentionally have no permission code. Do not infer capabilities from role names. Backend authorization remains the security boundary."
 }
