@@ -102,11 +102,11 @@ def test_bulk_send_excludes_contact_consent_from_mso(
         .all()
     )
     statuses = {item.status for item in operations}
-    assert MailSendOperationStatus.SENT in statuses or MailSendOperationStatus.QUEUED in statuses
+    assert statuses == {MailSendOperationStatus.QUEUED}
     skipped = [item for item in operations if item.status == MailSendOperationStatus.SKIPPED]
     assert skipped == []
     assert all(item.recipient_email != "blocked@consent.com" for item in operations)
-    mock_send.assert_called()
+    mock_send.assert_not_called()
 
 
 @patch("app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send")
