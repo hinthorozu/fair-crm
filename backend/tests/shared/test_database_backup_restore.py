@@ -32,17 +32,26 @@ def test_pg_restore_local_is_atomic(tmp_path, monkeypatch):
 
 
 def test_pg_restore_docker_is_atomic(tmp_path, monkeypatch):
+    commands: list[list[str]] = []
     exec_calls: list[list[str]] = []
     monkeypatch.setattr(engine, "_get_toolchain", lambda conn: ("docker", "kyrox-postgres-dev"))
     monkeypatch.setattr(engine, "_docker_cp_to", lambda container, local_path, remote_path: None)
     monkeypatch.setattr(engine, "_docker_exec", lambda container, args: exec_calls.append(args))
+
+    def _run(args, **kwargs):
+        commands.append(args)
+        return type("Proc", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+
+    monkeypatch.setattr(engine.subprocess, "run", _run)
 
     engine.pg_restore_custom(
         database_url="postgresql://postgres:postgres@localhost:5432/fair_crm",
         dump_path=_dump_file(tmp_path),
     )
 
-    restore_command = exec_calls[0]
+    assert len(commands) == 1
+    restore_command = commands[0]
+    assert restore_command[:3] == ["docker", "exec", "kyrox-postgres-dev"]
     assert "--clean" in restore_command
     assert "--single-transaction" in restore_command
     assert "--exit-on-error" in restore_command
