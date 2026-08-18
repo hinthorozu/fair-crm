@@ -20,7 +20,7 @@ DETAIL_HTML = """
     <p>Kategori: Gıda</p>
     <p>Adres: İstanbul</p>
     <p>Telefon: 0212 444 55 66</p>
-    <p>E-posta: info@alpha.test</p>
+    <p>E-posta: info@alpha.example</p>
     <p>Açıklama: Demo açıklama.</p>
     <a href="https://www.alpha.test">Site</a>
     <a href="https://www.facebook.com/alpha">Facebook</a>
@@ -128,7 +128,7 @@ def test_scrape_detail_true_merges_detail_fields():
     assert row.company_name == "Alpha A.Ş."
     assert row.hall == "1"
     assert row.stand == "A1"
-    assert row.email == "info@alpha.test"
+    assert row.email == "info@alpha.example"
     assert row.phone is not None
     assert row.website == "https://www.alpha.test"
     assert row.address == "İstanbul"
