@@ -148,7 +148,7 @@ def test_startup_recovery_triggers_worker_for_queued(
     "app.modules.email_delivery.application.email_delivery_service.EmailDeliveryDispatcher.send",
     return_value=EmailDeliveryResult(success=True, transport="smtp"),
 )
-def test_startup_recovery_queued_advances_to_failed_on_smtp_error(
+def test_startup_recovery_retryable_smtp_error_is_requeued(
     mock_send,
     db_session,
     organization_id,
@@ -164,12 +164,17 @@ def test_startup_recovery_queued_advances_to_failed_on_smtp_error(
     result = run_mail_queue_startup_recovery()
     assert result is not None
     assert result.failed_count == 1
+    assert result.retried_count == 1
+    mock_send.assert_called_once()
 
     refreshed = db_session.query(MailSendOperationModel).filter(MailSendOperationModel.id == operation.id).one()
-    assert refreshed.status == MailSendOperationStatus.FAILED
+    assert refreshed.status == MailSendOperationStatus.QUEUED
+    assert refreshed.retry_count == 2
+    assert refreshed.error_code is None
     events = [entry["event"] for entry in refreshed.operation_logs]
     assert "sending_started" in events
-    assert events[-1] == "failed"
+    assert "failed" in events
+    assert events[-1] == "auto_retry_scheduled"
 
 
 def test_startup_recovery_does_not_block_app_boot(monkeypatch):
