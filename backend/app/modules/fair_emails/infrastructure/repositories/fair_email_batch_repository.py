@@ -21,10 +21,16 @@ from app.modules.fair_emails.infrastructure.repositories.fair_email_batch_reposi
     FairEmailOutboxItemRecord,
     SqlAlchemyFairEmailBatchRepository as _LegacyFairEmailBatchRepository,
 )
+from app.modules.smtp.domain.smtp_timeout_errors import (
+    SMTP_CONNECT_TIMEOUT_CODE,
+    SMTP_TIMEOUT_CODE,
+    timeout_log_message,
+)
 
 _TERMINAL_BATCH_STATUSES = frozenset(
     {"completed", "completed_with_errors", "failed", "cancelled"}
 )
+_SMTP_TIMEOUT_ERROR_CODES = frozenset({SMTP_CONNECT_TIMEOUT_CODE, SMTP_TIMEOUT_CODE})
 
 
 class SqlAlchemyFairEmailBatchRepository(_LegacyFairEmailBatchRepository):
@@ -56,6 +62,18 @@ class SqlAlchemyFairEmailBatchRepository(_LegacyFairEmailBatchRepository):
         message: str,
         error_code: str | None = None,
     ) -> None:
+        if error_code in _SMTP_TIMEOUT_ERROR_CODES:
+            model = (
+                self._session.query(FairEmailOutboxModel)
+                .filter(FairEmailOutboxModel.id == outbox_id)
+                .one()
+            )
+            self._append_log(
+                model,
+                error_code,
+                timeout_log_message(error_code),
+                datetime.now(timezone.utc),
+            )
         super().update_outbox_failed(outbox_id, message=message, error_code=error_code)
 
     def prepare_outbox_for_retry(self, outbox_id: UUID) -> None:
