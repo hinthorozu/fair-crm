@@ -157,7 +157,7 @@ def test_list_email_batches_denied_without_preview_permission(client, auth_heade
     )
 
     client.app.dependency_overrides[get_fair_emails_authorization_adapter] = lambda: SelectiveAuthorization(
-        denied={"fair_crm.fair_emails.preview"}
+        denied={"fair_crm.fair_emails.read"}
     )
     try:
         response = client.get(
