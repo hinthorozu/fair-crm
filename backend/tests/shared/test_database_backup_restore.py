@@ -13,7 +13,12 @@ def test_pg_restore_local_is_atomic(tmp_path, monkeypatch):
     commands: list[list[str]] = []
     monkeypatch.setattr(engine, "_get_toolchain", lambda conn: ("local", None))
     monkeypatch.setattr(engine, "_resolve_pg_tool", lambda name: "pg_restore")
-    monkeypatch.setattr(engine, "_run_command", lambda args, env=None: commands.append(args))
+
+    def _run(args, **kwargs):
+        commands.append(args)
+        return type("Proc", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+
+    monkeypatch.setattr(engine.subprocess, "run", _run)
 
     engine.pg_restore_custom(
         database_url="postgresql://postgres:postgres@localhost:5432/fair_crm",
