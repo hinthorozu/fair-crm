@@ -3,10 +3,10 @@
   "policy": "zero_new_failures",
   "target_failure_count": 0,
   "source": {
-    "workflow_run_id": 32146710340,
-    "commit": "0cee593189e4bc5cbeca93d10c817d3b7e176de4",
-    "passed": 1674,
-    "failed": 8
+    "workflow_run_id": 32148801848,
+    "commit": "bdd5beafe863b22858ad4d8d3c9d351932353c73",
+    "passed": 1675,
+    "failed": 7
   },
   "known_failures": [
     "tests/modules/fair_emails/test_fair_bulk_email_consent.py::test_bulk_send_excludes_contact_consent_from_mso",
@@ -15,7 +15,6 @@
     "tests/modules/mail_send_operations/test_startup_mail_queue_recovery.py::test_startup_recovery_queued_advances_to_failed_on_smtp_error",
     "tests/modules/mail_send_operations/test_startup_mail_queue_recovery.py::test_startup_recovery_does_not_block_app_boot",
     "tests/modules/smtp/test_smtp_timeout_operations.py::test_fair_bulk_timeout_fails_single_outbox_and_continues_batch",
-    "tests/shared/test_database_backup_restore.py::test_pg_restore_local_is_atomic",
     "tests/shared/test_database_backup_restore.py::test_pg_restore_docker_is_atomic"
   ]
 }
