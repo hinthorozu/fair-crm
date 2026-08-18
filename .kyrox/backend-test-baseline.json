@@ -3,13 +3,12 @@
   "policy": "zero_new_failures",
   "target_failure_count": 0,
   "source": {
-    "workflow_run_id": 32159143782,
-    "commit": "4667f89dc37d7c8b141cbe1af177f0e120ca5a50",
-    "passed": 1680,
-    "failed": 2
+    "workflow_run_id": 32161267291,
+    "commit": "7954e92e298d8c9d6b05f477ef1dc8da73a03110",
+    "passed": 1681,
+    "failed": 1
   },
   "known_failures": [
-    "tests/modules/mail_send_operations/test_startup_mail_queue_recovery.py::test_startup_recovery_queued_advances_to_failed_on_smtp_error",
     "tests/modules/mail_send_operations/test_startup_mail_queue_recovery.py::test_startup_recovery_does_not_block_app_boot"
   ]
 }
