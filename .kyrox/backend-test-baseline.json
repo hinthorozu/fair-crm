@@ -3,13 +3,12 @@
   "policy": "zero_new_failures",
   "target_failure_count": 0,
   "source": {
-    "workflow_run_id": 32155473279,
-    "commit": "7df82c4c7a6a4fc9d5f4636d331a6faef57ac5b8",
-    "passed": 1678,
-    "failed": 4
+    "workflow_run_id": 32157307164,
+    "commit": "2045cfbbfc48c253ae400f9108001e72fa74b1ef",
+    "passed": 1679,
+    "failed": 3
   },
   "known_failures": [
-    "tests/modules/fair_emails/test_fair_email_batch_logs_api.py::test_list_email_batches_denied_without_preview_permission",
     "tests/modules/fair_emails/test_process_fair_email_batch.py::test_send_then_background_processor_updates_outbox",
     "tests/modules/mail_send_operations/test_startup_mail_queue_recovery.py::test_startup_recovery_queued_advances_to_failed_on_smtp_error",
     "tests/modules/mail_send_operations/test_startup_mail_queue_recovery.py::test_startup_recovery_does_not_block_app_boot"
