@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "id": "repository-branch-cleanup",
+  "title": "Repository Branch Cleanup",
+  "feature_type": "maintenance",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "internal",
+  "tenant_scope": "system",
+  "user_facing": false,
+  "affected_paths": [
+    ".github/workflows/cleanup-non-main-branches.yml",
+    ".kyrox/features/repository-branch-cleanup.json"
+  ],
+  "permissions": {
+    "required": false,
+    "reason": "No application authorization behavior changes.",
+    "items": []
+  },
+  "frontend": {
+    "required": false,
+    "reason": "No frontend code or user-visible behavior changes.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No database changes." },
+    "migration": { "status": "na", "reason": "No schema changes." },
+    "permissions": { "status": "na", "reason": "Application permissions are unchanged." },
+    "backend": { "status": "na", "reason": "No production backend code changes." },
+    "api": { "status": "na", "reason": "No API changes." },
+    "tenant_isolation": { "status": "na", "reason": "Tenant behavior is unchanged." },
+    "audit": { "status": "na", "reason": "Application audit behavior is unchanged." },
+    "frontend": { "status": "na", "reason": "Frontend is unchanged." },
+    "ui_permissions": { "status": "na", "reason": "UI authorization is unchanged." },
+    "menu": { "status": "na", "reason": "Navigation is unchanged." },
+    "route_guard": { "status": "na", "reason": "Routes are unchanged." },
+    "forms": { "status": "na", "reason": "Forms are unchanged." },
+    "visual_qa": { "status": "na", "reason": "No visual changes." },
+    "backend_tests": { "status": "na", "reason": "No backend behavior changes." },
+    "frontend_tests": { "status": "na", "reason": "No frontend behavior changes." },
+    "runtime_authorization": { "status": "na", "reason": "Runtime authorization is unchanged." },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "na", "reason": "Repository branch maintenance only." }
+  },
+  "notes": "One-time repository maintenance: after merge, delete every non-main branch while preserving main as the only long-lived branch."
+}
