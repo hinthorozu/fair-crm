@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import threading
-import time
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 from uuid import uuid4
@@ -177,45 +175,18 @@ def test_startup_recovery_retryable_smtp_error_is_requeued(
     assert events[-1] == "auto_retry_scheduled"
 
 
-def test_startup_recovery_does_not_block_app_boot(monkeypatch):
-    monkeypatch.setenv("MAIL_STARTUP_RECOVERY_ENABLED", "true")
-    get_settings.cache_clear()
-
-    release = threading.Event()
-    entered = threading.Event()
-
-    def _slow_recovery():
-        entered.set()
-        release.wait(timeout=5)
-        return MailSendOperationWorkerResult(0, 0, 0, 0, 0)
-
-    with patch(
-        "app.modules.mail_send_operations.application.startup_mail_queue_recovery."
-        "run_mail_queue_startup_recovery",
-        side_effect=_slow_recovery,
-    ):
-        started = time.monotonic()
-        with TestClient(create_app()) as client:
-            boot_elapsed = time.monotonic() - started
-            assert boot_elapsed < 2.0
-            assert client.get("/health").json()["status"] == "ok"
-            assert entered.wait(timeout=2.0)
-            release.set()
-    get_settings.cache_clear()
-
-
-def test_startup_recovery_worker_error_does_not_fail_boot(monkeypatch):
+def test_web_app_boot_does_not_run_mail_queue_recovery(monkeypatch):
+    """Queued mail is owned by the standalone mail worker, not FastAPI startup."""
     monkeypatch.setenv("MAIL_STARTUP_RECOVERY_ENABLED", "true")
     get_settings.cache_clear()
 
     with patch(
         "app.modules.mail_send_operations.application.startup_mail_queue_recovery."
         "run_mail_queue_startup_recovery",
-        side_effect=RuntimeError("recovery boom"),
-    ):
+    ) as mock_recovery:
         with TestClient(create_app()) as client:
-            assert client.get("/health").status_code == 200
             assert client.get("/health").json()["status"] == "ok"
+    mock_recovery.assert_not_called()
     get_settings.cache_clear()
 
 
