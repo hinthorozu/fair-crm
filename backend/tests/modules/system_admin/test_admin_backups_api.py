@@ -765,10 +765,16 @@ def test_resolve_backup_path_accepts_supported_extensions(tmp_path, monkeypatch)
         resolve_backup_path("evil.exe")
 
 
-def test_restore_job_can_be_started_from_api(client, auth_headers, monkeypatch):
+def test_restore_job_can_be_started_from_api(client, auth_headers, backups_root, monkeypatch):
     from types import SimpleNamespace
 
+    from app.shared.database_backup.engine import BackupVerificationResult
+
     launched: list[dict] = []
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
     monkeypatch.setattr(
         "app.modules.system_admin.api.routes.get_settings",
         lambda: SimpleNamespace(database_restore_enabled=True),
@@ -785,6 +791,7 @@ def test_restore_job_can_be_started_from_api(client, auth_headers, monkeypatch):
     create = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
     backup_id = _first_item(create.json())["id"]
     restore = client.post(f"/api/v1/admin/backups/{backup_id}/restore", headers=auth_headers)
+    assert restore.status_code == 202, restore.text
     job_id = restore.json()["id"]
 
     started = client.post(f"/api/v1/admin/backups/restore-jobs/{job_id}/start", headers=auth_headers)
