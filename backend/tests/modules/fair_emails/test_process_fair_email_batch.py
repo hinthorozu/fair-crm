@@ -195,10 +195,15 @@ def test_send_then_background_processor_updates_outbox(
         headers=auth_headers,
     )
     assert response.status_code == 200
-    batch_id = response.json()["batch_id"]
+    batch_id = UUID(response.json()["batch_id"])
 
-    batch = db_session.query(FairEmailBatchModel).filter(FairEmailBatchModel.id == UUID(batch_id)).one()
-    outbox = db_session.query(FairEmailOutboxModel).filter(FairEmailOutboxModel.batch_id == UUID(batch_id)).all()
+    ProcessFairEmailBatchUseCase(db_session).execute(
+        ProcessBatchCommand(batch_id=batch_id, organization_id=organization_id)
+    )
+    db_session.expire_all()
+
+    batch = db_session.query(FairEmailBatchModel).filter(FairEmailBatchModel.id == batch_id).one()
+    outbox = db_session.query(FairEmailOutboxModel).filter(FairEmailOutboxModel.batch_id == batch_id).all()
     assert batch.status == "completed"
     assert batch.sent_count >= 1
     assert all(item.status == "sent" for item in outbox)
