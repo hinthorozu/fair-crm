@@ -89,10 +89,13 @@ def test_build_chromium_launch_options_uses_full_chromium_when_headless_shell_mi
 
 def test_build_chromium_launch_options_uses_shell_when_env_invalid(tmp_path, monkeypatch):
     monkeypatch.setenv("PLAYWRIGHT_BROWSERS_PATH", str(tmp_path / "missing-sandbox-playwright"))
-    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
 
     install_root = tmp_path / "ms-playwright"
     shell_exe = _install_headless_shell(install_root)
+    monkeypatch.setattr(
+        "app.modules.scraper.core.playwright_availability._default_ms_playwright_root",
+        lambda: install_root,
+    )
 
     options = build_chromium_launch_options(MagicMock(), BrowserConfig(headless=True))
 
