@@ -53,13 +53,14 @@ def test_is_playwright_browser_installed_true_when_only_full_chromium_installed(
 def test_is_playwright_browser_installed_true_when_env_invalid_but_default_has_chromium(
     tmp_path, monkeypatch
 ):
-    default_root = tmp_path / "default-ms-playwright"
-    _install_full_chromium(default_root)
     monkeypatch.setenv("PLAYWRIGHT_BROWSERS_PATH", str(tmp_path / "missing-sandbox-playwright"))
-    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
 
     default_install = tmp_path / "ms-playwright"
     _install_full_chromium(default_install)
+    monkeypatch.setattr(
+        "app.modules.scraper.core.playwright_availability._default_ms_playwright_root",
+        lambda: default_install,
+    )
 
     assert is_playwright_browser_installed(BrowserConfig(headless=True)) is True
 
