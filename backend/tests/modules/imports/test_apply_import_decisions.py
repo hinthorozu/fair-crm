@@ -108,19 +108,20 @@ def test_apply_selected_rows_with_decisions(client, auth_headers):
     assert remaining[0]["id"] != row_a
 
 
-def test_apply_selected_without_decision_reports_not_processed(client, auth_headers):
+def test_apply_selected_uses_analyze_default_decision(client, auth_headers):
     fair_id = _fair_id(client, auth_headers)
-    batch_id = _upload_and_analyze(client, auth_headers, fair_id, [["No Decision Co"]])
-    row_id = client.get(
+    batch_id = _upload_and_analyze(client, auth_headers, fair_id, [["Default Decision Co"]])
+    row = client.get(
         f"/api/v1/data-integration/imports/{batch_id}/rows",
         headers=auth_headers,
-    ).json()["items"][0]["id"]
+    ).json()["items"][0]
+    assert row["decision"] == "create_new"
 
-    apply = apply_import_decisions(client, auth_headers, batch_id, row_ids=[row_id])
+    apply = apply_import_decisions(client, auth_headers, batch_id, row_ids=[row["id"]])
     assert apply.status_code == 200
     body = apply.json()
-    assert body["processed_count"] == 0
-    assert body["not_processed_count"] == 1
+    assert body["processed_count"] == 1
+    assert body["not_processed_count"] == 0
     assert body["failed_count"] == 0
     assert body["errors"] == []
 
