@@ -29,6 +29,7 @@ from app.modules.customers.api.dependencies import (
     get_list_customers_use_case,
     get_restore_customer_use_case,
     get_update_customer_use_case,
+    require_execute_permission,
     require_read_permission,
 )
 from app.modules.customers.api.schemas import (
@@ -321,7 +322,7 @@ def export_customers(
         ),
     ] = None,
     sort_dir: Annotated[str | None, Query(include_in_schema=False)] = None,
-    auth: AuthContext = Depends(require_read_permission),
+    auth: AuthContext = Depends(require_execute_permission),
     use_case: ExportCustomersUseCase = Depends(get_export_customers_use_case),
 ):
     list_status, list_include_archived = _resolve_list_status(

@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "id": "customer-permission-completion",
+  "title": "Complete Customer CRUD and Execute Permission Enforcement",
+  "feature_type": "maintenance",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "mixed",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/CustomersPage.tsx",
+    "frontend/src/pages/CustomerDetailPage.tsx",
+    "frontend/src/components/CustomerList.tsx",
+    "frontend/src/components/ContactList.tsx",
+    "frontend/src/components/ActivityList.tsx",
+    "frontend/src/components/ParticipationList.tsx",
+    "frontend/src/hooks/usePermissions.ts",
+    "frontend/src/hooks/usePermissions.test.ts",
+    "frontend/src/permissions/customerPermissions.ts",
+    "frontend/src/permissions/corePermissions.ts",
+    "frontend/src/permissions/corePermissions.test.ts",
+    "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/labels/permissionLabels.ts",
+    "backend/app/modules/customers/api/dependencies.py",
+    "backend/app/modules/customers/api/routes.py",
+    "backend/tests/modules/customers/test_customer_export_permission.py"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.customers.read", "action": "list and open customers", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.customers.create", "action": "create customers", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.customers.update", "action": "update customers", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.customers.delete", "action": "archive and restore customers", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.customers.execute", "action": "export customer data", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.contacts.read", "action": "view customer contacts", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.contacts.create", "action": "create customer contacts", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.contacts.update", "action": "update customer contacts", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.contacts.delete", "action": "delete customer contacts", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.activities.read", "action": "view customer activities", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.activities.create", "action": "create customer activities", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.activities.update", "action": "update customer activities", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.activities.delete", "action": "delete customer activities", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.participations.read", "action": "view customer fair participations", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.participations.create", "action": "create customer fair participations", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.participations.update", "action": "update customer fair participations", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.participations.delete", "action": "delete customer fair participations", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/customers",
+      "/customers/:id"
+    ],
+    "menu": true,
+    "menu_permission": "fair_crm.customers.read"
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No Fair CRM product data schema changes are introduced." },
+    "migration": { "status": "required" },
+    "permissions": { "status": "required" },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "na", "reason": "Existing organization scoping is unchanged." },
+    "audit": { "status": "na", "reason": "Existing mutation audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "required" },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Customer UI must mirror effective action permissions across navigation, list/detail pages, buttons, tables, empty-state actions, forms and export. Export uses fair_crm.customers.execute. Nested contact/activity/participation surfaces use their own CRUD permissions. Backend authorization remains the security boundary."
+}

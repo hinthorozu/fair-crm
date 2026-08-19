@@ -23,8 +23,8 @@ import {
 interface ActivityTableProps {
   items: Activity[];
   deletingId: string | null;
-  onEdit: (activity: Activity) => void;
-  onDelete: (activity: Activity) => void;
+  onEdit?: (activity: Activity) => void;
+  onDelete?: (activity: Activity) => void;
   onCreate?: () => void;
   emptyDueToFilters?: boolean;
   sortField?: string | null;
@@ -34,7 +34,7 @@ interface ActivityTableProps {
 
 function buildActivityColumns(props: ActivityTableProps): UniversalDataTableColumn<Activity>[] {
   const { onEdit, onDelete, deletingId } = props;
-  return [
+  const columns: UniversalDataTableColumn<Activity>[] = [
     {
       key: "activity_date",
       title: activityLabels.activityDate,
@@ -96,16 +96,23 @@ function buildActivityColumns(props: ActivityTableProps): UniversalDataTableColu
         </Badge>
       ),
     },
-    {
-      key: "actions",
-      title: activityLabels.actions,
-      sortable: false,
-      className: "actions",
-      render: (a) => (
-        <TableRowActions>
+  ];
+
+  if (!onEdit && !onDelete) return columns;
+
+  columns.push({
+    key: "actions",
+    title: activityLabels.actions,
+    sortable: false,
+    className: "actions",
+    render: (a) => (
+      <TableRowActions>
+        {onEdit ? (
           <button type="button" className="btn link" onClick={() => onEdit(a)}>
             {activityLabels.edit}
           </button>
+        ) : null}
+        {onDelete ? (
           <button
             type="button"
             className="btn link danger"
@@ -114,10 +121,12 @@ function buildActivityColumns(props: ActivityTableProps): UniversalDataTableColu
           >
             {deletingId === a.id ? labels.loading : activityLabels.delete}
           </button>
-        </TableRowActions>
-      ),
-    },
-  ];
+        ) : null}
+      </TableRowActions>
+    ),
+  });
+
+  return columns;
 }
 
 export function ActivityTable(props: ActivityTableProps) {

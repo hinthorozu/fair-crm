@@ -11,7 +11,7 @@ afterEach(() => {
 describe("Core permission synchronization", () => {
   it("contains every permission code enforced by the Fair CRM backend and UI guards", () => {
     expect(new Set(FAIR_CRM_PERMISSION_CODES).size).toBe(FAIR_CRM_PERMISSION_CODES.length);
-    expect(FAIR_CRM_PERMISSION_CODES).toHaveLength(94);
+    expect(FAIR_CRM_PERMISSION_CODES).toHaveLength(95);
     expect(FAIR_CRM_PERMISSION_CODES).toContain("identity.organizations.read");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("identity.organizations.update");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("identity.organizations.delete");
@@ -19,6 +19,7 @@ describe("Core permission synchronization", () => {
     expect(FAIR_CRM_PERMISSION_CODES).toContain("identity.roles.create");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("identity.permissions.lifecycle");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.customers.delete");
+    expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.customers.execute");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.fairs.delete");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.todos.delete");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.todos.outcomes.delete");

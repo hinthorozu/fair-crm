@@ -15,8 +15,8 @@ interface CustomerParticipationTableProps {
   items: CustomerParticipationListItem[];
   deletingId: string | null;
   onCreate?: () => void;
-  onEdit: (item: CustomerParticipationListItem) => void;
-  onDelete: (item: CustomerParticipationListItem) => void;
+  onEdit?: (item: CustomerParticipationListItem) => void;
+  onDelete?: (item: CustomerParticipationListItem) => void;
   emptyDueToFilters?: boolean;
   sortField?: string | null;
   sortDirection?: "asc" | "desc" | null;
@@ -27,7 +27,7 @@ function buildCustomerParticipationColumns(
   props: CustomerParticipationTableProps,
 ): UniversalDataTableColumn<CustomerParticipationListItem>[] {
   const { onEdit, onDelete, deletingId } = props;
-  return [
+  const columns: UniversalDataTableColumn<CustomerParticipationListItem>[] = [
     {
       key: "fair_name",
       title: participationLabels.fair,
@@ -52,16 +52,23 @@ function buildCustomerParticipationColumns(
       sortable: true,
       render: (item) => item.notes ?? "—",
     },
-    {
-      key: "actions",
-      title: participationLabels.actions,
-      sortable: false,
-      className: "actions",
-      render: (item) => (
-        <TableRowActions>
+  ];
+
+  if (!onEdit && !onDelete) return columns;
+
+  columns.push({
+    key: "actions",
+    title: participationLabels.actions,
+    sortable: false,
+    className: "actions",
+    render: (item) => (
+      <TableRowActions>
+        {onEdit ? (
           <button type="button" className="btn link" onClick={() => onEdit(item)}>
             {participationLabels.edit}
           </button>
+        ) : null}
+        {onDelete ? (
           <button
             type="button"
             className="btn link danger"
@@ -70,10 +77,12 @@ function buildCustomerParticipationColumns(
           >
             {deletingId === item.id ? labels.loading : participationLabels.delete}
           </button>
-        </TableRowActions>
-      ),
-    },
-  ];
+        ) : null}
+      </TableRowActions>
+    ),
+  });
+
+  return columns;
 }
 
 export function CustomerParticipationTable(props: CustomerParticipationTableProps) {
@@ -105,8 +114,8 @@ interface FairParticipantTableProps {
   items: FairParticipantListItem[];
   deletingId: string | null;
   onCreate?: () => void;
-  onEdit: (item: FairParticipantListItem) => void;
-  onDelete: (item: FairParticipantListItem) => void;
+  onEdit?: (item: FairParticipantListItem) => void;
+  onDelete?: (item: FairParticipantListItem) => void;
   onOpenCustomer?: (customerId: string) => void;
   emptyDueToFilters?: boolean;
   sortField?: string | null;
@@ -118,7 +127,7 @@ function buildFairParticipantColumns(
   props: FairParticipantTableProps,
 ): UniversalDataTableColumn<FairParticipantListItem>[] {
   const { onEdit, onDelete, onOpenCustomer, deletingId } = props;
-  return [
+  const columns: UniversalDataTableColumn<FairParticipantListItem>[] = [
     {
       key: "company_name",
       title: participationLabels.company,
@@ -150,16 +159,23 @@ function buildFairParticipantColumns(
       sortable: true,
       render: (item) => item.notes ?? "—",
     },
-    {
-      key: "actions",
-      title: participationLabels.actions,
-      sortable: false,
-      className: "actions",
-      render: (item) => (
-        <TableRowActions>
+  ];
+
+  if (!onEdit && !onDelete) return columns;
+
+  columns.push({
+    key: "actions",
+    title: participationLabels.actions,
+    sortable: false,
+    className: "actions",
+    render: (item) => (
+      <TableRowActions>
+        {onEdit ? (
           <button type="button" className="btn link" onClick={() => onEdit(item)}>
             {participationLabels.edit}
           </button>
+        ) : null}
+        {onDelete ? (
           <button
             type="button"
             className="btn link danger"
@@ -168,10 +184,12 @@ function buildFairParticipantColumns(
           >
             {deletingId === item.id ? labels.loading : participationLabels.delete}
           </button>
-        </TableRowActions>
-      ),
-    },
-  ];
+        ) : null}
+      </TableRowActions>
+    ),
+  });
+
+  return columns;
 }
 
 export function FairParticipantTable(props: FairParticipantTableProps) {

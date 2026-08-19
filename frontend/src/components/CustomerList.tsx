@@ -121,9 +121,9 @@ export function CustomerFilters({
 
 interface CustomerTableProps {
   items: Customer[];
-  onEdit: (customer: Customer) => void;
-  onArchive: (customer: Customer) => void;
-  onRestore: (customer: Customer) => void;
+  onEdit?: (customer: Customer) => void;
+  onArchive?: (customer: Customer) => void;
+  onRestore?: (customer: Customer) => void;
   onOpenDetail?: (customer: Customer) => void;
   onCreate?: () => void;
   archivingId: string | null;
@@ -153,7 +153,7 @@ function formatDateTime(value: string | null | undefined): string {
 
 function buildCustomerColumns(props: CustomerTableProps): UniversalDataTableColumn<Customer>[] {
   const { onEdit, onArchive, onRestore, onOpenDetail, archivingId, restoringId } = props;
-  return [
+  const columns: UniversalDataTableColumn<Customer>[] = [
     {
       key: "name",
       title: labels.display_name,
@@ -221,45 +221,50 @@ function buildCustomerColumns(props: CustomerTableProps): UniversalDataTableColu
       sortable: true,
       render: (c) => formatDateTime(c.updated_at),
     },
-    {
-      key: "actions",
-      title: labels.actions,
-      sortable: false,
-      className: "actions",
-      render: (c) => {
-        const isArchived = isArchivedCustomer(c);
-        return (
-          <TableRowActions>
-            {isArchived && (
-              <button
-                type="button"
-                className="btn link"
-                disabled={restoringId === c.id}
-                onClick={() => onRestore(c)}
-              >
-                {restoringId === c.id ? labels.loading : labels.restore}
-              </button>
-            )}
-            {!isArchived && (
-              <>
-                <button type="button" className="btn link" onClick={() => onEdit(c)}>
-                  {labels.edit}
-                </button>
-                <button
-                  type="button"
-                  className="btn link danger"
-                  disabled={archivingId === c.id}
-                  onClick={() => onArchive(c)}
-                >
-                  {archivingId === c.id ? labels.loading : labels.archive}
-                </button>
-              </>
-            )}
-          </TableRowActions>
-        );
-      },
-    },
   ];
+
+  if (!onEdit && !onArchive && !onRestore) return columns;
+
+  columns.push({
+    key: "actions",
+    title: labels.actions,
+    sortable: false,
+    className: "actions",
+    render: (c) => {
+      const isArchived = isArchivedCustomer(c);
+      return (
+        <TableRowActions>
+          {isArchived && onRestore ? (
+            <button
+              type="button"
+              className="btn link"
+              disabled={restoringId === c.id}
+              onClick={() => onRestore(c)}
+            >
+              {restoringId === c.id ? labels.loading : labels.restore}
+            </button>
+          ) : null}
+          {!isArchived && onEdit ? (
+            <button type="button" className="btn link" onClick={() => onEdit(c)}>
+              {labels.edit}
+            </button>
+          ) : null}
+          {!isArchived && onArchive ? (
+            <button
+              type="button"
+              className="btn link danger"
+              disabled={archivingId === c.id}
+              onClick={() => onArchive(c)}
+            >
+              {archivingId === c.id ? labels.loading : labels.archive}
+            </button>
+          ) : null}
+        </TableRowActions>
+      );
+    },
+  });
+
+  return columns;
 }
 
 export function buildAnalysisCustomerColumns(

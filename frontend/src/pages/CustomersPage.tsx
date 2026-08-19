@@ -20,11 +20,18 @@ import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { FormModal, runAfterSuccessfulFormSubmit } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
+import { usePermissions } from "../hooks/usePermissions";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import type { Customer, CustomerStatus, CustomerType } from "../types/customer";
 import { labels } from "../labels";
 import { Banner } from "../components/ui/Banner";
 import { PageShell } from "../components/ui/PageShell";
+import {
+  CUSTOMER_CREATE,
+  CUSTOMER_DELETE,
+  CUSTOMER_EXECUTE,
+  CUSTOMER_UPDATE,
+} from "../permissions/customerPermissions";
 
 type ConfirmAction =
   | { type: "archive"; customer: Customer }
@@ -32,6 +39,12 @@ type ConfirmAction =
   | null;
 
 export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: string) => void }) {
+  const { can } = usePermissions();
+  const canCreate = can(CUSTOMER_CREATE);
+  const canUpdate = can(CUSTOMER_UPDATE);
+  const canDelete = can(CUSTOMER_DELETE);
+  const canExecute = can(CUSTOMER_EXECUTE);
+
   const [success, setSuccess] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [modal, setModal] = React.useState<"create" | "edit" | null>(null);
@@ -127,6 +140,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
   };
 
   const handleExport = async () => {
+    if (!canExecute) return;
     setExporting(true);
     setError(null);
     try {
@@ -158,6 +172,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
   };
 
   const openCreate = () => {
+    if (!canCreate) return;
     setEditing(null);
     setModal("create");
   };
@@ -171,9 +186,11 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
         title={labels.customers}
         subtitle={`${table.pagination.totalItems} kayıt`}
         actions={
-          <button type="button" className="btn primary" onClick={openCreate}>
-            {labels.newCustomer}
-          </button>
+          canCreate ? (
+            <button type="button" className="btn primary" onClick={openCreate}>
+              {labels.newCustomer}
+            </button>
+          ) : undefined
         }
       />
 
@@ -212,7 +229,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
               });
             }}
             onRefresh={() => void table.refresh()}
-            onExport={() => void handleExport()}
+            onExport={canExecute ? () => void handleExport() : undefined}
             exporting={exporting}
           />
         }
@@ -225,14 +242,22 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
           sortDirection={table.sorting.direction}
           onSortChange={table.setSort}
           emptyDueToFilters={table.hasActiveFilters}
-          onCreate={openCreate}
+          onCreate={canCreate ? openCreate : undefined}
           onOpenDetail={onOpenDetail ? (c) => onOpenDetail(c.id) : undefined}
-          onEdit={(c) => {
-            setEditing(c);
-            setModal("edit");
-          }}
-          onArchive={(c) => setConfirm({ type: "archive", customer: c })}
-          onRestore={(c) => setConfirm({ type: "restore", customer: c })}
+          onEdit={
+            canUpdate
+              ? (c) => {
+                  setEditing(c);
+                  setModal("edit");
+                }
+              : undefined
+          }
+          onArchive={
+            canDelete ? (c) => setConfirm({ type: "archive", customer: c }) : undefined
+          }
+          onRestore={
+            canDelete ? (c) => setConfirm({ type: "restore", customer: c }) : undefined
+          }
         />
       </ServerDataTableFrame>
 
@@ -243,7 +268,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
         </Banner>
       )}
 
-      {modal === "create" && (
+      {modal === "create" && canCreate && (
         <FormModal title={labels.newCustomer} onClose={closeModal} size="lg">
           <CustomerForm
             hydrateKey={`create-${createSessionKey}`}
@@ -255,7 +280,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
         </FormModal>
       )}
 
-      {modal === "edit" && editing && (
+      {modal === "edit" && editing && canUpdate && (
         <FormModal title={labels.editCustomer} onClose={closeModal} size="lg">
           <CustomerForm
             hydrateKey={editing.id}
@@ -267,7 +292,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
         </FormModal>
       )}
 
-      {confirm?.type === "archive" && (
+      {confirm?.type === "archive" && canDelete && (
         <ConfirmDialog
           title={labels.archive}
           message={labels.archiveConfirm}
@@ -279,7 +304,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
         />
       )}
 
-      {confirm?.type === "restore" && (
+      {confirm?.type === "restore" && canDelete && (
         <ConfirmDialog
           title={labels.restore}
           message={labels.restoreConfirm}
