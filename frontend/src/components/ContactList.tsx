@@ -11,8 +11,8 @@ import { TableRowActions } from "./ui/TableRowActions";
 interface ContactTableProps {
   items: Contact[];
   deletingId: string | null;
-  onEdit: (contact: Contact) => void;
-  onDelete: (contact: Contact) => void;
+  onEdit?: (contact: Contact) => void;
+  onDelete?: (contact: Contact) => void;
   onCreate?: () => void;
   emptyDueToFilters?: boolean;
   sortField?: string | null;
@@ -26,7 +26,7 @@ function formatPhone(contact: Contact): string {
 
 function buildContactColumns(props: ContactTableProps): UniversalDataTableColumn<Contact>[] {
   const { onEdit, onDelete, deletingId } = props;
-  return [
+  const columns: UniversalDataTableColumn<Contact>[] = [
     {
       key: "full_name",
       title: contactLabels.fullName,
@@ -66,16 +66,23 @@ function buildContactColumns(props: ContactTableProps): UniversalDataTableColumn
       sortable: true,
       render: (c) => formatPhone(c),
     },
-    {
-      key: "actions",
-      title: contactLabels.actions,
-      sortable: false,
-      className: "actions",
-      render: (c) => (
-        <TableRowActions>
+  ];
+
+  if (!onEdit && !onDelete) return columns;
+
+  columns.push({
+    key: "actions",
+    title: contactLabels.actions,
+    sortable: false,
+    className: "actions",
+    render: (c) => (
+      <TableRowActions>
+        {onEdit ? (
           <button type="button" className="btn link" onClick={() => onEdit(c)}>
             {contactLabels.edit}
           </button>
+        ) : null}
+        {onDelete ? (
           <button
             type="button"
             className="btn link danger"
@@ -84,10 +91,12 @@ function buildContactColumns(props: ContactTableProps): UniversalDataTableColumn
           >
             {deletingId === c.id ? labels.loading : contactLabels.delete}
           </button>
-        </TableRowActions>
-      ),
-    },
-  ];
+        ) : null}
+      </TableRowActions>
+    ),
+  });
+
+  return columns;
 }
 
 export function ContactTable(props: ContactTableProps) {
