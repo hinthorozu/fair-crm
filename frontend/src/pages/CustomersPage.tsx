@@ -9,7 +9,6 @@ import {
   ApiError,
   formatApiErrorMessage,
 } from "../api/customers";
-import { useAuth } from "../auth/AuthContext";
 import { CustomerForm, customerToFormValues } from "../components/CustomerForm";
 import type { CreateCustomerPayload } from "../types/customer";
 import {
@@ -21,18 +20,18 @@ import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { FormModal, runAfterSuccessfulFormSubmit } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
+import { usePermissions } from "../hooks/usePermissions";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import type { Customer, CustomerStatus, CustomerType } from "../types/customer";
 import { labels } from "../labels";
 import { Banner } from "../components/ui/Banner";
 import { PageShell } from "../components/ui/PageShell";
-import { config } from "../config";
-import { hasGrantedCorePermission } from "../permissions/corePermissions";
-
-const PERMISSION_CUSTOMERS_CREATE = "fair_crm.customers.create";
-const PERMISSION_CUSTOMERS_UPDATE = "fair_crm.customers.update";
-const PERMISSION_CUSTOMERS_DELETE = "fair_crm.customers.delete";
-const PERMISSION_CUSTOMERS_EXECUTE = "fair_crm.customers.execute";
+import {
+  CUSTOMER_CREATE,
+  CUSTOMER_DELETE,
+  CUSTOMER_EXECUTE,
+  CUSTOMER_UPDATE,
+} from "../permissions/customerPermissions";
 
 type ConfirmAction =
   | { type: "archive"; customer: Customer }
@@ -40,17 +39,11 @@ type ConfirmAction =
   | null;
 
 export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: string) => void }) {
-  const { session } = useAuth();
-  const grantedPermissions = session?.permissions ?? [];
-  const bypass = config.devBypassEnabled;
-  const canCreate =
-    bypass || hasGrantedCorePermission(grantedPermissions, PERMISSION_CUSTOMERS_CREATE);
-  const canUpdate =
-    bypass || hasGrantedCorePermission(grantedPermissions, PERMISSION_CUSTOMERS_UPDATE);
-  const canDelete =
-    bypass || hasGrantedCorePermission(grantedPermissions, PERMISSION_CUSTOMERS_DELETE);
-  const canExecute =
-    bypass || hasGrantedCorePermission(grantedPermissions, PERMISSION_CUSTOMERS_EXECUTE);
+  const { can } = usePermissions();
+  const canCreate = can(CUSTOMER_CREATE);
+  const canUpdate = can(CUSTOMER_UPDATE);
+  const canDelete = can(CUSTOMER_DELETE);
+  const canExecute = can(CUSTOMER_EXECUTE);
 
   const [success, setSuccess] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
