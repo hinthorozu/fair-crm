@@ -20,6 +20,7 @@ import {
   updateContact,
 } from "../api/contacts";
 import { ApiError } from "../api/client";
+import { useAuth } from "../auth/AuthContext";
 import {
   ActivityForm,
   activityToFormValues,
@@ -75,6 +76,23 @@ import { useServerDataTable } from "../hooks/useServerDataTable";
 import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { Banner } from "../components/ui/Banner";
 import { PageShell } from "../components/ui/PageShell";
+import { config } from "../config";
+import { hasGrantedCorePermission } from "../permissions/corePermissions";
+
+const PERMISSION_CUSTOMERS_UPDATE = "fair_crm.customers.update";
+const PERMISSION_CUSTOMERS_DELETE = "fair_crm.customers.delete";
+const PERMISSION_CONTACTS_READ = "fair_crm.contacts.read";
+const PERMISSION_CONTACTS_CREATE = "fair_crm.contacts.create";
+const PERMISSION_CONTACTS_UPDATE = "fair_crm.contacts.update";
+const PERMISSION_CONTACTS_DELETE = "fair_crm.contacts.delete";
+const PERMISSION_ACTIVITIES_READ = "fair_crm.activities.read";
+const PERMISSION_ACTIVITIES_CREATE = "fair_crm.activities.create";
+const PERMISSION_ACTIVITIES_UPDATE = "fair_crm.activities.update";
+const PERMISSION_ACTIVITIES_DELETE = "fair_crm.activities.delete";
+const PERMISSION_PARTICIPATIONS_READ = "fair_crm.participations.read";
+const PERMISSION_PARTICIPATIONS_CREATE = "fair_crm.participations.create";
+const PERMISSION_PARTICIPATIONS_UPDATE = "fair_crm.participations.update";
+const PERMISSION_PARTICIPATIONS_DELETE = "fair_crm.participations.delete";
 
 interface CustomerDetailPageProps {
   customerId: string;
@@ -104,9 +122,43 @@ export function CustomerDetailPage({
   onBack,
   onCustomerLoaded,
 }: CustomerDetailPageProps) {
+  const { session } = useAuth();
+  const grantedPermissions = session?.permissions ?? [];
+  const bypass = config.devBypassEnabled;
+  const hasPermission = React.useCallback(
+    (permissionCode: string) =>
+      bypass || hasGrantedCorePermission(grantedPermissions, permissionCode),
+    [bypass, grantedPermissions],
+  );
+
+  const canCustomerUpdate = hasPermission(PERMISSION_CUSTOMERS_UPDATE);
+  const canCustomerDelete = hasPermission(PERMISSION_CUSTOMERS_DELETE);
+  const canContactsRead = hasPermission(PERMISSION_CONTACTS_READ);
+  const canContactsCreate = hasPermission(PERMISSION_CONTACTS_CREATE);
+  const canContactsUpdate = hasPermission(PERMISSION_CONTACTS_UPDATE);
+  const canContactsDelete = hasPermission(PERMISSION_CONTACTS_DELETE);
+  const canActivitiesRead = hasPermission(PERMISSION_ACTIVITIES_READ);
+  const canActivitiesCreate = hasPermission(PERMISSION_ACTIVITIES_CREATE);
+  const canActivitiesUpdate = hasPermission(PERMISSION_ACTIVITIES_UPDATE);
+  const canActivitiesDelete = hasPermission(PERMISSION_ACTIVITIES_DELETE);
+  const canParticipationsRead = hasPermission(PERMISSION_PARTICIPATIONS_READ);
+  const canParticipationsCreate = hasPermission(PERMISSION_PARTICIPATIONS_CREATE);
+  const canParticipationsUpdate = hasPermission(PERMISSION_PARTICIPATIONS_UPDATE);
+  const canParticipationsDelete = hasPermission(PERMISSION_PARTICIPATIONS_DELETE);
+
+  const normalizeTab = React.useCallback(
+    (tab: TabId): TabId => {
+      if (tab === "contacts" && !canContactsRead) return "overview";
+      if (tab === "activities" && !canActivitiesRead) return "overview";
+      if (tab === "participations" && !canParticipationsRead) return "overview";
+      return tab;
+    },
+    [canActivitiesRead, canContactsRead, canParticipationsRead],
+  );
+
   const [customer, setCustomer] = React.useState<Customer | null>(null);
   const [contactsForForm, setContactsForForm] = React.useState<Contact[]>([]);
-  const [activeTab, setActiveTabState] = React.useState<TabId>(tabFromUrl);
+  const [activeTab, setActiveTabState] = React.useState<TabId>(() => normalizeTab(tabFromUrl()));
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [contactsTotal, setContactsTotal] = React.useState(0);
@@ -145,7 +197,7 @@ export function CustomerDetailPage({
     defaultSort: { field: "first_name", direction: "asc" },
     urlSync: true,
     urlPath: detailPath,
-    enabled: activeTab === "contacts" && Boolean(customer),
+    enabled: canContactsRead && activeTab === "contacts" && Boolean(customer),
   });
 
   const activitiesTable = useServerDataTable<Activity>({
@@ -153,7 +205,7 @@ export function CustomerDetailPage({
     defaultSort: { field: "activity_date", direction: "desc" },
     urlSync: true,
     urlPath: detailPath,
-    enabled: activeTab === "activities" && Boolean(customer),
+    enabled: canActivitiesRead && activeTab === "activities" && Boolean(customer),
   });
 
   const participationsTable = useServerDataTable<CustomerParticipationListItem>({
@@ -161,16 +213,17 @@ export function CustomerDetailPage({
     defaultSort: { field: "fair_name", direction: "asc" },
     urlSync: true,
     urlPath: detailPath,
-    enabled: activeTab === "participations" && Boolean(customer),
+    enabled: canParticipationsRead && activeTab === "participations" && Boolean(customer),
   });
 
   const setActiveTab = React.useCallback((tab: TabId) => {
-    setActiveTabState(tab);
+    const nextTab = normalizeTab(tab);
+    setActiveTabState(nextTab);
     const params = readSearchParams();
-    if (tab === "overview") params.delete("tab");
-    else params.set("tab", tab);
+    if (nextTab === "overview") params.delete("tab");
+    else params.set("tab", nextTab);
     navigateWithSearch(detailPath, buildLocationSearch(params));
-  }, [detailPath]);
+  }, [detailPath, normalizeTab]);
 
   const loadCustomer = React.useCallback(async () => {
     setLoading(true);
@@ -187,87 +240,117 @@ export function CustomerDetailPage({
   }, [customerId, onCustomerLoaded]);
 
   const loadContactsForForm = React.useCallback(async () => {
+    if (!canContactsRead) {
+      setContactsForForm([]);
+      return;
+    }
     try {
       const res = await listContactsByCustomer(customerId, { page: 1, pageSize: 100 });
       setContactsForForm(res.items);
     } catch {
       // best-effort for form dropdown
     }
-  }, [customerId]);
+  }, [canContactsRead, customerId]);
 
   React.useEffect(() => {
     void loadCustomer();
   }, [loadCustomer]);
 
   React.useEffect(() => {
-    const onPopState = () => setActiveTabState(tabFromUrl());
+    const onPopState = () => setActiveTabState(normalizeTab(tabFromUrl()));
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, []);
+  }, [normalizeTab]);
+
+  React.useEffect(() => {
+    const normalized = normalizeTab(activeTab);
+    if (normalized !== activeTab) setActiveTab(normalized);
+  }, [activeTab, normalizeTab, setActiveTab]);
 
   React.useEffect(() => {
     if (!customer) return;
-    void listContactsByCustomer(customerId, { page: 1, pageSize: 1 }).then((res) => {
-      setContactsTotal(res.pagination.totalItems);
-    });
-    void listActivitiesByCustomer(customerId, { page: 1, pageSize: 1 }).then((res) => {
-      setActivitiesTotal(res.pagination.totalItems);
-    });
-    void listParticipationsByCustomer(customerId, { page: 1, pageSize: 1 }).then((res) => {
-      setParticipationsTotal(res.pagination.totalItems);
-    });
-  }, [customerId, customer]);
+    if (canContactsRead) {
+      void listContactsByCustomer(customerId, { page: 1, pageSize: 1 }).then((res) => {
+        setContactsTotal(res.pagination.totalItems);
+      });
+    } else {
+      setContactsTotal(0);
+    }
+    if (canActivitiesRead) {
+      void listActivitiesByCustomer(customerId, { page: 1, pageSize: 1 }).then((res) => {
+        setActivitiesTotal(res.pagination.totalItems);
+      });
+    } else {
+      setActivitiesTotal(0);
+    }
+    if (canParticipationsRead) {
+      void listParticipationsByCustomer(customerId, { page: 1, pageSize: 1 }).then((res) => {
+        setParticipationsTotal(res.pagination.totalItems);
+      });
+    } else {
+      setParticipationsTotal(0);
+    }
+  }, [
+    canActivitiesRead,
+    canContactsRead,
+    canParticipationsRead,
+    customerId,
+    customer,
+  ]);
 
   React.useEffect(() => {
-    if (activeTab === "activities") {
+    if (activeTab === "activities" && canActivitiesRead) {
       void loadContactsForForm();
     }
-  }, [activeTab, loadContactsForForm]);
+  }, [activeTab, canActivitiesRead, loadContactsForForm]);
 
   React.useEffect(() => {
-    if (activeTab === "contacts") {
+    if (activeTab === "contacts" && canContactsRead) {
       setContactsTotal(contactsTable.pagination.totalItems);
     }
-  }, [activeTab, contactsTable.pagination.totalItems]);
+  }, [activeTab, canContactsRead, contactsTable.pagination.totalItems]);
 
   React.useEffect(() => {
-    if (activeTab === "activities") {
+    if (activeTab === "activities" && canActivitiesRead) {
       setActivitiesTotal(activitiesTable.pagination.totalItems);
     }
-  }, [activeTab, activitiesTable.pagination.totalItems]);
+  }, [activeTab, activitiesTable.pagination.totalItems, canActivitiesRead]);
 
   React.useEffect(() => {
-    if (activeTab === "participations") {
+    if (activeTab === "participations" && canParticipationsRead) {
       setParticipationsTotal(participationsTable.pagination.totalItems);
     }
-  }, [activeTab, participationsTable.pagination.totalItems]);
+  }, [activeTab, canParticipationsRead, participationsTable.pagination.totalItems]);
 
   const handleCreateContact = async (values: ContactFormValues) => {
+    if (!canContactsCreate) return;
     await createContact({ customer_id: customerId, ...values });
     setModal(null);
-    await contactsTable.refresh();
+    if (canContactsRead) await contactsTable.refresh();
   };
 
   const handleCreateContactAndNew = async (values: ContactFormValues) => {
+    if (!canContactsCreate) return;
     await createContact({ customer_id: customerId, ...values });
     setCreateContactSessionKey((key) => key + 1);
-    await contactsTable.refresh();
+    if (canContactsRead) await contactsTable.refresh();
   };
 
   const handleUpdateContact = async (values: ContactFormValues) => {
-    if (!editingContact) return;
+    if (!canContactsUpdate || !editingContact) return;
     await updateContact(editingContact.id, values);
     setModal(null);
     setEditingContact(null);
-    await contactsTable.refresh();
+    if (canContactsRead) await contactsTable.refresh();
   };
 
   const handleDeleteContact = async (contact: Contact) => {
+    if (!canContactsDelete) return;
     setDeletingContactId(contact.id);
     setError(null);
     try {
       await deleteContact(contact.id);
-      await contactsTable.refresh();
+      if (canContactsRead) await contactsTable.refresh();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : contactLabels.deleteError);
     } finally {
@@ -277,25 +360,27 @@ export function CustomerDetailPage({
   };
 
   const handleCreateActivity = async (values: ActivityFormValues) => {
+    if (!canActivitiesCreate) return;
     await createActivity({ customer_id: customerId, ...values });
     setModal(null);
-    await activitiesTable.refresh();
+    if (canActivitiesRead) await activitiesTable.refresh();
   };
 
   const handleUpdateActivity = async (values: ActivityFormValues) => {
-    if (!editingActivity) return;
+    if (!canActivitiesUpdate || !editingActivity) return;
     await updateActivity(editingActivity.id, activityFormValuesToUpdatePayload(values));
     setModal(null);
     setEditingActivity(null);
-    await activitiesTable.refresh();
+    if (canActivitiesRead) await activitiesTable.refresh();
   };
 
   const handleDeleteActivity = async (activity: Activity) => {
+    if (!canActivitiesDelete) return;
     setDeletingActivityId(activity.id);
     setError(null);
     try {
       await deleteActivity(activity.id);
-      await activitiesTable.refresh();
+      if (canActivitiesRead) await activitiesTable.refresh();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : activityLabels.deleteError);
     } finally {
@@ -305,26 +390,28 @@ export function CustomerDetailPage({
   };
 
   const handleCreateParticipation = async (values: ParticipationFormValues) => {
+    if (!canParticipationsCreate) return;
     await createParticipation(formValuesToCreatePayload(values, "customer", customerId));
     setModal(null);
-    await participationsTable.refresh();
+    if (canParticipationsRead) await participationsTable.refresh();
   };
 
   const handleUpdateParticipation = async (values: ParticipationFormValues) => {
-    if (!editingParticipation) return;
+    if (!canParticipationsUpdate || !editingParticipation) return;
     await updateParticipation(editingParticipation.id, participationFormValuesToUpdatePayload(values));
     setModal(null);
     setEditingParticipation(null);
     setParticipationFormInitial(undefined);
-    await participationsTable.refresh();
+    if (canParticipationsRead) await participationsTable.refresh();
   };
 
   const handleDeleteParticipation = async (item: CustomerParticipationListItem) => {
+    if (!canParticipationsDelete) return;
     setDeletingParticipationId(item.id);
     setError(null);
     try {
       await deleteParticipation(item.id);
-      await participationsTable.refresh();
+      if (canParticipationsRead) await participationsTable.refresh();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : participationLabels.deleteError);
     } finally {
@@ -334,6 +421,7 @@ export function CustomerDetailPage({
   };
 
   const openEditParticipation = async (item: CustomerParticipationListItem) => {
+    if (!canParticipationsRead || !canParticipationsUpdate) return;
     try {
       const full = await getParticipation(item.id);
       setParticipationFormInitial(participationToFormValues(full));
@@ -345,12 +433,14 @@ export function CustomerDetailPage({
   };
 
   const handleUpdateCustomer = async (values: CreateCustomerPayload) => {
+    if (!canCustomerUpdate) return;
     await updateCustomer(customerId, values);
     setModal(null);
     await loadCustomer();
   };
 
   const handleArchiveCustomer = async () => {
+    if (!canCustomerDelete) return;
     setArchiving(true);
     setError(null);
     try {
@@ -365,49 +455,64 @@ export function CustomerDetailPage({
   };
 
   const openCreateContact = () => {
+    if (!canContactsCreate) return;
     setEditingContact(null);
     setModal("create-contact");
   };
 
   const openCreateActivity = () => {
+    if (!canActivitiesCreate) return;
     void loadContactsForForm();
     setEditingActivity(null);
     setModal("create-activity");
   };
 
   const openCreateParticipation = () => {
+    if (!canParticipationsCreate) return;
     setEditingParticipation(null);
     setParticipationFormInitial(undefined);
     setModal("create-participation");
   };
 
   const openCreateModal = () => {
-    if (activeTab === "contacts") {
+    if (activeTab === "contacts" && canContactsCreate) {
       openCreateContact();
-    } else if (activeTab === "activities") {
+    } else if (activeTab === "activities" && canActivitiesCreate) {
       openCreateActivity();
-    } else if (activeTab === "participations") {
+    } else if (activeTab === "participations" && canParticipationsCreate) {
       openCreateParticipation();
     }
   };
 
   const tabItems = [
     { id: "overview" as const, label: uiLabels.tabOverview },
-    {
-      id: "contacts" as const,
-      label: uiLabels.tabContacts,
-      badge: contactsTotal > 0 ? contactsTotal : undefined,
-    },
-    {
-      id: "activities" as const,
-      label: uiLabels.tabActivities,
-      badge: activitiesTotal > 0 ? activitiesTotal : undefined,
-    },
-    {
-      id: "participations" as const,
-      label: uiLabels.tabFairParticipations,
-      badge: participationsTotal > 0 ? participationsTotal : undefined,
-    },
+    ...(canContactsRead
+      ? [
+          {
+            id: "contacts" as const,
+            label: uiLabels.tabContacts,
+            badge: contactsTotal > 0 ? contactsTotal : undefined,
+          },
+        ]
+      : []),
+    ...(canActivitiesRead
+      ? [
+          {
+            id: "activities" as const,
+            label: uiLabels.tabActivities,
+            badge: activitiesTotal > 0 ? activitiesTotal : undefined,
+          },
+        ]
+      : []),
+    ...(canParticipationsRead
+      ? [
+          {
+            id: "participations" as const,
+            label: uiLabels.tabFairParticipations,
+            badge: participationsTotal > 0 ? participationsTotal : undefined,
+          },
+        ]
+      : []),
   ];
 
   if (loading) {
@@ -427,44 +532,53 @@ export function CustomerDetailPage({
 
   const isArchived = customer.status === "archived" || customer.deleted_at !== null;
 
-  const headerActions: PageHeaderAction[] = [
-    {
+  const headerActions: PageHeaderAction[] = [];
+  if (canCustomerUpdate) {
+    headerActions.push({
       id: "edit",
       label: uiLabels.detailEdit,
       variant: "primary",
       onClick: () => setModal("edit-customer"),
       disabled: isArchived,
-    },
-    {
+    });
+  }
+  if (canContactsCreate) {
+    headerActions.push({
       id: "add-contact",
       label: uiLabels.detailAddContact,
       variant: "secondary",
       onClick: openCreateContact,
       disabled: isArchived,
-    },
-    {
+    });
+  }
+  if (canParticipationsCreate) {
+    headerActions.push({
       id: "add-participation",
       label: participationLabels.addToFair,
       variant: "secondary",
       onClick: openCreateParticipation,
       disabled: isArchived,
-    },
-    {
+    });
+  }
+  if (canActivitiesCreate) {
+    headerActions.push({
       id: "add-activity",
       label: uiLabels.detailNewActivity,
       variant: "secondary",
       onClick: openCreateActivity,
       disabled: isArchived,
-    },
-    {
+    });
+  }
+  if (canCustomerDelete) {
+    headerActions.push({
       id: "archive",
       label: labels.archive,
       variant: "danger",
       onClick: () => setConfirm({ type: "archive" }),
       disabled: isArchived,
       loading: archiving,
-    },
-  ];
+    });
+  }
 
   return (
     <PageShell>
@@ -612,143 +726,165 @@ export function CustomerDetailPage({
         </Card>
       </TabPanel>
 
-      <TabPanel id="panel-contacts" labelledBy="tab-contacts" active={activeTab === "contacts"}>
-        <ServerDataTableFrame
-          table={contactsTable}
-          skeletonCols={6}
-          toolbar={
-            <FilterPanel
-              actions={
-                <button
-                  type="button"
-                  className="btn secondary"
-                  onClick={() => void contactsTable.refresh()}
-                >
-                  {labels.refresh}
-                </button>
+      {canContactsRead ? (
+        <TabPanel id="panel-contacts" labelledBy="tab-contacts" active={activeTab === "contacts"}>
+          <ServerDataTableFrame
+            table={contactsTable}
+            skeletonCols={6}
+            toolbar={
+              <FilterPanel
+                actions={
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    onClick={() => void contactsTable.refresh()}
+                  >
+                    {labels.refresh}
+                  </button>
+                }
+              >
+                <TextInput
+                  id="customer-contacts-search"
+                  type="search"
+                  className="search-input"
+                  placeholder={uiLabels.searchContact}
+                  value={contactsTable.search}
+                  onChange={(e) => contactsTable.setSearch(e.target.value)}
+                  aria-label={uiLabels.searchContact}
+                />
+              </FilterPanel>
+            }
+          >
+            <ContactTable
+              items={contactsTable.items}
+              deletingId={deletingContactId}
+              emptyDueToFilters={contactsTable.hasActiveFilters}
+              sortField={contactsTable.sorting.field}
+              sortDirection={contactsTable.sorting.direction}
+              onSortChange={contactsTable.setSort}
+              onCreate={canContactsCreate ? openCreateModal : undefined}
+              onEdit={
+                canContactsUpdate
+                  ? (c) => {
+                      setEditingContact(c);
+                      setModal("edit-contact");
+                    }
+                  : undefined
               }
-            >
-              <TextInput
-                id="customer-contacts-search"
-                type="search"
-                className="search-input"
-                placeholder={uiLabels.searchContact}
-                value={contactsTable.search}
-                onChange={(e) => contactsTable.setSearch(e.target.value)}
-                aria-label={uiLabels.searchContact}
-              />
-            </FilterPanel>
-          }
-        >
-          <ContactTable
-            items={contactsTable.items}
-            deletingId={deletingContactId}
-            emptyDueToFilters={contactsTable.hasActiveFilters}
-            sortField={contactsTable.sorting.field}
-            sortDirection={contactsTable.sorting.direction}
-            onSortChange={contactsTable.setSort}
-            onCreate={openCreateModal}
-            onEdit={(c) => {
-              setEditingContact(c);
-              setModal("edit-contact");
-            }}
-            onDelete={(c) => setConfirm({ type: "contact", item: c })}
-          />
-        </ServerDataTableFrame>
-      </TabPanel>
-
-      <TabPanel id="panel-activities" labelledBy="tab-activities" active={activeTab === "activities"}>
-        <ServerDataTableFrame
-          table={activitiesTable}
-          skeletonRows={4}
-          toolbar={
-            <FilterPanel
-              actions={
-                <button
-                  type="button"
-                  className="btn secondary"
-                  onClick={() => void activitiesTable.refresh()}
-                >
-                  {labels.refresh}
-                </button>
+              onDelete={
+                canContactsDelete ? (c) => setConfirm({ type: "contact", item: c }) : undefined
               }
-            >
-              <TextInput
-                id="customer-activities-search"
-                type="search"
-                className="search-input"
-                placeholder={uiLabels.searchActivity}
-                value={activitiesTable.search}
-                onChange={(e) => activitiesTable.setSearch(e.target.value)}
-                aria-label={uiLabels.searchActivity}
-              />
-            </FilterPanel>
-          }
-        >
-          <ActivityTable
-            items={activitiesTable.items}
-            deletingId={deletingActivityId}
-            emptyDueToFilters={activitiesTable.hasActiveFilters}
-            sortField={activitiesTable.sorting.field}
-            sortDirection={activitiesTable.sorting.direction}
-            onSortChange={activitiesTable.setSort}
-            onCreate={openCreateModal}
-            onEdit={(a) => {
-              setEditingActivity(a);
-              setModal("edit-activity");
-            }}
-            onDelete={(a) => setConfirm({ type: "activity", item: a })}
-          />
-        </ServerDataTableFrame>
-      </TabPanel>
+            />
+          </ServerDataTableFrame>
+        </TabPanel>
+      ) : null}
 
-      <TabPanel
-        id="panel-participations"
-        labelledBy="tab-participations"
-        active={activeTab === "participations"}
-      >
-        <ServerDataTableFrame
-          table={participationsTable}
-          skeletonCols={7}
-          toolbar={
-            <FilterPanel
-              actions={
-                <button
-                  type="button"
-                  className="btn secondary"
-                  onClick={() => void participationsTable.refresh()}
-                >
-                  {labels.refresh}
-                </button>
+      {canActivitiesRead ? (
+        <TabPanel id="panel-activities" labelledBy="tab-activities" active={activeTab === "activities"}>
+          <ServerDataTableFrame
+            table={activitiesTable}
+            skeletonRows={4}
+            toolbar={
+              <FilterPanel
+                actions={
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    onClick={() => void activitiesTable.refresh()}
+                  >
+                    {labels.refresh}
+                  </button>
+                }
+              >
+                <TextInput
+                  id="customer-activities-search"
+                  type="search"
+                  className="search-input"
+                  placeholder={uiLabels.searchActivity}
+                  value={activitiesTable.search}
+                  onChange={(e) => activitiesTable.setSearch(e.target.value)}
+                  aria-label={uiLabels.searchActivity}
+                />
+              </FilterPanel>
+            }
+          >
+            <ActivityTable
+              items={activitiesTable.items}
+              deletingId={deletingActivityId}
+              emptyDueToFilters={activitiesTable.hasActiveFilters}
+              sortField={activitiesTable.sorting.field}
+              sortDirection={activitiesTable.sorting.direction}
+              onSortChange={activitiesTable.setSort}
+              onCreate={canActivitiesCreate ? openCreateModal : undefined}
+              onEdit={
+                canActivitiesUpdate
+                  ? (a) => {
+                      setEditingActivity(a);
+                      setModal("edit-activity");
+                    }
+                  : undefined
               }
-            >
-              <TextInput
-                id="customer-participations-search"
-                type="search"
-                className="search-input"
-                placeholder={uiLabels.searchFair}
-                value={participationsTable.search}
-                onChange={(e) => participationsTable.setSearch(e.target.value)}
-                aria-label={uiLabels.searchFair}
-              />
-            </FilterPanel>
-          }
-        >
-          <CustomerParticipationTable
-            items={participationsTable.items}
-            deletingId={deletingParticipationId}
-            emptyDueToFilters={participationsTable.hasActiveFilters}
-            sortField={participationsTable.sorting.field}
-            sortDirection={participationsTable.sorting.direction}
-            onSortChange={participationsTable.setSort}
-            onCreate={openCreateModal}
-            onEdit={(item) => void openEditParticipation(item)}
-            onDelete={(item) => setConfirm({ type: "participation", item })}
-          />
-        </ServerDataTableFrame>
-      </TabPanel>
+              onDelete={
+                canActivitiesDelete ? (a) => setConfirm({ type: "activity", item: a }) : undefined
+              }
+            />
+          </ServerDataTableFrame>
+        </TabPanel>
+      ) : null}
 
-      {modal === "edit-customer" && (
+      {canParticipationsRead ? (
+        <TabPanel
+          id="panel-participations"
+          labelledBy="tab-participations"
+          active={activeTab === "participations"}
+        >
+          <ServerDataTableFrame
+            table={participationsTable}
+            skeletonCols={7}
+            toolbar={
+              <FilterPanel
+                actions={
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    onClick={() => void participationsTable.refresh()}
+                  >
+                    {labels.refresh}
+                  </button>
+                }
+              >
+                <TextInput
+                  id="customer-participations-search"
+                  type="search"
+                  className="search-input"
+                  placeholder={uiLabels.searchFair}
+                  value={participationsTable.search}
+                  onChange={(e) => participationsTable.setSearch(e.target.value)}
+                  aria-label={uiLabels.searchFair}
+                />
+              </FilterPanel>
+            }
+          >
+            <CustomerParticipationTable
+              items={participationsTable.items}
+              deletingId={deletingParticipationId}
+              emptyDueToFilters={participationsTable.hasActiveFilters}
+              sortField={participationsTable.sorting.field}
+              sortDirection={participationsTable.sorting.direction}
+              onSortChange={participationsTable.setSort}
+              onCreate={canParticipationsCreate ? openCreateModal : undefined}
+              onEdit={canParticipationsUpdate ? (item) => void openEditParticipation(item) : undefined}
+              onDelete={
+                canParticipationsDelete
+                  ? (item) => setConfirm({ type: "participation", item })
+                  : undefined
+              }
+            />
+          </ServerDataTableFrame>
+        </TabPanel>
+      ) : null}
+
+      {modal === "edit-customer" && canCustomerUpdate && (
         <FormModal title={labels.editCustomer} onClose={closeModal} size="lg">
           <CustomerForm
             hydrateKey={customer.id}
@@ -760,7 +896,7 @@ export function CustomerDetailPage({
         </FormModal>
       )}
 
-      {modal === "create-contact" && (
+      {modal === "create-contact" && canContactsCreate && (
         <FormModal title={contactLabels.newContact} onClose={closeModal}>
           <ContactForm
             hydrateKey={`create-${createContactSessionKey}`}
@@ -774,7 +910,7 @@ export function CustomerDetailPage({
         </FormModal>
       )}
 
-      {modal === "edit-contact" && editingContact && (
+      {modal === "edit-contact" && editingContact && canContactsUpdate && (
         <FormModal title={contactLabels.editContact} onClose={closeModal}>
           <ContactForm
             hydrateKey={editingContact.id}
@@ -788,7 +924,7 @@ export function CustomerDetailPage({
         </FormModal>
       )}
 
-      {modal === "create-activity" && (
+      {modal === "create-activity" && canActivitiesCreate && (
         <FormModal title={activityLabels.newActivity} onClose={closeModal}>
           <ActivityForm
             contacts={contactsForForm}
@@ -799,7 +935,7 @@ export function CustomerDetailPage({
         </FormModal>
       )}
 
-      {modal === "edit-activity" && editingActivity && (
+      {modal === "edit-activity" && editingActivity && canActivitiesUpdate && (
         <FormModal title={activityLabels.editActivity} onClose={closeModal}>
           <ActivityForm
             contacts={contactsForForm}
@@ -812,7 +948,7 @@ export function CustomerDetailPage({
         </FormModal>
       )}
 
-      {modal === "create-participation" && (
+      {modal === "create-participation" && canParticipationsCreate && (
         <FormModal title={participationLabels.newParticipation} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="customer"
@@ -823,21 +959,24 @@ export function CustomerDetailPage({
         </FormModal>
       )}
 
-      {modal === "edit-participation" && editingParticipation && participationFormInitial && (
-        <FormModal title={participationLabels.editParticipation} onClose={closeModal} size="lg">
-          <ParticipationForm
-            mode="customer"
-            hydrateKey={editingParticipation.id}
-            initial={participationFormInitial}
-            lockFair
-            submitLabel={participationLabels.save}
-            onCancel={closeModal}
-            onSubmit={handleUpdateParticipation}
-          />
-        </FormModal>
-      )}
+      {modal === "edit-participation" &&
+        editingParticipation &&
+        participationFormInitial &&
+        canParticipationsUpdate && (
+          <FormModal title={participationLabels.editParticipation} onClose={closeModal} size="lg">
+            <ParticipationForm
+              mode="customer"
+              hydrateKey={editingParticipation.id}
+              initial={participationFormInitial}
+              lockFair
+              submitLabel={participationLabels.save}
+              onCancel={closeModal}
+              onSubmit={handleUpdateParticipation}
+            />
+          </FormModal>
+        )}
 
-      {confirm?.type === "contact" && (
+      {confirm?.type === "contact" && canContactsDelete && (
         <ConfirmDialog
           title={uiLabels.deleteContactTitle}
           message={contactLabels.deleteConfirm}
@@ -849,7 +988,7 @@ export function CustomerDetailPage({
         />
       )}
 
-      {confirm?.type === "activity" && (
+      {confirm?.type === "activity" && canActivitiesDelete && (
         <ConfirmDialog
           title={uiLabels.deleteActivityTitle}
           message={activityLabels.deleteConfirm}
@@ -861,7 +1000,7 @@ export function CustomerDetailPage({
         />
       )}
 
-      {confirm?.type === "participation" && (
+      {confirm?.type === "participation" && canParticipationsDelete && (
         <ConfirmDialog
           title={uiLabels.delete}
           message={participationLabels.deleteConfirm}
@@ -873,7 +1012,7 @@ export function CustomerDetailPage({
         />
       )}
 
-      {confirm?.type === "archive" && (
+      {confirm?.type === "archive" && canCustomerDelete && (
         <ConfirmDialog
           title={labels.archive}
           message={labels.archiveConfirm}
