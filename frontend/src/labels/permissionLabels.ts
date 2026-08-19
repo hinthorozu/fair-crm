@@ -47,6 +47,7 @@ const SPECIAL: Record<string, PermissionDisplayCopy> = {
   "identity.roles.assign_protected": { title: "Korunan rol atama", description: "Kullanıcılara korunan sistem rollerini atayabilir." },
   "identity.role_templates.manage": { title: "Rol şablonlarını yönetme", description: "Varsayılan rol şablonlarını oluşturabilir ve değiştirebilir." },
   "identity.permissions.lifecycle": { title: "İzin durumunu yönetme", description: "Platform izinlerini etkinleştirebilir, kilitleyebilir veya devre dışı bırakabilir." },
+  "fair_crm.customers.execute": { title: "Müşteri dışa aktarma", description: "Müşteri listesini dışa aktarabilir." },
   "fair_crm.imports.execute": { title: "Veri aktarımını uygulama", description: "Hazırlanan veri aktarımını sisteme uygulayabilir." },
   "fair_crm.mail_templates.execute": { title: "E-posta şablonunu çalıştırma", description: "E-posta şablonunu işleyebilir, önizleyebilir ve test gönderimi yapabilir." },
   "fair_crm.fair_emails.execute": { title: "Fuar e-postası gönderme", description: "Fuar e-postalarını alıcılara gönderebilir." },
