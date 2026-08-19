@@ -9,6 +9,7 @@ import {
   ApiError,
   formatApiErrorMessage,
 } from "../api/customers";
+import { useAuth } from "../auth/AuthContext";
 import { CustomerForm, customerToFormValues } from "../components/CustomerForm";
 import type { CreateCustomerPayload } from "../types/customer";
 import {
@@ -25,6 +26,12 @@ import type { Customer, CustomerStatus, CustomerType } from "../types/customer";
 import { labels } from "../labels";
 import { Banner } from "../components/ui/Banner";
 import { PageShell } from "../components/ui/PageShell";
+import { config } from "../config";
+import { hasGrantedCorePermission } from "../permissions/corePermissions";
+
+const PERMISSION_CUSTOMERS_CREATE = "fair_crm.customers.create";
+const PERMISSION_CUSTOMERS_UPDATE = "fair_crm.customers.update";
+const PERMISSION_CUSTOMERS_DELETE = "fair_crm.customers.delete";
 
 type ConfirmAction =
   | { type: "archive"; customer: Customer }
@@ -32,6 +39,16 @@ type ConfirmAction =
   | null;
 
 export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: string) => void }) {
+  const { session } = useAuth();
+  const grantedPermissions = session?.permissions ?? [];
+  const bypass = config.devBypassEnabled;
+  const canCreate =
+    bypass || hasGrantedCorePermission(grantedPermissions, PERMISSION_CUSTOMERS_CREATE);
+  const canUpdate =
+    bypass || hasGrantedCorePermission(grantedPermissions, PERMISSION_CUSTOMERS_UPDATE);
+  const canDelete =
+    bypass || hasGrantedCorePermission(grantedPermissions, PERMISSION_CUSTOMERS_DELETE);
+
   const [success, setSuccess] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [modal, setModal] = React.useState<"create" | "edit" | null>(null);
@@ -158,6 +175,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
   };
 
   const openCreate = () => {
+    if (!canCreate) return;
     setEditing(null);
     setModal("create");
   };
@@ -171,9 +189,11 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
         title={labels.customers}
         subtitle={`${table.pagination.totalItems} kayıt`}
         actions={
-          <button type="button" className="btn primary" onClick={openCreate}>
-            {labels.newCustomer}
-          </button>
+          canCreate ? (
+            <button type="button" className="btn primary" onClick={openCreate}>
+              {labels.newCustomer}
+            </button>
+          ) : undefined
         }
       />
 
@@ -225,14 +245,22 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
           sortDirection={table.sorting.direction}
           onSortChange={table.setSort}
           emptyDueToFilters={table.hasActiveFilters}
-          onCreate={openCreate}
+          onCreate={canCreate ? openCreate : undefined}
           onOpenDetail={onOpenDetail ? (c) => onOpenDetail(c.id) : undefined}
-          onEdit={(c) => {
-            setEditing(c);
-            setModal("edit");
-          }}
-          onArchive={(c) => setConfirm({ type: "archive", customer: c })}
-          onRestore={(c) => setConfirm({ type: "restore", customer: c })}
+          onEdit={
+            canUpdate
+              ? (c) => {
+                  setEditing(c);
+                  setModal("edit");
+                }
+              : undefined
+          }
+          onArchive={
+            canDelete ? (c) => setConfirm({ type: "archive", customer: c }) : undefined
+          }
+          onRestore={
+            canDelete ? (c) => setConfirm({ type: "restore", customer: c }) : undefined
+          }
         />
       </ServerDataTableFrame>
 
@@ -243,7 +271,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
         </Banner>
       )}
 
-      {modal === "create" && (
+      {modal === "create" && canCreate && (
         <FormModal title={labels.newCustomer} onClose={closeModal} size="lg">
           <CustomerForm
             hydrateKey={`create-${createSessionKey}`}
@@ -255,7 +283,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
         </FormModal>
       )}
 
-      {modal === "edit" && editing && (
+      {modal === "edit" && editing && canUpdate && (
         <FormModal title={labels.editCustomer} onClose={closeModal} size="lg">
           <CustomerForm
             hydrateKey={editing.id}
@@ -267,7 +295,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
         </FormModal>
       )}
 
-      {confirm?.type === "archive" && (
+      {confirm?.type === "archive" && canDelete && (
         <ConfirmDialog
           title={labels.archive}
           message={labels.archiveConfirm}
@@ -279,7 +307,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
         />
       )}
 
-      {confirm?.type === "restore" && (
+      {confirm?.type === "restore" && canDelete && (
         <ConfirmDialog
           title={labels.restore}
           message={labels.restoreConfirm}
