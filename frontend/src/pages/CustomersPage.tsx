@@ -32,6 +32,7 @@ import { hasGrantedCorePermission } from "../permissions/corePermissions";
 const PERMISSION_CUSTOMERS_CREATE = "fair_crm.customers.create";
 const PERMISSION_CUSTOMERS_UPDATE = "fair_crm.customers.update";
 const PERMISSION_CUSTOMERS_DELETE = "fair_crm.customers.delete";
+const PERMISSION_CUSTOMERS_EXECUTE = "fair_crm.customers.execute";
 
 type ConfirmAction =
   | { type: "archive"; customer: Customer }
@@ -48,6 +49,8 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
     bypass || hasGrantedCorePermission(grantedPermissions, PERMISSION_CUSTOMERS_UPDATE);
   const canDelete =
     bypass || hasGrantedCorePermission(grantedPermissions, PERMISSION_CUSTOMERS_DELETE);
+  const canExecute =
+    bypass || hasGrantedCorePermission(grantedPermissions, PERMISSION_CUSTOMERS_EXECUTE);
 
   const [success, setSuccess] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -144,6 +147,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
   };
 
   const handleExport = async () => {
+    if (!canExecute) return;
     setExporting(true);
     setError(null);
     try {
@@ -232,7 +236,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
               });
             }}
             onRefresh={() => void table.refresh()}
-            onExport={() => void handleExport()}
+            onExport={canExecute ? () => void handleExport() : undefined}
             exporting={exporting}
           />
         }
