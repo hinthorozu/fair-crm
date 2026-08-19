@@ -33,6 +33,7 @@ from app.modules.customers.infrastructure.repositories.customer_repository impor
 bearer_scheme = HTTPBearer(auto_error=False)
 
 PERMISSION_READ = "fair_crm.customers.read"
+PERMISSION_EXECUTE = "fair_crm.customers.execute"
 
 
 def get_customer_repository(db: Session = Depends(get_db)) -> SqlAlchemyCustomerRepository:
@@ -64,10 +65,12 @@ def get_auth_context(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated") from exc
 
 
-def require_read_permission(
-    auth: AuthContext = Depends(get_auth_context),
-    authorization: AuthorizationPort = Depends(get_authorization_adapter),
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+def _require_permission(
+    *,
+    auth: AuthContext,
+    authorization: AuthorizationPort,
+    credentials: HTTPAuthorizationCredentials | None,
+    permission_code: str,
 ) -> AuthContext:
     if dev_bypass_enabled():
         return auth
@@ -76,11 +79,37 @@ def require_read_permission(
     if not authorization.check_permission(
         organization_id=auth.organization_id,
         user_id=auth.user_id,
-        permission_code=PERMISSION_READ,
+        permission_code=permission_code,
         access_token=credentials.credentials,
     ):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
     return auth
+
+
+def require_read_permission(
+    auth: AuthContext = Depends(get_auth_context),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> AuthContext:
+    return _require_permission(
+        auth=auth,
+        authorization=authorization,
+        credentials=credentials,
+        permission_code=PERMISSION_READ,
+    )
+
+
+def require_execute_permission(
+    auth: AuthContext = Depends(get_auth_context),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> AuthContext:
+    return _require_permission(
+        auth=auth,
+        authorization=authorization,
+        credentials=credentials,
+        permission_code=PERMISSION_EXECUTE,
+    )
 
 
 def get_customer_communication_repository(
