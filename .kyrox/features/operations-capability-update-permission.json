@@ -37,7 +37,7 @@
     "permissions": { "status": "required" },
     "backend": { "status": "required" },
     "api": { "status": "na", "reason": "The existing API route and request/response contract are unchanged." },
-    "tenant_isolation": { "status": "na", "reason": "Existing organization context and resource scoping are unchanged." },
+    "tenant_isolation": { "status": "required" },
     "audit": { "status": "na", "reason": "Existing audit behavior is unchanged." },
     "frontend": { "status": "na", "reason": "Frontend code is unchanged." },
     "ui_permissions": { "status": "na", "reason": "No UI permission visibility behavior is changed." },
