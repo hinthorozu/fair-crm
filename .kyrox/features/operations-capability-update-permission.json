@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "id": "operations-capability-update-permission",
+  "title": "Operations Capability Update Permission Alignment",
+  "feature_type": "maintenance",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": false,
+  "affected_paths": [
+    "backend/app/modules/operations/application/update_operation_type_capabilities.py",
+    "backend/tests/modules/operations/test_update_operation_type_capabilities_authorization.py",
+    ".kyrox/features/operations-capability-update-permission.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.operations.update",
+        "action": "update operation type capabilities",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": false,
+    "reason": "No frontend behavior changes are introduced; this change corrects backend authorization for an existing endpoint.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No Fair CRM persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "fair_crm.operations.update already exists in the Core permission catalog." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "required" },
+    "api": { "status": "na", "reason": "The existing API route and request/response contract are unchanged." },
+    "tenant_isolation": { "status": "na", "reason": "Existing organization context and resource scoping are unchanged." },
+    "audit": { "status": "na", "reason": "Existing audit behavior is unchanged." },
+    "frontend": { "status": "na", "reason": "Frontend code is unchanged." },
+    "ui_permissions": { "status": "na", "reason": "No UI permission visibility behavior is changed." },
+    "menu": { "status": "na", "reason": "Navigation is unchanged." },
+    "route_guard": { "status": "na", "reason": "The endpoint already authenticates and delegates authorization to the use case; only the checked permission code is corrected." },
+    "forms": { "status": "na", "reason": "No forms are changed." },
+    "visual_qa": { "status": "na", "reason": "No visual changes are introduced." },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "na", "reason": "Frontend is unchanged." },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Operation type capability updates mutate existing operation-type configuration and therefore require fair_crm.operations.update, not fair_crm.operations.create. No new permission, role grant, or Core migration is introduced."
+}
