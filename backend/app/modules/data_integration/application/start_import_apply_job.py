@@ -15,7 +15,7 @@ from app.modules.imports.domain.exceptions import (
 from app.modules.imports.domain.ports import ImportBatchRepository, ImportRowRepository
 from app.modules.imports.domain.batch_status import is_batch_terminal
 
-PERMISSION_APPLY = "fair_crm.imports.apply"
+PERMISSION_EXECUTE = "fair_crm.imports.execute"
 
 
 @dataclass
@@ -52,7 +52,7 @@ class StartImportApplyJobUseCase:
         if not self._authorization.check_permission(
             organization_id=command.organization_id,
             user_id=command.user_id,
-            permission_code=PERMISSION_APPLY,
+            permission_code=PERMISSION_EXECUTE,
             access_token=command.access_token,
         ):
             raise ForbiddenError("Permission denied")
