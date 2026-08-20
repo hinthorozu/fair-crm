@@ -21,6 +21,7 @@ export const FAIR_CRM_PERMISSION_CODES = [
   "fair_crm.activities.read",
   "fair_crm.activities.update",
   "fair_crm.admin.backups.create",
+  "fair_crm.admin.backups.delete",
   "fair_crm.admin.backups.execute",
   "fair_crm.admin.backups.read",
   "fair_crm.admin.data_operations.read",
