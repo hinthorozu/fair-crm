@@ -73,6 +73,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 PERMISSION_READ = "fair_crm.admin.backups.read"
 PERMISSION_CREATE = "fair_crm.admin.backups.create"
 PERMISSION_DOWNLOAD = "fair_crm.admin.backups.execute"
+PERMISSION_DELETE = "fair_crm.admin.backups.delete"
 
 
 def get_authorization_adapter() -> AuthorizationPort:
@@ -142,6 +143,22 @@ def require_admin_download_permission(
         organization_id=auth.organization_id,
         user_id=auth.user_id,
         permission_code=PERMISSION_DOWNLOAD,
+        access_token=token,
+    ):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin permission required")
+    return auth
+
+
+def require_admin_delete_permission(
+    auth: AuthContext = Depends(get_auth_context),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+) -> AuthContext:
+    token = credentials.credentials if credentials and credentials.credentials else ""
+    if not authorization.check_permission(
+        organization_id=auth.organization_id,
+        user_id=auth.user_id,
+        permission_code=PERMISSION_DELETE,
         access_token=token,
     ):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin permission required")
