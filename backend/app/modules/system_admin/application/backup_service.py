@@ -34,7 +34,7 @@ from app.shared.database_backup.paths import generate_backup_filename, get_resto
 
 PERMISSION_CREATE = "fair_crm.admin.backups.create"
 PERMISSION_RESTORE = "fair_crm.admin.backups.create"
-PERMISSION_DELETE = "fair_crm.admin.backups.create"
+PERMISSION_DELETE = "fair_crm.admin.backups.delete"
 
 BACKUP_ALLOWED_SORT_FIELDS = frozenset(
     {
