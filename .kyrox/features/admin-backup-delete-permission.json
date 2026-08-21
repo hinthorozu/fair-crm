@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "id": "admin-backup-delete-permission",
+  "title": "Super Admin Backup Delete Permission",
+  "feature_type": "maintenance",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "mixed",
+  "user_facing": true,
+  "affected_paths": [
+    "backend/app/modules/system_admin/application/backup_service.py",
+    "backend/app/modules/system_admin/api/dependencies.py",
+    "backend/app/modules/system_admin/api/routes.py",
+    "backend/tests/modules/system_admin/test_backup_delete_permission.py",
+    "frontend/src/permissions/corePermissions.ts",
+    "frontend/src/permissions/corePermissions.test.ts"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.admin.backups.create", "action": "create backups and create/start restore workflows", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.backups.delete", "action": "delete backups and restore-job records/artifacts", "scope": "system", "assignable": false }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/admin/system/backups"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "Fair CRM product persistence is unchanged; the companion Core change adds only a permission catalog row." },
+    "migration": { "status": "required" },
+    "permissions": { "status": "required" },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "required" },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Backup navigation remains guarded by the existing system-scoped backups.read permission." },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "na", "reason": "No form behavior is changed." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Backup delete is a distinct system-scoped, non-assignable capability supplied by Core and therefore remains Super Admin-only. Restore intentionally remains on fair_crm.admin.backups.create per product decision. Delete routes and the delete use case must check fair_crm.admin.backups.delete; existing organization scoping and destructive-action audit behavior remain intact."
+}

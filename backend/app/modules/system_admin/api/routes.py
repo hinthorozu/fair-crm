@@ -27,6 +27,7 @@ from app.modules.system_admin.api.dependencies import (
     get_restore_backup_from_upload_use_case,
     get_restore_backup_use_case,
     require_admin_create_permission,
+    require_admin_delete_permission,
     require_admin_download_permission,
     require_admin_read_permission,
 )
@@ -378,7 +379,7 @@ def start_restore_job(
 )
 def delete_restore_job(
     job_id: UUID,
-    auth: AuthContext = Depends(require_admin_create_permission),
+    auth: AuthContext = Depends(require_admin_delete_permission),
     db: Session = Depends(get_db),
 ) -> DeleteRestoreJobResponse:
     repository = SqlAlchemySystemBackupRestoreJobRepository(db)
@@ -564,7 +565,7 @@ def restore_system_backup(
 def delete_system_backup(
     backup_id: UUID,
     db: Session = Depends(get_db),
-    auth: AuthContext = Depends(require_admin_create_permission),
+    auth: AuthContext = Depends(require_admin_delete_permission),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     use_case=Depends(get_delete_backup_use_case),
 ) -> DeleteSystemBackupResponse:
