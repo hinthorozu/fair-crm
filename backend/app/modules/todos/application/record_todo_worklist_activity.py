@@ -33,7 +33,7 @@ from app.modules.todos.domain.worklist_ports import (
 )
 from app.modules.todos.domain.worklist_value_objects import WorklistFilter
 
-PERMISSION_CREATE = "fair_crm.todos.create"
+PERMISSION_UPDATE = "fair_crm.todos.update"
 NOTE_SUMMARY_MAX_LEN = 500
 
 
@@ -69,7 +69,7 @@ class RecordTodoWorklistActivityUseCase:
         if not self._authorization.check_permission(
             organization_id=command.organization_id,
             user_id=command.user_id,
-            permission_code=PERMISSION_CREATE,
+            permission_code=PERMISSION_UPDATE,
             access_token=command.access_token,
         ):
             raise ForbiddenError("Permission denied")

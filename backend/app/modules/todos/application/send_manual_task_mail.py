@@ -37,7 +37,7 @@ from app.modules.todos.domain.exceptions import (
 from app.modules.todos.domain.ports import TodoRepository
 from app.shared.email import sanitize_scraped_email
 
-PERMISSION_CREATE = "fair_crm.todos.create"
+PERMISSION_MAIL_SEND_EXECUTE = "fair_crm.mail_send_operations.execute"
 QUEUED_MESSAGE = "Mail gönderimleri kuyruğa alındı."
 INACTIVE_SMTP_MESSAGE = "Seçilen SMTP hesabı pasif durumda."
 
@@ -98,7 +98,7 @@ class SendManualTaskMailUseCase:
         if not self._authorization.check_permission(
             organization_id=command.organization_id,
             user_id=command.user_id,
-            permission_code=PERMISSION_CREATE,
+            permission_code=PERMISSION_MAIL_SEND_EXECUTE,
             access_token=command.access_token,
         ):
             raise ForbiddenError("Permission denied")

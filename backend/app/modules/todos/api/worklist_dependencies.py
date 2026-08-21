@@ -62,7 +62,8 @@ from app.modules.smtp.infrastructure.repositories.smtp_account_repository import
 )
 
 bearer_scheme = HTTPBearer(auto_error=False)
-PERMISSION_CREATE = "fair_crm.todos.create"
+PERMISSION_UPDATE = "fair_crm.todos.update"
+PERMISSION_MAIL_SEND_EXECUTE = "fair_crm.mail_send_operations.execute"
 
 
 def get_todo_repository(db: Session = Depends(get_db)) -> SqlAlchemyTodoRepository:
@@ -199,10 +200,12 @@ def get_send_manual_task_mail_use_case(
     )
 
 
-def require_create_permission(
-    auth: AuthContext = Depends(get_auth_context),
-    authorization=Depends(get_authorization_adapter),
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+def _require_permission(
+    *,
+    auth: AuthContext,
+    authorization,
+    credentials: HTTPAuthorizationCredentials | None,
+    permission_code: str,
 ) -> AuthContext:
     if dev_bypass_enabled():
         return auth
@@ -211,11 +214,37 @@ def require_create_permission(
     if not authorization.check_permission(
         organization_id=auth.organization_id,
         user_id=auth.user_id,
-        permission_code=PERMISSION_CREATE,
+        permission_code=permission_code,
         access_token=credentials.credentials,
     ):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
     return auth
+
+
+def require_update_permission(
+    auth: AuthContext = Depends(get_auth_context),
+    authorization=Depends(get_authorization_adapter),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> AuthContext:
+    return _require_permission(
+        auth=auth,
+        authorization=authorization,
+        credentials=credentials,
+        permission_code=PERMISSION_UPDATE,
+    )
+
+
+def require_mail_send_execute_permission(
+    auth: AuthContext = Depends(get_auth_context),
+    authorization=Depends(get_authorization_adapter),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> AuthContext:
+    return _require_permission(
+        auth=auth,
+        authorization=authorization,
+        credentials=credentials,
+        permission_code=PERMISSION_MAIL_SEND_EXECUTE,
+    )
 
 
 def access_token(credentials: HTTPAuthorizationCredentials | None) -> str:
