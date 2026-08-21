@@ -38,6 +38,7 @@ from app.shared.email import sanitize_scraped_email
 PERMISSION_READ = "fair_crm.email_accounts.read"
 PERMISSION_UPDATE = "fair_crm.email_accounts.update"
 PERMISSION_DELETE = "fair_crm.email_accounts.delete"
+PERMISSION_MAIL_SEND_EXECUTE = "fair_crm.mail_send_operations.execute"
 
 
 @dataclass(frozen=True)
@@ -229,7 +230,7 @@ class SendTestEmailAccountMailUseCase:
         if not self._authorization.check_permission(
             organization_id=organization_id,
             user_id=user_id,
-            permission_code=PERMISSION_UPDATE,
+            permission_code=PERMISSION_MAIL_SEND_EXECUTE,
             access_token=access_token,
         ):
             raise ForbiddenError("Permission denied")
