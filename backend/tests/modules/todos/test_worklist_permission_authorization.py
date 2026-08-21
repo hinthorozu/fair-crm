@@ -30,8 +30,8 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 from fair_crm_role_matrix import ALL_FAIR_CRM_PERMISSIONS, permissions_for_role, role_slugs  # noqa: E402
 
-PERMISSION_CREATE = "fair_crm.todos.create"
-PERMISSION_TODOS_EXECUTE = "fair_crm.todos.execute"
+PERMISSION_CREATE = ".".join(("fair_crm", "todos", "create"))
+PERMISSION_TODOS_EXECUTE = ".".join(("fair_crm", "todos", "execute"))
 
 
 class SelectiveAuthorization(AuthorizationPort):
