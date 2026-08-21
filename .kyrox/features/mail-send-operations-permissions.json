@@ -26,7 +26,8 @@
     "frontend/src/pages/SmtpAccountsPage.tsx",
     "frontend/src/permissions/corePermissions.test.ts",
     "frontend/src/permissions/emailAccountPermissions.test.ts",
-    "frontend/src/permissions/navigationPermissions.test.ts"
+    "frontend/src/permissions/navigationPermissions.test.ts",
+    ".github/workflows/prod-path-e2e.yml"
   ],
   "permissions": {
     "required": true,
@@ -65,5 +66,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Mail operation history is owned by fair_crm.mail_send_operations.read. Any mail-send side effect covered by this maintenance change, including email-account test sends and operation retry, requires fair_crm.mail_send_operations.execute. fair_crm.email_accounts.update remains limited to account configuration changes. The companion Core migration introduces the dedicated read/execute permissions and copies existing email-account read/update role state to preserve access during the semantic split."
+  "notes": "Mail operation history is owned by fair_crm.mail_send_operations.read. Any mail-send side effect covered by this maintenance change, including email-account test sends and operation retry, requires fair_crm.mail_send_operations.execute. fair_crm.email_accounts.update remains limited to account configuration changes. The companion Core migration introduces the dedicated read/execute permissions and copies existing email-account read/update role state to preserve access during the semantic split. Prod-path E2E resolves a same-named kyrox-core branch when present, otherwise falls back to main, so cross-repository permission migrations are tested against the matching Fair CRM change without changing independent PR behavior."
 }
