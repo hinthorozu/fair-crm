@@ -85,7 +85,7 @@ check_bootstrap_settings() {
   fi
 
   local compose_file="${FAIR_CRM_DIR}/docker-compose.yml"
-  if [[ -f "$compose_file" ]] && grep -qE '^[[:space:]]*-[[:space:]]*"127\\.0\\.0\\.1:5432:5432"' "$compose_file"; then
+  if [[ -f "$compose_file" ]] && grep -qE '^[[:space:]]*-[[:space:]]*"127\.0\.0\.1:5432:5432"' "$compose_file"; then
     check_pass "PostgreSQL local 127.0.0.1:5432 mapping preserved"
   else
     check_fail "PostgreSQL local 127.0.0.1:5432 mapping preserved"
