@@ -13,7 +13,9 @@
     "backend/app/modules/mail_send_operations/application/retry_mail_send_operation.py",
     "backend/app/modules/mail_send_operations/api/dependencies.py",
     "backend/app/modules/mail_send_operations/api/routes.py",
+    "backend/app/modules/smtp/api/dependencies.py",
     "backend/app/modules/smtp/application/send_test_smtp_mail.py",
+    "backend/app/modules/email_accounts/api/dependencies.py",
     "backend/app/modules/email_accounts/application/manage_email_accounts.py",
     "backend/tests/modules/email_accounts/test_mail_send_authorization.py",
     "backend/tests/modules/mail_send_operations/test_mail_send_operations.py",
@@ -23,7 +25,9 @@
     "frontend/src/permissions/emailAccountPermissions.ts",
     "frontend/src/permissions/navigationPermissions.ts",
     "frontend/src/components/mail_operations/MailOperationActionsMenu.tsx",
+    "frontend/src/components/smtp/EmailAccountForm.tsx",
     "frontend/src/pages/SmtpAccountsPage.tsx",
+    "frontend/src/labels/permissionLabels.ts",
     "frontend/src/permissions/corePermissions.test.ts",
     "frontend/src/permissions/emailAccountPermissions.test.ts",
     "frontend/src/permissions/navigationPermissions.test.ts",
@@ -66,5 +70,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Mail operation history is owned by fair_crm.mail_send_operations.read. Any mail-send side effect covered by this maintenance change, including email-account test sends and operation retry, requires fair_crm.mail_send_operations.execute. fair_crm.email_accounts.update remains limited to account configuration changes. The companion Core migration introduces the dedicated read/execute permissions and copies existing email-account read/update role state to preserve access during the semantic split. Prod-path E2E resolves a same-named kyrox-core branch when present, otherwise falls back to main, so cross-repository permission migrations are tested against the matching Fair CRM change without changing independent PR behavior."
+  "notes": "Mail operation history is owned by fair_crm.mail_send_operations.read. Any mail-send side effect covered by this maintenance change, including email-account test sends and operation retry, requires fair_crm.mail_send_operations.execute. fair_crm.email_accounts.update remains limited to account configuration changes. Test-send authorization is enforced before account lookup, and execute-only users get a test-mail-only UI without configuration mutation controls. The companion Core migration introduces the dedicated read/execute permissions and copies existing email-account read/update role state to preserve access during the semantic split. Prod-path E2E resolves a same-named kyrox-core branch when present, otherwise falls back to main, so cross-repository permission migrations are tested against the matching Fair CRM change without changing independent PR behavior."
 }
