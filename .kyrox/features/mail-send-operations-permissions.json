@@ -21,6 +21,7 @@
     "backend/tests/modules/mail_send_operations/test_mail_send_operations.py",
     "backend/tests/modules/mail_send_operations/test_retry_mail_send_operations.py",
     "backend/tests/modules/test_endpoint_permission_enforcement.py",
+    "scripts/fair_crm_role_matrix.py",
     "frontend/src/permissions/corePermissions.ts",
     "frontend/src/permissions/emailAccountPermissions.ts",
     "frontend/src/permissions/navigationPermissions.ts",
@@ -70,5 +71,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Mail operation history is owned by fair_crm.mail_send_operations.read. Any mail-send side effect covered by this maintenance change, including email-account test sends and operation retry, requires fair_crm.mail_send_operations.execute. fair_crm.email_accounts.update remains limited to account configuration changes. Test-send authorization is enforced before account lookup, and execute-only users get a test-mail-only UI without configuration mutation controls. The companion Core migration introduces the dedicated read/execute permissions and copies existing email-account read/update role state to preserve access during the semantic split. Prod-path E2E resolves a same-named kyrox-core branch when present, otherwise falls back to main, so cross-repository permission migrations are tested against the matching Fair CRM change without changing independent PR behavior."
+  "notes": "Mail operation history is owned by fair_crm.mail_send_operations.read. Any mail-send side effect covered by this maintenance change, including email-account test sends and operation retry, requires fair_crm.mail_send_operations.execute. fair_crm.email_accounts.update remains limited to account configuration changes. Test-send authorization is enforced before account lookup, execute-only users get a test-mail-only UI without configuration mutation controls, and the Fair CRM development/CI role matrix is synchronized to the new read/execute permissions while preserving the existing OrganizationAdmin access. The companion Core migration introduces the dedicated read/execute permissions and copies existing email-account read/update role state to preserve access during the semantic split. Prod-path E2E resolves a same-named kyrox-core branch when present, otherwise falls back to main, so cross-repository permission migrations are tested against the matching Fair CRM change without changing independent PR behavior."
 }
