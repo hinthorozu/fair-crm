@@ -20,6 +20,7 @@ import { UniversalDataTable, type UniversalDataTableColumn } from "../components
 import { adminLabels } from "../labels/adminLabels";
 import {
   canPerformEmailAccountAction,
+  canSendMail,
   canSetDefaultEmailAccount,
   getGrantedPermissions,
 } from "../permissions/emailAccountPermissions";
@@ -59,6 +60,7 @@ export function SmtpAccountsPage() {
   const canCreate = canPerformEmailAccountAction(grantedPermissions, "create");
   const canUpdate = canPerformEmailAccountAction(grantedPermissions, "update");
   const canDelete = canPerformEmailAccountAction(grantedPermissions, "delete");
+  const canSendTestMail = canSendMail(grantedPermissions);
 
   const [accounts, setAccounts] = React.useState<EmailAccount[]>([]);
   const [providerDisplayNames, setProviderDisplayNames] = React.useState<Map<string, string>>(
@@ -289,7 +291,7 @@ export function SmtpAccountsPage() {
 
   const handleTestMail = async (recipient: string) => {
     const accountId = editingRef.current?.id;
-    if (!accountId || !canUpdate || modalRef.current !== "edit") return;
+    if (!accountId || !canSendTestMail || modalRef.current !== "edit") return;
 
     testMailAbortRef.current?.abort();
     const controller = new AbortController();
@@ -567,7 +569,7 @@ export function SmtpAccountsPage() {
             onCancel={closeModal}
             onSubmitCreate={handleCreate}
             onSubmitUpdate={handleUpdate}
-            onTestMail={canUpdate ? handleTestMail : undefined}
+            onTestMail={canSendTestMail ? handleTestMail : undefined}
           />
         </FormModal>
       ) : null}
