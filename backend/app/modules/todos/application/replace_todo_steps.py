@@ -17,7 +17,6 @@ from app.modules.todos.infrastructure.repositories.todo_step_repository import (
 )
 
 PERMISSION_UPDATE = "fair_crm.todos.update"
-PERMISSION_CREATE = "fair_crm.todos.create"
 
 
 class ReplaceTodoStepsUseCase:
@@ -34,19 +33,11 @@ class ReplaceTodoStepsUseCase:
         self._authorization = authorization
 
     def execute(self, command: ReplaceTodoStepsCommand) -> list[TodoStepResult]:
-        if not (
-            self._authorization.check_permission(
-                organization_id=command.organization_id,
-                user_id=command.user_id,
-                permission_code=PERMISSION_UPDATE,
-                access_token=command.access_token,
-            )
-            or self._authorization.check_permission(
-                organization_id=command.organization_id,
-                user_id=command.user_id,
-                permission_code=PERMISSION_CREATE,
-                access_token=command.access_token,
-            )
+        if not self._authorization.check_permission(
+            organization_id=command.organization_id,
+            user_id=command.user_id,
+            permission_code=PERMISSION_UPDATE,
+            access_token=command.access_token,
         ):
             raise ForbiddenError("Permission denied")
 
