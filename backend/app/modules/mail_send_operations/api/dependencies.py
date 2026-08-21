@@ -21,7 +21,7 @@ from app.modules.mail_send_operations.application.list_mail_send_operations impo
 )
 from app.modules.mail_send_operations.application.mail_send_operation_service import MailSendOperationService
 from app.modules.mail_send_operations.application.retry_mail_send_operation import (
-    PERMISSION_UPDATE,
+    PERMISSION_EXECUTE,
     RetryMailSendOperationUseCase,
 )
 from app.modules.mail_send_operations.infrastructure.repositories.mail_send_operation_repository import (
@@ -73,7 +73,7 @@ def require_read_permission(
     return auth
 
 
-def require_update_permission(
+def require_execute_permission(
     auth: AuthContext = Depends(get_auth_context),
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
@@ -85,7 +85,7 @@ def require_update_permission(
     if not authorization.check_permission(
         organization_id=auth.organization_id,
         user_id=auth.user_id,
-        permission_code=PERMISSION_UPDATE,
+        permission_code=PERMISSION_EXECUTE,
         access_token=credentials.credentials,
     ):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
