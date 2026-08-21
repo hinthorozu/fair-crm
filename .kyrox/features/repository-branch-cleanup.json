@@ -44,5 +44,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "na", "reason": "Repository branch maintenance only." }
   },
-  "notes": "One-time repository maintenance: after merge, delete every non-main branch while preserving main as the only long-lived branch."
+  "notes": "One-time repository maintenance: after merge, delete every non-main branch while preserving main as the only long-lived branch. Cleanup trigger: 2026-08-21."
 }
