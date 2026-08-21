@@ -12,8 +12,8 @@ from app.integrations.kyrox_core.auth import AuthContext
 from app.modules.mail_send_operations.api.dependencies import (
     get_list_mail_send_operations_use_case,
     get_retry_mail_send_operation_use_case,
+    require_execute_permission,
     require_read_permission,
-    require_update_permission,
 )
 from app.modules.mail_send_operations.api.schemas import (
     ErrorResponse,
@@ -187,7 +187,7 @@ def list_mail_send_operations(
 )
 def retry_mail_send_operation(
     operation_id: UUID,
-    auth: AuthContext = Depends(require_update_permission),
+    auth: AuthContext = Depends(require_execute_permission),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     use_case: RetryMailSendOperationUseCase = Depends(get_retry_mail_send_operation_use_case),
 ) -> RetryMailSendOperationResponse:
