@@ -48,6 +48,7 @@ interface EmailAccountFormProps {
   hydrateKey?: string;
   saving: boolean;
   testing?: boolean;
+  testOnly?: boolean;
   error: string | null;
   testError: string | null;
   testSuccess: string | null;
@@ -71,6 +72,7 @@ export function EmailAccountForm({
   hydrateKey = "create",
   saving,
   testing = false,
+  testOnly = false,
   error,
   testError,
   testSuccess,
@@ -229,6 +231,53 @@ export function EmailAccountForm({
     }
     return Array.from(warnings);
   }, [initial?.config_warnings, portEncryptionHints]);
+
+  const testMailSection = mode === "edit" && onTestMail ? (
+    <FormSection title={adminLabels.smtpSectionTestMail}>
+      <div className="smtp-test-mail-panel">
+        <FormGrid>
+          <FormField
+            label={adminLabels.smtpFieldTestRecipient}
+            htmlFor="smtp-test-recipient"
+            fullWidth
+          >
+            <TextInput
+              id="smtp-test-recipient"
+              type="email"
+              value={testRecipient}
+              onChange={(event) => setTestRecipient(event.target.value)}
+              placeholder="admin@example.com"
+            />
+          </FormField>
+        </FormGrid>
+        {testError ? <Banner variant="error">{testError}</Banner> : null}
+        {testSuccess ? <Banner variant="success">{testSuccess}</Banner> : null}
+        <div className="smtp-test-mail-actions">
+          <button
+            type="button"
+            className="btn secondary"
+            disabled={testing || saving || !testRecipient.trim()}
+            onClick={() => void onTestMail(testRecipient.trim())}
+          >
+            {testing ? adminLabels.smtpTestMailSending : adminLabels.smtpActionTestMail}
+          </button>
+        </div>
+      </div>
+    </FormSection>
+  ) : null;
+
+  if (mode === "edit" && testOnly) {
+    return (
+      <div className="email-account-form smtp-account-form crm-form crm-form--standard">
+        {testMailSection}
+        <div className="form-actions">
+          <button type="button" className="btn secondary" onClick={handleCancel} disabled={testing}>
+            {labels.cancel}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form
@@ -428,39 +477,7 @@ export function EmailAccountForm({
         </FormGrid>
       </FormSection>
 
-      {mode === "edit" && onTestMail ? (
-        <FormSection title={adminLabels.smtpSectionTestMail}>
-          <div className="smtp-test-mail-panel">
-            <FormGrid>
-              <FormField
-                label={adminLabels.smtpFieldTestRecipient}
-                htmlFor="smtp-test-recipient"
-                fullWidth
-              >
-                <TextInput
-                  id="smtp-test-recipient"
-                  type="email"
-                  value={testRecipient}
-                  onChange={(event) => setTestRecipient(event.target.value)}
-                  placeholder="admin@example.com"
-                />
-              </FormField>
-            </FormGrid>
-            {testError ? <Banner variant="error">{testError}</Banner> : null}
-            {testSuccess ? <Banner variant="success">{testSuccess}</Banner> : null}
-            <div className="smtp-test-mail-actions">
-              <button
-                type="button"
-                className="btn secondary"
-                disabled={testing || saving || !testRecipient.trim()}
-                onClick={() => void onTestMail(testRecipient.trim())}
-              >
-                {testing ? adminLabels.smtpTestMailSending : adminLabels.smtpActionTestMail}
-              </button>
-            </div>
-          </div>
-        </FormSection>
-      ) : null}
+      {testMailSection}
 
       <FormActions
         onCancel={handleCancel}
