@@ -499,6 +499,7 @@ export function RoleManagementPage() {
       ));
     }
   }, []);
+
   const loadOrganization = React.useCallback(async () => {
     if (!organizationId) {
       setRoles([]);
