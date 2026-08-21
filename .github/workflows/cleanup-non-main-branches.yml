@@ -1,6 +1,6 @@
 name: Cleanup Non-Main Branches
 
-# Cleanup trigger: 2026-08-21
+# Final cleanup trigger: 2026-08-21
 on:
   workflow_dispatch:
   push:
