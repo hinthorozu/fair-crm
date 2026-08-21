@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "todo-steps-update-permission",
+  "title": "Require Update Permission for Existing Todo Checklist Changes",
+  "feature_type": "maintenance",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "backend/app/modules/todos/application/replace_todo_steps.py",
+    "backend/tests/modules/todos/test_replace_todo_steps_authorization.py"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.todos.update",
+        "action": "replace checklist steps on an existing todo",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": false,
+    "reason": "No frontend behavior or route changes are introduced.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence schema changes are introduced." },
+    "migration": { "status": "na", "reason": "The canonical fair_crm.todos.update permission already exists in Core." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "required" },
+    "api": { "status": "na", "reason": "Existing API routes and payload contracts are unchanged." },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "na", "reason": "Existing Todo mutation audit behavior is unchanged." },
+    "frontend": { "status": "na", "reason": "No frontend code changes are introduced." },
+    "ui_permissions": { "status": "na", "reason": "No UI permission visibility behavior changes are introduced." },
+    "menu": { "status": "na", "reason": "Navigation is unchanged." },
+    "route_guard": { "status": "na", "reason": "Route wiring is unchanged; authorization is enforced in the existing use case." },
+    "forms": { "status": "na", "reason": "Form structure and workflow are unchanged." },
+    "visual_qa": { "status": "na", "reason": "No visual changes are introduced." },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "na", "reason": "No frontend code changes are introduced." },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Replacing the checklist of an existing Todo is an update operation. Create-only permission must not authorize mutation of an existing Todo."
+}
