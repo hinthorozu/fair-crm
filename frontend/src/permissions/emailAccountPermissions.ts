@@ -4,6 +4,7 @@ export const EMAIL_ACCOUNTS_PERMISSION_READ = "fair_crm.email_accounts.read";
 export const EMAIL_ACCOUNTS_PERMISSION_CREATE = "fair_crm.email_accounts.create";
 export const EMAIL_ACCOUNTS_PERMISSION_UPDATE = "fair_crm.email_accounts.update";
 export const EMAIL_ACCOUNTS_PERMISSION_DELETE = "fair_crm.email_accounts.delete";
+export const MAIL_SEND_OPERATIONS_PERMISSION_EXECUTE = "fair_crm.mail_send_operations.execute";
 
 export const EMAIL_ACCOUNTS_PERMISSIONS_ALL = [
   EMAIL_ACCOUNTS_PERMISSION_READ,
@@ -37,6 +38,10 @@ export function canPerformEmailAccountAction(
   action: EmailAccountPermissionAction,
 ): boolean {
   return hasPermission(grantedPermissions, ACTION_TO_PERMISSION[action]);
+}
+
+export function canSendMail(grantedPermissions: Set<string>): boolean {
+  return hasPermission(grantedPermissions, MAIL_SEND_OPERATIONS_PERMISSION_EXECUTE);
 }
 
 export function canSetDefaultEmailAccount(
