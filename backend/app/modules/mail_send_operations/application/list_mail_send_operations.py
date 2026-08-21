@@ -15,7 +15,7 @@ from app.modules.mail_send_operations.infrastructure.repositories.mail_send_oper
 from app.modules.mail_templates.domain.ports import MailTemplateRepository
 from app.modules.smtp.domain.ports import SmtpAccountRepository
 
-PERMISSION_READ = "fair_crm.email_accounts.read"
+PERMISSION_READ = "fair_crm.mail_send_operations.read"
 
 
 @dataclass(frozen=True)
