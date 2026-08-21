@@ -7,8 +7,10 @@ from app.core.exceptions import ForbiddenError
 from app.modules.email_accounts.application.manage_email_accounts import (
     SendTestEmailAccountMailUseCase,
 )
+from app.modules.smtp.api.dependencies import get_authorization_adapter
 from app.modules.smtp.application.commands import SendTestSmtpMailCommand
 from app.modules.smtp.application.send_test_smtp_mail import SendTestSmtpMailUseCase
+from tests.modules.test_endpoint_permission_enforcement import SelectiveAuthorization
 
 PERMISSION_EXECUTE = "fair_crm.mail_send_operations.execute"
 
@@ -81,3 +83,22 @@ def test_smtp_test_mail_requires_mail_send_execute_before_resource_lookup() -> N
         access_token="token",
     )
     repository.get_by_id.assert_not_called()
+
+
+def test_test_mail_endpoint_denies_execute_before_unknown_account_lookup(
+    client,
+    auth_headers,
+) -> None:
+    client.app.dependency_overrides[get_authorization_adapter] = lambda: SelectiveAuthorization(
+        denied={PERMISSION_EXECUTE}
+    )
+    try:
+        response = client.post(
+            f"/api/v1/email-accounts/{uuid4()}/test",
+            json={"recipient": "recipient@example.com"},
+            headers=auth_headers,
+        )
+    finally:
+        client.app.dependency_overrides.pop(get_authorization_adapter, None)
+
+    assert response.status_code == 403
