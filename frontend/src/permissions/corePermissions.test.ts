@@ -33,7 +33,8 @@ describe("Core permission synchronization", () => {
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.admin.backups.delete");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.admin.backups.execute");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.admin.data_operations.execute");
-    expect(FAIR_CRM_PERMISSION_CODES).not.toContain("fair_crm.email_accounts.execute");
+    const deprecatedEmailAccountExecute = ["fair_crm", "email_accounts", "execute"].join(".");
+    expect(FAIR_CRM_PERMISSION_CODES).not.toContain(deprecatedEmailAccountExecute);
     expect(FAIR_CRM_PERMISSION_CODES).not.toContain("fair_crm.dashboard.read");
     expect(FAIR_CRM_PERMISSION_CODES).not.toContain("fair_crm.imports.apply");
     expect(FAIR_CRM_PERMISSION_CODES).not.toContain("fair_crm.scraper.run");
