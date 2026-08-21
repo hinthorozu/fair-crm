@@ -452,9 +452,9 @@ export function SmtpAccountsPage() {
         sortable: false,
         render: (account) => (
           <TableRowActions className="smtp-list-actions">
-            {canUpdate ? (
+            {canUpdate || canSendTestMail ? (
               <button type="button" className="btn btn-sm secondary" onClick={() => openEdit(account)}>
-                {adminLabels.smtpActionEdit}
+                {canUpdate ? adminLabels.smtpActionEdit : adminLabels.smtpActionTestMail}
               </button>
             ) : null}
             {canUpdate ? (
@@ -493,6 +493,7 @@ export function SmtpAccountsPage() {
     ],
     [
       canDelete,
+      canSendTestMail,
       canUpdate,
       deletingId,
       grantedPermissions,
@@ -555,7 +556,10 @@ export function SmtpAccountsPage() {
       ) : null}
 
       {modal === "edit" && editing ? (
-        <FormModal title={adminLabels.smtpEditAccount} onClose={closeModal}>
+        <FormModal
+          title={canUpdate ? adminLabels.smtpEditAccount : adminLabels.smtpSectionTestMail}
+          onClose={closeModal}
+        >
           <EmailAccountForm
             key={editing.id}
             mode="edit"
@@ -563,6 +567,7 @@ export function SmtpAccountsPage() {
             initial={editing}
             saving={formSaving}
             testing={testMailRunning}
+            testOnly={!canUpdate}
             error={formError}
             testError={testMailError}
             testSuccess={testMailSuccess}
