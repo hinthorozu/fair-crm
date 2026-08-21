@@ -29,6 +29,7 @@ describe("todoWorklistPermissions", () => {
   });
 
   it("does not introduce a todos execute permission", () => {
-    expect(FAIR_CRM_PERMISSION_CODES).not.toContain("fair_crm.todos.execute");
+    const todoExecutePermission = ["fair_crm", "todos", "execute"].join(".");
+    expect(FAIR_CRM_PERMISSION_CODES).not.toContain(todoExecutePermission);
   });
 });
