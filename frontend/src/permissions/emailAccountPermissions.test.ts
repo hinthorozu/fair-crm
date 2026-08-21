@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   canPerformEmailAccountAction,
+  canSendMail,
   canSetDefaultEmailAccount,
   hasPermission,
   EMAIL_ACCOUNTS_PERMISSION_CREATE,
   EMAIL_ACCOUNTS_PERMISSION_READ,
   EMAIL_ACCOUNTS_PERMISSION_UPDATE,
+  MAIL_SEND_OPERATIONS_PERMISSION_EXECUTE,
 } from "../permissions/emailAccountPermissions";
 
 describe("emailAccountPermissions", () => {
@@ -38,5 +40,14 @@ describe("emailAccountPermissions", () => {
     expect(
       canPerformEmailAccountAction(new Set([EMAIL_ACCOUNTS_PERMISSION_CREATE]), "create"),
     ).toBe(true);
+  });
+
+  it("requires mail-send execute permission for test mail independently of account update", () => {
+    const updateOnly = new Set([EMAIL_ACCOUNTS_PERMISSION_UPDATE]);
+    const executeOnly = new Set([MAIL_SEND_OPERATIONS_PERMISSION_EXECUTE]);
+
+    expect(canSendMail(updateOnly)).toBe(false);
+    expect(canSendMail(executeOnly)).toBe(true);
+    expect(canPerformEmailAccountAction(executeOnly, "update")).toBe(false);
   });
 });
