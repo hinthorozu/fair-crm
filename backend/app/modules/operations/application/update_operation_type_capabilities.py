@@ -10,7 +10,7 @@ from app.modules.operations.infrastructure.repositories.operation_type_repositor
     capabilities_from_model,
 )
 
-PERMISSION_CREATE = "fair_crm.operations.create"
+PERMISSION_UPDATE = "fair_crm.operations.update"
 
 
 @dataclass(frozen=True)
@@ -36,7 +36,7 @@ class UpdateOperationTypeCapabilitiesUseCase:
         if not self._authorization.check_permission(
             organization_id=command.organization_id,
             user_id=command.user_id,
-            permission_code=PERMISSION_CREATE,
+            permission_code=PERMISSION_UPDATE,
             access_token=command.access_token,
         ):
             raise ForbiddenError("Permission denied")
