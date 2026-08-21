@@ -100,11 +100,13 @@ function groupTitle(group: string): string {
     "fair_crm.operations": "Operasyonlar",
     "fair_crm.email_accounts": "E-posta Hesapları",
     "fair_crm.mail_templates": "E-posta Şablonları",
+    "fair_crm.mail_send_operations": "E-posta Gönderim İşlemleri",
     "fair_crm.fair_emails": "Fuar E-postaları",
     "fair_crm.quote_templates": "Teklif Şablonları",
     "fair_crm.template_contents": "Şablon İçerikleri",
     "fair_crm.quotes": "Teklifler",
     "fair_crm.dashboard": "Gösterge Paneli",
+    "fair_crm.cost_catalog": "Maliyet Kataloğu",
     "fair_crm.admin": "Sistem Yönetimi",
   };
   return known[group] ?? group;
@@ -497,7 +499,6 @@ export function RoleManagementPage() {
       ));
     }
   }, []);
-
   const loadOrganization = React.useCallback(async () => {
     if (!organizationId) {
       setRoles([]);
