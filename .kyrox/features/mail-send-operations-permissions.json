@@ -15,6 +15,8 @@
     "backend/app/modules/mail_send_operations/api/routes.py",
     "backend/app/modules/smtp/application/send_test_smtp_mail.py",
     "backend/app/modules/email_accounts/application/manage_email_accounts.py",
+    "backend/tests/modules/email_accounts/test_mail_send_authorization.py",
+    "backend/tests/modules/mail_send_operations/test_mail_send_operations.py",
     "backend/tests/modules/mail_send_operations/test_retry_mail_send_operations.py",
     "backend/tests/modules/test_endpoint_permission_enforcement.py",
     "frontend/src/permissions/corePermissions.ts",
