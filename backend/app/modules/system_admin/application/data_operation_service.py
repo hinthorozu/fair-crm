@@ -307,7 +307,7 @@ class ExportDataOperationDatasetCustomersUseCase:
         if not self._authorization.check_permission(
             organization_id=organization_id,
             user_id=user_id,
-            permission_code=PERMISSION_READ,
+            permission_code=PERMISSION_RUN,
             access_token=access_token,
         ):
             raise ForbiddenError("Admin permission required")
@@ -865,7 +865,7 @@ class ExportDataOperationDuplicateCustomersUseCase:
         if not self._authorization.check_permission(
             organization_id=organization_id,
             user_id=user_id,
-            permission_code=PERMISSION_READ,
+            permission_code=PERMISSION_RUN,
             access_token=access_token,
         ):
             raise ForbiddenError("Admin permission required")
@@ -974,7 +974,7 @@ class DownloadDataOperationFileUseCase:
         if not self._authorization.check_permission(
             organization_id=organization_id,
             user_id=user_id,
-            permission_code=PERMISSION_READ,
+            permission_code=PERMISSION_RUN,
             access_token=access_token,
         ):
             raise ForbiddenError("Admin permission required")
