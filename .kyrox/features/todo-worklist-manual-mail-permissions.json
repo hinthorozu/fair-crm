@@ -55,14 +55,17 @@
     "backend": {"status": "required"},
     "api": {"status": "required"},
     "tenant_isolation": {"status": "required"},
+    "audit": {"status": "required"},
     "frontend": {"status": "required"},
     "ui_permissions": {"status": "required"},
+    "menu": {"status": "na", "reason": "Todo navigation ownership is unchanged; this fix only gates worklist actions."},
     "route_guard": {"status": "required"},
+    "forms": {"status": "required"},
+    "visual_qa": {"status": "required"},
     "backend_tests": {"status": "required"},
     "frontend_tests": {"status": "required"},
     "runtime_authorization": {"status": "required"},
     "runtime_verification": {"status": "required"},
     "deployment": {"status": "required"}
   },
-  "notes": "Worklist activity mutates an existing Todo and therefore requires fair_crm.todos.update, never fair_crm.todos.create. Manual Mail is a mail-send side effect and therefore requires fair_crm.mail_send_operations.execute independently of Todo create/update. The UI keeps the read-only worklist context visible while hiding activity mutation controls without Todo update and hiding Manual Mail without mail-send execute. fair_crm.todos.execute is intentionally not introduced. Prod-path E2E resolves a matching Core head branch first and then the Fair PR base branch, allowing stacked Fair authorization PRs to test against their stacked Core dependency."
-}
+  "notes": "Worklist activity mutates an existing Todo and therefore requires fair_crm.todos.update, never fair_crm.todos.create. Manual Mail is a mail-send side effect and therefore requires fair_crm.mail_send_operations.execute independently of Todo create/update. The UI keeps the read-only worklist context visible while hiding activity mutation controls without Todo update and hiding Manual Mail without mail-send execute. fair_crm.todos.execute is intentionally not introduced. Existing mail-operation logging remains the audit trail for manual mail. Prod-path E2E resolves a matching Core head branch first and then the Fair PR base branch, allowing stacked Fair authorization PRs to test against their stacked Core dependency."
