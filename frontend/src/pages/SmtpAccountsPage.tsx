@@ -20,6 +20,7 @@ import { UniversalDataTable, type UniversalDataTableColumn } from "../components
 import { adminLabels } from "../labels/adminLabels";
 import {
   canPerformEmailAccountAction,
+  canSendMail,
   canSetDefaultEmailAccount,
   getGrantedPermissions,
 } from "../permissions/emailAccountPermissions";
@@ -59,6 +60,7 @@ export function SmtpAccountsPage() {
   const canCreate = canPerformEmailAccountAction(grantedPermissions, "create");
   const canUpdate = canPerformEmailAccountAction(grantedPermissions, "update");
   const canDelete = canPerformEmailAccountAction(grantedPermissions, "delete");
+  const canSendTestMail = canSendMail(grantedPermissions);
 
   const [accounts, setAccounts] = React.useState<EmailAccount[]>([]);
   const [providerDisplayNames, setProviderDisplayNames] = React.useState<Map<string, string>>(
@@ -289,7 +291,7 @@ export function SmtpAccountsPage() {
 
   const handleTestMail = async (recipient: string) => {
     const accountId = editingRef.current?.id;
-    if (!accountId || !canUpdate || modalRef.current !== "edit") return;
+    if (!accountId || !canSendTestMail || modalRef.current !== "edit") return;
 
     testMailAbortRef.current?.abort();
     const controller = new AbortController();
@@ -450,9 +452,9 @@ export function SmtpAccountsPage() {
         sortable: false,
         render: (account) => (
           <TableRowActions className="smtp-list-actions">
-            {canUpdate ? (
+            {canUpdate || canSendTestMail ? (
               <button type="button" className="btn btn-sm secondary" onClick={() => openEdit(account)}>
-                {adminLabels.smtpActionEdit}
+                {canUpdate ? adminLabels.smtpActionEdit : adminLabels.smtpActionTestMail}
               </button>
             ) : null}
             {canUpdate ? (
@@ -491,6 +493,7 @@ export function SmtpAccountsPage() {
     ],
     [
       canDelete,
+      canSendTestMail,
       canUpdate,
       deletingId,
       grantedPermissions,
@@ -553,7 +556,10 @@ export function SmtpAccountsPage() {
       ) : null}
 
       {modal === "edit" && editing ? (
-        <FormModal title={adminLabels.smtpEditAccount} onClose={closeModal}>
+        <FormModal
+          title={canUpdate ? adminLabels.smtpEditAccount : adminLabels.smtpSectionTestMail}
+          onClose={closeModal}
+        >
           <EmailAccountForm
             key={editing.id}
             mode="edit"
@@ -561,13 +567,14 @@ export function SmtpAccountsPage() {
             initial={editing}
             saving={formSaving}
             testing={testMailRunning}
+            testOnly={!canUpdate}
             error={formError}
             testError={testMailError}
             testSuccess={testMailSuccess}
             onCancel={closeModal}
             onSubmitCreate={handleCreate}
             onSubmitUpdate={handleUpdate}
-            onTestMail={canUpdate ? handleTestMail : undefined}
+            onTestMail={canSendTestMail ? handleTestMail : undefined}
           />
         </FormModal>
       ) : null}

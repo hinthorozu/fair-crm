@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 AUDIT_READ_PERMISSION: Final = "audit.logs.read"
-ROLE_MATRIX_VERSION: Final = 17
+ROLE_MATRIX_VERSION: Final = 18
 
 SYSTEM_PERMISSION_CODES: tuple[str, ...] = (
     "fair_crm.admin.backups.read",
@@ -56,6 +56,8 @@ ALL_FAIR_CRM_PERMISSIONS: tuple[str, ...] = (
     "fair_crm.email_accounts.create",
     "fair_crm.email_accounts.update",
     "fair_crm.email_accounts.delete",
+    "fair_crm.mail_send_operations.read",
+    "fair_crm.mail_send_operations.execute",
     "fair_crm.mail_templates.read",
     "fair_crm.mail_templates.create",
     "fair_crm.mail_templates.update",
@@ -107,6 +109,7 @@ ADMIN_ONLY_PERMISSIONS: frozenset[str] = frozenset(
         "fair_crm.email_accounts.create",
         "fair_crm.email_accounts.update",
         "fair_crm.email_accounts.delete",
+        "fair_crm.mail_send_operations.execute",
         "fair_crm.mail_templates.create",
         "fair_crm.mail_templates.update",
         "fair_crm.mail_templates.delete",

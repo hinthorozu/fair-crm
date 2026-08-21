@@ -56,6 +56,8 @@ export const FAIR_CRM_PERMISSION_CODES = [
   "fair_crm.imports.delete",
   "fair_crm.imports.read",
   "fair_crm.imports.update",
+  "fair_crm.mail_send_operations.read",
+  "fair_crm.mail_send_operations.execute",
   "fair_crm.mail_templates.read",
   "fair_crm.mail_templates.create",
   "fair_crm.mail_templates.update",

@@ -22,7 +22,7 @@ from app.modules.smtp.domain.ports import SmtpAccountRepository
 from app.modules.smtp.domain.smtp_config_validation import smtp_config_warnings
 from app.shared.email import sanitize_scraped_email
 
-PERMISSION_UPDATE = "fair_crm.email_accounts.update"
+PERMISSION_EXECUTE = "fair_crm.mail_send_operations.execute"
 
 
 class SendTestSmtpMailUseCase:
@@ -45,7 +45,7 @@ class SendTestSmtpMailUseCase:
         if not self._authorization.check_permission(
             organization_id=command.organization_id,
             user_id=command.user_id,
-            permission_code=PERMISSION_UPDATE,
+            permission_code=PERMISSION_EXECUTE,
             access_token=command.access_token,
         ):
             raise ForbiddenError("Permission denied")

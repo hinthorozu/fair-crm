@@ -191,13 +191,13 @@ def test_retry_unsupported_source_type(client, auth_headers, db_session, organiz
     assert "manual_email" in response.json()["detail"]
 
 
-def test_retry_denied_without_update_permission(client, auth_headers):
+def test_retry_denied_without_execute_permission(client, auth_headers):
     from app.modules.mail_send_operations.api.dependencies import get_authorization_adapter
     from tests.modules.test_endpoint_permission_enforcement import SelectiveAuthorization
 
     operation_id = _failed_smtp_test_operation_id(client, auth_headers, "retry-perm@example.com")
     client.app.dependency_overrides[get_authorization_adapter] = lambda: SelectiveAuthorization(
-        denied={"fair_crm.email_accounts.update"}
+        denied={"fair_crm.mail_send_operations.execute"}
     )
     try:
         response = client.post(

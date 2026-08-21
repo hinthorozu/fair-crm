@@ -1,6 +1,7 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { useFloatingMenuPosition } from "../../hooks/useFloatingMenuPosition";
+import { usePermissions } from "../../hooks/usePermissions";
 import { adminLabels } from "../../labels/adminLabels";
 import type { MailOperationActionId, MailOperationRecord } from "../../types/mailOperations";
 import {
@@ -35,6 +36,8 @@ const ACTION_HANDLERS: Record<
   cancel: "onCancel",
 };
 
+const PERMISSION_EXECUTE = "fair_crm.mail_send_operations.execute";
+
 export function MailOperationActionsMenu({
   record,
   onDetail,
@@ -49,6 +52,8 @@ export function MailOperationActionsMenu({
   const anchorRef = React.useRef<HTMLDivElement>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
   const menuStyle = useFloatingMenuPosition(anchorRef, menuRef, open);
+  const { can } = usePermissions();
+  const canExecute = can(PERMISSION_EXECUTE);
 
   const handlers: MailOperationActionHandlers = {
     onDetail,
@@ -60,6 +65,7 @@ export function MailOperationActionsMenu({
   };
 
   const actions = getMailOperationActions(record.status).filter((action) => {
+    if (action === "retry" && !canExecute) return false;
     const handlerKey = ACTION_HANDLERS[action];
     return Boolean(handlers[handlerKey]);
   });
@@ -86,7 +92,7 @@ export function MailOperationActionsMenu({
   }, [open]);
 
   const runAction = (action: MailOperationActionId) => {
-    if (action === "retry" && retryDisabled) return;
+    if (action === "retry" && (!canExecute || retryDisabled)) return;
     const handlerKey = ACTION_HANDLERS[action];
     const handler = handlers[handlerKey];
     setOpen(false);

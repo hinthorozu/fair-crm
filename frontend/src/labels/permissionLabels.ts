@@ -26,6 +26,7 @@ const RESOURCES: Record<string, ResourceCopy> = {
   "fair_crm.email_accounts": { title: "E-posta hesabı", object: "e-posta hesaplarını", singular: "e-posta hesabı" },
   "fair_crm.fairs": { title: "Fuar", object: "fuarları", singular: "fuar" },
   "fair_crm.imports": { title: "Veri aktarımı", object: "veri aktarımlarını", singular: "veri aktarımı" },
+  "fair_crm.mail_send_operations": { title: "E-posta gönderim işlemi", object: "e-posta gönderim işlemlerini", singular: "e-posta gönderim işlemi" },
   "fair_crm.mail_templates": { title: "E-posta şablonu", object: "e-posta şablonlarını", singular: "e-posta şablonu" },
   "fair_crm.fair_emails": { title: "Fuar e-postası", object: "fuar e-postalarını", singular: "fuar e-postası" },
   "fair_crm.quotes": { title: "Teklif", object: "teklifleri", singular: "teklif" },

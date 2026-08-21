@@ -8,8 +8,10 @@ import {
   firstAccessibleDataIntegrationPath,
   PERMISSION_BACKUPS_READ,
   PERMISSION_CUSTOMERS_READ,
+  PERMISSION_EMAIL_ACCOUNTS_READ,
   PERMISSION_IMPORTS_CREATE,
   PERMISSION_IMPORTS_READ,
+  PERMISSION_MAIL_SEND_OPERATIONS_READ,
   PERMISSION_OPERATIONS_CREATE,
   PERMISSION_OPERATIONS_READ,
   PERMISSION_SCRAPER_READ,
@@ -46,6 +48,23 @@ describe("navigation permission rules", () => {
     const superAdminEffectivePermissions = granted(PERMISSION_BACKUPS_READ);
     expect(canAccessAdminSection("backups", superAdminEffectivePermissions)).toBe(true);
     expect(canAccessApplicationPath("/admin", superAdminEffectivePermissions)).toBe(true);
+  });
+
+  it("uses dedicated mail operation read permission instead of email account read", () => {
+    const emailAccountReader = granted(PERMISSION_EMAIL_ACCOUNTS_READ);
+    expect(canAccessAdminSection("email-accounts", emailAccountReader)).toBe(true);
+    expect(canAccessAdminSection("mail-operations", emailAccountReader)).toBe(false);
+    expect(
+      canAccessApplicationPath("/admin/smtp-operations/mail-operations", emailAccountReader),
+    ).toBe(false);
+
+    const mailOperationReader = granted(PERMISSION_MAIL_SEND_OPERATIONS_READ);
+    expect(canAccessMainNavigation("/admin", mailOperationReader)).toBe(true);
+    expect(canAccessAdminSection("mail-operations", mailOperationReader)).toBe(true);
+    expect(canAccessAdminSection("email-accounts", mailOperationReader)).toBe(false);
+    expect(
+      canAccessApplicationPath("/admin/smtp-operations/mail-operations", mailOperationReader),
+    ).toBe(true);
   });
 
   it("separates operation read routes from operation creation routes", () => {

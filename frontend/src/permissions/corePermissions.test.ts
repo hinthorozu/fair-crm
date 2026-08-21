@@ -11,7 +11,7 @@ afterEach(() => {
 describe("Core permission synchronization", () => {
   it("contains every permission code enforced by the Fair CRM backend and UI guards", () => {
     expect(new Set(FAIR_CRM_PERMISSION_CODES).size).toBe(FAIR_CRM_PERMISSION_CODES.length);
-    expect(FAIR_CRM_PERMISSION_CODES).toHaveLength(96);
+    expect(FAIR_CRM_PERMISSION_CODES).toHaveLength(98);
     expect(FAIR_CRM_PERMISSION_CODES).toContain("identity.organizations.read");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("identity.organizations.update");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("identity.organizations.delete");
@@ -25,12 +25,16 @@ describe("Core permission synchronization", () => {
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.todos.outcomes.delete");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.imports.execute");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.scraper.execute");
+    expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.mail_send_operations.read");
+    expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.mail_send_operations.execute");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.mail_templates.execute");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.fair_emails.read");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.fair_emails.execute");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.admin.backups.delete");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.admin.backups.execute");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.admin.data_operations.execute");
+    const deprecatedEmailAccountExecute = ["fair_crm", "email_accounts", "execute"].join(".");
+    expect(FAIR_CRM_PERMISSION_CODES).not.toContain(deprecatedEmailAccountExecute);
     expect(FAIR_CRM_PERMISSION_CODES).not.toContain("fair_crm.dashboard.read");
     expect(FAIR_CRM_PERMISSION_CODES).not.toContain("fair_crm.imports.apply");
     expect(FAIR_CRM_PERMISSION_CODES).not.toContain("fair_crm.scraper.run");

@@ -30,6 +30,7 @@ from app.modules.smtp.api.dependencies import (  # noqa: F401
     get_create_smtp_account_use_case,
     get_mail_send_operation_service,
     get_update_smtp_account_use_case,
+    require_mail_send_execute_permission,
     require_read_permission,
 )
 from app.modules.smtp.application.create_smtp_account import CreateSmtpAccountUseCase
@@ -88,6 +89,7 @@ def get_delete_email_account_unified_use_case(
 
 
 def get_send_test_email_account_unified_use_case(
+    _auth=Depends(require_mail_send_execute_permission),
     repository: SqlAlchemyEmailAccountRepository = Depends(get_email_account_repository),
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
@@ -109,5 +111,6 @@ __all__ = [
     "UpdateSmtpAccountUseCase",
     "PERMISSION_READ",
     "get_auth_context",
+    "require_mail_send_execute_permission",
     "require_read_permission",
 ]

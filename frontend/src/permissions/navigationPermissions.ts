@@ -25,6 +25,7 @@ export const PERMISSION_IMPORTS_UPDATE = "fair_crm.imports.update";
 export const PERMISSION_SCRAPER_READ = "fair_crm.scraper.read";
 export const PERMISSION_BACKUPS_READ = "fair_crm.admin.backups.read";
 export const PERMISSION_EMAIL_ACCOUNTS_READ = "fair_crm.email_accounts.read";
+export const PERMISSION_MAIL_SEND_OPERATIONS_READ = "fair_crm.mail_send_operations.read";
 export const PERMISSION_MAIL_TEMPLATES_READ = "fair_crm.mail_templates.read";
 export const PERMISSION_QUOTE_TEMPLATES_READ = "fair_crm.quote_templates.read";
 export const PERMISSION_TEMPLATE_CONTENTS_READ = "fair_crm.template_contents.read";
@@ -55,6 +56,7 @@ export const MAIN_NAV_REQUIREMENTS: Readonly<Record<string, PermissionRequiremen
       PERMISSION_ROLES_READ,
       PERMISSION_BACKUPS_READ,
       PERMISSION_EMAIL_ACCOUNTS_READ,
+      PERMISSION_MAIL_SEND_OPERATIONS_READ,
       PERMISSION_MAIL_TEMPLATES_READ,
       PERMISSION_QUOTE_TEMPLATES_READ,
       PERMISSION_TEMPLATE_CONTENTS_READ,
@@ -78,7 +80,7 @@ export const ADMIN_NAV_REQUIREMENTS: Readonly<Record<string, PermissionRequireme
   "mail-templates": { kind: "permission", permission: PERMISSION_MAIL_TEMPLATES_READ },
   "quote-templates": { kind: "permission", permission: PERMISSION_QUOTE_TEMPLATES_READ },
   "template-contents": { kind: "permission", permission: PERMISSION_TEMPLATE_CONTENTS_READ },
-  "mail-operations": { kind: "permission", permission: PERMISSION_EMAIL_ACCOUNTS_READ },
+  "mail-operations": { kind: "permission", permission: PERMISSION_MAIL_SEND_OPERATIONS_READ },
   "operation-capabilities": { kind: "permission", permission: PERMISSION_OPERATIONS_READ },
 };
 

@@ -20,7 +20,10 @@ from app.modules.smtp.application.delete_smtp_account import DeleteSmtpAccountUs
 from app.modules.smtp.application.get_smtp_account import GetSmtpAccountUseCase
 from app.modules.smtp.application.list_smtp_accounts import ListSmtpAccountsUseCase
 from app.modules.smtp.application.set_default_smtp_account import SetDefaultSmtpAccountUseCase
-from app.modules.smtp.application.send_test_smtp_mail import SendTestSmtpMailUseCase
+from app.modules.smtp.application.send_test_smtp_mail import (
+    PERMISSION_EXECUTE as PERMISSION_MAIL_SEND_EXECUTE,
+    SendTestSmtpMailUseCase,
+)
 from app.modules.smtp.application.update_smtp_account import UpdateSmtpAccountUseCase
 from app.modules.mail_send_operations.application.mail_send_operation_service import MailSendOperationService
 from app.modules.mail_send_operations.infrastructure.repositories.mail_send_operation_repository import (
@@ -87,6 +90,25 @@ def require_read_permission(
         organization_id=auth.organization_id,
         user_id=auth.user_id,
         permission_code=PERMISSION_READ,
+        access_token=credentials.credentials,
+    ):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+    return auth
+
+
+def require_mail_send_execute_permission(
+    auth: AuthContext = Depends(get_auth_context),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> AuthContext:
+    if dev_bypass_enabled():
+        return auth
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    if not authorization.check_permission(
+        organization_id=auth.organization_id,
+        user_id=auth.user_id,
+        permission_code=PERMISSION_MAIL_SEND_EXECUTE,
         access_token=credentials.credentials,
     ):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")

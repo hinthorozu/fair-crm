@@ -29,7 +29,7 @@ from app.modules.mail_send_operations.infrastructure.repositories.mail_send_oper
 from app.modules.mail_templates.domain.ports import MailTemplateRepository
 from app.modules.smtp.domain.ports import SmtpAccountRepository
 
-PERMISSION_UPDATE = "fair_crm.email_accounts.update"
+PERMISSION_EXECUTE = "fair_crm.mail_send_operations.execute"
 
 RETRYABLE_SOURCE_TYPES = frozenset(
     {
@@ -72,7 +72,7 @@ class RetryMailSendOperationUseCase:
         if not self._authorization.check_permission(
             organization_id=command.organization_id,
             user_id=command.user_id,
-            permission_code=PERMISSION_UPDATE,
+            permission_code=PERMISSION_EXECUTE,
             access_token=command.access_token,
         ):
             raise ForbiddenError("Permission denied")

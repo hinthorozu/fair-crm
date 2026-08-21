@@ -326,7 +326,7 @@ def test_list_mail_send_operations_denied_without_read_permission(client, auth_h
     from tests.modules.test_endpoint_permission_enforcement import SelectiveAuthorization
 
     client.app.dependency_overrides[get_authorization_adapter] = lambda: SelectiveAuthorization(
-        denied={"fair_crm.email_accounts.read"}
+        denied={"fair_crm.mail_send_operations.read"}
     )
     try:
         response = client.get("/api/v1/mail-send-operations", headers=auth_headers)
