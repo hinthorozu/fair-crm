@@ -21,16 +21,38 @@ import { PageShell } from "../components/ui/PageShell";
 
 const POLL_INTERVAL_MS = 2000;
 
+const duplicateCheckUiLabels = {
+  run: "Çalıştır",
+  running: "Çalışıyor…",
+  loadError: "Duplicate kontrol işlemleri yüklenemedi.",
+  runError: "İşlem başlatılamadı.",
+  downloadError: "Dosya indirilemedi.",
+  colStatus: "Çalışma Durumu",
+  colStartedBy: "Başlatan",
+  colStartedAt: "Başlangıç",
+  colFinishedAt: "Bitiş",
+  colLastRun: "Son Çalıştırma",
+  colResult: "Sonuç",
+  downloads: "İndirmeler",
+  statusQueued: "Kuyrukta",
+  statusRunning: "Çalışıyor",
+  statusCompleted: "Tamamlandı",
+  statusFailed: "Başarısız",
+  resultSuccess: "Başarılı",
+  resultFailed: "Başarısız",
+  viewResults: "Sonuçları Gör",
+} as const;
+
 function formatDateTime(value: string | null): string {
   if (!value) return "—";
   return new Date(value).toLocaleString("tr-TR");
 }
 
 function statusLabel(status: DataOperationRun["status"]): string {
-  if (status === "queued") return adminLabels.dataOpStatusQueued;
-  if (status === "running") return adminLabels.dataOpStatusRunning;
-  if (status === "completed") return adminLabels.dataOpStatusCompleted;
-  return adminLabels.dataOpStatusFailed;
+  if (status === "queued") return duplicateCheckUiLabels.statusQueued;
+  if (status === "running") return duplicateCheckUiLabels.statusRunning;
+  if (status === "completed") return duplicateCheckUiLabels.statusCompleted;
+  return duplicateCheckUiLabels.statusFailed;
 }
 
 function statusBadgeVariant(status: DataOperationRun["status"]): BadgeVariant {
@@ -40,8 +62,8 @@ function statusBadgeVariant(status: DataOperationRun["status"]): BadgeVariant {
 }
 
 function resultLabel(result: DataOperationRun["result"]): string {
-  if (result === "success") return adminLabels.dataOpResultSuccess;
-  if (result === "failed") return adminLabels.dataOpResultFailed;
+  if (result === "success") return duplicateCheckUiLabels.resultSuccess;
+  if (result === "failed") return duplicateCheckUiLabels.resultFailed;
   return "—";
 }
 
@@ -61,7 +83,7 @@ function extractDataOperationRunId(operation: Operation): string | null {
   return String(raw);
 }
 
-interface DataOperationsPageProps {
+interface DuplicateCheckOperationPageProps {
   onOpenResult?: (runId: string, operationKey: string) => void;
 }
 
@@ -74,7 +96,7 @@ const DUPLICATE_GROUP_BY_OPTIONS: { value: DuplicateGroupByField; label: string 
   { value: "phone", label: adminLabels.dataOpGroupByPhone },
 ];
 
-export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
+export function DuplicateCheckOperationPage({ onOpenResult }: DuplicateCheckOperationPageProps) {
   const [operations, setOperations] = React.useState<DataOperationDefinition[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -89,7 +111,7 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
       setOperations(items);
       setError(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : adminLabels.dataOpLoadError);
+      setError(err instanceof ApiError ? err.message : duplicateCheckUiLabels.loadError);
     } finally {
       setLoading(false);
     }
@@ -178,7 +200,7 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
       });
       const dataRunId = extractDataOperationRunId(startedOperation);
       if (!dataRunId) {
-        throw new Error(adminLabels.dataOpRunError);
+        throw new Error(duplicateCheckUiLabels.runError);
       }
       const run = await getDataOperationRun(dataRunId);
       setOperations((prev) =>
@@ -202,7 +224,7 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
       setError(null);
       void loadOperations();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : adminLabels.dataOpRunError);
+      setError(err instanceof ApiError ? err.message : duplicateCheckUiLabels.runError);
     } finally {
       setRunningKeys((prev) => {
         const next = new Set(prev);
@@ -218,7 +240,7 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
     try {
       await downloadDataOperationFile(run.id, fileId, fileName);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : adminLabels.dataOpDownloadError);
+      setError(err instanceof ApiError ? err.message : duplicateCheckUiLabels.downloadError);
     } finally {
       setDownloadingKey(null);
     }
@@ -294,13 +316,13 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
                     disabled={busy}
                     onClick={() => void handleRun(operation)}
                   >
-                    {busy ? adminLabels.dataOpRunning : adminLabels.dataOpRun}
+                    {busy ? duplicateCheckUiLabels.running : duplicateCheckUiLabels.run}
                   </button>
                 </div>
 
                 <dl className="data-operation-meta">
                   <div>
-                    <dt>{adminLabels.dataOpColStatus}</dt>
+                    <dt>{duplicateCheckUiLabels.colStatus}</dt>
                     <dd>
                       {run ? (
                         <Badge variant={statusBadgeVariant(run.status)}>{statusLabel(run.status)}</Badge>
@@ -310,23 +332,23 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
                     </dd>
                   </div>
                   <div>
-                    <dt>{adminLabels.dataOpColStartedBy}</dt>
+                    <dt>{duplicateCheckUiLabels.colStartedBy}</dt>
                     <dd>{run?.started_by_email ?? "—"}</dd>
                   </div>
                   <div>
-                    <dt>{adminLabels.dataOpColStartedAt}</dt>
+                    <dt>{duplicateCheckUiLabels.colStartedAt}</dt>
                     <dd>{formatDateTime(run?.started_at ?? null)}</dd>
                   </div>
                   <div>
-                    <dt>{adminLabels.dataOpColFinishedAt}</dt>
+                    <dt>{duplicateCheckUiLabels.colFinishedAt}</dt>
                     <dd>{formatDateTime(run?.completed_at ?? null)}</dd>
                   </div>
                   <div>
-                    <dt>{adminLabels.dataOpColLastRun}</dt>
+                    <dt>{duplicateCheckUiLabels.colLastRun}</dt>
                     <dd>{formatDateTime(operation.last_run?.started_at ?? null)}</dd>
                   </div>
                   <div>
-                    <dt>{adminLabels.dataOpColResult}</dt>
+                    <dt>{duplicateCheckUiLabels.colResult}</dt>
                     <dd>{resultLabel(run?.result ?? operation.last_run?.result ?? null)}</dd>
                   </div>
                 </dl>
@@ -335,7 +357,7 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
 
                 {downloadsFrom?.output_files && downloadsFrom.output_files.length > 0 && (
                   <div className="data-operation-downloads">
-                    <p className="data-operation-downloads-title">{adminLabels.dataOpDownloads}</p>
+                    <p className="data-operation-downloads-title">{duplicateCheckUiLabels.downloads}</p>
                     <ul>
                       {downloadsFrom.output_files.map((file) => {
                         const key = `${downloadsFrom.id}:${file.id}`;
@@ -363,7 +385,7 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
                       className="btn btn-link"
                       onClick={() => onOpenResult(datasetRun.id, operation.key)}
                     >
-                      {adminLabels.dataOpViewResults}
+                      {duplicateCheckUiLabels.viewResults}
                     </button>
                   </div>
                 )}
@@ -375,3 +397,5 @@ export function DataOperationsPage({ onOpenResult }: DataOperationsPageProps) {
     </PageShell>
   );
 }
+
+export const DataOperationsPage = DuplicateCheckOperationPage;

@@ -97,7 +97,7 @@ function groupTitle(group: string): string {
     "fair_crm.todos": "Görevler",
     "fair_crm.imports": "Veri Aktarımı",
     "fair_crm.scraper": "Scraper",
-    "fair_crm.operations": "Operasyonlar",
+    "fair_crm.operations": "Otomasyonlar",
     "fair_crm.email_accounts": "E-posta Hesapları",
     "fair_crm.mail_templates": "E-posta Şablonları",
     "fair_crm.mail_send_operations": "E-posta Gönderim İşlemleri",

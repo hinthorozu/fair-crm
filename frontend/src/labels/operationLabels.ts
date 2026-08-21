@@ -8,7 +8,7 @@ import type {
 
 export const operationLabels = {
   pageTitle: "Otomasyonlar",
-  pageSubtitle: "Ortak Operation Engine üzerinden otomasyon tanımlarını yönetin",
+  pageSubtitle: "Ortak otomasyon altyapısı üzerinden otomasyon tanımlarını yönetin",
   newOperation: "Yeni Otomasyon",
   loadError: "Otomasyonlar yüklenemedi.",
   emptyTitle: "Henüz otomasyon yok.",
@@ -290,7 +290,7 @@ export const operationTypeInfo: Record<OperationType, OperationTypeInfo> = {
   },
   manual_task: {
     summary: "Worker gerektirmeyen manuel görev.",
-    purpose: "İnsan tarafından yürütülen manuel görevi Operation kaydı olarak izler.",
+    purpose: "İnsan tarafından yürütülen manuel görevi otomasyon kaydı olarak izler.",
     how: "Görev başlığı, atama ve zamanlama alanlarıyla yapılandırılır.",
   },
   reminder: {

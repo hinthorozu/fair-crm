@@ -19,19 +19,19 @@ function isDuplicateResultRun(
   return operationKey === DUPLICATE_OPERATION_KEY || datasetKind === DUPLICATE_DATASET_KIND;
 }
 
-interface DataOperationRunResultPageProps {
+interface DuplicateCheckRunResultPageProps {
   runId: string;
   operationKey?: string | null;
   onBack: () => void;
   onOpenCustomer?: (customerId: string) => void;
 }
 
-export function DataOperationRunResultPage({
+export function DuplicateCheckRunResultPage({
   runId,
   operationKey: operationKeyFromRoute,
   onBack,
   onOpenCustomer,
-}: DataOperationRunResultPageProps) {
+}: DuplicateCheckRunResultPageProps) {
   const [resolvedOperationKey, setResolvedOperationKey] = React.useState<string | null>(
     operationKeyFromRoute ?? null,
   );
@@ -103,3 +103,5 @@ export function DataOperationRunResultPage({
 
   return <DataOperationAnalyzeResultPage runId={runId} onBack={onBack} onOpenCustomer={onOpenCustomer} />;
 }
+
+export const DataOperationRunResultPage = DuplicateCheckRunResultPage;
