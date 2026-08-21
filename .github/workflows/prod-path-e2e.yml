@@ -40,10 +40,27 @@ jobs:
       - name: Checkout fair-crm
         uses: actions/checkout@v4
 
+      - name: Resolve kyrox-core dependency ref
+        id: core-ref
+        shell: bash
+        run: |
+          CORE_REF="main"
+          if [[ "${{ github.event_name }}" == "pull_request" && -n "${{ github.head_ref }}" ]]; then
+            CANDIDATE="${{ github.head_ref }}"
+            if git ls-remote --exit-code --heads \
+              "https://github.com/${{ github.repository_owner }}/kyrox-core.git" \
+              "refs/heads/$CANDIDATE" >/dev/null 2>&1; then
+              CORE_REF="$CANDIDATE"
+            fi
+          fi
+          echo "ref=$CORE_REF" >> "$GITHUB_OUTPUT"
+          echo "Using kyrox-core ref: $CORE_REF"
+
       - name: Checkout kyrox-core
         uses: actions/checkout@v4
         with:
           repository: ${{ github.repository_owner }}/kyrox-core
+          ref: ${{ steps.core-ref.outputs.ref }}
           path: kyrox-core
           token: ${{ secrets.GITHUB_TOKEN }}
 
