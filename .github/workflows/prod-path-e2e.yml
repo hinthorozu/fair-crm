@@ -45,13 +45,18 @@ jobs:
         shell: bash
         run: |
           CORE_REF="main"
-          if [[ "${{ github.event_name }}" == "pull_request" && -n "${{ github.head_ref }}" ]]; then
-            CANDIDATE="${{ github.head_ref }}"
-            if git ls-remote --exit-code --heads \
-              "https://github.com/${{ github.repository_owner }}/kyrox-core.git" \
-              "refs/heads/$CANDIDATE" >/dev/null 2>&1; then
-              CORE_REF="$CANDIDATE"
-            fi
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            for CANDIDATE in "${{ github.head_ref }}" "${{ github.base_ref }}"; do
+              if [[ -z "$CANDIDATE" ]]; then
+                continue
+              fi
+              if git ls-remote --exit-code --heads \
+                "https://github.com/${{ github.repository_owner }}/kyrox-core.git" \
+                "refs/heads/$CANDIDATE" >/dev/null 2>&1; then
+                CORE_REF="$CANDIDATE"
+                break
+              fi
+            done
           fi
           echo "ref=$CORE_REF" >> "$GITHUB_OUTPUT"
           echo "Using kyrox-core ref: $CORE_REF"
@@ -119,6 +124,45 @@ jobs:
         env:
           KYROX_CORE_ROOT: ${{ github.workspace }}/kyrox-core
         run: python scripts/e2e_validation.py --ci
+
+      - name: Todo worklist authorization regressions
+        run: |
+          python -m pytest backend/tests/modules/todos/test_worklist_permission_authorization.py -q
+          python - <<'PY'
+          import json
+          import os
+          import httpx
+
+          state = json.loads(open("scripts/.dev_state.json", encoding="utf-8").read())
+          email = state.get("email", "dev@example.com")
+          org_id = state["organization_id"]
+          password = os.environ["DEV_USER_PASSWORD"]
+          core_base = os.environ["KYROX_CORE_BASE_URL"]
+
+          login = httpx.post(
+              f"{core_base}/api/v1/auth/login",
+              json={"email": email, "password": password},
+              timeout=10.0,
+          )
+          login.raise_for_status()
+          token = login.json()["access_token"]
+          headers = {
+              "Authorization": f"Bearer {token}",
+              "X-Organization-Id": org_id,
+          }
+          for permission_code in (
+              "fair_crm.todos.update",
+              "fair_crm.mail_send_operations.execute",
+          ):
+              response = httpx.post(
+                  f"{core_base}/api/v1/organizations/{org_id}/authorization/check",
+                  headers=headers,
+                  json={"permission_code": permission_code},
+                  timeout=10.0,
+              )
+              assert response.status_code == 200, (permission_code, response.text)
+              assert response.json().get("allowed") is True, (permission_code, response.text)
+          PY
 
       - name: Upload E2E report
         if: always()

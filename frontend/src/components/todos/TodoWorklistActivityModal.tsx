@@ -21,6 +21,8 @@ import {
   worklistStatusBadgeVariant,
   worklistStatusLabels,
 } from "../../labels/todoWorklistLabels";
+import { getGrantedTodoPermissions } from "../../permissions/todoPermissions";
+import { resolveTodoWorklistActionPermissions } from "../../permissions/todoWorklistPermissions";
 import type {
   RecordTodoWorklistActivityPayload,
   TodoWorklistModalActivity,
@@ -147,6 +149,10 @@ function TodoWorklistActivityModalInner({
   onSave,
 }: TodoWorklistActivityModalProps) {
   const requestClose = useModalFormCancel(onClose);
+  const grantedPermissions = React.useMemo(() => getGrantedTodoPermissions(), []);
+  const { canRecordActivity, canSendManualMail } = resolveTodoWorklistActionPermissions(
+    grantedPermissions,
+  );
   const [outcomeId, setOutcomeId] = React.useState("");
   const [note, setNote] = React.useState("");
   const [followUpAt, setFollowUpAt] = React.useState("");
@@ -208,12 +214,13 @@ function TodoWorklistActivityModalInner({
   };
 
   const handleSubmit = async (advanceToNext: boolean) => {
+    if (!canRecordActivity) return;
     const payload = buildPayload();
     if (!payload) return;
     await onSave({ ...payload, advance_to_next: advanceToNext });
   };
 
-  const canSubmit = Boolean(outcomeId && note.trim()) && !saving;
+  const canSubmit = canRecordActivity && Boolean(outcomeId && note.trim()) && !saving;
   const modalTitle = context?.customer_name ?? todoWorklistLabels.activityPanelTitle;
 
   return (
@@ -244,103 +251,113 @@ function TodoWorklistActivityModalInner({
             {mailSuccess ? <Banner variant="success" className="form-form-alert">{mailSuccess}</Banner> : null}
 
             <CustomerSummarySection context={context} />
-            <div className="todo-worklist-mail-action-row">
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={() => setMailModalOpen(true)}
-                disabled={saving}
-              >
-                {todoWorklistLabels.mailSendAction}
-              </button>
-            </div>
+            {canSendManualMail ? (
+              <div className="todo-worklist-mail-action-row">
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => setMailModalOpen(true)}
+                  disabled={saving}
+                >
+                  {todoWorklistLabels.mailSendAction}
+                </button>
+              </div>
+            ) : null}
             <RecentActivitiesSection activities={context.recent_activities} />
 
-            <FormSection title={todoWorklistLabels.sectionNewActivity}>
-              <FormGrid>
-                <FormField label={todoWorklistLabels.outcomeLabel} htmlFor="worklist-outcome" required fullWidth>
-                  <SelectInput
-                    id="worklist-outcome"
-                    value={outcomeId}
-                    onChange={(event) => handleOutcomeChange(event.target.value)}
-                    disabled={saving}
-                    required
-                  >
-                    <option value="">{todoWorklistLabels.outcomePlaceholder}</option>
-                    {context.outcomes.map((outcome) => (
-                      <option key={outcome.id} value={outcome.id}>
-                        {outcome.name}
-                      </option>
-                    ))}
-                  </SelectInput>
-                </FormField>
+            {canRecordActivity ? (
+              <>
+                <FormSection title={todoWorklistLabels.sectionNewActivity}>
+                  <FormGrid>
+                    <FormField label={todoWorklistLabels.outcomeLabel} htmlFor="worklist-outcome" required fullWidth>
+                      <SelectInput
+                        id="worklist-outcome"
+                        value={outcomeId}
+                        onChange={(event) => handleOutcomeChange(event.target.value)}
+                        disabled={saving}
+                        required
+                      >
+                        <option value="">{todoWorklistLabels.outcomePlaceholder}</option>
+                        {context.outcomes.map((outcome) => (
+                          <option key={outcome.id} value={outcome.id}>
+                            {outcome.name}
+                          </option>
+                        ))}
+                      </SelectInput>
+                    </FormField>
 
-                <FormField label={todoWorklistLabels.noteLabel} htmlFor="worklist-note" required fullWidth>
-                  <TextareaInput
-                    id="worklist-note"
-                    value={note}
-                    onChange={(event) => setNote(event.target.value)}
-                    placeholder={todoWorklistLabels.notePlaceholder}
-                    rows={4}
-                    disabled={saving}
-                    required
-                  />
-                </FormField>
+                    <FormField label={todoWorklistLabels.noteLabel} htmlFor="worklist-note" required fullWidth>
+                      <TextareaInput
+                        id="worklist-note"
+                        value={note}
+                        onChange={(event) => setNote(event.target.value)}
+                        placeholder={todoWorklistLabels.notePlaceholder}
+                        rows={4}
+                        disabled={saving}
+                        required
+                      />
+                    </FormField>
 
-                <FormField label={todoWorklistLabels.followUpLabel} htmlFor="worklist-follow-up">
-                  <TextInput
-                    id="worklist-follow-up"
-                    type="datetime-local"
-                    value={followUpAt}
-                    onChange={(event) => setFollowUpAt(event.target.value)}
-                    disabled={saving}
-                  />
-                </FormField>
-              </FormGrid>
-            </FormSection>
+                    <FormField label={todoWorklistLabels.followUpLabel} htmlFor="worklist-follow-up">
+                      <TextInput
+                        id="worklist-follow-up"
+                        type="datetime-local"
+                        value={followUpAt}
+                        onChange={(event) => setFollowUpAt(event.target.value)}
+                        disabled={saving}
+                      />
+                    </FormField>
+                  </FormGrid>
+                </FormSection>
 
-            <FormSection title={todoWorklistLabels.sectionFlags}>
-              <FormGrid>
-                <CheckboxField
-                  id="worklist-action-required"
-                  label={todoWorklistLabels.actionRequiredLabel}
-                  hint={todoWorklistLabels.actionRequiredHint}
-                  checked={actionRequired}
-                  disabled={saving}
-                  onChange={setActionRequired}
-                />
-                <CheckboxField
-                  id="worklist-data-problem"
-                  label={todoWorklistLabels.dataProblemLabel}
-                  hint={todoWorklistLabels.dataProblemHint}
-                  checked={dataProblem}
-                  disabled={saving}
-                  onChange={setDataProblem}
-                />
-              </FormGrid>
-            </FormSection>
+                <FormSection title={todoWorklistLabels.sectionFlags}>
+                  <FormGrid>
+                    <CheckboxField
+                      id="worklist-action-required"
+                      label={todoWorklistLabels.actionRequiredLabel}
+                      hint={todoWorklistLabels.actionRequiredHint}
+                      checked={actionRequired}
+                      disabled={saving}
+                      onChange={setActionRequired}
+                    />
+                    <CheckboxField
+                      id="worklist-data-problem"
+                      label={todoWorklistLabels.dataProblemLabel}
+                      hint={todoWorklistLabels.dataProblemHint}
+                      checked={dataProblem}
+                      disabled={saving}
+                      onChange={setDataProblem}
+                    />
+                  </FormGrid>
+                </FormSection>
+              </>
+            ) : null}
 
             <div className="form-actions span-2 todo-worklist-modal-actions">
               <button type="button" className="btn secondary" onClick={requestClose} disabled={saving}>
                 {todoLabels.cancel}
               </button>
-              <button
-                type="button"
-                className="btn secondary"
-                disabled={!canSubmit}
-                onClick={() => void handleSubmit(true)}
-              >
-                {todoWorklistLabels.saveAndNext}
-              </button>
-              <button type="submit" className="btn primary" disabled={!canSubmit}>
-                {saving ? todoWorklistLabels.saving : todoWorklistLabels.save}
-              </button>
+              {canRecordActivity ? (
+                <>
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    disabled={!canSubmit}
+                    onClick={() => void handleSubmit(true)}
+                  >
+                    {todoWorklistLabels.saveAndNext}
+                  </button>
+                  <button type="submit" className="btn primary" disabled={!canSubmit}>
+                    {saving ? todoWorklistLabels.saving : todoWorklistLabels.save}
+                  </button>
+                </>
+              ) : null}
             </div>
           </form>
         )}
       </FormModal>
 
-      {context ? (
+      {context && canSendManualMail ? (
         <ManualTaskMailModal
           open={mailModalOpen}
           todoId={context.todo_id}

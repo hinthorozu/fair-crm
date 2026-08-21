@@ -31,8 +31,9 @@ from app.modules.todos.api.worklist_dependencies import (
     get_send_manual_task_mail_use_case,
     get_todo_worklist_modal_context_use_case,
     get_todo_worklist_progress_use_case,
-    require_create_permission,
+    require_mail_send_execute_permission,
     require_read_permission,
+    require_update_permission,
 )
 from app.modules.todos.api.worklist_schemas import (
     ErrorResponse,
@@ -244,7 +245,7 @@ def record_todo_worklist_activity(
     todo_id: UUID,
     customer_id: UUID,
     body: RecordTodoWorklistActivityRequest,
-    auth: AuthContext = Depends(require_create_permission),
+    auth: AuthContext = Depends(require_update_permission),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     use_case: RecordTodoWorklistActivityUseCase = Depends(get_record_todo_worklist_activity_use_case),
 ) -> TodoWorklistActivityResponse:
@@ -305,7 +306,7 @@ async def send_manual_task_mail(
     customer_id: UUID,
     body: SendManualTaskMailRequest,
     background_tasks: BackgroundTasks,
-    auth: AuthContext = Depends(require_create_permission),
+    auth: AuthContext = Depends(require_mail_send_execute_permission),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db),
     use_case: SendManualTaskMailUseCase = Depends(get_send_manual_task_mail_use_case),
