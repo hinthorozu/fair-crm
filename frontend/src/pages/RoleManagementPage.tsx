@@ -137,6 +137,7 @@ function PermissionMatrix({
   const [query, setQuery] = React.useState("");
   const [activeGroup, setActiveGroup] = React.useState("");
   const selectedSet = React.useMemo(() => new Set(selected), [selected]);
+
   const groupedPermissions = React.useMemo(() => {
     const result = new Map<string, RolePermission[]>();
     permissions.forEach((permission) => {
