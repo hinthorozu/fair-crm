@@ -293,7 +293,11 @@ class SqlAlchemyActivityRepository:
         page_params = normalize_page_params(page, page_size)
         query = (
             self._session.query(ActivityModel)
-            .outerjoin(CustomerModel, CustomerModel.id == ActivityModel.customer_id)
+            .outerjoin(
+                CustomerModel,
+                (CustomerModel.id == ActivityModel.customer_id)
+                & (CustomerModel.organization_id == organization_id),
+            )
             .filter(ActivityModel.organization_id == organization_id)
         )
         if not include_deleted:
