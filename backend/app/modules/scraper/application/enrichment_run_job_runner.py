@@ -76,6 +76,16 @@ class EnrichmentRunJobRunner:
         run_logger: ScraperRunLogger | None = None
         try:
             history_service = create_run_history_service(db)
+            if history_service.get_run(
+                command.run_id,
+                organization_id=command.organization_id,
+            ) is None:
+                logger.warning(
+                    "Enrichment run not found for organization run_id=%s organization_id=%s",
+                    command.run_id,
+                    command.organization_id,
+                )
+                return
             log_service = create_run_log_service(db)
             run_logger = CappedWarningRunLogger(
                 DbScraperRunLogger(command.run_id, log_service, db),
@@ -121,7 +131,11 @@ class EnrichmentRunJobRunner:
             run_logger.info("candidates_query_started", "Aday müşteriler sorgulanıyor")
             db.commit()
 
-            cancel_checker = RunCancelChecker(self._session_factory, command.run_id)
+            cancel_checker = RunCancelChecker(
+                self._session_factory,
+                command.run_id,
+                organization_id=command.organization_id,
+            )
 
             def _progress_callback(
                 processed: int,
@@ -177,6 +191,7 @@ class EnrichmentRunJobRunner:
                 command.run_id,
                 progress_current=execution.processed_count,
                 progress_total=execution.total_candidates,
+                organization_id=command.organization_id,
             )
             db.commit()
 
@@ -274,6 +289,7 @@ class EnrichmentRunJobRunner:
                 handoff=handoff,
                 output_json_path=output_json_path,
                 import_batch_id=import_batch_id,
+                organization_id=command.organization_id,
             )
             if completed is not None:
                 self._sync_linked_operation(db, command, completed)
@@ -306,7 +322,10 @@ class EnrichmentRunJobRunner:
         run_logger: ScraperRunLogger,
         history_service,
     ) -> None:
-        marked = history_service.mark_cancelling(command.run_id)
+        marked = history_service.mark_cancelling(
+            command.run_id,
+            organization_id=command.organization_id,
+        )
         if marked is None:
             return
         db.commit()
@@ -406,6 +425,7 @@ class EnrichmentRunJobRunner:
             handoff=handoff,
             output_json_path=output_json_path,
             import_batch_id=import_batch_id,
+            organization_id=command.organization_id,
         )
         if cancelled is not None:
             self._sync_linked_operation(db, command, cancelled)
@@ -454,10 +474,17 @@ class EnrichmentRunJobRunner:
         *,
         command: EnrichmentRunJobCommand | None = None,
     ) -> None:
+        if command is None:
+            logger.error("Cannot fail enrichment run without organization context run_id=%s", run_id)
+            return
         try:
             history_service = create_run_history_service(db)
-            failed = history_service.fail_run(run_id, error_message=error_message)
-            if command is not None and failed is not None:
+            failed = history_service.fail_run(
+                run_id,
+                error_message=error_message,
+                organization_id=command.organization_id,
+            )
+            if failed is not None:
                 self._sync_linked_operation(db, command, failed)
             db.commit()
             return
@@ -471,8 +498,12 @@ class EnrichmentRunJobRunner:
         fresh = self._session_factory()
         try:
             history_service = create_run_history_service(fresh)
-            failed = history_service.fail_run(run_id, error_message=error_message)
-            if command is not None and failed is not None:
+            failed = history_service.fail_run(
+                run_id,
+                error_message=error_message,
+                organization_id=command.organization_id,
+            )
+            if failed is not None:
                 self._sync_linked_operation(fresh, command, failed)
             fresh.commit()
         except Exception:
