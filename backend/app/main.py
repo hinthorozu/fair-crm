@@ -5,7 +5,6 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.v1.router import api_v1_router
@@ -77,16 +76,6 @@ def create_app() -> FastAPI:
         return {"status": "ok", "service": "fair-crm", "version": settings.app_version}
 
     app.include_router(api_v1_router)
-    app.mount(
-        "/api/v1/data/quote-template-logos",
-        StaticFiles(directory="data/images/quote-template-logos", check_dir=False),
-        name="quote-template-logos-api",
-    )
-    app.mount(
-        "/data/quote-template-logos",
-        StaticFiles(directory="data/images/quote-template-logos", check_dir=False),
-        name="quote-template-logos",
-    )
     log_dev_bypass_startup_warning()
     log_playwright_browser_startup_check()
 
