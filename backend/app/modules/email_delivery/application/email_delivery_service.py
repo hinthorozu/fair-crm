@@ -94,7 +94,10 @@ class EmailDeliveryService:
         smtp_config: EmailAccountSmtpConfig | None = None
         provider_config: EmailAccountProviderConfig | None = None
         if account.account_type == EmailAccountType.SMTP:
-            smtp_config = self._accounts.get_smtp_config(account.id)
+            smtp_config = self._accounts.get_smtp_config(
+                account.id,
+                organization_id=organization_id,
+            )
             if smtp_config is None:
                 raise SmtpMailDeliveryError(
                     "SMTP config not found",
@@ -108,7 +111,10 @@ class EmailDeliveryService:
                     retryable=False,
                 )
         elif account.account_type == EmailAccountType.PROVIDER:
-            provider_config = self._accounts.get_provider_config(account.id)
+            provider_config = self._accounts.get_provider_config(
+                account.id,
+                organization_id=organization_id,
+            )
             if provider_config is None:
                 raise SmtpMailDeliveryError(
                     "Provider config not found",
