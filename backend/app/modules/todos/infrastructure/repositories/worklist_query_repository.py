@@ -94,7 +94,10 @@ class SqlAlchemyTodoWorklistQueryRepository:
             )
             .join(
                 CustomerModel,
-                CustomerFairParticipationModel.customer_id == CustomerModel.id,
+                and_(
+                    CustomerFairParticipationModel.customer_id == CustomerModel.id,
+                    CustomerModel.organization_id == organization_id,
+                ),
             )
             .outerjoin(
                 TodoWorklistStateModel,
@@ -106,7 +109,10 @@ class SqlAlchemyTodoWorklistQueryRepository:
             )
             .outerjoin(
                 TodoOutcomeDefinitionModel,
-                TodoWorklistStateModel.last_outcome_id == TodoOutcomeDefinitionModel.id,
+                and_(
+                    TodoWorklistStateModel.last_outcome_id == TodoOutcomeDefinitionModel.id,
+                    TodoOutcomeDefinitionModel.organization_id == organization_id,
+                ),
             )
             .filter(
                 CustomerFairParticipationModel.organization_id == organization_id,
@@ -292,15 +298,33 @@ class SqlAlchemyTodoWorklistQueryRepository:
                 contact_count,
                 CustomerFairParticipationModel,
             )
-            .join(CustomerModel, TodoWorklistStateModel.customer_id == CustomerModel.id)
-            .join(TodoModel, TodoWorklistStateModel.todo_id == TodoModel.id)
+            .join(
+                CustomerModel,
+                and_(
+                    TodoWorklistStateModel.customer_id == CustomerModel.id,
+                    CustomerModel.organization_id == organization_id,
+                ),
+            )
+            .join(
+                TodoModel,
+                and_(
+                    TodoWorklistStateModel.todo_id == TodoModel.id,
+                    TodoModel.organization_id == organization_id,
+                ),
+            )
             .outerjoin(
                 TodoOutcomeDefinitionModel,
-                TodoWorklistStateModel.last_outcome_id == TodoOutcomeDefinitionModel.id,
+                and_(
+                    TodoWorklistStateModel.last_outcome_id == TodoOutcomeDefinitionModel.id,
+                    TodoOutcomeDefinitionModel.organization_id == organization_id,
+                ),
             )
             .outerjoin(
                 CustomerFairParticipationModel,
-                TodoWorklistStateModel.participation_id == CustomerFairParticipationModel.id,
+                and_(
+                    TodoWorklistStateModel.participation_id == CustomerFairParticipationModel.id,
+                    CustomerFairParticipationModel.organization_id == organization_id,
+                ),
             )
             .filter(
                 TodoWorklistStateModel.organization_id == organization_id,
