@@ -71,5 +71,8 @@ class ListCustomersUseCase:
             sort_dir=sort_dir,
         )
         customer_ids = [item.id for item in result.items]
-        summaries = self._communication_repository.load_list_summaries(customer_ids)
+        summaries = self._communication_repository.load_list_summaries(
+            query.organization_id,
+            customer_ids,
+        )
         return list_result_to_dto(result, communication_summaries=summaries)
