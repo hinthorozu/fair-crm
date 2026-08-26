@@ -170,6 +170,7 @@ class SqlAlchemyParticipationRepository:
                 CustomerFairParticipationModel.organization_id == organization_id,
                 CustomerFairParticipationModel.customer_id == customer_id,
                 CustomerFairParticipationModel.deleted_at.is_(None),
+                FairModel.organization_id == organization_id,
             )
         )
         if search:
@@ -232,6 +233,7 @@ class SqlAlchemyParticipationRepository:
                 CustomerFairParticipationModel.organization_id == organization_id,
                 CustomerFairParticipationModel.fair_id == fair_id,
                 CustomerFairParticipationModel.deleted_at.is_(None),
+                CustomerModel.organization_id == organization_id,
             )
         )
         if search:
@@ -355,4 +357,3 @@ class SqlAlchemyParticipationRepository:
             already_on_target_count=already_on_target_count,
             source_remaining=source_remaining,
         )
-
