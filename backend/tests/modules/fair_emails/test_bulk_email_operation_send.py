@@ -250,7 +250,7 @@ def test_crm_recipient_creates_activity_and_retry_creates_second_attempt(
     assert activities[0].metadata_json["status"] == "failed"
 
     repo = SqlAlchemyFairEmailBatchRepository(db_session)
-    repo.prepare_outbox_for_retry(outbox_id)
+    repo.prepare_outbox_for_retry(organization_id, batch_id, outbox_id)
     db_session.commit()
     outbox = db_session.query(FairEmailOutboxModel).filter(FairEmailOutboxModel.id == outbox_id).one()
     assert outbox.status == "queued"
@@ -321,7 +321,7 @@ def test_prepare_outbox_for_retry_rejects_sent(db_session, organization_id, user
     db_session.commit()
     repo = SqlAlchemyFairEmailBatchRepository(db_session)
     with pytest.raises(ValueError, match="Only failed"):
-        repo.prepare_outbox_for_retry(outbox_id)
+        repo.prepare_outbox_for_retry(organization_id, batch_id, outbox_id)
 
 
 def test_retry_only_failed_not_sent(db_session, organization_id, user_id):
@@ -375,11 +375,11 @@ def test_retry_only_failed_not_sent(db_session, organization_id, user_id):
     db_session.commit()
 
     repo = SqlAlchemyFairEmailBatchRepository(db_session)
-    failed = repo.list_failed_outbox(batch_id)
+    failed = repo.list_failed_outbox(organization_id, batch_id)
     assert len(failed) == 1
     assert failed[0].id == failed_id
     for item in failed:
-        repo.prepare_outbox_for_retry(item.id)
+        repo.prepare_outbox_for_retry(organization_id, batch_id, item.id)
     db_session.commit()
 
     sent = db_session.query(FairEmailOutboxModel).filter(FairEmailOutboxModel.id == sent_id).one()

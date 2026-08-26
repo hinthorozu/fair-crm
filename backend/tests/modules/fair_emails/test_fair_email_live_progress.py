@@ -33,6 +33,8 @@ def test_chunk_progress_refreshes_batch_once_requested(
     )
 
     repository.update_outbox_sent(
+        organization_id,
+        batch_id,
         outbox[0].id,
         subject="Test",
         body_html=None,
@@ -48,8 +50,12 @@ def test_chunk_progress_refreshes_batch_once_requested(
     assert outbox[0].error_code is None
     assert outbox[0].error_message is None
 
-    sent_count, failed_count, status = repository.recount_batch_from_outbox(batch_id)
+    sent_count, failed_count, status = repository.recount_batch_from_outbox(
+        organization_id,
+        batch_id,
+    )
     repository.update_batch_counts(
+        organization_id,
         batch_id,
         status=status,
         sent_count=sent_count,
@@ -67,11 +73,20 @@ def test_chunk_progress_refreshes_batch_once_requested(
     assert batch.failed_count == 0
     assert batch.completed_at is None
 
-    repository.update_outbox_failed(outbox[1].id, message="Provider failure")
+    repository.update_outbox_failed(
+        organization_id,
+        batch_id,
+        outbox[1].id,
+        message="Provider failure",
+    )
     db_session.flush()
 
-    sent_count, failed_count, status = repository.recount_batch_from_outbox(batch_id)
+    sent_count, failed_count, status = repository.recount_batch_from_outbox(
+        organization_id,
+        batch_id,
+    )
     repository.update_batch_counts(
+        organization_id,
         batch_id,
         status=status,
         sent_count=sent_count,
@@ -84,7 +99,11 @@ def test_chunk_progress_refreshes_batch_once_requested(
     assert batch.failed_count == 1
     assert batch.completed_at is not None
 
-    repository.prepare_outbox_for_retry(outbox[1].id)
+    repository.prepare_outbox_for_retry(
+        organization_id,
+        batch_id,
+        outbox[1].id,
+    )
     db_session.flush()
 
     assert batch.status == "processing"
@@ -108,10 +127,16 @@ def test_pending_outbox_iterator_loads_fixed_size_chunks(
         auth_headers,
     )
     repository = SqlAlchemyFairEmailBatchRepository(db_session)
-    iterator = repository.iter_pending_outbox(batch_id, chunk_size=1)
+    iterator = repository.iter_pending_outbox(
+        organization_id,
+        batch_id,
+        chunk_size=1,
+    )
 
     first = next(iterator)
     repository.update_outbox_sent(
+        organization_id,
+        batch_id,
         first.id,
         subject="Test",
         body_html=None,

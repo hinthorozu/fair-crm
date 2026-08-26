@@ -106,7 +106,12 @@ def test_on_retry_only_failed(monkeypatch):
         run=run,
         context=MagicMock(user_id=uuid4(), access_token="t"),
     )
-    repo.prepare_outbox_for_retry.assert_called_once_with(failed_outbox.id)
+    repo.list_failed_outbox.assert_called_once_with(org_id, batch_id)
+    repo.prepare_outbox_for_retry.assert_called_once_with(
+        org_id,
+        batch_id,
+        failed_outbox.id,
+    )
     assert result.total_items == 1
     assert result.result_payload["retry_failed_only"] is True
     assert len(scheduled) == 1

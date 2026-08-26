@@ -49,8 +49,17 @@ class FairBulkEmailOperationRetryHandler:
     ) -> FairEmailBatchRecord | None:
         return self._batch_repository.get_batch(organization_id, batch_id)
 
-    def prepare_outbox_for_retry(self, outbox_id: UUID) -> None:
-        self._batch_repository.prepare_outbox_for_retry(outbox_id)
+    def prepare_outbox_for_retry(
+        self,
+        organization_id: UUID,
+        batch_id: UUID,
+        outbox_id: UUID,
+    ) -> None:
+        self._batch_repository.prepare_outbox_for_retry(
+            organization_id,
+            batch_id,
+            outbox_id,
+        )
 
     def validate_consent(self, organization_id: UUID, outbox: FairEmailOutboxModel) -> None:
         # Manual/Excel outbox rows are external recipients — never CRM-match by email.
@@ -105,11 +114,22 @@ class FairBulkEmailOperationRetryHandler:
         body_text = rendered_body_text or final_subject
         return final_subject, body_text, rendered_body_html
 
-    def mark_outbox_sending(self, outbox_id: UUID) -> None:
-        self._batch_repository.mark_outbox_sending(outbox_id)
+    def mark_outbox_sending(
+        self,
+        organization_id: UUID,
+        batch_id: UUID,
+        outbox_id: UUID,
+    ) -> None:
+        self._batch_repository.mark_outbox_sending(
+            organization_id,
+            batch_id,
+            outbox_id,
+        )
 
     def sync_outbox_sent(
         self,
+        organization_id: UUID,
+        batch_id: UUID,
         outbox_id: UUID,
         *,
         subject: str,
@@ -117,14 +137,28 @@ class FairBulkEmailOperationRetryHandler:
         body_text: str | None,
     ) -> None:
         self._batch_repository.update_outbox_sent(
+            organization_id,
+            batch_id,
             outbox_id,
             subject=subject,
             body_html=body_html,
             body_text=body_text,
         )
 
-    def sync_outbox_failed(self, outbox_id: UUID, *, message: str) -> None:
-        self._batch_repository.update_outbox_failed(outbox_id, message=message)
+    def sync_outbox_failed(
+        self,
+        organization_id: UUID,
+        batch_id: UUID,
+        outbox_id: UUID,
+        *,
+        message: str,
+    ) -> None:
+        self._batch_repository.update_outbox_failed(
+            organization_id,
+            batch_id,
+            outbox_id,
+            message=message,
+        )
 
     def _load_fair_name(self, organization_id: UUID, fair_id: UUID | None) -> str:
         if fair_id is None:
@@ -134,7 +168,12 @@ class FairBulkEmailOperationRetryHandler:
         fair = SqlAlchemyFairRepository(self._session).get_by_id(organization_id, fair_id)
         return fair.name if fair else ""
 
-    def _build_variables(self, organization_id: UUID, fair_name: str, outbox: FairEmailOutboxModel) -> dict[str, str]:
+    def _build_variables(
+        self,
+        organization_id: UUID,
+        fair_name: str,
+        outbox: FairEmailOutboxModel,
+    ) -> dict[str, str]:
         contact_first_name = ""
         contact_last_name = ""
         contact_title = ""
