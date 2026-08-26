@@ -15,6 +15,7 @@ from app.modules.scraper.domain.scraper_run_history import (
 )
 from app.modules.scraper.domain.scraper_run_source import ScraperRunSource
 from app.modules.scraper.domain.scraper_run_history_filters import ScraperRunHistoryListFilters
+from app.modules.scraper.infrastructure.handoff_storage import is_safe_handoff_artifact_path
 from app.modules.scraper.infrastructure.persistence.models import ScraperAdapterModel, ScraperRunHistoryModel
 
 
@@ -25,7 +26,19 @@ class ScraperRunHistoryListRow:
     adapter_engine_key: str | None
 
 
-def _to_entity(model: ScraperRunHistoryModel) -> ScraperRunHistory:
+def _to_entity(
+    model: ScraperRunHistoryModel,
+    *,
+    validate_artifact_paths: bool = False,
+) -> ScraperRunHistory:
+    output_json_path = model.output_json_path
+    output_excel_path = model.output_excel_path
+    if validate_artifact_paths:
+        if output_json_path and not is_safe_handoff_artifact_path(output_json_path, run_id=model.id):
+            output_json_path = None
+        if output_excel_path and not is_safe_handoff_artifact_path(output_excel_path, run_id=model.id):
+            output_excel_path = None
+
     return ScraperRunHistory(
         id=model.id,
         adapter_key=model.adapter_key,
@@ -48,8 +61,8 @@ def _to_entity(model: ScraperRunHistoryModel) -> ScraperRunHistory:
         youtube_count=model.youtube_count,
         x_count=model.x_count,
         error_message=model.error_message,
-        output_json_path=model.output_json_path,
-        output_excel_path=model.output_excel_path,
+        output_json_path=output_json_path,
+        output_excel_path=output_excel_path,
         run_source=ScraperRunSource(model.run_source),
         import_batch_id=model.import_batch_id,
         cancel_requested_by=model.cancel_requested_by,
@@ -191,7 +204,10 @@ class ScraperRunHistoryRepository:
             return None
         model, adapter_name, adapter_engine_key = row
         return ScraperRunHistoryListRow(
-            run=_to_entity(model),
+            run=_to_entity(
+                model,
+                validate_artifact_paths=organization_id is not None,
+            ),
             adapter_name=adapter_name,
             adapter_engine_key=adapter_engine_key,
         )
