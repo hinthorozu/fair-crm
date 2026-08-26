@@ -23,15 +23,21 @@ class RunCancelChecker:
         self,
         session_factory: Callable[[], Session],
         run_id: UUID,
+        *,
+        organization_id: UUID | None = None,
     ) -> None:
         self._session_factory = session_factory
         self._run_id = run_id
+        self._organization_id = organization_id
 
     def is_cancel_requested(self) -> bool:
         session = self._session_factory()
         try:
-            run = create_run_history_service(session).get_run(self._run_id)
-            # Missing history means the run was deleted (or never existed): treat as stop.
+            run = create_run_history_service(session).get_run(
+                self._run_id,
+                organization_id=self._organization_id,
+            )
+            # Missing history (including foreign-organization scope) means stop.
             if run is None:
                 return True
             return run.status in {
@@ -47,10 +53,16 @@ class RunCancelChecker:
         session = self._session_factory()
         try:
             service = create_run_history_service(session)
-            run = service.get_run(self._run_id)
+            run = service.get_run(
+                self._run_id,
+                organization_id=self._organization_id,
+            )
             if run is None or run.status not in ACTIVE_SCRAPER_RUN_STATUSES:
                 return
-            service.touch_heartbeat(self._run_id)
+            service.touch_heartbeat(
+                self._run_id,
+                organization_id=self._organization_id,
+            )
             session.commit()
         except Exception:
             session.rollback()
@@ -60,7 +72,10 @@ class RunCancelChecker:
     def current_status(self) -> ScraperRunStatus | None:
         session = self._session_factory()
         try:
-            run = create_run_history_service(session).get_run(self._run_id)
+            run = create_run_history_service(session).get_run(
+                self._run_id,
+                organization_id=self._organization_id,
+            )
             return run.status if run is not None else None
         finally:
             session.close()
