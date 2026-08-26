@@ -179,20 +179,22 @@ def test_quote_render_fails_closed_for_cross_tenant_derived_ids(
         created_at=now,
         updated_at=now,
     )
-    foreign_version = QuoteTemplateVersionModel(
-        id=uuid4(),
-        template_id=foreign_template.id,
-        version_number=1,
-        source_code="<h1>FOREIGN TEMPLATE SOURCE</h1>",
-        created_at=now,
-    )
-    foreign_template.current_version_id = foreign_version.id
     foreign_tag = TemplateContentTagModel(
         id=uuid4(),
         organization_id=other_organization_id,
         name="FOREIGN TAG",
         created_at=now,
         updated_at=now,
+    )
+    db_session.add_all([foreign_customer, foreign_fair, foreign_template, foreign_tag])
+    db_session.flush()
+
+    foreign_version = QuoteTemplateVersionModel(
+        id=uuid4(),
+        template_id=foreign_template.id,
+        version_number=1,
+        source_code="<h1>FOREIGN TEMPLATE SOURCE</h1>",
+        created_at=now,
     )
     foreign_content = TemplateContentModel(
         id=uuid4(),
@@ -202,16 +204,9 @@ def test_quote_render_fails_closed_for_cross_tenant_derived_ids(
         created_at=now,
         updated_at=now,
     )
-    db_session.add_all(
-        [
-            foreign_customer,
-            foreign_fair,
-            foreign_template,
-            foreign_version,
-            foreign_tag,
-            foreign_content,
-        ]
-    )
+    db_session.add_all([foreign_version, foreign_content])
+    db_session.flush()
+    foreign_template.current_version_id = foreign_version.id
     db_session.flush()
 
     owner_customer_id = quote.customer_id
