@@ -266,6 +266,7 @@ def analyze_customer_groups_by_field(
     if group_by in _COMMUNICATION_GROUP_FIELDS:
         customer_ids = [model.id for model in models]
         communications = SqlAlchemyCustomerCommunicationRepository(session).load_for_customers(
+            organization_id,
             customer_ids,
         )
 

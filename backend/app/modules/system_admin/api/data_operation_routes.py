@@ -105,11 +105,17 @@ logger = logging.getLogger(__name__)
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-def _customer_results_by_id(customers, db: Session) -> dict[UUID, CustomerResult]:
+def _customer_results_by_id(
+    customers,
+    db: Session,
+    organization_id: UUID,
+) -> dict[UUID, CustomerResult]:
     if not customers:
         return {}
     comm_repo = SqlAlchemyCustomerCommunicationRepository(db)
-    communications = comm_repo.load_for_customers([customer.id for customer in customers])
+    communications = comm_repo.load_for_customers(
+        organization_id, [customer.id for customer in customers]
+    )
     results = customer_results_with_communications(customers, communications)
     return {result.id: result for result in results}
 
@@ -203,10 +209,12 @@ def _duplicate_group_customer_to_response(
 def _duplicate_group_detail_to_response(
     detail: DatasetDuplicateGroupDetail,
     db: Session,
+    organization_id: UUID,
 ) -> DuplicateDatasetGroupDetailResponse:
     results_by_id = _customer_results_by_id(
         [item.customer for item in detail.customers],
         db,
+        organization_id,
     )
     return DuplicateDatasetGroupDetailResponse(
         group_key=detail.group_key,
@@ -363,11 +371,14 @@ def _merge_statistics_to_response(statistics) -> DuplicateGroupMergePreviewStati
 def _merge_execute_to_response(
     result: DuplicateGroupMergeExecuteResult,
     db: Session,
+    organization_id: UUID,
     *,
     audit_log_id: UUID | None = None,
 ) -> DuplicateGroupMergeExecuteResponse:
     comm_repo = SqlAlchemyCustomerCommunicationRepository(db)
-    communications = comm_repo.load_for_customer(result.surviving_customer.id)
+    communications = comm_repo.load_for_customer(
+        organization_id, result.surviving_customer.id
+    )
     surviving_result = customer_to_result(result.surviving_customer, communications=communications)
     return DuplicateGroupMergeExecuteResponse(
         group_key=result.group_key,
@@ -729,7 +740,7 @@ def list_data_operation_dataset_customers(
     if country and country.strip():
         filters["country"] = country.strip()
 
-    results_by_id = _customer_results_by_id(result.items, db)
+    results_by_id = _customer_results_by_id(result.items, db, auth.organization_id)
     return build_list_response(
         [customer_to_response(results_by_id[item.id]) for item in result.items],
         page=result.page,
@@ -908,7 +919,7 @@ def get_data_operation_duplicate_group_detail(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
-    return _duplicate_group_detail_to_response(detail, db)
+    return _duplicate_group_detail_to_response(detail, db, auth.organization_id)
 
 
 @router.post(
@@ -1024,7 +1035,7 @@ def execute_duplicate_group_merge(
             surviving_customer_id=body.surviving_customer_id,
         )
         if existing is not None:
-            return _merge_execute_to_response(existing, db)
+            return _merge_execute_to_response(existing, db, auth.organization_id)
         logger.exception("Duplicate group merge execute failed for group_key=%s", group_key)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -1033,7 +1044,12 @@ def execute_duplicate_group_merge(
 
     assert result is not None
     try:
-        return _merge_execute_to_response(result, db, audit_log_id=audit_log_id)
+        return _merge_execute_to_response(
+            result,
+            db,
+            auth.organization_id,
+            audit_log_id=audit_log_id,
+        )
     except Exception as exc:
         existing = _safe_idempotent_merge_execute_result(
             db,
@@ -1043,7 +1059,7 @@ def execute_duplicate_group_merge(
             surviving_customer_id=body.surviving_customer_id,
         )
         if existing is not None:
-            return _merge_execute_to_response(existing, db)
+            return _merge_execute_to_response(existing, db, auth.organization_id)
         logger.exception("Failed to build merge execute response for group_key=%s", group_key)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -1124,7 +1140,9 @@ def list_data_operation_duplicate_customers(
     if country and country.strip():
         filters["country"] = country.strip()
 
-    results_by_id = _customer_results_by_id([item.customer for item in result.items], db)
+    results_by_id = _customer_results_by_id(
+        [item.customer for item in result.items], db, auth.organization_id
+    )
     return build_list_response(
         [_duplicate_item_to_response(item, results_by_id[item.customer.id]) for item in result.items],
         page=result.page,
