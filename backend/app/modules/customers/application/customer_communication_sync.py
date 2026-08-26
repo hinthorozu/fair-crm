@@ -60,7 +60,7 @@ class CustomerCommunicationSyncService:
                 now=now,
             )
 
-        return self._repository.load_for_customer(customer_id)
+        return self._repository.load_for_customer(organization_id, customer_id)
 
     def sync_from_scalar_fields(
         self,
@@ -87,8 +87,12 @@ class CustomerCommunicationSyncService:
             sync_website=sync_website,
         )
 
-    def load_for_customer(self, customer_id: UUID) -> CustomerCommunications:
-        return self._repository.load_for_customer(customer_id)
+    def load_for_customer(
+        self,
+        organization_id: UUID,
+        customer_id: UUID,
+    ) -> CustomerCommunications:
+        return self._repository.load_for_customer(organization_id, customer_id)
 
     def _reset_enrichment_state_if_customer_has_no_email(
         self,
