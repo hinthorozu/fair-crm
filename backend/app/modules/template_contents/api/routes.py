@@ -79,8 +79,19 @@ def delete_tag(tag_id: UUID, auth: AuthContext = Depends(require_delete_permissi
 
 @router.get("/template-contents", response_model=ContentListResponse)
 def list_contents(auth: AuthContext = Depends(require_read_permission), db: Session = Depends(get_db)):
-    rows = db.scalars(select(TemplateContentModel).where(TemplateContentModel.organization_id == auth.organization_id).order_by(TemplateContentModel.title)).all()
-    return ContentListResponse(items=[ContentResponse(id=row.id, tag_id=row.tag_id, tag_name=row.tag.name, title=row.title, created_at=row.created_at) for row in rows])
+    rows = db.execute(
+        select(TemplateContentModel, TemplateContentTagModel.name)
+        .join(TemplateContentTagModel, TemplateContentTagModel.id == TemplateContentModel.tag_id)
+        .where(
+            TemplateContentModel.organization_id == auth.organization_id,
+            TemplateContentTagModel.organization_id == auth.organization_id,
+        )
+        .order_by(TemplateContentModel.title)
+    ).all()
+    return ContentListResponse(items=[
+        ContentResponse(id=row.id, tag_id=row.tag_id, tag_name=tag_name, title=row.title, created_at=row.created_at)
+        for row, tag_name in rows
+    ])
 
 
 @router.post("/template-contents", response_model=ContentResponse, status_code=status.HTTP_201_CREATED)
