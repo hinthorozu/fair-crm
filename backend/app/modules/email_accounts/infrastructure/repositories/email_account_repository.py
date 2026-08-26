@@ -49,7 +49,13 @@ class SqlAlchemyEmailAccountRepository:
         account: EmailAccount,
         smtp_config: EmailAccountSmtpConfig,
     ) -> tuple[EmailAccount, EmailAccountSmtpConfig]:
-        account_model = self._session.get(EmailAccountModel, account.id)
+        account_model = self._session.scalars(
+            select(EmailAccountModel).where(
+                EmailAccountModel.organization_id == account.organization_id,
+                EmailAccountModel.id == account.id,
+                EmailAccountModel.deleted_at.is_(None),
+            )
+        ).one_or_none()
         if account_model is None:
             raise ValueError(f"Email account not found: {account.id}")
         config_model = self._session.get(EmailAccountSmtpConfigModel, account.id)
@@ -78,7 +84,13 @@ class SqlAlchemyEmailAccountRepository:
         account: EmailAccount,
         provider_config: EmailAccountProviderConfig,
     ) -> tuple[EmailAccount, EmailAccountProviderConfig]:
-        account_model = self._session.get(EmailAccountModel, account.id)
+        account_model = self._session.scalars(
+            select(EmailAccountModel).where(
+                EmailAccountModel.organization_id == account.organization_id,
+                EmailAccountModel.id == account.id,
+                EmailAccountModel.deleted_at.is_(None),
+            )
+        ).one_or_none()
         if account_model is None:
             raise ValueError(f"Email account not found: {account.id}")
         config_model = self._session.get(EmailAccountProviderConfigModel, account.id)
@@ -90,8 +102,28 @@ class SqlAlchemyEmailAccountRepository:
         self._session.flush()
         return account_model_to_entity(account_model), provider_config_model_to_entity(config_model)
 
-    def get_provider_config(self, account_id: UUID) -> EmailAccountProviderConfig | None:
-        model = self._session.get(EmailAccountProviderConfigModel, account_id)
+    def get_provider_config(
+        self,
+        account_id: UUID,
+        *,
+        organization_id: UUID | None = None,
+    ) -> EmailAccountProviderConfig | None:
+        if organization_id is None:
+            model = self._session.get(EmailAccountProviderConfigModel, account_id)
+            return provider_config_model_to_entity(model) if model is not None else None
+        stmt = (
+            select(EmailAccountProviderConfigModel)
+            .join(
+                EmailAccountModel,
+                EmailAccountModel.id == EmailAccountProviderConfigModel.email_account_id,
+            )
+            .where(
+                EmailAccountModel.organization_id == organization_id,
+                EmailAccountModel.id == account_id,
+                EmailAccountModel.deleted_at.is_(None),
+            )
+        )
+        model = self._session.scalars(stmt).one_or_none()
         return provider_config_model_to_entity(model) if model is not None else None
 
     def get_with_provider_config(
@@ -139,8 +171,28 @@ class SqlAlchemyEmailAccountRepository:
         model = self._session.scalars(stmt).first()
         return account_model_to_entity(model) if model is not None else None
 
-    def get_smtp_config(self, account_id: UUID) -> EmailAccountSmtpConfig | None:
-        model = self._session.get(EmailAccountSmtpConfigModel, account_id)
+    def get_smtp_config(
+        self,
+        account_id: UUID,
+        *,
+        organization_id: UUID | None = None,
+    ) -> EmailAccountSmtpConfig | None:
+        if organization_id is None:
+            model = self._session.get(EmailAccountSmtpConfigModel, account_id)
+            return smtp_config_model_to_entity(model) if model is not None else None
+        stmt = (
+            select(EmailAccountSmtpConfigModel)
+            .join(
+                EmailAccountModel,
+                EmailAccountModel.id == EmailAccountSmtpConfigModel.email_account_id,
+            )
+            .where(
+                EmailAccountModel.organization_id == organization_id,
+                EmailAccountModel.id == account_id,
+                EmailAccountModel.deleted_at.is_(None),
+            )
+        )
+        model = self._session.scalars(stmt).one_or_none()
         return smtp_config_model_to_entity(model) if model is not None else None
 
     def get_with_smtp_config(
@@ -245,7 +297,13 @@ class SqlAlchemyEmailAccountRepository:
             model.is_default = False
 
     def update_account(self, account: EmailAccount) -> EmailAccount:
-        model = self._session.get(EmailAccountModel, account.id)
+        model = self._session.scalars(
+            select(EmailAccountModel).where(
+                EmailAccountModel.organization_id == account.organization_id,
+                EmailAccountModel.id == account.id,
+                EmailAccountModel.deleted_at.is_(None),
+            )
+        ).one_or_none()
         if model is None:
             raise ValueError(f"Email account not found: {account.id}")
         update_account_model_from_entity(model, account)
