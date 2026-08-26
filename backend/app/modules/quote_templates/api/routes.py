@@ -63,7 +63,12 @@ def list_quote_templates(auth: AuthContext = Depends(require_read_permission), d
     ).order_by(QuoteTemplateModel.name)).all()
     items = []
     for template in templates:
-        version = db.get(QuoteTemplateVersionModel, template.current_version_id)
+        version = db.scalar(
+            select(QuoteTemplateVersionModel).where(
+                QuoteTemplateVersionModel.id == template.current_version_id,
+                QuoteTemplateVersionModel.template_id == template.id,
+            )
+        )
         if version is not None:
             items.append(_response(template, version))
     return QuoteTemplateListResponse(items=items)
