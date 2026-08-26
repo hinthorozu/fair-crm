@@ -128,7 +128,10 @@ class ProcessFairEmailBatchUseCase:
             )
             return
 
-        self._batch_repository.mark_batch_processing(batch.id)
+        self._batch_repository.mark_batch_processing(
+            command.organization_id,
+            batch.id,
+        )
         default_subject = batch.subject_override or template.subject
         self._mail_operation_sync.ensure_operations_for_batch(
             organization_id=command.organization_id,
@@ -142,11 +145,16 @@ class ProcessFairEmailBatchUseCase:
         failed_count = 0
 
         for outbox in self._batch_repository.iter_pending_outbox(
+            command.organization_id,
             batch.id,
             chunk_size=OUTBOX_CHUNK_SIZE,
         ):
             fair_name = (getattr(outbox, "fair_name", None) or "").strip() or batch_fair_name
-            self._batch_repository.mark_outbox_sending(outbox.id)
+            self._batch_repository.mark_outbox_sending(
+                command.organization_id,
+                batch.id,
+                outbox.id,
+            )
             self._session.commit()
 
             try:
@@ -161,6 +169,8 @@ class ProcessFairEmailBatchUseCase:
             except MailTemplateRenderError:
                 failure_message = "Mail şablonu render edilemedi."
                 self._batch_repository.update_outbox_failed(
+                    command.organization_id,
+                    batch.id,
                     outbox.id,
                     message=failure_message,
                     error_code="template_render_error",
@@ -205,6 +215,8 @@ class ProcessFairEmailBatchUseCase:
                     message = exc.args[0] if exc.args else "Email gönderimi başarısız oldu."
                     error_code = exc.error_code or type(exc).__name__
                 self._batch_repository.update_outbox_failed(
+                    command.organization_id,
+                    batch.id,
                     outbox.id,
                     message=message,
                     error_code=error_code,
@@ -236,6 +248,8 @@ class ProcessFairEmailBatchUseCase:
             except Exception as exc:
                 message = str(exc).strip() or PROCESSOR_ERROR_MESSAGE
                 self._batch_repository.update_outbox_failed(
+                    command.organization_id,
+                    batch.id,
                     outbox.id,
                     message=message,
                     error_code=type(exc).__name__,
@@ -264,15 +278,21 @@ class ProcessFairEmailBatchUseCase:
                 )
                 continue
 
+            external_message_id = None
+            provider_status = None
+            if isinstance(delivery_result, EmailDeliveryResult):
+                external_message_id = delivery_result.external_message_id
+                provider_status = delivery_result.provider_status
             self._batch_repository.update_outbox_sent(
+                command.organization_id,
+                batch.id,
                 outbox.id,
                 subject=final_subject,
                 body_html=rendered_body_html,
                 body_text=rendered_body_text,
+                external_message_id=external_message_id,
+                provider_status=provider_status,
             )
-            if isinstance(delivery_result, EmailDeliveryResult):
-                outbox.external_message_id = delivery_result.external_message_id
-                outbox.provider_status = delivery_result.provider_status
             sent_count += 1
             self._session.commit()
             self._record_terminal_outbox_activity(
@@ -295,8 +315,12 @@ class ProcessFairEmailBatchUseCase:
                 outbox.email,
             )
 
-        sent_count, failed_count, status = self._batch_repository.recount_batch_from_outbox(batch.id)
+        sent_count, failed_count, status = self._batch_repository.recount_batch_from_outbox(
+            command.organization_id,
+            batch.id,
+        )
         self._batch_repository.update_batch_counts(
+            command.organization_id,
             batch.id,
             status=status,
             sent_count=sent_count,
@@ -320,8 +344,12 @@ class ProcessFairEmailBatchUseCase:
     ) -> None:
         if processed_in_run % OUTBOX_CHUNK_SIZE != 0:
             return
-        sent_count, failed_count, status = self._batch_repository.recount_batch_from_outbox(batch_id)
+        sent_count, failed_count, status = self._batch_repository.recount_batch_from_outbox(
+            organization_id,
+            batch_id,
+        )
         self._batch_repository.update_batch_counts(
+            organization_id,
             batch_id,
             status=status,
             sent_count=sent_count,
@@ -383,9 +411,17 @@ class ProcessFairEmailBatchUseCase:
             batch=batch,
             default_subject=default_subject,
         )
-        pending = self._batch_repository.list_pending_outbox(batch.id)
-        self._batch_repository.fail_all_pending_outbox(batch.id, message=message)
+        pending = self._batch_repository.list_pending_outbox(
+            organization_id,
+            batch.id,
+        )
+        self._batch_repository.fail_all_pending_outbox(
+            organization_id,
+            batch.id,
+            message=message,
+        )
         self._batch_repository.update_batch_counts(
+            organization_id,
             batch.id,
             status="failed",
             sent_count=0,
@@ -415,14 +451,25 @@ class ProcessFairEmailBatchUseCase:
             batch=batch,
             default_subject=default_subject or "Toplu mail",
         )
-        pending = self._batch_repository.list_pending_outbox(batch_id)
-        self._batch_repository.fail_all_pending_outbox(batch_id, message=message)
-        sent_count, failed_count, status = self._batch_repository.recount_batch_from_outbox(batch_id)
+        pending = self._batch_repository.list_pending_outbox(
+            organization_id,
+            batch_id,
+        )
+        self._batch_repository.fail_all_pending_outbox(
+            organization_id,
+            batch_id,
+            message=message,
+        )
+        sent_count, failed_count, status = self._batch_repository.recount_batch_from_outbox(
+            organization_id,
+            batch_id,
+        )
         if sent_count == 0:
             status = "failed"
         elif status == "processing":
             status = "completed_with_errors"
         self._batch_repository.update_batch_counts(
+            organization_id,
             batch_id,
             status=status,
             sent_count=sent_count,
@@ -457,6 +504,7 @@ class ProcessFairEmailBatchUseCase:
             .filter(
                 FairEmailOutboxModel.id == outbox_id,
                 FairEmailOutboxModel.organization_id == organization_id,
+                FairEmailOutboxModel.batch_id == batch.id,
             )
             .one_or_none()
         )
