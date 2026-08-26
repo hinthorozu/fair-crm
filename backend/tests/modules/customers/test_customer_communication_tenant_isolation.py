@@ -4,10 +4,23 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import select
 
 from app.modules.customers.infrastructure.persistence.communication_models import (
     CustomerEmailModel,
     CustomerPhoneModel,
+    CustomerWebsiteModel,
+)
+from app.modules.customers.infrastructure.persistence.communication_query_helpers import (
+    email_search_exists,
+    has_usable_email_exists,
+    has_usable_phone_exists,
+    has_usable_website_exists,
+    phone_search_exists,
+    primary_email_subquery,
+    primary_phone_subquery,
+    primary_website_subquery,
+    website_search_exists,
 )
 from app.modules.customers.infrastructure.persistence.models import CustomerModel
 from app.modules.customers.infrastructure.repositories.customer_communication_repository import (
@@ -164,3 +177,71 @@ def test_replace_does_not_delete_cross_organization_child_rows(db_session):
     )
     assert [row.phone for row in owner_rows] == ["333333"]
     assert [row.phone for row in foreign_rows] == ["222222"]
+
+
+def test_query_helpers_ignore_cross_organization_child_rows(db_session):
+    owner_org = uuid4()
+    foreign_org = uuid4()
+    customer = _customer(owner_org, name="Helper Owner Customer")
+    db_session.add(customer)
+    db_session.flush()
+    now = datetime.now(tz=UTC)
+
+    db_session.add_all(
+        [
+            CustomerPhoneModel(
+                id=uuid4(),
+                organization_id=foreign_org,
+                customer_id=customer.id,
+                phone="999999",
+                is_primary=True,
+                created_at=now,
+            ),
+            CustomerEmailModel(
+                id=uuid4(),
+                organization_id=foreign_org,
+                customer_id=customer.id,
+                email="foreign-helper@example.com",
+                is_primary=True,
+                created_at=now,
+            ),
+            CustomerWebsiteModel(
+                id=uuid4(),
+                organization_id=foreign_org,
+                customer_id=customer.id,
+                website="https://foreign-helper.example",
+                is_primary=True,
+                created_at=now,
+            ),
+        ]
+    )
+    db_session.commit()
+
+    row = db_session.execute(
+        select(
+            primary_phone_subquery().label("phone"),
+            primary_email_subquery().label("email"),
+            primary_website_subquery().label("website"),
+            phone_search_exists("%999999%").label("phone_match"),
+            email_search_exists("%foreign-helper%").label("email_match"),
+            website_search_exists("%foreign-helper%").label("website_match"),
+            has_usable_phone_exists().label("has_phone"),
+            has_usable_email_exists().label("has_email"),
+            has_usable_website_exists().label("has_website"),
+        )
+        .select_from(CustomerModel)
+        .where(
+            CustomerModel.id == customer.id,
+            CustomerModel.organization_id == owner_org,
+        )
+    ).one()
+
+    assert row.phone is None
+    assert row.email is None
+    assert row.website is None
+    assert not row.phone_match
+    assert not row.email_match
+    assert not row.website_match
+    assert not row.has_phone
+    assert not row.has_email
+    assert not row.has_website
