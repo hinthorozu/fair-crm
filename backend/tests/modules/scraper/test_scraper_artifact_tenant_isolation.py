@@ -1,6 +1,7 @@
 """P0.1 TI-07 adversarial coverage for scraper artifact ownership."""
 
 from datetime import UTC, datetime
+from uuid import uuid4
 
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
 from app.modules.scraper.infrastructure.handoff_storage import (
@@ -22,8 +23,8 @@ def _sample_handoff() -> ScraperImportHandoff:
 
 
 def test_handoff_artifact_path_requires_matching_run_under_handoff_root(tmp_path):
-    service_run_id = __import__("uuid").uuid4()
-    other_run_id = __import__("uuid").uuid4()
+    service_run_id = uuid4()
+    other_run_id = uuid4()
 
     own_path = resolve_handoff_excel_path(service_run_id, base_dir=tmp_path)
     foreign_path = resolve_handoff_excel_path(other_run_id, base_dir=tmp_path)
@@ -34,11 +35,12 @@ def test_handoff_artifact_path_requires_matching_run_under_handoff_root(tmp_path
     assert not is_safe_handoff_artifact_path(outside_path, run_id=service_run_id, base_dir=tmp_path)
 
 
-def test_excel_download_ignores_corrupt_stored_path_to_another_run(
+def test_excel_download_ignores_corrupt_stored_path_to_foreign_tenant_run(
     client,
     db_session,
     auth_headers,
     organization_id,
+    other_organization_id,
     tmp_path,
     monkeypatch,
 ):
@@ -63,7 +65,7 @@ def test_excel_download_ignores_corrupt_stored_path_to_another_run(
         input_url="https://foreign-artifact.test",
         fair_name="Foreign Artifact Fair",
         fair_year=2026,
-        organization_id=organization_id,
+        organization_id=other_organization_id,
         handoff=_sample_handoff(),
     )
 
@@ -80,9 +82,15 @@ def test_excel_download_ignores_corrupt_stored_path_to_another_run(
     assert scoped is not None
     assert scoped.output_excel_path is None
 
-    response = client.get(
+    corrupt_pointer_response = client.get(
         f"/api/v1/scraper/runs/{owner_run.id}/output/excel",
         headers=auth_headers,
     )
-    assert response.status_code == 404
-    assert response.content != b"foreign artifact bytes"
+    assert corrupt_pointer_response.status_code == 404
+    assert corrupt_pointer_response.content != b"foreign artifact bytes"
+
+    direct_foreign_response = client.get(
+        f"/api/v1/scraper/runs/{foreign_artifact_run.id}/output/excel",
+        headers=auth_headers,
+    )
+    assert direct_foreign_response.status_code == 404
