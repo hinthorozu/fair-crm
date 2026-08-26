@@ -354,7 +354,9 @@ class ExportDataOperationDatasetCustomersUseCase:
             ]
         )
         comm_repo = SqlAlchemyCustomerCommunicationRepository(self._dataset_repository._session)
-        communications_by_customer = comm_repo.load_for_customers([customer.id for customer in customers])
+        communications_by_customer = comm_repo.load_for_customers(
+            organization_id, [customer.id for customer in customers]
+        )
         for customer in customers:
             phone, email, website, _, _, _ = api_scalar_fields_from_communications(
                 communications_by_customer.get(customer.id)
@@ -553,7 +555,9 @@ def _build_duplicate_group_merge_preview(
         for group_customer in detail.customers
     ]
     customer_ids = [member.customer.id for member in members]
-    communications_by_customer = communication_repository.load_for_customers(customer_ids)
+    communications_by_customer = communication_repository.load_for_customers(
+        organization_id, customer_ids
+    )
 
     if not members:
         raise ValueError("Duplicate group has no customers.")
@@ -916,7 +920,7 @@ class ExportDataOperationDuplicateCustomersUseCase:
         )
         comm_repo = SqlAlchemyCustomerCommunicationRepository(self._dataset_repository._session)
         communications_by_customer = comm_repo.load_for_customers(
-            [item.customer.id for item in items]
+            organization_id, [item.customer.id for item in items]
         )
         for item in items:
             customer = item.customer
