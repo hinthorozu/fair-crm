@@ -111,7 +111,9 @@ class ExportCustomersUseCase:
             sort_dir=sort_dir,
         )
         customer_ids = [customer.id for customer in customers]
-        communications = self._communication_repository.load_for_customers(customer_ids)
+        communications = self._communication_repository.load_for_customers(
+            query.organization_id, customer_ids
+        )
         fair_names = _load_fair_names_by_customer(self._session, customer_ids)
 
         workbook = Workbook()
