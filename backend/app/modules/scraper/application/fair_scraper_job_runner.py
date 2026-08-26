@@ -57,7 +57,6 @@ class FairScraperJobCommand:
     operation_run_id: UUID | None = None
     requested_fields: list[str] | None = None
     option_overrides: dict[str, Any] | None = None
-    # Operation-level overrides (do not mutate the Fair entity).
     adapter_key: str | None = None
     source_url: str | None = None
     scraper_config: dict[str, Any] | None = None
@@ -160,18 +159,26 @@ class FairScraperJobRunner:
         db = self._session_factory()
         run_logger: ScraperRunLogger | None = None
         try:
+            history_service = create_run_history_service(db)
+            if history_service.get_run(
+                command.run_id,
+                organization_id=command.organization_id,
+            ) is None:
+                logger.warning(
+                    "Fair scraper run not found for organization run_id=%s organization_id=%s",
+                    command.run_id,
+                    command.organization_id,
+                )
+                return
+
             fair_repo = SqlAlchemyFairRepository(db)
             fair = fair_repo.get_by_id(command.organization_id, command.fair_id)
             if fair is None:
                 logger.warning("Fair not found for scraper run id=%s fair_id=%s", command.run_id, command.fair_id)
                 return
 
-            adapter_key = (
-                (command.adapter_key or "").strip() or (fair.adapter_key or "").strip()
-            )
-            source_url = (
-                (command.source_url or "").strip() or (fair.source_url or "").strip()
-            )
+            adapter_key = ((command.adapter_key or "").strip() or (fair.adapter_key or "").strip())
+            source_url = ((command.source_url or "").strip() or (fair.source_url or "").strip())
             if not adapter_key or not source_url:
                 self._fail_run(
                     db,
@@ -181,21 +188,20 @@ class FairScraperJobRunner:
                 )
                 return
 
-            history_service = create_run_history_service(db)
             log_service = create_run_log_service(db)
-            run_logger = CappedWarningRunLogger(
-                DbScraperRunLogger(command.run_id, log_service, db),
-            )
+            run_logger = CappedWarningRunLogger(DbScraperRunLogger(command.run_id, log_service, db))
             engine_key = resolve_engine_key(db, command.organization_id, adapter_key)
             if command.requested_fields is not None:
                 requested_fields = list(command.requested_fields)
             else:
-                requested_fields = resolve_requested_fields(
-                    db, command.organization_id, adapter_key
-                )
+                requested_fields = resolve_requested_fields(db, command.organization_id, adapter_key)
             output_formats = resolve_output_formats(db, command.organization_id, adapter_key)
             fair_year = _fair_year_from_start_date(fair.start_date)
-            cancel_checker = RunCancelChecker(self._session_factory, command.run_id)
+            cancel_checker = RunCancelChecker(
+                self._session_factory,
+                command.run_id,
+                organization_id=command.organization_id,
+            )
             if command.scraper_config is not None:
                 scraper_config = dict(command.scraper_config)
             else:
@@ -268,7 +274,6 @@ class FairScraperJobRunner:
                 self._cancel_run(db, command.run_id, run_logger=run_logger, command=command)
                 return
 
-            # Scraping succeeded: secondary artifact/import failures must not fail the run.
             self._finalize_successful_scrape(
                 db=db,
                 command=command,
@@ -360,11 +365,7 @@ class FairScraperJobRunner:
             completed_metadata["import_batch_id"] = str(import_batch_id)
         if warning_message:
             completed_metadata["artifact_warnings"] = warning_message
-        run_logger.success(
-            "completed",
-            f"{total_rows} kayıt tamamlandı",
-            metadata=completed_metadata,
-        )
+        run_logger.success("completed", f"{total_rows} kayıt tamamlandı", metadata=completed_metadata)
         completed = history_service.complete_run(
             command.run_id,
             handoff=handoff,
@@ -372,6 +373,7 @@ class FairScraperJobRunner:
             output_excel_path=artifacts.excel_path,
             import_batch_id=import_batch_id,
             warning_message=warning_message,
+            organization_id=command.organization_id,
         )
         if completed is not None:
             self._sync_linked_operation(db, command, completed)
@@ -419,9 +421,12 @@ class FairScraperJobRunner:
         run_logger: ScraperRunLogger | None,
         command: FairScraperJobCommand | None = None,
     ) -> None:
+        if command is None:
+            logger.error("Cannot cancel scraper run without organization context run_id=%s", run_id)
+            return
         try:
             history_service = create_run_history_service(db)
-            history_service.mark_cancelling(run_id)
+            history_service.mark_cancelling(run_id, organization_id=command.organization_id)
             if run_logger is not None:
                 if isinstance(run_logger, CappedWarningRunLogger):
                     run_logger.flush_suppressed_warnings()
@@ -429,8 +434,9 @@ class FairScraperJobRunner:
             cancelled = history_service.complete_cancelled_run(
                 run_id,
                 error_message="Kullanıcı tarafından durduruldu.",
+                organization_id=command.organization_id,
             )
-            if command is not None and cancelled is not None:
+            if cancelled is not None:
                 self._sync_linked_operation(db, command, cancelled)
             db.commit()
         except Exception:
@@ -445,10 +451,17 @@ class FairScraperJobRunner:
         *,
         command: FairScraperJobCommand | None = None,
     ) -> None:
+        if command is None:
+            logger.error("Cannot fail scraper run without organization context run_id=%s", run_id)
+            return
         try:
             history_service = create_run_history_service(db)
-            failed = history_service.fail_run(run_id, error_message=error_message)
-            if command is not None and failed is not None:
+            failed = history_service.fail_run(
+                run_id,
+                error_message=error_message,
+                organization_id=command.organization_id,
+            )
+            if failed is not None:
                 self._sync_linked_operation(db, command, failed)
             db.commit()
         except Exception:
