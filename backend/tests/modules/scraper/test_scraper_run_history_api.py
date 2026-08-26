@@ -343,8 +343,8 @@ def test_delete_scraper_run_keeps_row_when_stop_fails(
         0.0,
     )
 
-    def _force_stop_noop(self, run_id, *, reason):
-        return self.get_run(run_id)
+    def _force_stop_noop(self, run_id, *, reason, organization_id=None):
+        return self.get_run(run_id, organization_id=organization_id)
 
     monkeypatch.setattr(ScraperRunHistoryService, "force_stop_run", _force_stop_noop)
 
