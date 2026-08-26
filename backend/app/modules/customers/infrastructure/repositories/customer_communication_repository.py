@@ -18,6 +18,7 @@ from app.modules.customers.infrastructure.persistence.communication_models impor
     CustomerPhoneModel,
     CustomerWebsiteModel,
 )
+from app.modules.customers.infrastructure.persistence.models import CustomerModel
 
 
 class SqlAlchemyCustomerCommunicationRepository:
@@ -28,22 +29,51 @@ class SqlAlchemyCustomerCommunicationRepository:
     def session(self) -> Session:
         return self._session
 
-    def load_for_customer(self, customer_id: UUID) -> CustomerCommunications:
+    def _require_customer_in_organization(
+        self,
+        organization_id: UUID,
+        customer_id: UUID,
+    ) -> None:
+        exists = (
+            self._session.query(CustomerModel.id)
+            .filter(
+                CustomerModel.organization_id == organization_id,
+                CustomerModel.id == customer_id,
+            )
+            .one_or_none()
+        )
+        if exists is None:
+            raise LookupError("Customer not found")
+
+    def load_for_customer(
+        self,
+        organization_id: UUID,
+        customer_id: UUID,
+    ) -> CustomerCommunications:
         phones = (
             self._session.query(CustomerPhoneModel)
-            .filter(CustomerPhoneModel.customer_id == customer_id)
+            .filter(
+                CustomerPhoneModel.organization_id == organization_id,
+                CustomerPhoneModel.customer_id == customer_id,
+            )
             .order_by(CustomerPhoneModel.is_primary.desc(), CustomerPhoneModel.created_at.asc())
             .all()
         )
         emails = (
             self._session.query(CustomerEmailModel)
-            .filter(CustomerEmailModel.customer_id == customer_id)
+            .filter(
+                CustomerEmailModel.organization_id == organization_id,
+                CustomerEmailModel.customer_id == customer_id,
+            )
             .order_by(CustomerEmailModel.is_primary.desc(), CustomerEmailModel.created_at.asc())
             .all()
         )
         websites = (
             self._session.query(CustomerWebsiteModel)
-            .filter(CustomerWebsiteModel.customer_id == customer_id)
+            .filter(
+                CustomerWebsiteModel.organization_id == organization_id,
+                CustomerWebsiteModel.customer_id == customer_id,
+            )
             .order_by(CustomerWebsiteModel.is_primary.desc(), CustomerWebsiteModel.created_at.asc())
             .all()
         )
@@ -55,22 +85,26 @@ class SqlAlchemyCustomerCommunicationRepository:
 
     def load_list_summaries(
         self,
+        organization_id: UUID,
         customer_ids: list[UUID],
     ) -> dict[UUID, CustomerCommunicationListSummary]:
         if not customer_ids:
             return {}
 
         phone_by_customer = self._list_value_summaries(
+            organization_id,
             customer_ids,
             model=CustomerPhoneModel,
             value_attr="phone",
         )
         email_by_customer = self._list_value_summaries(
+            organization_id,
             customer_ids,
             model=CustomerEmailModel,
             value_attr="email",
         )
         website_by_customer = self._list_value_summaries(
+            organization_id,
             customer_ids,
             model=CustomerWebsiteModel,
             value_attr="website",
@@ -93,6 +127,7 @@ class SqlAlchemyCustomerCommunicationRepository:
 
     def _list_value_summaries(
         self,
+        organization_id: UUID,
         customer_ids: list[UUID],
         *,
         model: type[CustomerPhoneModel] | type[CustomerEmailModel] | type[CustomerWebsiteModel],
@@ -100,7 +135,10 @@ class SqlAlchemyCustomerCommunicationRepository:
     ) -> dict[UUID, tuple[str | None, int]]:
         rows = (
             self._session.query(model)
-            .filter(model.customer_id.in_(customer_ids))
+            .filter(
+                model.organization_id == organization_id,
+                model.customer_id.in_(customer_ids),
+            )
             .order_by(
                 model.customer_id,
                 model.is_primary.desc(),
@@ -118,13 +156,20 @@ class SqlAlchemyCustomerCommunicationRepository:
             summaries[customer_id] = (primary_value, max(len(items) - 1, 0))
         return summaries
 
-    def load_for_customers(self, customer_ids: list[UUID]) -> dict[UUID, CustomerCommunications]:
+    def load_for_customers(
+        self,
+        organization_id: UUID,
+        customer_ids: list[UUID],
+    ) -> dict[UUID, CustomerCommunications]:
         if not customer_ids:
             return {}
 
         phones = (
             self._session.query(CustomerPhoneModel)
-            .filter(CustomerPhoneModel.customer_id.in_(customer_ids))
+            .filter(
+                CustomerPhoneModel.organization_id == organization_id,
+                CustomerPhoneModel.customer_id.in_(customer_ids),
+            )
             .order_by(
                 CustomerPhoneModel.customer_id,
                 CustomerPhoneModel.is_primary.desc(),
@@ -134,7 +179,10 @@ class SqlAlchemyCustomerCommunicationRepository:
         )
         emails = (
             self._session.query(CustomerEmailModel)
-            .filter(CustomerEmailModel.customer_id.in_(customer_ids))
+            .filter(
+                CustomerEmailModel.organization_id == organization_id,
+                CustomerEmailModel.customer_id.in_(customer_ids),
+            )
             .order_by(
                 CustomerEmailModel.customer_id,
                 CustomerEmailModel.is_primary.desc(),
@@ -144,7 +192,10 @@ class SqlAlchemyCustomerCommunicationRepository:
         )
         websites = (
             self._session.query(CustomerWebsiteModel)
-            .filter(CustomerWebsiteModel.customer_id.in_(customer_ids))
+            .filter(
+                CustomerWebsiteModel.organization_id == organization_id,
+                CustomerWebsiteModel.customer_id.in_(customer_ids),
+            )
             .order_by(
                 CustomerWebsiteModel.customer_id,
                 CustomerWebsiteModel.is_primary.desc(),
@@ -181,7 +232,9 @@ class SqlAlchemyCustomerCommunicationRepository:
         phones: list[str],
         now: datetime,
     ) -> list[CustomerPhone]:
+        self._require_customer_in_organization(organization_id, customer_id)
         self._session.query(CustomerPhoneModel).filter(
+            CustomerPhoneModel.organization_id == organization_id,
             CustomerPhoneModel.customer_id == customer_id,
         ).delete(synchronize_session=False)
 
@@ -207,7 +260,9 @@ class SqlAlchemyCustomerCommunicationRepository:
         emails: list[str],
         now: datetime,
     ) -> list[CustomerEmail]:
+        self._require_customer_in_organization(organization_id, customer_id)
         self._session.query(CustomerEmailModel).filter(
+            CustomerEmailModel.organization_id == organization_id,
             CustomerEmailModel.customer_id == customer_id,
         ).delete(synchronize_session=False)
 
@@ -233,7 +288,9 @@ class SqlAlchemyCustomerCommunicationRepository:
         websites: list[str],
         now: datetime,
     ) -> list[CustomerWebsite]:
+        self._require_customer_in_organization(organization_id, customer_id)
         self._session.query(CustomerWebsiteModel).filter(
+            CustomerWebsiteModel.organization_id == organization_id,
             CustomerWebsiteModel.customer_id == customer_id,
         ).delete(synchronize_session=False)
 
