@@ -127,7 +127,11 @@ class MailSendOperationDispatcher:
             outbox=outbox,
         )
 
-        self._batch_repository.mark_outbox_sending(outbox.id)
+        self._batch_repository.mark_outbox_sending(
+            operation.organization_id,
+            batch.id,
+            outbox.id,
+        )
         delivery_result = self._delivery.send(
             organization_id=operation.organization_id,
             email_account_id=operation.email_account_id,
@@ -147,6 +151,8 @@ class MailSendOperationDispatcher:
             else None
         )
         self._batch_repository.update_outbox_sent(
+            operation.organization_id,
+            batch.id,
             outbox.id,
             subject=final_subject,
             body_html=body_html,
@@ -181,6 +187,7 @@ class MailSendOperationDispatcher:
             .filter(
                 FairEmailOutboxModel.id == outbox_id,
                 FairEmailOutboxModel.organization_id == organization_id,
+                FairEmailOutboxModel.batch_id == batch.id,
             )
             .one_or_none()
         )
