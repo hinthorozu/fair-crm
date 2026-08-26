@@ -77,15 +77,15 @@ def _owned_logo_url(value: str | None, organization_id: UUID) -> str | None:
         raise HTTPException(status_code=400, detail="Logo bu organizasyona ait değil.") from exc
 
 
-@asset_router.get("/{organization_id}/{filename}")
+@asset_router.get("/{asset_organization_id}/{filename}")
 def get_quote_template_logo(
-    organization_id: UUID,
+    asset_organization_id: UUID,
     filename: str,
     auth: AuthContext = Depends(require_read_permission),
 ):
-    if organization_id != auth.organization_id:
+    if asset_organization_id != auth.organization_id:
         raise HTTPException(status_code=404, detail="Logo bulunamadı.")
-    path = resolve_logo_file(organization_id, filename)
+    path = resolve_logo_file(asset_organization_id, filename)
     if path is None or not path.is_file():
         raise HTTPException(status_code=404, detail="Logo bulunamadı.")
     media_type = LOGO_MEDIA_TYPES.get(path.suffix.lower())
