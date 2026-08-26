@@ -101,8 +101,18 @@ class ScraperRunHistoryRepository:
         self._session.flush()
         return _to_entity(model)
 
-    def update(self, run: ScraperRunHistory) -> ScraperRunHistory:
-        model = self._session.get(ScraperRunHistoryModel, run.id)
+    def update(
+        self,
+        run: ScraperRunHistory,
+        *,
+        organization_id: UUID | None = None,
+    ) -> ScraperRunHistory:
+        if organization_id is not None and run.organization_id != organization_id:
+            raise KeyError(f"Scraper run not found: {run.id}")
+        stmt = select(ScraperRunHistoryModel).where(ScraperRunHistoryModel.id == run.id)
+        if organization_id is not None:
+            stmt = stmt.where(ScraperRunHistoryModel.organization_id == organization_id)
+        model = self._session.scalars(stmt).one_or_none()
         if model is None:
             raise KeyError(f"Scraper run not found: {run.id}")
         model.adapter_key = run.adapter_key
@@ -137,8 +147,13 @@ class ScraperRunHistoryRepository:
         self._session.flush()
         return _to_entity(model)
 
-    def get_by_id(self, run_id: UUID) -> ScraperRunHistory | None:
-        row = self.get_run_row_by_id(run_id)
+    def get_by_id(
+        self,
+        run_id: UUID,
+        *,
+        organization_id: UUID | None = None,
+    ) -> ScraperRunHistory | None:
+        row = self.get_run_row_by_id(run_id, organization_id=organization_id)
         if row is None:
             return None
         return row.run
@@ -432,4 +447,3 @@ class ScraperRunHistoryRepository:
         )
         self._session.flush()
         return int(result.rowcount or 0) > 0
-
