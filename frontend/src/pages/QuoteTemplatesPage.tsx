@@ -1,5 +1,12 @@
 import React from "react";
-import { createQuoteTemplate, listQuoteTemplates, updateQuoteTemplate, uploadQuoteTemplateLogo } from "../api/quoteTemplates";
+import {
+  createQuoteTemplate,
+  fetchManagedQuoteTemplateLogo,
+  isManagedQuoteTemplateLogoUrl,
+  listQuoteTemplates,
+  updateQuoteTemplate,
+  uploadQuoteTemplateLogo,
+} from "../api/quoteTemplates";
 import { Banner } from "../components/ui/Banner";
 import { EmptyState } from "../components/ui/EmptyState";
 import { FormField, FormModal, TextareaInput, TextInput } from "../components/ui/form";
@@ -15,6 +22,51 @@ import {
 } from "../permissions/quoteTemplatePermissions";
 
 const empty: QuoteTemplatePayload = { name: "", logo_url: null, source_code: "" };
+
+function QuoteTemplateLogo({
+  src,
+  alt,
+  style,
+}: {
+  src: string;
+  alt: string;
+  style: React.CSSProperties;
+}) {
+  const [resolvedSrc, setResolvedSrc] = React.useState<string | null>(
+    isManagedQuoteTemplateLogoUrl(src) ? null : src,
+  );
+
+  React.useEffect(() => {
+    if (!isManagedQuoteTemplateLogoUrl(src)) {
+      setResolvedSrc(src);
+      return;
+    }
+
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    setResolvedSrc(null);
+    void fetchManagedQuoteTemplateLogo(src)
+      .then((blob) => {
+        const nextUrl = URL.createObjectURL(blob);
+        if (cancelled) {
+          URL.revokeObjectURL(nextUrl);
+          return;
+        }
+        objectUrl = nextUrl;
+        setResolvedSrc(nextUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setResolvedSrc(null);
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [src]);
+
+  return resolvedSrc ? <img src={resolvedSrc} alt={alt} style={style} /> : null;
+}
 
 export function QuoteTemplatesPage() {
   const permissions = React.useMemo(() => getGrantedQuoteTemplatePermissions(), []);
@@ -62,7 +114,7 @@ export function QuoteTemplatesPage() {
   const columns: UniversalDataTableColumn<QuoteTemplate>[] = [
     { key: "name", title: "Şablon Adı", sortable: true, render: (item) => item.name },
     { key: "version", title: "Versiyon", sortable: true, render: (item) => `v${item.version_number}` },
-    { key: "logo", title: "Logo", render: (item) => item.logo_url ? <img src={item.logo_url} alt="" style={{ maxHeight: 36, maxWidth: 120 }} /> : "—" },
+    { key: "logo", title: "Logo", render: (item) => item.logo_url ? <QuoteTemplateLogo src={item.logo_url} alt="" style={{ maxHeight: 36, maxWidth: 120 }} /> : "—" },
     { key: "updated", title: "Güncellendi", sortable: true, render: (item) => new Date(item.updated_at).toLocaleString("tr-TR") },
     { key: "actions", title: "İşlemler", render: (item) => canUpdate ? <button type="button" className="btn secondary" onClick={() => openEdit(item)}>Düzenle</button> : "—" },
   ];
@@ -77,7 +129,7 @@ export function QuoteTemplatesPage() {
         <FormField label="Logo" htmlFor="quote-template-logo" hint={values.logo_url ? "Yüklü logo seçildi. Yeni dosya seçerek değiştirebilirsiniz." : "PNG, JPG, SVG veya WebP; en fazla 5 MB."}>
           <input id="quote-template-logo" className="form-control" type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" disabled={uploading} onChange={(e) => void upload(e.target.files?.[0])} />
         </FormField>
-        {values.logo_url ? <img src={values.logo_url} alt="Şablon logosu" style={{ maxHeight: 72, maxWidth: 240, objectFit: "contain" }} /> : null}
+        {values.logo_url ? <QuoteTemplateLogo src={values.logo_url} alt="Şablon logosu" style={{ maxHeight: 72, maxWidth: 240, objectFit: "contain" }} /> : null}
         <FormField label="HTML/CSS Source Code" htmlFor="quote-template-source"><TextareaInput id="quote-template-source" rows={18} spellCheck={false} className="code-editor" value={values.source_code} onChange={(e) => setValues({ ...values, source_code: e.target.value })} /></FormField>
         {editing ? <Banner variant="info">Kaydettiğinizde mevcut sürüm korunur ve v{editing.version_number + 1} oluşturulur.</Banner> : null}
         <div className="form-actions"><button type="button" className="btn secondary" onClick={close}>İptal</button><button type="submit" className="btn primary" disabled={saving || uploading}>{saving ? "Kaydediliyor…" : "Kaydet"}</button></div>
