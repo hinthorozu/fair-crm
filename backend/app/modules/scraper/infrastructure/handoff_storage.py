@@ -27,10 +27,17 @@ def resolve_handoff_excel_path(run_id: UUID, *, base_dir: Path | None = None) ->
     return directory / f"{run_id}.xlsx"
 
 
-def _is_safe_handoff_artifact_path(path: Path, *, run_id: UUID, handoff_dir: Path) -> bool:
-    """Only allow deleting files that belong to this run under the handoff directory."""
+def is_safe_handoff_artifact_path(
+    path: str | Path,
+    *,
+    run_id: UUID,
+    base_dir: Path | None = None,
+) -> bool:
+    """Return whether a stored artifact path is owned by this run under the handoff root."""
+    candidate = Path(path)
+    handoff_dir = base_dir or DEFAULT_HANDOFF_DIR
     try:
-        resolved = path.resolve()
+        resolved = candidate.resolve()
         handoff_root = handoff_dir.resolve()
     except OSError:
         return False
@@ -66,7 +73,7 @@ def delete_handoff_artifacts_for_run(
         if resolved in seen:
             continue
         seen.add(resolved)
-        if not _is_safe_handoff_artifact_path(candidate, run_id=run_id, handoff_dir=handoff_dir):
+        if not is_safe_handoff_artifact_path(candidate, run_id=run_id, base_dir=handoff_dir):
             continue
         if not resolved.is_file():
             continue
