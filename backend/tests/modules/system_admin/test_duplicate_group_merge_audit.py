@@ -120,6 +120,7 @@ def test_duplicate_group_merge_audit_recorder_persists_full_record(db_session, o
     assert record.id is not None
     stored = db_session.get(DuplicateGroupMergeAuditLogModel, record.id)
     assert stored is not None
+    assert stored.organization_id == organization_id
     assert stored.run_id == run_id
     assert stored.group_by == "email"
     assert stored.archived_customer_ids == [str(archived_id)]
