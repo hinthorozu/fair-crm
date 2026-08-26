@@ -13,6 +13,7 @@ from app.modules.activities.domain.entities import Activity
 from app.modules.activities.infrastructure.repositories.activity_repository import SqlAlchemyActivityRepository
 from app.modules.customers.infrastructure.persistence.models import CustomerModel
 from app.modules.fairs.infrastructure.persistence.models import FairModel
+from app.modules.quote_templates.infrastructure.logo_storage import logo_src_for_render
 from app.modules.quote_templates.infrastructure.models import QuoteTemplateModel, QuoteTemplateVersionModel
 from app.modules.quotes.api.dependencies import require_create_permission, require_delete_permission, require_read_permission, require_update_permission
 from app.modules.quotes.api.schemas import QuoteRenderResponse, QuoteResponse, QuoteWriteRequest
@@ -21,17 +22,7 @@ from app.modules.template_contents.infrastructure.models import TemplateContentM
 from app.modules.todos.infrastructure.persistence.models import TodoModel
 
 router = APIRouter(prefix="/quotes", tags=["quotes"])
-_LOGO_LEGACY_PREFIX = "/data/quote-template-logos/"
-_LOGO_API_PREFIX = "/api/v1/data/quote-template-logos/"
 _RENDER_NOT_FOUND = "Teklif render verisi bulunamadı"
-
-
-def _public_logo_url(value: str | None) -> str:
-    if not value:
-        return ""
-    if value.startswith(_LOGO_LEGACY_PREFIX):
-        return f"{_LOGO_API_PREFIX}{value[len(_LOGO_LEGACY_PREFIX):]}"
-    return value
 
 
 def _response(row: QuoteModel) -> QuoteResponse:
@@ -194,7 +185,7 @@ def _render(row: QuoteModel, db: Session) -> str:
             group_html = item_pattern.sub(rendered_items, group_template).replace("{{tag_name}}", html.escape(tags[tag_id].name))
             rendered_groups.append(group_html)
         source = block_pattern.sub("".join(rendered_groups), source)
-    replacements = {"{{logo_url}}": _public_logo_url(version.logo_url), "{{customer_display_name}}": customer.display_name, "{{fair_name}}": fair.name, "{{quote_date}}": row.quote_date.strftime("%d.%m.%Y"), "{fiyat}": row.price or ""}
+    replacements = {"{{logo_url}}": logo_src_for_render(version.logo_url, row.organization_id), "{{customer_display_name}}": customer.display_name, "{{fair_name}}": fair.name, "{{quote_date}}": row.quote_date.strftime("%d.%m.%Y"), "{fiyat}": row.price or ""}
     for key, value in replacements.items(): source = source.replace(key, html.escape(value, quote=True))
     return source
 

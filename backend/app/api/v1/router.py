@@ -18,6 +18,7 @@ from app.modules.scraper.api.routes import router as scraper_router
 from app.modules.customers.api.contact_enrichment_routes import router as customer_contact_enrichment_router
 from app.modules.email_accounts.api.routes import router as email_accounts_router
 from app.modules.mail_templates.api.routes import router as mail_templates_router
+from app.modules.quote_templates.api.routes import asset_router as quote_template_assets_router
 from app.modules.quote_templates.api.routes import router as quote_templates_router
 from app.modules.template_contents.api.routes import router as template_contents_router
 from app.modules.quotes.api.routes import router as quotes_router
@@ -53,6 +54,7 @@ api_v1_router.include_router(scraper_router)
 api_v1_router.include_router(customer_contact_enrichment_router, prefix="/customers")
 api_v1_router.include_router(email_accounts_router)
 api_v1_router.include_router(mail_templates_router)
+api_v1_router.include_router(quote_template_assets_router)
 api_v1_router.include_router(quote_templates_router)
 api_v1_router.include_router(template_contents_router)
 api_v1_router.include_router(quotes_router)

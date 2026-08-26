@@ -8,6 +8,7 @@ from io import BytesIO
 from uuid import UUID
 
 from openpyxl import Workbook
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.core.pagination import normalize_sort_direction
@@ -49,6 +50,7 @@ def _join_values(values: list[str]) -> str:
 
 def _load_fair_names_by_customer(
     session: Session,
+    organization_id: UUID,
     customer_ids: list[UUID],
 ) -> dict[UUID, list[str]]:
     if not customer_ids:
@@ -59,8 +61,15 @@ def _load_fair_names_by_customer(
             CustomerFairParticipationModel.fair_id,
             FairModel.name,
         )
-        .join(FairModel, FairModel.id == CustomerFairParticipationModel.fair_id)
+        .join(
+            FairModel,
+            and_(
+                FairModel.id == CustomerFairParticipationModel.fair_id,
+                FairModel.organization_id == organization_id,
+            ),
+        )
         .filter(
+            CustomerFairParticipationModel.organization_id == organization_id,
             CustomerFairParticipationModel.customer_id.in_(customer_ids),
             CustomerFairParticipationModel.deleted_at.is_(None),
         )
@@ -114,7 +123,11 @@ class ExportCustomersUseCase:
         communications = self._communication_repository.load_for_customers(
             query.organization_id, customer_ids
         )
-        fair_names = _load_fair_names_by_customer(self._session, customer_ids)
+        fair_names = _load_fair_names_by_customer(
+            self._session,
+            query.organization_id,
+            customer_ids,
+        )
 
         workbook = Workbook()
         sheet = workbook.active
