@@ -45,11 +45,31 @@ class SqlAlchemyCustomerCommunicationRepository:
         if exists is None:
             raise LookupError("Customer not found")
 
+    def _customer_ids_in_organization(
+        self,
+        organization_id: UUID,
+        customer_ids: list[UUID],
+    ) -> list[UUID]:
+        if not customer_ids:
+            return []
+        return [
+            customer_id
+            for (customer_id,) in (
+                self._session.query(CustomerModel.id)
+                .filter(
+                    CustomerModel.organization_id == organization_id,
+                    CustomerModel.id.in_(customer_ids),
+                )
+                .all()
+            )
+        ]
+
     def load_for_customer(
         self,
         organization_id: UUID,
         customer_id: UUID,
     ) -> CustomerCommunications:
+        self._require_customer_in_organization(organization_id, customer_id)
         phones = (
             self._session.query(CustomerPhoneModel)
             .filter(
@@ -88,30 +108,34 @@ class SqlAlchemyCustomerCommunicationRepository:
         organization_id: UUID,
         customer_ids: list[UUID],
     ) -> dict[UUID, CustomerCommunicationListSummary]:
-        if not customer_ids:
+        scoped_customer_ids = self._customer_ids_in_organization(
+            organization_id,
+            customer_ids,
+        )
+        if not scoped_customer_ids:
             return {}
 
         phone_by_customer = self._list_value_summaries(
             organization_id,
-            customer_ids,
+            scoped_customer_ids,
             model=CustomerPhoneModel,
             value_attr="phone",
         )
         email_by_customer = self._list_value_summaries(
             organization_id,
-            customer_ids,
+            scoped_customer_ids,
             model=CustomerEmailModel,
             value_attr="email",
         )
         website_by_customer = self._list_value_summaries(
             organization_id,
-            customer_ids,
+            scoped_customer_ids,
             model=CustomerWebsiteModel,
             value_attr="website",
         )
 
         summaries: dict[UUID, CustomerCommunicationListSummary] = {}
-        for customer_id in customer_ids:
+        for customer_id in scoped_customer_ids:
             phone_value, phone_extra = phone_by_customer.get(customer_id, (None, 0))
             email_value, email_extra = email_by_customer.get(customer_id, (None, 0))
             website_value, website_extra = website_by_customer.get(customer_id, (None, 0))
@@ -161,14 +185,18 @@ class SqlAlchemyCustomerCommunicationRepository:
         organization_id: UUID,
         customer_ids: list[UUID],
     ) -> dict[UUID, CustomerCommunications]:
-        if not customer_ids:
+        scoped_customer_ids = self._customer_ids_in_organization(
+            organization_id,
+            customer_ids,
+        )
+        if not scoped_customer_ids:
             return {}
 
         phones = (
             self._session.query(CustomerPhoneModel)
             .filter(
                 CustomerPhoneModel.organization_id == organization_id,
-                CustomerPhoneModel.customer_id.in_(customer_ids),
+                CustomerPhoneModel.customer_id.in_(scoped_customer_ids),
             )
             .order_by(
                 CustomerPhoneModel.customer_id,
@@ -181,7 +209,7 @@ class SqlAlchemyCustomerCommunicationRepository:
             self._session.query(CustomerEmailModel)
             .filter(
                 CustomerEmailModel.organization_id == organization_id,
-                CustomerEmailModel.customer_id.in_(customer_ids),
+                CustomerEmailModel.customer_id.in_(scoped_customer_ids),
             )
             .order_by(
                 CustomerEmailModel.customer_id,
@@ -194,7 +222,7 @@ class SqlAlchemyCustomerCommunicationRepository:
             self._session.query(CustomerWebsiteModel)
             .filter(
                 CustomerWebsiteModel.organization_id == organization_id,
-                CustomerWebsiteModel.customer_id.in_(customer_ids),
+                CustomerWebsiteModel.customer_id.in_(scoped_customer_ids),
             )
             .order_by(
                 CustomerWebsiteModel.customer_id,
@@ -221,7 +249,7 @@ class SqlAlchemyCustomerCommunicationRepository:
                 emails=email_map.get(customer_id, []),
                 websites=website_map.get(customer_id, []),
             )
-            for customer_id in customer_ids
+            for customer_id in scoped_customer_ids
         }
 
     def replace_phones(
