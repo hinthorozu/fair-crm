@@ -72,7 +72,9 @@ def test_grouping_keys_for_customer_uses_all_emails(db_session, organization_id)
         SqlAlchemyCustomerCommunicationRepository,
     )
 
-    communications = SqlAlchemyCustomerCommunicationRepository(db_session).load_for_customer(customer.id)
+    communications = SqlAlchemyCustomerCommunicationRepository(db_session).load_for_customer(
+        organization_id, customer.id
+    )
     keys = grouping_keys_for_customer("email", customer, communications)
 
     assert keys == ["shared@example.com", "other@example.com"]
