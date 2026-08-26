@@ -15,6 +15,9 @@ from app.modules.data_integration.domain.entities import ImportJob
 from app.modules.data_integration.infrastructure.repositories.job_repository import (
     SqlAlchemyImportJobRepository,
 )
+from app.modules.fair_emails.application.commands import ProcessBatchCommand
+from app.modules.fair_emails.application.process_batch import ProcessFairEmailBatchUseCase
+from app.modules.fair_emails.infrastructure.persistence.models import FairEmailBatchModel
 from app.modules.imports.domain.value_objects import ImportJobStatus
 from app.modules.system_admin.application.data_operation_job_runner import (
     DataOperationJobCommand,
@@ -94,3 +97,46 @@ def test_data_operation_job_runner_rejects_foreign_run_before_state_change(db_se
     assert unchanged.status == DataOperationRunStatus.QUEUED
     assert unchanged.completed_at is None
     assert unchanged.error_message is None
+
+
+def test_mail_batch_worker_rejects_foreign_batch_before_state_change(db_session):
+    owner_org = uuid4()
+    foreign_org = uuid4()
+    now = datetime.now(tz=UTC)
+    batch = FairEmailBatchModel(
+        id=uuid4(),
+        organization_id=owner_org,
+        fair_id=None,
+        operation_id=None,
+        template_id=uuid4(),
+        email_account_id=None,
+        subject_override=None,
+        recipient_options_json={},
+        status="queued",
+        total_count=0,
+        sent_count=0,
+        failed_count=0,
+        skipped_count=0,
+        created_by_user_id=uuid4(),
+        created_at=now,
+        updated_at=now,
+        completed_at=None,
+    )
+    db_session.add(batch)
+    db_session.commit()
+
+    ProcessFairEmailBatchUseCase(db_session).execute(
+        ProcessBatchCommand(
+            batch_id=batch.id,
+            organization_id=foreign_org,
+        )
+    )
+
+    db_session.expire_all()
+    unchanged = db_session.get(FairEmailBatchModel, batch.id)
+    assert unchanged is not None
+    assert unchanged.organization_id == owner_org
+    assert unchanged.status == "queued"
+    assert unchanged.sent_count == 0
+    assert unchanged.failed_count == 0
+    assert unchanged.completed_at is None
