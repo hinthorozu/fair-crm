@@ -62,3 +62,25 @@ def test_template_write_rejects_foreign_managed_logo_pointer(
     )
     assert created.status_code == 400
     assert created.json()["detail"] == "Logo bu organizasyona ait değil."
+
+    owner_template = client.post(
+        "/api/v1/quote-templates",
+        headers=auth_headers,
+        json={
+            "name": "Owner Template",
+            "source_code": "<html>{{logo_url}}</html>",
+        },
+    )
+    assert owner_template.status_code == 201
+
+    updated = client.patch(
+        f"/api/v1/quote-templates/{owner_template.json()['id']}",
+        headers=auth_headers,
+        json={
+            "name": "Owner Template",
+            "logo_url": foreign_logo_url,
+            "source_code": "<html>{{logo_url}}</html>",
+        },
+    )
+    assert updated.status_code == 400
+    assert updated.json()["detail"] == "Logo bu organizasyona ait değil."
