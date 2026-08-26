@@ -2,6 +2,12 @@
 
 from uuid import UUID
 
+from sqlalchemy import select
+
+from app.modules.customers.infrastructure.persistence.communication_query_helpers import (
+    has_live_fair_participation_exists,
+)
+from app.modules.customers.infrastructure.persistence.models import CustomerModel
 from app.modules.participations.infrastructure.persistence.models import CustomerFairParticipationModel
 from tests.conftest_helpers import pagination_from
 
@@ -103,3 +109,37 @@ def test_fair_participant_list_does_not_follow_foreign_customer(
     assert response.status_code == 200
     assert "FOREIGN CUSTOMER" not in response.text
     assert pagination_from(response.json())["totalItems"] == 0
+
+
+def test_live_participation_helper_ignores_foreign_organization_rows(
+    client,
+    auth_headers,
+    db_session,
+    other_organization_id,
+):
+    owner_customer_id = _create_customer(client, auth_headers, "Helper Owner Customer")
+
+    other_headers = {**auth_headers, "X-Organization-Id": str(other_organization_id)}
+    foreign_customer_id = _create_customer(client, other_headers, "Foreign Helper Customer")
+    foreign_fair_id = _create_fair(client, other_headers, "Foreign Helper Fair")
+    foreign_participation_id = _create_participation(
+        client,
+        other_headers,
+        foreign_customer_id,
+        foreign_fair_id,
+    )
+
+    participation = db_session.get(
+        CustomerFairParticipationModel,
+        UUID(foreign_participation_id),
+    )
+    assert participation is not None
+    participation.customer_id = UUID(owner_customer_id)
+    db_session.commit()
+
+    has_live = db_session.scalar(
+        select(has_live_fair_participation_exists())
+        .select_from(CustomerModel)
+        .where(CustomerModel.id == UUID(owner_customer_id))
+    )
+    assert not has_live
