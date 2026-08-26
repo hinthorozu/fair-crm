@@ -58,6 +58,16 @@ class AdapterTestRunJobRunner:
         run_logger: ScraperRunLogger | None = None
         try:
             history_service = create_run_history_service(db)
+            if history_service.get_run(
+                command.run_id,
+                organization_id=command.organization_id,
+            ) is None:
+                logger.warning(
+                    "Adapter test run not found for organization run_id=%s organization_id=%s",
+                    command.run_id,
+                    command.organization_id,
+                )
+                return
             log_service = create_run_log_service(db)
             run_logger = CappedWarningRunLogger(
                 DbScraperRunLogger(command.run_id, log_service, db),
@@ -93,7 +103,11 @@ class AdapterTestRunJobRunner:
 
             engine_key = resolve_engine_key(db, command.organization_id, command.adapter_key)
             requested_fields = resolve_requested_fields(db, command.organization_id, command.adapter_key)
-            cancel_checker = RunCancelChecker(self._session_factory, command.run_id)
+            cancel_checker = RunCancelChecker(
+                self._session_factory,
+                command.run_id,
+                organization_id=command.organization_id,
+            )
             context = replace(
                 context,
                 options={
@@ -104,7 +118,7 @@ class AdapterTestRunJobRunner:
             )
             clear_validation_cache()
             if cancel_checker.is_cancel_requested():
-                self._cancel_run(db, command.run_id, run_logger=run_logger)
+                self._cancel_run(db, command, run_logger=run_logger)
                 return
             try:
                 if self._scrape_executor is not None:
@@ -128,25 +142,25 @@ class AdapterTestRunJobRunner:
                         )
                     )
             except ScraperRunCancelledError:
-                self._cancel_run(db, command.run_id, run_logger=run_logger)
+                self._cancel_run(db, command, run_logger=run_logger)
                 return
             except PlaywrightBrowserNotInstalledError as scrape_exc:
                 logger.warning("%s", scrape_exc)
                 if isinstance(run_logger, CappedWarningRunLogger):
                     run_logger.flush_suppressed_warnings()
                 run_logger.error("failed", str(scrape_exc))
-                self._fail_run(db, command.run_id, str(scrape_exc))
+                self._fail_run(db, command, str(scrape_exc))
                 return
             except Exception as scrape_exc:
                 logger.exception("Adapter test scrape failed id=%s", command.run_id)
                 if isinstance(run_logger, CappedWarningRunLogger):
                     run_logger.flush_suppressed_warnings()
                 run_logger.error("failed", str(scrape_exc))
-                self._fail_run(db, command.run_id, str(scrape_exc))
+                self._fail_run(db, command, str(scrape_exc))
                 return
 
             if cancel_checker.is_cancel_requested():
-                self._cancel_run(db, command.run_id, run_logger=run_logger)
+                self._cancel_run(db, command, run_logger=run_logger)
                 return
 
             artifacts = export_scraper_artifacts(
@@ -178,6 +192,7 @@ class AdapterTestRunJobRunner:
                 output_json_path=artifacts.json_path,
                 output_excel_path=artifacts.excel_path,
                 warning_message=warning_message,
+                organization_id=command.organization_id,
             )
             db.commit()
             logger.info(
@@ -192,7 +207,7 @@ class AdapterTestRunJobRunner:
                 if isinstance(run_logger, CappedWarningRunLogger):
                     run_logger.flush_suppressed_warnings()
                 run_logger.error("failed", str(exc))
-            self._fail_run(db, command.run_id, str(exc))
+            self._fail_run(db, command, str(exc))
         finally:
             db.close()
 
@@ -223,31 +238,44 @@ class AdapterTestRunJobRunner:
     def _cancel_run(
         self,
         db: Session,
-        run_id: UUID,
+        command: AdapterTestRunJobCommand,
         *,
         run_logger: ScraperRunLogger | None,
     ) -> None:
         try:
             history_service = create_run_history_service(db)
-            history_service.mark_cancelling(run_id)
+            history_service.mark_cancelling(
+                command.run_id,
+                organization_id=command.organization_id,
+            )
             if run_logger is not None:
                 if isinstance(run_logger, CappedWarningRunLogger):
                     run_logger.flush_suppressed_warnings()
                 run_logger.info("cancelled", "Test çalışması iptal edildi / silindi")
             history_service.complete_cancelled_run(
-                run_id,
+                command.run_id,
                 error_message="Kullanıcı tarafından durduruldu.",
+                organization_id=command.organization_id,
             )
             db.commit()
         except Exception:
-            logger.exception("Failed to record adapter test run cancellation id=%s", run_id)
+            logger.exception("Failed to record adapter test run cancellation id=%s", command.run_id)
             db.rollback()
 
-    def _fail_run(self, db: Session, run_id: UUID, error_message: str) -> None:
+    def _fail_run(
+        self,
+        db: Session,
+        command: AdapterTestRunJobCommand,
+        error_message: str,
+    ) -> None:
         try:
             history_service = create_run_history_service(db)
-            history_service.fail_run(run_id, error_message=error_message)
+            history_service.fail_run(
+                command.run_id,
+                error_message=error_message,
+                organization_id=command.organization_id,
+            )
             db.commit()
         except Exception:
-            logger.exception("Failed to record adapter test run failure id=%s", run_id)
+            logger.exception("Failed to record adapter test run failure id=%s", command.run_id)
             db.rollback()
