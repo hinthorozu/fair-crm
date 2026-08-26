@@ -237,12 +237,19 @@ class BulkEmailHandler:
         if batch is None:
             raise InvalidOperationConfigError("No bulk email batch linked to this operation")
 
-        failed = self._batch_repository.list_failed_outbox(batch.id)
+        failed = self._batch_repository.list_failed_outbox(
+            operation.organization_id,
+            batch.id,
+        )
         if not failed:
             raise InvalidOperationConfigError("No failed recipients to retry")
 
         for outbox in failed:
-            self._batch_repository.prepare_outbox_for_retry(outbox.id)
+            self._batch_repository.prepare_outbox_for_retry(
+                operation.organization_id,
+                batch.id,
+                outbox.id,
+            )
 
         if self._mail_operation_sync is not None:
             refreshed = self._batch_repository.get_batch(operation.organization_id, batch.id)

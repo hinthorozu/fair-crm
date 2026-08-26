@@ -302,6 +302,7 @@ def analyze_duplicate_groups_for_organization(
         .all()
     )
     summaries = SqlAlchemyCustomerCommunicationRepository(session).load_list_summaries(
+        organization_id,
         [model.id for model in models],
     )
 

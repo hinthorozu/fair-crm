@@ -18,5 +18,8 @@ class GetCustomerUseCase:
         customer = self._repository.get_by_id(query.organization_id, query.customer_id)
         if customer is None:
             raise CustomerNotFoundError("Customer not found")
-        communications = self._communication_sync.load_for_customer(customer.id)
+        communications = self._communication_sync.load_for_customer(
+            query.organization_id,
+            customer.id,
+        )
         return customer_to_result(customer, communications=communications)

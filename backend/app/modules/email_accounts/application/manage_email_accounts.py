@@ -58,9 +58,15 @@ class ListEmailAccountsUseCase:
 
     def _to_dict(self, account: EmailAccount) -> dict[str, Any]:
         if account.account_type == EmailAccountType.SMTP:
-            smtp = self._repository.get_smtp_config(account.id)
+            smtp = self._repository.get_smtp_config(
+                account.id,
+                organization_id=account.organization_id,
+            )
             return email_account_to_response_dict(account, smtp_config=smtp)
-        provider = self._repository.get_provider_config(account.id)
+        provider = self._repository.get_provider_config(
+            account.id,
+            organization_id=account.organization_id,
+        )
         return email_account_to_response_dict(account, provider_config=provider)
 
 
@@ -73,9 +79,15 @@ class GetEmailAccountUseCase:
         if account is None:
             raise EmailAccountNotFoundError("Email account not found")
         if account.account_type == EmailAccountType.SMTP:
-            smtp = self._repository.get_smtp_config(account.id)
+            smtp = self._repository.get_smtp_config(
+                account.id,
+                organization_id=organization_id,
+            )
             return email_account_to_response_dict(account, smtp_config=smtp)
-        provider = self._repository.get_provider_config(account.id)
+        provider = self._repository.get_provider_config(
+            account.id,
+            organization_id=organization_id,
+        )
         return email_account_to_response_dict(account, provider_config=provider)
 
 

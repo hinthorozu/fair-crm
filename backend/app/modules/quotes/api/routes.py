@@ -23,6 +23,7 @@ from app.modules.todos.infrastructure.persistence.models import TodoModel
 router = APIRouter(prefix="/quotes", tags=["quotes"])
 _LOGO_LEGACY_PREFIX = "/data/quote-template-logos/"
 _LOGO_API_PREFIX = "/api/v1/data/quote-template-logos/"
+_RENDER_NOT_FOUND = "Teklif render verisi bulunamadı"
 
 
 def _public_logo_url(value: str | None) -> str:
@@ -110,12 +111,71 @@ def update_quote(todo_id: UUID, body: QuoteWriteRequest, auth: AuthContext = Dep
     return _response(row)
 
 
+def _render_not_found() -> None:
+    raise HTTPException(status_code=404, detail=_RENDER_NOT_FOUND)
+
+
 def _render(row: QuoteModel, db: Session) -> str:
-    customer = db.get(CustomerModel, row.customer_id); fair = db.get(FairModel, row.fair_id)
-    template = db.get(QuoteTemplateModel, row.template_id); version = db.get(QuoteTemplateVersionModel, template.current_version_id)
-    content_ids = [UUID(item["content_id"]) for item in row.selected_items]
-    contents = db.scalars(select(TemplateContentModel).where(TemplateContentModel.id.in_(content_ids))).all() if content_ids else []
-    tags = {tag.id: tag for tag in db.scalars(select(TemplateContentTagModel).where(TemplateContentTagModel.organization_id == row.organization_id)).all()}
+    customer = db.scalar(
+        select(CustomerModel).where(
+            CustomerModel.id == row.customer_id,
+            CustomerModel.organization_id == row.organization_id,
+            CustomerModel.deleted_at.is_(None),
+        )
+    )
+    fair = db.scalar(
+        select(FairModel).where(
+            FairModel.id == row.fair_id,
+            FairModel.organization_id == row.organization_id,
+            FairModel.deleted_at.is_(None),
+        )
+    )
+    template = db.scalar(
+        select(QuoteTemplateModel).where(
+            QuoteTemplateModel.id == row.template_id,
+            QuoteTemplateModel.organization_id == row.organization_id,
+            QuoteTemplateModel.deleted_at.is_(None),
+        )
+    )
+    if customer is None or fair is None or template is None or template.current_version_id is None:
+        _render_not_found()
+
+    version = db.scalar(
+        select(QuoteTemplateVersionModel).where(
+            QuoteTemplateVersionModel.id == template.current_version_id,
+            QuoteTemplateVersionModel.template_id == template.id,
+        )
+    )
+    if version is None:
+        _render_not_found()
+
+    try:
+        content_ids = [UUID(item["content_id"]) for item in row.selected_items]
+    except (KeyError, TypeError, ValueError):
+        _render_not_found()
+
+    contents = db.scalars(
+        select(TemplateContentModel).where(
+            TemplateContentModel.organization_id == row.organization_id,
+            TemplateContentModel.id.in_(content_ids),
+        )
+    ).all() if content_ids else []
+    if {item.id for item in contents} != set(content_ids):
+        _render_not_found()
+
+    tag_ids = {item.tag_id for item in contents}
+    tags = {
+        tag.id: tag
+        for tag in db.scalars(
+            select(TemplateContentTagModel).where(
+                TemplateContentTagModel.organization_id == row.organization_id,
+                TemplateContentTagModel.id.in_(tag_ids),
+            )
+        ).all()
+    } if tag_ids else {}
+    if set(tags) != tag_ids:
+        _render_not_found()
+
     values = {UUID(item["content_id"]): item["value"] for item in row.selected_items}
     groups: dict[UUID, list[TemplateContentModel]] = {}
     for item in contents: groups.setdefault(item.tag_id, []).append(item)

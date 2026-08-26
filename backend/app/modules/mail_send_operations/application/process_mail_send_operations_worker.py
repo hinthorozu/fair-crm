@@ -34,6 +34,7 @@ from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
 
 logger = logging.getLogger(__name__)
 
+
 def _provider_fields_from_delivery_result(
     result: EmailDeliveryResult | None,
 ) -> tuple[str | None, str | None]:
@@ -135,9 +136,11 @@ class ProcessMailSendOperationsWorker:
         }
         for organization_id, batch_id in batch_keys:
             sent_count, failed_count, status = self._batch_repository.recount_batch_from_outbox(
-                batch_id
+                organization_id,
+                batch_id,
             )
             self._batch_repository.update_batch_counts(
+                organization_id,
                 batch_id,
                 status=status,
                 sent_count=sent_count,
@@ -160,9 +163,11 @@ class ProcessMailSendOperationsWorker:
     def _reconcile_nonterminal_fair_batches(self) -> None:
         for organization_id, batch_id in self._batch_repository.list_nonterminal_batch_keys():
             sent_count, failed_count, status = self._batch_repository.recount_batch_from_outbox(
-                batch_id
+                organization_id,
+                batch_id,
             )
             self._batch_repository.update_batch_counts(
+                organization_id,
                 batch_id,
                 status=status,
                 sent_count=sent_count,
@@ -306,9 +311,14 @@ class ProcessMailSendOperationsWorker:
             operation.organization_id,
             operation.id,
         )
-        if outbox is None:
+        if outbox is None or outbox.batch_id is None:
             return
-        self._fair_bulk_handler.sync_outbox_failed(outbox.id, message=message)
+        self._fair_bulk_handler.sync_outbox_failed(
+            operation.organization_id,
+            outbox.batch_id,
+            outbox.id,
+            message=message,
+        )
         self._dispatcher.record_fair_bulk_terminal_activity(operation)
         refreshed = self._repository.get_by_id(operation.organization_id, operation.id)
         if refreshed is not None and refreshed.status == MailSendOperationStatus.FAILED:

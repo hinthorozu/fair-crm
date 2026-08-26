@@ -242,7 +242,7 @@ def test_apply_enrichment_import_writes_email_and_marks_email_found(db_session, 
 
     communications = CustomerCommunicationSyncService(
         SqlAlchemyCustomerCommunicationRepository(db_session)
-    ).load_for_customer(customer.id)
+    ).load_for_customer(organization_id, customer.id)
     assert any(item.email == "info@apply.example" for item in communications.emails)
 
 
@@ -317,7 +317,7 @@ def test_apply_enrichment_import_merges_new_email_when_customer_already_has_emai
 
     communications = CustomerCommunicationSyncService(
         SqlAlchemyCustomerCommunicationRepository(db_session)
-    ).load_for_customer(customer.id)
+    ).load_for_customer(organization_id, customer.id)
     emails = {item.email for item in communications.emails}
     assert emails == {"existing@apply.example", "new@apply.example"}
 
@@ -386,7 +386,7 @@ def test_apply_enrichment_import_does_not_duplicate_existing_email(
 
     communications = CustomerCommunicationSyncService(
         SqlAlchemyCustomerCommunicationRepository(db_session)
-    ).load_for_customer(customer.id)
+    ).load_for_customer(organization_id, customer.id)
     emails = [item.email for item in communications.emails]
     assert emails == ["info@dup.example"]
 
@@ -490,7 +490,7 @@ def test_apply_enrichment_import_via_decisions_marks_email_found(db_session, org
 
     communications = CustomerCommunicationSyncService(
         SqlAlchemyCustomerCommunicationRepository(db_session)
-    ).load_for_customer(customer.id)
+    ).load_for_customer(organization_id, customer.id)
     assert any(item.email == "info@apply.example" for item in communications.emails)
 
     assert is_customer_scan_eligible(state, website="https://apply.test") is False

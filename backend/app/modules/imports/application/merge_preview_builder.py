@@ -52,7 +52,9 @@ class MergePreviewBuilder:
         if row.match_customer_id:
             customer = self._customer_repository.get_by_id(organization_id, row.match_customer_id)
             if customer:
-                communications = self._communication_sync.load_for_customer(customer.id)
+                communications = self._communication_sync.load_for_customer(
+                    organization_id, customer.id
+                )
                 customer_phone, customer_email, customer_website, _, _, _ = (
                     api_scalar_fields_from_communications(communications)
                 )

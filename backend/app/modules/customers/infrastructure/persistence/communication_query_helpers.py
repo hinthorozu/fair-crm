@@ -18,7 +18,10 @@ from app.modules.participations.infrastructure.persistence.models import (
 def primary_phone_subquery():
     return (
         select(CustomerPhoneModel.phone)
-        .where(CustomerPhoneModel.customer_id == CustomerModel.id)
+        .where(
+            CustomerPhoneModel.customer_id == CustomerModel.id,
+            CustomerPhoneModel.organization_id == CustomerModel.organization_id,
+        )
         .order_by(CustomerPhoneModel.is_primary.desc(), CustomerPhoneModel.created_at.asc())
         .limit(1)
         .correlate(CustomerModel)
@@ -29,7 +32,10 @@ def primary_phone_subquery():
 def primary_email_subquery():
     return (
         select(CustomerEmailModel.email)
-        .where(CustomerEmailModel.customer_id == CustomerModel.id)
+        .where(
+            CustomerEmailModel.customer_id == CustomerModel.id,
+            CustomerEmailModel.organization_id == CustomerModel.organization_id,
+        )
         .order_by(CustomerEmailModel.is_primary.desc(), CustomerEmailModel.created_at.asc())
         .limit(1)
         .correlate(CustomerModel)
@@ -40,7 +46,10 @@ def primary_email_subquery():
 def primary_website_subquery():
     return (
         select(CustomerWebsiteModel.website)
-        .where(CustomerWebsiteModel.customer_id == CustomerModel.id)
+        .where(
+            CustomerWebsiteModel.customer_id == CustomerModel.id,
+            CustomerWebsiteModel.organization_id == CustomerModel.organization_id,
+        )
         .order_by(CustomerWebsiteModel.is_primary.desc(), CustomerWebsiteModel.created_at.asc())
         .limit(1)
         .correlate(CustomerModel)
@@ -52,6 +61,7 @@ def phone_search_exists(pattern: str):
     return exists(
         select(1).where(
             CustomerPhoneModel.customer_id == CustomerModel.id,
+            CustomerPhoneModel.organization_id == CustomerModel.organization_id,
             CustomerPhoneModel.phone.ilike(pattern),
         )
     )
@@ -61,6 +71,7 @@ def email_search_exists(pattern: str):
     return exists(
         select(1).where(
             CustomerEmailModel.customer_id == CustomerModel.id,
+            CustomerEmailModel.organization_id == CustomerModel.organization_id,
             CustomerEmailModel.email.ilike(pattern),
         )
     )
@@ -70,6 +81,7 @@ def website_search_exists(pattern: str):
     return exists(
         select(1).where(
             CustomerWebsiteModel.customer_id == CustomerModel.id,
+            CustomerWebsiteModel.organization_id == CustomerModel.organization_id,
             CustomerWebsiteModel.website.ilike(pattern),
         )
     )
@@ -80,6 +92,7 @@ def has_usable_website_exists():
     return exists(
         select(1).where(
             CustomerWebsiteModel.customer_id == CustomerModel.id,
+            CustomerWebsiteModel.organization_id == CustomerModel.organization_id,
             CustomerWebsiteModel.website.isnot(None),
             func.trim(CustomerWebsiteModel.website) != "",
         )
@@ -91,6 +104,7 @@ def has_usable_phone_exists():
     return exists(
         select(1).where(
             CustomerPhoneModel.customer_id == CustomerModel.id,
+            CustomerPhoneModel.organization_id == CustomerModel.organization_id,
             CustomerPhoneModel.phone.isnot(None),
             func.trim(CustomerPhoneModel.phone) != "",
         )
@@ -102,6 +116,7 @@ def has_usable_email_exists():
     return exists(
         select(1).where(
             CustomerEmailModel.customer_id == CustomerModel.id,
+            CustomerEmailModel.organization_id == CustomerModel.organization_id,
             CustomerEmailModel.email.isnot(None),
             func.trim(CustomerEmailModel.email) != "",
         )
@@ -113,6 +128,7 @@ def has_live_fair_participation_exists():
     return exists(
         select(1).where(
             CustomerFairParticipationModel.customer_id == CustomerModel.id,
+            CustomerFairParticipationModel.organization_id == CustomerModel.organization_id,
             CustomerFairParticipationModel.deleted_at.is_(None),
         )
     )

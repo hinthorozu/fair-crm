@@ -152,7 +152,7 @@ class DuplicateGroupMergeAuditRecorder:
     ) -> DuplicateGroupMergeAuditRecord:
         timestamp = executed_at or datetime.now(tz=UTC)
         final_communications = self._communication_repository.load_for_customer(
-            merge_result.surviving_customer.id
+            organization_id, merge_result.surviving_customer.id
         )
         reconstruction_json = build_duplicate_group_merge_reconstruction(
             merge_result=merge_result,

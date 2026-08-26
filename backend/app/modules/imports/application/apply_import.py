@@ -430,7 +430,7 @@ class ApplyImportUseCase:
         websites: list[str] = []
 
         if merge:
-            existing = self._communication_sync.load_for_customer(customer_id)
+            existing = self._communication_sync.load_for_customer(organization_id, customer_id)
             phones = [item.phone for item in existing.phones]
             emails = [item.email for item in existing.emails]
             websites = [item.website for item in existing.websites]
@@ -596,18 +596,18 @@ class ApplyImportUseCase:
         )
         self._activity_repository.add(activity)
 
-    def _customer_email_set(self, customer_id: UUID) -> set[str]:
-        communications = self._communication_sync.load_for_customer(customer_id)
+    def _customer_email_set(self, organization_id: UUID, customer_id: UUID) -> set[str]:
+        communications = self._communication_sync.load_for_customer(organization_id, customer_id)
         return {(item.email or "").strip().lower() for item in communications.emails if item.email}
 
-    def _customer_phone_set(self, customer_id: UUID) -> set[str]:
-        communications = self._communication_sync.load_for_customer(customer_id)
+    def _customer_phone_set(self, organization_id: UUID, customer_id: UUID) -> set[str]:
+        communications = self._communication_sync.load_for_customer(organization_id, customer_id)
         return {(item.phone or "").strip() for item in communications.phones if item.phone}
 
     def _enrichment_contact_snapshot(self, customer: Customer) -> dict[str, Any]:
         return {
-            "emails": self._customer_email_set(customer.id),
-            "phones": self._customer_phone_set(customer.id),
+            "emails": self._customer_email_set(customer.organization_id, customer.id),
+            "phones": self._customer_phone_set(customer.organization_id, customer.id),
             "address": (customer.address or "").strip() or None,
             "instagram_url": (customer.instagram_url or "").strip() or None,
             "facebook_url": (customer.facebook_url or "").strip() or None,
@@ -615,5 +615,5 @@ class ApplyImportUseCase:
             "youtube_url": (customer.youtube_url or "").strip() or None,
         }
 
-    def _customer_has_email(self, customer_id: UUID) -> bool:
-        return bool(self._customer_email_set(customer_id))
+    def _customer_has_email(self, organization_id: UUID, customer_id: UUID) -> bool:
+        return bool(self._customer_email_set(organization_id, customer_id))
