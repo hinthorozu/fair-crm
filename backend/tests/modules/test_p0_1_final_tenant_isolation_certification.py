@@ -56,6 +56,37 @@ def _create_fair(client, headers, name: str) -> str:
     return response.json()["id"]
 
 
+def _create_cost_category(client, headers, name: str) -> str:
+    response = client.post(
+        "/api/v1/cost-catalog/categories",
+        headers=headers,
+        json={
+            "name": name,
+            "slug": name.lower().replace(" ", "-"),
+            "description": "P0.1 tenant certification",
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response.json()["id"]
+
+
+def _create_cost_product(client, headers, category_id: str, name: str) -> str:
+    response = client.post(
+        "/api/v1/cost-catalog/products",
+        headers=headers,
+        json={
+            "category_id": category_id,
+            "name": name,
+            "slug": name.lower().replace(" ", "-"),
+            "unit": "Adet",
+            "unit_price": "12.50",
+            "currency": "TL",
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response.json()["id"]
+
+
 def test_mixed_organization_bulk_row_ids_fail_closed(
     client,
     auth_headers,
@@ -174,3 +205,110 @@ def test_missing_organization_context_fails_closed(client, auth_headers):
         headers=headers_without_organization,
     )
     assert response.status_code == 422
+
+
+def test_cost_catalog_direct_foreign_ids_fail_closed(
+    client,
+    auth_headers,
+    other_organization_id,
+):
+    owner_category_id = _create_cost_category(client, auth_headers, "Owner Certification Category")
+    owner_product_id = _create_cost_product(
+        client,
+        auth_headers,
+        owner_category_id,
+        "Owner Certification Product",
+    )
+    foreign_headers = {**auth_headers, "X-Organization-Id": str(other_organization_id)}
+
+    foreign_categories = client.get(
+        "/api/v1/cost-catalog/categories",
+        headers=foreign_headers,
+    )
+    foreign_products = client.get(
+        "/api/v1/cost-catalog/products",
+        headers=foreign_headers,
+    )
+    assert foreign_categories.status_code == 200, foreign_categories.text
+    assert foreign_products.status_code == 200, foreign_products.text
+    assert owner_category_id not in {item["id"] for item in foreign_categories.json()["items"]}
+    assert owner_product_id not in {item["id"] for item in foreign_products.json()["items"]}
+
+    category_update = client.patch(
+        f"/api/v1/cost-catalog/categories/{owner_category_id}",
+        headers=foreign_headers,
+        json={
+            "name": "Foreign Category Overwrite",
+            "slug": "foreign-category-overwrite",
+            "description": None,
+        },
+    )
+    product_update = client.patch(
+        f"/api/v1/cost-catalog/products/{owner_product_id}",
+        headers=foreign_headers,
+        json={
+            "category_id": owner_category_id,
+            "name": "Foreign Product Overwrite",
+            "slug": "foreign-product-overwrite",
+            "unit": "Adet",
+            "unit_price": "99.00",
+            "currency": "TL",
+        },
+    )
+    assert category_update.status_code == 404, category_update.text
+    assert product_update.status_code == 404, product_update.text
+
+    owner_categories = client.get(
+        "/api/v1/cost-catalog/categories",
+        headers=auth_headers,
+    ).json()["items"]
+    owner_products = client.get(
+        "/api/v1/cost-catalog/products",
+        headers=auth_headers,
+    ).json()["items"]
+    owner_category = next(item for item in owner_categories if item["id"] == owner_category_id)
+    owner_product = next(item for item in owner_products if item["id"] == owner_product_id)
+    assert owner_category["name"] == "Owner Certification Category"
+    assert owner_product["name"] == "Owner Certification Product"
+
+
+def test_cost_catalog_product_rejects_foreign_category_cross_link(
+    client,
+    auth_headers,
+    other_organization_id,
+):
+    owner_category_id = _create_cost_category(client, auth_headers, "Owner Product Category")
+    owner_product_id = _create_cost_product(
+        client,
+        auth_headers,
+        owner_category_id,
+        "Cross Link Guard Product",
+    )
+    foreign_headers = {**auth_headers, "X-Organization-Id": str(other_organization_id)}
+    foreign_category_id = _create_cost_category(
+        client,
+        foreign_headers,
+        "Foreign Product Category",
+    )
+
+    response = client.patch(
+        f"/api/v1/cost-catalog/products/{owner_product_id}",
+        headers=auth_headers,
+        json={
+            "category_id": foreign_category_id,
+            "name": "Cross Link Guard Product",
+            "slug": "cross-link-guard-product",
+            "unit": "Adet",
+            "unit_price": "12.50",
+            "currency": "TL",
+        },
+    )
+    assert response.status_code == 404, response.text
+
+    owner_products = client.get(
+        "/api/v1/cost-catalog/products",
+        headers=auth_headers,
+    )
+    assert owner_products.status_code == 200, owner_products.text
+    product = next(item for item in owner_products.json()["items"] if item["id"] == owner_product_id)
+    assert product["category_id"] == owner_category_id
