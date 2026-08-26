@@ -113,6 +113,7 @@ def has_live_fair_participation_exists():
     return exists(
         select(1).where(
             CustomerFairParticipationModel.customer_id == CustomerModel.id,
+            CustomerFairParticipationModel.organization_id == CustomerModel.organization_id,
             CustomerFairParticipationModel.deleted_at.is_(None),
         )
     )
