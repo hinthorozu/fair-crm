@@ -73,14 +73,28 @@ def update_tag(tag_id: UUID, body: TagCreateRequest, auth: AuthContext = Depends
 @router.delete("/template-content-tags/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_tag(tag_id: UUID, auth: AuthContext = Depends(require_delete_permission), credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme), audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter), db: Session = Depends(get_db)):
     row = _tag(db, auth.organization_id, tag_id)
-    if db.scalars(select(TemplateContentModel).where(TemplateContentModel.tag_id == row.id).limit(1)).first() is not None: raise HTTPException(status_code=409, detail="Bu etikete bağlı içerikler olduğu için silinemez.")
+    if db.scalars(select(TemplateContentModel).where(
+        TemplateContentModel.organization_id == auth.organization_id,
+        TemplateContentModel.tag_id == row.id,
+    ).limit(1)).first() is not None: raise HTTPException(status_code=409, detail="Bu etikete bağlı içerikler olduğu için silinemez.")
     resource_id = str(row.id); db.delete(row); db.commit(); audit.record_event(organization_id=auth.organization_id, access_token=_token(credentials), action="template_content_tag.deleted", resource_type="template_content_tag", resource_id=resource_id)
 
 
 @router.get("/template-contents", response_model=ContentListResponse)
 def list_contents(auth: AuthContext = Depends(require_read_permission), db: Session = Depends(get_db)):
-    rows = db.scalars(select(TemplateContentModel).where(TemplateContentModel.organization_id == auth.organization_id).order_by(TemplateContentModel.title)).all()
-    return ContentListResponse(items=[ContentResponse(id=row.id, tag_id=row.tag_id, tag_name=row.tag.name, title=row.title, created_at=row.created_at) for row in rows])
+    rows = db.execute(
+        select(TemplateContentModel, TemplateContentTagModel.name)
+        .join(TemplateContentTagModel, TemplateContentTagModel.id == TemplateContentModel.tag_id)
+        .where(
+            TemplateContentModel.organization_id == auth.organization_id,
+            TemplateContentTagModel.organization_id == auth.organization_id,
+        )
+        .order_by(TemplateContentModel.title)
+    ).all()
+    return ContentListResponse(items=[
+        ContentResponse(id=row.id, tag_id=row.tag_id, tag_name=tag_name, title=row.title, created_at=row.created_at)
+        for row, tag_name in rows
+    ])
 
 
 @router.post("/template-contents", response_model=ContentResponse, status_code=status.HTTP_201_CREATED)
