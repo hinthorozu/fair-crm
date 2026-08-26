@@ -19,6 +19,7 @@ from app.modules.fair_emails.application.commands import ProcessBatchCommand
 from app.modules.fair_emails.application.process_batch import ProcessFairEmailBatchUseCase
 from app.modules.fair_emails.infrastructure.persistence.models import FairEmailBatchModel
 from app.modules.imports.domain.value_objects import ImportJobStatus
+from app.modules.imports.infrastructure.persistence.models import ImportBatchModel
 from app.modules.system_admin.application.data_operation_job_runner import (
     DataOperationJobCommand,
     DataOperationJobRunner,
@@ -38,11 +39,43 @@ def test_import_job_runner_rejects_foreign_job_before_state_change(db_session):
     owner_org = uuid4()
     foreign_org = uuid4()
     now = datetime.now(tz=UTC)
+    batch = ImportBatchModel(
+        id=uuid4(),
+        organization_id=owner_org,
+        fair_id=None,
+        source_type="excel",
+        file_name="tenant-isolation.xlsx",
+        status="mapping_completed",
+        total_rows=1,
+        valid_rows=0,
+        invalid_rows=0,
+        duplicate_rows=0,
+        created_rows=0,
+        updated_rows=0,
+        skipped_rows=0,
+        created_participations=0,
+        updated_participations=0,
+        column_mapping_json=None,
+        raw_preview_json=None,
+        has_header_row=True,
+        header_mode=None,
+        header_row_index=0,
+        selected_sheet_name="Sheet1",
+        stored_file_content=b"x",
+        created_at=now,
+        updated_at=now,
+        completed_at=None,
+        analyzed_at=None,
+        notes=None,
+    )
+    db_session.add(batch)
+    db_session.flush()
+
     job_repo = SqlAlchemyImportJobRepository(db_session)
     job = job_repo.add(
         ImportJob.create_analyze_job(
             organization_id=owner_org,
-            batch_id=uuid4(),
+            batch_id=batch.id,
             progress_total=1,
             now=now,
         )
