@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tests.system.tenant_isolation_registry import (
+from .tenant_isolation_registry import (
     TENANT_ISOLATION_EVIDENCE,
     TENANT_SCOPE_EXCLUSIONS,
 )
