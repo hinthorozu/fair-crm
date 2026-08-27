@@ -105,7 +105,10 @@ class MailerSendWebhookService:
         if (account.provider_key or "").strip().lower() != MAILERSEND_PROVIDER_KEY:
             raise MailerSendWebhookNotMailerSendAccountError(str(email_account_id))
 
-        provider_config = self._accounts.get_provider_config(email_account_id)
+        provider_config = self._accounts.get_provider_config(
+            email_account_id,
+            organization_id=account.organization_id,
+        )
         signing_secret = ""
         if provider_config is not None:
             signing_secret = (provider_config.config.get("webhook_signing_secret") or "").strip()
@@ -147,6 +150,15 @@ class MailerSendWebhookService:
                 email_account_id,
                 message_id,
                 event_type,
+            )
+            return MailerSendWebhookResult(outcome="ignored", detail="unknown_message_id")
+        if operation.organization_id != account.organization_id:
+            logger.warning(
+                "mailersend_webhook_cross_org_operation_rejected account_id=%s account_org=%s operation_id=%s operation_org=%s",
+                email_account_id,
+                account.organization_id,
+                operation.id,
+                operation.organization_id,
             )
             return MailerSendWebhookResult(outcome="ignored", detail="unknown_message_id")
 
