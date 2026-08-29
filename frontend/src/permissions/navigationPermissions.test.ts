@@ -17,6 +17,7 @@ import {
   PERMISSION_SCRAPER_READ,
   PERMISSION_USERS_READ,
   resolvePermissionLandingPath,
+  resolvePermissionSectionLandingPath,
 } from "./navigationPermissions";
 
 const granted = (...permissions: string[]) => new Set(permissions);
@@ -115,6 +116,37 @@ describe("navigation permission rules", () => {
       "/data-integration/adapters",
     );
     expect(resolvePermissionLandingPath("/data-integration", granted())).toBeNull();
+  });
+
+  it("resolves section breadcrumb landings from effective permissions", () => {
+    expect(
+      resolvePermissionSectionLandingPath("/admin/system/users", granted(PERMISSION_USERS_READ)),
+    ).toBe("/admin/system/users");
+    expect(
+      resolvePermissionSectionLandingPath(
+        "/admin/smtp-operations/mail-operations",
+        granted(PERMISSION_MAIL_SEND_OPERATIONS_READ),
+      ),
+    ).toBe("/admin/smtp-operations/mail-operations");
+    expect(
+      resolvePermissionSectionLandingPath(
+        "/data-integration/run-history?adapter_key=x",
+        granted(PERMISSION_SCRAPER_READ),
+      ),
+    ).toBe("/data-integration/adapters");
+    expect(
+      resolvePermissionSectionLandingPath(
+        "/data-integration/imports/new",
+        granted(PERMISSION_IMPORTS_CREATE),
+      ),
+    ).toBe("/data-integration/imports/new");
+    expect(
+      resolvePermissionSectionLandingPath("/admin/data-operations", granted(PERMISSION_USERS_READ)),
+    ).toBeNull();
+    expect(
+      resolvePermissionSectionLandingPath("/customers", granted(PERMISSION_USERS_READ)),
+    ).toBeNull();
+    expect(resolvePermissionSectionLandingPath("/admin/system/users", granted())).toBeNull();
   });
 
   it("does not synthesize landing paths for non-root application routes", () => {
