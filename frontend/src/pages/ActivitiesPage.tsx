@@ -106,7 +106,7 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
     if (canDelete) return;
     rowSelection.clearSelection();
     setConfirm(null);
-  }, [canDelete, rowSelection]);
+  }, [canDelete, rowSelection.clearSelection]);
 
   React.useEffect(() => {
     if (!success) return undefined;
