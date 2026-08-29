@@ -14,7 +14,7 @@
     "frontend/src/labels/authLabels.ts",
     "frontend/src/main.tsx",
     "frontend/src/pages/PublicAuthPages.tsx",
-    "frontend/src/pages/PublicAuthPages.test.tsx"
+    "frontend/src/pages/PublicAuthPages.test.ts"
   ],
   "permissions": {
     "required": false,
