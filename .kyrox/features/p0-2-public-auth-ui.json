@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "id": "p0-2-public-auth-ui",
+  "title": "P0.2 Public Identity Onboarding UI",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "none",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/api/auth.ts",
+    "frontend/src/api/auth.public.test.ts",
+    "frontend/src/labels/authLabels.ts",
+    "frontend/src/main.tsx",
+    "frontend/src/pages/PublicAuthPages.tsx",
+    "frontend/src/pages/PublicAuthPages.test.tsx"
+  ],
+  "permissions": {
+    "required": false,
+    "reason": "Signup, activation and password recovery are intentionally public identity flows; Core remains the credential and authorization authority.",
+    "items": []
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/signup",
+      "/activate",
+      "/forgot-password",
+      "/reset-password"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "The UI introduces no FAIR CRM persistence." },
+    "migration": { "status": "na", "reason": "No FAIR CRM schema or permission-catalog change is required." },
+    "permissions": { "status": "na", "reason": "These routes are public by contract and must not require product RBAC." },
+    "backend": { "status": "na", "reason": "The thin FAIR CRM backend bridge was delivered separately in CRM-BE-01/02." },
+    "api": { "status": "na", "reason": "This phase consumes the already-delivered FAIR CRM auth bridge without changing its HTTP contract." },
+    "tenant_isolation": { "status": "na", "reason": "No product data query or tenant-scoped backend behavior is changed by this UI-only phase." },
+    "audit": { "status": "na", "reason": "Identity audit evidence is emitted by Core; the product UI adds no independent audit stream." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "na", "reason": "The routes are intentionally public and have no permission-gated controls." },
+    "menu": { "status": "na", "reason": "Public auth routes are not application navigation-menu entries." },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend bridge tests were delivered in CRM-BE-02 and backend code is unchanged here." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "na", "reason": "Public auth is intentionally unauthenticated; Core validates one-time tokens and credentials server-side." },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Public pages render outside AuthProvider so no product session is required. Activation/reset action tokens are captured from the link, removed from the address bar after initial render, never displayed/logged, and passed only to the FAIR CRM bridge/Core."
+}
