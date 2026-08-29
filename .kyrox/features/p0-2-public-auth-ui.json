@@ -11,10 +11,10 @@
   "affected_paths": [
     "frontend/src/api/auth.ts",
     "frontend/src/api/auth.public.test.ts",
+    "frontend/src/auth/PublicAuthPages.test.ts",
     "frontend/src/labels/authLabels.ts",
     "frontend/src/main.tsx",
-    "frontend/src/pages/PublicAuthPages.tsx",
-    "frontend/src/pages/PublicAuthPages.test.ts"
+    "frontend/src/pages/PublicAuthPages.tsx"
   ],
   "permissions": {
     "required": false,
