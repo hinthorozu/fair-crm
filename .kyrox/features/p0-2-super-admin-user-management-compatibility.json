@@ -7,7 +7,7 @@
   "platform_reusability": "existing_core_capability",
   "trigger": "none",
   "tenant_scope": "mixed",
-  "user_facing": false,
+  "user_facing": true,
   "affected_paths": [
     "frontend/src/api/userManagement.compatibility.test.ts",
     "frontend/src/auth/UsersAdminCompatibility.test.ts"
@@ -38,12 +38,12 @@
     "menu": { "status": "na", "reason": "No navigation entry changes." },
     "route_guard": { "status": "na", "reason": "The existing /admin/system/users guard is unchanged." },
     "forms": { "status": "na", "reason": "The existing manual create form is unchanged; tests certify that the required password field and conditional Super Admin control remain present." },
-    "visual_qa": { "status": "na", "reason": "No rendered UI changes are made." },
+    "visual_qa": { "status": "required" },
     "backend_tests": { "status": "na", "reason": "Core manual-create behavior was already covered by the completed Core certification; this PR adds FAIR CRM compatibility regression coverage only." },
     "frontend_tests": { "status": "required" },
     "runtime_authorization": { "status": "na", "reason": "No production authorization path changes; Core remains authoritative for role and Super Admin assignment." },
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "na", "reason": "Test/contract-only certification; no runtime artifact changes." }
   },
-  "notes": "Certifies that /admin/system/users still exposes the existing operator-driven manual create flow, requires an administrator-supplied password, posts unchanged to Core /organizations/{organization_id}/users/manual, gates Super Admin controls on Core can_manage_super_admin, and does not add a setup-link mode before a Core setup-token contract exists."
+  "notes": "Certifies the user-facing /admin/system/users compatibility surface without changing its runtime behavior: existing operator-driven manual create remains, administrator-supplied password remains required, transport stays on Core /organizations/{organization_id}/users/manual, Super Admin controls remain gated by Core can_manage_super_admin, and no setup-link mode is added before a Core setup-token contract exists. UI governance provides the visual regression gate for the unchanged surface."
 }
