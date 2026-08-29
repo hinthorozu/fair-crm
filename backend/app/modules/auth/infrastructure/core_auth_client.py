@@ -20,6 +20,11 @@ class CoreTokenPair:
     expires_in: int
 
 
+@dataclass(frozen=True, slots=True)
+class CoreAuthMessage:
+    message: str
+
+
 class CoreAuthError(Exception):
     def __init__(self, message: str, *, status_code: int) -> None:
         super().__init__(message)
@@ -28,12 +33,19 @@ class CoreAuthError(Exception):
 
 
 class CoreAuthClient:
-    """Thin proxy to Core /api/v1/auth/* — does not reimplement token issuance."""
+    """Thin proxy to Core /api/v1/auth/* — does not reimplement identity rules."""
 
-    def __init__(self, base_url: str | None = None, timeout: float = 15.0) -> None:
+    def __init__(
+        self,
+        base_url: str | None = None,
+        timeout: float = 15.0,
+        *,
+        transport: httpx.BaseTransport | None = None,
+    ) -> None:
         settings = get_settings()
         self._base_url = (base_url or settings.kyrox_core_base_url).rstrip("/")
         self._timeout = timeout
+        self._transport = transport
 
     def login(self, *, email: str, password: str) -> CoreTokenPair:
         return self._post_token_pair(
@@ -50,7 +62,7 @@ class CoreAuthClient:
     def logout(self, *, refresh_token: str) -> None:
         url = f"{self._base_url}/api/v1/auth/logout"
         try:
-            with httpx.Client(timeout=self._timeout) as client:
+            with httpx.Client(timeout=self._timeout, transport=self._transport) as client:
                 response = client.post(url, json={"refresh_token": refresh_token})
         except httpx.RequestError as exc:
             logger.warning("Core logout unreachable: error=%s", type(exc).__name__)
@@ -58,10 +70,97 @@ class CoreAuthClient:
         if response.status_code not in {204, 200, 401}:
             logger.warning("Core logout unexpected status=%s", response.status_code)
 
+    def signup(
+        self,
+        *,
+        organization_name: str,
+        email: str,
+        organization_slug: str | None = None,
+    ) -> CoreAuthMessage:
+        payload = {
+            "organization_name": organization_name,
+            "email": email,
+        }
+        if organization_slug is not None:
+            payload["organization_slug"] = organization_slug
+        return self._post_message("/api/v1/auth/signup", json=payload)
+
+    def complete_activation(self, *, token: str, password: str) -> CoreAuthMessage:
+        return self._post_message(
+            "/api/v1/auth/activation/complete",
+            json={"token": token, "password": password},
+        )
+
+    def forgot_password(self, *, email: str) -> CoreAuthMessage:
+        return self._post_message(
+            "/api/v1/auth/password/forgot",
+            json={"email": email},
+        )
+
+    def reset_password(self, *, token: str, password: str) -> CoreAuthMessage:
+        return self._post_message(
+            "/api/v1/auth/password/reset",
+            json={"token": token, "password": password},
+        )
+
+    def change_password(
+        self,
+        *,
+        access_token: str,
+        current_password: str,
+        new_password: str,
+    ) -> CoreAuthMessage:
+        return self._post_message(
+            "/api/v1/auth/password/change",
+            json={
+                "current_password": current_password,
+                "new_password": new_password,
+            },
+            access_token=access_token,
+        )
+
+    def _post_message(
+        self,
+        path: str,
+        *,
+        json: dict,
+        access_token: str | None = None,
+    ) -> CoreAuthMessage:
+        url = f"{self._base_url}{path}"
+        headers = None
+        if access_token is not None:
+            headers = {"Authorization": f"Bearer {access_token}"}
+        try:
+            with httpx.Client(timeout=self._timeout, transport=self._transport) as client:
+                response = client.post(url, json=json, headers=headers)
+        except httpx.RequestError as exc:
+            logger.warning("Core auth unreachable path=%s error=%s", path, type(exc).__name__)
+            raise CoreAuthError("Authentication service unavailable", status_code=503) from exc
+
+        if response.status_code >= 400:
+            # Do not proxy provider/internal 5xx details through the product boundary.
+            detail = (
+                "Authentication service unavailable"
+                if response.status_code >= 500
+                else _safe_detail(response)
+            )
+            raise CoreAuthError(detail, status_code=response.status_code)
+
+        try:
+            data = response.json()
+        except ValueError as exc:
+            raise CoreAuthError("Invalid authentication response", status_code=502) from exc
+        if not isinstance(data, dict):
+            raise CoreAuthError("Invalid authentication response", status_code=502)
+        message = data.get("message")
+        if not isinstance(message, str) or not message.strip():
+            raise CoreAuthError("Invalid authentication response", status_code=502)
+        return CoreAuthMessage(message=message)
+
     def _post_token_pair(self, path: str, *, json: dict) -> CoreTokenPair:
         url = f"{self._base_url}{path}"
         try:
-            with httpx.Client(timeout=self._timeout) as client:
+            with httpx.Client(timeout=self._timeout, transport=self._transport) as client:
                 response = client.post(url, json=json)
         except httpx.RequestError as exc:
             logger.warning("Core auth unreachable path=%s error=%s", path, type(exc).__name__)
@@ -102,7 +201,7 @@ def _safe_detail(response: httpx.Response) -> str:
     if isinstance(payload, dict):
         detail = payload.get("detail")
         if isinstance(detail, str) and detail:
-            # Never echo raw tokens; Core error messages are safe strings.
+            # Core public 4xx errors are contract-safe strings; secrets remain Core-owned.
             return detail
         message = payload.get("message")
         if isinstance(message, str) and message:
