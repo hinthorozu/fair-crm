@@ -8,6 +8,7 @@ import {
 } from "../api/auth";
 import { Banner } from "../components/ui/Banner";
 import { Card } from "../components/ui/Card";
+import { PageShell } from "../components/ui/PageShell";
 import { FormField, PasswordInput, TextInput } from "../components/ui/form";
 import { labels } from "../labels";
 import { authLabels } from "../labels/authLabels";
@@ -47,7 +48,7 @@ function PublicAuthFrame({
   }, [title]);
 
   return (
-    <div className="login-page">
+    <PageShell className="login-page" fullWidth>
       <div className="login-page-inner">
         <div className="login-page-brand">
           <span className="login-page-brand-mark">F</span>
@@ -59,7 +60,7 @@ function PublicAuthFrame({
           {children}
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }
 
