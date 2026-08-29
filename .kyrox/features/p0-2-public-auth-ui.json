@@ -11,9 +11,11 @@
   "affected_paths": [
     "frontend/src/api/auth.ts",
     "frontend/src/api/auth.public.test.ts",
+    "frontend/src/auth/LoginPageLinks.test.ts",
     "frontend/src/auth/PublicAuthPages.test.ts",
     "frontend/src/labels/authLabels.ts",
     "frontend/src/main.tsx",
+    "frontend/src/pages/LoginPage.tsx",
     "frontend/src/pages/PublicAuthPages.tsx"
   ],
   "permissions": {
@@ -52,5 +54,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Public pages render outside AuthProvider so no product session is required. Activation/reset action tokens are captured from the link, removed from the address bar after initial render, never displayed/logged, and passed only to the FAIR CRM bridge/Core."
+  "notes": "Public pages render outside AuthProvider so no product session is required. Activation/reset action tokens are captured from the link, removed from the address bar after initial render, never displayed/logged, and passed only to the FAIR CRM bridge/Core. The existing login form remains unchanged and now links to password recovery and public account creation."
 }
