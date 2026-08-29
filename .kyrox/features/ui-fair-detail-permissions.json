@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "id": "ui-fair-detail-permissions",
+  "title": "Fair Detail Permission Alignment",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/FairDetailPage.tsx",
+    "frontend/src/permissions/participationPermissions.ts",
+    "frontend/src/permissions/FairDetailPagePermissions.test.ts",
+    ".kyrox/features/ui-fair-detail-permissions.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.fairs.update", "action": "show and execute fair edit controls", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fairs.delete", "action": "show and execute fair archive controls", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.participations.read", "action": "show and load the fair participants tab and count", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.participations.create", "action": "show and execute add-participant controls", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.participations.update", "action": "show and execute participant edit and move-to-fair controls", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.participations.delete", "action": "show and execute participant delete controls", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.imports.create", "action": "show the import-from-fair entry point", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.scraper.read", "action": "load scraper adapter labels and last-import history", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/fairs/:fairId"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "All consumed permission codes already exist in Core." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing fair, participation, import and scraper backend authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No API contract changes are introduced." },
+    "tenant_isolation": { "status": "na", "reason": "No backend resource lookup, query or organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing backend mutation audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Main Fairs navigation remains controlled by fair read permission; this delivery aligns detail-page surfaces." },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Fair detail remains readable through the existing fair-read route guard, while mutation controls, participant-tab visibility/loading, import entry points and scraper-adjacent reads mirror independent effective Core permissions. The permanently disabled future activity action is unchanged and remains non-executable. Backend authorization is unchanged and remains authoritative."
+}
