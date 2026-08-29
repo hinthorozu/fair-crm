@@ -7,6 +7,30 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface SignupRequest {
+  organization_name: string;
+  email: string;
+  organization_slug?: string;
+}
+
+export interface ActivationCompleteRequest {
+  token: string;
+  password: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  password: string;
+}
+
+export interface AuthMessageResponse {
+  message: string;
+}
+
 export interface AccessTokenResponse {
   access_token: string;
   token_type?: string;
@@ -14,6 +38,20 @@ export interface AccessTokenResponse {
 }
 
 const CSRF_HEADER = { "X-Fair-CRM-Requested-With": "XMLHttpRequest" };
+
+function detailFromPayload(data: unknown): string | null {
+  if (typeof data !== "object" || data === null) return null;
+  if ("detail" in data && data.detail) {
+    const detail = data.detail;
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail) && detail.length > 0) {
+      const first = detail[0] as { msg?: string };
+      if (first?.msg) return first.msg;
+    }
+  }
+  if ("message" in data && data.message) return String(data.message);
+  return null;
+}
 
 function parseLoginError(status: number, data: unknown): string {
   if (status === 401) {
@@ -25,24 +63,12 @@ function parseLoginError(status: number, data: unknown): string {
   if (status === 0) {
     return authLabels.networkError;
   }
+  return detailFromPayload(data) ?? authLabels.loginFailed;
+}
 
-  if (typeof data === "object" && data !== null) {
-    if ("detail" in data && data.detail) {
-      const detail = data.detail;
-      if (typeof detail === "string") {
-        return detail;
-      }
-      if (Array.isArray(detail) && detail.length > 0) {
-        const first = detail[0] as { msg?: string };
-        if (first?.msg) return first.msg;
-      }
-    }
-    if ("message" in data && data.message) {
-      return String(data.message);
-    }
-  }
-
-  return authLabels.loginFailed;
+function parseAuthActionError(status: number, data: unknown): string {
+  if (status === 0 || status >= 500) return authLabels.networkError;
+  return detailFromPayload(data) ?? authLabels.requestFailed;
 }
 
 async function parseJson(response: Response): Promise<unknown> {
@@ -76,6 +102,40 @@ function assertAccessTokenResponse(data: unknown, status: number): AccessTokenRe
   };
 }
 
+async function postAuthMessage(path: string, payload: object): Promise<AuthMessageResponse> {
+  const url = `${config.apiBaseUrl}${path}`;
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(
+      url,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      },
+      30_000,
+    );
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    throw new ApiError(authLabels.networkError, 0);
+  }
+
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new ApiError(parseAuthActionError(response.status, data), response.status, data);
+  }
+  if (
+    typeof data !== "object" ||
+    data === null ||
+    !("message" in data) ||
+    typeof (data as AuthMessageResponse).message !== "string"
+  ) {
+    throw new ApiError(authLabels.requestFailed, response.status, data);
+  }
+  return data as AuthMessageResponse;
+}
+
 /** Login via Fair CRM auth bridge (sets HttpOnly refresh cookie). */
 export async function loginWithCredentials(payload: LoginRequest): Promise<AccessTokenResponse> {
   const url = `${config.apiBaseUrl}/api/v1/auth/login`;
@@ -103,6 +163,24 @@ export async function loginWithCredentials(payload: LoginRequest): Promise<Acces
     throw new ApiError(parseLoginError(response.status, data), response.status, data);
   }
   return assertAccessTokenResponse(data, response.status);
+}
+
+export function signupAccount(payload: SignupRequest): Promise<AuthMessageResponse> {
+  return postAuthMessage("/api/v1/auth/signup", payload);
+}
+
+export function completeAccountActivation(
+  payload: ActivationCompleteRequest,
+): Promise<AuthMessageResponse> {
+  return postAuthMessage("/api/v1/auth/activation/complete", payload);
+}
+
+export function requestPasswordReset(payload: ForgotPasswordRequest): Promise<AuthMessageResponse> {
+  return postAuthMessage("/api/v1/auth/password/forgot", payload);
+}
+
+export function resetPassword(payload: ResetPasswordRequest): Promise<AuthMessageResponse> {
+  return postAuthMessage("/api/v1/auth/password/reset", payload);
 }
 
 /**
