@@ -34,16 +34,16 @@
   "frontend": {
     "required": true,
     "routes": ["/admin/cost-catalog"],
-    "menu": true,
+    "menu": false,
     "menu_permission": null
   },
   "applicability": {
-    "database": { "status": "na", "reason": "No persistence model or query-scoping change is introduced." },
+    "database": { "status": "na", "reason": "No persistence model or database schema change is introduced." },
     "migration": { "status": "na", "reason": "All consumed permission codes already exist in Core." },
     "permissions": { "status": "required" },
     "backend": { "status": "required" },
     "api": { "status": "required" },
-    "tenant_isolation": { "status": "na", "reason": "The category-option query remains organization-scoped and no resource lookup scope changes." },
+    "tenant_isolation": { "status": "required" },
     "audit": { "status": "na", "reason": "Supporting category-option reads are non-mutating; existing create/update/delete audit behavior is unchanged." },
     "frontend": { "status": "required" },
     "ui_permissions": { "status": "required" },
@@ -57,5 +57,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Cost Catalog read permissions continue to control category/product lists. Category and product create permissions can independently expose their create flows. The supporting product category-options endpoint accepts product read, create, or update because all three workflows require the same organization-scoped lookup, while the normal product list remains products.read-only. Existing CRUD permission codes and Core catalog semantics are unchanged."
+  "notes": "Cost Catalog read permissions continue to control category/product lists. Category and product create permissions can independently expose their create flows. Existing Admin navigation is permission-aligned rather than newly introduced. The supporting product category-options endpoint accepts product read, create, or update because all three workflows require the same organization-scoped lookup, while the normal product list remains products.read-only. Tenant-scoped query behavior remains unchanged and is covered by the required tenant-isolation gate. Existing CRUD permission codes and Core catalog semantics are unchanged."
 }
