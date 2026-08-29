@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "id": "p0-2-identity-lifecycle-certification",
+  "title": "P0.2 Identity Lifecycle Cross-Repo Certification",
+  "feature_type": "maintenance",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "internal",
+  "tenant_scope": "system",
+  "user_facing": false,
+  "affected_paths": [
+    ".github/workflows/prod-path-e2e.yml",
+    "scripts/p0_2_identity_lifecycle_e2e.py"
+  ],
+  "permissions": {
+    "required": false,
+    "reason": "Certification exercises existing identity/session contracts and does not add or alter permission definitions or grants.",
+    "items": []
+  },
+  "frontend": {
+    "required": false,
+    "reason": "No frontend code or UI behavior changes are introduced.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No database model changes are made." },
+    "migration": { "status": "na", "reason": "No migration changes are made." },
+    "permissions": { "status": "na", "reason": "No permission contract changes are made." },
+    "backend": { "status": "na", "reason": "Application backend behavior is unchanged; this phase adds prod-path certification only." },
+    "api": { "status": "na", "reason": "No API contract changes are made; existing FAIR CRM auth bridge routes are exercised end to end." },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "required" },
+    "frontend": { "status": "na", "reason": "Frontend is unchanged." },
+    "ui_permissions": { "status": "na", "reason": "UI authorization is unchanged." },
+    "menu": { "status": "na", "reason": "Navigation is unchanged." },
+    "route_guard": { "status": "na", "reason": "Route guards are unchanged." },
+    "forms": { "status": "na", "reason": "Forms are unchanged." },
+    "visual_qa": { "status": "na", "reason": "No visual change exists." },
+    "backend_tests": { "status": "na", "reason": "The application test suite is unchanged; the prod-path lifecycle script is the verification target." },
+    "frontend_tests": { "status": "na", "reason": "Frontend is unchanged." },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "na", "reason": "CI-only certification changes require no application deployment." }
+  },
+  "notes": "Runs signup, activation, login, forgot/reset, login, password change and final login through FAIR CRM against real KYROX Core. Core uses its SMTP adapter against an in-process memory-only SMTP sink. Raw action tokens, passwords and session tokens remain process-local and are never logged, persisted or uploaded as artifacts. The gate also verifies one-time token replay rejection and access/refresh session revocation after credential changes."
+}
