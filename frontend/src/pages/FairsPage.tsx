@@ -14,12 +14,14 @@ import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { FormModal, runAfterSuccessfulFormSubmit } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
+import { usePermissions } from "../hooks/usePermissions";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import type { CreateFairPayload, Fair, FairStatus } from "../types/fair";
 import { fairLabels } from "../labels/fairLabels";
 import { labels } from "../labels";
 import { Banner } from "../components/ui/Banner";
 import { PageShell } from "../components/ui/PageShell";
+import { FAIR_CREATE, FAIR_DELETE, FAIR_UPDATE } from "../permissions/fairPermissions";
 
 type ConfirmAction =
   | { type: "archive"; fair: Fair }
@@ -31,6 +33,11 @@ interface FairsPageProps {
 }
 
 export function FairsPage({ onOpenDetail }: FairsPageProps) {
+  const { can } = usePermissions();
+  const canCreate = can(FAIR_CREATE);
+  const canUpdate = can(FAIR_UPDATE);
+  const canDelete = can(FAIR_DELETE);
+
   const [success, setSuccess] = React.useState<string | null>(null);
   const [modal, setModal] = React.useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = React.useState<Fair | null>(null);
@@ -122,6 +129,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
   };
 
   const openCreate = () => {
+    if (!canCreate) return;
     setEditing(null);
     setModal("create");
   };
@@ -135,9 +143,11 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
         title={fairLabels.fairs}
         subtitle={`${table.pagination.totalItems} kayıt`}
         actions={
-          <button type="button" className="btn primary" onClick={openCreate}>
-            {fairLabels.newFair}
-          </button>
+          canCreate ? (
+            <button type="button" className="btn primary" onClick={openCreate}>
+              {fairLabels.newFair}
+            </button>
+          ) : undefined
         }
       />
 
@@ -166,19 +176,23 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
           onSortChange={table.setSort}
           emptyDueToFilters={table.hasActiveFilters}
           onOpenDetail={onOpenDetail}
-          onCreate={openCreate}
-          onEdit={(f) => {
-            setEditing(f);
-            setModal("edit");
-          }}
-          onArchive={(f) => setConfirm({ type: "archive", fair: f })}
-          onRestore={(f) => setConfirm({ type: "restore", fair: f })}
+          onCreate={canCreate ? openCreate : undefined}
+          onEdit={
+            canUpdate
+              ? (fair) => {
+                  setEditing(fair);
+                  setModal("edit");
+                }
+              : undefined
+          }
+          onArchive={canDelete ? (fair) => setConfirm({ type: "archive", fair }) : undefined}
+          onRestore={canDelete ? (fair) => setConfirm({ type: "restore", fair }) : undefined}
         />
       </ServerDataTableFrame>
 
       {success && <Banner variant="success">{success}</Banner>}
 
-      {modal === "create" && (
+      {modal === "create" && canCreate && (
         <FormModal title={fairLabels.newFair} onClose={closeModal} size="lg">
           <FairForm
             key={`create-fair-${createSessionKey}`}
@@ -190,7 +204,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
         </FormModal>
       )}
 
-      {modal === "edit" && editing && (
+      {modal === "edit" && editing && canUpdate && (
         <FormModal title={fairLabels.editFair} onClose={closeModal} size="lg">
           <FairForm
             key={editing.id}
@@ -202,7 +216,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
         </FormModal>
       )}
 
-      {confirm?.type === "archive" && (
+      {confirm?.type === "archive" && canDelete && (
         <ConfirmDialog
           title={labels.archive}
           message={fairLabels.archiveConfirm}
@@ -214,7 +228,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
         />
       )}
 
-      {confirm?.type === "restore" && (
+      {confirm?.type === "restore" && canDelete && (
         <ConfirmDialog
           title={labels.restore}
           message={fairLabels.restoreConfirm}
