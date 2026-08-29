@@ -17,6 +17,7 @@ import { TableEntityLink } from "../components/ui/TableEntityLink";
 import { TableRowActions } from "../components/ui/TableRowActions";
 import { TruncatedText } from "../components/ui/TruncatedText";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
+import { usePermissions } from "../hooks/usePermissions";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { useServerDataTableRowSelection } from "../hooks/useServerDataTableRowSelection";
 import {
@@ -29,6 +30,8 @@ import {
 } from "../labels/activityLabels";
 import { labels } from "../labels";
 import { uiLabels } from "../labels/uiLabels";
+import { ACTIVITY_DELETE } from "../permissions/activityPermissions";
+import { CUSTOMER_READ } from "../permissions/customerPermissions";
 import type { Activity, ActivityStatus, ActivityType } from "../types/activity";
 import type { Customer } from "../types/customer";
 import { Banner } from "../components/ui/Banner";
@@ -48,6 +51,10 @@ type ConfirmState =
   | null;
 
 export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
+  const { can } = usePermissions();
+  const canDelete = can(ACTIVITY_DELETE);
+  const canReadCustomers = can(CUSTOMER_READ);
+
   const [customers, setCustomers] = React.useState<Customer[]>([]);
   const [detail, setDetail] = React.useState<Activity | null>(null);
   const [confirm, setConfirm] = React.useState<ConfirmState>(null);
@@ -74,9 +81,14 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
 
   const pageRowIds = React.useMemo(() => table.items.map((item) => item.id), [table.items]);
   const rowSelection = useServerDataTableRowSelection(pageRowIds);
-  const selectedCount = rowSelection.selectedIds.size;
+  const selectedCount = canDelete ? rowSelection.selectedIds.size : 0;
 
   React.useEffect(() => {
+    if (!canReadCustomers) {
+      setCustomers([]);
+      if (table.filters.customerId) table.setFilter("customerId", "");
+      return;
+    }
     let cancelled = false;
     void listCustomers({ page: 1, pageSize: 100, sortBy: "display_name", sortOrder: "asc" })
       .then((result) => {
@@ -88,7 +100,13 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [canReadCustomers, table.filters.customerId, table.setFilter]);
+
+  React.useEffect(() => {
+    if (canDelete) return;
+    rowSelection.clearSelection();
+    setConfirm(null);
+  }, [canDelete, rowSelection]);
 
   React.useEffect(() => {
     if (!success) return undefined;
@@ -97,6 +115,7 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
   }, [success]);
 
   const handleDeleteSingle = async (activity: Activity) => {
+    if (!canDelete) return;
     setDeletingId(activity.id);
     setActionError(null);
     try {
@@ -114,7 +133,7 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
   };
 
   const handleBulkDelete = async () => {
-    if (selectedCount === 0) return;
+    if (!canDelete || selectedCount === 0) return;
     setBulkDeleting(true);
     setActionError(null);
     try {
@@ -143,7 +162,7 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
         render: (activity) => {
           const customerName = activity.customer_name?.trim() || null;
           const customerId = activity.customer_id;
-          if (customerId && onOpenCustomer) {
+          if (canReadCustomers && customerId && onOpenCustomer) {
             return (
               <TableEntityLink
                 onClick={() => onOpenCustomer(customerId)}
@@ -177,14 +196,16 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
             <button type="button" className="btn link" onClick={() => setDetail(activity)}>
               {activityLabels.view}
             </button>
-            <button
-              type="button"
-              className="btn link danger"
-              disabled={deletingId === activity.id}
-              onClick={() => setConfirm({ type: "single", activity })}
-            >
-              {deletingId === activity.id ? labels.loading : activityLabels.delete}
-            </button>
+            {canDelete ? (
+              <button
+                type="button"
+                className="btn link danger"
+                disabled={deletingId === activity.id}
+                onClick={() => setConfirm({ type: "single", activity })}
+              >
+                {deletingId === activity.id ? labels.loading : activityLabels.delete}
+              </button>
+            ) : null}
           </TableRowActions>
         ),
       },
@@ -234,7 +255,7 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
           activity.follow_up_date ? formatActivityDateShort(activity.follow_up_date) : "—",
       },
     ],
-    [deletingId, onOpenCustomer],
+    [canDelete, canReadCustomers, deletingId, onOpenCustomer],
   );
 
   return (
@@ -243,7 +264,7 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
         title={activityLabels.pageTitle}
         subtitle={`${table.pagination.totalItems} kayıt`}
         actions={
-          selectedCount > 0 ? (
+          canDelete && selectedCount > 0 ? (
             <button
               type="button"
               className="btn danger"
@@ -263,12 +284,16 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
         table={table}
         columns={columns}
         rowKey={(activity) => activity.id}
-        rowSelection={{
-          controller: rowSelection,
-          title: activityLabels.selectionColumn,
-          selectAllAriaLabel: activityLabels.selectAllOnPage,
-          rowAriaLabel: (activity) => activityLabels.selectRow(activity.subject),
-        }}
+        rowSelection={
+          canDelete
+            ? {
+                controller: rowSelection,
+                title: activityLabels.selectionColumn,
+                selectAllAriaLabel: activityLabels.selectAllOnPage,
+                rowAriaLabel: (activity) => activityLabels.selectRow(activity.subject),
+              }
+            : undefined
+        }
         toolbar={
           <FilterPanel
             className="activity-filters"
@@ -287,19 +312,21 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
               onChange={(event) => table.setSearch(event.target.value)}
               aria-label={activityLabels.searchPlaceholder}
             />
-            <SelectInput
-              id="activity-filter-customer"
-              value={table.filters.customerId ?? ""}
-              onChange={(event) => table.setFilter("customerId", event.target.value)}
-              aria-label={activityLabels.filterCustomer}
-            >
-              <option value="">{activityLabels.filterAll}</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.display_name}
-                </option>
-              ))}
-            </SelectInput>
+            {canReadCustomers ? (
+              <SelectInput
+                id="activity-filter-customer"
+                value={table.filters.customerId ?? ""}
+                onChange={(event) => table.setFilter("customerId", event.target.value)}
+                aria-label={activityLabels.filterCustomer}
+              >
+                <option value="">{activityLabels.filterAll}</option>
+                {customers.map((customer) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.display_name}
+                  </option>
+                ))}
+              </SelectInput>
+            ) : null}
             <SelectInput
               id="activity-filter-type"
               value={table.filters.activityType ?? ""}
@@ -361,10 +388,10 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
       <ActivityDetailModal
         activity={detail}
         onClose={() => setDetail(null)}
-        onOpenCustomer={onOpenCustomer}
+        onOpenCustomer={canReadCustomers ? onOpenCustomer : undefined}
       />
 
-      {confirm?.type === "single" ? (
+      {canDelete && confirm?.type === "single" ? (
         <ConfirmDialog
           title={uiLabels.deleteActivityTitle}
           message={activityLabels.deleteConfirm}
@@ -376,7 +403,7 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
         />
       ) : null}
 
-      {confirm?.type === "bulk" ? (
+      {canDelete && confirm?.type === "bulk" ? (
         <ConfirmDialog
           title={activityLabels.bulkDeleteTitle}
           message={activityLabels.bulkDeleteConfirm(confirm.count)}
