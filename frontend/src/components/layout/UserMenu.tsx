@@ -77,6 +77,14 @@ export function UserMenu({ onLogout }: UserMenuProps) {
                 </span>
               ) : null}
             </div>
+            <a
+              role="menuitem"
+              className="mail-template-actions-item"
+              href="/settings/security"
+              onClick={() => setOpen(false)}
+            >
+              {authLabels.securitySettingsLink}
+            </a>
             <button
               type="button"
               role="menuitem"
