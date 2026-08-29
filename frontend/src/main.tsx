@@ -3,8 +3,8 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { clearSession } from "./auth/session";
+import { isSecuritySettingsPath, SecuritySettingsPage } from "./auth/SecuritySettingsPage";
 import { isPublicAuthPath, PublicAuthRouter } from "./pages/PublicAuthPages";
-import { isSecuritySettingsPath, SecuritySettingsPage } from "./pages/SecuritySettingsPage";
 
 const publicAuth = isPublicAuthPath(window.location.pathname);
 const securitySettings = isSecuritySettingsPath(window.location.pathname);
