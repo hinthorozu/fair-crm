@@ -16,6 +16,7 @@ import {
   PERMISSION_OPERATIONS_READ,
   PERMISSION_SCRAPER_READ,
   PERMISSION_USERS_READ,
+  resolvePermissionLandingPath,
 } from "./navigationPermissions";
 
 const granted = (...permissions: string[]) => new Set(permissions);
@@ -44,10 +45,15 @@ describe("navigation permission rules", () => {
     expect(canAccessApplicationPath("/admin/system/backups", readUser)).toBe(false);
     expect(canAccessApplicationPath("/admin", readUser)).toBe(false);
     expect(firstAccessibleAdminPath(readUser)).toBe("/admin/system/users");
+    expect(resolvePermissionLandingPath("/admin", readUser)).toBe("/admin/system/users");
 
     const superAdminEffectivePermissions = granted(PERMISSION_BACKUPS_READ);
     expect(canAccessAdminSection("backups", superAdminEffectivePermissions)).toBe(true);
     expect(canAccessApplicationPath("/admin", superAdminEffectivePermissions)).toBe(true);
+    expect(resolvePermissionLandingPath("/admin/", superAdminEffectivePermissions)).toBe(
+      "/admin/system/backups",
+    );
+    expect(resolvePermissionLandingPath("/admin", granted())).toBeNull();
   });
 
   it("uses dedicated mail operation read permission instead of email account read", () => {
@@ -65,6 +71,9 @@ describe("navigation permission rules", () => {
     expect(
       canAccessApplicationPath("/admin/smtp-operations/mail-operations", mailOperationReader),
     ).toBe(true);
+    expect(resolvePermissionLandingPath("/admin", mailOperationReader)).toBe(
+      "/admin/smtp-operations/mail-operations",
+    );
   });
 
   it("separates operation read routes from operation creation routes", () => {
@@ -84,10 +93,17 @@ describe("navigation permission rules", () => {
     expect(canAccessApplicationPath("/data-integration", importReader)).toBe(true);
     expect(canAccessApplicationPath("/data-integration/imports/new", importReader)).toBe(false);
     expect(firstAccessibleDataIntegrationPath(importReader)).toBe("/data-integration/imports");
+    expect(resolvePermissionLandingPath("/data-integration", importReader)).toBe(
+      "/data-integration/imports",
+    );
 
     const importCreator = granted(PERMISSION_IMPORTS_CREATE);
+    expect(canAccessMainNavigation("/data-integration", importCreator)).toBe(true);
     expect(canAccessDataIntegrationSection("new", importCreator)).toBe(true);
     expect(canAccessApplicationPath("/imports", importCreator)).toBe(true);
+    expect(resolvePermissionLandingPath("/data-integration/", importCreator)).toBe(
+      "/data-integration/imports/new",
+    );
 
     const scraperReader = granted(PERMISSION_SCRAPER_READ);
     expect(canAccessMainNavigation("/data-integration", scraperReader)).toBe(true);
@@ -95,6 +111,15 @@ describe("navigation permission rules", () => {
     expect(canAccessDataIntegrationSection("adapters", scraperReader)).toBe(true);
     expect(canAccessApplicationPath("/data-integration/adapters", scraperReader)).toBe(true);
     expect(firstAccessibleDataIntegrationPath(scraperReader)).toBe("/data-integration/adapters");
+    expect(resolvePermissionLandingPath("/data-integration", scraperReader)).toBe(
+      "/data-integration/adapters",
+    );
+    expect(resolvePermissionLandingPath("/data-integration", granted())).toBeNull();
+  });
+
+  it("does not synthesize landing paths for non-root application routes", () => {
+    expect(resolvePermissionLandingPath("/customers", granted(PERMISSION_CUSTOMERS_READ))).toBeNull();
+    expect(resolvePermissionLandingPath("/admin/system/users", granted(PERMISSION_USERS_READ))).toBeNull();
   });
 
   it("fails closed for unknown application paths and permits dev bypass explicitly", () => {
