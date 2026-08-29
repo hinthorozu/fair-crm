@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 
@@ -20,7 +22,7 @@ PRODUCT_UPDATE = "fair_crm.cost_catalog.products.update"
 PRODUCT_DELETE = "fair_crm.cost_catalog.products.delete"
 
 
-def require_permission(permission_code: str):
+def _require_any_permission(permission_codes: Sequence[str]):
     def dependency(
         auth: AuthContext = Depends(get_auth_context),
         authorization: AuthorizationPort = Depends(get_authorization_adapter),
@@ -30,13 +32,26 @@ def require_permission(permission_code: str):
             return auth
         if credentials is None or not credentials.credentials:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-        if not authorization.check_permission(
-            organization_id=auth.organization_id,
-            user_id=auth.user_id,
-            permission_code=permission_code,
-            access_token=credentials.credentials,
+        if not any(
+            authorization.check_permission(
+                organization_id=auth.organization_id,
+                user_id=auth.user_id,
+                permission_code=permission_code,
+                access_token=credentials.credentials,
+            )
+            for permission_code in permission_codes
         ):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
         return auth
 
     return dependency
+
+
+def require_permission(permission_code: str):
+    return _require_any_permission((permission_code,))
+
+
+def require_any_permission(*permission_codes: str):
+    if not permission_codes:
+        raise ValueError("At least one permission code is required")
+    return _require_any_permission(permission_codes)
