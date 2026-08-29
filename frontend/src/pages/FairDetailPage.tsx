@@ -36,6 +36,7 @@ import {
   DetailValue,
   DetailWebsite,
 } from "../components/ui/DetailFields";
+import { usePermissions } from "../hooks/usePermissions";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { fairLabels, fairStatusLabels } from "../labels/fairLabels";
 import { participationLabels } from "../labels/participationLabels";
@@ -52,6 +53,17 @@ import {
   canPerformFairEmailAction,
   getGrantedFairEmailPermissions,
 } from "../permissions/fairEmailPermissions";
+import { FAIR_DELETE, FAIR_UPDATE } from "../permissions/fairPermissions";
+import {
+  PARTICIPATION_CREATE,
+  PARTICIPATION_DELETE,
+  PARTICIPATION_READ,
+  PARTICIPATION_UPDATE,
+} from "../permissions/participationPermissions";
+import {
+  PERMISSION_IMPORTS_CREATE,
+  PERMISSION_SCRAPER_READ,
+} from "../permissions/navigationPermissions";
 import { Banner } from "../components/ui/Banner";
 import { PageShell } from "../components/ui/PageShell";
 import {
@@ -85,6 +97,16 @@ export function FairDetailPage({
   onOpenCustomer,
   onImportParticipants,
 }: FairDetailPageProps) {
+  const { can } = usePermissions();
+  const canUpdateFair = can(FAIR_UPDATE);
+  const canDeleteFair = can(FAIR_DELETE);
+  const canReadParticipants = can(PARTICIPATION_READ);
+  const canCreateParticipation = can(PARTICIPATION_CREATE);
+  const canUpdateParticipation = can(PARTICIPATION_UPDATE);
+  const canDeleteParticipation = can(PARTICIPATION_DELETE);
+  const canImportParticipants = can(PERMISSION_IMPORTS_CREATE);
+  const canReadScraper = can(PERMISSION_SCRAPER_READ);
+
   const [fair, setFair] = React.useState<Fair | null>(null);
   const [activeTab, setActiveTabState] = React.useState<TabId>(tabFromUrl);
   const [loading, setLoading] = React.useState(true);
@@ -113,7 +135,7 @@ export function FairDetailPage({
     defaultSort: { field: "company_name", direction: "asc" },
     urlSync: true,
     urlPath: detailPath,
-    enabled: activeTab === "participants" && Boolean(fair),
+    enabled: canReadParticipants && activeTab === "participants" && Boolean(fair),
   });
 
   const setActiveTab = React.useCallback(
@@ -127,17 +149,30 @@ export function FairDetailPage({
     [detailPath],
   );
 
-  const loadLastImport = React.useCallback(async (id: string) => {
-    try {
-      const response = await listScraperRuns({ fair_id: id, limit: 20 });
-      const latestCompleted = response.items.find(
-        (run) => run.status === "completed" && run.finished_at,
-      );
-      setLastImportAt(latestCompleted?.finished_at ?? null);
-    } catch {
-      // best-effort
+  React.useEffect(() => {
+    if (!canReadParticipants && activeTab === "participants") {
+      setActiveTab("overview");
     }
-  }, []);
+  }, [activeTab, canReadParticipants, setActiveTab]);
+
+  const loadLastImport = React.useCallback(
+    async (id: string) => {
+      if (!canReadScraper) {
+        setLastImportAt(null);
+        return;
+      }
+      try {
+        const response = await listScraperRuns({ fair_id: id, limit: 20 });
+        const latestCompleted = response.items.find(
+          (run) => run.status === "completed" && run.finished_at,
+        );
+        setLastImportAt(latestCompleted?.finished_at ?? null);
+      } catch {
+        // best-effort
+      }
+    },
+    [canReadScraper],
+  );
 
   const loadFair = React.useCallback(async () => {
     setLoading(true);
@@ -159,12 +194,16 @@ export function FairDetailPage({
   }, [loadFair]);
 
   React.useEffect(() => {
+    if (!canReadScraper) {
+      setAdapters([]);
+      return;
+    }
     void listAdapters()
       .then((response) => setAdapters(response.items))
       .catch(() => {
         // Adapter labels fall back to adapter_key on detail view.
       });
-  }, []);
+  }, [canReadScraper]);
 
   React.useEffect(() => {
     const onPopState = () => setActiveTabState(tabFromUrl());
@@ -173,9 +212,13 @@ export function FairDetailPage({
   }, []);
 
   const refreshParticipantCount = React.useCallback(async () => {
+    if (!canReadParticipants) {
+      setParticipantCount(0);
+      return;
+    }
     const res = await listParticipantsByFair(fairId, { page: 1, pageSize: 1 });
     setParticipantCount(res.pagination.totalItems);
-  }, [fairId]);
+  }, [canReadParticipants, fairId]);
 
   React.useEffect(() => {
     if (!fair) return;
@@ -185,10 +228,10 @@ export function FairDetailPage({
   }, [fair, refreshParticipantCount]);
 
   React.useEffect(() => {
-    if (activeTab === "participants") {
+    if (canReadParticipants && activeTab === "participants") {
       setParticipantCount(participantsTable.pagination.totalItems);
     }
-  }, [activeTab, participantsTable.pagination.totalItems]);
+  }, [activeTab, canReadParticipants, participantsTable.pagination.totalItems]);
 
   const closeModal = React.useCallback(() => {
     setModal(null);
@@ -198,7 +241,7 @@ export function FairDetailPage({
   const closeConfirmArchive = React.useCallback(() => setConfirmArchive(false), []);
 
   const handleMoveCustomers = async () => {
-    if (!moveTargetFairId) return;
+    if (!canUpdateParticipation || !moveTargetFairId) return;
     setMovingCustomers(true);
     setError(null);
     try {
@@ -207,7 +250,7 @@ export function FairDetailPage({
       setMoveTargetFairId("");
       setRunSuccess(fairLabels.moveCustomersSuccess);
       await refreshParticipantCount();
-      if (activeTab === "participants") {
+      if (canReadParticipants && activeTab === "participants") {
         await participantsTable.refresh();
       }
     } catch (err) {
@@ -225,25 +268,27 @@ export function FairDetailPage({
   }, []);
 
   const handleCreate = async (values: ParticipationFormValues) => {
+    if (!canCreateParticipation) return;
     await createParticipation(formValuesToCreatePayload(values, "fair", fairId));
     setModal(null);
-    await participantsTable.refresh();
+    if (canReadParticipants) await participantsTable.refresh();
   };
 
   const handleUpdate = async (values: ParticipationFormValues) => {
-    if (!editing) return;
+    if (!canUpdateParticipation || !editing) return;
     await updateParticipation(editing.id, formValuesToUpdatePayload(values));
     setModal(null);
     setEditing(null);
-    await participantsTable.refresh();
+    if (canReadParticipants) await participantsTable.refresh();
   };
 
   const handleDelete = async (item: FairParticipantListItem) => {
+    if (!canDeleteParticipation) return;
     setDeletingId(item.id);
     setError(null);
     try {
       await deleteParticipation(item.id);
-      await participantsTable.refresh();
+      if (canReadParticipants) await participantsTable.refresh();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : participationLabels.deleteError);
     } finally {
@@ -255,6 +300,7 @@ export function FairDetailPage({
   const participantTotal = participantCount;
 
   const handleUpdateFair = async (values: CreateFairPayload) => {
+    if (!canUpdateFair) return;
     await updateFair(fairId, values);
     setModal(null);
     await loadFair();
@@ -282,11 +328,15 @@ export function FairDetailPage({
 
   const tabItems = [
     { id: "overview" as const, label: uiLabels.tabOverview },
-    {
-      id: "participants" as const,
-      label: participationLabels.tabFairParticipants,
-      badge: participantTotal > 0 ? participantTotal : undefined,
-    },
+    ...(canReadParticipants
+      ? [
+          {
+            id: "participants" as const,
+            label: participationLabels.tabFairParticipants,
+            badge: participantTotal > 0 ? participantTotal : undefined,
+          },
+        ]
+      : []),
   ];
 
   if (loading) {
@@ -305,6 +355,7 @@ export function FairDetailPage({
   }
 
   const handleArchiveFair = async () => {
+    if (!canDeleteFair) return;
     setArchiving(true);
     setError(null);
     try {
@@ -319,28 +370,34 @@ export function FairDetailPage({
   };
 
   const openCreateParticipant = () => {
+    if (!canCreateParticipation) return;
     setEditing(null);
     setModal("create");
   };
 
   const isArchived = fair.status === "archived" || fair.deleted_at !== null;
 
-  const headerActions: PageHeaderAction[] = [
-    {
+  const headerActions: PageHeaderAction[] = [];
+  if (canUpdateFair) {
+    headerActions.push({
       id: "edit",
       label: uiLabels.detailEdit,
       variant: "primary",
       onClick: () => setModal("edit-fair"),
       disabled: isArchived,
-    },
-    {
+    });
+  }
+  if (canCreateParticipation) {
+    headerActions.push({
       id: "add-participant",
       label: participationLabels.addCompany,
       variant: "secondary",
       onClick: openCreateParticipant,
       disabled: isArchived,
-    },
-    {
+    });
+  }
+  if (canUpdateParticipation) {
+    headerActions.push({
       id: "move-customers",
       label: fairLabels.moveCustomersAction,
       variant: "secondary",
@@ -349,31 +406,35 @@ export function FairDetailPage({
         setModal("move-customers");
       },
       disabled: isArchived,
-    },
-    {
+    });
+  }
+  if (canImportParticipants) {
+    headerActions.push({
       id: "import",
       label: importLabels.importFromFair,
       variant: "secondary",
       onClick: () => onImportParticipants?.(),
       disabled: isArchived || !onImportParticipants,
-    },
-    {
-      id: "activity",
-      label: uiLabels.detailNewActivity,
-      variant: "secondary",
-      disabled: true,
-      title: uiLabels.detailFairActivitySoon,
-      onClick: () => undefined,
-    },
-    {
+    });
+  }
+  headerActions.push({
+    id: "activity",
+    label: uiLabels.detailNewActivity,
+    variant: "secondary",
+    disabled: true,
+    title: uiLabels.detailFairActivitySoon,
+    onClick: () => undefined,
+  });
+  if (canDeleteFair) {
+    headerActions.push({
       id: "archive",
       label: labels.archive,
       variant: "danger",
       onClick: () => setConfirmArchive(true),
       disabled: isArchived,
       loading: archiving,
-    },
-  ];
+    });
+  }
 
   return (
     <PageShell>
@@ -518,53 +579,63 @@ export function FairDetailPage({
         </Card>
       </TabPanel>
 
-      <TabPanel id="panel-participants" labelledBy="tab-participants" active={activeTab === "participants"}>
-        <ServerDataTableFrame
-          table={participantsTable}
-          skeletonCols={8}
-          toolbar={
-            <FilterPanel
-              actions={
-                <button
-                  type="button"
-                  className="btn secondary"
-                  onClick={() => void participantsTable.refresh()}
-                >
-                  {labels.refresh}
-                </button>
-              }
-            >
-              <TextInput
-                id="fair-participants-search"
-                type="search"
-                className="search-input"
-                placeholder={uiLabels.searchCustomer}
-                value={participantsTable.search}
-                onChange={(e) => participantsTable.setSearch(e.target.value)}
-                aria-label={uiLabels.searchCustomer}
-              />
-            </FilterPanel>
-          }
+      {canReadParticipants && (
+        <TabPanel
+          id="panel-participants"
+          labelledBy="tab-participants"
+          active={activeTab === "participants"}
         >
-          <FairParticipantTable
-            items={participantsTable.items}
-            deletingId={deletingId}
-            emptyDueToFilters={participantsTable.hasActiveFilters}
-            sortField={participantsTable.sorting.field}
-            sortDirection={participantsTable.sorting.direction}
-            onSortChange={participantsTable.setSort}
-            onCreate={openCreateParticipant}
-            onEdit={(item) => {
-              setEditing(item);
-              setModal("edit");
-            }}
-            onDelete={(item) => setConfirmDelete(item)}
-            onOpenCustomer={onOpenCustomer}
-          />
-        </ServerDataTableFrame>
-      </TabPanel>
+          <ServerDataTableFrame
+            table={participantsTable}
+            skeletonCols={8}
+            toolbar={
+              <FilterPanel
+                actions={
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    onClick={() => void participantsTable.refresh()}
+                  >
+                    {labels.refresh}
+                  </button>
+                }
+              >
+                <TextInput
+                  id="fair-participants-search"
+                  type="search"
+                  className="search-input"
+                  placeholder={uiLabels.searchCustomer}
+                  value={participantsTable.search}
+                  onChange={(e) => participantsTable.setSearch(e.target.value)}
+                  aria-label={uiLabels.searchCustomer}
+                />
+              </FilterPanel>
+            }
+          >
+            <FairParticipantTable
+              items={participantsTable.items}
+              deletingId={deletingId}
+              emptyDueToFilters={participantsTable.hasActiveFilters}
+              sortField={participantsTable.sorting.field}
+              sortDirection={participantsTable.sorting.direction}
+              onSortChange={participantsTable.setSort}
+              onCreate={canCreateParticipation ? openCreateParticipant : undefined}
+              onEdit={
+                canUpdateParticipation
+                  ? (item) => {
+                      setEditing(item);
+                      setModal("edit");
+                    }
+                  : undefined
+              }
+              onDelete={canDeleteParticipation ? (item) => setConfirmDelete(item) : undefined}
+              onOpenCustomer={onOpenCustomer}
+            />
+          </ServerDataTableFrame>
+        </TabPanel>
+      )}
 
-      {modal === "edit-fair" && (
+      {modal === "edit-fair" && canUpdateFair && (
         <FormModal title={fairLabels.editFair} onClose={closeModal} size="lg">
           <FairForm
             key={fair.id}
@@ -576,7 +647,7 @@ export function FairDetailPage({
         </FormModal>
       )}
 
-      {modal === "create" && (
+      {modal === "create" && canCreateParticipation && (
         <FormModal title={participationLabels.newParticipant} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="fair"
@@ -587,7 +658,7 @@ export function FairDetailPage({
         </FormModal>
       )}
 
-      {modal === "edit" && editing && (
+      {modal === "edit" && editing && canUpdateParticipation && (
         <FormModal title={participationLabels.editParticipant} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="fair"
@@ -614,7 +685,7 @@ export function FairDetailPage({
       )}
 
       <MoveCustomersToFairModal
-        open={modal === "move-customers"}
+        open={canUpdateParticipation && modal === "move-customers"}
         sourceFairId={fairId}
         targetFairId={moveTargetFairId}
         moving={movingCustomers}
@@ -623,7 +694,7 @@ export function FairDetailPage({
         onConfirm={() => void handleMoveCustomers()}
       />
 
-      {confirmDelete && (
+      {confirmDelete && canDeleteParticipation && (
         <ConfirmDialog
           title={uiLabels.delete}
           message={participationLabels.deleteConfirm}
@@ -635,7 +706,7 @@ export function FairDetailPage({
         />
       )}
 
-      {confirmArchive && (
+      {confirmArchive && canDeleteFair && (
         <ConfirmDialog
           title={labels.archive}
           message={fairLabels.archiveConfirm}
