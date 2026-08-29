@@ -21,6 +21,7 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { Badge } from "../components/ui/Badge";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { adminLabels } from "../labels/adminLabels";
+import { EMAIL_ACCOUNTS_PERMISSION_READ } from "../permissions/emailAccountPermissions";
 import {
   canPerformMailTemplateAction,
   canSetDefaultMailTemplate,
@@ -48,6 +49,7 @@ export function MailTemplatesPage() {
   const canDelete = canPerformMailTemplateAction(grantedPermissions, "delete");
   const canRender = canPerformMailTemplateAction(grantedPermissions, "render");
   const canTestSend = canPerformMailTemplateAction(grantedPermissions, "test_send");
+  const canReadEmailAccounts = grantedPermissions.has(EMAIL_ACCOUNTS_PERMISSION_READ);
 
   const [templates, setTemplates] = React.useState<MailTemplate[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -214,6 +216,10 @@ export function MailTemplatesPage() {
 
   const openTestEmail = async (template: MailTemplate) => {
     setTestEmailTarget(template);
+    if (!canReadEmailAccounts) {
+      setEmailAccounts([]);
+      return;
+    }
     try {
       const response = await listEmailAccounts();
       setEmailAccounts(response.items);
@@ -495,6 +501,7 @@ export function MailTemplatesPage() {
           <MailTemplateTestEmailPanel
             template={testEmailTarget}
             emailAccounts={emailAccounts}
+            canChooseEmailAccount={canReadEmailAccounts}
             canRender={canRender}
             canTestSend={canTestSend}
             onCancel={closeTestEmail}
