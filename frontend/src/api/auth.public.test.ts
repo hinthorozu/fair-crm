@@ -1,8 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("./client", async () => {
-  const actual = await vi.importActual<typeof import("./client")>("./client");
-  return { ...actual, fetchWithTimeout: vi.fn() };
+vi.mock("./client", () => {
+  class MockApiError extends Error {
+    constructor(
+      message: string,
+      public status: number,
+      public body?: unknown,
+    ) {
+      super(message);
+      this.name = "ApiError";
+    }
+  }
+
+  return {
+    ApiError: MockApiError,
+    fetchWithTimeout: vi.fn(),
+  };
 });
 
 import {
