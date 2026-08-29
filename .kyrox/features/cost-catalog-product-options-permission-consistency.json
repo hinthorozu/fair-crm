@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "id": "cost-catalog-product-options-permission-consistency",
+  "title": "Cost Catalog Writer Permission Consistency",
+  "feature_type": "maintenance",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "backend/app/modules/cost_catalog/api/dependencies.py",
+    "backend/app/modules/cost_catalog/api/routes.py",
+    "backend/tests/modules/cost_catalog/test_permission_dependencies.py",
+    "frontend/src/pages/CostCatalogPage.tsx",
+    "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/permissions/CostCatalogPagePermissions.test.ts",
+    "frontend/src/permissions/CostCatalogNavigationPermissions.test.ts",
+    ".kyrox/features/cost-catalog-product-options-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.cost_catalog.categories.read", "action": "list cost categories", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.categories.create", "action": "open and submit category creation without requiring category read", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.categories.update", "action": "update visible categories when category read also makes records selectable", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.categories.delete", "action": "delete visible categories when category read also makes records selectable", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.products.read", "action": "list cost products and read product category options", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.products.create", "action": "load supporting category options and create products without requiring product read", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.products.update", "action": "load supporting category options and update visible products when product read makes records selectable", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.products.delete", "action": "delete visible products when product read makes records selectable", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/admin/cost-catalog"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model or database schema change is introduced." },
+    "migration": { "status": "na", "reason": "All consumed permission codes already exist in Core." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "na", "reason": "Supporting category-option reads are non-mutating; existing create/update/delete audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "required" },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Cost Catalog read permissions continue to control category/product lists. Category and product create permissions can independently expose their create flows. Existing Admin navigation is permission-aligned rather than newly introduced. The supporting product category-options endpoint accepts product read, create, or update because all three workflows require the same organization-scoped lookup, while the normal product list remains products.read-only. Tenant-scoped query behavior remains unchanged and is covered by the required tenant-isolation gate. Existing CRUD permission codes and Core catalog semantics are unchanged."
+}
