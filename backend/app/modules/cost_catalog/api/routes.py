@@ -19,6 +19,7 @@ from app.modules.cost_catalog.api.dependencies import (
     PRODUCT_DELETE,
     PRODUCT_UPDATE,
     PRODUCT_VIEW,
+    require_any_permission,
     require_permission,
 )
 from app.modules.cost_catalog.api.schemas import (
@@ -281,7 +282,9 @@ def delete_category(
 @router.get("/products/category-options", response_model=CostCategoryOptionsResponse)
 def list_product_category_options(
     db: Session = Depends(get_db),
-    auth: AuthContext = Depends(require_permission(PRODUCT_VIEW)),
+    auth: AuthContext = Depends(
+        require_any_permission(PRODUCT_VIEW, PRODUCT_CREATE, PRODUCT_UPDATE)
+    ),
 ) -> CostCategoryOptionsResponse:
     items = db.scalars(
         select(CostCategoryModel)
