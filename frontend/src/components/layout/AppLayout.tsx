@@ -9,6 +9,7 @@ import {
   firstAccessibleAdminPath,
   firstAccessibleDataIntegrationPath,
   resolvePermissionLandingPath,
+  resolvePermissionSectionLandingPath,
 } from "../../permissions/navigationPermissions";
 import { usePersistedCollapsed } from "../../hooks/usePersistedCollapsed";
 import { Breadcrumb, type BreadcrumbItem } from "../ui/Breadcrumb";
@@ -54,12 +55,16 @@ function mainNavigationSection(path: string): string {
   return path;
 }
 
-function pushInternalNavigation(path: string, event: React.MouseEvent): void {
-  event.preventDefault();
+function pushInternalPath(path: string): void {
   if (`${window.location.pathname}${window.location.search}` !== path) {
     window.history.pushState(null, "", path);
   }
   window.dispatchEvent(new PopStateEvent("popstate"));
+}
+
+function pushInternalNavigation(path: string, event: React.MouseEvent): void {
+  event.preventDefault();
+  pushInternalPath(path);
 }
 
 export function AppLayout({
@@ -105,11 +110,28 @@ export function AppLayout({
     grantedPermissions,
     bypass,
   );
+  const sectionLandingPath = resolvePermissionSectionLandingPath(
+    currentLocation,
+    grantedPermissions,
+    bypass,
+  );
   const routeAllowed = canAccessApplicationPath(
     currentLocation,
     grantedPermissions,
     bypass,
   );
+
+  const resolvedBreadcrumbs = React.useMemo(() => {
+    if (!sectionLandingPath || breadcrumbs.length < 2) return breadcrumbs;
+    return breadcrumbs.map((item, index) => {
+      if (index !== 1 || item.current) return item;
+      return {
+        ...item,
+        href: undefined,
+        onClick: () => pushInternalPath(sectionLandingPath),
+      };
+    });
+  }, [breadcrumbs, sectionLandingPath]);
 
   React.useEffect(() => {
     if (!landingPath) return;
@@ -190,7 +212,7 @@ export function AppLayout({
                 onClick={onToggleSidebar}
               />
             )}
-            {breadcrumbs.length > 0 && <Breadcrumb items={breadcrumbs} />}
+            {resolvedBreadcrumbs.length > 0 && <Breadcrumb items={resolvedBreadcrumbs} />}
           </div>
           <UserMenu onLogout={onLogout} />
         </header>
