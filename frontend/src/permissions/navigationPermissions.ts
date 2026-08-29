@@ -191,6 +191,24 @@ export function resolvePermissionLandingPath(
   return null;
 }
 
+export function resolvePermissionSectionLandingPath(
+  path: string,
+  granted: GrantedPermissionCollection,
+  bypass = false,
+): string | null {
+  const pathname = normalizePath(path);
+  if (
+    pathname === "/admin" ||
+    (pathname.startsWith("/admin/") && !pathname.startsWith("/admin/data-operations"))
+  ) {
+    return firstAccessibleAdminPath(granted, bypass);
+  }
+  if (pathname === "/data-integration" || pathname.startsWith("/data-integration/")) {
+    return firstAccessibleDataIntegrationPath(granted, bypass);
+  }
+  return null;
+}
+
 export function canAccessApplicationPath(
   path: string,
   granted: GrantedPermissionCollection,

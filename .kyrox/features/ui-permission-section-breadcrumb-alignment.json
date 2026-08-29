@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "id": "ui-permission-section-breadcrumb-alignment",
+  "title": "Permission-Aware Section Breadcrumb Alignment",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "mixed",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/components/layout/AppLayout.tsx",
+    "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/permissions/navigationPermissions.test.ts",
+    ".kyrox/features/ui-permission-section-breadcrumb-alignment.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "identity.users.read", "action": "resolve the Administration breadcrumb to an accessible child section", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.admin.backups.read", "action": "resolve the Administration breadcrumb to database backups when accessible", "scope": "system", "assignable": false },
+      { "code": "fair_crm.imports.read", "action": "resolve the Data Integration breadcrumb to imports when accessible", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.imports.create", "action": "resolve the Data Integration breadcrumb to new import for create-only access", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.scraper.read", "action": "resolve the Data Integration breadcrumb to adapter management for scraper-only access", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.mail_send_operations.read", "action": "resolve the Administration breadcrumb to mail operations when accessible", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/admin/*",
+      "/data-integration/*"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "All consumed permission codes already exist in Core." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Backend authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No API contract changes are introduced." },
+    "tenant_isolation": { "status": "na", "reason": "No backend data access or organization-scoped query changes." },
+    "audit": { "status": "na", "reason": "Breadcrumb navigation does not create a business mutation." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Sidebar navigation is unchanged; this delivery aligns breadcrumb targets only." },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "na", "reason": "No form semantics change." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "The module-root breadcrumb for Administration and Data Integration must use the same effective-permission child resolution as the sidebar/root landing behavior. It must not send a user to Backups or Imports merely because those were historical defaults. Legacy admin/data-operations routes are excluded because they resolve into the Operations surface. Backend authorization and role semantics are unchanged."
+}
