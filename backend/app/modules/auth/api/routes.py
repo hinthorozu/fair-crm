@@ -15,9 +15,15 @@ from app.modules.auth.api.cookies import (
 from app.modules.auth.api.dependencies import get_core_auth_client
 from app.modules.auth.api.schemas import (
     AccessTokenResponse,
+    ActivationCompleteRequest,
+    AuthMessageResponse,
+    ChangePasswordRequest,
+    ForgotPasswordRequest,
     LoginRequest,
     LogoutBodyRequest,
     RefreshBodyRequest,
+    ResetPasswordRequest,
+    SignupRequest,
 )
 from app.modules.auth.infrastructure.core_auth_client import CoreAuthClient, CoreAuthError
 
@@ -30,6 +36,14 @@ def _auth_error_response(exc: CoreAuthError, *, clear_cookie: bool = False) -> J
     if clear_cookie:
         clear_refresh_cookie(response)
     return response
+
+
+def _read_bearer_token(request: Request) -> str | None:
+    authorization = request.headers.get("Authorization", "")
+    parts = authorization.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer" or not parts[1].strip():
+        return None
+    return parts[1].strip()
 
 
 @router.post(
@@ -53,6 +67,103 @@ def login(
         token_type=pair.token_type,
         expires_in=pair.expires_in,
     )
+
+
+@router.post(
+    "/signup",
+    response_model=AuthMessageResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def signup(
+    payload: SignupRequest,
+    client: CoreAuthClient = Depends(get_core_auth_client),
+) -> AuthMessageResponse | JSONResponse:
+    try:
+        result = client.signup(
+            organization_name=payload.organization_name,
+            email=str(payload.email),
+            organization_slug=payload.organization_slug,
+        )
+    except CoreAuthError as exc:
+        return _auth_error_response(exc)
+    return AuthMessageResponse(message=result.message)
+
+
+@router.post(
+    "/activation/complete",
+    response_model=AuthMessageResponse,
+)
+def complete_activation(
+    payload: ActivationCompleteRequest,
+    client: CoreAuthClient = Depends(get_core_auth_client),
+) -> AuthMessageResponse | JSONResponse:
+    try:
+        result = client.complete_activation(token=payload.token, password=payload.password)
+    except CoreAuthError as exc:
+        return _auth_error_response(exc)
+    return AuthMessageResponse(message=result.message)
+
+
+@router.post(
+    "/password/forgot",
+    response_model=AuthMessageResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def forgot_password(
+    payload: ForgotPasswordRequest,
+    client: CoreAuthClient = Depends(get_core_auth_client),
+) -> AuthMessageResponse | JSONResponse:
+    try:
+        result = client.forgot_password(email=str(payload.email))
+    except CoreAuthError as exc:
+        return _auth_error_response(exc)
+    return AuthMessageResponse(message=result.message)
+
+
+@router.post(
+    "/password/reset",
+    response_model=AuthMessageResponse,
+)
+def reset_password(
+    payload: ResetPasswordRequest,
+    response: Response,
+    client: CoreAuthClient = Depends(get_core_auth_client),
+) -> AuthMessageResponse | JSONResponse:
+    try:
+        result = client.reset_password(token=payload.token, password=payload.password)
+    except CoreAuthError as exc:
+        return _auth_error_response(exc)
+
+    clear_refresh_cookie(response)
+    return AuthMessageResponse(message=result.message)
+
+
+@router.post(
+    "/password/change",
+    response_model=AuthMessageResponse,
+    responses={401: {"description": "Bearer access token required"}},
+)
+def change_password(
+    request: Request,
+    payload: ChangePasswordRequest,
+    response: Response,
+    client: CoreAuthClient = Depends(get_core_auth_client),
+) -> AuthMessageResponse | JSONResponse:
+    access_token = _read_bearer_token(request)
+    if access_token is None:
+        return JSONResponse(status_code=401, content={"detail": "Bearer access token required"})
+
+    try:
+        result = client.change_password(
+            access_token=access_token,
+            current_password=payload.current_password,
+            new_password=payload.new_password,
+        )
+    except CoreAuthError as exc:
+        return _auth_error_response(exc)
+
+    clear_refresh_cookie(response)
+    return AuthMessageResponse(message=result.message)
 
 
 @router.post(
