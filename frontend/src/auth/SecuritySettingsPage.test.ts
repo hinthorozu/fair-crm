@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { isSecuritySettingsPath, SecuritySettingsPage } from "../pages/SecuritySettingsPage";
+import { isSecuritySettingsPath, SecuritySettingsPage } from "./SecuritySettingsPage";
 import { authLabels } from "../labels/authLabels";
 
 describe("security settings page", () => {
