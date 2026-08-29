@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "id": "ui-fair-list-action-permissions",
+  "title": "Fair List Action Permission Alignment",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/FairsPage.tsx",
+    "frontend/src/permissions/fairPermissions.ts",
+    "frontend/src/permissions/FairsPagePermissions.test.ts",
+    ".kyrox/features/ui-fair-list-action-permissions.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.fairs.create", "action": "show and execute New Fair entry points", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fairs.update", "action": "show and execute fair edit entry points", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fairs.delete", "action": "show and execute fair archive/restore entry points", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/fairs"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The fair CRUD permission codes already exist in Core." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing backend fair use cases already enforce the same Core permissions and remain authoritative." },
+    "api": { "status": "na", "reason": "No API contract changes are introduced." },
+    "tenant_isolation": { "status": "na", "reason": "No backend resource lookup, query or organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing backend mutation audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Main Fairs navigation continues to depend on fair read permission; this delivery controls page actions only." },
+    "route_guard": { "status": "na", "reason": "The existing `/fairs` read-permission route guard is unchanged." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "The Fairs list remains readable with `fair_crm.fairs.read`, while New Fair, edit, archive and restore UI entry points independently mirror the effective Core create/update/delete permissions. Backend authorization remains authoritative and no role names are used as permission proxies."
+}
