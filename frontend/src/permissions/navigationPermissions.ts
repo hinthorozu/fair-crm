@@ -30,7 +30,24 @@ export const PERMISSION_MAIL_TEMPLATES_READ = "fair_crm.mail_templates.read";
 export const PERMISSION_QUOTE_TEMPLATES_READ = "fair_crm.quote_templates.read";
 export const PERMISSION_TEMPLATE_CONTENTS_READ = "fair_crm.template_contents.read";
 export const PERMISSION_COST_CATEGORIES_READ = "fair_crm.cost_catalog.categories.read";
+export const PERMISSION_COST_CATEGORIES_CREATE = "fair_crm.cost_catalog.categories.create";
+export const PERMISSION_COST_CATEGORIES_UPDATE = "fair_crm.cost_catalog.categories.update";
+export const PERMISSION_COST_CATEGORIES_DELETE = "fair_crm.cost_catalog.categories.delete";
 export const PERMISSION_COST_PRODUCTS_READ = "fair_crm.cost_catalog.products.read";
+export const PERMISSION_COST_PRODUCTS_CREATE = "fair_crm.cost_catalog.products.create";
+export const PERMISSION_COST_PRODUCTS_UPDATE = "fair_crm.cost_catalog.products.update";
+export const PERMISSION_COST_PRODUCTS_DELETE = "fair_crm.cost_catalog.products.delete";
+
+export const COST_CATALOG_ADMIN_PERMISSIONS = [
+  PERMISSION_COST_CATEGORIES_READ,
+  PERMISSION_COST_CATEGORIES_CREATE,
+  PERMISSION_COST_CATEGORIES_UPDATE,
+  PERMISSION_COST_CATEGORIES_DELETE,
+  PERMISSION_COST_PRODUCTS_READ,
+  PERMISSION_COST_PRODUCTS_CREATE,
+  PERMISSION_COST_PRODUCTS_UPDATE,
+  PERMISSION_COST_PRODUCTS_DELETE,
+] as const;
 
 export type PermissionRequirement =
   | { kind: "public" }
@@ -61,8 +78,7 @@ export const MAIN_NAV_REQUIREMENTS: Readonly<Record<string, PermissionRequiremen
       PERMISSION_QUOTE_TEMPLATES_READ,
       PERMISSION_TEMPLATE_CONTENTS_READ,
       PERMISSION_OPERATIONS_READ,
-      PERMISSION_COST_CATEGORIES_READ,
-      PERMISSION_COST_PRODUCTS_READ,
+      ...COST_CATALOG_ADMIN_PERMISSIONS,
     ],
   },
 };
@@ -74,7 +90,7 @@ export const ADMIN_NAV_REQUIREMENTS: Readonly<Record<string, PermissionRequireme
   backups: { kind: "permission", permission: PERMISSION_BACKUPS_READ },
   "cost-catalog": {
     kind: "any",
-    permissions: [PERMISSION_COST_CATEGORIES_READ, PERMISSION_COST_PRODUCTS_READ],
+    permissions: COST_CATALOG_ADMIN_PERMISSIONS,
   },
   "email-accounts": { kind: "permission", permission: PERMISSION_EMAIL_ACCOUNTS_READ },
   "mail-templates": { kind: "permission", permission: PERMISSION_MAIL_TEMPLATES_READ },
