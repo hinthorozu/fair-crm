@@ -35,6 +35,14 @@ jobs:
       KYROX_CORE_BASE_URL: http://127.0.0.1:8000
       FAIR_CRM_BASE_URL: http://127.0.0.1:8001
       APP_ENV: test
+      CORE_EMAIL_PROVIDER: smtp
+      CORE_EMAIL_FROM: identity-ci@kyrox.invalid
+      CORE_SMTP_HOST: 127.0.0.1
+      CORE_SMTP_PORT: "1025"
+      CORE_SMTP_STARTTLS: "false"
+      CORE_SMTP_SSL: "false"
+      P0_2_IDENTITY_SMTP_HOST: 127.0.0.1
+      P0_2_IDENTITY_SMTP_PORT: "1025"
 
     steps:
       - name: Checkout fair-crm
@@ -78,18 +86,21 @@ jobs:
         run: |
           jwt_secret="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
           dev_password="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+          identity_action_secret="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
           echo "::add-mask::$jwt_secret"
           echo "::add-mask::$dev_password"
+          echo "::add-mask::$identity_action_secret"
           {
             echo "JWT_SECRET_KEY=$jwt_secret"
             echo "DEV_USER_PASSWORD=$dev_password"
+            echo "CORE_IDENTITY_ACTION_TOKEN_SECRET_KEY=$identity_action_secret"
           } >> "$GITHUB_ENV"
 
       - name: Install dependencies
         run: |
           pip install -r backend/requirements.txt
           pip install -r kyrox-core/requirements.txt
-          pip install httpx psycopg2-binary argon2-cffi
+          pip install httpx psycopg2-binary argon2-cffi aiosmtpd==1.4.6
 
       - name: Prepare databases
         run: |
@@ -124,6 +135,9 @@ jobs:
         env:
           KYROX_CORE_ROOT: ${{ github.workspace }}/kyrox-core
         run: python scripts/e2e_validation.py --ci
+
+      - name: P0.2 identity lifecycle certification
+        run: python scripts/p0_2_identity_lifecycle_e2e.py
 
       - name: Todo worklist authorization regressions
         run: |
