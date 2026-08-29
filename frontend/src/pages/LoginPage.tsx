@@ -11,6 +11,19 @@ interface LoginPageProps {
   onSuccess: () => void;
 }
 
+export function LoginSecondaryActions() {
+  return (
+    <div className="login-form-actions">
+      <a className="btn secondary" href="/forgot-password">
+        {authLabels.forgotPasswordLink}
+      </a>
+      <a className="btn secondary" href="/signup">
+        {authLabels.signupLink}
+      </a>
+    </div>
+  );
+}
+
 export function LoginPage({ onSuccess }: LoginPageProps) {
   const { login } = useAuth();
   const [email, setEmail] = React.useState("");
@@ -123,6 +136,7 @@ export function LoginPage({ onSuccess }: LoginPageProps) {
                 {submitting ? authLabels.submitting : authLabels.submit}
               </button>
             </div>
+            <LoginSecondaryActions />
           </form>
         </Card>
       </div>
