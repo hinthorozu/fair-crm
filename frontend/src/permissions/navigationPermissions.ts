@@ -46,7 +46,7 @@ export const MAIN_NAV_REQUIREMENTS: Readonly<Record<string, PermissionRequiremen
   "/activities": { kind: "permission", permission: PERMISSION_ACTIVITIES_READ },
   "/data-integration": {
     kind: "any",
-    permissions: [PERMISSION_IMPORTS_READ, PERMISSION_SCRAPER_READ],
+    permissions: [PERMISSION_IMPORTS_READ, PERMISSION_IMPORTS_CREATE, PERMISSION_SCRAPER_READ],
   },
   "/admin": {
     kind: "any",
@@ -176,6 +176,19 @@ function normalizePath(path: string): string {
   const queryIndex = path.indexOf("?");
   const pathname = (queryIndex >= 0 ? path.slice(0, queryIndex) : path).replace(/\/$/, "");
   return pathname || "/";
+}
+
+export function resolvePermissionLandingPath(
+  path: string,
+  granted: GrantedPermissionCollection,
+  bypass = false,
+): string | null {
+  const pathname = normalizePath(path);
+  if (pathname === "/admin") return firstAccessibleAdminPath(granted, bypass);
+  if (pathname === "/data-integration") {
+    return firstAccessibleDataIntegrationPath(granted, bypass);
+  }
+  return null;
 }
 
 export function canAccessApplicationPath(
