@@ -8,6 +8,7 @@ import {
   canAccessMainNavigation,
   firstAccessibleAdminPath,
   firstAccessibleDataIntegrationPath,
+  resolvePermissionLandingPath,
 } from "../../permissions/navigationPermissions";
 import { usePersistedCollapsed } from "../../hooks/usePersistedCollapsed";
 import { Breadcrumb, type BreadcrumbItem } from "../ui/Breadcrumb";
@@ -98,13 +99,26 @@ export function AppLayout({
     });
   }, [bypass, grantedPermissions, navItems]);
 
+  const currentLocation = `${window.location.pathname}${window.location.search}`;
+  const landingPath = resolvePermissionLandingPath(
+    currentLocation,
+    grantedPermissions,
+    bypass,
+  );
   const routeAllowed = canAccessApplicationPath(
-    `${window.location.pathname}${window.location.search}`,
+    currentLocation,
     grantedPermissions,
     bypass,
   );
 
-  const guardedChildren = routeAllowed ? (
+  React.useEffect(() => {
+    if (!landingPath) return;
+    if (`${window.location.pathname}${window.location.search}` === landingPath) return;
+    window.history.replaceState(null, "", landingPath);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }, [landingPath]);
+
+  const guardedChildren = landingPath ? null : routeAllowed ? (
     children
   ) : (
     <PageShell>
