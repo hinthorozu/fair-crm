@@ -14,12 +14,15 @@ export const authLabels = {
   forgotPasswordLink: "Şifremi unuttum",
   signupLink: "Hesap oluştur",
   userMenuLabel: "Kullanıcı menüsü",
+  securitySettingsLink: "Güvenlik",
   logout: "Çıkış Yap",
   loggingOut: "Çıkış yapılıyor…",
   organization: "Organizasyon",
 
   organizationName: "Organizasyon adı",
   organizationNameRequired: "Organizasyon adı gerekli.",
+  currentPassword: "Mevcut şifre",
+  currentPasswordRequired: "Mevcut şifre gerekli.",
   newPassword: "Yeni şifre",
   newPasswordRequired: "Yeni şifre gerekli.",
   confirmPassword: "Yeni şifreyi tekrar girin",
@@ -28,7 +31,9 @@ export const authLabels = {
   passwordPolicyHint: "Şifreniz en az 12, en fazla 255 karakter olmalıdır.",
   tokenMissing: "Bu bağlantıda gerekli güvenlik anahtarı bulunmuyor. Lütfen e-postadaki bağlantıyı yeniden açın.",
   requestFailed: "İşlem tamamlanamadı. Lütfen tekrar deneyin.",
+  sessionRequired: "Bu işlem için geçerli bir oturum gerekli.",
   backToLogin: "Giriş ekranına dön",
+  backToApp: "Uygulamaya dön",
 
   signupTitle: "Hesap oluştur",
   signupSubtitle: "Organizasyonunuzu ve ilk yönetici hesabınızı oluşturun.",
@@ -53,4 +58,9 @@ export const authLabels = {
   resetPasswordSubmit: "Şifreyi Değiştir",
   resetPasswordSubmitting: "Şifre değiştiriliyor…",
   resetPasswordSuccess: "Şifreniz değiştirildi. Yeni şifrenizle tekrar giriş yapabilirsiniz.",
+
+  securityTitle: "Güvenlik",
+  securitySubtitle: "Hesap şifrenizi değiştirin. Başarılı değişiklikten sonra yeniden giriş yapmanız gerekir.",
+  changePasswordSubmit: "Şifreyi Değiştir",
+  changePasswordSubmitting: "Şifre değiştiriliyor…",
 };
