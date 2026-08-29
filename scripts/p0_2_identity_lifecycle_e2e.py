@@ -144,7 +144,7 @@ def assert_access_revoked(access_token: str, phase: str) -> None:
 
 def run_certification(mailbox: MemoryMailbox) -> None:
     run_id = uuid.uuid4().hex[:12]
-    email = f"p02-identity-{run_id}@example.test"
+    email = f"p02-identity-{run_id}@example.com"
     organization_name = f"P0.2 Identity E2E {run_id}"
     organization_slug = f"p02-identity-{run_id}"
 
