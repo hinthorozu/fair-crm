@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "id": "ui-permission-root-landing-alignment",
+  "title": "Permission-Aware Root Landing Alignment",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "mixed",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/permissions/navigationPermissions.test.ts",
+    "frontend/src/components/layout/AppLayout.tsx",
+    ".kyrox/features/ui-permission-root-landing-alignment.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "identity.organizations.read", "action": "open the first accessible administration section", "scope": "organization", "assignable": true },
+      { "code": "identity.users.read", "action": "open user administration as an accessible administration landing", "scope": "organization", "assignable": true },
+      { "code": "identity.roles.read", "action": "open role administration as an accessible administration landing", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.admin.backups.read", "action": "open database backups as an accessible system administration landing", "scope": "system", "assignable": false },
+      { "code": "fair_crm.imports.read", "action": "open import list as an accessible data-integration landing", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.imports.create", "action": "open new import as an accessible data-integration landing", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.scraper.read", "action": "open adapter management as an accessible data-integration landing", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.mail_send_operations.read", "action": "open mail operations as an accessible administration landing", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/admin",
+      "/admin/*",
+      "/data-integration",
+      "/data-integration/*"
+    ],
+    "menu": true,
+    "menu_permission": "effective permission for the first accessible child section"
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "All consumed permission codes already exist in Core." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Backend authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No API contract changes are introduced." },
+    "tenant_isolation": { "status": "na", "reason": "No backend query or organization-scoped data access changes." },
+    "audit": { "status": "na", "reason": "Navigation redirects do not create auditable business mutations." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "required" },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "na", "reason": "No form semantics change." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Root administration and data-integration URLs must never default to a child surface the user cannot read. They resolve to the first child route permitted by the existing effective Core permission set, and protected children remain suppressed while the redirect is pending. Create-only import access is also represented in the main Data Integration navigation because it has a valid generic creation landing route. No role-name inference or backend authorization change is introduced."
+}
