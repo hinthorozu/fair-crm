@@ -27,6 +27,11 @@ export interface ResetPasswordRequest {
   password: string;
 }
 
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+}
+
 export interface AuthMessageResponse {
   message: string;
 }
@@ -102,6 +107,18 @@ function assertAccessTokenResponse(data: unknown, status: number): AccessTokenRe
   };
 }
 
+function assertAuthMessageResponse(data: unknown, status: number): AuthMessageResponse {
+  if (
+    typeof data !== "object" ||
+    data === null ||
+    !("message" in data) ||
+    typeof (data as AuthMessageResponse).message !== "string"
+  ) {
+    throw new ApiError(authLabels.requestFailed, status, data);
+  }
+  return data as AuthMessageResponse;
+}
+
 async function postAuthMessage(path: string, payload: object): Promise<AuthMessageResponse> {
   const url = `${config.apiBaseUrl}${path}`;
   let response: Response;
@@ -125,15 +142,7 @@ async function postAuthMessage(path: string, payload: object): Promise<AuthMessa
   if (!response.ok) {
     throw new ApiError(parseAuthActionError(response.status, data), response.status, data);
   }
-  if (
-    typeof data !== "object" ||
-    data === null ||
-    !("message" in data) ||
-    typeof (data as AuthMessageResponse).message !== "string"
-  ) {
-    throw new ApiError(authLabels.requestFailed, response.status, data);
-  }
-  return data as AuthMessageResponse;
+  return assertAuthMessageResponse(data, response.status);
 }
 
 /** Login via Fair CRM auth bridge (sets HttpOnly refresh cookie). */
@@ -181,6 +190,43 @@ export function requestPasswordReset(payload: ForgotPasswordRequest): Promise<Au
 
 export function resetPassword(payload: ResetPasswordRequest): Promise<AuthMessageResponse> {
   return postAuthMessage("/api/v1/auth/password/reset", payload);
+}
+
+export async function changePassword(
+  payload: ChangePasswordRequest,
+  accessToken: string,
+): Promise<AuthMessageResponse> {
+  const token = accessToken.trim();
+  if (!token) {
+    throw new ApiError(authLabels.sessionRequired, 401);
+  }
+
+  const url = `${config.apiBaseUrl}/api/v1/auth/password/change`;
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(
+      url,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      },
+      30_000,
+    );
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    throw new ApiError(authLabels.networkError, 0);
+  }
+
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new ApiError(parseAuthActionError(response.status, data), response.status, data);
+  }
+  return assertAuthMessageResponse(data, response.status);
 }
 
 /**
