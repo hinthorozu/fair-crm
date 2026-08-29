@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "id": "ui-activity-action-permissions",
+  "title": "Activity Page Action Permission Alignment",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/ActivitiesPage.tsx",
+    "frontend/src/permissions/activityPermissions.ts",
+    "frontend/src/permissions/ActivitiesPagePermissions.test.ts",
+    ".kyrox/features/ui-activity-action-permissions.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.activities.delete", "action": "show and execute single/bulk activity deletion and row selection", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.customers.read", "action": "load customer filter options and expose customer navigation from activity rows/details", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/activities"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The consumed permission codes already exist in Core." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing activity delete and customer read backend authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No API contract changes are introduced." },
+    "tenant_isolation": { "status": "na", "reason": "No backend resource lookup, query or organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing backend hard-delete audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Main Activities navigation remains controlled by activities.read; this delivery controls actions and related-customer affordances." },
+    "route_guard": { "status": "na", "reason": "The existing `/activities` read route guard is unchanged." },
+    "forms": { "status": "na", "reason": "No create/update form behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Activities remain readable through the existing activities.read route guard. Selection, single delete, bulk delete and destructive confirmation UI require activities.delete. Customer filter loading and customer-navigation affordances require customers.read. If effective permissions change while destructive UI is open, selection and confirmation state are cleared. Backend authorization remains authoritative."
+}
