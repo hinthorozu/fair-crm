@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "id": "dashboard-import-action-permission-consistency",
+  "title": "Dashboard Import Action Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/DashboardPage.tsx",
+    "frontend/src/permissions/dashboardImportActionPermissions.ts",
+    "frontend/src/permissions/dashboardImportActionPermissions.test.ts",
+    ".kyrox/features/dashboard-import-action-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.imports.create",
+        "action": "start a new import from the Dashboard quick actions",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/dashboard", "/data-integration/imports/new"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.imports.create permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing import authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contracts change; only Dashboard import-start visibility is aligned with the existing route guard." },
+    "tenant_isolation": { "status": "na", "reason": "No backend query or organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "No mutation or audit behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "The /data-integration/imports/new route already requires fair_crm.imports.create; this change aligns the originating Dashboard quick action." },
+    "forms": { "status": "na", "reason": "No form behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Dashboard previously rendered the Import Baslat quick action for every authenticated organization user even when fair_crm.imports.create was absent. The action now fails closed in the UI and is offered only when import-create permission is granted. Dashboard access itself remains unchanged."
+}
