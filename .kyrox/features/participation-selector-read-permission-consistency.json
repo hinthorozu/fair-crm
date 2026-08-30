@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "id": "participation-selector-read-permission-consistency",
+  "title": "Participation Selector Read Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/components/ParticipationForm.tsx",
+    "frontend/src/components/ParticipationFormPermissions.test.ts",
+    "frontend/src/labels/participationLabels.ts",
+    ".kyrox/features/participation-selector-read-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.participations.create", "action": "create a participation", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fairs.read", "action": "select a fair in customer-context participation creation", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.customers.read", "action": "select a customer in fair-context participation creation", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/customers/:id", "/fairs/:id"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "All consumed permission codes already exist in Core." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing participation, fair, and customer endpoint authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes are introduced; the form prevents mounting entity selectors when their required read permission is absent." },
+    "tenant_isolation": { "status": "na", "reason": "No backend query or organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "No mutation or audit behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No menu behavior changes." },
+    "route_guard": { "status": "na", "reason": "Customer and fair detail routes keep their existing read requirements; only participation entity selection is additionally constrained." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Participation creation previously exposed a selector that independently called protected lookup APIs: customer-context creation needs fairs.read to populate FairEntitySelect, while fair-context creation needs customers.read to populate CustomerEntitySelect. The form now fails closed before mounting the selector when that lookup permission is absent. Locked edit flows remain available because they do not require choosing a different related entity."
+}
