@@ -2,7 +2,7 @@
   "version": 1,
   "id": "quote-template-logo-permission-consistency",
   "title": "Quote Template Logo Permission Consistency",
-  "feature_type": "backend_only",
+  "feature_type": "backend_service",
   "owner": "fair-crm",
   "platform_reusability": "existing_core_capability",
   "trigger": "user",
@@ -23,6 +23,7 @@
   },
   "frontend": {
     "required": false,
+    "reason": "The existing quote-template edit form already exposes logo replacement; this change only aligns the shared backend upload authorization.",
     "routes": [],
     "menu": false,
     "menu_permission": null
