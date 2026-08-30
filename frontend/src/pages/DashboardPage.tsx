@@ -1,6 +1,7 @@
 import React from "react";
 import { ApiError } from "../api/client";
 import { getDashboardSummary } from "../api/dashboard";
+import { DashboardNewTodoModal } from "../components/dashboard/DashboardNewTodoModal";
 import { EmptyState } from "../components/ui/EmptyState";
 import { LoadingState } from "../components/ui/LoadingState";
 import { PageHeader } from "../components/ui/PageHeader";
@@ -11,6 +12,7 @@ import { dashboardLabels } from "../labels/dashboardLabels";
 import { canOpenDashboardCustomerLink } from "../permissions/dashboardCustomerLinkPermissions";
 import { canStartDashboardImport } from "../permissions/dashboardImportActionPermissions";
 import { canStartDashboardCustomerCreate } from "../permissions/dashboardNewCustomerActionPermissions";
+import { canStartDashboardTodoCreate } from "../permissions/dashboardNewTodoActionPermissions";
 import { canOpenDashboardSmtpSettings } from "../permissions/dashboardSmtpActionPermissions";
 import { canOpenDashboardTodoList } from "../permissions/dashboardTodoNavigationPermissions";
 import { getGrantedCorePermissions } from "../permissions/corePermissions";
@@ -178,13 +180,17 @@ function buildFairSummaryColumns(): UniversalDataTableColumn<DashboardFairSummar
 
 function QuickActions({
   onNavigate,
+  onNewTodo,
   canStartCustomerCreate,
+  canStartTodoCreate,
   canStartImport,
   canOpenSmtpSettings,
   canOpenTodoList,
 }: {
   onNavigate: (path: string) => void;
+  onNewTodo: () => void;
   canStartCustomerCreate: boolean;
+  canStartTodoCreate: boolean;
   canStartImport: boolean;
   canOpenSmtpSettings: boolean;
   canOpenTodoList: boolean;
@@ -193,7 +199,6 @@ function QuickActions({
     ...(canStartCustomerCreate
       ? [{ label: dashboardLabels.actionNewCustomer, path: "/customers" }]
       : []),
-    { label: dashboardLabels.actionNewTodo, path: "/todos" },
     ...(canStartImport
       ? [{ label: dashboardLabels.actionStartImport, path: "/data-integration/imports/new" }]
       : []),
@@ -207,6 +212,11 @@ function QuickActions({
 
   return (
     <div className="dashboard-quick-actions">
+      {canStartTodoCreate ? (
+        <button type="button" className="btn secondary" onClick={onNewTodo}>
+          {dashboardLabels.actionNewTodo}
+        </button>
+      ) : null}
       {actions.map((action) => (
         <button
           key={action.label}
@@ -246,9 +256,11 @@ export function DashboardPage({
   const [data, setData] = React.useState<DashboardSummaryResponse | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [todoCreateOpen, setTodoCreateOpen] = React.useState(false);
   const grantedPermissions = getGrantedCorePermissions();
   const canOpenCustomer = canOpenDashboardCustomerLink(grantedPermissions);
   const canStartCustomerCreate = canStartDashboardCustomerCreate(grantedPermissions);
+  const canStartTodoCreate = canStartDashboardTodoCreate(grantedPermissions);
   const canStartImport = canStartDashboardImport(grantedPermissions);
   const canOpenSmtpSettings = canOpenDashboardSmtpSettings(grantedPermissions);
   const canOpenTodoList = canOpenDashboardTodoList(grantedPermissions);
@@ -352,7 +364,9 @@ export function DashboardPage({
         <DashboardSection title={dashboardLabels.sectionQuickActions}>
           <QuickActions
             onNavigate={onNavigate}
+            onNewTodo={() => setTodoCreateOpen(true)}
             canStartCustomerCreate={canStartCustomerCreate}
+            canStartTodoCreate={canStartTodoCreate}
             canStartImport={canStartImport}
             canOpenSmtpSettings={canOpenSmtpSettings}
             canOpenTodoList={canOpenTodoList}
@@ -378,6 +392,16 @@ export function DashboardPage({
       <DashboardSection title={dashboardLabels.sectionMailStatus}>
         <MailStatusCards mailStatus={summary.mailStatus} />
       </DashboardSection>
+
+      {todoCreateOpen ? (
+        <DashboardNewTodoModal
+          onClose={() => setTodoCreateOpen(false)}
+          onCreated={() => {
+            setTodoCreateOpen(false);
+            void loadData();
+          }}
+        />
+      ) : null}
     </PageShell>
   );
 }
