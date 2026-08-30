@@ -3,6 +3,7 @@ import {
   hasGrantedCorePermission,
   type GrantedPermissionCollection,
 } from "./corePermissions";
+import { canReadQuoteEditor } from "./quotePermissions";
 
 export const PERMISSION_ORGANIZATIONS_READ = "identity.organizations.read";
 export const PERMISSION_ORGANIZATIONS_UPDATE = "identity.organizations.update";
@@ -240,6 +241,9 @@ export function canAccessApplicationPath(
   }
   if (pathname === "/fairs" || pathname.startsWith("/fairs/")) {
     return hasGrantedCorePermission(granted, PERMISSION_FAIRS_READ);
+  }
+  if (/^\/todos\/[^/]+\/quote$/.test(pathname)) {
+    return canReadQuoteEditor(granted);
   }
   if (pathname === "/todos" || pathname.startsWith("/todos/")) {
     return hasGrantedCorePermission(granted, PERMISSION_TODOS_READ);

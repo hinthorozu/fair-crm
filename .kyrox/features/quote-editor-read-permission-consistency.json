@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "id": "quote-editor-read-permission-consistency",
+  "title": "Quote Editor Read Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/permissions/quotePermissions.ts",
+    "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/pages/QuoteEditorPage.tsx",
+    "frontend/src/permissions/QuoteEditorPermissions.test.ts",
+    ".kyrox/features/quote-editor-read-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.todos.read", "action": "load the quote task", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.customers.read", "action": "load the task customer", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fairs.read", "action": "load the source fair", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.quotes.read", "action": "load and render the existing quote", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.quote_templates.read", "action": "load selectable quote templates", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.template_contents.read", "action": "load template content tags and items", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/todos/:id/quote"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "All consumed permission codes already exist in Core." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing backend endpoint authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contracts change; the frontend now verifies all existing lookup permissions before issuing requests." },
+    "tenant_isolation": { "status": "na", "reason": "No backend query or organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "No mutation or audit behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "The main Todo navigation continues to require only todos.read." },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "The Quote Editor performs independent protected reads for its Todo, Customer, Fair, Quote, Quote Template, and Template Content dependencies. The route guard and page-level preflight now share one all-required permission contract, preventing partial-permission users from mounting the editor and then generating dependent 403 responses. Ordinary Todo routes remain scoped to todos.read, while quote create/update authorization remains unchanged."
+}

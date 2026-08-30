@@ -12,7 +12,7 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
 import { Card } from "../components/ui/Card";
 import { FormField, FormGrid, SelectInput, TextInput } from "../components/ui/form";
-import { getQuotePermissions, QUOTE_CREATE, QUOTE_READ, QUOTE_UPDATE } from "../permissions/quotePermissions";
+import { canReadQuoteEditor, getQuotePermissions, QUOTE_CREATE, QUOTE_UPDATE } from "../permissions/quotePermissions";
 import type { QuoteSelectedItem } from "../types/quote";
 
 interface Props { todoId: string; onBack: () => void }
@@ -112,7 +112,11 @@ export function QuoteEditorPage({ todoId, onBack }: Props) {
   const previewRef = React.useRef<HTMLIFrameElement>(null);
 
   React.useEffect(() => { void (async () => {
-    if (!permissions.has(QUOTE_READ)) { setError("Teklifleri görüntüleme yetkiniz yok."); setLoading(false); return; }
+    if (!canReadQuoteEditor(permissions)) {
+      setError("Teklif hazırlamak için gerekli görüntüleme yetkilerinden biri eksik.");
+      setLoading(false);
+      return;
+    }
     try {
       const task = await getTodo(todoId);
       if (task.category !== "teklif" || !task.customer_id || !task.source_fair_id) throw new Error("Bu görev geçerli bir teklif görevi değil.");
