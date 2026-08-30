@@ -1,13 +1,17 @@
 import { normalizeStandardListResponse, buildListQueryParams } from "./listTable";
-import { apiRequest } from "./client";
+import { apiRequest, ApiError } from "./client";
 import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
 import type { StandardListResponse } from "../types/listTable";
+import { getGrantedCorePermissions } from "../permissions/corePermissions";
+import { TODO_PERMISSION_READ } from "../permissions/todoPermissions";
 import type {
   CompleteTodoPayload,
   CreateTodoPayload,
   Todo,
   UpdateTodoPayload,
 } from "../types/todo";
+
+const TODO_READ_DENIED = `Görev bilgilerini görüntüleme yetkiniz yok (${TODO_PERMISSION_READ}).`;
 
 export interface ListTodosParams extends Partial<ServerTableFetchParams> {
   status?: string;
@@ -64,6 +68,9 @@ export async function listTodos(params: ListTodosParams = {}): Promise<StandardL
 }
 
 export function getTodo(id: string): Promise<Todo> {
+  if (!getGrantedCorePermissions().has(TODO_PERMISSION_READ)) {
+    return Promise.reject(new ApiError(TODO_READ_DENIED, 403));
+  }
   return apiRequest<Todo>(`/api/v1/todos/${id}`);
 }
 
