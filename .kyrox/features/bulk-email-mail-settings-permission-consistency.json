@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "id": "bulk-email-mail-settings-permission-consistency",
+  "title": "Bulk Email Mail Settings Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/api/emailAccounts.ts",
+    "frontend/src/api/emailAccounts.permission.test.ts",
+    ".kyrox/features/bulk-email-mail-settings-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.operations.create", "action": "open the bulk-email operation wizard", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.mail_templates.read", "action": "load selectable mail templates", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.email_accounts.read", "action": "load selectable sender accounts", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/operations/new/bulk-email"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "All consumed permission codes already exist in Core." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing backend authorization and bulk-email sender requirements remain unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes are introduced; the frontend list wrapper now fails closed before issuing an unauthorized email-account list request." },
+    "tenant_isolation": { "status": "na", "reason": "No backend resource lookup, query, or organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "No mutation or audit behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Operations navigation remains controlled by existing operation permissions." },
+    "route_guard": { "status": "na", "reason": "The existing operations.create route guard is unchanged." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Bulk Email creation still requires an explicit sender account because preview/send payloads require email_account_id. Mail-template read and email-account read remain separate permissions. The email-account list client now fails closed locally when email_accounts.read is absent, so workflows such as the Bulk Email wizard cannot issue an unauthorized /email-accounts request and surface a permission-specific 403 instead. Authorized callers keep the existing list behavior; backend permission and payload contracts are unchanged."
+}
