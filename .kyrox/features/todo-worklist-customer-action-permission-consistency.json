@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "id": "todo-worklist-customer-action-permission-consistency",
+  "title": "Todo Worklist Customer Action Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/TodoDetailPage.tsx",
+    "frontend/src/permissions/todoCustomerActionPermissions.ts",
+    "frontend/src/permissions/todoCustomerActionPermissions.test.ts",
+    ".kyrox/features/todo-worklist-customer-action-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.todos.read", "action": "open the Todo detail and worklist", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.customers.read", "action": "open a customer card from the Todo worklist", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/todos/:id", "/customers/:id"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.customers.read permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing backend customer authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contracts change; only Todo worklist customer navigation visibility is aligned with customer read authorization." },
+    "tenant_isolation": { "status": "na", "reason": "No backend query or organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "No mutation or audit behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "The customer resource already requires fair_crm.customers.read; this change aligns the originating Todo worklist action." },
+    "forms": { "status": "na", "reason": "No form behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Todo Detail worklist previously rendered the Müşteri Kartını Aç action whenever the navigation callback existed, even when the current user lacked fair_crm.customers.read. The action now fails closed in the UI and is offered only when customer read permission is granted. Todo worklist access itself remains governed by Todo permissions."
+}
