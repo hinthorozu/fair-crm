@@ -36,6 +36,31 @@ def _require(permission_code: str):
     return dependency
 
 
+def _require_any(*permission_codes: str):
+    def dependency(
+        auth: AuthContext = Depends(get_auth_context),
+        authorization: AuthorizationPort = Depends(get_authorization_adapter),
+        credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    ) -> AuthContext:
+        if dev_bypass_enabled():
+            return auth
+        if credentials is None or not credentials.credentials:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        if not any(
+            authorization.check_permission(
+                organization_id=auth.organization_id,
+                user_id=auth.user_id,
+                permission_code=permission_code,
+                access_token=credentials.credentials,
+            )
+            for permission_code in permission_codes
+        ):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+        return auth
+    return dependency
+
+
 require_read_permission = _require(PERMISSION_READ)
 require_create_permission = _require(PERMISSION_CREATE)
 require_update_permission = _require(PERMISSION_UPDATE)
+require_logo_upload_permission = _require_any(PERMISSION_CREATE, PERMISSION_UPDATE)

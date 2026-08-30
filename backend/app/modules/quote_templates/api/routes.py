@@ -14,6 +14,7 @@ from app.integrations.kyrox_core.dev_bypass import NoOpAuditAdapter
 from app.modules.mail_templates.api.dependencies import bearer_scheme, get_audit_adapter
 from app.modules.quote_templates.api.dependencies import (
     require_create_permission,
+    require_logo_upload_permission,
     require_read_permission,
     require_update_permission,
 )
@@ -213,7 +214,7 @@ def update_quote_template(
 @router.post("/logo", response_model=LogoUploadResponse)
 async def upload_quote_logo(
     file: UploadFile = File(...),
-    auth: AuthContext = Depends(require_create_permission),
+    auth: AuthContext = Depends(require_logo_upload_permission),
 ):
     extension = _ALLOWED_LOGO_TYPES.get(file.content_type or "")
     if extension is None:
