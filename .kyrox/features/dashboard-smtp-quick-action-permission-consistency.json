@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "id": "dashboard-smtp-quick-action-permission-consistency",
+  "title": "Dashboard SMTP Quick Action Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/DashboardPage.tsx",
+    "frontend/src/permissions/dashboardSmtpActionPermissions.ts",
+    "frontend/src/permissions/dashboardSmtpActionPermissions.test.ts",
+    ".kyrox/features/dashboard-smtp-quick-action-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.email_accounts.read",
+        "action": "open SMTP settings from the Dashboard quick actions",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/dashboard", "/admin/email-accounts"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.email_accounts.read permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing backend email account authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contracts change; only Dashboard SMTP navigation visibility is aligned with the existing route permission." },
+    "tenant_isolation": { "status": "na", "reason": "No backend query or organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "No mutation or audit behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "The target email accounts route already requires fair_crm.email_accounts.read; this change aligns the originating Dashboard action." },
+    "forms": { "status": "na", "reason": "No form behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Dashboard is available without a Fair CRM RBAC permission, but its SMTP Settings quick action previously rendered for every authenticated organization user. The target /admin/email-accounts route already requires fair_crm.email_accounts.read. The action now fails closed and is only offered when that read permission is granted."
+}
