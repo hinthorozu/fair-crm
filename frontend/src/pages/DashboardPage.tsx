@@ -9,6 +9,7 @@ import { UniversalDataTable, type UniversalDataTableColumn } from "../components
 import { activityTypeLabels } from "../labels/activityLabels";
 import { dashboardLabels } from "../labels/dashboardLabels";
 import { canOpenDashboardCustomerLink } from "../permissions/dashboardCustomerLinkPermissions";
+import { canStartDashboardImport } from "../permissions/dashboardImportActionPermissions";
 import { canOpenDashboardSmtpSettings } from "../permissions/dashboardSmtpActionPermissions";
 import { canOpenDashboardTodoList } from "../permissions/dashboardTodoNavigationPermissions";
 import { getGrantedCorePermissions } from "../permissions/corePermissions";
@@ -176,17 +177,21 @@ function buildFairSummaryColumns(): UniversalDataTableColumn<DashboardFairSummar
 
 function QuickActions({
   onNavigate,
+  canStartImport,
   canOpenSmtpSettings,
   canOpenTodoList,
 }: {
   onNavigate: (path: string) => void;
+  canStartImport: boolean;
   canOpenSmtpSettings: boolean;
   canOpenTodoList: boolean;
 }) {
   const actions = [
     { label: dashboardLabels.actionNewCustomer, path: "/customers" },
     { label: dashboardLabels.actionNewTodo, path: "/todos" },
-    { label: dashboardLabels.actionStartImport, path: "/data-integration/imports/new" },
+    ...(canStartImport
+      ? [{ label: dashboardLabels.actionStartImport, path: "/data-integration/imports/new" }]
+      : []),
     ...(canOpenSmtpSettings
       ? [{ label: dashboardLabels.actionSmtpSettings, path: "/admin/email-accounts" }]
       : []),
@@ -238,6 +243,7 @@ export function DashboardPage({
   const [error, setError] = React.useState<string | null>(null);
   const grantedPermissions = getGrantedCorePermissions();
   const canOpenCustomer = canOpenDashboardCustomerLink(grantedPermissions);
+  const canStartImport = canStartDashboardImport(grantedPermissions);
   const canOpenSmtpSettings = canOpenDashboardSmtpSettings(grantedPermissions);
   const canOpenTodoList = canOpenDashboardTodoList(grantedPermissions);
 
@@ -340,6 +346,7 @@ export function DashboardPage({
         <DashboardSection title={dashboardLabels.sectionQuickActions}>
           <QuickActions
             onNavigate={onNavigate}
+            canStartImport={canStartImport}
             canOpenSmtpSettings={canOpenSmtpSettings}
             canOpenTodoList={canOpenTodoList}
           />
