@@ -9,6 +9,7 @@ import { UniversalDataTable, type UniversalDataTableColumn } from "../components
 import { activityTypeLabels } from "../labels/activityLabels";
 import { dashboardLabels } from "../labels/dashboardLabels";
 import { canOpenDashboardCustomerLink } from "../permissions/dashboardCustomerLinkPermissions";
+import { canOpenDashboardSmtpSettings } from "../permissions/dashboardSmtpActionPermissions";
 import { getGrantedCorePermissions } from "../permissions/corePermissions";
 import type {
   DashboardFairSummary,
@@ -172,12 +173,20 @@ function buildFairSummaryColumns(): UniversalDataTableColumn<DashboardFairSummar
   ];
 }
 
-function QuickActions({ onNavigate }: { onNavigate: (path: string) => void }) {
+function QuickActions({
+  onNavigate,
+  canOpenSmtpSettings,
+}: {
+  onNavigate: (path: string) => void;
+  canOpenSmtpSettings: boolean;
+}) {
   const actions = [
     { label: dashboardLabels.actionNewCustomer, path: "/customers" },
     { label: dashboardLabels.actionNewTodo, path: "/todos" },
     { label: dashboardLabels.actionStartImport, path: "/data-integration/imports/new" },
-    { label: dashboardLabels.actionSmtpSettings, path: "/admin/email-accounts" },
+    ...(canOpenSmtpSettings
+      ? [{ label: dashboardLabels.actionSmtpSettings, path: "/admin/email-accounts" }]
+      : []),
     { label: dashboardLabels.actionGoToTodos, path: "/todos" },
   ];
 
@@ -222,7 +231,9 @@ export function DashboardPage({
   const [data, setData] = React.useState<DashboardSummaryResponse | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const canOpenCustomer = canOpenDashboardCustomerLink(getGrantedCorePermissions());
+  const grantedPermissions = getGrantedCorePermissions();
+  const canOpenCustomer = canOpenDashboardCustomerLink(grantedPermissions);
+  const canOpenSmtpSettings = canOpenDashboardSmtpSettings(grantedPermissions);
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
@@ -321,7 +332,10 @@ export function DashboardPage({
         </DashboardSection>
 
         <DashboardSection title={dashboardLabels.sectionQuickActions}>
-          <QuickActions onNavigate={onNavigate} />
+          <QuickActions
+            onNavigate={onNavigate}
+            canOpenSmtpSettings={canOpenSmtpSettings}
+          />
         </DashboardSection>
       </div>
 
