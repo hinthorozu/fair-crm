@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "id": "dashboard-new-customer-action-permission-consistency",
+  "title": "Dashboard New Customer Action Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/DashboardPage.tsx",
+    "frontend/src/permissions/dashboardNewCustomerActionPermissions.ts",
+    "frontend/src/permissions/dashboardNewCustomerActionPermissions.test.ts",
+    ".kyrox/features/dashboard-new-customer-action-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.customers.read",
+        "action": "open the Customers page from the Dashboard new-customer quick action",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.customers.create",
+        "action": "create a customer from the Customers page reached by the Dashboard new-customer quick action",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/dashboard", "/customers"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing customer permissions are reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing customer authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contracts change; only Dashboard action visibility is aligned with existing route and page permissions." },
+    "tenant_isolation": { "status": "na", "reason": "No backend query or organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "No mutation or audit behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "The /customers route already requires fair_crm.customers.read; CustomersPage already gates creation with fair_crm.customers.create." },
+    "forms": { "status": "na", "reason": "No form implementation changes; the existing customer create form gate is reused." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Dashboard previously rendered the Yeni Musteri quick action for every authenticated organization user. The action routes to /customers, which requires fair_crm.customers.read, and its promised create workflow is only available when fair_crm.customers.create is also granted. The Dashboard action now fails closed unless both permissions are present."
+}
