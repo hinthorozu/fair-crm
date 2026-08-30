@@ -1,5 +1,7 @@
 import { apiRequest, ApiError, fetchWithTimeout } from "./client";
 import { buildApiHeaders, config } from "../config";
+import { getGrantedCorePermissions } from "../permissions/corePermissions";
+import { SCRAPER_PERMISSION_READ } from "../permissions/scraperPermissions";
 import { parseContentDispositionFileName, triggerBlobDownload, buildDownloadRequestHeaders } from "../utils/downloadBlob";
 import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
 import type { StandardListResponse } from "../types/listTable";
@@ -26,6 +28,8 @@ import type {
   EnrichmentStateResetResponse,
 } from "../types/scraper";
 
+const SCRAPER_READ_DENIED = `Scraper bilgilerini görüntüleme yetkiniz yok (${SCRAPER_PERMISSION_READ}).`;
+
 export async function getScraperDashboard(): Promise<ScraperDashboardResponse> {
   return apiRequest<ScraperDashboardResponse>("/api/v1/scraper/dashboard");
 }
@@ -43,6 +47,9 @@ export async function listAdapterEngines(): Promise<AdapterEngineListResponse> {
 }
 
 export async function getAdapter(adapterKey: string): Promise<AdapterDetail> {
+  if (!getGrantedCorePermissions().has(SCRAPER_PERMISSION_READ)) {
+    throw new ApiError(SCRAPER_READ_DENIED, 403);
+  }
   return apiRequest<AdapterDetail>(`/api/v1/scraper/adapters/${encodeURIComponent(adapterKey)}`);
 }
 
