@@ -324,7 +324,7 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
             >
               <option value="">{operationLabels.filterAll}</option>
               {statusFilterOptions.map((option) => (
-                <option key={option.value} value={option.value)}>
+                <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
