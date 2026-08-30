@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "id": "operation-detail-optional-lookup-permission-consistency",
+  "title": "Operation Detail Optional Lookup Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/api/todos.ts",
+    "frontend/src/api/scraper.ts",
+    "frontend/src/api/entityDetailLookups.permission.test.ts",
+    ".kyrox/features/operation-detail-optional-lookup-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.operations.read",
+        "action": "open the operation detail page",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.todos.read",
+        "action": "resolve optional linked todo detail enrichment",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.scraper.read",
+        "action": "resolve optional scraper adapter detail enrichment",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/operations/:id"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": {
+      "status": "na",
+      "reason": "No persistence changes are introduced."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "All consumed permission codes already exist in Core."
+    },
+    "permissions": {
+      "status": "required"
+    },
+    "backend": {
+      "status": "na",
+      "reason": "Existing backend endpoint authorization remains unchanged and authoritative."
+    },
+    "api": {
+      "status": "na",
+      "reason": "No server API contract changes; optional frontend detail clients now fail closed before unauthorized requests."
+    },
+    "tenant_isolation": {
+      "status": "na",
+      "reason": "No backend query or organization-scoping behavior changes."
+    },
+    "audit": {
+      "status": "na",
+      "reason": "No mutation or audit behavior changes."
+    },
+    "frontend": {
+      "status": "required"
+    },
+    "ui_permissions": {
+      "status": "required"
+    },
+    "menu": {
+      "status": "na",
+      "reason": "No navigation item changes are required."
+    },
+    "route_guard": {
+      "status": "na",
+      "reason": "Operation Detail remains accessible with operations.read because linked Todo and Adapter data are optional enrichment only."
+    },
+    "forms": {
+      "status": "na",
+      "reason": "No form behavior changes are introduced."
+    },
+    "visual_qa": {
+      "status": "required"
+    },
+    "backend_tests": {
+      "status": "na",
+      "reason": "No backend executable behavior changes."
+    },
+    "frontend_tests": {
+      "status": "required"
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
+  },
+  "notes": "Operation Detail is intentionally scoped to fair_crm.operations.read. Linked Todo and scraper Adapter labels are optional enrichment. Previously those lookups could still call protected endpoints and swallow backend 403 responses when the user lacked fair_crm.todos.read or fair_crm.scraper.read. The shared detail clients now fail closed locally, preserving the page fallback behavior while preventing unauthorized HTTP requests."
+}
