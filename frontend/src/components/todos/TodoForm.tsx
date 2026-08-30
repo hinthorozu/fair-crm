@@ -35,6 +35,14 @@ import {
   type TodoStepFormItem,
 } from "../../utils/todoStepForm";
 import { TodoStepFieldList } from "./TodoStepFieldList";
+import { config } from "../../config";
+import {
+  getGrantedCorePermissions,
+  hasGrantedCorePermission,
+  type GrantedPermissionCollection,
+} from "../../permissions/corePermissions";
+import { CUSTOMER_READ } from "../../permissions/customerPermissions";
+import { FAIR_READ } from "../../permissions/fairPermissions";
 
 export const TODO_FORM_ID = "todo-entity-form";
 
@@ -149,6 +157,14 @@ export function canEditTodo(todo: Todo): boolean {
   return todo.status !== "done" && todo.status !== "archived";
 }
 
+export function canUseTodoCustomerSelector(granted: GrantedPermissionCollection): boolean {
+  return hasGrantedCorePermission(granted, CUSTOMER_READ);
+}
+
+export function canUseTodoFairSelector(granted: GrantedPermissionCollection): boolean {
+  return hasGrantedCorePermission(granted, FAIR_READ);
+}
+
 interface TodoFormProps {
   initial?: TodoFormValues;
   /** Hydrate when the edited todo (or create session) changes — not on fresh `initial` refs. */
@@ -171,6 +187,10 @@ export function TodoForm({
   );
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const grantedPermissions = getGrantedCorePermissions();
+  const canCustomersRead =
+    config.devBypassEnabled || canUseTodoCustomerSelector(grantedPermissions);
+  const canFairsRead = config.devBypassEnabled || canUseTodoFairSelector(grantedPermissions);
 
   useReportFormDirty(values, baseline);
 
@@ -197,6 +217,10 @@ export function TodoForm({
       return;
     }
     if (requiresCustomerAndFair && (!values.customer_id || !values.source_fair_id)) {
+      if ((!values.customer_id && !canCustomersRead) || (!values.source_fair_id && !canFairsRead)) {
+        setError(todoLabels.entityReadPermissionRequired);
+        return;
+      }
       setError(
         values.category === "stand_work"
           ? "Stand İşleri görevi için müşteri ve kaynak fuar zorunludur."
@@ -312,15 +336,19 @@ export function TodoForm({
           hint={todoLabels.fieldCustomerHint}
           required={requiresCustomerAndFair}
         >
-          <CustomerEntitySelect
-            id="todo-customer"
-            value={values.customer_id}
-            onChange={(customerId) =>
-              setValues((prev) => ({ ...prev, customer_id: customerId }))
-            }
-            placeholder={todoLabels.fieldCustomerPlaceholder}
-            allowClear
-          />
+          {canCustomersRead ? (
+            <CustomerEntitySelect
+              id="todo-customer"
+              value={values.customer_id}
+              onChange={(customerId) =>
+                setValues((prev) => ({ ...prev, customer_id: customerId }))
+              }
+              placeholder={todoLabels.fieldCustomerPlaceholder}
+              allowClear
+            />
+          ) : (
+            <FieldError>{todoLabels.customerReadPermissionRequired}</FieldError>
+          )}
         </FormField>
         <FormField
           label={todoLabels.fieldSourceFair}
@@ -329,15 +357,19 @@ export function TodoForm({
           hint={todoLabels.fieldSourceFairHint}
           required={requiresCustomerAndFair}
         >
-          <FairEntitySelect
-            id="todo-source-fair"
-            value={values.source_fair_id}
-            onChange={(fairId) =>
-              setValues((prev) => ({ ...prev, source_fair_id: fairId }))
-            }
-            placeholder={todoLabels.fieldSourceFairPlaceholder}
-            allowClear
-          />
+          {canFairsRead ? (
+            <FairEntitySelect
+              id="todo-source-fair"
+              value={values.source_fair_id}
+              onChange={(fairId) =>
+                setValues((prev) => ({ ...prev, source_fair_id: fairId }))
+              }
+              placeholder={todoLabels.fieldSourceFairPlaceholder}
+              allowClear
+            />
+          ) : (
+            <FieldError>{todoLabels.fairReadPermissionRequired}</FieldError>
+          )}
         </FormField>
         <FormField label={todoLabels.fieldAssignee} htmlFor="todo-assignee" fullWidth>
           <TextInput

@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "id": "todo-form-entity-read-permission-consistency",
+  "title": "Todo Form Entity Read Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/components/todos/TodoForm.tsx",
+    "frontend/src/components/todos/TodoFormPermissions.test.ts",
+    "frontend/src/labels/todoLabels.ts",
+    ".kyrox/features/todo-form-entity-read-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.todos.create", "action": "create todos", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.todos.update", "action": "update todos", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.customers.read", "action": "use the Todo customer selector", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fairs.read", "action": "use the Todo source-fair selector", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/todos", "/todos/:id"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "All consumed permission codes already exist in Core." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing backend authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes are introduced; protected customer and fair list APIs are no longer reached by unauthorized Todo selectors." },
+    "tenant_isolation": { "status": "na", "reason": "No backend organization scoping changes." },
+    "audit": { "status": "na", "reason": "No mutation or audit behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Todo navigation permissions are unchanged." },
+    "route_guard": { "status": "na", "reason": "Todo routes correctly remain governed by todo permissions; customer and fair reads only govern the corresponding selectors." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "TodoForm previously mounted CustomerEntitySelect and FairEntitySelect for every create/edit session. Users with todo create/update permission but without customers.read or fairs.read could therefore trigger protected list/detail lookups and receive backend 403 responses. The form now fails closed per selector: unauthorized selectors are not mounted, existing relationship ids remain preserved during unrelated edits, and categories that require a missing relationship surface a permission-specific validation message when that relationship cannot be selected."
+}
