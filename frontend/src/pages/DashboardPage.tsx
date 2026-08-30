@@ -8,6 +8,8 @@ import { TableEntityLink } from "../components/ui/TableEntityLink";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { activityTypeLabels } from "../labels/activityLabels";
 import { dashboardLabels } from "../labels/dashboardLabels";
+import { canOpenDashboardCustomerLink } from "../permissions/dashboardCustomerLinkPermissions";
+import { getGrantedCorePermissions } from "../permissions/corePermissions";
 import type {
   DashboardFairSummary,
   DashboardOverviewCards,
@@ -93,6 +95,7 @@ function MailStatusCards({ mailStatus }: { mailStatus: DashboardMailStatusSummar
 
 function buildRecentActivityColumns(
   onOpenCustomer: (customerId: string) => void,
+  canOpenCustomer: boolean,
 ): UniversalDataTableColumn<DashboardRecentActivity>[] {
   return [
     {
@@ -100,7 +103,7 @@ function buildRecentActivityColumns(
       title: dashboardLabels.colCustomerName,
       sortable: false,
       render: (row) =>
-        row.customerId ? (
+        row.customerId && canOpenCustomer ? (
           <TableEntityLink onClick={() => onOpenCustomer(row.customerId!)}>
             {row.customerName}
           </TableEntityLink>
@@ -219,6 +222,7 @@ export function DashboardPage({
   const [data, setData] = React.useState<DashboardSummaryResponse | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const canOpenCustomer = canOpenDashboardCustomerLink(getGrantedCorePermissions());
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
@@ -239,8 +243,8 @@ export function DashboardPage({
   }, [loadData]);
 
   const recentActivityColumns = React.useMemo(
-    () => buildRecentActivityColumns(onOpenCustomer),
-    [onOpenCustomer],
+    () => buildRecentActivityColumns(onOpenCustomer, canOpenCustomer),
+    [canOpenCustomer, onOpenCustomer],
   );
   const fairSummaryColumns = React.useMemo(() => buildFairSummaryColumns(), []);
 
