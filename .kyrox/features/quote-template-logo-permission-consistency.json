@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "id": "quote-template-logo-permission-consistency",
+  "title": "Quote Template Logo Permission Consistency",
+  "feature_type": "backend_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "backend/app/modules/quote_templates/api/dependencies.py",
+    "backend/app/modules/quote_templates/api/routes.py",
+    "backend/tests/modules/quote_templates/test_quote_template_logo_permissions.py",
+    ".kyrox/features/quote-template-logo-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.quote_templates.create", "action": "create a quote template or upload a logo for a new template", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.quote_templates.update", "action": "update a quote template or upload a replacement logo", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": false,
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence schema changes are introduced." },
+    "migration": { "status": "na", "reason": "Both permission codes already exist in Core." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "na", "reason": "Logo upload remains a helper asset operation and existing template create/update audit events are unchanged." },
+    "frontend": { "status": "na", "reason": "The existing edit form already exposes logo replacement to users with quote_templates.update." },
+    "ui_permissions": { "status": "na", "reason": "No frontend permission gating changes are required once the shared upload endpoint accepts both legitimate writer permissions." },
+    "menu": { "status": "na", "reason": "Navigation is unchanged." },
+    "route_guard": { "status": "na", "reason": "Application routes are unchanged." },
+    "forms": { "status": "na", "reason": "Form structure is unchanged." },
+    "visual_qa": { "status": "na", "reason": "No visual changes are introduced." },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "na", "reason": "No frontend executable behavior changes." },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Quote template logo upload is shared by both create and update workflows. The upload endpoint now accepts either quote_templates.create or quote_templates.update, while template POST remains create-only and template PATCH remains update-only. Organization scoping and stored-logo ownership validation are unchanged."
+}
