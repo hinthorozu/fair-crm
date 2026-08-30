@@ -10,6 +10,7 @@ import { activityTypeLabels } from "../labels/activityLabels";
 import { dashboardLabels } from "../labels/dashboardLabels";
 import { canOpenDashboardCustomerLink } from "../permissions/dashboardCustomerLinkPermissions";
 import { canOpenDashboardSmtpSettings } from "../permissions/dashboardSmtpActionPermissions";
+import { canOpenDashboardTodoList } from "../permissions/dashboardTodoNavigationPermissions";
 import { getGrantedCorePermissions } from "../permissions/corePermissions";
 import type {
   DashboardFairSummary,
@@ -176,9 +177,11 @@ function buildFairSummaryColumns(): UniversalDataTableColumn<DashboardFairSummar
 function QuickActions({
   onNavigate,
   canOpenSmtpSettings,
+  canOpenTodoList,
 }: {
   onNavigate: (path: string) => void;
   canOpenSmtpSettings: boolean;
+  canOpenTodoList: boolean;
 }) {
   const actions = [
     { label: dashboardLabels.actionNewCustomer, path: "/customers" },
@@ -187,7 +190,9 @@ function QuickActions({
     ...(canOpenSmtpSettings
       ? [{ label: dashboardLabels.actionSmtpSettings, path: "/admin/email-accounts" }]
       : []),
-    { label: dashboardLabels.actionGoToTodos, path: "/todos" },
+    ...(canOpenTodoList
+      ? [{ label: dashboardLabels.actionGoToTodos, path: "/todos" }]
+      : []),
   ];
 
   return (
@@ -234,6 +239,7 @@ export function DashboardPage({
   const grantedPermissions = getGrantedCorePermissions();
   const canOpenCustomer = canOpenDashboardCustomerLink(grantedPermissions);
   const canOpenSmtpSettings = canOpenDashboardSmtpSettings(grantedPermissions);
+  const canOpenTodoList = canOpenDashboardTodoList(grantedPermissions);
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
@@ -335,6 +341,7 @@ export function DashboardPage({
           <QuickActions
             onNavigate={onNavigate}
             canOpenSmtpSettings={canOpenSmtpSettings}
+            canOpenTodoList={canOpenTodoList}
           />
         </DashboardSection>
       </div>

@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "id": "dashboard-todo-navigation-permission-consistency",
+  "title": "Dashboard Todo Navigation Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/DashboardPage.tsx",
+    "frontend/src/permissions/dashboardTodoNavigationPermissions.ts",
+    "frontend/src/permissions/dashboardTodoNavigationPermissions.test.ts",
+    ".kyrox/features/dashboard-todo-navigation-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.todos.read",
+        "action": "open the Todo list from the Dashboard quick actions",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/dashboard", "/todos"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.todos.read permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing Todo authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contracts change; only Dashboard Todo navigation visibility is aligned with the existing route guard." },
+    "tenant_isolation": { "status": "na", "reason": "No backend query or organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "No mutation or audit behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "The /todos route already requires fair_crm.todos.read; this change aligns the originating Dashboard quick action." },
+    "forms": { "status": "na", "reason": "No form behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Dashboard previously rendered the Todo'lara Git quick action for every authenticated organization user even when fair_crm.todos.read was absent. The action now fails closed in the UI and is offered only when Todo read permission is granted. Dashboard access itself remains public within the authenticated organization."
+}
