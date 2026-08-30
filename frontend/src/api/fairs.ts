@@ -4,6 +4,10 @@ import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
 import type { StandardListResponse } from "../types/listTable";
 import type { CreateFairPayload, Fair, UpdateFairPayload, FairStatus } from "../types/fair";
 import type { EnrichmentRunPayload, ScraperRun } from "../types/scraper";
+import { FAIR_READ } from "../permissions/fairPermissions";
+import { getGrantedCorePermissions } from "../permissions/corePermissions";
+
+const FAIR_READ_DENIED = `Fuar bilgilerini görüntüleme yetkiniz yok (${FAIR_READ}).`;
 
 export interface ListFairsParams extends Partial<ServerTableFetchParams> {
   status?: FairStatus;
@@ -31,6 +35,9 @@ export async function listFairs(params: ListFairsParams = {}): Promise<StandardL
 }
 
 export function getFair(id: string): Promise<Fair> {
+  if (!getGrantedCorePermissions().has(FAIR_READ)) {
+    return Promise.reject(new ApiError(FAIR_READ_DENIED, 403));
+  }
   return apiRequest<Fair>(`/api/v1/fairs/${id}`);
 }
 
