@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "operations-new-action-permission-consistency",
+  "title": "Operations New Action Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/OperationsPage.tsx",
+    "frontend/src/permissions/OperationsPagePermissions.test.ts",
+    ".kyrox/features/operations-new-action-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.operations.create",
+        "action": "start the new operation flow from the Operations page",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/operations", "/operations/new/scraper", "/operations/new/bulk-email", "/operations/new/enrichment", "/operations/new/duplicate-check"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.operations.create permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing operation authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes; only the Operations-page create entry point is aligned with existing route authorization." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "No mutation or audit behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Operation creation routes already require fair_crm.operations.create; this change aligns the originating page action." },
+    "forms": { "status": "na", "reason": "Operation wizard form behavior is unchanged." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "OperationsPage previously rendered Yeni Operasyon for users who could read operations but lacked fair_crm.operations.create, even though every /operations/new/* route already requires create permission. The entry point and open modal now fail closed on the existing create permission. Start and cancel row actions are intentionally outside this focused change."
+}

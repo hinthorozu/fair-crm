@@ -14,12 +14,14 @@ import { TableEntityLink } from "../components/ui/TableEntityLink";
 import { TableRowActions } from "../components/ui/TableRowActions";
 import { TruncatedText } from "../components/ui/TruncatedText";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
+import { usePermissions } from "../hooks/usePermissions";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import {
   operationLabels,
   operationPriorityLabels,
   operationTypeLabels,
 } from "../labels/operationLabels";
+import { PERMISSION_OPERATIONS_CREATE } from "../permissions/navigationPermissions";
 import type {
   Operation,
   OperationType,
@@ -44,6 +46,8 @@ function formatProgress(operation: Operation): string {
 }
 
 export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPageProps) {
+  const { can } = usePermissions();
+  const canCreate = can(PERMISSION_OPERATIONS_CREATE);
   const [banner, setBanner] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
@@ -244,15 +248,18 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
         title={operationLabels.pageTitle}
         subtitle={`${table.pagination.totalItems} kayıt`}
         actions={
-          <Button type="button" variant="primary" onClick={() => setTypeModalOpen(true)}>
-            {operationLabels.newOperation}
-          </Button>
+          canCreate ? (
+            <Button type="button" variant="primary" onClick={() => setTypeModalOpen(true)}>
+              {operationLabels.newOperation}
+            </Button>
+          ) : undefined
         }
       />
       <NewOperationTypeModal
-        open={typeModalOpen}
+        open={canCreate && typeModalOpen}
         onClose={() => setTypeModalOpen(false)}
         onContinue={(type) => {
+          if (!canCreate) return;
           setTypeModalOpen(false);
           onSelectType(type);
         }}
