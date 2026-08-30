@@ -9,11 +9,15 @@ import type {
 } from "../types/customer";
 import type { CustomerStatus, CustomerType } from "../types/customer";
 import { buildApiHeaders, config } from "../config";
+import { CUSTOMER_READ } from "../permissions/customerPermissions";
+import { getGrantedCorePermissions } from "../permissions/corePermissions";
 import {
   buildDownloadRequestHeaders,
   parseContentDispositionFileName,
   triggerBlobDownload,
 } from "../utils/downloadBlob";
+
+const CUSTOMER_READ_DENIED = `Müşteri bilgilerini görüntüleme yetkiniz yok (${CUSTOMER_READ}).`;
 
 export interface ListCustomersParams extends Partial<ServerTableFetchParams> {
   status?: CustomerStatus;
@@ -81,6 +85,9 @@ export async function exportCustomers(params: ListCustomersParams = {}): Promise
 }
 
 export function getCustomer(id: string): Promise<Customer> {
+  if (!getGrantedCorePermissions().has(CUSTOMER_READ)) {
+    return Promise.reject(new ApiError(CUSTOMER_READ_DENIED, 403));
+  }
   return apiRequest<Customer>(`/api/v1/customers/${id}`);
 }
 

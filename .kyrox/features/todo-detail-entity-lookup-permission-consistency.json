@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "id": "todo-detail-entity-lookup-permission-consistency",
+  "title": "Todo Detail Entity Lookup Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/api/customers.ts",
+    "frontend/src/api/fairs.ts",
+    "frontend/src/api/entityDetailLookups.permission.test.ts",
+    ".kyrox/features/todo-detail-entity-lookup-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.todos.read", "action": "open Todo Detail", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.customers.read", "action": "resolve optional customer detail lookups", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fairs.read", "action": "resolve optional fair detail lookups", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/todos/:id"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "All consumed permission codes already exist in Core." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing backend endpoint authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes are introduced; frontend detail lookup clients now fail closed before unauthorized requests." },
+    "tenant_isolation": { "status": "na", "reason": "No backend query or organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "No mutation or audit behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Todo navigation remains controlled by todos.read." },
+    "route_guard": { "status": "na", "reason": "Todo Detail correctly remains accessible with todos.read alone; customer and fair names are optional enrichment." },
+    "forms": { "status": "na", "reason": "No form behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Todo Detail is intentionally scoped to todos.read. Customer and fair names are optional enrichment, but the page previously issued getCustomer/getFair requests even when the user lacked the corresponding read permission and then silently swallowed backend 403 responses. The shared detail lookup clients now fail closed locally, preserving Todo Detail access while preventing unauthorized HTTP requests."
+}
