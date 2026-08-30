@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "id": "dashboard-new-todo-create-flow",
+  "title": "Dashboard new todo create flow",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/DashboardPage.tsx",
+    "frontend/src/components/dashboard/DashboardNewTodoModal.tsx",
+    "frontend/src/permissions/dashboardNewTodoActionPermissions.ts",
+    "frontend/src/permissions/dashboardNewTodoActionPermissions.test.ts",
+    ".kyrox/features/dashboard-new-todo-create-flow.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.todos.create",
+        "action": "create a todo from the Dashboard quick actions",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/dashboard"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No schema or persistence model changes." },
+    "migration": { "status": "na", "reason": "No database migration is required." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing todo create backend capability is reused unchanged." },
+    "api": { "status": "na", "reason": "Existing todo and todo-step APIs are reused unchanged." },
+    "tenant_isolation": { "status": "na", "reason": "No tenant scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing todo creation audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No menu item is added or changed." },
+    "route_guard": { "status": "na", "reason": "The action opens an in-place modal and does not add or change a route." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Dashboard Yeni Todo now opens the existing TodoForm in a create modal instead of navigating to the todo list. The quick action is offered only with fair_crm.todos.create; Todo'lara Git remains independently governed by fair_crm.todos.read."
+}
