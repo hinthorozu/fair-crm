@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "id": "dashboard-customer-link-permission-consistency",
+  "title": "Dashboard Customer Link Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/DashboardPage.tsx",
+    "frontend/src/permissions/dashboardCustomerLinkPermissions.ts",
+    "frontend/src/permissions/dashboardCustomerLinkPermissions.test.ts",
+    ".kyrox/features/dashboard-customer-link-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.customers.read", "action": "open a customer card from Dashboard recent activities", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/dashboard", "/customers/:id"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.customers.read permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Dashboard organization access and existing backend customer authorization remain unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contracts change; only Dashboard customer navigation visibility is aligned with customer read authorization." },
+    "tenant_isolation": { "status": "na", "reason": "No backend query or organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "No mutation or audit behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Customer detail access already fails closed without fair_crm.customers.read; this change aligns the originating Dashboard link." },
+    "forms": { "status": "na", "reason": "No form behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Dashboard summary access requires authenticated organization access but no RBAC permission. Recent activity customer names were nevertheless rendered as customer-card links for every Dashboard user, while customer detail reads require fair_crm.customers.read and fail closed without it. The Dashboard now renders those names as links only when customer read permission is granted; otherwise the same summary data remains visible as plain text."
+}
