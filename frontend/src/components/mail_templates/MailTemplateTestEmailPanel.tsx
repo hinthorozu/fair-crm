@@ -24,6 +24,7 @@ import { isValidSingleEmail } from "../../utils/email";
 interface MailTemplateTestEmailPanelProps {
   template: MailTemplate;
   emailAccounts: EmailAccount[];
+  canChooseEmailAccount: boolean;
   canRender: boolean;
   canTestSend: boolean;
   onCancel: () => void;
@@ -32,6 +33,7 @@ interface MailTemplateTestEmailPanelProps {
 export function MailTemplateTestEmailPanel({
   template,
   emailAccounts,
+  canChooseEmailAccount,
   canRender,
   canTestSend,
   onCancel,
@@ -103,7 +105,7 @@ export function MailTemplateTestEmailPanel({
     !previewStale &&
     emailValid &&
     subjectValid &&
-    Boolean(emailAccountId) &&
+    (!canChooseEmailAccount || Boolean(emailAccountId)) &&
     !previewing &&
     !sending;
 
@@ -157,7 +159,7 @@ export function MailTemplateTestEmailPanel({
   };
 
   const handleSend = async () => {
-    if (!canSend || !emailAccountId) return;
+    if (!canSend) return;
     setError(null);
     setSuccess(null);
     setSending(true);
@@ -171,7 +173,7 @@ export function MailTemplateTestEmailPanel({
       }
       const result = await sendTestMailTemplate(template.id, {
         to_email: toEmail.trim(),
-        email_account_id: emailAccountId,
+        email_account_id: canChooseEmailAccount ? emailAccountId || null : null,
         variables,
         subject_override: subject.trim(),
       });
@@ -244,15 +246,21 @@ export function MailTemplateTestEmailPanel({
             ) : null}
           </FormField>
 
-          <EmailAccountPicker
-            id="mail-template-test-email-smtp"
-            label={adminLabels.mailTemplatesTestEmailSmtpAccount}
-            value={emailAccountId}
-            onChange={setEmailAccountId}
-            accounts={activeAccounts}
-            required
-            disabled={sending || previewing}
-          />
+          {canChooseEmailAccount ? (
+            <EmailAccountPicker
+              id="mail-template-test-email-smtp"
+              label={adminLabels.mailTemplatesTestEmailSmtpAccount}
+              value={emailAccountId}
+              onChange={setEmailAccountId}
+              accounts={activeAccounts}
+              required
+              disabled={sending || previewing}
+            />
+          ) : (
+            <Banner variant="info">
+              E-posta hesabı görüntüleme yetkisi olmadığı için kuruluşun varsayılan aktif hesabı kullanılacak.
+            </Banner>
+          )}
 
           <FormField
             label={adminLabels.mailTemplatesFieldSampleVariables}
