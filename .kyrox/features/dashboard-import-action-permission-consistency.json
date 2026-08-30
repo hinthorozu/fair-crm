@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "id": "dashboard-import-action-permission-consistency",
+  "title": "Dashboard import action permission consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/DashboardPage.tsx",
+    "frontend/src/permissions/dashboardImportActionPermissions.ts",
+    "frontend/src/permissions/dashboardImportActionPermissions.test.ts"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      "fair_crm.imports.create"
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/dashboard",
+      "/data-integration/imports/new"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "db_schema": { "required": false, "reason": "No database changes." },
+    "migration": { "required": false, "reason": "No schema changes." },
+    "backend": { "required": false, "reason": "Existing backend authorization is unchanged." },
+    "api": { "required": false, "reason": "No API contract changes." },
+    "tenant_isolation": { "required": false, "reason": "No tenant-scoped data access changes." },
+    "audit": { "required": false, "reason": "No audited action changes." },
+    "backend_tests": { "required": false, "reason": "Frontend-only authorization UX consistency." },
+    "frontend_tests": { "required": true },
+    "ui_permissions": { "required": true },
+    "visual_qa": { "required": true },
+    "route_guard": { "required": false, "reason": "Target route guard already requires imports.create." },
+    "runtime_auth": { "required": true },
+    "runtime_verification": { "required": true },
+    "deployment": { "required": true }
+  },
+  "notes": "Dashboard remains accessible as before. The Import Baslat quick action is offered only when fair_crm.imports.create is granted, matching the existing target route guard."
+}
