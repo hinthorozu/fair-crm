@@ -51,6 +51,7 @@ import {
   canPerformTodoAction,
   getGrantedTodoPermissions,
 } from "../permissions/todoPermissions";
+import { canOpenTodoQuoteAction } from "../permissions/todoQuoteActionPermissions";
 import type { Todo, TodoPriority, TodoStatus } from "../types/todo";
 import { Banner } from "../components/ui/Banner";
 import { TableEntityLink } from "../components/ui/TableEntityLink";
@@ -154,6 +155,7 @@ export function TodoDetailPage({
 
   const grantedPermissions = React.useMemo(() => getGrantedTodoPermissions(), []);
   const canUpdate = canPerformTodoAction(grantedPermissions, "update");
+  const canOpenQuote = canOpenTodoQuoteAction(grantedPermissions);
 
   // A selected fair is context for many task types (quote, visit, etc.).
   // The customer worklist belongs only to call/search tasks.
@@ -447,7 +449,7 @@ export function TodoDetailPage({
       variant: "secondary",
     });
   }
-  if (todo.category === "teklif" && onOpenQuote) {
+  if (todo.category === "teklif" && onOpenQuote && canOpenQuote) {
     headerActions.unshift({ id: "quote", label: "Teklifi Hazırla", onClick: () => onOpenQuote(todo.id), variant: "primary" });
   }
   if (canUpdate && canCompleteTodo(todo)) {
