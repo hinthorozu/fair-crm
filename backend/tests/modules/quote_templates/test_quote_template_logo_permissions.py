@@ -1,9 +1,9 @@
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[4]
-DEPENDENCIES = ROOT / "app/modules/quote_templates/api/dependencies.py"
-ROUTES = ROOT / "app/modules/quote_templates/api/routes.py"
+BACKEND_ROOT = Path(__file__).resolve().parents[3]
+DEPENDENCIES = BACKEND_ROOT / "app/modules/quote_templates/api/dependencies.py"
+ROUTES = BACKEND_ROOT / "app/modules/quote_templates/api/routes.py"
 
 
 def test_logo_upload_accepts_create_or_update_permission():
