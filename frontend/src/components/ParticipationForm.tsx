@@ -17,6 +17,14 @@ import {
   TextareaInput,
   TextInput,
 } from "./ui/form";
+import { config } from "../config";
+import {
+  getGrantedCorePermissions,
+  hasGrantedCorePermission,
+  type GrantedPermissionCollection,
+} from "../permissions/corePermissions";
+import { CUSTOMER_READ } from "../permissions/customerPermissions";
+import { FAIR_READ } from "../permissions/fairPermissions";
 
 export interface ParticipationFormValues {
   fair_id: string;
@@ -76,6 +84,30 @@ export function fairParticipantToFormValues(
   };
 }
 
+export function getParticipationSelectorReadPermission(
+  mode: "customer" | "fair",
+  lockFair = false,
+  lockCustomer = false,
+): string | null {
+  if (mode === "customer" && !lockFair) return FAIR_READ;
+  if (mode === "fair" && !lockCustomer) return CUSTOMER_READ;
+  return null;
+}
+
+export function canUseParticipationEntitySelector(
+  granted: GrantedPermissionCollection,
+  mode: "customer" | "fair",
+  lockFair = false,
+  lockCustomer = false,
+): boolean {
+  const requiredPermission = getParticipationSelectorReadPermission(
+    mode,
+    lockFair,
+    lockCustomer,
+  );
+  return requiredPermission === null || hasGrantedCorePermission(granted, requiredPermission);
+}
+
 interface ParticipationFormProps {
   mode: "customer" | "fair";
   initial?: ParticipationFormValues;
@@ -109,6 +141,19 @@ export function ParticipationForm({
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const handleCancel = useModalFormCancel(onCancel);
+  const selectorReadPermission = getParticipationSelectorReadPermission(
+    mode,
+    lockFair,
+    lockCustomer,
+  );
+  const canUseSelector =
+    config.devBypassEnabled ||
+    canUseParticipationEntitySelector(
+      getGrantedCorePermissions(),
+      mode,
+      lockFair,
+      lockCustomer,
+    );
 
   useReportFormDirty(values, baseline);
 
@@ -128,6 +173,7 @@ export function ParticipationForm({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!canUseSelector) return;
     if (mode === "customer" && !values.fair_id) {
       setError(participationLabels.selectFair);
       return;
@@ -146,6 +192,16 @@ export function ParticipationForm({
       setSaving(false);
     }
   };
+
+  if (!canUseSelector) {
+    return (
+      <Banner variant="error">
+        {selectorReadPermission === FAIR_READ
+          ? participationLabels.fairReadRequired
+          : participationLabels.customerReadRequired}
+      </Banner>
+    );
+  }
 
   return (
     <form className="participation-form crm-form crm-form--standard" onSubmit={(event) => void handleSubmit(event)}>
