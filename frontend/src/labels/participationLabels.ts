@@ -22,6 +22,8 @@ export const participationLabels = {
   deleteError: "Katılım kaydı silinemedi.",
   selectFair: "Fuar seçin",
   selectCompany: "Müşteri seçin",
+  fairReadRequired: "Fuar seçebilmek için fuarları görüntüleme yetkisi gerekli.",
+  customerReadRequired: "Müşteri seçebilmek için müşterileri görüntüleme yetkisi gerekli.",
   participationSectionInfo: "Katılım Bilgileri",
   participationSectionDetails: "Detaylar",
 } as const;
