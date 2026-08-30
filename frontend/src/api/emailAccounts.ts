@@ -1,4 +1,9 @@
 import { apiRequest, ApiError } from "./client";
+import {
+  EMAIL_ACCOUNTS_PERMISSION_READ,
+  getGrantedPermissions,
+  hasPermission,
+} from "../permissions/emailAccountPermissions";
 import type {
   CreateEmailAccountPayload,
   EmailAccount,
@@ -12,8 +17,13 @@ import type {
 export { ApiError };
 
 const EMAIL_ACCOUNTS_BASE = "/api/v1/email-accounts";
+const EMAIL_ACCOUNTS_READ_DENIED =
+  "E-posta hesaplarını görüntüleme yetkiniz yok (fair_crm.email_accounts.read).";
 
 export async function listEmailAccounts(): Promise<EmailAccountListResponse> {
+  if (!hasPermission(getGrantedPermissions(), EMAIL_ACCOUNTS_PERMISSION_READ)) {
+    throw new ApiError(EMAIL_ACCOUNTS_READ_DENIED, 403);
+  }
   return apiRequest<EmailAccountListResponse>(EMAIL_ACCOUNTS_BASE);
 }
 
