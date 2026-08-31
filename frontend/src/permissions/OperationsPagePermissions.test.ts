@@ -31,7 +31,7 @@ describe("Operations action permissions", () => {
     expect(source).toContain("if (!canCreate) return;");
   });
 
-  it("uses the backend operations execute permission for the start action", () => {
+  it("uses the backend operations execute permission for operation mutations", () => {
     expect(operationPermissionSource).toContain(
       'OPERATION_EXECUTE = "fair_crm.operations.execute"',
     );
@@ -42,6 +42,13 @@ describe("Operations action permissions", () => {
     expect(source).toContain("if (!canExecute) return;");
     expect(source).toContain(
       'canExecute && ["draft", "ready", "active"].includes(item.status) && !latestRunActive',
+    );
+  });
+
+  it("hides and fails closed the cancel action without execute permission", () => {
+    expect(source.match(/if \(!canExecute\) return;/g)).toHaveLength(2);
+    expect(source).toContain(
+      'canExecute && ["draft", "ready", "active"].includes(item.status) ? (',
     );
   });
 });

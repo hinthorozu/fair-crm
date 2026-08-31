@@ -120,6 +120,7 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
   };
 
   const handleCancel = async (operation: Operation) => {
+    if (!canExecute) return;
     setBusyId(operation.id);
     setActionError(null);
     try {
@@ -222,7 +223,7 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
                   {operationLabels.actionStart}
                 </button>
               ) : null}
-              {["draft", "ready", "active"].includes(item.status) ? (
+              {canExecute && ["draft", "ready", "active"].includes(item.status) ? (
                 <button
                   type="button"
                   className="btn link danger"
