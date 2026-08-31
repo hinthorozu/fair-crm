@@ -59,6 +59,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
   });
 
   const handleCreate = async (values: CreateFairPayload) => {
+    if (!canCreate) return;
     const created = await createFair(values);
     if (onOpenDetail) {
       runAfterSuccessfulFormSubmit(() => {
@@ -72,6 +73,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
   };
 
   const handleCreateAndNew = async (values: CreateFairPayload) => {
+    if (!canCreate) return;
     await createFair(values);
     setCreateSessionKey((key) => key + 1);
     await table.refresh();
