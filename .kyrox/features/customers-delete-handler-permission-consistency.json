@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "customers-delete-handler-permission-consistency",
+  "title": "Customers Delete Handler Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/CustomersPage.tsx",
+    "frontend/src/permissions/CustomersPageDeletePermissions.test.ts",
+    ".kyrox/features/customers-delete-handler-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.customers.delete",
+        "action": "archive and restore customer",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/customers"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.customers.delete permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing customer archive/restore authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing customer archive/restore auditing remains unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "The customers route remains readable; only delete-class mutation handlers are hardened." },
+    "forms": { "status": "na", "reason": "Archive and restore use confirmation actions rather than editable forms." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "CustomersPage already hid archive/restore entry points without fair_crm.customers.delete, but handleArchive and handleRestore lacked explicit fail-closed guards. Both handlers now return immediately when delete permission is absent."
+}

@@ -111,6 +111,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
   };
 
   const handleArchive = async (customer: Customer) => {
+    if (!canDelete) return;
     setArchivingId(customer.id);
     try {
       await archiveCustomer(customer.id);
@@ -125,6 +126,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
   };
 
   const handleRestore = async (customer: Customer) => {
+    if (!canDelete) return;
     setRestoringId(customer.id);
     try {
       await restoreCustomer(customer.id);
