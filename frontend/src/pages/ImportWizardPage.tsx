@@ -38,7 +38,7 @@ import { UniversalDataTable, type UniversalDataTableColumn } from "../components
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 import { usePermissions } from "../hooks/usePermissions";
 import { useServerDataTable, type ServerTableFetchParams } from "../hooks/useServerDataTable";
-import { IMPORT_PERMISSION_UPDATE } from "../permissions/importPermissions";
+import { IMPORT_PERMISSION_EXECUTE, IMPORT_PERMISSION_UPDATE } from "../permissions/importPermissions";
 import { DEFAULT_PAGE } from "../types/listTable";
 import {
   importBatchStatusLabels,
@@ -132,6 +132,7 @@ function ImportWizardPageInner({
   const requestLeave = useModalFormCancel(onLeave);
   const { can } = usePermissions();
   const canUpdate = can(IMPORT_PERMISSION_UPDATE);
+  const canExecute = can(IMPORT_PERMISSION_EXECUTE);
   const [wizardMode, setWizardMode] = React.useState<"setup" | "continue">("setup");
   const isContinueMode = wizardMode === "continue";
   const [isSetupResume, setIsSetupResume] = React.useState(false);
@@ -622,6 +623,7 @@ function ImportWizardPageInner({
   };
 
   const handleApplyDecisions = async () => {
+    if (!canExecute) return;
     if (!batchId || applyRunning) return;
     setApplyRunning(true);
     setApplyResult(null);
@@ -853,7 +855,8 @@ function ImportWizardPageInner({
           type="button"
           className="btn btn-primary"
           disabled={
-            isImportDecisionBusy(applyRunning, bulkAssignRunning, loading)
+            !canExecute
+            || isImportDecisionBusy(applyRunning, bulkAssignRunning, loading)
             || previewTable.items.length === 0
           }
           onClick={() => void handleApplyDecisions()}
