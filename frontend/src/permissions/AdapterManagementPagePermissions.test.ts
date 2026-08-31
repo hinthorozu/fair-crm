@@ -25,4 +25,17 @@ describe("Adapter Management action permissions", () => {
     expect(source).toContain("{canCreate ? (");
     expect(source).toContain("{canCreate && showCreateModal ? (");
   });
+
+  it("uses the backend scraper update permission for adapter activation changes", () => {
+    expect(permissionSource).toContain(
+      'SCRAPER_PERMISSION_UPDATE = "fair_crm.scraper.update"',
+    );
+    expect(source).toContain("const canUpdate = can(SCRAPER_PERMISSION_UPDATE)");
+  });
+
+  it("hides and fails closed activate and deactivate without update permission", () => {
+    expect(source).toContain("if (!canUpdate) return;");
+    expect(source).toContain("{handlers.canUpdate ? (");
+    expect(source).toContain("canUpdate,");
+  });
 });
