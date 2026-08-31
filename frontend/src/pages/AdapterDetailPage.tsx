@@ -32,6 +32,8 @@ import { Banner } from "../components/ui/Banner";
 import { FormDirtyHost } from "../components/ui/form";
 import { PageShell } from "../components/ui/PageShell";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
+import { usePermissions } from "../hooks/usePermissions";
+import { SCRAPER_PERMISSION_UPDATE } from "../permissions/scraperPermissions";
 
 interface AdapterDetailPageProps {
   adapterKey: string;
@@ -99,6 +101,8 @@ export function AdapterDetailPage({
   onOpenScraperTest,
   onOpenRunDetail,
 }: AdapterDetailPageProps) {
+  const { can } = usePermissions();
+  const canUpdate = can(SCRAPER_PERMISSION_UPDATE);
   const detailPath = `/data-integration/adapters/${encodeURIComponent(adapterKey)}`;
   const [adapterItem, setAdapterItem] = React.useState<AdapterListItem | null>(null);
   const [manifest, setManifest] = React.useState<ScraperManifest | null>(null);
@@ -208,12 +212,12 @@ export function AdapterDetailPage({
   }, [adapterKey]);
 
   const startEdit = React.useCallback(() => {
-    if (!manifest) return;
+    if (!canUpdate || !manifest) return;
     setEditBaseline(manifestToFormState(manifest));
     setDraft(manifestToFormState(manifest));
     setIsEditing(true);
     setError(null);
-  }, [manifest]);
+  }, [canUpdate, manifest]);
 
   const cancelEdit = React.useCallback(() => {
     setIsEditing(false);
@@ -236,6 +240,7 @@ export function AdapterDetailPage({
   }, [refreshAdapterItem]);
 
   const saveEdit = React.useCallback(async () => {
+    if (!canUpdate) return;
     const currentDraft = draftRef.current;
     if (!currentDraft) {
       setError(scraperLabels.manifestSaveError);
@@ -278,7 +283,7 @@ export function AdapterDetailPage({
     } finally {
       setSaving(false);
     }
-  }, [adapterKey, manifest, refreshSavedData]);
+  }, [adapterKey, canUpdate, manifest, refreshSavedData]);
 
   const handleDraftChange = React.useCallback(
     (updater: (current: AdapterFormState) => AdapterFormState) => {
@@ -355,6 +360,7 @@ export function AdapterDetailPage({
         deleting={deleting}
         isEnrichmentAdapter={isEnrichmentAdapter}
         isEditableTab={isEditableTab}
+        canUpdate={canUpdate}
         onBack={onBack}
         onOpenFair={onOpenFair}
         onViewAllRuns={onViewAllRuns}
@@ -392,6 +398,7 @@ interface AdapterDetailPageLoadedProps {
   deleting: boolean;
   isEnrichmentAdapter: boolean;
   isEditableTab: boolean;
+  canUpdate: boolean;
   onBack: () => void;
   onOpenFair?: (fairId: string) => void;
   onViewAllRuns?: (adapterKey: string) => void;
@@ -426,6 +433,7 @@ function AdapterDetailPageLoaded({
   deleting,
   isEnrichmentAdapter,
   isEditableTab,
+  canUpdate,
   onBack,
   onOpenFair,
   onViewAllRuns,
@@ -454,14 +462,18 @@ function AdapterDetailPageLoaded({
           onClick: requestCancelEdit,
           disabled: saving,
         },
-        {
-          id: "save",
-          label: scraperLabels.formSave,
-          variant: "primary",
-          onClick: () => void saveEdit(),
-          loading: saving,
-          disabled: saving,
-        },
+        ...(canUpdate
+          ? [
+              {
+                id: "save",
+                label: scraperLabels.formSave,
+                variant: "primary" as const,
+                onClick: () => void saveEdit(),
+                loading: saving,
+                disabled: saving,
+              },
+            ]
+          : []),
       ]
     : [
         ...(isEnrichmentAdapter
@@ -491,13 +503,17 @@ function AdapterDetailPageLoaded({
           disabled: isEditing || deletePreviewLoading || deleting,
           loading: deletePreviewLoading,
         },
-        {
-          id: "edit",
-          label: uiLabels.detailEdit,
-          variant: "primary",
-          onClick: startEdit,
-          disabled: !isEditableTab || manifestLoading || !manifest || deletePreviewLoading || deleting,
-        },
+        ...(canUpdate
+          ? [
+              {
+                id: "edit",
+                label: uiLabels.detailEdit,
+                variant: "primary" as const,
+                onClick: startEdit,
+                disabled: !isEditableTab || manifestLoading || !manifest || deletePreviewLoading || deleting,
+              },
+            ]
+          : []),
       ];
 
   return (
