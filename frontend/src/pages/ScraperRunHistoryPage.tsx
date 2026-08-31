@@ -16,7 +16,9 @@ import { UniversalDataTable, type UniversalDataTableColumn } from "../components
 import { TableRowActions } from "../components/ui/TableRowActions";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { useServerDataTable } from "../hooks/useServerDataTable";
+import { usePermissions } from "../hooks/usePermissions";
 import { scraperLabels } from "../labels/scraperLabels";
+import { SCRAPER_PERMISSION_EXECUTE } from "../permissions/scraperPermissions";
 import type { AdapterListItem, ScraperRun, ScraperRunStatus } from "../types/scraper";
 import { runStatusBadgeVariant, runStatusLabel } from "../utils/scraperBadges";
 import { Banner } from "../components/ui/Banner";
@@ -152,6 +154,7 @@ function buildColumns(
     onOpenImportBatch?: (batchId: string) => void;
     onDownload: (run: ScraperRun, kind: "json" | "excel") => void;
     onDelete: (run: ScraperRun) => void;
+    canDownload: boolean;
     loadingKey: string | null;
     deletingRunId: string | null;
   },
@@ -257,9 +260,12 @@ function buildColumns(
       title: scraperLabels.runColFiles,
       sortable: false,
       priority: "secondary",
-      render: (run) => (
-        <RunHistoryFilesMenu run={run} onDownload={handlers.onDownload} loadingKey={handlers.loadingKey} />
-      ),
+      render: (run) =>
+        handlers.canDownload ? (
+          <RunHistoryFilesMenu run={run} onDownload={handlers.onDownload} loadingKey={handlers.loadingKey} />
+        ) : (
+          <span className="text-muted">—</span>
+        ),
     },
     {
       key: "import_batch_id",
@@ -325,6 +331,8 @@ export function ScraperRunHistoryPage({
   onOpenRunDetail,
   onOpenImportBatch,
 }: ScraperRunHistoryPageProps) {
+  const { can } = usePermissions();
+  const canExecute = can(SCRAPER_PERMISSION_EXECUTE);
   const [adapters, setAdapters] = React.useState<AdapterListItem[]>([]);
   const [outputLoading, setOutputLoading] = React.useState<string | null>(null);
   const [outputError, setOutputError] = React.useState<string | null>(null);
@@ -383,6 +391,7 @@ export function ScraperRunHistoryPage({
   }, [silentRefresh]);
 
   const handleDownload = React.useCallback(async (run: ScraperRun, kind: "json" | "excel") => {
+    if (!canExecute) return;
     const key = `${run.id}:${kind}`;
     setOutputLoading(key);
     setOutputError(null);
@@ -393,7 +402,7 @@ export function ScraperRunHistoryPage({
     } finally {
       setOutputLoading(null);
     }
-  }, []);
+  }, [canExecute]);
 
   const handleConfirmDelete = React.useCallback(async () => {
     if (!runToDelete) return;
@@ -420,10 +429,11 @@ export function ScraperRunHistoryPage({
         onOpenImportBatch,
         onDownload: (run, kind) => void handleDownload(run, kind),
         onDelete: setRunToDelete,
+        canDownload: canExecute,
         loadingKey: outputLoading,
         deletingRunId,
       }),
-    [handleDownload, onOpenAdapter, onOpenRunDetail, onOpenImportBatch, outputLoading, deletingRunId],
+    [canExecute, handleDownload, onOpenAdapter, onOpenRunDetail, onOpenImportBatch, outputLoading, deletingRunId],
   );
 
   const statusOptions: ScraperRunStatus[] = ["running", "completed", "failed", "cancelled"];
