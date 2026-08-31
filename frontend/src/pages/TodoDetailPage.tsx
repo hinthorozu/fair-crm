@@ -329,6 +329,7 @@ export function TodoDetailPage({
   };
 
   const handleEditSubmit = async (values: TodoFormValues) => {
+    if (!canUpdate) return;
     const updated = await updateTodo(todoId, formValuesToUpdatePayload(values));
     const nextSteps = await replaceTodoSteps(todoId, {
       steps: formItemsToReplacePayload(values.steps),
@@ -643,7 +644,7 @@ export function TodoDetailPage({
         </>
       ) : null}
 
-      {editOpen ? (
+      {editOpen && canUpdate ? (
         <FormModal
           title={todoLabels.editTodo}
           onClose={() => setEditOpen(false)}
