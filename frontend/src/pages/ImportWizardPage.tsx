@@ -38,7 +38,11 @@ import { UniversalDataTable, type UniversalDataTableColumn } from "../components
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 import { usePermissions } from "../hooks/usePermissions";
 import { useServerDataTable, type ServerTableFetchParams } from "../hooks/useServerDataTable";
-import { IMPORT_PERMISSION_EXECUTE, IMPORT_PERMISSION_UPDATE } from "../permissions/importPermissions";
+import {
+  IMPORT_PERMISSION_CREATE,
+  IMPORT_PERMISSION_EXECUTE,
+  IMPORT_PERMISSION_UPDATE,
+} from "../permissions/importPermissions";
 import { DEFAULT_PAGE } from "../types/listTable";
 import {
   importBatchStatusLabels,
@@ -133,6 +137,7 @@ function ImportWizardPageInner({
   const { can } = usePermissions();
   const canUpdate = can(IMPORT_PERMISSION_UPDATE);
   const canExecute = can(IMPORT_PERMISSION_EXECUTE);
+  const canCreate = can(IMPORT_PERMISSION_CREATE);
   const [wizardMode, setWizardMode] = React.useState<"setup" | "continue">("setup");
   const isContinueMode = wizardMode === "continue";
   const [isSetupResume, setIsSetupResume] = React.useState(false);
@@ -392,6 +397,7 @@ function ImportWizardPageInner({
   }, [batchId, currentStep, refreshMappingPreview]);
 
   const handleUpload = async () => {
+    if (!canCreate) return;
     if (!selectedFile || !selectedFairId) return;
     setLoading(true);
     setError(null);
@@ -1095,7 +1101,12 @@ function ImportWizardPageInner({
             hidden
             onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
           />
-          <button type="button" className="btn btn-secondary" onClick={() => fileRef.current?.click()}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={!canCreate}
+            onClick={() => fileRef.current?.click()}
+          >
             {importLabels.selectFile}
           </button>
           {selectedFile && <p>{selectedFile.name}</p>}
@@ -1507,6 +1518,7 @@ function ImportWizardPageInner({
             disabled={
               !canNext()
               || loading
+              || (currentStep === "upload" && !isSetupResume && !canCreate)
               || (["sheet", "header", "mapping"].includes(currentStep) && !canUpdate)
             }
             onClick={handleNext}
