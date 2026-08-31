@@ -7,6 +7,8 @@ import { Badge } from "../ui/Badge";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { LoadingState } from "../ui/LoadingState";
 import { scraperLabels } from "../../labels/scraperLabels";
+import { usePermissions } from "../../hooks/usePermissions";
+import { SCRAPER_PERMISSION_EXECUTE } from "../../permissions/scraperPermissions";
 import type { EnrichmentRunSummary, ScraperRun } from "../../types/scraper";
 import { CUSTOMER_CONTACT_ENRICHMENT_ADAPTER_KEY } from "../../utils/enrichmentAdapter";
 import { isActiveScraperRunStatus, runStatusBadgeVariant, runStatusLabel } from "../../utils/scraperBadges";
@@ -66,6 +68,8 @@ export function EnrichmentRunDetailPanel({
   onOpenImportBatch,
   showActions = true,
 }: EnrichmentRunDetailPanelProps) {
+  const { can } = usePermissions();
+  const canExecute = can(SCRAPER_PERMISSION_EXECUTE);
   const [run, setRun] = React.useState<ScraperRun | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -110,6 +114,7 @@ export function EnrichmentRunDetailPanel({
   }, [run?.status, loadRun]);
 
   const handleCancelConfirm = React.useCallback(async () => {
+    if (!canExecute) return;
     setCancelling(true);
     setCancelError(null);
     try {
@@ -121,9 +126,9 @@ export function EnrichmentRunDetailPanel({
     } finally {
       setCancelling(false);
     }
-  }, [runId, loadRun]);
+  }, [canExecute, runId, loadRun]);
 
-  const showCancelButton = showActions && run?.status === "running";
+  const showCancelButton = showActions && canExecute && run?.status === "running";
   const showCancellingState =
     run?.status === "cancel_requested" || run?.status === "cancelling";
 

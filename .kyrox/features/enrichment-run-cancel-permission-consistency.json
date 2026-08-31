@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "enrichment-run-cancel-permission-consistency",
+  "title": "Enrichment Run Cancel Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/components/scraper/EnrichmentRunDetailPanel.tsx",
+    "frontend/src/permissions/EnrichmentRunCancelPermissions.test.ts",
+    ".kyrox/features/enrichment-run-cancel-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.scraper.execute",
+        "action": "cancel active enrichment scraper run",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/data-integration/runs/:runId"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.scraper.execute permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing run cancel authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing cancellation behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Run detail remains readable; only cancel requires execute." },
+    "forms": { "status": "na", "reason": "No forms are changed." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Enrichment run detail previously exposed cancel to read-only users. Backend POST /scraper/runs/{run_id}/cancel requires fair_crm.scraper.execute; the UI now hides and fails closed without execute permission."
+}
