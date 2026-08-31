@@ -315,6 +315,7 @@ export function TodosPage({ onOpenDetail, onOpenQuote, onOpenCustomer }: TodosPa
   };
 
   const handleArchive = async (todo: Todo) => {
+    if (!canArchive) return;
     setActionLoadingId(todo.id);
     try {
       await archiveTodo(todo.id);
@@ -329,6 +330,7 @@ export function TodosPage({ onOpenDetail, onOpenQuote, onOpenCustomer }: TodosPa
   };
 
   const handleDelete = async (todo: Todo) => {
+    if (!canDelete) return;
     setActionLoadingId(todo.id);
     try {
       await deleteTodo(todo.id);
