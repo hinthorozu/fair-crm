@@ -19,8 +19,10 @@ import { PageShell } from "../components/ui/PageShell";
 import { Badge } from "../components/ui/Badge";
 import { TableRowActions } from "../components/ui/TableRowActions";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
+import { usePermissions } from "../hooks/usePermissions";
 import { labels } from "../labels";
 import { scraperLabels } from "../labels/scraperLabels";
+import { SCRAPER_PERMISSION_CREATE } from "../permissions/scraperPermissions";
 import type {
   AdapterListItem,
   CreateAdapterPayload,
@@ -146,6 +148,8 @@ export function AdapterManagementPage({
 }: {
   onOpenDetail?: (adapterKey: string) => void;
 }) {
+  const { can } = usePermissions();
+  const canCreate = can(SCRAPER_PERMISSION_CREATE);
   const [summary, setSummary] = React.useState<ScraperDashboardSummary | null>(null);
   const [adapters, setAdapters] = React.useState<AdapterListItem[]>([]);
   const [runs, setRuns] = React.useState<ScraperRun[]>([]);
@@ -242,6 +246,7 @@ export function AdapterManagementPage({
 
   const handleCreate = React.useCallback(
     async (payload: CreateAdapterPayload) => {
+      if (!canCreate) return;
       setFormSaving(true);
       setFormError(null);
       try {
@@ -264,7 +269,7 @@ export function AdapterManagementPage({
         setFormSaving(false);
       }
     },
-    [refreshAdapters],
+    [canCreate, refreshAdapters],
   );
 
   const handleToggleActive = React.useCallback(
@@ -315,16 +320,18 @@ export function AdapterManagementPage({
                 <button type="button" className="btn secondary" onClick={() => void loadData()} disabled={loading}>
                   {labels.refresh}
                 </button>
-                <button
-                  type="button"
-                  className="btn primary"
-                  onClick={() => {
-                    setFormError(null);
-                    setShowCreateModal(true);
-                  }}
-                >
-                  {scraperLabels.newAdapter}
-                </button>
+                {canCreate ? (
+                  <button
+                    type="button"
+                    className="btn primary"
+                    onClick={() => {
+                      setFormError(null);
+                      setShowCreateModal(true);
+                    }}
+                  >
+                    {scraperLabels.newAdapter}
+                  </button>
+                ) : null}
               </div>
             }
           >
@@ -354,7 +361,7 @@ export function AdapterManagementPage({
         />
       </Card>
 
-      {showCreateModal ? (
+      {canCreate && showCreateModal ? (
         <AdapterFormModal
           saving={formSaving}
           error={formError}
