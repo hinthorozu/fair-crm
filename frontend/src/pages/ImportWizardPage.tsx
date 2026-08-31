@@ -36,7 +36,9 @@ import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { Badge } from "../components/ui/Badge";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
+import { usePermissions } from "../hooks/usePermissions";
 import { useServerDataTable, type ServerTableFetchParams } from "../hooks/useServerDataTable";
+import { IMPORT_PERMISSION_UPDATE } from "../permissions/importPermissions";
 import { DEFAULT_PAGE } from "../types/listTable";
 import {
   importBatchStatusLabels,
@@ -128,6 +130,8 @@ function ImportWizardPageInner({
   onLeave,
 }: ImportWizardPageProps & { onLeave: () => void }) {
   const requestLeave = useModalFormCancel(onLeave);
+  const { can } = usePermissions();
+  const canUpdate = can(IMPORT_PERMISSION_UPDATE);
   const [wizardMode, setWizardMode] = React.useState<"setup" | "continue">("setup");
   const isContinueMode = wizardMode === "continue";
   const [isSetupResume, setIsSetupResume] = React.useState(false);
@@ -421,6 +425,7 @@ function ImportWizardPageInner({
   };
 
   const handleSaveMapping = async () => {
+    if (!canUpdate) return;
     if (!batchId || !isMappingGridValid(columnFieldMap)) {
       setError("Firma Adı eşleştirmesi zorunludur ve aynı alan iki kolona atanamaz.");
       return;
@@ -445,6 +450,7 @@ function ImportWizardPageInner({
   };
 
   const handleSheetConfirm = async () => {
+    if (!canUpdate) return;
     if (!batchId || !selectedSheet) return;
     setLoading(true);
     setError(null);
@@ -472,6 +478,7 @@ function ImportWizardPageInner({
   };
 
   const handleHeaderConfirm = async () => {
+    if (!canUpdate) return;
     if (!batchId) return;
     setLoading(true);
     setError(null);
@@ -493,6 +500,7 @@ function ImportWizardPageInner({
   };
 
   const handleDecision = async (row: ImportRow, decision: ImportDecision) => {
+    if (!canUpdate) return;
     if (!batchId) return;
     try {
       setMappingOrDecisionTouched(true);
@@ -587,6 +595,7 @@ function ImportWizardPageInner({
   };
 
   const handleBulkAssignDecisions = async () => {
+    if (!canUpdate) return;
     if (!batchId || bulkAssignRunning || !bulkAssignDecision || selectedRowIds.size === 0) return;
     setBulkAssignRunning(true);
     setBulkAssignResultMessage(null);
@@ -818,7 +827,7 @@ function ImportWizardPageInner({
             className="form-select"
             value={bulkAssignDecision}
             onChange={(e) => setBulkAssignDecision(e.target.value as ImportDecision | "")}
-            disabled={bulkAssignRunning || applyRunning}
+            disabled={!canUpdate || bulkAssignRunning || applyRunning}
           >
             <option value="">—</option>
             {Object.entries(importDecisionLabels).map(([k, v]) => (
@@ -830,7 +839,8 @@ function ImportWizardPageInner({
           type="button"
           className="btn btn-secondary"
           disabled={
-            bulkAssignRunning
+            !canUpdate
+            || bulkAssignRunning
             || applyRunning
             || selectedRowIds.size === 0
             || !bulkAssignDecision
@@ -972,6 +982,7 @@ function ImportWizardPageInner({
             className="form-select"
             value={selectedSheet}
             onChange={(e) => setSelectedSheet(e.target.value)}
+            disabled={!canUpdate}
           >
             {availableSheets.map((s) => (
               <option key={s} value={s}>{s}</option>
@@ -1093,7 +1104,9 @@ function ImportWizardPageInner({
             id="import-upload-sheet"
             className="form-select"
             value={selectedSheet}
+            disabled={!canUpdate}
             onChange={async (e) => {
+              if (!canUpdate) return;
               const sheet = e.target.value;
               setSelectedSheet(sheet);
               if (!batchId) return;
@@ -1398,7 +1411,7 @@ function ImportWizardPageInner({
             </div>
             {renderPreviewControls()}
             <ServerDataTableFrame table={previewTable} skeletonRows={3}>
-              {renderMergePreviewList(!decisionBusy)}
+              {renderMergePreviewList(!decisionBusy && canUpdate)}
             </ServerDataTableFrame>
           </>
         )}
@@ -1488,7 +1501,11 @@ function ImportWizardPageInner({
           <button
             type="button"
             className="btn btn-primary"
-            disabled={!canNext() || loading}
+            disabled={
+              !canNext()
+              || loading
+              || (["sheet", "header", "mapping"].includes(currentStep) && !canUpdate)
+            }
             onClick={handleNext}
           >
             {nextButtonLabel}
