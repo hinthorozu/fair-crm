@@ -22,7 +22,7 @@ import { UniversalDataTable, type UniversalDataTableColumn } from "../components
 import { usePermissions } from "../hooks/usePermissions";
 import { labels } from "../labels";
 import { scraperLabels } from "../labels/scraperLabels";
-import { SCRAPER_PERMISSION_CREATE } from "../permissions/scraperPermissions";
+import { SCRAPER_PERMISSION_CREATE, SCRAPER_PERMISSION_UPDATE } from "../permissions/scraperPermissions";
 import type {
   AdapterListItem,
   CreateAdapterPayload,
@@ -52,6 +52,7 @@ function buildLastRunMap(runs: ScraperRun[]): Map<string, ScraperRun> {
 function buildAdapterColumns(handlers: {
   onOpenDetail: (adapter: AdapterListItem) => void;
   onToggleActive: (adapter: AdapterListItem) => void;
+  canUpdate: boolean;
   togglingKey: string | null;
   lastRunMap: Map<string, ScraperRun>;
 }): UniversalDataTableColumn<AdapterListItem>[] {
@@ -104,14 +105,16 @@ function buildAdapterColumns(handlers: {
           <button type="button" className="btn btn-sm secondary" onClick={() => handlers.onOpenDetail(adapter)}>
             {scraperLabels.actionDetail}
           </button>
-          <button
-            type="button"
-            className="btn btn-sm secondary"
-            disabled={handlers.togglingKey === adapter.adapter_key}
-            onClick={() => handlers.onToggleActive(adapter)}
-          >
-            {adapter.is_active ? scraperLabels.actionDeactivate : scraperLabels.actionActivate}
-          </button>
+          {handlers.canUpdate ? (
+            <button
+              type="button"
+              className="btn btn-sm secondary"
+              disabled={handlers.togglingKey === adapter.adapter_key}
+              onClick={() => handlers.onToggleActive(adapter)}
+            >
+              {adapter.is_active ? scraperLabels.actionDeactivate : scraperLabels.actionActivate}
+            </button>
+          ) : null}
         </TableRowActions>
       ),
     },
@@ -150,6 +153,7 @@ export function AdapterManagementPage({
 }) {
   const { can } = usePermissions();
   const canCreate = can(SCRAPER_PERMISSION_CREATE);
+  const canUpdate = can(SCRAPER_PERMISSION_UPDATE);
   const [summary, setSummary] = React.useState<ScraperDashboardSummary | null>(null);
   const [adapters, setAdapters] = React.useState<AdapterListItem[]>([]);
   const [runs, setRuns] = React.useState<ScraperRun[]>([]);
@@ -274,6 +278,7 @@ export function AdapterManagementPage({
 
   const handleToggleActive = React.useCallback(
     async (adapter: AdapterListItem) => {
+      if (!canUpdate) return;
       setTogglingKey(adapter.adapter_key);
       setError(null);
       try {
@@ -292,7 +297,7 @@ export function AdapterManagementPage({
         setTogglingKey(null);
       }
     },
-    [refreshAdapters],
+    [canUpdate, refreshAdapters],
   );
 
   const columns = React.useMemo(
@@ -300,10 +305,11 @@ export function AdapterManagementPage({
       buildAdapterColumns({
         onOpenDetail: openDetail,
         onToggleActive: (adapter) => void handleToggleActive(adapter),
+        canUpdate,
         togglingKey,
         lastRunMap,
       }),
-    [openDetail, handleToggleActive, togglingKey, lastRunMap],
+    [openDetail, handleToggleActive, canUpdate, togglingKey, lastRunMap],
   );
 
   return (
