@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "customers-update-handler-permission-consistency",
+  "title": "Customers Update Handler Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/CustomersPage.tsx",
+    "frontend/src/permissions/CustomersPageUpdatePermissions.test.ts",
+    ".kyrox/features/customers-update-handler-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.customers.update",
+        "action": "update customer",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/customers"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.customers.update permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing customer update authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing customer update auditing remains unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "The customers route remains readable; only update mutation handling is hardened." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "CustomersPage already hid edit UI without fair_crm.customers.update, but handleUpdate itself could invoke the API without an explicit fail-closed guard. The handler now returns immediately when update permission is absent."
+}
