@@ -14,6 +14,8 @@ import { formatScraperConsoleTime } from "../../utils/formatScraperConsoleLogTxt
 import { formatScraperLogStepLabel } from "../../utils/scraperLogStepLabels";
 import { mapTechnicalRunStatusToUserFacing } from "../../utils/operationRunStatus";
 import type { ScraperRunLog } from "../../types/scraper";
+import { usePermissions } from "../../hooks/usePermissions";
+import { SCRAPER_PERMISSION_EXECUTE } from "../../permissions/scraperPermissions";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -49,6 +51,8 @@ export function AdapterRunLogConsole({
   hideRunForm = false,
   enrichmentMode = false,
 }: AdapterRunLogConsoleProps) {
+  const { can } = usePermissions();
+  const canExecute = can(SCRAPER_PERMISSION_EXECUTE);
   const [inputUrl, setInputUrl] = React.useState("");
   const [maxPagesInput, setMaxPagesInput] = React.useState("");
   const [outputJson, setOutputJson] = React.useState(outputJsonDefault);
@@ -145,6 +149,7 @@ export function AdapterRunLogConsole({
   }, [logs]);
 
   const handleRun = React.useCallback(async () => {
+    if (!canExecute) return;
     const url = inputUrl.trim();
     if (!url) {
       setError(scraperLabels.testUrlRequired);
@@ -179,11 +184,11 @@ export function AdapterRunLogConsole({
     } finally {
       setRunning(false);
     }
-  }, [adapterKey, inputUrl, maxPagesInput, outputExcel, outputJson, resetOutputs]);
+  }, [adapterKey, canExecute, inputUrl, maxPagesInput, outputExcel, outputJson, resetOutputs]);
 
   const handleOutputAction = React.useCallback(
     async (action: "download" | "open", kind: "json" | "excel") => {
-      if (!selectedRunId) return;
+      if (!canExecute || !selectedRunId) return;
       const actionKey = `${action}-${kind}`;
       setOutputLoading(actionKey);
       setError(null);
@@ -200,7 +205,7 @@ export function AdapterRunLogConsole({
         setOutputLoading(null);
       }
     },
-    [selectedRunId],
+    [canExecute, selectedRunId],
   );
 
   const showOutputs =
@@ -223,20 +228,22 @@ export function AdapterRunLogConsole({
               disabled={running || runStatus === "running"}
               onChange={(event) => setInputUrl(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Enter") {
+                if (event.key === "Enter" && canExecute) {
                   event.preventDefault();
                   void handleRun();
                 }
               }}
             />
-            <button
-              type="button"
-              className="btn primary"
-              disabled={running || runStatus === "running" || !inputUrl.trim() || !adapterKey}
-              onClick={() => void handleRun()}
-            >
-              {running || runStatus === "running" ? scraperLabels.testRunning : scraperLabels.testRun}
-            </button>
+            {canExecute ? (
+              <button
+                type="button"
+                className="btn primary"
+                disabled={running || runStatus === "running" || !inputUrl.trim() || !adapterKey}
+                onClick={() => void handleRun()}
+              >
+                {running || runStatus === "running" ? scraperLabels.testRunning : scraperLabels.testRun}
+              </button>
+            ) : null}
           </div>
           <label className="adapter-console-url-label" htmlFor="adapter-test-max-pages">
             {scraperLabels.testMaxPagesLabel}
@@ -289,50 +296,52 @@ export function AdapterRunLogConsole({
       {showOutputs ? (
         <div className="adapter-console-outputs">
           <p className="adapter-console-output-summary">{scraperLabels.testOutputRecordCount(totalRows)}</p>
-          <div className="adapter-console-output-links">
-            {outputJsonAvailable ? (
-              <div className="adapter-console-output-group">
-                <span className="adapter-console-output-label">JSON</span>
-                <button
-                  type="button"
-                  className="btn link"
-                  disabled={outputLoading !== null}
-                  onClick={() => void handleOutputAction("download", "json")}
-                >
-                  {outputLoading === "download-json" ? "…" : scraperLabels.testOutputJsonDownload}
-                </button>
-                <button
-                  type="button"
-                  className="btn link"
-                  disabled={outputLoading !== null}
-                  onClick={() => void handleOutputAction("open", "json")}
-                >
-                  {outputLoading === "open-json" ? "…" : scraperLabels.testOutputJsonOpen}
-                </button>
-              </div>
-            ) : null}
-            {outputExcelAvailable ? (
-              <div className="adapter-console-output-group">
-                <span className="adapter-console-output-label">Excel</span>
-                <button
-                  type="button"
-                  className="btn link"
-                  disabled={outputLoading !== null}
-                  onClick={() => void handleOutputAction("download", "excel")}
-                >
-                  {outputLoading === "download-excel" ? "…" : scraperLabels.testOutputExcelDownload}
-                </button>
-                <button
-                  type="button"
-                  className="btn link"
-                  disabled={outputLoading !== null}
-                  onClick={() => void handleOutputAction("open", "excel")}
-                >
-                  {outputLoading === "open-excel" ? "…" : scraperLabels.testOutputExcelOpen}
-                </button>
-              </div>
-            ) : null}
-          </div>
+          {canExecute ? (
+            <div className="adapter-console-output-links">
+              {outputJsonAvailable ? (
+                <div className="adapter-console-output-group">
+                  <span className="adapter-console-output-label">JSON</span>
+                  <button
+                    type="button"
+                    className="btn link"
+                    disabled={outputLoading !== null}
+                    onClick={() => void handleOutputAction("download", "json")}
+                  >
+                    {outputLoading === "download-json" ? "…" : scraperLabels.testOutputJsonDownload}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn link"
+                    disabled={outputLoading !== null}
+                    onClick={() => void handleOutputAction("open", "json")}
+                  >
+                    {outputLoading === "open-json" ? "…" : scraperLabels.testOutputJsonOpen}
+                  </button>
+                </div>
+              ) : null}
+              {outputExcelAvailable ? (
+                <div className="adapter-console-output-group">
+                  <span className="adapter-console-output-label">Excel</span>
+                  <button
+                    type="button"
+                    className="btn link"
+                    disabled={outputLoading !== null}
+                    onClick={() => void handleOutputAction("download", "excel")}
+                  >
+                    {outputLoading === "download-excel" ? "…" : scraperLabels.testOutputExcelDownload}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn link"
+                    disabled={outputLoading !== null}
+                    onClick={() => void handleOutputAction("open", "excel")}
+                  >
+                    {outputLoading === "open-excel" ? "…" : scraperLabels.testOutputExcelOpen}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
 

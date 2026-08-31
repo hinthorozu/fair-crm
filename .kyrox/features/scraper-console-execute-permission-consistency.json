@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "scraper-console-execute-permission-consistency",
+  "title": "Scraper Console Execute Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/components/scraper/AdapterRunLogConsole.tsx",
+    "frontend/src/permissions/AdapterRunLogConsolePermissions.test.ts",
+    ".kyrox/features/scraper-console-execute-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.scraper.execute",
+        "action": "run scraper tests and open or download scraper outputs",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/data-integration/scraper-test"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.scraper.execute permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing scraper run and download authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes; console mutation/output actions are aligned with existing execute authorization." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing scraper execution behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Read-only console history remains readable; only run and output actions require execute." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "AdapterRunLogConsole previously exposed run and output open/download actions to users with read-only scraper access. Backend run and download dependencies both require fair_crm.scraper.execute; these UI actions now hide and fail closed without execute permission."
+}
