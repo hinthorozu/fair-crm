@@ -2,21 +2,27 @@ import React from "react";
 import { resetEnrichmentState } from "../../api/scraper";
 import { ApiError } from "../../api/client";
 import { scraperLabels } from "../../labels/scraperLabels";
+import { usePermissions } from "../../hooks/usePermissions";
+import { SCRAPER_PERMISSION_EXECUTE } from "../../permissions/scraperPermissions";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 
 export function EnrichmentStateResetPanel() {
+  const { can } = usePermissions();
+  const canExecute = can(SCRAPER_PERMISSION_EXECUTE);
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [resetting, setResetting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
 
   const handleOpenConfirm = () => {
+    if (!canExecute) return;
     setError(null);
     setSuccessMessage(null);
     setConfirmOpen(true);
   };
 
   const handleConfirmReset = async () => {
+    if (!canExecute) return;
     setResetting(true);
     setError(null);
     setSuccessMessage(null);
@@ -42,6 +48,8 @@ export function EnrichmentStateResetPanel() {
       setResetting(false);
     }
   };
+
+  if (!canExecute) return null;
 
   return (
     <section className="enrichment-state-reset-panel">

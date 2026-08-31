@@ -4,6 +4,8 @@ import { getScraperRun, runCustomerContactEnrichment } from "../../api/scraper";
 import { FairMultiSelect, type FairMultiSelectItem } from "../fairs/FairMultiSelect";
 import { CheckboxField, FormField, FormGrid, RadioField, TextInput } from "../ui/form";
 import { scraperLabels } from "../../labels/scraperLabels";
+import { usePermissions } from "../../hooks/usePermissions";
+import { SCRAPER_PERMISSION_EXECUTE } from "../../permissions/scraperPermissions";
 import type {
   CompanyNameMatchMode,
   EnrichmentRunPayload,
@@ -59,6 +61,8 @@ export function EnrichmentRunPanel({
   onRunStarted,
   startVia,
 }: EnrichmentRunPanelProps) {
+  const { can } = usePermissions();
+  const canExecute = can(SCRAPER_PERMISSION_EXECUTE);
   /** Empty string = no limit (all eligible customers); the "50" shown to the user is only a placeholder hint. */
   const [limitInput, setLimitInput] = React.useState("");
   const [includeExistingEmail, setIncludeExistingEmail] = React.useState(false);
@@ -108,6 +112,7 @@ export function EnrichmentRunPanel({
   }, []);
 
   const handleRun = React.useCallback(async () => {
+    if (!canExecute) return;
     const trimmedLimit = limitInput.trim();
     let limit: number | null = null;
     if (trimmedLimit !== "") {
@@ -188,6 +193,7 @@ export function EnrichmentRunPanel({
   }, [
     adapterKey,
     addressContains,
+    canExecute,
     companyName,
     companyNameMatch,
     fairId,
@@ -212,7 +218,7 @@ export function EnrichmentRunPanel({
           id="enrichment-fair-picker"
           selected={selectedFairs}
           onChange={setSelectedFairs}
-          disabled={running}
+          disabled={running || !canExecute}
           selectLabel={scraperLabels.enrichmentRunFairSelectLabel}
           selectHint={scraperLabels.enrichmentRunFairFilterHint}
           selectedLabel={scraperLabels.enrichmentRunFairSelectedLabel}
@@ -235,7 +241,7 @@ export function EnrichmentRunPanel({
             id="enrichment-company-name"
             type="text"
             value={companyName}
-            disabled={running}
+            disabled={running || !canExecute}
             placeholder="SDK"
             onChange={(event) => setCompanyName(event.target.value)}
           />
@@ -250,7 +256,7 @@ export function EnrichmentRunPanel({
               label={scraperLabels.enrichmentRunCompanyNameMatchContains}
               value="contains"
               checked={companyNameMatch === "contains"}
-              disabled={running || !companyName.trim()}
+              disabled={running || !canExecute || !companyName.trim()}
               onChange={(value) => setCompanyNameMatch(value as CompanyNameMatchMode)}
             />
             <RadioField
@@ -259,7 +265,7 @@ export function EnrichmentRunPanel({
               label={scraperLabels.enrichmentRunCompanyNameMatchStartsWith}
               value="starts_with"
               checked={companyNameMatch === "starts_with"}
-              disabled={running || !companyName.trim()}
+              disabled={running || !canExecute || !companyName.trim()}
               onChange={(value) => setCompanyNameMatch(value as CompanyNameMatchMode)}
             />
           </div>
@@ -274,7 +280,7 @@ export function EnrichmentRunPanel({
             id="enrichment-address"
             type="text"
             value={addressContains}
-            disabled={running}
+            disabled={running || !canExecute}
             placeholder="İstanbul"
             onChange={(event) => setAddressContains(event.target.value)}
           />
@@ -292,7 +298,7 @@ export function EnrichmentRunPanel({
             max={500}
             placeholder="50"
             value={limitInput}
-            disabled={running}
+            disabled={running || !canExecute}
             onChange={(event) => setLimitInput(event.target.value)}
           />
         </FormField>
@@ -310,21 +316,23 @@ export function EnrichmentRunPanel({
           id="enrichment-include-existing-email"
           label={scraperLabels.enrichmentRunIncludeExistingEmail}
           checked={includeExistingEmail}
-          disabled={running}
+          disabled={running || !canExecute}
           onChange={setIncludeExistingEmail}
           hint={scraperLabels.enrichmentRunIncludeExistingEmailHint}
         />
       </FormGrid>
 
-      <div className="enrichment-run-actions">
-        <button type="button" className="btn primary" disabled={running} onClick={() => void handleRun()}>
-          {running
-            ? redirecting
-              ? scraperLabels.enrichmentRunRedirecting
-              : scraperLabels.enrichmentRunRunning
-            : scraperLabels.enrichmentRunStart}
-        </button>
-      </div>
+      {canExecute ? (
+        <div className="enrichment-run-actions">
+          <button type="button" className="btn primary" disabled={running} onClick={() => void handleRun()}>
+            {running
+              ? redirecting
+                ? scraperLabels.enrichmentRunRedirecting
+                : scraperLabels.enrichmentRunRunning
+              : scraperLabels.enrichmentRunStart}
+          </button>
+        </div>
+      ) : null}
 
       {error ? <p className="text-danger">{error}</p> : null}
 
