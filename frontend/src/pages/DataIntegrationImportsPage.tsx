@@ -15,7 +15,10 @@ import { useServerDataTable } from "../hooks/useServerDataTable";
 import { usePermissions } from "../hooks/usePermissions";
 import { dataIntegrationLabels } from "../labels/dataIntegrationLabels";
 import { importBatchStatusLabels } from "../labels/importLabels";
-import { IMPORT_PERMISSION_UPDATE } from "../permissions/importPermissions";
+import {
+  IMPORT_PERMISSION_DELETE,
+  IMPORT_PERMISSION_UPDATE,
+} from "../permissions/importPermissions";
 import type { ImportBatch } from "../types/import";
 import { importBatchStatusBadgeVariant } from "../utils/importBadges";
 import {
@@ -55,6 +58,7 @@ const IMPORT_COLUMNS = (
     onAnalyze?: (batch: ImportBatch, options?: { reanalyze?: boolean }) => void;
     onDelete?: (batch: ImportBatch) => void;
     canUpdate: boolean;
+    canDelete: boolean;
     analyzingBatchId?: string | null;
     deletingBatchId?: string | null;
   },
@@ -180,20 +184,22 @@ const IMPORT_COLUMNS = (
             {dataIntegrationLabels.continueBatch}
           </button>
         )}
-        <button
-          type="button"
-          className="btn btn-sm danger"
-          disabled={
-            isOperationInProgress(batch.status) ||
-            handlers.analyzingBatchId === batch.id ||
-            handlers.deletingBatchId === batch.id
-          }
-          onClick={() => handlers.onDelete?.(batch)}
-        >
-          {handlers.deletingBatchId === batch.id
-            ? "Siliniyor…"
-            : dataIntegrationLabels.deleteBatch}
-        </button>
+        {handlers.canDelete ? (
+          <button
+            type="button"
+            className="btn btn-sm danger"
+            disabled={
+              isOperationInProgress(batch.status) ||
+              handlers.analyzingBatchId === batch.id ||
+              handlers.deletingBatchId === batch.id
+            }
+            onClick={() => handlers.onDelete?.(batch)}
+          >
+            {handlers.deletingBatchId === batch.id
+              ? "Siliniyor…"
+              : dataIntegrationLabels.deleteBatch}
+          </button>
+        ) : null}
       </TableRowActions>
     ),
   },
@@ -205,6 +211,7 @@ export function DataIntegrationImportsPage({
 }: DataIntegrationImportsPageProps) {
   const { can } = usePermissions();
   const canUpdate = can(IMPORT_PERMISSION_UPDATE);
+  const canDelete = can(IMPORT_PERMISSION_DELETE);
   const [analyzingBatchId, setAnalyzingBatchId] = React.useState<string | null>(null);
   const [deletingBatchId, setDeletingBatchId] = React.useState<string | null>(null);
   const [batchToDelete, setBatchToDelete] = React.useState<ImportBatch | null>(null);
@@ -261,7 +268,7 @@ export function DataIntegrationImportsPage({
   );
 
   const handleConfirmDelete = React.useCallback(async () => {
-    if (!batchToDelete) return;
+    if (!canDelete || !batchToDelete) return;
     setDeletingBatchId(batchToDelete.id);
     setActionError(null);
     try {
@@ -274,7 +281,7 @@ export function DataIntegrationImportsPage({
     } finally {
       setDeletingBatchId(null);
     }
-  }, [batchToDelete, table]);
+  }, [batchToDelete, canDelete, table]);
 
   const handleOpen = onContinueBatch ?? onOpenBatch;
 
@@ -284,12 +291,15 @@ export function DataIntegrationImportsPage({
         onOpenBatch: handleOpen,
         onContinueBatch: handleOpen,
         onAnalyze: (batch, options) => void handleAnalyze(batch, options),
-        onDelete: setBatchToDelete,
+        onDelete: (batch) => {
+          if (canDelete) setBatchToDelete(batch);
+        },
         canUpdate,
+        canDelete,
         analyzingBatchId,
         deletingBatchId,
       }),
-    [canUpdate, handleOpen, handleAnalyze, analyzingBatchId, deletingBatchId],
+    [canDelete, canUpdate, handleOpen, handleAnalyze, analyzingBatchId, deletingBatchId],
   );
 
   return (
@@ -311,7 +321,7 @@ export function DataIntegrationImportsPage({
         </Banner>
       )}
 
-      {batchToDelete && (
+      {canDelete && batchToDelete ? (
         <ConfirmDialog
           title={dataIntegrationLabels.deleteBatchTitle}
           message={dataIntegrationLabels.deleteBatchMessage}
@@ -321,7 +331,7 @@ export function DataIntegrationImportsPage({
           onConfirm={() => void handleConfirmDelete()}
           onCancel={() => setBatchToDelete(null)}
         />
-      )}
+      ) : null}
     </PageShell>
   );
 }
