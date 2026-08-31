@@ -283,6 +283,7 @@ export function TodosPage({ onOpenDetail, onOpenQuote, onOpenCustomer }: TodosPa
   };
 
   const handleUpdate = async (values: TodoFormValues) => {
+    if (!canUpdate) return;
     if (!editing) return;
     await updateTodo(editing.id, formValuesToUpdatePayload(values));
     await replaceTodoSteps(editing.id, { steps: formItemsToReplacePayload(values.steps) });
