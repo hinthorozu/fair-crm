@@ -80,6 +80,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
   };
 
   const handleUpdate = async (values: CreateFairPayload) => {
+    if (!canUpdate) return;
     if (!editing) return;
     const updated = await updateFair(editing.id, values);
     if (onOpenDetail) {
