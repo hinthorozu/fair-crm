@@ -3,6 +3,10 @@ import { ApiError } from "../../api/client";
 import { completeTodo } from "../../api/todos";
 import { useModalFormCancel, useReportFormDirty } from "../../hooks/useModalForm";
 import { todoLabels } from "../../labels/todoLabels";
+import {
+  canPerformTodoAction,
+  getGrantedTodoPermissions,
+} from "../../permissions/todoPermissions";
 import type { Todo } from "../../types/todo";
 import { Button } from "../ui/Button";
 import {
@@ -36,11 +40,14 @@ function CompleteTodoModalInner({ todo, onClose, onCompleted }: CompleteTodoModa
   const [error, setError] = React.useState<string | null>(null);
   const requestClose = useModalFormCancel(onClose);
   const formValues = React.useMemo(() => ({ note }), [note]);
+  const grantedPermissions = React.useMemo(() => getGrantedTodoPermissions(), []);
+  const canUpdate = canPerformTodoAction(grantedPermissions, "update");
 
   useReportFormDirty(formValues, EMPTY_NOTE);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!canUpdate) return;
     setSaving(true);
     setError(null);
     try {
@@ -65,9 +72,11 @@ function CompleteTodoModalInner({ todo, onClose, onCompleted }: CompleteTodoModa
           <Button type="button" variant="secondary" onClick={requestClose} disabled={saving}>
             {todoLabels.cancel}
           </Button>
-          <Button type="submit" form={COMPLETE_FORM_ID} variant="primary" loading={saving}>
-            {saving ? todoLabels.saving : todoLabels.completeAndRecord}
-          </Button>
+          {canUpdate ? (
+            <Button type="submit" form={COMPLETE_FORM_ID} variant="primary" loading={saving}>
+              {saving ? todoLabels.saving : todoLabels.completeAndRecord}
+            </Button>
+          ) : null}
         </>
       }
     >
@@ -84,7 +93,7 @@ function CompleteTodoModalInner({ todo, onClose, onCompleted }: CompleteTodoModa
             onChange={(event) => setNote(event.target.value)}
             rows={4}
             placeholder={todoLabels.completeNotePlaceholder}
-            disabled={saving}
+            disabled={saving || !canUpdate}
           />
         </FormField>
         {error ? <FieldError>{error}</FieldError> : null}
