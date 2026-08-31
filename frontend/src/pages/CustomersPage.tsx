@@ -92,6 +92,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
   };
 
   const handleUpdate = async (values: CreateCustomerPayload) => {
+    if (!canUpdate) return;
     if (!editing) return;
     const updated = await updateCustomer(editing.id, values);
     if (onOpenDetail) {
