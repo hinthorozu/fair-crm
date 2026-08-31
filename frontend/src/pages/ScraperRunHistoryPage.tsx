@@ -18,7 +18,10 @@ import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { usePermissions } from "../hooks/usePermissions";
 import { scraperLabels } from "../labels/scraperLabels";
-import { SCRAPER_PERMISSION_EXECUTE } from "../permissions/scraperPermissions";
+import {
+  SCRAPER_PERMISSION_DELETE,
+  SCRAPER_PERMISSION_EXECUTE,
+} from "../permissions/scraperPermissions";
 import type { AdapterListItem, ScraperRun, ScraperRunStatus } from "../types/scraper";
 import { runStatusBadgeVariant, runStatusLabel } from "../utils/scraperBadges";
 import { Banner } from "../components/ui/Banner";
@@ -155,6 +158,7 @@ function buildColumns(
     onDownload: (run: ScraperRun, kind: "json" | "excel") => void;
     onDelete: (run: ScraperRun) => void;
     canDownload: boolean;
+    canDelete: boolean;
     loadingKey: string | null;
     deletingRunId: string | null;
   },
@@ -191,18 +195,20 @@ function buildColumns(
           >
             {scraperLabels.actionDetail}
           </button>
-          <button
-            type="button"
-            className="btn btn-sm danger"
-            disabled={handlers.deletingRunId === run.id}
-            onClick={() => handlers.onDelete(run)}
-          >
-            {handlers.deletingRunId === run.id
-              ? isActiveRunStatus(run.status)
-                ? "Durdurulup siliniyor…"
-                : "Siliniyor…"
-              : scraperLabels.runHistoryDelete}
-          </button>
+          {handlers.canDelete ? (
+            <button
+              type="button"
+              className="btn btn-sm danger"
+              disabled={handlers.deletingRunId === run.id}
+              onClick={() => handlers.onDelete(run)}
+            >
+              {handlers.deletingRunId === run.id
+                ? isActiveRunStatus(run.status)
+                  ? "Durdurulup siliniyor…"
+                  : "Siliniyor…"
+                : scraperLabels.runHistoryDelete}
+            </button>
+          ) : null}
         </TableRowActions>
       ),
     },
@@ -333,6 +339,7 @@ export function ScraperRunHistoryPage({
 }: ScraperRunHistoryPageProps) {
   const { can } = usePermissions();
   const canExecute = can(SCRAPER_PERMISSION_EXECUTE);
+  const canDelete = can(SCRAPER_PERMISSION_DELETE);
   const [adapters, setAdapters] = React.useState<AdapterListItem[]>([]);
   const [outputLoading, setOutputLoading] = React.useState<string | null>(null);
   const [outputError, setOutputError] = React.useState<string | null>(null);
@@ -405,7 +412,7 @@ export function ScraperRunHistoryPage({
   }, [canExecute]);
 
   const handleConfirmDelete = React.useCallback(async () => {
-    if (!runToDelete) return;
+    if (!canDelete || !runToDelete) return;
     setDeletingRunId(runToDelete.id);
     setActionError(null);
     setSuccessMessage(null);
@@ -419,7 +426,7 @@ export function ScraperRunHistoryPage({
     } finally {
       setDeletingRunId(null);
     }
-  }, [runToDelete, table]);
+  }, [canDelete, runToDelete, table]);
 
   const columns = React.useMemo(
     () =>
@@ -428,12 +435,15 @@ export function ScraperRunHistoryPage({
         onOpenRunDetail,
         onOpenImportBatch,
         onDownload: (run, kind) => void handleDownload(run, kind),
-        onDelete: setRunToDelete,
+        onDelete: (run) => {
+          if (canDelete) setRunToDelete(run);
+        },
         canDownload: canExecute,
+        canDelete,
         loadingKey: outputLoading,
         deletingRunId,
       }),
-    [canExecute, handleDownload, onOpenAdapter, onOpenRunDetail, onOpenImportBatch, outputLoading, deletingRunId],
+    [canDelete, canExecute, handleDownload, onOpenAdapter, onOpenRunDetail, onOpenImportBatch, outputLoading, deletingRunId],
   );
 
   const statusOptions: ScraperRunStatus[] = ["running", "completed", "failed", "cancelled"];
@@ -540,7 +550,7 @@ export function ScraperRunHistoryPage({
         emptyState={showEmpty ? <EmptyState title={scraperLabels.runHistoryEmpty} /> : undefined}
       />
 
-      {runToDelete ? (
+      {canDelete && runToDelete ? (
         <ConfirmDialog
           title={scraperLabels.runHistoryDeleteTitle}
           message={scraperLabels.buildDeleteRunHistoryMessage(runToDelete)}
