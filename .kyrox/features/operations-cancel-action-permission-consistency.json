@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "operations-cancel-action-permission-consistency",
+  "title": "Operations Cancel Action Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/OperationsPage.tsx",
+    "frontend/src/permissions/OperationsPagePermissions.test.ts",
+    ".kyrox/features/operations-cancel-action-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.operations.execute",
+        "action": "cancel an operation from the Operations page",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/operations"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.operations.execute permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing cancel-operation authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes; only the Operations-page cancel action is aligned with the existing execute authorization." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing operation-cancel audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "The /operations route still requires its existing read permission; this change only gates the cancel mutation action." },
+    "forms": { "status": "na", "reason": "No form behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "OperationsPage previously rendered and invoked the cancel row action based only on operation state, while the backend requires fair_crm.operations.execute. The cancel entry point now hides and fails closed without execute permission."
+}
