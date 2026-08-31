@@ -33,7 +33,10 @@ import { FormDirtyHost } from "../components/ui/form";
 import { PageShell } from "../components/ui/PageShell";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 import { usePermissions } from "../hooks/usePermissions";
-import { SCRAPER_PERMISSION_UPDATE } from "../permissions/scraperPermissions";
+import {
+  SCRAPER_PERMISSION_DELETE,
+  SCRAPER_PERMISSION_UPDATE,
+} from "../permissions/scraperPermissions";
 
 interface AdapterDetailPageProps {
   adapterKey: string;
@@ -103,6 +106,7 @@ export function AdapterDetailPage({
 }: AdapterDetailPageProps) {
   const { can } = usePermissions();
   const canUpdate = can(SCRAPER_PERMISSION_UPDATE);
+  const canDelete = can(SCRAPER_PERMISSION_DELETE);
   const detailPath = `/data-integration/adapters/${encodeURIComponent(adapterKey)}`;
   const [adapterItem, setAdapterItem] = React.useState<AdapterListItem | null>(null);
   const [manifest, setManifest] = React.useState<ScraperManifest | null>(null);
@@ -293,6 +297,7 @@ export function AdapterDetailPage({
   );
 
   const openDeleteConfirm = React.useCallback(async () => {
+    if (!canDelete) return;
     setDeletePreviewLoading(true);
     setError(null);
     try {
@@ -303,7 +308,7 @@ export function AdapterDetailPage({
     } finally {
       setDeletePreviewLoading(false);
     }
-  }, [adapterKey]);
+  }, [adapterKey, canDelete]);
 
   const closeDeleteConfirm = React.useCallback(() => {
     if (deleting) return;
@@ -311,6 +316,7 @@ export function AdapterDetailPage({
   }, [deleting]);
 
   const handleDeleteAdapter = React.useCallback(async () => {
+    if (!canDelete) return;
     setDeleting(true);
     setError(null);
     try {
@@ -322,7 +328,7 @@ export function AdapterDetailPage({
     } finally {
       setDeleting(false);
     }
-  }, [adapterKey, onBack]);
+  }, [adapterKey, canDelete, onBack]);
 
   if (loading) {
     return <LoadingState />;
@@ -361,6 +367,7 @@ export function AdapterDetailPage({
         isEnrichmentAdapter={isEnrichmentAdapter}
         isEditableTab={isEditableTab}
         canUpdate={canUpdate}
+        canDelete={canDelete}
         onBack={onBack}
         onOpenFair={onOpenFair}
         onViewAllRuns={onViewAllRuns}
@@ -399,6 +406,7 @@ interface AdapterDetailPageLoadedProps {
   isEnrichmentAdapter: boolean;
   isEditableTab: boolean;
   canUpdate: boolean;
+  canDelete: boolean;
   onBack: () => void;
   onOpenFair?: (fairId: string) => void;
   onViewAllRuns?: (adapterKey: string) => void;
@@ -434,6 +442,7 @@ function AdapterDetailPageLoaded({
   isEnrichmentAdapter,
   isEditableTab,
   canUpdate,
+  canDelete,
   onBack,
   onOpenFair,
   onViewAllRuns,
@@ -495,14 +504,18 @@ function AdapterDetailPageLoaded({
                 disabled: !onOpenScraperTest || isEditing || deletePreviewLoading || deleting,
               },
             ]),
-        {
-          id: "delete",
-          label: scraperLabels.deleteAdapter,
-          variant: "danger",
-          onClick: () => void openDeleteConfirm(),
-          disabled: isEditing || deletePreviewLoading || deleting,
-          loading: deletePreviewLoading,
-        },
+        ...(canDelete
+          ? [
+              {
+                id: "delete",
+                label: scraperLabels.deleteAdapter,
+                variant: "danger" as const,
+                onClick: () => void openDeleteConfirm(),
+                disabled: isEditing || deletePreviewLoading || deleting,
+                loading: deletePreviewLoading,
+              },
+            ]
+          : []),
         ...(canUpdate
           ? [
               {
@@ -545,7 +558,7 @@ function AdapterDetailPageLoaded({
         onDraftChange={onDraftChange}
       />
 
-      {deletePreview ? (
+      {canDelete && deletePreview ? (
         <ConfirmDialog
           title={scraperLabels.deleteAdapterTitle}
           message={scraperLabels.buildDeleteAdapterMessage(deletePreview)}

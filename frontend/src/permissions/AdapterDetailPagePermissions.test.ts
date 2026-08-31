@@ -26,4 +26,18 @@ describe("Adapter Detail action permissions", () => {
     expect(source).toContain("...(canUpdate");
     expect(source).toContain("canUpdate={canUpdate}");
   });
+
+  it("uses the backend scraper delete permission for adapter deletion", () => {
+    expect(permissionSource).toContain(
+      'SCRAPER_PERMISSION_DELETE = "fair_crm.scraper.delete"',
+    );
+    expect(source).toContain("const canDelete = can(SCRAPER_PERMISSION_DELETE)");
+  });
+
+  it("hides and fails closed adapter deletion without delete permission", () => {
+    expect(source).toContain("if (!canDelete) return;");
+    expect(source).toContain("...(canDelete");
+    expect(source).toContain("canDelete={canDelete}");
+    expect(source).toContain("{canDelete && deletePreview ? (");
+  });
 });
