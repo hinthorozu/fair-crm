@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "id": "import-wizard-update-permission-consistency",
+  "title": "Import Wizard Update Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/ImportWizardPage.tsx",
+    "frontend/src/permissions/ImportWizardUpdatePermissions.test.ts",
+    ".kyrox/features/import-wizard-update-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.imports.update",
+        "action": "select worksheet, configure header, save mapping, and set import row decisions",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/data-integration/imports/new",
+      "/data-integration/imports/fair/:fairId",
+      "/data-integration/imports/continue/:batchId"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.imports.update permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing import wizard update authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing import mutation auditing remains unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "The wizard remains readable; only update mutations require imports.update." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Import wizard update mutations were reachable without matching UI permission checks. Backend SelectImportSheet, ConfigureImportHeader, SetColumnMapping, SetImportRowDecision, and BulkRowDecision use cases require fair_crm.imports.update; the UI now fails closed and disables update entry points when that permission is absent."
+}
