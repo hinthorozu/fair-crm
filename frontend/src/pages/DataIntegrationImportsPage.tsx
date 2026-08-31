@@ -12,8 +12,10 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { Badge } from "../components/ui/Badge";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { useServerDataTable } from "../hooks/useServerDataTable";
+import { usePermissions } from "../hooks/usePermissions";
 import { dataIntegrationLabels } from "../labels/dataIntegrationLabels";
 import { importBatchStatusLabels } from "../labels/importLabels";
+import { IMPORT_PERMISSION_UPDATE } from "../permissions/importPermissions";
 import type { ImportBatch } from "../types/import";
 import { importBatchStatusBadgeVariant } from "../utils/importBadges";
 import {
@@ -52,6 +54,7 @@ const IMPORT_COLUMNS = (
     onContinueBatch?: (batchId: string) => void;
     onAnalyze?: (batch: ImportBatch, options?: { reanalyze?: boolean }) => void;
     onDelete?: (batch: ImportBatch) => void;
+    canUpdate: boolean;
     analyzingBatchId?: string | null;
     deletingBatchId?: string | null;
   },
@@ -141,7 +144,7 @@ const IMPORT_COLUMNS = (
     className: "actions",
     render: (batch) => (
       <TableRowActions className="import-list-actions">
-        {canAnalyze(batch.status) && (
+        {handlers.canUpdate && canAnalyze(batch.status) && (
           <button
             type="button"
             className="btn btn-sm btn-primary"
@@ -153,7 +156,7 @@ const IMPORT_COLUMNS = (
               : dataIntegrationLabels.analyzeBatch}
           </button>
         )}
-        {canReanalyze(batch.status) && (
+        {handlers.canUpdate && canReanalyze(batch.status) && (
           <button
             type="button"
             className="btn btn-sm btn-secondary"
@@ -200,6 +203,8 @@ export function DataIntegrationImportsPage({
   onOpenBatch,
   onContinueBatch,
 }: DataIntegrationImportsPageProps) {
+  const { can } = usePermissions();
+  const canUpdate = can(IMPORT_PERMISSION_UPDATE);
   const [analyzingBatchId, setAnalyzingBatchId] = React.useState<string | null>(null);
   const [deletingBatchId, setDeletingBatchId] = React.useState<string | null>(null);
   const [batchToDelete, setBatchToDelete] = React.useState<ImportBatch | null>(null);
@@ -221,6 +226,7 @@ export function DataIntegrationImportsPage({
 
   const handleAnalyze = React.useCallback(
     async (batch: ImportBatch, options?: { reanalyze?: boolean }) => {
+      if (!canUpdate) return;
       setActionError(null);
       setSuccessMessage(null);
       setAnalyzingBatchId(batch.id);
@@ -251,7 +257,7 @@ export function DataIntegrationImportsPage({
         setAnalyzingBatchId(null);
       }
     },
-    [table.refresh],
+    [canUpdate, table.refresh],
   );
 
   const handleConfirmDelete = React.useCallback(async () => {
@@ -279,10 +285,11 @@ export function DataIntegrationImportsPage({
         onContinueBatch: handleOpen,
         onAnalyze: (batch, options) => void handleAnalyze(batch, options),
         onDelete: setBatchToDelete,
+        canUpdate,
         analyzingBatchId,
         deletingBatchId,
       }),
-    [handleOpen, handleAnalyze, analyzingBatchId, deletingBatchId],
+    [canUpdate, handleOpen, handleAnalyze, analyzingBatchId, deletingBatchId],
   );
 
   return (
