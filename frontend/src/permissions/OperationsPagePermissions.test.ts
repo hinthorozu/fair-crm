@@ -12,8 +12,13 @@ const navigationPermissionSource = readFileSync(
   "utf8",
 );
 
-describe("Operations new action permission", () => {
-  it("uses the canonical operations create permission", () => {
+const operationPermissionSource = readFileSync(
+  fileURLToPath(new URL("./operationPermissions.ts", import.meta.url)),
+  "utf8",
+);
+
+describe("Operations action permissions", () => {
+  it("uses the canonical operations create permission for the new action", () => {
     expect(navigationPermissionSource).toContain(
       'PERMISSION_OPERATIONS_CREATE = "fair_crm.operations.create"',
     );
@@ -24,5 +29,19 @@ describe("Operations new action permission", () => {
     expect(source).toContain("canCreate ? (");
     expect(source).toContain("open={canCreate && typeModalOpen}");
     expect(source).toContain("if (!canCreate) return;");
+  });
+
+  it("uses the backend operations execute permission for the start action", () => {
+    expect(operationPermissionSource).toContain(
+      'OPERATION_EXECUTE = "fair_crm.operations.execute"',
+    );
+    expect(source).toContain("const canExecute = can(OPERATION_EXECUTE)");
+  });
+
+  it("hides and fails closed the start action without execute permission", () => {
+    expect(source).toContain("if (!canExecute) return;");
+    expect(source).toContain(
+      'canExecute && ["draft", "ready", "active"].includes(item.status) && !latestRunActive',
+    );
   });
 });

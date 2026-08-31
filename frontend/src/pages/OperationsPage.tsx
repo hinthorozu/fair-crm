@@ -22,6 +22,7 @@ import {
   operationTypeLabels,
 } from "../labels/operationLabels";
 import { PERMISSION_OPERATIONS_CREATE } from "../permissions/navigationPermissions";
+import { OPERATION_EXECUTE } from "../permissions/operationPermissions";
 import type {
   Operation,
   OperationType,
@@ -48,6 +49,7 @@ function formatProgress(operation: Operation): string {
 export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPageProps) {
   const { can } = usePermissions();
   const canCreate = can(PERMISSION_OPERATIONS_CREATE);
+  const canExecute = can(OPERATION_EXECUTE);
   const [banner, setBanner] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
@@ -103,6 +105,7 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
   }, [banner]);
 
   const handleStart = async (operation: Operation) => {
+    if (!canExecute) return;
     setBusyId(operation.id);
     setActionError(null);
     try {
@@ -199,7 +202,7 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
             item.latest_run?.status === "running" ||
             item.latest_run?.status === "paused";
           const canStartItem =
-            ["draft", "ready", "active"].includes(item.status) && !latestRunActive;
+            canExecute && ["draft", "ready", "active"].includes(item.status) && !latestRunActive;
           return (
             <TableRowActions>
               <button
@@ -234,7 +237,7 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
         },
       },
     ],
-    [busyId, onOpenDetail, typeNameByKey],
+    [busyId, canExecute, onOpenDetail, typeNameByKey],
   );
 
   const statusFilterOptions = React.useMemo(
