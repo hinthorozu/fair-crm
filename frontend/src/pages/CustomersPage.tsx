@@ -71,6 +71,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
   });
 
   const handleCreate = async (values: CreateCustomerPayload) => {
+    if (!canCreate) return;
     const created = await createCustomer(values);
     if (onOpenDetail) {
       runAfterSuccessfulFormSubmit(() => {
@@ -84,6 +85,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
   };
 
   const handleCreateAndNew = async (values: CreateCustomerPayload) => {
+    if (!canCreate) return;
     await createCustomer(values);
     setCreateSessionKey((key) => key + 1);
     await table.refresh();
