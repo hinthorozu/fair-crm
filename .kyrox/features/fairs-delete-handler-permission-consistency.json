@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "fairs-delete-handler-permission-consistency",
+  "title": "Fairs Delete Handler Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/FairsPage.tsx",
+    "frontend/src/permissions/FairsPageDeletePermissions.test.ts",
+    ".kyrox/features/fairs-delete-handler-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.fairs.delete",
+        "action": "archive and restore fair",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/fairs"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.fairs.delete permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing fair archive/restore authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing fair archive/restore auditing remains unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "The fairs route remains readable; only delete-class mutation handlers are hardened." },
+    "forms": { "status": "na", "reason": "Archive and restore use confirmation actions rather than editable forms." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "FairsPage already hid archive/restore entry points without fair_crm.fairs.delete, but handleArchive and handleRestore lacked explicit fail-closed guards. Both handlers now return immediately when delete permission is absent."
+}

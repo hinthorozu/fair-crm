@@ -99,6 +99,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
   };
 
   const handleArchive = async (fair: Fair) => {
+    if (!canDelete) return;
     setArchivingId(fair.id);
     setSuccess(null);
     try {
@@ -113,6 +114,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
   };
 
   const handleRestore = async (fair: Fair) => {
+    if (!canDelete) return;
     setRestoringId(fair.id);
     setSuccess(null);
     try {
