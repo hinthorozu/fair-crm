@@ -270,6 +270,7 @@ export function TodosPage({ onOpenDetail, onOpenQuote, onOpenCustomer }: TodosPa
   };
 
   const handleCreate = async (values: TodoFormValues) => {
+    if (!canCreate) return;
     const created = await createTodo(formValuesToCreatePayload(values));
     const stepPayload = formItemsToReplacePayload(values.steps);
     if (stepPayload.length > 0) {
