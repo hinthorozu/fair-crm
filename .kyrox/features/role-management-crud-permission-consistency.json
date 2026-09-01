@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "id": "role-management-crud-permission-consistency",
+  "title": "Role Management CRUD Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/RoleManagementPage.tsx",
+    "frontend/src/permissions/RoleManagementCrudPermissions.test.ts",
+    ".kyrox/features/role-management-crud-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "identity.roles.create",
+        "action": "create an organization role",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "identity.roles.update",
+        "action": "update an organization role and its permissions",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "identity.roles.delete",
+        "action": "delete an organization role",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/admin/system/roles"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing Kyrox Core role permissions are reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Kyrox Core role-management authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "Existing organization scope enforcement remains unchanged." },
+    "audit": { "status": "na", "reason": "Existing Kyrox Core role audit behavior remains unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Role-management navigation remains unchanged." },
+    "route_guard": { "status": "na", "reason": "This change hardens action callbacks; route access is unchanged." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Organization role create, update, permission-update, and delete UI callbacks now fail closed using the same identity.roles.create/update/delete capabilities enforced by Kyrox Core. SuperAdmin-only template, sync, derive, and permission lifecycle flows are intentionally unchanged because Kyrox Core protects those endpoints with require_super_admin."
+}
