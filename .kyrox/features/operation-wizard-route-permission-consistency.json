@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "id": "operation-wizard-route-permission-consistency",
+  "title": "Operation Wizard Route Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/permissions/navigationPermissions.test.ts",
+    "frontend/src/permissions/DataOperationsRoutePermissions.test.ts",
+    ".kyrox/features/operation-wizard-route-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.operations.create",
+        "action": "enter the generic new-operation route",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.fair_emails.execute",
+        "action": "enter the Bulk Email immediate-send wizard",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.scraper.execute",
+        "action": "enter Enrichment and Scraper immediate-start wizards",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.operations.execute",
+        "action": "enter the Duplicate Check immediate-run wizard",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.admin.data_operations.read",
+        "action": "read Duplicate Check definitions shown by the wizard",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/operations/new",
+      "/operations/new/bulk-email",
+      "/operations/new/enrichment",
+      "/operations/new/scraper",
+      "/operations/new/duplicate-check"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": {
+      "status": "na",
+      "reason": "No persistence changes are introduced."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "Existing canonical permissions are reused."
+    },
+    "permissions": {
+      "status": "required"
+    },
+    "backend": {
+      "status": "na",
+      "reason": "Backend immediate-start authorization was aligned in the preceding focused permission changes."
+    },
+    "api": {
+      "status": "na",
+      "reason": "No API contract changes are introduced."
+    },
+    "tenant_isolation": {
+      "status": "na",
+      "reason": "No organization-scoping behavior changes."
+    },
+    "audit": {
+      "status": "na",
+      "reason": "No mutation or audit behavior changes."
+    },
+    "frontend": {
+      "status": "required"
+    },
+    "ui_permissions": {
+      "status": "required"
+    },
+    "menu": {
+      "status": "na",
+      "reason": "Main Operations navigation remains governed separately by operations.read."
+    },
+    "route_guard": {
+      "status": "required"
+    },
+    "forms": {
+      "status": "na",
+      "reason": "No wizard form behavior changes."
+    },
+    "visual_qa": {
+      "status": "required"
+    },
+    "backend_tests": {
+      "status": "na",
+      "reason": "Backend behavior is unchanged in this route-only cleanup."
+    },
+    "frontend_tests": {
+      "status": "required"
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
+  },
+  "notes": "Specialized operation wizard deep links must not reintroduce generic operation-create prerequisites after their business actions were consolidated. Bulk Email uses fair_emails.execute; Enrichment and Scraper use scraper.execute; Duplicate Check uses operations.execute plus its legitimate data_operations.read page prerequisite. The generic /operations/new route and unknown generic operation wizard fallback continue to require operations.create."
+}

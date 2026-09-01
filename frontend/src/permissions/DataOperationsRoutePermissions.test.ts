@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { OPERATION_EXECUTE } from "./operationPermissions";
 import {
   canAccessApplicationPath,
   PERMISSION_DATA_OPERATIONS_READ,
@@ -9,13 +10,29 @@ import {
 const granted = (...permissions: string[]) => new Set(permissions);
 
 describe("data operations route permissions", () => {
-  it("requires operation create plus data-operations read for the duplicate-check wizard", () => {
+  it("requires operation execute plus data-operations read for the duplicate-check wizard", () => {
+    expect(
+      canAccessApplicationPath("/operations/new/duplicate-check", granted(OPERATION_EXECUTE)),
+    ).toBe(false);
+    expect(
+      canAccessApplicationPath(
+        "/operations/new/duplicate-check",
+        granted(OPERATION_EXECUTE, PERMISSION_DATA_OPERATIONS_READ),
+      ),
+    ).toBe(true);
+    expect(
+      canAccessApplicationPath(
+        "/operations/new/duplicate-check",
+        granted(PERMISSION_OPERATIONS_CREATE, PERMISSION_DATA_OPERATIONS_READ),
+      ),
+    ).toBe(false);
+  });
+
+  it("preserves create plus data-operations read for the legacy admin surface", () => {
     const createOnly = granted(PERMISSION_OPERATIONS_CREATE);
-    expect(canAccessApplicationPath("/operations/new/duplicate-check", createOnly)).toBe(false);
     expect(canAccessApplicationPath("/admin/data-operations", createOnly)).toBe(false);
 
     const allowed = granted(PERMISSION_OPERATIONS_CREATE, PERMISSION_DATA_OPERATIONS_READ);
-    expect(canAccessApplicationPath("/operations/new/duplicate-check", allowed)).toBe(true);
     expect(canAccessApplicationPath("/admin/data-operations", allowed)).toBe(true);
   });
 

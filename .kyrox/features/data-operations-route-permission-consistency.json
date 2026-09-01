@@ -23,8 +23,14 @@
         "assignable": true
       },
       {
+        "code": "fair_crm.operations.execute",
+        "action": "enter the duplicate-check wizard and run duplicate checks",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
         "code": "fair_crm.operations.create",
-        "action": "enter the duplicate-check creation surface",
+        "action": "enter the supported legacy admin data-operations creation surface",
         "scope": "organization",
         "assignable": true
       },
@@ -48,24 +54,69 @@
     "menu_permission": null
   },
   "applicability": {
-    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
-    "migration": { "status": "na", "reason": "Existing permissions are reused." },
-    "permissions": { "status": "required" },
-    "backend": { "status": "na", "reason": "Existing data-operation read authorization remains unchanged and authoritative." },
-    "api": { "status": "na", "reason": "No server API contract changes." },
-    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
-    "audit": { "status": "na", "reason": "No mutation or audit behavior changes." },
-    "frontend": { "status": "required" },
-    "ui_permissions": { "status": "required" },
-    "menu": { "status": "na", "reason": "Main Operations navigation remains governed by fair_crm.operations.read." },
-    "route_guard": { "status": "required" },
-    "forms": { "status": "na", "reason": "No form behavior changes." },
-    "visual_qa": { "status": "required" },
-    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
-    "frontend_tests": { "status": "required" },
-    "runtime_authorization": { "status": "required" },
-    "runtime_verification": { "status": "required" },
-    "deployment": { "status": "required" }
+    "database": {
+      "status": "na",
+      "reason": "No persistence model changes are introduced."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "Existing permissions are reused."
+    },
+    "permissions": {
+      "status": "required"
+    },
+    "backend": {
+      "status": "na",
+      "reason": "Existing data-operation and operation authorization remains unchanged and authoritative."
+    },
+    "api": {
+      "status": "na",
+      "reason": "No server API contract changes."
+    },
+    "tenant_isolation": {
+      "status": "na",
+      "reason": "No organization-scoping behavior changes."
+    },
+    "audit": {
+      "status": "na",
+      "reason": "No mutation or audit behavior changes."
+    },
+    "frontend": {
+      "status": "required"
+    },
+    "ui_permissions": {
+      "status": "required"
+    },
+    "menu": {
+      "status": "na",
+      "reason": "Main Operations navigation remains governed by fair_crm.operations.read."
+    },
+    "route_guard": {
+      "status": "required"
+    },
+    "forms": {
+      "status": "na",
+      "reason": "No form behavior changes."
+    },
+    "visual_qa": {
+      "status": "required"
+    },
+    "backend_tests": {
+      "status": "na",
+      "reason": "Backend authorization behavior is unchanged."
+    },
+    "frontend_tests": {
+      "status": "required"
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
   },
-  "notes": "Duplicate-check routes previously inherited only the generic Operations route permissions even though their primary APIs require fair_crm.admin.data_operations.read. The route guard now preserves the existing Operations create/read requirement and additionally requires the canonical data-operations read permission, including supported legacy admin URLs."
+  "notes": "The duplicate-check wizard now follows the merged business boundary: fair_crm.operations.execute plus fair_crm.admin.data_operations.read. Duplicate-check result routes remain operations.read plus data-operations.read. Supported legacy /admin/data-operations creation routes intentionally retain operations.create plus data-operations.read and are outside the specialized wizard cleanup."
 }
