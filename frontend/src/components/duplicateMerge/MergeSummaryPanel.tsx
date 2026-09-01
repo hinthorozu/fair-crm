@@ -19,6 +19,7 @@ interface MergeSummaryPanelProps {
   mergeExecuting: boolean;
   mergeExecuteError: string | null;
   mergeSuccessMessage: string | null;
+  canExecute: boolean;
   onMergeExecute: () => void;
 }
 
@@ -34,6 +35,7 @@ export function MergeSummaryPanel({
   mergeExecuting,
   mergeExecuteError,
   mergeSuccessMessage,
+  canExecute,
   onMergeExecute,
 }: MergeSummaryPanelProps) {
   const displayName = preview?.merged_customer.display_name ?? survivingCustomerName;
@@ -118,21 +120,23 @@ export function MergeSummaryPanel({
         </Banner>
       )}
 
-      <button
-        type="button"
-        className="btn primary duplicate-group-preview-btn"
-        disabled={!canMerge}
-        onClick={onMergeExecute}
-      >
-        {mergeExecuting ? (
-          <span className="duplicate-group-merge-btn-loading">
-            <span className="spinner duplicate-group-summary-spinner" aria-hidden="true" />
-            {adminLabels.dataOpMergeExecuting}
-          </span>
-        ) : (
-          adminLabels.dataOpMergeCustomers
-        )}
-      </button>
+      {canExecute ? (
+        <button
+          type="button"
+          className="btn primary duplicate-group-preview-btn"
+          disabled={!canMerge}
+          onClick={onMergeExecute}
+        >
+          {mergeExecuting ? (
+            <span className="duplicate-group-merge-btn-loading">
+              <span className="spinner duplicate-group-summary-spinner" aria-hidden="true" />
+              {adminLabels.dataOpMergeExecuting}
+            </span>
+          ) : (
+            adminLabels.dataOpMergeCustomers
+          )}
+        </button>
+      ) : null}
     </Card>
   );
 }

@@ -5,6 +5,7 @@ import { customerStatusLabels } from "../labels";
 import { customerStatusBadgeVariant } from "../utils/badges";
 import type { CustomerStatus } from "../types/customer";
 import { adminLabels } from "../labels/adminLabels";
+import { usePermissions } from "../hooks/usePermissions";
 import { Badge } from "./ui/Badge";
 import { CheckboxField, RadioField } from "./ui/form";
 import { CopyableCustomerId } from "./duplicateMerge/CopyableCustomerId";
@@ -32,6 +33,7 @@ import {
 } from "./duplicateMerge/mergeSelectionState";
 
 const PREVIEW_DEBOUNCE_MS = 400;
+const DATA_OPERATIONS_EXECUTE_PERMISSION = "fair_crm.admin.data_operations.execute";
 
 const SCALAR_FIELD_LABELS: Record<ScalarFieldKey, string> = {
   company_name: adminLabels.dataOpColCompanyName,
@@ -244,6 +246,8 @@ export function DuplicateGroupDetailView({
   error,
   onMergeSuccess,
 }: DuplicateGroupDetailViewProps) {
+  const { can } = usePermissions();
+  const canExecuteDataOperations = can(DATA_OPERATIONS_EXECUTE_PERMISSION);
   const suggestedWinnerId = React.useMemo(() => pickSuggestedWinnerId(customers), [customers]);
   const uniqueFairs = React.useMemo(() => countUniqueFairs(customers), [customers]);
   const totalParticipations = React.useMemo(() => countTotalParticipations(customers), [customers]);
@@ -372,13 +376,15 @@ export function DuplicateGroupDetailView({
   const previewMatchesSelection = previewSelectionKey === mergeSelectionKey;
 
   const handleMergeRequest = React.useCallback(() => {
+    if (!canExecuteDataOperations) return;
     if (mergeExecuting || mergeCompletedRef.current || !mergePreview?.is_valid || !previewMatchesSelection) {
       return;
     }
     setMergeConfirmOpen(true);
-  }, [mergeExecuting, mergePreview?.is_valid, previewMatchesSelection]);
+  }, [canExecuteDataOperations, mergeExecuting, mergePreview?.is_valid, previewMatchesSelection]);
 
   const handleMergeExecute = React.useCallback(async () => {
+    if (!canExecuteDataOperations) return;
     if (mergeExecuting || mergeCompletedRef.current || !mergePreview?.is_valid || !previewMatchesSelection) {
       return;
     }
@@ -416,6 +422,7 @@ export function DuplicateGroupDetailView({
       setMergeExecuting(false);
     }
   }, [
+    canExecuteDataOperations,
     customers,
     groupKey,
     mergeExecuting,
@@ -739,12 +746,13 @@ export function DuplicateGroupDetailView({
           mergeExecuting={mergeExecuting}
           mergeExecuteError={mergeExecuteError}
           mergeSuccessMessage={mergeSuccessMessage}
+          canExecute={canExecuteDataOperations}
           onMergeExecute={handleMergeRequest}
         />
       </div>
 
       <MergeCustomersConfirmModal
-        open={mergeConfirmOpen}
+        open={mergeConfirmOpen && canExecuteDataOperations}
         preview={mergePreview?.is_valid && previewMatchesSelection ? mergePreview : null}
         groupCustomers={customers}
         merging={mergeExecuting}
