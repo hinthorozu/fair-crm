@@ -1,0 +1,35 @@
+name: Normalize Bulk Email Wizard CRLF
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  normalize:
+    if: github.head_ref == 'fix/bulk-email-send-single-permission'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/bulk-email-send-single-permission
+          fetch-depth: 0
+      - name: Normalize target and remove helper workflow
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path("frontend/src/pages/BulkEmailOperationWizardPage.tsx")
+          data = path.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+          path.write_bytes(data)
+          Path(".github/workflows/normalize-bulk-email-wizard-crlf.yml").unlink()
+      - name: Commit normalization
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/src/pages/BulkEmailOperationWizardPage.tsx .github/workflows/normalize-bulk-email-wizard-crlf.yml
+          git commit -m "chore: preserve bulk email wizard CRLF"
+          git push origin HEAD:fix/bulk-email-send-single-permission
