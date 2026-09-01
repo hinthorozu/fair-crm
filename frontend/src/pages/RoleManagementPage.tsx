@@ -535,6 +535,7 @@ export function RoleManagementPage() {
   }, [loadOrganization]);
 
   const openCreateRole = () => {
+    if (!canCreateRole) return;
     setEditing(null);
     setForm(EMPTY_ROLE);
   };
@@ -542,6 +543,7 @@ export function RoleManagementPage() {
   const saveRole = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!organizationId) return;
+    if (editing ? !canUpdateRole : !canCreateRole) return;
     setSaving(true);
     setError(null);
     try {
@@ -862,7 +864,7 @@ export function RoleManagementPage() {
         </FormDirtyHost>
       ) : null}
 
-      {deleteTarget ? <ConfirmDialog title="Rolü Sil" message={`${deleteTarget.name} rolü silinecek. Aktif kullanıcıya atanmışsa işlem güvenlik nedeniyle engellenir.`} confirmLabel="Rolü Sil" variant="danger" loading={saving} onCancel={() => setDeleteTarget(null)} onConfirm={() => { if (!organizationId) return; setSaving(true); setError(null); void deleteOrganizationRole(organizationId, deleteTarget.id).then(async () => { setDeleteTarget(null); setSuccess("Rol silindi."); await loadOrganization(); }).catch((err) => setError(errorMessage(err))).finally(() => setSaving(false)); }} /> : null}
+      {deleteTarget ? <ConfirmDialog title="Rolü Sil" message={`${deleteTarget.name} rolü silinecek. Aktif kullanıcıya atanmışsa işlem güvenlik nedeniyle engellenir.`} confirmLabel="Rolü Sil" variant="danger" loading={saving} onCancel={() => setDeleteTarget(null)} onConfirm={() => { if (!organizationId || !canDeleteRole) return; setSaving(true); setError(null); void deleteOrganizationRole(organizationId, deleteTarget.id).then(async () => { setDeleteTarget(null); setSuccess("Rol silindi."); await loadOrganization(); }).catch((err) => setError(errorMessage(err))).finally(() => setSaving(false)); }} /> : null}
       {syncConfirmTarget ? <ConfirmDialog title="Rolü Şablonla Güncelle" message={`${syncConfirmTarget.role.name}: ${syncConfirmTarget.addCount} izin eklenecek, ${syncConfirmTarget.removeCount} izin kaldırılacak.`} confirmLabel="Güncelle" loading={saving} onCancel={() => setSyncConfirmTarget(null)} onConfirm={() => void confirmSync()} /> : null}
       {permissionStateConfirmTarget ? <ConfirmDialog title="İzin Durumunu Değiştir" message={`${permissionStateConfirmTarget.permission.code}: ${permissionStateConfirmTarget.affectedRoles} rol ve ${permissionStateConfirmTarget.affectedUsers} kullanıcı etkilenecek.`} confirmLabel="Uygula" variant={permissionStateConfirmTarget.state === "inactive" ? "danger" : "default"} loading={saving} onCancel={() => setPermissionStateConfirmTarget(null)} onConfirm={() => void confirmPermissionStateChange()} /> : null}
     </PageShell>
