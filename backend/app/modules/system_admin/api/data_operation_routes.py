@@ -47,7 +47,7 @@ from app.modules.system_admin.api.data_operation_schemas import (
     DuplicateDatasetGroupDetailResponse,
     DuplicateDatasetGroupResponse,
     DuplicateGroupMergePreviewCommunicationResponse,
-    DuplicateGroupMergeIssueResponse,
+    DuplicateGroupMergePreviewIssueResponse,
     DuplicateGroupMergePreviewParticipationSummaryResponse,
     DuplicateGroupMergePreviewRequest,
     DuplicateGroupMergePreviewResponse,
@@ -326,7 +326,7 @@ def _merge_preview_to_response(preview: DuplicateGroupMergePreviewResult) -> Dup
         ),
         customers_to_archive=preview.customers_to_archive,
         validation_errors=[
-            DuplicateGroupMergeIssueResponse(
+            DuplicateGroupMergePreviewIssueResponse(
                 code=issue.code,
                 message=issue.message,
                 severity=issue.severity,
@@ -334,7 +334,7 @@ def _merge_preview_to_response(preview: DuplicateGroupMergePreviewResult) -> Dup
             for issue in preview.validation_errors
         ],
         warnings=[
-            DuplicateGroupMergeIssueResponse(
+            DuplicateGroupMergePreviewIssueResponse(
                 code=issue.code,
                 message=issue.message,
                 severity=issue.severity,
@@ -363,7 +363,7 @@ def _merge_statistics_to_response(statistics) -> DuplicateGroupMergePreviewStati
         emails_after=statistics.emails_after,
         phones_before=statistics.phones_before,
         phones_after=statistics.phones_after,
-        websites_before=statistics.websites.before,
+        websites_before=statistics.websites_before,
         websites_after=statistics.websites_after,
     )
 
