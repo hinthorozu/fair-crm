@@ -7,11 +7,16 @@ const source = readFileSync(
 );
 
 describe("DataOperationsPage download permissions", () => {
-  it("uses the backend canonical data-operations read permission", () => {
+  it("uses both backend-enforced data-operations permissions", () => {
     expect(source).toContain(
       'const DATA_OPERATIONS_READ = "fair_crm.admin.data_operations.read";',
     );
-    expect(source).toContain("const canDownload = can(DATA_OPERATIONS_READ);");
+    expect(source).toContain(
+      'const DATA_OPERATIONS_EXECUTE = "fair_crm.admin.data_operations.execute";',
+    );
+    expect(source).toContain(
+      "const canDownload = can(DATA_OPERATIONS_READ) && can(DATA_OPERATIONS_EXECUTE);",
+    );
   });
 
   it("fails closed before downloading an output file", () => {
@@ -19,7 +24,7 @@ describe("DataOperationsPage download permissions", () => {
     expect(source).toContain("await downloadDataOperationFile(run.id, fileId, fileName);");
   });
 
-  it("hides download affordances without read permission", () => {
+  it("hides download affordances unless both permissions are granted", () => {
     expect(source).toContain(
       "{canDownload && downloadsFrom?.output_files && downloadsFrom.output_files.length > 0 && (",
     );
