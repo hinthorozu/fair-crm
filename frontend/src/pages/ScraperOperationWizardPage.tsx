@@ -26,11 +26,14 @@ import {
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
+import { usePermissions } from "../hooks/usePermissions";
 import {
   operationLabels,
   operationTypeLabels,
   wizardStepLabels,
 } from "../labels/operationLabels";
+import { PERMISSION_OPERATIONS_CREATE } from "../permissions/navigationPermissions";
+import { OPERATION_EXECUTE } from "../permissions/operationPermissions";
 import type { Fair } from "../types/fair";
 import type { AdapterListItem, RequestedOutputField, ScraperManifest } from "../types/scraper";
 import {
@@ -83,6 +86,8 @@ function ScraperOperationWizardPageInner({
   onCreated,
 }: ScraperOperationWizardPageProps) {
   const requestLeave = useModalFormCancel(onCancel);
+  const { can } = usePermissions();
+  const canStart = can(PERMISSION_OPERATIONS_CREATE) && can(OPERATION_EXECUTE);
   const [stepIndex, setStepIndex] = React.useState(0);
   const [fieldError, setFieldError] = React.useState<string | null>(null);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
@@ -330,6 +335,7 @@ function ScraperOperationWizardPageInner({
   };
 
   const submit = async () => {
+    if (!canStart) return;
     if (!validateCurrentStep()) return;
     if (!canProceed) return;
     setSubmitting(true);
@@ -544,7 +550,7 @@ function ScraperOperationWizardPageInner({
             >
               {operationLabels.next}
             </Button>
-          ) : (
+          ) : canStart ? (
             <Button
               type="button"
               variant="primary"
@@ -554,7 +560,7 @@ function ScraperOperationWizardPageInner({
             >
               {operationLabels.startAutomation}
             </Button>
-          )}
+          ) : null}
         </div>
       </Card>
     </PageShell>
