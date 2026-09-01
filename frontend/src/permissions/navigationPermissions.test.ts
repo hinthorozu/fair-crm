@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { FAIR_EMAIL_PERMISSION_EXECUTE } from "./fairEmailPermissions";
+import { SCRAPER_PERMISSION_EXECUTE } from "./scraperPermissions";
 import {
   canAccessAdminSection,
   canAccessApplicationPath,
@@ -77,14 +79,33 @@ describe("navigation permission rules", () => {
     );
   });
 
-  it("separates operation read routes from operation creation routes", () => {
+  it("separates operation read routes from the generic operation creation route", () => {
     const reader = granted(PERMISSION_OPERATIONS_READ);
     expect(canAccessApplicationPath("/operations", reader)).toBe(true);
     expect(canAccessApplicationPath("/operations/abc", reader)).toBe(true);
-    expect(canAccessApplicationPath("/operations/new/bulk-email", reader)).toBe(false);
+    expect(canAccessApplicationPath("/operations/new", reader)).toBe(false);
 
     const creator = granted(PERMISSION_OPERATIONS_READ, PERMISSION_OPERATIONS_CREATE);
-    expect(canAccessApplicationPath("/operations/new/bulk-email", creator)).toBe(true);
+    expect(canAccessApplicationPath("/operations/new", creator)).toBe(true);
+  });
+
+  it("uses canonical business permissions for specialized operation wizard routes", () => {
+    expect(
+      canAccessApplicationPath("/operations/new/bulk-email", granted(FAIR_EMAIL_PERMISSION_EXECUTE)),
+    ).toBe(true);
+    expect(
+      canAccessApplicationPath("/operations/new/enrichment", granted(SCRAPER_PERMISSION_EXECUTE)),
+    ).toBe(true);
+    expect(
+      canAccessApplicationPath("/operations/new/scraper", granted(SCRAPER_PERMISSION_EXECUTE)),
+    ).toBe(true);
+
+    const genericCreator = granted(PERMISSION_OPERATIONS_CREATE);
+    expect(canAccessApplicationPath("/operations/new/bulk-email", genericCreator)).toBe(false);
+    expect(canAccessApplicationPath("/operations/new/enrichment", genericCreator)).toBe(false);
+    expect(canAccessApplicationPath("/operations/new/scraper", genericCreator)).toBe(false);
+    expect(canAccessApplicationPath("/operations/new", genericCreator)).toBe(true);
+    expect(canAccessApplicationPath("/operations/new/custom", genericCreator)).toBe(true);
   });
 
   it("separates import read, create and scraper surfaces", () => {

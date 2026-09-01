@@ -3,7 +3,10 @@ import {
   hasGrantedCorePermission,
   type GrantedPermissionCollection,
 } from "./corePermissions";
+import { FAIR_EMAIL_PERMISSION_EXECUTE } from "./fairEmailPermissions";
+import { OPERATION_EXECUTE } from "./operationPermissions";
 import { canReadQuoteEditor } from "./quotePermissions";
+import { SCRAPER_PERMISSION_EXECUTE } from "./scraperPermissions";
 
 export const PERMISSION_ORGANIZATIONS_READ = "identity.organizations.read";
 export const PERMISSION_ORGANIZATIONS_UPDATE = "identity.organizations.update";
@@ -255,9 +258,16 @@ export function canAccessApplicationPath(
 
   const canReadDataOperations = hasGrantedCorePermission(granted, PERMISSION_DATA_OPERATIONS_READ);
   if (pathname === "/operations/new/duplicate-check") {
-    return (
-      hasGrantedCorePermission(granted, PERMISSION_OPERATIONS_CREATE) && canReadDataOperations
-    );
+    return hasGrantedCorePermission(granted, OPERATION_EXECUTE) && canReadDataOperations;
+  }
+  if (pathname === "/operations/new/bulk-email") {
+    return hasGrantedCorePermission(granted, FAIR_EMAIL_PERMISSION_EXECUTE);
+  }
+  if (
+    pathname === "/operations/new/enrichment" ||
+    pathname === "/operations/new/scraper"
+  ) {
+    return hasGrantedCorePermission(granted, SCRAPER_PERMISSION_EXECUTE);
   }
   if (pathname.startsWith("/operations/duplicate-check/runs/")) {
     return hasGrantedCorePermission(granted, PERMISSION_OPERATIONS_READ) && canReadDataOperations;

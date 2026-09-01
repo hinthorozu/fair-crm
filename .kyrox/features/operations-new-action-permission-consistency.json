@@ -18,7 +18,7 @@
     "items": [
       {
         "code": "fair_crm.operations.create",
-        "action": "start the new operation flow from the Operations page",
+        "action": "start the generic new operation flow from the Operations page",
         "scope": "organization",
         "assignable": true
       }
@@ -26,7 +26,7 @@
   },
   "frontend": {
     "required": true,
-    "routes": ["/operations", "/operations/new/scraper", "/operations/new/bulk-email", "/operations/new/enrichment", "/operations/new/duplicate-check"],
+    "routes": ["/operations", "/operations/new"],
     "menu": false,
     "menu_permission": null
   },
@@ -35,13 +35,13 @@
     "migration": { "status": "na", "reason": "The existing fair_crm.operations.create permission is reused." },
     "permissions": { "status": "required" },
     "backend": { "status": "na", "reason": "Existing operation authorization remains unchanged and authoritative." },
-    "api": { "status": "na", "reason": "No server API contract changes; only the Operations-page create entry point is aligned with existing route authorization." },
+    "api": { "status": "na", "reason": "No server API contract changes; this contract covers only the generic Operations-page creation entry point." },
     "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
     "audit": { "status": "na", "reason": "No mutation or audit behavior changes." },
     "frontend": { "status": "required" },
     "ui_permissions": { "status": "required" },
     "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
-    "route_guard": { "status": "na", "reason": "Operation creation routes already require fair_crm.operations.create; this change aligns the originating page action." },
+    "route_guard": { "status": "na", "reason": "Specialized operation wizard routes use their own canonical business permissions under a separate route contract." },
     "forms": { "status": "na", "reason": "Operation wizard form behavior is unchanged." },
     "visual_qa": { "status": "required" },
     "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
@@ -50,5 +50,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "OperationsPage previously rendered Yeni Operasyon for users who could read operations but lacked fair_crm.operations.create, even though every /operations/new/* route already requires create permission. The entry point and open modal now fail closed on the existing create permission. Start and cancel row actions are intentionally outside this focused change."
+  "notes": "OperationsPage still requires fair_crm.operations.create to expose the generic Yeni Operasyon entry point. Specialized immediate-start wizard routes are no longer described as generic create routes; their deep-link guards are aligned separately with each wizard's canonical business permission."
 }
