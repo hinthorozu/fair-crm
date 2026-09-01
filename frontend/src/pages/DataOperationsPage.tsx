@@ -24,6 +24,7 @@ import { PageShell } from "../components/ui/PageShell";
 
 const POLL_INTERVAL_MS = 2000;
 const DATA_OPERATIONS_READ = "fair_crm.admin.data_operations.read";
+const DATA_OPERATIONS_EXECUTE = "fair_crm.admin.data_operations.execute";
 
 const duplicateCheckUiLabels = {
   run: "Çalıştır",
@@ -103,7 +104,7 @@ const DUPLICATE_GROUP_BY_OPTIONS: { value: DuplicateGroupByField; label: string 
 export function DuplicateCheckOperationPage({ onOpenResult }: DuplicateCheckOperationPageProps) {
   const { can } = usePermissions();
   const canRun = can(PERMISSION_OPERATIONS_CREATE) && can(OPERATION_EXECUTE);
-  const canDownload = can(DATA_OPERATIONS_READ);
+  const canDownload = can(DATA_OPERATIONS_READ) && can(DATA_OPERATIONS_EXECUTE);
   const [operations, setOperations] = React.useState<DataOperationDefinition[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
