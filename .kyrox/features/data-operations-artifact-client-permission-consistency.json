@@ -49,12 +49,12 @@
     "menu": { "status": "na", "reason": "Navigation behavior is unchanged." },
     "route_guard": { "status": "na", "reason": "This change hardens direct client artifact calls rather than route access." },
     "forms": { "status": "na", "reason": "No form behavior changes." },
-    "visual_qa": { "status": "na", "reason": "This client-layer fail-closed boundary does not change rendered UI." },
+    "visual_qa": { "status": "required" },
     "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
     "frontend_tests": { "status": "required" },
     "runtime_authorization": { "status": "required" },
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "The direct-fetch data-operation artifact helpers now fail closed before network activity unless both effective backend permissions are granted. This covers customer dataset export, duplicate-customer export, and generated output-file download independently of page-level affordance guards."
+  "notes": "The direct-fetch data-operation artifact helpers now fail closed before network activity unless both effective backend permissions are granted. This covers customer dataset export, duplicate-customer export, and generated output-file download independently of page-level affordance guards. Visual QA verifies that authorized artifact flows remain unchanged while unauthorized calls fail closed before network activity."
 }
