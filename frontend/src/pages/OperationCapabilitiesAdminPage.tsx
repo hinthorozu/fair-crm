@@ -18,6 +18,7 @@ import {
   type UniversalDataTableColumn,
 } from "../components/ui/UniversalDataTable";
 import { adminLabels } from "../labels/adminLabels";
+import { canUpdateOperationCapabilities } from "../permissions/operationPermissions";
 import type {
   OperationTypeCapabilityKey,
   OperationTypeCatalogItem,
@@ -41,6 +42,7 @@ function formatDateTime(value: string | null | undefined): string {
 }
 
 export function OperationCapabilitiesAdminPage() {
+  const canUpdate = React.useMemo(() => canUpdateOperationCapabilities(), []);
   const [types, setTypes] = React.useState<OperationTypeCatalogItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -77,6 +79,7 @@ export function OperationCapabilitiesAdminPage() {
   }, [success]);
 
   const openEdit = (item: OperationTypeCatalogItem) => {
+    if (!canUpdate) return;
     setEditing(item);
     setFormError(null);
   };
@@ -87,7 +90,7 @@ export function OperationCapabilitiesAdminPage() {
   }, []);
 
   const handleSave = async (payload: UpdateOperationTypeCapabilitiesPayload) => {
-    if (!editing) return;
+    if (!canUpdate || !editing) return;
     setFormSaving(true);
     setFormError(null);
     try {
@@ -112,9 +115,12 @@ export function OperationCapabilitiesAdminPage() {
         key: "name",
         title: adminLabels.operationCapabilitiesColName,
         sortable: true,
-        render: (item) => (
-          <TableEntityLink onClick={() => openEdit(item)}>{item.name}</TableEntityLink>
-        ),
+        render: (item) =>
+          canUpdate ? (
+            <TableEntityLink onClick={() => openEdit(item)}>{item.name}</TableEntityLink>
+          ) : (
+            item.name
+          ),
       },
       {
         key: "is_active",
@@ -147,24 +153,26 @@ export function OperationCapabilitiesAdminPage() {
         sortable: true,
         render: (item) => formatDateTime(item.updated_at),
       },
-      {
-        key: "actions",
-        title: adminLabels.operationCapabilitiesColActions,
-        sortable: false,
-        render: (item) => (
-          <TableRowActions>
-            <button
-              type="button"
-              className="btn btn-sm secondary"
-              onClick={() => openEdit(item)}
-            >
-              {adminLabels.operationCapabilitiesActionEdit}
-            </button>
-          </TableRowActions>
-        ),
-      },
+      ...(canUpdate
+        ? [{
+            key: "actions",
+            title: adminLabels.operationCapabilitiesColActions,
+            sortable: false,
+            render: (item: OperationTypeCatalogItem) => (
+              <TableRowActions>
+                <button
+                  type="button"
+                  className="btn btn-sm secondary"
+                  onClick={() => openEdit(item)}
+                >
+                  {adminLabels.operationCapabilitiesActionEdit}
+                </button>
+              </TableRowActions>
+            ),
+          } as UniversalDataTableColumn<OperationTypeCatalogItem>]
+        : []),
     ],
-    [],
+    [canUpdate],
   );
 
   return (
@@ -194,7 +202,7 @@ export function OperationCapabilitiesAdminPage() {
         }
       />
 
-      {editing ? (
+      {editing && canUpdate ? (
         <FormModal
           title={adminLabels.operationCapabilitiesEditTitle}
           onClose={closeModal}

@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "id": "operation-capabilities-update-permission-consistency",
+  "title": "Operation Capabilities Update Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/OperationCapabilitiesAdminPage.tsx",
+    "frontend/src/permissions/operationPermissions.ts",
+    "frontend/src/permissions/OperationCapabilitiesAdminPermissions.test.ts",
+    ".kyrox/features/operation-capabilities-update-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.operations.update",
+        "action": "update operation type capabilities",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/admin/operation-capabilities"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing operations.update permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing operation capability use-case authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Read navigation remains independently gated by operations.read." },
+    "route_guard": { "status": "na", "reason": "Read access and update actions remain separate existing concerns." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "OperationCapabilitiesAdminPage remains readable with operations.read, but edit affordances, modal mounting and the PATCH callback now require fair_crm.operations.update and fail closed."
+}
