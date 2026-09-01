@@ -363,7 +363,7 @@ def _merge_statistics_to_response(statistics) -> DuplicateGroupMergePreviewStati
         emails_after=statistics.emails_after,
         phones_before=statistics.phones_before,
         phones_after=statistics.phones_after,
-        websites_before=statistics.websites.before,
+        websites_before=statistics.websites_before,
         websites_after=statistics.websites_after,
     )
 
