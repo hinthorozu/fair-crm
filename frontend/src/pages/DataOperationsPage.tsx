@@ -14,7 +14,6 @@ import { RadioField } from "../components/ui/form";
 import { usePermissions } from "../hooks/usePermissions";
 import { adminLabels } from "../labels/adminLabels";
 import { operationLabels, operationTypeLabels } from "../labels/operationLabels";
-import { PERMISSION_OPERATIONS_CREATE } from "../permissions/navigationPermissions";
 import { OPERATION_EXECUTE } from "../permissions/operationPermissions";
 import type { DataOperationDefinition, DataOperationRun, DuplicateGroupByField } from "../types/dataOperations";
 import type { Operation } from "../types/operation";
@@ -102,7 +101,7 @@ const DUPLICATE_GROUP_BY_OPTIONS: { value: DuplicateGroupByField; label: string 
 
 export function DuplicateCheckOperationPage({ onOpenResult }: DuplicateCheckOperationPageProps) {
   const { can } = usePermissions();
-  const canRun = can(PERMISSION_OPERATIONS_CREATE) && can(OPERATION_EXECUTE);
+  const canRun = can(OPERATION_EXECUTE);
   const canDownload = can(DATA_OPERATIONS_EXECUTE);
   const [operations, setOperations] = React.useState<DataOperationDefinition[]>([]);
   const [loading, setLoading] = React.useState(true);
