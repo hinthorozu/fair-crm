@@ -14,7 +14,11 @@ import { FilterPanel } from "../components/ui/FilterPanel";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { FormField, SelectInput, TextInput } from "../components/ui/form";
 import { adminLabels } from "../labels/adminLabels";
-import { canSendMail, getGrantedPermissions } from "../permissions/emailAccountPermissions";
+import {
+  canPerformEmailAccountAction,
+  canSendMail,
+  getGrantedPermissions,
+} from "../permissions/emailAccountPermissions";
 import type { MailOperationRecord, MailOperationSourceType, MailOperationStatus } from "../types/mailOperations";
 import type { EmailAccount } from "../types/smtp";
 import { Banner } from "../components/ui/Banner";
@@ -58,6 +62,7 @@ type DialogState =
 export function MailOperationsPage() {
   const grantedPermissions = React.useMemo(() => getGrantedPermissions(), []);
   const canRetry = canSendMail(grantedPermissions);
+  const canReadEmailAccounts = canPerformEmailAccountAction(grantedPermissions, "read");
   const [items, setItems] = React.useState<MailOperationRecord[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -72,7 +77,7 @@ export function MailOperationsPage() {
   const [dialog, setDialog] = React.useState<DialogState>(null);
   const [toast, setToast] = React.useState<string | null>(null);
   const [emailAccounts, setEmailAccounts] = React.useState<EmailAccount[]>([]);
-  const [emailAccountsLoading, setEmailAccountsLoading] = React.useState(true);
+  const [emailAccountsLoading, setEmailAccountsLoading] = React.useState(canReadEmailAccounts);
   const [emailAccountsError, setEmailAccountsError] = React.useState<string | null>(null);
   const [retryingId, setRetryingId] = React.useState<string | null>(null);
 
@@ -82,6 +87,13 @@ export function MailOperationsPage() {
   }, [search]);
 
   React.useEffect(() => {
+    if (!canReadEmailAccounts) {
+      setEmailAccounts([]);
+      setEmailAccountsLoading(false);
+      setEmailAccountsError(null);
+      return undefined;
+    }
+
     let cancelled = false;
     setEmailAccountsLoading(true);
     setEmailAccountsError(null);
@@ -103,7 +115,7 @@ export function MailOperationsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [canReadEmailAccounts]);
 
   React.useEffect(() => {
     if (emailAccount === "all") return;
@@ -333,26 +345,28 @@ export function MailOperationsPage() {
           </SelectInput>
         </FormField>
 
-        <FormField
-          label={adminLabels.mailOperationsFilterSmtp}
-          htmlFor="mail-operations-smtp"
-          hint={emailAccountsLoading ? adminLabels.dataOpLoading : undefined}
-          error={emailAccountsError ?? undefined}
-        >
-          <SelectInput
-            id="mail-operations-smtp"
-            value={emailAccount}
-            disabled={emailAccountsLoading}
-            onChange={(event) => setEmailAccount(event.target.value)}
+        {canReadEmailAccounts ? (
+          <FormField
+            label={adminLabels.mailOperationsFilterSmtp}
+            htmlFor="mail-operations-smtp"
+            hint={emailAccountsLoading ? adminLabels.dataOpLoading : undefined}
+            error={emailAccountsError ?? undefined}
           >
-            <option value="all">{adminLabels.mailOperationsFilterAll}</option>
-            {emailAccounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
-              </option>
-            ))}
-          </SelectInput>
-        </FormField>
+            <SelectInput
+              id="mail-operations-smtp"
+              value={emailAccount}
+              disabled={emailAccountsLoading}
+              onChange={(event) => setEmailAccount(event.target.value)}
+            >
+              <option value="all">{adminLabels.mailOperationsFilterAll}</option>
+              {emailAccounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </SelectInput>
+          </FormField>
+        ) : null}
 
         <FormField
           label={adminLabels.mailOperationsFilterFair}
@@ -417,7 +431,6 @@ export function MailOperationsPage() {
           }}
         />
       ) : null}
-
       {dialog?.type === "cancel" ? (
         <ConfirmDialog
           title={adminLabels.mailOperationsCancelTitle}
