@@ -18,7 +18,13 @@
     "items": [
       {
         "code": "fair_crm.operations.execute",
-        "action": "start cancel or retry an operation",
+        "action": "start generic operations or cancel an operation from Operation Detail",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.fair_emails.execute",
+        "action": "start or retry a Bulk Email operation from Operation Detail",
         "scope": "organization",
         "assignable": true
       }
@@ -32,16 +38,16 @@
   },
   "applicability": {
     "database": { "status": "na", "reason": "No persistence model changes are introduced." },
-    "migration": { "status": "na", "reason": "Existing operations.execute permission is reused." },
+    "migration": { "status": "na", "reason": "Existing execution permissions are reused." },
     "permissions": { "status": "required" },
-    "backend": { "status": "na", "reason": "Existing operation execution authorization remains unchanged and authoritative." },
+    "backend": { "status": "na", "reason": "Existing operation Start authorization already selects the canonical business permission by operation type." },
     "api": { "status": "na", "reason": "No server API contract changes." },
     "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
     "audit": { "status": "na", "reason": "Existing operation execution audit behavior is unchanged." },
     "frontend": { "status": "required" },
     "ui_permissions": { "status": "required" },
     "menu": { "status": "na", "reason": "No navigation changes are introduced." },
-    "route_guard": { "status": "na", "reason": "Operation detail read access and execute actions remain separate concerns." },
+    "route_guard": { "status": "na", "reason": "Operation detail read access and mutation permissions remain separate concerns." },
     "forms": { "status": "required" },
     "visual_qa": { "status": "required" },
     "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
@@ -50,5 +56,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Operation detail remains readable with operations.read, while Start, Cancel, bulk-email Retry Failed, and the retry confirmation now require fair_crm.operations.execute and fail closed at the callback boundary. Bulk-email export remains read-only because the backend export endpoint uses the read permission."
+  "notes": "Operation Detail remains readable with its existing read access. Bulk Email Start and Retry Failed use fair_crm.fair_emails.execute, while generic Start and Cancel continue to use fair_crm.operations.execute. Enrichment and Scraper Detail Start alignment is intentionally outside this focused change. Bulk Email export remains read-only under the existing backend export permission."
 }

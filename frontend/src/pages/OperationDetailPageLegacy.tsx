@@ -115,6 +115,7 @@ export function OperationDetailPage({
 }: OperationDetailPageProps) {
   const { can } = usePermissions();
   const canExecute = can(OPERATION_EXECUTE);
+  const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);
   const canRetryBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);
   const [detail, setDetail] = React.useState<OperationDetail | null>(null);
   const [linkedTodo, setLinkedTodo] = React.useState<Todo | null>(null);
@@ -298,6 +299,7 @@ export function OperationDetailPage({
     detail?.operation.latest_run?.status ?? detail?.runs[0]?.status ?? null;
   const shouldPoll = latestStatus === "queued" || latestStatus === "running";
   const isBulkEmailOp = detail?.operation.operation_type === "bulk_email";
+  const canStartOperation = isBulkEmailOp ? canStartBulkEmail : canExecute;
 
   const loadBulkEmailExtras = React.useCallback(
     async (options?: { silent?: boolean; includeLogs?: boolean }) => {
@@ -367,7 +369,7 @@ export function OperationDetailPage({
   }, [bulkLogs]);
 
   const handleStart = async () => {
-    if (!canExecute) return;
+    if (!canStartOperation) return;
     setBusy(true);
     setBanner(null);
     try {
@@ -527,7 +529,7 @@ export function OperationDetailPage({
   const isBulkEmail = operation.operation_type === "bulk_email";
   const latestRunActive = latest?.status === "queued" || latest?.status === "running";
   const canStart =
-    canExecute &&
+    canStartOperation &&
     ["draft", "ready", "active"].includes(operation.status) &&
     !(isManualTask && operation.related_todo_id) &&
     !latestRunActive;
