@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "customer-read-client-permission-consistency",
+  "title": "Customer Read Client Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/api/customers.ts",
+    "frontend/src/permissions/CustomerReadClientPermissions.test.ts",
+    ".kyrox/features/customer-read-client-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.customers.read",
+        "action": "list, export, and read customer data",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing customer read permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing backend customer read authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes; frontend client read calls now fail closed consistently." },
+    "tenant_isolation": { "status": "na", "reason": "Existing organization-scoped customer authorization remains unchanged." },
+    "audit": { "status": "na", "reason": "Read-only operations introduce no new auditable mutation." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Application navigation remains unchanged." },
+    "route_guard": { "status": "na", "reason": "This hardens reusable customer API client boundaries rather than route access." },
+    "forms": { "status": "na", "reason": "No form submission behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "getCustomer already rejected locally when fair_crm.customers.read was absent, while listCustomers and exportCustomers still issued requests. The list and export paths now use the same fail-closed client boundary before any network request."
+}
