@@ -50,6 +50,7 @@ class RetryOperationUseCase:
             else (
                 PERMISSION_SCRAPER_EXECUTE
                 if operation.operation_type == OperationType.ENRICHMENT
+                or operation.operation_type == OperationType.SCRAPER
                 else PERMISSION_EXECUTE
             )
         )
