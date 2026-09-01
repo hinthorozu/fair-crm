@@ -21,6 +21,7 @@ from app.modules.operations.domain.type_registry import OperationTypeRegistry
 from app.modules.operations.domain.value_objects import OperationStatus, SourceKind
 
 PERMISSION_CREATE = "fair_crm.operations.create"
+PERMISSION_EXECUTE = "fair_crm.operations.execute"
 PERMISSION_BULK_EMAIL_EXECUTE = "fair_crm.fair_emails.execute"
 
 
@@ -47,7 +48,11 @@ class CreateOperationUseCase:
         permission_code = (
             PERMISSION_BULK_EMAIL_EXECUTE
             if command.operation_type == "bulk_email" and command.start_immediately
-            else PERMISSION_CREATE
+            else (
+                PERMISSION_EXECUTE
+                if command.operation_type == "duplicate_check" and command.start_immediately
+                else PERMISSION_CREATE
+            )
         )
         if not self._authorization.check_permission(
             organization_id=command.organization_id,

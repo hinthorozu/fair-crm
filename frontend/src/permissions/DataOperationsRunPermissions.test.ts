@@ -7,10 +7,9 @@ const source = readFileSync(
 );
 
 describe("DataOperationsPage run permissions", () => {
-  it("requires operation create and execute permissions for runs", () => {
-    expect(source).toContain(
-      "const canRun = can(PERMISSION_OPERATIONS_CREATE) && can(OPERATION_EXECUTE);",
-    );
+  it("uses operations.execute as the single permission for runs", () => {
+    expect(source).toContain("const canRun = can(OPERATION_EXECUTE);");
+    expect(source).not.toContain("can(PERMISSION_OPERATIONS_CREATE) && can(OPERATION_EXECUTE)");
   });
 
   it("fails closed before creating an immediately started operation", () => {
@@ -18,7 +17,7 @@ describe("DataOperationsPage run permissions", () => {
     expect(source).toContain("start_immediately: true");
   });
 
-  it("hides the run affordance without both permissions", () => {
+  it("hides the run affordance without operations.execute", () => {
     expect(source).toContain("{canRun ? (");
     expect(source).toContain("onClick={() => void handleRun(operation)}");
   });

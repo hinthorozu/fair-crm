@@ -53,6 +53,7 @@ from app.modules.system_admin.infrastructure.repositories.data_operation_run_rep
 
 PERMISSION_READ = "fair_crm.admin.data_operations.read"
 PERMISSION_RUN = "fair_crm.admin.data_operations.execute"
+PERMISSION_OPERATION_EXECUTE = "fair_crm.operations.execute"
 
 DATASET_CUSTOMER_ALLOWED_SORT_FIELDS = frozenset(
     ALLOWED_SORT_FIELDS | {"legal_name", "trade_name", "website", "company_name"}
@@ -151,14 +152,16 @@ class RunDataOperationUseCase:
         operation_key: str,
         group_by: str | None = None,
         fair_id: UUID | None = None,
+        from_operation_start: bool = False,
     ) -> DataOperationRun:
+        permission_code = PERMISSION_OPERATION_EXECUTE if from_operation_start else PERMISSION_RUN
         if not self._authorization.check_permission(
             organization_id=organization_id,
             user_id=user_id,
-            permission_code=PERMISSION_RUN,
+            permission_code=permission_code,
             access_token=access_token,
         ):
-            raise ForbiddenError("Admin permission required")
+            raise ForbiddenError("Permission denied")
 
         definition = get_operation_definition(operation_key)
         if definition is None:

@@ -119,7 +119,9 @@ class DuplicateCheckHandler:
         run: OperationRun,
         context: HandlerExecutionContext,
     ) -> HandlerStartResult:
-        return self._start_job(operation=operation, run=run, context=context)
+        return self._start_job(
+            operation=operation, run=run, context=context, from_operation_start=True
+        )
 
     def on_retry(
         self,
@@ -168,6 +170,7 @@ class DuplicateCheckHandler:
         operation: Operation,
         run: OperationRun,
         context: HandlerExecutionContext,
+        from_operation_start: bool = False,
     ) -> HandlerStartResult:
         from app.modules.system_admin.application.data_operation_job_runner import (
             DataOperationJobCommand,
@@ -232,6 +235,7 @@ class DuplicateCheckHandler:
                 operation_key=job_key,
                 group_by=group_by,
                 fair_id=fair_id,
+                from_operation_start=from_operation_start,
             )
         except Exception as exc:
             return HandlerStartResult(
