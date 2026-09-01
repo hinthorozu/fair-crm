@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "id": "smtp-account-write-permission-consistency",
+  "title": "SMTP Account Write Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/SmtpAccountsPage.tsx",
+    "frontend/src/permissions/SmtpAccountWritePermissions.test.ts",
+    ".kyrox/features/smtp-account-write-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.email_accounts.create",
+        "action": "create email account",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.email_accounts.update",
+        "action": "update email account including confirmed default-account deactivation",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.email_accounts.delete",
+        "action": "delete email account",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/smtp-accounts"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing email-account permissions are reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing email-account authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing email-account audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Read access and test-mail capability remain separate existing concerns." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "SmtpAccountsPage now fails closed at create, update and delete callbacks and re-gates create/delete/deactivate-confirm UI boundaries. Existing mail-send execute permission and test-only edit flow remain unchanged."
+}

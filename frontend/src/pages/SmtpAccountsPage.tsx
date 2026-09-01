@@ -187,6 +187,7 @@ export function SmtpAccountsPage() {
   }, [invalidateFormOp, invalidateTestMail]);
 
   const handleCreate = async (payload: Parameters<typeof createEmailAccount>[0]) => {
+    if (!canCreate) return;
     const requestId = ++formRequestIdRef.current;
     formTargetIdRef.current = "__create__";
     setFormSaving(true);
@@ -220,6 +221,7 @@ export function SmtpAccountsPage() {
   };
 
   const performUpdate = async (payload: UpdateEmailAccountPayload) => {
+    if (!canUpdate) return;
     const accountId = editingRef.current?.id;
     if (!accountId) return;
     const requestId = ++formRequestIdRef.current;
@@ -264,6 +266,7 @@ export function SmtpAccountsPage() {
   };
 
   const handleUpdate = async (payload: Parameters<typeof updateEmailAccount>[1]) => {
+    if (!canUpdate) return;
     if (editingRef.current?.is_default && payload.is_active === false) {
       setDeactivateConfirmPayload(payload);
       return;
@@ -347,6 +350,7 @@ export function SmtpAccountsPage() {
   };
 
   const handleDelete = async (account: EmailAccount) => {
+    if (!canDelete) return;
     const accountId = account.id;
     setDeletingId(accountId);
     setError(null);
@@ -538,7 +542,7 @@ export function SmtpAccountsPage() {
         }
       />
 
-      {modal === "create" ? (
+      {modal === "create" && canCreate ? (
         <FormModal title={adminLabels.smtpCreateModalTitle} onClose={closeModal}>
           <EmailAccountForm
             key="create"
@@ -579,7 +583,7 @@ export function SmtpAccountsPage() {
         </FormModal>
       ) : null}
 
-      {deleteTarget ? (
+      {deleteTarget && canDelete ? (
         <ConfirmDialog
           title={adminLabels.smtpDeleteTitle}
           message={
@@ -595,7 +599,7 @@ export function SmtpAccountsPage() {
         />
       ) : null}
 
-      {deactivateConfirmPayload ? (
+      {deactivateConfirmPayload && canUpdate ? (
         <ConfirmDialog
           title={adminLabels.smtpDeactivateDefaultTitle}
           message={adminLabels.smtpDeactivateDefaultConfirm}
