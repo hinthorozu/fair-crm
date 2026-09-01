@@ -154,6 +154,7 @@ export function MailTemplatesPage() {
   };
 
   const handleCreate = async (payload: Parameters<typeof createMailTemplate>[0]) => {
+    if (!canCreate) return;
     setFormSaving(true);
     setFormError(null);
     try {
@@ -169,7 +170,7 @@ export function MailTemplatesPage() {
   };
 
   const handleUpdate = async (payload: Parameters<typeof updateMailTemplate>[1]) => {
-    if (!editing) return;
+    if (!canUpdate || !editing) return;
     setFormSaving(true);
     setFormError(null);
     try {
@@ -185,6 +186,7 @@ export function MailTemplatesPage() {
   };
 
   const handleDelete = async (template: MailTemplate) => {
+    if (!canDelete) return;
     setDeletingId(template.id);
     setError(null);
     try {
@@ -426,7 +428,7 @@ export function MailTemplatesPage() {
         }
       />
 
-      {modal === "create" ? (
+      {modal === "create" && canCreate ? (
         <FormModal title={adminLabels.mailTemplatesNew} onClose={closeModal} size="lg">
           <MailTemplateForm
             mode="create"
@@ -439,7 +441,7 @@ export function MailTemplatesPage() {
         </FormModal>
       ) : null}
 
-      {modal === "edit" && editing ? (
+      {modal === "edit" && editing && canUpdate ? (
         <FormModal title={adminLabels.mailTemplatesEdit} onClose={closeModal} size="lg">
           <MailTemplateForm
             mode="edit"
@@ -473,7 +475,7 @@ export function MailTemplatesPage() {
         </Modal>
       ) : null}
 
-      {deleteTarget ? (
+      {deleteTarget && canDelete ? (
         <ConfirmDialog
           title={adminLabels.mailTemplatesDeleteTitle}
           message={adminLabels.mailTemplatesDeleteConfirm}

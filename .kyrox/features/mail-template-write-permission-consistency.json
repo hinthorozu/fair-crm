@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "id": "mail-template-write-permission-consistency",
+  "title": "Mail Template Write Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/MailTemplatesPage.tsx",
+    "frontend/src/permissions/MailTemplateWritePermissions.test.ts",
+    ".kyrox/features/mail-template-write-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.mail_templates.create",
+        "action": "create mail template",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.mail_templates.update",
+        "action": "update mail template",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.mail_templates.delete",
+        "action": "delete mail template",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/mail-templates"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing mail-template permissions are reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing mail-template use-case authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing mail-template audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Read access and execute actions remain separate existing concerns." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "MailTemplatesPage now fails closed at create/update/delete callbacks and re-gates create/edit modals and delete confirmation. Existing render, test-send and set-default permission behavior is unchanged."
+}
