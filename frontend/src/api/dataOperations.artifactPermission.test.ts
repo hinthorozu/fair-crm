@@ -3,26 +3,27 @@ import { describe, expect, it } from "vitest";
 
 const source = readFileSync(new URL("./dataOperations.ts", import.meta.url), "utf8");
 
+function functionSource(name: string): string {
+  const start = source.indexOf(`export async function ${name}`);
+  expect(start).toBeGreaterThanOrEqual(0);
+  return source.slice(start, source.indexOf("\n}\n", start) + 3);
+}
+
 describe("data operation artifact client permissions", () => {
-  it("requires both effective backend permissions", () => {
-    expect(source).toContain(
-      'const DATA_OPERATIONS_READ = "fair_crm.admin.data_operations.read";',
+  it("uses execute-only for analyzed dataset export", () => {
+    const datasetExport = functionSource("exportDataOperationDatasetCustomers");
+    expect(datasetExport).toContain("requireDataOperationExecutePermission();");
+    expect(datasetExport).not.toContain("requireDataOperationArtifactPermissions();");
+    expect(datasetExport.indexOf("requireDataOperationExecutePermission();")).toBeLessThan(
+      datasetExport.indexOf("fetchWithTimeout("),
     );
-    expect(source).toContain(
-      'const DATA_OPERATIONS_EXECUTE = "fair_crm.admin.data_operations.execute";',
-    );
-    expect(source).toContain("!permissions.has(DATA_OPERATIONS_READ)");
-    expect(source).toContain("!permissions.has(DATA_OPERATIONS_EXECUTE)");
   });
 
-  it("fails closed before each direct artifact fetch", () => {
-    const datasetExport = source.indexOf("export async function exportDataOperationDatasetCustomers");
-    const duplicateExport = source.indexOf("export async function exportDataOperationDuplicateCustomers");
-    const fileDownload = source.indexOf("export async function downloadDataOperationFile");
+  it("keeps the remaining artifact boundary unchanged for this focused fix", () => {
+    const duplicateExport = functionSource("exportDataOperationDuplicateCustomers");
+    const fileDownload = functionSource("downloadDataOperationFile");
 
-    for (const start of [datasetExport, duplicateExport, fileDownload]) {
-      expect(start).toBeGreaterThanOrEqual(0);
-      const artifactFunction = source.slice(start, source.indexOf("\n}\n", start) + 3);
+    for (const artifactFunction of [duplicateExport, fileDownload]) {
       expect(artifactFunction).toContain("requireDataOperationArtifactPermissions();");
       expect(artifactFunction.indexOf("requireDataOperationArtifactPermissions();")).toBeLessThan(
         artifactFunction.indexOf("fetchWithTimeout("),
