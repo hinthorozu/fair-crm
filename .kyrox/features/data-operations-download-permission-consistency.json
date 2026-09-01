@@ -10,6 +10,7 @@
   "user_facing": true,
   "affected_paths": [
     "backend/app/modules/system_admin/api/data_operation_routes.py",
+    "backend/tests/modules/system_admin/test_data_operation_download_permission_consistency.py",
     "frontend/src/api/dataOperationDownload.ts",
     "frontend/src/pages/DataOperationsPage.tsx",
     "frontend/src/permissions/DataOperationsDownloadPermissions.test.ts",
