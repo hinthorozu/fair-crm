@@ -18,6 +18,12 @@
     "items": [
       {
         "code": "fair_crm.admin.data_operations.read",
+        "action": "pass the download route authorization boundary",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.admin.data_operations.execute",
         "action": "download generated data operation output files",
         "scope": "organization",
         "assignable": true
@@ -32,9 +38,9 @@
   },
   "applicability": {
     "database": { "status": "na", "reason": "No persistence model changes are introduced." },
-    "migration": { "status": "na", "reason": "The existing data-operations read permission is reused." },
+    "migration": { "status": "na", "reason": "Existing data-operations permissions are reused." },
     "permissions": { "status": "required" },
-    "backend": { "status": "na", "reason": "The existing download endpoint already requires fair_crm.admin.data_operations.read and remains authoritative." },
+    "backend": { "status": "na", "reason": "The existing download route enforces fair_crm.admin.data_operations.read and DownloadDataOperationFileUseCase independently enforces fair_crm.admin.data_operations.execute; both remain authoritative." },
     "api": { "status": "na", "reason": "No server API contract changes." },
     "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
     "audit": { "status": "na", "reason": "Existing download behavior is unchanged." },
@@ -50,5 +56,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "DataOperationsPage now mirrors the backend download boundary: output-file downloads require fair_crm.admin.data_operations.read, the callback fails closed before network activity, and the download affordance is hidden when that permission is absent."
+  "notes": "DataOperationsPage mirrors the effective backend download boundary: output-file downloads require both fair_crm.admin.data_operations.read at the route and fair_crm.admin.data_operations.execute in the use case. The callback fails closed before network activity and the download affordance is hidden unless both permissions are present."
 }
