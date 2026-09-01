@@ -249,7 +249,7 @@ export async function exportDataOperationDuplicateCustomers(
     country?: string;
   } = {},
 ): Promise<void> {
-  requireDataOperationArtifactPermissions();
+  requireDataOperationExecutePermission();
   const qs = buildListQueryParams({
     search: params.search,
     sortBy: params.sortBy,
