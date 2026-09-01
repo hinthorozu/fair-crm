@@ -32,6 +32,7 @@ import { useRestoreJobPolling } from "../hooks/useRestoreJobPolling";
 import { adminLabels } from "../labels/adminLabels";
 import {
   canCreateAdminBackupOperation,
+  canDeleteAdminBackupOperation,
   canExecuteAdminBackupOperation,
 } from "../permissions/adminBackupPermissions";
 import type { BackupFormat, DatabaseKey, SystemBackup, SystemBackupRestoreJobResponse } from "../types/systemBackup";
@@ -894,6 +895,7 @@ function RestoreFromFileModal({
 
 export function DatabaseBackupsPage() {
   const canCreate = React.useMemo(() => canCreateAdminBackupOperation(), []);
+  const canDelete = React.useMemo(() => canDeleteAdminBackupOperation(), []);
   const canDownload = React.useMemo(() => canExecuteAdminBackupOperation(), []);
   const table = useServerDataTable<SystemBackup>({
     fetchFn: listSystemBackupsTable,
@@ -1075,7 +1077,7 @@ export function DatabaseBackupsPage() {
   };
 
   const handleDeleteBackup = async () => {
-    if (!deleteTarget) return;
+    if (!canDelete || !deleteTarget) return;
     setDeleting(true);
     setDeleteError(null);
     try {
@@ -1343,13 +1345,15 @@ export function DatabaseBackupsPage() {
                 {adminLabels.actionRestore}
               </button>
             ) : null}
-            <button
-              type="button"
-              className="btn link"
-              onClick={() => setDeleteTarget(detailBackup)}
-            >
-              {adminLabels.actionDelete}
-            </button>
+            {canDelete ? (
+              <button
+                type="button"
+                className="btn link"
+                onClick={() => setDeleteTarget(detailBackup)}
+              >
+                {adminLabels.actionDelete}
+              </button>
+            ) : null}
           </div>
         </Modal>
       )}
@@ -1364,7 +1368,7 @@ export function DatabaseBackupsPage() {
         />
       )}
 
-      {deleteTarget && (
+      {deleteTarget && canDelete && (
         <DeleteBackupConfirmModal
           backup={deleteTarget}
           deleting={deleting}
