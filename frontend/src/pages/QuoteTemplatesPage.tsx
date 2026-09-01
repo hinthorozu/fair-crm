@@ -80,6 +80,8 @@ export function QuoteTemplatesPage() {
   const [values, setValues] = React.useState<QuoteTemplatePayload>(empty);
   const [saving, setSaving] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
+  const canSaveTemplate = editing ? canUpdate : canCreate;
+  const canUploadLogo = canCreate || canUpdate;
 
   const load = React.useCallback(async () => {
     if (!canRead) { setItems([]); setLoading(false); setError("Teklif şablonlarını görüntüleme yetkiniz yok."); return; }
@@ -95,6 +97,7 @@ export function QuoteTemplatesPage() {
   const close = () => setEditing(undefined);
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!canSaveTemplate) return;
     if (!values.name.trim() || !values.source_code.trim()) { setError("Şablon adı ve HTML/CSS source code zorunludur."); return; }
     setSaving(true); setError(null);
     try { editing ? await updateQuoteTemplate(editing.id, values) : await createQuoteTemplate(values); close(); await load(); }
@@ -102,7 +105,7 @@ export function QuoteTemplatesPage() {
     finally { setSaving(false); }
   };
   const upload = async (file?: File) => {
-    if (!file) return;
+    if (!canUploadLogo || !file) return;
     setUploading(true);
     try {
       const result = await uploadQuoteTemplateLogo(file);
@@ -127,12 +130,12 @@ export function QuoteTemplatesPage() {
       <form className="crm-form" onSubmit={save}>
         <FormField label="Şablon adı" htmlFor="quote-template-name"><TextInput id="quote-template-name" value={values.name} onChange={(e) => setValues({ ...values, name: e.target.value })} /></FormField>
         <FormField label="Logo" htmlFor="quote-template-logo" hint={values.logo_url ? "Yüklü logo seçildi. Yeni dosya seçerek değiştirebilirsiniz." : "PNG, JPG, SVG veya WebP; en fazla 5 MB."}>
-          <input id="quote-template-logo" className="form-control" type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" disabled={uploading} onChange={(e) => void upload(e.target.files?.[0])} />
+          <input id="quote-template-logo" className="form-control" type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" disabled={uploading || !canUploadLogo} onChange={(e) => void upload(e.target.files?.[0])} />
         </FormField>
         {values.logo_url ? <QuoteTemplateLogo src={values.logo_url} alt="Şablon logosu" style={{ maxHeight: 72, maxWidth: 240, objectFit: "contain" }} /> : null}
         <FormField label="HTML/CSS Source Code" htmlFor="quote-template-source"><TextareaInput id="quote-template-source" rows={18} spellCheck={false} className="code-editor" value={values.source_code} onChange={(e) => setValues({ ...values, source_code: e.target.value })} /></FormField>
         {editing ? <Banner variant="info">Kaydettiğinizde mevcut sürüm korunur ve v{editing.version_number + 1} oluşturulur.</Banner> : null}
-        <div className="form-actions"><button type="button" className="btn secondary" onClick={close}>İptal</button><button type="submit" className="btn primary" disabled={saving || uploading}>{saving ? "Kaydediliyor…" : "Kaydet"}</button></div>
+        <div className="form-actions"><button type="button" className="btn secondary" onClick={close}>İptal</button>{canSaveTemplate ? <button type="submit" className="btn primary" disabled={saving || uploading}>{saving ? "Kaydediliyor…" : "Kaydet"}</button> : null}</div>
       </form>
     </FormModal> : null}
   </PageShell>;
