@@ -28,6 +28,7 @@ import {
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
+import { usePermissions } from "../hooks/usePermissions";
 import { adminLabels } from "../labels/adminLabels";
 import { fairLabels } from "../labels/fairLabels";
 import { operationLabels, wizardStepLabels } from "../labels/operationLabels";
@@ -35,6 +36,8 @@ import {
   canPerformMailTemplateAction,
   getGrantedMailTemplatePermissions,
 } from "../permissions/mailTemplatePermissions";
+import { PERMISSION_OPERATIONS_CREATE } from "../permissions/navigationPermissions";
+import { OPERATION_EXECUTE } from "../permissions/operationPermissions";
 import type { BulkEmailOperationPreviewResponse } from "../types/bulkEmailOperation";
 import type { MailTemplate } from "../types/mailTemplates";
 import type { EmailAccount } from "../types/smtp";
@@ -91,6 +94,8 @@ const EMPTY_WIZARD_STATE = {
 };
 
 const STEPS: Array<{ id: WizardStepId }> = BULK_EMAIL_WIZARD_STEPS.map((id) => ({ id }));
+const FAIR_EMAIL_PREVIEW_PERMISSION = "fair_crm.fair_emails.preview";
+const FAIR_EMAIL_EXECUTE_PERMISSION = "fair_crm.fair_emails.execute";
 
 export function BulkEmailOperationWizardPage({
   onCancel,
@@ -108,6 +113,12 @@ function BulkEmailOperationWizardPageInner({
   onCreated,
 }: BulkEmailOperationWizardPageProps) {
   const requestLeave = useModalFormCancel(onCancel);
+  const { can } = usePermissions();
+  const canPreviewBulkEmail = can(FAIR_EMAIL_PREVIEW_PERMISSION);
+  const canSendBulkEmail =
+    can(PERMISSION_OPERATIONS_CREATE) &&
+    can(OPERATION_EXECUTE) &&
+    can(FAIR_EMAIL_EXECUTE_PERMISSION);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const mailSettingsLoadedRef = React.useRef(false);
   const previewRequestIdRef = React.useRef(0);
@@ -323,6 +334,13 @@ function BulkEmailOperationWizardPageInner({
   // Step 3 entry: build real recipient + mail preview (no send).
   React.useEffect(() => {
     if (currentStep.id !== "summary") return;
+    if (!canPreviewBulkEmail) {
+      setPreviewing(false);
+      setPreview(null);
+      setPreviewError(null);
+      setPreviewFingerprint(null);
+      return;
+    }
     if (!sourceType || !templateId || !emailAccountId) return;
     if (preview && !previewStale && previewFingerprint === previewInputFingerprint) return;
 
@@ -384,7 +402,7 @@ function BulkEmailOperationWizardPageInner({
     };
     // Intentionally keyed by step + fingerprint; other deps are embedded in fingerprint.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep.id, previewInputFingerprint]);
+  }, [canPreviewBulkEmail, currentStep.id, previewInputFingerprint]);
 
   const resetManualForm = () => {
     setExcelFile(null);
@@ -437,6 +455,7 @@ function BulkEmailOperationWizardPageInner({
   })();
 
   const canProceedMailSettings =
+    canPreviewBulkEmail &&
     !templatesLoading &&
     Boolean(templateId.trim()) &&
     Boolean(emailAccountId.trim()) &&
@@ -463,7 +482,7 @@ function BulkEmailOperationWizardPageInner({
   const showContinue =
     currentStep.id === "recipient_source" || currentStep.id === "mail_settings";
 
-  const canSend = canProceedSummary && !sending;
+  const canSend = canSendBulkEmail && canProceedSummary && !sending;
 
   const validateCurrentStep = (): boolean => {
     if (currentStep.id === "recipient_source") {
@@ -547,6 +566,7 @@ function BulkEmailOperationWizardPageInner({
   };
 
   const handleSend = async () => {
+    if (!canSendBulkEmail) return;
     if (sendLockRef.current || sending) return;
     if (!sourceType || !templateId || !emailAccountId || !subject.trim()) {
       setSendError(operationLabels.bulkEmailSendError);
@@ -1085,7 +1105,7 @@ function BulkEmailOperationWizardPageInner({
               {operationLabels.continue}
             </Button>
           ) : null}
-          {currentStep.id === "summary" ? (
+          {currentStep.id === "summary" && canSendBulkEmail ? (
             <Button
               type="button"
               variant="primary"
