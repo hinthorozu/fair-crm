@@ -23,6 +23,7 @@ import { LoadingState } from "../components/ui/LoadingState";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
+import { usePermissions } from "../hooks/usePermissions";
 import type { BulkEmailOperationLogLine } from "../types/bulkEmailOperation";
 import {
   operationLabels,
@@ -32,6 +33,7 @@ import {
 } from "../labels/operationLabels";
 import { scraperLabels } from "../labels/scraperLabels";
 import { todoPriorityLabels, todoStatusLabels } from "../labels/todoLabels";
+import { OPERATION_EXECUTE } from "../permissions/operationPermissions";
 import type {
   OperationDetail,
   OperationRun,
@@ -110,6 +112,8 @@ export function OperationDetailPage({
   onOpenTodo,
   onOpenImportBatch,
 }: OperationDetailPageProps) {
+  const { can } = usePermissions();
+  const canExecute = can(OPERATION_EXECUTE);
   const [detail, setDetail] = React.useState<OperationDetail | null>(null);
   const [linkedTodo, setLinkedTodo] = React.useState<Todo | null>(null);
   const [linkedTodoError, setLinkedTodoError] = React.useState<string | null>(null);
@@ -361,6 +365,7 @@ export function OperationDetailPage({
   }, [bulkLogs]);
 
   const handleStart = async () => {
+    if (!canExecute) return;
     setBusy(true);
     setBanner(null);
     try {
@@ -375,6 +380,7 @@ export function OperationDetailPage({
   };
 
   const handleCancel = async () => {
+    if (!canExecute) return;
     setBusy(true);
     setBanner(null);
     try {
@@ -389,6 +395,7 @@ export function OperationDetailPage({
   };
 
   const handleRetryFailed = async () => {
+    if (!canExecute) return;
     setRetrying(true);
     setBanner(null);
     setError(null);
@@ -518,14 +525,17 @@ export function OperationDetailPage({
   const isBulkEmail = operation.operation_type === "bulk_email";
   const latestRunActive = latest?.status === "queued" || latest?.status === "running";
   const canStart =
+    canExecute &&
     ["draft", "ready", "active"].includes(operation.status) &&
     !(isManualTask && operation.related_todo_id) &&
     !latestRunActive;
   const canCancel =
-    ["draft", "ready", "active"].includes(operation.status) ||
-    ((isScraper || isEnrichment) && latestRunActive);
+    canExecute &&
+    (["draft", "ready", "active"].includes(operation.status) ||
+      ((isScraper || isEnrichment) && latestRunActive));
   const failedCount = latest?.failed_items ?? 0;
   const canRetryFailed =
+    canExecute &&
     isBulkEmail &&
     !latestRunActive &&
     (Boolean(operation.capabilities?.supports_retry) || failedCount > 0);
@@ -984,7 +994,7 @@ export function OperationDetailPage({
         </Card>
       </div>
 
-      {retryConfirmOpen ? (
+      {retryConfirmOpen && canExecute ? (
         <ConfirmDialog
           title={operationLabels.bulkEmailRetryFailed}
           message={operationLabels.bulkEmailRetryConfirm}
