@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "todos-create-quote-navigation-permission-consistency",
+  "title": "Todos Create Quote Navigation Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/TodosPage.tsx",
+    "frontend/src/permissions/TodosCreateQuoteNavigationPermissions.test.ts",
+    ".kyrox/features/todos-create-quote-navigation-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.todos.read", "action": "open quote editor after todo creation", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.customers.read", "action": "open quote editor after todo creation", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fairs.read", "action": "open quote editor after todo creation", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.quotes.read", "action": "open quote editor after todo creation", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.quote_templates.read", "action": "open quote editor after todo creation", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.template_contents.read", "action": "open quote editor after todo creation", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/todos"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing read permissions are reused through the canonical quote navigation helper." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "No backend authorization behavior changes." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Navigation visibility does not change persistence or audit semantics." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "QuoteEditorPage keeps its own fail-closed read guard; this change only prevents unauthorized automatic navigation from TodosPage." },
+    "forms": { "status": "na", "reason": "Todo form fields and submission behavior are unchanged." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "TodosPage now reuses canOpenTodoQuoteAction before automatically opening Quote Editor after creating a teklif Todo. QuoteEditorPage already fails closed when any canonical read requirement is missing."
+}
