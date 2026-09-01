@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "admin-backup-create-actions-permission-consistency",
+  "title": "Admin Backup Create and Restore Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "system",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/DatabaseBackupsPage.tsx",
+    "frontend/src/permissions/DatabaseBackupsCreatePermissions.test.ts",
+    ".kyrox/features/admin-backup-create-actions-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.admin.backups.create",
+        "action": "create backups and create restore workflows",
+        "scope": "system",
+        "assignable": false
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/admin/system/backups"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing backup create permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing create and restore authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing backup and restore audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Read access and create/restore actions remain separate concerns." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "DatabaseBackupsPage now requires fair_crm.admin.backups.create at create-backup, existing-backup restore and uploaded-file restore handler boundaries and hides their matching UI surfaces without that capability."
+}

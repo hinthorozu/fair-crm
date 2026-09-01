@@ -30,6 +30,7 @@ import { TableRowActions } from "../components/ui/TableRowActions";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { useRestoreJobPolling } from "../hooks/useRestoreJobPolling";
 import { adminLabels } from "../labels/adminLabels";
+import { canCreateAdminBackupOperation } from "../permissions/adminBackupPermissions";
 import type { BackupFormat, DatabaseKey, SystemBackup, SystemBackupRestoreJobResponse } from "../types/systemBackup";
 import type { BadgeVariant } from "../components/ui/Badge";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
@@ -886,6 +887,7 @@ function RestoreFromFileModal({
 }
 
 export function DatabaseBackupsPage() {
+  const canCreate = React.useMemo(() => canCreateAdminBackupOperation(), []);
   const table = useServerDataTable<SystemBackup>({
     fetchFn: listSystemBackupsTable,
     defaultSort: { field: "started_at", direction: "desc" },
@@ -1025,7 +1027,7 @@ export function DatabaseBackupsPage() {
   }, []);
 
   const handleRestoreBackup = async () => {
-    if (!restoreTarget) return;
+    if (!canCreate || !restoreTarget) return;
     setRestoring(true);
     setRestoreError(null);
     setRestorePollError(null);
@@ -1044,7 +1046,7 @@ export function DatabaseBackupsPage() {
   };
 
   const handleRestoreFromUpload = async () => {
-    if (!restoreUploadFile) return;
+    if (!canCreate || !restoreUploadFile) return;
     setRestoring(true);
     setRestoreError(null);
     setRestorePollError(null);
@@ -1083,6 +1085,7 @@ export function DatabaseBackupsPage() {
   };
 
   const handleCreateBackup = async () => {
+    if (!canCreate) return;
     if (selectedDatabaseKeys.length === 0) {
       setCreateError(adminLabels.databaseKeysRequired);
       return;
@@ -1167,20 +1170,24 @@ export function DatabaseBackupsPage() {
       <PageHeader
         title={adminLabels.backupsTitle}
         subtitle={adminLabels.backupsSubtitle}
-        actions={[
-          {
-            id: "new-backup",
-            label: adminLabels.newBackup,
-            onClick: () => setShowCreateModal(true),
-            variant: "primary",
-          },
-          {
-            id: "restore-from-file",
-            label: adminLabels.restoreFromFile,
-            onClick: () => setShowRestoreUploadModal(true),
-            variant: "secondary",
-          },
-        ]}
+        actions={
+          canCreate
+            ? [
+                {
+                  id: "new-backup",
+                  label: adminLabels.newBackup,
+                  onClick: () => setShowCreateModal(true),
+                  variant: "primary",
+                },
+                {
+                  id: "restore-from-file",
+                  label: adminLabels.restoreFromFile,
+                  onClick: () => setShowRestoreUploadModal(true),
+                  variant: "secondary",
+                },
+              ]
+            : []
+        }
       />
 
       {notice && <p className="text-muted">{notice}</p>}
@@ -1240,7 +1247,7 @@ export function DatabaseBackupsPage() {
         />
       </section>
 
-      {showCreateModal && (
+      {showCreateModal && canCreate && (
         <Modal
           title={adminLabels.newBackupTitle}
           onClose={closeCreateModal}
@@ -1316,15 +1323,17 @@ export function DatabaseBackupsPage() {
             )}
           </dl>
           <div className="backup-detail-actions">
-            <button
-              type="button"
-              className={`btn link${canRestoreBackup(detailBackup) ? "" : " disabled-action"}`}
-              disabled={!canRestoreBackup(detailBackup)}
-              title={restoreDisabledTitle(detailBackup)}
-              onClick={() => setRestoreTarget(detailBackup)}
-            >
-              {adminLabels.actionRestore}
-            </button>
+            {canCreate ? (
+              <button
+                type="button"
+                className={`btn link${canRestoreBackup(detailBackup) ? "" : " disabled-action"}`}
+                disabled={!canRestoreBackup(detailBackup)}
+                title={restoreDisabledTitle(detailBackup)}
+                onClick={() => setRestoreTarget(detailBackup)}
+              >
+                {adminLabels.actionRestore}
+              </button>
+            ) : null}
             <button
               type="button"
               className="btn link"
@@ -1336,7 +1345,7 @@ export function DatabaseBackupsPage() {
         </Modal>
       )}
 
-      {restoreTarget && (
+      {restoreTarget && canCreate && (
         <RestoreBackupConfirmModal
           backup={restoreTarget}
           restoring={restoring}
@@ -1375,7 +1384,7 @@ export function DatabaseBackupsPage() {
         />
       )}
 
-      {showRestoreUploadModal && (
+      {showRestoreUploadModal && canCreate && (
         <RestoreFromFileModal
           notes={restoreUploadNotes}
           selectedFile={restoreUploadFile}
