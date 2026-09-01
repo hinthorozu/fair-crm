@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "id": "restore-job-delete-permission-consistency",
+  "title": "Restore Job Delete Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "system",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/components/admin/RestoreJobDetailModal.tsx",
+    "frontend/src/permissions/adminBackupPermissions.ts",
+    "frontend/src/permissions/RestoreJobDeletePermissions.test.ts",
+    ".kyrox/features/restore-job-delete-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.admin.backups.delete",
+        "action": "delete restore job",
+        "scope": "system",
+        "assignable": false
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/admin/system/backups"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing backup delete permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing restore-job delete authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing delete behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Read access and restore-job delete remain separate concerns." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "RestoreJobDetailModal now fails closed before deleteRestoreJob and hides the delete action without fair_crm.admin.backups.delete."
+}

@@ -1,7 +1,10 @@
 import React from "react";
 import { deleteRestoreJob, getRestoreJob, getRestoreJobLog, startRestoreJob } from "../../api/systemAdmin";
 import { adminLabels } from "../../labels/adminLabels";
-import { canCreateAdminBackupOperation } from "../../permissions/adminBackupPermissions";
+import {
+  canCreateAdminBackupOperation,
+  canDeleteAdminBackupOperation,
+} from "../../permissions/adminBackupPermissions";
 import type { SystemBackupRestoreJobResponse } from "../../types/systemBackup";
 import {
   RESTORE_JOB_POLL_INTERVAL_MS,
@@ -61,6 +64,7 @@ type RestoreJobDetailModalProps = {
 
 export function RestoreJobDetailModal({ job, onClose, onJobUpdated, onDeleted }: RestoreJobDetailModalProps) {
   const canStart = React.useMemo(() => canCreateAdminBackupOperation(), []);
+  const canDelete = React.useMemo(() => canDeleteAdminBackupOperation(), []);
   const [liveJob, setLiveJob] = React.useState(job);
   const [logContent, setLogContent] = React.useState("");
   const [logExists, setLogExists] = React.useState(false);
@@ -161,6 +165,7 @@ export function RestoreJobDetailModal({ job, onClose, onJobUpdated, onDeleted }:
     }
   };
   const handleDelete = async () => {
+    if (!canDelete) return;
     if (!window.confirm(adminLabels.restoreJobDeleteConfirm)) return;
     setDeleting(true);
     setDeleteError("");
@@ -240,17 +245,19 @@ export function RestoreJobDetailModal({ job, onClose, onJobUpdated, onDeleted }:
           </pre>
         )}
       </div>
-      <div className="form-actions">
-        <button
-          type="button"
-          className="btn danger"
-          disabled={deleting || uiStatus === "running"}
-          title={uiStatus === "running" ? adminLabels.restoreJobDeleteRunningHint : undefined}
-          onClick={() => void handleDelete()}
-        >
-          {deleting ? adminLabels.restoreJobDeleting : adminLabels.restoreJobDelete}
-        </button>
-      </div>
+      {canDelete ? (
+        <div className="form-actions">
+          <button
+            type="button"
+            className="btn danger"
+            disabled={deleting || uiStatus === "running"}
+            title={uiStatus === "running" ? adminLabels.restoreJobDeleteRunningHint : undefined}
+            onClick={() => void handleDelete()}
+          >
+            {deleting ? adminLabels.restoreJobDeleting : adminLabels.restoreJobDelete}
+          </button>
+        </div>
+      ) : null}
     </Modal>
   );
 }
