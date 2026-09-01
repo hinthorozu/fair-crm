@@ -11,6 +11,8 @@ import { Button } from "../ui/Button";
 import { FormModal } from "../ui/form";
 import { useModalFormCancel } from "../../hooks/useModalForm";
 import { todoLabels } from "../../labels/todoLabels";
+import { getGrantedCorePermissions } from "../../permissions/corePermissions";
+import { TODO_PERMISSION_CREATE } from "../../permissions/todoPermissions";
 import { formItemsToReplacePayload } from "../../utils/todoStepForm";
 
 function CancelButton({ onClose, disabled }: { onClose: () => void; disabled: boolean }) {
@@ -30,8 +32,10 @@ export function DashboardNewTodoModal({
   onCreated: () => void;
 }) {
   const [saving, setSaving] = React.useState(false);
+  const canCreateTodo = getGrantedCorePermissions().has(TODO_PERMISSION_CREATE);
 
   const handleCreate = async (values: TodoFormValues) => {
+    if (!canCreateTodo) return;
     const created = await createTodo(formValuesToCreatePayload(values));
     const stepPayload = formItemsToReplacePayload(values.steps);
     if (stepPayload.length > 0) {
@@ -49,14 +53,16 @@ export function DashboardNewTodoModal({
       footer={
         <>
           <CancelButton onClose={onClose} disabled={saving} />
-          <Button
-            type="submit"
-            form={TODO_FORM_ID}
-            variant="primary"
-            loading={saving}
-          >
-            {saving ? todoLabels.saving : todoLabels.save}
-          </Button>
+          {canCreateTodo ? (
+            <Button
+              type="submit"
+              form={TODO_FORM_ID}
+              variant="primary"
+              loading={saving}
+            >
+              {saving ? todoLabels.saving : todoLabels.save}
+            </Button>
+          ) : null}
         </>
       }
     >
