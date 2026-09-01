@@ -31,71 +31,95 @@ jobs:
                   raise SystemExit(f"{path}: expected exactly one match, found {count}")
               p.write_bytes(data.replace(old, new, 1))
 
-          frontend = Path("frontend/src/pages/ScraperOperationWizardPage.tsx")
-          frontend_bytes = frontend.read_bytes()
-          nl = b"\r\n" if b"\r\n" in frontend_bytes else b"\n"
+          def newline_for(path: str) -> bytes:
+              return b"\r\n" if b"\r\n" in Path(path).read_bytes() else b"\n"
+
+          frontend = "frontend/src/pages/ScraperOperationWizardPage.tsx"
+          nl = newline_for(frontend)
           old_imports = (
               b'import { PERMISSION_OPERATIONS_CREATE } from "../permissions/navigationPermissions";'
               + nl
               + b'import { OPERATION_EXECUTE } from "../permissions/operationPermissions";'
           )
-          new_import = b'import { SCRAPER_PERMISSION_EXECUTE } from "../permissions/scraperPermissions";'
-          replace_bytes(str(frontend), old_imports, new_import)
           replace_bytes(
-              str(frontend),
+              frontend,
+              old_imports,
+              b'import { SCRAPER_PERMISSION_EXECUTE } from "../permissions/scraperPermissions";',
+          )
+          replace_bytes(
+              frontend,
               b"const canStart = can(PERMISSION_OPERATIONS_CREATE) && can(OPERATION_EXECUTE);",
               b"const canStart = can(SCRAPER_PERMISSION_EXECUTE);",
           )
 
           create_path = "backend/app/modules/operations/application/create_operation.py"
-          replace_bytes(
-              create_path,
-              b'''                PERMISSION_SCRAPER_EXECUTE\n                if command.operation_type == "enrichment" and command.start_immediately\n                else PERMISSION_CREATE''',
-              b'''                PERMISSION_SCRAPER_EXECUTE\n                if command.operation_type == "enrichment" and command.start_immediately\n                else (\n                    PERMISSION_SCRAPER_EXECUTE\n                    if command.operation_type == "scraper" and command.start_immediately\n                    else PERMISSION_CREATE\n                )''',
-          )
+          create_nl = newline_for(create_path)
+          create_old = create_nl.join([
+              b"                PERMISSION_SCRAPER_EXECUTE",
+              b'                if command.operation_type == "enrichment" and command.start_immediately',
+              b"                else PERMISSION_CREATE",
+          ])
+          create_new = create_nl.join([
+              b"                PERMISSION_SCRAPER_EXECUTE",
+              b'                if command.operation_type == "enrichment" and command.start_immediately',
+              b"                else (",
+              b"                    PERMISSION_SCRAPER_EXECUTE",
+              b'                    if command.operation_type == "scraper" and command.start_immediately',
+              b"                    else PERMISSION_CREATE",
+              b"                )",
+          ])
+          replace_bytes(create_path, create_old, create_new)
 
           start_path = "backend/app/modules/operations/application/start_operation.py"
-          replace_bytes(
-              start_path,
-              b'''                PERMISSION_SCRAPER_EXECUTE\n                if operation.operation_type == OperationType.ENRICHMENT\n                else PERMISSION_EXECUTE''',
-              b'''                PERMISSION_SCRAPER_EXECUTE\n                if operation.operation_type == OperationType.ENRICHMENT\n                else (\n                    PERMISSION_SCRAPER_EXECUTE\n                    if operation.operation_type == OperationType.SCRAPER\n                    else PERMISSION_EXECUTE\n                )''',
-          )
+          start_nl = newline_for(start_path)
+          start_old = start_nl.join([
+              b"                PERMISSION_SCRAPER_EXECUTE",
+              b"                if operation.operation_type == OperationType.ENRICHMENT",
+              b"                else PERMISSION_EXECUTE",
+          ])
+          start_new = start_nl.join([
+              b"                PERMISSION_SCRAPER_EXECUTE",
+              b"                if operation.operation_type == OperationType.ENRICHMENT",
+              b"                else (",
+              b"                    PERMISSION_SCRAPER_EXECUTE",
+              b"                    if operation.operation_type == OperationType.SCRAPER",
+              b"                    else PERMISSION_EXECUTE",
+              b"                )",
+          ])
+          replace_bytes(start_path, start_old, start_new)
 
-          frontend_test = Path("frontend/src/permissions/ScraperOperationWizardStartPermissions.test.ts")
-          test_bytes = frontend_test.read_bytes()
-          test_nl = b"\r\n" if b"\r\n" in test_bytes else b"\n"
-          old_test = (
-              b'  it("requires operation create and execute permissions for immediate start", () => {' + test_nl
-              + b'    expect(source).toContain(' + test_nl
-              + b'      "const canStart = can(PERMISSION_OPERATIONS_CREATE) && can(OPERATION_EXECUTE);",' + test_nl
-              + b'    );' + test_nl
-              + b'    expect(source).toContain("start_immediately: true");' + test_nl
-              + b'  });'
-          )
-          new_test = (
-              b'  it("requires the canonical scraper execute permission for immediate start", () => {' + test_nl
-              + b'    expect(source).toContain(' + test_nl
-              + b'      \'import { SCRAPER_PERMISSION_EXECUTE } from "../permissions/scraperPermissions";\',' + test_nl
-              + b'    );' + test_nl
-              + b'    expect(source).toContain("const canStart = can(SCRAPER_PERMISSION_EXECUTE);");' + test_nl
-              + b'    expect(source).toContain(\'operation_type: "scraper" as const\');' + test_nl
-              + b'    expect(source).toContain("start_immediately: true");' + test_nl
-              + b'    expect(source).not.toContain("PERMISSION_OPERATIONS_CREATE");' + test_nl
-              + b'    expect(source).not.toContain("OPERATION_EXECUTE");' + test_nl
-              + b'  });'
-          )
-          replace_bytes(str(frontend_test), old_test, new_test)
+          frontend_test = "frontend/src/permissions/ScraperOperationWizardStartPermissions.test.ts"
+          test_nl = newline_for(frontend_test)
+          old_test = test_nl.join([
+              b'  it("requires operation create and execute permissions for immediate start", () => {',
+              b"    expect(source).toContain(",
+              b'      "const canStart = can(PERMISSION_OPERATIONS_CREATE) && can(OPERATION_EXECUTE);",',
+              b"    );",
+              b'    expect(source).toContain("start_immediately: true");',
+              b"  });",
+          ])
+          new_test = test_nl.join([
+              b'  it("requires the canonical scraper execute permission for immediate start", () => {',
+              b"    expect(source).toContain(",
+              b'      \'import { SCRAPER_PERMISSION_EXECUTE } from "../permissions/scraperPermissions";\',',
+              b"    );",
+              b'    expect(source).toContain("const canStart = can(SCRAPER_PERMISSION_EXECUTE);");',
+              b'    expect(source).toContain(\'operation_type: "scraper" as const\');',
+              b'    expect(source).toContain("start_immediately: true");',
+              b'    expect(source).not.toContain("PERMISSION_OPERATIONS_CREATE");',
+              b'    expect(source).not.toContain("OPERATION_EXECUTE");',
+              b"  });",
+          ])
+          replace_bytes(frontend_test, old_test, new_test)
           replace_bytes(
-              str(frontend_test),
+              frontend_test,
               b'  it("hides the final start affordance without both permissions", () => {',
               b'  it("hides the final start affordance without execute permission", () => {',
           )
 
-          backend_test = Path("backend/tests/modules/operations/test_scraper_start_permission_consistency.py")
-          backend_test.write_text('''from pathlib import Path\n\n\nCREATE_OPERATION = Path("app/modules/operations/application/create_operation.py")\nSTART_OPERATION = Path("app/modules/operations/application/start_operation.py")\n\n\ndef test_immediate_scraper_create_uses_scraper_execute_permission():\n    source = CREATE_OPERATION.read_text(encoding="utf-8")\n\n    assert 'PERMISSION_SCRAPER_EXECUTE = "fair_crm.scraper.execute"' in source\n    assert 'if command.operation_type == "scraper" and command.start_immediately' in source\n    assert "PERMISSION_SCRAPER_EXECUTE" in source\n    assert "else PERMISSION_CREATE" in source\n\n\ndef test_scraper_start_uses_scraper_execute_permission():\n    source = START_OPERATION.read_text(encoding="utf-8")\n\n    assert 'PERMISSION_SCRAPER_EXECUTE = "fair_crm.scraper.execute"' in source\n    assert "if operation.operation_type == OperationType.SCRAPER" in source\n    assert "PERMISSION_SCRAPER_EXECUTE" in source\n    assert "else PERMISSION_EXECUTE" in source\n\n\ndef test_existing_special_cases_remain_available():\n    create_source = CREATE_OPERATION.read_text(encoding="utf-8")\n    start_source = START_OPERATION.read_text(encoding="utf-8")\n\n    assert 'command.operation_type == "bulk_email" and command.start_immediately' in create_source\n    assert 'command.operation_type == "duplicate_check" and command.start_immediately' in create_source\n    assert 'command.operation_type == "enrichment" and command.start_immediately' in create_source\n    assert "operation.operation_type == OperationType.BULK_EMAIL" in start_source\n    assert "operation.operation_type == OperationType.ENRICHMENT" in start_source\n''', encoding="utf-8")
+          Path("backend/tests/modules/operations/test_scraper_start_permission_consistency.py").write_text('''from pathlib import Path\n\n\nCREATE_OPERATION = Path("app/modules/operations/application/create_operation.py")\nSTART_OPERATION = Path("app/modules/operations/application/start_operation.py")\n\n\ndef test_immediate_scraper_create_uses_scraper_execute_permission():\n    source = CREATE_OPERATION.read_text(encoding="utf-8")\n\n    assert 'PERMISSION_SCRAPER_EXECUTE = "fair_crm.scraper.execute"' in source\n    assert 'if command.operation_type == "scraper" and command.start_immediately' in source\n    assert "PERMISSION_SCRAPER_EXECUTE" in source\n    assert "else PERMISSION_CREATE" in source\n\n\ndef test_scraper_start_uses_scraper_execute_permission():\n    source = START_OPERATION.read_text(encoding="utf-8")\n\n    assert 'PERMISSION_SCRAPER_EXECUTE = "fair_crm.scraper.execute"' in source\n    assert "if operation.operation_type == OperationType.SCRAPER" in source\n    assert "PERMISSION_SCRAPER_EXECUTE" in source\n    assert "else PERMISSION_EXECUTE" in source\n\n\ndef test_existing_special_cases_remain_available():\n    create_source = CREATE_OPERATION.read_text(encoding="utf-8")\n    start_source = START_OPERATION.read_text(encoding="utf-8")\n\n    assert 'command.operation_type == "bulk_email" and command.start_immediately' in create_source\n    assert 'command.operation_type == "duplicate_check" and command.start_immediately' in create_source\n    assert 'command.operation_type == "enrichment" and command.start_immediately' in create_source\n    assert "operation.operation_type == OperationType.BULK_EMAIL" in start_source\n    assert "operation.operation_type == OperationType.ENRICHMENT" in start_source\n''', encoding="utf-8")
 
-          contract = Path(".kyrox/features/scraper-wizard-start-permission-consistency.json")
-          contract.write_text('''{\n  "version": 1,\n  "id": "scraper-wizard-start-permission-consistency",\n  "title": "Scraper Wizard Start Permission Consistency",\n  "feature_type": "user_triggered_operation",\n  "owner": "fair-crm",\n  "platform_reusability": "existing_core_capability",\n  "trigger": "user",\n  "tenant_scope": "organization",\n  "user_facing": true,\n  "affected_paths": [\n    "frontend/src/pages/ScraperOperationWizardPage.tsx",\n    "frontend/src/permissions/ScraperOperationWizardStartPermissions.test.ts",\n    "backend/app/modules/operations/application/create_operation.py",\n    "backend/app/modules/operations/application/start_operation.py",\n    "backend/tests/modules/operations/test_scraper_start_permission_consistency.py",\n    ".kyrox/features/scraper-wizard-start-permission-consistency.json"\n  ],\n  "permissions": {\n    "required": true,\n    "items": [\n      {\n        "code": "fair_crm.scraper.execute",\n        "action": "start a scraper automation through the Operation wizard",\n        "scope": "organization",\n        "assignable": true\n      }\n    ]\n  },\n  "frontend": {\n    "required": true,\n    "routes": ["/operations/new/scraper"],\n    "menu": false,\n    "menu_permission": null\n  },\n  "applicability": {\n    "database": { "status": "na", "reason": "No persistence model changes are introduced." },\n    "migration": { "status": "na", "reason": "The existing fair_crm.scraper.execute permission is reused." },\n    "permissions": { "status": "required" },\n    "backend": { "status": "required" },\n    "api": { "status": "required" },\n    "tenant_isolation": { "status": "required" },\n    "audit": { "status": "na", "reason": "Existing operation create/start audit behavior is unchanged." },\n    "frontend": { "status": "required" },\n    "ui_permissions": { "status": "required" },\n    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },\n    "route_guard": { "status": "na", "reason": "Route-level operation wizard cleanup is intentionally handled separately." },\n    "forms": { "status": "required" },\n    "visual_qa": { "status": "required" },\n    "backend_tests": { "status": "required" },\n    "frontend_tests": { "status": "required" },\n    "runtime_authorization": { "status": "required" },\n    "runtime_verification": { "status": "required" },\n    "deployment": { "status": "required" }\n  },\n  "notes": "Scraper Wizard Start is one user-triggered business action. For start_immediately scraper requests, Operation creation and Operation start are orchestration only and must not add fair_crm.operations.create or fair_crm.operations.execute prerequisites. Retry and route guards remain out of scope."\n}\n''', encoding="utf-8")
+          Path(".kyrox/features/scraper-wizard-start-permission-consistency.json").write_text('''{\n  "version": 1,\n  "id": "scraper-wizard-start-permission-consistency",\n  "title": "Scraper Wizard Start Permission Consistency",\n  "feature_type": "user_triggered_operation",\n  "owner": "fair-crm",\n  "platform_reusability": "existing_core_capability",\n  "trigger": "user",\n  "tenant_scope": "organization",\n  "user_facing": true,\n  "affected_paths": [\n    "frontend/src/pages/ScraperOperationWizardPage.tsx",\n    "frontend/src/permissions/ScraperOperationWizardStartPermissions.test.ts",\n    "backend/app/modules/operations/application/create_operation.py",\n    "backend/app/modules/operations/application/start_operation.py",\n    "backend/tests/modules/operations/test_scraper_start_permission_consistency.py",\n    ".kyrox/features/scraper-wizard-start-permission-consistency.json"\n  ],\n  "permissions": {\n    "required": true,\n    "items": [\n      {\n        "code": "fair_crm.scraper.execute",\n        "action": "start a scraper automation through the Operation wizard",\n        "scope": "organization",\n        "assignable": true\n      }\n    ]\n  },\n  "frontend": {\n    "required": true,\n    "routes": ["/operations/new/scraper"],\n    "menu": false,\n    "menu_permission": null\n  },\n  "applicability": {\n    "database": { "status": "na", "reason": "No persistence model changes are introduced." },\n    "migration": { "status": "na", "reason": "The existing fair_crm.scraper.execute permission is reused." },\n    "permissions": { "status": "required" },\n    "backend": { "status": "required" },\n    "api": { "status": "required" },\n    "tenant_isolation": { "status": "required" },\n    "audit": { "status": "na", "reason": "Existing operation create/start audit behavior is unchanged." },\n    "frontend": { "status": "required" },\n    "ui_permissions": { "status": "required" },\n    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },\n    "route_guard": { "status": "na", "reason": "Route-level operation wizard cleanup is intentionally handled separately." },\n    "forms": { "status": "required" },\n    "visual_qa": { "status": "required" },\n    "backend_tests": { "status": "required" },\n    "frontend_tests": { "status": "required" },\n    "runtime_authorization": { "status": "required" },\n    "runtime_verification": { "status": "required" },\n    "deployment": { "status": "required" }\n  },\n  "notes": "Scraper Wizard Start is one user-triggered business action. For start_immediately scraper requests, Operation creation and Operation start are orchestration only and must not add fair_crm.operations.create or fair_crm.operations.execute prerequisites. Retry and route guards remain out of scope."\n}\n''', encoding="utf-8")
 
           Path(".github/workflows/one-shot-scraper-wizard-start-permission.yml").unlink()
           PY
