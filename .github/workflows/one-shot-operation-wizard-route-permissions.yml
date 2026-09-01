@@ -1,0 +1,270 @@
+name: One-shot operation wizard route permission patch
+
+on:
+  push:
+    branches:
+      - fix/operation-wizard-route-permissions
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/operation-wizard-route-permissions
+
+      - name: Apply focused route permission patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          def newline_for(path: str) -> bytes:
+              return b"\r\n" if b"\r\n" in Path(path).read_bytes() else b"\n"
+
+          def replace_bytes(path: str, old: bytes, new: bytes) -> None:
+              p = Path(path)
+              data = p.read_bytes()
+              count = data.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected exactly one match, found {count}")
+              p.write_bytes(data.replace(old, new, 1))
+
+          nav = "frontend/src/permissions/navigationPermissions.ts"
+          nl = newline_for(nav)
+          replace_bytes(
+              nav,
+              b'import { canReadQuoteEditor } from "./quotePermissions";',
+              nl.join([
+                  b'import { FAIR_EMAIL_PERMISSION_EXECUTE } from "./fairEmailPermissions";',
+                  b'import { OPERATION_EXECUTE } from "./operationPermissions";',
+                  b'import { canReadQuoteEditor } from "./quotePermissions";',
+                  b'import { SCRAPER_PERMISSION_EXECUTE } from "./scraperPermissions";',
+              ]),
+          )
+          replace_bytes(
+              nav,
+              nl.join([
+                  b'  if (pathname === "/operations/new/duplicate-check") {',
+                  b'    return (',
+                  b'      hasGrantedCorePermission(granted, PERMISSION_OPERATIONS_CREATE) && canReadDataOperations',
+                  b'    );',
+                  b'  }',
+              ]),
+              nl.join([
+                  b'  if (pathname === "/operations/new/duplicate-check") {',
+                  b'    return hasGrantedCorePermission(granted, OPERATION_EXECUTE) && canReadDataOperations;',
+                  b'  }',
+                  b'  if (pathname === "/operations/new/bulk-email") {',
+                  b'    return hasGrantedCorePermission(granted, FAIR_EMAIL_PERMISSION_EXECUTE);',
+                  b'  }',
+                  b'  if (',
+                  b'    pathname === "/operations/new/enrichment" ||',
+                  b'    pathname === "/operations/new/scraper"',
+                  b'  ) {',
+                  b'    return hasGrantedCorePermission(granted, SCRAPER_PERMISSION_EXECUTE);',
+                  b'  }',
+              ]),
+          )
+
+          nav_test = "frontend/src/permissions/navigationPermissions.test.ts"
+          nl = newline_for(nav_test)
+          replace_bytes(
+              nav_test,
+              b'import { describe, expect, it } from "vitest";',
+              nl.join([
+                  b'import { describe, expect, it } from "vitest";',
+                  b'import { FAIR_EMAIL_PERMISSION_EXECUTE } from "./fairEmailPermissions";',
+                  b'import { SCRAPER_PERMISSION_EXECUTE } from "./scraperPermissions";',
+              ]),
+          )
+          replace_bytes(
+              nav_test,
+              nl.join([
+                  b'  it("separates operation read routes from operation creation routes", () => {',
+                  b'    const reader = granted(PERMISSION_OPERATIONS_READ);',
+                  b'    expect(canAccessApplicationPath("/operations", reader)).toBe(true);',
+                  b'    expect(canAccessApplicationPath("/operations/abc", reader)).toBe(true);',
+                  b'    expect(canAccessApplicationPath("/operations/new/bulk-email", reader)).toBe(false);',
+                  b'',
+                  b'    const creator = granted(PERMISSION_OPERATIONS_READ, PERMISSION_OPERATIONS_CREATE);',
+                  b'    expect(canAccessApplicationPath("/operations/new/bulk-email", creator)).toBe(true);',
+                  b'  });',
+              ]),
+              nl.join([
+                  b'  it("separates operation read routes from the generic operation creation route", () => {',
+                  b'    const reader = granted(PERMISSION_OPERATIONS_READ);',
+                  b'    expect(canAccessApplicationPath("/operations", reader)).toBe(true);',
+                  b'    expect(canAccessApplicationPath("/operations/abc", reader)).toBe(true);',
+                  b'    expect(canAccessApplicationPath("/operations/new", reader)).toBe(false);',
+                  b'',
+                  b'    const creator = granted(PERMISSION_OPERATIONS_READ, PERMISSION_OPERATIONS_CREATE);',
+                  b'    expect(canAccessApplicationPath("/operations/new", creator)).toBe(true);',
+                  b'  });',
+                  b'',
+                  b'  it("uses canonical business permissions for specialized operation wizard routes", () => {',
+                  b'    expect(',
+                  b'      canAccessApplicationPath("/operations/new/bulk-email", granted(FAIR_EMAIL_PERMISSION_EXECUTE)),',
+                  b'    ).toBe(true);',
+                  b'    expect(',
+                  b'      canAccessApplicationPath("/operations/new/enrichment", granted(SCRAPER_PERMISSION_EXECUTE)),',
+                  b'    ).toBe(true);',
+                  b'    expect(',
+                  b'      canAccessApplicationPath("/operations/new/scraper", granted(SCRAPER_PERMISSION_EXECUTE)),',
+                  b'    ).toBe(true);',
+                  b'',
+                  b'    const genericCreator = granted(PERMISSION_OPERATIONS_CREATE);',
+                  b'    expect(canAccessApplicationPath("/operations/new/bulk-email", genericCreator)).toBe(false);',
+                  b'    expect(canAccessApplicationPath("/operations/new/enrichment", genericCreator)).toBe(false);',
+                  b'    expect(canAccessApplicationPath("/operations/new/scraper", genericCreator)).toBe(false);',
+                  b'    expect(canAccessApplicationPath("/operations/new", genericCreator)).toBe(true);',
+                  b'    expect(canAccessApplicationPath("/operations/new/custom", genericCreator)).toBe(true);',
+                  b'  });',
+              ]),
+          )
+
+          data_test = "frontend/src/permissions/DataOperationsRoutePermissions.test.ts"
+          nl = newline_for(data_test)
+          replace_bytes(
+              data_test,
+              b'import { describe, expect, it } from "vitest";',
+              nl.join([
+                  b'import { describe, expect, it } from "vitest";',
+                  b'import { OPERATION_EXECUTE } from "./operationPermissions";',
+              ]),
+          )
+          replace_bytes(
+              data_test,
+              nl.join([
+                  b'  it("requires operation create plus data-operations read for the duplicate-check wizard", () => {',
+                  b'    const createOnly = granted(PERMISSION_OPERATIONS_CREATE);',
+                  b'    expect(canAccessApplicationPath("/operations/new/duplicate-check", createOnly)).toBe(false);',
+                  b'    expect(canAccessApplicationPath("/admin/data-operations", createOnly)).toBe(false);',
+                  b'',
+                  b'    const allowed = granted(PERMISSION_OPERATIONS_CREATE, PERMISSION_DATA_OPERATIONS_READ);',
+                  b'    expect(canAccessApplicationPath("/operations/new/duplicate-check", allowed)).toBe(true);',
+                  b'    expect(canAccessApplicationPath("/admin/data-operations", allowed)).toBe(true);',
+                  b'  });',
+              ]),
+              nl.join([
+                  b'  it("requires operation execute plus data-operations read for the duplicate-check wizard", () => {',
+                  b'    expect(',
+                  b'      canAccessApplicationPath("/operations/new/duplicate-check", granted(OPERATION_EXECUTE)),',
+                  b'    ).toBe(false);',
+                  b'    expect(',
+                  b'      canAccessApplicationPath(',
+                  b'        "/operations/new/duplicate-check",',
+                  b'        granted(OPERATION_EXECUTE, PERMISSION_DATA_OPERATIONS_READ),',
+                  b'      ),',
+                  b'    ).toBe(true);',
+                  b'    expect(',
+                  b'      canAccessApplicationPath(',
+                  b'        "/operations/new/duplicate-check",',
+                  b'        granted(PERMISSION_OPERATIONS_CREATE, PERMISSION_DATA_OPERATIONS_READ),',
+                  b'      ),',
+                  b'    ).toBe(false);',
+                  b'  });',
+                  b'',
+                  b'  it("preserves create plus data-operations read for the legacy admin surface", () => {',
+                  b'    const createOnly = granted(PERMISSION_OPERATIONS_CREATE);',
+                  b'    expect(canAccessApplicationPath("/admin/data-operations", createOnly)).toBe(false);',
+                  b'',
+                  b'    const allowed = granted(PERMISSION_OPERATIONS_CREATE, PERMISSION_DATA_OPERATIONS_READ);',
+                  b'    expect(canAccessApplicationPath("/admin/data-operations", allowed)).toBe(true);',
+                  b'  });',
+              ]),
+          )
+
+          data_contract_path = Path(".kyrox/features/data-operations-route-permission-consistency.json")
+          data_contract = json.loads(data_contract_path.read_text(encoding="utf-8"))
+          data_contract["permissions"]["items"] = [
+              {"code": "fair_crm.admin.data_operations.read", "action": "read duplicate-check definitions and results", "scope": "organization", "assignable": True},
+              {"code": "fair_crm.operations.execute", "action": "enter the duplicate-check wizard and run duplicate checks", "scope": "organization", "assignable": True},
+              {"code": "fair_crm.operations.create", "action": "enter the supported legacy admin data-operations creation surface", "scope": "organization", "assignable": True},
+              {"code": "fair_crm.operations.read", "action": "enter duplicate-check result surfaces", "scope": "organization", "assignable": True},
+          ]
+          data_contract["applicability"]["backend"]["reason"] = "Existing data-operation and operation authorization remains unchanged and authoritative."
+          data_contract["notes"] = "The duplicate-check wizard now follows the merged business boundary: fair_crm.operations.execute plus fair_crm.admin.data_operations.read. Duplicate-check result routes remain operations.read plus data-operations.read. Supported legacy /admin/data-operations creation routes intentionally retain operations.create plus data-operations.read and are outside the specialized wizard cleanup."
+          data_contract_path.write_text(json.dumps(data_contract, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+          new_action_path = Path(".kyrox/features/operations-new-action-permission-consistency.json")
+          new_action = json.loads(new_action_path.read_text(encoding="utf-8"))
+          new_action["permissions"]["items"][0]["action"] = "start the generic new operation flow from the Operations page"
+          new_action["frontend"]["routes"] = ["/operations", "/operations/new"]
+          new_action["applicability"]["api"]["reason"] = "No server API contract changes; this contract covers only the generic Operations-page creation entry point."
+          new_action["applicability"]["route_guard"] = {"status": "na", "reason": "Specialized operation wizard routes use their own canonical business permissions under a separate route contract."}
+          new_action["notes"] = "OperationsPage still requires fair_crm.operations.create to expose the generic Yeni Operasyon entry point. Specialized immediate-start wizard routes are no longer described as generic create routes; their deep-link guards are aligned separately with each wizard's canonical business permission."
+          new_action_path.write_text(json.dumps(new_action, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+          route_contract = {
+              "version": 1,
+              "id": "operation-wizard-route-permission-consistency",
+              "title": "Operation Wizard Route Permission Consistency",
+              "feature_type": "ui_only",
+              "owner": "fair-crm",
+              "platform_reusability": "existing_core_capability",
+              "trigger": "user",
+              "tenant_scope": "organization",
+              "user_facing": True,
+              "affected_paths": [
+                  "frontend/src/permissions/navigationPermissions.ts",
+                  "frontend/src/permissions/navigationPermissions.test.ts",
+                  "frontend/src/permissions/DataOperationsRoutePermissions.test.ts",
+                  ".kyrox/features/operation-wizard-route-permission-consistency.json",
+              ],
+              "permissions": {"required": True, "items": [
+                  {"code": "fair_crm.operations.create", "action": "enter the generic new-operation route", "scope": "organization", "assignable": True},
+                  {"code": "fair_crm.fair_emails.execute", "action": "enter the Bulk Email immediate-send wizard", "scope": "organization", "assignable": True},
+                  {"code": "fair_crm.scraper.execute", "action": "enter Enrichment and Scraper immediate-start wizards", "scope": "organization", "assignable": True},
+                  {"code": "fair_crm.operations.execute", "action": "enter the Duplicate Check immediate-run wizard", "scope": "organization", "assignable": True},
+                  {"code": "fair_crm.admin.data_operations.read", "action": "read Duplicate Check definitions shown by the wizard", "scope": "organization", "assignable": True},
+              ]},
+              "frontend": {"required": True, "routes": ["/operations/new", "/operations/new/bulk-email", "/operations/new/enrichment", "/operations/new/scraper", "/operations/new/duplicate-check"], "menu": False, "menu_permission": None},
+              "applicability": {
+                  "database": {"status": "na", "reason": "No persistence changes are introduced."},
+                  "migration": {"status": "na", "reason": "Existing canonical permissions are reused."},
+                  "permissions": {"status": "required"},
+                  "backend": {"status": "na", "reason": "Backend immediate-start authorization was aligned in the preceding focused permission changes."},
+                  "api": {"status": "na", "reason": "No API contract changes are introduced."},
+                  "tenant_isolation": {"status": "na", "reason": "No organization-scoping behavior changes."},
+                  "audit": {"status": "na", "reason": "No mutation or audit behavior changes."},
+                  "frontend": {"status": "required"},
+                  "ui_permissions": {"status": "required"},
+                  "menu": {"status": "na", "reason": "Main Operations navigation remains governed separately by operations.read."},
+                  "route_guard": {"status": "required"},
+                  "forms": {"status": "na", "reason": "No wizard form behavior changes."},
+                  "visual_qa": {"status": "required"},
+                  "backend_tests": {"status": "na", "reason": "Backend behavior is unchanged in this route-only cleanup."},
+                  "frontend_tests": {"status": "required"},
+                  "runtime_authorization": {"status": "required"},
+                  "runtime_verification": {"status": "required"},
+                  "deployment": {"status": "required"},
+              },
+              "notes": "Specialized operation wizard deep links must not reintroduce generic operation-create prerequisites after their business actions were consolidated. Bulk Email uses fair_emails.execute; Enrichment and Scraper use scraper.execute; Duplicate Check uses operations.execute plus its legitimate data_operations.read page prerequisite. The generic /operations/new route and unknown generic operation wizard fallback continue to require operations.create.",
+          }
+          Path(".kyrox/features/operation-wizard-route-permission-consistency.json").write_text(json.dumps(route_contract, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+          Path(".github/workflows/one-shot-operation-wizard-route-permissions.yml").unlink()
+          PY
+
+      - name: Commit focused route cleanup
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            frontend/src/permissions/navigationPermissions.ts \
+            frontend/src/permissions/navigationPermissions.test.ts \
+            frontend/src/permissions/DataOperationsRoutePermissions.test.ts \
+            .kyrox/features/data-operations-route-permission-consistency.json \
+            .kyrox/features/operations-new-action-permission-consistency.json \
+            .kyrox/features/operation-wizard-route-permission-consistency.json \
+            .github/workflows/one-shot-operation-wizard-route-permissions.yml
+          git diff --cached --check
+          git commit -m "fix(auth): align operation wizard route permissions"
+          git push origin HEAD:fix/operation-wizard-route-permissions
