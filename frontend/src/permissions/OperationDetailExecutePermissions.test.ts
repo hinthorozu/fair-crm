@@ -7,22 +7,26 @@ const source = readFileSync(
 );
 
 describe("OperationDetailPage execute permissions", () => {
-  it("keeps generic operation execute at start and cancel mutation boundaries", () => {
-    expect(source.match(/if \(!canExecute\) return;/g)).toHaveLength(2);
+  it("uses fair email execute for Bulk Email Start while preserving generic Start fallback", () => {
+    expect(source).toContain(
+      'import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";',
+    );
+    expect(source).toContain("const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);");
+    expect(source).toContain("const canStartOperation = isBulkEmailOp ? canStartBulkEmail : canExecute;");
+    expect(source).toContain("const handleStart = async () => {\n    if (!canStartOperation) return;");
+    expect(source).toContain("const canStart =\n    canStartOperation &&");
     expect(source).toContain("await startOperation(operationId);");
+  });
+
+  it("keeps operation execute at the Cancel mutation boundary", () => {
+    expect(source).toContain("const handleCancel = async () => {\n    if (!canExecute) return;");
     expect(source).toContain("await cancelOperation(operationId);");
-    expect(source).toContain("const canStart =\n    canExecute &&");
     expect(source).toContain("const canCancel =\n    canExecute &&");
   });
 
   it("uses fair email execute at every bulk email retry boundary", () => {
-    expect(source).toContain(
-      'import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";',
-    );
     expect(source).toContain("const canRetryBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);");
-    expect(source).toContain(
-      "const handleRetryFailed = async () => {\n    if (!canRetryBulkEmail) return;",
-    );
+    expect(source).toContain("const handleRetryFailed = async () => {\n    if (!canRetryBulkEmail) return;");
     expect(source).toContain("const canRetryFailed =\n    canRetryBulkEmail &&");
     expect(source).toContain("retryConfirmOpen && canRetryBulkEmail");
     expect(source).toContain("await retryBulkEmailOperationFailed(operationId);");
