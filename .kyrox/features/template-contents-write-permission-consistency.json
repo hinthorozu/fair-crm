@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "id": "template-contents-write-permission-consistency",
+  "title": "Template Contents Write Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/TemplateContentsPage.tsx",
+    "frontend/src/permissions/TemplateContentsWritePermissions.test.ts",
+    ".kyrox/features/template-contents-write-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.template_contents.create",
+        "action": "create template content tags and contents",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.template_contents.update",
+        "action": "update template content tags and contents",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.template_contents.delete",
+        "action": "delete template content tags and contents",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/template-contents"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing template content permissions are reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing template content endpoint authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing persistence/audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Read access is already handled separately." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "TemplateContentsPage now fails closed at tag/content create, update and delete callbacks and aligns modal save visibility with the canonical create/update permissions."
+}
