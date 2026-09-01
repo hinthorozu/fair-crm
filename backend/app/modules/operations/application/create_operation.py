@@ -55,7 +55,11 @@ class CreateOperationUseCase:
                 else (
                     PERMISSION_SCRAPER_EXECUTE
                     if command.operation_type == "enrichment" and command.start_immediately
-                    else PERMISSION_CREATE
+                    else (
+                        PERMISSION_SCRAPER_EXECUTE
+                        if command.operation_type == "scraper" and command.start_immediately
+                        else PERMISSION_CREATE
+                    )
                 )
             )
         )

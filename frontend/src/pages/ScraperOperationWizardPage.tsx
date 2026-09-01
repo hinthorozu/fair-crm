@@ -32,8 +32,7 @@ import {
   operationTypeLabels,
   wizardStepLabels,
 } from "../labels/operationLabels";
-import { PERMISSION_OPERATIONS_CREATE } from "../permissions/navigationPermissions";
-import { OPERATION_EXECUTE } from "../permissions/operationPermissions";
+import { SCRAPER_PERMISSION_EXECUTE } from "../permissions/scraperPermissions";
 import type { Fair } from "../types/fair";
 import type { AdapterListItem, RequestedOutputField, ScraperManifest } from "../types/scraper";
 import {
@@ -87,7 +86,7 @@ function ScraperOperationWizardPageInner({
 }: ScraperOperationWizardPageProps) {
   const requestLeave = useModalFormCancel(onCancel);
   const { can } = usePermissions();
-  const canStart = can(PERMISSION_OPERATIONS_CREATE) && can(OPERATION_EXECUTE);
+  const canStart = can(SCRAPER_PERMISSION_EXECUTE);
   const [stepIndex, setStepIndex] = React.useState(0);
   const [fieldError, setFieldError] = React.useState<string | null>(null);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
