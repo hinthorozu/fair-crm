@@ -14,6 +14,7 @@ import { FilterPanel } from "../components/ui/FilterPanel";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { FormField, SelectInput, TextInput } from "../components/ui/form";
 import { adminLabels } from "../labels/adminLabels";
+import { canSendMail, getGrantedPermissions } from "../permissions/emailAccountPermissions";
 import type { MailOperationRecord, MailOperationSourceType, MailOperationStatus } from "../types/mailOperations";
 import type { EmailAccount } from "../types/smtp";
 import { Banner } from "../components/ui/Banner";
@@ -55,6 +56,8 @@ type DialogState =
   | null;
 
 export function MailOperationsPage() {
+  const grantedPermissions = React.useMemo(() => getGrantedPermissions(), []);
+  const canRetry = canSendMail(grantedPermissions);
   const [items, setItems] = React.useState<MailOperationRecord[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -149,7 +152,7 @@ export function MailOperationsPage() {
   }, []);
 
   const handleRetryConfirm = React.useCallback(async () => {
-    if (dialog?.type !== "retry") return;
+    if (!canRetry || dialog?.type !== "retry") return;
     const record = dialog.record;
     setRetryingId(record.id);
     try {
@@ -166,7 +169,7 @@ export function MailOperationsPage() {
     } finally {
       setRetryingId(null);
     }
-  }, [dialog, loadOperations, showToast]);
+  }, [canRetry, dialog, loadOperations, showToast]);
 
   const handleCopy = React.useCallback(
     async (record: MailOperationRecord) => {
@@ -186,11 +189,11 @@ export function MailOperationsPage() {
       onDetail: (record: MailOperationRecord) => setDialog({ type: "detail", record }),
       onLogs: (record: MailOperationRecord) => setDialog({ type: "logs", record }),
       onCopy: (record: MailOperationRecord) => void handleCopy(record),
-      onRetry: (record: MailOperationRecord) => setDialog({ type: "retry", record }),
+      onRetry: canRetry ? (record: MailOperationRecord) => setDialog({ type: "retry", record }) : undefined,
       onErrorDetail: (record: MailOperationRecord) => setDialog({ type: "error", record }),
       onCancel: (record: MailOperationRecord) => setDialog({ type: "cancel", record }),
     }),
-    [handleCopy],
+    [canRetry, handleCopy],
   );
 
   const columns = React.useMemo<UniversalDataTableColumn<MailOperationRecord>[]>(
@@ -401,7 +404,7 @@ export function MailOperationsPage() {
       <MailOperationLogsModal record={logsRecord} onClose={() => setDialog(null)} />
       <MailOperationErrorModal record={errorRecord} onClose={() => setDialog(null)} />
 
-      {dialog?.type === "retry" ? (
+      {dialog?.type === "retry" && canRetry ? (
         <ConfirmDialog
           title={adminLabels.mailOperationsRetryTitle}
           message={adminLabels.mailOperationsRetryMessage}
