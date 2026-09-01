@@ -36,14 +36,10 @@ jobs:
 
           frontend = "frontend/src/pages/ScraperOperationWizardPage.tsx"
           nl = newline_for(frontend)
-          old_imports = (
-              b'import { PERMISSION_OPERATIONS_CREATE } from "../permissions/navigationPermissions";'
-              + nl
-              + b'import { OPERATION_EXECUTE } from "../permissions/operationPermissions";'
-          )
           replace_bytes(
               frontend,
-              old_imports,
+              b'import { PERMISSION_OPERATIONS_CREATE } from "../permissions/navigationPermissions";' + nl
+              + b'import { OPERATION_EXECUTE } from "../permissions/operationPermissions";',
               b'import { SCRAPER_PERMISSION_EXECUTE } from "../permissions/scraperPermissions";',
           )
           replace_bytes(
@@ -54,39 +50,31 @@ jobs:
 
           create_path = "backend/app/modules/operations/application/create_operation.py"
           create_nl = newline_for(create_path)
-          create_old = create_nl.join([
-              b"                PERMISSION_SCRAPER_EXECUTE",
-              b'                if command.operation_type == "enrichment" and command.start_immediately',
-              b"                else PERMISSION_CREATE",
-          ])
-          create_new = create_nl.join([
-              b"                PERMISSION_SCRAPER_EXECUTE",
-              b'                if command.operation_type == "enrichment" and command.start_immediately',
-              b"                else (",
-              b"                    PERMISSION_SCRAPER_EXECUTE",
-              b'                    if command.operation_type == "scraper" and command.start_immediately',
+          replace_bytes(
+              create_path,
               b"                    else PERMISSION_CREATE",
-              b"                )",
-          ])
-          replace_bytes(create_path, create_old, create_new)
+              create_nl.join([
+                  b"                    else (",
+                  b"                        PERMISSION_SCRAPER_EXECUTE",
+                  b'                        if command.operation_type == "scraper" and command.start_immediately',
+                  b"                        else PERMISSION_CREATE",
+                  b"                    )",
+              ]),
+          )
 
           start_path = "backend/app/modules/operations/application/start_operation.py"
           start_nl = newline_for(start_path)
-          start_old = start_nl.join([
-              b"                PERMISSION_SCRAPER_EXECUTE",
-              b"                if operation.operation_type == OperationType.ENRICHMENT",
+          replace_bytes(
+              start_path,
               b"                else PERMISSION_EXECUTE",
-          ])
-          start_new = start_nl.join([
-              b"                PERMISSION_SCRAPER_EXECUTE",
-              b"                if operation.operation_type == OperationType.ENRICHMENT",
-              b"                else (",
-              b"                    PERMISSION_SCRAPER_EXECUTE",
-              b"                    if operation.operation_type == OperationType.SCRAPER",
-              b"                    else PERMISSION_EXECUTE",
-              b"                )",
-          ])
-          replace_bytes(start_path, start_old, start_new)
+              start_nl.join([
+                  b"                else (",
+                  b"                    PERMISSION_SCRAPER_EXECUTE",
+                  b"                    if operation.operation_type == OperationType.SCRAPER",
+                  b"                    else PERMISSION_EXECUTE",
+                  b"                )",
+              ]),
+          )
 
           frontend_test = "frontend/src/permissions/ScraperOperationWizardStartPermissions.test.ts"
           test_nl = newline_for(frontend_test)
