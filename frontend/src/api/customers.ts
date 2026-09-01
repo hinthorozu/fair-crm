@@ -29,6 +29,9 @@ export interface ListCustomersParams extends Partial<ServerTableFetchParams> {
 export async function listCustomers(
   params: ListCustomersParams = {},
 ): Promise<StandardListResponse<Customer>> {
+  if (!getGrantedCorePermissions().has(CUSTOMER_READ)) {
+    throw new ApiError(CUSTOMER_READ_DENIED, 403);
+  }
   const query = buildListQueryParams({
     page: params.page,
     pageSize: params.pageSize,
@@ -48,6 +51,9 @@ export async function listCustomers(
 }
 
 export async function exportCustomers(params: ListCustomersParams = {}): Promise<void> {
+  if (!getGrantedCorePermissions().has(CUSTOMER_READ)) {
+    throw new ApiError(CUSTOMER_READ_DENIED, 403);
+  }
   const query = buildListQueryParams({
     search: params.search,
     sortBy: params.sortBy,
