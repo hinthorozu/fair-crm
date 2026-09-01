@@ -19,6 +19,7 @@ from app.modules.operations.domain.value_objects import OperationStatus, Operati
 
 PERMISSION_EXECUTE = "fair_crm.operations.execute"
 PERMISSION_BULK_EMAIL_EXECUTE = "fair_crm.fair_emails.execute"
+PERMISSION_SCRAPER_EXECUTE = "fair_crm.scraper.execute"
 
 
 class RetryOperationUseCase:
@@ -46,7 +47,11 @@ class RetryOperationUseCase:
         permission_code = (
             PERMISSION_BULK_EMAIL_EXECUTE
             if operation.operation_type == OperationType.BULK_EMAIL
-            else PERMISSION_EXECUTE
+            else (
+                PERMISSION_SCRAPER_EXECUTE
+                if operation.operation_type == OperationType.ENRICHMENT
+                else PERMISSION_EXECUTE
+            )
         )
         if not self._authorization.check_permission(
             organization_id=command.organization_id,
