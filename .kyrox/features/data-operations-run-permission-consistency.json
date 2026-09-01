@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "id": "data-operations-run-permission-consistency",
+  "title": "Data Operations Run Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/DataOperationsPage.tsx",
+    "frontend/src/permissions/DataOperationsRunPermissions.test.ts",
+    ".kyrox/features/data-operations-run-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.operations.create",
+        "action": "create the data operation wrapper operation",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.operations.execute",
+        "action": "immediately start the created data operation",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/admin/data-operations"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing operation create and execute permissions are reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing CreateOperationUseCase and immediate StartOperationUseCase authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing operation create/start audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Read navigation remains independent from running a data operation." },
+    "route_guard": { "status": "na", "reason": "Read access and run actions remain separate concerns." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "DataOperationsPage remains readable under the existing admin data-operations read capability. Its Run action creates an operation with start_immediately=true, so the frontend now requires both fair_crm.operations.create and fair_crm.operations.execute and fails closed before the mutation."
+}
