@@ -143,10 +143,10 @@ export function QuoteEditorPage({ todoId, onBack }: Props) {
     finally { setLoading(false); }
   })(); }, [todoId, permissions]);
 
+  const canSaveQuote = existing ? permissions.has(QUOTE_UPDATE) : permissions.has(QUOTE_CREATE);
   const toggle = (id: string, checked: boolean) => setSelected((current) => { const next = { ...current }; if (checked) next[id] = next[id] || "VAR"; else delete next[id]; return next; });
   const save = async () => {
-    const allowed = existing ? permissions.has(QUOTE_UPDATE) : permissions.has(QUOTE_CREATE);
-    if (!allowed) { setError("Teklifi kaydetme yetkiniz yok."); return; }
+    if (!canSaveQuote) { setError("Teklifi kaydetme yetkiniz yok."); return; }
     if (!templateId) { setError("Teklif şablonu seçin."); return; }
 
     const standArea = contents.find((item) => String(item.title ?? "").trim().toLocaleUpperCase("tr-TR") === "STANT ALANI");
@@ -206,7 +206,7 @@ export function QuoteEditorPage({ todoId, onBack }: Props) {
 
   if (loading) return <LoadingState />;
   return <PageShell>
-    <PageHeader title="Teklif Hazırlama" subtitle={todo ? `${customer?.display_name} · ${fair?.name}` : ""} actions={<><button type="button" className="btn secondary" onClick={onBack}>Göreve Dön</button><button type="button" className="btn primary" onClick={() => void save()} disabled={saving}>{saving ? "Kaydediliyor..." : "Kaydet ve Önizle"}</button></>} />
+    <PageHeader title="Teklif Hazırlama" subtitle={todo ? `${customer?.display_name} · ${fair?.name}` : ""} actions={<><button type="button" className="btn secondary" onClick={onBack}>Göreve Dön</button>{canSaveQuote ? <button type="button" className="btn primary" onClick={() => void save()} disabled={saving}>{saving ? "Kaydediliyor..." : "Kaydet ve Önizle"}</button> : null}</>} />
     {error ? <Banner variant="error">{error}</Banner> : null}
     <Card><FormGrid>
       <FormField label="Teklif şablonu" htmlFor="quote-template" required><SelectInput id="quote-template" value={templateId} onChange={(e) => setTemplateId(e.target.value)}>{templates.map((item) => <option key={item.id} value={item.id}>{item.name} (v{item.version_number})</option>)}</SelectInput></FormField>
