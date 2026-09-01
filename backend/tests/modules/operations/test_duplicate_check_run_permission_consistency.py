@@ -30,7 +30,9 @@ def test_duplicate_check_retry_keeps_operations_execute_as_canonical_permission(
     retry_source = RETRY_OPERATION.read_text(encoding="utf-8")
 
     assert 'PERMISSION_EXECUTE = "fair_crm.operations.execute"' in retry_source
-    assert "permission_code=PERMISSION_EXECUTE" in retry_source
+    assert "if operation.operation_type == OperationType.BULK_EMAIL" in retry_source
+    assert "else PERMISSION_EXECUTE" in retry_source
+    assert "permission_code=permission_code" in retry_source
 
 
 def test_duplicate_handler_reuses_operations_execute_downstream_for_start_and_retry():
