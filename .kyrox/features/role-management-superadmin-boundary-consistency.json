@@ -6,7 +6,7 @@
   "owner": "fair-crm",
   "platform_reusability": "existing_core_capability",
   "trigger": "user",
-  "tenant_scope": "platform",
+  "tenant_scope": "system",
   "user_facing": true,
   "affected_paths": [
     "frontend/src/pages/RoleManagementPage.tsx",
@@ -15,6 +15,7 @@
   ],
   "permissions": {
     "required": false,
+    "reason": "Kyrox Core authorizes these platform actions with require_super_admin rather than assignable permission codes.",
     "items": []
   },
   "frontend": {
