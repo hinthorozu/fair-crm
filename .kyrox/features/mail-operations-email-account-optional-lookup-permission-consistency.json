@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "mail-operations-email-account-optional-lookup-permission-consistency",
+  "title": "Mail Operations Email Account Optional Lookup Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/MailOperationsPage.tsx",
+    "frontend/src/permissions/MailOperationsEmailAccountLookupPermissions.test.ts",
+    ".kyrox/features/mail-operations-email-account-optional-lookup-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.email_accounts.read",
+        "action": "load and display SMTP account choices in the mail operations filter",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/admin/smtp-operations/mail-operations"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing email account read permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing email account read authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "Existing organization-scoped authorization remains unchanged." },
+    "audit": { "status": "na", "reason": "No mutation or new auditable backend action is introduced." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Mail Operations navigation remains governed independently by its existing read permission." },
+    "route_guard": { "status": "na", "reason": "This change guards an optional lookup and filter, not route access." },
+    "forms": { "status": "na", "reason": "No form submission behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Mail Operations may be readable without fair_crm.email_accounts.read. The SMTP account filter is optional metadata, so the page now skips listEmailAccounts and hides that filter unless email-account read permission is granted, avoiding an unauthorized optional lookup while preserving mail-operation visibility."
+}
