@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "id": "role-management-superadmin-boundary-consistency",
+  "title": "Role Management SuperAdmin Boundary Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "system",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/RoleManagementPage.tsx",
+    "frontend/src/permissions/RoleManagementSuperAdminPermissions.test.ts",
+    ".kyrox/features/role-management-superadmin-boundary-consistency.json"
+  ],
+  "permissions": {
+    "required": false,
+    "reason": "Kyrox Core authorizes these platform actions with require_super_admin rather than assignable permission codes.",
+    "items": []
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/admin/system/roles"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "No permission or schema changes are introduced." },
+    "permissions": { "status": "na", "reason": "Kyrox Core protects these platform actions with require_super_admin rather than assignable permission codes." },
+    "backend": { "status": "na", "reason": "Existing Kyrox Core require_super_admin authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing Kyrox Core audit behavior remains unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Role-management navigation remains unchanged." },
+    "route_guard": { "status": "na", "reason": "The existing SuperAdmin-only tabs remain unchanged; this hardens the action callbacks themselves." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Role-template update/derive, template sync preview/execute, and permission lifecycle preview/execute now fail closed unless the loaded user-management context identifies the actor as SuperAdmin, matching Kyrox Core require_super_admin guards."
+}
