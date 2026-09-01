@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "data-operation-result-execute-permission-consistency",
+  "title": "Data Operation Result Execute Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/DataOperationAnalyzeResultPage.tsx",
+    "frontend/src/permissions/DataOperationAnalyzeResultExecutePermissions.test.ts",
+    ".kyrox/features/data-operation-result-execute-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.admin.data_operations.execute",
+        "action": "assign selected analysis customers to a fair and delete selected analysis customers",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/operations/duplicate-check/runs/:runId"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing data-operation execute authorization remains authoritative." },
+    "api": { "status": "na", "reason": "No API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing mutation audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Read navigation remains independent from result mutations." },
+    "route_guard": { "status": "na", "reason": "Read access and execute actions remain separate concerns." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Assign-to-fair and delete-selected actions now require fair_crm.admin.data_operations.execute at both UI visibility and callback boundaries. Result export remains read-only and unchanged."
+}
