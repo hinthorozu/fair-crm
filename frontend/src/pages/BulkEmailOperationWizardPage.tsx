@@ -36,8 +36,6 @@ import {
   canPerformMailTemplateAction,
   getGrantedMailTemplatePermissions,
 } from "../permissions/mailTemplatePermissions";
-import { PERMISSION_OPERATIONS_CREATE } from "../permissions/navigationPermissions";
-import { OPERATION_EXECUTE } from "../permissions/operationPermissions";
 import type { BulkEmailOperationPreviewResponse } from "../types/bulkEmailOperation";
 import type { MailTemplate } from "../types/mailTemplates";
 import type { EmailAccount } from "../types/smtp";
@@ -115,10 +113,7 @@ function BulkEmailOperationWizardPageInner({
   const requestLeave = useModalFormCancel(onCancel);
   const { can } = usePermissions();
   const canPreviewBulkEmail = can(FAIR_EMAIL_PREVIEW_PERMISSION);
-  const canSendBulkEmail =
-    can(PERMISSION_OPERATIONS_CREATE) &&
-    can(OPERATION_EXECUTE) &&
-    can(FAIR_EMAIL_EXECUTE_PERMISSION);
+  const canSendBulkEmail = can(FAIR_EMAIL_EXECUTE_PERMISSION);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const mailSettingsLoadedRef = React.useRef(false);
   const previewRequestIdRef = React.useRef(0);
