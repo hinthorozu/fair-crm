@@ -3,6 +3,7 @@ from pathlib import Path
 
 CREATE_OPERATION = Path("app/modules/operations/application/create_operation.py")
 START_OPERATION = Path("app/modules/operations/application/start_operation.py")
+RETRY_OPERATION = Path("app/modules/operations/application/retry_operation.py")
 DUPLICATE_HANDLER = Path("app/modules/operations/infrastructure/handlers/duplicate_check_handler.py")
 DATA_OPERATION_SERVICE = Path("app/modules/system_admin/application/data_operation_service.py")
 
@@ -25,11 +26,18 @@ def test_duplicate_check_start_keeps_operations_execute_as_canonical_permission(
     assert "else PERMISSION_EXECUTE" in source
 
 
-def test_initial_duplicate_handler_reuses_operations_execute_downstream_without_changing_retry():
+def test_duplicate_check_retry_keeps_operations_execute_as_canonical_permission():
+    retry_source = RETRY_OPERATION.read_text(encoding="utf-8")
+
+    assert 'PERMISSION_EXECUTE = "fair_crm.operations.execute"' in retry_source
+    assert "permission_code=PERMISSION_EXECUTE" in retry_source
+
+
+def test_duplicate_handler_reuses_operations_execute_downstream_for_start_and_retry():
     handler_source = DUPLICATE_HANDLER.read_text(encoding="utf-8")
     service_source = DATA_OPERATION_SERVICE.read_text(encoding="utf-8")
 
-    assert "from_operation_start=True" in handler_source
+    assert handler_source.count("from_operation_start=True") == 2
     assert "from_operation_start: bool = False" in handler_source
     assert "from_operation_start=from_operation_start" in handler_source
     assert 'PERMISSION_OPERATION_EXECUTE = "fair_crm.operations.execute"' in service_source

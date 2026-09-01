@@ -130,7 +130,9 @@ class DuplicateCheckHandler:
         run: OperationRun,
         context: HandlerExecutionContext,
     ) -> HandlerStartResult:
-        return self._start_job(operation=operation, run=run, context=context)
+        return self._start_job(
+            operation=operation, run=run, context=context, from_operation_start=True
+        )
 
     def on_cancel(
         self,
