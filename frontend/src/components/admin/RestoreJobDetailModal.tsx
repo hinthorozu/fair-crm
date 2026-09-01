@@ -1,6 +1,7 @@
 import React from "react";
 import { deleteRestoreJob, getRestoreJob, getRestoreJobLog, startRestoreJob } from "../../api/systemAdmin";
 import { adminLabels } from "../../labels/adminLabels";
+import { canCreateAdminBackupOperation } from "../../permissions/adminBackupPermissions";
 import type { SystemBackupRestoreJobResponse } from "../../types/systemBackup";
 import {
   RESTORE_JOB_POLL_INTERVAL_MS,
@@ -59,6 +60,7 @@ type RestoreJobDetailModalProps = {
 };
 
 export function RestoreJobDetailModal({ job, onClose, onJobUpdated, onDeleted }: RestoreJobDetailModalProps) {
+  const canStart = React.useMemo(() => canCreateAdminBackupOperation(), []);
   const [liveJob, setLiveJob] = React.useState(job);
   const [logContent, setLogContent] = React.useState("");
   const [logExists, setLogExists] = React.useState(false);
@@ -141,6 +143,7 @@ export function RestoreJobDetailModal({ job, onClose, onJobUpdated, onDeleted }:
   }, [logContent]);
 
   const handleStart = async () => {
+    if (!canStart) return;
     if (!window.confirm(adminLabels.restoreJobStartConfirm)) return;
     setStarting(true);
     setStartError("");
@@ -206,7 +209,7 @@ export function RestoreJobDetailModal({ job, onClose, onJobUpdated, onDeleted }:
         <dd className="mono">{liveJob.restore_log_path ?? "—"}</dd>
       </dl>
 
-      {uiStatus === "queued" && (
+      {uiStatus === "queued" && canStart && (
         <div className="backup-restore-manual-hint">
           <p className="text-muted">{adminLabels.restoreJobStartDescription}</p>
           <button type="button" className="btn danger" disabled={starting} onClick={() => void handleStart()}>
