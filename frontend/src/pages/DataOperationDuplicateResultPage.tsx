@@ -14,6 +14,7 @@ import { EmptyState, EmptyStateIcon } from "../components/ui/EmptyState";
 import { FilterPanel } from "../components/ui/FilterPanel";
 import { TextInput } from "../components/ui/form";
 import { useServerDataTable } from "../hooks/useServerDataTable";
+import { usePermissions } from "../hooks/usePermissions";
 import { adminLabels } from "../labels/adminLabels";
 import { labels } from "../labels";
 import { uiLabels } from "../labels/uiLabels";
@@ -24,6 +25,7 @@ import { LoadingState } from "../components/ui/LoadingState";
 import { PageShell } from "../components/ui/PageShell";
 
 const POLL_INTERVAL_MS = 2000;
+const DATA_OPERATIONS_EXECUTE_PERMISSION = "fair_crm.admin.data_operations.execute";
 const NO_GROUP_CUSTOMERS: never[] = [];
 
 interface DataOperationDuplicateResultPageProps {
@@ -154,6 +156,8 @@ export function DataOperationDuplicateResultPage({
   runId,
   onBack,
 }: DataOperationDuplicateResultPageProps) {
+  const { can } = usePermissions();
+  const canExecuteDataOperations = can(DATA_OPERATIONS_EXECUTE_PERMISSION);
   const [run, setRun] = React.useState<DataOperationRun | null>(null);
   const [runInitialLoading, setRunInitialLoading] = React.useState(true);
   const [runError, setRunError] = React.useState<string | null>(null);
@@ -306,6 +310,7 @@ export function DataOperationDuplicateResultPage({
   }, [mergeSuccessMessage]);
 
   const handleExport = async () => {
+    if (!canExecuteDataOperations) return;
     setExporting(true);
     try {
       await exportDataOperationDuplicateCustomers(runId, {
@@ -465,14 +470,16 @@ export function DataOperationDuplicateResultPage({
                     <button type="button" className="btn secondary" onClick={() => void table.refresh()}>
                       {labels.refresh}
                     </button>
-                    <button
-                      type="button"
-                      className="btn secondary"
-                      disabled={exporting}
-                      onClick={() => void handleExport()}
-                    >
-                      {exporting ? adminLabels.dataOpExporting : adminLabels.dataOpExportExcel}
-                    </button>
+                    {canExecuteDataOperations ? (
+                      <button
+                        type="button"
+                        className="btn secondary"
+                        disabled={exporting}
+                        onClick={() => void handleExport()}
+                      >
+                        {exporting ? adminLabels.dataOpExporting : adminLabels.dataOpExportExcel}
+                      </button>
+                    ) : null}
                   </>
                 }
               >
