@@ -1,6 +1,7 @@
 import { buildApiHeaders, config } from "../config";
 import { apiRequest, ApiError, fetchWithTimeout, DUPLICATE_GROUPS_LIST_TIMEOUT_MS } from "./client";
 import { normalizeStandardListResponse, buildListQueryParams } from "./listTable";
+import { getGrantedCorePermissions } from "../permissions/corePermissions";
 import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
 import type { StandardListResponse } from "../types/listTable";
 import type { Customer, CustomerStatus, CustomerType } from "../types/customer";
@@ -22,6 +23,17 @@ import type {
 } from "../types/dataOperations";
 
 export { ApiError };
+
+const DATA_OPERATIONS_READ = "fair_crm.admin.data_operations.read";
+const DATA_OPERATIONS_EXECUTE = "fair_crm.admin.data_operations.execute";
+const DATA_OPERATION_ARTIFACT_DENIED = `Veri işlemi dosyalarını dışa aktarma veya indirme yetkiniz yok (${DATA_OPERATIONS_READ}, ${DATA_OPERATIONS_EXECUTE}).`;
+
+function requireDataOperationArtifactPermissions(): void {
+  const permissions = getGrantedCorePermissions();
+  if (!permissions.has(DATA_OPERATIONS_READ) || !permissions.has(DATA_OPERATIONS_EXECUTE)) {
+    throw new ApiError(DATA_OPERATION_ARTIFACT_DENIED, 403);
+  }
+}
 
 export async function listDataOperations(): Promise<DataOperationDefinition[]> {
   const response = await apiRequest<DataOperationsListResponse>("/api/v1/admin/data-operations");
@@ -97,6 +109,7 @@ export async function exportDataOperationDatasetCustomers(
     country?: string;
   } = {},
 ): Promise<void> {
+  requireDataOperationArtifactPermissions();
   const qs = buildListQueryParams({
     search: params.search,
     sortBy: params.sortBy,
@@ -228,6 +241,7 @@ export async function exportDataOperationDuplicateCustomers(
     country?: string;
   } = {},
 ): Promise<void> {
+  requireDataOperationArtifactPermissions();
   const qs = buildListQueryParams({
     search: params.search,
     sortBy: params.sortBy,
@@ -273,6 +287,7 @@ export async function downloadDataOperationFile(
   fileId: string,
   fileName: string,
 ): Promise<void> {
+  requireDataOperationArtifactPermissions();
   const response = await fetchWithTimeout(
     `${config.apiBaseUrl}/api/v1/admin/data-operations/runs/${runId}/files/${fileId}/download`,
     {
