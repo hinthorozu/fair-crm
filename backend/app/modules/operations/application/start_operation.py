@@ -49,7 +49,11 @@ class StartOperationUseCase:
             else (
                 PERMISSION_SCRAPER_EXECUTE
                 if operation.operation_type == OperationType.ENRICHMENT
-                else PERMISSION_EXECUTE
+                else (
+                    PERMISSION_SCRAPER_EXECUTE
+                    if operation.operation_type == OperationType.SCRAPER
+                    else PERMISSION_EXECUTE
+                )
             )
         )
         if not self._authorization.check_permission(

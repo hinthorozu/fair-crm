@@ -7,11 +7,15 @@ const source = readFileSync(
 );
 
 describe("ScraperOperationWizardPage start permissions", () => {
-  it("requires operation create and execute permissions for immediate start", () => {
+  it("requires the canonical scraper execute permission for immediate start", () => {
     expect(source).toContain(
-      "const canStart = can(PERMISSION_OPERATIONS_CREATE) && can(OPERATION_EXECUTE);",
+      'import { SCRAPER_PERMISSION_EXECUTE } from "../permissions/scraperPermissions";',
     );
+    expect(source).toContain("const canStart = can(SCRAPER_PERMISSION_EXECUTE);");
+    expect(source).toContain('operation_type: "scraper" as const');
     expect(source).toContain("start_immediately: true");
+    expect(source).not.toContain("PERMISSION_OPERATIONS_CREATE");
+    expect(source).not.toContain("OPERATION_EXECUTE");
   });
 
   it("fails closed before creating the scraper operation", () => {
@@ -20,7 +24,7 @@ describe("ScraperOperationWizardPage start permissions", () => {
     expect(source).toContain("const created = await createOperation(buildPayload());");
   });
 
-  it("hides the final start affordance without both permissions", () => {
+  it("hides the final start affordance without execute permission", () => {
     expect(source).toContain(") : canStart ? (");
     expect(source).toContain("{operationLabels.startAutomation}");
   });

@@ -2,7 +2,7 @@
   "version": 1,
   "id": "scraper-wizard-start-permission-consistency",
   "title": "Scraper Wizard Start Permission Consistency",
-  "feature_type": "ui_only",
+  "feature_type": "user_triggered_operation",
   "owner": "fair-crm",
   "platform_reusability": "existing_core_capability",
   "trigger": "user",
@@ -11,20 +11,17 @@
   "affected_paths": [
     "frontend/src/pages/ScraperOperationWizardPage.tsx",
     "frontend/src/permissions/ScraperOperationWizardStartPermissions.test.ts",
+    "backend/app/modules/operations/application/create_operation.py",
+    "backend/app/modules/operations/application/start_operation.py",
+    "backend/tests/modules/operations/test_scraper_start_permission_consistency.py",
     ".kyrox/features/scraper-wizard-start-permission-consistency.json"
   ],
   "permissions": {
     "required": true,
     "items": [
       {
-        "code": "fair_crm.operations.create",
-        "action": "create the scraper operation",
-        "scope": "organization",
-        "assignable": true
-      },
-      {
-        "code": "fair_crm.operations.execute",
-        "action": "immediately start the created scraper operation",
+        "code": "fair_crm.scraper.execute",
+        "action": "start a scraper automation through the Operation wizard",
         "scope": "organization",
         "assignable": true
       }
@@ -32,29 +29,29 @@
   },
   "frontend": {
     "required": true,
-    "routes": ["/operations/new"],
+    "routes": ["/operations/new/scraper"],
     "menu": false,
     "menu_permission": null
   },
   "applicability": {
     "database": { "status": "na", "reason": "No persistence model changes are introduced." },
-    "migration": { "status": "na", "reason": "Existing operation create and execute permissions are reused." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.scraper.execute permission is reused." },
     "permissions": { "status": "required" },
-    "backend": { "status": "na", "reason": "Existing CreateOperationUseCase and immediate StartOperationUseCase authorization remains unchanged and authoritative." },
-    "api": { "status": "na", "reason": "No server API contract changes." },
-    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "required" },
     "audit": { "status": "na", "reason": "Existing operation create/start audit behavior is unchanged." },
     "frontend": { "status": "required" },
     "ui_permissions": { "status": "required" },
-    "menu": { "status": "na", "reason": "Read/navigation access remains independent from starting the scraper operation." },
-    "route_guard": { "status": "na", "reason": "The focused change protects the final mutation boundary and affordance." },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Route-level operation wizard cleanup is intentionally handled separately." },
     "forms": { "status": "required" },
     "visual_qa": { "status": "required" },
-    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "backend_tests": { "status": "required" },
     "frontend_tests": { "status": "required" },
     "runtime_authorization": { "status": "required" },
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "ScraperOperationWizardPage creates a scraper operation with start_immediately=true. The frontend now requires both fair_crm.operations.create and fair_crm.operations.execute, fails closed in submit(), and hides the final start affordance without both capabilities."
+  "notes": "Scraper Wizard Start is one user-triggered business action. For start_immediately scraper requests, Operation creation and Operation start are orchestration only and must not add fair_crm.operations.create or fair_crm.operations.execute prerequisites. Retry and route guards remain out of scope."
 }
