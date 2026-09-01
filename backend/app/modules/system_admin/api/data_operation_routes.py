@@ -1226,7 +1226,7 @@ def export_data_operation_duplicate_customers(
 def download_data_operation_file(
     run_id: UUID,
     file_id: UUID,
-    auth: AuthContext = Depends(require_data_operations_read_permission),
+    auth: AuthContext = Depends(require_data_operations_run_permission),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     use_case=Depends(get_download_data_operation_file_use_case),
 ):

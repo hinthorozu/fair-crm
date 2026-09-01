@@ -2,13 +2,16 @@
   "version": 1,
   "id": "data-operations-download-permission-consistency",
   "title": "Data Operations Download Permission Consistency",
-  "feature_type": "ui_only",
+  "feature_type": "user_triggered_operation",
   "owner": "fair-crm",
   "platform_reusability": "existing_core_capability",
   "trigger": "user",
   "tenant_scope": "organization",
   "user_facing": true,
   "affected_paths": [
+    "backend/app/modules/system_admin/api/data_operation_routes.py",
+    "backend/tests/modules/system_admin/test_data_operation_download_permission_consistency.py",
+    "frontend/src/api/dataOperationDownload.ts",
     "frontend/src/pages/DataOperationsPage.tsx",
     "frontend/src/permissions/DataOperationsDownloadPermissions.test.ts",
     ".kyrox/features/data-operations-download-permission-consistency.json"
@@ -16,12 +19,6 @@
   "permissions": {
     "required": true,
     "items": [
-      {
-        "code": "fair_crm.admin.data_operations.read",
-        "action": "pass the download route authorization boundary",
-        "scope": "organization",
-        "assignable": true
-      },
       {
         "code": "fair_crm.admin.data_operations.execute",
         "action": "download generated data operation output files",
@@ -38,23 +35,23 @@
   },
   "applicability": {
     "database": { "status": "na", "reason": "No persistence model changes are introduced." },
-    "migration": { "status": "na", "reason": "Existing data-operations permissions are reused." },
+    "migration": { "status": "na", "reason": "The existing data-operations execute permission is reused." },
     "permissions": { "status": "required" },
-    "backend": { "status": "na", "reason": "The existing download route enforces fair_crm.admin.data_operations.read and DownloadDataOperationFileUseCase independently enforces fair_crm.admin.data_operations.execute; both remain authoritative." },
-    "api": { "status": "na", "reason": "No server API contract changes." },
-    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
-    "audit": { "status": "na", "reason": "Existing download behavior is unchanged." },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "na", "reason": "Download behavior does not mutate domain state." },
     "frontend": { "status": "required" },
     "ui_permissions": { "status": "required" },
     "menu": { "status": "na", "reason": "Navigation behavior is unchanged." },
-    "route_guard": { "status": "na", "reason": "This change hardens the download action boundary rather than route access." },
+    "route_guard": { "status": "na", "reason": "This change aligns the download action boundary rather than page access." },
     "forms": { "status": "na", "reason": "No form behavior changes." },
     "visual_qa": { "status": "required" },
-    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "backend_tests": { "status": "required" },
     "frontend_tests": { "status": "required" },
     "runtime_authorization": { "status": "required" },
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "DataOperationsPage mirrors the effective backend download boundary: output-file downloads require both fair_crm.admin.data_operations.read at the route and fair_crm.admin.data_operations.execute in the use case. The callback fails closed before network activity and the download affordance is hidden unless both permissions are present."
+  "notes": "A generated output-file download is one user action and now has one canonical permission: fair_crm.admin.data_operations.execute. The API route, use case, page affordance, callback, and direct download client all align to execute; fair_crm.admin.data_operations.read is no longer an additional requirement for this action."
 }
