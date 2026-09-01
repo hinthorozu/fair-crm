@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "id": "data-operations-route-permission-consistency",
+  "title": "Data Operations Route Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/permissions/DataOperationsRoutePermissions.test.ts",
+    ".kyrox/features/data-operations-route-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.admin.data_operations.read",
+        "action": "read duplicate-check definitions and results",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.operations.create",
+        "action": "enter the duplicate-check creation surface",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.operations.read",
+        "action": "enter duplicate-check result surfaces",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/operations/new/duplicate-check",
+      "/operations/duplicate-check/runs/:runId",
+      "/admin/data-operations",
+      "/admin/data-operations/runs/:runId"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing permissions are reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing data-operation read authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "No mutation or audit behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Main Operations navigation remains governed by fair_crm.operations.read." },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "na", "reason": "No form behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Duplicate-check routes previously inherited only the generic Operations route permissions even though their primary APIs require fair_crm.admin.data_operations.read. The route guard now preserves the existing Operations create/read requirement and additionally requires the canonical data-operations read permission, including supported legacy admin URLs."
+}
