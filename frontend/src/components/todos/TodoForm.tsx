@@ -43,6 +43,7 @@ import {
 } from "../../permissions/corePermissions";
 import { CUSTOMER_READ } from "../../permissions/customerPermissions";
 import { FAIR_READ } from "../../permissions/fairPermissions";
+import { TODO_PERMISSION_UPDATE } from "../../permissions/todoPermissions";
 
 export const TODO_FORM_ID = "todo-entity-form";
 
@@ -191,6 +192,8 @@ export function TodoForm({
   const canCustomersRead =
     config.devBypassEnabled || canUseTodoCustomerSelector(grantedPermissions);
   const canFairsRead = config.devBypassEnabled || canUseTodoFairSelector(grantedPermissions);
+  const canManageSteps =
+    config.devBypassEnabled || hasGrantedCorePermission(grantedPermissions, TODO_PERMISSION_UPDATE);
 
   useReportFormDirty(values, baseline);
 
@@ -231,7 +234,7 @@ export function TodoForm({
     setSaving(true);
     setError(null);
     try {
-      await onSubmit(values);
+      await onSubmit(canManageSteps ? values : { ...values, steps: [] });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : todoLabels.loadError);
     } finally {
@@ -306,7 +309,7 @@ export function TodoForm({
                 ...prev,
                 category,
                 steps:
-                  category === "stand_work" && prev.category !== "stand_work"
+                  canManageSteps && category === "stand_work" && prev.category !== "stand_work"
                     ? appendStandWorkDefaultSteps(prev.steps)
                     : prev.steps,
               }));
@@ -381,10 +384,12 @@ export function TodoForm({
             placeholder="00000000-0000-0000-0000-000000000000"
           />
         </FormField>
-        <TodoStepFieldList
-          items={values.steps}
-          onChange={(steps) => setValues((prev) => ({ ...prev, steps }))}
-        />
+        {canManageSteps ? (
+          <TodoStepFieldList
+            items={values.steps}
+            onChange={(steps) => setValues((prev) => ({ ...prev, steps }))}
+          />
+        ) : null}
         {error ? <FieldError className="span-2">{error}</FieldError> : null}
       </FormGrid>
     </form>
