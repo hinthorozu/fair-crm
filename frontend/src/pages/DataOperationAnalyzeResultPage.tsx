@@ -252,6 +252,7 @@ export function DataOperationAnalyzeResultPage({
   };
 
   const handleExport = async () => {
+    if (!canExecuteDataOperations) return;
     setExporting(true);
     try {
       await exportDataOperationDatasetCustomers(runId, {
@@ -375,16 +376,16 @@ export function DataOperationAnalyzeResultPage({
                   >
                     {adminLabels.dataOpDeleteSelected}
                   </button>
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    disabled={exporting || actionBusy}
+                    onClick={() => void handleExport()}
+                  >
+                    {exporting ? adminLabels.dataOpExporting : adminLabels.dataOpExportExcel}
+                  </button>
                 </>
               ) : null}
-              <button
-                type="button"
-                className="btn secondary"
-                disabled={exporting || actionBusy}
-                onClick={() => void handleExport()}
-              >
-                {exporting ? adminLabels.dataOpExporting : adminLabels.dataOpExportExcel}
-              </button>
             </div>
           }
           emptyState={

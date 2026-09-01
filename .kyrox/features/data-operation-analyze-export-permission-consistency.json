@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "data-operation-analyze-export-permission-consistency",
+  "title": "Data Operation Analyze Export Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/DataOperationAnalyzeResultPage.tsx",
+    "frontend/src/permissions/DataOperationAnalyzeExportPermissions.test.ts",
+    ".kyrox/features/data-operation-analyze-export-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.admin.data_operations.execute",
+        "action": "export the analyzed customer dataset",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/operations/duplicate-check/runs/:runId"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing data-operations execute permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing backend export authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing export behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Navigation behavior is unchanged." },
+    "route_guard": { "status": "na", "reason": "Read access to the result page remains separate from export execution." },
+    "forms": { "status": "na", "reason": "No form behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "The analyzed-result page is already read-gated by its data-loading path. Excel export is an execute action, so its callback now fails closed and its affordance is hidden unless fair_crm.admin.data_operations.execute is granted. The central artifact client boundary independently enforces the full effective backend read-plus-execute contract."
+}
