@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "id": "quote-templates-write-permission-consistency",
+  "title": "Quote Templates Write Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/QuoteTemplatesPage.tsx",
+    "frontend/src/permissions/QuoteTemplatesWritePermissions.test.ts",
+    ".kyrox/features/quote-templates-write-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.quote_templates.create",
+        "action": "create quote template or upload managed template logo",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.quote_templates.update",
+        "action": "update quote template or upload managed template logo",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/quote-templates"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing quote template permissions are reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing quote template endpoint authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing persistence/audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Read access is already handled separately." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "QuoteTemplatesPage now fails closed at save and logo-upload callbacks and aligns modal controls with the canonical quote_templates create/update permissions. Backend logo upload accepts either create or update permission."
+}
