@@ -27,11 +27,19 @@ export { ApiError };
 const DATA_OPERATIONS_READ = "fair_crm.admin.data_operations.read";
 const DATA_OPERATIONS_EXECUTE = "fair_crm.admin.data_operations.execute";
 const DATA_OPERATION_ARTIFACT_DENIED = `Veri işlemi dosyalarını dışa aktarma veya indirme yetkiniz yok (${DATA_OPERATIONS_READ}, ${DATA_OPERATIONS_EXECUTE}).`;
+const DATA_OPERATION_EXPORT_DENIED = `Veri işlemi sonucunu dışa aktarma yetkiniz yok (${DATA_OPERATIONS_EXECUTE}).`;
 
 function requireDataOperationArtifactPermissions(): void {
   const permissions = getGrantedCorePermissions();
   if (!permissions.has(DATA_OPERATIONS_READ) || !permissions.has(DATA_OPERATIONS_EXECUTE)) {
     throw new ApiError(DATA_OPERATION_ARTIFACT_DENIED, 403);
+  }
+}
+
+function requireDataOperationExecutePermission(): void {
+  const permissions = getGrantedCorePermissions();
+  if (!permissions.has(DATA_OPERATIONS_EXECUTE)) {
+    throw new ApiError(DATA_OPERATION_EXPORT_DENIED, 403);
   }
 }
 
@@ -109,7 +117,7 @@ export async function exportDataOperationDatasetCustomers(
     country?: string;
   } = {},
 ): Promise<void> {
-  requireDataOperationArtifactPermissions();
+  requireDataOperationExecutePermission();
   const qs = buildListQueryParams({
     search: params.search,
     sortBy: params.sortBy,
