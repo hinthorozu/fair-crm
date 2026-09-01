@@ -15,6 +15,9 @@ export interface ListFairsParams extends Partial<ServerTableFetchParams> {
 }
 
 export async function listFairs(params: ListFairsParams = {}): Promise<StandardListResponse<Fair>> {
+  if (!getGrantedCorePermissions().has(FAIR_READ)) {
+    throw new ApiError(FAIR_READ_DENIED, 403);
+  }
   const query = buildListQueryParams({
     page: params.page,
     pageSize: params.pageSize,
