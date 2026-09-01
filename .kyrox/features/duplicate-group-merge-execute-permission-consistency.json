@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "id": "duplicate-group-merge-execute-permission-consistency",
+  "title": "Duplicate Group Merge Execute Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/components/DuplicateGroupDetailView.tsx",
+    "frontend/src/components/duplicateMerge/MergeSummaryPanel.tsx",
+    "frontend/src/permissions/DuplicateGroupMergeExecutePermissions.test.ts",
+    ".kyrox/features/duplicate-group-merge-execute-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.admin.data_operations.execute",
+        "action": "execute a duplicate group merge",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/operations/duplicate-check/runs/:runId"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing data operations execute permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "The existing merge-execute route remains authoritative and unchanged." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing duplicate merge audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Read navigation is unchanged." },
+    "route_guard": { "status": "na", "reason": "Read access and merge execution remain separate capabilities." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Duplicate merge preview remains available under the existing read capability. Only merge execution now requires fair_crm.admin.data_operations.execute at the request callback, confirm-modal boundary, and merge affordance."
+}
