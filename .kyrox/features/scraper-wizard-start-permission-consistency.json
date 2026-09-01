@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "id": "scraper-wizard-start-permission-consistency",
+  "title": "Scraper Wizard Start Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/ScraperOperationWizardPage.tsx",
+    "frontend/src/permissions/ScraperOperationWizardStartPermissions.test.ts",
+    ".kyrox/features/scraper-wizard-start-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.operations.create",
+        "action": "create the scraper operation",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.operations.execute",
+        "action": "immediately start the created scraper operation",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/operations/new"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing operation create and execute permissions are reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing CreateOperationUseCase and immediate StartOperationUseCase authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing operation create/start audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Read/navigation access remains independent from starting the scraper operation." },
+    "route_guard": { "status": "na", "reason": "The focused change protects the final mutation boundary and affordance." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "ScraperOperationWizardPage creates a scraper operation with start_immediately=true. The frontend now requires both fair_crm.operations.create and fair_crm.operations.execute, fails closed in submit(), and hides the final start affordance without both capabilities."
+}
