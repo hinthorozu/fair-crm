@@ -7,7 +7,7 @@ const source = readFileSync(
 );
 
 describe("BulkEmailOperationWizardPage permissions", () => {
-  it("uses the canonical preview and send capability sets", () => {
+  it("uses one canonical permission for each bulk email action", () => {
     expect(source).toContain(
       'const FAIR_EMAIL_PREVIEW_PERMISSION = "fair_crm.fair_emails.preview";',
     );
@@ -15,9 +15,9 @@ describe("BulkEmailOperationWizardPage permissions", () => {
       'const FAIR_EMAIL_EXECUTE_PERMISSION = "fair_crm.fair_emails.execute";',
     );
     expect(source).toContain("const canPreviewBulkEmail = can(FAIR_EMAIL_PREVIEW_PERMISSION);");
-    expect(source).toContain("can(PERMISSION_OPERATIONS_CREATE) &&");
-    expect(source).toContain("can(OPERATION_EXECUTE) &&");
-    expect(source).toContain("can(FAIR_EMAIL_EXECUTE_PERMISSION);");
+    expect(source).toContain("const canSendBulkEmail = can(FAIR_EMAIL_EXECUTE_PERMISSION);");
+    expect(source).not.toContain("PERMISSION_OPERATIONS_CREATE");
+    expect(source).not.toContain("OPERATION_EXECUTE");
   });
 
   it("fails closed before preview and send operations", () => {

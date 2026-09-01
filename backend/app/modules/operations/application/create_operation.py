@@ -21,6 +21,7 @@ from app.modules.operations.domain.type_registry import OperationTypeRegistry
 from app.modules.operations.domain.value_objects import OperationStatus, SourceKind
 
 PERMISSION_CREATE = "fair_crm.operations.create"
+PERMISSION_BULK_EMAIL_EXECUTE = "fair_crm.fair_emails.execute"
 
 
 class CreateOperationUseCase:
@@ -43,10 +44,15 @@ class CreateOperationUseCase:
         self._start_operation_use_case = start_operation_use_case
 
     def execute(self, command: CreateOperationCommand) -> OperationResult:
+        permission_code = (
+            PERMISSION_BULK_EMAIL_EXECUTE
+            if command.operation_type == "bulk_email" and command.start_immediately
+            else PERMISSION_CREATE
+        )
         if not self._authorization.check_permission(
             organization_id=command.organization_id,
             user_id=command.user_id,
-            permission_code=PERMISSION_CREATE,
+            permission_code=permission_code,
             access_token=command.access_token,
         ):
             raise ForbiddenError("Permission denied")
