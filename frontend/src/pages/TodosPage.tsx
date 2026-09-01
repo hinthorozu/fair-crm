@@ -51,6 +51,7 @@ import {
   canPerformTodoAction,
   getGrantedTodoPermissions,
 } from "../permissions/todoPermissions";
+import { canOpenTodoQuoteAction } from "../permissions/todoQuoteActionPermissions";
 import { Banner } from "../components/ui/Banner";
 import { PageShell } from "../components/ui/PageShell";
 import type { Todo, TodoPriority, TodoStatus } from "../types/todo";
@@ -186,6 +187,7 @@ export function TodosPage({ onOpenDetail, onOpenQuote, onOpenCustomer }: TodosPa
   const canUpdate = canPerformTodoAction(grantedPermissions, "update");
   const canArchive = canPerformTodoAction(grantedPermissions, "archive");
   const canDelete = canPerformTodoAction(grantedPermissions, "delete");
+  const canOpenQuote = canOpenTodoQuoteAction(grantedPermissions);
 
   const [view, setView] = React.useState<TodosHubView>(() =>
     parseTodosView(window.location.search),
@@ -279,7 +281,7 @@ export function TodosPage({ onOpenDetail, onOpenQuote, onOpenCustomer }: TodosPa
     setModal(null);
     setSuccess(todoLabels.createSuccess);
     await refreshAfterAction();
-    if (created.category === "teklif") onOpenQuote?.(created.id);
+    if (canOpenQuote && created.category === "teklif") onOpenQuote?.(created.id);
   };
 
   const handleUpdate = async (values: TodoFormValues) => {
