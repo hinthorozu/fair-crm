@@ -23,6 +23,7 @@ import { LoadingState } from "../components/ui/LoadingState";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
+import { usePermissions } from "../hooks/usePermissions";
 import type { BulkEmailOperationLogLine } from "../types/bulkEmailOperation";
 import {
   operationLabels,
@@ -32,6 +33,7 @@ import {
 } from "../labels/operationLabels";
 import { scraperLabels } from "../labels/scraperLabels";
 import { todoPriorityLabels, todoStatusLabels } from "../labels/todoLabels";
+import { OPERATION_EXECUTE } from "../permissions/operationPermissions";
 import type {
   OperationDetail,
   OperationRun,
@@ -110,6 +112,8 @@ export function OperationDetailPage({
   onOpenTodo,
   onOpenImportBatch,
 }: OperationDetailPageProps) {
+  const { can } = usePermissions();
+  const canExecute = can(OPERATION_EXECUTE);
   const [detail, setDetail] = React.useState<OperationDetail | null>(null);
   const [linkedTodo, setLinkedTodo] = React.useState<Todo | null>(null);
   const [linkedTodoError, setLinkedTodoError] = React.useState<string | null>(null);
@@ -142,8 +146,6 @@ export function OperationDetailPage({
       try {
         const nextDetail = await getOperation(operationId);
         setDetail(nextDetail);
-        // The operation detail is enough to render the page. Optional linked
-        // todo resolution must not keep the entire screen behind a spinner.
         if (!options?.silent) setLoading(false);
         const relatedTodoId = nextDetail.operation.related_todo_id;
         if (relatedTodoId && !options?.silent) {
@@ -226,7 +228,6 @@ export function OperationDetailPage({
       ),
     ).then((resolved) => {
       if (cancelled) return;
-      // Preserve persisted order from fairIds.
       const byId = new Map(resolved.map((item) => [item.id, item.name]));
       setEnrichmentFairNames(fairIds.map((id) => byId.get(id) || id));
     });
@@ -251,7 +252,6 @@ export function OperationDetailPage({
     ).then((resolved) => {
       if (cancelled) return;
       const byId = new Map(resolved.map((item) => [item.id, item.name]));
-      // Empty string when getFair fails — format helper then uses Fuar (n) fallback.
       setBulkEmailFairNames(fairIds.map((id) => byId.get(id) || ""));
     });
     return () => {
@@ -275,7 +275,6 @@ export function OperationDetailPage({
     void getAdapter(scraperAdapterKey)
       .then((adapter) => {
         if (!cancelled) {
-          // AdapterDetail.name is the registry/API display name (not adapter_key).
           const name = (adapter.name || "").trim();
           setAdapterDisplayName(name || null);
         }
@@ -329,8 +328,6 @@ export function OperationDetailPage({
   );
 
   React.useEffect(() => {
-    // Refresh only while the operation is queued/running. Paused and terminal
-    // operations remain stable until the page is opened again.
     if (!shouldPoll) return;
     const timer = window.setInterval(() => {
       if (shouldPoll) {
@@ -338,8 +335,6 @@ export function OperationDetailPage({
       }
       if (isBulkEmailOp) {
         void loadBulkEmailExtras({ silent: true });
-        // Refresh the visible recipient page even if the aggregate run counters
-        // have not changed yet. The request remains server-paginated.
         setBulkRecipientsRefresh((current) => current + 1);
       }
     }, POLL_INTERVAL_MS);
@@ -361,6 +356,7 @@ export function OperationDetailPage({
   }, [bulkLogs]);
 
   const handleStart = async () => {
+    if (!canExecute) return;
     setBusy(true);
     setBanner(null);
     try {
@@ -375,6 +371,7 @@ export function OperationDetailPage({
   };
 
   const handleCancel = async () => {
+    if (!canExecute) return;
     setBusy(true);
     setBanner(null);
     try {
@@ -389,6 +386,7 @@ export function OperationDetailPage({
   };
 
   const handleRetryFailed = async () => {
+    if (!canExecute) return;
     setRetrying(true);
     setBanner(null);
     setError(null);
@@ -518,14 +516,17 @@ export function OperationDetailPage({
   const isBulkEmail = operation.operation_type === "bulk_email";
   const latestRunActive = latest?.status === "queued" || latest?.status === "running";
   const canStart =
+    canExecute &&
     ["draft", "ready", "active"].includes(operation.status) &&
     !(isManualTask && operation.related_todo_id) &&
     !latestRunActive;
   const canCancel =
-    ["draft", "ready", "active"].includes(operation.status) ||
-    ((isScraper || isEnrichment) && latestRunActive);
+    canExecute &&
+    (["draft", "ready", "active"].includes(operation.status) ||
+      ((isScraper || isEnrichment) && latestRunActive));
   const failedCount = latest?.failed_items ?? 0;
   const canRetryFailed =
+    canExecute &&
     isBulkEmail &&
     !latestRunActive &&
     (Boolean(operation.capabilities?.supports_retry) || failedCount > 0);
@@ -984,7 +985,7 @@ export function OperationDetailPage({
         </Card>
       </div>
 
-      {retryConfirmOpen ? (
+      {retryConfirmOpen && canExecute ? (
         <ConfirmDialog
           title={operationLabels.bulkEmailRetryFailed}
           message={operationLabels.bulkEmailRetryConfirm}
