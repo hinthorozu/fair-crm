@@ -26,78 +26,29 @@
   },
   "frontend": {
     "required": true,
-    "routes": [
-      "/operations",
-      "/operations/new"
-    ],
+    "routes": ["/operations", "/operations/new"],
     "menu": false,
     "menu_permission": null
   },
   "applicability": {
-    "database": {
-      "status": "na",
-      "reason": "No persistence changes are introduced."
-    },
-    "migration": {
-      "status": "na",
-      "reason": "The existing fair_crm.operations.create permission is reused."
-    },
-    "permissions": {
-      "status": "required"
-    },
-    "backend": {
-      "status": "na",
-      "reason": "Existing operation authorization remains unchanged and authoritative."
-    },
-    "api": {
-      "status": "na",
-      "reason": "No server API contract changes; this contract covers only the generic Operations-page creation entry point."
-    },
-    "tenant_isolation": {
-      "status": "na",
-      "reason": "No organization-scoping behavior changes."
-    },
-    "audit": {
-      "status": "na",
-      "reason": "No mutation or audit behavior changes."
-    },
-    "frontend": {
-      "status": "required"
-    },
-    "ui_permissions": {
-      "status": "required"
-    },
-    "menu": {
-      "status": "na",
-      "reason": "No navigation menu changes are introduced."
-    },
-    "route_guard": {
-      "status": "na",
-      "reason": "Specialized operation wizard routes use their own canonical business permissions under a separate route contract."
-    },
-    "forms": {
-      "status": "na",
-      "reason": "Operation wizard form behavior is unchanged."
-    },
-    "visual_qa": {
-      "status": "required"
-    },
-    "backend_tests": {
-      "status": "na",
-      "reason": "No backend executable behavior changes."
-    },
-    "frontend_tests": {
-      "status": "required"
-    },
-    "runtime_authorization": {
-      "status": "required"
-    },
-    "runtime_verification": {
-      "status": "required"
-    },
-    "deployment": {
-      "status": "required"
-    }
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.operations.create permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing operation authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes; this contract covers only the generic Operations-page creation entry point." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "No mutation or audit behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Specialized operation wizard routes use their own canonical business permissions under a separate route contract." },
+    "forms": { "status": "na", "reason": "Operation wizard form behavior is unchanged." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
   },
   "notes": "OperationsPage still requires fair_crm.operations.create to expose the generic Yeni Operasyon entry point. Specialized immediate-start wizard routes are no longer described as generic create routes; their deep-link guards are aligned separately with each wizard's canonical business permission."
 }
