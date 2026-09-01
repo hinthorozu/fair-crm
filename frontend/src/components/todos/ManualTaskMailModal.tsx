@@ -12,6 +12,10 @@ import type { Customer } from "../../types/customer";
 import type { MailTemplate } from "../../types/mailTemplates";
 import type { EmailAccount } from "../../types/smtp";
 import {
+  canSendMail,
+  getGrantedPermissions as getGrantedEmailPermissions,
+} from "../../permissions/emailAccountPermissions";
+import {
   formatMailTemplateOptionLabel,
   selectActiveMailTemplates,
 } from "../../utils/mailTemplateForm";
@@ -99,6 +103,8 @@ function ManualTaskMailModalInner({
   onQueued,
 }: ManualTaskMailModalProps) {
   const requestClose = useModalFormCancel(onClose);
+  const grantedPermissions = React.useMemo(() => getGrantedEmailPermissions(), []);
+  const canSend = canSendMail(grantedPermissions);
   const [loading, setLoading] = React.useState(true);
   const [sending, setSending] = React.useState(false);
   const [previewing, setPreviewing] = React.useState(false);
@@ -292,6 +298,7 @@ function ManualTaskMailModalInner({
 
   const canPreview = formComplete && !previewing && !sending && !loading;
   const canSendFromPreview =
+    canSend &&
     step === "preview" &&
     Boolean(previewPayload) &&
     !previewPayload?.unresolvedVariables &&
@@ -389,7 +396,7 @@ function ManualTaskMailModalInner({
   };
 
   const handleSendFromPreview = async () => {
-    if (!canSendFromPreview || !previewPayload || sending) return;
+    if (!canSend || !canSendFromPreview || !previewPayload || sending) return;
 
     setSending(true);
     setError(null);
@@ -485,14 +492,16 @@ function ManualTaskMailModalInner({
             >
               {todoWorklistLabels.manualMailPreviewBack}
             </button>
-            <button
-              type="button"
-              className="btn primary"
-              disabled={!canSendFromPreview}
-              onClick={() => void handleSendFromPreview()}
-            >
-              {sending ? todoWorklistLabels.manualMailSending : todoWorklistLabels.manualMailSend}
-            </button>
+            {canSend ? (
+              <button
+                type="button"
+                className="btn primary"
+                disabled={!canSendFromPreview}
+                onClick={() => void handleSendFromPreview()}
+              >
+                {sending ? todoWorklistLabels.manualMailSending : todoWorklistLabels.manualMailSend}
+              </button>
+            ) : null}
           </div>
         </div>
       ) : (
@@ -537,7 +546,6 @@ function ManualTaskMailModalInner({
                   ))}
                 </SelectInput>
               </FormField>
-
               <FormField
                 label={todoWorklistLabels.manualMailManualAdd}
                 htmlFor="manual-mail-manual-email"
