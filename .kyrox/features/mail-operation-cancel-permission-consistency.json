@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "mail-operation-cancel-permission-consistency",
+  "title": "Mail Operation Cancel Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/components/mail_operations/MailOperationActionsMenu.tsx",
+    "frontend/src/permissions/MailOperationCancelPermissions.test.ts",
+    ".kyrox/features/mail-operation-cancel-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.mail_send_operations.execute",
+        "action": "expose and invoke executable mail operation actions including cancel",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/admin/smtp-operations/mail-operations"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing mail send execute permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "No backend cancellation endpoint or authorization behavior is changed." },
+    "api": { "status": "na", "reason": "No API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "Existing organization-scoped mail operation authorization remains unchanged." },
+    "audit": { "status": "na", "reason": "No new executable backend action is introduced." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Application navigation remains unchanged." },
+    "route_guard": { "status": "na", "reason": "This change hardens an action-menu permission boundary, not route access." },
+    "forms": { "status": "na", "reason": "No form submission behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Queued mail operations already expose a cancel action in the UI model. The action menu now treats cancel like retry: users without fair_crm.mail_send_operations.execute neither see the action nor can invoke its callback through the menu. This is a UI permission-consistency hardening only; no backend cancel endpoint is added by this change."
+}
