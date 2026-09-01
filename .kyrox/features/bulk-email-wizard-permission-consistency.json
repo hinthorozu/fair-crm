@@ -2,13 +2,17 @@
   "version": 1,
   "id": "bulk-email-wizard-permission-consistency",
   "title": "Bulk Email Wizard Permission Consistency",
-  "feature_type": "ui_only",
+  "feature_type": "user_triggered_operation",
   "owner": "fair-crm",
   "platform_reusability": "existing_core_capability",
   "trigger": "user",
   "tenant_scope": "organization",
   "user_facing": true,
   "affected_paths": [
+    "backend/app/modules/operations/application/create_operation.py",
+    "backend/app/modules/operations/application/start_operation.py",
+    "backend/app/modules/fair_emails/application/send_bulk_email_operation.py",
+    "backend/tests/modules/operations/test_bulk_email_send_permission_consistency.py",
     "frontend/src/pages/BulkEmailOperationWizardPage.tsx",
     "frontend/src/permissions/BulkEmailOperationWizardPermissions.test.ts",
     ".kyrox/features/bulk-email-wizard-permission-consistency.json"
@@ -23,20 +27,8 @@
         "assignable": true
       },
       {
-        "code": "fair_crm.operations.create",
-        "action": "create the bulk email operation",
-        "scope": "organization",
-        "assignable": true
-      },
-      {
-        "code": "fair_crm.operations.execute",
-        "action": "immediately start the created bulk email operation",
-        "scope": "organization",
-        "assignable": true
-      },
-      {
         "code": "fair_crm.fair_emails.execute",
-        "action": "execute the bulk email send handler",
+        "action": "send bulk email",
         "scope": "organization",
         "assignable": true
       }
@@ -50,23 +42,23 @@
   },
   "applicability": {
     "database": { "status": "na", "reason": "No persistence model changes are introduced." },
-    "migration": { "status": "na", "reason": "Existing preview, operation create/execute, and fair email execute permissions are reused." },
+    "migration": { "status": "na", "reason": "Existing fair email preview and execute permissions are reused." },
     "permissions": { "status": "required" },
-    "backend": { "status": "na", "reason": "Existing PreviewBulkEmailOperationUseCase, CreateOperationUseCase, StartOperationUseCase, and SendBulkEmailOperationUseCase authorization remains unchanged and authoritative." },
-    "api": { "status": "na", "reason": "No server API contract changes." },
-    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
-    "audit": { "status": "na", "reason": "Existing bulk email operation and send audit behavior is unchanged." },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "na", "reason": "Existing operation and fair email audit events are preserved." },
     "frontend": { "status": "required" },
     "ui_permissions": { "status": "required" },
     "menu": { "status": "na", "reason": "Operations navigation remains unchanged." },
     "route_guard": { "status": "na", "reason": "Preview and send are independently protected at their action boundaries." },
     "forms": { "status": "required" },
     "visual_qa": { "status": "required" },
-    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "backend_tests": { "status": "required" },
     "frontend_tests": { "status": "required" },
     "runtime_authorization": { "status": "required" },
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Bulk email preview now requires fair_crm.fair_emails.preview before the preview request and before summary navigation. Sending requires fair_crm.operations.create, fair_crm.operations.execute, and fair_crm.fair_emails.execute at both the send callback and final send affordance."
+  "notes": "Bulk email preview has one canonical permission: fair_crm.fair_emails.preview. Bulk email send has one canonical permission: fair_crm.fair_emails.execute. The /operations/bulk-email/send endpoint internally creates and immediately starts an operation, but that bookkeeping is implementation detail and does not add fair_crm.operations.create or fair_crm.operations.execute as user-facing prerequisites. Generic non-bulk operation create/start actions retain their existing operations permissions."
 }
