@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "todo-detail-worklist-save-permission-consistency",
+  "title": "Todo Detail Worklist Save Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/TodoDetailPage.tsx",
+    "frontend/src/permissions/TodoDetailWorklistSavePermissions.test.ts",
+    ".kyrox/features/todo-detail-worklist-save-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.todos.update",
+        "action": "record todo detail worklist activity",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/todos/:id"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.todos.update permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing worklist activity authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing activity persistence and audit behavior are unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Todo detail route access is unchanged; only the mutation callback is hardened." },
+    "forms": { "status": "na", "reason": "Shared worklist modal form behavior is unchanged." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "TodoWorklistActivityModal already gates submit with fair_crm.todos.update. TodoDetailPage now independently fails closed in handleSaveActivity before recordTodoWorklistActivity is called."
+}
