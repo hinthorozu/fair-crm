@@ -363,7 +363,7 @@ def _merge_statistics_to_response(statistics) -> DuplicateGroupMergePreviewStati
         emails_after=statistics.emails_after,
         phones_before=statistics.phones_before,
         phones_after=statistics.phones_after,
-        websites_before=statistics.websites_before,
+        websites_before=statistics.websites.before,
         websites_after=statistics.websites_after,
     )
 
@@ -772,7 +772,7 @@ def export_data_operation_dataset_customers(
         Query(pattern="^(?i)(asc|desc)$", validation_alias=AliasChoices("sort_dir", "direction")),
     ] = None,
     sort_dir: Annotated[str | None, Query(include_in_schema=False)] = None,
-    auth: AuthContext = Depends(require_data_operations_read_permission),
+    auth: AuthContext = Depends(require_data_operations_run_permission),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     use_case=Depends(get_export_data_operation_dataset_customers_use_case),
 ):
