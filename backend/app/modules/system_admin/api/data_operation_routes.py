@@ -1174,7 +1174,7 @@ def export_data_operation_duplicate_customers(
         Query(pattern="^(?i)(asc|desc)$", validation_alias=AliasChoices("sort_dir", "direction")),
     ] = None,
     sort_dir: Annotated[str | None, Query(include_in_schema=False)] = None,
-    auth: AuthContext = Depends(require_data_operations_read_permission),
+    auth: AuthContext = Depends(require_data_operations_run_permission),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     use_case=Depends(get_export_data_operation_duplicate_customers_use_case),
 ):
