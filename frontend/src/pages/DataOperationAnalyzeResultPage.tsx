@@ -15,6 +15,7 @@ import { UniversalDataTable } from "../components/ui/UniversalDataTable";
 import { EmptyState, EmptyStateIcon } from "../components/ui/EmptyState";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { useServerDataTableRowSelection } from "../hooks/useServerDataTableRowSelection";
+import { usePermissions } from "../hooks/usePermissions";
 import { adminLabels } from "../labels/adminLabels";
 import { uiLabels } from "../labels/uiLabels";
 import type { Customer, CustomerStatus, CustomerType } from "../types/customer";
@@ -25,6 +26,7 @@ import { LoadingState } from "../components/ui/LoadingState";
 import { PageShell } from "../components/ui/PageShell";
 
 const POLL_INTERVAL_MS = 2000;
+const DATA_OPERATIONS_EXECUTE_PERMISSION = "fair_crm.admin.data_operations.execute";
 
 interface DataOperationAnalyzeResultPageProps {
   runId: string;
@@ -41,6 +43,8 @@ export function DataOperationAnalyzeResultPage({
   onBack,
   onOpenCustomer,
 }: DataOperationAnalyzeResultPageProps) {
+  const { can } = usePermissions();
+  const canExecuteDataOperations = can(DATA_OPERATIONS_EXECUTE_PERMISSION);
   const analysisColumns = React.useMemo(
     () =>
       buildAnalysisCustomerColumns(
@@ -215,7 +219,7 @@ export function DataOperationAnalyzeResultPage({
   }, [deleteJobId, pollDeleteJob]);
 
   const handleAssignToFair = async () => {
-    if (!assignFairId || selectedCount === 0) return;
+    if (!canExecuteDataOperations || !assignFairId || selectedCount === 0) return;
     setAssigning(true);
     setAssignMessage(null);
     setRunError(null);
@@ -232,7 +236,7 @@ export function DataOperationAnalyzeResultPage({
   };
 
   const handleDeleteSelected = async () => {
-    if (selectedCount === 0) return;
+    if (!canExecuteDataOperations || selectedCount === 0) return;
     setDeleting(true);
     setDeleteMessage(null);
     setRunError(null);
@@ -353,22 +357,26 @@ export function DataOperationAnalyzeResultPage({
                 }
                 onRefresh={() => void table.refresh()}
               />
-              <button
-                type="button"
-                className="btn primary"
-                disabled={selectedCount === 0 || actionBusy}
-                onClick={() => setAssignModalOpen(true)}
-              >
-                {adminLabels.dataOpAssignToFair}
-              </button>
-              <button
-                type="button"
-                className="btn danger"
-                disabled={selectedCount === 0 || actionBusy}
-                onClick={() => setDeleteModalOpen(true)}
-              >
-                {adminLabels.dataOpDeleteSelected}
-              </button>
+              {canExecuteDataOperations ? (
+                <>
+                  <button
+                    type="button"
+                    className="btn primary"
+                    disabled={selectedCount === 0 || actionBusy}
+                    onClick={() => setAssignModalOpen(true)}
+                  >
+                    {adminLabels.dataOpAssignToFair}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn danger"
+                    disabled={selectedCount === 0 || actionBusy}
+                    onClick={() => setDeleteModalOpen(true)}
+                  >
+                    {adminLabels.dataOpDeleteSelected}
+                  </button>
+                </>
+              ) : null}
               <button
                 type="button"
                 className="btn secondary"
@@ -394,7 +402,7 @@ export function DataOperationAnalyzeResultPage({
       )}
 
       <AssignCustomersToFairModal
-        open={assignModalOpen}
+        open={assignModalOpen && canExecuteDataOperations}
         selectedCount={selectedCount}
         fairId={assignFairId}
         assigning={assigning}
@@ -409,7 +417,7 @@ export function DataOperationAnalyzeResultPage({
       />
 
       <DeleteSelectedCustomersModal
-        open={deleteModalOpen}
+        open={deleteModalOpen && canExecuteDataOperations}
         selectedCount={selectedCount}
         deleting={deleting}
         onClose={() => {
