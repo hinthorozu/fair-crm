@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "id": "scraper-operation-retry-permission-consistency",
+  "title": "Scraper Operation Retry Permission Consistency",
+  "feature_type": "user_triggered_operation",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "backend/app/modules/operations/application/retry_operation.py",
+    "backend/tests/modules/operations/test_scraper_retry_permission_consistency.py",
+    ".kyrox/features/scraper-operation-retry-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.scraper.execute",
+        "action": "retry failed scraper operation",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": false,
+    "reason": "The current Operation Detail UI has no generic Scraper Retry affordance; this change aligns the existing backend retry capability only.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.scraper.execute permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "na", "reason": "Existing operation retry audit events are preserved." },
+    "frontend": { "status": "na", "reason": "No frontend implementation changes are introduced." },
+    "ui_permissions": { "status": "na", "reason": "No generic Scraper Retry UI action currently exists to gate." },
+    "menu": { "status": "na", "reason": "No navigation changes are introduced." },
+    "route_guard": { "status": "na", "reason": "No frontend route changes are introduced." },
+    "forms": { "status": "na", "reason": "No form behavior changes are introduced." },
+    "visual_qa": { "status": "na", "reason": "No rendered UI changes are introduced." },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "na", "reason": "No frontend executable behavior changes are introduced." },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Scraper Retry starts the same scraper execution capability as Scraper Start and therefore requires fair_crm.scraper.execute. Enrichment Retry continues to use fair_crm.scraper.execute, Bulk Email Retry continues to use fair_crm.fair_emails.execute, and all other generic operation Retry flows retain fair_crm.operations.execute."
+}
