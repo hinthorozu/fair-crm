@@ -33,6 +33,7 @@ import {
 } from "../labels/operationLabels";
 import { scraperLabels } from "../labels/scraperLabels";
 import { todoPriorityLabels, todoStatusLabels } from "../labels/todoLabels";
+import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";
 import { OPERATION_EXECUTE } from "../permissions/operationPermissions";
 import type {
   OperationDetail,
@@ -114,6 +115,7 @@ export function OperationDetailPage({
 }: OperationDetailPageProps) {
   const { can } = usePermissions();
   const canExecute = can(OPERATION_EXECUTE);
+  const canRetryBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);
   const [detail, setDetail] = React.useState<OperationDetail | null>(null);
   const [linkedTodo, setLinkedTodo] = React.useState<Todo | null>(null);
   const [linkedTodoError, setLinkedTodoError] = React.useState<string | null>(null);
@@ -395,7 +397,7 @@ export function OperationDetailPage({
   };
 
   const handleRetryFailed = async () => {
-    if (!canExecute) return;
+    if (!canRetryBulkEmail) return;
     setRetrying(true);
     setBanner(null);
     setError(null);
@@ -535,7 +537,7 @@ export function OperationDetailPage({
       ((isScraper || isEnrichment) && latestRunActive));
   const failedCount = latest?.failed_items ?? 0;
   const canRetryFailed =
-    canExecute &&
+    canRetryBulkEmail &&
     isBulkEmail &&
     !latestRunActive &&
     (Boolean(operation.capabilities?.supports_retry) || failedCount > 0);
@@ -994,7 +996,7 @@ export function OperationDetailPage({
         </Card>
       </div>
 
-      {retryConfirmOpen && canExecute ? (
+      {retryConfirmOpen && canRetryBulkEmail ? (
         <ConfirmDialog
           title={operationLabels.bulkEmailRetryFailed}
           message={operationLabels.bulkEmailRetryConfirm}

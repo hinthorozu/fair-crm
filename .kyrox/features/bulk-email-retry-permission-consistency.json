@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "id": "bulk-email-retry-permission-consistency",
+  "title": "Bulk Email Retry Permission Consistency",
+  "feature_type": "user_triggered_operation",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "backend/app/modules/operations/application/retry_operation.py",
+    "backend/tests/modules/operations/test_bulk_email_retry_permission_consistency.py",
+    "frontend/src/pages/OperationDetailPageLegacy.tsx",
+    "frontend/src/permissions/OperationDetailExecutePermissions.test.ts",
+    ".kyrox/features/bulk-email-retry-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.fair_emails.execute",
+        "action": "retry failed bulk email recipients",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/operations/:operationId"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.fair_emails.execute permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "na", "reason": "Existing operation retry audit events are preserved." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Operations navigation remains unchanged." },
+    "route_guard": { "status": "na", "reason": "The operation detail route remains governed by its existing read access; this change protects the retry action boundary." },
+    "forms": { "status": "na", "reason": "No form behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Retrying failed Bulk Email recipients is the same user-triggered email execution capability as the initial Send action and therefore requires only fair_crm.fair_emails.execute. RetryOperationUseCase continues to require fair_crm.operations.execute for all other operation types. Enrichment and Scraper retry authorization are intentionally outside this focused change."
+}

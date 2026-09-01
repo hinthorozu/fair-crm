@@ -15,9 +15,10 @@ from app.modules.operations.domain.exceptions import (
 from app.modules.operations.domain.handler import HandlerExecutionContext
 from app.modules.operations.domain.handler_registry import InMemoryHandlerRegistry
 from app.modules.operations.domain.ports import OperationRepository, OperationRunRepository
-from app.modules.operations.domain.value_objects import OperationStatus, RunStatus
+from app.modules.operations.domain.value_objects import OperationStatus, OperationType, RunStatus
 
 PERMISSION_EXECUTE = "fair_crm.operations.execute"
+PERMISSION_BULK_EMAIL_EXECUTE = "fair_crm.fair_emails.execute"
 
 
 class RetryOperationUseCase:
@@ -36,19 +37,24 @@ class RetryOperationUseCase:
         self._audit = audit
 
     def execute(self, command: RetryOperationCommand) -> OperationResult:
-        if not self._authorization.check_permission(
-            organization_id=command.organization_id,
-            user_id=command.user_id,
-            permission_code=PERMISSION_EXECUTE,
-            access_token=command.access_token,
-        ):
-            raise ForbiddenError("Permission denied")
-
         operation = self._operation_repository.get_by_id(
             command.organization_id, command.operation_id
         )
         if operation is None:
             raise OperationNotFoundError("Operation not found")
+
+        permission_code = (
+            PERMISSION_BULK_EMAIL_EXECUTE
+            if operation.operation_type == OperationType.BULK_EMAIL
+            else PERMISSION_EXECUTE
+        )
+        if not self._authorization.check_permission(
+            organization_id=command.organization_id,
+            user_id=command.user_id,
+            permission_code=permission_code,
+            access_token=command.access_token,
+        ):
+            raise ForbiddenError("Permission denied")
 
         handler = self._handler_registry.get(operation.operation_type)
         if handler is None:
