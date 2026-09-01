@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "dashboard-new-todo-submit-permission-consistency",
+  "title": "Dashboard New Todo Submit Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/components/dashboard/DashboardNewTodoModal.tsx",
+    "frontend/src/permissions/DashboardNewTodoModalPermissions.test.ts",
+    ".kyrox/features/dashboard-new-todo-submit-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.todos.create",
+        "action": "create a todo from the dashboard modal",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/dashboard"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing todo create permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing todo create authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "Existing organization-scoped todo authorization remains unchanged." },
+    "audit": { "status": "na", "reason": "Existing todo creation audit behavior remains unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Dashboard navigation remains unchanged." },
+    "route_guard": { "status": "na", "reason": "This change hardens the dashboard modal action callback, not route access." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "The dashboard quick action already requires fair_crm.todos.create. The modal submit callback now independently fails closed on the same permission, and the save affordance is hidden without it. TodoForm continues to gate optional checklist editing/submission with fair_crm.todos.update."
+}
