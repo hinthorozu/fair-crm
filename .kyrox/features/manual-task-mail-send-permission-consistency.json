@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "manual-task-mail-send-permission-consistency",
+  "title": "Manual Task Mail Send Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/components/todos/ManualTaskMailModal.tsx",
+    "frontend/src/permissions/ManualTaskMailModalPermissions.test.ts",
+    ".kyrox/features/manual-task-mail-send-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.mail_send_operations.execute",
+        "action": "send manual task mail",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/todos", "/todos/:id"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.mail_send_operations.execute permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing backend manual-mail authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing mail-send audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Todo route access is unchanged; only the manual-mail send action is hardened." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "TodoWorklistActivityModal already hides the manual-mail entry point without mail_send_operations.execute. ManualTaskMailModal now independently reuses the canonical canSendMail helper, includes permission in its send readiness, fails closed in handleSendFromPreview, and hides the preview send action without permission."
+}
