@@ -546,6 +546,7 @@ function ManualTaskMailModalInner({
                   ))}
                 </SelectInput>
               </FormField>
+
               <FormField
                 label={todoWorklistLabels.manualMailManualAdd}
                 htmlFor="manual-mail-manual-email"
