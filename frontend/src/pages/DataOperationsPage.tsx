@@ -23,6 +23,7 @@ import { Card } from "../components/ui/Card";
 import { PageShell } from "../components/ui/PageShell";
 
 const POLL_INTERVAL_MS = 2000;
+const DATA_OPERATIONS_READ = "fair_crm.admin.data_operations.read";
 
 const duplicateCheckUiLabels = {
   run: "Çalıştır",
@@ -102,6 +103,7 @@ const DUPLICATE_GROUP_BY_OPTIONS: { value: DuplicateGroupByField; label: string 
 export function DuplicateCheckOperationPage({ onOpenResult }: DuplicateCheckOperationPageProps) {
   const { can } = usePermissions();
   const canRun = can(PERMISSION_OPERATIONS_CREATE) && can(OPERATION_EXECUTE);
+  const canDownload = can(DATA_OPERATIONS_READ);
   const [operations, setOperations] = React.useState<DataOperationDefinition[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -241,6 +243,7 @@ export function DuplicateCheckOperationPage({ onOpenResult }: DuplicateCheckOper
   };
 
   const handleDownload = async (run: DataOperationRun, fileId: string, fileName: string) => {
+    if (!canDownload) return;
     const key = `${run.id}:${fileId}`;
     setDownloadingKey(key);
     try {
@@ -363,7 +366,7 @@ export function DuplicateCheckOperationPage({ onOpenResult }: DuplicateCheckOper
 
                 {run?.error_message && <p className="text-danger">{run.error_message}</p>}
 
-                {downloadsFrom?.output_files && downloadsFrom.output_files.length > 0 && (
+                {canDownload && downloadsFrom?.output_files && downloadsFrom.output_files.length > 0 && (
                   <div className="data-operation-downloads">
                     <p className="data-operation-downloads-title">{duplicateCheckUiLabels.downloads}</p>
                     <ul>
