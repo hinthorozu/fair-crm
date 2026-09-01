@@ -273,7 +273,7 @@ export function TodosPage({ onOpenDetail, onOpenQuote, onOpenCustomer }: TodosPa
     if (!canCreate) return;
     const created = await createTodo(formValuesToCreatePayload(values));
     const stepPayload = formItemsToReplacePayload(values.steps);
-    if (stepPayload.length > 0) {
+    if (canUpdate && stepPayload.length > 0) {
       await replaceTodoSteps(created.id, { steps: stepPayload });
     }
     setModal(null);
