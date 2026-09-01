@@ -2,7 +2,7 @@
   "version": 1,
   "id": "data-operations-run-permission-consistency",
   "title": "Data Operations Run Permission Consistency",
-  "feature_type": "full_stack",
+  "feature_type": "user_triggered_operation",
   "owner": "fair-crm",
   "platform_reusability": "existing_core_capability",
   "trigger": "user",
@@ -30,74 +30,29 @@
   },
   "frontend": {
     "required": true,
-    "routes": [
-      "/admin/data-operations"
-    ],
+    "routes": ["/admin/data-operations"],
     "menu": false,
     "menu_permission": null
   },
   "applicability": {
-    "database": {
-      "status": "na",
-      "reason": "No persistence model changes are introduced."
-    },
-    "migration": {
-      "status": "na",
-      "reason": "Existing operations.execute permission is reused."
-    },
-    "permissions": {
-      "status": "required"
-    },
-    "backend": {
-      "status": "required"
-    },
-    "api": {
-      "status": "na",
-      "reason": "No HTTP schema changes."
-    },
-    "tenant_isolation": {
-      "status": "na",
-      "reason": "No organization-scoping behavior changes."
-    },
-    "audit": {
-      "status": "na",
-      "reason": "Existing operation create/start audit behavior is unchanged."
-    },
-    "frontend": {
-      "status": "required"
-    },
-    "ui_permissions": {
-      "status": "required"
-    },
-    "menu": {
-      "status": "na",
-      "reason": "Read navigation remains independent from running a data operation."
-    },
-    "route_guard": {
-      "status": "na",
-      "reason": "Read access and run actions remain separate concerns."
-    },
-    "forms": {
-      "status": "required"
-    },
-    "visual_qa": {
-      "status": "required"
-    },
-    "backend_tests": {
-      "status": "required"
-    },
-    "frontend_tests": {
-      "status": "required"
-    },
-    "runtime_authorization": {
-      "status": "required"
-    },
-    "runtime_verification": {
-      "status": "required"
-    },
-    "deployment": {
-      "status": "required"
-    }
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing operations.execute permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "required" },
+    "api": { "status": "na", "reason": "No HTTP schema changes." },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "na", "reason": "Existing operation create/start audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Read navigation remains independent from running a data operation." },
+    "route_guard": { "status": "na", "reason": "Read access and run actions remain separate concerns." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
   },
   "notes": "Duplicate Check Run is one user action. The frontend, immediate CreateOperation authorization, StartOperation authorization, and the initial downstream data-operation start all use fair_crm.operations.execute. The generic fair_crm.operations.create prerequisite is removed for start_immediately duplicate_check requests. Retry and route guards are intentionally out of scope."
 }
