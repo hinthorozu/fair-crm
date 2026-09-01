@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "id": "data-operations-artifact-client-permission-consistency",
+  "title": "Data Operations Artifact Client Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/api/dataOperations.ts",
+    "frontend/src/api/dataOperations.artifactPermission.test.ts",
+    ".kyrox/features/data-operations-artifact-client-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.admin.data_operations.read",
+        "action": "pass data-operation artifact route authorization",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.admin.data_operations.execute",
+        "action": "export or download data-operation artifacts",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/admin/data-operations", "/operations/duplicate-check/runs/:runId"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing data-operations permissions are reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing route and use-case authorization remain unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing artifact export and download behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Navigation behavior is unchanged." },
+    "route_guard": { "status": "na", "reason": "This change hardens direct client artifact calls rather than route access." },
+    "forms": { "status": "na", "reason": "No form behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "The direct-fetch data-operation artifact helpers now fail closed before network activity unless both effective backend permissions are granted. This covers customer dataset export, duplicate-customer export, and generated output-file download independently of page-level affordance guards. Visual QA verifies that authorized artifact flows remain unchanged while unauthorized calls fail closed before network activity."
+}
