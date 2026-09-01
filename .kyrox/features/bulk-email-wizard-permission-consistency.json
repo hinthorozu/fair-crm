@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "id": "bulk-email-wizard-permission-consistency",
+  "title": "Bulk Email Wizard Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/BulkEmailOperationWizardPage.tsx",
+    "frontend/src/permissions/BulkEmailOperationWizardPermissions.test.ts",
+    ".kyrox/features/bulk-email-wizard-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.fair_emails.preview",
+        "action": "preview bulk email recipients and rendered mail",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.operations.create",
+        "action": "create the bulk email operation",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.operations.execute",
+        "action": "immediately start the created bulk email operation",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.fair_emails.execute",
+        "action": "execute the bulk email send handler",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/operations/new/bulk-email"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing preview, operation create/execute, and fair email execute permissions are reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing PreviewBulkEmailOperationUseCase, CreateOperationUseCase, StartOperationUseCase, and SendBulkEmailOperationUseCase authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing bulk email operation and send audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Operations navigation remains unchanged." },
+    "route_guard": { "status": "na", "reason": "Preview and send are independently protected at their action boundaries." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Bulk email preview now requires fair_crm.fair_emails.preview before the preview request and before summary navigation. Sending requires fair_crm.operations.create, fair_crm.operations.execute, and fair_crm.fair_emails.execute at both the send callback and final send affordance."
+}
