@@ -304,7 +304,7 @@ export function TodoDetailPage({
   };
 
   const handleSaveActivity = async (payload: RecordTodoWorklistActivityPayload) => {
-    if (!selectedCustomerId) return;
+    if (!canUpdate || !selectedCustomerId) return;
     setSaving(true);
     setSaveError(null);
     setSaveSuccess(null);
