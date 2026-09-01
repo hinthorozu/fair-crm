@@ -65,7 +65,7 @@ export function MailOperationActionsMenu({
   };
 
   const actions = getMailOperationActions(record.status).filter((action) => {
-    if (action === "retry" && !canExecute) return false;
+    if ((action === "retry" || action === "cancel") && !canExecute) return false;
     const handlerKey = ACTION_HANDLERS[action];
     return Boolean(handlers[handlerKey]);
   });
@@ -92,7 +92,8 @@ export function MailOperationActionsMenu({
   }, [open]);
 
   const runAction = (action: MailOperationActionId) => {
-    if (action === "retry" && (!canExecute || retryDisabled)) return;
+    if ((action === "retry" || action === "cancel") && !canExecute) return;
+    if (action === "retry" && retryDisabled) return;
     const handlerKey = ACTION_HANDLERS[action];
     const handler = handlers[handlerKey];
     setOpen(false);
