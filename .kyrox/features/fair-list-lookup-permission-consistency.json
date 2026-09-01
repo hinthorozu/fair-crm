@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "fair-list-lookup-permission-consistency",
+  "title": "Fair List Lookup Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/api/fairs.ts",
+    "frontend/src/permissions/FairListLookupPermissions.test.ts",
+    ".kyrox/features/fair-list-lookup-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.fairs.read",
+        "action": "list fair metadata for lookup controls",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing fair read permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing backend fair read authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes; the frontend API client now fails closed before unauthorized list requests." },
+    "tenant_isolation": { "status": "na", "reason": "Existing organization-scoped fair authorization remains unchanged." },
+    "audit": { "status": "na", "reason": "Read-only lookup behavior introduces no new auditable mutation." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Application navigation remains unchanged." },
+    "route_guard": { "status": "na", "reason": "This hardens reusable fair lookup behavior rather than route access." },
+    "forms": { "status": "na", "reason": "No form submission behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "getFair already rejected locally when fair_crm.fairs.read was absent, while listFairs still issued the request. listFairs now applies the same fail-closed client boundary, preventing unauthorized optional lookup traffic from FairEntitySelect and other consumers."
+}
