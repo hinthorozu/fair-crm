@@ -19,6 +19,7 @@ export const PERMISSION_FAIRS_READ = "fair_crm.fairs.read";
 export const PERMISSION_TODOS_READ = "fair_crm.todos.read";
 export const PERMISSION_OPERATIONS_READ = "fair_crm.operations.read";
 export const PERMISSION_OPERATIONS_CREATE = "fair_crm.operations.create";
+export const PERMISSION_DATA_OPERATIONS_READ = "fair_crm.admin.data_operations.read";
 export const PERMISSION_ACTIVITIES_READ = "fair_crm.activities.read";
 export const PERMISSION_IMPORTS_READ = "fair_crm.imports.read";
 export const PERMISSION_IMPORTS_CREATE = "fair_crm.imports.create";
@@ -250,6 +251,29 @@ export function canAccessApplicationPath(
   }
   if (pathname === "/activities" || pathname.startsWith("/activities/")) {
     return hasGrantedCorePermission(granted, PERMISSION_ACTIVITIES_READ);
+  }
+
+  const canReadDataOperations = hasGrantedCorePermission(granted, PERMISSION_DATA_OPERATIONS_READ);
+  if (pathname === "/operations/new/duplicate-check") {
+    return (
+      hasGrantedCorePermission(granted, PERMISSION_OPERATIONS_CREATE) && canReadDataOperations
+    );
+  }
+  if (pathname.startsWith("/operations/duplicate-check/runs/")) {
+    return hasGrantedCorePermission(granted, PERMISSION_OPERATIONS_READ) && canReadDataOperations;
+  }
+  if (pathname === "/admin/data-operations") {
+    return (
+      hasGrantedCorePermission(granted, PERMISSION_OPERATIONS_CREATE) && canReadDataOperations
+    );
+  }
+  if (pathname.startsWith("/admin/data-operations/runs/")) {
+    return hasGrantedCorePermission(granted, PERMISSION_OPERATIONS_READ) && canReadDataOperations;
+  }
+  if (pathname.startsWith("/admin/data-operations/")) {
+    return (
+      hasGrantedCorePermission(granted, PERMISSION_OPERATIONS_CREATE) && canReadDataOperations
+    );
   }
   if (pathname === "/operations/new" || pathname.startsWith("/operations/new/")) {
     return hasGrantedCorePermission(granted, PERMISSION_OPERATIONS_CREATE);
