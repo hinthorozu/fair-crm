@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "id": "admin-backup-download-permission-consistency",
+  "title": "Admin Backup Download Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "system",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/DatabaseBackupsPage.tsx",
+    "frontend/src/permissions/adminBackupPermissions.ts",
+    "frontend/src/permissions/DatabaseBackupsDownloadPermissions.test.ts",
+    ".kyrox/features/admin-backup-download-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.admin.backups.execute",
+        "action": "download backup",
+        "scope": "system",
+        "assignable": false
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/admin/system/backups"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing backup execute permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing backup download authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing download audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Read access and download execution remain separate concerns." },
+    "forms": { "status": "na", "reason": "No form behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "DatabaseBackupsPage now fails closed before downloadSystemBackup and hides table Download actions without fair_crm.admin.backups.execute."
+}
