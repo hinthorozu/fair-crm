@@ -146,7 +146,7 @@ export async function exportDataOperationDatasetCustomers(
   }
   const blob = await response.blob();
   const disposition = response.headers.get("Content-Disposition") ?? "";
-  const match = disposition.match(/filename="?([^\"]+)"?/);
+  const match = disposition.match(/filename="?([^"]+)"?/);
   const fileName = match?.[1] ?? "customers_without_fair.xlsx";
   const objectUrl = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -278,7 +278,7 @@ export async function exportDataOperationDuplicateCustomers(
   }
   const blob = await response.blob();
   const disposition = response.headers.get("Content-Disposition") ?? "";
-  const match = disposition.match(/filename="?([^\"]+)"?/);
+  const match = disposition.match(/filename="?([^"]+)"?/);
   const fileName = match?.[1] ?? "customer_duplicates.xlsx";
   const objectUrl = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
