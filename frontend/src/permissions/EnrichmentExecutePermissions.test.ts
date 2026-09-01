@@ -12,6 +12,16 @@ const resetPanelSource = readFileSync(
   "utf8",
 );
 
+const customerEnrichmentPageSource = readFileSync(
+  fileURLToPath(new URL("../pages/CustomerEnrichmentPage.tsx", import.meta.url)),
+  "utf8",
+);
+
+const enrichmentOperationPageSource = readFileSync(
+  fileURLToPath(new URL("../pages/EnrichmentOperationPage.tsx", import.meta.url)),
+  "utf8",
+);
+
 const permissionSource = readFileSync(
   fileURLToPath(new URL("./scraperPermissions.ts", import.meta.url)),
   "utf8",
@@ -24,6 +34,14 @@ describe("Enrichment execute permissions", () => {
     );
     expect(runPanelSource).toContain("const canExecute = can(SCRAPER_PERMISSION_EXECUTE)");
     expect(resetPanelSource).toContain("const canExecute = can(SCRAPER_PERMISSION_EXECUTE)");
+  });
+
+  it("keeps operation-backed enrichment behind the same execute boundary", () => {
+    expect(customerEnrichmentPageSource).toContain(
+      "canRunScraperActions(getGrantedScraperPermissions())",
+    );
+    expect(enrichmentOperationPageSource).toContain('operation_type: "enrichment"');
+    expect(enrichmentOperationPageSource).toContain("start_immediately: true");
   });
 
   it("hides and fails closed enrichment run actions without execute permission", () => {

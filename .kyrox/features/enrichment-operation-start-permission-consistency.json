@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "id": "enrichment-operation-start-permission-consistency",
+  "title": "Enrichment Operation Start Permission Consistency",
+  "feature_type": "user_triggered_operation",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/EnrichmentOperationPage.tsx",
+    "frontend/src/pages/CustomerEnrichmentPage.tsx",
+    "frontend/src/permissions/EnrichmentExecutePermissions.test.ts",
+    "backend/app/modules/operations/application/create_operation.py",
+    "backend/app/modules/operations/application/start_operation.py",
+    "backend/tests/modules/operations/test_enrichment_start_permission_consistency.py",
+    ".kyrox/features/enrichment-operation-start-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.scraper.execute",
+        "action": "start customer contact enrichment through an Operation",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/operations/new/enrichment"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.scraper.execute permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "na", "reason": "Existing operation create/start audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Route-level operation wizard cleanup is intentionally handled separately." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Enrichment Start is one user-triggered business action. The existing frontend execution boundary and direct enrichment API already use fair_crm.scraper.execute. For start_immediately enrichment requests, Operation creation and Operation start are orchestration only and must not add fair_crm.operations.create or fair_crm.operations.execute prerequisites. Non-immediate creation, Retry, Scraper Wizard, and route guards remain out of scope."
+}

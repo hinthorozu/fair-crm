@@ -23,6 +23,7 @@ from app.modules.operations.domain.value_objects import OperationStatus, SourceK
 PERMISSION_CREATE = "fair_crm.operations.create"
 PERMISSION_EXECUTE = "fair_crm.operations.execute"
 PERMISSION_BULK_EMAIL_EXECUTE = "fair_crm.fair_emails.execute"
+PERMISSION_SCRAPER_EXECUTE = "fair_crm.scraper.execute"
 
 
 class CreateOperationUseCase:
@@ -51,7 +52,11 @@ class CreateOperationUseCase:
             else (
                 PERMISSION_EXECUTE
                 if command.operation_type == "duplicate_check" and command.start_immediately
-                else PERMISSION_CREATE
+                else (
+                    PERMISSION_SCRAPER_EXECUTE
+                    if command.operation_type == "enrichment" and command.start_immediately
+                    else PERMISSION_CREATE
+                )
             )
         )
         if not self._authorization.check_permission(
