@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "follow-ups-customer-action-permission-consistency",
+  "title": "Follow-ups Customer Action Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/FollowUpsPage.tsx",
+    "frontend/src/permissions/FollowUpsCustomerActionPermissions.test.ts",
+    ".kyrox/features/follow-ups-customer-action-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.customers.read",
+        "action": "open customer card from follow-ups",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/todos"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.customers.read permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing customer read authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "No auditable mutation behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Follow-up read behavior is unchanged; only the customer navigation action is gated." },
+    "forms": { "status": "na", "reason": "No form behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "FollowUpsPage previously rendered the customer-card navigation action without checking fair_crm.customers.read. It now reuses the same canonical canOpenTodoCustomerAction helper already used by TodoDetailPage."
+}
