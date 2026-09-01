@@ -20,6 +20,7 @@ import {
   canPerformTodoAction,
   getGrantedTodoPermissions,
 } from "../permissions/todoPermissions";
+import { canOpenTodoCustomerAction } from "../permissions/todoCustomerActionPermissions";
 import type { FollowUpFilter, FollowUpRow } from "../types/followUps";
 import { Banner } from "../components/ui/Banner";
 import { TableEntityLink } from "../components/ui/TableEntityLink";
@@ -65,6 +66,7 @@ export function FollowUpsPage({
   const [saveSuccess, setSaveSuccess] = React.useState<string | null>(null);
   const grantedPermissions = React.useMemo(() => getGrantedTodoPermissions(), []);
   const canUpdate = canPerformTodoAction(grantedPermissions, "update");
+  const canOpenCustomer = canOpenTodoCustomerAction(grantedPermissions);
 
   const defaultFilter: FollowUpFilter = lockedFilter ?? "bugun";
 
@@ -278,18 +280,19 @@ export function FollowUpsPage({
         sortable: false,
         priority: "primary",
         className: "actions",
-        render: (row) => (
-          <button
-            type="button"
-            className="btn secondary small"
-            onClick={() => onOpenCustomer?.(row.customer_id)}
-          >
-            {todoWorklistLabels.openCustomerCard}
-          </button>
-        ),
+        render: (row) =>
+          canOpenCustomer && onOpenCustomer ? (
+            <button
+              type="button"
+              className="btn secondary small"
+              onClick={() => onOpenCustomer(row.customer_id)}
+            >
+              {todoWorklistLabels.openCustomerCard}
+            </button>
+          ) : null,
       },
     ],
-    [onOpenCustomer],
+    [canOpenCustomer, onOpenCustomer],
   );
 
   const body = (
