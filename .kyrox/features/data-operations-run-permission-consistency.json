@@ -39,7 +39,7 @@
     "migration": { "status": "na", "reason": "Existing operations.execute permission is reused." },
     "permissions": { "status": "required" },
     "backend": { "status": "required" },
-    "api": { "status": "na", "reason": "No HTTP schema changes." },
+    "api": { "status": "required" },
     "tenant_isolation": { "status": "required" },
     "audit": { "status": "na", "reason": "Existing operation create/start audit behavior is unchanged." },
     "frontend": { "status": "required" },
