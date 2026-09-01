@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "id": "quote-editor-save-permission-consistency",
+  "title": "Quote Editor Save Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/QuoteEditorPage.tsx",
+    "frontend/src/permissions/QuoteEditorSavePermissions.test.ts",
+    ".kyrox/features/quote-editor-save-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.quotes.create",
+        "action": "create quote from Quote Editor",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.quotes.update",
+        "action": "update existing quote from Quote Editor",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/todos/:todoId/quote"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing fair_crm.quotes.create and fair_crm.quotes.update permissions are reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing quote endpoint authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing quote persistence and activity behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Quote Editor read access remains guarded separately; this change aligns the save action." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "QuoteEditorPage now computes one canSaveQuote capability from quote existence and the canonical create/update permissions, reusing it for both the save mutation guard and save-action visibility."
+}
