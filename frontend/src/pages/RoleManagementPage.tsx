@@ -571,6 +571,7 @@ export function RoleManagementPage() {
   };
 
   const saveTemplate = async (template: ManagedRole) => {
+    if (!isSuperAdmin) return;
     const permissionIds = templateDrafts[template.id] ?? template.permission_ids;
     setSaving(true);
     setError(null);
@@ -588,6 +589,7 @@ export function RoleManagementPage() {
 
   const derive = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!isSuperAdmin) return;
     if (!deriveSource || !organizationId) return;
     setSaving(true);
     setError(null);
@@ -609,6 +611,7 @@ export function RoleManagementPage() {
   };
 
   const requestSync = async (role: ManagedRole) => {
+    if (!isSuperAdmin) return;
     if (!role.source_template_role_id) return;
     setSaving(true);
     setError(null);
@@ -624,6 +627,7 @@ export function RoleManagementPage() {
   };
 
   const confirmSync = async () => {
+    if (!isSuperAdmin) return;
     const target = syncConfirmTarget;
     if (!target?.role.source_template_role_id) return;
     setSaving(true);
@@ -644,6 +648,7 @@ export function RoleManagementPage() {
     permission: RolePermission,
     state: RolePermission["lifecycle_state"],
   ) => {
+    if (!isSuperAdmin) return;
     setSaving(true);
     setError(null);
     try {
@@ -662,6 +667,7 @@ export function RoleManagementPage() {
   };
 
   const confirmPermissionStateChange = async () => {
+    if (!isSuperAdmin) return;
     const target = permissionStateConfirmTarget;
     if (!target) return;
     setSaving(true);
