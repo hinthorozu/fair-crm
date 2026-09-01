@@ -19,15 +19,20 @@ describe("data operation artifact client permissions", () => {
     );
   });
 
-  it("keeps the remaining artifact boundary unchanged for this focused fix", () => {
+  it("uses execute-only for duplicate dataset export", () => {
     const duplicateExport = functionSource("exportDataOperationDuplicateCustomers");
-    const fileDownload = functionSource("downloadDataOperationFile");
+    expect(duplicateExport).toContain("requireDataOperationExecutePermission();");
+    expect(duplicateExport).not.toContain("requireDataOperationArtifactPermissions();");
+    expect(duplicateExport.indexOf("requireDataOperationExecutePermission();")).toBeLessThan(
+      duplicateExport.indexOf("fetchWithTimeout("),
+    );
+  });
 
-    for (const artifactFunction of [duplicateExport, fileDownload]) {
-      expect(artifactFunction).toContain("requireDataOperationArtifactPermissions();");
-      expect(artifactFunction.indexOf("requireDataOperationArtifactPermissions();")).toBeLessThan(
-        artifactFunction.indexOf("fetchWithTimeout("),
-      );
-    }
+  it("keeps output-file download on its existing artifact boundary in this focused fix", () => {
+    const fileDownload = functionSource("downloadDataOperationFile");
+    expect(fileDownload).toContain("requireDataOperationArtifactPermissions();");
+    expect(fileDownload.indexOf("requireDataOperationArtifactPermissions();")).toBeLessThan(
+      fileDownload.indexOf("fetchWithTimeout("),
+    );
   });
 });
