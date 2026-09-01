@@ -13,6 +13,7 @@
     "backend/tests/modules/system_admin/test_data_operation_analyze_export_permission_consistency.py",
     "frontend/src/api/dataOperations.ts",
     "frontend/src/api/dataOperations.artifactPermission.test.ts",
+    "frontend/src/api/dataOperations.analyzeExportPermission.test.ts",
     "frontend/src/pages/DataOperationAnalyzeResultPage.tsx",
     "frontend/src/permissions/DataOperationAnalyzeExportPermissions.test.ts",
     ".kyrox/features/data-operation-analyze-export-permission-consistency.json"
