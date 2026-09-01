@@ -30,7 +30,10 @@ import { TableRowActions } from "../components/ui/TableRowActions";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { useRestoreJobPolling } from "../hooks/useRestoreJobPolling";
 import { adminLabels } from "../labels/adminLabels";
-import { canCreateAdminBackupOperation } from "../permissions/adminBackupPermissions";
+import {
+  canCreateAdminBackupOperation,
+  canExecuteAdminBackupOperation,
+} from "../permissions/adminBackupPermissions";
 import type { BackupFormat, DatabaseKey, SystemBackup, SystemBackupRestoreJobResponse } from "../types/systemBackup";
 import type { BadgeVariant } from "../components/ui/Badge";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
@@ -247,6 +250,7 @@ function buildBackupColumns(handlers: {
   onDownload: (backup: SystemBackup) => void;
   onDetails: (backup: SystemBackup) => void;
   downloadingId: string | null;
+  canDownload: boolean;
 }): UniversalDataTableColumn<SystemBackup>[] {
   return [
     {
@@ -324,14 +328,16 @@ function buildBackupColumns(handlers: {
       className: "col-actions",
       render: (backup) => (
         <TableRowActions className="backups-table-actions">
-          <button
-            type="button"
-            className="btn link"
-            disabled={backup.status !== "completed" || handlers.downloadingId === backup.id}
-            onClick={() => void handlers.onDownload(backup)}
-          >
-            {adminLabels.actionDownload}
-          </button>
+          {handlers.canDownload ? (
+            <button
+              type="button"
+              className="btn link"
+              disabled={backup.status !== "completed" || handlers.downloadingId === backup.id}
+              onClick={() => void handlers.onDownload(backup)}
+            >
+              {adminLabels.actionDownload}
+            </button>
+          ) : null}
           <button type="button" className="btn link" onClick={() => void handlers.onDetails(backup)}>
             {adminLabels.actionDetails}
           </button>
@@ -888,6 +894,7 @@ function RestoreFromFileModal({
 
 export function DatabaseBackupsPage() {
   const canCreate = React.useMemo(() => canCreateAdminBackupOperation(), []);
+  const canDownload = React.useMemo(() => canExecuteAdminBackupOperation(), []);
   const table = useServerDataTable<SystemBackup>({
     fetchFn: listSystemBackupsTable,
     defaultSort: { field: "started_at", direction: "desc" },
@@ -1115,6 +1122,7 @@ export function DatabaseBackupsPage() {
   };
 
   const handleDownload = async (backup: SystemBackup) => {
+    if (!canDownload) return;
     setDownloadingId(backup.id);
     try {
       await downloadSystemBackup(backup.id, backup.file_name);
@@ -1156,8 +1164,9 @@ export function DatabaseBackupsPage() {
         onDownload: handleDownload,
         onDetails: openDetails,
         downloadingId,
+        canDownload,
       }),
-    [downloadingId],
+    [canDownload, downloadingId],
   );
 
   const restoreJobColumns = React.useMemo(
