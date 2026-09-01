@@ -16,6 +16,10 @@ import { useServerDataTable } from "../hooks/useServerDataTable";
 import { followUpLabels, followUpFilterOptions } from "../labels/followUpLabels";
 import { labels } from "../labels";
 import { todoWorklistLabels, worklistStatusBadgeVariant, worklistStatusLabels } from "../labels/todoWorklistLabels";
+import {
+  canPerformTodoAction,
+  getGrantedTodoPermissions,
+} from "../permissions/todoPermissions";
 import type { FollowUpFilter, FollowUpRow } from "../types/followUps";
 import { Banner } from "../components/ui/Banner";
 import { TableEntityLink } from "../components/ui/TableEntityLink";
@@ -59,6 +63,8 @@ export function FollowUpsPage({
   const [saveError, setSaveError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [saveSuccess, setSaveSuccess] = React.useState<string | null>(null);
+  const grantedPermissions = React.useMemo(() => getGrantedTodoPermissions(), []);
+  const canUpdate = canPerformTodoAction(grantedPermissions, "update");
 
   const defaultFilter: FollowUpFilter = lockedFilter ?? "bugun";
 
@@ -127,7 +133,7 @@ export function FollowUpsPage({
   };
 
   const handleSaveActivity = async (payload: RecordTodoWorklistActivityPayload) => {
-    if (!selectedTodoId || !selectedCustomerId) return;
+    if (!canUpdate || !selectedTodoId || !selectedCustomerId) return;
     const currentKey = followUpRowKey({
       todo_id: selectedTodoId,
       customer_id: selectedCustomerId,
