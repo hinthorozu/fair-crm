@@ -47,7 +47,7 @@ from app.modules.system_admin.api.data_operation_schemas import (
     DuplicateDatasetGroupDetailResponse,
     DuplicateDatasetGroupResponse,
     DuplicateGroupMergePreviewCommunicationResponse,
-    DuplicateGroupMergePreviewIssueResponse,
+    DuplicateGroupMergeIssueResponse,
     DuplicateGroupMergePreviewParticipationSummaryResponse,
     DuplicateGroupMergePreviewRequest,
     DuplicateGroupMergePreviewResponse,
@@ -326,7 +326,7 @@ def _merge_preview_to_response(preview: DuplicateGroupMergePreviewResult) -> Dup
         ),
         customers_to_archive=preview.customers_to_archive,
         validation_errors=[
-            DuplicateGroupMergePreviewIssueResponse(
+            DuplicateGroupMergeIssueResponse(
                 code=issue.code,
                 message=issue.message,
                 severity=issue.severity,
@@ -334,7 +334,7 @@ def _merge_preview_to_response(preview: DuplicateGroupMergePreviewResult) -> Dup
             for issue in preview.validation_errors
         ],
         warnings=[
-            DuplicateGroupMergePreviewIssueResponse(
+            DuplicateGroupMergeIssueResponse(
                 code=issue.code,
                 message=issue.message,
                 severity=issue.severity,
@@ -363,7 +363,7 @@ def _merge_statistics_to_response(statistics) -> DuplicateGroupMergePreviewStati
         emails_after=statistics.emails_after,
         phones_before=statistics.phones_before,
         phones_after=statistics.phones_after,
-        websites_before=statistics.websites_before,
+        websites_before=statistics.websites.before,
         websites_after=statistics.websites_after,
     )
 
@@ -1226,7 +1226,7 @@ def export_data_operation_duplicate_customers(
 def download_data_operation_file(
     run_id: UUID,
     file_id: UUID,
-    auth: AuthContext = Depends(require_data_operations_read_permission),
+    auth: AuthContext = Depends(require_data_operations_run_permission),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     use_case=Depends(get_download_data_operation_file_use_case),
 ):
