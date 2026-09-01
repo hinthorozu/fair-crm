@@ -36,6 +36,8 @@ export function TemplateContentsPage() {
   const [saving, setSaving] = React.useState(false);
   const [tagSorting, setTagSorting] = React.useState<{ field: string; direction: "asc" | "desc" }>({ field: "created_at", direction: "desc" });
   const [contentSorting, setContentSorting] = React.useState<{ field: string; direction: "asc" | "desc" }>({ field: "created_at", direction: "desc" });
+  const canSaveTag = editingTag ? canUpdate : canCreate;
+  const canSaveContent = editingContent ? canUpdate : canCreate;
 
   const load = React.useCallback(async () => {
     if (!canRead) { setError("Şablon içeriklerini görüntüleme yetkiniz yok."); setLoading(false); return; }
@@ -54,13 +56,14 @@ export function TemplateContentsPage() {
   const editContent = (item: TemplateContent) => { setEditingContent(item); setContentValues({ tag_id: item.tag_id, title: item.title }); setModal("content"); };
 
   const saveTag = async (event: React.FormEvent) => {
-    event.preventDefault(); if (!tagName.trim()) return; setSaving(true); setError(null);
+    event.preventDefault(); if (!canSaveTag || !tagName.trim()) return; setSaving(true); setError(null);
     try { editingTag ? await updateTemplateContentTag(editingTag.id, tagName.trim()) : await createTemplateContentTag(tagName.trim()); setModal(null); await load(); }
     catch { setError("İçerik etiketi kaydedilemedi."); }
     finally { setSaving(false); }
   };
   const saveContent = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!canSaveContent) return;
     if (!contentValues.tag_id || !contentValues.title.trim()) { setError("Etiket ve başlık zorunludur."); return; }
     setSaving(true); setError(null);
     try { editingContent ? await updateTemplateContent(editingContent.id, contentValues) : await createTemplateContent(contentValues); setModal(null); await load(); }
@@ -68,11 +71,13 @@ export function TemplateContentsPage() {
     finally { setSaving(false); }
   };
   const removeTag = async (tag: TemplateContentTag) => {
+    if (!canDelete) return;
     if (!window.confirm(`“${tag.name}” etiketi silinsin mi?`)) return;
     try { await deleteTemplateContentTag(tag.id); await load(); }
     catch { setError("Bağlı içeriği bulunan etiket silinemez."); }
   };
   const removeContent = async (item: TemplateContent) => {
+    if (!canDelete) return;
     if (!window.confirm(`“${item.title}” içeriği silinsin mi?`)) return;
     try { await deleteTemplateContent(item.id); await load(); }
     catch { setError("İçerik silinemedi."); }
@@ -119,7 +124,7 @@ export function TemplateContentsPage() {
     <div className="form-actions" role="tablist" aria-label="Şablon içeriği bölümleri"><button type="button" className={`btn ${section === "tags" ? "primary" : "secondary"}`} onClick={() => setSection("tags")}>İçerik Etiketleri</button><button type="button" className={`btn ${section === "contents" ? "primary" : "secondary"}`} onClick={() => setSection("contents")}>İçerikler</button></div>
     {error ? <Banner variant="error">{error}</Banner> : null}
     {section === "tags" ? <UniversalDataTable items={sortedTags} columns={tagColumns} rowKey={(item) => item.id} loading={loading} sorting={tagSorting} onSortChange={changeTagSort} emptyState={<EmptyState title="Henüz içerik etiketi yok" description="İçerikleri gruplamak için ilk etiketi oluşturun." actionLabel={canCreate ? "+ Etiket Ekle" : undefined} onAction={canCreate ? openTag : undefined} />} /> : <UniversalDataTable items={sortedContents} columns={contentColumns} rowKey={(item) => item.id} loading={loading} sorting={contentSorting} onSortChange={changeContentSort} emptyState={<EmptyState title="Henüz içerik yok" description={tags.length ? "İlk etiketli içeriğinizi oluşturun." : "Önce bir içerik etiketi oluşturun."} actionLabel={canCreate && tags.length ? "+ İçerik Ekle" : undefined} onAction={canCreate && tags.length ? openContent : undefined} />}/>} 
-    {modal === "tag" ? <FormModal title={editingTag ? "İçerik Etiketini Düzenle" : "Yeni İçerik Etiketi"} onClose={() => setModal(null)}><form className="crm-form" onSubmit={saveTag}><FormField label="Etiket adı" htmlFor="content-tag-name"><TextInput id="content-tag-name" value={tagName} onChange={(e) => setTagName(e.target.value)} /></FormField><div className="form-actions"><button type="button" className="btn secondary" onClick={() => setModal(null)}>İptal</button><button type="submit" className="btn primary" disabled={saving}>Kaydet</button></div></form></FormModal> : null}
-    {modal === "content" ? <FormModal title={editingContent ? "İçeriği Düzenle" : "Yeni İçerik"} onClose={() => setModal(null)}><form className="crm-form" onSubmit={saveContent}><FormField label="İçerik etiketi" htmlFor="content-tag"><SelectInput id="content-tag" value={contentValues.tag_id} onChange={(e) => setContentValues({ ...contentValues, tag_id: e.target.value })}><option value="">Etiket seçin</option>{tags.map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}</SelectInput></FormField><FormField label="Başlık" htmlFor="content-title"><TextInput id="content-title" value={contentValues.title} onChange={(e) => setContentValues({ ...contentValues, title: e.target.value })} /></FormField><div className="form-actions"><button type="button" className="btn secondary" onClick={() => setModal(null)}>İptal</button><button type="submit" className="btn primary" disabled={saving}>Kaydet</button></div></form></FormModal> : null}
+    {modal === "tag" ? <FormModal title={editingTag ? "İçerik Etiketini Düzenle" : "Yeni İçerik Etiketi"} onClose={() => setModal(null)}><form className="crm-form" onSubmit={saveTag}><FormField label="Etiket adı" htmlFor="content-tag-name"><TextInput id="content-tag-name" value={tagName} onChange={(e) => setTagName(e.target.value)} /></FormField><div className="form-actions"><button type="button" className="btn secondary" onClick={() => setModal(null)}>İptal</button>{canSaveTag ? <button type="submit" className="btn primary" disabled={saving}>Kaydet</button> : null}</div></form></FormModal> : null}
+    {modal === "content" ? <FormModal title={editingContent ? "İçeriği Düzenle" : "Yeni İçerik"} onClose={() => setModal(null)}><form className="crm-form" onSubmit={saveContent}><FormField label="İçerik etiketi" htmlFor="content-tag"><SelectInput id="content-tag" value={contentValues.tag_id} onChange={(e) => setContentValues({ ...contentValues, tag_id: e.target.value })}><option value="">Etiket seçin</option>{tags.map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}</SelectInput></FormField><FormField label="Başlık" htmlFor="content-title"><TextInput id="content-title" value={contentValues.title} onChange={(e) => setContentValues({ ...contentValues, title: e.target.value })} /></FormField><div className="form-actions"><button type="button" className="btn secondary" onClick={() => setModal(null)}>İptal</button>{canSaveContent ? <button type="submit" className="btn primary" disabled={saving}>Kaydet</button> : null}</div></form></FormModal> : null}
   </PageShell>;
 }
