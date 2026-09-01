@@ -521,7 +521,7 @@ export function TodoDetailPage({
           <div>
             <dt>{todoLabels.fieldCustomer}</dt>
             <dd>
-              {todo.customer_id && customerName && onOpenCustomer ? (
+              {canOpenCustomer && todo.customer_id && customerName && onOpenCustomer ? (
                 <TableEntityLink onClick={() => onOpenCustomer(todo.customer_id!)}>
                   {customerName}
                 </TableEntityLink>

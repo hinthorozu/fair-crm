@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "todo-detail-customer-link-permission-consistency",
+  "title": "Todo Detail Customer Link Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/TodoDetailPage.tsx",
+    "frontend/src/permissions/TodoDetailCustomerLinkPermissions.test.ts",
+    ".kyrox/features/todo-detail-customer-link-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.customers.read",
+        "action": "open linked customer from todo detail",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/todos/:id"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.customers.read permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "No backend behavior changes." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "No mutation or audit behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Todo detail route access is unchanged; only linked customer navigation is gated." },
+    "forms": { "status": "na", "reason": "No form behavior changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No backend changes." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "TodoDetailPage already uses the canonical canOpenTodoCustomerAction helper for worklist customer actions. The metadata customer link now uses the same fair_crm.customers.read gate."
+}
