@@ -11,8 +11,11 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { LoadingState } from "../components/ui/LoadingState";
 import { Badge } from "../components/ui/Badge";
 import { RadioField } from "../components/ui/form";
+import { usePermissions } from "../hooks/usePermissions";
 import { adminLabels } from "../labels/adminLabels";
 import { operationLabels, operationTypeLabels } from "../labels/operationLabels";
+import { PERMISSION_OPERATIONS_CREATE } from "../permissions/navigationPermissions";
+import { OPERATION_EXECUTE } from "../permissions/operationPermissions";
 import type { DataOperationDefinition, DataOperationRun, DuplicateGroupByField } from "../types/dataOperations";
 import type { Operation } from "../types/operation";
 import type { BadgeVariant } from "../components/ui/Badge";
@@ -97,6 +100,8 @@ const DUPLICATE_GROUP_BY_OPTIONS: { value: DuplicateGroupByField; label: string 
 ];
 
 export function DuplicateCheckOperationPage({ onOpenResult }: DuplicateCheckOperationPageProps) {
+  const { can } = usePermissions();
+  const canRun = can(PERMISSION_OPERATIONS_CREATE) && can(OPERATION_EXECUTE);
   const [operations, setOperations] = React.useState<DataOperationDefinition[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -176,6 +181,7 @@ export function DuplicateCheckOperationPage({ onOpenResult }: DuplicateCheckOper
   }, [activeRunIds, onOpenResult]);
 
   const handleRun = async (operation: DataOperationDefinition) => {
+    if (!canRun) return;
     if (operation.destructive) {
       const confirmed = window.confirm(adminLabels.dataOpDestructiveConfirm);
       if (!confirmed) return;
@@ -310,14 +316,16 @@ export function DuplicateCheckOperationPage({ onOpenResult }: DuplicateCheckOper
                       </div>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    disabled={busy}
-                    onClick={() => void handleRun(operation)}
-                  >
-                    {busy ? duplicateCheckUiLabels.running : duplicateCheckUiLabels.run}
-                  </button>
+                  {canRun ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={busy}
+                      onClick={() => void handleRun(operation)}
+                    >
+                      {busy ? duplicateCheckUiLabels.running : duplicateCheckUiLabels.run}
+                    </button>
+                  ) : null}
                 </div>
 
                 <dl className="data-operation-meta">
