@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "operation-detail-execute-permission-consistency",
+  "title": "Operation Detail Execute Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/OperationDetailPageLegacy.tsx",
+    "frontend/src/permissions/OperationDetailExecutePermissions.test.ts",
+    ".kyrox/features/operation-detail-execute-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.operations.execute",
+        "action": "start cancel or retry an operation",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/operations"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence model changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing operations.execute permission is reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Existing operation execution authorization remains unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "Existing operation execution audit behavior is unchanged." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation changes are introduced." },
+    "route_guard": { "status": "na", "reason": "Operation detail read access and execute actions remain separate concerns." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Operation detail remains readable with operations.read, while Start, Cancel, bulk-email Retry Failed, and the retry confirmation now require fair_crm.operations.execute and fail closed at the callback boundary. Bulk-email export remains read-only because the backend export endpoint uses the read permission."
+}
