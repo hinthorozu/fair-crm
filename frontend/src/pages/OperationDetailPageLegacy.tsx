@@ -146,6 +146,8 @@ export function OperationDetailPage({
       try {
         const nextDetail = await getOperation(operationId);
         setDetail(nextDetail);
+        // The operation detail is enough to render the page. Optional linked
+        // todo resolution must not keep the entire screen behind a spinner.
         if (!options?.silent) setLoading(false);
         const relatedTodoId = nextDetail.operation.related_todo_id;
         if (relatedTodoId && !options?.silent) {
@@ -228,6 +230,7 @@ export function OperationDetailPage({
       ),
     ).then((resolved) => {
       if (cancelled) return;
+      // Preserve persisted order from fairIds.
       const byId = new Map(resolved.map((item) => [item.id, item.name]));
       setEnrichmentFairNames(fairIds.map((id) => byId.get(id) || id));
     });
@@ -252,6 +255,7 @@ export function OperationDetailPage({
     ).then((resolved) => {
       if (cancelled) return;
       const byId = new Map(resolved.map((item) => [item.id, item.name]));
+      // Empty string when getFair fails — format helper then uses Fuar (n) fallback.
       setBulkEmailFairNames(fairIds.map((id) => byId.get(id) || ""));
     });
     return () => {
@@ -275,6 +279,7 @@ export function OperationDetailPage({
     void getAdapter(scraperAdapterKey)
       .then((adapter) => {
         if (!cancelled) {
+          // AdapterDetail.name is the registry/API display name (not adapter_key).
           const name = (adapter.name || "").trim();
           setAdapterDisplayName(name || null);
         }
@@ -328,6 +333,8 @@ export function OperationDetailPage({
   );
 
   React.useEffect(() => {
+    // Refresh only while the operation is queued/running. Paused and terminal
+    // operations remain stable until the page is opened again.
     if (!shouldPoll) return;
     const timer = window.setInterval(() => {
       if (shouldPoll) {
@@ -335,6 +342,8 @@ export function OperationDetailPage({
       }
       if (isBulkEmailOp) {
         void loadBulkEmailExtras({ silent: true });
+        // Refresh the visible recipient page even if the aggregate run counters
+        // have not changed yet. The request remains server-paginated.
         setBulkRecipientsRefresh((current) => current + 1);
       }
     }, POLL_INTERVAL_MS);
