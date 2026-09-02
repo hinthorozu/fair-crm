@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "id": "follow-ups-legacy-route-permission-consistency",
+  "title": "Follow Ups Legacy Route Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/permissions/navigationPermissions.test.ts",
+    ".kyrox/features/follow-ups-legacy-route-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.todos.read",
+        "action": "open the legacy follow-ups alias that redirects to the Todos follow-up view",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/follow-ups",
+      "/todos?view=follow_ups"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": {
+      "status": "na",
+      "reason": "No persistence changes are introduced."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "The existing fair_crm.todos.read permission is reused."
+    },
+    "permissions": {
+      "status": "required"
+    },
+    "backend": {
+      "status": "na",
+      "reason": "Backend todo authorization remains unchanged and authoritative."
+    },
+    "api": {
+      "status": "na",
+      "reason": "No server API contracts change; only the legacy frontend route guard is aligned with its canonical redirect target."
+    },
+    "tenant_isolation": {
+      "status": "na",
+      "reason": "No backend query or organization-scoping behavior changes."
+    },
+    "audit": {
+      "status": "na",
+      "reason": "Navigation redirects do not create auditable business mutations."
+    },
+    "frontend": {
+      "status": "required"
+    },
+    "ui_permissions": {
+      "status": "required"
+    },
+    "menu": {
+      "status": "na",
+      "reason": "The follow-ups alias is not a separate main-navigation item."
+    },
+    "route_guard": {
+      "status": "required"
+    },
+    "forms": {
+      "status": "na",
+      "reason": "No todo or follow-up form behavior changes."
+    },
+    "visual_qa": {
+      "status": "required"
+    },
+    "backend_tests": {
+      "status": "na",
+      "reason": "No backend executable behavior changes."
+    },
+    "frontend_tests": {
+      "status": "required"
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
+  },
+  "notes": "App redirects legacy /follow-ups URLs to /todos?view=follow_ups. The legacy alias now uses the same fair_crm.todos.read boundary as the canonical Todos surface, avoiding a transient permission-denied state for legitimate Todo readers. Redirect behavior and backend authorization are unchanged."
+}
