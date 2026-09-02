@@ -57,7 +57,9 @@ export const COST_CATALOG_ADMIN_PERMISSIONS = [
 export type PermissionRequirement =
   | { kind: "public" }
   | { kind: "permission"; permission: string }
-  | { kind: "any"; permissions: readonly string[] };
+  | { kind: "all"; permissions: readonly string[] }
+  | { kind: "any"; permissions: readonly string[] }
+  | { kind: "anyRequirement"; requirements: readonly PermissionRequirement[] };
 
 export const MAIN_NAV_REQUIREMENTS: Readonly<Record<string, PermissionRequirement>> = {
   "/dashboard": { kind: "public" },
@@ -67,8 +69,15 @@ export const MAIN_NAV_REQUIREMENTS: Readonly<Record<string, PermissionRequiremen
   "/operations": { kind: "permission", permission: PERMISSION_OPERATIONS_READ },
   "/activities": { kind: "permission", permission: PERMISSION_ACTIVITIES_READ },
   "/data-integration": {
-    kind: "any",
-    permissions: [PERMISSION_IMPORTS_READ, PERMISSION_IMPORTS_CREATE, PERMISSION_SCRAPER_READ],
+    kind: "anyRequirement",
+    requirements: [
+      { kind: "permission", permission: PERMISSION_IMPORTS_READ },
+      {
+        kind: "all",
+        permissions: [PERMISSION_IMPORTS_CREATE, PERMISSION_FAIRS_READ],
+      },
+      { kind: "permission", permission: PERMISSION_SCRAPER_READ },
+    ],
   },
   "/admin": {
     kind: "any",
@@ -109,7 +118,10 @@ export const DATA_INTEGRATION_NAV_REQUIREMENTS: Readonly<
   Record<string, PermissionRequirement>
 > = {
   imports: { kind: "permission", permission: PERMISSION_IMPORTS_READ },
-  new: { kind: "permission", permission: PERMISSION_IMPORTS_CREATE },
+  new: {
+    kind: "all",
+    permissions: [PERMISSION_IMPORTS_CREATE, PERMISSION_FAIRS_READ],
+  },
   jobs: { kind: "permission", permission: PERMISSION_IMPORTS_READ },
   reports: { kind: "permission", permission: PERMISSION_IMPORTS_READ },
   adapters: { kind: "permission", permission: PERMISSION_SCRAPER_READ },
@@ -125,6 +137,16 @@ export function satisfiesPermissionRequirement(
   if (bypass || requirement.kind === "public") return true;
   if (requirement.kind === "permission") {
     return hasGrantedCorePermission(granted, requirement.permission);
+  }
+  if (requirement.kind === "all") {
+    return requirement.permissions.every((permission) =>
+      hasGrantedCorePermission(granted, permission),
+    );
+  }
+  if (requirement.kind === "anyRequirement") {
+    return requirement.requirements.some((nested) =>
+      satisfiesPermissionRequirement(granted, nested),
+    );
   }
   return hasAnyGrantedCorePermission(granted, requirement.permissions);
 }
@@ -305,10 +327,13 @@ export function canAccessApplicationPath(
   if (pathname === "/imports") {
     return hasGrantedCorePermission(granted, PERMISSION_IMPORTS_CREATE);
   }
-  if (
-    pathname === "/data-integration/imports/new" ||
-    pathname.startsWith("/data-integration/imports/fair/")
-  ) {
+  if (pathname === "/data-integration/imports/new") {
+    return (
+      hasGrantedCorePermission(granted, PERMISSION_IMPORTS_CREATE) &&
+      hasGrantedCorePermission(granted, PERMISSION_FAIRS_READ)
+    );
+  }
+  if (pathname.startsWith("/data-integration/imports/fair/")) {
     return hasGrantedCorePermission(granted, PERMISSION_IMPORTS_CREATE);
   }
   if (pathname.startsWith("/data-integration/imports/continue/")) {

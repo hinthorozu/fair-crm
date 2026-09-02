@@ -19,7 +19,13 @@
     "items": [
       {
         "code": "fair_crm.imports.create",
-        "action": "start a new import from the Dashboard quick actions",
+        "action": "authorize creation of a new import from the Dashboard quick actions",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.fairs.read",
+        "action": "discover the mandatory fair after entering the general new-import wizard",
         "scope": "organization",
         "assignable": true
       }
@@ -33,16 +39,16 @@
   },
   "applicability": {
     "database": { "status": "na", "reason": "No persistence changes are introduced." },
-    "migration": { "status": "na", "reason": "The existing fair_crm.imports.create permission is reused." },
+    "migration": { "status": "na", "reason": "Existing fair_crm.imports.create and fair_crm.fairs.read permissions are reused." },
     "permissions": { "status": "required" },
     "backend": { "status": "na", "reason": "Existing import authorization remains unchanged and authoritative." },
-    "api": { "status": "na", "reason": "No server API contracts change; only Dashboard import-start visibility is aligned with the existing route guard." },
+    "api": { "status": "na", "reason": "No server API contracts change; Dashboard visibility is aligned with the existing import-create and fair-list authorization boundaries." },
     "tenant_isolation": { "status": "na", "reason": "No backend query or organization-scoping behavior changes." },
     "audit": { "status": "na", "reason": "No mutation or audit behavior changes." },
     "frontend": { "status": "required" },
     "ui_permissions": { "status": "required" },
     "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
-    "route_guard": { "status": "na", "reason": "The /data-integration/imports/new route already requires fair_crm.imports.create; this change aligns the originating Dashboard quick action." },
+    "route_guard": { "status": "required" },
     "forms": { "status": "na", "reason": "No form behavior changes." },
     "visual_qa": { "status": "required" },
     "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
@@ -51,5 +57,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Dashboard previously rendered the Import Baslat quick action for every authenticated organization user even when fair_crm.imports.create was absent. The action now fails closed in the UI and is offered only when import-create permission is granted. Dashboard access itself remains unchanged."
+  "notes": "Dashboard Import Baslat navigates to the general new-import wizard, where selecting a fair is mandatory before upload. The quick action therefore fails closed unless both fair_crm.imports.create and fair_crm.fairs.read are granted. The upload mutation itself remains imports.create-only, fair-scoped import entry remains create-only, and Dashboard access itself is unchanged."
 }

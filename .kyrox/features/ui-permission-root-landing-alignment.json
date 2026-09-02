@@ -22,7 +22,8 @@
       { "code": "identity.roles.read", "action": "open role administration as an accessible administration landing", "scope": "organization", "assignable": true },
       { "code": "fair_crm.admin.backups.read", "action": "open database backups as an accessible system administration landing", "scope": "system", "assignable": false },
       { "code": "fair_crm.imports.read", "action": "open import list as an accessible data-integration landing", "scope": "organization", "assignable": true },
-      { "code": "fair_crm.imports.create", "action": "open new import as an accessible data-integration landing", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.imports.create", "action": "authorize the general new-import landing", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fairs.read", "action": "discover the mandatory fair required by the general new-import landing", "scope": "organization", "assignable": true },
       { "code": "fair_crm.scraper.read", "action": "open adapter management as an accessible data-integration landing", "scope": "organization", "assignable": true },
       { "code": "fair_crm.mail_send_operations.read", "action": "open mail operations as an accessible administration landing", "scope": "organization", "assignable": true }
     ]
@@ -58,5 +59,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Root administration and data-integration URLs must never default to a child surface the user cannot read. They resolve to the first child route permitted by the existing effective Core permission set, and protected children remain suppressed while the redirect is pending. Create-only import access is also represented in the main Data Integration navigation because it has a valid generic creation landing route. No role-name inference or backend authorization change is introduced."
+  "notes": "Root administration and data-integration URLs must never default to a child surface the user cannot actually use. They resolve to the first child route permitted by the effective Core permission set, and protected children remain suppressed while the redirect is pending. The general new-import landing is available only with imports.create plus fairs.read because its fair selection is mandatory; imports.create alone still authorizes fair-scoped import creation but does not create a valid Data Integration root landing. No role-name inference or backend authorization change is introduced."
 }

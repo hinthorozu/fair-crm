@@ -10,6 +10,8 @@
   "user_facing": true,
   "affected_paths": [
     "frontend/src/pages/ImportWizardPage.tsx",
+    "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/permissions/navigationPermissions.test.ts",
     "frontend/src/permissions/importPermissions.ts",
     "frontend/src/permissions/ImportWizardCreatePermissions.test.ts",
     ".kyrox/features/import-wizard-create-permission-consistency.json"
@@ -20,6 +22,12 @@
       {
         "code": "fair_crm.imports.create",
         "action": "upload a new raw import file",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.fairs.read",
+        "action": "discover and select the mandatory fair in the general new-import wizard",
         "scope": "organization",
         "assignable": true
       }
@@ -36,16 +44,16 @@
   },
   "applicability": {
     "database": { "status": "na", "reason": "No persistence changes are introduced." },
-    "migration": { "status": "na", "reason": "The existing fair_crm.imports.create permission is reused." },
+    "migration": { "status": "na", "reason": "Existing fair_crm.imports.create and fair_crm.fairs.read permissions are reused." },
     "permissions": { "status": "required" },
     "backend": { "status": "na", "reason": "Existing import upload authorization remains unchanged and authoritative." },
-    "api": { "status": "na", "reason": "No server API contract changes." },
+    "api": { "status": "na", "reason": "No server API contract changes; the mandatory fair selector already uses the existing fair_crm.fairs.read boundary." },
     "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
     "audit": { "status": "na", "reason": "Existing import upload auditing remains unchanged." },
     "frontend": { "status": "required" },
     "ui_permissions": { "status": "required" },
-    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
-    "route_guard": { "status": "na", "reason": "The wizard remains readable; only creating a new import requires imports.create." },
+    "menu": { "status": "required" },
+    "route_guard": { "status": "required" },
     "forms": { "status": "required" },
     "visual_qa": { "status": "required" },
     "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
@@ -54,5 +62,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Import Wizard raw upload was reachable without a matching UI permission check. Backend UploadRawImportUseCase requires fair_crm.imports.create; the UI now fails closed and disables new-upload entry points when that permission is absent while setup-resume remains available."
+  "notes": "The raw upload mutation remains governed only by fair_crm.imports.create. The general /data-integration/imports/new entry additionally requires fair_crm.fairs.read because the wizard cannot satisfy its mandatory fair_id input without the user-visible FairEntitySelect lookup. The fair-scoped /data-integration/imports/fair/:fairId route remains create-only because the fair id is already supplied, and resume remains governed separately by imports.update."
 }
