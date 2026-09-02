@@ -56,7 +56,13 @@
       { "code": "fair_crm.quote_templates.read", "action": "read quote templates", "scope": "organization", "assignable": true },
       { "code": "fair_crm.template_contents.read", "action": "read template contents", "scope": "organization", "assignable": true },
       { "code": "fair_crm.cost_catalog.categories.read", "action": "read cost categories", "scope": "organization", "assignable": true },
-      { "code": "fair_crm.cost_catalog.products.read", "action": "read cost products", "scope": "organization", "assignable": true }
+      { "code": "fair_crm.cost_catalog.categories.create", "action": "access cost catalog category creation", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.categories.update", "action": "access cost catalog category updates", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.categories.delete", "action": "access cost catalog category deletion", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.products.read", "action": "read cost products", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.products.create", "action": "access cost catalog product creation", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.products.update", "action": "access cost catalog product updates", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.products.delete", "action": "access cost catalog product deletion", "scope": "organization", "assignable": true }
     ]
   },
   "frontend": {
