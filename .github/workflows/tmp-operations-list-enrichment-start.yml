@@ -1,0 +1,90 @@
+name: One-shot operations list enrichment start patch
+
+on:
+  push:
+    branches:
+      - fix/operations-list-enrichment-start-permission
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: fix/operations-list-enrichment-start-permission
+          fetch-depth: 0
+
+      - name: Apply focused patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              data = target.read_bytes()
+              old_b = old.encode("utf-8")
+              new_b = new.encode("utf-8")
+              count = data.count(old_b)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected exactly one match, found {count}")
+              target.write_bytes(data.replace(old_b, new_b, 1))
+
+          page = "frontend/src/pages/OperationsPage.tsx"
+          replace_once(
+              page,
+              'import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";\nimport { PERMISSION_OPERATIONS_CREATE } from "../permissions/navigationPermissions";',
+              'import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";\nimport { PERMISSION_OPERATIONS_CREATE } from "../permissions/navigationPermissions";\nimport { SCRAPER_PERMISSION_EXECUTE } from "../permissions/scraperPermissions";',
+          )
+          replace_once(
+              page,
+              '  const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);\n  const [banner, setBanner] = React.useState<string | null>(null);',
+              '  const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);\n  const canStartEnrichment = can(SCRAPER_PERMISSION_EXECUTE);\n  const [banner, setBanner] = React.useState<string | null>(null);',
+          )
+          replace_once(
+              page,
+              '  const canStartOperation = React.useCallback(\n    (operation: Operation) =>\n      operation.operation_type === "bulk_email" ? canStartBulkEmail : canExecute,\n    [canExecute, canStartBulkEmail],\n  );',
+              '  const canStartOperation = React.useCallback(\n    (operation: Operation) => {\n      if (operation.operation_type === "bulk_email") return canStartBulkEmail;\n      if (operation.operation_type === "enrichment") return canStartEnrichment;\n      return canExecute;\n    },\n    [canExecute, canStartBulkEmail, canStartEnrichment],\n  );',
+          )
+
+          test = "frontend/src/permissions/OperationsPagePermissions.test.ts"
+          replace_once(
+              test,
+              '''  it("uses fair email execute for Bulk Email Start and generic execute as fallback", () => {\n    expect(source).toContain(\n      'import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";',\n    );\n    expect(source).toContain(\n      "const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);",\n    );\n    expect(source).toContain(\n      'operation.operation_type === "bulk_email" ? canStartBulkEmail : canExecute',\n    );\n    expect(source).toContain("if (!canStartOperation(operation)) return;");\n    expect(source).toContain("canStartOperation(item) &&");\n    expect(source).toContain("await startOperation(operation.id);");\n  });''',
+              '''  it("uses type-specific execute permissions for Bulk Email and Enrichment Start", () => {\n    expect(source).toContain(\n      'import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";',\n    );\n    expect(source).toContain(\n      'import { SCRAPER_PERMISSION_EXECUTE } from "../permissions/scraperPermissions";',\n    );\n    expect(source).toContain(\n      "const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);",\n    );\n    expect(source).toContain(\n      "const canStartEnrichment = can(SCRAPER_PERMISSION_EXECUTE);",\n    );\n    expect(source).toContain(\n      'if (operation.operation_type === "bulk_email") return canStartBulkEmail;',\n    );\n    expect(source).toContain(\n      'if (operation.operation_type === "enrichment") return canStartEnrichment;',\n    );\n    expect(source).toContain("return canExecute;");\n    expect(source).toContain("if (!canStartOperation(operation)) return;");\n    expect(source).toContain("canStartOperation(item) &&");\n    expect(source).toContain("await startOperation(operation.id);");\n  });''',
+          )
+
+          contract = ".kyrox/features/operations-start-action-permission-consistency.json"
+          replace_once(
+              contract,
+              '''      {\n        "code": "fair_crm.fair_emails.execute",\n        "action": "start a Bulk Email operation from the Operations page",\n        "scope": "organization",\n        "assignable": true\n      }''',
+              '''      {\n        "code": "fair_crm.fair_emails.execute",\n        "action": "start a Bulk Email operation from the Operations page",\n        "scope": "organization",\n        "assignable": true\n      },\n      {\n        "code": "fair_crm.scraper.execute",\n        "action": "start an Enrichment operation from the Operations page",\n        "scope": "organization",\n        "assignable": true\n      }''',
+          )
+          replace_once(
+              contract,
+              '"api": { "status": "na", "reason": "No server API contract changes; only the Operations-page Bulk Email Start boundary is aligned with existing authorization." }',
+              '"api": { "status": "na", "reason": "No server API contract changes; the Operations-page Bulk Email and Enrichment Start boundaries are aligned with existing authorization." }',
+          )
+          replace_once(
+              contract,
+              '"notes": "OperationsPage Bulk Email Start uses fair_crm.fair_emails.execute, matching StartOperationUseCase. Generic Start continues to use fair_crm.operations.execute. Enrichment and Scraper list Start alignment are intentionally outside this focused change. Cancel remains unchanged and is governed separately by fair_crm.operations.execute."',
+              '"notes": "OperationsPage Bulk Email Start uses fair_crm.fair_emails.execute and Enrichment Start uses fair_crm.scraper.execute, matching StartOperationUseCase. Generic Start continues to use fair_crm.operations.execute. Scraper list Start alignment is intentionally outside this focused change. Cancel remains unchanged and is governed separately by fair_crm.operations.execute."',
+          )
+          PY
+
+      - name: Commit focused patch and remove workflow
+        shell: bash
+        run: |
+          rm .github/workflows/tmp-operations-list-enrichment-start.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/src/pages/OperationsPage.tsx \
+                  frontend/src/permissions/OperationsPagePermissions.test.ts \
+                  .kyrox/features/operations-start-action-permission-consistency.json \
+                  .github/workflows/tmp-operations-list-enrichment-start.yml
+          git commit -m "fix(auth): align enrichment list start permission"
+          git push origin HEAD:fix/operations-list-enrichment-start-permission
