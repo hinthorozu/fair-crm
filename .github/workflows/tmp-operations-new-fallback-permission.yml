@@ -1,0 +1,129 @@
+name: Temporary Operations New Fallback Permission Patch
+
+on:
+  push:
+    branches:
+      - fix/operations-new-fallback-route-permission
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply exact byte-level patch
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path: str, old_text: str, new_text: str) -> None:
+              p = Path(path)
+              data = p.read_bytes()
+              nl = "\r\n" if b"\r\n" in data else "\n"
+              old = old_text.replace("\n", nl).encode()
+              new = new_text.replace("\n", nl).encode()
+              count = data.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected one match in {path}, found {count}")
+              p.write_bytes(data.replace(old, new, 1))
+
+          nav = "frontend/src/permissions/navigationPermissions.ts"
+          test = "frontend/src/permissions/navigationPermissions.test.ts"
+          wizard_contract = ".kyrox/features/operation-wizard-route-permission-consistency.json"
+          new_action_contract = ".kyrox/features/operations-new-action-permission-consistency.json"
+
+          replace_once(
+              nav,
+              '''  if (pathname === "/operations/new" || pathname.startsWith("/operations/new/")) {
+    return hasGrantedCorePermission(granted, PERMISSION_OPERATIONS_CREATE);
+  }''',
+              '''  if (pathname === "/operations/new" || pathname.startsWith("/operations/new/")) {
+    return hasGrantedCorePermission(granted, PERMISSION_OPERATIONS_READ);
+  }''',
+          )
+
+          replace_once(
+              test,
+              '''  it("separates operation read routes from the generic operation creation route", () => {
+    const reader = granted(PERMISSION_OPERATIONS_READ);
+    expect(canAccessApplicationPath("/operations", reader)).toBe(true);
+    expect(canAccessApplicationPath("/operations/abc", reader)).toBe(true);
+    expect(canAccessApplicationPath("/operations/new", reader)).toBe(false);
+
+    const creator = granted(PERMISSION_OPERATIONS_READ, PERMISSION_OPERATIONS_CREATE);
+    expect(canAccessApplicationPath("/operations/new", creator)).toBe(true);
+  });''',
+              '''  it("uses operation read for list-rendering new-operation fallbacks", () => {
+    const reader = granted(PERMISSION_OPERATIONS_READ);
+    expect(canAccessApplicationPath("/operations", reader)).toBe(true);
+    expect(canAccessApplicationPath("/operations/abc", reader)).toBe(true);
+    expect(canAccessApplicationPath("/operations/new", reader)).toBe(true);
+    expect(canAccessApplicationPath("/operations/new/manual_task", reader)).toBe(true);
+    expect(canAccessApplicationPath("/operations/new/custom", reader)).toBe(true);
+
+    const createOnly = granted(PERMISSION_OPERATIONS_CREATE);
+    expect(canAccessApplicationPath("/operations/new", createOnly)).toBe(false);
+    expect(canAccessApplicationPath("/operations/new/custom", createOnly)).toBe(false);
+  });''',
+          )
+
+          replace_once(
+              test,
+              '''    expect(canAccessApplicationPath("/operations/new", genericCreator)).toBe(true);
+    expect(canAccessApplicationPath("/operations/new/custom", genericCreator)).toBe(true);''',
+              '''    expect(canAccessApplicationPath("/operations/new", genericCreator)).toBe(false);
+    expect(canAccessApplicationPath("/operations/new/custom", genericCreator)).toBe(false);''',
+          )
+
+          replace_once(
+              wizard_contract,
+              '''      {
+        "code": "fair_crm.operations.create",
+        "action": "enter the generic new-operation route",
+        "scope": "organization",
+        "assignable": true
+      },''',
+              '''      {
+        "code": "fair_crm.operations.read",
+        "action": "enter unsupported or legacy new-operation fallbacks that render the Operations list",
+        "scope": "organization",
+        "assignable": true
+      },''',
+          )
+
+          replace_once(
+              wizard_contract,
+              '''The generic /operations/new route and unknown generic operation wizard fallback continue to require operations.create.''',
+              '''Unsupported or legacy /operations/new fallbacks resolve to the Operations list and therefore require operations.read; the Operations-page New entry point remains separately gated by operations.create.''',
+          )
+
+          replace_once(
+              new_action_contract,
+              '''        "action": "start the generic new operation flow from the Operations page",''',
+              '''        "action": "open the New Operation type picker from the Operations page",''',
+          )
+
+          replace_once(
+              new_action_contract,
+              '''    "routes": ["/operations", "/operations/new"],''',
+              '''    "routes": ["/operations"],''',
+          )
+
+          replace_once(
+              new_action_contract,
+              '''OperationsPage still requires fair_crm.operations.create to expose the generic Yeni Operasyon entry point. Specialized immediate-start wizard routes are no longer described as generic create routes; their deep-link guards are aligned separately with each wizard's canonical business permission.''',
+              '''OperationsPage still requires fair_crm.operations.create to expose the Yeni Operasyon type picker. There is no shared generic /operations/new wizard: supported operation types navigate to specialized wizard routes, while unsupported or legacy /operations/new fallbacks resolve to the Operations list and are governed separately by operations.read.''',
+          )
+      - name: Commit patch and remove temporary workflow
+        run: |
+          rm .github/workflows/tmp-operations-new-fallback-permission.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(auth): align operations fallback route permission"
+          git push
