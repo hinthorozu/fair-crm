@@ -1,0 +1,91 @@
+name: One-shot operations list bulk email start patch
+
+on:
+  push:
+    branches:
+      - fix/operations-list-bulk-email-start-permission
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/operations-list-bulk-email-start-permission
+          fetch-depth: 0
+
+      - name: Apply focused patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_preserving_eol(path: str, old: str, new: str, expected: int = 1) -> None:
+              p = Path(path)
+              data = p.read_bytes()
+              newline = b"\r\n" if b"\r\n" in data else b"\n"
+              eol = "\r\n" if newline == b"\r\n" else "\n"
+              old_b = old.replace("\n", eol).encode("utf-8")
+              new_b = new.replace("\n", eol).encode("utf-8")
+              count = data.count(old_b)
+              if count != expected:
+                  raise SystemExit(f"{path}: expected {expected} matches, found {count}")
+              p.write_bytes(data.replace(old_b, new_b, expected))
+
+          def write_preserving_eol(path: str, content: str) -> None:
+              p = Path(path)
+              data = p.read_bytes()
+              eol = "\r\n" if b"\r\n" in data else "\n"
+              p.write_bytes(content.replace("\n", eol).encode("utf-8"))
+
+          page = "frontend/src/pages/OperationsPage.tsx"
+          replace_preserving_eol(
+              page,
+              'import { PERMISSION_OPERATIONS_CREATE } from "../permissions/navigationPermissions";\n',
+              'import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";\nimport { PERMISSION_OPERATIONS_CREATE } from "../permissions/navigationPermissions";\n',
+          )
+          replace_preserving_eol(
+              page,
+              '  const canCreate = can(PERMISSION_OPERATIONS_CREATE);\n  const canExecute = can(OPERATION_EXECUTE);\n',
+              '  const canCreate = can(PERMISSION_OPERATIONS_CREATE);\n  const canExecute = can(OPERATION_EXECUTE);\n  const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);\n',
+          )
+          replace_preserving_eol(
+              page,
+              '''  React.useEffect(() => {\n    if (!banner) return undefined;\n    const timer = window.setTimeout(() => setBanner(null), 5000);\n    return () => window.clearTimeout(timer);\n  }, [banner]);\n\n  const handleStart = async (operation: Operation) => {\n    if (!canExecute) return;\n''',
+              '''  React.useEffect(() => {\n    if (!banner) return undefined;\n    const timer = window.setTimeout(() => setBanner(null), 5000);\n    return () => window.clearTimeout(timer);\n  }, [banner]);\n\n  const canStartOperation = React.useCallback(\n    (operation: Operation) =>\n      operation.operation_type === "bulk_email" ? canStartBulkEmail : canExecute,\n    [canExecute, canStartBulkEmail],\n  );\n\n  const handleStart = async (operation: Operation) => {\n    if (!canStartOperation(operation)) return;\n''',
+          )
+          replace_preserving_eol(
+              page,
+              '''          const canStartItem =\n            canExecute && ["draft", "ready", "active"].includes(item.status) && !latestRunActive;\n''',
+              '''          const canStartItem =\n            canStartOperation(item) &&\n            ["draft", "ready", "active"].includes(item.status) &&\n            !latestRunActive;\n''',
+          )
+          replace_preserving_eol(
+              page,
+              '    [busyId, canExecute, onOpenDetail, typeNameByKey],\n',
+              '    [busyId, canExecute, canStartOperation, onOpenDetail, typeNameByKey],\n',
+          )
+
+          test = '''import { readFileSync } from "node:fs";\nimport { fileURLToPath } from "node:url";\nimport { describe, expect, it } from "vitest";\n\nconst source = readFileSync(\n  fileURLToPath(new URL("../pages/OperationsPage.tsx", import.meta.url)),\n  "utf8",\n);\n\nconst navigationPermissionSource = readFileSync(\n  fileURLToPath(new URL("./navigationPermissions.ts", import.meta.url)),\n  "utf8",\n);\n\nconst operationPermissionSource = readFileSync(\n  fileURLToPath(new URL("./operationPermissions.ts", import.meta.url)),\n  "utf8",\n);\n\ndescribe("Operations action permissions", () => {\n  it("uses the canonical operations create permission for the new action", () => {\n    expect(navigationPermissionSource).toContain(\n      'PERMISSION_OPERATIONS_CREATE = "fair_crm.operations.create"',\n    );\n  });\n\n  it("hides and fails closed the new operation entry point without create permission", () => {\n    expect(source).toContain("const canCreate = can(PERMISSION_OPERATIONS_CREATE)");\n    expect(source).toContain("canCreate ? (");\n    expect(source).toContain("open={canCreate && typeModalOpen}");\n    expect(source).toContain("if (!canCreate) return;");\n  });\n\n  it("keeps operations execute for generic operation mutations", () => {\n    expect(operationPermissionSource).toContain(\n      'OPERATION_EXECUTE = "fair_crm.operations.execute"',\n    );\n    expect(source).toContain("const canExecute = can(OPERATION_EXECUTE)");\n  });\n\n  it("uses fair email execute for Bulk Email Start and generic execute as fallback", () => {\n    expect(source).toContain(\n      'import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";',\n    );\n    expect(source).toContain(\n      "const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);",\n    );\n    expect(source).toContain(\n      'operation.operation_type === "bulk_email" ? canStartBulkEmail : canExecute',\n    );\n    expect(source).toContain("if (!canStartOperation(operation)) return;");\n    expect(source).toContain("canStartOperation(item) &&");\n    expect(source).toContain("await startOperation(operation.id);");\n  });\n\n  it("keeps cancel on operations execute", () => {\n    expect(source.match(/if \\(!canExecute\\) return;/g)).toHaveLength(1);\n    expect(source).toContain("await cancelOperation(operation.id);");\n    expect(source).toContain(\n      'canExecute && ["draft", "ready", "active"].includes(item.status) ? (',\n    );\n  });\n});\n'''
+          write_preserving_eol("frontend/src/permissions/OperationsPagePermissions.test.ts", test)
+
+          contract = '''{\n  "version": 1,\n  "id": "operations-start-action-permission-consistency",\n  "title": "Operations Start Action Permission Consistency",\n  "feature_type": "ui_only",\n  "owner": "fair-crm",\n  "platform_reusability": "existing_core_capability",\n  "trigger": "user",\n  "tenant_scope": "organization",\n  "user_facing": true,\n  "affected_paths": [\n    "frontend/src/pages/OperationsPage.tsx",\n    "frontend/src/permissions/OperationsPagePermissions.test.ts",\n    ".kyrox/features/operations-start-action-permission-consistency.json"\n  ],\n  "permissions": {\n    "required": true,\n    "items": [\n      {\n        "code": "fair_crm.operations.execute",\n        "action": "start generic operations from the Operations page",\n        "scope": "organization",\n        "assignable": true\n      },\n      {\n        "code": "fair_crm.fair_emails.execute",\n        "action": "start a Bulk Email operation from the Operations page",\n        "scope": "organization",\n        "assignable": true\n      }\n    ]\n  },\n  "frontend": {\n    "required": true,\n    "routes": ["/operations"],\n    "menu": false,\n    "menu_permission": null\n  },\n  "applicability": {\n    "database": { "status": "na", "reason": "No persistence changes are introduced." },\n    "migration": { "status": "na", "reason": "Existing execution permissions are reused." },\n    "permissions": { "status": "required" },\n    "backend": { "status": "na", "reason": "Existing StartOperationUseCase authorization already selects the canonical business permission by operation type." },\n    "api": { "status": "na", "reason": "No server API contract changes; only the Operations-page Bulk Email Start boundary is aligned with existing authorization." },\n    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },\n    "audit": { "status": "na", "reason": "Existing operation-start audit behavior is unchanged." },\n    "frontend": { "status": "required" },\n    "ui_permissions": { "status": "required" },\n    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },\n    "route_guard": { "status": "na", "reason": "The /operations route still requires its existing read access; this change only gates the start mutation action." },\n    "forms": { "status": "na", "reason": "No form behavior changes." },\n    "visual_qa": { "status": "required" },\n    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },\n    "frontend_tests": { "status": "required" },\n    "runtime_authorization": { "status": "required" },\n    "runtime_verification": { "status": "required" },\n    "deployment": { "status": "required" }\n  },\n  "notes": "OperationsPage Bulk Email Start uses fair_crm.fair_emails.execute, matching StartOperationUseCase. Generic Start continues to use fair_crm.operations.execute. Enrichment and Scraper list Start alignment are intentionally outside this focused change. Cancel remains unchanged and is governed separately by fair_crm.operations.execute."\n}\n'''
+          write_preserving_eol(".kyrox/features/operations-start-action-permission-consistency.json", contract)
+          PY
+
+      - name: Commit focused patch and remove workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            frontend/src/pages/OperationsPage.tsx \
+            frontend/src/permissions/OperationsPagePermissions.test.ts \
+            .kyrox/features/operations-start-action-permission-consistency.json
+          git rm .github/workflows/tmp-operations-list-bulk-email-start.yml
+          git diff --cached --check
+          git commit -m "fix(auth): align bulk email list start permission"
+          git push origin HEAD:fix/operations-list-bulk-email-start-permission
