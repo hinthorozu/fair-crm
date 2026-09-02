@@ -31,9 +31,9 @@ describe("Operations action permissions", () => {
 
   it("allows Bulk Email execute to open and select its new-operation entry", () => {
     expect(source).toContain("const canCreate = can(PERMISSION_OPERATIONS_CREATE)");
-    expect(source).toContain(
-      "const canOpenNewOperation = canCreate || canStartBulkEmail || canStartScraperActions;",
-    );
+    expect(source).toContain("const canOpenNewOperation =");
+    expect(source).toContain("canCreateEnrichmentOperation ||");
+    expect(source).toContain("canCreateScraperOperation;");
     expect(source).toContain('if (type === "bulk_email") return canStartBulkEmail;');
     expect(source).toContain("canOpenNewOperation ? (");
     expect(source).toContain("open={canOpenNewOperation && typeModalOpen}");
@@ -43,7 +43,7 @@ describe("Operations action permissions", () => {
     expect(modalSource).toContain("!isTypeAllowed || isTypeAllowed(item.type)");
   });
 
-  it("keeps Enrichment execute-only and requires Scraper wizard read prerequisites", () => {
+  it("requires manifest read for Enrichment and full read prerequisites for Scraper entries", () => {
     expect(navigationPermissionSource).toContain(
       'PERMISSION_FAIRS_READ = "fair_crm.fairs.read"',
     );
@@ -52,11 +52,16 @@ describe("Operations action permissions", () => {
     );
     expect(source).toContain("const canReadFairs = can(PERMISSION_FAIRS_READ);");
     expect(source).toContain("const canReadScraper = can(PERMISSION_SCRAPER_READ);");
+    expect(source).toContain(
+      "const canCreateEnrichmentOperation = canStartScraperActions && canReadScraper;",
+    );
     expect(source).toContain("const canCreateScraperOperation =");
     expect(source).toContain(
       "canStartScraperActions && canReadFairs && canReadScraper;",
     );
-    expect(source).toContain('if (type === "enrichment") return canStartScraperActions;');
+    expect(source).toContain(
+      'if (type === "enrichment") return canCreateEnrichmentOperation;',
+    );
     expect(source).toContain('if (type === "scraper") return canCreateScraperOperation;');
     expect(source).toContain("return canCreate;");
   });

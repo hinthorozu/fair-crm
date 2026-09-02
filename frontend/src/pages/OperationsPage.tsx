@@ -60,9 +60,14 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
   const canReadScraper = can(PERMISSION_SCRAPER_READ);
   const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);
   const canStartScraperActions = can(SCRAPER_PERMISSION_EXECUTE);
+  const canCreateEnrichmentOperation = canStartScraperActions && canReadScraper;
   const canCreateScraperOperation =
     canStartScraperActions && canReadFairs && canReadScraper;
-  const canOpenNewOperation = canCreate || canStartBulkEmail || canStartScraperActions;
+  const canOpenNewOperation =
+    canCreate ||
+    canStartBulkEmail ||
+    canCreateEnrichmentOperation ||
+    canCreateScraperOperation;
   const [banner, setBanner] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
@@ -120,11 +125,11 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
   const canSelectNewOperationType = React.useCallback(
     (type: OperationType) => {
       if (type === "bulk_email") return canStartBulkEmail;
-      if (type === "enrichment") return canStartScraperActions;
+      if (type === "enrichment") return canCreateEnrichmentOperation;
       if (type === "scraper") return canCreateScraperOperation;
       return canCreate;
     },
-    [canCreate, canCreateScraperOperation, canStartBulkEmail, canStartScraperActions],
+    [canCreate, canCreateEnrichmentOperation, canCreateScraperOperation, canStartBulkEmail],
   );
 
   const canStartOperation = React.useCallback(

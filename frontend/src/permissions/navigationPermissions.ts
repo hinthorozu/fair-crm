@@ -264,7 +264,10 @@ export function canAccessApplicationPath(
     return hasGrantedCorePermission(granted, FAIR_EMAIL_PERMISSION_EXECUTE);
   }
   if (pathname === "/operations/new/enrichment") {
-    return hasGrantedCorePermission(granted, SCRAPER_PERMISSION_EXECUTE);
+    return (
+      hasGrantedCorePermission(granted, SCRAPER_PERMISSION_EXECUTE) &&
+      hasGrantedCorePermission(granted, PERMISSION_SCRAPER_READ)
+    );
   }
   if (pathname === "/operations/new/scraper") {
     return (
