@@ -10,7 +10,6 @@
   "user_facing": true,
   "affected_paths": [
     "frontend/src/pages/OperationsPage.tsx",
-    "frontend/src/permissions/operationPermissions.ts",
     "frontend/src/permissions/OperationsPagePermissions.test.ts",
     ".kyrox/features/operations-start-action-permission-consistency.json"
   ],
@@ -19,7 +18,13 @@
     "items": [
       {
         "code": "fair_crm.operations.execute",
-        "action": "start an operation from the Operations page",
+        "action": "start generic operations from the Operations page",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.fair_emails.execute",
+        "action": "start a Bulk Email operation from the Operations page",
         "scope": "organization",
         "assignable": true
       }
@@ -33,16 +38,16 @@
   },
   "applicability": {
     "database": { "status": "na", "reason": "No persistence changes are introduced." },
-    "migration": { "status": "na", "reason": "The existing fair_crm.operations.execute permission is reused." },
+    "migration": { "status": "na", "reason": "Existing execution permissions are reused." },
     "permissions": { "status": "required" },
-    "backend": { "status": "na", "reason": "Existing StartOperationUseCase authorization remains unchanged and authoritative." },
-    "api": { "status": "na", "reason": "No server API contract changes; only the Operations-page start action is aligned with the existing execute authorization." },
+    "backend": { "status": "na", "reason": "Existing StartOperationUseCase authorization already selects the canonical business permission by operation type." },
+    "api": { "status": "na", "reason": "No server API contract changes; only the Operations-page Bulk Email Start boundary is aligned with existing authorization." },
     "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
     "audit": { "status": "na", "reason": "Existing operation-start audit behavior is unchanged." },
     "frontend": { "status": "required" },
     "ui_permissions": { "status": "required" },
     "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
-    "route_guard": { "status": "na", "reason": "The /operations route still requires fair_crm.operations.read; this change only gates the start mutation action." },
+    "route_guard": { "status": "na", "reason": "The /operations route still requires its existing read access; this change only gates the start mutation action." },
     "forms": { "status": "na", "reason": "No form behavior changes." },
     "visual_qa": { "status": "required" },
     "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
@@ -51,5 +56,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "OperationsPage previously rendered and invoked the start row action based only on operation state, while StartOperationUseCase requires fair_crm.operations.execute. The start entry point now hides and fails closed without execute permission. Cancel remains outside this focused change."
+  "notes": "OperationsPage Bulk Email Start uses fair_crm.fair_emails.execute, matching StartOperationUseCase. Generic Start continues to use fair_crm.operations.execute. Enrichment and Scraper list Start alignment are intentionally outside this focused change. Cancel remains unchanged and is governed separately by fair_crm.operations.execute."
 }

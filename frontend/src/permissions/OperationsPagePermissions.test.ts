@@ -31,22 +31,31 @@ describe("Operations action permissions", () => {
     expect(source).toContain("if (!canCreate) return;");
   });
 
-  it("uses the backend operations execute permission for operation mutations", () => {
+  it("keeps operations execute for generic operation mutations", () => {
     expect(operationPermissionSource).toContain(
       'OPERATION_EXECUTE = "fair_crm.operations.execute"',
     );
     expect(source).toContain("const canExecute = can(OPERATION_EXECUTE)");
   });
 
-  it("hides and fails closed the start action without execute permission", () => {
-    expect(source).toContain("if (!canExecute) return;");
+  it("uses fair email execute for Bulk Email Start and generic execute as fallback", () => {
     expect(source).toContain(
-      'canExecute && ["draft", "ready", "active"].includes(item.status) && !latestRunActive',
+      'import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";',
     );
+    expect(source).toContain(
+      "const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);",
+    );
+    expect(source).toContain(
+      'operation.operation_type === "bulk_email" ? canStartBulkEmail : canExecute',
+    );
+    expect(source).toContain("if (!canStartOperation(operation)) return;");
+    expect(source).toContain("canStartOperation(item) &&");
+    expect(source).toContain("await startOperation(operation.id);");
   });
 
-  it("hides and fails closed the cancel action without execute permission", () => {
-    expect(source.match(/if \(!canExecute\) return;/g)).toHaveLength(2);
+  it("keeps cancel on operations execute", () => {
+    expect(source.match(/if \(!canExecute\) return;/g)).toHaveLength(1);
+    expect(source).toContain("await cancelOperation(operation.id);");
     expect(source).toContain(
       'canExecute && ["draft", "ready", "active"].includes(item.status) ? (',
     );

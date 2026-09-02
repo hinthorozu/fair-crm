@@ -21,6 +21,7 @@ import {
   operationPriorityLabels,
   operationTypeLabels,
 } from "../labels/operationLabels";
+import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";
 import { PERMISSION_OPERATIONS_CREATE } from "../permissions/navigationPermissions";
 import { OPERATION_EXECUTE } from "../permissions/operationPermissions";
 import type {
@@ -50,6 +51,7 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
   const { can } = usePermissions();
   const canCreate = can(PERMISSION_OPERATIONS_CREATE);
   const canExecute = can(OPERATION_EXECUTE);
+  const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);
   const [banner, setBanner] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
@@ -104,8 +106,14 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
     return () => window.clearTimeout(timer);
   }, [banner]);
 
+  const canStartOperation = React.useCallback(
+    (operation: Operation) =>
+      operation.operation_type === "bulk_email" ? canStartBulkEmail : canExecute,
+    [canExecute, canStartBulkEmail],
+  );
+
   const handleStart = async (operation: Operation) => {
-    if (!canExecute) return;
+    if (!canStartOperation(operation)) return;
     setBusyId(operation.id);
     setActionError(null);
     try {
@@ -203,7 +211,9 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
             item.latest_run?.status === "running" ||
             item.latest_run?.status === "paused";
           const canStartItem =
-            canExecute && ["draft", "ready", "active"].includes(item.status) && !latestRunActive;
+            canStartOperation(item) &&
+            ["draft", "ready", "active"].includes(item.status) &&
+            !latestRunActive;
           return (
             <TableRowActions>
               <button
@@ -238,7 +248,7 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
         },
       },
     ],
-    [busyId, canExecute, onOpenDetail, typeNameByKey],
+    [busyId, canExecute, canStartOperation, onOpenDetail, typeNameByKey],
   );
 
   const statusFilterOptions = React.useMemo(
