@@ -43,7 +43,7 @@
       { "code": "fair_crm.fairs.read", "action": "read fairs", "scope": "organization", "assignable": true },
       { "code": "fair_crm.todos.read", "action": "read todos", "scope": "organization", "assignable": true },
       { "code": "fair_crm.operations.read", "action": "read operations", "scope": "organization", "assignable": true },
-      { "code": "fair_crm.operations.create", "action": "create operations and open operation creation routes", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.operations.create", "action": "create generic operations and select generic new-operation types", "scope": "organization", "assignable": true },
       { "code": "fair_crm.activities.read", "action": "read activities", "scope": "organization", "assignable": true },
       { "code": "fair_crm.imports.read", "action": "read imports", "scope": "organization", "assignable": true },
       { "code": "fair_crm.imports.create", "action": "create imports", "scope": "organization", "assignable": true },
