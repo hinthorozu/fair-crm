@@ -44,77 +44,29 @@
   },
   "frontend": {
     "required": true,
-    "routes": [
-      "/operations",
-      "/operations/new/scraper"
-    ],
+    "routes": ["/operations", "/operations/new/scraper"],
     "menu": false,
     "menu_permission": null
   },
   "applicability": {
-    "database": {
-      "status": "na",
-      "reason": "No persistence changes are introduced."
-    },
-    "migration": {
-      "status": "na",
-      "reason": "Existing permissions are reused."
-    },
-    "permissions": {
-      "status": "required"
-    },
-    "backend": {
-      "status": "na",
-      "reason": "Scraper immediate create/start authorization already uses fair_crm.scraper.execute."
-    },
-    "api": {
-      "status": "na",
-      "reason": "No API contract changes; existing fair and scraper read clients/endpoints remain authoritative for mandatory wizard discovery."
-    },
-    "tenant_isolation": {
-      "status": "na",
-      "reason": "No organization-scoping behavior changes."
-    },
-    "audit": {
-      "status": "na",
-      "reason": "No audit behavior changes."
-    },
-    "frontend": {
-      "status": "required"
-    },
-    "ui_permissions": {
-      "status": "required"
-    },
-    "menu": {
-      "status": "na",
-      "reason": "No navigation menu changes are introduced."
-    },
-    "route_guard": {
-      "status": "required"
-    },
-    "forms": {
-      "status": "na",
-      "reason": "No business form behavior changes; the existing type-picker permission filter is reused."
-    },
-    "visual_qa": {
-      "status": "required"
-    },
-    "backend_tests": {
-      "status": "na",
-      "reason": "Backend authorization behavior is unchanged."
-    },
-    "frontend_tests": {
-      "status": "required"
-    },
-    "runtime_authorization": {
-      "status": "required"
-    },
-    "runtime_verification": {
-      "status": "required"
-    },
-    "deployment": {
-      "status": "required"
-    }
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing permissions are reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Scraper immediate create/start authorization already uses fair_crm.scraper.execute." },
+    "api": { "status": "na", "reason": "No API contract changes; existing fair and scraper read clients/endpoints remain authoritative for mandatory wizard discovery." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "No audit behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "na", "reason": "No business form behavior changes; the existing type-picker permission filter is reused." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
   },
   "notes": "The Scraper new-operation entry and its deep link are available only when scraper.execute, fairs.read, and scraper.read are all granted. The two read permissions are legitimate wizard prerequisites because the user must browse/select a fair and scraper adapter/manifest. The final Scraper Start action itself remains scraper.execute-only. Enrichment continues to use scraper.execute alone, Bulk Email continues to use fair_emails.execute, and generic operation entries continue to require operations.create."
 }
