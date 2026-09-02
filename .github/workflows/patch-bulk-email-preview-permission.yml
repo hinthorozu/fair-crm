@@ -1,0 +1,72 @@
+name: Apply Bulk Email Preview Permission Patch
+
+on:
+  push:
+    branches:
+      - fix/bulk-email-legacy-contract-permissions
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/bulk-email-legacy-contract-permissions
+          fetch-depth: 0
+
+      - name: Patch runtime and regression test
+        shell: python
+        run: |
+          from pathlib import Path
+
+          page = Path('frontend/src/pages/BulkEmailOperationWizardPage.tsx')
+          data = page.read_bytes()
+          replacements = [
+              (
+                  b'import { FAIR_READ } from "../permissions/fairPermissions";\r\n',
+                  b'import { FAIR_READ } from "../permissions/fairPermissions";\r\nimport {\r\n  FAIR_EMAIL_PERMISSION_EXECUTE,\r\n  FAIR_EMAIL_PERMISSION_PREVIEW,\r\n} from "../permissions/fairEmailPermissions";\r\n',
+              ),
+              (
+                  b'const FAIR_EMAIL_PREVIEW_PERMISSION = "fair_crm.fair_emails.preview";\r\nconst FAIR_EMAIL_EXECUTE_PERMISSION = "fair_crm.fair_emails.execute";\r\n',
+                  b'',
+              ),
+              (
+                  b'const canPreviewBulkEmail = can(FAIR_EMAIL_PREVIEW_PERMISSION);',
+                  b'const canPreviewBulkEmail = can(FAIR_EMAIL_PERMISSION_PREVIEW);',
+              ),
+              (
+                  b'const canSendBulkEmail = can(FAIR_EMAIL_EXECUTE_PERMISSION);',
+                  b'const canSendBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);',
+              ),
+          ]
+          for old, new in replacements:
+              count = data.count(old)
+              if count != 1:
+                  raise SystemExit(f'BulkEmailOperationWizardPage.tsx expected exactly one match, got {count}: {old!r}')
+              data = data.replace(old, new, 1)
+          page.write_bytes(data)
+
+          test = Path('frontend/src/permissions/BulkEmailOperationWizardPermissions.test.ts')
+          text = test.read_text(encoding='utf-8')
+          old = '''    expect(source).toContain(\n      'const FAIR_EMAIL_PREVIEW_PERMISSION = "fair_crm.fair_emails.preview";',\n    );\n    expect(source).toContain(\n      'const FAIR_EMAIL_EXECUTE_PERMISSION = "fair_crm.fair_emails.execute";',\n    );\n    expect(source).toContain("const canPreviewBulkEmail = can(FAIR_EMAIL_PREVIEW_PERMISSION);");\n    expect(source).toContain("const canSendBulkEmail = can(FAIR_EMAIL_EXECUTE_PERMISSION);");\n'''
+          new = '''    expect(source).toContain(\n      'FAIR_EMAIL_PERMISSION_PREVIEW,',\n    );\n    expect(source).toContain(\n      'FAIR_EMAIL_PERMISSION_EXECUTE,',\n    );\n    expect(source).toContain(\n      'from "../permissions/fairEmailPermissions";',\n    );\n    expect(source).toContain("const canPreviewBulkEmail = can(FAIR_EMAIL_PERMISSION_PREVIEW);");\n    expect(source).toContain("const canSendBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);");\n    expect(source).not.toContain("fair_crm.fair_emails.preview");\n'''
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'BulkEmailOperationWizardPermissions.test.ts expected exactly one assertion block, got {count}')
+          test.write_text(text.replace(old, new, 1), encoding='utf-8', newline='')
+
+      - name: Remove temporary workflow and commit patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/patch-bulk-email-preview-permission.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/src/pages/BulkEmailOperationWizardPage.tsx frontend/src/permissions/BulkEmailOperationWizardPermissions.test.ts .github/workflows/patch-bulk-email-preview-permission.yml
+          git diff --cached --check
+          git commit -m "fix(auth): use canonical Bulk Email preview permission"
+          git push origin HEAD:fix/bulk-email-legacy-contract-permissions
