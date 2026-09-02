@@ -149,10 +149,22 @@ describe("navigation permission rules", () => {
     );
 
     const importCreator = granted(PERMISSION_IMPORTS_CREATE);
-    expect(canAccessMainNavigation("/data-integration", importCreator)).toBe(true);
-    expect(canAccessDataIntegrationSection("new", importCreator)).toBe(true);
+    expect(canAccessMainNavigation("/data-integration", importCreator)).toBe(false);
+    expect(canAccessDataIntegrationSection("new", importCreator)).toBe(false);
+    expect(canAccessApplicationPath("/data-integration/imports/new", importCreator)).toBe(false);
+    expect(
+      canAccessApplicationPath("/data-integration/imports/fair/fair-1", importCreator),
+    ).toBe(true);
     expect(canAccessApplicationPath("/imports", importCreator)).toBe(true);
-    expect(resolvePermissionLandingPath("/data-integration/", importCreator)).toBe(
+    expect(resolvePermissionLandingPath("/data-integration/", importCreator)).toBeNull();
+
+    const generalImportCreator = granted(PERMISSION_IMPORTS_CREATE, PERMISSION_FAIRS_READ);
+    expect(canAccessMainNavigation("/data-integration", generalImportCreator)).toBe(true);
+    expect(canAccessDataIntegrationSection("new", generalImportCreator)).toBe(true);
+    expect(
+      canAccessApplicationPath("/data-integration/imports/new", generalImportCreator),
+    ).toBe(true);
+    expect(resolvePermissionLandingPath("/data-integration/", generalImportCreator)).toBe(
       "/data-integration/imports/new",
     );
 
@@ -187,7 +199,7 @@ describe("navigation permission rules", () => {
     expect(
       resolvePermissionSectionLandingPath(
         "/data-integration/imports/new",
-        granted(PERMISSION_IMPORTS_CREATE),
+        granted(PERMISSION_IMPORTS_CREATE, PERMISSION_FAIRS_READ),
       ),
     ).toBe("/data-integration/imports/new");
     expect(
