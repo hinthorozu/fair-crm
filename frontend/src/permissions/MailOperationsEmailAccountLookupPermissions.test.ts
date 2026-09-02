@@ -6,7 +6,7 @@ const source = readFileSync(
   "utf8",
 );
 
-describe("MailOperationsPage email account lookup permissions", () => {
+describe("MailOperationsPage optional lookup permissions", () => {
   it("skips the optional email-account lookup without read permission", () => {
     expect(source).toContain(
       'const canReadEmailAccounts = canPerformEmailAccountAction(grantedPermissions, "read");',
@@ -18,5 +18,12 @@ describe("MailOperationsPage email account lookup permissions", () => {
   it("does not expose the SMTP account filter without read permission", () => {
     expect(source).toContain("{canReadEmailAccounts ? (");
     expect(source).toContain('htmlFor="mail-operations-smtp"');
+  });
+
+  it("does not expose the fair lookup filter without fairs read", () => {
+    expect(source).toContain('import { FAIR_READ } from "../permissions/fairPermissions";');
+    expect(source).toContain("const canReadFairs = grantedPermissions.has(FAIR_READ);");
+    expect(source).toContain("{canReadFairs ? (");
+    expect(source).toContain('htmlFor="mail-operations-fair"');
   });
 });
