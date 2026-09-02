@@ -315,7 +315,7 @@ export function canAccessApplicationPath(
     );
   }
   if (pathname === "/operations/new" || pathname.startsWith("/operations/new/")) {
-    return hasGrantedCorePermission(granted, PERMISSION_OPERATIONS_CREATE);
+    return hasGrantedCorePermission(granted, PERMISSION_OPERATIONS_READ);
   }
   if (pathname === "/operations" || pathname.startsWith("/operations/")) {
     return hasGrantedCorePermission(granted, PERMISSION_OPERATIONS_READ);

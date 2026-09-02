@@ -18,8 +18,8 @@
     "required": true,
     "items": [
       {
-        "code": "fair_crm.operations.create",
-        "action": "enter the generic new-operation route",
+        "code": "fair_crm.operations.read",
+        "action": "enter unsupported or legacy new-operation fallbacks that render the Operations list",
         "scope": "organization",
         "assignable": true
       },
@@ -138,5 +138,5 @@
       "status": "required"
     }
   },
-  "notes": "Specialized operation wizard deep links must not reintroduce generic operation-create prerequisites. Bulk Email uses fair_emails.execute. Enrichment Start remains authorized by scraper.execute, while entering its wizard additionally requires scraper.read because the form must load the user-visible enrichment manifest/output-field capabilities; its fair filter remains optional and is independently shown only with fairs.read. Scraper Start remains authorized by scraper.execute, while entering its wizard additionally requires fairs.read and scraper.read because the user must deliberately discover/select a fair and adapter/manifest. Duplicate Check uses operations.execute plus its legitimate data_operations.read page prerequisite. The generic /operations/new route and unknown generic operation wizard fallback continue to require operations.create."
+  "notes": "Specialized operation wizard deep links must not reintroduce generic operation-create prerequisites. Bulk Email uses fair_emails.execute. Enrichment Start remains authorized by scraper.execute, while entering its wizard additionally requires scraper.read because the form must load the user-visible enrichment manifest/output-field capabilities; its fair filter remains optional and is independently shown only with fairs.read. Scraper Start remains authorized by scraper.execute, while entering its wizard additionally requires fairs.read and scraper.read because the user must deliberately discover/select a fair and adapter/manifest. Duplicate Check uses operations.execute plus its legitimate data_operations.read page prerequisite. Unsupported or legacy /operations/new fallbacks resolve to the Operations list and therefore require operations.read; the Operations-page New entry point remains separately gated by operations.create."
 }

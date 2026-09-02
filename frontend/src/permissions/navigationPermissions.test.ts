@@ -80,14 +80,17 @@ describe("navigation permission rules", () => {
     );
   });
 
-  it("separates operation read routes from the generic operation creation route", () => {
+  it("uses operation read for list-rendering new-operation fallbacks", () => {
     const reader = granted(PERMISSION_OPERATIONS_READ);
     expect(canAccessApplicationPath("/operations", reader)).toBe(true);
     expect(canAccessApplicationPath("/operations/abc", reader)).toBe(true);
-    expect(canAccessApplicationPath("/operations/new", reader)).toBe(false);
+    expect(canAccessApplicationPath("/operations/new", reader)).toBe(true);
+    expect(canAccessApplicationPath("/operations/new/manual_task", reader)).toBe(true);
+    expect(canAccessApplicationPath("/operations/new/custom", reader)).toBe(true);
 
-    const creator = granted(PERMISSION_OPERATIONS_READ, PERMISSION_OPERATIONS_CREATE);
-    expect(canAccessApplicationPath("/operations/new", creator)).toBe(true);
+    const createOnly = granted(PERMISSION_OPERATIONS_CREATE);
+    expect(canAccessApplicationPath("/operations/new", createOnly)).toBe(false);
+    expect(canAccessApplicationPath("/operations/new/custom", createOnly)).toBe(false);
   });
 
   it("uses canonical business permissions for specialized operation wizard routes", () => {
@@ -133,8 +136,8 @@ describe("navigation permission rules", () => {
     expect(canAccessApplicationPath("/operations/new/bulk-email", genericCreator)).toBe(false);
     expect(canAccessApplicationPath("/operations/new/enrichment", genericCreator)).toBe(false);
     expect(canAccessApplicationPath("/operations/new/scraper", genericCreator)).toBe(false);
-    expect(canAccessApplicationPath("/operations/new", genericCreator)).toBe(true);
-    expect(canAccessApplicationPath("/operations/new/custom", genericCreator)).toBe(true);
+    expect(canAccessApplicationPath("/operations/new", genericCreator)).toBe(false);
+    expect(canAccessApplicationPath("/operations/new/custom", genericCreator)).toBe(false);
   });
 
   it("separates import read, create and scraper surfaces", () => {

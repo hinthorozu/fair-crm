@@ -18,7 +18,7 @@
     "items": [
       {
         "code": "fair_crm.operations.create",
-        "action": "start the generic new operation flow from the Operations page",
+        "action": "open the New Operation type picker from the Operations page",
         "scope": "organization",
         "assignable": true
       }
@@ -26,7 +26,7 @@
   },
   "frontend": {
     "required": true,
-    "routes": ["/operations", "/operations/new"],
+    "routes": ["/operations"],
     "menu": false,
     "menu_permission": null
   },
@@ -50,5 +50,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "OperationsPage still requires fair_crm.operations.create to expose the generic Yeni Operasyon entry point. Specialized immediate-start wizard routes are no longer described as generic create routes; their deep-link guards are aligned separately with each wizard's canonical business permission."
+  "notes": "OperationsPage still requires fair_crm.operations.create to expose the Yeni Operasyon type picker. There is no shared generic /operations/new wizard: supported operation types navigate to specialized wizard routes, while unsupported or legacy /operations/new fallbacks resolve to the Operations list and are governed separately by operations.read."
 }
