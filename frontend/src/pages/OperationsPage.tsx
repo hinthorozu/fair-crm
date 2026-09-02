@@ -112,7 +112,7 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
   const canSelectNewOperationType = React.useCallback(
     (type: OperationType) => {
       if (type === "bulk_email") return canStartBulkEmail;
-      if (type === "enrichment") return canStartScraperActions;
+      if (type === "enrichment" || type === "scraper") return canStartScraperActions;
       return canCreate;
     },
     [canCreate, canStartBulkEmail, canStartScraperActions],
