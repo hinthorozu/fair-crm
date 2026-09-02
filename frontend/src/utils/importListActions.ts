@@ -1,7 +1,12 @@
 import { canResumeDecisions, canResumeSetup } from "./importResume";
 
 export function canAnalyzeImportBatch(status: string): boolean {
-  return status === "mapping_completed" || status === "mapped" || status === "analysis_failed";
+  return (
+    status === "received" ||
+    status === "mapping_completed" ||
+    status === "mapped" ||
+    status === "analysis_failed"
+  );
 }
 
 export function canReanalyzeImportBatch(status: string): boolean {
