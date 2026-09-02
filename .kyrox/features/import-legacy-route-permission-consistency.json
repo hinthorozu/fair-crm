@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "id": "import-legacy-route-permission-consistency",
+  "title": "Import Legacy Route Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/permissions/navigationPermissions.test.ts",
+    ".kyrox/features/import-legacy-route-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.imports.create",
+        "action": "enter legacy new-import aliases that redirect to import creation",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.fairs.read",
+        "action": "select a fair when the legacy /imports alias redirects to the general import wizard",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/imports",
+      "/imports/fair/:fairId",
+      "/data-integration/imports/new",
+      "/data-integration/imports/fair/:fairId"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": {
+      "status": "na",
+      "reason": "No persistence changes are introduced."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "Existing Core permission codes are reused."
+    },
+    "permissions": {
+      "status": "required"
+    },
+    "backend": {
+      "status": "na",
+      "reason": "Backend authorization remains unchanged and authoritative."
+    },
+    "api": {
+      "status": "na",
+      "reason": "No server API contracts change; only legacy frontend route guards are aligned with their canonical redirect targets."
+    },
+    "tenant_isolation": {
+      "status": "na",
+      "reason": "No backend query or organization-scoping behavior changes."
+    },
+    "audit": {
+      "status": "na",
+      "reason": "Navigation redirects do not create auditable business mutations."
+    },
+    "frontend": {
+      "status": "required"
+    },
+    "ui_permissions": {
+      "status": "required"
+    },
+    "menu": {
+      "status": "na",
+      "reason": "No navigation menu behavior changes."
+    },
+    "route_guard": {
+      "status": "required"
+    },
+    "forms": {
+      "status": "na",
+      "reason": "No import form behavior changes."
+    },
+    "visual_qa": {
+      "status": "required"
+    },
+    "backend_tests": {
+      "status": "na",
+      "reason": "No backend executable behavior changes."
+    },
+    "frontend_tests": {
+      "status": "required"
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
+  },
+  "notes": "Legacy /imports redirects to the general new-import wizard and therefore requires fair_crm.imports.create plus fair_crm.fairs.read, matching the canonical destination. Legacy /imports/fair/:fairId already supplies a fair id and redirects to the fair-scoped creation route, so it requires fair_crm.imports.create only. Redirect targets and backend authorization are unchanged."
+}

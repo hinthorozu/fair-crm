@@ -324,22 +324,22 @@ export function canAccessApplicationPath(
   if (pathname === "/data-integration") {
     return hasGrantedCorePermission(granted, PERMISSION_IMPORTS_READ);
   }
-  if (pathname === "/imports") {
-    return hasGrantedCorePermission(granted, PERMISSION_IMPORTS_CREATE);
-  }
-  if (pathname === "/data-integration/imports/new") {
+  if (pathname === "/imports" || pathname === "/data-integration/imports/new") {
     return (
       hasGrantedCorePermission(granted, PERMISSION_IMPORTS_CREATE) &&
       hasGrantedCorePermission(granted, PERMISSION_FAIRS_READ)
     );
   }
-  if (pathname.startsWith("/data-integration/imports/fair/")) {
+  if (
+    pathname.startsWith("/data-integration/imports/fair/") ||
+    pathname.startsWith("/imports/fair/")
+  ) {
     return hasGrantedCorePermission(granted, PERMISSION_IMPORTS_CREATE);
   }
   if (pathname.startsWith("/data-integration/imports/continue/")) {
     return hasGrantedCorePermission(granted, PERMISSION_IMPORTS_UPDATE);
   }
-  if (pathname === "/data-integration/imports" || pathname.startsWith("/imports/fair/")) {
+  if (pathname === "/data-integration/imports") {
     return hasGrantedCorePermission(granted, PERMISSION_IMPORTS_READ);
   }
   if (pathname === "/data-integration/jobs" || pathname === "/data-integration/reports") {
