@@ -1,0 +1,155 @@
+name: Temporary Follow Ups Legacy Permission Patch
+
+on:
+  push:
+    branches:
+      - fix/follow-ups-legacy-route-permission
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply exact byte-level patch
+        shell: python
+        run: |
+          from pathlib import Path
+          import json
+
+          def replace_lines(path: str, old_lines: list[str], new_lines: list[str]) -> None:
+              p = Path(path)
+              data = p.read_bytes()
+              nl = b"\r\n" if b"\r\n" in data else b"\n"
+              old = nl.join(line.encode() for line in old_lines)
+              new = nl.join(line.encode() for line in new_lines)
+              count = data.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected one match in {path}, found {count}: {old_lines[0]}")
+              p.write_bytes(data.replace(old, new, 1))
+
+          nav = "frontend/src/permissions/navigationPermissions.ts"
+          test = "frontend/src/permissions/navigationPermissions.test.ts"
+
+          replace_lines(
+              nav,
+              [
+                  '  if (pathname === "/todos" || pathname.startsWith("/todos/")) {',
+                  '    return hasGrantedCorePermission(granted, PERMISSION_TODOS_READ);',
+                  '  }',
+              ],
+              [
+                  '  if (',
+                  '    pathname === "/todos" ||',
+                  '    pathname.startsWith("/todos/") ||',
+                  '    pathname === "/follow-ups" ||',
+                  '    pathname.startsWith("/follow-ups/")',
+                  '  ) {',
+                  '    return hasGrantedCorePermission(granted, PERMISSION_TODOS_READ);',
+                  '  }',
+              ],
+          )
+
+          replace_lines(
+              test,
+              [
+                  '  PERMISSION_SCRAPER_READ,',
+                  '  PERMISSION_USERS_READ,',
+              ],
+              [
+                  '  PERMISSION_SCRAPER_READ,',
+                  '  PERMISSION_TODOS_READ,',
+                  '  PERMISSION_USERS_READ,',
+              ],
+          )
+
+          replace_lines(
+              test,
+              [
+                  '  it("does not show Database Backups to an organization user without the system permission", () => {',
+              ],
+              [
+                  '  it("aligns the legacy follow-ups alias with Todos read permission", () => {',
+                  '    expect(canAccessApplicationPath("/follow-ups", granted())).toBe(false);',
+                  '',
+                  '    const reader = granted(PERMISSION_TODOS_READ);',
+                  '    expect(canAccessApplicationPath("/todos", reader)).toBe(true);',
+                  '    expect(canAccessApplicationPath("/follow-ups", reader)).toBe(true);',
+                  '    expect(canAccessApplicationPath("/follow-ups/legacy", reader)).toBe(true);',
+                  '  });',
+                  '',
+                  '  it("does not show Database Backups to an organization user without the system permission", () => {',
+              ],
+          )
+
+          contract = {
+              "version": 1,
+              "id": "follow-ups-legacy-route-permission-consistency",
+              "title": "Follow Ups Legacy Route Permission Consistency",
+              "feature_type": "ui_only",
+              "owner": "fair-crm",
+              "platform_reusability": "existing_core_capability",
+              "trigger": "user",
+              "tenant_scope": "organization",
+              "user_facing": True,
+              "affected_paths": [
+                  "frontend/src/permissions/navigationPermissions.ts",
+                  "frontend/src/permissions/navigationPermissions.test.ts",
+                  ".kyrox/features/follow-ups-legacy-route-permission-consistency.json",
+              ],
+              "permissions": {
+                  "required": True,
+                  "items": [
+                      {
+                          "code": "fair_crm.todos.read",
+                          "action": "open the legacy follow-ups alias that redirects to the Todos follow-up view",
+                          "scope": "organization",
+                          "assignable": True,
+                      }
+                  ],
+              },
+              "frontend": {
+                  "required": True,
+                  "routes": ["/follow-ups", "/todos?view=follow_ups"],
+                  "menu": False,
+                  "menu_permission": None,
+              },
+              "applicability": {
+                  "database": {"status": "na", "reason": "No persistence changes are introduced."},
+                  "migration": {"status": "na", "reason": "The existing fair_crm.todos.read permission is reused."},
+                  "permissions": {"status": "required"},
+                  "backend": {"status": "na", "reason": "Backend todo authorization remains unchanged and authoritative."},
+                  "api": {"status": "na", "reason": "No server API contracts change; only the legacy frontend route guard is aligned with its canonical redirect target."},
+                  "tenant_isolation": {"status": "na", "reason": "No backend query or organization-scoping behavior changes."},
+                  "audit": {"status": "na", "reason": "Navigation redirects do not create auditable business mutations."},
+                  "frontend": {"status": "required"},
+                  "ui_permissions": {"status": "required"},
+                  "menu": {"status": "na", "reason": "The follow-ups alias is not a separate main-navigation item."},
+                  "route_guard": {"status": "required"},
+                  "forms": {"status": "na", "reason": "No todo or follow-up form behavior changes."},
+                  "visual_qa": {"status": "required"},
+                  "backend_tests": {"status": "na", "reason": "No backend executable behavior changes."},
+                  "frontend_tests": {"status": "required"},
+                  "runtime_authorization": {"status": "required"},
+                  "runtime_verification": {"status": "required"},
+                  "deployment": {"status": "required"},
+              },
+              "notes": "App redirects legacy /follow-ups URLs to /todos?view=follow_ups. The legacy alias now uses the same fair_crm.todos.read boundary as the canonical Todos surface, avoiding a transient permission-denied state for legitimate Todo readers. Redirect behavior and backend authorization are unchanged.",
+          }
+          Path(".kyrox/features/follow-ups-legacy-route-permission-consistency.json").write_text(
+              json.dumps(contract, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+      - name: Commit patch and remove temporary workflow
+        run: |
+          rm .github/workflows/tmp-follow-ups-legacy-permission.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(auth): align follow-ups legacy route permission"
+          git push
