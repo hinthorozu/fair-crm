@@ -51,7 +51,7 @@
     "frontend": { "status": "required" },
     "ui_permissions": { "status": "required" },
     "menu": { "status": "na", "reason": "Operations navigation remains unchanged." },
-    "route_guard": { "status": "na", "reason": "Preview and send are independently protected at their action boundaries." },
+    "route_guard": { "status": "na", "reason": "Wizard entry prerequisites are owned by the separate Bulk Email mail-settings/entry contracts; this contract governs preview and send action boundaries." },
     "forms": { "status": "required" },
     "visual_qa": { "status": "required" },
     "backend_tests": { "status": "required" },
@@ -60,5 +60,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Bulk email preview has one canonical permission: fair_crm.fair_emails.preview. Bulk email send has one canonical permission: fair_crm.fair_emails.execute. Preview remains an independent optional capability and the absence of preview permission must not block an execute-authorized user from reaching or triggering Send. SendBulkEmailOperationUseCase independently resolves recipients and validates sender/template/subject and sendable recipients at send time, so the preview result is not a send prerequisite. The /operations/bulk-email/send endpoint internally creates and immediately starts an operation, but that bookkeeping is implementation detail and does not add fair_crm.operations.create or fair_crm.operations.execute as user-facing prerequisites. Generic non-bulk operation create/start actions retain their existing operations permissions."
+  "notes": "Bulk email preview has one canonical permission: fair_crm.fair_emails.preview. Bulk email send has one canonical mutation permission: fair_crm.fair_emails.execute. Wizard entry is governed separately by fair_crm.fair_emails.execute together with the mandatory fair_crm.mail_templates.read and fair_crm.email_accounts.read lookup prerequisites. Preview remains an independent optional capability, so absence of preview permission must not block preview-independent Send for a user who otherwise satisfies the wizard-entry prerequisites. SendBulkEmailOperationUseCase independently resolves recipients and validates sender/template/subject and sendable recipients at send time, so the preview result is not a send prerequisite. The /operations/bulk-email/send endpoint internally creates and immediately starts an operation, but that bookkeeping is implementation detail and does not add fair_crm.operations.create or fair_crm.operations.execute as user-facing prerequisites. Generic non-bulk operation create/start actions retain their existing operations permissions."
 }
