@@ -30,7 +30,7 @@
       },
       {
         "code": "fair_crm.scraper.execute",
-        "action": "start an Enrichment operation from Operation Detail",
+        "action": "start an Enrichment or Scraper operation from Operation Detail",
         "scope": "organization",
         "assignable": true
       }
@@ -62,5 +62,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Operation Detail remains readable with its existing read access. Bulk Email Start and Retry Failed use fair_crm.fair_emails.execute. Enrichment Start uses fair_crm.scraper.execute. Generic and Scraper Start plus Cancel continue to use fair_crm.operations.execute. Scraper Detail Start alignment is intentionally outside this focused change. Bulk Email export remains read-only under the existing backend export permission."
+  "notes": "Operation Detail remains readable with its existing read access. Bulk Email Start and Retry Failed use fair_crm.fair_emails.execute. Enrichment and Scraper Start use fair_crm.scraper.execute. Generic Start and Cancel continue to use fair_crm.operations.execute. Bulk Email export remains read-only under the existing backend export permission."
 }
