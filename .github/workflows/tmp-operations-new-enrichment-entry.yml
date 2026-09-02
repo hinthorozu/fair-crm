@@ -1,0 +1,66 @@
+name: One-shot enrichment new operation entry patch
+
+on:
+  push:
+    branches:
+      - fix/operations-new-enrichment-entry-permission
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/operations-new-enrichment-entry-permission
+          fetch-depth: 0
+      - name: Apply focused patch
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path("frontend/src/pages/OperationsPage.tsx")
+          data = path.read_bytes()
+
+          old = b"  const canOpenNewOperation = canCreate || canStartBulkEmail;"
+          new = b"  const canOpenNewOperation = canCreate || canStartBulkEmail || canStartScraperActions;"
+          if data.count(old) != 1:
+              raise SystemExit(f"expected one canOpenNewOperation match, found {data.count(old)}")
+          data = data.replace(old, new, 1)
+
+          old_lf = (
+              b"  const canSelectNewOperationType = React.useCallback(\n"
+              b"    (type: OperationType) => (type === \"bulk_email\" ? canStartBulkEmail : canCreate),\n"
+              b"    [canCreate, canStartBulkEmail],\n"
+              b"  );"
+          )
+          old = old_lf
+          nl = b"\n"
+          if old not in data:
+              old = old_lf.replace(b"\n", b"\r\n")
+              nl = b"\r\n"
+          new = nl.join([
+              b"  const canSelectNewOperationType = React.useCallback(",
+              b"    (type: OperationType) => {",
+              b"      if (type === \"bulk_email\") return canStartBulkEmail;",
+              b"      if (type === \"enrichment\") return canStartScraperActions;",
+              b"      return canCreate;",
+              b"    },",
+              b"    [canCreate, canStartBulkEmail, canStartScraperActions],",
+              b"  );",
+          ])
+          if data.count(old) != 1:
+              raise SystemExit(f"expected one canSelectNewOperationType match, found {data.count(old)}")
+          data = data.replace(old, new, 1)
+          path.write_bytes(data)
+      - name: Commit focused patch and remove workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/tmp-operations-new-enrichment-entry.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/src/pages/OperationsPage.tsx .github/workflows/tmp-operations-new-enrichment-entry.yml
+          git commit -m "fix(auth): align enrichment new operation entry permission"
+          git push origin HEAD:fix/operations-new-enrichment-entry-permission
