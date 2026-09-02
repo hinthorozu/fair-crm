@@ -1,0 +1,37 @@
+name: One-shot scraper new operation entry patch
+
+on:
+  push:
+    branches:
+      - fix/operations-new-scraper-entry-permission
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/operations-new-scraper-entry-permission
+      - name: Apply focused patch
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("frontend/src/pages/OperationsPage.tsx")
+          data = path.read_bytes()
+          old = b'if (type === "enrichment") return canStartScraperActions;'
+          new = b'if (type === "enrichment" || type === "scraper") return canStartScraperActions;'
+          if data.count(old) != 1:
+              raise SystemExit(f"expected exactly one target, found {data.count(old)}")
+          path.write_bytes(data.replace(old, new, 1))
+      - name: Commit focused patch and remove workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/tmp-operations-new-scraper-entry.yml
+          git add frontend/src/pages/OperationsPage.tsx
+          git commit -m "fix(auth): align scraper new operation entry permission"
+          git push origin HEAD:fix/operations-new-scraper-entry-permission
