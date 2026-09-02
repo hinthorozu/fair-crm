@@ -19,6 +19,7 @@ import {
   canSendMail,
   getGrantedPermissions,
 } from "../permissions/emailAccountPermissions";
+import { FAIR_READ } from "../permissions/fairPermissions";
 import type { MailOperationRecord, MailOperationSourceType, MailOperationStatus } from "../types/mailOperations";
 import type { EmailAccount } from "../types/smtp";
 import { Banner } from "../components/ui/Banner";
@@ -63,6 +64,7 @@ export function MailOperationsPage() {
   const grantedPermissions = React.useMemo(() => getGrantedPermissions(), []);
   const canRetry = canSendMail(grantedPermissions);
   const canReadEmailAccounts = canPerformEmailAccountAction(grantedPermissions, "read");
+  const canReadFairs = grantedPermissions.has(FAIR_READ);
   const [items, setItems] = React.useState<MailOperationRecord[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -368,19 +370,21 @@ export function MailOperationsPage() {
           </FormField>
         ) : null}
 
-        <FormField
-          label={adminLabels.mailOperationsFilterFair}
-          htmlFor="mail-operations-fair"
-        >
-          <FairEntitySelect
-            id="mail-operations-fair"
-            value={fair === "all" ? "" : fair}
-            onChange={(fairId) => setFair(fairId || "all")}
-            allowClear
-            placeholder={adminLabels.mailOperationsFilterAll}
-            clearOptionLabel={adminLabels.mailOperationsFilterAll}
-          />
-        </FormField>
+        {canReadFairs ? (
+          <FormField
+            label={adminLabels.mailOperationsFilterFair}
+            htmlFor="mail-operations-fair"
+          >
+            <FairEntitySelect
+              id="mail-operations-fair"
+              value={fair === "all" ? "" : fair}
+              onChange={(fairId) => setFair(fairId || "all")}
+              allowClear
+              placeholder={adminLabels.mailOperationsFilterAll}
+              clearOptionLabel={adminLabels.mailOperationsFilterAll}
+            />
+          </FormField>
+        ) : null}
 
         <FormField label={adminLabels.mailOperationsFilterDateFrom} htmlFor="mail-operations-date-from">
           <TextInput
