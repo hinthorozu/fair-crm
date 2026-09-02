@@ -11,6 +11,7 @@ import {
   PERMISSION_BACKUPS_READ,
   PERMISSION_CUSTOMERS_READ,
   PERMISSION_EMAIL_ACCOUNTS_READ,
+  PERMISSION_FAIRS_READ,
   PERMISSION_IMPORTS_CREATE,
   PERMISSION_IMPORTS_READ,
   PERMISSION_MAIL_SEND_OPERATIONS_READ,
@@ -98,6 +99,28 @@ describe("navigation permission rules", () => {
     ).toBe(true);
     expect(
       canAccessApplicationPath("/operations/new/scraper", granted(SCRAPER_PERMISSION_EXECUTE)),
+    ).toBe(false);
+    expect(
+      canAccessApplicationPath(
+        "/operations/new/scraper",
+        granted(SCRAPER_PERMISSION_EXECUTE, PERMISSION_FAIRS_READ),
+      ),
+    ).toBe(false);
+    expect(
+      canAccessApplicationPath(
+        "/operations/new/scraper",
+        granted(SCRAPER_PERMISSION_EXECUTE, PERMISSION_SCRAPER_READ),
+      ),
+    ).toBe(false);
+    expect(
+      canAccessApplicationPath(
+        "/operations/new/scraper",
+        granted(
+          SCRAPER_PERMISSION_EXECUTE,
+          PERMISSION_FAIRS_READ,
+          PERMISSION_SCRAPER_READ,
+        ),
+      ),
     ).toBe(true);
 
     const genericCreator = granted(PERMISSION_OPERATIONS_CREATE);

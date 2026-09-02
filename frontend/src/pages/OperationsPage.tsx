@@ -22,7 +22,11 @@ import {
   operationTypeLabels,
 } from "../labels/operationLabels";
 import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";
-import { PERMISSION_OPERATIONS_CREATE } from "../permissions/navigationPermissions";
+import {
+  PERMISSION_FAIRS_READ,
+  PERMISSION_OPERATIONS_CREATE,
+  PERMISSION_SCRAPER_READ,
+} from "../permissions/navigationPermissions";
 import { SCRAPER_PERMISSION_EXECUTE } from "../permissions/scraperPermissions";
 import { OPERATION_EXECUTE } from "../permissions/operationPermissions";
 import type {
@@ -52,8 +56,12 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
   const { can } = usePermissions();
   const canCreate = can(PERMISSION_OPERATIONS_CREATE);
   const canExecute = can(OPERATION_EXECUTE);
+  const canReadFairs = can(PERMISSION_FAIRS_READ);
+  const canReadScraper = can(PERMISSION_SCRAPER_READ);
   const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);
   const canStartScraperActions = can(SCRAPER_PERMISSION_EXECUTE);
+  const canCreateScraperOperation =
+    canStartScraperActions && canReadFairs && canReadScraper;
   const canOpenNewOperation = canCreate || canStartBulkEmail || canStartScraperActions;
   const [banner, setBanner] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
@@ -112,10 +120,11 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
   const canSelectNewOperationType = React.useCallback(
     (type: OperationType) => {
       if (type === "bulk_email") return canStartBulkEmail;
-      if (type === "enrichment" || type === "scraper") return canStartScraperActions;
+      if (type === "enrichment") return canStartScraperActions;
+      if (type === "scraper") return canCreateScraperOperation;
       return canCreate;
     },
-    [canCreate, canStartBulkEmail, canStartScraperActions],
+    [canCreate, canCreateScraperOperation, canStartBulkEmail, canStartScraperActions],
   );
 
   const canStartOperation = React.useCallback(
