@@ -53,5 +53,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Bulk Email wizard entry requires fair_crm.fair_emails.execute together with fair_crm.mail_templates.read and fair_crm.email_accounts.read because template and sender selection are mandatory to complete the wizard. The Operations-page type picker uses the same composite entry prerequisite. Send itself remains authorized only by fair_crm.fair_emails.execute, preview remains the independent optional fair_crm.fair_emails.preview capability, and fair_crm.operations.create is not a Bulk Email prerequisite. The email-account list client continues to fail closed locally when fair_crm.email_accounts.read is absent."
+  "notes": "Bulk Email wizard entry requires fair_crm.fair_emails.execute together with fair_crm.mail_templates.read and fair_crm.email_accounts.read because template and sender selection are mandatory to complete the wizard. The Operations-page type picker uses the same composite entry prerequisite. Send itself remains authorized only by fair_crm.fair_emails.execute, preview remains the independent optional fair_crm.fair_emails.read capability, and fair_crm.operations.create is not a Bulk Email prerequisite. The email-account list client continues to fail closed locally when fair_crm.email_accounts.read is absent."
 }
