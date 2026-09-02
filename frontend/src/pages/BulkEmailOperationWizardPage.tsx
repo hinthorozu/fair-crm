@@ -32,6 +32,10 @@ import { usePermissions } from "../hooks/usePermissions";
 import { adminLabels } from "../labels/adminLabels";
 import { fairLabels } from "../labels/fairLabels";
 import { FAIR_READ } from "../permissions/fairPermissions";
+import {
+  FAIR_EMAIL_PERMISSION_EXECUTE,
+  FAIR_EMAIL_PERMISSION_PREVIEW,
+} from "../permissions/fairEmailPermissions";
 import { operationLabels, wizardStepLabels } from "../labels/operationLabels";
 import {
   canPerformMailTemplateAction,
@@ -93,8 +97,6 @@ const EMPTY_WIZARD_STATE = {
 };
 
 const STEPS: Array<{ id: WizardStepId }> = BULK_EMAIL_WIZARD_STEPS.map((id) => ({ id }));
-const FAIR_EMAIL_PREVIEW_PERMISSION = "fair_crm.fair_emails.preview";
-const FAIR_EMAIL_EXECUTE_PERMISSION = "fair_crm.fair_emails.execute";
 
 export function BulkEmailOperationWizardPage({
   onCancel,
@@ -114,8 +116,8 @@ function BulkEmailOperationWizardPageInner({
   const requestLeave = useModalFormCancel(onCancel);
   const { can } = usePermissions();
   const canReadFairs = can(FAIR_READ);
-  const canPreviewBulkEmail = can(FAIR_EMAIL_PREVIEW_PERMISSION);
-  const canSendBulkEmail = can(FAIR_EMAIL_EXECUTE_PERMISSION);
+  const canPreviewBulkEmail = can(FAIR_EMAIL_PERMISSION_PREVIEW);
+  const canSendBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const mailSettingsLoadedRef = React.useRef(false);
   const previewRequestIdRef = React.useRef(0);
