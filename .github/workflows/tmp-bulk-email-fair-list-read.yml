@@ -1,0 +1,143 @@
+name: Temporary Bulk Email Fair List Permission Patch
+
+on:
+  push:
+    branches:
+      - fix/bulk-email-fair-list-read-permission
+    paths:
+      - .github/workflows/tmp-bulk-email-fair-list-read.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/bulk-email-fair-list-read-permission
+          fetch-depth: 0
+      - name: Apply narrow permission patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          def replace_bytes(path, old, new):
+              p = Path(path)
+              data = p.read_bytes()
+              newline = b"\r\n" if b"\r\n" in data else b"\n"
+              old_b = old.replace("\n", "\r\n" if newline == b"\r\n" else "\n").encode()
+              new_b = new.replace("\n", "\r\n" if newline == b"\r\n" else "\n").encode()
+              count = data.count(old_b)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected exactly one match, got {count}")
+              p.write_bytes(data.replace(old_b, new_b, 1))
+
+          page = "frontend/src/pages/BulkEmailOperationWizardPage.tsx"
+          replace_bytes(
+              page,
+              'import { fairLabels } from "../labels/fairLabels";\n',
+              'import { fairLabels } from "../labels/fairLabels";\nimport { FAIR_READ } from "../permissions/fairPermissions";\n',
+          )
+          replace_bytes(
+              page,
+              '  const { can } = usePermissions();\n  const canPreviewBulkEmail = can(FAIR_EMAIL_PREVIEW_PERMISSION);\n',
+              '  const { can } = usePermissions();\n  const canReadFairs = can(FAIR_READ);\n  const canPreviewBulkEmail = can(FAIR_EMAIL_PREVIEW_PERMISSION);\n',
+          )
+          replace_bytes(
+              page,
+              '  const handleSourceTypeChange = (next: string) => {\n    const typed = next as RecipientSourceType;\n    setSourceType(typed);\n',
+              '  const handleSourceTypeChange = (next: string) => {\n    const typed = next as RecipientSourceType;\n    if (typed === "fair_list" && !canReadFairs) return;\n    setSourceType(typed);\n',
+          )
+          replace_bytes(
+              page,
+              '                  <RadioField\n                    id="bulk-email-source-fair-list"\n                    name="bulk-email-recipient-source"\n                    label={operationLabels.bulkEmailSourceFairList}\n                    value="fair_list"\n                    checked={sourceType === "fair_list"}\n                    onChange={handleSourceTypeChange}\n                  />\n',
+              '                  {canReadFairs ? (\n                    <RadioField\n                      id="bulk-email-source-fair-list"\n                      name="bulk-email-recipient-source"\n                      label={operationLabels.bulkEmailSourceFairList}\n                      value="fair_list"\n                      checked={sourceType === "fair_list"}\n                      onChange={handleSourceTypeChange}\n                    />\n                  ) : null}\n',
+          )
+
+          test = "frontend/src/permissions/BulkEmailOperationWizardPermissions.test.ts"
+          replace_bytes(
+              test,
+              '  it("fails closed before preview and send operations", () => {\n',
+              '  it("hides and fails closed the fair-list source without fairs read", () => {\n    expect(source).toContain(\n      \'import { FAIR_READ } from "../permissions/fairPermissions";\',\n    );\n    expect(source).toContain("const canReadFairs = can(FAIR_READ);");\n    expect(source).toContain(\'if (typed === "fair_list" && !canReadFairs) return;\');\n    expect(source).toContain("{canReadFairs ? (");\n    expect(source).toContain(\'id="bulk-email-source-fair-list"\');\n    expect(source).toContain(\'id="bulk-email-source-manual"\');\n  });\n\n  it("fails closed before preview and send operations", () => {\n',
+          )
+
+          contract = {
+              "version": 1,
+              "id": "bulk-email-fair-list-source-permission-consistency",
+              "title": "Bulk Email Fair List Source Permission Consistency",
+              "feature_type": "ui_only",
+              "owner": "fair-crm",
+              "platform_reusability": "existing_core_capability",
+              "trigger": "user",
+              "tenant_scope": "organization",
+              "user_facing": True,
+              "affected_paths": [
+                  "frontend/src/pages/BulkEmailOperationWizardPage.tsx",
+                  "frontend/src/permissions/BulkEmailOperationWizardPermissions.test.ts",
+                  ".kyrox/features/bulk-email-fair-list-source-permission-consistency.json",
+              ],
+              "permissions": {
+                  "required": True,
+                  "items": [
+                      {
+                          "code": "fair_crm.fair_emails.execute",
+                          "action": "access the Bulk Email wizard and send bulk email",
+                          "scope": "organization",
+                          "assignable": True,
+                      },
+                      {
+                          "code": "fair_crm.fairs.read",
+                          "action": "discover and select fairs for the fair-list recipient source",
+                          "scope": "organization",
+                          "assignable": True,
+                      },
+                  ],
+              },
+              "frontend": {
+                  "required": True,
+                  "routes": ["/operations/new/bulk-email"],
+                  "menu": False,
+                  "menu_permission": None,
+              },
+              "applicability": {
+                  "database": {"status": "na", "reason": "No persistence changes are introduced."},
+                  "migration": {"status": "na", "reason": "Existing fair email execute and fair read permissions are reused."},
+                  "permissions": {"status": "required"},
+                  "backend": {"status": "na", "reason": "Existing backend fair read and Bulk Email send authorization remain unchanged and authoritative."},
+                  "api": {"status": "na", "reason": "No server API contract changes; the existing fair lookup client already fails closed without fair_crm.fairs.read."},
+                  "tenant_isolation": {"status": "na", "reason": "No organization-scoping behavior changes."},
+                  "audit": {"status": "na", "reason": "No mutation or audit behavior changes."},
+                  "frontend": {"status": "required"},
+                  "ui_permissions": {"status": "required"},
+                  "menu": {"status": "na", "reason": "No navigation menu changes are introduced."},
+                  "route_guard": {"status": "na", "reason": "The Bulk Email wizard route remains governed by fair_crm.fair_emails.execute; this change only gates the optional fair-list source."},
+                  "forms": {"status": "required"},
+                  "visual_qa": {"status": "required"},
+                  "backend_tests": {"status": "na", "reason": "Backend executable behavior is unchanged."},
+                  "frontend_tests": {"status": "required"},
+                  "runtime_authorization": {"status": "required"},
+                  "runtime_verification": {"status": "required"},
+                  "deployment": {"status": "required"},
+              },
+              "notes": "Bulk Email remains accessible and sendable with fair_crm.fair_emails.execute alone when the manual recipient source is used. The optional fair-list recipient source is a separate fair-discovery capability: it is hidden and its change handler fails closed when fair_crm.fairs.read is absent, preventing the shared FairEntitySelect from attempting a lookup that the fair client would reject. Preview and mail-setting permissions remain unchanged.",
+          }
+          Path(".kyrox/features/bulk-email-fair-list-source-permission-consistency.json").write_text(
+              json.dumps(contract, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          git add frontend/src/pages/BulkEmailOperationWizardPage.tsx \
+                  frontend/src/permissions/BulkEmailOperationWizardPermissions.test.ts \
+                  .kyrox/features/bulk-email-fair-list-source-permission-consistency.json
+          git diff --cached --check
+          git rm .github/workflows/tmp-bulk-email-fair-list-read.yml
+          git add .github/workflows/tmp-bulk-email-fair-list-read.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix(auth): gate bulk email fair-list source"
+          git push origin HEAD:fix/bulk-email-fair-list-read-permission
