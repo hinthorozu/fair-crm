@@ -1,0 +1,338 @@
+name: Temporary Import Wizard Fair Read Patch
+
+on:
+  push:
+    branches:
+      - fix/import-wizard-fair-read-prerequisite
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/import-wizard-fair-read-prerequisite
+          fetch-depth: 0
+
+      - name: Apply exact byte-level patch
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def block(lines):
+              return "\n".join(lines)
+
+          def replace_once(path, old_lines, new_lines):
+              p = Path(path)
+              data = p.read_bytes()
+              newline = b"\r\n" if b"\r\n" in data else b"\n"
+              old_b = block(old_lines).encode("utf-8").replace(b"\n", newline)
+              new_b = block(new_lines).encode("utf-8").replace(b"\n", newline)
+              count = data.count(old_b)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected 1 occurrence, found {count}")
+              p.write_bytes(data.replace(old_b, new_b, 1))
+
+          nav = "frontend/src/permissions/navigationPermissions.ts"
+          replace_once(nav, [
+              'export type PermissionRequirement =',
+              '  | { kind: "public" }',
+              '  | { kind: "permission"; permission: string }',
+              '  | { kind: "any"; permissions: readonly string[] };',
+          ], [
+              'export type PermissionRequirement =',
+              '  | { kind: "public" }',
+              '  | { kind: "permission"; permission: string }',
+              '  | { kind: "all"; permissions: readonly string[] }',
+              '  | { kind: "any"; permissions: readonly string[] }',
+              '  | { kind: "anyRequirement"; requirements: readonly PermissionRequirement[] };',
+          ])
+          replace_once(nav, [
+              '  "/data-integration": {',
+              '    kind: "any",',
+              '    permissions: [PERMISSION_IMPORTS_READ, PERMISSION_IMPORTS_CREATE, PERMISSION_SCRAPER_READ],',
+              '  },',
+          ], [
+              '  "/data-integration": {',
+              '    kind: "anyRequirement",',
+              '    requirements: [',
+              '      { kind: "permission", permission: PERMISSION_IMPORTS_READ },',
+              '      {',
+              '        kind: "all",',
+              '        permissions: [PERMISSION_IMPORTS_CREATE, PERMISSION_FAIRS_READ],',
+              '      },',
+              '      { kind: "permission", permission: PERMISSION_SCRAPER_READ },',
+              '    ],',
+              '  },',
+          ])
+          replace_once(nav, [
+              '  new: { kind: "permission", permission: PERMISSION_IMPORTS_CREATE },',
+          ], [
+              '  new: {',
+              '    kind: "all",',
+              '    permissions: [PERMISSION_IMPORTS_CREATE, PERMISSION_FAIRS_READ],',
+              '  },',
+          ])
+          replace_once(nav, [
+              '  if (requirement.kind === "permission") {',
+              '    return hasGrantedCorePermission(granted, requirement.permission);',
+              '  }',
+              '  return hasAnyGrantedCorePermission(granted, requirement.permissions);',
+          ], [
+              '  if (requirement.kind === "permission") {',
+              '    return hasGrantedCorePermission(granted, requirement.permission);',
+              '  }',
+              '  if (requirement.kind === "all") {',
+              '    return requirement.permissions.every((permission) =>',
+              '      hasGrantedCorePermission(granted, permission),',
+              '    );',
+              '  }',
+              '  if (requirement.kind === "anyRequirement") {',
+              '    return requirement.requirements.some((nested) =>',
+              '      satisfiesPermissionRequirement(granted, nested),',
+              '    );',
+              '  }',
+              '  return hasAnyGrantedCorePermission(granted, requirement.permissions);',
+          ])
+          replace_once(nav, [
+              '  if (',
+              '    pathname === "/data-integration/imports/new" ||',
+              '    pathname.startsWith("/data-integration/imports/fair/")',
+              '  ) {',
+              '    return hasGrantedCorePermission(granted, PERMISSION_IMPORTS_CREATE);',
+              '  }',
+          ], [
+              '  if (pathname === "/data-integration/imports/new") {',
+              '    return (',
+              '      hasGrantedCorePermission(granted, PERMISSION_IMPORTS_CREATE) &&',
+              '      hasGrantedCorePermission(granted, PERMISSION_FAIRS_READ)',
+              '    );',
+              '  }',
+              '  if (pathname.startsWith("/data-integration/imports/fair/")) {',
+              '    return hasGrantedCorePermission(granted, PERMISSION_IMPORTS_CREATE);',
+              '  }',
+          ])
+
+          nav_test = "frontend/src/permissions/navigationPermissions.test.ts"
+          replace_once(nav_test, [
+              '    const importCreator = granted(PERMISSION_IMPORTS_CREATE);',
+              '    expect(canAccessMainNavigation("/data-integration", importCreator)).toBe(true);',
+              '    expect(canAccessDataIntegrationSection("new", importCreator)).toBe(true);',
+              '    expect(canAccessApplicationPath("/imports", importCreator)).toBe(true);',
+              '    expect(resolvePermissionLandingPath("/data-integration/", importCreator)).toBe(',
+              '      "/data-integration/imports/new",',
+              '    );',
+          ], [
+              '    const importCreator = granted(PERMISSION_IMPORTS_CREATE);',
+              '    expect(canAccessMainNavigation("/data-integration", importCreator)).toBe(false);',
+              '    expect(canAccessDataIntegrationSection("new", importCreator)).toBe(false);',
+              '    expect(canAccessApplicationPath("/data-integration/imports/new", importCreator)).toBe(false);',
+              '    expect(',
+              '      canAccessApplicationPath("/data-integration/imports/fair/fair-1", importCreator),',
+              '    ).toBe(true);',
+              '    expect(canAccessApplicationPath("/imports", importCreator)).toBe(true);',
+              '    expect(resolvePermissionLandingPath("/data-integration/", importCreator)).toBeNull();',
+              '',
+              '    const generalImportCreator = granted(PERMISSION_IMPORTS_CREATE, PERMISSION_FAIRS_READ);',
+              '    expect(canAccessMainNavigation("/data-integration", generalImportCreator)).toBe(true);',
+              '    expect(canAccessDataIntegrationSection("new", generalImportCreator)).toBe(true);',
+              '    expect(',
+              '      canAccessApplicationPath("/data-integration/imports/new", generalImportCreator),',
+              '    ).toBe(true);',
+              '    expect(resolvePermissionLandingPath("/data-integration/", generalImportCreator)).toBe(',
+              '      "/data-integration/imports/new",',
+              '    );',
+          ])
+          replace_once(nav_test, [
+              '        granted(PERMISSION_IMPORTS_CREATE),',
+              '      ),',
+              '    ).toBe("/data-integration/imports/new");',
+          ], [
+              '        granted(PERMISSION_IMPORTS_CREATE, PERMISSION_FAIRS_READ),',
+              '      ),',
+              '    ).toBe("/data-integration/imports/new");',
+          ])
+
+          dashboard = "frontend/src/permissions/dashboardImportActionPermissions.ts"
+          replace_once(dashboard, [
+              'export const DASHBOARD_IMPORT_CREATE = "fair_crm.imports.create";',
+              '',
+              'export function canStartDashboardImport(',
+              '  granted: GrantedPermissionCollection,',
+              '): boolean {',
+              '  return hasGrantedCorePermission(granted, DASHBOARD_IMPORT_CREATE);',
+              '}',
+          ], [
+              'export const DASHBOARD_IMPORT_CREATE = "fair_crm.imports.create";',
+              'export const DASHBOARD_IMPORT_FAIRS_READ = "fair_crm.fairs.read";',
+              '',
+              'export function canStartDashboardImport(',
+              '  granted: GrantedPermissionCollection,',
+              '): boolean {',
+              '  return (',
+              '    hasGrantedCorePermission(granted, DASHBOARD_IMPORT_CREATE) &&',
+              '    hasGrantedCorePermission(granted, DASHBOARD_IMPORT_FAIRS_READ)',
+              '  );',
+              '}',
+          ])
+
+          dashboard_test = "frontend/src/permissions/dashboardImportActionPermissions.test.ts"
+          replace_once(dashboard_test, [
+              'import {',
+              '  canStartDashboardImport,',
+              '  DASHBOARD_IMPORT_CREATE,',
+              '} from "./dashboardImportActionPermissions";',
+              '',
+              'describe("dashboard import action permissions", () => {',
+              '  it("requires imports.create before offering import start navigation", () => {',
+              '    expect(canStartDashboardImport([])).toBe(false);',
+              '    expect(canStartDashboardImport([DASHBOARD_IMPORT_CREATE])).toBe(true);',
+              '  });',
+              '});',
+          ], [
+              'import {',
+              '  canStartDashboardImport,',
+              '  DASHBOARD_IMPORT_CREATE,',
+              '  DASHBOARD_IMPORT_FAIRS_READ,',
+              '} from "./dashboardImportActionPermissions";',
+              '',
+              'describe("dashboard import action permissions", () => {',
+              '  it("requires import create plus fair discovery before offering general import navigation", () => {',
+              '    expect(canStartDashboardImport([])).toBe(false);',
+              '    expect(canStartDashboardImport([DASHBOARD_IMPORT_CREATE])).toBe(false);',
+              '    expect(canStartDashboardImport([DASHBOARD_IMPORT_FAIRS_READ])).toBe(false);',
+              '    expect(',
+              '      canStartDashboardImport([DASHBOARD_IMPORT_CREATE, DASHBOARD_IMPORT_FAIRS_READ]),',
+              '    ).toBe(true);',
+              '  });',
+              '});',
+          ])
+
+          import_contract = ".kyrox/features/import-wizard-create-permission-consistency.json"
+          replace_once(import_contract, [
+              '    "frontend/src/pages/ImportWizardPage.tsx",',
+              '    "frontend/src/permissions/importPermissions.ts",',
+          ], [
+              '    "frontend/src/pages/ImportWizardPage.tsx",',
+              '    "frontend/src/permissions/navigationPermissions.ts",',
+              '    "frontend/src/permissions/navigationPermissions.test.ts",',
+              '    "frontend/src/permissions/importPermissions.ts",',
+          ])
+          replace_once(import_contract, [
+              '        "code": "fair_crm.imports.create",',
+              '        "action": "upload a new raw import file",',
+              '        "scope": "organization",',
+              '        "assignable": true',
+              '      }',
+          ], [
+              '        "code": "fair_crm.imports.create",',
+              '        "action": "upload a new raw import file",',
+              '        "scope": "organization",',
+              '        "assignable": true',
+              '      },',
+              '      {',
+              '        "code": "fair_crm.fairs.read",',
+              '        "action": "discover and select the mandatory fair in the general new-import wizard",',
+              '        "scope": "organization",',
+              '        "assignable": true',
+              '      }',
+          ])
+          replace_once(import_contract, [
+              '    "migration": { "status": "na", "reason": "The existing fair_crm.imports.create permission is reused." },',
+          ], [
+              '    "migration": { "status": "na", "reason": "Existing fair_crm.imports.create and fair_crm.fairs.read permissions are reused." },',
+          ])
+          replace_once(import_contract, [
+              '    "api": { "status": "na", "reason": "No server API contract changes." },',
+          ], [
+              '    "api": { "status": "na", "reason": "No server API contract changes; the mandatory fair selector already uses the existing fair_crm.fairs.read boundary." },',
+          ])
+          replace_once(import_contract, [
+              '    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },',
+              '    "route_guard": { "status": "na", "reason": "The wizard remains readable; only creating a new import requires imports.create." },',
+          ], [
+              '    "menu": { "status": "required" },',
+              '    "route_guard": { "status": "required" },',
+          ])
+          replace_once(import_contract, [
+              '  "notes": "Import Wizard raw upload was reachable without a matching UI permission check. Backend UploadRawImportUseCase requires fair_crm.imports.create; the UI now fails closed and disables new-upload entry points when that permission is absent while setup-resume remains available."',
+          ], [
+              '  "notes": "The raw upload mutation remains governed only by fair_crm.imports.create. The general /data-integration/imports/new entry additionally requires fair_crm.fairs.read because the wizard cannot satisfy its mandatory fair_id input without the user-visible FairEntitySelect lookup. The fair-scoped /data-integration/imports/fair/:fairId route remains create-only because the fair id is already supplied, and resume remains governed separately by imports.update."',
+          ])
+
+          dashboard_contract = ".kyrox/features/dashboard-import-action-permission-consistency.json"
+          replace_once(dashboard_contract, [
+              '        "code": "fair_crm.imports.create",',
+              '        "action": "start a new import from the Dashboard quick actions",',
+              '        "scope": "organization",',
+              '        "assignable": true',
+              '      }',
+          ], [
+              '        "code": "fair_crm.imports.create",',
+              '        "action": "authorize creation of a new import from the Dashboard quick actions",',
+              '        "scope": "organization",',
+              '        "assignable": true',
+              '      },',
+              '      {',
+              '        "code": "fair_crm.fairs.read",',
+              '        "action": "discover the mandatory fair after entering the general new-import wizard",',
+              '        "scope": "organization",',
+              '        "assignable": true',
+              '      }',
+          ])
+          replace_once(dashboard_contract, [
+              '    "migration": { "status": "na", "reason": "The existing fair_crm.imports.create permission is reused." },',
+          ], [
+              '    "migration": { "status": "na", "reason": "Existing fair_crm.imports.create and fair_crm.fairs.read permissions are reused." },',
+          ])
+          replace_once(dashboard_contract, [
+              '    "api": { "status": "na", "reason": "No server API contracts change; only Dashboard import-start visibility is aligned with the existing route guard." },',
+          ], [
+              '    "api": { "status": "na", "reason": "No server API contracts change; Dashboard visibility is aligned with the existing import-create and fair-list authorization boundaries." },',
+          ])
+          replace_once(dashboard_contract, [
+              '    "route_guard": { "status": "na", "reason": "The /data-integration/imports/new route already requires fair_crm.imports.create; this change aligns the originating Dashboard quick action." },',
+          ], [
+              '    "route_guard": { "status": "required" },',
+          ])
+          replace_once(dashboard_contract, [
+              '  "notes": "Dashboard previously rendered the Import Baslat quick action for every authenticated organization user even when fair_crm.imports.create was absent. The action now fails closed in the UI and is offered only when import-create permission is granted. Dashboard access itself remains unchanged."',
+          ], [
+              '  "notes": "Dashboard Import Baslat navigates to the general new-import wizard, where selecting a fair is mandatory before upload. The quick action therefore fails closed unless both fair_crm.imports.create and fair_crm.fairs.read are granted. The upload mutation itself remains imports.create-only, fair-scoped import entry remains create-only, and Dashboard access itself is unchanged."',
+          ])
+
+          landing_contract = ".kyrox/features/ui-permission-root-landing-alignment.json"
+          replace_once(landing_contract, [
+              '      { "code": "fair_crm.imports.create", "action": "open new import as an accessible data-integration landing", "scope": "organization", "assignable": true },',
+              '      { "code": "fair_crm.scraper.read", "action": "open adapter management as an accessible data-integration landing", "scope": "organization", "assignable": true },',
+          ], [
+              '      { "code": "fair_crm.imports.create", "action": "authorize the general new-import landing", "scope": "organization", "assignable": true },',
+              '      { "code": "fair_crm.fairs.read", "action": "discover the mandatory fair required by the general new-import landing", "scope": "organization", "assignable": true },',
+              '      { "code": "fair_crm.scraper.read", "action": "open adapter management as an accessible data-integration landing", "scope": "organization", "assignable": true },',
+          ])
+          replace_once(landing_contract, [
+              '  "notes": "Root administration and data-integration URLs must never default to a child surface the user cannot read. They resolve to the first child route permitted by the existing effective Core permission set, and protected children remain suppressed while the redirect is pending. Create-only import access is also represented in the main Data Integration navigation because it has a valid generic creation landing route. No role-name inference or backend authorization change is introduced."',
+          ], [
+              '  "notes": "Root administration and data-integration URLs must never default to a child surface the user cannot actually use. They resolve to the first child route permitted by the effective Core permission set, and protected children remain suppressed while the redirect is pending. The general new-import landing is available only with imports.create plus fairs.read because its fair selection is mandatory; imports.create alone still authorizes fair-scoped import creation but does not create a valid Data Integration root landing. No role-name inference or backend authorization change is introduced."',
+          ])
+
+          Path(".github/workflows/tmp-import-wizard-fair-read.yml").unlink()
+
+      - name: Commit patch and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/src/permissions/navigationPermissions.ts \
+                  frontend/src/permissions/navigationPermissions.test.ts \
+                  frontend/src/permissions/dashboardImportActionPermissions.ts \
+                  frontend/src/permissions/dashboardImportActionPermissions.test.ts \
+                  .kyrox/features/import-wizard-create-permission-consistency.json \
+                  .kyrox/features/dashboard-import-action-permission-consistency.json \
+                  .kyrox/features/ui-permission-root-landing-alignment.json \
+                  .github/workflows/tmp-import-wizard-fair-read.yml
+          git commit -m "fix(auth): align import wizard fair read prerequisite"
+          git push origin HEAD:fix/import-wizard-fair-read-prerequisite
