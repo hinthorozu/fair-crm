@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "id": "bulk-email-fair-list-source-permission-consistency",
+  "title": "Bulk Email Fair List Source Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/BulkEmailOperationWizardPage.tsx",
+    "frontend/src/permissions/BulkEmailOperationWizardPermissions.test.ts",
+    ".kyrox/features/bulk-email-fair-list-source-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.fair_emails.execute",
+        "action": "access the Bulk Email wizard and send bulk email",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.fairs.read",
+        "action": "discover and select fairs for the fair-list recipient source",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/operations/new/bulk-email"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": {
+      "status": "na",
+      "reason": "No persistence changes are introduced."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "Existing fair email execute and fair read permissions are reused."
+    },
+    "permissions": {
+      "status": "required"
+    },
+    "backend": {
+      "status": "na",
+      "reason": "Existing backend fair read and Bulk Email send authorization remain unchanged and authoritative."
+    },
+    "api": {
+      "status": "na",
+      "reason": "No server API contract changes; the existing fair lookup client already fails closed without fair_crm.fairs.read."
+    },
+    "tenant_isolation": {
+      "status": "na",
+      "reason": "No organization-scoping behavior changes."
+    },
+    "audit": {
+      "status": "na",
+      "reason": "No mutation or audit behavior changes."
+    },
+    "frontend": {
+      "status": "required"
+    },
+    "ui_permissions": {
+      "status": "required"
+    },
+    "menu": {
+      "status": "na",
+      "reason": "No navigation menu changes are introduced."
+    },
+    "route_guard": {
+      "status": "na",
+      "reason": "The Bulk Email wizard route remains governed by fair_crm.fair_emails.execute; this change only gates the optional fair-list source."
+    },
+    "forms": {
+      "status": "required"
+    },
+    "visual_qa": {
+      "status": "required"
+    },
+    "backend_tests": {
+      "status": "na",
+      "reason": "Backend executable behavior is unchanged."
+    },
+    "frontend_tests": {
+      "status": "required"
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
+  },
+  "notes": "Bulk Email remains accessible and sendable with fair_crm.fair_emails.execute alone when the manual recipient source is used. The optional fair-list recipient source is a separate fair-discovery capability: it is hidden and its change handler fails closed when fair_crm.fairs.read is absent, preventing the shared FairEntitySelect from attempting a lookup that the fair client would reject. Preview and mail-setting permissions remain unchanged."
+}

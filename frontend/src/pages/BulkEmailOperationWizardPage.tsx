@@ -31,6 +31,7 @@ import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 import { usePermissions } from "../hooks/usePermissions";
 import { adminLabels } from "../labels/adminLabels";
 import { fairLabels } from "../labels/fairLabels";
+import { FAIR_READ } from "../permissions/fairPermissions";
 import { operationLabels, wizardStepLabels } from "../labels/operationLabels";
 import {
   canPerformMailTemplateAction,
@@ -112,6 +113,7 @@ function BulkEmailOperationWizardPageInner({
 }: BulkEmailOperationWizardPageProps) {
   const requestLeave = useModalFormCancel(onCancel);
   const { can } = usePermissions();
+  const canReadFairs = can(FAIR_READ);
   const canPreviewBulkEmail = can(FAIR_EMAIL_PREVIEW_PERMISSION);
   const canSendBulkEmail = can(FAIR_EMAIL_EXECUTE_PERMISSION);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -427,6 +429,7 @@ function BulkEmailOperationWizardPageInner({
 
   const handleSourceTypeChange = (next: string) => {
     const typed = next as RecipientSourceType;
+    if (typed === "fair_list" && !canReadFairs) return;
     setSourceType(typed);
     setFieldError(null);
     invalidatePreview();
@@ -662,14 +665,16 @@ function BulkEmailOperationWizardPageInner({
                     checked={sourceType === "manual"}
                     onChange={handleSourceTypeChange}
                   />
-                  <RadioField
-                    id="bulk-email-source-fair-list"
-                    name="bulk-email-recipient-source"
-                    label={operationLabels.bulkEmailSourceFairList}
-                    value="fair_list"
-                    checked={sourceType === "fair_list"}
-                    onChange={handleSourceTypeChange}
-                  />
+                  {canReadFairs ? (
+                    <RadioField
+                      id="bulk-email-source-fair-list"
+                      name="bulk-email-recipient-source"
+                      label={operationLabels.bulkEmailSourceFairList}
+                      value="fair_list"
+                      checked={sourceType === "fair_list"}
+                      onChange={handleSourceTypeChange}
+                    />
+                  ) : null}
                 </div>
               </FormField>
             </FormSection>

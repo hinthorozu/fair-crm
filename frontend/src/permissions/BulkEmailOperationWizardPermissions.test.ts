@@ -20,6 +20,17 @@ describe("BulkEmailOperationWizardPage permissions", () => {
     expect(source).not.toContain("OPERATION_EXECUTE");
   });
 
+  it("hides and fails closed the fair-list source without fairs read", () => {
+    expect(source).toContain(
+      'import { FAIR_READ } from "../permissions/fairPermissions";',
+    );
+    expect(source).toContain("const canReadFairs = can(FAIR_READ);");
+    expect(source).toContain('if (typed === "fair_list" && !canReadFairs) return;');
+    expect(source).toContain("{canReadFairs ? (");
+    expect(source).toContain('id="bulk-email-source-fair-list"');
+    expect(source).toContain('id="bulk-email-source-manual"');
+  });
+
   it("fails closed before preview and send operations", () => {
     expect(source).toContain("if (!canPreviewBulkEmail) {");
     expect(source).toContain("const result = await previewBulkEmailOperation({");
