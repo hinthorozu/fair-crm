@@ -12,10 +12,24 @@ describe("OperationDetailPage execute permissions", () => {
       'import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";',
     );
     expect(source).toContain("const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);");
-    expect(source).toContain("const canStartOperation = isBulkEmailOp ? canStartBulkEmail : canExecute;");
+    expect(source).toContain("const canStartOperation = isBulkEmailOp");
+    expect(source).toContain("? canStartBulkEmail");
+    expect(source).toContain(": isEnrichmentOp");
+    expect(source).toContain(": canExecute;");
     expect(source).toContain("const handleStart = async () => {\n    if (!canStartOperation) return;");
     expect(source).toContain("const canStart =\n    canStartOperation &&");
     expect(source).toContain("await startOperation(operationId);");
+  });
+
+  it("uses scraper execute for Enrichment Start", () => {
+    expect(source).toContain(
+      'import { SCRAPER_PERMISSION_EXECUTE } from "../permissions/scraperPermissions";',
+    );
+    expect(source).toContain("const canStartEnrichment = can(SCRAPER_PERMISSION_EXECUTE);");
+    expect(source).toContain(
+      'const isEnrichmentOp = detail?.operation.operation_type === "enrichment";',
+    );
+    expect(source).toContain("? canStartEnrichment");
   });
 
   it("keeps operation execute at the Cancel mutation boundary", () => {

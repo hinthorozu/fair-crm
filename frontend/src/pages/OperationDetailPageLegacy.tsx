@@ -35,6 +35,7 @@ import { scraperLabels } from "../labels/scraperLabels";
 import { todoPriorityLabels, todoStatusLabels } from "../labels/todoLabels";
 import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";
 import { OPERATION_EXECUTE } from "../permissions/operationPermissions";
+import { SCRAPER_PERMISSION_EXECUTE } from "../permissions/scraperPermissions";
 import type {
   OperationDetail,
   OperationRun,
@@ -116,6 +117,7 @@ export function OperationDetailPage({
   const { can } = usePermissions();
   const canExecute = can(OPERATION_EXECUTE);
   const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);
+  const canStartEnrichment = can(SCRAPER_PERMISSION_EXECUTE);
   const canRetryBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);
   const [detail, setDetail] = React.useState<OperationDetail | null>(null);
   const [linkedTodo, setLinkedTodo] = React.useState<Todo | null>(null);
@@ -299,7 +301,12 @@ export function OperationDetailPage({
     detail?.operation.latest_run?.status ?? detail?.runs[0]?.status ?? null;
   const shouldPoll = latestStatus === "queued" || latestStatus === "running";
   const isBulkEmailOp = detail?.operation.operation_type === "bulk_email";
-  const canStartOperation = isBulkEmailOp ? canStartBulkEmail : canExecute;
+  const isEnrichmentOp = detail?.operation.operation_type === "enrichment";
+  const canStartOperation = isBulkEmailOp
+    ? canStartBulkEmail
+    : isEnrichmentOp
+      ? canStartEnrichment
+      : canExecute;
 
   const loadBulkEmailExtras = React.useCallback(
     async (options?: { silent?: boolean; includeLogs?: boolean }) => {
