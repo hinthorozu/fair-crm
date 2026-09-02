@@ -9,13 +9,17 @@ const source = readFileSync(
 describe("BulkEmailOperationWizardPage permissions", () => {
   it("uses one canonical permission for each bulk email action", () => {
     expect(source).toContain(
-      'const FAIR_EMAIL_PREVIEW_PERMISSION = "fair_crm.fair_emails.preview";',
+      "FAIR_EMAIL_PERMISSION_PREVIEW,",
     );
     expect(source).toContain(
-      'const FAIR_EMAIL_EXECUTE_PERMISSION = "fair_crm.fair_emails.execute";',
+      "FAIR_EMAIL_PERMISSION_EXECUTE,",
     );
-    expect(source).toContain("const canPreviewBulkEmail = can(FAIR_EMAIL_PREVIEW_PERMISSION);");
-    expect(source).toContain("const canSendBulkEmail = can(FAIR_EMAIL_EXECUTE_PERMISSION);");
+    expect(source).toContain(
+      'from "../permissions/fairEmailPermissions";',
+    );
+    expect(source).toContain("const canPreviewBulkEmail = can(FAIR_EMAIL_PERMISSION_PREVIEW);");
+    expect(source).toContain("const canSendBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);");
+    expect(source).not.toContain("fair_crm.fair_emails.preview");
     expect(source).not.toContain("PERMISSION_OPERATIONS_CREATE");
     expect(source).not.toContain("OPERATION_EXECUTE");
   });
