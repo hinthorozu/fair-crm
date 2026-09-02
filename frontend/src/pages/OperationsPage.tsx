@@ -53,7 +53,7 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
   const canCreate = can(PERMISSION_OPERATIONS_CREATE);
   const canExecute = can(OPERATION_EXECUTE);
   const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);
-  const canStartEnrichment = can(SCRAPER_PERMISSION_EXECUTE);
+  const canStartScraperActions = can(SCRAPER_PERMISSION_EXECUTE);
   const [banner, setBanner] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
@@ -111,10 +111,14 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
   const canStartOperation = React.useCallback(
     (operation: Operation) => {
       if (operation.operation_type === "bulk_email") return canStartBulkEmail;
-      if (operation.operation_type === "enrichment") return canStartEnrichment;
+      if (
+        operation.operation_type === "enrichment" ||
+        operation.operation_type === "scraper"
+      )
+        return canStartScraperActions;
       return canExecute;
     },
-    [canExecute, canStartBulkEmail, canStartEnrichment],
+    [canExecute, canStartBulkEmail, canStartScraperActions],
   );
 
   const handleStart = async (operation: Operation) => {
