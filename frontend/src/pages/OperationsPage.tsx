@@ -23,6 +23,7 @@ import {
 } from "../labels/operationLabels";
 import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";
 import { PERMISSION_OPERATIONS_CREATE } from "../permissions/navigationPermissions";
+import { SCRAPER_PERMISSION_EXECUTE } from "../permissions/scraperPermissions";
 import { OPERATION_EXECUTE } from "../permissions/operationPermissions";
 import type {
   Operation,
@@ -52,6 +53,7 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
   const canCreate = can(PERMISSION_OPERATIONS_CREATE);
   const canExecute = can(OPERATION_EXECUTE);
   const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);
+  const canStartEnrichment = can(SCRAPER_PERMISSION_EXECUTE);
   const [banner, setBanner] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
@@ -107,9 +109,12 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
   }, [banner]);
 
   const canStartOperation = React.useCallback(
-    (operation: Operation) =>
-      operation.operation_type === "bulk_email" ? canStartBulkEmail : canExecute,
-    [canExecute, canStartBulkEmail],
+    (operation: Operation) => {
+      if (operation.operation_type === "bulk_email") return canStartBulkEmail;
+      if (operation.operation_type === "enrichment") return canStartEnrichment;
+      return canExecute;
+    },
+    [canExecute, canStartBulkEmail, canStartEnrichment],
   );
 
   const handleStart = async (operation: Operation) => {
