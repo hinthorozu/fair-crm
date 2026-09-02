@@ -43,9 +43,10 @@ describe("Operations action permissions", () => {
     expect(modalSource).toContain("!isTypeAllowed || isTypeAllowed(item.type)");
   });
 
-  it("allows scraper execute to open and select only the Enrichment specialized entry", () => {
-    expect(source).toContain('if (type === "enrichment") return canStartScraperActions;');
-    expect(source).not.toContain('if (type === "scraper") return canStartScraperActions;');
+  it("allows scraper execute to open and select Enrichment and Scraper specialized entries", () => {
+    expect(source).toContain(
+      'if (type === "enrichment" || type === "scraper") return canStartScraperActions;',
+    );
     expect(source).toContain("return canCreate;");
   });
 
