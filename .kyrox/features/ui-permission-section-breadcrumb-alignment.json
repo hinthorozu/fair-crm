@@ -17,12 +17,28 @@
   "permissions": {
     "required": true,
     "items": [
-      { "code": "identity.users.read", "action": "resolve the Administration breadcrumb to an accessible child section", "scope": "organization", "assignable": true },
+      { "code": "identity.organizations.read", "action": "resolve the Administration breadcrumb to organization administration when accessible", "scope": "organization", "assignable": true },
+      { "code": "identity.users.read", "action": "resolve the Administration breadcrumb to user administration when accessible", "scope": "organization", "assignable": true },
+      { "code": "identity.roles.read", "action": "resolve the Administration breadcrumb to role administration when accessible", "scope": "organization", "assignable": true },
       { "code": "fair_crm.admin.backups.read", "action": "resolve the Administration breadcrumb to database backups when accessible", "scope": "system", "assignable": false },
+      { "code": "fair_crm.cost_catalog.categories.read", "action": "resolve the Administration breadcrumb to Cost Catalog through category read access", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.categories.create", "action": "resolve the Administration breadcrumb to Cost Catalog through category create access", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.categories.update", "action": "resolve the Administration breadcrumb to Cost Catalog through category update access", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.categories.delete", "action": "resolve the Administration breadcrumb to Cost Catalog through category delete access", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.products.read", "action": "resolve the Administration breadcrumb to Cost Catalog through product read access", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.products.create", "action": "resolve the Administration breadcrumb to Cost Catalog through product create access", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.products.update", "action": "resolve the Administration breadcrumb to Cost Catalog through product update access", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.products.delete", "action": "resolve the Administration breadcrumb to Cost Catalog through product delete access", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.email_accounts.read", "action": "resolve the Administration breadcrumb to email account administration when accessible", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.mail_templates.read", "action": "resolve the Administration breadcrumb to mail templates when accessible", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.quote_templates.read", "action": "resolve the Administration breadcrumb to quote templates when accessible", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.template_contents.read", "action": "resolve the Administration breadcrumb to template contents when accessible", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.mail_send_operations.read", "action": "resolve the Administration breadcrumb to mail operations when accessible", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.operations.read", "action": "resolve the Administration breadcrumb to operation capabilities when accessible", "scope": "organization", "assignable": true },
       { "code": "fair_crm.imports.read", "action": "resolve the Data Integration breadcrumb to imports when accessible", "scope": "organization", "assignable": true },
-      { "code": "fair_crm.imports.create", "action": "resolve the Data Integration breadcrumb to new import for create-only access", "scope": "organization", "assignable": true },
-      { "code": "fair_crm.scraper.read", "action": "resolve the Data Integration breadcrumb to adapter management for scraper-only access", "scope": "organization", "assignable": true },
-      { "code": "fair_crm.mail_send_operations.read", "action": "resolve the Administration breadcrumb to mail operations when accessible", "scope": "organization", "assignable": true }
+      { "code": "fair_crm.imports.create", "action": "participate in the composite general new-import breadcrumb landing prerequisite", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fairs.read", "action": "complete the mandatory fair-discovery prerequisite for the general new-import breadcrumb landing", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.scraper.read", "action": "resolve the Data Integration breadcrumb to adapter management for scraper-only access", "scope": "organization", "assignable": true }
     ]
   },
   "frontend": {
@@ -54,5 +70,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "The module-root breadcrumb for Administration and Data Integration must use the same effective-permission child resolution as the sidebar/root landing behavior. It must not send a user to Backups or Imports merely because those were historical defaults. Legacy admin/data-operations routes are excluded because they resolve into the Operations surface. Backend authorization and role semantics are unchanged."
+  "notes": "The module-root breadcrumb for Administration and Data Integration must use the same effective-permission child resolution as the sidebar/root landing behavior. Administration breadcrumb resolution follows the full current ADMIN_NAV_REQUIREMENTS matrix, including Cost Catalog access through any category/product CRUD capability and the email/template/mail-operation/operation-capability sections. The general Data Integration new-import breadcrumb landing requires imports.create together with fairs.read because fair selection is mandatory; imports.create alone does not produce a valid general root landing. The breadcrumb must not send a user to Backups or Imports merely because those were historical defaults. Legacy admin/data-operations routes are excluded because they resolve into the Operations surface. Backend authorization and role semantics are unchanged."
 }
