@@ -21,11 +21,24 @@
       { "code": "identity.users.read", "action": "open user administration as an accessible administration landing", "scope": "organization", "assignable": true },
       { "code": "identity.roles.read", "action": "open role administration as an accessible administration landing", "scope": "organization", "assignable": true },
       { "code": "fair_crm.admin.backups.read", "action": "open database backups as an accessible system administration landing", "scope": "system", "assignable": false },
+      { "code": "fair_crm.cost_catalog.categories.read", "action": "open Cost Catalog as an accessible administration landing through category read access", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.categories.create", "action": "open Cost Catalog as an accessible administration landing through category create access", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.categories.update", "action": "open Cost Catalog as an accessible administration landing through category update access", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.categories.delete", "action": "open Cost Catalog as an accessible administration landing through category delete access", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.products.read", "action": "open Cost Catalog as an accessible administration landing through product read access", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.products.create", "action": "open Cost Catalog as an accessible administration landing through product create access", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.products.update", "action": "open Cost Catalog as an accessible administration landing through product update access", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.cost_catalog.products.delete", "action": "open Cost Catalog as an accessible administration landing through product delete access", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.email_accounts.read", "action": "open email account administration as an accessible administration landing", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.mail_templates.read", "action": "open mail templates as an accessible administration landing", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.quote_templates.read", "action": "open quote templates as an accessible administration landing", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.template_contents.read", "action": "open template contents as an accessible administration landing", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.mail_send_operations.read", "action": "open mail operations as an accessible administration landing", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.operations.read", "action": "open operation capabilities as an accessible administration landing", "scope": "organization", "assignable": true },
       { "code": "fair_crm.imports.read", "action": "open import list as an accessible data-integration landing", "scope": "organization", "assignable": true },
       { "code": "fair_crm.imports.create", "action": "authorize the general new-import landing", "scope": "organization", "assignable": true },
       { "code": "fair_crm.fairs.read", "action": "discover the mandatory fair required by the general new-import landing", "scope": "organization", "assignable": true },
-      { "code": "fair_crm.scraper.read", "action": "open adapter management as an accessible data-integration landing", "scope": "organization", "assignable": true },
-      { "code": "fair_crm.mail_send_operations.read", "action": "open mail operations as an accessible administration landing", "scope": "organization", "assignable": true }
+      { "code": "fair_crm.scraper.read", "action": "open adapter management as an accessible data-integration landing", "scope": "organization", "assignable": true }
     ]
   },
   "frontend": {
@@ -59,5 +72,6 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Root administration and data-integration URLs must never default to a child surface the user cannot actually use. They resolve to the first child route permitted by the effective Core permission set, and protected children remain suppressed while the redirect is pending. The general new-import landing is available only with imports.create plus fairs.read because its fair selection is mandatory; imports.create alone still authorizes fair-scoped import creation but does not create a valid Data Integration root landing. No role-name inference or backend authorization change is introduced."
+  "notes": "Root administration and data-integration URLs must never default to a child surface the user cannot actually use. They resolve to the first child route permitted by the effective Core permission set, and protected children remain suppressed while the redirect is pending. Administration landing resolution follows the full current ADMIN_NAV_REQUIREMENTS matrix, including Cost Catalog access through any of its category/product CRUD capabilities and the email/template/mail-operation/operation-capability sections. The general new-import landing is available only with imports.create plus fairs.read because its fair selection is mandatory; imports.create alone still authorizes fair-scoped import creation but does not create a valid Data Integration root landing. No role-name inference or backend authorization change is introduced.",
+  "_comment": "Contract-only alignment with current firstAccessibleAdminPath and firstAccessibleDataIntegrationPath behavior."
 }
