@@ -143,6 +143,7 @@ export const importLabels = {
 } as const;
 
 export const importBatchStatusLabels: Record<string, string> = {
+  received: "Analiz Bekliyor",
   uploaded: "Yüklendi",
   sheet_selected: "Sayfa Seçildi",
   header_configured: "Başlık Ayarlandı",
