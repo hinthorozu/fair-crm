@@ -1,0 +1,80 @@
+name: One-shot bulk email send preview independence patch
+on:
+  push:
+    branches:
+      - fix/bulk-email-send-preview-independence
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/bulk-email-send-preview-independence
+          fetch-depth: 0
+      - name: Apply focused patch
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def patch_text(path_str, replacements):
+              path = Path(path_str)
+              raw = path.read_bytes()
+              newline = b'\r\n' if b'\r\n' in raw else b'\n'
+              normalized = raw.decode('utf-8').replace('\r\n', '\n')
+              for old, new in replacements:
+                  if normalized.count(old) != 1:
+                      raise SystemExit(f'expected exactly one match in {path_str}: {old[:100]!r}; got {normalized.count(old)}')
+                  normalized = normalized.replace(old, new, 1)
+              path.write_bytes(normalized.replace('\n', newline.decode()).encode('utf-8'))
+
+          patch_text(
+              'frontend/src/pages/BulkEmailOperationWizardPage.tsx',
+              [
+                  (
+                      '''  const canProceedMailSettings =\n    canPreviewBulkEmail &&\n    !templatesLoading &&\n''',
+                      '''  const canProceedMailSettings =\n    !templatesLoading &&\n''',
+                  ),
+                  (
+                      '''  const canProceedSummary =\n    previewReady && (preview?.recipients.deduped_recipient_count ?? 0) > 0;\n''',
+                      '''  const previewRequirementSatisfied =\n    !canPreviewBulkEmail ||\n    (previewReady && (preview?.recipients.deduped_recipient_count ?? 0) > 0);\n\n  const canProceedSummary = previewRequirementSatisfied;\n''',
+                  ),
+                  (
+                      '''    if (currentStep.id === "summary") {\n      if (previewing) return false;\n      if (!previewReady) {\n        setFieldError(previewError ?? operationLabels.bulkEmailPreviewError);\n        return false;\n      }\n      if ((preview?.recipients.deduped_recipient_count ?? 0) === 0) {\n        setFieldError(operationLabels.bulkEmailPreviewCannotContinue);\n        return false;\n      }\n    }\n''',
+                      '''    if (currentStep.id === "summary" && canPreviewBulkEmail) {\n      if (previewing) return false;\n      if (!previewReady) {\n        setFieldError(previewError ?? operationLabels.bulkEmailPreviewError);\n        return false;\n      }\n      if ((preview?.recipients.deduped_recipient_count ?? 0) === 0) {\n        setFieldError(operationLabels.bulkEmailPreviewCannotContinue);\n        return false;\n      }\n    }\n''',
+                  ),
+                  (
+                      '''      setPreviewing(true);\n''',
+                      '''      setPreviewing(canPreviewBulkEmail);\n''',
+                  ),
+                  (
+                      '''    if (!previewReady || (preview?.recipients.deduped_recipient_count ?? 0) === 0) {\n      setSendError(operationLabels.bulkEmailPreviewCannotContinue);\n      return;\n    }\n''',
+                      '''    if (\n      canPreviewBulkEmail &&\n      (!previewReady || (preview?.recipients.deduped_recipient_count ?? 0) === 0)\n    ) {\n      setSendError(operationLabels.bulkEmailPreviewCannotContinue);\n      return;\n    }\n''',
+                  ),
+                  (
+                      '''          ) : (\n            <EmptyState title={operationLabels.bulkEmailPreviewEmptyRecipients} />\n          )\n        ) : null}\n''',
+                      '''          ) : canPreviewBulkEmail ? (\n            <EmptyState title={operationLabels.bulkEmailPreviewEmptyRecipients} />\n          ) : (\n            <>\n              <FormSection title={operationLabels.bulkEmailRecipientsSection}>\n                <div className="detail-grid compact">\n                  <div>\n                    <strong>{operationLabels.bulkEmailSummarySource}</strong>\n                    <div>\n                      {sourceType === "manual"\n                        ? operationLabels.bulkEmailSourceManual\n                        : operationLabels.bulkEmailSourceFairList}\n                    </div>\n                  </div>\n                </div>\n              </FormSection>\n              <FormSection title={operationLabels.bulkEmailMailSummarySection}>\n                <div className="detail-grid compact">\n                  <div>\n                    <strong>{operationLabels.bulkEmailTemplateLabel}</strong>\n                    <div>{selectedTemplate?.name || "—"}</div>\n                  </div>\n                  <div>\n                    <strong>{operationLabels.bulkEmailSmtpLabel}</strong>\n                    <div>{selectedEmailAccount?.name || "—"}</div>\n                  </div>\n                  <div>\n                    <strong>{operationLabels.bulkEmailSubjectLabel}</strong>\n                    <div>{subject.trim() || "—"}</div>\n                  </div>\n                </div>\n              </FormSection>\n            </>\n          )\n        ) : null}\n''',
+                  ),
+              ],
+          )
+
+          patch_text(
+              'frontend/src/permissions/BulkEmailOperationWizardPermissions.test.ts',
+              [
+                  (
+                      '''  it("gates summary navigation and the send affordance", () => {\n    expect(source).toContain("const canProceedMailSettings =\\r\\n    canPreviewBulkEmail &&");\n    expect(source).toContain("const canSend = canSendBulkEmail && canProceedSummary && !sending;");\n    expect(source).toContain('currentStep.id === "summary" && canSendBulkEmail ? (');\n  });\n''',
+                      '''  it("keeps preview optional for execute-only send", () => {\n    expect(source).toContain("const canProceedMailSettings =\\r\\n    !templatesLoading &&");\n    expect(source).toContain("const previewRequirementSatisfied =");\n    expect(source).toContain("!canPreviewBulkEmail ||");\n    expect(source).toContain("const canProceedSummary = previewRequirementSatisfied;");\n    expect(source).toContain('currentStep.id === "summary" && canPreviewBulkEmail');\n    expect(source).toContain("setPreviewing(canPreviewBulkEmail);");\n    expect(source).toContain("canPreviewBulkEmail &&\\r\\n      (!previewReady ||");\n    expect(source).toContain("const canSend = canSendBulkEmail && canProceedSummary && !sending;");\n    expect(source).toContain('currentStep.id === "summary" && canSendBulkEmail ? (');\n    expect(source).toContain(") : canPreviewBulkEmail ? (");\n  });\n''',
+                  ),
+              ],
+          )
+      - name: Commit focused patch and remove workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/tmp-bulk-email-send-preview-independence.yml
+          git add frontend/src/pages/BulkEmailOperationWizardPage.tsx frontend/src/permissions/BulkEmailOperationWizardPermissions.test.ts
+          git commit -m "fix(auth): make bulk email send preview-independent"
+          git push origin HEAD:fix/bulk-email-send-preview-independence
