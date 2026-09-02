@@ -1,0 +1,196 @@
+name: Temporary Enrichment Wizard Manifest Permission Patch
+
+on:
+  push:
+    branches:
+      - fix/enrichment-wizard-manifest-read-permission
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/enrichment-wizard-manifest-read-permission
+          fetch-depth: 0
+
+      - name: Apply exact byte-level patch
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              data = p.read_bytes()
+              newline = b"\r\n" if b"\r\n" in data else b"\n"
+              old_b = old.encode("utf-8").replace(b"\n", newline)
+              new_b = new.encode("utf-8").replace(b"\n", newline)
+              count = data.count(old_b)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected 1 occurrence, found {count}")
+              p.write_bytes(data.replace(old_b, new_b, 1))
+
+          replace_once(
+              "frontend/src/permissions/navigationPermissions.ts",
+              '''  if (pathname === "/operations/new/enrichment") {
+    return hasGrantedCorePermission(granted, SCRAPER_PERMISSION_EXECUTE);
+  }''',
+              '''  if (pathname === "/operations/new/enrichment") {
+    return (
+      hasGrantedCorePermission(granted, SCRAPER_PERMISSION_EXECUTE) &&
+      hasGrantedCorePermission(granted, PERMISSION_SCRAPER_READ)
+    );
+  }''',
+          )
+
+          replace_once(
+              "frontend/src/permissions/navigationPermissions.test.ts",
+              '''    expect(
+      canAccessApplicationPath("/operations/new/enrichment", granted(SCRAPER_PERMISSION_EXECUTE)),
+    ).toBe(true);''',
+              '''    expect(
+      canAccessApplicationPath("/operations/new/enrichment", granted(SCRAPER_PERMISSION_EXECUTE)),
+    ).toBe(false);
+    expect(
+      canAccessApplicationPath(
+        "/operations/new/enrichment",
+        granted(SCRAPER_PERMISSION_EXECUTE, PERMISSION_SCRAPER_READ),
+      ),
+    ).toBe(true);''',
+          )
+
+          replace_once(
+              "frontend/src/pages/OperationsPage.tsx",
+              '''  const canStartScraperActions = can(SCRAPER_PERMISSION_EXECUTE);
+  const canCreateScraperOperation =
+    canStartScraperActions && canReadFairs && canReadScraper;
+  const canOpenNewOperation = canCreate || canStartBulkEmail || canStartScraperActions;''',
+              '''  const canStartScraperActions = can(SCRAPER_PERMISSION_EXECUTE);
+  const canCreateEnrichmentOperation = canStartScraperActions && canReadScraper;
+  const canCreateScraperOperation =
+    canStartScraperActions && canReadFairs && canReadScraper;
+  const canOpenNewOperation =
+    canCreate ||
+    canStartBulkEmail ||
+    canCreateEnrichmentOperation ||
+    canCreateScraperOperation;''',
+          )
+          replace_once(
+              "frontend/src/pages/OperationsPage.tsx",
+              '''      if (type === "bulk_email") return canStartBulkEmail;
+      if (type === "enrichment") return canStartScraperActions;
+      if (type === "scraper") return canCreateScraperOperation;
+      return canCreate;
+    },
+    [canCreate, canCreateScraperOperation, canStartBulkEmail, canStartScraperActions],''',
+              '''      if (type === "bulk_email") return canStartBulkEmail;
+      if (type === "enrichment") return canCreateEnrichmentOperation;
+      if (type === "scraper") return canCreateScraperOperation;
+      return canCreate;
+    },
+    [canCreate, canCreateEnrichmentOperation, canCreateScraperOperation, canStartBulkEmail],''',
+          )
+
+          replace_once(
+              "frontend/src/permissions/OperationsPagePermissions.test.ts",
+              '''    expect(source).toContain(
+      "const canOpenNewOperation = canCreate || canStartBulkEmail || canStartScraperActions;",
+    );''',
+              '''    expect(source).toContain("const canOpenNewOperation =");
+    expect(source).toContain("canCreateEnrichmentOperation ||");
+    expect(source).toContain("canCreateScraperOperation;");''',
+          )
+          replace_once(
+              "frontend/src/permissions/OperationsPagePermissions.test.ts",
+              '''  it("keeps Enrichment execute-only and requires Scraper wizard read prerequisites", () => {''',
+              '''  it("requires manifest read for Enrichment and full read prerequisites for Scraper entries", () => {''',
+          )
+          replace_once(
+              "frontend/src/permissions/OperationsPagePermissions.test.ts",
+              '''    expect(source).toContain("const canCreateScraperOperation =");
+    expect(source).toContain(
+      "canStartScraperActions && canReadFairs && canReadScraper;",
+    );
+    expect(source).toContain('if (type === "enrichment") return canStartScraperActions;');''',
+              '''    expect(source).toContain(
+      "const canCreateEnrichmentOperation = canStartScraperActions && canReadScraper;",
+    );
+    expect(source).toContain("const canCreateScraperOperation =");
+    expect(source).toContain(
+      "canStartScraperActions && canReadFairs && canReadScraper;",
+    );
+    expect(source).toContain(
+      'if (type === "enrichment") return canCreateEnrichmentOperation;',
+    );''',
+          )
+
+          replace_once(
+              ".kyrox/features/operation-wizard-route-permission-consistency.json",
+              '''        "action": "enter the Enrichment immediate-start wizard and authorize Scraper start",''',
+              '''        "action": "authorize Enrichment and Scraper start actions",''',
+          )
+          replace_once(
+              ".kyrox/features/operation-wizard-route-permission-consistency.json",
+              '''        "action": "discover mandatory adapter and manifest metadata in the Scraper wizard",''',
+              '''        "action": "read the mandatory Enrichment manifest and discover Scraper adapter/manifest metadata",''',
+          )
+          replace_once(
+              ".kyrox/features/operation-wizard-route-permission-consistency.json",
+              '''  "notes": "Specialized operation wizard deep links must not reintroduce generic operation-create prerequisites. Bulk Email uses fair_emails.execute. Enrichment remains accessible with scraper.execute alone because its fair filter is optional. Scraper Start remains authorized by scraper.execute, but entering its wizard additionally requires fairs.read and scraper.read because the user must deliberately discover/select a fair and adapter/manifest before the action can be configured. Duplicate Check uses operations.execute plus its legitimate data_operations.read page prerequisite. The generic /operations/new route and unknown generic operation wizard fallback continue to require operations.create."''',
+              '''  "notes": "Specialized operation wizard deep links must not reintroduce generic operation-create prerequisites. Bulk Email uses fair_emails.execute. Enrichment Start remains authorized by scraper.execute, while entering its wizard additionally requires scraper.read because the form must load the user-visible enrichment manifest/output-field capabilities; its fair filter remains optional and is independently shown only with fairs.read. Scraper Start remains authorized by scraper.execute, while entering its wizard additionally requires fairs.read and scraper.read because the user must deliberately discover/select a fair and adapter/manifest. Duplicate Check uses operations.execute plus its legitimate data_operations.read page prerequisite. The generic /operations/new route and unknown generic operation wizard fallback continue to require operations.create."''',
+          )
+
+          replace_once(
+              ".kyrox/features/operations-new-enrichment-entry-permission-consistency.json",
+              '''        "code": "fair_crm.scraper.execute",
+        "action": "open and select the Enrichment new-operation entry",
+        "scope": "organization",
+        "assignable": true
+      }''',
+              '''        "code": "fair_crm.scraper.execute",
+        "action": "authorize the Enrichment operation start action",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.scraper.read",
+        "action": "read the mandatory Enrichment manifest and output-field capabilities shown by the wizard",
+        "scope": "organization",
+        "assignable": true
+      }''',
+          )
+          replace_once(
+              ".kyrox/features/operations-new-enrichment-entry-permission-consistency.json",
+              '''    "api": { "status": "na", "reason": "No API contract changes; wizard metadata and operation-type reads already use existing read access." },''',
+              '''    "api": { "status": "na", "reason": "No API contract changes; the existing enrichment manifest endpoint remains governed by fair_crm.scraper.read." },''',
+          )
+          replace_once(
+              ".kyrox/features/operations-new-enrichment-entry-permission-consistency.json",
+              '''    "route_guard": { "status": "na", "reason": "The Enrichment wizard route already uses fair_crm.scraper.execute; this change aligns the Operations-page entry point." },''',
+              '''    "route_guard": { "status": "required" },''',
+          )
+          replace_once(
+              ".kyrox/features/operations-new-enrichment-entry-permission-consistency.json",
+              '''  "notes": "A user with fair_crm.scraper.execute can reach the Enrichment wizard from /operations without also needing fair_crm.operations.create. Generic operation entries continue to require fair_crm.operations.create. Bulk Email entry remains on fair_crm.fair_emails.execute. Scraper new-operation entry alignment remains intentionally outside this focused change. The existing type picker filters entries through the same fail-closed permission predicate used by onContinue."''',
+              '''  "notes": "The Enrichment new-operation entry and deep link require fair_crm.scraper.execute plus fair_crm.scraper.read because the wizard cannot render its user-visible output-field configuration without the mandatory enrichment manifest. The final Enrichment Start action itself remains scraper.execute-only. fair_crm.fairs.read remains optional and controls only the org-wide fair filter. Generic operation entries continue to require fair_crm.operations.create, Bulk Email remains on fair_crm.fair_emails.execute, and Scraper keeps its separate execute + fairs.read + scraper.read entry prerequisites. The type picker and onContinue use the same fail-closed predicate."''',
+          )
+
+          Path(".github/workflows/tmp-enrichment-wizard-manifest-read.yml").unlink()
+
+      - name: Commit patch and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/src/permissions/navigationPermissions.ts \
+                  frontend/src/permissions/navigationPermissions.test.ts \
+                  frontend/src/pages/OperationsPage.tsx \
+                  frontend/src/permissions/OperationsPagePermissions.test.ts \
+                  .kyrox/features/operation-wizard-route-permission-consistency.json \
+                  .kyrox/features/operations-new-enrichment-entry-permission-consistency.json \
+                  .github/workflows/tmp-enrichment-wizard-manifest-read.yml
+          git commit -m "fix(auth): align enrichment wizard manifest read"
+          git push origin HEAD:fix/enrichment-wizard-manifest-read-permission
