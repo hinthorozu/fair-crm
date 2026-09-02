@@ -18,7 +18,7 @@
     "items": [
       {
         "code": "fair_crm.fair_emails.execute",
-        "action": "access the Bulk Email wizard and send bulk email",
+        "action": "authorize the Bulk Email send action and wizard business flow",
         "scope": "organization",
         "assignable": true
       },
@@ -78,7 +78,7 @@
     },
     "route_guard": {
       "status": "na",
-      "reason": "The Bulk Email wizard route remains governed by fair_crm.fair_emails.execute; this change only gates the optional fair-list source."
+      "reason": "Wizard entry prerequisites are owned by the separate Bulk Email mail-settings/entry contracts; this contract only gates the optional fair-list source."
     },
     "forms": {
       "status": "required"
@@ -103,5 +103,5 @@
       "status": "required"
     }
   },
-  "notes": "Bulk Email remains accessible and sendable with fair_crm.fair_emails.execute alone when the manual recipient source is used. The optional fair-list recipient source is a separate fair-discovery capability: it is hidden and its change handler fails closed when fair_crm.fairs.read is absent, preventing the shared FairEntitySelect from attempting a lookup that the fair client would reject. Preview and mail-setting permissions remain unchanged."
+  "notes": "Bulk Email wizard entry always requires fair_crm.fair_emails.execute together with the mandatory fair_crm.mail_templates.read and fair_crm.email_accounts.read lookup prerequisites. Once those entry prerequisites are satisfied, the manual recipient source requires no additional fair permission. The optional fair-list recipient source is a separate fair-discovery capability: it is hidden and its change handler fails closed when fair_crm.fairs.read is absent, preventing the shared FairEntitySelect from attempting a lookup that the fair client would reject. Preview remains independently governed by fair_crm.fair_emails.read."
 }
