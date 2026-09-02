@@ -10,7 +10,7 @@ from app.modules.activities.api.dependencies import get_authorization_adapter as
 from app.modules.contacts.api.dependencies import get_authorization_adapter as get_contact_authorization_adapter
 from app.modules.customers.api.dependencies import get_authorization_adapter as get_customer_authorization_adapter
 from app.modules.fairs.api.dependencies import (
-    PERMISSION_SCRAPER_RUN,
+    PERMISSION_SCRAPER_EXECUTE,
     get_authorization_adapter as get_fair_authorization_adapter,
 )
 from app.modules.imports.api.dependencies import get_authorization_adapter as get_import_authorization_adapter
@@ -166,7 +166,7 @@ def test_fair_scraper_run_denied_returns_403(client: TestClient, auth_headers: d
     fair_id = create.json()["id"]
 
     client.app.dependency_overrides[get_fair_authorization_adapter] = lambda: SelectiveAuthorization(
-        denied={PERMISSION_SCRAPER_RUN}
+        denied={PERMISSION_SCRAPER_EXECUTE}
     )
     try:
         response = client.post(f"/api/v1/fairs/{fair_id}/run", headers=auth_headers)
