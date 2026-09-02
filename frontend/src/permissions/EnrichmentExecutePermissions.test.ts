@@ -44,6 +44,18 @@ describe("Enrichment execute permissions", () => {
     expect(enrichmentOperationPageSource).toContain("start_immediately: true");
   });
 
+  it("keeps optional fair filtering behind fairs read without blocking enrichment execute", () => {
+    expect(runPanelSource).toContain(
+      'import { FAIR_READ } from "../../permissions/fairPermissions";',
+    );
+    expect(runPanelSource).toContain("const canReadFairs = can(FAIR_READ);");
+    expect(runPanelSource).toContain(
+      "const selectedFairIds = canReadFairs ? selectedFairs.map((fair) => fair.id) : [];",
+    );
+    expect(runPanelSource).toContain("!fairScoped && canReadFairs ? (");
+    expect(runPanelSource).toContain("if (!canExecute) return;");
+  });
+
   it("hides and fails closed enrichment run actions without execute permission", () => {
     expect(runPanelSource).toContain("if (!canExecute) return;");
     expect(runPanelSource).toContain("{canExecute ? (");

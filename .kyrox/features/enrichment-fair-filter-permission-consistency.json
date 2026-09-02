@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "id": "enrichment-fair-filter-permission-consistency",
+  "title": "Enrichment Fair Filter Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/components/scraper/EnrichmentRunPanel.tsx",
+    "frontend/src/permissions/EnrichmentExecutePermissions.test.ts",
+    ".kyrox/features/enrichment-fair-filter-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.scraper.execute",
+        "action": "run enrichment without requiring optional fair discovery",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.fairs.read",
+        "action": "discover and select fairs for the optional org-wide enrichment filter",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/operations/new/enrichment",
+      "/data-integration/adapters/:adapterKey"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": {
+      "status": "na",
+      "reason": "No persistence changes are introduced."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "Existing scraper execute and fair read permissions are reused."
+    },
+    "permissions": {
+      "status": "required"
+    },
+    "backend": {
+      "status": "na",
+      "reason": "Existing enrichment execution and fair lookup authorization remain unchanged and authoritative."
+    },
+    "api": {
+      "status": "na",
+      "reason": "No server API contract changes; the fair lookup client already fails closed without fair_crm.fairs.read."
+    },
+    "tenant_isolation": {
+      "status": "na",
+      "reason": "No organization-scoping behavior changes."
+    },
+    "audit": {
+      "status": "na",
+      "reason": "No mutation or audit behavior changes."
+    },
+    "frontend": {
+      "status": "required"
+    },
+    "ui_permissions": {
+      "status": "required"
+    },
+    "menu": {
+      "status": "na",
+      "reason": "No navigation menu changes are introduced."
+    },
+    "route_guard": {
+      "status": "na",
+      "reason": "Enrichment route access and execution remain governed by scraper permissions; this change only gates optional fair discovery."
+    },
+    "forms": {
+      "status": "required"
+    },
+    "visual_qa": {
+      "status": "required"
+    },
+    "backend_tests": {
+      "status": "na",
+      "reason": "Backend executable behavior is unchanged."
+    },
+    "frontend_tests": {
+      "status": "required"
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
+  },
+  "notes": "Enrichment remains runnable with fair_crm.scraper.execute alone. On org-wide enrichment surfaces, the optional fair picker is shown only with fair_crm.fairs.read. If fair read is absent or is lost after a selection was made, selected fair ids are excluded from the outgoing enrichment request. Fair-scoped enrichment from an already-authorized fair detail is unchanged."
+}
