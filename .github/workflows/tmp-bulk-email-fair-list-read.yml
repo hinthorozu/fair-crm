@@ -134,6 +134,7 @@ jobs:
           git add frontend/src/pages/BulkEmailOperationWizardPage.tsx \
                   frontend/src/permissions/BulkEmailOperationWizardPermissions.test.ts \
                   .kyrox/features/bulk-email-fair-list-source-permission-consistency.json
+          git config core.whitespace cr-at-eol
           git diff --cached --check
           git rm .github/workflows/tmp-bulk-email-fair-list-read.yml
           git add .github/workflows/tmp-bulk-email-fair-list-read.yml
