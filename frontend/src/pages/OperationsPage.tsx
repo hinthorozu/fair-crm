@@ -54,6 +54,7 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
   const canExecute = can(OPERATION_EXECUTE);
   const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);
   const canStartScraperActions = can(SCRAPER_PERMISSION_EXECUTE);
+  const canOpenNewOperation = canCreate || canStartBulkEmail;
   const [banner, setBanner] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
@@ -107,6 +108,11 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
     const timer = window.setTimeout(() => setBanner(null), 5000);
     return () => window.clearTimeout(timer);
   }, [banner]);
+
+  const canSelectNewOperationType = React.useCallback(
+    (type: OperationType) => (type === "bulk_email" ? canStartBulkEmail : canCreate),
+    [canCreate, canStartBulkEmail],
+  );
 
   const canStartOperation = React.useCallback(
     (operation: Operation) => {
@@ -271,7 +277,7 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
         title={operationLabels.pageTitle}
         subtitle={`${table.pagination.totalItems} kayıt`}
         actions={
-          canCreate ? (
+          canOpenNewOperation ? (
             <Button type="button" variant="primary" onClick={() => setTypeModalOpen(true)}>
               {operationLabels.newOperation}
             </Button>
@@ -279,10 +285,11 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
         }
       />
       <NewOperationTypeModal
-        open={canCreate && typeModalOpen}
+        open={canOpenNewOperation && typeModalOpen}
         onClose={() => setTypeModalOpen(false)}
+        isTypeAllowed={canSelectNewOperationType}
         onContinue={(type) => {
-          if (!canCreate) return;
+          if (!canSelectNewOperationType(type)) return;
           setTypeModalOpen(false);
           onSelectType(type);
         }}
