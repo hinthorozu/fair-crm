@@ -271,7 +271,12 @@ export function canAccessApplicationPath(
   if (/^\/todos\/[^/]+\/quote$/.test(pathname)) {
     return canReadQuoteEditor(granted);
   }
-  if (pathname === "/todos" || pathname.startsWith("/todos/")) {
+  if (
+    pathname === "/todos" ||
+    pathname.startsWith("/todos/") ||
+    pathname === "/follow-ups" ||
+    pathname.startsWith("/follow-ups/")
+  ) {
     return hasGrantedCorePermission(granted, PERMISSION_TODOS_READ);
   }
   if (pathname === "/activities" || pathname.startsWith("/activities/")) {

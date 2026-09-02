@@ -18,6 +18,7 @@ import {
   PERMISSION_OPERATIONS_CREATE,
   PERMISSION_OPERATIONS_READ,
   PERMISSION_SCRAPER_READ,
+  PERMISSION_TODOS_READ,
   PERMISSION_USERS_READ,
   resolvePermissionLandingPath,
   resolvePermissionSectionLandingPath,
@@ -39,6 +40,15 @@ describe("navigation permission rules", () => {
     const permissions = granted(PERMISSION_CUSTOMERS_READ);
     expect(canAccessMainNavigation("/customers", permissions)).toBe(true);
     expect(canAccessApplicationPath("/customers/123", permissions)).toBe(true);
+  });
+
+  it("aligns the legacy follow-ups alias with Todos read permission", () => {
+    expect(canAccessApplicationPath("/follow-ups", granted())).toBe(false);
+
+    const reader = granted(PERMISSION_TODOS_READ);
+    expect(canAccessApplicationPath("/todos", reader)).toBe(true);
+    expect(canAccessApplicationPath("/follow-ups", reader)).toBe(true);
+    expect(canAccessApplicationPath("/follow-ups/legacy", reader)).toBe(true);
   });
 
   it("does not show Database Backups to an organization user without the system permission", () => {
