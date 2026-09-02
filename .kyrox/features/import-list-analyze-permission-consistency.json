@@ -10,6 +10,10 @@
   "user_facing": true,
   "affected_paths": [
     "frontend/src/pages/DataIntegrationImportsPage.tsx",
+    "frontend/src/types/import.ts",
+    "frontend/src/labels/importLabels.ts",
+    "frontend/src/utils/importListActions.ts",
+    "frontend/src/utils/importListActions.test.ts",
     "frontend/src/permissions/importPermissions.ts",
     "frontend/src/permissions/DataIntegrationImportsAnalyzePermissions.test.ts",
     ".kyrox/features/import-list-analyze-permission-consistency.json"
@@ -33,10 +37,10 @@
   },
   "applicability": {
     "database": { "status": "na", "reason": "No persistence changes are introduced." },
-    "migration": { "status": "na", "reason": "The existing fair_crm.imports.update permission is reused." },
+    "migration": { "status": "na", "reason": "The existing fair_crm.imports.update permission and import lifecycle are reused." },
     "permissions": { "status": "required" },
-    "backend": { "status": "na", "reason": "Existing import analyze authorization remains unchanged and authoritative." },
-    "api": { "status": "na", "reason": "No server API contract changes." },
+    "backend": { "status": "na", "reason": "Existing import analyze authorization and lifecycle remain unchanged and authoritative." },
+    "api": { "status": "na", "reason": "No server API contract changes; the frontend is aligned to the existing received batch status." },
     "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
     "audit": { "status": "na", "reason": "Existing analyze behavior is unchanged." },
     "frontend": { "status": "required" },
@@ -45,11 +49,11 @@
     "route_guard": { "status": "na", "reason": "Import list remains readable; only analyze/reanalyze requires update." },
     "forms": { "status": "na", "reason": "No forms are changed." },
     "visual_qa": { "status": "required" },
-    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "backend_tests": { "status": "na", "reason": "Backend authorization and lifecycle behavior are unchanged." },
     "frontend_tests": { "status": "required" },
     "runtime_authorization": { "status": "required" },
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Import Analyze/Reanalyze actions were exposed to read-only users. Backend AnalyzeImportUseCase requires fair_crm.imports.update; the UI now hides the actions and fails closed without update permission."
+  "notes": "Import Analyze/Reanalyze actions require fair_crm.imports.update and fail closed without it. Canonical handoff batches are created by the backend in received state, and the authoritative backend lifecycle allows analyze from received; the import list frontend must recognize that status, label it as analysis-ready, and expose Analyze to authorized users."
 }

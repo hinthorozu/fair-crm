@@ -3,6 +3,7 @@ import { importBatchListPrimaryActions } from "./importListActions";
 
 describe("importBatchListPrimaryActions", () => {
   it("shows analyze only before analysis", () => {
+    expect(importBatchListPrimaryActions("received")).toEqual(["analyze"]);
     expect(importBatchListPrimaryActions("mapping_completed")).toEqual(["analyze"]);
     expect(importBatchListPrimaryActions("mapped")).toEqual(["analyze"]);
     expect(importBatchListPrimaryActions("analysis_failed")).toEqual(["analyze"]);
