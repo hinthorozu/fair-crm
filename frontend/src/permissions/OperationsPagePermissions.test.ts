@@ -38,7 +38,7 @@ describe("Operations action permissions", () => {
     expect(source).toContain("const canExecute = can(OPERATION_EXECUTE)");
   });
 
-  it("uses type-specific execute permissions for Bulk Email and Enrichment Start", () => {
+  it("uses type-specific execute permissions for Bulk Email, Enrichment, and Scraper Start", () => {
     expect(source).toContain(
       'import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";',
     );
@@ -49,14 +49,14 @@ describe("Operations action permissions", () => {
       "const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);",
     );
     expect(source).toContain(
-      "const canStartEnrichment = can(SCRAPER_PERMISSION_EXECUTE);",
+      "const canStartScraperActions = can(SCRAPER_PERMISSION_EXECUTE);",
     );
     expect(source).toContain(
       'if (operation.operation_type === "bulk_email") return canStartBulkEmail;',
     );
-    expect(source).toContain(
-      'if (operation.operation_type === "enrichment") return canStartEnrichment;',
-    );
+    expect(source).toContain('operation.operation_type === "enrichment" ||');
+    expect(source).toContain('operation.operation_type === "scraper"');
+    expect(source).toContain("return canStartScraperActions;");
     expect(source).toContain("return canExecute;");
     expect(source).toContain("if (!canStartOperation(operation)) return;");
     expect(source).toContain("canStartOperation(item) &&");

@@ -30,7 +30,7 @@
       },
       {
         "code": "fair_crm.scraper.execute",
-        "action": "start an Enrichment operation from the Operations page",
+        "action": "start an Enrichment or Scraper operation from the Operations page",
         "scope": "organization",
         "assignable": true
       }
@@ -47,7 +47,7 @@
     "migration": { "status": "na", "reason": "Existing execution permissions are reused." },
     "permissions": { "status": "required" },
     "backend": { "status": "na", "reason": "Existing StartOperationUseCase authorization already selects the canonical business permission by operation type." },
-    "api": { "status": "na", "reason": "No server API contract changes; the Operations-page Bulk Email and Enrichment Start boundaries are aligned with existing authorization." },
+    "api": { "status": "na", "reason": "No server API contract changes; the Operations-page Bulk Email, Enrichment, and Scraper Start boundaries are aligned with existing authorization." },
     "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
     "audit": { "status": "na", "reason": "Existing operation-start audit behavior is unchanged." },
     "frontend": { "status": "required" },
@@ -62,5 +62,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "OperationsPage Bulk Email Start uses fair_crm.fair_emails.execute and Enrichment Start uses fair_crm.scraper.execute, matching StartOperationUseCase. Generic Start continues to use fair_crm.operations.execute. Scraper list Start alignment is intentionally outside this focused change. Cancel remains unchanged and is governed separately by fair_crm.operations.execute."
+  "notes": "OperationsPage Bulk Email Start uses fair_crm.fair_emails.execute while Enrichment and Scraper Start use fair_crm.scraper.execute, matching StartOperationUseCase. Generic Start continues to use fair_crm.operations.execute. Cancel remains unchanged and is governed separately by fair_crm.operations.execute."
 }
