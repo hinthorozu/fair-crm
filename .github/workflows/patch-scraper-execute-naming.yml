@@ -1,0 +1,68 @@
+name: Apply Scraper Execute Naming Patch
+
+on:
+  push:
+    branches:
+      - fix/scraper-execute-naming
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/scraper-execute-naming
+          fetch-depth: 0
+
+      - name: Align scraper execute naming
+        shell: python
+        run: |
+          from pathlib import Path
+          import subprocess
+
+          replacements = {
+              Path('backend/app/modules/fairs/api/dependencies.py'): [
+                  (b'PERMISSION_SCRAPER_RUN', b'PERMISSION_SCRAPER_EXECUTE', 2),
+                  (b'require_scraper_run_permission', b'require_scraper_execute_permission', 1),
+              ],
+              Path('backend/app/modules/fairs/api/routes.py'): [
+                  (b'require_scraper_run_permission', b'require_scraper_execute_permission', 4),
+              ],
+              Path('backend/tests/modules/test_endpoint_permission_enforcement.py'): [
+                  (b'PERMISSION_SCRAPER_RUN', b'PERMISSION_SCRAPER_EXECUTE', 2),
+              ],
+          }
+
+          for path, rules in replacements.items():
+              data = path.read_bytes()
+              for old, new, expected in rules:
+                  count = data.count(old)
+                  if count != expected:
+                      raise SystemExit(f'{path}: expected {expected} matches for {old!r}, got {count}')
+                  data = data.replace(old, new)
+              path.write_bytes(data)
+
+          result = subprocess.run(
+              ['git', 'grep', '-n', '-E', 'PERMISSION_SCRAPER_RUN|require_scraper_run_permission', '--', 'backend'],
+              capture_output=True,
+              text=True,
+          )
+          if result.returncode == 0:
+              raise SystemExit('stale scraper run authorization names remain:\n' + result.stdout)
+          if result.returncode != 1:
+              raise SystemExit(result.stderr or f'git grep failed with {result.returncode}')
+
+      - name: Commit backend naming cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/app/modules/fairs/api/dependencies.py backend/app/modules/fairs/api/routes.py backend/tests/modules/test_endpoint_permission_enforcement.py
+          git status --short
+          git commit --no-verify -m "refactor(auth): use canonical scraper execute naming"
+          git push origin HEAD:fix/scraper-execute-naming
