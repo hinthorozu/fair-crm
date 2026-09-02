@@ -16,6 +16,9 @@
     "frontend/src/permissions/mailTemplatePermissions.test.ts",
     "frontend/src/permissions/fairEmailPermissions.ts",
     "frontend/src/labels/permissionLabels.ts",
+    "backend/app/modules/fairs/api/dependencies.py",
+    "backend/app/modules/fairs/api/routes.py",
+    "backend/tests/modules/test_endpoint_permission_enforcement.py",
     "backend/tests/modules/test_role_matrix_authorization.py"
   ],
   "permissions": {
@@ -40,8 +43,8 @@
     "database": { "status": "na", "reason": "No product data schema changes are introduced." },
     "migration": { "status": "na", "reason": "Core already migrated these legacy action codes to canonical execute/read permissions." },
     "permissions": { "status": "required" },
-    "backend": { "status": "na", "reason": "Production backend already uses the canonical permission codes; only stale test naming is aligned." },
-    "api": { "status": "na", "reason": "No API route or payload contract changes are introduced." },
+    "backend": { "status": "required" },
+    "api": { "status": "na", "reason": "No API route or payload contract changes are introduced; only internal authorization symbol/dependency naming is aligned." },
     "tenant_isolation": { "status": "na", "reason": "No backend tenant query behavior changes are introduced." },
     "audit": { "status": "na", "reason": "No new mutation or side effect is introduced." },
     "frontend": { "status": "required" },
@@ -56,5 +59,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Core migrations 0049/0050 and current Fair CRM backend use canonical read/execute permissions. Frontend permission helpers must not request retired run/download/render/test_send/preview/send/apply codes."
+  "notes": "Core migrations 0049/0050 and current Fair CRM authorization use canonical read/execute permissions. Frontend permission helpers must not request retired run/download/render/test_send/preview/send/apply codes. Fair-scoped scraper and enrichment endpoints likewise name their backend authorization constant and dependency after the canonical fair_crm.scraper.execute capability while preserving the same runtime permission value and behavior."
 }
