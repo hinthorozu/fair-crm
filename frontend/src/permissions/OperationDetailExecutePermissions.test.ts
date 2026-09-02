@@ -15,6 +15,7 @@ describe("OperationDetailPage execute permissions", () => {
     expect(source).toContain("const canStartOperation = isBulkEmailOp");
     expect(source).toContain("? canStartBulkEmail");
     expect(source).toContain(": isEnrichmentOp");
+    expect(source).toContain(": isScraperOp");
     expect(source).toContain(": canExecute;");
     expect(source).toContain("const handleStart = async () => {\n    if (!canStartOperation) return;");
     expect(source).toContain("const canStart =\n    canStartOperation &&");
@@ -30,6 +31,14 @@ describe("OperationDetailPage execute permissions", () => {
       'const isEnrichmentOp = detail?.operation.operation_type === "enrichment";',
     );
     expect(source).toContain("? canStartEnrichment");
+  });
+
+  it("uses scraper execute for Scraper Start", () => {
+    expect(source).toContain("const canStartScraper = can(SCRAPER_PERMISSION_EXECUTE);");
+    expect(source).toContain(
+      'const isScraperOp = detail?.operation.operation_type === "scraper";',
+    );
+    expect(source).toContain("? canStartScraper");
   });
 
   it("keeps operation execute at the Cancel mutation boundary", () => {

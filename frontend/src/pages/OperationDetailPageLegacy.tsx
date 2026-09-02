@@ -118,6 +118,7 @@ export function OperationDetailPage({
   const canExecute = can(OPERATION_EXECUTE);
   const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);
   const canStartEnrichment = can(SCRAPER_PERMISSION_EXECUTE);
+  const canStartScraper = can(SCRAPER_PERMISSION_EXECUTE);
   const canRetryBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);
   const [detail, setDetail] = React.useState<OperationDetail | null>(null);
   const [linkedTodo, setLinkedTodo] = React.useState<Todo | null>(null);
@@ -302,11 +303,14 @@ export function OperationDetailPage({
   const shouldPoll = latestStatus === "queued" || latestStatus === "running";
   const isBulkEmailOp = detail?.operation.operation_type === "bulk_email";
   const isEnrichmentOp = detail?.operation.operation_type === "enrichment";
+  const isScraperOp = detail?.operation.operation_type === "scraper";
   const canStartOperation = isBulkEmailOp
     ? canStartBulkEmail
     : isEnrichmentOp
       ? canStartEnrichment
-      : canExecute;
+      : isScraperOp
+        ? canStartScraper
+        : canExecute;
 
   const loadBulkEmailExtras = React.useCallback(
     async (options?: { silent?: boolean; includeLogs?: boolean }) => {
