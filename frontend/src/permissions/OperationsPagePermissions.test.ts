@@ -43,10 +43,21 @@ describe("Operations action permissions", () => {
     expect(modalSource).toContain("!isTypeAllowed || isTypeAllowed(item.type)");
   });
 
-  it("allows scraper execute to open and select Enrichment and Scraper specialized entries", () => {
-    expect(source).toContain(
-      'if (type === "enrichment" || type === "scraper") return canStartScraperActions;',
+  it("keeps Enrichment execute-only and requires Scraper wizard read prerequisites", () => {
+    expect(navigationPermissionSource).toContain(
+      'PERMISSION_FAIRS_READ = "fair_crm.fairs.read"',
     );
+    expect(navigationPermissionSource).toContain(
+      'PERMISSION_SCRAPER_READ = "fair_crm.scraper.read"',
+    );
+    expect(source).toContain("const canReadFairs = can(PERMISSION_FAIRS_READ);");
+    expect(source).toContain("const canReadScraper = can(PERMISSION_SCRAPER_READ);");
+    expect(source).toContain("const canCreateScraperOperation =");
+    expect(source).toContain(
+      "canStartScraperActions && canReadFairs && canReadScraper;",
+    );
+    expect(source).toContain('if (type === "enrichment") return canStartScraperActions;');
+    expect(source).toContain('if (type === "scraper") return canCreateScraperOperation;');
     expect(source).toContain("return canCreate;");
   });
 

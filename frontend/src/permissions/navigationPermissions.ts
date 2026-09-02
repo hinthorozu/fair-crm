@@ -263,11 +263,15 @@ export function canAccessApplicationPath(
   if (pathname === "/operations/new/bulk-email") {
     return hasGrantedCorePermission(granted, FAIR_EMAIL_PERMISSION_EXECUTE);
   }
-  if (
-    pathname === "/operations/new/enrichment" ||
-    pathname === "/operations/new/scraper"
-  ) {
+  if (pathname === "/operations/new/enrichment") {
     return hasGrantedCorePermission(granted, SCRAPER_PERMISSION_EXECUTE);
+  }
+  if (pathname === "/operations/new/scraper") {
+    return (
+      hasGrantedCorePermission(granted, SCRAPER_PERMISSION_EXECUTE) &&
+      hasGrantedCorePermission(granted, PERMISSION_FAIRS_READ) &&
+      hasGrantedCorePermission(granted, PERMISSION_SCRAPER_READ)
+    );
   }
   if (pathname.startsWith("/operations/duplicate-check/runs/")) {
     return hasGrantedCorePermission(granted, PERMISSION_OPERATIONS_READ) && canReadDataOperations;
