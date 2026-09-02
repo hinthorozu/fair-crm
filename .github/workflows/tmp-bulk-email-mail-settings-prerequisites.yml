@@ -1,0 +1,310 @@
+name: Temporary Bulk Email Mail Settings Prerequisite Patch
+
+on:
+  push:
+    branches:
+      - fix/bulk-email-wizard-mail-settings-prerequisites
+    paths:
+      - .github/workflows/tmp-bulk-email-mail-settings-prerequisites.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply byte-preserving focused patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def patch(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              data = p.read_bytes()
+              eol = b"\r\n" if b"\r\n" in data else b"\n"
+              old_b = old.encode("utf-8").replace(b"\n", eol)
+              new_b = new.encode("utf-8").replace(b"\n", eol)
+              count = data.count(old_b)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one match, found {count}")
+              p.write_bytes(data.replace(old_b, new_b, 1))
+
+          patch(
+              "frontend/src/permissions/navigationPermissions.ts",
+              '''  if (pathname === "/operations/new/bulk-email") {
+            return hasGrantedCorePermission(granted, FAIR_EMAIL_PERMISSION_EXECUTE);
+          }''',
+              '''  if (pathname === "/operations/new/bulk-email") {
+            return (
+              hasGrantedCorePermission(granted, FAIR_EMAIL_PERMISSION_EXECUTE) &&
+              hasGrantedCorePermission(granted, PERMISSION_MAIL_TEMPLATES_READ) &&
+              hasGrantedCorePermission(granted, PERMISSION_EMAIL_ACCOUNTS_READ)
+            );
+          }''',
+          )
+
+          patch(
+              "frontend/src/permissions/navigationPermissions.test.ts",
+              '''  PERMISSION_IMPORTS_READ,
+            PERMISSION_MAIL_SEND_OPERATIONS_READ,
+            PERMISSION_OPERATIONS_CREATE,''',
+              '''  PERMISSION_IMPORTS_READ,
+            PERMISSION_MAIL_SEND_OPERATIONS_READ,
+            PERMISSION_MAIL_TEMPLATES_READ,
+            PERMISSION_OPERATIONS_CREATE,''',
+          )
+          patch(
+              "frontend/src/permissions/navigationPermissions.test.ts",
+              '''    expect(
+              canAccessApplicationPath("/operations/new/bulk-email", granted(FAIR_EMAIL_PERMISSION_EXECUTE)),
+            ).toBe(true);''',
+              '''    expect(
+              canAccessApplicationPath("/operations/new/bulk-email", granted(FAIR_EMAIL_PERMISSION_EXECUTE)),
+            ).toBe(false);
+            expect(
+              canAccessApplicationPath(
+                "/operations/new/bulk-email",
+                granted(FAIR_EMAIL_PERMISSION_EXECUTE, PERMISSION_MAIL_TEMPLATES_READ),
+              ),
+            ).toBe(false);
+            expect(
+              canAccessApplicationPath(
+                "/operations/new/bulk-email",
+                granted(FAIR_EMAIL_PERMISSION_EXECUTE, PERMISSION_EMAIL_ACCOUNTS_READ),
+              ),
+            ).toBe(false);
+            expect(
+              canAccessApplicationPath(
+                "/operations/new/bulk-email",
+                granted(
+                  FAIR_EMAIL_PERMISSION_EXECUTE,
+                  PERMISSION_MAIL_TEMPLATES_READ,
+                  PERMISSION_EMAIL_ACCOUNTS_READ,
+                ),
+              ),
+            ).toBe(true);''',
+          )
+
+          patch(
+              "frontend/src/pages/OperationsPage.tsx",
+              '''  PERMISSION_FAIRS_READ,
+            PERMISSION_OPERATIONS_CREATE,
+            PERMISSION_SCRAPER_READ,''',
+              '''  PERMISSION_EMAIL_ACCOUNTS_READ,
+            PERMISSION_FAIRS_READ,
+            PERMISSION_MAIL_TEMPLATES_READ,
+            PERMISSION_OPERATIONS_CREATE,
+            PERMISSION_SCRAPER_READ,''',
+          )
+          patch(
+              "frontend/src/pages/OperationsPage.tsx",
+              '''  const canReadFairs = can(PERMISSION_FAIRS_READ);
+            const canReadScraper = can(PERMISSION_SCRAPER_READ);
+            const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);
+            const canStartScraperActions = can(SCRAPER_PERMISSION_EXECUTE);
+            const canCreateEnrichmentOperation = canStartScraperActions && canReadScraper;''',
+              '''  const canReadEmailAccounts = can(PERMISSION_EMAIL_ACCOUNTS_READ);
+            const canReadFairs = can(PERMISSION_FAIRS_READ);
+            const canReadMailTemplates = can(PERMISSION_MAIL_TEMPLATES_READ);
+            const canReadScraper = can(PERMISSION_SCRAPER_READ);
+            const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);
+            const canStartScraperActions = can(SCRAPER_PERMISSION_EXECUTE);
+            const canCreateBulkEmailOperation =
+              canStartBulkEmail && canReadMailTemplates && canReadEmailAccounts;
+            const canCreateEnrichmentOperation = canStartScraperActions && canReadScraper;''',
+          )
+          patch(
+              "frontend/src/pages/OperationsPage.tsx",
+              '''  const canOpenNewOperation =
+              canCreate ||
+              canStartBulkEmail ||
+              canCreateEnrichmentOperation ||
+              canCreateScraperOperation;''',
+              '''  const canOpenNewOperation =
+              canCreate ||
+              canCreateBulkEmailOperation ||
+              canCreateEnrichmentOperation ||
+              canCreateScraperOperation;''',
+          )
+          patch(
+              "frontend/src/pages/OperationsPage.tsx",
+              '''      if (type === "bulk_email") return canStartBulkEmail;
+                  if (type === "enrichment") return canCreateEnrichmentOperation;
+                  if (type === "scraper") return canCreateScraperOperation;
+                  return canCreate;
+                },
+                [canCreate, canCreateEnrichmentOperation, canCreateScraperOperation, canStartBulkEmail],''',
+              '''      if (type === "bulk_email") return canCreateBulkEmailOperation;
+                  if (type === "enrichment") return canCreateEnrichmentOperation;
+                  if (type === "scraper") return canCreateScraperOperation;
+                  return canCreate;
+                },
+                [
+                  canCreate,
+                  canCreateBulkEmailOperation,
+                  canCreateEnrichmentOperation,
+                  canCreateScraperOperation,
+                ],''',
+          )
+
+          patch(
+              "frontend/src/permissions/OperationsPagePermissions.test.ts",
+              '''  it("allows Bulk Email execute to open and select its new-operation entry", () => {
+                expect(source).toContain("const canCreate = can(PERMISSION_OPERATIONS_CREATE)");
+                expect(source).toContain("const canOpenNewOperation =");
+                expect(source).toContain("canCreateEnrichmentOperation ||");
+                expect(source).toContain("canCreateScraperOperation;");
+                expect(source).toContain('if (type === "bulk_email") return canStartBulkEmail;');''',
+              '''  it("requires Bulk Email mail-setting reads for its new-operation entry", () => {
+                expect(source).toContain("const canCreate = can(PERMISSION_OPERATIONS_CREATE)");
+                expect(navigationPermissionSource).toContain(
+                  'PERMISSION_EMAIL_ACCOUNTS_READ = "fair_crm.email_accounts.read"',
+                );
+                expect(navigationPermissionSource).toContain(
+                  'PERMISSION_MAIL_TEMPLATES_READ = "fair_crm.mail_templates.read"',
+                );
+                expect(source).toContain("const canReadEmailAccounts = can(PERMISSION_EMAIL_ACCOUNTS_READ);");
+                expect(source).toContain("const canReadMailTemplates = can(PERMISSION_MAIL_TEMPLATES_READ);");
+                expect(source).toContain("const canCreateBulkEmailOperation =");
+                expect(source).toContain(
+                  "canStartBulkEmail && canReadMailTemplates && canReadEmailAccounts;",
+                );
+                expect(source).toContain("const canOpenNewOperation =");
+                expect(source).toContain("canCreateBulkEmailOperation ||");
+                expect(source).toContain("canCreateEnrichmentOperation ||");
+                expect(source).toContain("canCreateScraperOperation;");
+                expect(source).toContain('if (type === "bulk_email") return canCreateBulkEmailOperation;');''',
+          )
+
+          patch(
+              ".kyrox/features/bulk-email-mail-settings-permission-consistency.json",
+              '''    "frontend/src/pages/BulkEmailOperationWizardPage.tsx",
+                "frontend/src/permissions/BulkEmailOperationWizardPermissions.test.ts",
+                "frontend/src/permissions/navigationPermissions.ts",
+                "frontend/src/permissions/navigationPermissions.test.ts",''',
+              '''    "frontend/src/pages/BulkEmailOperationWizardPage.tsx",
+                "frontend/src/pages/OperationsPage.tsx",
+                "frontend/src/permissions/BulkEmailOperationWizardPermissions.test.ts",
+                "frontend/src/permissions/OperationsPagePermissions.test.ts",
+                "frontend/src/permissions/navigationPermissions.ts",
+                "frontend/src/permissions/navigationPermissions.test.ts",''',
+          )
+          patch(
+              ".kyrox/features/bulk-email-mail-settings-permission-consistency.json",
+              '''      { "code": "fair_crm.fair_emails.execute", "action": "access the bulk-email operation wizard", "scope": "organization", "assignable": true },''',
+              '''      { "code": "fair_crm.fair_emails.execute", "action": "authorize the Bulk Email send action and wizard business flow", "scope": "organization", "assignable": true },''',
+          )
+          patch(
+              ".kyrox/features/bulk-email-mail-settings-permission-consistency.json",
+              '''    "route_guard": { "status": "required", "reason": "The specialized /operations/new/bulk-email route is guarded by fair_crm.fair_emails.execute; fair_crm.operations.create remains only the generic new-operation fallback and is not a Bulk Email prerequisite." },''',
+              '''    "route_guard": { "status": "required", "reason": "The specialized /operations/new/bulk-email route requires fair_crm.fair_emails.execute plus the mandatory fair_crm.mail_templates.read and fair_crm.email_accounts.read lookup prerequisites; fair_crm.operations.create is not a Bulk Email prerequisite." },''',
+          )
+          patch(
+              ".kyrox/features/bulk-email-mail-settings-permission-consistency.json",
+              '''  "notes": "Bulk Email wizard entry uses fair_crm.fair_emails.execute and does not require fair_crm.operations.create. Mail-template read and email-account read remain separate capabilities for the mail-settings lookups. The email-account list client fails closed locally when fair_crm.email_accounts.read is absent, preventing an unauthorized /email-accounts request. Preview remains a separate fair_crm.fair_emails.preview capability and is not a prerequisite for execute-only Send. Generic operation creation routes retain fair_crm.operations.create."''',
+              '''  "notes": "Bulk Email wizard entry requires fair_crm.fair_emails.execute together with fair_crm.mail_templates.read and fair_crm.email_accounts.read because template and sender selection are mandatory to complete the wizard. The Operations-page type picker uses the same composite entry prerequisite. Send itself remains authorized only by fair_crm.fair_emails.execute, preview remains the independent optional fair_crm.fair_emails.preview capability, and fair_crm.operations.create is not a Bulk Email prerequisite. The email-account list client continues to fail closed locally when fair_crm.email_accounts.read is absent."''',
+          )
+
+          patch(
+              ".kyrox/features/operations-new-bulk-email-entry-permission-consistency.json",
+              '''      {
+                "code": "fair_crm.fair_emails.execute",
+                "action": "open and select the Bulk Email new-operation entry",
+                "scope": "organization",
+                "assignable": true
+              }
+            ]''',
+              '''      {
+                "code": "fair_crm.fair_emails.execute",
+                "action": "authorize the Bulk Email business flow for the new-operation entry",
+                "scope": "organization",
+                "assignable": true
+              },
+              {
+                "code": "fair_crm.mail_templates.read",
+                "action": "load the mandatory mail-template selector in the Bulk Email wizard",
+                "scope": "organization",
+                "assignable": true
+              },
+              {
+                "code": "fair_crm.email_accounts.read",
+                "action": "load the mandatory sender-account selector in the Bulk Email wizard",
+                "scope": "organization",
+                "assignable": true
+              }
+            ]''',
+          )
+          patch(
+              ".kyrox/features/operations-new-bulk-email-entry-permission-consistency.json",
+              '''    "frontend/src/pages/OperationsPage.tsx",
+                "frontend/src/components/operations/NewOperationTypeModal.tsx",
+                "frontend/src/permissions/OperationsPagePermissions.test.ts",''',
+              '''    "frontend/src/pages/OperationsPage.tsx",
+                "frontend/src/components/operations/NewOperationTypeModal.tsx",
+                "frontend/src/permissions/OperationsPagePermissions.test.ts",
+                "frontend/src/permissions/navigationPermissions.ts",
+                "frontend/src/permissions/navigationPermissions.test.ts",''',
+          )
+          patch(
+              ".kyrox/features/operations-new-bulk-email-entry-permission-consistency.json",
+              '''    "route_guard": { "status": "na", "reason": "The Bulk Email wizard route already uses fair_crm.fair_emails.execute; this change aligns the Operations-page entry point." },''',
+              '''    "route_guard": { "status": "required", "reason": "The Bulk Email wizard route and Operations-page type picker both require fair_crm.fair_emails.execute plus the mandatory mail_templates.read and email_accounts.read lookup prerequisites." },''',
+          )
+          patch(
+              ".kyrox/features/operations-new-bulk-email-entry-permission-consistency.json",
+              '''  "notes": "A user with fair_crm.fair_emails.execute can reach the Bulk Email wizard from /operations without also needing fair_crm.operations.create. Generic operation entries continue to require fair_crm.operations.create. Enrichment and Scraper new-operation entry alignment remain intentionally outside this focused change. The type picker filters entries through the same fail-closed permission predicate used by onContinue."''',
+              '''  "notes": "Bulk Email entry from /operations requires fair_crm.fair_emails.execute plus fair_crm.mail_templates.read and fair_crm.email_accounts.read because both lookups are mandatory wizard prerequisites. This entry still does not require fair_crm.operations.create, and already-created Bulk Email Start/Retry plus final Send continue to use fair_crm.fair_emails.execute without adding these read permissions to the mutation boundary. Generic operation entries retain their existing permission behavior. The type picker and deep-link route use equivalent fail-closed prerequisites."''',
+          )
+
+          patch(
+              ".kyrox/features/operation-wizard-route-permission-consistency.json",
+              '''      {
+                "code": "fair_crm.fair_emails.execute",
+                "action": "enter the Bulk Email immediate-send wizard",
+                "scope": "organization",
+                "assignable": true
+              },
+              {
+                "code": "fair_crm.scraper.execute",''',
+              '''      {
+                "code": "fair_crm.fair_emails.execute",
+                "action": "authorize the Bulk Email immediate-send business flow",
+                "scope": "organization",
+                "assignable": true
+              },
+              {
+                "code": "fair_crm.mail_templates.read",
+                "action": "load the mandatory Bulk Email mail-template selector",
+                "scope": "organization",
+                "assignable": true
+              },
+              {
+                "code": "fair_crm.email_accounts.read",
+                "action": "load the mandatory Bulk Email sender-account selector",
+                "scope": "organization",
+                "assignable": true
+              },
+              {
+                "code": "fair_crm.scraper.execute",''',
+          )
+          patch(
+              ".kyrox/features/operation-wizard-route-permission-consistency.json",
+              '''  "notes": "Specialized operation wizard deep links must not reintroduce generic operation-create prerequisites. Bulk Email uses fair_emails.execute. Enrichment Start remains authorized by scraper.execute, while entering its wizard additionally requires scraper.read because the form must load the user-visible enrichment manifest/output-field capabilities; its fair filter remains optional and is independently shown only with fairs.read. Scraper Start remains authorized by scraper.execute, while entering its wizard additionally requires fairs.read and scraper.read because the user must deliberately discover/select a fair and adapter/manifest. Duplicate Check uses operations.execute plus its legitimate data_operations.read page prerequisite. Unsupported or legacy /operations/new fallbacks resolve to the Operations list and therefore require operations.read; the Operations-page New entry point remains separately gated by operations.create."''',
+              '''  "notes": "Specialized operation wizard deep links must not reintroduce generic operation-create prerequisites. Bulk Email Send remains authorized by fair_emails.execute, while entering its wizard additionally requires mail_templates.read and email_accounts.read because both selectors are mandatory to complete the form. Enrichment Start remains authorized by scraper.execute, while entering its wizard additionally requires scraper.read because the form must load the user-visible enrichment manifest/output-field capabilities; its fair filter remains optional and is independently shown only with fairs.read. Scraper Start remains authorized by scraper.execute, while entering its wizard additionally requires fairs.read and scraper.read because the user must deliberately discover/select a fair and adapter/manifest. Duplicate Check uses operations.execute plus its legitimate data_operations.read page prerequisite. Unsupported or legacy /operations/new fallbacks resolve to the Operations list and therefore require operations.read; the Operations-page New entry point remains separately gated by operations.create."''',
+          )
+
+          Path(".github/workflows/tmp-bulk-email-mail-settings-prerequisites.yml").unlink()
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git diff --cached --stat
+          git commit -m "fix(auth): align bulk email wizard prerequisites"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
