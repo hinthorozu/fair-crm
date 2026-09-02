@@ -31,7 +31,7 @@
       },
       {
         "code": "fair_crm.scraper.execute",
-        "action": "enter the Enrichment immediate-start wizard and authorize Scraper start",
+        "action": "authorize Enrichment and Scraper start actions",
         "scope": "organization",
         "assignable": true
       },
@@ -43,7 +43,7 @@
       },
       {
         "code": "fair_crm.scraper.read",
-        "action": "discover mandatory adapter and manifest metadata in the Scraper wizard",
+        "action": "read the mandatory Enrichment manifest and discover Scraper adapter/manifest metadata",
         "scope": "organization",
         "assignable": true
       },
@@ -138,5 +138,5 @@
       "status": "required"
     }
   },
-  "notes": "Specialized operation wizard deep links must not reintroduce generic operation-create prerequisites. Bulk Email uses fair_emails.execute. Enrichment remains accessible with scraper.execute alone because its fair filter is optional. Scraper Start remains authorized by scraper.execute, but entering its wizard additionally requires fairs.read and scraper.read because the user must deliberately discover/select a fair and adapter/manifest before the action can be configured. Duplicate Check uses operations.execute plus its legitimate data_operations.read page prerequisite. The generic /operations/new route and unknown generic operation wizard fallback continue to require operations.create."
+  "notes": "Specialized operation wizard deep links must not reintroduce generic operation-create prerequisites. Bulk Email uses fair_emails.execute. Enrichment Start remains authorized by scraper.execute, while entering its wizard additionally requires scraper.read because the form must load the user-visible enrichment manifest/output-field capabilities; its fair filter remains optional and is independently shown only with fairs.read. Scraper Start remains authorized by scraper.execute, while entering its wizard additionally requires fairs.read and scraper.read because the user must deliberately discover/select a fair and adapter/manifest. Duplicate Check uses operations.execute plus its legitimate data_operations.read page prerequisite. The generic /operations/new route and unknown generic operation wizard fallback continue to require operations.create."
 }

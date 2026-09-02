@@ -96,6 +96,12 @@ describe("navigation permission rules", () => {
     ).toBe(true);
     expect(
       canAccessApplicationPath("/operations/new/enrichment", granted(SCRAPER_PERMISSION_EXECUTE)),
+    ).toBe(false);
+    expect(
+      canAccessApplicationPath(
+        "/operations/new/enrichment",
+        granted(SCRAPER_PERMISSION_EXECUTE, PERMISSION_SCRAPER_READ),
+      ),
     ).toBe(true);
     expect(
       canAccessApplicationPath("/operations/new/scraper", granted(SCRAPER_PERMISSION_EXECUTE)),
