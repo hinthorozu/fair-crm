@@ -28,7 +28,7 @@
       },
       {
         "code": "fair_crm.fair_emails.execute",
-        "action": "send bulk email",
+        "action": "send bulk email independently of preview access",
         "scope": "organization",
         "assignable": true
       }
@@ -60,5 +60,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Bulk email preview has one canonical permission: fair_crm.fair_emails.preview. Bulk email send has one canonical permission: fair_crm.fair_emails.execute. The /operations/bulk-email/send endpoint internally creates and immediately starts an operation, but that bookkeeping is implementation detail and does not add fair_crm.operations.create or fair_crm.operations.execute as user-facing prerequisites. Generic non-bulk operation create/start actions retain their existing operations permissions."
+  "notes": "Bulk email preview has one canonical permission: fair_crm.fair_emails.preview. Bulk email send has one canonical permission: fair_crm.fair_emails.execute. Preview remains an independent optional capability and the absence of preview permission must not block an execute-authorized user from reaching or triggering Send. SendBulkEmailOperationUseCase independently resolves recipients and validates sender/template/subject and sendable recipients at send time, so the preview result is not a send prerequisite. The /operations/bulk-email/send endpoint internally creates and immediately starts an operation, but that bookkeeping is implementation detail and does not add fair_crm.operations.create or fair_crm.operations.execute as user-facing prerequisites. Generic non-bulk operation create/start actions retain their existing operations permissions."
 }

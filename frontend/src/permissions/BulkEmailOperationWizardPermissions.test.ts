@@ -28,9 +28,16 @@ describe("BulkEmailOperationWizardPage permissions", () => {
     expect(source).toContain("const result = await sendBulkEmailOperation({");
   });
 
-  it("gates summary navigation and the send affordance", () => {
-    expect(source).toContain("const canProceedMailSettings =\r\n    canPreviewBulkEmail &&");
+  it("keeps preview optional for execute-only send", () => {
+    expect(source).toContain("const canProceedMailSettings =\r\n    !templatesLoading &&");
+    expect(source).toContain("const previewRequirementSatisfied =");
+    expect(source).toContain("!canPreviewBulkEmail ||");
+    expect(source).toContain("const canProceedSummary = previewRequirementSatisfied;");
+    expect(source).toContain('currentStep.id === "summary" && canPreviewBulkEmail');
+    expect(source).toContain("setPreviewing(canPreviewBulkEmail);");
+    expect(source).toContain("canPreviewBulkEmail &&\r\n      (!previewReady ||");
     expect(source).toContain("const canSend = canSendBulkEmail && canProceedSummary && !sending;");
     expect(source).toContain('currentStep.id === "summary" && canSendBulkEmail ? (');
+    expect(source).toContain(") : canPreviewBulkEmail ? (");
   });
 });
