@@ -59,14 +59,13 @@ jobs:
               raise SystemExit(f'BulkEmailOperationWizardPermissions.test.ts expected exactly one assertion block, got {count}')
           test.write_text(text.replace(old, new, 1), encoding='utf-8', newline='')
 
-      - name: Remove temporary workflow and commit patch
+      - name: Commit patch
         shell: bash
         run: |
           set -euo pipefail
-          rm .github/workflows/patch-bulk-email-preview-permission.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add frontend/src/pages/BulkEmailOperationWizardPage.tsx frontend/src/permissions/BulkEmailOperationWizardPermissions.test.ts .github/workflows/patch-bulk-email-preview-permission.yml
+          git add frontend/src/pages/BulkEmailOperationWizardPage.tsx frontend/src/permissions/BulkEmailOperationWizardPermissions.test.ts
           git diff --cached --check
           git commit -m "fix(auth): use canonical Bulk Email preview permission"
           git push origin HEAD:fix/bulk-email-legacy-contract-permissions
