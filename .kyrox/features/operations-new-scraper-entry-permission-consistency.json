@@ -68,5 +68,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "The Scraper new-operation entry and its deep link are available only when scraper.execute, fairs.read, and scraper.read are all granted. The two read permissions are legitimate wizard prerequisites because the user must browse/select a fair and scraper adapter/manifest. The final Scraper Start action itself remains scraper.execute-only. Enrichment continues to use scraper.execute alone, Bulk Email continues to use fair_emails.execute, and generic operation entries continue to require operations.create."
+  "notes": "The Scraper new-operation entry and its deep link are available only when scraper.execute, fairs.read, and scraper.read are all granted. The two read permissions are legitimate wizard prerequisites because the user must browse/select a fair and scraper adapter/manifest. The final Scraper Start action itself remains scraper.execute-only. Enrichment entry requires scraper.execute plus scraper.read, while Enrichment Start remains execute-only. Bulk Email entry requires fair_emails.execute plus mail_templates.read and email_accounts.read, while already-created Bulk Email Start/Retry and final Send remain execute-only. Generic operation entries continue to require operations.create."
 }
