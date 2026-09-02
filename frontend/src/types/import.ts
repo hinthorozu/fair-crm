@@ -11,6 +11,7 @@ export type ImportSourceType =
   | "other";
 
 export type ImportBatchStatus =
+  | "received"
   | "uploaded"
   | "sheet_selected"
   | "header_configured"
