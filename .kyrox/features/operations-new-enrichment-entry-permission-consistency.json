@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "id": "operations-new-enrichment-entry-permission-consistency",
+  "title": "Operations New Enrichment Entry Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/OperationsPage.tsx",
+    "frontend/src/components/operations/NewOperationTypeModal.tsx",
+    "frontend/src/permissions/OperationsPagePermissions.test.ts",
+    ".kyrox/features/operations-new-enrichment-entry-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.operations.create",
+        "action": "open and select generic operation creation entries",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.scraper.execute",
+        "action": "open and select the Enrichment new-operation entry",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/operations", "/operations/new/enrichment"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No persistence changes are introduced." },
+    "migration": { "status": "na", "reason": "Existing permissions are reused." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Enrichment immediate create/start authorization already uses fair_crm.scraper.execute." },
+    "api": { "status": "na", "reason": "No API contract changes; wizard metadata and operation-type reads already use existing read access." },
+    "tenant_isolation": { "status": "na", "reason": "No organization-scoping behavior changes." },
+    "audit": { "status": "na", "reason": "No audit behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
+    "route_guard": { "status": "na", "reason": "The Enrichment wizard route already uses fair_crm.scraper.execute; this change aligns the Operations-page entry point." },
+    "forms": { "status": "na", "reason": "No business form behavior changes; the existing type-picker permission filter is reused." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "A user with fair_crm.scraper.execute can reach the Enrichment wizard from /operations without also needing fair_crm.operations.create. Generic operation entries continue to require fair_crm.operations.create. Bulk Email entry remains on fair_crm.fair_emails.execute. Scraper new-operation entry alignment remains intentionally outside this focused change. The existing type picker filters entries through the same fail-closed permission predicate used by onContinue."
+}

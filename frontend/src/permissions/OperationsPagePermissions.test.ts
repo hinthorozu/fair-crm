@@ -31,16 +31,22 @@ describe("Operations action permissions", () => {
 
   it("allows Bulk Email execute to open and select its new-operation entry", () => {
     expect(source).toContain("const canCreate = can(PERMISSION_OPERATIONS_CREATE)");
-    expect(source).toContain("const canOpenNewOperation = canCreate || canStartBulkEmail;");
     expect(source).toContain(
-      '(type: OperationType) => (type === "bulk_email" ? canStartBulkEmail : canCreate)',
+      "const canOpenNewOperation = canCreate || canStartBulkEmail || canStartScraperActions;",
     );
+    expect(source).toContain('if (type === "bulk_email") return canStartBulkEmail;');
     expect(source).toContain("canOpenNewOperation ? (");
     expect(source).toContain("open={canOpenNewOperation && typeModalOpen}");
     expect(source).toContain("isTypeAllowed={canSelectNewOperationType}");
     expect(source).toContain("if (!canSelectNewOperationType(type)) return;");
     expect(modalSource).toContain("isTypeAllowed?: (type: OperationType) => boolean;");
     expect(modalSource).toContain("!isTypeAllowed || isTypeAllowed(item.type)");
+  });
+
+  it("allows scraper execute to open and select only the Enrichment specialized entry", () => {
+    expect(source).toContain('if (type === "enrichment") return canStartScraperActions;');
+    expect(source).not.toContain('if (type === "scraper") return canStartScraperActions;');
+    expect(source).toContain("return canCreate;");
   });
 
   it("keeps operations execute for generic operation mutations", () => {
