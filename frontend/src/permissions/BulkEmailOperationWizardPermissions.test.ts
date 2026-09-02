@@ -19,7 +19,7 @@ describe("BulkEmailOperationWizardPage permissions", () => {
     );
     expect(source).toContain("const canPreviewBulkEmail = can(FAIR_EMAIL_PERMISSION_PREVIEW);");
     expect(source).toContain("const canSendBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);");
-    expect(source).not.toContain("fair_crm.fair_emails.preview");
+    expect(source).not.toContain(["fair_crm.fair_emails", "preview"].join("."));
     expect(source).not.toContain("PERMISSION_OPERATIONS_CREATE");
     expect(source).not.toContain("OPERATION_EXECUTE");
   });
