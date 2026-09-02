@@ -450,7 +450,6 @@ function BulkEmailOperationWizardPageInner({
   })();
 
   const canProceedMailSettings =
-    canPreviewBulkEmail &&
     !templatesLoading &&
     Boolean(templateId.trim()) &&
     Boolean(emailAccountId.trim()) &&
@@ -464,8 +463,11 @@ function BulkEmailOperationWizardPageInner({
     !previewError &&
     previewFingerprint === previewInputFingerprint;
 
-  const canProceedSummary =
-    previewReady && (preview?.recipients.deduped_recipient_count ?? 0) > 0;
+  const previewRequirementSatisfied =
+    !canPreviewBulkEmail ||
+    (previewReady && (preview?.recipients.deduped_recipient_count ?? 0) > 0);
+
+  const canProceedSummary = previewRequirementSatisfied;
 
   const canProceed =
     currentStep.id === "recipient_source"
@@ -514,7 +516,7 @@ function BulkEmailOperationWizardPageInner({
         return false;
       }
     }
-    if (currentStep.id === "summary") {
+    if (currentStep.id === "summary" && canPreviewBulkEmail) {
       if (previewing) return false;
       if (!previewReady) {
         setFieldError(previewError ?? operationLabels.bulkEmailPreviewError);
@@ -535,7 +537,7 @@ function BulkEmailOperationWizardPageInner({
       setPreview(null);
       setPreviewError(null);
       setPreviewFingerprint(null);
-      setPreviewing(true);
+      setPreviewing(canPreviewBulkEmail);
     }
     setStepIndex((prev) => Math.min(prev + 1, STEPS.length - 1));
   };
@@ -567,7 +569,10 @@ function BulkEmailOperationWizardPageInner({
       setSendError(operationLabels.bulkEmailSendError);
       return;
     }
-    if (!previewReady || (preview?.recipients.deduped_recipient_count ?? 0) === 0) {
+    if (
+      canPreviewBulkEmail &&
+      (!previewReady || (preview?.recipients.deduped_recipient_count ?? 0) === 0)
+    ) {
       setSendError(operationLabels.bulkEmailPreviewCannotContinue);
       return;
     }
@@ -1070,8 +1075,39 @@ function BulkEmailOperationWizardPageInner({
                 ) : null}
               </FormSection>
             </>
-          ) : (
+          ) : canPreviewBulkEmail ? (
             <EmptyState title={operationLabels.bulkEmailPreviewEmptyRecipients} />
+          ) : (
+            <>
+              <FormSection title={operationLabels.bulkEmailRecipientsSection}>
+                <div className="detail-grid compact">
+                  <div>
+                    <strong>{operationLabels.bulkEmailSummarySource}</strong>
+                    <div>
+                      {sourceType === "manual"
+                        ? operationLabels.bulkEmailSourceManual
+                        : operationLabels.bulkEmailSourceFairList}
+                    </div>
+                  </div>
+                </div>
+              </FormSection>
+              <FormSection title={operationLabels.bulkEmailMailSummarySection}>
+                <div className="detail-grid compact">
+                  <div>
+                    <strong>{operationLabels.bulkEmailTemplateLabel}</strong>
+                    <div>{selectedTemplate?.name || "—"}</div>
+                  </div>
+                  <div>
+                    <strong>{operationLabels.bulkEmailSmtpLabel}</strong>
+                    <div>{selectedEmailAccount?.name || "—"}</div>
+                  </div>
+                  <div>
+                    <strong>{operationLabels.bulkEmailSubjectLabel}</strong>
+                    <div>{subject.trim() || "—"}</div>
+                  </div>
+                </div>
+              </FormSection>
+            </>
           )
         ) : null}
 
