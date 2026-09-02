@@ -23,7 +23,9 @@ import {
 } from "../labels/operationLabels";
 import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";
 import {
+  PERMISSION_EMAIL_ACCOUNTS_READ,
   PERMISSION_FAIRS_READ,
+  PERMISSION_MAIL_TEMPLATES_READ,
   PERMISSION_OPERATIONS_CREATE,
   PERMISSION_SCRAPER_READ,
 } from "../permissions/navigationPermissions";
@@ -56,16 +58,20 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
   const { can } = usePermissions();
   const canCreate = can(PERMISSION_OPERATIONS_CREATE);
   const canExecute = can(OPERATION_EXECUTE);
+  const canReadEmailAccounts = can(PERMISSION_EMAIL_ACCOUNTS_READ);
   const canReadFairs = can(PERMISSION_FAIRS_READ);
+  const canReadMailTemplates = can(PERMISSION_MAIL_TEMPLATES_READ);
   const canReadScraper = can(PERMISSION_SCRAPER_READ);
   const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);
   const canStartScraperActions = can(SCRAPER_PERMISSION_EXECUTE);
+  const canCreateBulkEmailOperation =
+    canStartBulkEmail && canReadMailTemplates && canReadEmailAccounts;
   const canCreateEnrichmentOperation = canStartScraperActions && canReadScraper;
   const canCreateScraperOperation =
     canStartScraperActions && canReadFairs && canReadScraper;
   const canOpenNewOperation =
     canCreate ||
-    canStartBulkEmail ||
+    canCreateBulkEmailOperation ||
     canCreateEnrichmentOperation ||
     canCreateScraperOperation;
   const [banner, setBanner] = React.useState<string | null>(null);
@@ -124,12 +130,12 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
 
   const canSelectNewOperationType = React.useCallback(
     (type: OperationType) => {
-      if (type === "bulk_email") return canStartBulkEmail;
+      if (type === "bulk_email") return canCreateBulkEmailOperation;
       if (type === "enrichment") return canCreateEnrichmentOperation;
       if (type === "scraper") return canCreateScraperOperation;
       return canCreate;
     },
-    [canCreate, canCreateEnrichmentOperation, canCreateScraperOperation, canStartBulkEmail],
+    [canCreate, canCreateBulkEmailOperation, canCreateEnrichmentOperation, canCreateScraperOperation],
   );
 
   const canStartOperation = React.useCallback(

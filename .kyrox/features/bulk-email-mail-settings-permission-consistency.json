@@ -10,7 +10,9 @@
   "user_facing": true,
   "affected_paths": [
     "frontend/src/pages/BulkEmailOperationWizardPage.tsx",
+    "frontend/src/pages/OperationsPage.tsx",
     "frontend/src/permissions/BulkEmailOperationWizardPermissions.test.ts",
+    "frontend/src/permissions/OperationsPagePermissions.test.ts",
     "frontend/src/permissions/navigationPermissions.ts",
     "frontend/src/permissions/navigationPermissions.test.ts",
     "frontend/src/api/emailAccounts.ts",
@@ -20,7 +22,7 @@
   "permissions": {
     "required": true,
     "items": [
-      { "code": "fair_crm.fair_emails.execute", "action": "access the bulk-email operation wizard", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_emails.execute", "action": "authorize the Bulk Email send action and wizard business flow", "scope": "organization", "assignable": true },
       { "code": "fair_crm.mail_templates.read", "action": "load selectable mail templates", "scope": "organization", "assignable": true },
       { "code": "fair_crm.email_accounts.read", "action": "load selectable sender accounts", "scope": "organization", "assignable": true }
     ]
@@ -42,7 +44,7 @@
     "frontend": { "status": "required" },
     "ui_permissions": { "status": "required" },
     "menu": { "status": "na", "reason": "Operations navigation remains controlled by its existing navigation permission; this contract covers the specialized Bulk Email wizard route and its mail-settings lookups." },
-    "route_guard": { "status": "required", "reason": "The specialized /operations/new/bulk-email route is guarded by fair_crm.fair_emails.execute; fair_crm.operations.create remains only the generic new-operation fallback and is not a Bulk Email prerequisite." },
+    "route_guard": { "status": "required", "reason": "The specialized /operations/new/bulk-email route requires fair_crm.fair_emails.execute plus the mandatory fair_crm.mail_templates.read and fair_crm.email_accounts.read lookup prerequisites; fair_crm.operations.create is not a Bulk Email prerequisite." },
     "forms": { "status": "required" },
     "visual_qa": { "status": "required" },
     "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
@@ -51,5 +53,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Bulk Email wizard entry uses fair_crm.fair_emails.execute and does not require fair_crm.operations.create. Mail-template read and email-account read remain separate capabilities for the mail-settings lookups. The email-account list client fails closed locally when fair_crm.email_accounts.read is absent, preventing an unauthorized /email-accounts request. Preview remains a separate fair_crm.fair_emails.preview capability and is not a prerequisite for execute-only Send. Generic operation creation routes retain fair_crm.operations.create."
+  "notes": "Bulk Email wizard entry requires fair_crm.fair_emails.execute together with fair_crm.mail_templates.read and fair_crm.email_accounts.read because template and sender selection are mandatory to complete the wizard. The Operations-page type picker uses the same composite entry prerequisite. Send itself remains authorized only by fair_crm.fair_emails.execute, preview remains the independent optional fair_crm.fair_emails.preview capability, and fair_crm.operations.create is not a Bulk Email prerequisite. The email-account list client continues to fail closed locally when fair_crm.email_accounts.read is absent."
 }

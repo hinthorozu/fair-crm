@@ -25,7 +25,19 @@
       },
       {
         "code": "fair_crm.fair_emails.execute",
-        "action": "enter the Bulk Email immediate-send wizard",
+        "action": "authorize the Bulk Email immediate-send business flow",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.mail_templates.read",
+        "action": "load the mandatory Bulk Email mail-template selector",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.email_accounts.read",
+        "action": "load the mandatory Bulk Email sender-account selector",
         "scope": "organization",
         "assignable": true
       },
@@ -138,5 +150,5 @@
       "status": "required"
     }
   },
-  "notes": "Specialized operation wizard deep links must not reintroduce generic operation-create prerequisites. Bulk Email uses fair_emails.execute. Enrichment Start remains authorized by scraper.execute, while entering its wizard additionally requires scraper.read because the form must load the user-visible enrichment manifest/output-field capabilities; its fair filter remains optional and is independently shown only with fairs.read. Scraper Start remains authorized by scraper.execute, while entering its wizard additionally requires fairs.read and scraper.read because the user must deliberately discover/select a fair and adapter/manifest. Duplicate Check uses operations.execute plus its legitimate data_operations.read page prerequisite. Unsupported or legacy /operations/new fallbacks resolve to the Operations list and therefore require operations.read; the Operations-page New entry point remains separately gated by operations.create."
+  "notes": "Specialized operation wizard deep links must not reintroduce generic operation-create prerequisites. Bulk Email Send remains authorized by fair_emails.execute, while entering its wizard additionally requires mail_templates.read and email_accounts.read because both selectors are mandatory to complete the form. Enrichment Start remains authorized by scraper.execute, while entering its wizard additionally requires scraper.read because the form must load the user-visible enrichment manifest/output-field capabilities; its fair filter remains optional and is independently shown only with fairs.read. Scraper Start remains authorized by scraper.execute, while entering its wizard additionally requires fairs.read and scraper.read because the user must deliberately discover/select a fair and adapter/manifest. Duplicate Check uses operations.execute plus its legitimate data_operations.read page prerequisite. Unsupported or legacy /operations/new fallbacks resolve to the Operations list and therefore require operations.read; the Operations-page New entry point remains separately gated by operations.create."
 }

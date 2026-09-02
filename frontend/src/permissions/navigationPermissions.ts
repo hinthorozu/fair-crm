@@ -288,7 +288,11 @@ export function canAccessApplicationPath(
     return hasGrantedCorePermission(granted, OPERATION_EXECUTE) && canReadDataOperations;
   }
   if (pathname === "/operations/new/bulk-email") {
-    return hasGrantedCorePermission(granted, FAIR_EMAIL_PERMISSION_EXECUTE);
+    return (
+      hasGrantedCorePermission(granted, FAIR_EMAIL_PERMISSION_EXECUTE) &&
+      hasGrantedCorePermission(granted, PERMISSION_MAIL_TEMPLATES_READ) &&
+      hasGrantedCorePermission(granted, PERMISSION_EMAIL_ACCOUNTS_READ)
+    );
   }
   if (pathname === "/operations/new/enrichment") {
     return (

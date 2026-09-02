@@ -29,12 +29,25 @@ describe("Operations action permissions", () => {
     );
   });
 
-  it("allows Bulk Email execute to open and select its new-operation entry", () => {
+  it("requires Bulk Email mail-setting reads for its new-operation entry", () => {
     expect(source).toContain("const canCreate = can(PERMISSION_OPERATIONS_CREATE)");
+    expect(navigationPermissionSource).toContain(
+      'PERMISSION_EMAIL_ACCOUNTS_READ = "fair_crm.email_accounts.read"',
+    );
+    expect(navigationPermissionSource).toContain(
+      'PERMISSION_MAIL_TEMPLATES_READ = "fair_crm.mail_templates.read"',
+    );
+    expect(source).toContain("const canReadEmailAccounts = can(PERMISSION_EMAIL_ACCOUNTS_READ);");
+    expect(source).toContain("const canReadMailTemplates = can(PERMISSION_MAIL_TEMPLATES_READ);");
+    expect(source).toContain("const canCreateBulkEmailOperation =");
+    expect(source).toContain(
+      "canStartBulkEmail && canReadMailTemplates && canReadEmailAccounts;",
+    );
     expect(source).toContain("const canOpenNewOperation =");
+    expect(source).toContain("canCreateBulkEmailOperation ||");
     expect(source).toContain("canCreateEnrichmentOperation ||");
     expect(source).toContain("canCreateScraperOperation;");
-    expect(source).toContain('if (type === "bulk_email") return canStartBulkEmail;');
+    expect(source).toContain('if (type === "bulk_email") return canCreateBulkEmailOperation;');
     expect(source).toContain("canOpenNewOperation ? (");
     expect(source).toContain("open={canOpenNewOperation && typeModalOpen}");
     expect(source).toContain("isTypeAllowed={canSelectNewOperationType}");
