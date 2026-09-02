@@ -24,6 +24,7 @@ export interface NewOperationTypeModalProps {
   open: boolean;
   onClose: () => void;
   onContinue: (type: OperationType) => void;
+  isTypeAllowed?: (type: OperationType) => boolean;
 }
 
 export function NewOperationTypeModal(props: NewOperationTypeModalProps) {
@@ -39,6 +40,7 @@ export function NewOperationTypeModal(props: NewOperationTypeModalProps) {
 function NewOperationTypeModalInner({
   onClose,
   onContinue,
+  isTypeAllowed,
 }: NewOperationTypeModalProps) {
   const requestClose = useModalFormCancel(onClose);
   const [metadata, setMetadata] = React.useState<WizardMetadata | null>(null);
@@ -77,8 +79,11 @@ function NewOperationTypeModalInner({
   const nameByKey = React.useMemo(() => buildCatalogNameMap(catalog), [catalog]);
 
   const types = React.useMemo(
-    () => sortWizardTypes(metadata?.types ?? [], catalog),
-    [metadata?.types, catalog],
+    () =>
+      sortWizardTypes(metadata?.types ?? [], catalog).filter(
+        (item) => !isTypeAllowed || isTypeAllowed(item.type),
+      ),
+    [metadata?.types, catalog, isTypeAllowed],
   );
 
   const metaByType = React.useMemo(() => {

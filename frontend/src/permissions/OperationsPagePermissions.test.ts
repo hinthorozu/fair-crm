@@ -7,6 +7,11 @@ const source = readFileSync(
   "utf8",
 );
 
+const modalSource = readFileSync(
+  fileURLToPath(new URL("../components/operations/NewOperationTypeModal.tsx", import.meta.url)),
+  "utf8",
+);
+
 const navigationPermissionSource = readFileSync(
   fileURLToPath(new URL("./navigationPermissions.ts", import.meta.url)),
   "utf8",
@@ -24,11 +29,18 @@ describe("Operations action permissions", () => {
     );
   });
 
-  it("hides and fails closed the new operation entry point without create permission", () => {
+  it("allows Bulk Email execute to open and select its new-operation entry", () => {
     expect(source).toContain("const canCreate = can(PERMISSION_OPERATIONS_CREATE)");
-    expect(source).toContain("canCreate ? (");
-    expect(source).toContain("open={canCreate && typeModalOpen}");
-    expect(source).toContain("if (!canCreate) return;");
+    expect(source).toContain("const canOpenNewOperation = canCreate || canStartBulkEmail;");
+    expect(source).toContain(
+      '(type: OperationType) => (type === "bulk_email" ? canStartBulkEmail : canCreate)',
+    );
+    expect(source).toContain("canOpenNewOperation ? (");
+    expect(source).toContain("open={canOpenNewOperation && typeModalOpen}");
+    expect(source).toContain("isTypeAllowed={canSelectNewOperationType}");
+    expect(source).toContain("if (!canSelectNewOperationType(type)) return;");
+    expect(modalSource).toContain("isTypeAllowed?: (type: OperationType) => boolean;");
+    expect(modalSource).toContain("!isTypeAllowed || isTypeAllowed(item.type)");
   });
 
   it("keeps operations execute for generic operation mutations", () => {
