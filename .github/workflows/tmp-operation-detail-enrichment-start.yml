@@ -1,0 +1,118 @@
+name: One-shot operation detail enrichment start patch
+
+on:
+  push:
+    branches:
+      - fix/operation-detail-enrichment-start-permission
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/operation-detail-enrichment-start-permission
+          fetch-depth: 0
+      - name: Apply focused patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(data: bytes, old: bytes, new: bytes, label: str) -> bytes:
+              count = data.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected exactly one match, got {count}")
+              return data.replace(old, new, 1)
+
+          page_path = Path("frontend/src/pages/OperationDetailPageLegacy.tsx")
+          data = page_path.read_bytes()
+          eol = b"\r\n" if b"\r\n" in data else b"\n"
+
+          old = b'import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";' + eol + b'import { OPERATION_EXECUTE } from "../permissions/operationPermissions";'
+          new = b'import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";' + eol + b'import { OPERATION_EXECUTE } from "../permissions/operationPermissions";' + eol + b'import { SCRAPER_PERMISSION_EXECUTE } from "../permissions/scraperPermissions";'
+          data = replace_once(data, old, new, "page scraper permission import")
+
+          old = b'  const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);' + eol + b'  const canRetryBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);'
+          new = b'  const canStartBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);' + eol + b'  const canStartEnrichment = can(SCRAPER_PERMISSION_EXECUTE);' + eol + b'  const canRetryBulkEmail = can(FAIR_EMAIL_PERMISSION_EXECUTE);'
+          data = replace_once(data, old, new, "page enrichment permission gate")
+
+          old = b'  const isBulkEmailOp = detail?.operation.operation_type === "bulk_email";' + eol + b'  const canStartOperation = isBulkEmailOp ? canStartBulkEmail : canExecute;'
+          new = (
+              b'  const isBulkEmailOp = detail?.operation.operation_type === "bulk_email";' + eol
+              + b'  const isEnrichmentOp = detail?.operation.operation_type === "enrichment";' + eol
+              + b'  const canStartOperation = isBulkEmailOp' + eol
+              + b'    ? canStartBulkEmail' + eol
+              + b'    : isEnrichmentOp' + eol
+              + b'      ? canStartEnrichment' + eol
+              + b'      : canExecute;'
+          )
+          data = replace_once(data, old, new, "page type-aware start permission")
+          page_path.write_bytes(data)
+
+          test_path = Path("frontend/src/permissions/OperationDetailExecutePermissions.test.ts")
+          data = test_path.read_bytes()
+          eol = b"\r\n" if b"\r\n" in data else b"\n"
+          old = b'    expect(source).toContain("const canStartOperation = isBulkEmailOp ? canStartBulkEmail : canExecute;");'
+          new = (
+              b'    expect(source).toContain("const canStartOperation = isBulkEmailOp");' + eol
+              + b'    expect(source).toContain("? canStartBulkEmail");' + eol
+              + b'    expect(source).toContain(": isEnrichmentOp");' + eol
+              + b'    expect(source).toContain(": canExecute;");'
+          )
+          data = replace_once(data, old, new, "test typed start selection")
+
+          marker = b'  it("keeps operation execute at the Cancel mutation boundary", () => {'
+          block = (
+              b'  it("uses scraper execute for Enrichment Start", () => {' + eol
+              + b'    expect(source).toContain(' + eol
+              + b'      \'import { SCRAPER_PERMISSION_EXECUTE } from "../permissions/scraperPermissions";\',' + eol
+              + b'    );' + eol
+              + b'    expect(source).toContain("const canStartEnrichment = can(SCRAPER_PERMISSION_EXECUTE);");' + eol
+              + b'    expect(source).toContain(' + eol
+              + b'      \'const isEnrichmentOp = detail?.operation.operation_type === "enrichment";\',' + eol
+              + b'    );' + eol
+              + b'    expect(source).toContain("? canStartEnrichment");' + eol
+              + b'  });' + eol + eol
+              + marker
+          )
+          data = replace_once(data, marker, block, "test enrichment start case")
+          test_path.write_bytes(data)
+
+          contract_path = Path(".kyrox/features/operation-detail-execute-permission-consistency.json")
+          data = contract_path.read_bytes()
+          eol = b"\r\n" if b"\r\n" in data else b"\n"
+          old = (
+              b'      {' + eol
+              + b'        "code": "fair_crm.fair_emails.execute",' + eol
+              + b'        "action": "start or retry a Bulk Email operation from Operation Detail",' + eol
+              + b'        "scope": "organization",' + eol
+              + b'        "assignable": true' + eol
+              + b'      }'
+          )
+          new = old + b',' + eol + (
+              b'      {' + eol
+              + b'        "code": "fair_crm.scraper.execute",' + eol
+              + b'        "action": "start an Enrichment operation from Operation Detail",' + eol
+              + b'        "scope": "organization",' + eol
+              + b'        "assignable": true' + eol
+              + b'      }'
+          )
+          data = replace_once(data, old, new, "contract scraper permission")
+
+          old_note = b'  "notes": "Operation Detail remains readable with its existing read access. Bulk Email Start and Retry Failed use fair_crm.fair_emails.execute, while generic Start and Cancel continue to use fair_crm.operations.execute. Enrichment and Scraper Detail Start alignment is intentionally outside this focused change. Bulk Email export remains read-only under the existing backend export permission."'
+          new_note = b'  "notes": "Operation Detail remains readable with its existing read access. Bulk Email Start and Retry Failed use fair_crm.fair_emails.execute. Enrichment Start uses fair_crm.scraper.execute. Generic and Scraper Start plus Cancel continue to use fair_crm.operations.execute. Scraper Detail Start alignment is intentionally outside this focused change. Bulk Email export remains read-only under the existing backend export permission."'
+          data = replace_once(data, old_note, new_note, "contract notes")
+          contract_path.write_bytes(data)
+          PY
+      - name: Commit focused patch and remove workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/tmp-operation-detail-enrichment-start.yml
+          git add frontend/src/pages/OperationDetailPageLegacy.tsx frontend/src/permissions/OperationDetailExecutePermissions.test.ts .kyrox/features/operation-detail-execute-permission-consistency.json
+          git diff --cached --check
+          git commit -m "fix(auth): align enrichment detail start permission"
+          git push origin HEAD:fix/operation-detail-enrichment-start-permission
