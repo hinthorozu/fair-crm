@@ -11,6 +11,7 @@
   "affected_paths": [
     "frontend/src/pages/DataIntegrationImportsPage.tsx",
     "frontend/src/types/import.ts",
+    "frontend/src/labels/importLabels.ts",
     "frontend/src/utils/importListActions.ts",
     "frontend/src/utils/importListActions.test.ts",
     "frontend/src/permissions/importPermissions.ts",
@@ -54,5 +55,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Import Analyze/Reanalyze actions require fair_crm.imports.update and fail closed without it. Canonical handoff batches are created by the backend in received state, and the authoritative backend lifecycle allows analyze from received; the import list frontend must recognize that status and expose Analyze to authorized users."
+  "notes": "Import Analyze/Reanalyze actions require fair_crm.imports.update and fail closed without it. Canonical handoff batches are created by the backend in received state, and the authoritative backend lifecycle allows analyze from received; the import list frontend must recognize that status, label it as analysis-ready, and expose Analyze to authorized users."
 }
