@@ -18,7 +18,7 @@
     "items": [
       {
         "code": "fair_crm.operations.create",
-        "action": "open the New Operation type picker from the Operations page",
+        "action": "make generic operation types selectable in the New Operation type picker",
         "scope": "organization",
         "assignable": true
       }
@@ -41,7 +41,7 @@
     "frontend": { "status": "required" },
     "ui_permissions": { "status": "required" },
     "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
-    "route_guard": { "status": "na", "reason": "Specialized operation wizard routes use their own canonical business permissions under a separate route contract." },
+    "route_guard": { "status": "na", "reason": "Specialized operation wizard routes use their own canonical business permissions under separate focused contracts." },
     "forms": { "status": "na", "reason": "Operation wizard form behavior is unchanged." },
     "visual_qa": { "status": "required" },
     "backend_tests": { "status": "na", "reason": "No backend executable behavior changes." },
@@ -50,5 +50,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "OperationsPage still requires fair_crm.operations.create to expose the Yeni Operasyon type picker. There is no shared generic /operations/new wizard: supported operation types navigate to specialized wizard routes, while unsupported or legacy /operations/new fallbacks resolve to the Operations list and are governed separately by operations.read."
+  "notes": "fair_crm.operations.create governs generic operation-type entries on OperationsPage. The New Operation picker itself can also be exposed when at least one specialized operation entry is authorized under that entry's dedicated composite prerequisites, without requiring operations.create. Unsupported or legacy /operations/new fallbacks resolve to the Operations list and remain governed separately by operations.read."
 }
