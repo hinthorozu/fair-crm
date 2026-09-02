@@ -1,0 +1,98 @@
+name: One-shot operations list scraper start patch
+
+on:
+  push:
+    branches:
+      - fix/operations-list-scraper-start-permission
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: fix/operations-list-scraper-start-permission
+          fetch-depth: 0
+
+      - name: Apply focused patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_preserving_eol(path: str, old: str, new: str, expected: int = 1) -> None:
+              p = Path(path)
+              data = p.read_bytes()
+              newline = b"\r\n" if b"\r\n" in data else b"\n"
+              old_b = old.replace("\n", "\r\n" if newline == b"\r\n" else "\n").encode()
+              new_b = new.replace("\n", "\r\n" if newline == b"\r\n" else "\n").encode()
+              count = data.count(old_b)
+              if count != expected:
+                  raise SystemExit(f"{path}: expected {expected} matches, found {count}")
+              p.write_bytes(data.replace(old_b, new_b, expected))
+
+          page = "frontend/src/pages/OperationsPage.tsx"
+          replace_preserving_eol(
+              page,
+              "  const canStartEnrichment = can(SCRAPER_PERMISSION_EXECUTE);\n",
+              "  const canStartScraperActions = can(SCRAPER_PERMISSION_EXECUTE);\n",
+          )
+          replace_preserving_eol(
+              page,
+              '''      if (operation.operation_type === "bulk_email") return canStartBulkEmail;\n      if (operation.operation_type === "enrichment") return canStartEnrichment;\n      return canExecute;\n    },\n    [canExecute, canStartBulkEmail, canStartEnrichment],\n''',
+              '''      if (operation.operation_type === "bulk_email") return canStartBulkEmail;\n      if (\n        operation.operation_type === "enrichment" ||\n        operation.operation_type === "scraper"\n      )\n        return canStartScraperActions;\n      return canExecute;\n    },\n    [canExecute, canStartBulkEmail, canStartScraperActions],\n''',
+          )
+
+          test = "frontend/src/permissions/OperationsPagePermissions.test.ts"
+          replace_preserving_eol(
+              test,
+              '  it("uses type-specific execute permissions for Bulk Email and Enrichment Start", () => {\n',
+              '  it("uses type-specific execute permissions for Bulk Email, Enrichment, and Scraper Start", () => {\n',
+          )
+          replace_preserving_eol(
+              test,
+              '''    expect(source).toContain(\n      "const canStartEnrichment = can(SCRAPER_PERMISSION_EXECUTE);",\n    );\n''',
+              '''    expect(source).toContain(\n      "const canStartScraperActions = can(SCRAPER_PERMISSION_EXECUTE);",\n    );\n''',
+          )
+          replace_preserving_eol(
+              test,
+              '''    expect(source).toContain(\n      'if (operation.operation_type === "enrichment") return canStartEnrichment;',\n    );\n''',
+              '''    expect(source).toContain('operation.operation_type === "enrichment" ||');\n    expect(source).toContain('operation.operation_type === "scraper"');\n    expect(source).toContain("return canStartScraperActions;");\n''',
+          )
+
+          contract = ".kyrox/features/operations-start-action-permission-consistency.json"
+          replace_preserving_eol(
+              contract,
+              '        "action": "start an Enrichment operation from the Operations page",\n',
+              '        "action": "start an Enrichment or Scraper operation from the Operations page",\n',
+          )
+          replace_preserving_eol(
+              contract,
+              '    "api": { "status": "na", "reason": "No server API contract changes; the Operations-page Bulk Email and Enrichment Start boundaries are aligned with existing authorization." },\n',
+              '    "api": { "status": "na", "reason": "No server API contract changes; the Operations-page Bulk Email, Enrichment, and Scraper Start boundaries are aligned with existing authorization." },\n',
+          )
+          replace_preserving_eol(
+              contract,
+              '  "notes": "OperationsPage Bulk Email Start uses fair_crm.fair_emails.execute and Enrichment Start uses fair_crm.scraper.execute, matching StartOperationUseCase. Generic Start continues to use fair_crm.operations.execute. Scraper list Start alignment is intentionally outside this focused change. Cancel remains unchanged and is governed separately by fair_crm.operations.execute."\n',
+              '  "notes": "OperationsPage Bulk Email Start uses fair_crm.fair_emails.execute while Enrichment and Scraper Start use fair_crm.scraper.execute, matching StartOperationUseCase. Generic Start continues to use fair_crm.operations.execute. Cancel remains unchanged and is governed separately by fair_crm.operations.execute."\n',
+          )
+          PY
+
+      - name: Commit focused patch and remove workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            frontend/src/pages/OperationsPage.tsx \
+            frontend/src/permissions/OperationsPagePermissions.test.ts \
+            .kyrox/features/operations-start-action-permission-consistency.json
+          git rm .github/workflows/tmp-operations-list-scraper-start.yml
+          git diff --cached --check
+          git commit -m "fix(auth): align scraper list start permission"
+          git push origin HEAD:fix/operations-list-scraper-start-permission
