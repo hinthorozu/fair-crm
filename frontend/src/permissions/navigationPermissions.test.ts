@@ -143,6 +143,7 @@ describe("navigation permission rules", () => {
     expect(canAccessDataIntegrationSection("new", importReader)).toBe(false);
     expect(canAccessApplicationPath("/data-integration", importReader)).toBe(true);
     expect(canAccessApplicationPath("/data-integration/imports/new", importReader)).toBe(false);
+    expect(canAccessApplicationPath("/imports/fair/fair-1", importReader)).toBe(false);
     expect(firstAccessibleDataIntegrationPath(importReader)).toBe("/data-integration/imports");
     expect(resolvePermissionLandingPath("/data-integration", importReader)).toBe(
       "/data-integration/imports",
@@ -155,7 +156,8 @@ describe("navigation permission rules", () => {
     expect(
       canAccessApplicationPath("/data-integration/imports/fair/fair-1", importCreator),
     ).toBe(true);
-    expect(canAccessApplicationPath("/imports", importCreator)).toBe(true);
+    expect(canAccessApplicationPath("/imports", importCreator)).toBe(false);
+    expect(canAccessApplicationPath("/imports/fair/fair-1", importCreator)).toBe(true);
     expect(resolvePermissionLandingPath("/data-integration/", importCreator)).toBeNull();
 
     const generalImportCreator = granted(PERMISSION_IMPORTS_CREATE, PERMISSION_FAIRS_READ);
@@ -164,6 +166,7 @@ describe("navigation permission rules", () => {
     expect(
       canAccessApplicationPath("/data-integration/imports/new", generalImportCreator),
     ).toBe(true);
+    expect(canAccessApplicationPath("/imports", generalImportCreator)).toBe(true);
     expect(resolvePermissionLandingPath("/data-integration/", generalImportCreator)).toBe(
       "/data-integration/imports/new",
     );
