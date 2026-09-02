@@ -15,6 +15,7 @@ import {
   PERMISSION_IMPORTS_CREATE,
   PERMISSION_IMPORTS_READ,
   PERMISSION_MAIL_SEND_OPERATIONS_READ,
+  PERMISSION_MAIL_TEMPLATES_READ,
   PERMISSION_OPERATIONS_CREATE,
   PERMISSION_OPERATIONS_READ,
   PERMISSION_SCRAPER_READ,
@@ -106,6 +107,28 @@ describe("navigation permission rules", () => {
   it("uses canonical business permissions for specialized operation wizard routes", () => {
     expect(
       canAccessApplicationPath("/operations/new/bulk-email", granted(FAIR_EMAIL_PERMISSION_EXECUTE)),
+    ).toBe(false);
+    expect(
+      canAccessApplicationPath(
+        "/operations/new/bulk-email",
+        granted(FAIR_EMAIL_PERMISSION_EXECUTE, PERMISSION_MAIL_TEMPLATES_READ),
+      ),
+    ).toBe(false);
+    expect(
+      canAccessApplicationPath(
+        "/operations/new/bulk-email",
+        granted(FAIR_EMAIL_PERMISSION_EXECUTE, PERMISSION_EMAIL_ACCOUNTS_READ),
+      ),
+    ).toBe(false);
+    expect(
+      canAccessApplicationPath(
+        "/operations/new/bulk-email",
+        granted(
+          FAIR_EMAIL_PERMISSION_EXECUTE,
+          PERMISSION_MAIL_TEMPLATES_READ,
+          PERMISSION_EMAIL_ACCOUNTS_READ,
+        ),
+      ),
     ).toBe(true);
     expect(
       canAccessApplicationPath("/operations/new/enrichment", granted(SCRAPER_PERMISSION_EXECUTE)),

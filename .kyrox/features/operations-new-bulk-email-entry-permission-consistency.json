@@ -12,6 +12,8 @@
     "frontend/src/pages/OperationsPage.tsx",
     "frontend/src/components/operations/NewOperationTypeModal.tsx",
     "frontend/src/permissions/OperationsPagePermissions.test.ts",
+    "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/permissions/navigationPermissions.test.ts",
     ".kyrox/features/operations-new-bulk-email-entry-permission-consistency.json"
   ],
   "permissions": {
@@ -25,7 +27,19 @@
       },
       {
         "code": "fair_crm.fair_emails.execute",
-        "action": "open and select the Bulk Email new-operation entry",
+        "action": "authorize the Bulk Email business flow for the new-operation entry",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.mail_templates.read",
+        "action": "load the mandatory mail-template selector in the Bulk Email wizard",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.email_accounts.read",
+        "action": "load the mandatory sender-account selector in the Bulk Email wizard",
         "scope": "organization",
         "assignable": true
       }
@@ -48,7 +62,7 @@
     "frontend": { "status": "required" },
     "ui_permissions": { "status": "required" },
     "menu": { "status": "na", "reason": "No navigation menu changes are introduced." },
-    "route_guard": { "status": "na", "reason": "The Bulk Email wizard route already uses fair_crm.fair_emails.execute; this change aligns the Operations-page entry point." },
+    "route_guard": { "status": "required", "reason": "The Bulk Email wizard route and Operations-page type picker both require fair_crm.fair_emails.execute plus the mandatory mail_templates.read and email_accounts.read lookup prerequisites." },
     "forms": { "status": "na", "reason": "No business form behavior changes; the type picker only filters unauthorized operation types." },
     "visual_qa": { "status": "required" },
     "backend_tests": { "status": "na", "reason": "Backend authorization behavior is unchanged." },
@@ -57,5 +71,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "A user with fair_crm.fair_emails.execute can reach the Bulk Email wizard from /operations without also needing fair_crm.operations.create. Generic operation entries continue to require fair_crm.operations.create. Enrichment and Scraper new-operation entry alignment remain intentionally outside this focused change. The type picker filters entries through the same fail-closed permission predicate used by onContinue."
+  "notes": "Bulk Email entry from /operations requires fair_crm.fair_emails.execute plus fair_crm.mail_templates.read and fair_crm.email_accounts.read because both lookups are mandatory wizard prerequisites. This entry still does not require fair_crm.operations.create, and already-created Bulk Email Start/Retry plus final Send continue to use fair_crm.fair_emails.execute without adding these read permissions to the mutation boundary. Generic operation entries retain their existing permission behavior. The type picker and deep-link route use equivalent fail-closed prerequisites."
 }
