@@ -5,6 +5,7 @@ import { FairMultiSelect, type FairMultiSelectItem } from "../fairs/FairMultiSel
 import { CheckboxField, FormField, FormGrid, RadioField, TextInput } from "../ui/form";
 import { scraperLabels } from "../../labels/scraperLabels";
 import { usePermissions } from "../../hooks/usePermissions";
+import { FAIR_READ } from "../../permissions/fairPermissions";
 import { SCRAPER_PERMISSION_EXECUTE } from "../../permissions/scraperPermissions";
 import type {
   CompanyNameMatchMode,
@@ -63,6 +64,7 @@ export function EnrichmentRunPanel({
 }: EnrichmentRunPanelProps) {
   const { can } = usePermissions();
   const canExecute = can(SCRAPER_PERMISSION_EXECUTE);
+  const canReadFairs = can(FAIR_READ);
   /** Empty string = no limit (all eligible customers); the "50" shown to the user is only a placeholder hint. */
   const [limitInput, setLimitInput] = React.useState("");
   const [includeExistingEmail, setIncludeExistingEmail] = React.useState(false);
@@ -81,7 +83,7 @@ export function EnrichmentRunPanel({
   const [summary, setSummary] = React.useState<EnrichmentRunSummary | null>(null);
 
   const fairScoped = Boolean(fairId);
-  const selectedFairIds = selectedFairs.map((fair) => fair.id);
+  const selectedFairIds = canReadFairs ? selectedFairs.map((fair) => fair.id) : [];
 
   const capabilities = React.useMemo(() => {
     const all = manifestCapabilities(manifest);
@@ -194,6 +196,7 @@ export function EnrichmentRunPanel({
     adapterKey,
     addressContains,
     canExecute,
+    canReadFairs,
     companyName,
     companyNameMatch,
     fairId,
@@ -213,7 +216,7 @@ export function EnrichmentRunPanel({
       <p className="form-hint">{scraperLabels.enrichmentRunHint}</p>
       <p className="form-hint">{scraperLabels.enrichmentRunFiltersHint}</p>
 
-      {!fairScoped ? (
+      {!fairScoped && canReadFairs ? (
         <FairMultiSelect
           id="enrichment-fair-picker"
           selected={selectedFairs}
