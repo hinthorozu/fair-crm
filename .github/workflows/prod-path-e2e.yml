@@ -87,13 +87,17 @@ jobs:
           jwt_secret="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
           dev_password="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
           identity_action_secret="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+          product_lifecycle_secret="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
           echo "::add-mask::$jwt_secret"
           echo "::add-mask::$dev_password"
           echo "::add-mask::$identity_action_secret"
+          echo "::add-mask::$product_lifecycle_secret"
           {
             echo "JWT_SECRET_KEY=$jwt_secret"
             echo "DEV_USER_PASSWORD=$dev_password"
             echo "CORE_IDENTITY_ACTION_TOKEN_SECRET_KEY=$identity_action_secret"
+            echo "CORE_PRODUCT_LIFECYCLE_TOKEN=$product_lifecycle_secret"
+            echo "KYROX_CORE_PRODUCT_LIFECYCLE_TOKEN=$product_lifecycle_secret"
           } >> "$GITHUB_ENV"
 
       - name: Install dependencies
@@ -130,6 +134,32 @@ jobs:
             curl -sf http://127.0.0.1:8001/health && break
             sleep 2
           done
+
+      - name: OL07-03 lifecycle authority contract
+        run: |
+          python - <<'PY'
+          import os
+          from uuid import UUID
+
+          import httpx
+
+          organization_id = UUID("00000000-0000-4000-8000-000000000010")
+          response = httpx.get(
+              f"{os.environ['KYROX_CORE_BASE_URL']}/api/v1/organizations/{organization_id}/lifecycle-snapshot",
+              headers={
+                  "X-Kyrox-Product-Lifecycle-Token": os.environ["KYROX_CORE_PRODUCT_LIFECYCLE_TOKEN"],
+                  "Accept": "application/json",
+              },
+              timeout=10.0,
+          )
+          assert response.status_code == 200, response.text
+          payload = response.json()
+          assert payload == {
+              "organization_id": str(organization_id),
+              "status": "active",
+              "work_allowed": True,
+          }, payload
+          PY
 
       - name: Prod-path E2E gate
         env:
