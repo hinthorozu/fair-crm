@@ -20,9 +20,7 @@ TEXT_SUFFIXES = {
     ".sh",
 }
 EXPECTED_REFERENCES = {
-    "/customers" + "/upload": {
-        "backend/app/modules/imports/api/routes.py",
-    },
+    "/customers" + "/upload": set(),
 }
 
 
