@@ -155,3 +155,20 @@ def test_fails_closed_when_snapshot_is_for_another_organization() -> None:
 
     with pytest.raises(OrganizationLifecycleUnavailableError):
         OrganizationLifecycleGuard(client=client).require_work_allowed(organization_id)
+
+
+def test_fails_closed_on_unhashable_malformed_status() -> None:
+    organization_id = uuid4()
+    client = StubLifecycleClient(
+        response=httpx.Response(
+            200,
+            json={
+                "organization_id": str(organization_id),
+                "status": ["active"],
+                "work_allowed": True,
+            },
+        )
+    )
+
+    with pytest.raises(OrganizationLifecycleUnavailableError):
+        OrganizationLifecycleGuard(client=client).require_work_allowed(organization_id)
