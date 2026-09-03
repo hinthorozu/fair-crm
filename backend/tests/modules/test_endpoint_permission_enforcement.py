@@ -180,7 +180,7 @@ def test_imports_read_denied_returns_403(client: TestClient, auth_headers: dict[
         denied={"fair_crm.imports.read"}
     )
     try:
-        response = client.get(f"/api/v1/imports/{uuid4()}", headers=auth_headers)
+        response = client.get(f"/api/v1/data-integration/imports/{uuid4()}", headers=auth_headers)
         assert response.status_code == 403
     finally:
         client.app.dependency_overrides.pop(get_import_authorization_adapter, None)
@@ -188,7 +188,7 @@ def test_imports_read_denied_returns_403(client: TestClient, auth_headers: dict[
 
 def test_deprecated_import_analyze_requires_auth(client: TestClient, organization_id: UUID) -> None:
     response = client.post(
-        f"/api/v1/imports/{uuid4()}/analyze",
+        f"/api/v1/data-integration/imports/{uuid4()}/analyze",
         headers={"X-Organization-Id": str(organization_id)},
     )
     assert response.status_code == 401
