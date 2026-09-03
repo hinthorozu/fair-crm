@@ -19,7 +19,7 @@ def _xlsx(company_name: str) -> bytes:
 
 def _upload_import_batch(client, headers, company_name: str) -> tuple[str, str]:
     response = client.post(
-        "/api/v1/imports/customers/upload",
+        "/api/v1/data-integration/imports/customers/upload",
         headers=headers,
         files={
             "file": (
@@ -31,7 +31,7 @@ def _upload_import_batch(client, headers, company_name: str) -> tuple[str, str]:
     )
     assert response.status_code == 201, response.text
     batch_id = response.json()["id"]
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=headers)
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=headers)
     assert rows.status_code == 200, rows.text
     return batch_id, rows.json()["items"][0]["id"]
 
@@ -105,7 +105,7 @@ def test_mixed_organization_bulk_row_ids_fail_closed(
     )
 
     response = client.patch(
-        f"/api/v1/imports/{owner_batch_id}/rows/bulk-decision",
+        f"/api/v1/data-integration/imports/{owner_batch_id}/rows/bulk-decision",
         headers=auth_headers,
         json={
             "row_ids": [owner_row_id, foreign_row_id],
@@ -119,11 +119,11 @@ def test_mixed_organization_bulk_row_ids_fail_closed(
     assert [item["row_id"] for item in body["errors"]] == [foreign_row_id]
 
     owner_rows = client.get(
-        f"/api/v1/imports/{owner_batch_id}/rows",
+        f"/api/v1/data-integration/imports/{owner_batch_id}/rows",
         headers=auth_headers,
     ).json()["items"]
     foreign_rows = client.get(
-        f"/api/v1/imports/{foreign_batch_id}/rows",
+        f"/api/v1/data-integration/imports/{foreign_batch_id}/rows",
         headers=foreign_headers,
     ).json()["items"]
     assert owner_rows[0]["decision"] == "create_new"

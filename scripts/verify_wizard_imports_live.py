@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 import uuid
 import urllib.error
 import urllib.request
@@ -13,6 +14,8 @@ from io import BytesIO
 from openpyxl import Workbook
 
 BASE = "http://127.0.0.1:8001"
+IMPORTS_BASE = "/api/v1/data-integration/imports"
+IMPORT_JOBS_BASE = "/api/v1/data-integration/jobs"
 ORG = "00000000-0000-4000-8000-000000000010"
 AUTH = {
     "Authorization": "Bearer dev-bypass",
@@ -66,7 +69,7 @@ def upload_wizard(fair_id: str, content: bytes, filename: str = "wizard_live.xls
         "Content-Type": f"multipart/form-data; boundary={boundary}",
     }
     req = urllib.request.Request(
-        f"{BASE}/api/v1/imports/upload",
+        f"{BASE}{IMPORTS_BASE}/upload",
         data=body,
         headers=headers,
         method="POST",
@@ -84,6 +87,24 @@ def upload_wizard(fair_id: str, content: bytes, filename: str = "wizard_live.xls
         return exc.code, payload
 
 
+def wait_for_analysis(batch_id: str) -> tuple[int, dict | list | str]:
+    status, started = json_request("POST", f"{IMPORTS_BASE}/{batch_id}/analyze-job")
+    if status != 202 or not isinstance(started, dict) or not started.get("job_id"):
+        return status, started
+
+    job_id = started["job_id"]
+    for _ in range(90):
+        status, job = json_request("GET", f"{IMPORT_JOBS_BASE}/{job_id}")
+        if status != 200 or not isinstance(job, dict):
+            return status, job
+        if job.get("status") == "completed":
+            return 200, job
+        if job.get("status") == "failed":
+            return 500, job
+        time.sleep(0.5)
+    return 504, {"detail": "Analyze job timed out"}
+
+
 def main() -> int:
     print("== Live API verification: Smart Import Wizard ==")
 
@@ -99,11 +120,11 @@ def main() -> int:
         return 1
     paths = openapi.get("paths", {})
     required = [
-        "/api/v1/imports/upload",
-        "/api/v1/imports/{batch_id}/column-mapping",
-        "/api/v1/imports/{batch_id}/analyze",
-        "/api/v1/imports/{batch_id}/rows/bulk-decision",
-        "/api/v1/imports/{batch_id}/apply",
+        f"{IMPORTS_BASE}/upload",
+        f"{IMPORTS_BASE}/{{batch_id}}/column-mapping",
+        f"{IMPORTS_BASE}/{{batch_id}}/analyze-job",
+        f"{IMPORTS_BASE}/{{batch_id}}/rows/bulk-decision",
+        f"{IMPORTS_BASE}/{{batch_id}}/apply",
     ]
     for path in required:
         if path not in paths:
@@ -144,7 +165,7 @@ def main() -> int:
 
     status, mapping = json_request(
         "PATCH",
-        f"/api/v1/imports/{batch_id}/column-mapping",
+        f"{IMPORTS_BASE}/{batch_id}/column-mapping",
         {
             "has_header_row": True,
             "mappings": {
@@ -160,13 +181,13 @@ def main() -> int:
         return 1
     print("PASS column mapping")
 
-    status, analyzed = json_request("POST", f"/api/v1/imports/{batch_id}/analyze")
+    status, analyzed = wait_for_analysis(batch_id)
     if status != 200:
-        print(f"FAIL analyze {status}: {analyzed}")
+        print(f"FAIL analyze job {status}: {analyzed}")
         return 1
-    print(f"PASS analyze: valid={analyzed.get('valid_rows')}")
+    print(f"PASS analyze: valid={analyzed.get('result_json', {}).get('valid_rows')}")
 
-    status, rows = json_request("GET", f"/api/v1/imports/{batch_id}/rows")
+    status, rows = json_request("GET", f"{IMPORTS_BASE}/{batch_id}/rows")
     if status != 200 or not rows.get("items"):
         print(f"FAIL rows {status}: {rows}")
         return 1
@@ -179,7 +200,7 @@ def main() -> int:
 
     status, decision = json_request(
         "PATCH",
-        f"/api/v1/imports/{batch_id}/rows/{row_id}/decision",
+        f"{IMPORTS_BASE}/{batch_id}/rows/{row_id}/decision",
         {"decision": "create_new"},
     )
     if status != 200:
@@ -188,7 +209,7 @@ def main() -> int:
 
     status, bulk = json_request(
         "PATCH",
-        f"/api/v1/imports/{batch_id}/rows/bulk-decision",
+        f"{IMPORTS_BASE}/{batch_id}/rows/bulk-decision",
         {"action": "create_all_new"},
     )
     if status != 200:
@@ -196,7 +217,7 @@ def main() -> int:
         return 1
     print("PASS bulk decision")
 
-    status, applied = json_request("POST", f"/api/v1/imports/{batch_id}/apply")
+    status, applied = json_request("POST", f"{IMPORTS_BASE}/{batch_id}/apply")
     if status != 200:
         print(f"FAIL apply {status}: {applied}")
         return 1
@@ -255,7 +276,7 @@ def main() -> int:
     batch2 = upload2["batch_id"]
     status, _ = json_request(
         "PATCH",
-        f"/api/v1/imports/{batch2}/column-mapping",
+        f"{IMPORTS_BASE}/{batch2}/column-mapping",
         {
             "has_header_row": False,
             "mappings": {"company_name": {"type": "column_index", "value": 0}},
@@ -264,7 +285,7 @@ def main() -> int:
     if status != 200:
         print(f"FAIL headerless mapping {status}")
         return 1
-    status, analyzed2 = json_request("POST", f"/api/v1/imports/{batch2}/analyze")
+    status, analyzed2 = wait_for_analysis(batch2)
     if status != 200:
         print(f"FAIL headerless analyze {status}: {analyzed2}")
         return 1
@@ -283,7 +304,7 @@ def main() -> int:
     batch3 = upload3["batch_id"]
     status, _ = json_request(
         "PATCH",
-        f"/api/v1/imports/{batch3}/column-mapping",
+        f"{IMPORTS_BASE}/{batch3}/column-mapping",
         {
             "has_header_row": True,
             "mappings": {
@@ -298,11 +319,11 @@ def main() -> int:
     if status != 200:
         print(f"FAIL contact mapping {status}")
         return 1
-    status, _ = json_request("POST", f"/api/v1/imports/{batch3}/analyze")
+    status, _ = wait_for_analysis(batch3)
     if status != 200:
         print(f"FAIL contact analyze {status}")
         return 1
-    status, contact_rows = json_request("GET", f"/api/v1/imports/{batch3}/rows")
+    status, contact_rows = json_request("GET", f"{IMPORTS_BASE}/{batch3}/rows")
     if status != 200:
         print(f"FAIL contact rows {status}")
         return 1
@@ -313,10 +334,10 @@ def main() -> int:
     print("PASS contact merge preview")
     json_request(
         "PATCH",
-        f"/api/v1/imports/{batch3}/rows/{contact_row['id']}/decision",
+        f"{IMPORTS_BASE}/{batch3}/rows/{contact_row['id']}/decision",
         {"decision": "create_new"},
     )
-    status, contact_apply = json_request("POST", f"/api/v1/imports/{batch3}/apply")
+    status, contact_apply = json_request("POST", f"{IMPORTS_BASE}/{batch3}/apply")
     if status != 200 or contact_apply.get("created_contacts", 0) < 1:
         print(f"FAIL contact apply {status}: {contact_apply}")
         return 1

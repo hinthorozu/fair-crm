@@ -169,7 +169,7 @@ def test_run_fair_contact_enrichment_starts_run_with_fair_id(
     assert completed.fair_id == fair_id
     assert completed.import_batch_id is not None
 
-    batch_response = client.get(f"/api/v1/imports/{completed.import_batch_id}", headers=auth_headers)
+    batch_response = client.get(f"/api/v1/data-integration/imports/{completed.import_batch_id}", headers=auth_headers)
     assert batch_response.status_code == 200
     assert batch_response.json()["fair_id"] == str(fair_id)
 

@@ -52,7 +52,7 @@ def _create_fair(client, auth_headers, name="Wizard Fair"):
 def _upload_wizard(client, auth_headers, fair_id, headers, rows, headerless=False):
     content = build_headerless_xlsx(rows) if headerless else build_xlsx(headers, rows)
     return client.post(
-        "/api/v1/imports/upload",
+        "/api/v1/data-integration/imports/upload",
         headers=auth_headers,
         data={"fair_id": fair_id},
         files={"file": ("import.xlsx", content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
@@ -61,14 +61,14 @@ def _upload_wizard(client, auth_headers, fair_id, headers, rows, headerless=Fals
 
 def _set_mapping(client, auth_headers, batch_id, has_header_row, mappings):
     return client.patch(
-        f"/api/v1/imports/{batch_id}/column-mapping",
+        f"/api/v1/data-integration/imports/{batch_id}/column-mapping",
         headers=auth_headers,
         json={"has_header_row": has_header_row, "mappings": mappings},
     )
 
 
 def _analyze(client, auth_headers, batch_id):
-    return client.post(f"/api/v1/imports/{batch_id}/analyze-legacy", headers=auth_headers)
+    return client.post(f"/api/v1/data-integration/imports/{batch_id}/analyze-legacy", headers=auth_headers)
 
 
 def _create_customer(db_session, organization_id: UUID, *, display_name: str) -> Customer:
@@ -114,7 +114,7 @@ def test_mapping_preview_endpoint_respects_header_mode(client, auth_headers):
     batch_id = upload.json()["batch_id"]
 
     no_header = client.get(
-        f"/api/v1/imports/{batch_id}/mapping-preview",
+        f"/api/v1/data-integration/imports/{batch_id}/mapping-preview",
         headers=auth_headers,
         params={"header_mode": "no_header"},
     )
@@ -124,7 +124,7 @@ def test_mapping_preview_endpoint_respects_header_mode(client, auth_headers):
     assert data["columns"][0]["samples"][0] == "Firma Adı"
 
     manual = client.get(
-        f"/api/v1/imports/{batch_id}/mapping-preview",
+        f"/api/v1/data-integration/imports/{batch_id}/mapping-preview",
         headers=auth_headers,
         params={"header_mode": "manual_header_row", "header_row_index": 0},
     )
@@ -152,7 +152,7 @@ def test_upload_returns_raw_preview(client, auth_headers):
 def test_fair_id_required(client, auth_headers):
     content = build_xlsx(["Firma Adı"], [["X"]])
     response = client.post(
-        "/api/v1/imports/upload",
+        "/api/v1/data-integration/imports/upload",
         headers=auth_headers,
         files={"file": ("import.xlsx", content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
@@ -192,7 +192,7 @@ def test_headerless_excel_manual_mapping(client, auth_headers):
 
     analyze = _analyze(client, auth_headers, batch_id)
     assert analyze.status_code == 200
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["normalized_data_json"]["company_name"] == "ABC Ltd"
 
 
@@ -227,7 +227,7 @@ def test_analyze_company_name_only(client, auth_headers):
     )
     analyze = _analyze(client, auth_headers, batch_id)
     assert analyze.status_code == 200
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["status"] == "ready_to_create"
 
 
@@ -238,7 +238,7 @@ def test_customer_duplicate_exact_match(client, auth_headers, db_session, organi
     batch_id = upload.json()["batch_id"]
     _set_mapping(client, auth_headers, batch_id, True, {"company_name": {"type": "column_index", "value": 0}})
     _analyze(client, auth_headers, batch_id)
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["match_customer_id"] is not None
     assert rows[0]["participation_exists"] is False
 
@@ -250,7 +250,7 @@ def test_customer_duplicate_fuzzy_match(client, auth_headers, db_session, organi
     batch_id = upload.json()["batch_id"]
     _set_mapping(client, auth_headers, batch_id, True, {"company_name": {"type": "column_index", "value": 0}})
     _analyze(client, auth_headers, batch_id)
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["match_customer_id"] is not None
     assert rows[0]["match_confidence"] >= 85
     # Confidence ≥95 maps to exact_normalized_match via Import reason bands.
@@ -279,7 +279,7 @@ def test_participation_duplicate_in_selected_fair(client, auth_headers, db_sessi
     batch_id = upload.json()["batch_id"]
     _set_mapping(client, auth_headers, batch_id, True, {"company_name": {"type": "column_index", "value": 0}})
     _analyze(client, auth_headers, batch_id)
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["participation_exists"] is True
     assert rows[0]["suggested_action"] == "update_participation"
 
@@ -306,14 +306,14 @@ def test_create_customer_and_participation(client, auth_headers):
         },
     )
     _analyze(client, auth_headers, batch_id)
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{rows[0]['id']}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{rows[0]['id']}/decision",
         headers=auth_headers,
         json={"decision": "create_new"},
     )
     apply_import_decisions(client, auth_headers, batch_id, row_ids=[rows[0]["id"]])
-    batch = client.get(f"/api/v1/imports/{batch_id}", headers=auth_headers).json()
+    batch = client.get(f"/api/v1/data-integration/imports/{batch_id}", headers=auth_headers).json()
     assert batch["created_rows"] == 1
     assert batch["created_participations"] == 1
 
@@ -334,15 +334,15 @@ def test_existing_customer_create_participation(client, auth_headers, db_session
         {"company_name": {"type": "column_index", "value": 0}, "hall": {"type": "column_index", "value": 1}},
     )
     _analyze(client, auth_headers, batch_id)
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["participation_exists"] is False
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{rows[0]['id']}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{rows[0]['id']}/decision",
         headers=auth_headers,
         json={"decision": "update_existing"},
     )
     apply_import_decisions(client, auth_headers, batch_id, row_ids=[rows[0]["id"]])
-    batch = client.get(f"/api/v1/imports/{batch_id}", headers=auth_headers).json()
+    batch = client.get(f"/api/v1/data-integration/imports/{batch_id}", headers=auth_headers).json()
     assert batch["created_participations"] == 1
 
 
@@ -376,14 +376,14 @@ def test_existing_participation_update(client, auth_headers, db_session, organiz
         {"company_name": {"type": "column_index", "value": 0}, "hall": {"type": "column_index", "value": 1}},
     )
     _analyze(client, auth_headers, batch_id)
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{rows[0]['id']}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{rows[0]['id']}/decision",
         headers=auth_headers,
         json={"decision": "update_existing"},
     )
     apply_import_decisions(client, auth_headers, batch_id, row_ids=[rows[0]["id"]])
-    batch = client.get(f"/api/v1/imports/{batch_id}", headers=auth_headers).json()
+    batch = client.get(f"/api/v1/data-integration/imports/{batch_id}", headers=auth_headers).json()
     assert batch["updated_participations"] == 1
 
 
@@ -412,9 +412,9 @@ def test_empty_incoming_does_not_overwrite_db(client, auth_headers, db_session, 
         {"company_name": {"type": "column_index", "value": 0}, "country": {"type": "column_index", "value": 1}},
     )
     _analyze(client, auth_headers, batch_id)
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{rows[0]['id']}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{rows[0]['id']}/decision",
         headers=auth_headers,
         json={"decision": "update_existing"},
     )
@@ -445,9 +445,9 @@ def test_email_merge_canonical_format(client, auth_headers, db_session, organiza
         {"company_name": {"type": "column_index", "value": 0}, "email": {"type": "column_index", "value": 1}},
     )
     _analyze(client, auth_headers, batch_id)
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{rows[0]['id']}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{rows[0]['id']}/decision",
         headers=auth_headers,
         json={"decision": "update_existing"},
     )
@@ -475,9 +475,9 @@ def test_hall_stand_on_participation(client, auth_headers):
         },
     )
     _analyze(client, auth_headers, batch_id)
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{rows[0]['id']}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{rows[0]['id']}/decision",
         headers=auth_headers,
         json={"decision": "create_new"},
     )
@@ -494,9 +494,9 @@ def test_activity_source_import_created(client, auth_headers, db_session, organi
     batch_id = upload.json()["batch_id"]
     _set_mapping(client, auth_headers, batch_id, True, {"company_name": {"type": "column_index", "value": 0}})
     _analyze(client, auth_headers, batch_id)
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{rows[0]['id']}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{rows[0]['id']}/decision",
         headers=auth_headers,
         json={"decision": "create_new"},
     )
@@ -513,22 +513,22 @@ def test_apply_summary_correct(client, auth_headers):
     batch_id = upload.json()["batch_id"]
     _set_mapping(client, auth_headers, batch_id, True, {"company_name": {"type": "column_index", "value": 0}})
     _analyze(client, auth_headers, batch_id)
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{rows[0]['id']}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{rows[0]['id']}/decision",
         headers=auth_headers,
         json={"decision": "create_new"},
     )
     row_ids = [rows[0]["id"]]
     if len(rows) > 1:
         client.patch(
-            f"/api/v1/imports/{batch_id}/rows/{rows[1]['id']}/decision",
+            f"/api/v1/data-integration/imports/{batch_id}/rows/{rows[1]['id']}/decision",
             headers=auth_headers,
             json={"decision": "skip"},
         )
         row_ids.append(rows[1]["id"])
     apply_import_decisions(client, auth_headers, batch_id, row_ids=row_ids)
-    batch = client.get(f"/api/v1/imports/{batch_id}", headers=auth_headers).json()
+    batch = client.get(f"/api/v1/data-integration/imports/{batch_id}", headers=auth_headers).json()
     assert batch["created_rows"] >= 1
     assert batch["status"] in ("applied", "completed")
 
@@ -564,7 +564,7 @@ def test_list_rows_includes_merge_preview(client, auth_headers, db_session, orga
         },
     )
     _analyze(client, auth_headers, batch_id)
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["merge_preview"] is not None
     assert rows[0]["merge_preview"]["groups"]
     assert rows[0]["merge_preview"]["summary_lines"]
@@ -596,15 +596,15 @@ def test_apply_creates_contact_wizard(client, auth_headers):
         },
     )
     _analyze(client, auth_headers, batch_id)
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert any(g["entity"] == "contact" for g in rows[0]["merge_preview"]["groups"])
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{rows[0]['id']}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{rows[0]['id']}/decision",
         headers=auth_headers,
         json={"decision": "create_new"},
     )
     apply_import_decisions(client, auth_headers, batch_id, row_ids=[rows[0]["id"]])
-    batch = client.get(f"/api/v1/imports/{batch_id}", headers=auth_headers).json()
+    batch = client.get(f"/api/v1/data-integration/imports/{batch_id}", headers=auth_headers).json()
     assert batch["created_rows"] == 1
     customers = client.get("/api/v1/customers?search=Contact+Wizard+Co", headers=auth_headers).json()["items"]
     customer_id = customers[0]["id"]
@@ -662,10 +662,10 @@ def test_apply_yetkili_fields_separate_from_company_communications(client, auth_
         },
     )
     _analyze(client, auth_headers, batch_id)
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert any(g["entity"] == "contact" for g in rows[0]["merge_preview"]["groups"])
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{rows[0]['id']}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{rows[0]['id']}/decision",
         headers=auth_headers,
         json={"decision": "create_new"},
     )
@@ -713,12 +713,12 @@ def test_apply_yetkili_fields_empty_does_not_create_contact(client, auth_headers
         },
     )
     _analyze(client, auth_headers, batch_id)
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert not any(
         g["entity"] == "contact" for g in (rows[0].get("merge_preview") or {}).get("groups", [])
     )
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{rows[0]['id']}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{rows[0]['id']}/decision",
         headers=auth_headers,
         json={"decision": "create_new"},
     )
@@ -747,9 +747,9 @@ def test_reimport_same_yetkili_email_does_not_duplicate_contact(client, auth_hea
         batch_id = upload.json()["batch_id"]
         _set_mapping(client, auth_headers, batch_id, True, mapping)
         _analyze(client, auth_headers, batch_id)
-        rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+        rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
         client.patch(
-            f"/api/v1/imports/{batch_id}/rows/{rows[0]['id']}/decision",
+            f"/api/v1/data-integration/imports/{batch_id}/rows/{rows[0]['id']}/decision",
             headers=auth_headers,
             json={"decision": decision},
         )
@@ -815,7 +815,7 @@ def test_apply_contact_extended_fields_and_preview_warnings(client, auth_headers
         },
     )
     _analyze(client, auth_headers, batch_id)
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     merge_preview = rows[0]["merge_preview"]
     assert merge_preview["contact_warnings"] == []
     contact_group = next(g for g in merge_preview["groups"] if g["entity"] == "contact")
@@ -826,7 +826,7 @@ def test_apply_contact_extended_fields_and_preview_warnings(client, auth_headers
     assert "contact_notes" in field_keys
 
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{rows[0]['id']}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{rows[0]['id']}/decision",
         headers=auth_headers,
         json={"decision": "create_new"},
     )
@@ -862,7 +862,7 @@ def test_rows_filter_and_search(client, auth_headers):
     )
     _analyze(client, auth_headers, batch_id)
     filtered = client.get(
-        f"/api/v1/imports/{batch_id}/rows?search=Alpha",
+        f"/api/v1/data-integration/imports/{batch_id}/rows?search=Alpha",
         headers=auth_headers,
     ).json()
     assert pagination_from(filtered)["totalItems"] == 1

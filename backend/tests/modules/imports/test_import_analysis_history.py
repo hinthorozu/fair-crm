@@ -46,7 +46,7 @@ def _canonical_batch(client, auth_headers, *, fair_id: str, company_name: str, r
             }
         ],
     }
-    created = client.post("/api/v1/imports/from-canonical", headers=auth_headers, json=payload)
+    created = client.post("/api/v1/data-integration/imports/from-canonical", headers=auth_headers, json=payload)
     assert created.status_code == 201
     return created.json()["batch"]["id"]
 
@@ -99,11 +99,11 @@ def test_stale_scraper_batch_reanalyze_matches_customer_after_other_batch_applie
     )
 
     _wait_analyze_job(client, auth_headers, batch_two)
-    rows_two = client.get(f"/api/v1/imports/{batch_two}/rows", headers=auth_headers).json()["items"]
+    rows_two = client.get(f"/api/v1/data-integration/imports/{batch_two}/rows", headers=auth_headers).json()["items"]
     assert rows_two[0]["status"] == "ready_to_create"
 
     _wait_analyze_job(client, auth_headers, batch_one)
-    rows_one = client.get(f"/api/v1/imports/{batch_one}/rows", headers=auth_headers).json()["items"]
+    rows_one = client.get(f"/api/v1/data-integration/imports/{batch_one}/rows", headers=auth_headers).json()["items"]
     row_one_id = rows_one[0]["id"]
     set_decision_and_apply(
         client,
@@ -119,7 +119,7 @@ def test_stale_scraper_batch_reanalyze_matches_customer_after_other_batch_applie
     assert batch_two_item["analyzed_at"] is not None
 
     _wait_analyze_job(client, auth_headers, batch_two)
-    rows_two_after = client.get(f"/api/v1/imports/{batch_two}/rows", headers=auth_headers).json()["items"]
+    rows_two_after = client.get(f"/api/v1/data-integration/imports/{batch_two}/rows", headers=auth_headers).json()["items"]
     row = rows_two_after[0]
     assert row["status"] == "ready_to_update"
     assert row["match_customer_id"] is not None

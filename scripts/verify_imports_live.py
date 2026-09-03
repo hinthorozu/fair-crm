@@ -12,6 +12,7 @@ from io import BytesIO
 from openpyxl import Workbook
 
 BASE = "http://127.0.0.1:8001"
+IMPORTS_BASE = "/api/v1/data-integration/imports"
 ORG = "00000000-0000-4000-8000-000000000010"
 HEADERS = {
     "Authorization": "Bearer dev-bypass",
@@ -60,7 +61,7 @@ def upload_xlsx(content: bytes) -> tuple[int, dict | list | str]:
         "Content-Type": f"multipart/form-data; boundary={boundary}",
     }
     req = urllib.request.Request(
-        f"{BASE}/api/v1/imports/customers/upload",
+        f"{BASE}{IMPORTS_BASE}/customers/upload",
         data=body,
         headers=headers,
         method="POST",
@@ -93,11 +94,11 @@ def main() -> int:
         return 1
     paths = openapi.get("paths", {})
     required = [
-        "/api/v1/imports/customers/upload",
-        "/api/v1/imports/{batch_id}",
-        "/api/v1/imports/{batch_id}/rows",
-        "/api/v1/imports/{batch_id}/rows/{row_id}/decision",
-        "/api/v1/imports/{batch_id}/apply",
+        f"{IMPORTS_BASE}/customers/upload",
+        f"{IMPORTS_BASE}/{{batch_id}}",
+        f"{IMPORTS_BASE}/{{batch_id}}/rows",
+        f"{IMPORTS_BASE}/{{batch_id}}/rows/{{row_id}}/decision",
+        f"{IMPORTS_BASE}/{{batch_id}}/apply",
     ]
     for path in required:
         if path not in paths:
@@ -112,13 +113,13 @@ def main() -> int:
     batch_id = batch["id"]
     print(f"PASS upload batch: {batch_id}")
 
-    status, batch_detail = json_request("GET", f"/api/v1/imports/{batch_id}")
+    status, batch_detail = json_request("GET", f"{IMPORTS_BASE}/{batch_id}")
     if status != 200 or batch_detail.get("total_rows", 0) < 1:
         print(f"FAIL batch detail {status}: {batch_detail}")
         return 1
     print("PASS batch preview summary")
 
-    status, rows = json_request("GET", f"/api/v1/imports/{batch_id}/rows")
+    status, rows = json_request("GET", f"{IMPORTS_BASE}/{batch_id}/rows")
     if status != 200 or not rows.get("items"):
         print(f"FAIL rows {status}: {rows}")
         return 1
@@ -127,7 +128,7 @@ def main() -> int:
 
     status, decision = json_request(
         "PATCH",
-        f"/api/v1/imports/{batch_id}/rows/{row_id}/decision",
+        f"{IMPORTS_BASE}/{batch_id}/rows/{row_id}/decision",
         {"decision": "create_new"},
     )
     if status != 200:
@@ -135,7 +136,7 @@ def main() -> int:
         return 1
     print("PASS decision set")
 
-    status, applied = json_request("POST", f"/api/v1/imports/{batch_id}/apply")
+    status, applied = json_request("POST", f"{IMPORTS_BASE}/{batch_id}/apply")
     if status != 200 or applied.get("created_rows", 0) < 1:
         print(f"FAIL apply {status}: {applied}")
         return 1

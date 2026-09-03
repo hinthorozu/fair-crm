@@ -882,7 +882,7 @@ def test_scraper_operation_successful_scrape_and_handoff(
         assert operation["status"] == "completed"
 
         batch = client.get(
-            f"/api/v1/imports/{result['import_batch_id']}",
+            f"/api/v1/data-integration/imports/{result['import_batch_id']}",
             headers=auth_headers,
         )
         assert batch.status_code == 200

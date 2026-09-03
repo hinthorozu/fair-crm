@@ -67,7 +67,7 @@ async function createFair(name) {
 
 async function createCanonicalBatch(fairId, runSuffix, companyName) {
   const runId = crypto.randomUUID();
-  const res = await api("POST", "/api/v1/imports/from-canonical", {
+  const res = await api("POST", "/api/v1/data-integration/imports/from-canonical", {
     source: {
       type: "scraper",
       adapter_key: "tuyap_new",
@@ -95,14 +95,14 @@ async function createCanonicalBatch(fairId, runSuffix, companyName) {
 }
 
 async function applyCreateNew(batchId) {
-  const rows = await api("GET", `/api/v1/imports/${batchId}/rows?page_size=25`);
+  const rows = await api("GET", `/api/v1/data-integration/imports/${batchId}/rows?page_size=25`);
   assert(rows.status === 200, "rows list failed");
   const rowId = rows.json.items[0].id;
-  const decision = await api("PATCH", `/api/v1/imports/${batchId}/rows/${rowId}/decision`, {
+  const decision = await api("PATCH", `/api/v1/data-integration/imports/${batchId}/rows/${rowId}/decision`, {
     decision: "create_new",
   });
   assert(decision.status === 200, "decision failed");
-  const apply = await api("POST", `/api/v1/imports/${batchId}/decisions/apply`, {
+  const apply = await api("POST", `/api/v1/data-integration/imports/${batchId}/decisions/apply`, {
     row_ids: [rowId],
   });
   assert(apply.status === 200, `apply failed ${apply.status} ${apply.text}`);
@@ -116,7 +116,7 @@ async function main() {
   const batchTwo = await createCanonicalBatch(fairTwo, "b2", companyName);
 
   await waitAnalyze(batchTwo);
-  let rowsTwo = await api("GET", `/api/v1/imports/${batchTwo}/rows?page_size=25`);
+  let rowsTwo = await api("GET", `/api/v1/data-integration/imports/${batchTwo}/rows?page_size=25`);
   assert(
     rowsTwo.json.items[0].status === "ready_to_create",
     `batch2 should be new before batch1 apply, got ${rowsTwo.json.items[0].status}`,
@@ -178,7 +178,7 @@ async function main() {
   }
 
   await page.waitForTimeout(800);
-  const rowsTwoAfter = await api("GET", `/api/v1/imports/${batchTwo}/rows?page_size=25`);
+  const rowsTwoAfter = await api("GET", `/api/v1/data-integration/imports/${batchTwo}/rows?page_size=25`);
   assert(rowsTwoAfter.json.items[0].status === "ready_to_update", "ABC should match CRM after reanalyze");
   assert(rowsTwoAfter.json.items[0].match_customer_id, "match_customer_id required");
 

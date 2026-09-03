@@ -193,7 +193,7 @@ def test_canonical_analyze_job_after_analysis_failed(client, auth_headers, db_se
 
     fair_id = _fair_id(client, auth_headers)
     created = client.post(
-        "/api/v1/imports/from-canonical",
+        "/api/v1/data-integration/imports/from-canonical",
         headers=auth_headers,
         json=_canonical_payload(fair_id=fair_id),
     )
@@ -325,7 +325,7 @@ def test_list_import_batches_includes_scraper_fair_name_and_adapter_key(client, 
             }
         ],
     }
-    create_res = client.post("/api/v1/imports/from-canonical", headers=auth_headers, json=payload)
+    create_res = client.post("/api/v1/data-integration/imports/from-canonical", headers=auth_headers, json=payload)
     assert create_res.status_code == 201
     batch_id = create_res.json()["batch"]["id"]
 
@@ -385,7 +385,7 @@ def test_list_import_batches_null_fair_id_has_null_fair_name(client, auth_header
             }
         ],
     }
-    create_res = client.post("/api/v1/imports/from-canonical", headers=auth_headers, json=payload)
+    create_res = client.post("/api/v1/data-integration/imports/from-canonical", headers=auth_headers, json=payload)
     assert create_res.status_code == 201
     batch_id = create_res.json()["batch"]["id"]
 

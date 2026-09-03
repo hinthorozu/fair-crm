@@ -65,7 +65,7 @@ def test_create_import_batch_from_canonical_creates_batch_and_rows(
     fair_id = _create_fair(client, auth_headers)
     payload = _canonical_payload(fair_id=fair_id)
 
-    response = client.post("/api/v1/imports/from-canonical", headers=auth_headers, json=payload)
+    response = client.post("/api/v1/data-integration/imports/from-canonical", headers=auth_headers, json=payload)
     assert response.status_code == 201
 
     data = response.json()
@@ -78,7 +78,7 @@ def test_create_import_batch_from_canonical_creates_batch_and_rows(
     assert batch["valid_rows"] == 1
     assert batch["file_name"].endswith(".json")
 
-    rows_response = client.get(f"/api/v1/imports/{batch['id']}/rows", headers=auth_headers)
+    rows_response = client.get(f"/api/v1/data-integration/imports/{batch['id']}/rows", headers=auth_headers)
     assert rows_response.status_code == 200
     rows_body = rows_response.json()
     assert len(rows_body["items"]) == 1
@@ -97,7 +97,7 @@ def test_create_import_batch_from_canonical_accepts_empty_rows(client, auth_head
     fair_id = _create_fair(client, auth_headers)
     payload = _canonical_payload(fair_id=fair_id, rows=[])
 
-    response = client.post("/api/v1/imports/from-canonical", headers=auth_headers, json=payload)
+    response = client.post("/api/v1/data-integration/imports/from-canonical", headers=auth_headers, json=payload)
     assert response.status_code == 201
     data = response.json()
     assert data["row_count"] == 0
@@ -126,7 +126,7 @@ def test_create_import_batch_from_canonical_accepts_empty_rows(client, auth_head
     ],
 )
 def test_create_import_batch_from_canonical_rejects_invalid_payload(client, auth_headers, payload):
-    response = client.post("/api/v1/imports/from-canonical", headers=auth_headers, json=payload)
+    response = client.post("/api/v1/data-integration/imports/from-canonical", headers=auth_headers, json=payload)
     assert response.status_code == 400
 
 
@@ -134,7 +134,7 @@ def test_create_import_batch_from_canonical_requires_fair_id(client, auth_header
     payload = _canonical_payload(fair_id=str(uuid4()))
     payload["source"]["fair_id"] = None
 
-    response = client.post("/api/v1/imports/from-canonical", headers=auth_headers, json=payload)
+    response = client.post("/api/v1/data-integration/imports/from-canonical", headers=auth_headers, json=payload)
     assert response.status_code == 400
     assert "fair_id" in response.json()["detail"].lower()
 
@@ -142,7 +142,7 @@ def test_create_import_batch_from_canonical_requires_fair_id(client, auth_header
 def test_create_import_batch_from_canonical_rejects_unknown_fair(client, auth_headers):
     payload = _canonical_payload(fair_id=str(uuid4()))
 
-    response = client.post("/api/v1/imports/from-canonical", headers=auth_headers, json=payload)
+    response = client.post("/api/v1/data-integration/imports/from-canonical", headers=auth_headers, json=payload)
     assert response.status_code == 404
 
 
@@ -168,11 +168,11 @@ def test_create_import_batch_from_canonical_maps_social_urls(client, auth_header
         }
     ]
     payload = _canonical_payload(fair_id=fair_id, rows=rows)
-    response = client.post("/api/v1/imports/from-canonical", headers=auth_headers, json=payload)
+    response = client.post("/api/v1/data-integration/imports/from-canonical", headers=auth_headers, json=payload)
     assert response.status_code == 201
 
     batch_id = response.json()["batch"]["id"]
-    rows_response = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers)
+    rows_response = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers)
     normalized = rows_response.json()["items"][0]["normalized_data_json"]
     assert normalized["instagram_url"] == "https://instagram.com/socialimport"
     assert normalized["linkedin_url"] == "https://linkedin.com/company/socialimport"
@@ -218,7 +218,7 @@ def test_canonical_analyze_sets_update_decision_for_existing_customer(
         }
     ]
     payload = _canonical_payload(fair_id=fair_id, rows=rows)
-    created = client.post("/api/v1/imports/from-canonical", headers=auth_headers, json=payload)
+    created = client.post("/api/v1/data-integration/imports/from-canonical", headers=auth_headers, json=payload)
     assert created.status_code == 201
     batch_id = created.json()["batch"]["id"]
 
@@ -234,7 +234,7 @@ def test_canonical_analyze_sets_update_decision_for_existing_customer(
             break
     assert job.json()["status"] == "completed"
 
-    rows_response = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers)
+    rows_response = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers)
     row = rows_response.json()["items"][0]
     assert row["status"] == "ready_to_update"
     assert row["match_customer_id"] is not None

@@ -29,7 +29,7 @@ def build_xlsx(headers: list[str], rows: list[list[str | None]]) -> bytes:
 def upload_xlsx(client, auth_headers, headers, rows, filename="import.xlsx"):
     content = build_xlsx(headers, rows)
     return client.post(
-        "/api/v1/imports/customers/upload",
+        "/api/v1/data-integration/imports/customers/upload",
         headers=auth_headers,
         files={"file": (filename, content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
@@ -75,7 +75,7 @@ def test_company_name_only_row_is_valid(client, auth_headers):
     response = upload_xlsx(client, auth_headers, ["Firma Adı"], [["Solo Firma A.Ş."]])
     assert response.status_code == 201
     batch_id = response.json()["id"]
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert len(rows) == 1
     assert rows[0]["status"] == "ready_to_create"
     assert rows[0]["validation_errors_json"] is None
@@ -91,7 +91,7 @@ def test_missing_optional_fields_not_invalid(client, auth_headers):
     )
     assert response.status_code == 201
     batch_id = response.json()["id"]
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["status"] == "ready_to_create"
     normalized = rows[0]["normalized_data_json"]
     assert normalized["phone"] is None
@@ -110,7 +110,7 @@ def test_blank_rows_are_skipped(client, auth_headers):
     data = response.json()
     assert data["total_rows"] == 2
     batch_id = data["id"]
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert len(rows) == 2
     assert rows[0]["normalized_data_json"]["company_name"] == "First Co"
     assert rows[1]["normalized_data_json"]["company_name"] == "Second Co"
@@ -125,7 +125,7 @@ def test_invalid_website_row_is_valid_in_company_name_only_mode(client, auth_hea
     )
     assert response.status_code == 201
     batch_id = response.json()["id"]
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["status"] == "ready_to_create"
     assert rows[0]["match_reason"] == "no_match"
 
@@ -140,7 +140,7 @@ def test_fuzzy_customer_match(client, auth_headers, db_session, organization_id)
     )
     assert response.status_code == 201
     batch_id = response.json()["id"]
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["status"] == "possible_duplicate"
     assert rows[0]["match_confidence"] >= 85
     # Abbreviation canonicalization may lift this into the strong/exact band.
@@ -156,7 +156,7 @@ def test_header_alias_mapping(client, auth_headers):
     )
     assert response.status_code == 201
     batch_id = response.json()["id"]
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["normalized_data_json"]["company_name"] == "Beta A.Ş."
     assert rows[0]["normalized_data_json"]["contact_first_name"] == "Ali"
 
@@ -192,7 +192,7 @@ def test_multi_email_validation_in_import(client, auth_headers):
     )
     assert response.status_code == 201
     batch_id = response.json()["id"]
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["status"] == "ready_to_create"
 
 
@@ -205,7 +205,7 @@ def test_invalid_email_row_is_valid_in_company_name_only_mode(client, auth_heade
     )
     assert response.status_code == 201
     batch_id = response.json()["id"]
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["status"] == "ready_to_create"
     assert rows[0]["match_reason"] == "no_match"
 
@@ -219,7 +219,7 @@ def test_duplicate_within_same_batch(client, auth_headers):
     )
     assert response.status_code == 201
     batch_id = response.json()["id"]
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["status"] == "ready_to_create"
     assert rows[1]["status"] == "invalid"
     assert "batch_duplicate_company_name" in rows[1]["validation_errors_json"]
@@ -235,7 +235,7 @@ def test_exact_customer_match(client, auth_headers, db_session, organization_id)
     )
     assert response.status_code == 201
     batch_id = response.json()["id"]
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["status"] == "possible_duplicate"
     assert rows[0]["match_confidence"] == 100
     assert rows[0]["match_reason"] == "exact_normalized_match"
@@ -251,7 +251,7 @@ def test_different_prefix_does_not_fuzzy_match(client, auth_headers, db_session,
     )
     assert response.status_code == 201
     batch_id = response.json()["id"]
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["status"] == "ready_to_create"
     assert rows[0]["match_reason"] == "no_match"
 
@@ -259,9 +259,9 @@ def test_different_prefix_does_not_fuzzy_match(client, auth_headers, db_session,
 def test_decision_create_new(client, auth_headers):
     response = upload_xlsx(client, auth_headers, ["Firma Adı"], [["New Co"]])
     batch_id = response.json()["id"]
-    row_id = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"][0]["id"]
+    row_id = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"][0]["id"]
     decision = client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{row_id}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{row_id}/decision",
         headers=auth_headers,
         json={"decision": "create_new"},
     )
@@ -270,7 +270,7 @@ def test_decision_create_new(client, auth_headers):
     applied = apply_import_decisions(client, auth_headers, batch_id, row_ids=[row_id])
     assert applied.status_code == 200
     assert applied.json()["processed_count"] == 1
-    batch = client.get(f"/api/v1/imports/{batch_id}", headers=auth_headers).json()
+    batch = client.get(f"/api/v1/data-integration/imports/{batch_id}", headers=auth_headers).json()
     assert batch["created_rows"] == 1
 
 
@@ -278,9 +278,9 @@ def test_decision_update_existing(client, auth_headers, db_session, organization
     customer = _create_customer(db_session, organization_id, display_name="Existing Co")
     response = upload_xlsx(client, auth_headers, ["Firma Adı"], [["Existing Company Ltd"]])
     batch_id = response.json()["id"]
-    row_id = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"][0]["id"]
+    row_id = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"][0]["id"]
     decision = client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{row_id}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{row_id}/decision",
         headers=auth_headers,
         json={"decision": "update_existing", "match_customer_id": str(customer.id)},
     )
@@ -289,16 +289,16 @@ def test_decision_update_existing(client, auth_headers, db_session, organization
     applied = apply_import_decisions(client, auth_headers, batch_id, row_ids=[row_id])
     assert applied.status_code == 200
     assert applied.json()["processed_count"] == 1
-    batch = client.get(f"/api/v1/imports/{batch_id}", headers=auth_headers).json()
+    batch = client.get(f"/api/v1/data-integration/imports/{batch_id}", headers=auth_headers).json()
     assert batch["updated_rows"] == 1
 
 
 def test_decision_skip(client, auth_headers):
     response = upload_xlsx(client, auth_headers, ["Firma Adı"], [["Skip Co"]])
     batch_id = response.json()["id"]
-    row_id = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"][0]["id"]
+    row_id = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"][0]["id"]
     decision = client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{row_id}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{row_id}/decision",
         headers=auth_headers,
         json={"decision": "skip"},
     )
@@ -307,7 +307,7 @@ def test_decision_skip(client, auth_headers):
     applied = apply_import_decisions(client, auth_headers, batch_id, row_ids=[row_id])
     assert applied.status_code == 200
     assert applied.json()["processed_count"] == 1
-    batch = client.get(f"/api/v1/imports/{batch_id}", headers=auth_headers).json()
+    batch = client.get(f"/api/v1/data-integration/imports/{batch_id}", headers=auth_headers).json()
     assert batch["skipped_rows"] == 1
 
 
@@ -319,14 +319,14 @@ def test_apply_creates_customer(client, auth_headers):
         [["Created Co", "new@created.com", "Ayşe", "Yılmaz"]],
     )
     batch_id = response.json()["id"]
-    row_id = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"][0]["id"]
+    row_id = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"][0]["id"]
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{row_id}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{row_id}/decision",
         headers=auth_headers,
         json={"decision": "create_new"},
     )
     apply_import_decisions(client, auth_headers, batch_id, row_ids=[row_id])
-    batch = client.get(f"/api/v1/imports/{batch_id}", headers=auth_headers).json()
+    batch = client.get(f"/api/v1/data-integration/imports/{batch_id}", headers=auth_headers).json()
     assert batch["created_rows"] == 1
 
     customers = client.get("/api/v1/customers?search=Created", headers=auth_headers)
@@ -351,7 +351,7 @@ def test_apply_creates_customer_with_social_urls_from_excel(client, auth_headers
     )
     assert response.status_code == 201
     batch_id = response.json()["id"]
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["status"] == "ready_to_create"
     normalized = rows[0]["normalized_data_json"]
     assert normalized["instagram_url"] == "https://instagram.com/socialexcel"
@@ -359,7 +359,7 @@ def test_apply_creates_customer_with_social_urls_from_excel(client, auth_headers
 
     row_id = rows[0]["id"]
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{row_id}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{row_id}/decision",
         headers=auth_headers,
         json={"decision": "create_new"},
     )
@@ -391,14 +391,14 @@ def test_apply_updates_existing_empty_fields_only(client, auth_headers, db_sessi
         [["Merge Co Ltd", "merge@co.com", "Türkiye"]],
     )
     batch_id = response.json()["id"]
-    row_id = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"][0]["id"]
+    row_id = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"][0]["id"]
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{row_id}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{row_id}/decision",
         headers=auth_headers,
         json={"decision": "update_existing", "match_customer_id": str(customer.id)},
     )
     apply_import_decisions(client, auth_headers, batch_id, row_ids=[row_id])
-    batch = client.get(f"/api/v1/imports/{batch_id}", headers=auth_headers).json()
+    batch = client.get(f"/api/v1/data-integration/imports/{batch_id}", headers=auth_headers).json()
     assert batch["updated_rows"] == 1
 
     detail = client.get(f"/api/v1/customers/{customer.id}", headers=auth_headers).json()
@@ -422,9 +422,9 @@ def test_apply_does_not_overwrite_existing_filled_fields(client, auth_headers, d
         [["Keep Co", "Türkiye", "905559999999"]],
     )
     batch_id = response.json()["id"]
-    row_id = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"][0]["id"]
+    row_id = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"][0]["id"]
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{row_id}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{row_id}/decision",
         headers=auth_headers,
         json={"decision": "update_existing", "match_customer_id": str(customer.id)},
     )
@@ -448,9 +448,9 @@ def test_apply_merges_multi_email(client, auth_headers, db_session, organization
         [["Email Merge Co", "b@co.com;a@co.com"]],
     )
     batch_id = response.json()["id"]
-    row_id = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"][0]["id"]
+    row_id = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"][0]["id"]
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{row_id}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{row_id}/decision",
         headers=auth_headers,
         json={"decision": "update_existing", "match_customer_id": str(customer.id)},
     )
@@ -467,9 +467,9 @@ def test_apply_creates_contact_when_contact_fields_exist(client, auth_headers):
         [["Contact Co", "Mehmet", "Demir", "mehmet@contact.com"]],
     )
     batch_id = response.json()["id"]
-    row_id = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"][0]["id"]
+    row_id = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"][0]["id"]
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{row_id}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{row_id}/decision",
         headers=auth_headers,
         json={"decision": "create_new"},
     )
@@ -490,14 +490,14 @@ def test_invalid_rows_are_not_applied(client, auth_headers):
         [["", "bad"], ["Valid Co", "ok@valid.com"]],
     )
     batch_id = response.json()["id"]
-    rows = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     valid_row = next(row for row in rows if row["status"] == "ready_to_create")
     client.patch(
-        f"/api/v1/imports/{batch_id}/rows/{valid_row['id']}/decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/{valid_row['id']}/decision",
         headers=auth_headers,
         json={"decision": "create_new"},
     )
     apply_import_decisions(client, auth_headers, batch_id, row_ids=[valid_row["id"]])
-    batch = client.get(f"/api/v1/imports/{batch_id}", headers=auth_headers).json()
+    batch = client.get(f"/api/v1/data-integration/imports/{batch_id}", headers=auth_headers).json()
     assert batch["created_rows"] == 1
     assert batch["invalid_rows"] >= 1
