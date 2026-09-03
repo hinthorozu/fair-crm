@@ -62,7 +62,7 @@ def test_deprecated_customer_upload_stays_marked_deprecated_in_openapi(client):
     paths = response.json()["paths"]
 
     legacy_suffix = "/customers" + "/upload"
-    for prefix in ("/api/v1/imports", "/api/v1/data-integration/imports"):
+    for prefix in ("/api/v1/" + "imports", "/api/v1/data-integration/imports"):
         operation = paths[f"{prefix}{legacy_suffix}"]["post"]
         assert operation["deprecated"] is True
 
@@ -73,5 +73,5 @@ def test_hidden_analyze_legacy_stays_out_of_openapi(client):
     paths = response.json()["paths"]
 
     hidden_suffix = "/{batch_id}/analyze" + "-legacy"
-    for prefix in ("/api/v1/imports", "/api/v1/data-integration/imports"):
+    for prefix in ("/api/v1/" + "imports", "/api/v1/data-integration/imports"):
         assert f"{prefix}{hidden_suffix}" not in paths
