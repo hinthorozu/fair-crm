@@ -68,7 +68,7 @@ def _set_mapping(client, auth_headers, batch_id, has_header_row, mappings):
 
 
 def _analyze(client, auth_headers, batch_id):
-    return client.post(f"/api/v1/data-integration/imports/{batch_id}/analyze-legacy", headers=auth_headers)
+    return client.post(f"/api/v1/data-integration/imports/{batch_id}/analyze-job", headers=auth_headers)
 
 
 def _create_customer(db_session, organization_id: UUID, *, display_name: str) -> Customer:
@@ -191,7 +191,7 @@ def test_headerless_excel_manual_mapping(client, auth_headers):
     assert mapping.status_code == 200
 
     analyze = _analyze(client, auth_headers, batch_id)
-    assert analyze.status_code == 200
+    assert analyze.status_code == 202
     rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["normalized_data_json"]["company_name"] == "ABC Ltd"
 
@@ -226,7 +226,7 @@ def test_analyze_company_name_only(client, auth_headers):
         {"company_name": {"type": "column_index", "value": 0}},
     )
     analyze = _analyze(client, auth_headers, batch_id)
-    assert analyze.status_code == 200
+    assert analyze.status_code == 202
     rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     assert rows[0]["status"] == "ready_to_create"
 
@@ -867,4 +867,3 @@ def test_rows_filter_and_search(client, auth_headers):
     ).json()
     assert pagination_from(filtered)["totalItems"] == 1
     assert filtered["items"][0]["normalized_data_json"]["company_name"] == "Alpha Co"
-

@@ -26,7 +26,6 @@ EXPECTED_REFERENCES = {
     "/analyze" + "-legacy": {
         "backend/app/modules/imports/api/routes.py",
         "backend/tests/modules/imports/test_analyze_job_parity.py",
-        "backend/tests/modules/imports/test_wizard_imports_api.py",
     },
 }
 
