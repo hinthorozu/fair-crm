@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 from app.integrations.kyrox_core.lifecycle import (
+    KyroxCoreLifecycleClient,
     OrganizationLifecycleGuard,
     OrganizationLifecycleUnavailableError,
     OrganizationWorkNotAllowedError,
@@ -11,7 +12,11 @@ from app.integrations.kyrox_core.lifecycle import (
 
 
 class StubLifecycleClient:
-    def __init__(self, response: httpx.Response | None = None, error: Exception | None = None) -> None:
+    def __init__(
+        self,
+        response: httpx.Response | None = None,
+        error: Exception | None = None,
+    ) -> None:
         self.response = response
         self.error = error
         self.calls: list[UUID] = []
@@ -22,6 +27,53 @@ class StubLifecycleClient:
             raise self.error
         assert self.response is not None
         return self.response
+
+
+def test_lifecycle_http_client_uses_dedicated_contract(monkeypatch: pytest.MonkeyPatch) -> None:
+    organization_id = uuid4()
+    captured: dict[str, object] = {}
+
+    class CapturingHttpClient:
+        def __init__(self, *, timeout: float) -> None:
+            captured["timeout"] = timeout
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            _ = (exc_type, exc, tb)
+
+        def get(self, url: str, *, headers: dict[str, str]) -> httpx.Response:
+            captured["url"] = url
+            captured["headers"] = headers
+            return httpx.Response(
+                200,
+                json={
+                    "organization_id": str(organization_id),
+                    "status": "active",
+                    "work_allowed": True,
+                },
+            )
+
+    monkeypatch.setattr(
+        "app.integrations.kyrox_core.lifecycle.httpx.Client",
+        CapturingHttpClient,
+    )
+
+    response = KyroxCoreLifecycleClient(
+        base_url="http://core.example/",
+        lifecycle_token="lifecycle-secret",
+    ).get_snapshot(organization_id)
+
+    assert response.status_code == 200
+    assert captured["url"] == (
+        f"http://core.example/api/v1/organizations/{organization_id}/lifecycle-snapshot"
+    )
+    assert captured["headers"] == {
+        "X-Kyrox-Product-Lifecycle-Token": "lifecycle-secret",
+        "Accept": "application/json",
+    }
+    assert captured["timeout"] == 10.0
 
 
 def test_allows_active_organization() -> None:
