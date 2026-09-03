@@ -1,39 +1,58 @@
 """TI-09 final adversarial tenant-isolation certification gaps."""
 
-from io import BytesIO
-
-from openpyxl import Workbook
+from datetime import UTC, datetime
+from uuid import UUID
 
 from tests.conftest_helpers import pagination_from
 
-
-def _xlsx(company_name: str) -> bytes:
-    workbook = Workbook()
-    sheet = workbook.active
-    sheet.append(["Firma Adı"])
-    sheet.append([company_name])
-    buffer = BytesIO()
-    workbook.save(buffer)
-    return buffer.getvalue()
+from app.modules.imports.domain.entities import ImportBatch, ImportRow
+from app.modules.imports.domain.value_objects import ImportRowStatus, ImportSourceType
+from app.modules.imports.infrastructure.repositories.import_repository import (
+    SqlAlchemyImportBatchRepository,
+    SqlAlchemyImportRowRepository,
+)
 
 
-def _upload_import_batch(client, headers, company_name: str) -> tuple[str, str]:
-    response = client.post(
-        "/api/v1/data-integration/imports/customers/upload",
-        headers=headers,
-        files={
-            "file": (
-                "tenant-certification.xlsx",
-                _xlsx(company_name),
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            )
-        },
+def _seed_import_batch(
+    db_session,
+    organization_id: UUID,
+    company_name: str,
+) -> tuple[str, str]:
+    now = datetime.now(tz=UTC)
+    batch_repo = SqlAlchemyImportBatchRepository(db_session)
+    row_repo = SqlAlchemyImportRowRepository(db_session)
+    batch = batch_repo.add(
+        ImportBatch.create_from_canonical(
+            organization_id=organization_id,
+            fair_id=None,
+            source_type=ImportSourceType.EXCEL,
+            file_name="tenant-certification.xlsx",
+            total_rows=1,
+            valid_rows=1,
+            invalid_rows=0,
+            raw_preview_json={"total_rows": 1},
+            now=now,
+        )
     )
-    assert response.status_code == 201, response.text
-    batch_id = response.json()["id"]
-    rows = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=headers)
-    assert rows.status_code == 200, rows.text
-    return batch_id, rows.json()["items"][0]["id"]
+    row = row_repo.add_many(
+        [
+            ImportRow.create(
+                batch_id=batch.id,
+                organization_id=organization_id,
+                row_number=1,
+                raw_data_json={"company_name": company_name},
+                normalized_data_json={"company_name": company_name},
+                status=ImportRowStatus.READY_TO_CREATE,
+                validation_errors_json=None,
+                match_customer_id=None,
+                match_confidence=None,
+                match_reason="no_match",
+                now=now,
+            )
+        ]
+    )[0]
+    db_session.flush()
+    return str(batch.id), str(row.id)
 
 
 def _create_customer(client, headers, name: str) -> str:
@@ -90,17 +109,19 @@ def _create_cost_product(client, headers, category_id: str, name: str) -> str:
 def test_mixed_organization_bulk_row_ids_fail_closed(
     client,
     auth_headers,
+    db_session,
+    organization_id,
     other_organization_id,
 ):
-    owner_batch_id, owner_row_id = _upload_import_batch(
-        client,
-        auth_headers,
+    owner_batch_id, owner_row_id = _seed_import_batch(
+        db_session,
+        organization_id,
         "Owner Bulk Row",
     )
     foreign_headers = {**auth_headers, "X-Organization-Id": str(other_organization_id)}
-    foreign_batch_id, foreign_row_id = _upload_import_batch(
-        client,
-        foreign_headers,
+    foreign_batch_id, foreign_row_id = _seed_import_batch(
+        db_session,
+        other_organization_id,
         "Foreign Bulk Row",
     )
 
