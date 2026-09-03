@@ -24,6 +24,10 @@ EXPECTED_REFERENCES = {
 }
 REMOVED_APPLICATION_SYMBOLS = (
     "UploadCustomer" + "ImportUseCase",
+    "Upload" + "ImportCommand",
+    "build_" + "import_rows",
+    "def create_" + "legacy",
+    ".create_" + "legacy(",
 )
 
 
