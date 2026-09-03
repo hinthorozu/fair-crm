@@ -45,7 +45,6 @@ from app.modules.imports.application.create_import_batch_from_canonical import (
 )
 from app.modules.imports.application.set_column_mapping import SetColumnMappingUseCase
 from app.modules.imports.application.set_row_decision import SetImportRowDecisionUseCase
-from app.modules.imports.application.upload_import import UploadCustomerImportUseCase
 from app.modules.imports.application.upload_raw_import import UploadRawImportUseCase
 from app.modules.imports.infrastructure.repositories.import_repository import (
     SqlAlchemyImportBatchRepository,
@@ -116,22 +115,6 @@ def require_read_permission(
     ):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
     return auth
-
-
-def get_upload_import_use_case(
-    batch_repository: SqlAlchemyImportBatchRepository = Depends(get_import_batch_repository),
-    row_repository: SqlAlchemyImportRowRepository = Depends(get_import_row_repository),
-    db: Session = Depends(get_db),
-    authorization: AuthorizationPort = Depends(get_authorization_adapter),
-    audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
-) -> UploadCustomerImportUseCase:
-    return UploadCustomerImportUseCase(
-        batch_repository,
-        row_repository,
-        SqlAlchemyCustomerRepository(db),
-        authorization,
-        audit,
-    )
 
 
 def get_upload_raw_import_use_case(

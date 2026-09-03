@@ -35,7 +35,6 @@ from app.modules.imports.api.dependencies import (
     get_set_column_mapping_use_case,
     get_set_row_decision_use_case,
     get_start_bulk_row_decision_job_use_case,
-    get_upload_import_use_case,
     get_upload_raw_import_use_case,
     require_read_permission,
 )
@@ -93,7 +92,6 @@ from app.modules.imports.application.commands import (
     ListImportRowsQuery,
     SetColumnMappingCommand,
     SetImportRowDecisionCommand,
-    UploadImportCommand,
     UploadRawImportCommand,
 )
 from app.modules.imports.application.configure_import_header import ConfigureImportHeaderUseCase
@@ -105,7 +103,6 @@ from app.modules.imports.application.get_import_batch import GetImportBatchUseCa
 from app.modules.imports.application.list_import_rows import ListImportRowsUseCase
 from app.modules.imports.application.set_column_mapping import SetColumnMappingUseCase
 from app.modules.imports.application.set_row_decision import SetImportRowDecisionUseCase
-from app.modules.imports.application.upload_import import UploadCustomerImportUseCase
 from app.modules.imports.application.upload_raw_import import UploadRawImportUseCase
 from app.modules.imports.domain.value_objects import ExcelHeaderMode
 from app.modules.imports.domain.exceptions import (
@@ -215,39 +212,6 @@ def create_import_batch_from_canonical(
         batch=_batch_response(result.batch),
         row_count=result.row_count,
     )
-
-
-@router.post(
-    "/customers/upload",
-    response_model=ImportBatchResponse,
-    status_code=status.HTTP_201_CREATED,
-    responses={400: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
-    summary="Upload customer import xlsx (legacy v1 — deprecated, removal planned v0.9.0)",
-    deprecated=True,
-)
-async def upload_customer_import(
-    file: UploadFile = File(...),
-    auth: AuthContext = Depends(get_auth_context),
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    use_case: UploadCustomerImportUseCase = Depends(get_upload_import_use_case),
-) -> ImportBatchResponse:
-    file_name = file.filename or "import.xlsx"
-    content = await file.read()
-    try:
-        result = use_case.execute(
-            UploadImportCommand(
-                organization_id=auth.organization_id,
-                user_id=auth.user_id,
-                access_token=_access_token(credentials),
-                file_name=file_name,
-                file_content=content,
-            )
-        )
-    except InvalidImportFileError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    except ForbiddenError as exc:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
-    return _batch_response(result)
 
 
 @router.get(
