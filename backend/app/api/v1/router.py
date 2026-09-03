@@ -45,6 +45,7 @@ api_v1_router.include_router(fair_participants_router)
 api_v1_router.include_router(participations_router)
 api_v1_router.include_router(customers_router)
 api_v1_router.include_router(fairs_router)
+# Compatibility-only mount: keep legacy callers working without publishing this duplicate API surface.
 api_v1_router.include_router(imports_router, prefix="/imports", include_in_schema=False)
 api_v1_router.include_router(imports_router, prefix="/data-integration/imports")
 api_v1_router.include_router(data_integration_router)
