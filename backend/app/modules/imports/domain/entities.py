@@ -172,24 +172,6 @@ class ImportBatch:
         self.status = ImportBatchStatus.MAPPING_COMPLETED
         self.updated_at = now
 
-    def mark_mapped(
-        self,
-        *,
-        mapping: dict[str, Any],
-        has_header_row: bool,
-        header_mode: ExcelHeaderMode | None = None,
-        header_row_index: int | None = None,
-        now: datetime,
-    ) -> None:
-        """Legacy alias — sets mapping_completed."""
-        self.mark_mapping_completed(
-            mapping=mapping,
-            has_header_row=has_header_row,
-            header_mode=header_mode,
-            header_row_index=header_row_index,
-            now=now,
-        )
-
     def set_sheet(self, *, sheet_name: str, raw_preview_json: dict[str, Any], now: datetime) -> None:
         self.mark_sheet_selected(sheet_name=sheet_name, raw_preview_json=raw_preview_json, now=now)
 
@@ -225,10 +207,6 @@ class ImportBatch:
     def mark_completed(self, *, now: datetime) -> None:
         self.status = ImportBatchStatus.COMPLETED
         self.completed_at = now
-        self.updated_at = now
-
-    def mark_previewed(self, *, now: datetime) -> None:
-        self.status = ImportBatchStatus.PREVIEWED
         self.updated_at = now
 
     def mark_applied(self, *, now: datetime) -> None:
