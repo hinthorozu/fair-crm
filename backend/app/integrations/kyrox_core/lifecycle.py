@@ -98,7 +98,11 @@ class OrganizationLifecycleGuard:
             raise OrganizationLifecycleUnavailableError(
                 "Organization lifecycle authority returned the wrong organization"
             )
-        if lifecycle_status not in _VALID_STATUSES or type(work_allowed) is not bool:
+        if (
+            not isinstance(lifecycle_status, str)
+            or lifecycle_status not in _VALID_STATUSES
+            or type(work_allowed) is not bool
+        ):
             raise OrganizationLifecycleUnavailableError(
                 "Organization lifecycle authority returned an invalid response"
             )
