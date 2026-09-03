@@ -10,13 +10,7 @@ on:
       - "frontend/**"
       - ".kyrox/**"
       - ".cursor/**"
-      - "scripts/server/**"
-      - "scripts/validate_feature_contracts.py"
-      - "scripts/new_feature_contract.py"
-      - "scripts/backend_test_baseline.py"
-      - "scripts/quality_check.py"
-      - "scripts/maintenance/inventory_frontend_ui.py"
-      - "scripts/maintenance/compare_frontend_ui_inventory.py"
+      - "scripts/**"
       - ".github/workflows/development-standard.yml"
   push:
     branches:
@@ -26,13 +20,7 @@ on:
       - "frontend/**"
       - ".kyrox/**"
       - ".cursor/**"
-      - "scripts/server/**"
-      - "scripts/validate_feature_contracts.py"
-      - "scripts/new_feature_contract.py"
-      - "scripts/backend_test_baseline.py"
-      - "scripts/quality_check.py"
-      - "scripts/maintenance/inventory_frontend_ui.py"
-      - "scripts/maintenance/compare_frontend_ui_inventory.py"
+      - "scripts/**"
       - ".github/workflows/development-standard.yml"
 
 concurrency:

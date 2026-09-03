@@ -56,6 +56,28 @@ def upload(client: httpx.Client, fair_id: UUID, content: bytes, filename: str) -
     return r.json()
 
 
+def wait_for_job(client: httpx.Client, job_id: str, label: str) -> dict:
+    for _ in range(90):
+        response = client.get(f"{BASE}/data-integration/jobs/{job_id}", headers=HEADERS)
+        response.raise_for_status()
+        job = response.json()
+        if job["status"] == "completed":
+            return job
+        if job["status"] == "failed":
+            raise RuntimeError(f"{label} job failed: {job}")
+        time.sleep(0.5)
+    raise RuntimeError(f"{label} job timeout")
+
+
+def analyze(client: httpx.Client, batch_id: str) -> dict:
+    response = client.post(
+        f"{BASE}/data-integration/imports/{batch_id}/analyze-job",
+        headers=HEADERS,
+    )
+    response.raise_for_status()
+    return wait_for_job(client, response.json()["job_id"], "Analyze")
+
+
 def scenario_header_yes(client: httpx.Client) -> None:
     print("Scenario 1: Excel (header yes)...")
     fair_id = create_fair(client, "DI Verify Fair 1")
@@ -82,24 +104,15 @@ def scenario_header_yes(client: httpx.Client) -> None:
     )
     r.raise_for_status()
 
-    r = client.post(f"{BASE}/data-integration/imports/{batch_id}/analyze", headers=HEADERS)
-    r.raise_for_status()
-    assert r.json()["total_rows"] == 1
+    analyze(client, batch_id)
+    batch = client.get(f"{BASE}/data-integration/imports/{batch_id}", headers=HEADERS)
+    batch.raise_for_status()
+    assert batch.json()["total_rows"] == 1
 
     r = client.post(f"{BASE}/data-integration/imports/{batch_id}/apply-job", headers=HEADERS)
     r.raise_for_status()
-    job_id = r.json()["job_id"]
-
-    for _ in range(30):
-        jr = client.get(f"{BASE}/data-integration/jobs/{job_id}", headers=HEADERS)
-        jr.raise_for_status()
-        status = jr.json()["status"]
-        if status in ("completed", "failed"):
-            assert status == "completed", jr.json()
-            print("  PASS apply-job completed")
-            return
-        time.sleep(0.5)
-    raise RuntimeError("Job timeout")
+    wait_for_job(client, r.json()["job_id"], "Apply")
+    print("  PASS apply-job completed")
 
 
 def scenario_header_no(client: httpx.Client) -> None:
@@ -128,9 +141,10 @@ def scenario_header_no(client: httpx.Client) -> None:
     r.raise_for_status()
     assert r.json()["column_mapping"]["header_mode"] == "no_header"
 
-    r = client.post(f"{BASE}/data-integration/imports/{batch_id}/analyze", headers=HEADERS)
-    r.raise_for_status()
-    assert r.json()["total_rows"] == 2
+    analyze(client, batch_id)
+    batch = client.get(f"{BASE}/data-integration/imports/{batch_id}", headers=HEADERS)
+    batch.raise_for_status()
+    assert batch.json()["total_rows"] == 2
     print("  PASS no-header analyze 2 rows")
 
 
@@ -191,7 +205,7 @@ def scenario_duplicate(client: httpx.Client) -> None:
             },
         },
     ).raise_for_status()
-    client.post(f"{BASE}/data-integration/imports/{batch_id}/analyze", headers=HEADERS).raise_for_status()
+    analyze(client, batch_id)
 
     rows = client.get(f"{BASE}/data-integration/imports/{batch_id}/rows", headers=HEADERS).json()
     assert rows["items"], "expected rows"
