@@ -22,6 +22,9 @@ TEXT_SUFFIXES = {
 EXPECTED_REFERENCES = {
     "/customers" + "/upload": set(),
 }
+REMOVED_APPLICATION_SYMBOLS = (
+    "UploadCustomer" + "ImportUseCase",
+)
 
 
 def _references_for(marker: str) -> set[str]:
@@ -47,6 +50,11 @@ def _references_for(marker: str) -> set[str]:
 def test_legacy_import_routes_have_only_explicit_references():
     actual = {marker: _references_for(marker) for marker in EXPECTED_REFERENCES}
     assert actual == EXPECTED_REFERENCES
+
+
+def test_removed_legacy_upload_application_has_no_consumers():
+    for symbol in REMOVED_APPLICATION_SYMBOLS:
+        assert _references_for(symbol) == set()
 
 
 def test_legacy_customer_upload_is_removed_from_runtime_and_openapi(client, auth_headers):
