@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from fastapi.routing import APIRoute
 
 from app.modules.auth.api.routes import router as auth_router
 from app.modules.activities.api.routes import customer_activities_router, router as activities_router
@@ -35,6 +36,19 @@ from app.modules.email_webhooks.api.routes import router as email_webhooks_route
 from app.modules.cost_catalog.api.routes import router as cost_catalog_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
+
+
+def _hide_route_from_schema(router: APIRouter, path: str) -> None:
+    matches = [
+        route
+        for route in router.routes
+        if isinstance(route, APIRoute) and route.path == path
+    ]
+    if len(matches) != 1:
+        raise RuntimeError(f"Expected exactly one compatibility route for {path}, found {len(matches)}")
+    matches[0].include_in_schema = False
+
+
 api_v1_router.include_router(auth_router)
 api_v1_router.include_router(customer_activities_router)
 api_v1_router.include_router(activities_router)
@@ -45,6 +59,8 @@ api_v1_router.include_router(fair_participants_router)
 api_v1_router.include_router(participations_router)
 api_v1_router.include_router(customers_router)
 api_v1_router.include_router(fairs_router)
+# Keep the deprecated v1 upload callable for compatibility, but remove it from API discovery/codegen.
+_hide_route_from_schema(imports_router, "/customers/upload")
 # Compatibility-only mount: keep legacy callers working without publishing this duplicate API surface.
 api_v1_router.include_router(imports_router, prefix="/imports", include_in_schema=False)
 api_v1_router.include_router(imports_router, prefix="/data-integration/imports")
