@@ -118,8 +118,8 @@ def test_analyze_job_matches_legacy_row_semantics(client, auth_headers):
     content = _xlsx(
         ["Firma Adı", "E-posta"],
         [
-            ["Acme Ltd", "info@acme.test"],
-            ["Acme Ltd", "sales@acme.test"],
+            ["Acme Ltd", "info@acme.com"],
+            ["Acme Ltd", "sales@acme.com"],
             ["Sparse Co", "not-an-email"],
         ],
     )
@@ -145,12 +145,12 @@ def test_analyze_job_matches_legacy_existing_customer_match(
         db_session,
         organization_id,
         display_name="Sinan Elektronik A.Ş.",
-        email="existing@sinan.test",
+        email="existing@sinan.com",
     )
     fair_id = _create_fair(client, auth_headers, "Existing Match Parity Fair")
     content = _xlsx(
         ["Firma Adı", "E-posta"],
-        [["SİNAN ELEKTRONİK ANONİM ŞİRKETİ", "incoming@sinan.test"]],
+        [["SİNAN ELEKTRONİK ANONİM ŞİRKETİ", "incoming@sinan.com"]],
     )
 
     legacy_batch = _create_mapped_batch(client, auth_headers, fair_id, content)
