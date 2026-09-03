@@ -8,9 +8,12 @@ Pipeline stages (isolated responsibilities):
 """
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Callable
 from uuid import UUID
 
+from app.modules.customers.domain.entities import Customer
+from app.modules.imports.domain.entities import ImportBatch, ImportRow
 from app.modules.imports.domain.services.company_name_normalizer import normalize_import_company_name
 from app.modules.imports.domain.services.duplicate_detector import (
     BATCH_DUPLICATE_REASON,
@@ -174,3 +177,53 @@ def _apply_participation(
     else:
         match_fields["participation_exists"] = False
         match_fields["match_participation_id"] = None
+
+
+def build_import_rows(
+    *,
+    batch: ImportBatch,
+    raw_rows: list[dict[str, Any]],
+    customers: list[Customer] | None = None,
+    customer_index: CustomerMatchIndex | None = None,
+    fair_id: UUID | None,
+    participation_by_customer: dict[UUID, UUID] | None = None,
+    participation_exists: Callable[[UUID], tuple[bool, UUID | None]] | None = None,
+    now: datetime,
+) -> list[ImportRow]:
+    if customer_index is None:
+        customer_index = CustomerMatchIndex.build(customers or [])
+
+    validated = validate_mapped_rows(raw_rows)
+    matched = apply_participation_and_status(
+        validated_rows=validated,
+        customer_index=customer_index,
+        fair_id=fair_id,
+        participation_by_customer=participation_by_customer,
+        participation_exists=participation_exists,
+    )
+
+    rows: list[ImportRow] = []
+    for row, match_fields in matched:
+        normalized = dict(row.normalized)
+        if match_fields.get("match_explanation"):
+            normalized["_match_explanation"] = match_fields["match_explanation"]
+        rows.append(
+            ImportRow.create(
+                batch_id=batch.id,
+                organization_id=batch.organization_id,
+                row_number=row.row_number,
+                raw_data_json=row.raw,
+                normalized_data_json=normalized,
+                status=match_fields["status"],
+                validation_errors_json=row.errors or None,
+                match_customer_id=match_fields["match_customer_id"],
+                match_confidence=match_fields["match_confidence"],
+                match_reason=match_fields["match_reason"],
+                participation_exists=match_fields["participation_exists"],
+                match_participation_id=match_fields["match_participation_id"],
+                suggested_action=match_fields["suggested_action"],
+                now=now,
+            )
+        )
+
+    return rows
