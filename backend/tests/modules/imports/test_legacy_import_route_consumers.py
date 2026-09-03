@@ -56,15 +56,16 @@ def test_legacy_import_routes_have_only_explicit_consumers():
     assert actual == EXPECTED_REFERENCES
 
 
-def test_deprecated_customer_upload_stays_marked_deprecated_in_openapi(client):
+def test_deprecated_customer_upload_stays_marked_deprecated_on_canonical_openapi(client):
     response = client.get("/openapi.json")
     assert response.status_code == 200
     paths = response.json()["paths"]
 
     legacy_suffix = "/customers" + "/upload"
-    for prefix in ("/api/v1/" + "imports", "/api/v1/data-integration/imports"):
-        operation = paths[f"{prefix}{legacy_suffix}"]["post"]
-        assert operation["deprecated"] is True
+    canonical_path = f"/api/v1/data-integration/imports{legacy_suffix}"
+    operation = paths[canonical_path]["post"]
+    assert operation["deprecated"] is True
+    assert f"/api/v1/{'imports'}{legacy_suffix}" not in paths
 
 
 def test_hidden_analyze_legacy_stays_out_of_openapi(client):
