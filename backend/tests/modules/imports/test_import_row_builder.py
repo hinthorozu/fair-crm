@@ -11,7 +11,7 @@ from app.modules.imports.domain.entities import ImportBatch
 from app.modules.imports.domain.services.duplicate_detector import BATCH_DUPLICATE_REASON
 from app.modules.imports.domain.services.row_normalizer import normalize_row_data
 from app.modules.imports.domain.services.row_validator import validate_import_row
-from app.modules.imports.domain.value_objects import ImportRowStatus
+from app.modules.imports.domain.value_objects import ImportRowStatus, ImportSourceType
 
 
 def test_normalize_sparse_row_empty_optionals_become_null():
@@ -80,10 +80,15 @@ def test_validate_mapped_rows_detects_batch_duplicate():
 def test_build_import_rows_marks_company_name_only_ready():
     org_id = uuid4()
     now = datetime.now(tz=UTC)
-    batch = ImportBatch.create_legacy(
+    batch = ImportBatch.create_from_canonical(
         organization_id=org_id,
+        fair_id=None,
+        source_type=ImportSourceType.EXCEL,
         file_name="test.xlsx",
         total_rows=1,
+        valid_rows=1,
+        invalid_rows=0,
+        raw_preview_json={},
         now=now,
     )
     rows = build_import_rows(
