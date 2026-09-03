@@ -21,6 +21,7 @@ TEXT_SUFFIXES = {
 }
 EXPECTED_REFERENCES = {
     "/customers" + "/upload": {
+        "backend/app/api/v1/router.py",
         "backend/app/modules/imports/api/routes.py",
         "backend/tests/modules/imports/test_imports_api.py",
     },
