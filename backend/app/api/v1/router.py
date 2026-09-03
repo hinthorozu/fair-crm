@@ -39,10 +39,12 @@ api_v1_router = APIRouter(prefix="/api/v1")
 
 
 def _hide_compatibility_route_from_schema(path: str) -> None:
+    normalized_path = path.removeprefix(api_v1_router.prefix)
     matches = [
         route
         for route in api_v1_router.routes
-        if isinstance(route, APIRoute) and route.path == path
+        if isinstance(route, APIRoute)
+        and route.path.removeprefix(api_v1_router.prefix) == normalized_path
     ]
     if len(matches) != 1:
         raise RuntimeError(f"Expected exactly one compatibility route for {path}, found {len(matches)}")
@@ -63,7 +65,7 @@ api_v1_router.include_router(fairs_router)
 api_v1_router.include_router(imports_router, prefix="/imports", include_in_schema=False)
 api_v1_router.include_router(imports_router, prefix="/data-integration/imports")
 # Keep the deprecated v1 upload callable for compatibility, but remove it from API discovery/codegen.
-_hide_compatibility_route_from_schema("/api/v1/data-integration/imports/customers/upload")
+_hide_compatibility_route_from_schema("/data-integration/imports/customers/upload")
 api_v1_router.include_router(data_integration_router)
 api_v1_router.include_router(system_admin_router)
 api_v1_router.include_router(data_operations_router)
