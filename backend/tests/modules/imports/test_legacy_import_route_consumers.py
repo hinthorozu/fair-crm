@@ -1,4 +1,4 @@
-"""Guard deprecated/hidden import routes against new repository consumers."""
+"""Guard deprecated/removed import routes against repository regressions."""
 
 from pathlib import Path
 from uuid import uuid4
