@@ -135,15 +135,21 @@ jobs:
             sleep 2
           done
 
+      - name: Prod-path E2E gate
+        env:
+          KYROX_CORE_ROOT: ${{ github.workspace }}/kyrox-core
+        run: python scripts/e2e_validation.py --ci
+
       - name: OL07-03 lifecycle authority contract
         run: |
           python - <<'PY'
+          import json
           import os
-          from uuid import UUID
 
           import httpx
 
-          organization_id = UUID("00000000-0000-4000-8000-000000000010")
+          state = json.loads(open("scripts/.dev_state.json", encoding="utf-8").read())
+          organization_id = state["organization_id"]
           response = httpx.get(
               f"{os.environ['KYROX_CORE_BASE_URL']}/api/v1/organizations/{organization_id}/lifecycle-snapshot",
               headers={
@@ -155,16 +161,11 @@ jobs:
           assert response.status_code == 200, response.text
           payload = response.json()
           assert payload == {
-              "organization_id": str(organization_id),
+              "organization_id": organization_id,
               "status": "active",
               "work_allowed": True,
           }, payload
           PY
-
-      - name: Prod-path E2E gate
-        env:
-          KYROX_CORE_ROOT: ${{ github.workspace }}/kyrox-core
-        run: python scripts/e2e_validation.py --ci
 
       - name: P0.2 identity lifecycle certification
         run: python scripts/p0_2_identity_lifecycle_e2e.py
