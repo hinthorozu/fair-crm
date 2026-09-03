@@ -1,4 +1,4 @@
-"""Prevent repository consumers from depending on the duplicate /api/v1/imports mount."""
+"""Prevent repository consumers from depending on the duplicate legacy import mount."""
 
 from pathlib import Path
 
