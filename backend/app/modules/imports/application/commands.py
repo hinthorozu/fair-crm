@@ -13,15 +13,6 @@ from app.modules.imports.domain.value_objects import (
 
 
 @dataclass(frozen=True)
-class UploadImportCommand:
-    organization_id: UUID
-    user_id: UUID
-    access_token: str
-    file_name: str
-    file_content: bytes
-
-
-@dataclass(frozen=True)
 class UploadRawImportCommand:
     organization_id: UUID
     user_id: UUID

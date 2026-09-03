@@ -1,4 +1,4 @@
-"""Guard deprecated/removed import routes against repository regressions."""
+"""Guard removed import compatibility routes and legacy application symbols."""
 
 from pathlib import Path
 from uuid import uuid4
@@ -24,6 +24,9 @@ EXPECTED_REFERENCES = {
 }
 REMOVED_APPLICATION_SYMBOLS = (
     "UploadCustomer" + "ImportUseCase",
+    "Upload" + "ImportCommand",
+    "def create_" + "legacy",
+    ".create_" + "legacy(",
 )
 
 

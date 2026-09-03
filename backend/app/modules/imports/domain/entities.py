@@ -133,46 +133,6 @@ class ImportBatch:
             notes=None,
         )
 
-    @classmethod
-    def create_legacy(
-        cls,
-        *,
-        organization_id: UUID,
-        file_name: str,
-        total_rows: int,
-        now: datetime,
-    ) -> "ImportBatch":
-        """Legacy v1 upload without fair context (deprecated)."""
-        return cls(
-            id=uuid4(),
-            organization_id=organization_id,
-            fair_id=None,
-            source_type=ImportSourceType.EXCEL,
-            file_name=file_name,
-            status=ImportBatchStatus.UPLOADED,
-            total_rows=total_rows,
-            valid_rows=0,
-            invalid_rows=0,
-            duplicate_rows=0,
-            created_rows=0,
-            updated_rows=0,
-            skipped_rows=0,
-            created_participations=0,
-            updated_participations=0,
-            column_mapping_json=None,
-            raw_preview_json=None,
-            has_header_row=None,
-            header_mode=None,
-            header_row_index=None,
-            selected_sheet_name=None,
-            stored_file_content=None,
-            created_at=now,
-            updated_at=now,
-            completed_at=None,
-            analyzed_at=None,
-            notes=None,
-        )
-
     def mark_sheet_selected(self, *, sheet_name: str, raw_preview_json: dict[str, Any], now: datetime) -> None:
         self.selected_sheet_name = sheet_name
         self.raw_preview_json = raw_preview_json
