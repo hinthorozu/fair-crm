@@ -28,6 +28,10 @@ REMOVED_APPLICATION_SYMBOLS = (
     "def create_" + "legacy",
     ".create_" + "legacy(",
 )
+REMOVED_DOMAIN_ALIAS_CALLS = (
+    ".mark_" + "mapped(",
+    ".mark_" + "previewed(",
+)
 
 
 def _references_for(marker: str) -> set[str]:
@@ -57,6 +61,11 @@ def test_legacy_import_routes_have_only_explicit_references():
 
 def test_removed_legacy_upload_application_has_no_consumers():
     for symbol in REMOVED_APPLICATION_SYMBOLS:
+        assert _references_for(symbol) == set()
+
+
+def test_dead_import_domain_aliases_have_no_consumers():
+    for symbol in REMOVED_DOMAIN_ALIAS_CALLS:
         assert _references_for(symbol) == set()
 
 
