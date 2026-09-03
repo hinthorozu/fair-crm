@@ -87,13 +87,17 @@ jobs:
           jwt_secret="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
           dev_password="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
           identity_action_secret="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+          product_lifecycle_secret="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
           echo "::add-mask::$jwt_secret"
           echo "::add-mask::$dev_password"
           echo "::add-mask::$identity_action_secret"
+          echo "::add-mask::$product_lifecycle_secret"
           {
             echo "JWT_SECRET_KEY=$jwt_secret"
             echo "DEV_USER_PASSWORD=$dev_password"
             echo "CORE_IDENTITY_ACTION_TOKEN_SECRET_KEY=$identity_action_secret"
+            echo "CORE_PRODUCT_LIFECYCLE_TOKEN=$product_lifecycle_secret"
+            echo "KYROX_CORE_PRODUCT_LIFECYCLE_TOKEN=$product_lifecycle_secret"
           } >> "$GITHUB_ENV"
 
       - name: Install dependencies
@@ -135,6 +139,33 @@ jobs:
         env:
           KYROX_CORE_ROOT: ${{ github.workspace }}/kyrox-core
         run: python scripts/e2e_validation.py --ci
+
+      - name: OL07-03 lifecycle authority contract
+        run: |
+          python - <<'PY'
+          import json
+          import os
+
+          import httpx
+
+          state = json.loads(open("scripts/.dev_state.json", encoding="utf-8").read())
+          organization_id = state["organization_id"]
+          response = httpx.get(
+              f"{os.environ['KYROX_CORE_BASE_URL']}/api/v1/organizations/{organization_id}/lifecycle-snapshot",
+              headers={
+                  "X-Kyrox-Product-Lifecycle-Token": os.environ["KYROX_CORE_PRODUCT_LIFECYCLE_TOKEN"],
+                  "Accept": "application/json",
+              },
+              timeout=10.0,
+          )
+          assert response.status_code == 200, response.text
+          payload = response.json()
+          assert payload == {
+              "organization_id": organization_id,
+              "status": "active",
+              "work_allowed": True,
+          }, payload
+          PY
 
       - name: P0.2 identity lifecycle certification
         run: python scripts/p0_2_identity_lifecycle_e2e.py
