@@ -43,3 +43,20 @@ def _legacy_prefix_references() -> set[str]:
 
 def test_duplicate_import_prefix_has_no_repository_consumers():
     assert _legacy_prefix_references() == set()
+
+
+def test_legacy_import_mount_is_hidden_from_openapi_but_still_registered(client):
+    legacy_prefix = "/api/v1/" + "imports"
+    canonical_prefix = "/api/v1/data-integration/imports"
+
+    response = client.get("/openapi.json")
+    assert response.status_code == 200
+    documented_paths = response.json()["paths"]
+    assert any(path.startswith(canonical_prefix) for path in documented_paths)
+    assert not any(path.startswith(legacy_prefix) for path in documented_paths)
+
+    registered_paths = {getattr(route, "path", None) for route in client.app.routes}
+    assert any(
+        isinstance(path, str) and path.startswith(legacy_prefix)
+        for path in registered_paths
+    )
