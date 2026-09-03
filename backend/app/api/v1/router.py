@@ -1,5 +1,4 @@
 from fastapi import APIRouter
-from fastapi.routing import APIRoute
 
 from app.modules.auth.api.routes import router as auth_router
 from app.modules.activities.api.routes import customer_activities_router, router as activities_router
@@ -37,18 +36,6 @@ from app.modules.cost_catalog.api.routes import router as cost_catalog_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
 
-
-def _remove_compatibility_route(router: APIRouter, path: str) -> None:
-    matches = [
-        route
-        for route in router.routes
-        if isinstance(route, APIRoute) and route.path == path
-    ]
-    if len(matches) != 1:
-        raise RuntimeError(f"Expected exactly one compatibility route for {path}, found {len(matches)}")
-    router.routes.remove(matches[0])
-
-
 api_v1_router.include_router(auth_router)
 api_v1_router.include_router(customer_activities_router)
 api_v1_router.include_router(activities_router)
@@ -59,8 +46,6 @@ api_v1_router.include_router(fair_participants_router)
 api_v1_router.include_router(participations_router)
 api_v1_router.include_router(customers_router)
 api_v1_router.include_router(fairs_router)
-# Remove the deprecated customer-upload compatibility route before either imports mount is cloned.
-_remove_compatibility_route(imports_router, "/customers" + "/upload")
 # Compatibility-only mount: keep supported legacy import callers working without publishing this duplicate API surface.
 api_v1_router.include_router(imports_router, prefix="/imports", include_in_schema=False)
 api_v1_router.include_router(imports_router, prefix="/data-integration/imports")
