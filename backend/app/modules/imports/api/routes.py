@@ -20,7 +20,6 @@ from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.auth import AuthContext
 from app.modules.fairs.domain.exceptions import FairNotFoundError
 from app.modules.imports.api.dependencies import (
-    get_analyze_import_use_case,
     get_apply_import_use_case,
     get_apply_import_decisions_use_case,
     get_auth_context,
@@ -70,7 +69,6 @@ from app.modules.imports.api.schemas import (
     SetImportRowDecisionRequest,
     UploadRawImportResponse,
 )
-from app.modules.imports.application.analyze_import import AnalyzeImportUseCase
 from app.modules.imports.application.apply_import import ApplyImportUseCase
 from app.modules.imports.application.apply_import_decisions import (
     ApplyImportDecisionsCommand,
@@ -84,7 +82,6 @@ from app.modules.imports.application.start_bulk_row_decision_job import (
     StartBulkRowDecisionJobUseCase,
 )
 from app.modules.imports.application.commands import (
-    AnalyzeImportCommand,
     ApplyImportCommand,
     BulkRowDecisionCommand,
     ConfigureImportHeaderCommand,
@@ -114,7 +111,6 @@ from app.modules.imports.domain.value_objects import ExcelHeaderMode
 from app.modules.imports.domain.exceptions import (
     FairRequiredError,
     ImportBatchAlreadyAppliedError,
-    ImportBatchAnalyzeNotAllowedError,
     ImportBatchDeleteBlockedError,
     ImportBatchNotFoundError,
     ImportBulkActionInProgressError,
@@ -429,43 +425,6 @@ def analyze_import_batch(
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail="Senkron analiz kaldırıldı. POST /api/v1/data-integration/imports/{batch_id}/analyze-job kullanın.",
-    )
-
-
-@router.post(
-    "/{batch_id}/analyze-legacy",
-    response_model=AnalyzeImportResponse,
-    responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
-    include_in_schema=False,
-)
-def analyze_import_batch_legacy(
-    batch_id: UUID,
-    auth: AuthContext = Depends(get_auth_context),
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    use_case: AnalyzeImportUseCase = Depends(get_analyze_import_use_case),
-) -> AnalyzeImportResponse:
-    try:
-        result = use_case.execute(
-            AnalyzeImportCommand(
-                organization_id=auth.organization_id,
-                user_id=auth.user_id,
-                access_token=_access_token(credentials),
-                batch_id=batch_id,
-            )
-        )
-    except ImportBatchNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    except ImportBatchAlreadyAppliedError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    except ImportBatchAnalyzeNotAllowedError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    except InvalidColumnMappingError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    except ForbiddenError as exc:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
-    return AnalyzeImportResponse(
-        batch=_batch_response(result.batch),
-        total_rows=result.total_rows,
     )
 
 

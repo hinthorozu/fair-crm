@@ -1,6 +1,7 @@
-"""Guard deprecated/hidden import routes against new repository consumers."""
+"""Guard deprecated/removed import routes against repository regressions."""
 
 from pathlib import Path
+from uuid import uuid4
 
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -22,10 +23,6 @@ EXPECTED_REFERENCES = {
     "/customers" + "/upload": {
         "backend/app/modules/imports/api/routes.py",
         "backend/tests/modules/imports/test_imports_api.py",
-    },
-    "/analyze" + "-legacy": {
-        "backend/app/modules/imports/api/routes.py",
-        "backend/tests/modules/imports/test_analyze_job_parity.py",
     },
 }
 
@@ -67,11 +64,11 @@ def test_deprecated_customer_upload_stays_marked_deprecated_on_canonical_openapi
     assert f"/api/v1/{'imports'}{legacy_suffix}" not in paths
 
 
-def test_hidden_analyze_legacy_stays_out_of_openapi(client):
-    response = client.get("/openapi.json")
-    assert response.status_code == 200
-    paths = response.json()["paths"]
+def test_removed_analyze_legacy_has_no_consumers_and_returns_404(client, auth_headers):
+    marker = "/analyze" + "-legacy"
+    assert _references_for(marker) == set()
 
-    hidden_suffix = "/{batch_id}/analyze" + "-legacy"
+    suffix = f"/{uuid4()}{marker}"
     for prefix in ("/api/v1/" + "imports", "/api/v1/data-integration/imports"):
-        assert f"{prefix}{hidden_suffix}" not in paths
+        response = client.post(f"{prefix}{suffix}", headers=auth_headers)
+        assert response.status_code == 404

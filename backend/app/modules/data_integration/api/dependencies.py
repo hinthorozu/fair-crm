@@ -20,7 +20,6 @@ from app.modules.data_integration.application.start_import_apply_job import Star
 from app.modules.data_integration.infrastructure.repositories.job_repository import SqlAlchemyImportJobRepository
 from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
 from app.modules.imports.api.dependencies import (
-    get_analyze_import_use_case,
     get_apply_import_use_case,
     get_auth_context,
     get_bulk_row_decision_use_case,
