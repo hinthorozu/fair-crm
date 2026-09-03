@@ -451,7 +451,7 @@ def test_delete_scraper_run_preserves_fair_and_import_batch(
     assert fair_get.status_code == 200
     assert fair_get.json()["name"] == "Preserve Fair"
 
-    batch_get = client.get(f"/api/v1/imports/{import_batch_id}", headers=auth_headers)
+    batch_get = client.get(f"/api/v1/data-integration/imports/{import_batch_id}", headers=auth_headers)
     assert batch_get.status_code == 200
     assert batch_get.json()["id"] == str(import_batch_id)
     assert db_session.get(ImportBatchModel, import_batch_id) is not None

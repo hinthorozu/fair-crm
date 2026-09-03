@@ -77,7 +77,7 @@ def test_run_fair_scraper_starts_run_and_completes_with_mock(
     assert completed.run_source.value == "fair_automation"
     assert completed.import_batch_id is not None
 
-    batch_response = client.get(f"/api/v1/imports/{completed.import_batch_id}", headers=auth_headers)
+    batch_response = client.get(f"/api/v1/data-integration/imports/{completed.import_batch_id}", headers=auth_headers)
     assert batch_response.status_code == 200
     assert batch_response.json()["status"] == "decision_required"
     assert batch_response.json()["source_type"] == "scraper"

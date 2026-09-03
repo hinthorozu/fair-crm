@@ -20,13 +20,13 @@ def _xlsx(rows: list[list[str]], headers: list[str] | None = None) -> bytes:
 def _upload_previewed(client, auth_headers, rows: list[list[str]]) -> tuple[str, list[dict]]:
     content = _xlsx(rows, headers=["Firma Adı"])
     upload = client.post(
-        "/api/v1/imports/customers/upload",
+        "/api/v1/data-integration/imports/customers/upload",
         headers=auth_headers,
         files={"file": ("bulk-assign.xlsx", content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
     assert upload.status_code == 201
     batch_id = upload.json()["id"]
-    listed = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    listed = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     return batch_id, listed
 
 
@@ -39,7 +39,7 @@ def test_bulk_assign_decisions_updates_selected_rows_only(client, auth_headers):
     selected = [rows[0]["id"], rows[1]["id"]]
 
     response = client.patch(
-        f"/api/v1/imports/{batch_id}/rows/bulk-decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/bulk-decision",
         headers=auth_headers,
         json={"row_ids": selected, "decision": "create_new"},
     )
@@ -48,7 +48,7 @@ def test_bulk_assign_decisions_updates_selected_rows_only(client, auth_headers):
     assert body["updated_count"] == 2
     assert body["skipped_count"] == 0
 
-    refreshed = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
+    refreshed = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"]
     by_id = {row["id"]: row for row in refreshed}
     assert by_id[rows[0]["id"]]["decision"] == "create_new"
     assert by_id[rows[1]["id"]]["decision"] == "create_new"
@@ -62,7 +62,7 @@ def test_bulk_assign_update_existing_without_match_is_skipped(client, auth_heade
     batch_id, rows = _upload_previewed(client, auth_headers, [["No Match Co"]])
 
     response = client.patch(
-        f"/api/v1/imports/{batch_id}/rows/bulk-decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/bulk-decision",
         headers=auth_headers,
         json={"row_ids": [rows[0]["id"]], "decision": "update_existing"},
     )
@@ -72,7 +72,7 @@ def test_bulk_assign_update_existing_without_match_is_skipped(client, auth_heade
     assert body["skipped_count"] == 1
     assert len(body["errors"]) == 1
 
-    row = client.get(f"/api/v1/imports/{batch_id}/rows", headers=auth_headers).json()["items"][0]
+    row = client.get(f"/api/v1/data-integration/imports/{batch_id}/rows", headers=auth_headers).json()["items"][0]
     assert row["decision"] is None
 
 
@@ -80,7 +80,7 @@ def test_bulk_assign_does_not_require_row_ids_and_decision_together(client, auth
     batch_id, _ = _upload_previewed(client, auth_headers, [["Only Co"]])
 
     response = client.patch(
-        f"/api/v1/imports/{batch_id}/rows/bulk-decision",
+        f"/api/v1/data-integration/imports/{batch_id}/rows/bulk-decision",
         headers=auth_headers,
         json={"row_ids": [], "decision": "skip"},
     )
