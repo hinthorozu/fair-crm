@@ -21,9 +21,7 @@ TEXT_SUFFIXES = {
 }
 EXPECTED_REFERENCES = {
     "/customers" + "/upload": {
-        "backend/app/api/v1/router.py",
         "backend/app/modules/imports/api/routes.py",
-        "backend/tests/modules/imports/test_imports_api.py",
     },
 }
 
@@ -48,12 +46,12 @@ def _references_for(marker: str) -> set[str]:
     return references
 
 
-def test_legacy_import_routes_have_only_explicit_consumers():
+def test_legacy_import_routes_have_only_explicit_references():
     actual = {marker: _references_for(marker) for marker in EXPECTED_REFERENCES}
     assert actual == EXPECTED_REFERENCES
 
 
-def test_legacy_customer_upload_is_hidden_from_openapi_but_stays_callable(client, auth_headers):
+def test_legacy_customer_upload_is_removed_from_runtime_and_openapi(client, auth_headers):
     response = client.get("/openapi.json")
     assert response.status_code == 200
     paths = response.json()["paths"]
@@ -63,7 +61,7 @@ def test_legacy_customer_upload_is_hidden_from_openapi_but_stays_callable(client
         path = f"{prefix}{legacy_suffix}"
         assert path not in paths
         runtime_response = client.post(path, headers=auth_headers)
-        assert runtime_response.status_code == 422
+        assert runtime_response.status_code == 404
 
 
 def test_removed_analyze_legacy_has_no_consumers_and_returns_404(client, auth_headers):
