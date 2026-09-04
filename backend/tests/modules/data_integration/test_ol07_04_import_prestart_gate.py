@@ -56,16 +56,16 @@ def test_import_runner_does_not_enter_running_path_when_prestart_gate_denies(
     monkeypatch.setattr(runner, internal_method, inner)
     gate_calls = []
 
-    def deny(func, args, kwargs):
-        gate_calls.append((func.__name__, args, kwargs))
+    def deny(func, command):
+        gate_calls.append((func.__name__, command))
         return False
 
-    monkeypatch.setattr(runner_module, "should_execute_queued_product_work", deny)
+    monkeypatch.setattr(runner_module, "_should_execute_queued_product_work", deny)
     cmd = command()
 
     getattr(runner, public_method)(cmd)
 
-    assert gate_calls == [(public_method, (cmd,), {})]
+    assert gate_calls == [(public_method, cmd)]
     inner.assert_not_called()
 
 
@@ -104,8 +104,8 @@ def test_import_runner_enters_running_path_only_after_prestart_gate_allows(
     monkeypatch.setattr(runner, internal_method, inner)
     monkeypatch.setattr(
         runner_module,
-        "should_execute_queued_product_work",
-        lambda func, args, kwargs: True,
+        "_should_execute_queued_product_work",
+        lambda func, command: True,
     )
     cmd = command()
 
