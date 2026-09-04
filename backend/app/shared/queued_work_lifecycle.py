@@ -190,6 +190,8 @@ def _is_locally_startable(descriptor: _QueuedWorkDescriptor) -> bool:
                 run_id,
                 organization_id=descriptor.organization_id,
             )
+            # Scraper history is created as RUNNING before the background callback
+            # is scheduled, so RUNNING is the local pre-start sentinel for this family.
             return run is not None and run.status == ScraperRunStatus.RUNNING
 
         return False
@@ -293,12 +295,15 @@ def _terminalize_scraper(descriptor: _QueuedWorkDescriptor, *, reason: str) -> N
         if not isinstance(run_id, UUID):
             return
         history = create_run_history_service(db)
-        cancelled = history.complete_cancelled_run(
+        # cancel_run re-reads the row and transitions only a still-RUNNING record.
+        # This prevents a narrow pre-start race from rewriting an already terminal
+        # scraper run (for example COMPLETED) to CANCELLED.
+        cancelled = history.cancel_run(
             run_id,
-            error_message=reason,
+            reason=reason,
             organization_id=descriptor.organization_id,
         )
-        if cancelled is None:
+        if cancelled is None or cancelled.status != ScraperRunStatus.CANCELLED:
             return
 
         operation_id = getattr(descriptor.command, "operation_id", None)
