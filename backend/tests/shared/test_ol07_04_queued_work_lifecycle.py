@@ -1,7 +1,15 @@
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from uuid import uuid4
 
 import app.shared.queued_work_lifecycle as lifecycle
+from app.modules.data_integration.domain.entities import ImportJob
+from app.modules.imports.domain.entities import ImportBatch
+from app.modules.imports.domain.value_objects import (
+    ImportBatchStatus,
+    ImportJobStatus,
+    ImportSourceType,
+)
 
 
 def _registered_import_function():
@@ -142,3 +150,81 @@ def test_decision_keeps_organization_scope(monkeypatch):
         {},
     ) is False
     assert terminalized_orgs == [suspended_org]
+
+
+def test_prestart_cancelled_apply_terminalizes_batch_that_was_marked_applying(monkeypatch):
+    organization_id = uuid4()
+    stamp = datetime.now(tz=UTC)
+    batch = ImportBatch.create_from_canonical(
+        organization_id=organization_id,
+        fair_id=None,
+        source_type=ImportSourceType.SCRAPER,
+        file_name="ol07-04.json",
+        total_rows=1,
+        valid_rows=1,
+        invalid_rows=0,
+        raw_preview_json={},
+        now=stamp,
+    )
+    batch.mark_applying(now=stamp)
+    job = ImportJob.create_apply_job(
+        organization_id=organization_id,
+        batch_id=batch.id,
+        progress_total=1,
+        now=stamp,
+    )
+    session = SimpleNamespace(
+        commits=0,
+        rollbacks=0,
+        closed=False,
+    )
+    session.commit = lambda: setattr(session, "commits", session.commits + 1)
+    session.rollback = lambda: setattr(session, "rollbacks", session.rollbacks + 1)
+    session.close = lambda: setattr(session, "closed", True)
+
+    class JobRepository:
+        def __init__(self, db):
+            assert db is session
+
+        def get_by_id(self, requested_organization_id, requested_job_id):
+            assert requested_organization_id == organization_id
+            assert requested_job_id == job.id
+            return job
+
+        def update(self, updated):
+            assert updated is job
+            return updated
+
+    class BatchRepository:
+        def __init__(self, db):
+            assert db is session
+
+        def get_by_id(self, requested_organization_id, requested_batch_id):
+            assert requested_organization_id == organization_id
+            assert requested_batch_id == batch.id
+            return batch
+
+        def update(self, updated):
+            assert updated is batch
+            return updated
+
+    monkeypatch.setattr(lifecycle, "SessionLocal", lambda: session)
+    monkeypatch.setattr(lifecycle, "SqlAlchemyImportJobRepository", JobRepository)
+    monkeypatch.setattr(lifecycle, "SqlAlchemyImportBatchRepository", BatchRepository)
+    reason = "organization_lifecycle_prestart_cancelled:suspended"
+    descriptor = lifecycle._QueuedWorkDescriptor(
+        module=lifecycle._IMPORT_MODULE,
+        function="run_apply",
+        command=SimpleNamespace(job_id=job.id),
+        organization_id=organization_id,
+    )
+
+    lifecycle._terminalize_import(descriptor, reason=reason)
+
+    assert job.status == ImportJobStatus.CANCELLED
+    assert batch.status == ImportBatchStatus.CANCELLED
+    assert batch.notes == reason
+    assert batch.completed_at is not None
+    assert session.commits == 1
+    assert session.rollbacks == 0
+    assert session.closed is True
