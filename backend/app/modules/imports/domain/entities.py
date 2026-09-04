@@ -219,6 +219,13 @@ class ImportBatch:
         if notes:
             self.notes = notes
 
+    def mark_cancelled(self, *, now: datetime, notes: str | None = None) -> None:
+        self.status = ImportBatchStatus.CANCELLED
+        self.completed_at = now
+        self.updated_at = now
+        if notes:
+            self.notes = notes
+
     def update_counts(
         self,
         *,
