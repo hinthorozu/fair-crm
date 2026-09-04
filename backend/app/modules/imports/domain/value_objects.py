@@ -65,6 +65,7 @@ class ImportJobStatus(StrEnum):
     COMPLETED = "completed"
     FAILED = "failed"
     PARTIAL = "partial"
+    CANCELLED = "cancelled"
 
 
 class ImportJobType(StrEnum):
