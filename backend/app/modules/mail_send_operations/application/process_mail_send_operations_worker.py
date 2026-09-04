@@ -78,6 +78,7 @@ class ProcessMailSendOperationsWorker:
             max_batch_size=settings.mail_worker_max_batch_size,
             now=now,
         )
+        picked_count = 0
         sent_count = 0
         failed_count = 0
         skipped_count = 0
@@ -88,6 +89,7 @@ class ProcessMailSendOperationsWorker:
                 skipped_count += 1
                 self._session.commit()
                 continue
+            picked_count += 1
             outcome = self._process_candidate(candidate, now=now)
             if outcome == "sent":
                 sent_count += 1
@@ -125,7 +127,7 @@ class ProcessMailSendOperationsWorker:
         self._session.flush()
         return MailSendOperationWorkerResult(
             recovered_stuck_count=recovered,
-            picked_count=len(candidates),
+            picked_count=picked_count,
             sent_count=sent_count,
             failed_count=failed_count,
             skipped_count=skipped_count,
