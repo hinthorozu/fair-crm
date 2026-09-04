@@ -225,14 +225,27 @@ def _terminalize_import(descriptor: _QueuedWorkDescriptor, *, reason: str) -> No
         job.mark_cancelled(error_message=reason, now=now)
         job_repo.update(job)
 
-        if job.job_type == ImportJobType.ANALYZE:
-            batch_repo = SqlAlchemyImportBatchRepository(db)
-            batch = batch_repo.get_by_id(descriptor.organization_id, job.batch_id)
-            if batch is not None and batch.status == ImportBatchStatus.ANALYSIS_QUEUED:
-                # ANALYSIS_FAILED is intentionally retryable; the cancelled job itself
-                # remains terminal and can never be auto-resumed after reactivation.
-                batch.mark_analysis_failed(now=now, notes=reason)
-                batch_repo.update(batch)
+        batch_repo = SqlAlchemyImportBatchRepository(db)
+        batch = batch_repo.get_by_id(descriptor.organization_id, job.batch_id)
+        if (
+            job.job_type == ImportJobType.ANALYZE
+            and batch is not None
+            and batch.status == ImportBatchStatus.ANALYSIS_QUEUED
+        ):
+            # ANALYSIS_FAILED is intentionally retryable; the cancelled job itself
+            # remains terminal and can never be auto-resumed after reactivation.
+            batch.mark_analysis_failed(now=now, notes=reason)
+            batch_repo.update(batch)
+        elif (
+            job.job_type == ImportJobType.APPLY
+            and batch is not None
+            and batch.status == ImportBatchStatus.APPLYING
+        ):
+            # StartImportApplyJob marks the batch APPLYING before the queued runner
+            # starts. Pre-start lifecycle cancellation must not leave that batch
+            # looking active after its queued job has been terminalized.
+            batch.mark_cancelled(now=now, notes=reason)
+            batch_repo.update(batch)
         db.commit()
     except Exception:
         db.rollback()
