@@ -1,6 +1,8 @@
 from types import SimpleNamespace
 from uuid import uuid4
 
+import pytest
+
 import app.modules.mail_send_operations.application.process_mail_send_operations_worker as worker_module
 from app.modules.mail_send_operations.application.process_mail_send_operations_worker import (
     ProcessMailSendOperationsWorker,
@@ -17,6 +19,9 @@ class _Repository:
 
     def get_by_id(self, organization_id, operation_id):
         return self.records.get((organization_id, operation_id))
+
+    def list_queued_for_worker(self, *, max_batch_size, now):
+        return list(self.records.values())[:max_batch_size]
 
 
 class _MailService:
@@ -36,6 +41,18 @@ class _FairBulkHandler:
 
     def sync_outbox_failed(self, organization_id, batch_id, outbox_id, *, message):
         self.failed.append((organization_id, batch_id, outbox_id, message))
+
+
+class _Session:
+    def __init__(self):
+        self.commits = 0
+        self.flushes = 0
+
+    def commit(self):
+        self.commits += 1
+
+    def flush(self):
+        self.flushes += 1
 
 
 def _candidate(organization_id, *, source_type=MailSendSourceType.MANUAL_EMAIL):
@@ -119,3 +136,37 @@ def test_lifecycle_unavailable_defers_mail_without_cancelling(monkeypatch):
 
     assert worker._lifecycle_allows_candidate_start(candidate) is False
     assert worker._mail_service.cancelled == []
+
+
+def test_lifecycle_deferred_candidate_is_not_counted_as_picked(monkeypatch):
+    organization_id = uuid4()
+    candidate = _candidate(organization_id)
+    worker = _worker(candidate)
+    session = _Session()
+    worker._session = session
+
+    monkeypatch.setattr(
+        worker_module,
+        "get_settings",
+        lambda: SimpleNamespace(
+            mail_sending_timeout_minutes=10,
+            mail_worker_max_batch_size=10,
+        ),
+    )
+    monkeypatch.setattr(worker, "_recover_stuck_sending", lambda **kwargs: 0)
+    monkeypatch.setattr(worker, "_sync_fair_batch_progress", lambda records: None)
+    monkeypatch.setattr(worker, "_lifecycle_allows_candidate_start", lambda record: False)
+    monkeypatch.setattr(
+        worker,
+        "_process_candidate",
+        lambda *args, **kwargs: pytest.fail("deferred mail must not be processed"),
+    )
+
+    result = worker.run()
+
+    assert result.picked_count == 0
+    assert result.skipped_count == 1
+    assert result.sent_count == 0
+    assert result.failed_count == 0
+    assert session.commits == 1
+    assert session.flushes == 1
