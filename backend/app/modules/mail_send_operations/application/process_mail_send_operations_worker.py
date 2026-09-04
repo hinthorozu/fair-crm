@@ -9,6 +9,10 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.integrations.kyrox_core.lifecycle import (
+    OrganizationLifecycleGuard,
+    OrganizationLifecycleUnavailableError,
+)
 from app.modules.fair_emails.application.fair_bulk_mail_operation_sync import FairBulkEmailMailOperationSync
 from app.modules.fair_emails.application.retry_fair_bulk_email_operation import (
     FairBulkEmailOperationRetryHandler,
@@ -80,6 +84,10 @@ class ProcessMailSendOperationsWorker:
         retried_count = 0
 
         for candidate in candidates:
+            if not self._lifecycle_allows_candidate_start(candidate):
+                skipped_count += 1
+                self._session.commit()
+                continue
             outcome = self._process_candidate(candidate, now=now)
             if outcome == "sent":
                 sent_count += 1
@@ -123,6 +131,56 @@ class ProcessMailSendOperationsWorker:
             skipped_count=skipped_count,
             retried_count=retried_count,
         )
+
+    def _lifecycle_allows_candidate_start(self, candidate: MailSendOperationRecord) -> bool:
+        """Gate one queued mail operation before claim/provider dispatch.
+
+        The worker may contain candidates from multiple organizations, so lifecycle
+        decisions are deliberately candidate-scoped. Running/SENDING behavior is
+        OL07-05 and is not changed here.
+        """
+        try:
+            snapshot = OrganizationLifecycleGuard().get_snapshot(candidate.organization_id)
+        except OrganizationLifecycleUnavailableError:
+            logger.warning(
+                "mail_worker_deferred_lifecycle_unavailable operation_id=%s organization_id=%s",
+                candidate.id,
+                candidate.organization_id,
+            )
+            return False
+
+        if snapshot.work_allowed:
+            return True
+
+        reason = f"organization_lifecycle_prestart_cancelled:{snapshot.status}"
+        current = self._repository.get_by_id(candidate.organization_id, candidate.id)
+        if current is None or current.status != MailSendOperationStatus.QUEUED:
+            return False
+
+        self._mail_service.mark_cancelled(
+            candidate.organization_id,
+            candidate.id,
+            message=reason,
+        )
+        if candidate.source_type == MailSendSourceType.FAIR_BULK_EMAIL:
+            outbox = self._fair_bulk_handler.get_outbox_for_operation(
+                candidate.organization_id,
+                candidate.id,
+            )
+            if outbox is not None and outbox.batch_id is not None:
+                self._fair_bulk_handler.sync_outbox_failed(
+                    candidate.organization_id,
+                    outbox.batch_id,
+                    outbox.id,
+                    message=reason,
+                )
+        logger.info(
+            "mail_worker_queued_operation_cancelled operation_id=%s organization_id=%s lifecycle_status=%s",
+            candidate.id,
+            candidate.organization_id,
+            snapshot.status,
+        )
+        return False
 
     def _sync_fair_batch_progress(
         self,
