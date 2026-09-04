@@ -34,11 +34,17 @@ from app.modules.imports.infrastructure.repositories.import_repository import (
 from app.modules.participations.infrastructure.repositories.participation_repository import (
     SqlAlchemyParticipationRepository,
 )
-from app.shared.queued_work_lifecycle import should_execute_queued_product_work
 
 
 def _communication_sync(db: Session) -> CustomerCommunicationSyncService:
     return CustomerCommunicationSyncService(SqlAlchemyCustomerCommunicationRepository(db))
+
+
+def _should_execute_queued_product_work(func, command) -> bool:
+    """Resolve the OL07-04 guard lazily to avoid application import cycles."""
+    from app.shared.queued_work_lifecycle import should_execute_queued_product_work
+
+    return should_execute_queued_product_work(func, (command,), {})
 
 
 @dataclass(frozen=True)
@@ -82,19 +88,19 @@ class ImportJobRunner:
 
     def run_apply(self, command: ApplyJobCommand) -> None:
         """Run apply job synchronously after a pre-start lifecycle decision."""
-        if not should_execute_queued_product_work(self.run_apply, (command,), {}):
+        if not _should_execute_queued_product_work(self.run_apply, command):
             return
         self._run_apply(command)
 
     def run_bulk_decision(self, command: BulkDecisionJobCommand) -> None:
         """Run bulk decision job synchronously after a pre-start lifecycle decision."""
-        if not should_execute_queued_product_work(self.run_bulk_decision, (command,), {}):
+        if not _should_execute_queued_product_work(self.run_bulk_decision, command):
             return
         self._run_bulk_decision(command)
 
     def run_analyze(self, command: AnalyzeJobCommand) -> None:
         """Run analyze job synchronously after a pre-start lifecycle decision."""
-        if not should_execute_queued_product_work(self.run_analyze, (command,), {}):
+        if not _should_execute_queued_product_work(self.run_analyze, command):
             return
         self._run_analyze(command)
 
