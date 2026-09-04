@@ -15,6 +15,7 @@ from app.core.performance_monitoring import (
     register_background_job_finished,
     register_background_job_started,
 )
+from app.shared.queued_work_lifecycle import should_execute_queued_product_work
 
 logger = logging.getLogger("fair_crm.performance")
 
@@ -40,16 +41,19 @@ def _operation_label(func: Callable[..., T], args: tuple) -> tuple[str, str | No
     return name, run_id
 
 
-async def run_blocking_background_task(func: Callable[..., T], /, *args, **kwargs) -> T:
+def _run_guarded(func: Callable[..., T], args: tuple, kwargs: dict) -> T | None:
+    if not should_execute_queued_product_work(func, args, kwargs):
+        return None
+    return func(*args, **kwargs)
+
+
+async def run_blocking_background_task(func: Callable[..., T], /, *args, **kwargs) -> T | None:
     operation, run_id = _operation_label(func, args)
     register_background_job_started(operation, run_id)
     start = time.perf_counter()
     success = False
     try:
-        if kwargs:
-            result = await run_in_threadpool(lambda: func(*args, **kwargs))
-        else:
-            result = await run_in_threadpool(func, *args)
+        result = await run_in_threadpool(_run_guarded, func, args, kwargs)
         success = True
         return result
     finally:
@@ -78,7 +82,7 @@ def schedule_detached_blocking_job(func: Callable[..., T], /, *args, **kwargs) -
         start = time.perf_counter()
         success = False
         try:
-            func(*args, **kwargs)
+            _run_guarded(func, args, kwargs)
             success = True
         except Exception:
             logger.exception("detached_background_job_failed operation=%s", operation)
