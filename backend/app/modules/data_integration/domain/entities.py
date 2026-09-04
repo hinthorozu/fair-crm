@@ -120,6 +120,14 @@ class ImportJob:
         self.completed_at = now
         self.updated_at = now
 
+    def mark_cancelled(self, *, error_message: str, now: datetime) -> None:
+        if self.status != ImportJobStatus.QUEUED:
+            return
+        self.status = ImportJobStatus.CANCELLED
+        self.error_message = error_message
+        self.completed_at = now
+        self.updated_at = now
+
 
 @dataclass
 class ImportTemplate:
