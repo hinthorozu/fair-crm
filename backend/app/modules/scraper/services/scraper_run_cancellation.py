@@ -17,8 +17,13 @@ from app.shared.running_work_lifecycle import (
 )
 
 
-class ScraperRunCancelledError(Exception):
-    """Raised by adapters when a cooperative cancel/delete stop is observed mid-scrape."""
+class ScraperRunCancelledError(BaseException):
+    """Cooperative stop signal that must bypass broad adapter ``Exception`` handlers.
+
+    Like ``asyncio.CancelledError``, this is control flow rather than an ordinary
+    scrape failure.  Product runners catch it explicitly and terminalize the run
+    as cancelled instead of allowing adapters to wrap it as a site error.
+    """
 
 
 class RunCancelChecker:
