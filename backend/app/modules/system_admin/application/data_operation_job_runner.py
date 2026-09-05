@@ -13,13 +13,14 @@ from uuid import UUID, uuid4
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
+from app.integrations.kyrox_core.lifecycle import OrganizationLifecycleUnavailableError
+from app.modules.customers.application.customer_field_grouping import GROUP_BY_FIELDS
 from app.modules.system_admin.application.data_operation_assign_fair import assign_customers_to_fair
 from app.modules.system_admin.application.data_operation_delete_customers import delete_selected_customers
 from app.modules.system_admin.application.data_operation_dataset_builders import (
     build_customers_without_fair_dataset,
     build_duplicate_customer_groups_dataset,
 )
-from app.modules.customers.application.customer_field_grouping import GROUP_BY_FIELDS
 from app.modules.system_admin.application.data_operation_registry import get_operation_definition
 from app.modules.system_admin.domain.data_operation_entities import DataOperationOutputFile, DataOperationRun
 from app.modules.system_admin.domain.data_operation_value_objects import (
@@ -30,6 +31,10 @@ from app.modules.system_admin.infrastructure.repositories.data_operation_run_rep
     SqlAlchemyDataOperationRunRepository,
 )
 from app.shared.maintenance.paths import get_maintenance_dir, resolve_maintenance_file
+from app.shared.running_work_lifecycle import (
+    RunningWorkLifecycleCancelledError,
+    RunningWorkLifecycleCheckpoint,
+)
 
 _EXCEL_OUTPUT_RE = re.compile(r"^\s*Excel output:\s*(.+)\s*$")
 _OUTPUT_DIR_RE = re.compile(r"^\s*Output directory:\s*(.+)\s*$")
@@ -51,17 +56,35 @@ class DataOperationJobCommand:
 
 
 class DataOperationJobRunner:
-    def __init__(self, session_factory: Callable[[], Session] | None = None) -> None:
+    def __init__(
+        self,
+        session_factory: Callable[[], Session] | None = None,
+        *,
+        enforce_lifecycle: bool | None = None,
+        lifecycle_checkpoint_factory: Callable[[UUID], Callable[[], None]] | None = None,
+    ) -> None:
         self._session_factory = session_factory or SessionLocal
+        if enforce_lifecycle is None:
+            enforce_lifecycle = session_factory is None
+        self._enforce_lifecycle = enforce_lifecycle
+        self._lifecycle_checkpoint_factory = lifecycle_checkpoint_factory
+
+    def _running_checkpoint(self, organization_id: UUID) -> Callable[[], None]:
+        if self._lifecycle_checkpoint_factory is not None:
+            return self._lifecycle_checkpoint_factory(organization_id)
+        if not self._enforce_lifecycle:
+            return lambda: None
+        checkpoint = RunningWorkLifecycleCheckpoint(organization_id)
+        return checkpoint.check
 
     def run_operation(self, command: DataOperationJobCommand) -> None:
         db = self._session_factory()
+        checkpoint = self._running_checkpoint(command.organization_id)
         try:
             repo = SqlAlchemyDataOperationRunRepository(db)
             run = repo.get_by_id(command.organization_id, command.run_id)
             if run is None:
                 return
-            # Cancel may have terminalized the run before this background job starts.
             if run.status != DataOperationRunStatus.QUEUED:
                 return
 
@@ -76,6 +99,7 @@ class DataOperationJobRunner:
             run.mark_running(now=now)
             repo.update(run)
             db.commit()
+            checkpoint()
 
             if definition.result_mode == "dataset":
                 self._run_dataset_operation(
@@ -86,6 +110,7 @@ class DataOperationJobRunner:
                     definition=definition,
                     organization_id=command.organization_id,
                     run_id=command.run_id,
+                    progress_checkpoint=checkpoint,
                 )
                 return
 
@@ -112,6 +137,7 @@ class DataOperationJobRunner:
                 return
 
             try:
+                checkpoint()
                 completed = subprocess.run(
                     [sys.executable, str(script_path)],
                     cwd=str(maintenance_dir.parents[1]),
@@ -120,6 +146,7 @@ class DataOperationJobRunner:
                     env=os.environ.copy(),
                     check=False,
                 )
+                checkpoint()
                 stdout = completed.stdout or ""
                 stderr = completed.stderr or ""
                 combined = "\n".join(part for part in (stdout, stderr) if part).strip()
@@ -134,6 +161,7 @@ class DataOperationJobRunner:
 
                 output_files = _collect_output_files(stdout, maintenance_dir=maintenance_dir)
                 summary = _parse_summary(stdout)
+                checkpoint()
                 finished = datetime.now(tz=UTC)
                 run.mark_completed(
                     result=DataOperationRunResult.SUCCESS,
@@ -144,6 +172,8 @@ class DataOperationJobRunner:
                 )
                 repo.update(run)
                 db.commit()
+            except (RunningWorkLifecycleCancelledError, OrganizationLifecycleUnavailableError):
+                raise
             except OSError as exc:
                 db.rollback()
                 run = repo.get_by_id(command.organization_id, command.run_id)
@@ -151,11 +181,18 @@ class DataOperationJobRunner:
                     run.mark_failed(error_message=str(exc), stdout_text=None, now=datetime.now(tz=UTC))
                     repo.update(run)
                     db.commit()
+        except RunningWorkLifecycleCancelledError as exc:
+            db.rollback()
+            self._cancel_running_run(db, command, reason=str(exc))
+        except OrganizationLifecycleUnavailableError as exc:
+            db.rollback()
+            self._fail_running_run(db, command, reason=str(exc))
         finally:
             db.close()
 
     def run_assign_customers_to_fair(self, command: DataOperationJobCommand) -> None:
         db = self._session_factory()
+        checkpoint = self._running_checkpoint(command.organization_id)
         try:
             repo = SqlAlchemyDataOperationRunRepository(db)
             run = repo.get_by_id(command.organization_id, command.run_id)
@@ -180,6 +217,7 @@ class DataOperationJobRunner:
             run.mark_running(now=now)
             repo.update(run)
             db.commit()
+            checkpoint()
 
             try:
                 result = assign_customers_to_fair(
@@ -188,7 +226,9 @@ class DataOperationJobRunner:
                     parent_run_id=UUID(str(parent_run_id_raw)),
                     fair_id=UUID(str(fair_id_raw)),
                     customer_ids=[UUID(str(customer_id)) for customer_id in customer_ids_raw],
+                    progress_checkpoint=checkpoint,
                 )
+                checkpoint()
                 finished = datetime.now(tz=UTC)
                 run = repo.get_by_id(command.organization_id, command.run_id)
                 if run is None:
@@ -204,6 +244,8 @@ class DataOperationJobRunner:
                 )
                 repo.update(run)
                 db.commit()
+            except (RunningWorkLifecycleCancelledError, OrganizationLifecycleUnavailableError):
+                raise
             except Exception as exc:
                 db.rollback()
                 run = repo.get_by_id(command.organization_id, command.run_id)
@@ -211,11 +253,18 @@ class DataOperationJobRunner:
                     run.mark_failed(error_message=str(exc), stdout_text=None, now=datetime.now(tz=UTC))
                     repo.update(run)
                     db.commit()
+        except RunningWorkLifecycleCancelledError as exc:
+            db.rollback()
+            self._cancel_running_run(db, command, reason=str(exc))
+        except OrganizationLifecycleUnavailableError as exc:
+            db.rollback()
+            self._fail_running_run(db, command, reason=str(exc))
         finally:
             db.close()
 
     def run_delete_selected_customers(self, command: DataOperationJobCommand) -> None:
         db = self._session_factory()
+        checkpoint = self._running_checkpoint(command.organization_id)
         try:
             repo = SqlAlchemyDataOperationRunRepository(db)
             run = repo.get_by_id(command.organization_id, command.run_id)
@@ -239,6 +288,7 @@ class DataOperationJobRunner:
             run.mark_running(now=now)
             repo.update(run)
             db.commit()
+            checkpoint()
 
             try:
                 result = delete_selected_customers(
@@ -246,7 +296,9 @@ class DataOperationJobRunner:
                     organization_id=command.organization_id,
                     parent_run_id=UUID(str(parent_run_id_raw)),
                     customer_ids=[UUID(str(customer_id)) for customer_id in customer_ids_raw],
+                    progress_checkpoint=checkpoint,
                 )
+                checkpoint()
                 finished = datetime.now(tz=UTC)
                 run = repo.get_by_id(command.organization_id, command.run_id)
                 if run is None:
@@ -262,6 +314,8 @@ class DataOperationJobRunner:
                 )
                 repo.update(run)
                 db.commit()
+            except (RunningWorkLifecycleCancelledError, OrganizationLifecycleUnavailableError):
+                raise
             except Exception as exc:
                 db.rollback()
                 run = repo.get_by_id(command.organization_id, command.run_id)
@@ -269,6 +323,12 @@ class DataOperationJobRunner:
                     run.mark_failed(error_message=str(exc), stdout_text=None, now=datetime.now(tz=UTC))
                     repo.update(run)
                     db.commit()
+        except RunningWorkLifecycleCancelledError as exc:
+            db.rollback()
+            self._cancel_running_run(db, command, reason=str(exc))
+        except OrganizationLifecycleUnavailableError as exc:
+            db.rollback()
+            self._fail_running_run(db, command, reason=str(exc))
         finally:
             db.close()
 
@@ -282,6 +342,7 @@ class DataOperationJobRunner:
         definition,
         organization_id: UUID,
         run_id: UUID,
+        progress_checkpoint: Callable[[], None],
     ) -> None:
         if not definition.dataset_kind:
             run.mark_failed(
@@ -307,6 +368,7 @@ class DataOperationJobRunner:
             return
 
         try:
+            progress_checkpoint()
             if definition.dataset_kind == "duplicate_customer_groups":
                 payload = run.summary_json or {}
                 group_by_raw = payload.get("group_by")
@@ -323,15 +385,21 @@ class DataOperationJobRunner:
                     run_id=run_id,
                     group_by=group_by_raw,  # type: ignore[arg-type]
                     fair_id=fair_id,
+                    progress_checkpoint=progress_checkpoint,
                 )
             else:
-                summary = builder(db, organization_id=organization_id, run_id=run_id)
+                summary = builder(
+                    db,
+                    organization_id=organization_id,
+                    run_id=run_id,
+                    progress_checkpoint=progress_checkpoint,
+                )
+            progress_checkpoint()
             finished = datetime.now(tz=UTC)
             run = repo.get_by_id(organization_id, run_id)
             if run is None:
                 return
-            # Operation cancel marks the data-op failed while this job may still be finishing.
-            if run.status == DataOperationRunStatus.FAILED:
+            if run.status in {DataOperationRunStatus.FAILED, DataOperationRunStatus.CANCELLED}:
                 return
             run.mark_completed(
                 result=DataOperationRunResult.SUCCESS,
@@ -343,17 +411,57 @@ class DataOperationJobRunner:
             repo.update(run)
             db.commit()
             self._sync_linked_operation(command, run)
+        except (RunningWorkLifecycleCancelledError, OrganizationLifecycleUnavailableError):
+            raise
         except Exception as exc:
             db.rollback()
             run = repo.get_by_id(organization_id, run_id)
             if run is None:
                 return
-            if run.status == DataOperationRunStatus.FAILED:
+            if run.status in {DataOperationRunStatus.FAILED, DataOperationRunStatus.CANCELLED}:
                 return
             run.mark_failed(error_message=str(exc), stdout_text=None, now=datetime.now(tz=UTC))
             repo.update(run)
             db.commit()
             self._sync_linked_operation(command, run)
+
+    def _cancel_running_run(
+        self,
+        db: Session,
+        command: DataOperationJobCommand,
+        *,
+        reason: str,
+    ) -> None:
+        try:
+            repo = SqlAlchemyDataOperationRunRepository(db)
+            run = repo.get_by_id(command.organization_id, command.run_id)
+            if run is None:
+                return
+            run.mark_cancelled(error_message=reason, now=datetime.now(tz=UTC))
+            repo.update(run)
+            db.commit()
+            self._sync_linked_operation(command, run)
+        except Exception:
+            db.rollback()
+
+    def _fail_running_run(
+        self,
+        db: Session,
+        command: DataOperationJobCommand,
+        *,
+        reason: str,
+    ) -> None:
+        try:
+            repo = SqlAlchemyDataOperationRunRepository(db)
+            run = repo.get_by_id(command.organization_id, command.run_id)
+            if run is None:
+                return
+            run.mark_failed(error_message=reason, stdout_text=None, now=datetime.now(tz=UTC))
+            repo.update(run)
+            db.commit()
+            self._sync_linked_operation(command, run)
+        except Exception:
+            db.rollback()
 
     def _sync_linked_operation(self, command: DataOperationJobCommand, run: DataOperationRun) -> None:
         if command.operation_id is None or command.operation_run_id is None:
