@@ -121,7 +121,7 @@ class ImportJob:
         self.updated_at = now
 
     def mark_cancelled(self, *, error_message: str, now: datetime) -> None:
-        if self.status != ImportJobStatus.QUEUED:
+        if self.status not in {ImportJobStatus.QUEUED, ImportJobStatus.RUNNING}:
             return
         self.status = ImportJobStatus.CANCELLED
         self.error_message = error_message
