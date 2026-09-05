@@ -6,6 +6,7 @@ class DataOperationRunStatus(StrEnum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
 class DataOperationRunResult(StrEnum):

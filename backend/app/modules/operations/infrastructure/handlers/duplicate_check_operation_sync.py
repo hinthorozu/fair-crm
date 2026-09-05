@@ -62,6 +62,8 @@ def map_data_operation_status_to_run_status(
         return RunStatus.COMPLETED
     if value == DataOperationRunStatus.FAILED.value:
         return RunStatus.FAILED
+    if value == DataOperationRunStatus.CANCELLED.value:
+        return RunStatus.CANCELLED
     return None
 
 
@@ -111,6 +113,8 @@ def apply_data_operation_to_run(
                 error_message=data_run.error_message or "Data operation failed",
                 error_details=dict(run.error_details or {}),
             )
+        elif target == RunStatus.CANCELLED and run.status != RunStatus.CANCELLED:
+            run.transition_status(RunStatus.CANCELLED, now=stamp)
         elif target == RunStatus.QUEUED and run.status == RunStatus.QUEUED:
             pass
 
