@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -49,6 +50,7 @@ class AnalyzeCanonicalImportUseCase:
         participation_repository: SqlAlchemyParticipationRepository,
         authorization: AuthorizationPort,
         audit: HttpAuditAdapter,
+        progress_checkpoint: Callable[[], None] | None = None,
     ) -> None:
         self._batch_repository = batch_repository
         self._row_repository = row_repository
@@ -56,6 +58,11 @@ class AnalyzeCanonicalImportUseCase:
         self._participation_repository = participation_repository
         self._authorization = authorization
         self._audit = audit
+        self._progress_checkpoint = progress_checkpoint
+
+    def _checkpoint(self) -> None:
+        if self._progress_checkpoint is not None:
+            self._progress_checkpoint()
 
     def execute(
         self,
@@ -90,6 +97,7 @@ class AnalyzeCanonicalImportUseCase:
                 "Canonical analyze is only allowed for received or decision-pending batches"
             )
 
+        self._checkpoint()
         now = datetime.now(tz=UTC)
         is_reanalyze = batch.status not in (
             ImportBatchStatus.RECEIVED,
@@ -98,6 +106,7 @@ class AnalyzeCanonicalImportUseCase:
         )
         existing_rows = self._row_repository.list_by_batch(organization_id, batch_id)
         if not existing_rows:
+            self._checkpoint()
             batch.mark_decision_required(now=now)
             updated_batch = self._batch_repository.update(batch)
             return AnalyzeImportResult(batch=batch_to_result(updated_batch, []), total_rows=0)
@@ -164,6 +173,7 @@ class AnalyzeCanonicalImportUseCase:
             existing.updated_at = now
             updated_rows.append(existing)
 
+        self._checkpoint()
         self._row_repository.update_many(updated_rows)
         saved_rows = updated_rows
 
@@ -180,6 +190,7 @@ class AnalyzeCanonicalImportUseCase:
         invalid_count = sum(1 for row in saved_rows if row.status == ImportRowStatus.INVALID)
         duplicate_count = sum(1 for row in saved_rows if row.status == ImportRowStatus.POSSIBLE_DUPLICATE)
 
+        self._checkpoint()
         batch.total_rows = len(saved_rows)
         batch.mark_decision_required(now=now)
         batch.update_counts(
@@ -190,6 +201,7 @@ class AnalyzeCanonicalImportUseCase:
         )
         updated_batch = self._batch_repository.update(batch)
 
+        self._checkpoint()
         audit = self._audit if not dev_bypass_enabled() else NoOpAuditAdapter()
         audit.record_event(
             organization_id=organization_id,
