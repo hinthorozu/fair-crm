@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import UTC, datetime
 import time
 from uuid import UUID
@@ -49,6 +50,7 @@ class AnalyzeImportUseCase:
         participation_repository: SqlAlchemyParticipationRepository,
         authorization: AuthorizationPort,
         audit: HttpAuditAdapter,
+        progress_checkpoint: Callable[[], None] | None = None,
     ) -> None:
         self._batch_repository = batch_repository
         self._row_repository = row_repository
@@ -56,6 +58,11 @@ class AnalyzeImportUseCase:
         self._participation_repository = participation_repository
         self._authorization = authorization
         self._audit = audit
+        self._progress_checkpoint = progress_checkpoint
+
+    def _checkpoint(self) -> None:
+        if self._progress_checkpoint is not None:
+            self._progress_checkpoint()
 
     def execute(self, command: AnalyzeImportCommand) -> AnalyzeImportResult:
         if not self._authorization.check_permission(
@@ -83,6 +90,7 @@ class AnalyzeImportUseCase:
         if batch.column_mapping_json is None:
             raise InvalidColumnMappingError("company_name mapping is required")
 
+        self._checkpoint()
         now = datetime.now(tz=UTC)
         started = time.perf_counter()
         limits = ImportLimits.from_settings(get_settings())
@@ -106,6 +114,7 @@ class AnalyzeImportUseCase:
             )
         participation_elapsed = time.perf_counter()
 
+        self._checkpoint()
         self._row_repository.delete_by_batch(command.organization_id, command.batch_id)
 
         chunk_size = max(limits.analyze_chunk_size, 1)
@@ -123,6 +132,7 @@ class AnalyzeImportUseCase:
             nonlocal row_number, mapped_total, validate_elapsed, match_elapsed, rows_elapsed, saved_rows
             if not mapped_buffer:
                 return
+            self._checkpoint()
             mapped_total += len(mapped_buffer)
             validated_chunk = validate_mapped_rows(
                 mapped_buffer,
@@ -165,6 +175,7 @@ class AnalyzeImportUseCase:
             1 for row in saved_rows if row.status == ImportRowStatus.POSSIBLE_DUPLICATE
         )
 
+        self._checkpoint()
         batch.total_rows = len(saved_rows)
         batch.mark_decision_required(now=now)
         batch.update_counts(
@@ -195,6 +206,7 @@ class AnalyzeImportUseCase:
             chunk_size,
         )
 
+        self._checkpoint()
         self._audit.record_event(
             organization_id=command.organization_id,
             access_token=command.access_token,
