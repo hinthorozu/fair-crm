@@ -8,7 +8,10 @@ import pytest
 from app.integrations.kyrox_core.lifecycle import OrganizationLifecycleUnavailableError
 from app.modules.scraper.domain.scraper_run_history import ScraperRunStatus
 from app.modules.scraper.services import scraper_run_cancellation as cancellation_module
-from app.modules.scraper.services.scraper_run_cancellation import RunCancelChecker
+from app.modules.scraper.services.scraper_run_cancellation import (
+    RunCancelChecker,
+    ScraperRunCancelledError,
+)
 from app.shared.running_work_lifecycle import RunningWorkLifecycleCancelledError
 
 
@@ -81,3 +84,18 @@ def test_scraper_checker_propagates_lifecycle_authority_outage(monkeypatch):
         checker.is_cancel_requested()
 
     assert checkpoint.calls == 1
+
+
+def test_scraper_cancel_signal_bypasses_broad_exception_handlers():
+    assert issubclass(ScraperRunCancelledError, BaseException)
+    assert not issubclass(ScraperRunCancelledError, Exception)
+
+    caught_by_broad_exception = False
+    try:
+        raise ScraperRunCancelledError("cancelled")
+    except Exception:  # pragma: no cover - this branch is the regression being prevented
+        caught_by_broad_exception = True
+    except ScraperRunCancelledError:
+        pass
+
+    assert caught_by_broad_exception is False
