@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
@@ -54,6 +55,7 @@ def assign_customers_to_fair(
     parent_run_id: UUID,
     fair_id: UUID,
     customer_ids: list[UUID],
+    progress_checkpoint: Callable[[], None] | None = None,
 ) -> AssignCustomersToFairResult:
     customer_repo = SqlAlchemyCustomerRepository(db)
     fair_repo = SqlAlchemyFairRepository(db)
@@ -61,6 +63,8 @@ def assign_customers_to_fair(
     dataset_repo = SqlAlchemyDataOperationDatasetRepository(db)
     run_repo = SqlAlchemyDataOperationRunRepository(db)
 
+    if progress_checkpoint is not None:
+        progress_checkpoint()
     ensure_fair_for_participation(fair_repo, organization_id, fair_id)
 
     dataset_customer_ids = dataset_repo.customer_ids_in_dataset(
@@ -76,6 +80,8 @@ def assign_customers_to_fair(
     now = datetime.now(tz=UTC)
 
     for customer_id in customer_ids:
+        if progress_checkpoint is not None:
+            progress_checkpoint()
         if customer_id not in dataset_customer_ids:
             failed += 1
             continue
@@ -102,6 +108,8 @@ def assign_customers_to_fair(
         except Exception:
             failed += 1
 
+    if progress_checkpoint is not None:
+        progress_checkpoint()
     removed_count = dataset_repo.remove_customer_rows(
         run_id=parent_run_id,
         organization_id=organization_id,
