@@ -1,7 +1,7 @@
 """OL07-04 pre-start lifecycle enforcement for queued product work.
 
-Only explicitly registered product background jobs are gated here.  A Core
-lifecycle outage fails closed without terminalizing the queued record.  An
+Only explicitly registered product background jobs are gated here. A Core
+lifecycle outage fails closed without terminalizing the queued record. An
 explicit non-active Core snapshot terminalizes the queued work so reactivation
 cannot implicitly resume it.
 """
@@ -14,6 +14,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
+
+from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
 from app.integrations.kyrox_core.lifecycle import (
@@ -62,6 +64,8 @@ _ALLOWED_FUNCTIONS: dict[str, set[str]] = {
     },
 }
 
+SessionFactory = Callable[[], Session]
+
 
 @dataclass(frozen=True, slots=True)
 class _QueuedWorkDescriptor:
@@ -69,6 +73,7 @@ class _QueuedWorkDescriptor:
     function: str
     command: Any
     organization_id: UUID
+    session_factory: SessionFactory
 
 
 def should_execute_queued_product_work(
@@ -127,6 +132,21 @@ def should_execute_queued_product_work(
     return False
 
 
+def _session_factory_for_callable(func: Callable[..., Any]) -> SessionFactory:
+    """Reuse a bound runner's session factory when available.
+
+    Background-job runners already carry their organization-scoped test/runtime
+    session factory. Reusing it keeps the lifecycle pre-start read and terminal
+    write on the same database boundary instead of silently opening a second,
+    unrelated default connection.
+    """
+    owner = getattr(func, "__self__", None)
+    session_factory = getattr(owner, "_session_factory", None)
+    if callable(session_factory):
+        return session_factory
+    return SessionLocal
+
+
 def _describe(
     func: Callable[..., Any],
     args: tuple[Any, ...],
@@ -139,6 +159,7 @@ def _describe(
 
     command = args[0] if args else kwargs.get("command")
     organization_id = getattr(command, "organization_id", None)
+    session_factory = _session_factory_for_callable(func)
     if not isinstance(organization_id, UUID):
         logger.error(
             "queued_product_work_missing_organization module=%s function=%s",
@@ -151,19 +172,21 @@ def _describe(
             function=function,
             command=command,
             organization_id=UUID(int=0),
+            session_factory=session_factory,
         )
     return _QueuedWorkDescriptor(
         module=module,
         function=function,
         command=command,
         organization_id=organization_id,
+        session_factory=session_factory,
     )
 
 
 def _is_locally_startable(descriptor: _QueuedWorkDescriptor) -> bool:
     if descriptor.organization_id.int == 0:
         return False
-    db = SessionLocal()
+    db = descriptor.session_factory()
     try:
         if descriptor.module == _IMPORT_MODULE:
             job_id = getattr(descriptor.command, "job_id", None)
@@ -213,7 +236,7 @@ def _terminalize(descriptor: _QueuedWorkDescriptor, *, reason: str) -> None:
 
 
 def _terminalize_import(descriptor: _QueuedWorkDescriptor, *, reason: str) -> None:
-    db = SessionLocal()
+    db = descriptor.session_factory()
     try:
         job_id = getattr(descriptor.command, "job_id", None)
         if not isinstance(job_id, UUID):
@@ -257,7 +280,7 @@ def _terminalize_import(descriptor: _QueuedWorkDescriptor, *, reason: str) -> No
 
 
 def _terminalize_data_operation(descriptor: _QueuedWorkDescriptor, *, reason: str) -> None:
-    db = SessionLocal()
+    db = descriptor.session_factory()
     try:
         run_id = getattr(descriptor.command, "run_id", None)
         if not isinstance(run_id, UUID):
@@ -289,7 +312,7 @@ def _terminalize_data_operation(descriptor: _QueuedWorkDescriptor, *, reason: st
 
 
 def _terminalize_scraper(descriptor: _QueuedWorkDescriptor, *, reason: str) -> None:
-    db = SessionLocal()
+    db = descriptor.session_factory()
     try:
         run_id = getattr(descriptor.command, "run_id", None)
         if not isinstance(run_id, UUID):
