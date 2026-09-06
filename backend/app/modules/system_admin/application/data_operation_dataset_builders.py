@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal
 from uuid import UUID
@@ -62,7 +63,10 @@ def build_customers_without_fair_dataset(
     *,
     organization_id: UUID,
     run_id: UUID,
+    progress_checkpoint: Callable[[], None] | None = None,
 ) -> CustomersWithoutFairDatasetSummary:
+    if progress_checkpoint is not None:
+        progress_checkpoint()
     total_customers = _live_customer_query(session, organization_id=organization_id).count()
 
     assigned_customer_count = (
@@ -95,6 +99,8 @@ def build_customers_without_fair_dataset(
         )
     ]
 
+    if progress_checkpoint is not None:
+        progress_checkpoint()
     dataset_repo = SqlAlchemyDataOperationDatasetRepository(session)
     dataset_repo.replace_customer_rows(
         run_id=run_id,
@@ -142,7 +148,10 @@ def build_duplicate_customer_groups_dataset(
     run_id: UUID,
     group_by: GroupByField,
     fair_id: UUID | None = None,
+    progress_checkpoint: Callable[[], None] | None = None,
 ) -> DuplicateCustomerGroupsDatasetSummary:
+    if progress_checkpoint is not None:
+        progress_checkpoint()
     summary, member_rows = analyze_customer_groups_by_field(
         session,
         organization_id=organization_id,
@@ -151,6 +160,8 @@ def build_duplicate_customer_groups_dataset(
         fair_id=fair_id,
     )
 
+    if progress_checkpoint is not None:
+        progress_checkpoint()
     dataset_repo = SqlAlchemyDataOperationDatasetRepository(session)
     dataset_repo.replace_duplicate_customer_rows(
         run_id=run_id,

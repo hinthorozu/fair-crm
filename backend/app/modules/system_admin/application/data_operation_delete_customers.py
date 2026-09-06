@@ -7,6 +7,7 @@ Child/related rows follow existing DB FK rules (CASCADE / SET NULL).
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
@@ -64,11 +65,14 @@ def delete_selected_customers(
     organization_id: UUID,
     parent_run_id: UUID,
     customer_ids: list[UUID],
+    progress_checkpoint: Callable[[], None] | None = None,
 ) -> DeleteSelectedCustomersResult:
     """Hard-delete selected without-fair customers in one transaction (caller commits)."""
     dataset_repo = SqlAlchemyDataOperationDatasetRepository(db)
     run_repo = SqlAlchemyDataOperationRunRepository(db)
 
+    if progress_checkpoint is not None:
+        progress_checkpoint()
     dataset_customer_ids = dataset_repo.customer_ids_in_dataset(
         run_id=parent_run_id,
         organization_id=organization_id,
@@ -82,6 +86,8 @@ def delete_selected_customers(
     now = datetime.now(tz=UTC)
 
     for customer_id in customer_ids:
+        if progress_checkpoint is not None:
+            progress_checkpoint()
         if customer_id not in dataset_customer_ids:
             failed += 1
             continue
@@ -108,6 +114,8 @@ def delete_selected_customers(
     deleted = 0
     hard_delete_ids = list(dict.fromkeys(to_hard_delete))
     if hard_delete_ids:
+        if progress_checkpoint is not None:
+            progress_checkpoint()
         # Physical DELETE — DB ON DELETE CASCADE / SET NULL apply to related rows.
         deleted = (
             db.query(CustomerModel)
@@ -120,6 +128,8 @@ def delete_selected_customers(
         db.flush()
         removed_ids.extend(hard_delete_ids)
 
+    if progress_checkpoint is not None:
+        progress_checkpoint()
     removed_count = dataset_repo.remove_customer_rows(
         run_id=parent_run_id,
         organization_id=organization_id,

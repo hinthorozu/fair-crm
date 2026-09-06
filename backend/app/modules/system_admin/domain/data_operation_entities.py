@@ -98,7 +98,7 @@ class DataOperationRun:
         self.duration_seconds = max(0, int((now - self.started_at).total_seconds()))
 
     def mark_cancelled(self, *, error_message: str, now: datetime) -> None:
-        if self.status != DataOperationRunStatus.QUEUED:
+        if self.status not in {DataOperationRunStatus.QUEUED, DataOperationRunStatus.RUNNING}:
             return
         self.status = DataOperationRunStatus.CANCELLED
         self.result = None
