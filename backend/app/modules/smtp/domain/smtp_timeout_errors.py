@@ -10,6 +10,7 @@ SmtpDeliveryPhase = Literal["connect", "send"]
 
 SMTP_CONNECT_TIMEOUT_CODE = "smtp_connect_timeout"
 SMTP_TIMEOUT_CODE = "smtp_timeout"
+SMTP_HANDOFF_UNCERTAIN_CODE = "smtp_handoff_uncertain"
 
 CONNECT_TIMEOUT_USER_MESSAGE = (
     "SMTP bağlantısı zaman aşımına uğradı. Host erişilebilirliğini ve port/firewall ayarlarını kontrol edin."
@@ -19,6 +20,10 @@ SEND_TIMEOUT_USER_MESSAGE = (
 )
 OPERATION_TIMEOUT_USER_MESSAGE = (
     "Mail gönderimi zaman aşımına uğradı. SMTP sunucusu yanıt vermedi."
+)
+HANDOFF_UNCERTAIN_USER_MESSAGE = (
+    "SMTP gönderimi sağlayıcıya aktarılmış olabilir ancak nihai kabul sonucu doğrulanamadı. "
+    "Yinelenen gönderimi önlemek için otomatik tekrar gönderim yapılmayacak."
 )
 
 
@@ -59,4 +64,6 @@ def normalize_timeout_error_code(*, phase: SmtpDeliveryPhase) -> str:
 def timeout_log_message(error_code: str) -> str:
     if error_code == SMTP_CONNECT_TIMEOUT_CODE:
         return "SMTP bağlantısı zaman aşımına uğradı"
+    if error_code == SMTP_HANDOFF_UNCERTAIN_CODE:
+        return "SMTP handoff sonucu belirsiz; otomatik tekrar gönderim kapalı"
     return "SMTP gönderimi zaman aşımına uğradı"
