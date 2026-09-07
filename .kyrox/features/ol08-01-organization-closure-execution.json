@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "id": "ol08-01-organization-closure-execution",
+  "title": "OL08-01 Organization Closure Execution",
+  "feature_type": "system_admin",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "api",
+  "tenant_scope": "system",
+  "user_facing": false,
+  "affected_paths": [
+    ".kyrox/features/ol08-01-organization-closure-execution.json",
+    "backend/alembic/env.py",
+    "backend/alembic/versions/0077_organization_closure_executions.py",
+    "backend/app/api/v1/router.py",
+    "backend/app/modules/organization_closure/api/routes.py",
+    "backend/app/modules/organization_closure/api/schemas.py",
+    "backend/app/modules/organization_closure/application/service.py",
+    "backend/app/modules/organization_closure/infrastructure/models.py",
+    "backend/app/modules/organization_closure/infrastructure/repository.py",
+    "backend/tests/modules/organization_closure/test_ol08_01_api_contract.py",
+    "backend/tests/modules/organization_closure/test_ol08_01_closure_execution.py"
+  ],
+  "permissions": {
+    "required": true,
+    "reason": "Closure execution is a destructive-lifecycle orchestration surface and must reuse the existing Core SYSTEM-only organization delete authority; no organization-role permission is introduced.",
+    "items": [
+      {
+        "code": "identity.organizations.delete",
+        "action": "start, inspect, and retry organization closure orchestration",
+        "scope": "system",
+        "assignable": false
+      }
+    ]
+  },
+  "frontend": {
+    "required": false,
+    "reason": "OL08-01 exposes a system API only; no frontend route, menu, form, or control is added.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "required" },
+    "migration": { "status": "required" },
+    "permissions": { "status": "required" },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "required" },
+    "frontend": { "status": "na", "reason": "No frontend implementation is included." },
+    "ui_permissions": { "status": "na", "reason": "No UI authorization surface is added." },
+    "menu": { "status": "na", "reason": "No navigation item is added." },
+    "route_guard": { "status": "na", "reason": "No frontend route is added." },
+    "forms": { "status": "na", "reason": "No frontend form is added." },
+    "visual_qa": { "status": "na", "reason": "There are no visual changes." },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "na", "reason": "Frontend is unchanged." },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Non-destructive OL08-01 only. Start/retry require live Core SUSPENDED state and existing SYSTEM-only authority. Durable FAIR CRM execution plus transactional local event evidence are added. No closure export, credential revoke/purge, product-data or artifact deletion, retention policy, backup/restore behavior, cleanup-complete state, tombstone-ready state, or Core organization delete call is authorized or implemented."
+}
