@@ -1,3 +1,4 @@
+from typing import NoReturn
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
@@ -72,7 +73,7 @@ def _normalize_idempotency_key(value: str) -> str:
     return normalized
 
 
-def _raise_http_error(exc: OrganizationClosureError) -> None:
+def _raise_http_error(exc: OrganizationClosureError) -> NoReturn:
     if isinstance(exc, ClosurePermissionDeniedError):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     if isinstance(exc, (ClosureAuthorizationUnavailableError, ClosureLifecycleUnavailableError)):
@@ -84,7 +85,10 @@ def _raise_http_error(exc: OrganizationClosureError) -> None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     if isinstance(exc, ClosureExecutionNotFoundError):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Closure error") from exc
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Closure error",
+    ) from exc
 
 
 @router.post(
