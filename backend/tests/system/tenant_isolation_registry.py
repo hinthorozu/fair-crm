@@ -33,6 +33,7 @@ TENANT_ISOLATION_EVIDENCE: dict[str, tuple[str, ...]] = {
     "mail_send_operations": ("modules/mail_send_operations",),
     "mail_templates": ("modules/mail_templates",),
     "operations": ("modules/operations",),
+    "organization_closure": ("modules/organization_closure/test_ol08_01_api_contract.py",),
     "participations": ("modules/participations/test_participation_derived_tenant_scope.py",),
     "quote_templates": ("modules/quote_templates/test_quote_template_logo_tenant_isolation.py",),
     "quotes": ("modules/quotes",),
