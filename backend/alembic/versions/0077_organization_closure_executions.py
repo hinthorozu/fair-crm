@@ -71,7 +71,7 @@ def upgrade() -> None:
             ["execution_id"],
             ["crm_organization_closure_executions.id"],
             name="fk_org_closure_event_execution",
-            ondelete="CASCADE",
+            ondelete="RESTRICT",
         ),
         sa.PrimaryKeyConstraint("id"),
     )
