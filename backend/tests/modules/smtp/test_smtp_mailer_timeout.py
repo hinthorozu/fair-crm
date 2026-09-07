@@ -169,6 +169,45 @@ def test_send_smtp_message_handoff_disconnect_is_uncertain(monkeypatch):
     assert exc_info.value.retryable is False
 
 
+def test_send_smtp_message_close_failure_after_acceptance_stays_success(monkeypatch):
+    calls = {"sent": 0}
+
+    class FakeSMTP:
+        def __init__(self, host, port, timeout=10):
+            self.sock = self
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            assert exc_type is None
+            raise smtplib.SMTPServerDisconnected("QUIT failed after accepted DATA")
+
+        def settimeout(self, value):
+            return None
+
+        def starttls(self, context=None):
+            return None
+
+        def login(self, username, password):
+            return None
+
+        def send_message(self, message):
+            calls["sent"] += 1
+            return {}
+
+    monkeypatch.setattr("app.modules.smtp.infrastructure.smtp_mailer.smtplib.SMTP", FakeSMTP)
+
+    send_smtp_message(
+        _account(),
+        recipient="admin@example.com",
+        subject="Accepted",
+        body="Body",
+    )
+
+    assert calls["sent"] == 1
+
+
 def test_send_smtp_message_applies_send_timeout_on_socket(monkeypatch):
     captured: dict[str, int | None] = {"send_timeout": None}
 
