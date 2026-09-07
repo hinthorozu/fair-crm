@@ -110,9 +110,14 @@ class OrganizationClosureService:
             at=now,
         )
         self._repository.add_execution(execution)
-        self._repository.add_event(event)
 
         try:
+            # The append-only event has a real FK to the execution. Flush the
+            # parent first so FK-enforcing databases cannot schedule the event
+            # insert ahead of its parent. Both flushes remain in the same
+            # transaction; any event failure rolls the execution back too.
+            self._repository.flush()
+            self._repository.add_event(event)
             self._repository.flush()
         except IntegrityError as exc:
             self._repository.rollback()
