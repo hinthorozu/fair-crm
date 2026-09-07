@@ -1,37 +1,45 @@
 {
   "version": 1,
   "id": "ol08-02-closure-quiescence-certification",
-  "title": "OL08-02 Closure Quiescence Certification",
+  "title": "OL08-02 Closure Quiescence Certification and Closure Start FK Fix",
   "feature_type": "maintenance",
   "owner": "fair-crm",
   "platform_reusability": "product_specific",
-  "trigger": "none",
-  "tenant_scope": "none",
+  "trigger": "api",
+  "tenant_scope": "system",
   "user_facing": false,
   "affected_paths": [
     ".kyrox/features/ol08-02-closure-quiescence-certification.json",
+    "backend/app/modules/organization_closure/application/service.py",
     "backend/tests/modules/organization_closure/test_ol08_02_quiescence_certification.py"
   ],
   "permissions": {
-    "required": false,
-    "reason": "This certification adds no runtime permission or authorization surface; it verifies the already-accepted OL08 SYSTEM closure boundary remains subject to existing OL07 lifecycle guards.",
-    "items": []
+    "required": true,
+    "reason": "The runtime fix is inside the existing OL08 SYSTEM-only closure start path and continues to reuse Core identity.organizations.delete; no assignable product permission is introduced or widened.",
+    "items": [
+      {
+        "code": "identity.organizations.delete",
+        "action": "start organization closure orchestration",
+        "scope": "system",
+        "assignable": false
+      }
+    ]
   },
   "frontend": {
     "required": false,
-    "reason": "Certification-only backend tests; no UI, route, menu, form or browser behavior changes.",
+    "reason": "Backend lifecycle certification/fix only; no UI, route, menu, form or browser behavior changes.",
     "routes": [],
     "menu": false,
     "menu_permission": null
   },
   "applicability": {
-    "database": { "status": "na", "reason": "No production model or persisted business-data change." },
+    "database": { "status": "na", "reason": "No model or schema shape changes; the existing execution/event FK is now respected by explicit transactional flush ordering." },
     "migration": { "status": "na", "reason": "No schema or permission migration." },
-    "permissions": { "status": "na", "reason": "No runtime permission is added or changed." },
-    "backend": { "status": "na", "reason": "Production backend behavior is intentionally unchanged; existing OL07/OL08 runtime is only certified." },
-    "api": { "status": "na", "reason": "No HTTP contract changes." },
-    "tenant_isolation": { "status": "na", "reason": "No new tenant-owned runtime query/mutation is introduced; existing isolation behavior remains covered by prior certification." },
-    "audit": { "status": "na", "reason": "No new runtime mutation or audit behavior is introduced." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "required" },
     "frontend": { "status": "na", "reason": "No frontend source changes." },
     "ui_permissions": { "status": "na", "reason": "No UI authorization surface." },
     "menu": { "status": "na", "reason": "No navigation change." },
@@ -40,9 +48,9 @@
     "visual_qa": { "status": "na", "reason": "No rendered UI changes." },
     "backend_tests": { "status": "required" },
     "frontend_tests": { "status": "na", "reason": "Frontend unchanged." },
-    "runtime_authorization": { "status": "na", "reason": "Authorization implementation is unchanged; certification composes existing SYSTEM closure authorization with lifecycle guards." },
+    "runtime_authorization": { "status": "required" },
     "runtime_verification": { "status": "required" },
-    "deployment": { "status": "na", "reason": "No application runtime or schema deployment change." }
+    "deployment": { "status": "required" }
   },
-  "notes": "Certification-only OL08-02. It proves an open OL08 closure execution cannot bypass existing OL07 queued pre-start cancellation, running safe checkpoints, final provider handoff blocking, lifecycle-authority fail-closed behavior, suspension-cancelled terminality, or ambiguous in-flight no-auto-retry semantics. No new cancellation framework, export runtime, destructive cleanup, retention policy or Core tombstone behavior is added."
+  "notes": "OL08-02 began as certification-only and exposed a real OL08-01 FK-ordering defect under SQLite foreign-key enforcement: start() added the parent execution and append-only event before one flush, allowing the event insert to precede its parent. The fix flushes the execution first, then appends/flushes the event inside the same transaction; any event failure rolls back the execution, preserving transactional audit evidence. The certification also proves an open OL08 closure cannot bypass existing OL07 queued pre-start cancellation, running safe checkpoints, final provider handoff blocking, lifecycle-authority fail-closed behavior, suspension-cancelled terminality, or ambiguous in-flight no-auto-retry semantics. No export runtime, destructive cleanup, retention policy or Core tombstone behavior is added."
 }
