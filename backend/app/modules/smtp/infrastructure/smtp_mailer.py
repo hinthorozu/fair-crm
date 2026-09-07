@@ -226,6 +226,7 @@ def _deliver_smtp_message(
                 _login_if_needed(smtp, username=username, password=password, account_id=account.id)
                 phase = "handoff"
                 _send_message(smtp, message, account_id=account.id, recipient=recipient)
+                phase = "accepted"
                 _log_debug("connection_close", account.id, mode="ssl", host=host, port=port)
             return
 
@@ -241,10 +242,25 @@ def _deliver_smtp_message(
             _login_if_needed(smtp, username=username, password=password, account_id=account.id)
             phase = "handoff"
             _send_message(smtp, message, account_id=account.id, recipient=recipient)
+            phase = "accepted"
             _log_debug("connection_close", account.id, mode=mode, host=host, port=port)
     except SmtpMailDeliveryError:
         raise
     except Exception as exc:
+        if phase == "accepted":
+            # send_message() returned only after the SMTP server acknowledged DATA.
+            # A later QUIT/connection-close failure cannot recall that accepted mail
+            # and must not turn a known external side effect into a retryable failure.
+            logger.warning(
+                "smtp_close_failed_after_acceptance account_id=%s host=%s port=%s "
+                "exception_type=%s raw_message=%s",
+                account.id,
+                host,
+                port,
+                type(exc).__name__,
+                exc,
+            )
+            return
         logger.warning(
             "smtp_delivery_failed account_id=%s host=%s port=%s encryption_type=%s "
             "from_email=%s to_email=%s phase=%s exception_type=%s raw_message=%s",
