@@ -14,6 +14,9 @@ _RETRYABLE_ERROR_CODES = frozenset(
         "gaierror",
         "SMTPException",  # generic temporary-looking SMTP failures
         "SSLError",  # generic TLS handshake flakes; wrong-version handled below
+        # OL07-07: checkpoint persistence failed before provider handoff, so no
+        # external side effect was attempted and an automatic retry is safe.
+        "handoff_checkpoint_commit_failed",
     }
 )
 

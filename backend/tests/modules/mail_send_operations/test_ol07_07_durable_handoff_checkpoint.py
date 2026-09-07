@@ -10,6 +10,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 
 from app.modules.email_delivery.domain.results import EmailDeliveryResult
+from app.modules.email_delivery.domain.retryability import is_retryable_delivery_error
 from app.modules.mail_send_operations.application.mail_send_operation_dispatcher import (
     HANDOFF_CHECKPOINT_COMMIT_FAILED_ERROR_CODE,
     MailSendOperationDispatcher,
@@ -66,6 +67,7 @@ def test_dispatch_does_not_touch_provider_when_durable_checkpoint_commit_fails()
     assert exc_info.value.error_type == HANDOFF_CHECKPOINT_COMMIT_FAILED_ERROR_CODE
     assert exc_info.value.retryable is True
     assert exc_info.value.raw_message == "database commit failed"
+    assert is_retryable_delivery_error(HANDOFF_CHECKPOINT_COMMIT_FAILED_ERROR_CODE) is True
     session.rollback.assert_called_once_with()
     dispatcher._delivery.send.assert_not_called()
 
@@ -100,6 +102,7 @@ def test_dispatch_recovers_real_sqlalchemy_session_after_checkpoint_commit_failu
 
         assert exc_info.value.error_type == HANDOFF_CHECKPOINT_COMMIT_FAILED_ERROR_CODE
         assert exc_info.value.retryable is True
+        assert is_retryable_delivery_error(HANDOFF_CHECKPOINT_COMMIT_FAILED_ERROR_CODE) is True
         dispatcher._delivery.send.assert_not_called()
 
         # The dispatcher must recover the same Session before the worker tries to
