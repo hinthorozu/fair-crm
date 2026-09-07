@@ -41,6 +41,12 @@ class MailSendOperationDispatcher:
         self._delivery = EmailDeliveryService(session)
 
     def dispatch(self, operation: MailSendOperationRecord) -> EmailDeliveryResult:
+        # OL07-07: the worker has already claimed the row and marked it SENDING.
+        # Make that state durable before any external provider handoff can begin.
+        # If the process dies after the provider may have accepted the message,
+        # restart recovery must see SENDING and terminalize it as an uncertain
+        # outcome instead of rolling the row back to QUEUED and sending twice.
+        self._session.commit()
         if operation.source_type == MailSendSourceType.FAIR_BULK_EMAIL:
             return self._dispatch_fair_bulk_email(operation)
         return self._dispatch_generic(operation)
