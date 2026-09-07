@@ -10,13 +10,20 @@ import httpx
 
 from app.modules.email_accounts.application.provider_definitions import MAILERSEND_PROVIDER_KEY
 from app.modules.email_accounts.domain.entities import EmailAccount
-from app.modules.email_delivery.domain.exceptions import EmailDeliveryError
+from app.modules.email_delivery.domain.exceptions import (
+    PROVIDER_HANDOFF_UNCERTAIN_ERROR_CODE,
+    EmailDeliveryError,
+)
 from app.modules.email_delivery.domain.results import EmailDeliveryResult
 from app.shared.email import is_valid_email_address
 
 logger = logging.getLogger(__name__)
 
 MAILERSEND_EMAIL_URL = "https://api.mailersend.com/v1/email"
+_PROVIDER_HANDOFF_UNCERTAIN_MESSAGE = (
+    "MailerSend request may already have reached the provider; final acceptance is unknown. "
+    "Automatic retry is disabled to avoid a duplicate outbound side effect."
+)
 
 
 def _extract_accepted_warning(response: httpx.Response) -> tuple[str, str, str] | None:
@@ -91,6 +98,16 @@ def _parse_retry_after(response: httpx.Response) -> int | None:
         return None
 
 
+def _provider_handoff_outcome_is_uncertain(exc: httpx.HTTPError) -> bool:
+    """Return True when the request may have crossed the external side-effect boundary.
+
+    Connect/pool acquisition failures happen before a request can reach MailerSend.
+    Read/write/protocol failures can happen after part or all of the request was sent,
+    so retrying them automatically can duplicate an already accepted message.
+    """
+    return not isinstance(exc, (httpx.ConnectTimeout, httpx.PoolTimeout, httpx.ConnectError))
+
+
 class MailerSendAdapter:
     provider_key = MAILERSEND_PROVIDER_KEY
 
@@ -156,18 +173,36 @@ class MailerSendAdapter:
         try:
             response = self._post(headers=headers, payload=payload)
         except httpx.TimeoutException as exc:
+            outcome_uncertain = _provider_handoff_outcome_is_uncertain(exc)
             raise EmailDeliveryError(
-                "MailerSend request timed out",
-                error_code="TimeoutError",
+                (
+                    _PROVIDER_HANDOFF_UNCERTAIN_MESSAGE
+                    if outcome_uncertain
+                    else "MailerSend request timed out"
+                ),
+                error_code=(
+                    PROVIDER_HANDOFF_UNCERTAIN_ERROR_CODE
+                    if outcome_uncertain
+                    else "TimeoutError"
+                ),
                 transport=f"provider:{self.provider_key}",
-                retryable=True,
+                retryable=not outcome_uncertain,
             ) from exc
         except httpx.HTTPError as exc:
+            outcome_uncertain = _provider_handoff_outcome_is_uncertain(exc)
             raise EmailDeliveryError(
-                "MailerSend connection error",
-                error_code="ConnectionError",
+                (
+                    _PROVIDER_HANDOFF_UNCERTAIN_MESSAGE
+                    if outcome_uncertain
+                    else "MailerSend connection error"
+                ),
+                error_code=(
+                    PROVIDER_HANDOFF_UNCERTAIN_ERROR_CODE
+                    if outcome_uncertain
+                    else "ConnectionError"
+                ),
                 transport=f"provider:{self.provider_key}",
-                retryable=True,
+                retryable=not outcome_uncertain,
             ) from exc
 
         if response.status_code == 202:
