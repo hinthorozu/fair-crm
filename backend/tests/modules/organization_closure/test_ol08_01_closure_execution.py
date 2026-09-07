@@ -66,7 +66,13 @@ class RecordingAudit:
 @pytest.fixture
 def db_session() -> Session:
     engine = create_engine("sqlite+pysqlite:///:memory:")
-    Base.metadata.create_all(engine)
+    Base.metadata.create_all(
+        engine,
+        tables=[
+            OrganizationClosureExecutionModel.__table__,
+            OrganizationClosureEventModel.__table__,
+        ],
+    )
     with Session(engine) as session:
         yield session
     engine.dispose()
