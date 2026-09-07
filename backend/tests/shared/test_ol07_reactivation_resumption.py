@@ -84,3 +84,47 @@ def test_reactivation_does_not_restart_terminalized_queued_work(monkeypatch):
             "organization_lifecycle_prestart_cancelled:suspended",
         )
     ]
+
+
+def test_lifecycle_outage_deferred_work_may_start_when_authority_returns_active(monkeypatch):
+    organization_id = uuid4()
+    command = SimpleNamespace(organization_id=organization_id, job_id=uuid4())
+    terminalized = []
+    lifecycle_state = {"available": False}
+
+    monkeypatch.setattr(lifecycle, "_is_locally_startable", lambda descriptor: True)
+    monkeypatch.setattr(
+        lifecycle,
+        "_terminalize",
+        lambda descriptor, *, reason: terminalized.append((descriptor, reason)),
+    )
+
+    class Guard:
+        def get_snapshot(self, requested_id):
+            assert requested_id == organization_id
+            if not lifecycle_state["available"]:
+                raise lifecycle.OrganizationLifecycleUnavailableError("temporarily unavailable")
+            return SimpleNamespace(
+                organization_id=requested_id,
+                status="active",
+                work_allowed=True,
+            )
+
+    monkeypatch.setattr(lifecycle, "OrganizationLifecycleGuard", Guard)
+
+    assert lifecycle.should_execute_queued_product_work(
+        _registered_import_function,
+        (command,),
+        {},
+    ) is False
+    assert terminalized == []
+
+    # Unlike explicit suspension, authority outage leaves the queued work
+    # non-terminal. Once the canonical authority returns ACTIVE, it may start.
+    lifecycle_state["available"] = True
+    assert lifecycle.should_execute_queued_product_work(
+        _registered_import_function,
+        (command,),
+        {},
+    ) is True
+    assert terminalized == []
