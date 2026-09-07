@@ -23,7 +23,8 @@
     "backend/app/modules/organization_closure/infrastructure/models.py",
     "backend/app/modules/organization_closure/infrastructure/repository.py",
     "backend/tests/modules/organization_closure/test_ol08_01_api_contract.py",
-    "backend/tests/modules/organization_closure/test_ol08_01_closure_execution.py"
+    "backend/tests/modules/organization_closure/test_ol08_01_closure_execution.py",
+    "backend/tests/system/tenant_isolation_registry.py"
   ],
   "permissions": {
     "required": true,
@@ -64,5 +65,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Non-destructive OL08-01 only. Start/retry require live Core SUSPENDED state and existing SYSTEM-only authority. Durable FAIR CRM execution plus transactional local event evidence are added. No closure export, credential revoke/purge, product-data or artifact deletion, retention policy, backup/restore behavior, cleanup-complete state, tombstone-ready state, or Core organization delete call is authorized or implemented."
+  "notes": "Non-destructive OL08-01 only. Start/retry require live Core SUSPENDED state and existing SYSTEM-only authority. Durable FAIR CRM execution plus transactional local event evidence are added. Cross-organization denial evidence is registered in the canonical tenant-isolation registry. No closure export, credential revoke/purge, product-data or artifact deletion, retention policy, backup/restore behavior, cleanup-complete state, tombstone-ready state, or Core organization delete call is authorized or implemented."
 }
