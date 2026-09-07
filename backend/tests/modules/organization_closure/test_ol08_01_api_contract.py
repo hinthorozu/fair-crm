@@ -39,7 +39,7 @@ def test_idempotency_key_is_required_to_be_stable_and_bounded() -> None:
         assert exc_info.value.status_code == 422
 
 
-def test_ol08_01_public_contract_has_only_start_status_and_retry() -> None:
+def test_closure_public_contract_is_limited_to_accepted_ol08_surfaces() -> None:
     operations = {
         (method, route.path)
         for route in router.routes
@@ -56,6 +56,15 @@ def test_ol08_01_public_contract_has_only_start_status_and_retry() -> None:
             "POST",
             "/system-admin/organizations/{organization_id}/closure-executions/{execution_id}/retry",
         ),
+        (
+            "POST",
+            "/system-admin/organizations/{organization_id}/closure-executions/{execution_id}/export-plan",
+        ),
+        (
+            "GET",
+            "/system-admin/organizations/{organization_id}/closure-executions/{execution_id}/export-plan",
+        ),
     }
     assert all(method != "DELETE" for method, _ in operations)
     assert all("complete" not in path and "tombstone" not in path for _, path in operations)
+    assert all("download" not in path and "package" not in path for _, path in operations)

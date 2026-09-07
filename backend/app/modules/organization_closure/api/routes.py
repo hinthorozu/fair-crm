@@ -8,7 +8,14 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.integrations.kyrox_core.lifecycle import OrganizationLifecycleGuard
 from app.integrations.kyrox_core.ports import AuditPort, AuthContext, AuthorizationPort
-from app.modules.organization_closure.api.schemas import OrganizationClosureExecutionResponse
+from app.modules.organization_closure.api.schemas import (
+    OrganizationClosureExecutionResponse,
+    OrganizationClosureExportPlanResponse,
+)
+from app.modules.organization_closure.application.export_planner import (
+    ClosureExportPlanningError,
+    OrganizationClosureExportPlanner,
+)
 from app.modules.organization_closure.application.service import (
     ClosureAuthorizationUnavailableError,
     ClosureExecutionConflictError,
@@ -18,6 +25,9 @@ from app.modules.organization_closure.application.service import (
     ClosurePermissionDeniedError,
     OrganizationClosureError,
     OrganizationClosureService,
+)
+from app.modules.organization_closure.infrastructure.export_plan_repository import (
+    SqlAlchemyOrganizationClosureExportPlanRepository,
 )
 from app.modules.organization_closure.infrastructure.repository import (
     SqlAlchemyOrganizationClosureRepository,
@@ -36,6 +46,12 @@ def get_closure_repository(
     db: Session = Depends(get_db),
 ) -> SqlAlchemyOrganizationClosureRepository:
     return SqlAlchemyOrganizationClosureRepository(db)
+
+
+def get_export_plan_repository(
+    db: Session = Depends(get_db),
+) -> SqlAlchemyOrganizationClosureExportPlanRepository:
+    return SqlAlchemyOrganizationClosureExportPlanRepository(db)
 
 
 def get_lifecycle_guard() -> OrganizationLifecycleGuard:
@@ -57,6 +73,17 @@ def get_closure_service(
     audit: AuditPort = Depends(get_audit_adapter),
 ) -> OrganizationClosureService:
     return OrganizationClosureService(repository, authorization, lifecycle, audit)
+
+
+def get_export_planner(
+    repository: SqlAlchemyOrganizationClosureExportPlanRepository = Depends(
+        get_export_plan_repository
+    ),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    lifecycle: OrganizationLifecycleGuard = Depends(get_lifecycle_guard),
+    audit: AuditPort = Depends(get_audit_adapter),
+) -> OrganizationClosureExportPlanner:
+    return OrganizationClosureExportPlanner(repository, authorization, lifecycle, audit)
 
 
 def _access_token(credentials: HTTPAuthorizationCredentials | None) -> str:
@@ -84,7 +111,14 @@ def _normalize_idempotency_key(value: str) -> str:
 def _raise_http_error(exc: OrganizationClosureError) -> NoReturn:
     if isinstance(exc, ClosurePermissionDeniedError):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
-    if isinstance(exc, (ClosureAuthorizationUnavailableError, ClosureLifecycleUnavailableError)):
+    if isinstance(
+        exc,
+        (
+            ClosureAuthorizationUnavailableError,
+            ClosureLifecycleUnavailableError,
+            ClosureExportPlanningError,
+        ),
+    ):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
@@ -169,3 +203,51 @@ def retry_closure_execution(
     except OrganizationClosureError as exc:
         _raise_http_error(exc)
     return OrganizationClosureExecutionResponse.model_validate(execution)
+
+
+@router.post(
+    "/organizations/{organization_id}/closure-executions/{execution_id}/export-plan",
+    response_model=OrganizationClosureExportPlanResponse,
+)
+def plan_closure_export(
+    organization_id: UUID,
+    execution_id: UUID,
+    auth: AuthContext = Depends(get_closure_auth_context),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    planner: OrganizationClosureExportPlanner = Depends(get_export_planner),
+) -> OrganizationClosureExportPlanResponse:
+    _assert_target_context(auth, organization_id)
+    try:
+        plan = planner.plan(
+            organization_id=organization_id,
+            execution_id=execution_id,
+            auth=auth,
+            access_token=_access_token(credentials),
+        )
+    except OrganizationClosureError as exc:
+        _raise_http_error(exc)
+    return OrganizationClosureExportPlanResponse.model_validate(plan)
+
+
+@router.get(
+    "/organizations/{organization_id}/closure-executions/{execution_id}/export-plan",
+    response_model=OrganizationClosureExportPlanResponse,
+)
+def get_closure_export_plan(
+    organization_id: UUID,
+    execution_id: UUID,
+    auth: AuthContext = Depends(get_closure_auth_context),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    planner: OrganizationClosureExportPlanner = Depends(get_export_planner),
+) -> OrganizationClosureExportPlanResponse:
+    _assert_target_context(auth, organization_id)
+    try:
+        plan = planner.get(
+            organization_id=organization_id,
+            execution_id=execution_id,
+            auth=auth,
+            access_token=_access_token(credentials),
+        )
+    except OrganizationClosureError as exc:
+        _raise_http_error(exc)
+    return OrganizationClosureExportPlanResponse.model_validate(plan)

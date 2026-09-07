@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
@@ -7,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    JSON,
     String,
     Text,
     UniqueConstraint,
@@ -73,3 +75,41 @@ class OrganizationClosureEventModel(Base):
     to_status: Mapped[str] = mapped_column(String(32), nullable=False)
     phase: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class OrganizationClosureExportPlanModel(Base):
+    __tablename__ = "crm_organization_closure_export_plans"
+    __table_args__ = (
+        CheckConstraint(
+            "disposition = 'required'",
+            name="ck_org_closure_export_plan_disposition",
+        ),
+        CheckConstraint(
+            "status = 'planned'",
+            name="ck_org_closure_export_plan_status",
+        ),
+        UniqueConstraint(
+            "organization_id",
+            "closure_execution_id",
+            "schema_version",
+            name="uq_org_closure_export_plan_execution_schema",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    organization_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
+    closure_execution_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("crm_organization_closure_executions.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    schema_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    disposition: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    manifest_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    manifest_digest: Mapped[str] = mapped_column(String(64), nullable=False)
+    actor_user_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    actor_session_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
