@@ -12,6 +12,7 @@ from app.core.config import get_settings
 from app.integrations.kyrox_core.lifecycle import (
     OrganizationLifecycleGuard,
     OrganizationLifecycleUnavailableError,
+    OrganizationWorkNotAllowedError,
 )
 from app.modules.fair_emails.application.fair_bulk_mail_operation_sync import FairBulkEmailMailOperationSync
 from app.modules.fair_emails.application.retry_fair_bulk_email_operation import (
@@ -290,6 +291,50 @@ class ProcessMailSendOperationsWorker:
         delivery_result: EmailDeliveryResult | None = None
         try:
             delivery_result = self._dispatcher.dispatch(claimed)
+        except OrganizationWorkNotAllowedError as exc:
+            message = str(exc).strip() or "Organization lifecycle does not allow outbound delivery"
+            reason = f"organization_lifecycle_provider_dispatch_cancelled:{message}"
+            self._mail_service.mark_cancelled(
+                claimed.organization_id,
+                claimed.id,
+                message=reason,
+            )
+            self._sync_fair_bulk_failure(
+                claimed,
+                message=reason,
+                error_code=type(exc).__name__,
+            )
+            logger.info(
+                "mail_worker_provider_dispatch_cancelled operation_id=%s organization_id=%s",
+                claimed.id,
+                claimed.organization_id,
+            )
+            return "cancelled"
+        except OrganizationLifecycleUnavailableError as exc:
+            message = str(exc).strip() or "Organization lifecycle authority unavailable"
+            error_code = type(exc).__name__
+            self._mail_service.mark_failed(
+                claimed.organization_id,
+                claimed.id,
+                error_code=error_code,
+                error_message=message,
+            )
+            self._repository.set_auto_retry_pending(
+                claimed.organization_id,
+                claimed.id,
+                enabled=True,
+            )
+            self._sync_fair_bulk_failure(
+                claimed,
+                message=message,
+                error_code=error_code,
+            )
+            logger.warning(
+                "mail_worker_provider_dispatch_deferred_lifecycle_unavailable operation_id=%s organization_id=%s",
+                claimed.id,
+                claimed.organization_id,
+            )
+            return "failed"
         except SmtpMailDeliveryError as exc:
             message = exc.args[0] if exc.args else "Mail gönderimi başarısız oldu."
             self._mail_service.mark_failed(

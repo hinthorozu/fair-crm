@@ -6,6 +6,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.integrations.kyrox_core.lifecycle import OrganizationLifecycleGuard
 from app.modules.email_accounts.domain.entities import EmailAccount, EmailAccountSmtpConfig
 from app.modules.email_accounts.domain.provider_config import EmailAccountProviderConfig
 from app.modules.email_accounts.domain.value_objects import EmailAccountType
@@ -33,6 +34,7 @@ class EmailDeliveryService:
         *,
         dispatcher: EmailDeliveryDispatcher | None = None,
         account_repository: SqlAlchemyEmailAccountRepository | None = None,
+        lifecycle_guard: OrganizationLifecycleGuard | None = None,
     ) -> None:
         self._session = session
         self._accounts = account_repository or SqlAlchemyEmailAccountRepository(session)
@@ -41,6 +43,7 @@ class EmailDeliveryService:
                 session, account
             ),
         )
+        self._lifecycle_guard = lifecycle_guard or OrganizationLifecycleGuard()
 
     def send(
         self,
@@ -56,6 +59,10 @@ class EmailDeliveryService:
             organization_id,
             email_account_id,
         )
+        # OL07-06: this is the final lifecycle checkpoint before the outbound
+        # SMTP/provider handoff.  A non-active organization or an unavailable
+        # Core lifecycle authority must fail closed without touching the provider.
+        self._lifecycle_guard.require_work_allowed(organization_id)
         return deliver_with_dispatcher(
             account,
             recipient=to,
