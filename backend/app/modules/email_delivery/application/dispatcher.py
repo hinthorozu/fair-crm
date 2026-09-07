@@ -14,6 +14,7 @@ from app.modules.email_delivery.application.provider_registry import (
     create_default_provider_registry,
 )
 from app.modules.email_delivery.domain.exceptions import (
+    PROVIDER_HANDOFF_UNCERTAIN_ERROR_CODE,
     EmailDeliveryError,
     ProviderMessageSkippedError,
     UnsupportedProviderError,
@@ -115,8 +116,15 @@ class EmailDeliveryDispatcher:
             )
 
         # Unknown identifiers fail closed. Retry behavior is controlled by the
-        # error groups configured on the provider account.
-        retryable = bool(decision.retryable) if decision.category is not None else False
+        # error groups configured on the provider account. OL07-07 is stricter
+        # for an already-started handoff whose acceptance result is uncertain:
+        # automatic retry must stay disabled even if a provider policy attempts
+        # to classify that token as retryable, otherwise the external side effect
+        # can be duplicated.
+        if exc.error_code == PROVIDER_HANDOFF_UNCERTAIN_ERROR_CODE:
+            retryable = False
+        else:
+            retryable = bool(decision.retryable) if decision.category is not None else False
 
         raise EmailDeliveryError(
             message,
