@@ -1,7 +1,18 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, Uuid, text
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    Uuid,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -50,7 +61,7 @@ class OrganizationClosureEventModel(Base):
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
     execution_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True),
-        ForeignKey("crm_organization_closure_executions.id", ondelete="CASCADE"),
+        ForeignKey("crm_organization_closure_executions.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )
