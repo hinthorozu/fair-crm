@@ -136,7 +136,7 @@ def test_start_requires_system_authority_and_live_suspended_state(db_session: Se
     assert events[0].action == "started"
     assert events[0].execution_id == execution.id
     assert events[0].actor_user_id == auth.user_id
-    assert audit.events[0]["action"] == "fair_crm.organization_closure.started"
+    assert audit.events[0]["action"] == "organization_closure.started"
 
 
 def test_duplicate_start_with_same_idempotency_key_converges(db_session: Session) -> None:
