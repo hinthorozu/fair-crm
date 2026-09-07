@@ -18,6 +18,10 @@ from app.modules.email_delivery.domain.results import EmailDeliveryResult
 from app.modules.mail_send_operations.application.mail_send_operation_service import (
     MailSendOperationService,
 )
+from app.modules.mail_send_operations.domain.value_objects import (
+    MailSendOperationStatus,
+    MailSendSourceType,
+)
 from app.modules.mail_send_operations.infrastructure.repositories.mail_send_operation_repository import (
     CreateMailSendOperationParams,
     SqlAlchemyMailSendOperationRepository,
@@ -68,7 +72,7 @@ def _create_provider_account(db_session, organization_id: UUID) -> UUID:
 def _mail_params(organization_id: UUID, *, subject: str) -> CreateMailSendOperationParams:
     return CreateMailSendOperationParams(
         organization_id=organization_id,
-        source_type="manual_email",
+        source_type=MailSendSourceType.MANUAL_EMAIL,
         recipient_email="reactivation@example.com",
         subject=subject,
         body_text="OL-07 reactivation contract",
@@ -113,7 +117,7 @@ def test_cancelled_mail_stays_terminal_while_new_mail_is_worker_eligible(
     assert cancelled.id not in {record.id for record in retryable}
     persisted_cancelled = repository.get_by_id(organization_id, cancelled.id)
     assert persisted_cancelled is not None
-    assert str(persisted_cancelled.status) == "cancelled"
+    assert persisted_cancelled.status == MailSendOperationStatus.CANCELLED
 
 
 def test_uncertain_handoff_remains_non_auto_retry_after_reactivation(
