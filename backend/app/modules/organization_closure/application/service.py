@@ -129,7 +129,7 @@ class OrganizationClosureService:
             organization_id=organization_id,
             access_token=access_token,
             execution=execution,
-            action="fair_crm.organization_closure.started",
+            action="organization_closure.started",
         )
         return execution
 
@@ -191,7 +191,7 @@ class OrganizationClosureService:
             organization_id=organization_id,
             access_token=access_token,
             execution=execution,
-            action="fair_crm.organization_closure.retried",
+            action="organization_closure.retried",
         )
         return execution
 
@@ -233,7 +233,7 @@ class OrganizationClosureService:
                 organization_id=organization_id,
                 access_token=access_token,
                 execution=execution,
-                action="fair_crm.organization_closure.blocked",
+                action="organization_closure.blocked",
             )
         return execution
 
