@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+from app.modules.email_delivery.domain.exceptions import PROVIDER_HANDOFF_UNCERTAIN_ERROR_CODE
+from app.modules.smtp.domain.smtp_timeout_errors import (
+    SMTP_HANDOFF_UNCERTAIN_CODE,
+    SMTP_TIMEOUT_CODE,
+)
+
 _RETRYABLE_ERROR_CODES = frozenset(
     {
         "TimeoutError",
@@ -30,6 +36,13 @@ _NON_RETRYABLE_ERROR_CODES = frozenset(
         "UnsupportedProviderError",
         "InvalidSmtpTestRecipientError",
         "consent_blocked",
+        # OL07-07: these states can mean the external side effect already
+        # happened. Automatic retry is therefore forbidden to avoid duplicate
+        # mail/provider delivery.
+        PROVIDER_HANDOFF_UNCERTAIN_ERROR_CODE,
+        SMTP_HANDOFF_UNCERTAIN_CODE,
+        SMTP_TIMEOUT_CODE,
+        "sending_timeout",
     }
 )
 
