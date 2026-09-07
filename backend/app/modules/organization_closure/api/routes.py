@@ -42,6 +42,14 @@ def get_lifecycle_guard() -> OrganizationLifecycleGuard:
     return OrganizationLifecycleGuard()
 
 
+def get_closure_auth_context(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    x_organization_id: UUID = Header(..., alias="X-Organization-Id"),
+    dev_user_id: UUID | None = Header(default=None, alias="X-Dev-User-Id"),
+) -> AuthContext:
+    return get_auth_context(credentials, x_organization_id, dev_user_id)
+
+
 def get_closure_service(
     repository: SqlAlchemyOrganizationClosureRepository = Depends(get_closure_repository),
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
@@ -98,7 +106,7 @@ def _raise_http_error(exc: OrganizationClosureError) -> NoReturn:
 def start_closure_execution(
     organization_id: UUID,
     idempotency_key: str = Header(..., alias="Idempotency-Key"),
-    auth: AuthContext = Depends(get_auth_context),
+    auth: AuthContext = Depends(get_closure_auth_context),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     service: OrganizationClosureService = Depends(get_closure_service),
 ) -> OrganizationClosureExecutionResponse:
@@ -122,7 +130,7 @@ def start_closure_execution(
 def get_closure_execution(
     organization_id: UUID,
     execution_id: UUID,
-    auth: AuthContext = Depends(get_auth_context),
+    auth: AuthContext = Depends(get_closure_auth_context),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     service: OrganizationClosureService = Depends(get_closure_service),
 ) -> OrganizationClosureExecutionResponse:
@@ -146,7 +154,7 @@ def get_closure_execution(
 def retry_closure_execution(
     organization_id: UUID,
     execution_id: UUID,
-    auth: AuthContext = Depends(get_auth_context),
+    auth: AuthContext = Depends(get_closure_auth_context),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     service: OrganizationClosureService = Depends(get_closure_service),
 ) -> OrganizationClosureExecutionResponse:
