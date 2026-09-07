@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Any
 from uuid import UUID
 
+from app.integrations.kyrox_core.lifecycle import OrganizationWorkNotAllowedError
 from app.modules.mail_send_operations.domain.value_objects import MailSendOperationStatus, MailSendSourceType
 from app.modules.mail_send_operations.domain.worker_constants import (
     SENDING_TIMEOUT_ERROR_CODE,
@@ -242,6 +243,14 @@ class MailSendOperationService:
         self.mark_sending(operation.organization_id, operation.id)
         try:
             delivery_result = send_fn()
+        except OrganizationWorkNotAllowedError as exc:
+            message = str(exc).strip() or "Organization lifecycle does not allow outbound delivery"
+            self.mark_cancelled(
+                operation.organization_id,
+                operation.id,
+                message=f"organization_lifecycle_provider_dispatch_cancelled:{message}",
+            )
+            raise
         except SmtpMailDeliveryError as exc:
             message = exc.args[0] if exc.args else "SMTP gönderimi başarısız oldu."
             self.mark_failed(
@@ -295,6 +304,14 @@ class MailSendOperationService:
         )
         try:
             delivery_result = send_fn()
+        except OrganizationWorkNotAllowedError as exc:
+            message = str(exc).strip() or "Organization lifecycle does not allow outbound delivery"
+            self.mark_cancelled(
+                organization_id,
+                operation_id,
+                message=f"organization_lifecycle_provider_dispatch_cancelled:{message}",
+            )
+            raise
         except SmtpMailDeliveryError as exc:
             message = exc.args[0] if exc.args else "SMTP gönderimi başarısız oldu."
             self.mark_failed(
