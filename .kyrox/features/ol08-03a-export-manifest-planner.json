@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "id": "ol08-03a-export-manifest-planner",
+  "title": "OL08-03A Export Manifest Completeness Planner",
+  "feature_type": "system_admin",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "api",
+  "tenant_scope": "system",
+  "user_facing": false,
+  "affected_paths": [
+    ".kyrox/features/ol08-03a-export-manifest-planner.json",
+    "backend/alembic/env.py",
+    "backend/alembic/versions/0078_closure_export_plans.py",
+    "backend/app/modules/organization_closure/api/routes.py",
+    "backend/app/modules/organization_closure/api/schemas.py",
+    "backend/app/modules/organization_closure/application/export_planner.py",
+    "backend/app/modules/organization_closure/infrastructure/export_plan_repository.py",
+    "backend/app/modules/organization_closure/infrastructure/models.py",
+    "backend/tests/modules/organization_closure/test_ol08_03a_export_manifest_planner.py",
+    "backend/tests/system/tenant_isolation_registry.py"
+  ],
+  "permissions": {
+    "required": true,
+    "reason": "Closure export planning is part of destructive-lifecycle orchestration and remains under the existing Core SYSTEM-only organization delete authority; no organization-role permission is added.",
+    "items": [
+      {
+        "code": "identity.organizations.delete",
+        "action": "plan and inspect the organization closure export completeness manifest",
+        "scope": "system",
+        "assignable": false
+      }
+    ]
+  },
+  "frontend": {
+    "required": false,
+    "reason": "OL08-03A exposes SYSTEM metadata endpoints only; no UI, download, route, menu, form, or customer handover flow is added.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "required" },
+    "migration": { "status": "required" },
+    "permissions": { "status": "required" },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "required" },
+    "frontend": { "status": "na", "reason": "No frontend implementation is included." },
+    "ui_permissions": { "status": "na", "reason": "No UI authorization surface is added." },
+    "menu": { "status": "na", "reason": "No navigation item is added." },
+    "route_guard": { "status": "na", "reason": "No frontend route is added." },
+    "forms": { "status": "na", "reason": "No frontend form is added." },
+    "visual_qa": { "status": "na", "reason": "There are no visual changes." },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "na", "reason": "Frontend is unchanged." },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Bounded OL08-03A only. The durable plan is tied to one organization + closure execution + schema version and persists planning metadata, explicit included/excluded/deferred completeness classifications, organization-scoped record counts, record-ID-only fingerprints, and non-secret audit evidence. Reusable credential/secret tables are forbidden as count/fingerprint sources. No downloadable/persistent closure package, package retention, not_required success state, integrity_verified gate, customer-facing handover, credential revoke/purge, product-data/artifact deletion/anonymization, cleanup_complete/ready_for_tombstone state, backup policy, or Core tombstone is added. Failed read-only planning persists no false successful plan; retry is the same idempotent SYSTEM POST after the transient failure is resolved."
+}
