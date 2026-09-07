@@ -14,6 +14,9 @@ _RETRYABLE_ERROR_CODES = frozenset(
         "gaierror",
         "SMTPException",  # generic temporary-looking SMTP failures
         "SSLError",  # generic TLS handshake flakes; wrong-version handled below
+        # OL07-07: checkpoint persistence failed before provider handoff, so no
+        # external side effect was attempted and an automatic retry is safe.
+        "handoff_checkpoint_commit_failed",
     }
 )
 
@@ -30,6 +33,13 @@ _NON_RETRYABLE_ERROR_CODES = frozenset(
         "UnsupportedProviderError",
         "InvalidSmtpTestRecipientError",
         "consent_blocked",
+        # OL07-07: these states can mean the external side effect already
+        # happened. Automatic retry is therefore forbidden to avoid duplicate
+        # mail/provider delivery.
+        "provider_handoff_uncertain",
+        "smtp_handoff_uncertain",
+        "smtp_timeout",
+        "sending_timeout",
     }
 )
 

@@ -15,6 +15,8 @@ from app.modules.smtp.domain.entities import SmtpAccount
 from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
 from app.modules.smtp.domain.smtp_error_mapping import map_smtp_exception
 from app.modules.smtp.domain.smtp_timeout_errors import (
+    HANDOFF_UNCERTAIN_USER_MESSAGE,
+    SMTP_HANDOFF_UNCERTAIN_CODE,
     build_timeout_user_message,
     is_timeout_related_exception,
     normalize_timeout_error_code,
@@ -106,6 +108,22 @@ def _send_message(
     _log_debug("send_message_success", account_id, to_email=recipient)
 
 
+def _raise_handoff_uncertain_error(
+    exc: BaseException,
+    *,
+    operation_timeout_seconds: int | None = None,
+) -> None:
+    message = HANDOFF_UNCERTAIN_USER_MESSAGE
+    if operation_timeout_seconds is not None:
+        message = f"{message} (maksimum süre: {operation_timeout_seconds} saniye)"
+    raise SmtpMailDeliveryError(
+        message,
+        error_type=SMTP_HANDOFF_UNCERTAIN_CODE,
+        raw_message=str(exc),
+        retryable=False,
+    ) from exc
+
+
 def _raise_delivery_error(
     exc: BaseException,
     *,
@@ -113,8 +131,19 @@ def _raise_delivery_error(
     timeout_settings: SmtpTimeoutSettings,
     operation_timeout: bool = False,
 ) -> None:
-    if is_timeout_related_exception(exc) or operation_timeout:
-        delivery_phase = "connect" if phase == "connect" and not operation_timeout else "send"
+    if operation_timeout:
+        # The outer timeout cannot know whether the worker thread crossed the SMTP
+        # DATA boundary before the deadline. Treat the outcome as uncertain and
+        # never auto-retry: the provider may already have accepted the message.
+        _raise_handoff_uncertain_error(
+            exc,
+            operation_timeout_seconds=timeout_settings.mail_operation_timeout_seconds,
+        )
+
+    if is_timeout_related_exception(exc):
+        if phase == "handoff":
+            _raise_handoff_uncertain_error(exc)
+        delivery_phase = "connect" if phase == "connect" else "send"
         if isinstance(exc, smtplib.SMTPConnectError):
             delivery_phase = "connect"
         error_type = normalize_timeout_error_code(phase=delivery_phase)
@@ -122,9 +151,6 @@ def _raise_delivery_error(
             phase=delivery_phase,
             connect_timeout_seconds=timeout_settings.connect_timeout_seconds,
             send_timeout_seconds=timeout_settings.send_timeout_seconds,
-            operation_timeout_seconds=(
-                timeout_settings.mail_operation_timeout_seconds if operation_timeout else None
-            ),
         )
         raw_message = str(exc)
         raise SmtpMailDeliveryError(
@@ -132,6 +158,15 @@ def _raise_delivery_error(
             error_type=error_type,
             raw_message=raw_message,
         ) from exc
+
+    # Once send_message() has started, a transport-level disconnect/reset can
+    # happen after the SMTP server accepted DATA but before the client observed
+    # the final reply. That outcome is not safe to retry automatically.
+    if phase == "handoff" and isinstance(
+        exc,
+        (smtplib.SMTPServerDisconnected, ConnectionError, OSError),
+    ):
+        _raise_handoff_uncertain_error(exc)
 
     user_message, error_type, raw_message = map_smtp_exception(exc)
     raise SmtpMailDeliveryError(
@@ -185,16 +220,18 @@ def _deliver_smtp_message(
         if encryption in (SmtpEncryptionType.SSL, SmtpEncryptionType.TLS):
             context = ssl.create_default_context()
             with smtplib.SMTP_SSL(host, port, context=context, timeout=connect_timeout) as smtp:
-                phase = "send"
+                phase = "session"
                 _apply_send_timeout(smtp, send_timeout)
                 _log_debug("connection_opened", account.id, mode="ssl", host=host, port=port)
                 _login_if_needed(smtp, username=username, password=password, account_id=account.id)
+                phase = "handoff"
                 _send_message(smtp, message, account_id=account.id, recipient=recipient)
+                phase = "accepted"
                 _log_debug("connection_close", account.id, mode="ssl", host=host, port=port)
             return
 
         with smtplib.SMTP(host, port, timeout=connect_timeout) as smtp:
-            phase = "send"
+            phase = "session"
             _apply_send_timeout(smtp, send_timeout)
             _log_debug("connection_opened", account.id, mode="plain", host=host, port=port)
             if encryption == SmtpEncryptionType.STARTTLS:
@@ -203,11 +240,27 @@ def _deliver_smtp_message(
                 smtp.starttls(context=context)
                 _log_debug("starttls_success", account.id, host=host, port=port)
             _login_if_needed(smtp, username=username, password=password, account_id=account.id)
+            phase = "handoff"
             _send_message(smtp, message, account_id=account.id, recipient=recipient)
+            phase = "accepted"
             _log_debug("connection_close", account.id, mode=mode, host=host, port=port)
     except SmtpMailDeliveryError:
         raise
     except Exception as exc:
+        if phase == "accepted":
+            # send_message() returned only after the SMTP server acknowledged DATA.
+            # A later QUIT/connection-close failure cannot recall that accepted mail
+            # and must not turn a known external side effect into a retryable failure.
+            logger.warning(
+                "smtp_close_failed_after_acceptance account_id=%s host=%s port=%s "
+                "exception_type=%s raw_message=%s",
+                account.id,
+                host,
+                port,
+                type(exc).__name__,
+                exc,
+            )
+            return
         logger.warning(
             "smtp_delivery_failed account_id=%s host=%s port=%s encryption_type=%s "
             "from_email=%s to_email=%s phase=%s exception_type=%s raw_message=%s",

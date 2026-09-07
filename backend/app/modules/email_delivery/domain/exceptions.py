@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 
+PROVIDER_HANDOFF_UNCERTAIN_ERROR_CODE = "provider_handoff_uncertain"
+
+
 class EmailDeliveryError(Exception):
     def __init__(
         self,

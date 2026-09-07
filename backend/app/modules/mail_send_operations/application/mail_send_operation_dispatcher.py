@@ -29,6 +29,13 @@ from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
 from app.shared.email_consent_policy import EmailConsentPolicy
 
 
+HANDOFF_CHECKPOINT_COMMIT_FAILED_ERROR_CODE = "handoff_checkpoint_commit_failed"
+_HANDOFF_CHECKPOINT_COMMIT_FAILED_MESSAGE = (
+    "Mail SENDING checkpoint could not be persisted before provider handoff. "
+    "No provider call was attempted; the operation is safe to retry."
+)
+
+
 class MailSendOperationDispatcher:
     def __init__(self, session: Session) -> None:
         self._session = session
@@ -41,6 +48,38 @@ class MailSendOperationDispatcher:
         self._delivery = EmailDeliveryService(session)
 
     def dispatch(self, operation: MailSendOperationRecord) -> EmailDeliveryResult:
+        # OL07-07: the worker has already claimed the row and marked it SENDING.
+        # Make that state durable before any external provider handoff can begin.
+        # If the process dies after the provider may have accepted the message,
+        # restart recovery must see SENDING and terminalize it as an uncertain
+        # outcome instead of rolling the row back to QUEUED and sending twice.
+        try:
+            self._session.commit()
+        except Exception as exc:
+            # A failed SQLAlchemy commit can leave the Session in a failed/prepared
+            # transaction state. Recover it before returning control to the worker;
+            # otherwise the worker's failure bookkeeping can itself raise
+            # PendingRollbackError. The provider boundary has not been crossed, so
+            # this failure is safe to retry after the database recovers.
+            rollback_error: Exception | None = None
+            try:
+                self._session.rollback()
+            except Exception as rollback_exc:
+                rollback_error = rollback_exc
+                # Session.close() releases the broken transactional resources and
+                # leaves SQLAlchemy Session reusable on the next database access.
+                self._session.close()
+
+            raw_message = str(exc)
+            if rollback_error is not None:
+                raw_message = f"{raw_message}; rollback failed: {rollback_error}"
+            raise SmtpMailDeliveryError(
+                _HANDOFF_CHECKPOINT_COMMIT_FAILED_MESSAGE,
+                error_type=HANDOFF_CHECKPOINT_COMMIT_FAILED_ERROR_CODE,
+                raw_message=raw_message,
+                retryable=True,
+            ) from exc
+
         if operation.source_type == MailSendSourceType.FAIR_BULK_EMAIL:
             return self._dispatch_fair_bulk_email(operation)
         return self._dispatch_generic(operation)

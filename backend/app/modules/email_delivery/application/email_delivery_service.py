@@ -60,9 +60,14 @@ class EmailDeliveryService:
             email_account_id,
         )
         # OL07-06: this is the final lifecycle checkpoint before the outbound
-        # SMTP/provider handoff.  A non-active organization or an unavailable
+        # SMTP/provider handoff. A non-active organization or an unavailable
         # Core lifecycle authority must fail closed without touching the provider.
         self._lifecycle_guard.require_work_allowed(organization_id)
+        # OL07-07: after this boundary the provider call is already in-flight and
+        # may not be recallable. Do not perform a second lifecycle check and
+        # synthesize cancellation after dispatch starts; preserve the real provider
+        # terminal result. Ambiguous handoff outcomes are classified separately
+        # and are never auto-retried.
         return deliver_with_dispatcher(
             account,
             recipient=to,

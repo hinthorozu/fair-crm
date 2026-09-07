@@ -11,7 +11,7 @@ from app.modules.smtp.domain.entities import SmtpAccount
 from app.modules.smtp.domain.exceptions import SmtpMailDeliveryError
 from app.modules.smtp.domain.smtp_timeout_errors import (
     SMTP_CONNECT_TIMEOUT_CODE,
-    SMTP_TIMEOUT_CODE,
+    SMTP_HANDOFF_UNCERTAIN_CODE,
 )
 from app.modules.smtp.domain.value_objects import SmtpEncryptionType
 from app.modules.smtp.infrastructure.smtp_mailer import send_smtp_message
@@ -91,7 +91,7 @@ def test_send_smtp_message_connect_timeout(monkeypatch):
     assert "bağlantı" in exc_info.value.args[0].lower()
 
 
-def test_send_smtp_message_send_timeout(monkeypatch):
+def test_send_smtp_message_send_timeout_is_uncertain_and_not_retryable(monkeypatch):
     class FakeSMTP:
         def __init__(self, host, port, timeout=10):
             self.sock = self
@@ -127,8 +127,85 @@ def test_send_smtp_message_send_timeout(monkeypatch):
             body="Body",
         )
 
-    assert exc_info.value.error_type == SMTP_TIMEOUT_CODE
-    assert "gönderimi" in exc_info.value.args[0].lower()
+    assert exc_info.value.error_type == SMTP_HANDOFF_UNCERTAIN_CODE
+    assert exc_info.value.retryable is False
+    assert "otomatik" in exc_info.value.args[0].lower()
+
+
+def test_send_smtp_message_handoff_disconnect_is_uncertain(monkeypatch):
+    class FakeSMTP:
+        def __init__(self, host, port, timeout=10):
+            self.sock = self
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def settimeout(self, value):
+            return None
+
+        def starttls(self, context=None):
+            return None
+
+        def login(self, username, password):
+            return None
+
+        def send_message(self, message):
+            raise smtplib.SMTPServerDisconnected("connection lost after DATA")
+
+    monkeypatch.setattr("app.modules.smtp.infrastructure.smtp_mailer.smtplib.SMTP", FakeSMTP)
+
+    with pytest.raises(SmtpMailDeliveryError) as exc_info:
+        send_smtp_message(
+            _account(),
+            recipient="admin@example.com",
+            subject="Test",
+            body="Body",
+        )
+
+    assert exc_info.value.error_type == SMTP_HANDOFF_UNCERTAIN_CODE
+    assert exc_info.value.retryable is False
+
+
+def test_send_smtp_message_close_failure_after_acceptance_stays_success(monkeypatch):
+    calls = {"sent": 0}
+
+    class FakeSMTP:
+        def __init__(self, host, port, timeout=10):
+            self.sock = self
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            assert exc_type is None
+            raise smtplib.SMTPServerDisconnected("QUIT failed after accepted DATA")
+
+        def settimeout(self, value):
+            return None
+
+        def starttls(self, context=None):
+            return None
+
+        def login(self, username, password):
+            return None
+
+        def send_message(self, message):
+            calls["sent"] += 1
+            return {}
+
+    monkeypatch.setattr("app.modules.smtp.infrastructure.smtp_mailer.smtplib.SMTP", FakeSMTP)
+
+    send_smtp_message(
+        _account(),
+        recipient="admin@example.com",
+        subject="Accepted",
+        body="Body",
+    )
+
+    assert calls["sent"] == 1
 
 
 def test_send_smtp_message_applies_send_timeout_on_socket(monkeypatch):
@@ -169,7 +246,7 @@ def test_send_smtp_message_applies_send_timeout_on_socket(monkeypatch):
     assert captured["send_timeout"] == 25
 
 
-def test_send_smtp_message_operation_timeout(monkeypatch):
+def test_send_smtp_message_operation_timeout_is_uncertain(monkeypatch):
     class SlowSMTP:
         def __init__(self, host, port, timeout=10):
             self.sock = self
@@ -206,7 +283,8 @@ def test_send_smtp_message_operation_timeout(monkeypatch):
             body="Body",
         )
 
-    assert exc_info.value.error_type == SMTP_TIMEOUT_CODE
+    assert exc_info.value.error_type == SMTP_HANDOFF_UNCERTAIN_CODE
+    assert exc_info.value.retryable is False
 
 
 def test_send_smtp_message_ssl_connect_timeout(monkeypatch):
