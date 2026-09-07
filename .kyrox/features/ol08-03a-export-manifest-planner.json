@@ -17,6 +17,7 @@
     "backend/app/modules/organization_closure/application/export_planner.py",
     "backend/app/modules/organization_closure/infrastructure/export_plan_repository.py",
     "backend/app/modules/organization_closure/infrastructure/models.py",
+    "backend/tests/modules/organization_closure/test_ol08_01_api_contract.py",
     "backend/tests/modules/organization_closure/test_ol08_03a_export_manifest_planner.py",
     "backend/tests/system/tenant_isolation_registry.py"
   ],
@@ -59,5 +60,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Bounded OL08-03A only. The durable plan is tied to one organization + closure execution + schema version and persists planning metadata, explicit included/excluded/deferred completeness classifications, organization-scoped record counts, record-ID-only fingerprints, and non-secret audit evidence. Reusable credential/secret tables are forbidden as count/fingerprint sources. No downloadable/persistent closure package, package retention, not_required success state, integrity_verified gate, customer-facing handover, credential revoke/purge, product-data/artifact deletion/anonymization, cleanup_complete/ready_for_tombstone state, backup policy, or Core tombstone is added. Failed read-only planning persists no false successful plan; retry is the same idempotent SYSTEM POST after the transient failure is resolved."
+  "notes": "Bounded OL08-03A only. The durable plan is tied to one organization + closure execution + schema version and persists planning metadata, explicit included/excluded/deferred completeness classifications, organization-scoped record counts, record-ID-only fingerprints, and non-secret audit evidence. Reusable credential/secret tables are forbidden as count/fingerprint sources. No downloadable/persistent closure package, package retention, not_required success state, integrity_verified gate, customer-facing handover, credential revoke/purge, product-data/artifact deletion/anonymization, cleanup_complete/ready_for_tombstone state, backup policy, or Core tombstone is added. Failed read-only planning persists no false successful plan; retry is the same idempotent SYSTEM POST after the transient failure is resolved. The existing OL08-01 route guard is extended to enumerate the two accepted OL08-03A metadata routes while still forbidding delete, package/download, completion, and tombstone surfaces."
 }
