@@ -76,17 +76,17 @@ def upgrade() -> None:
         ),
     )
     op.create_index(
-        "ix_crm_organization_closure_credential_dispositions_organization_id",
+        "ix_closure_cred_org",
         "crm_organization_closure_credential_dispositions",
         ["organization_id"],
     )
     op.create_index(
-        "ix_crm_organization_closure_credential_dispositions_closure_execution_id",
+        "ix_closure_cred_exec",
         "crm_organization_closure_credential_dispositions",
         ["closure_execution_id"],
     )
     op.create_index(
-        "ix_crm_organization_closure_credential_dispositions_email_account_id",
+        "ix_closure_cred_account",
         "crm_organization_closure_credential_dispositions",
         ["email_account_id"],
     )
@@ -121,22 +121,22 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
-        "ix_crm_organization_closure_credential_events_disposition_id",
+        "ix_closure_cred_evt_disp",
         "crm_organization_closure_credential_events",
         ["disposition_id"],
     )
     op.create_index(
-        "ix_crm_organization_closure_credential_events_closure_execution_id",
+        "ix_closure_cred_evt_exec",
         "crm_organization_closure_credential_events",
         ["closure_execution_id"],
     )
     op.create_index(
-        "ix_crm_organization_closure_credential_events_organization_id",
+        "ix_closure_cred_evt_org",
         "crm_organization_closure_credential_events",
         ["organization_id"],
     )
     op.create_index(
-        "ix_crm_organization_closure_credential_events_email_account_id",
+        "ix_closure_cred_evt_account",
         "crm_organization_closure_credential_events",
         ["email_account_id"],
     )
@@ -144,33 +144,33 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_index(
-        "ix_crm_organization_closure_credential_events_email_account_id",
+        "ix_closure_cred_evt_account",
         table_name="crm_organization_closure_credential_events",
     )
     op.drop_index(
-        "ix_crm_organization_closure_credential_events_organization_id",
+        "ix_closure_cred_evt_org",
         table_name="crm_organization_closure_credential_events",
     )
     op.drop_index(
-        "ix_crm_organization_closure_credential_events_closure_execution_id",
+        "ix_closure_cred_evt_exec",
         table_name="crm_organization_closure_credential_events",
     )
     op.drop_index(
-        "ix_crm_organization_closure_credential_events_disposition_id",
+        "ix_closure_cred_evt_disp",
         table_name="crm_organization_closure_credential_events",
     )
     op.drop_table("crm_organization_closure_credential_events")
 
     op.drop_index(
-        "ix_crm_organization_closure_credential_dispositions_email_account_id",
+        "ix_closure_cred_account",
         table_name="crm_organization_closure_credential_dispositions",
     )
     op.drop_index(
-        "ix_crm_organization_closure_credential_dispositions_closure_execution_id",
+        "ix_closure_cred_exec",
         table_name="crm_organization_closure_credential_dispositions",
     )
     op.drop_index(
-        "ix_crm_organization_closure_credential_dispositions_organization_id",
+        "ix_closure_cred_org",
         table_name="crm_organization_closure_credential_dispositions",
     )
     op.drop_table("crm_organization_closure_credential_dispositions")
