@@ -36,6 +36,7 @@ TENANT_ISOLATION_EVIDENCE: dict[str, tuple[str, ...]] = {
     "organization_closure": (
         "modules/organization_closure/test_ol08_01_api_contract.py",
         "modules/organization_closure/test_ol08_03a_export_manifest_planner.py",
+        "modules/organization_closure/test_ol08_04a_credential_disposition.py",
     ),
     "participations": ("modules/participations/test_participation_derived_tenant_scope.py",),
     "quote_templates": ("modules/quote_templates/test_quote_template_logo_tenant_isolation.py",),
