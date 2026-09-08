@@ -64,6 +64,26 @@ def test_closure_public_contract_is_limited_to_accepted_ol08_surfaces() -> None:
             "GET",
             "/system-admin/organizations/{organization_id}/closure-executions/{execution_id}/export-plan",
         ),
+        (
+            "POST",
+            "/system-admin/organizations/{organization_id}/closure-executions/{execution_id}/credential-dispositions",
+        ),
+        (
+            "GET",
+            "/system-admin/organizations/{organization_id}/closure-executions/{execution_id}/credential-dispositions",
+        ),
+        (
+            "GET",
+            "/system-admin/organizations/{organization_id}/closure-executions/{execution_id}/credential-dispositions/{disposition_id}",
+        ),
+        (
+            "POST",
+            "/system-admin/organizations/{organization_id}/closure-executions/{execution_id}/credential-dispositions/{disposition_id}/retry",
+        ),
+        (
+            "POST",
+            "/system-admin/organizations/{organization_id}/closure-executions/{execution_id}/credential-dispositions/{disposition_id}/reconcile",
+        ),
     }
     assert all(method != "DELETE" for method, _ in operations)
     assert all("complete" not in path and "tombstone" not in path for _, path in operations)
