@@ -8,9 +8,18 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.integrations.kyrox_core.lifecycle import OrganizationLifecycleGuard
 from app.integrations.kyrox_core.ports import AuditPort, AuthContext, AuthorizationPort
+from app.modules.email_accounts.infrastructure.repositories.email_account_repository import (
+    SqlAlchemyEmailAccountRepository,
+)
 from app.modules.organization_closure.api.schemas import (
+    OrganizationClosureCredentialDispositionListResponse,
+    OrganizationClosureCredentialDispositionResponse,
+    OrganizationClosureCredentialReconcileRequest,
     OrganizationClosureExecutionResponse,
     OrganizationClosureExportPlanResponse,
+)
+from app.modules.organization_closure.application.credential_disposition import (
+    OrganizationClosureCredentialDispositionService,
 )
 from app.modules.organization_closure.application.export_planner import (
     ClosureExportPlanningError,
@@ -25,6 +34,9 @@ from app.modules.organization_closure.application.service import (
     ClosurePermissionDeniedError,
     OrganizationClosureError,
     OrganizationClosureService,
+)
+from app.modules.organization_closure.infrastructure.credential_disposition_repository import (
+    SqlAlchemyOrganizationClosureCredentialDispositionRepository,
 )
 from app.modules.organization_closure.infrastructure.export_plan_repository import (
     SqlAlchemyOrganizationClosureExportPlanRepository,
@@ -52,6 +64,18 @@ def get_export_plan_repository(
     db: Session = Depends(get_db),
 ) -> SqlAlchemyOrganizationClosureExportPlanRepository:
     return SqlAlchemyOrganizationClosureExportPlanRepository(db)
+
+
+def get_credential_disposition_repository(
+    db: Session = Depends(get_db),
+) -> SqlAlchemyOrganizationClosureCredentialDispositionRepository:
+    return SqlAlchemyOrganizationClosureCredentialDispositionRepository(db)
+
+
+def get_email_account_repository(
+    db: Session = Depends(get_db),
+) -> SqlAlchemyEmailAccountRepository:
+    return SqlAlchemyEmailAccountRepository(db)
 
 
 def get_lifecycle_guard() -> OrganizationLifecycleGuard:
@@ -84,6 +108,30 @@ def get_export_planner(
     audit: AuditPort = Depends(get_audit_adapter),
 ) -> OrganizationClosureExportPlanner:
     return OrganizationClosureExportPlanner(repository, authorization, lifecycle, audit)
+
+
+def get_credential_disposition_service(
+    disposition_repository: SqlAlchemyOrganizationClosureCredentialDispositionRepository = Depends(
+        get_credential_disposition_repository
+    ),
+    closure_repository: SqlAlchemyOrganizationClosureRepository = Depends(
+        get_closure_repository
+    ),
+    email_accounts: SqlAlchemyEmailAccountRepository = Depends(
+        get_email_account_repository
+    ),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    lifecycle: OrganizationLifecycleGuard = Depends(get_lifecycle_guard),
+    audit: AuditPort = Depends(get_audit_adapter),
+) -> OrganizationClosureCredentialDispositionService:
+    return OrganizationClosureCredentialDispositionService(
+        disposition_repository,
+        closure_repository,
+        email_accounts,
+        authorization,
+        lifecycle,
+        audit,
+    )
 
 
 def _access_token(credentials: HTTPAuthorizationCredentials | None) -> str:
@@ -251,3 +299,154 @@ def get_closure_export_plan(
     except OrganizationClosureError as exc:
         _raise_http_error(exc)
     return OrganizationClosureExportPlanResponse.model_validate(plan)
+
+
+@router.post(
+    "/organizations/{organization_id}/closure-executions/{execution_id}/credential-dispositions",
+    response_model=OrganizationClosureCredentialDispositionListResponse,
+)
+def start_credential_dispositions(
+    organization_id: UUID,
+    execution_id: UUID,
+    auth: AuthContext = Depends(get_closure_auth_context),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    service: OrganizationClosureCredentialDispositionService = Depends(
+        get_credential_disposition_service
+    ),
+) -> OrganizationClosureCredentialDispositionListResponse:
+    _assert_target_context(auth, organization_id)
+    try:
+        items = service.start(
+            organization_id=organization_id,
+            execution_id=execution_id,
+            auth=auth,
+            access_token=_access_token(credentials),
+        )
+    except OrganizationClosureError as exc:
+        _raise_http_error(exc)
+    return OrganizationClosureCredentialDispositionListResponse(
+        items=[
+            OrganizationClosureCredentialDispositionResponse.model_validate(item)
+            for item in items
+        ]
+    )
+
+
+@router.get(
+    "/organizations/{organization_id}/closure-executions/{execution_id}/credential-dispositions",
+    response_model=OrganizationClosureCredentialDispositionListResponse,
+)
+def list_credential_dispositions(
+    organization_id: UUID,
+    execution_id: UUID,
+    auth: AuthContext = Depends(get_closure_auth_context),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    service: OrganizationClosureCredentialDispositionService = Depends(
+        get_credential_disposition_service
+    ),
+) -> OrganizationClosureCredentialDispositionListResponse:
+    _assert_target_context(auth, organization_id)
+    try:
+        items = service.list(
+            organization_id=organization_id,
+            execution_id=execution_id,
+            auth=auth,
+            access_token=_access_token(credentials),
+        )
+    except OrganizationClosureError as exc:
+        _raise_http_error(exc)
+    return OrganizationClosureCredentialDispositionListResponse(
+        items=[
+            OrganizationClosureCredentialDispositionResponse.model_validate(item)
+            for item in items
+        ]
+    )
+
+
+@router.get(
+    "/organizations/{organization_id}/closure-executions/{execution_id}/credential-dispositions/{disposition_id}",
+    response_model=OrganizationClosureCredentialDispositionResponse,
+)
+def get_credential_disposition(
+    organization_id: UUID,
+    execution_id: UUID,
+    disposition_id: UUID,
+    auth: AuthContext = Depends(get_closure_auth_context),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    service: OrganizationClosureCredentialDispositionService = Depends(
+        get_credential_disposition_service
+    ),
+) -> OrganizationClosureCredentialDispositionResponse:
+    _assert_target_context(auth, organization_id)
+    try:
+        item = service.get(
+            organization_id=organization_id,
+            execution_id=execution_id,
+            disposition_id=disposition_id,
+            auth=auth,
+            access_token=_access_token(credentials),
+        )
+    except OrganizationClosureError as exc:
+        _raise_http_error(exc)
+    return OrganizationClosureCredentialDispositionResponse.model_validate(item)
+
+
+@router.post(
+    "/organizations/{organization_id}/closure-executions/{execution_id}/credential-dispositions/{disposition_id}/retry",
+    response_model=OrganizationClosureCredentialDispositionResponse,
+)
+def retry_credential_disposition(
+    organization_id: UUID,
+    execution_id: UUID,
+    disposition_id: UUID,
+    auth: AuthContext = Depends(get_closure_auth_context),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    service: OrganizationClosureCredentialDispositionService = Depends(
+        get_credential_disposition_service
+    ),
+) -> OrganizationClosureCredentialDispositionResponse:
+    _assert_target_context(auth, organization_id)
+    try:
+        item = service.retry(
+            organization_id=organization_id,
+            execution_id=execution_id,
+            disposition_id=disposition_id,
+            auth=auth,
+            access_token=_access_token(credentials),
+        )
+    except OrganizationClosureError as exc:
+        _raise_http_error(exc)
+    return OrganizationClosureCredentialDispositionResponse.model_validate(item)
+
+
+@router.post(
+    "/organizations/{organization_id}/closure-executions/{execution_id}/credential-dispositions/{disposition_id}/reconcile",
+    response_model=OrganizationClosureCredentialDispositionResponse,
+)
+def reconcile_credential_disposition(
+    organization_id: UUID,
+    execution_id: UUID,
+    disposition_id: UUID,
+    body: OrganizationClosureCredentialReconcileRequest,
+    auth: AuthContext = Depends(get_closure_auth_context),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    service: OrganizationClosureCredentialDispositionService = Depends(
+        get_credential_disposition_service
+    ),
+) -> OrganizationClosureCredentialDispositionResponse:
+    _assert_target_context(auth, organization_id)
+    try:
+        item = service.reconcile(
+            organization_id=organization_id,
+            execution_id=execution_id,
+            disposition_id=disposition_id,
+            action=body.action,
+            external_credential_id=body.external_credential_id,
+            evidence_code=body.evidence_code,
+            evidence_reference=body.evidence_reference,
+            auth=auth,
+            access_token=_access_token(credentials),
+        )
+    except OrganizationClosureError as exc:
+        _raise_http_error(exc)
+    return OrganizationClosureCredentialDispositionResponse.model_validate(item)
