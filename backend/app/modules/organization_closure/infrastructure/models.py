@@ -141,21 +141,22 @@ class OrganizationClosureCredentialDispositionModel(Base):
             "email_account_id",
             name="uq_org_closure_credential_execution_account",
         ),
+        Index("ix_closure_cred_org", "organization_id"),
+        Index("ix_closure_cred_exec", "closure_execution_id"),
+        Index("ix_closure_cred_account", "email_account_id"),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
-    organization_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
+    organization_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     closure_execution_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("crm_organization_closure_executions.id", ondelete="RESTRICT"),
         nullable=False,
-        index=True,
     )
     email_account_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("email_accounts.id", ondelete="RESTRICT"),
         nullable=False,
-        index=True,
     )
     account_type: Mapped[str] = mapped_column(String(32), nullable=False)
     provider_key: Mapped[str | None] = mapped_column(String(64))
@@ -180,22 +181,26 @@ class OrganizationClosureCredentialDispositionModel(Base):
 
 class OrganizationClosureCredentialEventModel(Base):
     __tablename__ = "crm_organization_closure_credential_events"
+    __table_args__ = (
+        Index("ix_closure_cred_evt_disp", "disposition_id"),
+        Index("ix_closure_cred_evt_exec", "closure_execution_id"),
+        Index("ix_closure_cred_evt_org", "organization_id"),
+        Index("ix_closure_cred_evt_account", "email_account_id"),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
     disposition_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("crm_organization_closure_credential_dispositions.id", ondelete="RESTRICT"),
         nullable=False,
-        index=True,
     )
     closure_execution_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("crm_organization_closure_executions.id", ondelete="RESTRICT"),
         nullable=False,
-        index=True,
     )
-    organization_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
-    email_account_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
+    organization_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    email_account_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     actor_user_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     actor_session_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     action: Mapped[str] = mapped_column(String(64), nullable=False)
