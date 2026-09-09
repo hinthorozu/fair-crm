@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   new URL("../pages/BulkEmailOperationWizardPage.tsx", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("BulkEmailOperationWizardPage permissions", () => {
   it("uses one canonical permission for each bulk email action", () => {
@@ -44,13 +44,13 @@ describe("BulkEmailOperationWizardPage permissions", () => {
   });
 
   it("keeps preview optional for execute-only send", () => {
-    expect(source).toContain("const canProceedMailSettings =\r\n    !templatesLoading &&");
+    expect(source).toContain("const canProceedMailSettings =\n    !templatesLoading &&");
     expect(source).toContain("const previewRequirementSatisfied =");
     expect(source).toContain("!canPreviewBulkEmail ||");
     expect(source).toContain("const canProceedSummary = previewRequirementSatisfied;");
     expect(source).toContain('currentStep.id === "summary" && canPreviewBulkEmail');
     expect(source).toContain("setPreviewing(canPreviewBulkEmail);");
-    expect(source).toContain("canPreviewBulkEmail &&\r\n      (!previewReady ||");
+    expect(source).toContain("canPreviewBulkEmail &&\n      (!previewReady ||");
     expect(source).toContain("const canSend = canSendBulkEmail && canProceedSummary && !sending;");
     expect(source).toContain('currentStep.id === "summary" && canSendBulkEmail ? (');
     expect(source).toContain(") : canPreviewBulkEmail ? (");
