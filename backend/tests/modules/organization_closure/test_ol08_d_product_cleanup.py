@@ -545,7 +545,11 @@ def test_import_embedded_bytes_are_destroyed_only_with_authorized_relational_del
     assert db_session.get(ImportBatchModel, batch.id) is None
     db_session.refresh(inventory)
     assert inventory.cleanup_status == "already_absent"
-    assert inventory.nonexistence_verified_at == now
+    verified_at = inventory.nonexistence_verified_at
+    assert verified_at is not None
+    if verified_at.tzinfo is None:
+        verified_at = verified_at.replace(tzinfo=UTC)
+    assert verified_at.astimezone(UTC) == now
 
 
 def test_email_account_delete_requires_terminal_credential_evidence_and_retains_scalar_proof(
