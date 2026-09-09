@@ -16,9 +16,13 @@ from app.modules.organization_closure.api.routes import (
     get_lifecycle_guard,
 )
 from app.modules.organization_closure.api.schemas import (
+    OrganizationClosureArtifactCleanupResponse,
     OrganizationClosureArtifactInventoryListResponse,
     OrganizationClosureArtifactInventoryResponse,
     OrganizationClosurePackageResponse,
+)
+from app.modules.organization_closure.application.artifact_cleanup import (
+    OrganizationClosureArtifactCleanupService,
 )
 from app.modules.organization_closure.application.closure_package import (
     OrganizationClosurePackageService,
@@ -51,6 +55,22 @@ def get_closure_package_service(
     audit: AuditPort = Depends(get_audit_adapter),
 ) -> OrganizationClosurePackageService:
     return OrganizationClosurePackageService(
+        repository,
+        authorization,
+        lifecycle,
+        audit,
+    )
+
+
+def get_closure_artifact_cleanup_service(
+    repository: SqlAlchemyOrganizationClosurePackageRepository = Depends(
+        get_closure_package_repository
+    ),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    lifecycle: OrganizationLifecycleGuard = Depends(get_lifecycle_guard),
+    audit: AuditPort = Depends(get_audit_adapter),
+) -> OrganizationClosureArtifactCleanupService:
+    return OrganizationClosureArtifactCleanupService(
         repository,
         authorization,
         lifecycle,
@@ -137,6 +157,71 @@ def list_closure_package_artifacts(
             for item in items
         ]
     )
+
+
+@router.post(
+    "/organizations/{organization_id}/closure-executions/{execution_id}/closure-package/artifacts/purge",
+    response_model=OrganizationClosureArtifactCleanupResponse,
+)
+def purge_closure_source_artifacts(
+    organization_id: UUID,
+    execution_id: UUID,
+    auth: AuthContext = Depends(get_closure_auth_context),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    service: OrganizationClosureArtifactCleanupService = Depends(
+        get_closure_artifact_cleanup_service
+    ),
+) -> OrganizationClosureArtifactCleanupResponse:
+    _assert_target_context(auth, organization_id)
+    try:
+        result = service.purge_source_artifacts(
+            organization_id=organization_id,
+            execution_id=execution_id,
+            auth=auth,
+            access_token=_access_token(credentials),
+        )
+    except OrganizationClosureError as exc:
+        _raise_http_error(exc)
+    return OrganizationClosureArtifactCleanupResponse(
+        package_id=result.package.id,
+        total=result.total,
+        purged=result.purged,
+        already_absent=result.already_absent,
+        not_applicable=result.not_applicable,
+        relational_delete_required=result.relational_delete_required,
+        blocked=result.blocked,
+        file_cleanup_complete=result.file_cleanup_complete,
+        items=[
+            OrganizationClosureArtifactInventoryResponse.model_validate(item)
+            for item in result.items
+        ],
+    )
+
+
+@router.post(
+    "/organizations/{organization_id}/closure-executions/{execution_id}/closure-package/purge",
+    response_model=OrganizationClosurePackageResponse,
+)
+def purge_closure_package(
+    organization_id: UUID,
+    execution_id: UUID,
+    auth: AuthContext = Depends(get_closure_auth_context),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    service: OrganizationClosureArtifactCleanupService = Depends(
+        get_closure_artifact_cleanup_service
+    ),
+) -> OrganizationClosurePackageResponse:
+    _assert_target_context(auth, organization_id)
+    try:
+        package = service.purge_package(
+            organization_id=organization_id,
+            execution_id=execution_id,
+            auth=auth,
+            access_token=_access_token(credentials),
+        )
+    except OrganizationClosureError as exc:
+        _raise_http_error(exc)
+    return OrganizationClosurePackageResponse.model_validate(package)
 
 
 @router.get(
