@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
 import httpx
@@ -27,6 +28,8 @@ class OrganizationLifecycleSnapshot:
     organization_id: UUID
     status: str
     work_allowed: bool
+    is_deleted: bool = False
+    deleted_at: datetime | None = None
 
 
 class KyroxCoreLifecycleClient:
@@ -89,6 +92,8 @@ class OrganizationLifecycleGuard:
             returned_organization_id = UUID(str(data["organization_id"]))
             lifecycle_status = data["status"]
             work_allowed = data["work_allowed"]
+            is_deleted = data.get("is_deleted", False)
+            deleted_at_raw = data.get("deleted_at")
         except (KeyError, TypeError, ValueError) as exc:
             raise OrganizationLifecycleUnavailableError(
                 "Organization lifecycle authority returned an invalid response"
@@ -102,11 +107,30 @@ class OrganizationLifecycleGuard:
             not isinstance(lifecycle_status, str)
             or lifecycle_status not in _VALID_STATUSES
             or type(work_allowed) is not bool
+            or type(is_deleted) is not bool
         ):
             raise OrganizationLifecycleUnavailableError(
                 "Organization lifecycle authority returned an invalid response"
             )
-        if work_allowed != (lifecycle_status == "active"):
+
+        deleted_at: datetime | None = None
+        if deleted_at_raw is not None:
+            if not isinstance(deleted_at_raw, str):
+                raise OrganizationLifecycleUnavailableError(
+                    "Organization lifecycle authority returned an invalid deletion timestamp"
+                )
+            try:
+                deleted_at = datetime.fromisoformat(deleted_at_raw.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise OrganizationLifecycleUnavailableError(
+                    "Organization lifecycle authority returned an invalid deletion timestamp"
+                ) from exc
+
+        if is_deleted != (deleted_at is not None):
+            raise OrganizationLifecycleUnavailableError(
+                "Organization lifecycle authority returned inconsistent deletion state"
+            )
+        if work_allowed != (lifecycle_status == "active" and not is_deleted):
             raise OrganizationLifecycleUnavailableError(
                 "Organization lifecycle authority returned an inconsistent response"
             )
@@ -115,6 +139,8 @@ class OrganizationLifecycleGuard:
             organization_id=returned_organization_id,
             status=lifecycle_status,
             work_allowed=work_allowed,
+            is_deleted=is_deleted,
+            deleted_at=deleted_at,
         )
 
     def require_work_allowed(self, organization_id: UUID) -> OrganizationLifecycleSnapshot:
