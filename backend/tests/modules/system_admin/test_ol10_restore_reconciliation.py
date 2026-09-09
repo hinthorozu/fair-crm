@@ -28,13 +28,18 @@ from app.shared.database_backup.restore_reconciliation import (
 )
 
 
-def _backup(*, organization_id: UUID, completed_at: datetime) -> SystemBackup:
+def _backup(
+    *,
+    organization_id: UUID,
+    completed_at: datetime,
+    database_key: DatabaseKey = DatabaseKey.FAIR_CRM,
+) -> SystemBackup:
     now = completed_at
     return SystemBackup(
         id=uuid4(),
         organization_id=organization_id,
-        database_key=DatabaseKey.FAIR_CRM,
-        file_name="fair_crm_backup_test.dump",
+        database_key=database_key,
+        file_name=f"{database_key.value}_backup_test.dump",
         backup_format=BackupFormat.POSTGRESQL_DUMP,
         file_size=123,
         status=SystemBackupStatus.COMPLETED,
@@ -58,8 +63,8 @@ def _restore_job(*, backup: SystemBackup) -> SystemBackupRestoreJob:
     return SystemBackupRestoreJob.create(
         organization_id=backup.organization_id,
         source_type=RestoreJobSourceType.EXISTING_BACKUP,
-        source_database_key=DatabaseKey.FAIR_CRM,
-        target_database_key=DatabaseKey.FAIR_CRM,
+        source_database_key=backup.database_key,
+        target_database_key=backup.database_key,
         backup_id=backup.id,
         uploaded_file_path=None,
         source_file_name=backup.file_name,
@@ -129,23 +134,27 @@ def test_restore_source_rejects_uploaded_dump_without_authoritative_age(tmp_path
         )
 
 
-def test_restore_source_rejects_core_target_in_fair_runner(tmp_path: Path) -> None:
+def test_core_restore_requires_tracked_provenance_but_does_not_invent_fair_retention(
+    tmp_path: Path,
+) -> None:
     now = datetime(2026, 9, 9, 12, 0, tzinfo=UTC)
-    backup = _backup(organization_id=uuid4(), completed_at=now)
+    backup = _backup(
+        organization_id=uuid4(),
+        completed_at=now - timedelta(days=365),
+        database_key=DatabaseKey.KYROX_CORE,
+    )
     job = _restore_job(backup=backup)
-    job.target_database_key = DatabaseKey.KYROX_CORE
     dump_path = tmp_path / backup.file_name
     dump_path.write_bytes(b"PGDMP-test")
 
-    with pytest.raises(ValueError, match="Core restore is blocked"):
-        validate_restore_source_provenance(
-            job=job,
-            backup=backup,
-            dump_path=dump_path,
-            now=now,
-            retention_days=30,
-            checksum_file=lambda _: "a" * 64,
-        )
+    validate_restore_source_provenance(
+        job=job,
+        backup=backup,
+        dump_path=dump_path,
+        now=now,
+        retention_days=30,
+        checksum_file=lambda _: "a" * 64,
+    )
 
 
 def _build_restored_sqlite(tmp_path: Path, organization_ids: list[UUID]) -> str:
