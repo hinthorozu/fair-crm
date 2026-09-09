@@ -3,6 +3,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     CheckConstraint,
     DateTime,
@@ -208,4 +209,98 @@ class OrganizationClosureCredentialEventModel(Base):
     to_status: Mapped[str] = mapped_column(String(48), nullable=False)
     evidence_code: Mapped[str | None] = mapped_column(String(128))
     evidence_reference: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class OrganizationClosurePackageModel(Base):
+    __tablename__ = "crm_organization_closure_packages"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('planned', 'generating', 'ready', 'integrity_verified', 'expired', 'purged', 'blocked')",
+            name="ck_org_closure_package_status",
+        ),
+        UniqueConstraint(
+            "organization_id",
+            "closure_execution_id",
+            "schema_version",
+            name="uq_org_closure_package_execution_schema",
+        ),
+        Index("ix_closure_package_org", "organization_id"),
+        Index("ix_closure_package_exec", "closure_execution_id"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
+    organization_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    closure_execution_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("crm_organization_closure_executions.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    export_plan_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("crm_organization_closure_export_plans.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    schema_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    inventory_schema_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    storage_locator: Mapped[str] = mapped_column(String(1024), nullable=False)
+    manifest_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    manifest_digest: Mapped[str] = mapped_column(String(64), nullable=False)
+    package_digest: Mapped[str | None] = mapped_column(String(64))
+    byte_size: Mapped[int | None] = mapped_column(BigInteger)
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    failure_code: Mapped[str | None] = mapped_column(String(128))
+    failure_message: Mapped[str | None] = mapped_column(Text)
+    actor_user_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    actor_session_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    ready_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    integrity_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class OrganizationClosureArtifactInventoryModel(Base):
+    __tablename__ = "crm_organization_closure_artifact_inventory"
+    __table_args__ = (
+        CheckConstraint(
+            "ownership_class IN ('managed_product_artifact', 'external_reference')",
+            name="ck_org_closure_artifact_ownership_class",
+        ),
+        UniqueConstraint(
+            "package_id",
+            "artifact_key",
+            name="uq_org_closure_artifact_package_key",
+        ),
+        Index("ix_closure_artifact_package", "package_id"),
+        Index("ix_closure_artifact_org", "organization_id"),
+        Index("ix_closure_artifact_exec", "closure_execution_id"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    package_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("crm_organization_closure_packages.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    closure_execution_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("crm_organization_closure_executions.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    organization_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    inventory_schema_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    artifact_key: Mapped[str] = mapped_column(String(512), nullable=False)
+    artifact_class: Mapped[str] = mapped_column(String(96), nullable=False)
+    ownership_class: Mapped[str] = mapped_column(String(48), nullable=False)
+    owner_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    owner_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    storage_kind: Mapped[str] = mapped_column(String(48), nullable=False)
+    package_disposition: Mapped[str] = mapped_column(String(64), nullable=False)
+    cleanup_action: Mapped[str] = mapped_column(String(64), nullable=False)
+    locator_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    package_entry: Mapped[str | None] = mapped_column(String(1024))
+    byte_size: Mapped[int | None] = mapped_column(BigInteger)
+    content_digest: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

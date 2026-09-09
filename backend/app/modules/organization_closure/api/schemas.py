@@ -35,6 +35,56 @@ class OrganizationClosureExportPlanResponse(BaseModel):
     updated_at: datetime
 
 
+class OrganizationClosurePackageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    organization_id: UUID
+    closure_execution_id: UUID
+    export_plan_id: UUID
+    schema_version: str
+    inventory_schema_version: str
+    status: str
+    manifest_json: dict[str, Any]
+    manifest_digest: str
+    package_digest: str | None
+    byte_size: int | None
+    attempt_count: int
+    failure_code: str | None
+    failure_message: str | None
+    created_at: datetime
+    updated_at: datetime
+    ready_at: datetime | None
+    integrity_verified_at: datetime | None
+    expires_at: datetime | None
+
+
+class OrganizationClosureArtifactInventoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    package_id: UUID
+    closure_execution_id: UUID
+    organization_id: UUID
+    inventory_schema_version: str
+    artifact_key: str
+    artifact_class: str
+    ownership_class: str
+    owner_type: str
+    owner_id: str
+    storage_kind: str
+    package_disposition: str
+    cleanup_action: str
+    package_entry: str | None
+    byte_size: int | None
+    content_digest: str | None
+    created_at: datetime
+
+
+class OrganizationClosureArtifactInventoryListResponse(BaseModel):
+    items: list[OrganizationClosureArtifactInventoryResponse]
+
+
 class OrganizationClosureCredentialDispositionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
