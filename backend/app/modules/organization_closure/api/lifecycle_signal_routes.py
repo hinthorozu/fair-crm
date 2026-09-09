@@ -23,8 +23,6 @@ from app.modules.organization_closure.application.suspension_security import (
 
 router = APIRouter(prefix="/internal/lifecycle-security", tags=["internal-lifecycle-security"])
 
-_DEFAULT_SIGNAL_TOKEN = "dev-insecure-lifecycle-signal-token-change-me"
-
 
 class OrganizationSuspendedSignal(BaseModel):
     organization_id: UUID
@@ -39,10 +37,12 @@ class OrganizationSuspendedSignalResponse(BaseModel):
 def require_lifecycle_signal_credential(
     token: str | None = Header(default=None, alias="X-Kyrox-Lifecycle-Signal-Token"),
 ) -> None:
-    expected = os.getenv(
-        "FAIR_CRM_CORE_LIFECYCLE_SIGNAL_TOKEN",
-        _DEFAULT_SIGNAL_TOKEN,
-    )
+    expected = os.getenv("FAIR_CRM_CORE_LIFECYCLE_SIGNAL_TOKEN")
+    if not expected:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Lifecycle signal receiver is not configured",
+        )
     if token is None or not compare_digest(token, expected):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -63,7 +63,10 @@ def get_suspension_security_service(
     "/organization-suspended",
     response_model=OrganizationSuspendedSignalResponse,
     dependencies=[Depends(require_lifecycle_signal_credential)],
-    responses={401: {"description": "Invalid lifecycle signal credential"}, 503: {"description": "Core lifecycle authority unavailable"}},
+    responses={
+        401: {"description": "Invalid lifecycle signal credential"},
+        503: {"description": "Lifecycle signal receiver or Core authority unavailable"},
+    },
 )
 def organization_suspended(
     payload: OrganizationSuspendedSignal,
