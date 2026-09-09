@@ -302,7 +302,11 @@ function BulkEmailOperationWizardPageInner({
           }
         }
 
-        setEmailAccountId((current) => current || resolveDefaultEmailAccountId(activeEmailAccounts));
+        setEmailAccountId((current) =>
+          activeEmailAccounts.some((account) => account.id === current)
+            ? current
+            : resolveDefaultEmailAccountId(activeEmailAccounts),
+        );
 
         mailSettingsLoadedRef.current = true;
       } catch (err) {
@@ -454,12 +458,13 @@ function BulkEmailOperationWizardPageInner({
     return selectedFairs.length > 0;
   })();
 
-  const canProceedMailSettings =
-    !templatesLoading &&
-    Boolean(templateId.trim()) &&
-    Boolean(emailAccountId.trim()) &&
-    Boolean(subject.trim()) &&
-    !mailSettingsError;
+  // Step 2 intentionally remains actionable while idle. Exact mail-setting validity is
+  // enforced by validateCurrentStep(), so an invalid hidden/stale state produces a
+  // field error instead of silently disabling the only action that can surface it.
+  const canProceed =
+    currentStep.id === "recipient_source"
+      ? canProceedRecipientSource
+      : currentStep.id === "mail_settings";
 
   const previewReady =
     Boolean(preview) &&
@@ -473,13 +478,6 @@ function BulkEmailOperationWizardPageInner({
     (previewReady && (preview?.recipients.deduped_recipient_count ?? 0) > 0);
 
   const canProceedSummary = previewRequirementSatisfied;
-
-  const canProceed =
-    currentStep.id === "recipient_source"
-      ? canProceedRecipientSource
-      : currentStep.id === "mail_settings"
-        ? canProceedMailSettings
-        : false;
 
   const showContinue =
     currentStep.id === "recipient_source" || currentStep.id === "mail_settings";
