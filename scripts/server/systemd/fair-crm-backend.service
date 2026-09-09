@@ -11,6 +11,9 @@ Group=__DEPLOY_SERVICE_USER__
 WorkingDirectory=__FAIR_CRM_DIR__/backend
 Environment=PYTHONPATH=__FAIR_CRM_DIR__/backend
 EnvironmentFile=-__FAIR_CRM_DIR__/backend/.env
+# A failed/incomplete restore leaves this lock outside the restored database.
+# Refuse startup until OL10 reconciliation has certified the restored state.
+ExecStartPre=/bin/bash -c 'test ! -e "__FAIR_CRM_DIR__/data/restore_maintenance.lock"'
 # Run this pre-start command with full privileges so deploys can update the
 # installed nginx site without granting the application user write access to /etc.
 ExecStartPre=+/bin/bash __FAIR_CRM_DIR__/scripts/server/apply-nginx-upload-limit.sh
