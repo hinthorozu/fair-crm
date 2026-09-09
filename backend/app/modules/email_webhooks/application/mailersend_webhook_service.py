@@ -10,6 +10,11 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.integrations.kyrox_core.lifecycle import (
+    OrganizationLifecycleGuard,
+    OrganizationLifecycleUnavailableError,
+    OrganizationWorkNotAllowedError,
+)
 from app.modules.activities.domain.entities import Activity
 from app.modules.activities.domain.value_objects import ActivitySource, ActivityStatus, ActivityType
 from app.modules.activities.infrastructure.repositories.activity_repository import (
@@ -72,13 +77,19 @@ class MailerSendWebhookResult:
 
 
 class MailerSendWebhookService:
-    def __init__(self, session: Session) -> None:
+    def __init__(
+        self,
+        session: Session,
+        *,
+        lifecycle_guard: OrganizationLifecycleGuard | None = None,
+    ) -> None:
         self._session = session
         self._accounts = SqlAlchemyEmailAccountRepository(session)
         self._operations = SqlAlchemyMailSendOperationRepository(session)
         self._customers = SqlAlchemyCustomerRepository(session)
         self._contacts = SqlAlchemyContactRepository(session)
         self._activities = SqlAlchemyActivityRepository(session)
+        self._lifecycle_guard = lifecycle_guard or OrganizationLifecycleGuard()
 
     def handle(
         self,
@@ -104,6 +115,35 @@ class MailerSendWebhookService:
             raise MailerSendWebhookAccountNotFoundError(str(email_account_id))
         if (account.provider_key or "").strip().lower() != MAILERSEND_PROVIDER_KEY:
             raise MailerSendWebhookNotMailerSendAccountError(str(email_account_id))
+
+        # OL09-B: the authoritative Core SUSPENDED edge is the webhook cutoff.
+        # This check deliberately runs before provider-config access so a signing
+        # secret is neither read nor used once Core no longer authorizes work.
+        try:
+            self._lifecycle_guard.require_work_allowed(account.organization_id)
+        except OrganizationWorkNotAllowedError:
+            logger.info(
+                "mailersend_webhook_lifecycle_drop account_id=%s organization_id=%s reason=work_not_allowed",
+                email_account_id,
+                account.organization_id,
+            )
+            return MailerSendWebhookResult(
+                outcome="ignored",
+                detail="organization_work_not_allowed",
+            )
+        except OrganizationLifecycleUnavailableError:
+            # Fail closed without asking the provider to replay later. An event
+            # received while authority is unavailable may have occurred during a
+            # suspended episode and OL09-B forbids replay after reactivation.
+            logger.warning(
+                "mailersend_webhook_lifecycle_drop account_id=%s organization_id=%s reason=authority_unavailable",
+                email_account_id,
+                account.organization_id,
+            )
+            return MailerSendWebhookResult(
+                outcome="ignored",
+                detail="lifecycle_authority_unavailable",
+            )
 
         provider_config = self._accounts.get_provider_config(
             email_account_id,
