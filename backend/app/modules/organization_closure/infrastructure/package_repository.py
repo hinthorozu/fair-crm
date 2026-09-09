@@ -94,6 +94,18 @@ class SqlAlchemyOrganizationClosurePackageRepository:
         )
         return tuple(self._session.scalars(stmt).all())
 
+    def get_import_batch(
+        self,
+        organization_id: UUID,
+        batch_id: UUID,
+    ) -> ImportBatchModel | None:
+        return self._session.scalar(
+            select(ImportBatchModel).where(
+                ImportBatchModel.organization_id == organization_id,
+                ImportBatchModel.id == batch_id,
+            )
+        )
+
     def list_scoped_ids(
         self,
         *,
