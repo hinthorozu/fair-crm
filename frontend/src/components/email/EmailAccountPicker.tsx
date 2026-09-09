@@ -1,7 +1,10 @@
 import React from "react";
 import { adminLabels } from "../../labels/adminLabels";
 import type { EmailAccount } from "../../types/smtp";
-import { formatEmailAccountOptionLabel } from "../../utils/emailAccountSelection";
+import {
+  formatEmailAccountOptionLabel,
+  resolveDefaultEmailAccountId,
+} from "../../utils/emailAccountSelection";
 import { FormField, SelectInput } from "../ui/form";
 
 export interface EmailAccountPickerProps {
@@ -26,12 +29,21 @@ export function EmailAccountPicker({
   fullWidth = true,
 }: EmailAccountPickerProps) {
   const empty = accounts.length === 0;
+  const effectiveValue = accounts.some((account) => account.id === value)
+    ? value
+    : resolveDefaultEmailAccountId(accounts);
+
+  React.useEffect(() => {
+    if (effectiveValue !== value) {
+      onChange(effectiveValue);
+    }
+  }, [effectiveValue, onChange, value]);
 
   return (
     <FormField label={label} htmlFor={id} required={required} fullWidth={fullWidth}>
       <SelectInput
         id={id}
-        value={empty ? "" : value}
+        value={effectiveValue}
         disabled={disabled || empty}
         required={required && !empty}
         onChange={(event) => onChange(event.target.value)}
