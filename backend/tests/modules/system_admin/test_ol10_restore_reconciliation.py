@@ -27,6 +27,8 @@ from app.shared.database_backup.restore_reconciliation import (
     run_restore_organization_reconciliation,
 )
 
+_EPISODE_AT = datetime(2026, 9, 9, 16, 0, tzinfo=UTC)
+
 
 def _backup(
     *,
@@ -221,11 +223,13 @@ def test_reconciliation_accepts_active_and_suspended_non_deleted_orgs(tmp_path: 
                 organization_id=active_id,
                 status="active",
                 work_allowed=True,
+                updated_at=_EPISODE_AT,
             ),
             suspended_id: OrganizationLifecycleSnapshot(
                 organization_id=suspended_id,
                 status="suspended",
                 work_allowed=False,
+                updated_at=_EPISODE_AT,
             ),
         }
     )
@@ -251,6 +255,7 @@ def test_reconciliation_blocks_core_deleted_organization(tmp_path: Path) -> None
                 organization_id=organization_id,
                 status="archived",
                 work_allowed=False,
+                updated_at=_EPISODE_AT,
                 is_deleted=True,
                 deleted_at=datetime(2026, 9, 1, tzinfo=UTC),
             )
