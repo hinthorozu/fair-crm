@@ -7,9 +7,9 @@ import os
 import sys
 
 from app.integrations.kyrox_core.dev_bypass import NoOpAuditAdapter
-from app.modules.system_admin.application.restore_job_service import (
-    RestoreJobMaintenanceCommand,
-    RestoreJobMaintenanceRunner,
+from app.modules.system_admin.application.restore_job_service import RestoreJobMaintenanceCommand
+from app.modules.system_admin.maintenance.certified_restore_runner import (
+    CertifiedRestoreJobMaintenanceRunner,
 )
 
 
@@ -37,7 +37,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Invalid job id: {args.job_id}", file=sys.stderr)
         return 1
 
-    runner = RestoreJobMaintenanceRunner(audit=NoOpAuditAdapter())
+    runner = CertifiedRestoreJobMaintenanceRunner(audit=NoOpAuditAdapter())
     return runner.run(
         RestoreJobMaintenanceCommand(
             job_id=job_id,

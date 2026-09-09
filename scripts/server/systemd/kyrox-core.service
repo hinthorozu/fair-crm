@@ -10,6 +10,9 @@ Group=__DEPLOY_SERVICE_USER__
 WorkingDirectory=__KYROX_CORE_DIR__/backend
 Environment=PYTHONPATH=__KYROX_CORE_DIR__/backend
 EnvironmentFile=-__KYROX_CORE_DIR__/backend/.env
+# A failed/incomplete OL10 restore leaves this lock outside both databases.
+# Refuse Core startup until the restore has been certified successfully.
+ExecStartPre=/bin/bash -c 'test ! -e "__FAIR_CRM_DIR__/data/restore_maintenance.lock"'
 ExecStart=__KYROX_CORE_DIR__/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=5

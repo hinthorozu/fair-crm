@@ -1,5 +1,6 @@
+import asyncio
 import logging
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
@@ -14,6 +15,7 @@ from app.core.logging import setup_logging
 from app.core.request_timing import RequestTimingMiddleware
 from app.integrations.kyrox_core.dev_bypass import log_dev_bypass_startup_warning
 from app.modules.scraper.core.playwright_availability import log_playwright_browser_startup_check
+from app.shared.database_backup.retention import prune_expired_fair_crm_full_backups
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,7 @@ DEV_CORS_ORIGINS = frozenset(
         "http://127.0.0.1:4173",
     }
 )
+BACKUP_RETENTION_PRUNE_INTERVAL_SECONDS = 60 * 60
 
 
 def _cors_headers(request: Request) -> dict[str, str]:
@@ -41,9 +44,33 @@ def _json_response(request: Request, status_code: int, content: dict) -> JSONRes
     return JSONResponse(status_code=status_code, content=content, headers=_cors_headers(request))
 
 
+async def _backup_retention_loop() -> None:
+    while True:
+        try:
+            result = await asyncio.to_thread(prune_expired_fair_crm_full_backups)
+            if result.deleted_count or result.failed_count:
+                logger.info(
+                    "Backup retention prune completed: deleted=%s failed=%s cutoff=%s",
+                    result.deleted_count,
+                    result.failed_count,
+                    result.cutoff.isoformat(),
+                )
+        except Exception:
+            # Retention cleanup must be visible but must not take the API down. Restore
+            # eligibility independently remains fail-closed at the 30-day boundary.
+            logger.exception("Backup retention prune failed")
+        await asyncio.sleep(BACKUP_RETENTION_PRUNE_INTERVAL_SECONDS)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    yield
+    retention_task = asyncio.create_task(_backup_retention_loop())
+    try:
+        yield
+    finally:
+        retention_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await retention_task
 
 
 def create_app() -> FastAPI:

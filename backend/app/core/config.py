@@ -107,6 +107,11 @@ class Settings(BaseSettings):
         default=True,
         validation_alias="FAIR_CRM_DATABASE_RESTORE_ENABLED",
     )
+    database_backup_retention_days: int = Field(
+        default=30,
+        ge=1,
+        validation_alias="FAIR_CRM_DATABASE_BACKUP_RETENTION_DAYS",
+    )
     import_max_file_size_mb: int = Field(
         default=50,
         validation_alias=AliasChoices("IMPORT_MAX_FILE_SIZE_MB", "FAIR_CRM_IMPORT_MAX_FILE_SIZE_MB"),
