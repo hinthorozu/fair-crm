@@ -1138,7 +1138,9 @@ function BulkEmailOperationWizardPageInner({
               type="button"
               variant="primary"
               onClick={goNext}
-              disabled={!canProceed || navDisabled}
+              disabled={
+                currentStep.id === "mail_settings" ? navDisabled : !canProceed || navDisabled
+              }
             >
               {operationLabels.continue}
             </Button>
