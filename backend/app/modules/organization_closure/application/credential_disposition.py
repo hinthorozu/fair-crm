@@ -48,7 +48,6 @@ STATUS_OUTBOUND_DISABLED = "outbound_disabled"
 STATUS_OPERATOR_REQUIRED = "operator_required"
 STATUS_BLOCKED_SUPPORTED_UNIDENTIFIABLE = "blocked_supported_unidentifiable"
 STATUS_LOCAL_SEND_SECRETS_PURGED = "local_send_secrets_purged"
-STATUS_RECEIVE_ONLY_PENDING = "receive_only_pending"
 STATUS_DISPOSITION_COMPLETE = "disposition_complete"
 
 ACTION_RECORD_TARGET = "record_target"
@@ -296,14 +295,32 @@ class OrganizationClosureCredentialDispositionService:
             return
 
         if account_type == EmailAccountType.PROVIDER and (provider_key or "").lower() == MAILERSEND_PROVIDER_KEY:
-            provider_config = self._email_accounts.get_provider_config(
+            pair = self._email_accounts.get_with_provider_config(
+                disposition.organization_id,
                 disposition.email_account_id,
-                organization_id=disposition.organization_id,
             )
+            provider_config = pair[1] if pair is not None else None
             config = provider_config.config if provider_config is not None else {}
             has_api_token = bool((config.get("api_token") or "").strip())
             has_signing_secret = bool((config.get("webhook_signing_secret") or "").strip())
-            disposition.signing_secret_retained = has_signing_secret
+
+            if pair is not None and has_signing_secret:
+                account, provider_config = pair
+                provider_config.config = dict(provider_config.config)
+                provider_config.config["webhook_signing_secret"] = ""
+                provider_config.updated_at = now
+                self._email_accounts.update_provider_account(account, provider_config)
+                self._append_event(
+                    disposition=disposition,
+                    actor=actor,
+                    action="webhook_signing_secret_zeroized",
+                    from_status=STATUS_OUTBOUND_DISABLED,
+                    to_status=STATUS_OUTBOUND_DISABLED,
+                    at=now,
+                    evidence_code="ol09b_zero_retention_boundary",
+                )
+
+            disposition.signing_secret_retained = False
             if has_api_token:
                 disposition.capability_class = CAPABILITY_SUPPORTED_UNIDENTIFIABLE
                 disposition.external_invalidation_state = EXTERNAL_BLOCKED_SUPPORTED_UNIDENTIFIABLE
@@ -323,21 +340,6 @@ class OrganizationClosureCredentialDispositionService:
                     at=now,
                     evidence_code="mailersend_token_target_missing",
                 )
-            elif has_signing_secret:
-                disposition.capability_class = CAPABILITY_NOT_APPLICABLE
-                disposition.external_invalidation_state = EXTERNAL_NOT_APPLICABLE
-                disposition.target_verification_state = TARGET_NOT_REQUIRED
-                disposition.status = STATUS_RECEIVE_ONLY_PENDING
-                disposition.send_secret_purged_at = now
-                self._append_event(
-                    disposition=disposition,
-                    actor=actor,
-                    action="receive_only_pending",
-                    from_status=STATUS_OUTBOUND_DISABLED,
-                    to_status=STATUS_RECEIVE_ONLY_PENDING,
-                    at=now,
-                    evidence_code="webhook_signing_secret_retained_for_drain",
-                )
             else:
                 disposition.capability_class = CAPABILITY_NOT_APPLICABLE
                 disposition.external_invalidation_state = EXTERNAL_NOT_APPLICABLE
@@ -351,7 +353,7 @@ class OrganizationClosureCredentialDispositionService:
                     from_status=STATUS_OUTBOUND_DISABLED,
                     to_status=STATUS_DISPOSITION_COMPLETE,
                     at=now,
-                    evidence_code="no_reusable_provider_secret_present",
+                    evidence_code="no_reusable_provider_send_secret_present",
                 )
             disposition.updated_at = now
             return
