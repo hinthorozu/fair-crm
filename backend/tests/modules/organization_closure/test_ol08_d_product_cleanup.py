@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from hashlib import sha256
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
@@ -17,10 +16,11 @@ from app.modules.email_accounts.infrastructure.persistence.models import (
 from app.modules.imports.infrastructure.persistence.models import ImportBatchModel
 from app.modules.mail_send_operations.infrastructure.persistence.models import MailSendOperationModel
 from app.modules.organization_closure.application.closure_package import (
-    INVENTORY_SCHEMA_VERSION,
-    PACKAGE_SCHEMA_VERSION,
+    OrganizationClosurePackageService,
 )
-from app.modules.organization_closure.application.export_planner import EXPORT_SCHEMA_VERSION
+from app.modules.organization_closure.application.export_planner import (
+    OrganizationClosureExportPlanner,
+)
 from app.modules.organization_closure.application.product_cleanup import (
     PRODUCT_CLEANUP_PLAN,
     OrganizationClosureProductCleanupService,
@@ -29,21 +29,22 @@ from app.modules.organization_closure.application.service import (
     ClosureExecutionConflictError,
     ClosureLifecyclePreconditionError,
 )
+from app.modules.organization_closure.infrastructure.export_plan_repository import (
+    SqlAlchemyOrganizationClosureExportPlanRepository,
+)
 from app.modules.organization_closure.infrastructure.models import (
-    OrganizationClosureArtifactInventoryModel,
     OrganizationClosureCredentialDispositionModel,
     OrganizationClosureExecutionModel,
-    OrganizationClosureExportPlanModel,
-    OrganizationClosurePackageModel,
 )
-from app.modules.organization_closure.infrastructure.package_storage import (
-    canonical_manifest_bytes,
-    write_immutable_package,
+from app.modules.organization_closure.infrastructure.package_repository import (
+    SqlAlchemyOrganizationClosurePackageRepository,
 )
 from app.modules.organization_closure.infrastructure.product_cleanup_repository import (
     SqlAlchemyOrganizationClosureProductCleanupRepository,
 )
-from app.modules.system_admin.infrastructure.persistence.models import SystemDataOperationRunModel
+from app.modules.system_admin.infrastructure.persistence.models import (
+    SystemDataOperationRunModel,
+)
 
 
 class FakeAuthorization:
@@ -95,7 +96,7 @@ def _auth(organization_id) -> AuthContext:
     )
 
 
-def _foundation(db_session, organization_id, package_root: Path, *, ready_at: datetime):
+def _execution(db_session, organization_id, *, now: datetime):
     auth = _auth(organization_id)
     execution = OrganizationClosureExecutionModel(
         id=uuid4(),
@@ -108,69 +109,55 @@ def _foundation(db_session, organization_id, package_root: Path, *, ready_at: da
         attempt_count=1,
         failure_code=None,
         failure_message=None,
-        created_at=ready_at,
-        updated_at=ready_at,
+        created_at=now,
+        updated_at=now,
         last_retry_at=None,
         closed_at=None,
     )
-    plan = OrganizationClosureExportPlanModel(
-        id=uuid4(),
-        organization_id=organization_id,
-        closure_execution_id=execution.id,
-        schema_version=EXPORT_SCHEMA_VERSION,
-        disposition="required",
-        status="planned",
-        manifest_json={},
-        manifest_digest="0" * 64,
-        actor_user_id=auth.user_id,
-        actor_session_id=auth.session_id,
-        created_at=ready_at,
-        updated_at=ready_at,
-    )
-    package_id = uuid4()
-    manifest = {
-        "schema_version": PACKAGE_SCHEMA_VERSION,
-        "organization_id": str(organization_id),
-        "closure_execution_id": str(execution.id),
-        "package_id": str(package_id),
-        "members": [],
-    }
-    stored = write_immutable_package(
-        organization_id=organization_id,
-        execution_id=execution.id,
-        package_id=package_id,
-        manifest=manifest,
-        members=[],
-        storage_root=package_root,
-    )
-    package = OrganizationClosurePackageModel(
-        id=package_id,
-        organization_id=organization_id,
-        closure_execution_id=execution.id,
-        export_plan_id=plan.id,
-        schema_version=PACKAGE_SCHEMA_VERSION,
-        inventory_schema_version=INVENTORY_SCHEMA_VERSION,
-        status="integrity_verified",
-        storage_locator=stored.relative_locator,
-        manifest_json=manifest,
-        manifest_digest=sha256(canonical_manifest_bytes(manifest)).hexdigest(),
-        package_digest=stored.digest,
-        byte_size=stored.byte_size,
-        attempt_count=1,
-        failure_code=None,
-        failure_message=None,
-        actor_user_id=auth.user_id,
-        actor_session_id=auth.session_id,
-        created_at=ready_at,
-        updated_at=ready_at,
-        ready_at=ready_at,
-        integrity_verified_at=ready_at,
-        expires_at=ready_at + timedelta(days=30),
-        purged_at=None,
-    )
-    db_session.add_all([execution, plan, package])
+    db_session.add(execution)
     db_session.flush()
-    return execution, package, auth
+    return execution, auth
+
+
+def _plan_and_package(
+    db_session,
+    *,
+    organization_id,
+    execution_id,
+    auth: AuthContext,
+    package_root: Path,
+    lifecycle: FakeLifecycle,
+):
+    planner = OrganizationClosureExportPlanner(
+        SqlAlchemyOrganizationClosureExportPlanRepository(db_session),
+        FakeAuthorization(),
+        lifecycle,
+        RecordingAudit(),
+    )
+    plan = planner.plan(
+        organization_id=organization_id,
+        execution_id=execution_id,
+        auth=auth,
+        access_token="token",
+    )
+    package_service = OrganizationClosurePackageService(
+        SqlAlchemyOrganizationClosurePackageRepository(db_session),
+        FakeAuthorization(),
+        lifecycle,
+        RecordingAudit(),
+        package_storage_root=package_root,
+        logo_storage_root=package_root / "logos",
+        handoff_storage_root=package_root / "handoff",
+    )
+    package = package_service.generate(
+        organization_id=organization_id,
+        execution_id=execution_id,
+        auth=auth,
+        access_token="token",
+    )
+    assert package.status == "integrity_verified"
+    assert package.export_plan_id == plan.id
+    return package
 
 
 def _service(
@@ -270,47 +257,6 @@ def _add_import_batch(db_session, organization_id, *, content: bytes):
     return row
 
 
-def _add_import_inventory(
-    db_session,
-    *,
-    organization_id,
-    execution_id,
-    package_id,
-    batch_id,
-    content: bytes,
-):
-    now = datetime(2026, 1, 1, tzinfo=UTC)
-    item = OrganizationClosureArtifactInventoryModel(
-        id=uuid4(),
-        package_id=package_id,
-        closure_execution_id=execution_id,
-        organization_id=organization_id,
-        inventory_schema_version=INVENTORY_SCHEMA_VERSION,
-        artifact_key=f"import_upload:{batch_id}",
-        artifact_class="import_upload",
-        ownership_class="managed_product_artifact",
-        owner_type="import_batch",
-        owner_id=str(batch_id),
-        storage_kind="embedded_database_bytes",
-        package_disposition="included",
-        cleanup_action="package_then_hard_delete",
-        locator_json={"batch_id": str(batch_id), "field": "stored_file_content"},
-        package_entry=f"artifacts/imports/{batch_id}.bin",
-        byte_size=len(content),
-        content_digest=sha256(content).hexdigest(),
-        cleanup_status="relational_delete_required",
-        cleanup_attempt_count=1,
-        cleanup_failure_code=None,
-        cleanup_failure_message=None,
-        cleanup_last_attempt_at=now,
-        nonexistence_verified_at=None,
-        created_at=now,
-    )
-    db_session.add(item)
-    db_session.flush()
-    return item
-
-
 def _add_terminal_credential(db_session, organization_id, execution_id, account_id):
     now = datetime(2026, 1, 1, tzinfo=UTC)
     item = OrganizationClosureCredentialDispositionModel(
@@ -349,19 +295,13 @@ def test_product_cleanup_blocks_before_exact_30_day_grace_without_mutation(
     tmp_path,
 ) -> None:
     now = datetime(2026, 4, 1, tzinfo=UTC)
-    package_root = tmp_path / "packages"
-    execution, _, auth = _foundation(
-        db_session,
-        organization_id,
-        package_root,
-        ready_at=now - timedelta(days=1),
-    )
+    execution, auth = _execution(db_session, organization_id, now=now)
     _add_mail_send(db_session, organization_id, recipient="target@example.com")
     service, _ = _service(
         db_session,
         now=now,
         lifecycle=FakeLifecycle(updated_at=now - timedelta(days=29, hours=23)),
-        package_root=package_root,
+        package_root=tmp_path / "packages",
     )
 
     with pytest.raises(ClosureLifecyclePreconditionError):
@@ -376,26 +316,70 @@ def test_product_cleanup_blocks_before_exact_30_day_grace_without_mutation(
     ).items == ()
 
 
-def test_reconcile_deletes_only_one_class_and_never_crosses_organization(
+def test_export_identity_drift_blocks_before_first_irreversible_delete(
     db_session,
     organization_id,
     tmp_path,
 ) -> None:
     now = datetime(2026, 5, 1, tzinfo=UTC)
     package_root = tmp_path / "packages"
-    execution, _, auth = _foundation(
+    lifecycle = FakeLifecycle(updated_at=now - timedelta(days=31))
+    execution, auth = _execution(db_session, organization_id, now=now)
+    original = _add_mail_send(db_session, organization_id, recipient="planned@example.com")
+    _plan_and_package(
         db_session,
-        organization_id,
-        package_root,
-        ready_at=now - timedelta(days=5),
+        organization_id=organization_id,
+        execution_id=execution.id,
+        auth=auth,
+        package_root=package_root,
+        lifecycle=lifecycle,
     )
+    drift = _add_mail_send(db_session, organization_id, recipient="drift@example.com")
+    service, _ = _service(
+        db_session,
+        now=now,
+        lifecycle=lifecycle,
+        package_root=package_root,
+    )
+
+    with pytest.raises(ClosureExecutionConflictError):
+        _reconcile(service, organization_id, execution.id, auth)
+
+    assert db_session.get(MailSendOperationModel, original.id) is not None
+    assert db_session.get(MailSendOperationModel, drift.id) is not None
+    evidence = service.get(
+        organization_id=organization_id,
+        execution_id=execution.id,
+        auth=auth,
+        access_token="token",
+    )
+    assert evidence.items == ()
+
+
+def test_reconcile_deletes_only_one_class_and_never_crosses_organization(
+    db_session,
+    organization_id,
+    tmp_path,
+) -> None:
+    now = datetime(2026, 5, 15, tzinfo=UTC)
+    package_root = tmp_path / "packages"
+    lifecycle = FakeLifecycle(updated_at=now - timedelta(days=31))
+    execution, auth = _execution(db_session, organization_id, now=now)
+    target = _add_mail_send(db_session, organization_id, recipient="target@example.com")
     foreign_org = uuid4()
-    _add_mail_send(db_session, organization_id, recipient="target@example.com")
     foreign = _add_mail_send(db_session, foreign_org, recipient="foreign@example.com")
+    _plan_and_package(
+        db_session,
+        organization_id=organization_id,
+        execution_id=execution.id,
+        auth=auth,
+        package_root=package_root,
+        lifecycle=lifecycle,
+    )
     service, audit = _service(
         db_session,
         now=now,
-        lifecycle=FakeLifecycle(updated_at=now - timedelta(days=31)),
+        lifecycle=lifecycle,
         package_root=package_root,
     )
 
@@ -404,8 +388,8 @@ def test_reconcile_deletes_only_one_class_and_never_crosses_organization(
     assert result.processed_class_key == "communication_history"
     assert result.completed == 1
     assert result.pending == len(PRODUCT_CLEANUP_PLAN) - 1
-    assert result.cleanup_complete is False
-    assert _count(db_session, MailSendOperationModel, organization_id) == 0
+    assert result.product_data_cleanup_complete is False
+    assert db_session.get(MailSendOperationModel, target.id) is None
     assert db_session.get(MailSendOperationModel, foreign.id) is not None
     assert any(
         event.get("action") == "organization_closure.product_cleanup.class_completed"
@@ -420,16 +404,20 @@ def test_new_suspension_episode_blocks_resume_before_next_irreversible_class(
 ) -> None:
     now = datetime(2026, 6, 30, tzinfo=UTC)
     package_root = tmp_path / "packages"
-    execution, _, auth = _foundation(
+    original_lifecycle = FakeLifecycle(updated_at=now - timedelta(days=40))
+    execution, auth = _execution(db_session, organization_id, now=now)
+    _plan_and_package(
         db_session,
-        organization_id,
-        package_root,
-        ready_at=now - timedelta(days=5),
+        organization_id=organization_id,
+        execution_id=execution.id,
+        auth=auth,
+        package_root=package_root,
+        lifecycle=original_lifecycle,
     )
     first_service, _ = _service(
         db_session,
         now=now,
-        lifecycle=FakeLifecycle(updated_at=now - timedelta(days=40)),
+        lifecycle=original_lifecycle,
         package_root=package_root,
     )
     first = _reconcile(first_service, organization_id, execution.id, auth)
@@ -462,12 +450,8 @@ def test_unregistered_system_data_operation_output_artifact_fails_closed(
 ) -> None:
     now = datetime(2026, 7, 15, tzinfo=UTC)
     package_root = tmp_path / "packages"
-    execution, _, auth = _foundation(
-        db_session,
-        organization_id,
-        package_root,
-        ready_at=now - timedelta(days=5),
-    )
+    lifecycle = FakeLifecycle(updated_at=now - timedelta(days=31))
+    execution, auth = _execution(db_session, organization_id, now=now)
     run = SystemDataOperationRunModel(
         id=uuid4(),
         organization_id=organization_id,
@@ -488,10 +472,18 @@ def test_unregistered_system_data_operation_output_artifact_fails_closed(
     )
     db_session.add(run)
     db_session.flush()
+    _plan_and_package(
+        db_session,
+        organization_id=organization_id,
+        execution_id=execution.id,
+        auth=auth,
+        package_root=package_root,
+        lifecycle=lifecycle,
+    )
     service, _ = _service(
         db_session,
         now=now,
-        lifecycle=FakeLifecycle(updated_at=now - timedelta(days=31)),
+        lifecycle=lifecycle,
         package_root=package_root,
     )
 
@@ -514,34 +506,41 @@ def test_import_embedded_bytes_are_destroyed_only_with_authorized_relational_del
 ) -> None:
     now = datetime(2026, 8, 1, tzinfo=UTC)
     package_root = tmp_path / "packages"
-    execution, package, auth = _foundation(
-        db_session,
-        organization_id,
-        package_root,
-        ready_at=now - timedelta(days=5),
-    )
+    lifecycle = FakeLifecycle(updated_at=now - timedelta(days=31))
+    execution, auth = _execution(db_session, organization_id, now=now)
     content = b"embedded upload bytes"
     batch = _add_import_batch(db_session, organization_id, content=content)
-    inventory = _add_import_inventory(
+    package = _plan_and_package(
         db_session,
         organization_id=organization_id,
         execution_id=execution.id,
-        package_id=package.id,
-        batch_id=batch.id,
-        content=content,
+        auth=auth,
+        package_root=package_root,
+        lifecycle=lifecycle,
     )
+    package_repo = SqlAlchemyOrganizationClosurePackageRepository(db_session)
+    inventory = next(
+        item
+        for item in package_repo.list_inventory(organization_id, execution.id, package.id)
+        if item.artifact_class == "import_upload" and item.owner_id == str(batch.id)
+    )
+    inventory.cleanup_status = "relational_delete_required"
+    inventory.cleanup_attempt_count = 1
+    inventory.cleanup_last_attempt_at = now
+    db_session.flush()
+
     service, _ = _service(
         db_session,
         now=now,
-        lifecycle=FakeLifecycle(updated_at=now - timedelta(days=31)),
+        lifecycle=lifecycle,
         package_root=package_root,
     )
-
-    for _ in range(5):
+    result = None
+    for _ in range(6):
         result = _reconcile(service, organization_id, execution.id, auth)
         assert result.blocked == 0
-    result = _reconcile(service, organization_id, execution.id, auth)
 
+    assert result is not None
     assert result.processed_class_key == "imports_data_integration"
     assert db_session.get(ImportBatchModel, batch.id) is None
     db_session.refresh(inventory)
@@ -556,12 +555,8 @@ def test_email_account_delete_requires_terminal_credential_evidence_and_retains_
 ) -> None:
     now = datetime(2026, 9, 1, tzinfo=UTC)
     package_root = tmp_path / "packages"
-    execution, _, auth = _foundation(
-        db_session,
-        organization_id,
-        package_root,
-        ready_at=now - timedelta(days=5),
-    )
+    lifecycle = FakeLifecycle(updated_at=now - timedelta(days=31))
+    execution, auth = _execution(db_session, organization_id, now=now)
     account = EmailAccountModel(
         id=uuid4(),
         organization_id=organization_id,
@@ -587,10 +582,18 @@ def test_email_account_delete_requires_terminal_credential_evidence_and_retains_
     )
     db_session.add_all([account, config])
     db_session.flush()
+    _plan_and_package(
+        db_session,
+        organization_id=organization_id,
+        execution_id=execution.id,
+        auth=auth,
+        package_root=package_root,
+        lifecycle=lifecycle,
+    )
     service, _ = _service(
         db_session,
         now=now,
-        lifecycle=FakeLifecycle(updated_at=now - timedelta(days=31)),
+        lifecycle=lifecycle,
         package_root=package_root,
     )
 
@@ -611,7 +614,7 @@ def test_email_account_delete_requires_terminal_credential_evidence_and_retains_
 
     assert final is not None
     assert final.processed_class_key == "email_accounts"
-    assert final.cleanup_complete is True
+    assert final.product_data_cleanup_complete is True
     assert db_session.get(EmailAccountModel, account.id) is None
     assert db_session.get(EmailAccountSmtpConfigModel, account.id) is None
     retained = db_session.get(OrganizationClosureCredentialDispositionModel, disposition.id)
