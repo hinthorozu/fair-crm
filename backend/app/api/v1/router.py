@@ -19,6 +19,9 @@ from app.modules.organization_closure.api.mailersend_invalidation_routes import 
 from app.modules.organization_closure.api.package_routes import (
     router as closure_package_router,
 )
+from app.modules.organization_closure.api.product_cleanup_routes import (
+    router as product_cleanup_router,
+)
 from app.modules.participations.api.routes import (
     customer_participations_router,
     fair_participants_router,
@@ -66,6 +69,7 @@ api_v1_router.include_router(organization_closure_router)
 api_v1_router.include_router(lifecycle_signal_router)
 api_v1_router.include_router(mailersend_invalidation_router)
 api_v1_router.include_router(closure_package_router)
+api_v1_router.include_router(product_cleanup_router)
 api_v1_router.include_router(scraper_router)
 api_v1_router.include_router(customer_contact_enrichment_router, prefix="/customers")
 api_v1_router.include_router(email_accounts_router)
