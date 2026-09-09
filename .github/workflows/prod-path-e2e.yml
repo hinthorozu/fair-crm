@@ -164,6 +164,8 @@ jobs:
               "organization_id": organization_id,
               "status": "active",
               "work_allowed": True,
+              "is_deleted": False,
+              "deleted_at": None,
           }, payload
           PY
 
