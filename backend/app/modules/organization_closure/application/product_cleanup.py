@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from hashlib import sha256
 from pathlib import Path
 from typing import Callable
 from uuid import UUID, uuid4
 
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.integrations.kyrox_core.lifecycle import (
     OrganizationLifecycleGuard,
@@ -23,7 +24,10 @@ from app.modules.customers.infrastructure.persistence.communication_models impor
     CustomerWebsiteModel,
 )
 from app.modules.customers.infrastructure.persistence.models import CustomerModel
-from app.modules.data_integration.infrastructure.persistence.models import ImportJobModel, ImportTemplateModel
+from app.modules.data_integration.infrastructure.persistence.models import (
+    ImportJobModel,
+    ImportTemplateModel,
+)
 from app.modules.email_accounts.infrastructure.persistence.models import (
     EmailAccountModel,
     EmailAccountProviderConfigModel,
@@ -40,7 +44,14 @@ from app.modules.operations.infrastructure.persistence.models import (
     OperationRunModel,
 )
 from app.modules.organization_closure.application.closure_package import PACKAGE_SCHEMA_VERSION
-from app.modules.organization_closure.application.credential_disposition import STATUS_DISPOSITION_COMPLETE
+from app.modules.organization_closure.application.credential_disposition import (
+    STATUS_DISPOSITION_COMPLETE,
+)
+from app.modules.organization_closure.application.export_planner import (
+    DATA_CLASS_REGISTRY,
+    EXPORT_SCHEMA_VERSION,
+    INCLUDED,
+)
 from app.modules.organization_closure.application.service import (
     STATUS_IN_PROGRESS,
     SYSTEM_CLOSURE_PERMISSION,
@@ -52,7 +63,10 @@ from app.modules.organization_closure.application.service import (
     ClosurePermissionDeniedError,
     OrganizationClosureError,
 )
-from app.modules.organization_closure.infrastructure.models import OrganizationClosureArtifactInventoryModel
+from app.modules.organization_closure.infrastructure.models import (
+    OrganizationClosureArtifactInventoryModel,
+    OrganizationClosurePackageModel,
+)
 from app.modules.organization_closure.infrastructure.package_storage import (
     DEFAULT_CLOSURE_PACKAGE_ROOT,
     ClosurePackageStorageError,
@@ -65,8 +79,13 @@ from app.modules.organization_closure.infrastructure.product_cleanup_models impo
 from app.modules.organization_closure.infrastructure.product_cleanup_repository import (
     SqlAlchemyOrganizationClosureProductCleanupRepository,
 )
-from app.modules.participations.infrastructure.persistence.models import CustomerFairParticipationModel
-from app.modules.quote_templates.infrastructure.models import QuoteTemplateModel, QuoteTemplateVersionModel
+from app.modules.participations.infrastructure.persistence.models import (
+    CustomerFairParticipationModel,
+)
+from app.modules.quote_templates.infrastructure.models import (
+    QuoteTemplateModel,
+    QuoteTemplateVersionModel,
+)
 from app.modules.quotes.infrastructure.models import QuoteModel
 from app.modules.scraper.infrastructure.persistence.models import (
     CustomerEnrichmentStateModel,
@@ -80,7 +99,10 @@ from app.modules.system_admin.infrastructure.persistence.models import (
     SystemDataOperationDatasetRowModel,
     SystemDataOperationRunModel,
 )
-from app.modules.template_contents.infrastructure.models import TemplateContentModel, TemplateContentTagModel
+from app.modules.template_contents.infrastructure.models import (
+    TemplateContentModel,
+    TemplateContentTagModel,
+)
 from app.modules.todos.infrastructure.persistence.models import (
     TodoModel,
     TodoOutcomeDefinitionModel,
@@ -140,7 +162,7 @@ class ProductCleanupResult:
     completed: int
     blocked: int
     pending: int
-    cleanup_complete: bool
+    product_data_cleanup_complete: bool
 
 
 class OrganizationClosureProductCleanupService:
@@ -172,44 +194,33 @@ class OrganizationClosureProductCleanupService:
         self._require_system_authority(organization_id, auth, access_token)
         self._require_open_execution(organization_id, execution_id)
         snapshot = self._require_suspended_grace(organization_id)
-        package, inventory = self._require_package_and_artifact_gates(organization_id, execution_id)
+        package, inventory = self._require_package_and_artifact_gates(
+            organization_id,
+            execution_id,
+        )
         self._require_credential_gate(organization_id, execution_id)
 
         items = self._repository.list_items(
-            organization_id, execution_id, PRODUCT_CLEANUP_POLICY_VERSION
+            organization_id,
+            execution_id,
+            PRODUCT_CLEANUP_POLICY_VERSION,
         )
         if not items:
-            now = self._now()
-            for spec in PRODUCT_CLEANUP_PLAN:
-                self._repository.add_item(
-                    OrganizationClosureProductCleanupItemModel(
-                        id=uuid4(),
-                        organization_id=organization_id,
-                        closure_execution_id=execution_id,
-                        policy_version=PRODUCT_CLEANUP_POLICY_VERSION,
-                        suspension_episode_updated_at=snapshot.updated_at,
-                        class_key=spec.key,
-                        sequence=spec.sequence,
-                        action="hard_delete",
-                        status="pending",
-                        attempt_count=0,
-                        before_count=None,
-                        deleted_count=None,
-                        remaining_count=None,
-                        failure_code=None,
-                        failure_message=None,
-                        actor_user_id=auth.user_id,
-                        actor_session_id=auth.session_id,
-                        created_at=now,
-                        updated_at=now,
-                        started_at=None,
-                        completed_at=None,
-                        last_attempt_at=None,
-                    )
-                )
-            self._repository.flush()
+            self._verify_export_identity_before_first_delete(
+                organization_id=organization_id,
+                execution_id=execution_id,
+                package=package,
+            )
+            self._seed_plan(
+                organization_id=organization_id,
+                execution_id=execution_id,
+                snapshot=snapshot,
+                auth=auth,
+            )
             items = self._repository.list_items(
-                organization_id, execution_id, PRODUCT_CLEANUP_POLICY_VERSION
+                organization_id,
+                execution_id,
+                PRODUCT_CLEANUP_POLICY_VERSION,
             )
 
         self._validate_plan_and_episode(items, snapshot)
@@ -244,38 +255,31 @@ class OrganizationClosureProductCleanupService:
                         "Product-data class still has organization-owned rows after hard-delete attempt",
                     )
         except _CleanupBlocked as exc:
-            self._mark_blocked(current, exc.code, exc.safe_message)
-            self._record_class_audit(
-                organization_id,
-                execution_id,
-                access_token,
-                current,
-                action="organization_closure.product_cleanup.blocked",
-            )
-            return self._result(
-                self._repository.list_items(
-                    organization_id, execution_id, PRODUCT_CLEANUP_POLICY_VERSION
-                ),
-                processed_class_key=current.class_key,
+            return self._blocked_result(
+                current=current,
+                code=exc.code,
+                message=exc.safe_message,
+                organization_id=organization_id,
+                execution_id=execution_id,
+                access_token=access_token,
             )
         except IntegrityError:
-            self._mark_blocked(
-                current,
-                "referential_integrity_blocked",
-                "Product-data class hard delete was blocked by current referential integrity",
+            return self._blocked_result(
+                current=current,
+                code="referential_integrity_blocked",
+                message="Product-data class hard delete was blocked by current referential integrity",
+                organization_id=organization_id,
+                execution_id=execution_id,
+                access_token=access_token,
             )
-            self._record_class_audit(
-                organization_id,
-                execution_id,
-                access_token,
-                current,
-                action="organization_closure.product_cleanup.blocked",
-            )
-            return self._result(
-                self._repository.list_items(
-                    organization_id, execution_id, PRODUCT_CLEANUP_POLICY_VERSION
-                ),
-                processed_class_key=current.class_key,
+        except SQLAlchemyError:
+            return self._blocked_result(
+                current=current,
+                code="product_cleanup_database_error",
+                message="Product-data class hard delete failed with a database error",
+                organization_id=organization_id,
+                execution_id=execution_id,
+                access_token=access_token,
             )
 
         current.status = "completed"
@@ -294,10 +298,14 @@ class OrganizationClosureProductCleanupService:
             current,
             action="organization_closure.product_cleanup.class_completed",
         )
-        items = self._repository.list_items(
-            organization_id, execution_id, PRODUCT_CLEANUP_POLICY_VERSION
+        return self._result(
+            self._repository.list_items(
+                organization_id,
+                execution_id,
+                PRODUCT_CLEANUP_POLICY_VERSION,
+            ),
+            processed_class_key=current.class_key,
         )
-        return self._result(items, processed_class_key=current.class_key)
 
     def get(
         self,
@@ -309,16 +317,125 @@ class OrganizationClosureProductCleanupService:
     ) -> ProductCleanupResult:
         self._require_system_authority(organization_id, auth, access_token)
         self._require_open_execution(organization_id, execution_id)
-        items = self._repository.list_items(
-            organization_id, execution_id, PRODUCT_CLEANUP_POLICY_VERSION
+        return self._result(
+            self._repository.list_items(
+                organization_id,
+                execution_id,
+                PRODUCT_CLEANUP_POLICY_VERSION,
+            ),
+            processed_class_key=None,
         )
-        return self._result(items, processed_class_key=None)
+
+    def _seed_plan(
+        self,
+        *,
+        organization_id: UUID,
+        execution_id: UUID,
+        snapshot: OrganizationLifecycleSnapshot,
+        auth: AuthContext,
+    ) -> None:
+        now = self._now()
+        for spec in PRODUCT_CLEANUP_PLAN:
+            self._repository.add_item(
+                OrganizationClosureProductCleanupItemModel(
+                    id=uuid4(),
+                    organization_id=organization_id,
+                    closure_execution_id=execution_id,
+                    policy_version=PRODUCT_CLEANUP_POLICY_VERSION,
+                    suspension_episode_updated_at=snapshot.updated_at,
+                    class_key=spec.key,
+                    sequence=spec.sequence,
+                    action="hard_delete",
+                    status="pending",
+                    attempt_count=0,
+                    before_count=None,
+                    deleted_count=None,
+                    remaining_count=None,
+                    failure_code=None,
+                    failure_message=None,
+                    actor_user_id=auth.user_id,
+                    actor_session_id=auth.session_id,
+                    created_at=now,
+                    updated_at=now,
+                    started_at=None,
+                    completed_at=None,
+                    last_attempt_at=None,
+                )
+            )
+        self._repository.flush()
+
+    def _verify_export_identity_before_first_delete(
+        self,
+        *,
+        organization_id: UUID,
+        execution_id: UUID,
+        package: OrganizationClosurePackageModel,
+    ) -> None:
+        plan = self._repository.get_export_plan(
+            organization_id,
+            execution_id,
+            EXPORT_SCHEMA_VERSION,
+        )
+        if plan is None or plan.id != package.export_plan_id:
+            raise ClosureExecutionConflictError(
+                "Canonical closure package is not bound to the current accepted export plan"
+            )
+        planned_classes = {
+            item.get("key"): item
+            for item in plan.manifest_json.get("data_classes", [])
+            if isinstance(item, dict) and isinstance(item.get("key"), str)
+        }
+        for data_class in DATA_CLASS_REGISTRY:
+            planned = planned_classes.get(data_class.key)
+            if planned is None or planned.get("classification") != data_class.classification:
+                raise ClosureExecutionConflictError(
+                    "Closure export plan no longer matches the accepted data-class registry"
+                )
+            if data_class.classification != INCLUDED:
+                continue
+            planned_sources = {
+                item.get("key"): item
+                for item in planned.get("sources", [])
+                if isinstance(item, dict) and isinstance(item.get("key"), str)
+            }
+            total_count = 0
+            for source in data_class.sources:
+                planned_source = planned_sources.get(source.key)
+                if planned_source is None:
+                    raise ClosureExecutionConflictError(
+                        "Closure export plan source registry is incomplete"
+                    )
+                ids = self._repository.list_scoped_ids(
+                    model=source.model,
+                    scope_model=source.scope_model,
+                    organization_id=organization_id,
+                    join_on=source.join_on,
+                )
+                identity_digest = sha256(
+                    "\n".join(sorted(str(record_id) for record_id in ids)).encode("utf-8")
+                ).hexdigest()
+                if (
+                    planned_source.get("record_count") != len(ids)
+                    or planned_source.get("record_identity_digest") != identity_digest
+                ):
+                    raise ClosureExecutionConflictError(
+                        "Closure export identity changed after package verification; destructive cleanup is blocked"
+                    )
+                total_count += len(ids)
+            if planned.get("record_count") != total_count:
+                raise ClosureExecutionConflictError(
+                    "Closure export class count changed after package verification; destructive cleanup is blocked"
+                )
 
     def _require_package_and_artifact_gates(
-        self, organization_id: UUID, execution_id: UUID
-    ):
+        self,
+        organization_id: UUID,
+        execution_id: UUID,
+    ) -> tuple[OrganizationClosurePackageModel, tuple[OrganizationClosureArtifactInventoryModel, ...]]:
         package = self._repository.get_package(
-            organization_id, execution_id, PACKAGE_SCHEMA_VERSION
+            organization_id,
+            execution_id,
+            PACKAGE_SCHEMA_VERSION,
         )
         if package is None or package.integrity_verified_at is None or package.package_digest is None:
             raise ClosureExecutionConflictError(
@@ -326,7 +443,8 @@ class OrganizationClosureProductCleanupService:
             )
 
         path = resolve_stored_locator(
-            package.storage_locator, storage_root=self._package_storage_root
+            package.storage_locator,
+            storage_root=self._package_storage_root,
         )
         if package.status == "purged":
             if package.purged_at is None or path.exists() or path.is_symlink():
@@ -355,14 +473,22 @@ class OrganizationClosureProductCleanupService:
                 ) from exc
 
         inventory = self._repository.list_inventory(
-            organization_id, execution_id, package.id
+            organization_id,
+            execution_id,
+            package.id,
         )
         for item in inventory:
             if item.ownership_class == "external_reference":
                 accepted = item.cleanup_status == "not_applicable"
-            elif item.ownership_class == "managed_product_artifact" and item.storage_kind == "managed_file":
+            elif (
+                item.ownership_class == "managed_product_artifact"
+                and item.storage_kind == "managed_file"
+            ):
                 accepted = item.cleanup_status in {"purged", "already_absent"}
-            elif item.ownership_class == "managed_product_artifact" and item.storage_kind == "embedded_database_bytes":
+            elif (
+                item.ownership_class == "managed_product_artifact"
+                and item.storage_kind == "embedded_database_bytes"
+            ):
                 accepted = item.cleanup_status in {
                     "relational_delete_required",
                     "already_absent",
@@ -406,25 +532,24 @@ class OrganizationClosureProductCleanupService:
             )
 
     def _delete_communication_history(self, *, organization_id: UUID, **_: object) -> tuple[int, int]:
-        models = (MailSendOperationModel, FairEmailBatchModel)
-        before = self._count_direct_models(models, organization_id)
-        for model in models:
-            self._repository.delete_direct(model, organization_id)
-        self._repository.flush()
-        return before, self._count_direct_models(models, organization_id)
+        return self._delete_direct_group(
+            organization_id,
+            (MailSendOperationModel, FairEmailBatchModel),
+        )
 
     def _delete_operations(self, *, organization_id: UUID, **_: object) -> tuple[int, int]:
-        models = (OperationRunItemModel, OperationRunModel, OperationModel)
-        before = self._count_direct_models(models, organization_id)
-        for model in models:
-            self._repository.delete_direct(model, organization_id)
-        self._repository.flush()
-        return before, self._count_direct_models(models, organization_id)
+        return self._delete_direct_group(
+            organization_id,
+            (OperationRunItemModel, OperationRunModel, OperationModel),
+        )
 
     def _delete_scraper_state(self, *, organization_id: UUID, **_: object) -> tuple[int, int]:
         run_ids = self._repository.scoped_ids(ScraperRunHistoryModel, organization_id)
         log_before = (
-            self._repository.count_where(ScraperRunLogModel, ScraperRunLogModel.run_id.in_(run_ids))
+            self._repository.count_where(
+                ScraperRunLogModel,
+                ScraperRunLogModel.run_id.in_(run_ids),
+            )
             if run_ids
             else 0
         )
@@ -437,37 +562,51 @@ class OrganizationClosureProductCleanupService:
         before = log_before + self._count_direct_models(direct_models, organization_id)
         self._repository.delete_direct(CustomerEnrichmentStateModel, organization_id)
         if run_ids:
-            self._repository.delete_where(ScraperRunLogModel, ScraperRunLogModel.run_id.in_(run_ids))
+            self._repository.delete_where(
+                ScraperRunLogModel,
+                ScraperRunLogModel.run_id.in_(run_ids),
+            )
         self._repository.delete_direct(ScraperRunHistoryModel, organization_id)
         self._repository.delete_direct(ScraperRegistryAdapterHideModel, organization_id)
         self._repository.delete_direct(ScraperAdapterModel, organization_id)
         self._repository.flush()
         remaining_logs = (
-            self._repository.count_where(ScraperRunLogModel, ScraperRunLogModel.run_id.in_(run_ids))
+            self._repository.count_where(
+                ScraperRunLogModel,
+                ScraperRunLogModel.run_id.in_(run_ids),
+            )
             if run_ids
             else 0
         )
         return before, remaining_logs + self._count_direct_models(direct_models, organization_id)
 
-    def _delete_system_data_operations(self, *, organization_id: UUID, **_: object) -> tuple[int, int]:
+    def _delete_system_data_operations(
+        self,
+        *,
+        organization_id: UUID,
+        **_: object,
+    ) -> tuple[int, int]:
         runs = self._repository.list_direct(SystemDataOperationRunModel, organization_id)
         if any(run.output_files_json for run in runs):
             raise _CleanupBlocked(
                 "unregistered_system_data_operation_artifact",
                 "System data-operation rows reference persistent output files not registered by OL08-E",
             )
-        models = (SystemDataOperationDatasetRowModel, SystemDataOperationRunModel)
-        before = self._count_direct_models(models, organization_id)
-        for model in models:
-            self._repository.delete_direct(model, organization_id)
-        self._repository.flush()
-        return before, self._count_direct_models(models, organization_id)
+        return self._delete_direct_group(
+            organization_id,
+            (SystemDataOperationDatasetRowModel, SystemDataOperationRunModel),
+        )
 
-    def _delete_duplicate_merge_history(self, *, organization_id: UUID, **_: object) -> tuple[int, int]:
-        before = self._repository.count_direct(DuplicateGroupMergeAuditLogModel, organization_id)
-        self._repository.delete_direct(DuplicateGroupMergeAuditLogModel, organization_id)
-        self._repository.flush()
-        return before, self._repository.count_direct(DuplicateGroupMergeAuditLogModel, organization_id)
+    def _delete_duplicate_merge_history(
+        self,
+        *,
+        organization_id: UUID,
+        **_: object,
+    ) -> tuple[int, int]:
+        return self._delete_direct_group(
+            organization_id,
+            (DuplicateGroupMergeAuditLogModel,),
+        )
 
     def _delete_imports(
         self,
@@ -498,12 +637,10 @@ class OrganizationClosureProductCleanupService:
                     "Import upload bytes lack matching OL08-E relational-delete authorization evidence",
                 )
 
-        models = (ImportJobModel, ImportRowModel, ImportBatchModel, ImportTemplateModel)
-        before = self._count_direct_models(models, organization_id)
-        for model in models:
-            self._repository.delete_direct(model, organization_id)
-        self._repository.flush()
-        remaining = self._count_direct_models(models, organization_id)
+        before, remaining = self._delete_direct_group(
+            organization_id,
+            (ImportJobModel, ImportRowModel, ImportBatchModel, ImportTemplateModel),
+        )
         if remaining == 0:
             now = self._now()
             for item in embedded.values():
@@ -516,21 +653,20 @@ class OrganizationClosureProductCleanupService:
         return before, remaining
 
     def _delete_quotes(self, *, organization_id: UUID, **_: object) -> tuple[int, int]:
-        before = self._repository.count_direct(QuoteModel, organization_id)
-        self._repository.delete_direct(QuoteModel, organization_id)
-        self._repository.flush()
-        return before, self._repository.count_direct(QuoteModel, organization_id)
+        return self._delete_direct_group(organization_id, (QuoteModel,))
 
     def _delete_todo_workflow(self, *, organization_id: UUID, **_: object) -> tuple[int, int]:
-        models = (TodoStepModel, TodoWorklistStateModel, TodoOutcomeDefinitionModel, TodoModel)
+        models = (
+            TodoStepModel,
+            TodoWorklistStateModel,
+            TodoOutcomeDefinitionModel,
+            TodoModel,
+        )
         before = self._count_direct_models(models, organization_id)
         todo_ids = self._repository.scoped_ids(TodoModel, organization_id)
         self._repository.delete_direct(TodoStepModel, organization_id)
         self._repository.delete_direct(TodoWorklistStateModel, organization_id)
         if todo_ids:
-            # Production migration 0075 historically promoted old FKs to CASCADE.
-            # Null the activity edge explicitly so todo deletion never silently
-            # substitutes cascade for the later activity-class evidence step.
             self._repository.update_where(
                 ActivityModel,
                 {"todo_id": None},
@@ -543,42 +679,33 @@ class OrganizationClosureProductCleanupService:
         return before, self._count_direct_models(models, organization_id)
 
     def _delete_activities(self, *, organization_id: UUID, **_: object) -> tuple[int, int]:
-        before = self._repository.count_direct(ActivityModel, organization_id)
-        self._repository.delete_direct(ActivityModel, organization_id)
-        self._repository.flush()
-        return before, self._repository.count_direct(ActivityModel, organization_id)
+        return self._delete_direct_group(organization_id, (ActivityModel,))
 
     def _delete_participations(self, *, organization_id: UUID, **_: object) -> tuple[int, int]:
-        before = self._repository.count_direct(CustomerFairParticipationModel, organization_id)
-        self._repository.delete_direct(CustomerFairParticipationModel, organization_id)
-        self._repository.flush()
-        return before, self._repository.count_direct(CustomerFairParticipationModel, organization_id)
+        return self._delete_direct_group(
+            organization_id,
+            (CustomerFairParticipationModel,),
+        )
 
     def _delete_contacts(self, *, organization_id: UUID, **_: object) -> tuple[int, int]:
-        before = self._repository.count_direct(ContactModel, organization_id)
-        self._repository.delete_direct(ContactModel, organization_id)
-        self._repository.flush()
-        return before, self._repository.count_direct(ContactModel, organization_id)
+        return self._delete_direct_group(organization_id, (ContactModel,))
 
-    def _delete_customer_communications(self, *, organization_id: UUID, **_: object) -> tuple[int, int]:
-        models = (CustomerEmailModel, CustomerPhoneModel, CustomerWebsiteModel)
-        before = self._count_direct_models(models, organization_id)
-        for model in models:
-            self._repository.delete_direct(model, organization_id)
-        self._repository.flush()
-        return before, self._count_direct_models(models, organization_id)
+    def _delete_customer_communications(
+        self,
+        *,
+        organization_id: UUID,
+        **_: object,
+    ) -> tuple[int, int]:
+        return self._delete_direct_group(
+            organization_id,
+            (CustomerEmailModel, CustomerPhoneModel, CustomerWebsiteModel),
+        )
 
     def _delete_customers(self, *, organization_id: UUID, **_: object) -> tuple[int, int]:
-        before = self._repository.count_direct(CustomerModel, organization_id)
-        self._repository.delete_direct(CustomerModel, organization_id)
-        self._repository.flush()
-        return before, self._repository.count_direct(CustomerModel, organization_id)
+        return self._delete_direct_group(organization_id, (CustomerModel,))
 
     def _delete_fairs(self, *, organization_id: UUID, **_: object) -> tuple[int, int]:
-        before = self._repository.count_direct(FairModel, organization_id)
-        self._repository.delete_direct(FairModel, organization_id)
-        self._repository.flush()
-        return before, self._repository.count_direct(FairModel, organization_id)
+        return self._delete_direct_group(organization_id, (FairModel,))
 
     def _delete_quote_templates(self, *, organization_id: UUID, **_: object) -> tuple[int, int]:
         template_ids = self._repository.scoped_ids(QuoteTemplateModel, organization_id)
@@ -611,29 +738,23 @@ class OrganizationClosureProductCleanupService:
             if template_ids
             else 0
         )
-        return before, self._repository.count_direct(QuoteTemplateModel, organization_id) + remaining_versions
+        remaining = self._repository.count_direct(QuoteTemplateModel, organization_id)
+        return before, remaining + remaining_versions
 
     def _delete_template_contents(self, *, organization_id: UUID, **_: object) -> tuple[int, int]:
-        models = (TemplateContentModel, TemplateContentTagModel)
-        before = self._count_direct_models(models, organization_id)
-        self._repository.delete_direct(TemplateContentModel, organization_id)
-        self._repository.delete_direct(TemplateContentTagModel, organization_id)
-        self._repository.flush()
-        return before, self._count_direct_models(models, organization_id)
+        return self._delete_direct_group(
+            organization_id,
+            (TemplateContentModel, TemplateContentTagModel),
+        )
 
     def _delete_cost_catalog(self, *, organization_id: UUID, **_: object) -> tuple[int, int]:
-        models = (CostProductModel, CostCategoryModel)
-        before = self._count_direct_models(models, organization_id)
-        self._repository.delete_direct(CostProductModel, organization_id)
-        self._repository.delete_direct(CostCategoryModel, organization_id)
-        self._repository.flush()
-        return before, self._count_direct_models(models, organization_id)
+        return self._delete_direct_group(
+            organization_id,
+            (CostProductModel, CostCategoryModel),
+        )
 
     def _delete_mail_templates(self, *, organization_id: UUID, **_: object) -> tuple[int, int]:
-        before = self._repository.count_direct(MailTemplateModel, organization_id)
-        self._repository.delete_direct(MailTemplateModel, organization_id)
-        self._repository.flush()
-        return before, self._repository.count_direct(MailTemplateModel, organization_id)
+        return self._delete_direct_group(organization_id, (MailTemplateModel,))
 
     def _delete_email_accounts(self, *, organization_id: UUID, **_: object) -> tuple[int, int]:
         account_ids = self._repository.list_email_account_ids(organization_id)
@@ -658,22 +779,35 @@ class OrganizationClosureProductCleanupService:
             )
         self._repository.delete_direct(EmailAccountModel, organization_id)
         self._repository.flush()
-        remaining_ids = self._repository.list_email_account_ids(organization_id)
-        remaining = len(remaining_ids)
-        if remaining_ids:
+        remaining_account_ids = self._repository.list_email_account_ids(organization_id)
+        remaining = len(remaining_account_ids)
+        if remaining_account_ids:
             remaining += self._repository.count_where(
                 EmailAccountSmtpConfigModel,
-                EmailAccountSmtpConfigModel.email_account_id.in_(remaining_ids),
+                EmailAccountSmtpConfigModel.email_account_id.in_(remaining_account_ids),
             ) + self._repository.count_where(
                 EmailAccountProviderConfigModel,
-                EmailAccountProviderConfigModel.email_account_id.in_(remaining_ids),
+                EmailAccountProviderConfigModel.email_account_id.in_(remaining_account_ids),
             )
         return before, remaining
+
+    def _delete_direct_group(
+        self,
+        organization_id: UUID,
+        models: tuple[type, ...],
+    ) -> tuple[int, int]:
+        before = self._count_direct_models(models, organization_id)
+        for model in models:
+            self._repository.delete_direct(model, organization_id)
+        self._repository.flush()
+        return before, self._count_direct_models(models, organization_id)
 
     def _require_open_execution(self, organization_id: UUID, execution_id: UUID) -> None:
         execution = self._repository.get_execution(organization_id, execution_id)
         if execution is None or execution.closed_at is not None or execution.status != STATUS_IN_PROGRESS:
-            raise ClosureExecutionNotFoundError("Open in-progress closure execution not found")
+            raise ClosureExecutionNotFoundError(
+                "Open in-progress closure execution not found"
+            )
 
     def _require_suspended_grace(self, organization_id: UUID) -> OrganizationLifecycleSnapshot:
         try:
@@ -712,19 +846,38 @@ class OrganizationClosureProductCleanupService:
         if not allowed:
             raise ClosurePermissionDeniedError("Platform SuperAdmin authority required")
 
-    def _mark_blocked(
+    def _blocked_result(
         self,
-        item: OrganizationClosureProductCleanupItemModel,
+        *,
+        current: OrganizationClosureProductCleanupItemModel,
         code: str,
         message: str,
-    ) -> None:
-        item.status = "blocked"
-        item.failure_code = code[:128]
-        item.failure_message = message
-        item.remaining_count = None
-        item.completed_at = None
-        item.updated_at = self._now()
+        organization_id: UUID,
+        execution_id: UUID,
+        access_token: str,
+    ) -> ProductCleanupResult:
+        current.status = "blocked"
+        current.failure_code = code[:128]
+        current.failure_message = message
+        current.remaining_count = None
+        current.completed_at = None
+        current.updated_at = self._now()
         self._repository.flush()
+        self._record_class_audit(
+            organization_id,
+            execution_id,
+            access_token,
+            current,
+            action="organization_closure.product_cleanup.blocked",
+        )
+        return self._result(
+            self._repository.list_items(
+                organization_id,
+                execution_id,
+                PRODUCT_CLEANUP_POLICY_VERSION,
+            ),
+            processed_class_key=current.class_key,
+        )
 
     def _record_class_audit(
         self,
@@ -763,7 +916,10 @@ class OrganizationClosureProductCleanupService:
         )
 
     def _count_direct_models(self, models: tuple[type, ...], organization_id: UUID) -> int:
-        return sum(self._repository.count_direct(model, organization_id) for model in models)
+        return sum(
+            self._repository.count_direct(model, organization_id)
+            for model in models
+        )
 
     @staticmethod
     def _result(
@@ -780,7 +936,9 @@ class OrganizationClosureProductCleanupService:
             completed=completed,
             blocked=blocked,
             pending=pending,
-            cleanup_complete=bool(items) and completed == len(PRODUCT_CLEANUP_PLAN),
+            product_data_cleanup_complete=(
+                bool(items) and completed == len(PRODUCT_CLEANUP_PLAN)
+            ),
         )
 
     def _now(self) -> datetime:
