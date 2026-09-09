@@ -154,11 +154,9 @@ class OrganizationClosureCredentialDispositionModel(Base):
         ForeignKey("crm_organization_closure_executions.id", ondelete="RESTRICT"),
         nullable=False,
     )
-    email_account_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True),
-        ForeignKey("email_accounts.id", ondelete="RESTRICT"),
-        nullable=False,
-    )
+    # Retained scalar evidence identity. OL08-D intentionally does not keep a
+    # live FK to the product email_accounts row during the 12-month evidence window.
+    email_account_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     account_type: Mapped[str] = mapped_column(String(32), nullable=False)
     provider_key: Mapped[str | None] = mapped_column(String(64))
     capability_class: Mapped[str] = mapped_column(String(48), nullable=False)
