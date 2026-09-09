@@ -46,6 +46,7 @@ import type { MailTemplate } from "../types/mailTemplates";
 import type { EmailAccount } from "../types/smtp";
 import {
   BULK_EMAIL_WIZARD_STEPS,
+  isBulkEmailWizardContinueDisabled,
   type BulkEmailWizardStepId,
 } from "../utils/bulkEmailWizardSteps";
 import {
@@ -1138,7 +1139,10 @@ function BulkEmailOperationWizardPageInner({
               type="button"
               variant="primary"
               onClick={goNext}
-              disabled={!canProceed || navDisabled}
+              disabled={isBulkEmailWizardContinueDisabled({
+                navigationBusy: navDisabled,
+                validationReady: canProceed,
+              })}
             >
               {operationLabels.continue}
             </Button>
