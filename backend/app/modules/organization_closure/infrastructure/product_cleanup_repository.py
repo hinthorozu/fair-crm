@@ -103,11 +103,19 @@ class SqlAlchemyOrganizationClosureProductCleanupRepository:
         )
         return int(self._session.scalar(stmt) or 0)
 
+    def list_direct(self, model: type, organization_id: UUID) -> tuple[Any, ...]:
+        stmt = select(model).where(model.organization_id == organization_id)
+        return tuple(self._session.scalars(stmt).all())
+
     def delete_direct(self, model: type, organization_id: UUID) -> None:
         self._session.execute(delete(model).where(model.organization_id == organization_id))
 
     def scoped_ids(self, model: type, organization_id: UUID) -> tuple[UUID, ...]:
         stmt = select(model.id).where(model.organization_id == organization_id)
+        return tuple(self._session.scalars(stmt).all())
+
+    def ids_where(self, model: type, *conditions: Any) -> tuple[UUID, ...]:
+        stmt = select(model.id).where(*conditions)
         return tuple(self._session.scalars(stmt).all())
 
     def count_where(self, model: type, *conditions: Any) -> int:
