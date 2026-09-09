@@ -259,6 +259,7 @@ class OrganizationClosurePackageModel(Base):
     ready_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     integrity_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    purged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class OrganizationClosureArtifactInventoryModel(Base):
@@ -267,6 +268,10 @@ class OrganizationClosureArtifactInventoryModel(Base):
         CheckConstraint(
             "ownership_class IN ('managed_product_artifact', 'external_reference')",
             name="ck_org_closure_artifact_ownership_class",
+        ),
+        CheckConstraint(
+            "cleanup_status IN ('pending', 'not_applicable', 'relational_delete_required', 'purged', 'already_absent', 'blocked')",
+            name="ck_org_closure_artifact_cleanup_status",
         ),
         UniqueConstraint(
             "package_id",
@@ -303,4 +308,10 @@ class OrganizationClosureArtifactInventoryModel(Base):
     package_entry: Mapped[str | None] = mapped_column(String(1024))
     byte_size: Mapped[int | None] = mapped_column(BigInteger)
     content_digest: Mapped[str | None] = mapped_column(String(64))
+    cleanup_status: Mapped[str] = mapped_column(String(48), nullable=False, default="pending")
+    cleanup_attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    cleanup_failure_code: Mapped[str | None] = mapped_column(String(128))
+    cleanup_failure_message: Mapped[str | None] = mapped_column(Text)
+    cleanup_last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    nonexistence_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
