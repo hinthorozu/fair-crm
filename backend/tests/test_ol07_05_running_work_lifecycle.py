@@ -18,6 +18,8 @@ from app.shared.running_work_lifecycle import (
     RunningWorkLifecycleCheckpoint,
 )
 
+_EPISODE_AT = datetime(2026, 9, 9, 16, 0, tzinfo=UTC)
+
 
 class _Guard:
     def __init__(self, result):
@@ -36,6 +38,7 @@ def test_running_checkpoint_allows_active_organization():
         organization_id=organization_id,
         status="active",
         work_allowed=True,
+        updated_at=_EPISODE_AT,
     )
 
     result = RunningWorkLifecycleCheckpoint(
@@ -52,6 +55,7 @@ def test_running_checkpoint_cancels_explicit_suspension():
         organization_id=organization_id,
         status="suspended",
         work_allowed=False,
+        updated_at=_EPISODE_AT,
     )
 
     with pytest.raises(RunningWorkLifecycleCancelledError) as exc_info:
