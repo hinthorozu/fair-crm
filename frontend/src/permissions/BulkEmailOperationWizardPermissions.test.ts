@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   new URL("../pages/BulkEmailOperationWizardPage.tsx", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("BulkEmailOperationWizardPage permissions", () => {
   it("uses one canonical permission for each bulk email action", () => {
@@ -43,14 +43,24 @@ describe("BulkEmailOperationWizardPage permissions", () => {
     expect(source).toContain("const result = await sendBulkEmailOperation({");
   });
 
+  it("keeps Step 2 actionable but validates before entering preview", () => {
+    expect(source).toContain(
+      'const canProceed =\n    currentStep.id === "recipient_source"\n      ? canProceedRecipientSource\n      : currentStep.id === "mail_settings";',
+    );
+    expect(source).toContain("const goNext = () => {\n    if (!validateCurrentStep()) return;");
+    expect(source).toContain('if (currentStep.id === "mail_settings") {');
+    expect(source).toContain("if (!templateId.trim()) {");
+    expect(source).toContain("if (!emailAccountId.trim()) {");
+    expect(source).toContain("if (!subject.trim()) {");
+  });
+
   it("keeps preview optional for execute-only send", () => {
-    expect(source).toContain("const canProceedMailSettings =\r\n    !templatesLoading &&");
     expect(source).toContain("const previewRequirementSatisfied =");
     expect(source).toContain("!canPreviewBulkEmail ||");
     expect(source).toContain("const canProceedSummary = previewRequirementSatisfied;");
     expect(source).toContain('currentStep.id === "summary" && canPreviewBulkEmail');
     expect(source).toContain("setPreviewing(canPreviewBulkEmail);");
-    expect(source).toContain("canPreviewBulkEmail &&\r\n      (!previewReady ||");
+    expect(source).toContain("canPreviewBulkEmail &&\n      (!previewReady ||");
     expect(source).toContain("const canSend = canSendBulkEmail && canProceedSummary && !sending;");
     expect(source).toContain('currentStep.id === "summary" && canSendBulkEmail ? (');
     expect(source).toContain(") : canPreviewBulkEmail ? (");
