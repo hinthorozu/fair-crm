@@ -468,15 +468,24 @@ def test_plan_requires_system_authority_and_live_suspension(
         )
 
 
-def test_api_surface_is_metadata_only_and_has_no_download_or_package_route() -> None:
+def test_api_surface_preserves_export_plan_and_adds_system_package_routes() -> None:
     paths = create_app().openapi()["paths"]
-    plan_path = (
+    base = (
         "/api/v1/system-admin/organizations/{organization_id}/"
-        "closure-executions/{execution_id}/export-plan"
+        "closure-executions/{execution_id}"
     )
+    plan_path = f"{base}/export-plan"
+    package_path = f"{base}/closure-package"
+    artifact_path = f"{package_path}/artifacts"
+    download_path = f"{package_path}/download"
+
     assert plan_path in paths
     assert {"get", "post"} <= set(paths[plan_path])
+    assert package_path in paths
+    assert {"get", "post"} <= set(paths[package_path])
+    assert artifact_path in paths and "get" in paths[artifact_path]
+    assert download_path in paths and "get" in paths[download_path]
 
-    closure_paths = [path for path in paths if "closure-executions" in path]
-    assert all("download" not in path for path in closure_paths)
-    assert all("package" not in path for path in closure_paths)
+    package_paths = [path for path in paths if "closure-package" in path]
+    assert package_paths
+    assert all(path.startswith("/api/v1/system-admin/") for path in package_paths)
