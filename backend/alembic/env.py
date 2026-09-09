@@ -16,7 +16,7 @@ from app.modules.quote_templates.infrastructure.models import QuoteTemplateModel
 from app.modules.template_contents.infrastructure.models import TemplateContentModel, TemplateContentTagModel  # noqa: F401
 from app.modules.quotes.infrastructure.models import QuoteModel  # noqa: F401
 from app.modules.cost_catalog.infrastructure.models import CostCategoryModel, CostProductModel  # noqa: F401
-from app.modules.organization_closure.infrastructure.models import OrganizationClosureCredentialDispositionModel, OrganizationClosureCredentialEventModel, OrganizationClosureEventModel, OrganizationClosureExecutionModel, OrganizationClosureExportPlanModel  # noqa: F401
+from app.modules.organization_closure.infrastructure.models import OrganizationClosureArtifactInventoryModel, OrganizationClosureCredentialDispositionModel, OrganizationClosureCredentialEventModel, OrganizationClosureEventModel, OrganizationClosureExecutionModel, OrganizationClosureExportPlanModel, OrganizationClosurePackageModel  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

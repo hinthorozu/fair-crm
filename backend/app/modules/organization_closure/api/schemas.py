@@ -17,6 +17,7 @@ class OrganizationClosureExecutionResponse(BaseModel):
     failure_message: str | None
     created_at: datetime
     updated_at: datetime
+    lifecycle_updated_at: datetime | None
     last_retry_at: datetime | None
 
 
@@ -33,6 +34,56 @@ class OrganizationClosureExportPlanResponse(BaseModel):
     manifest_digest: str
     created_at: datetime
     updated_at: datetime
+
+
+class OrganizationClosurePackageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    organization_id: UUID
+    closure_execution_id: UUID
+    export_plan_id: UUID
+    schema_version: str
+    status: str
+    package_locator: str | None
+    package_sha256: str | None
+    package_size_bytes: int | None
+    member_count: int | None
+    manifest_json: dict[str, Any] | None
+    failure_code: str | None
+    failure_message: str | None
+    created_at: datetime
+    updated_at: datetime
+    ready_at: datetime | None
+    integrity_verified_at: datetime | None
+
+
+class OrganizationClosureArtifactInventoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    package_id: UUID
+    organization_id: UUID
+    closure_execution_id: UUID
+    schema_version: str
+    artifact_class: str
+    owner_type: str
+    owner_id: UUID
+    owner_field: str
+    storage_class: str
+    status: str
+    package_included: bool
+    cleanup_action: str
+    locator: str
+    package_member: str | None
+    sha256: str | None
+    size_bytes: int | None
+    reason_code: str
+    created_at: datetime
+
+
+class OrganizationClosureArtifactInventoryListResponse(BaseModel):
+    items: list[OrganizationClosureArtifactInventoryResponse]
 
 
 class OrganizationClosureCredentialDispositionResponse(BaseModel):
