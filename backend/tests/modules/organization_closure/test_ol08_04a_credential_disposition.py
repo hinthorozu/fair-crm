@@ -298,7 +298,15 @@ def test_mailersend_supported_unidentifiable_cannot_be_operator_overridden(
     assert disposition.capability_class == CAPABILITY_SUPPORTED_UNIDENTIFIABLE
     assert disposition.status == STATUS_BLOCKED_SUPPORTED_UNIDENTIFIABLE
     assert disposition.failure_code == "mailersend_token_target_missing"
-    assert disposition.signing_secret_retained is True
+    assert disposition.signing_secret_retained is False
+
+    decrypted_config = SqlAlchemyEmailAccountRepository(db_session).get_provider_config(
+        account.id,
+        organization_id=organization_id,
+    )
+    assert decrypted_config is not None
+    assert decrypted_config.config["api_token"] == "mailersend-api-secret"
+    assert decrypted_config.config["webhook_signing_secret"] == ""
 
     recorded = service.reconcile(
         organization_id=organization_id,
@@ -331,8 +339,18 @@ def test_mailersend_supported_unidentifiable_cannot_be_operator_overridden(
     db_session.refresh(provider_config)
     stored = provider_config.config_json
     assert "mailersend-api-secret" not in stored
+    assert "webhook-secret" not in stored
     assert provider_config.config_json
     assert account.is_active is False
+
+    events = list(
+        db_session.scalars(
+            select(OrganizationClosureCredentialEventModel).where(
+                OrganizationClosureCredentialEventModel.disposition_id == disposition.id
+            )
+        ).all()
+    )
+    assert any(event.action == "webhook_signing_secret_zeroized" for event in events)
 
 
 def test_non_suspended_start_fails_closed_without_disabling_account(

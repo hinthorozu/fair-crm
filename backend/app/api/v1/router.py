@@ -10,6 +10,9 @@ from app.modules.imports.api.routes import router as imports_router
 from app.modules.system_admin.api.routes import router as system_admin_router
 from app.modules.system_admin.api.data_operation_routes import router as data_operations_router
 from app.modules.organization_closure.api.routes import router as organization_closure_router
+from app.modules.organization_closure.api.lifecycle_signal_routes import (
+    router as lifecycle_signal_router,
+)
 from app.modules.participations.api.routes import (
     customer_participations_router,
     fair_participants_router,
@@ -54,6 +57,7 @@ api_v1_router.include_router(data_integration_router)
 api_v1_router.include_router(system_admin_router)
 api_v1_router.include_router(data_operations_router)
 api_v1_router.include_router(organization_closure_router)
+api_v1_router.include_router(lifecycle_signal_router)
 api_v1_router.include_router(scraper_router)
 api_v1_router.include_router(customer_contact_enrichment_router, prefix="/customers")
 api_v1_router.include_router(email_accounts_router)

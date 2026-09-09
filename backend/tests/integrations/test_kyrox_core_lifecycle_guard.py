@@ -10,6 +10,8 @@ from app.integrations.kyrox_core.lifecycle import (
     OrganizationWorkNotAllowedError,
 )
 
+_UPDATED_AT = "2026-09-09T16:00:00+00:00"
+
 
 class StubLifecycleClient:
     def __init__(
@@ -85,6 +87,7 @@ def test_allows_active_organization() -> None:
                 "organization_id": str(organization_id),
                 "status": "active",
                 "work_allowed": True,
+                "updated_at": _UPDATED_AT,
             },
         )
     )
@@ -94,6 +97,7 @@ def test_allows_active_organization() -> None:
     assert snapshot.organization_id == organization_id
     assert snapshot.status == "active"
     assert snapshot.work_allowed is True
+    assert snapshot.updated_at.isoformat() == _UPDATED_AT
     assert client.calls == [organization_id]
 
 
@@ -106,6 +110,7 @@ def test_denies_suspended_organization() -> None:
                 "organization_id": str(organization_id),
                 "status": "suspended",
                 "work_allowed": False,
+                "updated_at": _UPDATED_AT,
             },
         )
     )
@@ -132,6 +137,7 @@ def test_fails_closed_on_inconsistent_snapshot() -> None:
                 "organization_id": str(organization_id),
                 "status": "suspended",
                 "work_allowed": True,
+                "updated_at": _UPDATED_AT,
             },
         )
     )
@@ -149,6 +155,7 @@ def test_fails_closed_when_snapshot_is_for_another_organization() -> None:
                 "organization_id": str(uuid4()),
                 "status": "active",
                 "work_allowed": True,
+                "updated_at": _UPDATED_AT,
             },
         )
     )
@@ -165,6 +172,24 @@ def test_fails_closed_on_unhashable_malformed_status() -> None:
             json={
                 "organization_id": str(organization_id),
                 "status": ["active"],
+                "work_allowed": True,
+                "updated_at": _UPDATED_AT,
+            },
+        )
+    )
+
+    with pytest.raises(OrganizationLifecycleUnavailableError):
+        OrganizationLifecycleGuard(client=client).require_work_allowed(organization_id)
+
+
+def test_fails_closed_when_episode_timestamp_is_missing() -> None:
+    organization_id = uuid4()
+    client = StubLifecycleClient(
+        response=httpx.Response(
+            200,
+            json={
+                "organization_id": str(organization_id),
+                "status": "active",
                 "work_allowed": True,
             },
         )
