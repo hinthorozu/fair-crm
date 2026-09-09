@@ -12,6 +12,7 @@ from app.modules.organization_closure.infrastructure.models import (
     OrganizationClosureArtifactInventoryModel,
     OrganizationClosureCredentialDispositionModel,
     OrganizationClosureExecutionModel,
+    OrganizationClosureExportPlanModel,
     OrganizationClosurePackageModel,
 )
 from app.modules.organization_closure.infrastructure.product_cleanup_models import (
@@ -29,6 +30,19 @@ class SqlAlchemyOrganizationClosureProductCleanupRepository:
         stmt = select(OrganizationClosureExecutionModel).where(
             OrganizationClosureExecutionModel.organization_id == organization_id,
             OrganizationClosureExecutionModel.id == execution_id,
+        )
+        return self._session.scalars(stmt).one_or_none()
+
+    def get_export_plan(
+        self,
+        organization_id: UUID,
+        execution_id: UUID,
+        schema_version: str,
+    ) -> OrganizationClosureExportPlanModel | None:
+        stmt = select(OrganizationClosureExportPlanModel).where(
+            OrganizationClosureExportPlanModel.organization_id == organization_id,
+            OrganizationClosureExportPlanModel.closure_execution_id == execution_id,
+            OrganizationClosureExportPlanModel.schema_version == schema_version,
         )
         return self._session.scalars(stmt).one_or_none()
 
@@ -96,6 +110,20 @@ class SqlAlchemyOrganizationClosureProductCleanupRepository:
 
     def add_item(self, item: OrganizationClosureProductCleanupItemModel) -> None:
         self._session.add(item)
+
+    def list_scoped_ids(
+        self,
+        *,
+        model: type,
+        scope_model: type,
+        organization_id: UUID,
+        join_on: Any | None = None,
+    ) -> tuple[Any, ...]:
+        stmt = select(model.id)
+        if join_on is not None:
+            stmt = stmt.join(scope_model, join_on)
+        stmt = stmt.where(scope_model.organization_id == organization_id).order_by(model.id)
+        return tuple(self._session.scalars(stmt).all())
 
     def count_direct(self, model: type, organization_id: UUID) -> int:
         stmt = select(func.count()).select_from(model).where(
