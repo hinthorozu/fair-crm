@@ -28,6 +28,7 @@ class OrganizationLifecycleSnapshot:
     organization_id: UUID
     status: str
     work_allowed: bool
+    updated_at: datetime
     is_deleted: bool = False
     deleted_at: datetime | None = None
 
@@ -54,11 +55,7 @@ class KyroxCoreLifecycleClient:
 
 
 class OrganizationLifecycleGuard:
-    """Fail-closed read adapter for Core-owned organization lifecycle eligibility.
-
-    This guard deliberately does not cache or persist Core lifecycle state. Callers
-    choose explicit job/side-effect checkpoints; OL07-04+ owns those call sites.
-    """
+    """Fail-closed read adapter for Core-owned organization lifecycle eligibility."""
 
     def __init__(self, client: KyroxCoreLifecycleClient | None = None) -> None:
         self._client = client or KyroxCoreLifecycleClient()
@@ -92,6 +89,7 @@ class OrganizationLifecycleGuard:
             returned_organization_id = UUID(str(data["organization_id"]))
             lifecycle_status = data["status"]
             work_allowed = data["work_allowed"]
+            updated_at_raw = data["updated_at"]
             is_deleted = data.get("is_deleted", False)
             deleted_at_raw = data.get("deleted_at")
         except (KeyError, TypeError, ValueError) as exc:
@@ -108,10 +106,18 @@ class OrganizationLifecycleGuard:
             or lifecycle_status not in _VALID_STATUSES
             or type(work_allowed) is not bool
             or type(is_deleted) is not bool
+            or not isinstance(updated_at_raw, str)
         ):
             raise OrganizationLifecycleUnavailableError(
                 "Organization lifecycle authority returned an invalid response"
             )
+
+        try:
+            updated_at = datetime.fromisoformat(updated_at_raw.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise OrganizationLifecycleUnavailableError(
+                "Organization lifecycle authority returned an invalid update timestamp"
+            ) from exc
 
         deleted_at: datetime | None = None
         if deleted_at_raw is not None:
@@ -139,6 +145,7 @@ class OrganizationLifecycleGuard:
             organization_id=returned_organization_id,
             status=lifecycle_status,
             work_allowed=work_allowed,
+            updated_at=updated_at,
             is_deleted=is_deleted,
             deleted_at=deleted_at,
         )
