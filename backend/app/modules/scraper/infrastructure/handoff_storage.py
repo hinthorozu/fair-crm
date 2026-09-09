@@ -36,6 +36,8 @@ def is_safe_handoff_artifact_path(
     """Return whether a stored artifact path is owned by this run under the handoff root."""
     candidate = Path(path)
     handoff_dir = base_dir or DEFAULT_HANDOFF_DIR
+    if handoff_dir.is_symlink() or candidate.is_symlink():
+        return False
     try:
         resolved = candidate.resolve()
         handoff_root = handoff_dir.resolve()

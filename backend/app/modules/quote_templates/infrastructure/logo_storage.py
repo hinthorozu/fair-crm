@@ -42,12 +42,22 @@ def resolve_logo_file(
     *,
     storage_root: Path | None = None,
 ) -> Path | None:
-    """Resolve one tenant-owned logo path, rejecting traversal and unsupported files."""
+    """Resolve one tenant-owned logo path, rejecting traversal, symlinks and unsupported files."""
     if not _safe_filename(filename):
         return None
-    root = (storage_root or LOGO_STORAGE_ROOT).resolve()
-    organization_root = (root / str(organization_id)).resolve()
-    candidate = (organization_root / filename).resolve()
+    root_input = storage_root or LOGO_STORAGE_ROOT
+    organization_input = root_input / str(organization_id)
+    candidate_input = organization_input / filename
+    if root_input.is_symlink() or organization_input.is_symlink() or candidate_input.is_symlink():
+        return None
+    try:
+        root = root_input.resolve()
+        organization_root = organization_input.resolve()
+        candidate = candidate_input.resolve()
+    except OSError:
+        return None
+    if not organization_root.is_relative_to(root):
+        return None
     if not candidate.is_relative_to(organization_root):
         return None
     return candidate

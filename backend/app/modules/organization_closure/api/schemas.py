@@ -57,6 +57,7 @@ class OrganizationClosurePackageResponse(BaseModel):
     ready_at: datetime | None
     integrity_verified_at: datetime | None
     expires_at: datetime | None
+    purged_at: datetime | None
 
 
 class OrganizationClosureArtifactInventoryResponse(BaseModel):
@@ -78,10 +79,28 @@ class OrganizationClosureArtifactInventoryResponse(BaseModel):
     package_entry: str | None
     byte_size: int | None
     content_digest: str | None
+    cleanup_status: str
+    cleanup_attempt_count: int
+    cleanup_failure_code: str | None
+    cleanup_failure_message: str | None
+    cleanup_last_attempt_at: datetime | None
+    nonexistence_verified_at: datetime | None
     created_at: datetime
 
 
 class OrganizationClosureArtifactInventoryListResponse(BaseModel):
+    items: list[OrganizationClosureArtifactInventoryResponse]
+
+
+class OrganizationClosureArtifactCleanupResponse(BaseModel):
+    package_id: UUID
+    total: int
+    purged: int
+    already_absent: int
+    not_applicable: int
+    relational_delete_required: int
+    blocked: int
+    file_cleanup_complete: bool
     items: list[OrganizationClosureArtifactInventoryResponse]
 
 
