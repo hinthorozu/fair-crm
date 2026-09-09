@@ -62,7 +62,7 @@ def _response(result) -> OrganizationClosureProductCleanupResponse:
         completed=result.completed,
         blocked=result.blocked,
         pending=result.pending,
-        product_data_cleanup_complete=result.cleanup_complete,
+        product_data_cleanup_complete=result.product_data_cleanup_complete,
         items=[
             OrganizationClosureProductCleanupItemResponse.model_validate(item)
             for item in result.items
