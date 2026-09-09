@@ -143,6 +143,7 @@ jobs:
       - name: OL07-03 lifecycle authority contract
         run: |
           python - <<'PY'
+          from datetime import datetime
           import json
           import os
 
@@ -160,6 +161,10 @@ jobs:
           )
           assert response.status_code == 200, response.text
           payload = response.json()
+          updated_at = payload.pop("updated_at", None)
+          assert isinstance(updated_at, str) and updated_at, payload
+          parsed_updated_at = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+          assert parsed_updated_at.tzinfo is not None, updated_at
           assert payload == {
               "organization_id": organization_id,
               "status": "active",
