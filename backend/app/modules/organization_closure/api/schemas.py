@@ -139,3 +139,37 @@ class OrganizationClosureCredentialReconcileRequest(BaseModel):
     external_credential_id: str | None = Field(default=None, max_length=200)
     evidence_code: str | None = Field(default=None, max_length=128)
     evidence_reference: str | None = Field(default=None, max_length=255)
+
+
+class OrganizationClosureProductCleanupItemResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    organization_id: UUID
+    closure_execution_id: UUID
+    policy_version: str
+    suspension_episode_updated_at: datetime
+    class_key: str
+    sequence: int
+    action: str
+    status: str
+    attempt_count: int
+    before_count: int | None
+    deleted_count: int | None
+    remaining_count: int | None
+    failure_code: str | None
+    failure_message: str | None
+    created_at: datetime
+    updated_at: datetime
+    started_at: datetime | None
+    completed_at: datetime | None
+    last_attempt_at: datetime | None
+
+
+class OrganizationClosureProductCleanupResponse(BaseModel):
+    processed_class_key: str | None
+    completed: int
+    blocked: int
+    pending: int
+    product_data_cleanup_complete: bool
+    items: list[OrganizationClosureProductCleanupItemResponse]
