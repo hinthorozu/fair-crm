@@ -18,6 +18,7 @@ class OrganizationClosureExecutionResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     last_retry_at: datetime | None
+    closed_at: datetime | None
 
 
 class OrganizationClosureExportPlanResponse(BaseModel):
