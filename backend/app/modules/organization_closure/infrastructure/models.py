@@ -26,7 +26,7 @@ class OrganizationClosureExecutionModel(Base):
     __tablename__ = "crm_organization_closure_executions"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('in_progress', 'blocked')",
+            "status IN ('in_progress', 'blocked', 'completed')",
             name="ck_org_closure_execution_status",
         ),
         UniqueConstraint(
