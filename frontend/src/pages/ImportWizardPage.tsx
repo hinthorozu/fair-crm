@@ -940,7 +940,7 @@ function ImportWizardPageInner({
                   checked={selectedRowIds.has(row.id)}
                   onChange={(checked) => toggleRowSelection(row.id, checked)}
                   hideLabel
-                  className="merge-preview-row-checkbox-label"
+                  className="merge-preview-row-checkbox"
                 />
               )}
               <span>#{row.row_number}</span>
