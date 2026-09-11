@@ -2,12 +2,13 @@ import { normalizeStandardListResponse, buildListQueryParams } from "./listTable
 import { apiRequest } from "./client";
 import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
 import type { StandardListResponse } from "../types/listTable";
-import type {
-  Activity,
-  ActivityType,
-  BulkDeleteActivitiesResult,
-  CreateActivityPayload,
-  UpdateActivityPayload,
+import {
+  isManualActivityType,
+  type Activity,
+  type ActivityType,
+  type BulkDeleteActivitiesResult,
+  type CreateActivityPayload,
+  type UpdateActivityPayload,
 } from "../types/activity";
 
 export interface ListActivitiesParams extends Partial<ServerTableFetchParams> {
@@ -17,6 +18,8 @@ export interface ListActivitiesParams extends Partial<ServerTableFetchParams> {
   dateFrom?: string;
   dateTo?: string;
 }
+
+type CreateActivityInput = Omit<CreateActivityPayload, "type"> & { type: ActivityType };
 
 export async function listActivities(
   params: ListActivitiesParams = {},
@@ -65,7 +68,11 @@ export function getActivity(id: string): Promise<Activity> {
   return apiRequest<Activity>(`/api/v1/activities/${encodeURIComponent(id)}`);
 }
 
-export function createActivity(payload: CreateActivityPayload): Promise<Activity> {
+export async function createActivity(input: CreateActivityInput): Promise<Activity> {
+  if (!isManualActivityType(input.type)) {
+    throw new Error("task_completed is system-only and cannot be created manually.");
+  }
+  const payload: CreateActivityPayload = { ...input, type: input.type };
   return apiRequest<Activity>("/api/v1/activities", {
     method: "POST",
     body: JSON.stringify(payload),

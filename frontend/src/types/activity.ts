@@ -10,6 +10,12 @@ export type ActivityType =
   | "task_completed"
   | "other";
 
+export type ManualActivityType = Exclude<ActivityType, "task_completed">;
+
+export function isManualActivityType(type: ActivityType): type is ManualActivityType {
+  return type !== "task_completed";
+}
+
 export type ActivityStatus = "open" | "completed" | "cancelled";
 
 export type ActivitySource =
@@ -60,7 +66,7 @@ export interface ActivityListResponse {
 
 export interface CreateActivityPayload {
   customer_id: string;
-  type: ActivityType;
+  type: ManualActivityType;
   subject: string;
   activity_date: string;
   status: ActivityStatus;
@@ -72,7 +78,7 @@ export interface CreateActivityPayload {
 }
 
 export interface UpdateActivityPayload {
-  type?: ActivityType;
+  type?: ManualActivityType;
   subject?: string;
   activity_date?: string;
   status?: ActivityStatus;

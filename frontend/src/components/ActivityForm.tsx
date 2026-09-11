@@ -28,7 +28,9 @@ import {
   TextInput,
 } from "./ui/form";
 
-export type ActivityFormValues = Omit<CreateActivityPayload, "customer_id">;
+export type ActivityFormValues = Omit<CreateActivityPayload, "customer_id" | "type"> & {
+  type: ActivityType;
+};
 
 /** System type from Todo complete — must appear as Diğer and never fall back to call. */
 const SYSTEM_DISPLAY_TYPE: ActivityType = "task_completed";
