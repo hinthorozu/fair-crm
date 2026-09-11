@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "id": "duplicate-check-navigation-permission-consistency",
+  "title": "Duplicate Check Navigation Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/OperationsPage.tsx",
+    "frontend/src/utils/duplicateCheckOperation.ts",
+    "frontend/src/permissions/DuplicateCheckNavigationPermissions.test.ts",
+    ".kyrox/features/duplicate-check-navigation-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.operations.read",
+        "action": "view the operations list and generic operation detail",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.operations.execute",
+        "action": "create and immediately execute a duplicate-check operation",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.admin.data_operations.read",
+        "action": "open the duplicate-check wizard and dataset result routes",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/operations",
+      "/operations/:id",
+      "/operations/new/duplicate-check",
+      "/operations/duplicate-check/runs/:runId"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": {
+      "status": "na",
+      "reason": "No persistence changes are introduced."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "Existing operation and data-operation permission codes are reused."
+    },
+    "permissions": {
+      "status": "required"
+    },
+    "backend": {
+      "status": "na",
+      "reason": "Existing operations.execute and admin.data_operations.read runtime authorization remains unchanged and authoritative."
+    },
+    "api": {
+      "status": "na",
+      "reason": "No endpoint or payload contract changes are introduced."
+    },
+    "tenant_isolation": {
+      "status": "na",
+      "reason": "No organization-scoping behavior changes."
+    },
+    "audit": {
+      "status": "na",
+      "reason": "No mutation or audit behavior changes."
+    },
+    "frontend": {
+      "status": "required"
+    },
+    "ui_permissions": {
+      "status": "required"
+    },
+    "menu": {
+      "status": "na",
+      "reason": "No navigation menu behavior changes."
+    },
+    "route_guard": {
+      "status": "required"
+    },
+    "forms": {
+      "status": "na",
+      "reason": "No form validation or payload shape changes."
+    },
+    "visual_qa": {
+      "status": "required"
+    },
+    "backend_tests": {
+      "status": "na",
+      "reason": "No backend executable behavior changes."
+    },
+    "frontend_tests": {
+      "status": "required"
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
+  },
+  "notes": "Duplicate-check creation is an immediate-execution path authorized by fair_crm.operations.execute, while its wizard and dataset result views also consume admin data-operation read APIs. The New Operation picker now exposes duplicate_check only when both route/runtime permissions are present. Operations-list users without admin.data_operations.read retain access to the generic operation detail; the stronger dataset-result shortcut is suppressed instead of navigating them into a route they cannot read."
+}
