@@ -23,6 +23,7 @@ import {
 } from "../labels/operationLabels";
 import { FAIR_EMAIL_PERMISSION_EXECUTE } from "../permissions/fairEmailPermissions";
 import {
+  PERMISSION_DATA_OPERATIONS_READ,
   PERMISSION_EMAIL_ACCOUNTS_READ,
   PERMISSION_FAIRS_READ,
   PERMISSION_MAIL_TEMPLATES_READ,
@@ -58,6 +59,7 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
   const { can } = usePermissions();
   const canCreate = can(PERMISSION_OPERATIONS_CREATE);
   const canExecute = can(OPERATION_EXECUTE);
+  const canReadDataOperations = can(PERMISSION_DATA_OPERATIONS_READ);
   const canReadEmailAccounts = can(PERMISSION_EMAIL_ACCOUNTS_READ);
   const canReadFairs = can(PERMISSION_FAIRS_READ);
   const canReadMailTemplates = can(PERMISSION_MAIL_TEMPLATES_READ);
@@ -69,11 +71,13 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
   const canCreateEnrichmentOperation = canStartScraperActions && canReadScraper;
   const canCreateScraperOperation =
     canStartScraperActions && canReadFairs && canReadScraper;
+  const canCreateDuplicateCheckOperation = canExecute && canReadDataOperations;
   const canOpenNewOperation =
     canCreate ||
     canCreateBulkEmailOperation ||
     canCreateEnrichmentOperation ||
-    canCreateScraperOperation;
+    canCreateScraperOperation ||
+    canCreateDuplicateCheckOperation;
   const [banner, setBanner] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
@@ -133,9 +137,16 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
       if (type === "bulk_email") return canCreateBulkEmailOperation;
       if (type === "enrichment") return canCreateEnrichmentOperation;
       if (type === "scraper") return canCreateScraperOperation;
+      if (type === "duplicate_check") return canCreateDuplicateCheckOperation;
       return canCreate;
     },
-    [canCreate, canCreateBulkEmailOperation, canCreateEnrichmentOperation, canCreateScraperOperation],
+    [
+      canCreate,
+      canCreateBulkEmailOperation,
+      canCreateDuplicateCheckOperation,
+      canCreateEnrichmentOperation,
+      canCreateScraperOperation,
+    ],
   );
 
   const canStartOperation = React.useCallback(
