@@ -1,3 +1,6 @@
+import { config } from "../config";
+import { getGrantedCorePermissions } from "../permissions/corePermissions";
+import { PERMISSION_DATA_OPERATIONS_READ } from "../permissions/navigationPermissions";
 import type { Operation } from "../types/operation";
 
 /** Linked data-operation run payload stored on OperationRun.error_details.result. */
@@ -5,6 +8,12 @@ export function extractDuplicateCheckResultNav(
   operation: Operation,
 ): { runId: string; operationKey: string } | null {
   if (operation.operation_type !== "duplicate_check") return null;
+  if (
+    !config.devBypassEnabled &&
+    !getGrantedCorePermissions().has(PERMISSION_DATA_OPERATIONS_READ)
+  ) {
+    return null;
+  }
 
   const rawResult = operation.latest_run?.error_details?.result;
   const result =
