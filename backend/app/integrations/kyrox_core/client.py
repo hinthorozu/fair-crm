@@ -23,6 +23,7 @@ class KyroxCoreHttpClient:
         access_token: str,
         organization_id: UUID,
         json: dict | None = None,
+        extra_headers: dict[str, str] | None = None,
     ) -> httpx.Response:
         url = f"{self._base_url}{path}"
         headers = {
@@ -30,6 +31,8 @@ class KyroxCoreHttpClient:
             "X-Organization-Id": str(organization_id),
             "Content-Type": "application/json",
         }
+        if extra_headers:
+            headers.update(extra_headers)
         with httpx.Client(timeout=10.0) as client:
             return client.request(method, url, headers=headers, json=json)
 

@@ -52,7 +52,7 @@ class FakeLifecycle:
         self.calls.append(organization_id)
         if self.error is not None:
             raise self.error
-        return SimpleNamespace(status=self.status)
+        return SimpleNamespace(status=self.status, is_deleted=False)
 
 
 class RecordingAudit:

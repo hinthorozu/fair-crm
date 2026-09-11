@@ -64,7 +64,7 @@ class FakeLifecycle:
 
     def get_snapshot(self, organization_id: object) -> SimpleNamespace:
         self.calls.append(organization_id)
-        return SimpleNamespace(status=self.status)
+        return SimpleNamespace(status=self.status, is_deleted=False)
 
 
 class RecordingAudit:

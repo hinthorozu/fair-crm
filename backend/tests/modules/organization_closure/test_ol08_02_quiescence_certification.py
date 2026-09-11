@@ -55,6 +55,7 @@ class _SuspendedLifecycle:
             organization_id=organization_id,
             status="suspended",
             work_allowed=False,
+            is_deleted=False,
         )
 
 

@@ -269,9 +269,10 @@ class OrganizationClosureService:
             raise ClosureLifecycleUnavailableError(
                 "Organization lifecycle authority unavailable"
             ) from exc
-        if snapshot.status != "suspended":
+        if snapshot.is_deleted or snapshot.status != "suspended":
+            state = "deleted" if snapshot.is_deleted else snapshot.status
             raise ClosureLifecyclePreconditionError(
-                f"Organization must be suspended before closure execution: {snapshot.status}"
+                f"Organization must be suspended before closure execution: {state}"
             )
 
     @staticmethod
