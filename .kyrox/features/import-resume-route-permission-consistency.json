@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "id": "import-resume-route-permission-consistency",
+  "title": "Import Resume Route Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/permissions/ImportResumeRoutePermissions.test.ts",
+    ".kyrox/features/import-resume-route-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.imports.read",
+        "action": "hydrate the existing import batch before resuming the wizard",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.imports.update",
+        "action": "resume and modify an existing import batch",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/data-integration/imports/continue/:batchId"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": {
+      "status": "na",
+      "reason": "No persistence changes are introduced."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "Existing Core permission codes are reused."
+    },
+    "permissions": {
+      "status": "required"
+    },
+    "backend": {
+      "status": "na",
+      "reason": "Backend authorization remains unchanged and authoritative."
+    },
+    "api": {
+      "status": "na",
+      "reason": "No server API contracts change; the frontend route guard is aligned with the existing import-batch read dependency."
+    },
+    "tenant_isolation": {
+      "status": "na",
+      "reason": "No backend query or organization-scoping behavior changes."
+    },
+    "audit": {
+      "status": "na",
+      "reason": "Route authorization does not create auditable business mutations."
+    },
+    "frontend": {
+      "status": "required"
+    },
+    "ui_permissions": {
+      "status": "required"
+    },
+    "menu": {
+      "status": "na",
+      "reason": "No navigation menu behavior changes."
+    },
+    "route_guard": {
+      "status": "required"
+    },
+    "forms": {
+      "status": "na",
+      "reason": "The import wizard form and mutation permissions are unchanged."
+    },
+    "visual_qa": {
+      "status": "required"
+    },
+    "backend_tests": {
+      "status": "na",
+      "reason": "No backend executable behavior changes."
+    },
+    "frontend_tests": {
+      "status": "required"
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
+  },
+  "notes": "The resume route mounts ImportWizardPage with resumeBatchId, which must call GET /imports/{batch_id} before the wizard can continue. That endpoint requires fair_crm.imports.read, while subsequent resume mutations require fair_crm.imports.update. The direct route therefore requires both permissions. Backend authorization and action-level execute permissions are unchanged."
+}

@@ -346,7 +346,10 @@ export function canAccessApplicationPath(
     return hasGrantedCorePermission(granted, PERMISSION_IMPORTS_CREATE);
   }
   if (pathname.startsWith("/data-integration/imports/continue/")) {
-    return hasGrantedCorePermission(granted, PERMISSION_IMPORTS_UPDATE);
+    return (
+      hasGrantedCorePermission(granted, PERMISSION_IMPORTS_READ) &&
+      hasGrantedCorePermission(granted, PERMISSION_IMPORTS_UPDATE)
+    );
   }
   if (pathname === "/data-integration/imports") {
     return hasGrantedCorePermission(granted, PERMISSION_IMPORTS_READ);
