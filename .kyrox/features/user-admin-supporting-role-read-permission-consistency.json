@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "id": "user-admin-supporting-role-read-permission-consistency",
+  "title": "User Admin Supporting Role Read Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/UsersAdminPage.tsx",
+    "frontend/src/permissions/UsersAdminSupportingRoleReadPermissions.test.ts",
+    ".kyrox/features/user-admin-supporting-role-read-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "identity.users.read",
+        "action": "view organization users on the Users admin page",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "identity.roles.read",
+        "action": "load assignable roles for role-dependent user creation or role changes",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "identity.users.create",
+        "action": "create an organization user when role selection is available",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "identity.users.update",
+        "action": "update user fields without requiring a role lookup when the role is unchanged",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/admin/system/users"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": {
+      "status": "na",
+      "reason": "No persistence changes are introduced."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "Existing Core permission codes are reused."
+    },
+    "permissions": {
+      "status": "required"
+    },
+    "backend": {
+      "status": "na",
+      "reason": "Core user and role endpoint authorization remains unchanged and authoritative."
+    },
+    "api": {
+      "status": "na",
+      "reason": "No endpoint or payload schema changes are introduced; optional role_id is omitted for unchanged-role updates."
+    },
+    "tenant_isolation": {
+      "status": "na",
+      "reason": "No organization-scoping behavior changes."
+    },
+    "audit": {
+      "status": "na",
+      "reason": "No audit contract changes are introduced."
+    },
+    "frontend": {
+      "status": "required"
+    },
+    "ui_permissions": {
+      "status": "required"
+    },
+    "menu": {
+      "status": "na",
+      "reason": "No navigation menu behavior changes."
+    },
+    "route_guard": {
+      "status": "na",
+      "reason": "The Users route intentionally remains governed by identity.users.read; identity.roles.read is only a supporting capability."
+    },
+    "forms": {
+      "status": "required"
+    },
+    "visual_qa": {
+      "status": "required"
+    },
+    "backend_tests": {
+      "status": "na",
+      "reason": "No backend executable behavior changes."
+    },
+    "frontend_tests": {
+      "status": "required"
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
+  },
+  "notes": "The Users admin route remains identity.users.read-only. Assignable-role lookup is attempted only with identity.roles.read, role lookup failure cannot erase the user list, role-dependent creation is fail-closed, and unrelated edits preserve the user's existing role by omitting role_id unless an authorized role selection actually changes it."
+}
