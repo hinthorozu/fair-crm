@@ -211,6 +211,7 @@ def _seed_terminal_evidence(
         purged_at=now - timedelta(days=1),
     )
     db_session.add(package)
+    db_session.flush()
 
     inventory = OrganizationClosureArtifactInventoryModel(
         id=uuid4(),
