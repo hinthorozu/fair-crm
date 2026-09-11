@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "id": "import-list-continue-permission-consistency",
+  "title": "Import List Continue Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/DataIntegrationImportsPage.tsx",
+    "frontend/src/permissions/ImportListContinuePermissions.test.ts",
+    ".kyrox/features/import-list-continue-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.imports.read",
+        "action": "view import batches in the Data Integration import list",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.imports.update",
+        "action": "continue or analyze an existing import batch",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/data-integration/imports",
+      "/data-integration/imports/continue/:batchId"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": {
+      "status": "na",
+      "reason": "No persistence changes are introduced."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "Existing import permission codes are reused."
+    },
+    "permissions": {
+      "status": "required"
+    },
+    "backend": {
+      "status": "na",
+      "reason": "Import endpoint authorization remains unchanged and authoritative."
+    },
+    "api": {
+      "status": "na",
+      "reason": "No endpoint or payload schema changes are introduced."
+    },
+    "tenant_isolation": {
+      "status": "na",
+      "reason": "No organization-scoping behavior changes."
+    },
+    "audit": {
+      "status": "na",
+      "reason": "No mutation or audit behavior changes are introduced."
+    },
+    "frontend": {
+      "status": "required"
+    },
+    "ui_permissions": {
+      "status": "required"
+    },
+    "menu": {
+      "status": "na",
+      "reason": "No navigation menu behavior changes."
+    },
+    "route_guard": {
+      "status": "required"
+    },
+    "forms": {
+      "status": "na",
+      "reason": "No form fields or validation rules change."
+    },
+    "visual_qa": {
+      "status": "required"
+    },
+    "backend_tests": {
+      "status": "na",
+      "reason": "No backend executable behavior changes."
+    },
+    "frontend_tests": {
+      "status": "required"
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
+  },
+  "notes": "The import list remains accessible with fair_crm.imports.read. Navigation into the existing continue/resume wizard remains governed by fair_crm.imports.read plus fair_crm.imports.update. Read-only users no longer receive interactive file-name or Continue actions that target the update-gated continue route. Existing analyze/reanalyze actions remain update-gated and backend authorization is unchanged."
+}

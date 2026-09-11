@@ -67,11 +67,14 @@ const IMPORT_COLUMNS = (
     key: "file_name",
     title: dataIntegrationLabels.colFile,
     sortable: true,
-    render: (batch) => (
-      <TableEntityLink onClick={() => handlers.onOpenBatch?.(batch.id)}>
-        {batch.file_name}
-      </TableEntityLink>
-    ),
+    render: (batch) =>
+      handlers.onOpenBatch ? (
+        <TableEntityLink onClick={() => handlers.onOpenBatch?.(batch.id)}>
+          {batch.file_name}
+        </TableEntityLink>
+      ) : (
+        batch.file_name
+      ),
   },
   {
     key: "source_type",
@@ -175,7 +178,7 @@ const IMPORT_COLUMNS = (
         {isOperationInProgress(batch.status) && (
           <span className="text-muted">İşlem devam ediyor…</span>
         )}
-        {showContinue(batch.status) && (
+        {handlers.canUpdate && showContinue(batch.status) && (
           <button
             type="button"
             className="btn btn-sm btn-secondary"
@@ -283,7 +286,7 @@ export function DataIntegrationImportsPage({
     }
   }, [batchToDelete, canDelete, table]);
 
-  const handleOpen = onContinueBatch ?? onOpenBatch;
+  const handleOpen = canUpdate ? (onContinueBatch ?? onOpenBatch) : onOpenBatch;
 
   const columns = React.useMemo(
     () =>
