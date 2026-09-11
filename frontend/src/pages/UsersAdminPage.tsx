@@ -28,6 +28,7 @@ import {
 } from "../components/ui/UniversalDataTable";
 import { getGrantedCorePermissions } from "../permissions/corePermissions";
 import {
+  PERMISSION_ROLES_READ,
   PERMISSION_USERS_CREATE,
   PERMISSION_USERS_DELETE,
   PERMISSION_USERS_UPDATE,
@@ -58,6 +59,7 @@ export function UsersAdminPage() {
   const [canRestoreDeletedUsers, setCanRestoreDeletedUsers] = React.useState(false);
   const [restoringUserId, setRestoringUserId] = React.useState<string | null>(null);
   const [roles, setRoles] = React.useState<AssignableRole[]>([]);
+  const [roleLoadError, setRoleLoadError] = React.useState<string | null>(null);
   const [canManageSuperAdmin, setCanManageSuperAdmin] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -70,6 +72,7 @@ export function UsersAdminPage() {
   const [deleteTarget, setDeleteTarget] = React.useState<ManagedUser | null>(null);
   const [deleting, setDeleting] = React.useState(false);
   const grantedPermissions = getGrantedCorePermissions();
+  const canReadRoles = actorIsSuperAdmin || grantedPermissions.has(PERMISSION_ROLES_READ);
   const canCreateUsers = actorIsSuperAdmin || grantedPermissions.has(PERMISSION_USERS_CREATE);
   const canUpdateUsers = actorIsSuperAdmin || grantedPermissions.has(PERMISSION_USERS_UPDATE);
   const canDeleteUsers = actorIsSuperAdmin || grantedPermissions.has(PERMISSION_USERS_DELETE);
@@ -98,19 +101,28 @@ export function UsersAdminPage() {
       setDeletedUsers([]);
       setCanRestoreDeletedUsers(false);
       setRoles([]);
+      setRoleLoadError(null);
       setCanManageSuperAdmin(false);
       setLoading(false);
       return;
     }
-    setLoading(true); setError(null);
+    setLoading(true); setError(null); setRoleLoadError(null);
     try {
-      const [userResult, roleResult] = await Promise.all([
-        listManagedUsers(organizationId),
-        listAssignableRoles(organizationId),
-      ]);
+      const userResult = await listManagedUsers(organizationId);
       setUsers(userResult.items);
       setCanManageSuperAdmin(userResult.can_manage_super_admin);
-      setRoles(roleResult);
+
+      if (canReadRoles) {
+        try {
+          const roleResult = await listAssignableRoles(organizationId);
+          setRoles(roleResult);
+        } catch (err) {
+          setRoles([]);
+          setRoleLoadError(err instanceof ApiError ? err.message : "Roller yüklenemedi.");
+        }
+      } else {
+        setRoles([]);
+      }
 
       if (!canUpdateUsers) {
         setDeletedUsers([]);
@@ -132,7 +144,7 @@ export function UsersAdminPage() {
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Kullanıcılar yüklenemedi.");
     } finally { setLoading(false); }
-  }, [canUpdateUsers, organizationId]);
+  }, [canReadRoles, canUpdateUsers, organizationId]);
 
   React.useEffect(() => { void loadUsers(); }, [loadUsers]);
 
@@ -142,7 +154,7 @@ export function UsersAdminPage() {
   };
 
   const openCreate = () => {
-    if (!canCreateUsers) return;
+    if (!canCreateUsers || !canReadRoles) return;
     setEditing(null);
     setForm({ ...EMPTY_FORM, roleId: roles[0]?.id ?? "" });
     setShowPassword(true);
@@ -168,7 +180,8 @@ export function UsersAdminPage() {
     setSaving(true); setFormError(null); setSuccess(null);
     try {
       if (editing) {
-        await updateManagedUser(organizationId, editing.id, { email: form.email.trim(), role_id: form.roleId, status: form.status, ...(form.password ? { password: form.password } : {}), ...(canManageSuperAdmin ? { is_super_admin: form.isSuperAdmin } : {}) });
+        const roleChanged = form.roleId !== (editing.role?.id ?? "");
+        await updateManagedUser(organizationId, editing.id, { email: form.email.trim(), status: form.status, ...(canReadRoles && !form.isSuperAdmin && roleChanged ? { role_id: form.roleId } : {}), ...(form.password ? { password: form.password } : {}), ...(canManageSuperAdmin ? { is_super_admin: form.isSuperAdmin } : {}) });
         setSuccess("Kullanıcı güncellendi.");
       } else {
         await createManagedUser(organizationId, { email: form.email.trim(), password: form.password, ...(form.roleId ? { role_id: form.roleId } : {}), status: form.status, ...(canManageSuperAdmin ? { is_super_admin: form.isSuperAdmin } : {}) });
@@ -231,12 +244,13 @@ export function UsersAdminPage() {
     <div className="form-field"><span className="form-label">Organizasyon</span><strong>{selectedOrganization?.name ?? "Organizasyon bulunamadı"}</strong></div>
   );
 
-  const canOfferCreate = canCreateUsers && Boolean(organizationId) && roles.length > 0;
+  const canOfferCreate = canCreateUsers && canReadRoles && Boolean(organizationId) && roles.length > 0;
 
   return <PageShell>
-    <PageHeader title="Kullanıcılar" actions={canCreateUsers ? <button type="button" className="btn primary" onClick={openCreate} disabled={!canOfferCreate}>Yeni Kullanıcı</button> : undefined} />
+    <PageHeader title="Kullanıcılar" actions={canOfferCreate ? <button type="button" className="btn primary" onClick={openCreate}>Yeni Kullanıcı</button> : undefined} />
     {success ? <Banner variant="success">{success}</Banner> : null}
     {error ? <Banner variant="error">{error}</Banner> : null}
+    {roleLoadError ? <Banner variant="warning">{roleLoadError}</Banner> : null}
     <div className="card" style={{ marginBottom: 16, padding: 16 }}>{actorIsSuperAdmin ? <label className="form-field"><span className="form-label">Organizasyon</span><select className="input" value={organizationId} onChange={(event) => changeOrganization(event.target.value)}><option value="">Organizasyon seçin</option>{organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}</select></label> : <div className="form-field"><span className="form-label">Organizasyon</span><strong>{selectedOrganization?.name ?? "Organizasyon bulunamadı"}</strong></div>}</div>
     <UniversalDataTable items={users} columns={columns} rowKey={(user) => user.id} loading={loading} error={error} onRetry={() => void loadUsers()} emptyState={<EmptyState title="Kullanıcı bulunamadı" actionLabel={canOfferCreate ? "Yeni Kullanıcı" : undefined} onAction={canOfferCreate ? openCreate : undefined} />} />
     {canRestoreUsers ? <div style={{ marginTop: 24 }}><h3>Silinen Kullanıcılar</h3><UniversalDataTable items={deletedUsers} columns={deletedColumns} rowKey={(user) => user.id} loading={loading} emptyState={<EmptyState title="Silinen kullanıcı bulunamadı" />} /></div> : null}
@@ -245,7 +259,7 @@ export function UsersAdminPage() {
       {organizationField}
       <label className="form-field"><span className="form-label">E-posta *</span><input className="input" type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} required disabled={saving} /></label>
       <label className="form-field"><span className="form-label">Şifre{editing ? "" : " *"}</span><span style={{ position: "relative", display: "block" }}><input className="input" type={showPassword ? "text" : "password"} value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} required={!editing} disabled={saving} autoComplete="new-password" style={{ width: "100%", paddingRight: 44 }} /><button type="button" onClick={() => setShowPassword((current) => !current)} disabled={saving} aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"} title={showPassword ? "Şifreyi gizle" : "Şifreyi göster"} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 0, border: 0, background: "transparent", color: "inherit", cursor: "pointer" }}>{showPassword ? <NavIconEyeOff /> : <NavIconEye />}</button></span>{editing ? <span className="form-hint">Değiştirmeyecekseniz boş bırakın.</span> : null}</label>
-      <label className="form-field"><span className="form-label">Rol{form.isSuperAdmin ? "" : " *"}</span><select className="input" value={form.roleId} onChange={(event) => setForm((current) => ({ ...current, roleId: event.target.value }))} required={!form.isSuperAdmin} disabled={saving || form.isSuperAdmin}><option value="">{form.isSuperAdmin ? "Super Admin rol kullanmaz" : "Rol seçin"}</option>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select></label>
+      {canReadRoles ? <label className="form-field"><span className="form-label">Rol{form.isSuperAdmin ? "" : " *"}</span><select className="input" value={form.roleId} onChange={(event) => setForm((current) => ({ ...current, roleId: event.target.value }))} required={!form.isSuperAdmin} disabled={saving || form.isSuperAdmin}><option value="">{form.isSuperAdmin ? "Super Admin rol kullanmaz" : "Rol seçin"}</option>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select></label> : editing && !form.isSuperAdmin ? <div className="form-field"><span className="form-label">Rol</span><strong>{editing.role?.name ?? "—"}</strong></div> : null}
       <label className="form-field"><span className="form-label">Durum</span><select className="input" value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as "active" | "inactive" }))} disabled={saving}><option value="active">Aktif</option><option value="inactive">Pasif</option></select></label>
       {canManageSuperAdmin ? <label className="form-field"><span className="form-label">Super Admin</span><input type="checkbox" checked={form.isSuperAdmin} onChange={(event) => setForm((current) => ({ ...current, isSuperAdmin: event.target.checked, roleId: event.target.checked ? "" : current.roleId }))} disabled={saving} /></label> : null}
       <div className="form-actions"><button type="button" className="btn secondary" onClick={closeForm} disabled={saving}>Vazgeç</button><button type="submit" className="btn primary" disabled={saving}>{saving ? "Kaydediliyor…" : "Kaydet"}</button></div>
