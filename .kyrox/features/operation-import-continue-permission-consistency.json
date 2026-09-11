@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "id": "operation-import-continue-permission-consistency",
+  "title": "Operation Import Continue Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/OperationDetailPage.tsx",
+    "frontend/src/components/scraper/EnrichmentRunDetailPanel.tsx",
+    "frontend/src/permissions/OperationImportContinuePermissions.test.ts",
+    ".kyrox/features/operation-import-continue-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.operations.read",
+        "action": "view generic operation detail",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.scraper.read",
+        "action": "view enrichment run detail",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.imports.read",
+        "action": "read an existing import batch before continuing it",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.imports.update",
+        "action": "continue an existing import batch",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/operations/:id",
+      "/data-integration/runs/:runId",
+      "/data-integration/imports/continue/:batchId"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": {
+      "status": "na",
+      "reason": "No persistence changes are introduced."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "Existing import permission codes are reused."
+    },
+    "permissions": {
+      "status": "required"
+    },
+    "backend": {
+      "status": "na",
+      "reason": "Existing operation, scraper, and import authorization remains unchanged and authoritative."
+    },
+    "api": {
+      "status": "na",
+      "reason": "No endpoint or payload contract changes are introduced."
+    },
+    "tenant_isolation": {
+      "status": "na",
+      "reason": "No organization-scoping behavior changes."
+    },
+    "audit": {
+      "status": "na",
+      "reason": "No mutation or audit behavior changes."
+    },
+    "frontend": {
+      "status": "required"
+    },
+    "ui_permissions": {
+      "status": "required"
+    },
+    "menu": {
+      "status": "na",
+      "reason": "No menu behavior changes."
+    },
+    "route_guard": {
+      "status": "required"
+    },
+    "forms": {
+      "status": "na",
+      "reason": "No form fields or validation rules change."
+    },
+    "visual_qa": {
+      "status": "required"
+    },
+    "backend_tests": {
+      "status": "na",
+      "reason": "No backend executable behavior changes."
+    },
+    "frontend_tests": {
+      "status": "required"
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
+  },
+  "notes": "Generic operation detail and enrichment run detail remain readable under their existing permissions. Linked import-batch continuation is a stronger action whose destination requires fair_crm.imports.read plus fair_crm.imports.update. The operation-detail wrapper now removes its continuation callback unless both import permissions are present, and the shared enrichment run panel independently suppresses both callback-backed and direct-link continuation UI without the same permission pair."
+}

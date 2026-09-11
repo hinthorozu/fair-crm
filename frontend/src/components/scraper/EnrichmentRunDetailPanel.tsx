@@ -8,6 +8,10 @@ import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { LoadingState } from "../ui/LoadingState";
 import { scraperLabels } from "../../labels/scraperLabels";
 import { usePermissions } from "../../hooks/usePermissions";
+import {
+  PERMISSION_IMPORTS_READ,
+  PERMISSION_IMPORTS_UPDATE,
+} from "../../permissions/navigationPermissions";
 import { SCRAPER_PERMISSION_EXECUTE } from "../../permissions/scraperPermissions";
 import type { EnrichmentRunSummary, ScraperRun } from "../../types/scraper";
 import { CUSTOMER_CONTACT_ENRICHMENT_ADAPTER_KEY } from "../../utils/enrichmentAdapter";
@@ -70,6 +74,8 @@ export function EnrichmentRunDetailPanel({
 }: EnrichmentRunDetailPanelProps) {
   const { can } = usePermissions();
   const canExecute = can(SCRAPER_PERMISSION_EXECUTE);
+  const canContinueImport =
+    can(PERMISSION_IMPORTS_READ) && can(PERMISSION_IMPORTS_UPDATE);
   const [run, setRun] = React.useState<ScraperRun | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -182,7 +188,7 @@ export function EnrichmentRunDetailPanel({
 
       {summary ? <EnrichmentSummaryGrid summary={summary} /> : null}
 
-      {summary?.import_batch_id ? (
+      {summary?.import_batch_id && canContinueImport ? (
         <p className="enrichment-run-detail-import-link">
           {onOpenImportBatch ? (
             <button
