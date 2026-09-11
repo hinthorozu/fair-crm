@@ -43,6 +43,8 @@ import {
   IMPORT_PERMISSION_EXECUTE,
   IMPORT_PERMISSION_UPDATE,
 } from "../permissions/importPermissions";
+import { FAIR_READ } from "../permissions/fairPermissions";
+import { PARTICIPATION_READ } from "../permissions/participationPermissions";
 import { DEFAULT_PAGE } from "../types/listTable";
 import {
   importBatchStatusLabels,
@@ -138,6 +140,8 @@ function ImportWizardPageInner({
   const canUpdate = can(IMPORT_PERMISSION_UPDATE);
   const canExecute = can(IMPORT_PERMISSION_EXECUTE);
   const canCreate = can(IMPORT_PERMISSION_CREATE);
+  const canFairRead = can(FAIR_READ);
+  const canParticipationRead = can(PARTICIPATION_READ);
   const [wizardMode, setWizardMode] = React.useState<"setup" | "continue">("setup");
   const isContinueMode = wizardMode === "continue";
   const [isSetupResume, setIsSetupResume] = React.useState(false);
@@ -278,15 +282,28 @@ function ImportWizardPageInner({
   });
 
   const loadFairDetails = React.useCallback(async (fairId: string) => {
+    setParticipantCount(null);
+    if (!canFairRead) {
+      setSelectedFair(null);
+      return;
+    }
+
     try {
       const fair = await getFair(fairId);
       setSelectedFair(fair);
+    } catch {
+      setSelectedFair(null);
+      return;
+    }
+
+    if (!canParticipationRead) return;
+    try {
       const parts = await listParticipantsByFair(fairId, { page: 1, pageSize: 1 });
       setParticipantCount(parts.pagination.totalItems);
     } catch {
-      setSelectedFair(null);
+      setParticipantCount(null);
     }
-  }, []);
+  }, [canFairRead, canParticipationRead]);
 
   React.useEffect(() => {
     if (preselectedFairId) {
@@ -1175,13 +1192,17 @@ function ImportWizardPageInner({
     <Card>
       <h3>{importLabels.fairTitle}</h3>
       <p className="text-muted">{importLabels.fairSubtitle}</p>
-      {preselectedFairId && selectedFair ? (
-        <div className="fair-info-card">
-          <strong>{selectedFair.name}</strong>
-          <div>{selectedFair.start_date} – {selectedFair.end_date}</div>
-          <div>{selectedFair.location ?? "—"}</div>
-          <div>{importLabels.fairParticipants}: {participantCount ?? "—"}</div>
-        </div>
+      {preselectedFairId ? (
+        selectedFair ? (
+          <div className="fair-info-card">
+            <strong>{selectedFair.name}</strong>
+            <div>{selectedFair.start_date} – {selectedFair.end_date}</div>
+            <div>{selectedFair.location ?? "—"}</div>
+            {canParticipationRead && (
+              <div>{importLabels.fairParticipants}: {participantCount ?? "—"}</div>
+            )}
+          </div>
+        ) : null
       ) : (
         <FairEntitySelect
           value={selectedFairId}
@@ -1193,7 +1214,9 @@ function ImportWizardPageInner({
         <div className="fair-info-card">
           <strong>{selectedFair.name}</strong>
           <div>{selectedFair.location ?? "—"}</div>
-          <div>{importLabels.fairParticipants}: {participantCount ?? "—"}</div>
+          {canParticipationRead && (
+            <div>{importLabels.fairParticipants}: {participantCount ?? "—"}</div>
+          )}
         </div>
       )}
     </Card>

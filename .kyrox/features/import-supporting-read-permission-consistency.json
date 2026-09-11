@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "id": "import-supporting-read-permission-consistency",
+  "title": "Import Supporting Read Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/ImportWizardPage.tsx",
+    "frontend/src/permissions/ImportWizardSupportingReadPermissions.test.ts",
+    ".kyrox/features/import-supporting-read-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.imports.create",
+        "action": "enter the fair-scoped import creation flow",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.fairs.read",
+        "action": "hydrate optional fair display details when authorized",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.participations.read",
+        "action": "hydrate optional fair participant count when authorized",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/data-integration/imports/new",
+      "/data-integration/imports/fair/:fairId",
+      "/data-integration/imports/:batchId/resume"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": {
+      "status": "na",
+      "reason": "No persistence changes are introduced."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "Existing Core permission codes are reused."
+    },
+    "permissions": {
+      "status": "required"
+    },
+    "backend": {
+      "status": "na",
+      "reason": "Backend authorization remains unchanged and authoritative."
+    },
+    "api": {
+      "status": "na",
+      "reason": "No server API contract changes; the UI only avoids supporting read calls when the corresponding effective permission is absent."
+    },
+    "tenant_isolation": {
+      "status": "na",
+      "reason": "No backend query or organization-scoping behavior changes."
+    },
+    "audit": {
+      "status": "na",
+      "reason": "No business mutation or audit behavior changes."
+    },
+    "frontend": {
+      "status": "required"
+    },
+    "ui_permissions": {
+      "status": "required"
+    },
+    "menu": {
+      "status": "na",
+      "reason": "No navigation menu behavior changes."
+    },
+    "route_guard": {
+      "status": "na",
+      "reason": "Accepted route permission requirements are unchanged; supporting reads are conditional inside the wizard."
+    },
+    "forms": {
+      "status": "required"
+    },
+    "visual_qa": {
+      "status": "required"
+    },
+    "backend_tests": {
+      "status": "na",
+      "reason": "No backend executable behavior changes."
+    },
+    "frontend_tests": {
+      "status": "required"
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
+  },
+  "notes": "The fair-scoped creation route intentionally remains governed by fair_crm.imports.create only. Fair display hydration is attempted only with fair_crm.fairs.read, participant-count hydration only with fair_crm.participations.read, and participant-count failure cannot erase an already authorized fair result. A preselected fair remains fixed even when its display details are not readable."
+}
