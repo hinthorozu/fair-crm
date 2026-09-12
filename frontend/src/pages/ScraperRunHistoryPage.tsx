@@ -4,9 +4,9 @@ import {
   PERMISSION_IMPORTS_READ,
   PERMISSION_IMPORTS_UPDATE,
 } from "../permissions/navigationPermissions";
-import { ScraperRunHistoryPage as LegacyScraperRunHistoryPage } from "./ScraperRunHistoryPageLegacy";
+import { ScraperRunHistoryPage as PageShellBackedScraperRunHistoryPage } from "./ScraperRunHistoryPageLegacy";
 
-type ScraperRunHistoryPageProps = React.ComponentProps<typeof LegacyScraperRunHistoryPage>;
+type ScraperRunHistoryPageProps = React.ComponentProps<typeof PageShellBackedScraperRunHistoryPage>;
 
 export function ScraperRunHistoryPage(props: ScraperRunHistoryPageProps) {
   const { can } = usePermissions();
@@ -14,7 +14,7 @@ export function ScraperRunHistoryPage(props: ScraperRunHistoryPageProps) {
     can(PERMISSION_IMPORTS_READ) && can(PERMISSION_IMPORTS_UPDATE);
 
   return (
-    <LegacyScraperRunHistoryPage
+    <PageShellBackedScraperRunHistoryPage
       {...props}
       onOpenImportBatch={canContinueImport ? props.onOpenImportBatch : undefined}
     />
