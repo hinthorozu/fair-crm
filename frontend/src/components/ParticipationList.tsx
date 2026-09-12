@@ -6,6 +6,9 @@ import type {
 import { participationLabels } from "../labels/participationLabels";
 import { uiLabels } from "../labels/uiLabels";
 import { labels } from "../labels";
+import { usePermissions } from "../hooks/usePermissions";
+import { CUSTOMER_READ } from "../permissions/customerPermissions";
+import { FAIR_READ } from "../permissions/fairPermissions";
 import { EmptyState, EmptyStateIcon } from "./ui/EmptyState";
 import { UniversalDataTable, type UniversalDataTableColumn } from "./ui/UniversalDataTable";
 import { TableRowActions } from "./ui/TableRowActions";
@@ -86,11 +89,20 @@ function buildCustomerParticipationColumns(
 }
 
 export function CustomerParticipationTable(props: CustomerParticipationTableProps) {
-  const { items, onCreate, sortField, sortDirection, onSortChange, emptyDueToFilters } = props;
+  const { can } = usePermissions();
+  const canSelectFair = can(FAIR_READ);
+  const effectiveProps = React.useMemo(
+    () => ({
+      ...props,
+      onCreate: canSelectFair ? props.onCreate : undefined,
+    }),
+    [canSelectFair, props],
+  );
+  const { items, onCreate, sortField, sortDirection, onSortChange, emptyDueToFilters } = effectiveProps;
 
   return (
     <UniversalDataTable
-      columns={buildCustomerParticipationColumns(props)}
+      columns={buildCustomerParticipationColumns(effectiveProps)}
       items={items}
       rowKey={(item) => item.id}
       sorting={{ field: sortField ?? null, direction: sortDirection ?? null }}
@@ -193,11 +205,21 @@ function buildFairParticipantColumns(
 }
 
 export function FairParticipantTable(props: FairParticipantTableProps) {
-  const { items, onCreate, sortField, sortDirection, onSortChange, emptyDueToFilters } = props;
+  const { can } = usePermissions();
+  const canReadCustomers = can(CUSTOMER_READ);
+  const effectiveProps = React.useMemo(
+    () => ({
+      ...props,
+      onCreate: canReadCustomers ? props.onCreate : undefined,
+      onOpenCustomer: canReadCustomers ? props.onOpenCustomer : undefined,
+    }),
+    [canReadCustomers, props],
+  );
+  const { items, onCreate, sortField, sortDirection, onSortChange, emptyDueToFilters } = effectiveProps;
 
   return (
     <UniversalDataTable
-      columns={buildFairParticipantColumns(props)}
+      columns={buildFairParticipantColumns(effectiveProps)}
       items={items}
       rowKey={(item) => item.id}
       sorting={{ field: sortField ?? null, direction: sortDirection ?? null }}
