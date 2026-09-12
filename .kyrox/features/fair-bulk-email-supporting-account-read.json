@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "id": "fair-bulk-email-supporting-account-read",
+  "title": "Fair Bulk Email Supporting Account Read",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+    "frontend/src/permissions/FairBulkEmailSupportingAccountPermissions.test.ts",
+    ".kyrox/features/fair-bulk-email-supporting-account-read.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.fair_emails.read",
+        "action": "preview fair bulk-email recipients and rendered content",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.fair_emails.execute",
+        "action": "send fair bulk email",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.mail_templates.read",
+        "action": "load selectable mail templates",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.mail_templates.render",
+        "action": "render the selected template for preview",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.email_accounts.read",
+        "action": "load selectable SMTP accounts for send configuration",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/fairs/:id"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": {
+      "status": "na",
+      "reason": "No persistence changes are introduced."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "Existing permission codes and data models are reused."
+    },
+    "permissions": {
+      "status": "required"
+    },
+    "backend": {
+      "status": "na",
+      "reason": "Existing fair-email, template, and SMTP runtime authorization remains unchanged and authoritative."
+    },
+    "api": {
+      "status": "na",
+      "reason": "No endpoint or payload contract changes are introduced."
+    },
+    "tenant_isolation": {
+      "status": "na",
+      "reason": "No organization-scoping behavior changes."
+    },
+    "audit": {
+      "status": "na",
+      "reason": "No mutation or audit behavior changes."
+    },
+    "frontend": {
+      "status": "required"
+    },
+    "ui_permissions": {
+      "status": "required"
+    },
+    "menu": {
+      "status": "na",
+      "reason": "No menu behavior changes."
+    },
+    "route_guard": {
+      "status": "required"
+    },
+    "forms": {
+      "status": "required"
+    },
+    "visual_qa": {
+      "status": "required"
+    },
+    "backend_tests": {
+      "status": "na",
+      "reason": "No backend executable behavior changes."
+    },
+    "frontend_tests": {
+      "status": "required"
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
+  },
+  "notes": "Fair bulk-email preview remains governed by fair_emails.read plus mail-template read/render permissions and no longer fails because SMTP account read is unavailable. SMTP account discovery is treated as optional supporting data for send configuration: without email_accounts.read, the account lookup and picker are omitted and send remains fail closed. Backend preview/send authorization is unchanged."
+}
