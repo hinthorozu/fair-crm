@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "id": "adapter-detail-cross-domain-permission-consistency",
+  "title": "Adapter Detail Cross-Domain Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/components/scraper/AdapterLinkedFairsTab.tsx",
+    "frontend/src/components/scraper/EnrichmentRunPanel.tsx",
+    "frontend/src/permissions/AdapterDetailCrossDomainPermissions.test.ts",
+    ".kyrox/features/adapter-detail-cross-domain-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.scraper.read",
+        "action": "view adapter detail and scraper-linked data",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.fairs.read",
+        "action": "open a linked fair detail",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.imports.read",
+        "action": "read an enrichment-created import batch before continuing it",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.imports.update",
+        "action": "continue an enrichment-created import batch",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/data-integration/adapters/:adapterKey",
+      "/fairs/:id",
+      "/data-integration/imports/continue/:batchId"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": {
+      "status": "na",
+      "reason": "No persistence changes are introduced."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "Existing permission codes are reused."
+    },
+    "permissions": {
+      "status": "required"
+    },
+    "backend": {
+      "status": "na",
+      "reason": "Existing scraper, fair, and import runtime authorization remains unchanged and authoritative."
+    },
+    "api": {
+      "status": "na",
+      "reason": "No endpoint or payload contract changes are introduced."
+    },
+    "tenant_isolation": {
+      "status": "na",
+      "reason": "No organization-scoping behavior changes."
+    },
+    "audit": {
+      "status": "na",
+      "reason": "No mutation or audit behavior changes."
+    },
+    "frontend": {
+      "status": "required"
+    },
+    "ui_permissions": {
+      "status": "required"
+    },
+    "menu": {
+      "status": "na",
+      "reason": "No menu behavior changes."
+    },
+    "route_guard": {
+      "status": "required"
+    },
+    "forms": {
+      "status": "na",
+      "reason": "No form fields or validation rules change."
+    },
+    "visual_qa": {
+      "status": "required"
+    },
+    "backend_tests": {
+      "status": "na",
+      "reason": "No backend executable behavior changes."
+    },
+    "frontend_tests": {
+      "status": "required"
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
+  },
+  "notes": "Adapter detail remains readable with fair_crm.scraper.read. Cross-domain navigation now fails closed: linked fair detail is exposed only with fair_crm.fairs.read, while an enrichment-created import batch continuation link is exposed only with fair_crm.imports.read plus fair_crm.imports.update. Scraper execution, adapter update/delete, and underlying backend authorization are unchanged."
+}
