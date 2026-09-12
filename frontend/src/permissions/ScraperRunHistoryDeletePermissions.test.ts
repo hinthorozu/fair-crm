@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const source = readFileSync(
-  fileURLToPath(new URL("../pages/ScraperRunHistoryPage.tsx", import.meta.url)),
+  fileURLToPath(new URL("../pages/ScraperRunHistoryPageLegacy.tsx", import.meta.url)),
   "utf8",
 );
 const permissionSource = readFileSync(
