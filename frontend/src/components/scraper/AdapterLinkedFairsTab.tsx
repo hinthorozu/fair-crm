@@ -8,6 +8,8 @@ import { UniversalDataTable, type UniversalDataTableColumn } from "../ui/Univers
 import { TableRowActions } from "../ui/TableRowActions";
 import { scraperLabels } from "../../labels/scraperLabels";
 import { fairStatusLabels } from "../../labels/fairLabels";
+import { usePermissions } from "../../hooks/usePermissions";
+import { FAIR_READ } from "../../permissions/fairPermissions";
 import type { AdapterLinkedFair } from "../../types/scraper";
 import type { BadgeVariant } from "../ui/Badge";
 
@@ -81,23 +83,25 @@ function buildColumns(onOpenFair?: (fairId: string) => void): UniversalDataTable
       key: "actions",
       title: scraperLabels.colActions,
       sortable: false,
-      render: (fair) => (
-        <TableRowActions>
-          <button
-            type="button"
-            className="btn btn-sm secondary"
-            disabled={!fair.id || !onOpenFair}
-            onClick={() => fair.id && onOpenFair?.(fair.id)}
-          >
-            {scraperLabels.linkedFairOpenFair}
-          </button>
-        </TableRowActions>
-      ),
+      render: (fair) =>
+        fair.id && onOpenFair ? (
+          <TableRowActions>
+            <button
+              type="button"
+              className="btn btn-sm secondary"
+              onClick={() => onOpenFair(fair.id!)}
+            >
+              {scraperLabels.linkedFairOpenFair}
+            </button>
+          </TableRowActions>
+        ) : null,
     },
   ];
 }
 
 export function AdapterLinkedFairsTab({ adapterKey, active, onOpenFair }: AdapterLinkedFairsTabProps) {
+  const { can } = usePermissions();
+  const canOpenFair = can(FAIR_READ);
   const [fairs, setFairs] = React.useState<AdapterLinkedFair[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -127,7 +131,10 @@ export function AdapterLinkedFairsTab({ adapterKey, active, onOpenFair }: Adapte
     };
   }, [adapterKey, active]);
 
-  const columns = React.useMemo(() => buildColumns(onOpenFair), [onOpenFair]);
+  const columns = React.useMemo(
+    () => buildColumns(canOpenFair ? onOpenFair : undefined),
+    [canOpenFair, onOpenFair],
+  );
 
   if (loading && !loaded) {
     return (
