@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "id": "participation-cross-domain-permission-consistency",
+  "title": "Participation Cross-Domain Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/components/ParticipationList.tsx",
+    "frontend/src/permissions/ParticipationCrossDomainPermissions.test.ts",
+    ".kyrox/features/participation-cross-domain-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.participations.read",
+        "action": "view participation rows in their owning customer or fair context",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.participations.create",
+        "action": "create a participation after selecting the related entity",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.customers.read",
+        "action": "open a participant customer or select a customer in fair-context participation create",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.fairs.read",
+        "action": "select a fair in customer-context participation create",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/fairs/:id",
+      "/customers/:id"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": {
+      "status": "na",
+      "reason": "No persistence changes are introduced."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "Existing participation, customer, and fair permission codes are reused."
+    },
+    "permissions": {
+      "status": "required"
+    },
+    "backend": {
+      "status": "na",
+      "reason": "Existing participation, customer, and fair runtime authorization remains unchanged and authoritative."
+    },
+    "api": {
+      "status": "na",
+      "reason": "No endpoint or payload contract changes are introduced."
+    },
+    "tenant_isolation": {
+      "status": "na",
+      "reason": "No organization-scoping behavior changes."
+    },
+    "audit": {
+      "status": "na",
+      "reason": "No mutation or audit behavior changes."
+    },
+    "frontend": {
+      "status": "required"
+    },
+    "ui_permissions": {
+      "status": "required"
+    },
+    "menu": {
+      "status": "na",
+      "reason": "No menu behavior changes."
+    },
+    "route_guard": {
+      "status": "required"
+    },
+    "forms": {
+      "status": "required"
+    },
+    "visual_qa": {
+      "status": "required"
+    },
+    "backend_tests": {
+      "status": "na",
+      "reason": "No backend executable behavior changes."
+    },
+    "frontend_tests": {
+      "status": "required"
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
+  },
+  "notes": "Participation rows remain readable under their existing participation permission. Cross-domain UI now fails closed at the shared table boundary: a fair participant becomes a customer-detail link only with fair_crm.customers.read; fair-context empty-state create is exposed only when the customer selector can be used; customer-context empty-state create is exposed only when the fair selector can be used. The existing ParticipationForm permission contract remains authoritative and independently fail closed when the related selector read permission is absent. Edit flows with the related entity locked remain unchanged and do not gain a new read requirement."
+}
