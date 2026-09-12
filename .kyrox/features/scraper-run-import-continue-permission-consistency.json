@@ -12,6 +12,8 @@
     "frontend/src/pages/ScraperRunHistoryPage.tsx",
     "frontend/src/pages/ScraperRunHistoryPageLegacy.tsx",
     "frontend/src/permissions/ScraperRunImportContinuePermissions.test.ts",
+    "frontend/src/permissions/ScraperRunHistoryDeletePermissions.test.ts",
+    "frontend/src/permissions/ScraperRunHistoryDownloadPermissions.test.ts",
     ".kyrox/features/scraper-run-import-continue-permission-consistency.json"
   ],
   "permissions": {
@@ -111,5 +113,5 @@
       "status": "required"
     }
   },
-  "notes": "Scraper run history remains readable with fair_crm.scraper.read. A linked import batch points to the existing continuation wizard, whose route requires fair_crm.imports.read plus fair_crm.imports.update. The run-history wrapper now removes onOpenImportBatch unless both import permissions are available. The prior run-history implementation is retained byte-for-byte in ScraperRunHistoryPageLegacy.tsx; only the permission boundary is added at the exported page surface."
+  "notes": "Scraper run history remains readable with fair_crm.scraper.read. A linked import batch points to the existing continuation wizard, whose route requires fair_crm.imports.read plus fair_crm.imports.update. The run-history wrapper removes onOpenImportBatch unless both import permissions are available. The prior run-history implementation remains byte-for-byte in ScraperRunHistoryPageLegacy.tsx; existing delete/download source regressions now assert against that retained implementation while the new wrapper regression asserts the added import-continuation boundary."
 }
