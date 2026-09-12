@@ -6,6 +6,10 @@ import { CheckboxField, FormField, FormGrid, RadioField, TextInput } from "../ui
 import { scraperLabels } from "../../labels/scraperLabels";
 import { usePermissions } from "../../hooks/usePermissions";
 import { FAIR_READ } from "../../permissions/fairPermissions";
+import {
+  PERMISSION_IMPORTS_READ,
+  PERMISSION_IMPORTS_UPDATE,
+} from "../../permissions/navigationPermissions";
 import { SCRAPER_PERMISSION_EXECUTE } from "../../permissions/scraperPermissions";
 import type {
   CompanyNameMatchMode,
@@ -65,6 +69,8 @@ export function EnrichmentRunPanel({
   const { can } = usePermissions();
   const canExecute = can(SCRAPER_PERMISSION_EXECUTE);
   const canReadFairs = can(FAIR_READ);
+  const canContinueImport =
+    can(PERMISSION_IMPORTS_READ) && can(PERMISSION_IMPORTS_UPDATE);
   /** Empty string = no limit (all eligible customers); the "50" shown to the user is only a placeholder hint. */
   const [limitInput, setLimitInput] = React.useState("");
   const [includeExistingEmail, setIncludeExistingEmail] = React.useState(false);
@@ -374,7 +380,7 @@ export function EnrichmentRunPanel({
                 ? scraperLabels.enrichmentSummaryImportBatchDryRun
                 : scraperLabels.enrichmentSummaryImportBatchNone}
           </dd>
-          {summary.import_batch_id ? (
+          {summary.import_batch_id && canContinueImport ? (
             <>
               <dt>{scraperLabels.runColImportBatch}</dt>
               <dd>
