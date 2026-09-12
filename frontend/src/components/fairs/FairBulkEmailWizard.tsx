@@ -11,6 +11,10 @@ import { fairLabels } from "../../labels/fairLabels";
 import { labels } from "../../labels";
 import { adminLabels } from "../../labels/adminLabels";
 import {
+  canPerformEmailAccountAction,
+  getGrantedPermissions as getGrantedEmailAccountPermissions,
+} from "../../permissions/emailAccountPermissions";
+import {
   canPerformMailTemplateAction,
   getGrantedMailTemplatePermissions,
 } from "../../permissions/mailTemplatePermissions";
@@ -87,6 +91,11 @@ export function FairBulkEmailWizard({
   const mailTemplatePermissions = React.useMemo(() => getGrantedMailTemplatePermissions(), []);
   const canReadMailTemplates = canPerformMailTemplateAction(mailTemplatePermissions, "read");
   const canRenderMailTemplate = canPerformMailTemplateAction(mailTemplatePermissions, "render");
+  const emailAccountPermissions = React.useMemo(
+    () => getGrantedEmailAccountPermissions(),
+    [],
+  );
+  const canReadEmailAccounts = canPerformEmailAccountAction(emailAccountPermissions, "read");
 
   const [recipientOptions, setRecipientOptions] = React.useState<RecipientOptions>(DEFAULT_RECIPIENT_OPTIONS);
   const [optionsSnapshot, setOptionsSnapshot] = React.useState(JSON.stringify(DEFAULT_RECIPIENT_OPTIONS));
@@ -146,6 +155,7 @@ export function FairBulkEmailWizard({
     !sending;
   const canSubmit =
     canSend &&
+    canReadEmailAccounts &&
     previewReady &&
     !previewStale &&
     subjectValid &&
@@ -161,6 +171,8 @@ export function FairBulkEmailWizard({
     if (!canReadMailTemplates) {
       setTemplates([]);
       setTemplateId("");
+      setEmailAccounts([]);
+      setEmailAccountId("");
       setTemplatesLoading(false);
       setTemplateError(fairLabels.bulkEmailTemplateReadDenied);
       return () => {
@@ -173,9 +185,13 @@ export function FairBulkEmailWizard({
 
     void (async () => {
       try {
-        const [templateResponse, smtpResponse] = await Promise.all([
+        const [templateResponse, activeEmailAccounts] = await Promise.all([
           listMailTemplates(),
-          listEmailAccounts(),
+          canReadEmailAccounts
+            ? listEmailAccounts()
+                .then((response) => selectActiveEmailAccounts(response.items))
+                .catch(() => [] as EmailAccount[])
+            : Promise.resolve([] as EmailAccount[]),
         ]);
         if (cancelled) return;
 
@@ -186,11 +202,11 @@ export function FairBulkEmailWizard({
             active: activeTemplates.length,
             canReadMailTemplates,
             canRenderMailTemplate,
+            canReadEmailAccounts,
           });
         }
 
         setTemplates(activeTemplates);
-        const activeEmailAccounts = selectActiveEmailAccounts(smtpResponse.items);
         setEmailAccounts(activeEmailAccounts);
 
         if (activeTemplates.length === 0) {
@@ -225,7 +241,7 @@ export function FairBulkEmailWizard({
     return () => {
       cancelled = true;
     };
-  }, [canReadMailTemplates]);
+  }, [canReadEmailAccounts, canReadMailTemplates, canRenderMailTemplate]);
 
   React.useEffect(() => {
     if (selectedTemplate && !subjectTouched) {
@@ -402,15 +418,17 @@ export function FairBulkEmailWizard({
               ))}
             </SelectInput>
           </FormField>
-          <EmailAccountPicker
-            id="fair-bulk-email-smtp"
-            label={adminLabels.mailTemplatesTestEmailSmtpAccount}
-            value={emailAccountId}
-            onChange={setEmailAccountId}
-            accounts={emailAccounts}
-            required
-            disabled={sending || previewing}
-          />
+          {canReadEmailAccounts ? (
+            <EmailAccountPicker
+              id="fair-bulk-email-smtp"
+              label={adminLabels.mailTemplatesTestEmailSmtpAccount}
+              value={emailAccountId}
+              onChange={setEmailAccountId}
+              accounts={emailAccounts}
+              required
+              disabled={sending || previewing}
+            />
+          ) : null}
           <FormField label={fairLabels.bulkEmailSubjectLabel} htmlFor="fair-bulk-email-subject" required fullWidth>
             <TextInput
               id="fair-bulk-email-subject"
@@ -508,7 +526,7 @@ export function FairBulkEmailWizard({
         <button type="button" className="btn secondary" onClick={requestCancel} disabled={sending}>
           {labels.cancel}
         </button>
-        {canSend ? (
+        {canSend && canReadEmailAccounts ? (
           <button
             type="button"
             className="btn primary"
@@ -517,9 +535,9 @@ export function FairBulkEmailWizard({
           >
             {sending ? fairLabels.bulkEmailSending : fairLabels.bulkEmailSubmit}
           </button>
-        ) : (
+        ) : !canSend ? (
           <span className="text-muted">{fairLabels.bulkEmailPermissionSendDenied}</span>
-        )}
+        ) : null}
       </div>
     </div>
   );
