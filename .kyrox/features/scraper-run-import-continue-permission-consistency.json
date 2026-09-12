@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "id": "scraper-run-import-continue-permission-consistency",
+  "title": "Scraper Run Import Continue Permission Consistency",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/ScraperRunHistoryPage.tsx",
+    "frontend/src/pages/ScraperRunHistoryPageLegacy.tsx",
+    "frontend/src/permissions/ScraperRunImportContinuePermissions.test.ts",
+    "frontend/src/permissions/ScraperRunHistoryDeletePermissions.test.ts",
+    "frontend/src/permissions/ScraperRunHistoryDownloadPermissions.test.ts",
+    ".kyrox/features/scraper-run-import-continue-permission-consistency.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.scraper.read",
+        "action": "view scraper run history",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.imports.read",
+        "action": "read the linked import batch before continuing it",
+        "scope": "organization",
+        "assignable": true
+      },
+      {
+        "code": "fair_crm.imports.update",
+        "action": "continue the linked import batch",
+        "scope": "organization",
+        "assignable": true
+      }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/data-integration/run-history",
+      "/data-integration/imports/continue/:batchId"
+    ],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": {
+      "status": "na",
+      "reason": "No persistence changes are introduced."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "Existing scraper and import permission codes are reused."
+    },
+    "permissions": {
+      "status": "required"
+    },
+    "backend": {
+      "status": "na",
+      "reason": "Existing scraper and import runtime authorization remains unchanged and authoritative."
+    },
+    "api": {
+      "status": "na",
+      "reason": "No endpoint or payload contract changes are introduced."
+    },
+    "tenant_isolation": {
+      "status": "na",
+      "reason": "No organization-scoping behavior changes."
+    },
+    "audit": {
+      "status": "na",
+      "reason": "No mutation or audit behavior changes."
+    },
+    "frontend": {
+      "status": "required"
+    },
+    "ui_permissions": {
+      "status": "required"
+    },
+    "menu": {
+      "status": "na",
+      "reason": "No menu behavior changes."
+    },
+    "route_guard": {
+      "status": "required"
+    },
+    "forms": {
+      "status": "na",
+      "reason": "No form fields or validation rules change."
+    },
+    "visual_qa": {
+      "status": "required"
+    },
+    "backend_tests": {
+      "status": "na",
+      "reason": "No backend executable behavior changes."
+    },
+    "frontend_tests": {
+      "status": "required"
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
+  },
+  "notes": "Scraper run history remains readable with fair_crm.scraper.read. A linked import batch points to the existing continuation wizard, whose route requires fair_crm.imports.read plus fair_crm.imports.update. The run-history wrapper removes onOpenImportBatch unless both import permissions are available. The prior run-history implementation remains byte-for-byte in ScraperRunHistoryPageLegacy.tsx; existing delete/download source regressions now assert against that retained implementation while the new wrapper regression asserts the added import-continuation boundary."
+}
