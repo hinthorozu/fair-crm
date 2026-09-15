@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail when system-behavior findings regress relative to a comparison base."""
+"""Fail when refined system-behavior findings regress relative to a comparison base."""
 
 from __future__ import annotations
 
@@ -8,6 +8,8 @@ import json
 from collections import Counter
 from pathlib import Path
 from typing import Any
+
+from refine_system_behavior_inventory import rebuild, write_markdown
 
 
 def load(path: Path) -> dict[str, Any]:
@@ -44,16 +46,47 @@ def format_signature(sig: tuple[str, ...]) -> str:
     return f"{category}: {method} {path} | {source}"
 
 
+def write_refined(path: Path, data: dict[str, Any]) -> None:
+    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Compare system behavior inventories and reject new findings."
+        description="Compare refined system behavior inventories and reject new findings."
     )
     parser.add_argument("--base", type=Path, required=True)
     parser.add_argument("--current", type=Path, required=True)
+    parser.add_argument(
+        "--base-root",
+        type=Path,
+        help="Comparison checkout root. Defaults to /tmp/fair-crm-system-base when present.",
+    )
+    parser.add_argument(
+        "--current-root",
+        type=Path,
+        default=Path.cwd(),
+        help="Current checkout root.",
+    )
     args = parser.parse_args()
 
-    base = counts(load(args.base))
-    current = counts(load(args.current))
+    inferred_base_root = Path("/tmp/fair-crm-system-base")
+    base_root = args.base_root or (inferred_base_root if inferred_base_root.exists() else args.current_root)
+
+    base_data = rebuild(base_root.resolve(), load(args.base))
+    current_data = rebuild(args.current_root.resolve(), load(args.current))
+
+    # Persist exactly the evidence that the gate compares so CI artifacts and the
+    # human report cannot disagree with pass/fail semantics.
+    write_refined(args.base, base_data)
+    write_refined(args.current, current_data)
+    write_markdown(current_data, args.current.parent / "SYSTEM_BEHAVIOR_CURRENT.md")
+
+    base = counts(base_data)
+    current = counts(current_data)
+
+    print("SYSTEM BEHAVIOR REFINED COVERAGE")
+    for key, value in (current_data.get("stats") or {}).items():
+        print(f" - {key}: {value}")
 
     regressions: list[tuple[tuple[str, ...], int, int]] = []
     improvements: list[tuple[tuple[str, ...], int, int]] = []
