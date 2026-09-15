@@ -19,6 +19,31 @@ def load(path: Path) -> dict[str, Any]:
     return data
 
 
+def normalize_dynamic_findings(data: dict[str, Any]) -> None:
+    """A fully dynamic same-origin URL is unknown, not proof of route drift."""
+
+    findings = data.get("findings") or []
+    for item in findings:
+        if not isinstance(item, dict):
+            continue
+        if (
+            item.get("category") == "frontend_api_without_backend_route"
+            and item.get("match_path") == "/{}"
+        ):
+            item["category"] = "frontend_dynamic_api_path"
+            item["severity"] = "review"
+
+    stats = data.get("stats")
+    if isinstance(stats, dict):
+        stats["findings_total"] = len(findings)
+        stats["regression_findings"] = sum(
+            1 for item in findings if isinstance(item, dict) and item.get("severity") == "regression"
+        )
+        stats["review_findings"] = sum(
+            1 for item in findings if isinstance(item, dict) and item.get("severity") == "review"
+        )
+
+
 def signature(item: dict[str, Any]) -> tuple[str, ...]:
     return (
         str(item.get("category") or ""),
@@ -74,6 +99,8 @@ def main() -> int:
 
     base_data = rebuild(base_root.resolve(), load(args.base))
     current_data = rebuild(args.current_root.resolve(), load(args.current))
+    normalize_dynamic_findings(base_data)
+    normalize_dynamic_findings(current_data)
 
     # Persist exactly the evidence that the gate compares so CI artifacts and the
     # human report cannot disagree with pass/fail semantics.
