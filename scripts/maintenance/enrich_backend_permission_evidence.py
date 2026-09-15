@@ -80,6 +80,25 @@ def permission_values(node: ast.AST, constants: dict[str, str]) -> set[str]:
     return result
 
 
+def assigned_provider(node: ast.AST, constants: dict[str, str]) -> tuple[str, set[str]] | None:
+    """Resolve `require_x = _require(PERMISSION_X)` style dependency factories."""
+
+    target: ast.AST | None = None
+    value: ast.AST | None = None
+    if isinstance(node, ast.Assign) and len(node.targets) == 1:
+        target = node.targets[0]
+        value = node.value
+    elif isinstance(node, ast.AnnAssign):
+        target = node.target
+        value = node.value
+    if not isinstance(target, ast.Name) or not isinstance(value, ast.Call):
+        return None
+    codes = permission_values(value, constants)
+    if not codes:
+        return None
+    return target.id, codes
+
+
 def provider_map(root: Path, file: Path) -> dict[str, set[str]]:
     if not file.exists():
         return {}
@@ -91,11 +110,15 @@ def provider_map(root: Path, file: Path) -> dict[str, set[str]]:
     constants.update(imported_string_constants(root, tree))
     result: dict[str, set[str]] = {}
     for node in tree.body:
-        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            codes = permission_values(node, constants)
+            if codes:
+                result[node.name] = codes
             continue
-        codes = permission_values(node, constants)
-        if codes:
-            result[node.name] = codes
+        assigned = assigned_provider(node, constants)
+        if assigned is not None:
+            name, codes = assigned
+            result.setdefault(name, set()).update(codes)
     return result
 
 
