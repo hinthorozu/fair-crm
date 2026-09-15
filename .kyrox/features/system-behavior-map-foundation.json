@@ -4,7 +4,7 @@
   "title": "System Behavior Map Static Inventory and Regression Gate",
   "feature_type": "maintenance",
   "owner": "fair-crm",
-  "platform_reusability": "platform_generic",
+  "platform_reusability": "product_specific",
   "trigger": "none",
   "tenant_scope": "none",
   "user_facing": false,
@@ -49,5 +49,5 @@
     "runtime_verification": { "status": "na", "reason": "Repository static-analysis CI execution is the acceptance surface for this maintenance capability; runtime behavior coverage will be a separate follow-up layer." },
     "deployment": { "status": "na", "reason": "Repository scripts and GitHub Actions require no application runtime deployment." }
   },
-  "notes": "The first phase generates a conservative static behavior inventory and compares PR-base vs current finding signatures so existing unknowns remain visible but no new unmapped/drift finding can be introduced. Runtime/cross-organization coverage is intentionally a separate later phase and is not claimed by this contract."
+  "notes": "The canonical reusable behavior-map semantics live in kyrox-platform; this contract covers the Fair CRM-specific extraction/enforcement implementation. The first phase compares PR-base vs current finding signatures so existing unknowns remain visible but no new unmapped/drift finding can be introduced. Runtime/cross-organization coverage is intentionally a separate later phase and is not claimed by this contract."
 }
