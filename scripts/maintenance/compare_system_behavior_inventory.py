@@ -31,6 +31,15 @@ def canonical_permission_catalog(root: Path) -> set[str]:
     return set(PERMISSION_CODE_RE.findall(text))
 
 
+def route_signature(route: dict[str, Any]) -> tuple[str, str, str, str]:
+    return (
+        str(route.get("file") or ""),
+        str(route.get("function") or ""),
+        str(route.get("method") or ""),
+        str(route.get("match_path") or ""),
+    )
+
+
 def normalize_permission_evidence(data: dict[str, Any], root: Path) -> None:
     """Keep only catalogued permissions as effective permission evidence.
 
@@ -55,13 +64,7 @@ def normalize_permission_evidence(data: dict[str, Any], root: Path) -> None:
         route["permission_codes"] = effective
         if noncatalog:
             route["noncatalog_permission_candidates"] = noncatalog
-        key = (
-            str(route.get("file") or ""),
-            str(route.get("function") or ""),
-            str(route.get("method") or ""),
-            str(route.get("match_path") or ""),
-        )
-        route_permissions[key] = effective
+        route_permissions[route_signature(route)] = effective
 
     for link in data.get("links") or []:
         if not isinstance(link, dict):
@@ -80,7 +83,10 @@ def normalize_permission_evidence(data: dict[str, Any], root: Path) -> None:
 
 
 def normalize_findings(data: dict[str, Any]) -> None:
-    """Downgrade dynamic evidence and remove low-confidence file-level drift checks."""
+    """Remove stale/low-confidence findings and classify unresolved evidence honestly."""
+
+    routes = [item for item in data.get("backend_routes") or [] if isinstance(item, dict)]
+    route_by_key = {route_signature(route): route for route in routes}
 
     normalized: list[dict[str, Any]] = []
     existing_permission_unknown: set[tuple[str, str, str, str]] = set()
@@ -102,37 +108,36 @@ def normalize_findings(data: dict[str, Any]) -> None:
         # Current feature-contract linkage is intentionally path/file-level, not
         # exact route-level. Comparing an exact route permission against every
         # permission mentioned by every contract touching the file creates false
-        # drift. Keep exact permission evidence in the route map, but do not claim
-        # a route-contract mismatch until the linkage itself is route-specific.
+        # drift. Keep exact route permission evidence, but do not claim a
+        # route-contract mismatch until contract linkage itself is route-specific.
         if item.get("category") == "backend_permission_not_in_linked_contracts":
             continue
 
         if item.get("category") == "backend_permission_evidence_unknown":
-            existing_permission_unknown.add(
-                (
-                    str(item.get("file") or ""),
-                    str(item.get("function") or ""),
-                    str(item.get("method") or ""),
-                    str(item.get("match_path") or ""),
-                )
+            key = (
+                str(item.get("file") or ""),
+                str(item.get("function") or ""),
+                str(item.get("method") or ""),
+                str(item.get("match_path") or ""),
             )
+            route = route_by_key.get(key)
+            # Raw discovery may have emitted UNKNOWN before the later provider/
+            # catalog enrichment proved the effective permission. Never retain a
+            # stale UNKNOWN after stronger evidence exists.
+            if route is not None and route.get("permission_codes"):
+                continue
+            existing_permission_unknown.add(key)
+
         normalized.append(item)
 
     # Filtering audit/event strings out of permission evidence can reveal routes
     # that have a permission contract but no proven effective backend permission.
-    for route in data.get("backend_routes") or []:
-        if not isinstance(route, dict):
-            continue
+    for route in routes:
         expected = route.get("contract_permission_codes") or []
         actual = route.get("permission_codes") or []
         if not expected or actual:
             continue
-        key = (
-            str(route.get("file") or ""),
-            str(route.get("function") or ""),
-            str(route.get("method") or ""),
-            str(route.get("match_path") or ""),
-        )
+        key = route_signature(route)
         if key in existing_permission_unknown:
             continue
         normalized.append(
@@ -159,9 +164,7 @@ def normalize_findings(data: dict[str, Any]) -> None:
             1 for item in normalized if item.get("severity") == "review"
         )
         stats["routes_with_permission_evidence"] = sum(
-            1
-            for route in data.get("backend_routes") or []
-            if isinstance(route, dict) and route.get("permission_codes")
+            1 for route in routes if route.get("permission_codes")
         )
 
 
