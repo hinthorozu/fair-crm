@@ -13,8 +13,10 @@
     ".kyrox/system-behavior-map.schema.json",
     ".kyrox/features/system-behavior-map-foundation.json",
     "scripts/maintenance/inventory_system_behavior.py",
+    "scripts/maintenance/refine_system_behavior_inventory.py",
     "scripts/maintenance/compare_system_behavior_inventory.py",
     "scripts/maintenance/test_system_behavior_inventory.py",
+    "scripts/maintenance/test_refine_system_behavior_inventory.py",
     ".github/workflows/development-standard.yml"
   ],
   "permissions": {
@@ -49,5 +51,5 @@
     "runtime_verification": { "status": "na", "reason": "Repository static-analysis CI execution is the acceptance surface for this maintenance capability; runtime behavior coverage will be a separate follow-up layer." },
     "deployment": { "status": "na", "reason": "Repository scripts and GitHub Actions require no application runtime deployment." }
   },
-  "notes": "The canonical reusable behavior-map semantics live in kyrox-platform; this contract covers the Fair CRM-specific extraction/enforcement implementation. The first phase compares PR-base vs current finding signatures so existing unknowns remain visible but no new unmapped/drift finding can be introduced. Runtime/cross-organization coverage is intentionally a separate later phase and is not claimed by this contract."
+  "notes": "The canonical reusable behavior-map semantics live in kyrox-platform; this contract covers the Fair CRM-specific extraction/enforcement implementation. Raw discovery is refined with stronger TypeScript path evaluation, nested permission-factory resolution, local-helper organization-scope propagation and cross-service classification before the monotonic base/current comparison. Runtime/cross-organization coverage is intentionally a separate later phase and is not claimed by this contract."
 }
