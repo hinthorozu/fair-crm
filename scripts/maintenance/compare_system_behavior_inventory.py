@@ -10,6 +10,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from enrich_backend_permission_evidence import enrich_backend_permission_evidence
 from refine_system_behavior_inventory import rebuild, write_markdown
 
 PERMISSION_CODE_RE = re.compile(r'"((?:fair_crm|identity)\.[A-Za-z0-9_.-]+)"')
@@ -216,12 +217,16 @@ def main() -> int:
 
     inferred_base_root = Path("/tmp/fair-crm-system-base")
     base_root = args.base_root or (inferred_base_root if inferred_base_root.exists() else args.current_root)
+    current_root = args.current_root.resolve()
+    base_root = base_root.resolve()
 
-    base_data = rebuild(base_root.resolve(), load(args.base))
-    current_data = rebuild(args.current_root.resolve(), load(args.current))
+    base_data = rebuild(base_root, load(args.base))
+    current_data = rebuild(current_root, load(args.current))
 
-    normalize_permission_evidence(base_data, base_root.resolve())
-    normalize_permission_evidence(current_data, args.current_root.resolve())
+    enrich_backend_permission_evidence(base_root, base_data)
+    enrich_backend_permission_evidence(current_root, current_data)
+    normalize_permission_evidence(base_data, base_root)
+    normalize_permission_evidence(current_data, current_root)
     normalize_findings(base_data)
     normalize_findings(current_data)
 
