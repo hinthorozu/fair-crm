@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 
 import inventory_system_behavior as inventory
+from test_enrich_backend_permission_evidence import EnrichBackendPermissionEvidenceTests  # noqa: F401
 from test_refine_system_behavior_inventory import RefineSystemBehaviorInventoryTests  # noqa: F401
 
 
