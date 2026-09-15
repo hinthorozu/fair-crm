@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 
 import inventory_system_behavior as inventory
+from test_refine_system_behavior_inventory import RefineSystemBehaviorInventoryTests  # noqa: F401
 
 
 class SystemBehaviorInventoryTests(unittest.TestCase):
