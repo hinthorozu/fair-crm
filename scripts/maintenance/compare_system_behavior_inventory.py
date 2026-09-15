@@ -5,11 +5,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
 from refine_system_behavior_inventory import rebuild, write_markdown
+
+PERMISSION_CODE_RE = re.compile(r'"((?:fair_crm|identity)\.[A-Za-z0-9_.-]+)"')
 
 
 def load(path: Path) -> dict[str, Any]:
@@ -19,13 +22,75 @@ def load(path: Path) -> dict[str, Any]:
     return data
 
 
-def normalize_dynamic_findings(data: dict[str, Any]) -> None:
-    """A fully dynamic same-origin URL is unknown, not proof of route drift."""
+def canonical_permission_catalog(root: Path) -> set[str]:
+    path = root / "frontend/src/permissions/corePermissions.ts"
+    if not path.exists():
+        return set()
+    text = path.read_text(encoding="utf-8")
+    return set(PERMISSION_CODE_RE.findall(text))
 
-    findings = data.get("findings") or []
-    for item in findings:
-        if not isinstance(item, dict):
+
+def normalize_permission_evidence(data: dict[str, Any], root: Path) -> None:
+    """Keep only catalogued permissions as effective permission evidence.
+
+    The broad extractor deliberately discovers all fair_crm.* strings, which can
+    include audit action names such as fair_crm.fair.created. Those are useful raw
+    candidates but must not be presented as RBAC permissions unless the product
+    permission catalog recognizes them.
+    """
+
+    catalog = canonical_permission_catalog(root)
+    if not catalog:
+        return
+
+    route_permissions: dict[tuple[str, str, str, str], list[str]] = {}
+    for route in data.get("backend_routes") or []:
+        if not isinstance(route, dict):
             continue
+        raw = [str(code) for code in route.get("permission_codes") or []]
+        effective = sorted(code for code in raw if code in catalog)
+        noncatalog = sorted(code for code in raw if code not in catalog)
+        route["permission_candidates"] = raw
+        route["permission_codes"] = effective
+        if noncatalog:
+            route["noncatalog_permission_candidates"] = noncatalog
+        key = (
+            str(route.get("file") or ""),
+            str(route.get("function") or ""),
+            str(route.get("method") or ""),
+            str(route.get("match_path") or ""),
+        )
+        route_permissions[key] = effective
+
+    for link in data.get("links") or []:
+        if not isinstance(link, dict):
+            continue
+        backend = link.get("backend")
+        if not isinstance(backend, dict):
+            continue
+        key = (
+            str(backend.get("file") or ""),
+            str(backend.get("function") or ""),
+            str(link.get("method") or ""),
+            str(link.get("match_path") or ""),
+        )
+        if key in route_permissions:
+            backend["permission_codes"] = route_permissions[key]
+
+
+def normalize_findings(data: dict[str, Any]) -> None:
+    """Downgrade dynamic evidence and remove low-confidence file-level drift checks."""
+
+    normalized: list[dict[str, Any]] = []
+    existing_permission_unknown: set[tuple[str, str, str, str]] = set()
+
+    for raw_item in data.get("findings") or []:
+        if not isinstance(raw_item, dict):
+            continue
+        item = dict(raw_item)
+
+        # A fully dynamic same-origin URL is unknown, not proof that a backend
+        # route does not exist.
         if (
             item.get("category") == "frontend_api_without_backend_route"
             and item.get("match_path") == "/{}"
@@ -33,14 +98,69 @@ def normalize_dynamic_findings(data: dict[str, Any]) -> None:
             item["category"] = "frontend_dynamic_api_path"
             item["severity"] = "review"
 
+        # Current feature-contract linkage is intentionally path/file-level, not
+        # exact route-level. Comparing an exact route permission against every
+        # permission mentioned by every contract touching the file creates false
+        # drift. Keep exact permission evidence in the route map, but do not claim
+        # a route-contract mismatch until the linkage itself is route-specific.
+        if item.get("category") == "backend_permission_not_in_linked_contracts":
+            continue
+
+        if item.get("category") == "backend_permission_evidence_unknown":
+            existing_permission_unknown.add(
+                (
+                    str(item.get("file") or ""),
+                    str(item.get("function") or ""),
+                    str(item.get("method") or ""),
+                    str(item.get("match_path") or ""),
+                )
+            )
+        normalized.append(item)
+
+    # Filtering audit/event strings out of permission evidence can reveal routes
+    # that have a permission contract but no proven effective backend permission.
+    for route in data.get("backend_routes") or []:
+        if not isinstance(route, dict):
+            continue
+        expected = route.get("contract_permission_codes") or []
+        actual = route.get("permission_codes") or []
+        if not expected or actual:
+            continue
+        key = (
+            str(route.get("file") or ""),
+            str(route.get("function") or ""),
+            str(route.get("method") or ""),
+            str(route.get("match_path") or ""),
+        )
+        if key in existing_permission_unknown:
+            continue
+        normalized.append(
+            {
+                "category": "backend_permission_evidence_unknown",
+                "severity": "review",
+                "method": route.get("method") or "",
+                "path": route.get("path"),
+                "match_path": route.get("match_path"),
+                "file": route.get("file") or "",
+                "function": route.get("function"),
+            }
+        )
+
+    normalized.sort(key=signature)
+    data["findings"] = normalized
     stats = data.get("stats")
     if isinstance(stats, dict):
-        stats["findings_total"] = len(findings)
+        stats["findings_total"] = len(normalized)
         stats["regression_findings"] = sum(
-            1 for item in findings if isinstance(item, dict) and item.get("severity") == "regression"
+            1 for item in normalized if item.get("severity") == "regression"
         )
         stats["review_findings"] = sum(
-            1 for item in findings if isinstance(item, dict) and item.get("severity") == "review"
+            1 for item in normalized if item.get("severity") == "review"
+        )
+        stats["routes_with_permission_evidence"] = sum(
+            1
+            for route in data.get("backend_routes") or []
+            if isinstance(route, dict) and route.get("permission_codes")
         )
 
 
@@ -99,8 +219,11 @@ def main() -> int:
 
     base_data = rebuild(base_root.resolve(), load(args.base))
     current_data = rebuild(args.current_root.resolve(), load(args.current))
-    normalize_dynamic_findings(base_data)
-    normalize_dynamic_findings(current_data)
+
+    normalize_permission_evidence(base_data, base_root.resolve())
+    normalize_permission_evidence(current_data, args.current_root.resolve())
+    normalize_findings(base_data)
+    normalize_findings(current_data)
 
     # Persist exactly the evidence that the gate compares so CI artifacts and the
     # human report cannot disagree with pass/fail semantics.
