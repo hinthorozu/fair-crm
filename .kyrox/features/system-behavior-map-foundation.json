@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "id": "system-behavior-map-foundation",
+  "title": "System Behavior Map Static Inventory and Regression Gate",
+  "feature_type": "maintenance",
+  "owner": "fair-crm",
+  "platform_reusability": "platform_generic",
+  "trigger": "none",
+  "tenant_scope": "none",
+  "user_facing": false,
+  "affected_paths": [
+    ".cursor/rules/system-behavior-map.mdc",
+    ".kyrox/system-behavior-map.schema.json",
+    ".kyrox/features/system-behavior-map-foundation.json",
+    "scripts/maintenance/inventory_system_behavior.py",
+    "scripts/maintenance/compare_system_behavior_inventory.py",
+    "scripts/maintenance/test_system_behavior_inventory.py",
+    ".github/workflows/development-standard.yml"
+  ],
+  "permissions": {
+    "required": false,
+    "reason": "This maintenance capability inventories existing authorization evidence but adds no runtime permission or user authorization behavior.",
+    "items": []
+  },
+  "frontend": {
+    "required": false,
+    "reason": "The capability generates CI/static-analysis artifacts and has no user-facing route, page, menu, form or browser surface.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No product database model or persisted business data changes are made." },
+    "migration": { "status": "na", "reason": "No database schema or runtime permission migration is introduced." },
+    "permissions": { "status": "na", "reason": "The inventory reports permission evidence but does not create or modify permissions." },
+    "backend": { "status": "na", "reason": "Production backend executable behavior is intentionally unchanged; backend source is read statically by tooling only." },
+    "api": { "status": "na", "reason": "No HTTP endpoint or API contract is changed." },
+    "tenant_isolation": { "status": "na", "reason": "No production tenant-owned query or mutation behavior is changed; the tool only reports static scope evidence." },
+    "audit": { "status": "na", "reason": "No business mutation or runtime side effect is introduced." },
+    "frontend": { "status": "na", "reason": "No rendered frontend behavior is changed; frontend source is read statically by tooling only." },
+    "ui_permissions": { "status": "na", "reason": "No user-facing UI authorization behavior is changed." },
+    "menu": { "status": "na", "reason": "No navigation entry is added or changed." },
+    "route_guard": { "status": "na", "reason": "No frontend route or route guard is added or changed." },
+    "forms": { "status": "na", "reason": "No user form behavior is involved." },
+    "visual_qa": { "status": "na", "reason": "There is no rendered UI surface to visually verify." },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "na", "reason": "No frontend executable behavior is changed." },
+    "runtime_authorization": { "status": "na", "reason": "No runtime authentication or authorization boundary is changed." },
+    "runtime_verification": { "status": "na", "reason": "Repository static-analysis CI execution is the acceptance surface for this maintenance capability; runtime behavior coverage will be a separate follow-up layer." },
+    "deployment": { "status": "na", "reason": "Repository scripts and GitHub Actions require no application runtime deployment." }
+  },
+  "notes": "The first phase generates a conservative static behavior inventory and compares PR-base vs current finding signatures so existing unknowns remain visible but no new unmapped/drift finding can be introduced. Runtime/cross-organization coverage is intentionally a separate later phase and is not claimed by this contract."
+}
