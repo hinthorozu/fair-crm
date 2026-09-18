@@ -22,6 +22,7 @@
     "backend/alembic/versions/0084_fair_stand_item_catalog.py",
     "backend/app/api/v1/router.py",
     "backend/alembic/env.py",
+    "backend/tests/modules/fair_stand/__init__.py",
     "backend/tests/modules/fair_stand/test_catalog_api.py",
     "backend/tests/modules/fair_stand/test_catalog_seed.py",
     "backend/tests/system/tenant_isolation_registry.py",
