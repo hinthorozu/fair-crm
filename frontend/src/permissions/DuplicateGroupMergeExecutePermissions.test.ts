@@ -4,11 +4,11 @@ import { describe, expect, it } from "vitest";
 const detailSource = readFileSync(
   new URL("../components/DuplicateGroupDetailView.tsx", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const summarySource = readFileSync(
   new URL("../components/duplicateMerge/MergeSummaryPanel.tsx", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("duplicate group merge execute permission", () => {
   it("uses the canonical data operations execute capability", () => {

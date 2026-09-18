@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   fileURLToPath(new URL("../components/todos/ManualTaskMailModal.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Manual task mail send permission", () => {
   it("uses the canonical mail-send execute permission helper", () => {

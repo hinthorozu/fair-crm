@@ -5,22 +5,22 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   fileURLToPath(new URL("../pages/OperationsPage.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 const modalSource = readFileSync(
   fileURLToPath(new URL("../components/operations/NewOperationTypeModal.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 const navigationPermissionSource = readFileSync(
   fileURLToPath(new URL("./navigationPermissions.ts", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 const operationPermissionSource = readFileSync(
   fileURLToPath(new URL("./operationPermissions.ts", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Operations action permissions", () => {
   it("uses the canonical operations create permission for the new action", () => {

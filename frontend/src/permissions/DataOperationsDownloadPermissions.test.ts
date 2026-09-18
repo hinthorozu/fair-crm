@@ -4,11 +4,11 @@ import { describe, expect, it } from "vitest";
 const pageSource = readFileSync(
   new URL("../pages/DataOperationsPage.tsx", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const clientSource = readFileSync(
   new URL("../api/dataOperationDownload.ts", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("DataOperationsPage download permissions", () => {
   it("uses only the canonical data-operations execute permission", () => {

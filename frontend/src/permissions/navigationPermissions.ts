@@ -63,6 +63,7 @@ export type PermissionRequirement =
 
 export const MAIN_NAV_REQUIREMENTS: Readonly<Record<string, PermissionRequirement>> = {
   "/dashboard": { kind: "public" },
+  "/fair-stand": { kind: "public" },
   "/customers": { kind: "permission", permission: PERMISSION_CUSTOMERS_READ },
   "/fairs": { kind: "permission", permission: PERMISSION_FAIRS_READ },
   "/todos": { kind: "permission", permission: PERMISSION_TODOS_READ },
@@ -260,7 +261,7 @@ export function canAccessApplicationPath(
   if (bypass) return true;
   const pathname = normalizePath(path);
 
-  if (pathname === "/" || pathname === "/login" || pathname === "/dashboard") return true;
+  if (pathname === "/" || pathname === "/login" || pathname === "/dashboard" || pathname === "/fair-stand") return true;
 
   if (pathname === "/customers" || pathname.startsWith("/customers/")) {
     return hasGrantedCorePermission(granted, PERMISSION_CUSTOMERS_READ);

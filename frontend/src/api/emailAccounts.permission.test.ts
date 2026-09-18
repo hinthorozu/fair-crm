@@ -10,7 +10,7 @@ import { replaceGrantedPermissions } from "../permissions/corePermissions";
 const source = readFileSync(
   fileURLToPath(new URL("./emailAccounts.ts", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 afterEach(() => {
   replaceGrantedPermissions([]);

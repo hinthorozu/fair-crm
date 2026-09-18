@@ -23,6 +23,17 @@ function IconBase({ className, children }: IconProps & { children: React.ReactNo
   );
 }
 
+export function NavIconFairStand(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4 20h16" />
+      <path d="M5 20V9h14v11" />
+      <path d="M9 20v-6h6v6" />
+      <path d="M5 9l7-5 7 5" />
+    </IconBase>
+  );
+}
+
 export function NavIconDashboard(props: IconProps) {
   return (
     <IconBase {...props}>

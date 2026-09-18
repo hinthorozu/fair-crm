@@ -5,15 +5,15 @@ import { describe, expect, it } from "vitest";
 const operationDetailSource = readFileSync(
   fileURLToPath(new URL("../pages/OperationDetailPage.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const enrichmentPanelSource = readFileSync(
   fileURLToPath(new URL("../components/scraper/EnrichmentRunDetailPanel.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const navigationSource = readFileSync(
   fileURLToPath(new URL("./navigationPermissions.ts", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Operation-linked import continue permission consistency", () => {
   it("keeps the import continue route gated by read plus update", () => {

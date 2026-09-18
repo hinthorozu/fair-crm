@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   new URL("../components/mail_operations/MailOperationActionsMenu.tsx", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("MailOperationActionsMenu cancel permissions", () => {
   it("does not expose retry or cancel without execute permission", () => {

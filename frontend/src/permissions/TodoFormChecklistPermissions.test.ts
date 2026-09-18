@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   fileURLToPath(new URL("../components/todos/TodoForm.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Todo form checklist permission", () => {
   it("uses canonical todos update permission for checklist management", () => {

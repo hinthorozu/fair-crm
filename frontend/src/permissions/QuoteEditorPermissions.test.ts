@@ -11,7 +11,7 @@ import {
 const quoteEditorSource = readFileSync(
   fileURLToPath(new URL("../pages/QuoteEditorPage.tsx", import.meta.url)),
   "utf-8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Quote Editor read permission consistency", () => {
   it("requires every lookup permission for the quote editor route", () => {

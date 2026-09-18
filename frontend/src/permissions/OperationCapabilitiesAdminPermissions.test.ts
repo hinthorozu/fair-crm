@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   new URL("../pages/OperationCapabilitiesAdminPage.tsx", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("OperationCapabilitiesAdminPage permissions", () => {
   it("fails closed before opening and saving capability edits", () => {

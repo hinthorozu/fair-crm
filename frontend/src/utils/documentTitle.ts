@@ -53,6 +53,8 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
       return authLabels.pageTitle;
     case "/dashboard":
       return dashboardLabels.pageTitle;
+    case "/fair-stand":
+      return uiLabels.navFairStand;
     case "/customers":
       return labels.customers;
     case "/customers/:id":

@@ -180,4 +180,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    # Do not wrap this process in a pipe without `set -o pipefail` / `$LASTEXITCODE`.
+    # The numeric status is the only quality-gate result; stdout formatting must not
+    # become the caller’s success signal.
     raise SystemExit(main())

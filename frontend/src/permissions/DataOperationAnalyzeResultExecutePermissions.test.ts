@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   new URL("../pages/DataOperationAnalyzeResultPage.tsx", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("DataOperationAnalyzeResultPage execute permissions", () => {
   it("requires admin data-operation execute permission for result mutations", () => {

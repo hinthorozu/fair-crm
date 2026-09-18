@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   fileURLToPath(new URL("../pages/TodosPage.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Todos page update permission", () => {
   it("uses canonical todos update permission", () => {

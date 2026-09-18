@@ -5,12 +5,12 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   fileURLToPath(new URL("../pages/FairDetailPage.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 const participationPermissionSource = readFileSync(
   fileURLToPath(new URL("./participationPermissions.ts", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Fair detail permission-controlled surfaces", () => {
   it("uses the canonical Core participation CRUD permission codes", () => {

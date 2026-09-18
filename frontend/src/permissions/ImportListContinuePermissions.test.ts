@@ -5,15 +5,15 @@ import { describe, expect, it } from "vitest";
 const pageSource = readFileSync(
   fileURLToPath(new URL("../pages/DataIntegrationImportsPage.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const navigationSource = readFileSync(
   fileURLToPath(new URL("./navigationPermissions.ts", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const appSource = readFileSync(
   fileURLToPath(new URL("../App.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Import list continue permission consistency", () => {
   it("keeps the import list readable while the continue route requires update permission", () => {

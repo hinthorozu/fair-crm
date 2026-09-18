@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   new URL("../components/admin/RestoreJobDetailModal.tsx", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("RestoreJobDetailModal delete permission", () => {
   it("fails closed before deleting a restore job", () => {

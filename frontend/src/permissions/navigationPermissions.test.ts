@@ -33,6 +33,11 @@ describe("navigation permission rules", () => {
     expect(canAccessMainNavigation("/dashboard", granted())).toBe(true);
   });
 
+  it("keeps Fair Stand available to any authenticated CRM user without a product permission", () => {
+    expect(canAccessApplicationPath("/fair-stand", granted())).toBe(true);
+    expect(canAccessMainNavigation("/fair-stand", granted())).toBe(true);
+  });
+
   it("hides a module and blocks its deep link without read permission", () => {
     expect(canAccessMainNavigation("/customers", granted())).toBe(false);
     expect(canAccessApplicationPath("/customers", granted())).toBe(false);

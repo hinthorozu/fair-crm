@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   fileURLToPath(new URL("../pages/UsersAdminPage.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Users admin supporting role read permissions", () => {
   it("keeps users.read page hydration independent from roles.read", () => {

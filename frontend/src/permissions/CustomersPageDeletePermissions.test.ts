@@ -5,11 +5,11 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   fileURLToPath(new URL("../pages/CustomersPage.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const permissionSource = readFileSync(
   fileURLToPath(new URL("./customerPermissions.ts", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Customers page delete permission", () => {
   it("uses canonical customers delete permission", () => {

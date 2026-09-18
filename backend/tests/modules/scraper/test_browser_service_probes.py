@@ -3,9 +3,13 @@
 import pytest
 
 from app.modules.scraper.core.browser_service import BrowserConfig, BrowserService
+from app.modules.scraper.core.playwright_availability import is_playwright_browser_installed
 
 
 def _browser_config_for_tests() -> BrowserConfig:
+    bundled = BrowserConfig(headless=True)
+    if is_playwright_browser_installed(bundled):
+        return bundled
     return BrowserConfig(headless=True, channel="msedge")
 
 

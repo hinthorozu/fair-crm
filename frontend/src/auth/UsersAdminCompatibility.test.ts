@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   fileURLToPath(new URL("../pages/UsersAdminPage.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("P0.2 Super Admin user-management UI compatibility", () => {
   it("keeps the existing manual create entry and requires an admin-supplied password", () => {

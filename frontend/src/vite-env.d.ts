@@ -12,3 +12,7 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+declare module "@fair-stand/mountFairStand.js" {
+  export function mountFairStand(container: HTMLElement): () => void;
+}

@@ -5,11 +5,11 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   fileURLToPath(new URL("../pages/ImportWizardPage.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const permissionSource = readFileSync(
   fileURLToPath(new URL("./importPermissions.ts", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Import wizard update permission", () => {
   it("uses canonical imports update permission", () => {

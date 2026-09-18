@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "id": "source-contract-line-ending-portability",
+  "title": "Source-contract tests are line-ending portable",
+  "feature_type": "maintenance",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "none",
+  "tenant_scope": "none",
+  "user_facing": false,
+  "affected_paths": [
+    "frontend/.gitattributes",
+    "frontend/vitest.config.ts",
+    "frontend/src/test/normalizeSourceText.ts",
+    "frontend/src/test/normalizeSourceText.test.ts",
+    "frontend/src/test/vitest.setup.ts",
+    "frontend/src/**/*.test.ts",
+    ".kyrox/features/source-contract-line-ending-portability.json"
+  ],
+  "permissions": {
+    "required": false,
+    "reason": "Line-ending portability for static source-contract tests does not change runtime authorization.",
+    "items": []
+  },
+  "frontend": {
+    "required": false,
+    "reason": "No user-facing route, menu or form is added; only test/tooling reads of existing source files are normalized.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No database model changes." },
+    "migration": { "status": "na", "reason": "No schema migration." },
+    "permissions": { "status": "na", "reason": "Permission codes and enforcement are unchanged." },
+    "backend": { "status": "na", "reason": "No backend runtime changes." },
+    "api": { "status": "na", "reason": "No API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No tenant-scoping changes." },
+    "audit": { "status": "na", "reason": "No audit behavior changes." },
+    "frontend": { "status": "na", "reason": "Production frontend behavior is unchanged." },
+    "ui_permissions": { "status": "na", "reason": "UI permission guards are unchanged; only how tests read their source is portable." },
+    "menu": { "status": "na", "reason": "No navigation changes." },
+    "route_guard": { "status": "na", "reason": "No route guard changes." },
+    "forms": { "status": "na", "reason": "No form changes." },
+    "visual_qa": { "status": "na", "reason": "No rendered UI change." },
+    "backend_tests": { "status": "na", "reason": "Backend tests are unchanged." },
+    "frontend_tests": { "status": "na", "reason": "frontend.required=false pairs frontend_tests=na; Vitest source-contract coverage stays in affected_paths, not a product UI surface." },
+    "runtime_authorization": { "status": "na", "reason": "Runtime authorization is unchanged." },
+    "runtime_verification": { "status": "na", "reason": "Acceptance is the Vitest source-contract suite." },
+    "deployment": { "status": "na", "reason": "No application deployment change; Git attributes only affect checkout line endings." }
+  },
+  "notes": "Source-contract toContain checks compare LF tokens. Windows CRLF checkouts made those tests fail without changing product source. Tests now normalize CRLF to LF before assertion, and frontend/.gitattributes pins eol=lf for future checkouts."
+}

@@ -5,15 +5,15 @@ import { describe, expect, it } from "vitest";
 const operationsPageSource = readFileSync(
   fileURLToPath(new URL("../pages/OperationsPage.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const shortcutSource = readFileSync(
   fileURLToPath(new URL("../utils/duplicateCheckOperation.ts", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const navigationSource = readFileSync(
   fileURLToPath(new URL("./navigationPermissions.ts", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Duplicate-check navigation permission consistency", () => {
   it("keeps the duplicate-check wizard aligned with its route permission set", () => {

@@ -68,8 +68,18 @@ def test_is_playwright_browser_installed_true_when_env_invalid_but_default_has_c
 def test_is_playwright_browser_installed_false_when_no_browsers_found(
     tmp_path, monkeypatch
 ):
-    monkeypatch.setenv("PLAYWRIGHT_BROWSERS_PATH", str(tmp_path / "empty"))
+    empty_root = tmp_path / "empty-ms-playwright"
+    empty_root.mkdir()
+    monkeypatch.setenv("PLAYWRIGHT_BROWSERS_PATH", str(tmp_path / "missing-env-root"))
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "also-empty"))
+    monkeypatch.setattr(
+        "app.modules.scraper.core.playwright_availability._default_ms_playwright_root",
+        lambda: empty_root,
+    )
+    monkeypatch.setattr(
+        "app.modules.scraper.core.playwright_availability.Path.home",
+        lambda: tmp_path / "isolated-home",
+    )
 
     assert is_playwright_browser_installed(BrowserConfig(headless=True)) is False
 
@@ -117,16 +127,36 @@ def test_build_chromium_launch_options_keeps_default_headless_when_shell_install
 
 
 def test_ensure_playwright_browser_installed_raises_clear_error(tmp_path, monkeypatch):
+    empty_root = tmp_path / "empty-ms-playwright"
+    empty_root.mkdir()
     monkeypatch.setenv("PLAYWRIGHT_BROWSERS_PATH", str(tmp_path / "missing"))
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "missing-local"))
+    monkeypatch.setattr(
+        "app.modules.scraper.core.playwright_availability._default_ms_playwright_root",
+        lambda: empty_root,
+    )
+    monkeypatch.setattr(
+        "app.modules.scraper.core.playwright_availability.Path.home",
+        lambda: tmp_path / "isolated-home",
+    )
 
     with pytest.raises(PlaywrightBrowserNotInstalledError, match="python -m playwright install"):
         ensure_playwright_browser_installed()
 
 
 def test_playwright_browser_unavailable_message_returns_install_hint(tmp_path, monkeypatch):
+    empty_root = tmp_path / "empty-ms-playwright"
+    empty_root.mkdir()
     monkeypatch.setenv("PLAYWRIGHT_BROWSERS_PATH", str(tmp_path / "missing"))
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "missing-local"))
+    monkeypatch.setattr(
+        "app.modules.scraper.core.playwright_availability._default_ms_playwright_root",
+        lambda: empty_root,
+    )
+    monkeypatch.setattr(
+        "app.modules.scraper.core.playwright_availability.Path.home",
+        lambda: tmp_path / "isolated-home",
+    )
 
     assert playwright_browser_unavailable_message() == PLAYWRIGHT_BROWSER_MISSING_MESSAGE
 
