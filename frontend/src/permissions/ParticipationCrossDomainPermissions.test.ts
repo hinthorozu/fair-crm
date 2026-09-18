@@ -5,15 +5,15 @@ import { describe, expect, it } from "vitest";
 const listSource = readFileSync(
   fileURLToPath(new URL("../components/ParticipationList.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const formSource = readFileSync(
   fileURLToPath(new URL("../components/ParticipationForm.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const navigationSource = readFileSync(
   fileURLToPath(new URL("./navigationPermissions.ts", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Participation cross-domain permission consistency", () => {
   it("keeps customer detail navigation behind customers.read", () => {

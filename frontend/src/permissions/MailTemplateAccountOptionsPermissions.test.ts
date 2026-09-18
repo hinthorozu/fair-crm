@@ -5,14 +5,14 @@ import { describe, expect, it } from "vitest";
 const pageSource = readFileSync(
   fileURLToPath(new URL("../pages/MailTemplatesPage.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 const panelSource = readFileSync(
   fileURLToPath(
     new URL("../components/mail_templates/MailTemplateTestEmailPanel.tsx", import.meta.url),
   ),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("mail template test-mail account permission consistency", () => {
   it("does not load email accounts without email_accounts.read", () => {

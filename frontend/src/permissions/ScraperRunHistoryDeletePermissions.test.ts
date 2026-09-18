@@ -5,11 +5,11 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   fileURLToPath(new URL("../pages/ScraperRunHistoryPageLegacy.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const permissionSource = readFileSync(
   fileURLToPath(new URL("./scraperPermissions.ts", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Scraper run history delete permission", () => {
   it("uses canonical scraper delete permission", () => {

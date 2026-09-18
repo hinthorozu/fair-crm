@@ -5,27 +5,27 @@ import { describe, expect, it } from "vitest";
 const runPanelSource = readFileSync(
   fileURLToPath(new URL("../components/scraper/EnrichmentRunPanel.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 const resetPanelSource = readFileSync(
   fileURLToPath(new URL("../components/scraper/EnrichmentStateResetPanel.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 const customerEnrichmentPageSource = readFileSync(
   fileURLToPath(new URL("../pages/CustomerEnrichmentPage.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 const enrichmentOperationPageSource = readFileSync(
   fileURLToPath(new URL("../pages/EnrichmentOperationPage.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 const permissionSource = readFileSync(
   fileURLToPath(new URL("./scraperPermissions.ts", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Enrichment execute permissions", () => {
   it("uses the canonical scraper execute permission", () => {

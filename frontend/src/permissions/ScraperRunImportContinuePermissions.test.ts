@@ -5,15 +5,15 @@ import { describe, expect, it } from "vitest";
 const wrapperSource = readFileSync(
   fileURLToPath(new URL("../pages/ScraperRunHistoryPage.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const legacySource = readFileSync(
   fileURLToPath(new URL("../pages/ScraperRunHistoryPageLegacy.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const navigationSource = readFileSync(
   fileURLToPath(new URL("./navigationPermissions.ts", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Scraper run-history import continue permission consistency", () => {
   it("keeps run history readable independently of import continuation", () => {

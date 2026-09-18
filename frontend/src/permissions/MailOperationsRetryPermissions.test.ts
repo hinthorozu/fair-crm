@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   new URL("../pages/MailOperationsPage.tsx", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("MailOperationsPage retry permissions", () => {
   it("fails closed before retrying a mail operation", () => {

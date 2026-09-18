@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const source = readFileSync(new URL("./dataOperations.ts", import.meta.url), "utf8");
+const source = readFileSync(new URL("./dataOperations.ts", import.meta.url), "utf8").replace(/\r\n/g, "\n");
 
 describe("analyze dataset export client permission", () => {
   it("requires execute only before network activity", () => {

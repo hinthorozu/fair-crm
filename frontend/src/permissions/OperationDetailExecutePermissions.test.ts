@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   new URL("../pages/OperationDetailPageLegacy.tsx", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("OperationDetailPage execute permissions", () => {
   it("uses fair email execute for Bulk Email Start while preserving generic Start fallback", () => {

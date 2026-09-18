@@ -5,11 +5,11 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   fileURLToPath(new URL("../components/scraper/EnrichmentRunDetailPanel.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const permissionSource = readFileSync(
   fileURLToPath(new URL("./scraperPermissions.ts", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Enrichment run cancel permission", () => {
   it("uses canonical scraper execute permission", () => {

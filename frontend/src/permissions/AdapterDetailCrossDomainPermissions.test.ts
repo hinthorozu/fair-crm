@@ -5,15 +5,15 @@ import { describe, expect, it } from "vitest";
 const linkedFairsSource = readFileSync(
   fileURLToPath(new URL("../components/scraper/AdapterLinkedFairsTab.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const enrichmentSource = readFileSync(
   fileURLToPath(new URL("../components/scraper/EnrichmentRunPanel.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const navigationSource = readFileSync(
   fileURLToPath(new URL("./navigationPermissions.ts", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Adapter detail cross-domain navigation permissions", () => {
   it("keeps fair detail behind fairs read", () => {

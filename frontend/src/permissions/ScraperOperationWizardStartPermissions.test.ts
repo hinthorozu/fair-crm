@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   new URL("../pages/ScraperOperationWizardPage.tsx", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("ScraperOperationWizardPage start permissions", () => {
   it("requires the canonical scraper execute permission for immediate start", () => {

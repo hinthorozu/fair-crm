@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   fileURLToPath(new URL("../components/dashboard/DashboardNewTodoModal.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("DashboardNewTodoModal permissions", () => {
   it("uses the canonical todo create permission", () => {

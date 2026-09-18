@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   new URL("../api/fairs.ts", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("fair list lookup permissions", () => {
   it("fails closed before listing fairs without read permission", () => {

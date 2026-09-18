@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   new URL("../pages/DatabaseBackupsPage.tsx", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("DatabaseBackupsPage create/restore permissions", () => {
   it("fails closed before create and restore mutations", () => {

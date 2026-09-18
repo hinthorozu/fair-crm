@@ -5,12 +5,12 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   fileURLToPath(new URL("../pages/AdapterDetailPage.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 const permissionSource = readFileSync(
   fileURLToPath(new URL("./scraperPermissions.ts", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Adapter Detail action permissions", () => {
   it("uses the backend scraper update permission for manifest editing", () => {

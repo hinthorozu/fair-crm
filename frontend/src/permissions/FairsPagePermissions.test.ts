@@ -5,12 +5,12 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   fileURLToPath(new URL("../pages/FairsPage.tsx", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 const fairPermissionSource = readFileSync(
   fileURLToPath(new URL("./fairPermissions.ts", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("Fairs list permission-controlled actions", () => {
   it("uses the canonical Core fair CRUD permission codes", () => {
