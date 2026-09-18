@@ -1,0 +1,393 @@
+from datetime import datetime
+from decimal import Decimal
+from uuid import UUID, uuid4
+
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    SmallInteger,
+    String,
+    UniqueConstraint,
+    Uuid,
+    text,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.db.base import Base
+
+CASCADE = {"ondelete": "CASCADE", "onupdate": "CASCADE"}
+
+
+class FairStandCategoryModel(Base):
+    __tablename__ = "fair_stand_categories"
+    __table_args__ = (
+        UniqueConstraint("catalog_index", name="uq_fair_stand_categories_catalog_index"),
+        CheckConstraint("catalog_index > 0", name="ck_fair_stand_categories_catalog_index"),
+    )
+
+    catalog_key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    catalog_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    catalog_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    items: Mapped[list["FairStandItemModel"]] = relationship(back_populates="category")
+
+
+class FairStandCatalogPreviewKindModel(Base):
+    __tablename__ = "fair_stand_catalog_preview_kinds"
+
+    preview_key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    sort_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+
+class FairStandItemModel(Base):
+    __tablename__ = "fair_stand_items"
+    __table_args__ = (
+        CheckConstraint(
+            "panel_role IS NULL OR panel_role IN ('straight', 'inner-corner')",
+            name="ck_fair_stand_items_panel_role",
+        ),
+        CheckConstraint(
+            "connector_type IS NULL OR connector_type IN ('start', 'single', 'double', 'corner')",
+            name="ck_fair_stand_items_connector_type",
+        ),
+        CheckConstraint(
+            "eye_count IS NULL OR eye_count IN (2, 3)",
+            name="ck_fair_stand_items_eye_count",
+        ),
+        CheckConstraint(
+            "nominal_module_width_cm IS NULL OR nominal_module_width_cm > 0",
+            name="ck_fair_stand_items_nominal_width",
+        ),
+        CheckConstraint(
+            "composition_mode IS NULL OR composition_mode IN ('recipe')",
+            name="ck_fair_stand_items_composition_mode",
+        ),
+        CheckConstraint(
+            "NOT catalog_visible OR (catalog_key IS NOT NULL AND catalog_item_index IS NOT NULL AND catalog_preview_key IS NOT NULL)",
+            name="ck_fair_stand_items_catalog_visible",
+        ),
+        Index("ix_fair_stand_items_item_type", "item_type"),
+        Index("ix_fair_stand_items_catalog_key", "catalog_key"),
+        Index("ix_fair_stand_items_is_active", "is_active"),
+        Index(
+            "uq_fair_stand_items_catalog_order",
+            "catalog_key",
+            "catalog_item_index",
+            unique=True,
+            postgresql_where=text("catalog_visible IS TRUE"),
+            sqlite_where=text("catalog_visible IS TRUE"),
+        ),
+    )
+
+    item_key: Mapped[str] = mapped_column(String(128), primary_key=True)
+    name: Mapped[str] = mapped_column(String(256), nullable=False)
+    item_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    unit: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    catalog_visible: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    catalog_key: Mapped[str | None] = mapped_column(
+        String(64),
+        ForeignKey("fair_stand_categories.catalog_key", **CASCADE),
+        nullable=True,
+    )
+    catalog_item_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    catalog_preview_key: Mapped[str | None] = mapped_column(
+        String(64),
+        ForeignKey("fair_stand_catalog_preview_kinds.preview_key", **CASCADE),
+        nullable=True,
+    )
+    material: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    default_color: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    panel_role: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    nominal_module_width_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    connector_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    preserve_model_scale: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    model_rotation_y_deg: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    visual_rotation_y_deg: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    composition_mode: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    composition_module_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    paintable: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    shape: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    variant: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    eye_count: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    category: Mapped[FairStandCategoryModel | None] = relationship(back_populates="items")
+    dimensions: Mapped["FairStandItemDimensionsModel | None"] = relationship(
+        back_populates="item", cascade="all, delete-orphan"
+    )
+    scene_dimensions: Mapped["FairStandItemSceneDimensionsModel | None"] = relationship(
+        back_populates="item", cascade="all, delete-orphan"
+    )
+    strip_occupancy: Mapped["FairStandItemStripOccupancyModel | None"] = relationship(
+        back_populates="item", cascade="all, delete-orphan"
+    )
+    assets: Mapped[list["FairStandItemAssetModel"]] = relationship(
+        back_populates="item", cascade="all, delete-orphan"
+    )
+    components: Mapped[list["FairStandItemComponentModel"]] = relationship(
+        back_populates="parent",
+        foreign_keys="FairStandItemComponentModel.parent_item_key",
+        cascade="all, delete-orphan",
+    )
+    inner_corner: Mapped["FairStandItemInnerCornerModel | None"] = relationship(
+        back_populates="parent",
+        cascade="all, delete-orphan",
+        foreign_keys="FairStandItemInnerCornerModel.parent_item_key",
+    )
+    video_wall: Mapped["FairStandItemVideoWallModel | None"] = relationship(
+        back_populates="parent",
+        cascade="all, delete-orphan",
+        foreign_keys="FairStandItemVideoWallModel.parent_item_key",
+    )
+    body_parts: Mapped[list["FairStandItemBodyPartModel"]] = relationship(
+        back_populates="parent",
+        cascade="all, delete-orphan",
+        foreign_keys="FairStandItemBodyPartModel.parent_item_key",
+    )
+
+
+class FairStandItemDimensionsModel(Base):
+    __tablename__ = "fair_stand_item_dimensions"
+    __table_args__ = (
+        CheckConstraint(
+            "width_cm IS NOT NULL OR depth_cm IS NOT NULL OR height_cm IS NOT NULL "
+            "OR length_cm IS NOT NULL OR thickness_cm IS NOT NULL "
+            "OR mount_height_cm IS NOT NULL OR wall_gap_cm IS NOT NULL",
+            name="ck_fair_stand_item_dimensions_present",
+        ),
+    )
+
+    item_key: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("fair_stand_items.item_key", **CASCADE),
+        primary_key=True,
+    )
+    width_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    depth_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    height_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    length_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    thickness_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    mount_height_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    wall_gap_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    item: Mapped[FairStandItemModel] = relationship(back_populates="dimensions")
+
+
+class FairStandItemSceneDimensionsModel(Base):
+    __tablename__ = "fair_stand_item_scene_dimensions"
+    __table_args__ = (
+        CheckConstraint(
+            "width_cm IS NOT NULL OR depth_cm IS NOT NULL OR height_cm IS NOT NULL",
+            name="ck_fair_stand_item_scene_dimensions_present",
+        ),
+    )
+
+    item_key: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("fair_stand_items.item_key", **CASCADE),
+        primary_key=True,
+    )
+    width_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    depth_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    height_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    item: Mapped[FairStandItemModel] = relationship(back_populates="scene_dimensions")
+
+
+class FairStandItemStripOccupancyModel(Base):
+    __tablename__ = "fair_stand_item_strip_occupancy"
+    __table_args__ = (
+        CheckConstraint("strip_count > 0", name="ck_fair_stand_item_strip_count"),
+        CheckConstraint("align IN ('top')", name="ck_fair_stand_item_strip_align"),
+    )
+
+    item_key: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("fair_stand_items.item_key", **CASCADE),
+        primary_key=True,
+    )
+    align: Mapped[str] = mapped_column(String(16), nullable=False)
+    strip_count: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    item: Mapped[FairStandItemModel] = relationship(back_populates="strip_occupancy")
+
+
+class FairStandItemAssetModel(Base):
+    __tablename__ = "fair_stand_item_assets"
+    __table_args__ = (
+        UniqueConstraint("item_key", "asset_role", name="uq_fair_stand_item_assets_role"),
+        CheckConstraint(
+            "asset_role IN ('model', 'default_screen', 'catalog_image', 'thumbnail', 'texture')",
+            name="ck_fair_stand_item_assets_role",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    item_key: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("fair_stand_items.item_key", **CASCADE),
+        nullable=False,
+        index=True,
+    )
+    asset_role: Mapped[str] = mapped_column(String(32), nullable=False)
+    relative_path: Mapped[str] = mapped_column(String(512), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    item: Mapped[FairStandItemModel] = relationship(back_populates="assets")
+
+
+class FairStandItemComponentModel(Base):
+    __tablename__ = "fair_stand_item_components"
+    __table_args__ = (
+        UniqueConstraint("parent_item_key", "sort_order", name="uq_fair_stand_item_components_sort"),
+        CheckConstraint("quantity > 0", name="ck_fair_stand_item_components_quantity"),
+        CheckConstraint("parent_item_key <> child_item_key", name="ck_fair_stand_item_components_self"),
+        Index("ix_fair_stand_item_components_child", "child_item_key"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    parent_item_key: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("fair_stand_items.item_key", **CASCADE),
+        nullable=False,
+    )
+    child_item_key: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("fair_stand_items.item_key", **CASCADE),
+        nullable=False,
+    )
+    quantity: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False)
+    parent: Mapped[FairStandItemModel] = relationship(
+        back_populates="components",
+        foreign_keys=[parent_item_key],
+    )
+
+
+class FairStandItemInnerCornerModel(Base):
+    __tablename__ = "fair_stand_item_inner_corners"
+
+    parent_item_key: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("fair_stand_items.item_key", **CASCADE),
+        primary_key=True,
+    )
+    panel_item_key: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("fair_stand_items.item_key", **CASCADE),
+        nullable=False,
+    )
+    parent: Mapped[FairStandItemModel] = relationship(
+        back_populates="inner_corner",
+        foreign_keys=[parent_item_key],
+    )
+    replacements: Mapped[list["FairStandItemInnerCornerReplacementModel"]] = relationship(
+        back_populates="inner_corner", cascade="all, delete-orphan"
+    )
+
+
+class FairStandItemInnerCornerReplacementModel(Base):
+    __tablename__ = "fair_stand_item_inner_corner_replacements"
+    __table_args__ = (
+        UniqueConstraint(
+            "parent_item_key",
+            "replaced_item_key",
+            name="uq_fair_stand_inner_corner_replaced",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    parent_item_key: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("fair_stand_item_inner_corners.parent_item_key", **CASCADE),
+        nullable=False,
+    )
+    replaced_item_key: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("fair_stand_items.item_key", **CASCADE),
+        nullable=False,
+    )
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False)
+    inner_corner: Mapped[FairStandItemInnerCornerModel] = relationship(back_populates="replacements")
+    members: Mapped[list["FairStandItemInnerCornerReplacementMemberModel"]] = relationship(
+        back_populates="replacement", cascade="all, delete-orphan"
+    )
+
+
+class FairStandItemInnerCornerReplacementMemberModel(Base):
+    __tablename__ = "fair_stand_item_inner_corner_replacement_members"
+    __table_args__ = (
+        UniqueConstraint("replacement_id", "sort_order", name="uq_fair_stand_inner_corner_member_sort"),
+        CheckConstraint("quantity > 0", name="ck_fair_stand_inner_corner_member_qty"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    replacement_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("fair_stand_item_inner_corner_replacements.id", **CASCADE),
+        nullable=False,
+    )
+    child_item_key: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("fair_stand_items.item_key", **CASCADE),
+        nullable=False,
+    )
+    quantity: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False)
+    replacement: Mapped[FairStandItemInnerCornerReplacementModel] = relationship(back_populates="members")
+
+
+class FairStandItemVideoWallModel(Base):
+    __tablename__ = "fair_stand_item_video_walls"
+    __table_args__ = (
+        CheckConstraint("rows > 0", name="ck_fair_stand_video_wall_rows"),
+        CheckConstraint("cols > 0", name="ck_fair_stand_video_wall_cols"),
+    )
+
+    parent_item_key: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("fair_stand_items.item_key", **CASCADE),
+        primary_key=True,
+    )
+    rows: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    cols: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    panel_item_key: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("fair_stand_items.item_key", **CASCADE),
+        nullable=False,
+    )
+    parent: Mapped[FairStandItemModel] = relationship(
+        back_populates="video_wall",
+        foreign_keys=[parent_item_key],
+    )
+
+
+class FairStandItemBodyPartModel(Base):
+    __tablename__ = "fair_stand_item_body_parts"
+    __table_args__ = (
+        CheckConstraint(
+            "body_role IN ('side', 'horizontal', 'glass_shelf')",
+            name="ck_fair_stand_body_role",
+        ),
+    )
+
+    parent_item_key: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("fair_stand_items.item_key", **CASCADE),
+        primary_key=True,
+    )
+    body_role: Mapped[str] = mapped_column(String(32), primary_key=True)
+    child_item_key: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("fair_stand_items.item_key", **CASCADE),
+        nullable=False,
+    )
+    parent: Mapped[FairStandItemModel] = relationship(
+        back_populates="body_parts",
+        foreign_keys=[parent_item_key],
+    )
