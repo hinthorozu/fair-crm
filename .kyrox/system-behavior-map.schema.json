@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kyrox.local/schemas/system-behavior-map.schema.json",
+  "title": "Fair CRM System Behavior Inventory",
+  "type": "object",
+  "required": [
+    "version",
+    "generator",
+    "stats",
+    "findings",
+    "links",
+    "frontend_api_calls",
+    "backend_routes",
+    "backend_only_routes",
+    "feature_contracts"
+  ],
+  "properties": {
+    "version": { "const": 1 },
+    "generator": { "type": "string", "minLength": 1 },
+    "root": { "type": "string" },
+    "stats": { "type": "object" },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["category", "severity", "method", "file"],
+        "properties": {
+          "category": { "type": "string", "minLength": 1 },
+          "severity": { "enum": ["regression", "review"] },
+          "method": { "type": "string" },
+          "path": { "type": ["string", "null"] },
+          "match_path": { "type": ["string", "null"] },
+          "file": { "type": "string", "minLength": 1 },
+          "function": { "type": ["string", "null"] }
+        },
+        "additionalProperties": true
+      }
+    },
+    "links": { "type": "array" },
+    "frontend_api_calls": { "type": "array" },
+    "backend_routes": { "type": "array" },
+    "backend_only_routes": { "type": "array" },
+    "feature_contracts": { "type": "array" }
+  },
+  "additionalProperties": true
+}

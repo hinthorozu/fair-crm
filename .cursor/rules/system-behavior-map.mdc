@@ -1,0 +1,20 @@
+---
+description: Keep Fair CRM behavior changes traceable through the canonical KYROX System Behavior Map standard.
+alwaysApply: true
+---
+# Fair CRM system behavior map workflow
+
+For any material change to UI actions, API calls, backend routes, permissions, organization scoping, jobs, workers, webhooks or side effects:
+
+1. Read the canonical KYROX standard at `hinthorozu/kyrox-platform/standards/development/SYSTEM_BEHAVIOR_MAP_STANDARD.md` together with the existing Feature Delivery and Quality Gate standards.
+2. Inspect the existing implementation before editing; do not infer behavior from names alone.
+3. Preserve the separation between authorization and organization/tenant isolation.
+4. Update implementation, tests and feature contracts when applicable.
+5. Run:
+   - `python scripts/maintenance/test_system_behavior_inventory.py`
+   - `python scripts/maintenance/inventory_system_behavior.py --output <path> --markdown <path>`
+   - the repository's applicable Development Standard / quality gates.
+6. Treat unresolved static relationships as `UNKNOWN`; never invent a route, permission, organization filter, handler, use case or side effect to make the map look complete.
+7. Do not report DONE merely because documentation or generated inventory was updated. Runtime/security acceptance remains required where the canonical KYROX standards require it.
+
+This rule is only a pointer/workflow aid. Canonical human-readable policy lives in `kyrox-platform`; Fair CRM owns implementation and enforcement tooling.
