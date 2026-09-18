@@ -21,6 +21,8 @@
     "backend/app/modules/fair_stand/infrastructure/catalog_seed_data.py",
     "backend/alembic/versions/0084_fair_stand_item_catalog.py",
     "backend/app/api/v1/router.py",
+    "frontend/src/pages/FairStandPage.tsx",
+    "frontend/src/fairStand/mountFairStand.js",
     "backend/alembic/env.py",
     "backend/tests/modules/fair_stand/__init__.py",
     "backend/tests/modules/fair_stand/test_catalog_api.py",
