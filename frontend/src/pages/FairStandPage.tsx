@@ -1,4 +1,5 @@
 import React from "react";
+import { PageShell } from "../components/ui/PageShell";
 
 export function FairStandPage() {
   const hostRef = React.useRef<HTMLDivElement>(null);
@@ -22,12 +23,12 @@ export function FairStandPage() {
   }, []);
 
   return (
-    <div className="fair-stand-page" data-testid="fair-stand-page">
+    <PageShell fullWidth className="fair-stand-page">
       <div
         ref={hostRef}
         className="fair-stand-host"
         data-testid="fair-stand-host"
       />
-    </div>
+    </PageShell>
   );
 }
