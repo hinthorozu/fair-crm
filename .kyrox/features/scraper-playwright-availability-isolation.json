@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "id": "scraper-playwright-availability-isolation",
+  "title": "Playwright availability tests are isolated from host browser cache",
+  "feature_type": "maintenance",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "none",
+  "tenant_scope": "none",
+  "user_facing": false,
+  "affected_paths": [
+    "backend/tests/modules/scraper/test_playwright_availability.py",
+    "backend/tests/modules/scraper/test_browser_service.py",
+    "backend/tests/modules/scraper/test_browser_service_probes.py",
+    "scripts/quality_check.py",
+    ".kyrox/features/scraper-playwright-availability-isolation.json"
+  ],
+  "permissions": {
+    "required": false,
+    "reason": "Test isolation for Playwright discovery does not change scraper authorization.",
+    "items": []
+  },
+  "frontend": {
+    "required": false,
+    "reason": "No user-facing frontend surface.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No database model changes." },
+    "migration": { "status": "na", "reason": "No schema migration." },
+    "permissions": { "status": "na", "reason": "No permission catalog changes." },
+    "backend": { "status": "na", "reason": "Production scraper launch/availability logic is unchanged." },
+    "api": { "status": "na", "reason": "No API contract changes." },
+    "tenant_isolation": { "status": "na", "reason": "No tenant-scoping changes." },
+    "audit": { "status": "na", "reason": "No audit behavior changes." },
+    "frontend": { "status": "na", "reason": "No frontend changes." },
+    "ui_permissions": { "status": "na", "reason": "No UI permission changes." },
+    "menu": { "status": "na", "reason": "No navigation changes." },
+    "route_guard": { "status": "na", "reason": "No route guard changes." },
+    "forms": { "status": "na", "reason": "No form changes." },
+    "visual_qa": { "status": "na", "reason": "No rendered UI change." },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "na", "reason": "No frontend tests are in scope." },
+    "runtime_authorization": { "status": "na", "reason": "Runtime authorization is unchanged." },
+    "runtime_verification": { "status": "na", "reason": "Acceptance is backend pytest isolation for Playwright discovery and BrowserService launch." },
+    "deployment": { "status": "na", "reason": "No deployment change." }
+  },
+  "notes": "Negative Playwright-availability tests previously patched only LOCALAPPDATA. On Linux/WSL the default root is ~/.cache/ms-playwright, so host installs leaked into 'browser not installed' cases. Tests now pin _default_ms_playwright_root. BrowserService integration tests prefer bundled Chromium when present instead of hard-coding the msedge channel."
+}

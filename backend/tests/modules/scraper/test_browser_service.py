@@ -5,11 +5,17 @@ from unittest.mock import patch
 import pytest
 
 from app.modules.scraper.core.browser_service import BrowserConfig, BrowserService, create_browser_service
-from app.modules.scraper.core.playwright_availability import PlaywrightBrowserNotInstalledError
+from app.modules.scraper.core.playwright_availability import (
+    PlaywrightBrowserNotInstalledError,
+    is_playwright_browser_installed,
+)
 
 
 def _browser_config_for_tests() -> BrowserConfig:
-    """Use a system browser channel when Playwright bundles are not installed."""
+    """Prefer bundled Chromium; fall back to a system channel when CI has Edge/Chrome only."""
+    bundled = BrowserConfig(headless=True)
+    if is_playwright_browser_installed(bundled):
+        return bundled
     return BrowserConfig(headless=True, channel="msedge")
 
 
