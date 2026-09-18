@@ -1,5 +1,6 @@
 import React from "react";
 import { PageShell } from "../components/ui/PageShell";
+import { buildApiHeaders } from "../config";
 
 export function FairStandPage() {
   const hostRef = React.useRef<HTMLDivElement>(null);
@@ -13,7 +14,7 @@ export function FairStandPage() {
 
     void import("@fair-stand/mountFairStand.js").then(({ mountFairStand }) => {
       if (cancelled || !hostRef.current) return;
-      unmount = mountFairStand(hostRef.current);
+      unmount = mountFairStand(hostRef.current, { catalogHeaders: buildApiHeaders() });
     });
 
     return () => {

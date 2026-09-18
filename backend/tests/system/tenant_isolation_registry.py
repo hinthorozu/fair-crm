@@ -58,4 +58,8 @@ TENANT_SCOPE_EXCLUSIONS: dict[str, str] = {
         "Auth adapts trusted Core identity/organization context; it does not own "
         "organization-scoped FAIR CRM domain resources."
     ),
+    "fair_stand": (
+        "Fair Stand Item/Category catalog is global product data with no organization_id "
+        "columns. Session authentication is reused; CRM does not own the Item domain."
+    ),
 }
