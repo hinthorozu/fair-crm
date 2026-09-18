@@ -8,6 +8,7 @@ export const uiLabels = {
   searchFair: "Fuar ara...",
   navCustomers: "Müşteriler",
   navDashboard: "Dashboard",
+  navFairStand: "Fair Stand",
   navFairs: "Fuarlar",
   navTodos: "Görevler",
   navOperations: "Otomasyonlar",

@@ -98,4 +98,8 @@ describe("resolvePageTitle", () => {
       }),
     ).toBe("tuyap_old");
   });
+
+  it("resolves Fair Stand title", () => {
+    expect(resolvePageTitle({ route: "/fair-stand" })).toBe(uiLabels.navFairStand);
+  });
 });

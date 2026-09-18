@@ -22,6 +22,7 @@ import { DataOperationRunResultPage } from "./pages/DataOperationRunResultPage";
 import { OperationCapabilitiesAdminPage } from "./pages/OperationCapabilitiesAdminPage";
 import { ActivitiesPage } from "./pages/ActivitiesPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { FairStandPage } from "./pages/FairStandPage";
 import { LoginPage } from "./pages/LoginPage";
 import { TodoDetailPage } from "./pages/TodoDetailPage";
 import { TodosPage } from "./pages/TodosPage";
@@ -41,6 +42,7 @@ import {
   NavIconAdmin,
   NavIconCustomers,
   NavIconDashboard,
+  NavIconFairStand,
   NavIconDataIntegration,
   NavIconFairs,
   NavIconOperations,
@@ -112,6 +114,7 @@ type AppRoute =
   | "/admin/operation-capabilities"
   | "/imports"
   | "/imports/fair/:fairId"
+  | "/fair-stand"
   | "/customers/:id";
 
 interface ParsedRoute {
@@ -276,6 +279,7 @@ function parseRoute(location: string): ParsedRoute {
     return { route: "/operations" };
   }
   if (pathname === "/login" || pathname === "/login/") return { route: "/login" };
+  if (pathname === "/fair-stand" || pathname === "/fair-stand/") return { route: "/fair-stand" };
   if (pathname === "/dashboard" || pathname === "/") return { route: "/dashboard" };
   if (pathname === "/customers") return { route: "/customers" };
   const customerMatch = pathname.match(/^\/customers\/([^/]+)$/);
@@ -470,6 +474,7 @@ export function App() {
   }, [logout, requestNavigation]);
 
   const isDashboardActive = parsed.route === "/dashboard";
+  const isFairStandActive = parsed.route === "/fair-stand";
   const isCustomersActive = parsed.route === "/customers" || parsed.route === "/customers/:id";
   const isFairsActive = parsed.route === "/fairs" || parsed.route === "/fairs/:id";
   const isTodosActive = parsed.route === "/todos" || parsed.route === "/todos/:id" || parsed.route === "/todos/:id/quote";
@@ -502,10 +507,12 @@ export function App() {
     : isDiActive ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navImports, current: true }]
     : isAdminActive ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navAdmin, onClick: () => goToAdmin() }, { label: parsed.route === "/admin/system/organizations" ? organizationLabels.title : parsed.route === "/admin/email-accounts" ? adminLabels.navSmtpAccounts : parsed.route === "/admin/smtp-operations/templates" ? adminLabels.navMailTemplates : parsed.route === "/admin/smtp-operations/mail-operations" ? adminLabels.navMailOperations : parsed.route === "/admin/operation-capabilities" ? adminLabels.navOperationCapabilities : adminLabels.navDatabaseBackups, current: true }]
     : parsed.route === "/customers" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: labels.customers, current: true }]
+    : parsed.route === "/fair-stand" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navFairStand, current: true }]
     : [{ label: dashboardLabels.pageTitle, current: true }];
 
   const navItems = [
     { path: "/dashboard", label: uiLabels.navDashboard, icon: <NavIconDashboard />, active: isDashboardActive, onClick: (e: React.MouseEvent) => handleNav("/dashboard", e) },
+    { path: "/fair-stand", label: uiLabels.navFairStand, icon: <NavIconFairStand />, active: isFairStandActive, onClick: (e: React.MouseEvent) => handleNav("/fair-stand", e) },
     { path: "/customers", label: uiLabels.navCustomers, icon: <NavIconCustomers />, active: isCustomersActive, onClick: (e: React.MouseEvent) => handleNav("/customers", e) },
     { path: "/fairs", label: uiLabels.navFairs, icon: <NavIconFairs />, active: isFairsActive, onClick: (e: React.MouseEvent) => handleNav("/fairs", e) },
     { path: "/todos", label: uiLabels.navTodos, icon: <NavIconTodos />, active: isTodosActive, onClick: (e: React.MouseEvent) => handleNav("/todos", e) },
@@ -551,6 +558,7 @@ export function App() {
   return (
     <AppLayout breadcrumbs={breadcrumbs} navItems={navItems} sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((v) => !v)} onLogout={handleLogout}>
       {parsed.route === "/dashboard" && <DashboardPage onOpenCustomer={goToCustomerDetail} onNavigate={(path) => { runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); }} />}
+      {parsed.route === "/fair-stand" && <FairStandPage />}
       {parsed.route === "/fairs" && <FairsPage onOpenDetail={goToFairDetail} />}
       {parsed.route === "/fairs/:id" && parsed.fairId && <FairDetailPage fairId={parsed.fairId} onBack={goToFairs} onFairLoaded={setFairName} onOpenCustomer={goToCustomerDetail} onImportParticipants={() => goToImportWizard(parsed.fairId)} />}
       {isDiActive && renderDataIntegration()}
