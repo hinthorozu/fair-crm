@@ -9,6 +9,8 @@ import { usePersistedCollapsed } from "../../hooks/usePersistedCollapsed";
 import { UsersAdminPage } from "../../pages/UsersAdminPage";
 import { RoleManagementPage } from "../../pages/RoleManagementPage";
 import { CostCatalogPage } from "../../pages/CostCatalogPage";
+import { FairStandCatalogAdminPage } from "../../pages/FairStandCatalogAdminPage";
+import { FairStandPreviewsAdminPage } from "../../pages/FairStandPreviewsAdminPage";
 import { AdminNavIcon, NavIconComingSoon } from "../layout/NavIcons";
 import { NavLink } from "../layout/NavLink";
 import { SidebarCollapseButton } from "../layout/SidebarCollapseButton";
@@ -29,8 +31,30 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
   const usersRouteActive = pathname === "/admin/system/users";
   const rolesRouteActive = pathname === "/admin/system/roles";
   const costCatalogRouteActive = pathname === "/admin/cost-catalog";
-  const resolvedActiveSection = usersRouteActive ? "users" : rolesRouteActive ? "roles" : costCatalogRouteActive ? "cost-catalog" : activeSection;
-  const resolvedChildren = usersRouteActive ? <UsersAdminPage /> : rolesRouteActive ? <RoleManagementPage /> : costCatalogRouteActive ? <CostCatalogPage /> : children;
+  const fairStandCatalogRouteActive = pathname === "/admin/fair-stand/catalog";
+  const fairStandPreviewsRouteActive = pathname === "/admin/fair-stand/previews";
+  const resolvedActiveSection = usersRouteActive
+    ? "users"
+    : rolesRouteActive
+      ? "roles"
+      : costCatalogRouteActive
+        ? "cost-catalog"
+        : fairStandCatalogRouteActive
+          ? "fair-stand-catalog"
+          : fairStandPreviewsRouteActive
+            ? "fair-stand-previews"
+            : activeSection;
+  const resolvedChildren = usersRouteActive
+    ? <UsersAdminPage />
+    : rolesRouteActive
+      ? <RoleManagementPage />
+      : costCatalogRouteActive
+        ? <CostCatalogPage />
+        : fairStandCatalogRouteActive
+          ? <FairStandCatalogAdminPage />
+          : fairStandPreviewsRouteActive
+            ? <FairStandPreviewsAdminPage />
+            : children;
 
   const systemItems = [
     { id: "organizations", label: organizationLabels.nav, path: "/admin/system/organizations" },
@@ -39,6 +63,14 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
     { id: "backups", label: adminLabels.navDatabaseBackups, path: "/admin/system/backups" },
   ].filter((item) => canAccess(item.id));
   const costItems = canAccess("cost-catalog") ? [{ id: "cost-catalog", label: "Maliyet Kataloğu", path: "/admin/cost-catalog" }] : [];
+  const fairStandItems = [
+    ...(canAccess("fair-stand-catalog")
+      ? [{ id: "fair-stand-catalog", label: "Katalog Yönetimi", path: "/admin/fair-stand/catalog" }]
+      : []),
+    ...(canAccess("fair-stand-previews")
+      ? [{ id: "fair-stand-previews", label: "Katalog Önizlemeleri", path: "/admin/fair-stand/previews" }]
+      : []),
+  ];
   const smtpOperationsItems = [
     { id: "email-accounts", label: adminLabels.navSmtpAccounts, path: "/admin/email-accounts" },
     { id: "mail-templates", label: adminLabels.navMailTemplates, path: "/admin/smtp-operations/templates" },
@@ -58,8 +90,9 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
       <div className="admin-subnav-header">{!subnavCollapsed ? <div><p className="admin-subnav-group">{adminLabels.moduleTitle}</p></div> : null}<SidebarCollapseButton collapsed={subnavCollapsed} onToggle={toggleSubnavCollapsed} className="admin-subnav-collapse-btn" expandLabel={uiLabels.diSubnavExpand} collapseLabel={uiLabels.diSubnavCollapse} /></div>
       {hasSystemSection ? <>{renderSectionTitle(adminLabels.systemTitle, true)}<nav className="admin-subnav-links" aria-label={adminLabels.systemTitle}>{renderItems(systemItems)}{DISABLED_ADMIN_NAV_ITEMS.map((item) => <NavLink key={item.id} variant="admin" label={item.label} icon={<NavIconComingSoon />} disabled collapsed={subnavCollapsed} onClick={onDisabledClick} />)}</nav></> : null}
       {costItems.length ? <>{renderSectionTitle("Maliyet", !hasSystemSection)}<nav className="admin-subnav-links" aria-label="Maliyet">{renderItems(costItems)}</nav></> : null}
-      {smtpOperationsItems.length ? <>{renderSectionTitle(adminLabels.smtpOperationsTitle, !hasSystemSection && !costItems.length)}<nav className="admin-subnav-links" aria-label={adminLabels.smtpOperationsTitle}>{renderItems(smtpOperationsItems)}</nav></> : null}
-      {operationCapabilityItems.length ? <>{renderSectionTitle(adminLabels.navOperationCapabilities, !hasSystemSection && !costItems.length && !smtpOperationsItems.length)}<nav className="admin-subnav-links" aria-label={adminLabels.navOperationCapabilities}>{renderItems(operationCapabilityItems)}</nav></> : null}
+      {fairStandItems.length ? <>{renderSectionTitle("Fair Stand", !hasSystemSection && !costItems.length)}<nav className="admin-subnav-links" aria-label="Fair Stand">{renderItems(fairStandItems)}</nav></> : null}
+      {smtpOperationsItems.length ? <>{renderSectionTitle(adminLabels.smtpOperationsTitle, !hasSystemSection && !costItems.length && !fairStandItems.length)}<nav className="admin-subnav-links" aria-label={adminLabels.smtpOperationsTitle}>{renderItems(smtpOperationsItems)}</nav></> : null}
+      {operationCapabilityItems.length ? <>{renderSectionTitle(adminLabels.navOperationCapabilities, !hasSystemSection && !costItems.length && !fairStandItems.length && !smtpOperationsItems.length)}<nav className="admin-subnav-links" aria-label={adminLabels.navOperationCapabilities}>{renderItems(operationCapabilityItems)}</nav></> : null}
     </aside>
     <div className="admin-content">{resolvedChildren}</div>
   </div>;

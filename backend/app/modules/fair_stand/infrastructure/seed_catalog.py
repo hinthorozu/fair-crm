@@ -4,11 +4,12 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import uuid5, UUID, NAMESPACE_URL
 
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.modules.fair_stand.application.cycle_validation import assert_acyclic_components
 from app.modules.fair_stand.infrastructure.catalog_seed_data import CATALOG_SEED
+from app.modules.fair_stand.infrastructure.preview_kind_definitions import all_preview_kind_rows
 from app.modules.fair_stand.infrastructure.models import (
     FairStandCatalogPreviewKindModel,
     FairStandCategoryModel,
@@ -57,18 +58,22 @@ def seed_fair_stand_catalog(session: Session) -> None:
     now = datetime.now(tz=UTC)
     edges: list[tuple[str, str]] = []
 
-    for kind in CATALOG_SEED["preview_kinds"]:
+    for definition in all_preview_kind_rows():
         session.add(
             FairStandCatalogPreviewKindModel(
-                preview_key=kind["preview_key"],
-                sort_index=kind.get("sort_index"),
+                display_name=str(definition["display_name"]),
+                markup=str(definition["markup"]),
+                css_code=str(definition["css_code"]),
+                sort_index=int(definition["sort_index"]),
+                is_active=True,
+                created_at=now,
+                updated_at=now,
             )
         )
 
     for category in CATALOG_SEED["categories"]:
         session.add(
             FairStandCategoryModel(
-                catalog_key=category["catalog_key"],
                 catalog_name=category["catalog_name"],
                 catalog_index=category["catalog_index"],
                 is_active=True,
@@ -78,8 +83,18 @@ def seed_fair_stand_catalog(session: Session) -> None:
         )
 
     session.flush()
+    category_id_by_index = {
+        row.catalog_index: row.id
+        for row in session.scalars(select(FairStandCategoryModel)).all()
+    }
+    preview_id_by_sort = {
+        row.sort_index: row.id
+        for row in session.scalars(select(FairStandCatalogPreviewKindModel)).all()
+    }
 
     for row in CATALOG_SEED["items"]:
+        category_index = row.get("category_index")
+        preview_sort = row.get("preview_id")
         session.add(
             FairStandItemModel(
                 item_key=row["item_key"],
@@ -87,9 +102,9 @@ def seed_fair_stand_catalog(session: Session) -> None:
                 item_type=row["item_type"],
                 unit=row["unit"],
                 catalog_visible=row["catalog_visible"],
-                catalog_key=row["catalog_key"],
+                category_id=category_id_by_index[category_index] if category_index is not None else None,
                 catalog_item_index=row["catalog_item_index"],
-                catalog_preview_key=row["catalog_preview_key"],
+                preview_id=preview_id_by_sort[preview_sort] if preview_sort is not None else None,
                 material=row["material"],
                 default_color=row["default_color"],
                 panel_role=row["panel_role"],

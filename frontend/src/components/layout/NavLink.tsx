@@ -11,6 +11,7 @@ export interface NavLinkProps {
   active?: boolean;
   disabled?: boolean;
   collapsed?: boolean;
+  openInNewTab?: boolean;
   onClick?: (event: React.MouseEvent) => void;
   className?: string;
 }
@@ -37,6 +38,7 @@ export function NavLink({
   active = false,
   disabled = false,
   collapsed = false,
+  openInNewTab = false,
   onClick,
   className = "",
 }: NavLinkProps) {
@@ -62,6 +64,8 @@ export function NavLink({
       href={href}
       className={classes}
       onClick={onClick}
+      target={openInNewTab ? "_blank" : undefined}
+      rel={openInNewTab ? "noopener noreferrer" : undefined}
       aria-current={active ? "page" : undefined}
     >
       {content}

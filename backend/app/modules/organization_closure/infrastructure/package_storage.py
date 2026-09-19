@@ -147,7 +147,8 @@ def write_immutable_package(
             _write_member(archive, PackageMember("manifest.json", manifest_bytes))
             for member in member_list:
                 _write_member(archive, member)
-        with temporary_path.open("rb") as handle:
+        with temporary_path.open("r+b") as handle:
+            handle.flush()
             os.fsync(handle.fileno())
         generated_digest = file_digest(temporary_path)
         generated_size = temporary_path.stat().st_size

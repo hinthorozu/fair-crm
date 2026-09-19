@@ -258,15 +258,6 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("parent_item_key", "body_role"),
     )
 
-    from app.modules.fair_stand.infrastructure.seed_catalog import seed_fair_stand_catalog
-
-    bind = op.get_bind()
-    from sqlalchemy.orm import Session
-
-    session = Session(bind=bind)
-    seed_fair_stand_catalog(session)
-    session.commit()
-
 
 def downgrade() -> None:
     op.drop_table("fair_stand_item_body_parts")

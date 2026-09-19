@@ -474,7 +474,6 @@ export function App() {
   }, [logout, requestNavigation]);
 
   const isDashboardActive = parsed.route === "/dashboard";
-  const isFairStandActive = parsed.route === "/fair-stand";
   const isCustomersActive = parsed.route === "/customers" || parsed.route === "/customers/:id";
   const isFairsActive = parsed.route === "/fairs" || parsed.route === "/fairs/:id";
   const isTodosActive = parsed.route === "/todos" || parsed.route === "/todos/:id" || parsed.route === "/todos/:id/quote";
@@ -507,12 +506,11 @@ export function App() {
     : isDiActive ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navImports, current: true }]
     : isAdminActive ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navAdmin, onClick: () => goToAdmin() }, { label: parsed.route === "/admin/system/organizations" ? organizationLabels.title : parsed.route === "/admin/email-accounts" ? adminLabels.navSmtpAccounts : parsed.route === "/admin/smtp-operations/templates" ? adminLabels.navMailTemplates : parsed.route === "/admin/smtp-operations/mail-operations" ? adminLabels.navMailOperations : parsed.route === "/admin/operation-capabilities" ? adminLabels.navOperationCapabilities : adminLabels.navDatabaseBackups, current: true }]
     : parsed.route === "/customers" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: labels.customers, current: true }]
-    : parsed.route === "/fair-stand" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navFairStand, current: true }]
     : [{ label: dashboardLabels.pageTitle, current: true }];
 
   const navItems = [
     { path: "/dashboard", label: uiLabels.navDashboard, icon: <NavIconDashboard />, active: isDashboardActive, onClick: (e: React.MouseEvent) => handleNav("/dashboard", e) },
-    { path: "/fair-stand", label: uiLabels.navFairStand, icon: <NavIconFairStand />, active: isFairStandActive, onClick: (e: React.MouseEvent) => handleNav("/fair-stand", e) },
+    { path: "/fair-stand", label: uiLabels.navFairStand, icon: <NavIconFairStand />, active: false, openInNewTab: true },
     { path: "/customers", label: uiLabels.navCustomers, icon: <NavIconCustomers />, active: isCustomersActive, onClick: (e: React.MouseEvent) => handleNav("/customers", e) },
     { path: "/fairs", label: uiLabels.navFairs, icon: <NavIconFairs />, active: isFairsActive, onClick: (e: React.MouseEvent) => handleNav("/fairs", e) },
     { path: "/todos", label: uiLabels.navTodos, icon: <NavIconTodos />, active: isTodosActive, onClick: (e: React.MouseEvent) => handleNav("/todos", e) },
@@ -554,11 +552,18 @@ export function App() {
   if (import.meta.env.DEV && window.location.pathname === "/dev/customers-responsive-pilot") return <CustomersResponsivePilotPage />;
   if (import.meta.env.DEV && window.location.pathname === "/dev/table-standard-smoke") return <TableStandardSmokePage />;
   if (!isAuthenticated) return <LoginPage onSuccess={handleLoginSuccess} />;
+  if (parsed.route === "/fair-stand") {
+    return (
+      <>
+        <FairStandPage />
+        {confirmDialog}
+      </>
+    );
+  }
 
   return (
     <AppLayout breadcrumbs={breadcrumbs} navItems={navItems} sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((v) => !v)} onLogout={handleLogout}>
       {parsed.route === "/dashboard" && <DashboardPage onOpenCustomer={goToCustomerDetail} onNavigate={(path) => { runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); }} />}
-      {parsed.route === "/fair-stand" && <FairStandPage />}
       {parsed.route === "/fairs" && <FairsPage onOpenDetail={goToFairDetail} />}
       {parsed.route === "/fairs/:id" && parsed.fairId && <FairDetailPage fairId={parsed.fairId} onBack={goToFairs} onFairLoaded={setFairName} onOpenCustomer={goToCustomerDetail} onImportParticipants={() => goToImportWizard(parsed.fairId)} />}
       {isDiActive && renderDataIntegration()}

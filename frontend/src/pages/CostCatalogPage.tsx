@@ -39,6 +39,7 @@ import type {
   CostProductPayload,
   CostUnit,
 } from "../types/costCatalog";
+import { toSlug } from "../utils/toSlug";
 
 const emptyCategory: CostCategoryPayload = { name: "", slug: "", description: null };
 const emptyProduct: CostProductPayload = {
@@ -51,23 +52,6 @@ const emptyProduct: CostProductPayload = {
 };
 const units: CostUnit[] = ["Adet", "Kg", "m²", "Metre", "Gün", "Saat"];
 const currencies: CostCurrency[] = ["TL", "USD"];
-
-function toSlug(value: string): string {
-  return value
-    .replace(/[ıİ]/g, "i")
-    .replace(/[şŞ]/g, "s")
-    .replace(/[ğĞ]/g, "g")
-    .replace(/[üÜ]/g, "u")
-    .replace(/[öÖ]/g, "o")
-    .replace(/[çÇ]/g, "c")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 255)
-    .replace(/-+$/g, "");
-}
 
 export function CostCatalogPage() {
   const permissions = React.useMemo(() => getGrantedCostCatalogPermissions(), []);

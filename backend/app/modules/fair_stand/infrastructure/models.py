@@ -12,6 +12,7 @@ from sqlalchemy import (
     Numeric,
     SmallInteger,
     String,
+    Text as sa_text,
     UniqueConstraint,
     Uuid,
     text,
@@ -30,7 +31,7 @@ class FairStandCategoryModel(Base):
         CheckConstraint("catalog_index > 0", name="ck_fair_stand_categories_catalog_index"),
     )
 
-    catalog_key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     catalog_name: Mapped[str] = mapped_column(String(128), nullable=False)
     catalog_index: Mapped[int] = mapped_column(Integer, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
@@ -42,8 +43,14 @@ class FairStandCategoryModel(Base):
 class FairStandCatalogPreviewKindModel(Base):
     __tablename__ = "fair_stand_catalog_preview_kinds"
 
-    preview_key: Mapped[str] = mapped_column(String(64), primary_key=True)
-    sort_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    display_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    markup: Mapped[str] = mapped_column(sa_text(), nullable=False)
+    css_code: Mapped[str] = mapped_column(sa_text(), nullable=False)
+    sort_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 class FairStandItemModel(Base):
@@ -70,15 +77,16 @@ class FairStandItemModel(Base):
             name="ck_fair_stand_items_composition_mode",
         ),
         CheckConstraint(
-            "NOT catalog_visible OR (catalog_key IS NOT NULL AND catalog_item_index IS NOT NULL AND catalog_preview_key IS NOT NULL)",
+            "NOT catalog_visible OR (category_id IS NOT NULL AND catalog_item_index IS NOT NULL AND preview_id IS NOT NULL)",
             name="ck_fair_stand_items_catalog_visible",
         ),
         Index("ix_fair_stand_items_item_type", "item_type"),
-        Index("ix_fair_stand_items_catalog_key", "catalog_key"),
+        Index("ix_fair_stand_items_category_id", "category_id"),
+        Index("ix_fair_stand_items_preview_id", "preview_id"),
         Index("ix_fair_stand_items_is_active", "is_active"),
         Index(
             "uq_fair_stand_items_catalog_order",
-            "catalog_key",
+            "category_id",
             "catalog_item_index",
             unique=True,
             postgresql_where=text("catalog_visible IS TRUE"),
@@ -91,15 +99,15 @@ class FairStandItemModel(Base):
     item_type: Mapped[str] = mapped_column(String(64), nullable=False)
     unit: Mapped[str | None] = mapped_column(String(32), nullable=True)
     catalog_visible: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    catalog_key: Mapped[str | None] = mapped_column(
-        String(64),
-        ForeignKey("fair_stand_categories.catalog_key", **CASCADE),
+    category_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("fair_stand_categories.id", **CASCADE),
         nullable=True,
     )
     catalog_item_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    catalog_preview_key: Mapped[str | None] = mapped_column(
-        String(64),
-        ForeignKey("fair_stand_catalog_preview_kinds.preview_key", **CASCADE),
+    preview_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("fair_stand_catalog_preview_kinds.id", **CASCADE),
         nullable=True,
     )
     material: Mapped[str | None] = mapped_column(String(64), nullable=True)

@@ -21,6 +21,10 @@ DEV_SEED_ENV_FILE="${DEV_SEED_ENV_FILE:-/etc/fair-crm/dev-seed.env}"
 MIN_CORE_SEED_MIGRATION_REVISION="${MIN_CORE_SEED_MIGRATION_REVISION:-20260701_0031}"
 EXPECTED_FAIR_CRM_BRANCH="${EXPECTED_FAIR_CRM_BRANCH:-${FAIR_CRM_BRANCH:-main}}"
 EXPECTED_KYROX_CORE_BRANCH="${EXPECTED_KYROX_CORE_BRANCH:-${KYROX_CORE_BRANCH:-main}}"
+FAIR_STAND_DIR="${FAIR_STAND_DIR:-/opt/fair-stand}"
+FAIR_STAND_REPO="${FAIR_STAND_REPO:-https://github.com/hinthorozu/fair-stand.git}"
+FAIR_STAND_BRANCH="${FAIR_STAND_BRANCH:-main}"
+EXPECTED_FAIR_STAND_BRANCH="${EXPECTED_FAIR_STAND_BRANCH:-${FAIR_STAND_BRANCH:-main}}"
 
 # Frontend engine requirements (vite / tooling) need Node 22.12+.
 REQUIRED_NODEJS_VERSION="${REQUIRED_NODEJS_VERSION:-22.12.0}"
@@ -266,6 +270,21 @@ git_short_hash() {
   else
     echo "n/a"
   fi
+}
+
+git_head_sha() {
+  local dir="$1"
+  if [[ -d "${dir}/.git" ]]; then
+    git -C "$dir" rev-parse HEAD 2>/dev/null || echo "unknown"
+  else
+    echo "n/a"
+  fi
+}
+
+print_integrated_git_commits() {
+  echo "kyrox-core=$(git_short_hash "${KYROX_CORE_DIR:-/opt/kyrox-core}")"
+  echo "fair-crm=$(git_short_hash "${FAIR_CRM_DIR:-/opt/fair-crm}")"
+  echo "fair-stand=$(git_short_hash "${FAIR_STAND_DIR:-/opt/fair-stand}")"
 }
 
 is_port_listening() {
@@ -884,6 +903,137 @@ run_admin_backups_smoke_test() {
     check_fail "Admin backups API authorized (HTTP ${http_code:-000}, body=${body_preview})"
   fi
   return 1
+}
+
+require_fair_stand_source_for_crm_build() {
+  local mount="${FAIR_STAND_DIR}/src/mountFairStand.js"
+  if [[ ! -f "$mount" ]]; then
+    die "Production Fair CRM frontend build requires ${mount}; Vite CI fallback is not accepted on the server"
+  fi
+  log "Fair Stand source for CRM build: ${mount}"
+}
+
+check_fair_stand_repo() {
+  local dir="${1:-$FAIR_STAND_DIR}"
+  local expected_branch="${2:-$EXPECTED_FAIR_STAND_BRANCH}"
+
+  if [[ -d "${dir}/.git" ]]; then
+    check_pass "Fair Stand repo present (${dir})"
+  else
+    check_fail "Fair Stand repo present (${dir})"
+    return 0
+  fi
+
+  check_git_branch "fair-stand" "$dir" "$expected_branch"
+
+  local dirty
+  dirty="$(git -C "$dir" status --porcelain 2>/dev/null || true)"
+  if [[ -n "$dirty" ]]; then
+    check_fail "Fair Stand repo clean/deployment-compatible"
+  else
+    check_pass "Fair Stand repo clean/deployment-compatible"
+  fi
+
+  if [[ -f "${dir}/package.json" ]]; then
+    check_pass "Fair Stand package.json present"
+  else
+    check_fail "Fair Stand package.json present"
+  fi
+
+  if [[ -f "${dir}/src/mountFairStand.js" ]]; then
+    check_pass "Fair Stand source integration (src/mountFairStand.js)"
+  else
+    check_fail "Fair Stand source integration (src/mountFairStand.js)"
+  fi
+
+  if [[ -f "${dir}/package-lock.json" && -d "${dir}/node_modules" ]]; then
+    check_pass "Fair Stand dependency install"
+  else
+    check_fail "Fair Stand dependency install (npm ci / node_modules)"
+  fi
+
+  local sha
+  sha="$(git_head_sha "$dir")"
+  if [[ -n "$sha" && "$sha" != "n/a" && "$sha" != "unknown" ]]; then
+    check_pass "Fair Stand commit ${sha}"
+  else
+    check_fail "Fair Stand commit readable"
+  fi
+}
+
+check_fair_stand_spa_host() {
+  local url="http://127.0.0.1/fair-stand"
+  local status
+  status="$(http_status "$url")"
+  if [[ "$status" == "200" ]]; then
+    check_pass "Fair Stand SPA host HTTP ${status} (index/host only; not configurator runtime)"
+  else
+    check_warn_item "Fair Stand SPA host HTTP ${status} at ${url}"
+  fi
+}
+
+run_fair_stand_catalog_bootstrap_smoke() {
+  local fair_port="${1:-8001}"
+  local core_port="${2:-8000}"
+  local fail_mode="${3:-check}"
+  local token http_code parse_rc=0 parse_detail=""
+  local url="http://127.0.0.1:${fair_port}/api/v1/fair-stand/catalog/bootstrap"
+  local tmp_body tmp_curl_err
+
+  token="$(fetch_dev_access_token "$core_port" 2>/dev/null || true)"
+  if [[ -z "$token" ]]; then
+    if [[ "$fail_mode" != "deploy" ]]; then
+      check_fail "Fair Stand catalog bootstrap (could not obtain dev access token)"
+    fi
+    return 1
+  fi
+
+  tmp_body="$(mktemp -t fair-stand-bootstrap-body.XXXXXX)"
+  tmp_curl_err="$(mktemp -t fair-stand-bootstrap-curl.XXXXXX)"
+  http_code="$(
+    curl -sS -o "$tmp_body" -w '%{http_code}' -X GET "$url" \
+      -H "Authorization: Bearer ${token}" \
+      -H "X-Organization-Id: ${DEV_LOGIN_ORG_ID}" \
+      --connect-timeout 10 --max-time 30 2>"$tmp_curl_err"
+  )" || http_code="000"
+
+  if [[ "$http_code" != "200" ]]; then
+    local body_preview
+    body_preview="$(tr -d '\n\r' <"$tmp_body" 2>/dev/null | head -c 300)"
+    rm -f "$tmp_body" "$tmp_curl_err"
+    if [[ "$fail_mode" != "deploy" ]]; then
+      check_fail "Fair Stand catalog bootstrap (HTTP ${http_code:-000}, body=${body_preview:-empty})"
+    fi
+    return 1
+  fi
+
+  parse_detail="$(
+    python3 -c '
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    data = json.load(handle)
+missing = [key for key in ("categories", "items", "previewKinds") if not isinstance(data.get(key), list)]
+if missing:
+    raise SystemExit("missing_or_not_array=" + ",".join(missing))
+print("ok")
+' "$tmp_body" 2>&1
+  )" || parse_rc=$?
+
+  rm -f "$tmp_body" "$tmp_curl_err"
+
+  if [[ "$parse_rc" -ne 0 ]]; then
+    if [[ "$fail_mode" != "deploy" ]]; then
+      check_fail "Fair Stand catalog bootstrap payload (${parse_detail:-invalid json})"
+    fi
+    return 1
+  fi
+
+  if [[ "$fail_mode" != "deploy" ]]; then
+    check_pass "Fair Stand catalog bootstrap (HTTP 200, categories/items/previewKinds arrays)"
+  fi
+  return 0
 }
 
 check_alembic_at_head() {

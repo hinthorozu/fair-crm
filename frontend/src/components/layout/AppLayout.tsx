@@ -28,7 +28,8 @@ interface NavItem {
   label: string;
   icon: React.ReactNode;
   active: boolean;
-  onClick: (e: React.MouseEvent) => void;
+  openInNewTab?: boolean;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
 interface AppLayoutProps {
@@ -194,6 +195,7 @@ export function AppLayout({
               icon={item.icon}
               active={item.active}
               collapsed={sidebarCollapsed}
+              openInNewTab={item.openInNewTab}
               onClick={item.onClick}
             />
           ))}

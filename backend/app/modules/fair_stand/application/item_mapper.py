@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from app.modules.fair_stand.domain.entities import CatalogCategory, ItemAggregate
+from app.modules.fair_stand.domain.entities import CatalogCategory, CatalogPreview, ItemAggregate
 
 
 def _num(value: Decimal | None) -> float | None:
@@ -12,9 +12,20 @@ def _num(value: Decimal | None) -> float | None:
     return int(number) if number.is_integer() else number
 
 
+def map_preview(row) -> CatalogPreview:
+    return CatalogPreview(
+        id=int(row.id),
+        display_name=row.display_name,
+        markup=row.markup,
+        css_code=row.css_code,
+        sort_index=row.sort_index,
+        is_active=row.is_active,
+    )
+
+
 def map_category(row) -> CatalogCategory:
     return CatalogCategory(
-        catalog_key=row.catalog_key,
+        id=int(row.id),
         catalog_name=row.catalog_name,
         catalog_index=row.catalog_index,
     )
@@ -26,13 +37,13 @@ def map_item(row) -> ItemAggregate:
         "name": row.name,
         "type": row.item_type,
         "catalogVisible": row.catalog_visible,
-        "catalogCategory": row.catalog_key,
+        "categoryId": int(row.category_id) if row.category_id is not None else None,
         "catalogItemIndex": row.catalog_item_index,
     }
     if row.unit is not None:
         payload["unit"] = row.unit
-    if row.catalog_preview_key is not None:
-        payload["catalogPreview"] = row.catalog_preview_key
+    if row.preview_id is not None:
+        payload["previewId"] = int(row.preview_id)
     if row.material is not None:
         payload["material"] = row.material
     if row.default_color is not None:

@@ -18,6 +18,7 @@ source "${SCRIPT_DIR}/lib/common.sh"
 CHECK_QUIET=1
 KYROX_CORE_DIR="${KYROX_CORE_DIR:-/opt/kyrox-core}"
 FAIR_CRM_DIR="${FAIR_CRM_DIR:-$(cd "${SCRIPT_DIR}/../.." && pwd)}"
+FAIR_STAND_DIR="${FAIR_STAND_DIR:-/opt/fair-stand}"
 CORE_PORT="${CORE_PORT:-8000}"
 FAIR_CRM_PORT="${FAIR_CRM_PORT:-8001}"
 CORE_HEALTH_PATH="${CORE_HEALTH_PATH:-/api/v1/health}"
@@ -200,6 +201,7 @@ main() {
 
   check_git_branch "fair-crm" "$FAIR_CRM_DIR" "$EXPECTED_FAIR_CRM_BRANCH"
   check_git_branch "kyrox-core" "$KYROX_CORE_DIR" "$EXPECTED_KYROX_CORE_BRANCH"
+  check_fair_stand_repo "$FAIR_STAND_DIR" "$EXPECTED_FAIR_STAND_BRANCH"
   check_fair_crm_server_scripts_executable "$FAIR_CRM_DIR"
 
   if [[ -f "${KYROX_CORE_DIR}/backend/.env" && -f "${FAIR_CRM_DIR}/backend/.env" ]]; then
@@ -224,7 +226,14 @@ main() {
   check_http_endpoints "$core_url" "$fair_url"
   run_login_smoke_test "$CORE_PORT" "check"
   run_admin_backups_smoke_test "$FAIR_CRM_PORT" "$CORE_PORT" "check"
+  run_fair_stand_catalog_bootstrap_smoke "$FAIR_CRM_PORT" "$CORE_PORT" "check"
+  check_fair_stand_spa_host
 
+  echo ""
+  echo "Git commits:"
+  print_integrated_git_commits
+  echo "Fair Stand branch: $(git -C "$FAIR_STAND_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo n/a)"
+  echo "Fair Stand commit: $(git_head_sha "$FAIR_STAND_DIR")"
   echo ""
   echo "systemd service audit:"
   print_systemd_service_audit "$SCRIPT_DIR"

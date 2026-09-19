@@ -26,6 +26,9 @@
 #   FAIR_CRM_REPO=https://github.com/hinthorozu/fair-crm.git
 #   FAIR_CRM_BRANCH=main
 #   KYROX_CORE_DIR=/opt/kyrox-core
+#   FAIR_STAND_DIR=/opt/fair-stand
+#   FAIR_STAND_REPO=https://github.com/hinthorozu/fair-stand.git
+#   FAIR_STAND_BRANCH=main
 #   DEPLOY_SERVICE_USER=ubuntu
 #   FAIR_CRM_DOMAIN=faircrm.domain.com
 #   SERVER_PUBLIC_IP=203.0.113.10
@@ -54,8 +57,11 @@ source "${SCRIPT_DIR}/lib/common.sh"
 
 FAIR_CRM_DIR="${FAIR_CRM_DIR:-/opt/fair-crm}"
 KYROX_CORE_DIR="${KYROX_CORE_DIR:-/opt/kyrox-core}"
+FAIR_STAND_DIR="${FAIR_STAND_DIR:-/opt/fair-stand}"
 FAIR_CRM_REPO="${FAIR_CRM_REPO:-https://github.com/hinthorozu/fair-crm.git}"
 FAIR_CRM_BRANCH="${FAIR_CRM_BRANCH:-main}"
+FAIR_STAND_REPO="${FAIR_STAND_REPO:-https://github.com/hinthorozu/fair-stand.git}"
+FAIR_STAND_BRANCH="${FAIR_STAND_BRANCH:-main}"
 DEPLOY_SERVICE_USER="${DEPLOY_SERVICE_USER:-${SUDO_USER:-$(id -un)}}"
 
 FAIR_CRM_DOMAIN_OVERRIDE="${FAIR_CRM_DOMAIN:-}"
@@ -492,6 +498,9 @@ print_bootstrap_report() {
   echo "REMOTE_PG_PORT: ${REMOTE_PG_PORT}"
   echo "FAIR_CRM_DIR: ${FAIR_CRM_DIR}"
   echo "KYROX_CORE_DIR: ${KYROX_CORE_DIR}"
+  echo "FAIR_STAND_DIR: ${FAIR_STAND_DIR}"
+  echo "FAIR_STAND_REPO: ${FAIR_STAND_REPO}"
+  echo "FAIR_STAND_BRANCH: ${FAIR_STAND_BRANCH}"
   echo ""
   echo "Next steps:"
   echo "  1) Review /opt/fair-crm/backend/.env (JWT, DATABASE_URL, KYROX_CORE_BASE_URL)"
@@ -507,6 +516,7 @@ main() {
   resolve_deploy_service_user
   log "FAIR_CRM_DIR=${FAIR_CRM_DIR}"
   log "KYROX_CORE_DIR=${KYROX_CORE_DIR}"
+  log "FAIR_STAND_DIR=${FAIR_STAND_DIR}"
   log "DEPLOY_SERVICE_USER=${DEPLOY_SERVICE_USER}"
 
   if [[ "${SKIP_APT:-0}" != "1" ]]; then

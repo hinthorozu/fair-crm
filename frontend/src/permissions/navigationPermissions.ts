@@ -4,6 +4,10 @@ import {
   type GrantedPermissionCollection,
 } from "./corePermissions";
 import { FAIR_EMAIL_PERMISSION_EXECUTE } from "./fairEmailPermissions";
+import {
+  FAIR_STAND_CATALOG_ADMIN_PERMISSIONS,
+  FAIR_STAND_PREVIEWS_ADMIN_PERMISSIONS,
+} from "./fairStandAdminPermissions";
 import { OPERATION_EXECUTE } from "./operationPermissions";
 import { canReadQuoteEditor } from "./quotePermissions";
 import { SCRAPER_PERMISSION_EXECUTE } from "./scraperPermissions";
@@ -94,6 +98,8 @@ export const MAIN_NAV_REQUIREMENTS: Readonly<Record<string, PermissionRequiremen
       PERMISSION_TEMPLATE_CONTENTS_READ,
       PERMISSION_OPERATIONS_READ,
       ...COST_CATALOG_ADMIN_PERMISSIONS,
+      ...FAIR_STAND_CATALOG_ADMIN_PERMISSIONS,
+      ...FAIR_STAND_PREVIEWS_ADMIN_PERMISSIONS,
     ],
   },
 };
@@ -106,6 +112,14 @@ export const ADMIN_NAV_REQUIREMENTS: Readonly<Record<string, PermissionRequireme
   "cost-catalog": {
     kind: "any",
     permissions: COST_CATALOG_ADMIN_PERMISSIONS,
+  },
+  "fair-stand-catalog": {
+    kind: "any",
+    permissions: FAIR_STAND_CATALOG_ADMIN_PERMISSIONS,
+  },
+  "fair-stand-previews": {
+    kind: "any",
+    permissions: FAIR_STAND_PREVIEWS_ADMIN_PERMISSIONS,
   },
   "email-accounts": { kind: "permission", permission: PERMISSION_EMAIL_ACCOUNTS_READ },
   "mail-templates": { kind: "permission", permission: PERMISSION_MAIL_TEMPLATES_READ },
@@ -189,6 +203,8 @@ export function firstAccessibleAdminPath(
     ["roles", "/admin/system/roles"],
     ["backups", "/admin/system/backups"],
     ["cost-catalog", "/admin/cost-catalog"],
+    ["fair-stand-catalog", "/admin/fair-stand/catalog"],
+    ["fair-stand-previews", "/admin/fair-stand/previews"],
     ["email-accounts", "/admin/email-accounts"],
     ["mail-templates", "/admin/smtp-operations/templates"],
     ["quote-templates", "/admin/smtp-operations/quote-templates"],
@@ -378,6 +394,8 @@ export function canAccessApplicationPath(
   if (pathname === "/admin/system/roles") return canAccessAdminSection("roles", granted);
   if (pathname === "/admin/system/backups") return canAccessAdminSection("backups", granted);
   if (pathname === "/admin/cost-catalog") return canAccessAdminSection("cost-catalog", granted);
+  if (pathname === "/admin/fair-stand/catalog") return canAccessAdminSection("fair-stand-catalog", granted);
+  if (pathname === "/admin/fair-stand/previews") return canAccessAdminSection("fair-stand-previews", granted);
   if (pathname === "/admin/email-accounts") return canAccessAdminSection("email-accounts", granted);
   if (pathname === "/admin/smtp-operations/templates") {
     return canAccessAdminSection("mail-templates", granted);
