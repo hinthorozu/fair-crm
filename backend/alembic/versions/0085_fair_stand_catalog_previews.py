@@ -17,25 +17,29 @@ branch_labels = None
 depends_on = None
 
 
+def _existing_columns() -> set[str]:
+    return {column["name"] for column in sa.inspect(op.get_bind()).get_columns("fair_stand_catalog_preview_kinds")}
+
+
 def upgrade() -> None:
-    op.add_column(
-        "fair_stand_catalog_preview_kinds",
-        sa.Column("display_name", sa.String(length=128), nullable=True),
-    )
-    op.add_column("fair_stand_catalog_preview_kinds", sa.Column("markup", sa.Text(), nullable=True))
-    op.add_column("fair_stand_catalog_preview_kinds", sa.Column("css_code", sa.Text(), nullable=True))
-    op.add_column(
-        "fair_stand_catalog_preview_kinds",
-        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
-    )
-    op.add_column(
-        "fair_stand_catalog_preview_kinds",
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
-    )
-    op.add_column(
-        "fair_stand_catalog_preview_kinds",
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
-    )
+    existing = _existing_columns()
+    # Inspector reads the live table (0084 preview_key/sort_index). Do not use
+    # op.add_column here: current model metadata already contains these names
+    # and Alembic can skip the ALTER, then the UPDATE below fails.
+    if "display_name" not in existing:
+        op.execute(sa.text("ALTER TABLE fair_stand_catalog_preview_kinds ADD COLUMN display_name VARCHAR(128)"))
+    if "markup" not in existing:
+        op.execute(sa.text("ALTER TABLE fair_stand_catalog_preview_kinds ADD COLUMN markup TEXT"))
+    if "css_code" not in existing:
+        op.execute(sa.text("ALTER TABLE fair_stand_catalog_preview_kinds ADD COLUMN css_code TEXT"))
+    if "is_active" not in existing:
+        op.execute(sa.text("ALTER TABLE fair_stand_catalog_preview_kinds ADD COLUMN is_active BOOLEAN DEFAULT 1 NOT NULL"))
+    bind = op.get_bind()
+    timestamp_type = "TIMESTAMP WITH TIME ZONE" if bind.dialect.name == "postgresql" else "TIMESTAMP"
+    if "created_at" not in existing:
+        op.execute(sa.text(f"ALTER TABLE fair_stand_catalog_preview_kinds ADD COLUMN created_at {timestamp_type}"))
+    if "updated_at" not in existing:
+        op.execute(sa.text(f"ALTER TABLE fair_stand_catalog_preview_kinds ADD COLUMN updated_at {timestamp_type}"))
 
     bind = op.get_bind()
     now = datetime.now(tz=UTC)
