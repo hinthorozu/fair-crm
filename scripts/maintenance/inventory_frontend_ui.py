@@ -727,6 +727,12 @@ P3_PAGE_ALLOWLIST_ENTRIES: list[AllowlistEntry] = [
         "Auth brand shell is outside AppLayout; PageShell is for in-app pages only.",
         "auth shell specialty",
     ),
+    AllowlistEntry(
+        "frontend/src/pages/FairStandPage.tsx",
+        "PageShell missing",
+        "Fair Stand is a full-viewport runtime host outside AppLayout; PageShell would add CRM chrome.",
+        "fair stand standalone specialty",
+    ),
 ]
 P3_PAGE_ALLOWLIST = {Path(e.file).name for e in P3_PAGE_ALLOWLIST_ENTRIES}
 
@@ -803,6 +809,8 @@ def compute_p3_violations(ts_files: list[Path]) -> dict:
             )
 
         if "/pages/" in r.replace("\\", "/") and path.name not in P3_PAGE_ALLOWLIST:
+            if path.name.endswith((".test.ts", ".test.tsx")):
+                continue
             if "PageShell" not in text:
                 missing_pageshell.append(
                     {

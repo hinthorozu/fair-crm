@@ -33,7 +33,7 @@ def upgrade() -> None:
     if "css_code" not in existing:
         op.execute(sa.text("ALTER TABLE fair_stand_catalog_preview_kinds ADD COLUMN css_code TEXT"))
     if "is_active" not in existing:
-        op.execute(sa.text("ALTER TABLE fair_stand_catalog_preview_kinds ADD COLUMN is_active BOOLEAN DEFAULT 1 NOT NULL"))
+        op.execute(sa.text("ALTER TABLE fair_stand_catalog_preview_kinds ADD COLUMN is_active BOOLEAN DEFAULT TRUE NOT NULL"))
     bind = op.get_bind()
     timestamp_type = "TIMESTAMP WITH TIME ZONE" if bind.dialect.name == "postgresql" else "TIMESTAMP"
     if "created_at" not in existing:

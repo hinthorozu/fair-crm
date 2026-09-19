@@ -9,7 +9,6 @@
   "tenant_scope": "system",
   "user_facing": true,
   "affected_paths": [
-    "backend/app/modules/fair_stand/api/routes.py",
     "backend/app/modules/fair_stand/api/dependencies.py",
     "backend/app/modules/fair_stand/application/admin_catalog.py",
     "backend/app/modules/fair_stand/application/preview_sanitize.py",
@@ -74,5 +73,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Domain remains Fair Stand; Fair CRM hosts APIs and Admin UI. Runtime catalog bootstrap stays session-authenticated. Admin mutations independently enforce SYSTEM unassignable permissions. Existing fair-stand-item-catalog contract remains the read-only bootstrap host."
+  "notes": "Domain remains Fair Stand; Fair CRM hosts APIs and Admin UI. Runtime catalog bootstrap stays session-authenticated in api/routes.py under fair-stand-item-catalog. Admin mutations independently enforce SYSTEM unassignable permissions via Depends(require_permission(...))."
 }
