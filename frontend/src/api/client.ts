@@ -86,7 +86,25 @@ function detailFromBody(data: unknown, status: number): string {
     if ("message" in data && data.message) {
       detail = String(data.message);
     } else if ("detail" in data && data.detail) {
-      detail = String(data.detail);
+      const raw = data.detail;
+      if (Array.isArray(raw)) {
+        detail = raw
+          .map((item) => {
+            if (typeof item === "string") return item;
+            if (item && typeof item === "object" && "msg" in item) {
+              const location = Array.isArray((item as { loc?: unknown }).loc)
+                ? (item as { loc: unknown[] }).loc.filter((part) => part !== "body").join(".")
+                : "";
+              const message = String((item as { msg: unknown }).msg);
+              return location ? `${location}: ${message}` : message;
+            }
+            return "";
+          })
+          .filter(Boolean)
+          .join("; ") || detail;
+      } else {
+        detail = String(raw);
+      }
     }
   }
   return detail;

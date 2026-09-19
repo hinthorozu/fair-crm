@@ -871,6 +871,9 @@ ROUTE_UNMOUNTED_PAGE_ALLOWLIST = {
     "DataOperationDuplicateResultPage.tsx",
     # Nested result/list view mounted from TodosPage tabs, not App.tsx page switch.
     "FollowUpsPage.tsx",
+    # AdminSystemLayout nested pages (same host as CostCatalogPage).
+    "FairStandCatalogAdminPage.tsx",
+    "FairStandPreviewsAdminPage.tsx",
 }
 
 

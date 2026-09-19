@@ -7,18 +7,21 @@
   "routes": {
     "app_routes": [
       "/activities",
-      "/admin/data-operations",
-      "/admin/data-operations/runs/:runId",
-      "/admin/smtp-operations/accounts",
+      "/admin/email-accounts",
+      "/admin/operation-capabilities",
       "/admin/smtp-operations/mail-operations",
+      "/admin/smtp-operations/quote-templates",
+      "/admin/smtp-operations/template-contents",
       "/admin/smtp-operations/templates",
       "/admin/system/backups",
+      "/admin/system/organizations",
+      "/admin/system/roles",
+      "/admin/system/users",
       "/customers",
       "/customers/:id",
       "/dashboard",
       "/data-integration/adapters",
       "/data-integration/adapters/:adapterKey",
-      "/data-integration/enrichment",
       "/data-integration/imports",
       "/data-integration/imports/continue/:batchId",
       "/data-integration/imports/fair/:fairId",
@@ -28,25 +31,30 @@
       "/data-integration/run-history",
       "/data-integration/runs/:runId",
       "/data-integration/scraper-test",
+      "/fair-stand",
       "/fairs",
       "/fairs/:id",
-      "/fairs/:id/enrichment",
       "/follow-ups",
       "/imports",
       "/imports/fair/:fairId",
       "/login",
       "/operations",
       "/operations/:id",
-      "/operations/new",
+      "/operations/duplicate-check/runs/:runId",
+      "/operations/new/bulk-email",
+      "/operations/new/duplicate-check",
+      "/operations/new/enrichment",
+      "/operations/new/scraper",
       "/todos",
-      "/todos/:id"
+      "/todos/:id",
+      "/todos/:id/quote"
     ],
     "mounted_page_components": [
       "ActivitiesPage",
       "AdapterDetailPage",
       "AdapterManagementPage",
+      "BulkEmailOperationWizardPage",
       "CustomerDetailPage",
-      "CustomerEnrichmentPage",
       "CustomersPage",
       "CustomersResponsivePilotPage",
       "DashboardPage",
@@ -54,21 +62,27 @@
       "DataOperationRunResultPage",
       "DataOperationsPage",
       "DatabaseBackupsPage",
+      "EnrichmentOperationPage",
       "EnrichmentRunDetailPage",
       "FairDetailPage",
-      "FairEnrichmentRunPage",
+      "FairStandPage",
       "FairsPage",
       "ImportWizardPage",
       "LoginPage",
       "MailOperationsPage",
       "MailTemplatesPage",
+      "OperationCapabilitiesAdminPage",
       "OperationDetailPage",
-      "OperationWizardPage",
       "OperationsPage",
+      "OrganizationsPage",
+      "QuoteEditorPage",
+      "QuoteTemplatesPage",
+      "ScraperOperationWizardPage",
       "ScraperRunHistoryPage",
       "ScraperTestPage",
       "SmtpAccountsPage",
       "TableStandardSmokePage",
+      "TemplateContentsPage",
       "TodoDetailPage",
       "TodosPage"
     ],
@@ -112,6 +126,8 @@
       "ActivitiesPage.tsx",
       "AdapterDetailPage.tsx",
       "AdapterManagementPage.tsx",
+      "BulkEmailOperationWizardPage.tsx",
+      "CostCatalogPage.tsx",
       "CustomerDetailPage.tsx",
       "CustomerEnrichmentPage.tsx",
       "CustomersPage.tsx",
@@ -122,35 +138,200 @@
       "DataOperationRunResultPage.tsx",
       "DataOperationsPage.tsx",
       "DatabaseBackupsPage.tsx",
+      "EnrichmentOperationPage.tsx",
       "EnrichmentRunDetailPage.tsx",
       "FairDetailPage.tsx",
-      "FairEnrichmentRunPage.tsx",
+      "FairStandCatalogAdminPage.tsx",
+      "FairStandPage.tsx",
+      "FairStandPreviewsAdminPage.tsx",
       "FairsPage.tsx",
       "FollowUpsPage.tsx",
       "ImportWizardPage.tsx",
       "LoginPage.tsx",
       "MailOperationsPage.tsx",
       "MailTemplatesPage.tsx",
+      "OperationCapabilitiesAdminPage.tsx",
       "OperationDetailPage.tsx",
-      "OperationWizardPage.tsx",
       "OperationsPage.tsx",
+      "OrganizationsPage.tsx",
+      "QuoteEditorPage.tsx",
+      "QuoteTemplatesPage.tsx",
+      "RoleManagementPage.tsx",
+      "ScraperOperationWizardPage.tsx",
       "ScraperRunHistoryPage.tsx",
       "ScraperTestPage.tsx",
       "SmtpAccountsPage.tsx",
+      "TemplateContentsPage.tsx",
       "TodoDetailPage.tsx",
-      "TodosPage.tsx"
+      "TodosPage.tsx",
+      "UsersAdminPage.tsx"
     ],
-    "missing_pageshell_on_mounted": [],
-    "unmounted_page_files": [],
-    "routes_missing_smoke_coverage": [],
-    "total_violations": 0,
-    "pass": true
+    "missing_pageshell_on_mounted": [
+      {
+        "file": "frontend/src/pages/EnrichmentOperationPage.tsx",
+        "line": 0,
+        "route_component": "EnrichmentOperationPage",
+        "snippet": "mounted production page missing PageShell"
+      },
+      {
+        "file": "frontend/src/pages/FairStandPage.tsx",
+        "line": 0,
+        "route_component": "FairStandPage",
+        "snippet": "mounted production page missing PageShell"
+      },
+      {
+        "file": "frontend/src/pages/OperationDetailPage.tsx",
+        "line": 0,
+        "route_component": "OperationDetailPage",
+        "snippet": "mounted production page missing PageShell"
+      }
+    ],
+    "unmounted_page_files": [
+      {
+        "file": "frontend/src/pages/CostCatalogPage.tsx",
+        "line": 0,
+        "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
+      },
+      {
+        "file": "frontend/src/pages/CustomerEnrichmentPage.tsx",
+        "line": 0,
+        "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
+      },
+      {
+        "file": "frontend/src/pages/FairStandCatalogAdminPage.tsx",
+        "line": 0,
+        "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
+      },
+      {
+        "file": "frontend/src/pages/FairStandPreviewsAdminPage.tsx",
+        "line": 0,
+        "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
+      },
+      {
+        "file": "frontend/src/pages/RoleManagementPage.tsx",
+        "line": 0,
+        "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
+      },
+      {
+        "file": "frontend/src/pages/UsersAdminPage.tsx",
+        "line": 0,
+        "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
+      }
+    ],
+    "routes_missing_smoke_coverage": [
+      {
+        "file": "frontend/scripts/capture-ui-evidence.mjs",
+        "line": 0,
+        "route": "/operations/duplicate-check/runs/:runId",
+        "snippet": "AppRoute not present in responsive smoke catalog"
+      },
+      {
+        "file": "frontend/scripts/capture-ui-evidence.mjs",
+        "line": 0,
+        "route": "/todos/:id/quote",
+        "snippet": "AppRoute not present in responsive smoke catalog"
+      }
+    ],
+    "total_violations": 11,
+    "pass": false
   },
   "p0": {
-    "total_violations": 0,
-    "bare_checkbox_radio": [],
-    "local_filters_without_filter_panel": [],
-    "raw_form_controls": [],
+    "total_violations": 15,
+    "bare_checkbox_radio": [
+      {
+        "file": "frontend/src/pages/QuoteEditorPage.tsx",
+        "line": 217,
+        "kind": "checkbox",
+        "snippet": "{tags.map((tag) => <Card key={tag.id}><h3>{tag.name}</h3>{contents.filter((item) => item.tag_id === tag.id).map((item) ="
+      },
+      {
+        "file": "frontend/src/pages/UsersAdminPage.tsx",
+        "line": 264,
+        "kind": "checkbox",
+        "snippet": "{canManageSuperAdmin ? <label className=\"form-field\"><span className=\"form-label\">Super Admin</span><input type=\"checkbo"
+      }
+    ],
+    "local_filters_without_filter_panel": [
+      {
+        "file": "frontend/src/pages/DataOperationsPage.tsx",
+        "line": 287,
+        "snippet": "<div className=\"data-operation-duplicate-filters\">"
+      }
+    ],
+    "raw_form_controls": [
+      {
+        "file": "frontend/src/pages/CostCatalogPage.tsx",
+        "line": 473,
+        "tag": "select",
+        "snippet": "<select"
+      },
+      {
+        "file": "frontend/src/pages/CostCatalogPage.tsx",
+        "line": 519,
+        "tag": "select",
+        "snippet": "<select"
+      },
+      {
+        "file": "frontend/src/pages/CostCatalogPage.tsx",
+        "line": 548,
+        "tag": "select",
+        "snippet": "<select"
+      },
+      {
+        "file": "frontend/src/pages/QuoteEditorPage.tsx",
+        "line": 217,
+        "tag": "input",
+        "snippet": "{tags.map((tag) => <Card key={tag.id}><h3>{tag.name}</h3>{contents.filter((item) => item.tag_id === tag.id).map((item) => <div key={item.id} className=\"form-grid\" style={{gridTemplateColumns:\"40px 1fr"
+      },
+      {
+        "file": "frontend/src/pages/QuoteTemplatesPage.tsx",
+        "line": 133,
+        "tag": "input",
+        "snippet": "<input id=\"quote-template-logo\" className=\"form-control\" type=\"file\" accept=\"image/png,image/jpeg,image/svg+xml,image/webp\" disabled={uploading || !canUploadLogo} onChange={(e) => void upload(e.target"
+      },
+      {
+        "file": "frontend/src/pages/UsersAdminPage.tsx",
+        "line": 238,
+        "tag": "select",
+        "snippet": "<select className=\"input\" value={organizationId} onChange={(event) => changeOrganization(event.target.value)} disabled={saving || Boolean(editing)} required>"
+      },
+      {
+        "file": "frontend/src/pages/UsersAdminPage.tsx",
+        "line": 254,
+        "tag": "select",
+        "snippet": "<div className=\"card\" style={{ marginBottom: 16, padding: 16 }}>{actorIsSuperAdmin ? <label className=\"form-field\"><span className=\"form-label\">Organizasyon</span><select className=\"input\" value={orga"
+      },
+      {
+        "file": "frontend/src/pages/UsersAdminPage.tsx",
+        "line": 260,
+        "tag": "input",
+        "snippet": "<label className=\"form-field\"><span className=\"form-label\">E-posta *</span><input className=\"input\" type=\"email\" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: even"
+      },
+      {
+        "file": "frontend/src/pages/UsersAdminPage.tsx",
+        "line": 261,
+        "tag": "input",
+        "snippet": "<label className=\"form-field\"><span className=\"form-label\">\u015eifre{editing ? \"\" : \" *\"}</span><span style={{ position: \"relative\", display: \"block\" }}><input className=\"input\" type={showPassword ? \"text"
+      },
+      {
+        "file": "frontend/src/pages/UsersAdminPage.tsx",
+        "line": 262,
+        "tag": "select",
+        "snippet": "{canReadRoles ? <label className=\"form-field\"><span className=\"form-label\">Rol{form.isSuperAdmin ? \"\" : \" *\"}</span><select className=\"input\" value={form.roleId} onChange={(event) => setForm((current)"
+      },
+      {
+        "file": "frontend/src/pages/UsersAdminPage.tsx",
+        "line": 263,
+        "tag": "select",
+        "snippet": "<label className=\"form-field\"><span className=\"form-label\">Durum</span><select className=\"input\" value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value"
+      },
+      {
+        "file": "frontend/src/pages/UsersAdminPage.tsx",
+        "line": 264,
+        "tag": "input",
+        "snippet": "{canManageSuperAdmin ? <label className=\"form-field\"><span className=\"form-label\">Super Admin</span><input type=\"checkbox\" checked={form.isSuperAdmin} onChange={(event) => setForm((current) => ({ ...c"
+      }
+    ],
     "allowlist": [
       "frontend/src/components/AdapterSelect.tsx",
       "frontend/src/components/CustomerEntitySelect.tsx",
@@ -158,16 +339,22 @@
       "frontend/src/components/imports/ExcelMappingGrid.tsx",
       "frontend/src/components/ui/form/FormInputs.tsx"
     ],
-    "pass": true
+    "pass": false
   },
   "p1": {
-    "total_violations": 0,
+    "total_violations": 1,
     "bare_alert_toast": [],
-    "bare_card": [],
+    "bare_card": [
+      {
+        "file": "frontend/src/pages/UsersAdminPage.tsx",
+        "line": 254,
+        "snippet": "<div className=\"card\" style={{ marginBottom: 16, padding: 16 }}>{actorIsSuperAdmin ? <label className=\"form-field\"><span className=\"form-label\">Organizasyon</sp"
+      }
+    ],
     "intentional_exceptions": [
       {
         "file": "frontend/src/pages/ImportWizardPage.tsx",
-        "line": 1231,
+        "line": 1391,
         "kind": "specialty_banner_layout",
         "snippet": "<div className=\"import-complete-banner\">"
       }
@@ -178,15 +365,26 @@
     "allowlist_card": [
       "frontend/src/components/ui/Card.tsx"
     ],
-    "pass": true
+    "pass": false
   },
   "p2": {
-    "total_violations": 0,
+    "total_violations": 2,
     "bare_form_error": [],
     "link_button": [],
     "adhoc_empty": [],
     "adhoc_loading": [],
-    "bare_action_wrappers": [],
+    "bare_action_wrappers": [
+      {
+        "file": "frontend/src/pages/CostCatalogPage.tsx",
+        "line": 209,
+        "snippet": "<div className=\"table-actions\">"
+      },
+      {
+        "file": "frontend/src/pages/CostCatalogPage.tsx",
+        "line": 269,
+        "snippet": "<div className=\"table-actions\">"
+      }
+    ],
     "intentional_exceptions": [
       {
         "file": "frontend/src/components/AdapterSelect.tsx",
@@ -207,14 +405,40 @@
         "snippet": "inline combobox loading text (not page LoadingState)"
       }
     ],
-    "pass": true
+    "pass": false
   },
   "p3": {
-    "total_violations": 0,
+    "total_violations": 5,
     "bare_icon_buttons": [],
     "login_form_error": [],
     "bare_nav_links": [],
-    "missing_pageshell": [],
+    "missing_pageshell": [
+      {
+        "file": "frontend/src/pages/EnrichmentOperationPage.tsx",
+        "line": 0,
+        "snippet": "page missing PageShell"
+      },
+      {
+        "file": "frontend/src/pages/FairStandPage.tsx",
+        "line": 0,
+        "snippet": "page missing PageShell"
+      },
+      {
+        "file": "frontend/src/pages/FairStandStandaloneRoute.test.ts",
+        "line": 0,
+        "snippet": "page missing PageShell"
+      },
+      {
+        "file": "frontend/src/pages/OperationDetailPage.tsx",
+        "line": 0,
+        "snippet": "page missing PageShell"
+      },
+      {
+        "file": "frontend/src/pages/RoleManagementPage.test.ts",
+        "line": 0,
+        "snippet": "page missing PageShell"
+      }
+    ],
     "missing_navlink_layouts": [],
     "intentional_exceptions": [
       {
@@ -242,30 +466,107 @@
         "snippet": "login brand shell outside AppLayout/PageShell \u2014 intentional"
       }
     ],
-    "pass": true
+    "pass": false
   },
   "final": {
-    "total_violations": 0,
+    "total_violations": 26,
     "bare_field_error": [],
     "bare_modal_actions": [],
-    "form_actions_in_modal": [],
-    "legacy_breakpoints": [],
+    "form_actions_in_modal": [
+      {
+        "file": "frontend/src/components/admin/RestoreJobDetailModal.tsx",
+        "line": 249,
+        "snippet": "<div className=\"form-actions\">"
+      },
+      {
+        "file": "frontend/src/pages/CostCatalogPage.tsx",
+        "line": 450,
+        "snippet": "<div className=\"form-actions\">"
+      },
+      {
+        "file": "frontend/src/pages/CostCatalogPage.tsx",
+        "line": 566,
+        "snippet": "<div className=\"form-actions\">"
+      },
+      {
+        "file": "frontend/src/pages/OrganizationsPage.tsx",
+        "line": 73,
+        "snippet": "<div className=\"form-actions\">"
+      },
+      {
+        "file": "frontend/src/pages/QuoteEditorPage.tsx",
+        "line": 218,
+        "snippet": "{preview ? <Card><div className=\"form-actions\"><h3 style={{marginRight:\"auto\"}}>\u00d6nizleme</h3><button type=\"button\" class"
+      },
+      {
+        "file": "frontend/src/pages/QuoteTemplatesPage.tsx",
+        "line": 138,
+        "snippet": "<div className=\"form-actions\"><button type=\"button\" className=\"btn secondary\" onClick={close}>\u0130ptal</button>{canSaveTemp"
+      },
+      {
+        "file": "frontend/src/pages/TemplateContentsPage.tsx",
+        "line": 112,
+        "snippet": "{ key: \"actions\", title: \"\u0130\u015flemler\", sortable: false, render: (item) => <div className=\"form-actions\">{canUpdate ? <butt"
+      },
+      {
+        "file": "frontend/src/pages/TemplateContentsPage.tsx",
+        "line": 118,
+        "snippet": "{ key: \"actions\", title: \"\u0130\u015flemler\", sortable: false, render: (item) => <div className=\"form-actions\">{canUpdate ? <butt"
+      },
+      {
+        "file": "frontend/src/pages/TemplateContentsPage.tsx",
+        "line": 124,
+        "snippet": "<div className=\"form-actions\" role=\"tablist\" aria-label=\"\u015eablon i\u00e7eri\u011fi b\u00f6l\u00fcmleri\"><button type=\"button\" className={`btn"
+      },
+      {
+        "file": "frontend/src/pages/TemplateContentsPage.tsx",
+        "line": 127,
+        "snippet": "{modal === \"tag\" ? <FormModal title={editingTag ? \"\u0130\u00e7erik Etiketini D\u00fczenle\" : \"Yeni \u0130\u00e7erik Etiketi\"} onClose={() => set"
+      },
+      {
+        "file": "frontend/src/pages/TemplateContentsPage.tsx",
+        "line": 128,
+        "snippet": "{modal === \"content\" ? <FormModal title={editingContent ? \"\u0130\u00e7eri\u011fi D\u00fczenle\" : \"Yeni \u0130\u00e7erik\"} onClose={() => setModal(nul"
+      },
+      {
+        "file": "frontend/src/pages/UsersAdminPage.tsx",
+        "line": 265,
+        "snippet": "<div className=\"form-actions\"><button type=\"button\" className=\"btn secondary\" onClick={closeForm} disabled={saving}>Vazg"
+      }
+    ],
+    "legacy_breakpoints": [
+      {
+        "file": "frontend/src/styles.css",
+        "line": 7712,
+        "snippet": "@media (max-width: 800px) {",
+        "px": 800
+      },
+      {
+        "file": "frontend/src/styles.css",
+        "line": 7734,
+        "snippet": "@media (max-width: 520px) {",
+        "px": 520
+      }
+    ],
     "a11y_icon_buttons_missing_label": [],
     "route_coverage": {
       "app_routes": [
         "/activities",
-        "/admin/data-operations",
-        "/admin/data-operations/runs/:runId",
-        "/admin/smtp-operations/accounts",
+        "/admin/email-accounts",
+        "/admin/operation-capabilities",
         "/admin/smtp-operations/mail-operations",
+        "/admin/smtp-operations/quote-templates",
+        "/admin/smtp-operations/template-contents",
         "/admin/smtp-operations/templates",
         "/admin/system/backups",
+        "/admin/system/organizations",
+        "/admin/system/roles",
+        "/admin/system/users",
         "/customers",
         "/customers/:id",
         "/dashboard",
         "/data-integration/adapters",
         "/data-integration/adapters/:adapterKey",
-        "/data-integration/enrichment",
         "/data-integration/imports",
         "/data-integration/imports/continue/:batchId",
         "/data-integration/imports/fair/:fairId",
@@ -275,25 +576,30 @@
         "/data-integration/run-history",
         "/data-integration/runs/:runId",
         "/data-integration/scraper-test",
+        "/fair-stand",
         "/fairs",
         "/fairs/:id",
-        "/fairs/:id/enrichment",
         "/follow-ups",
         "/imports",
         "/imports/fair/:fairId",
         "/login",
         "/operations",
         "/operations/:id",
-        "/operations/new",
+        "/operations/duplicate-check/runs/:runId",
+        "/operations/new/bulk-email",
+        "/operations/new/duplicate-check",
+        "/operations/new/enrichment",
+        "/operations/new/scraper",
         "/todos",
-        "/todos/:id"
+        "/todos/:id",
+        "/todos/:id/quote"
       ],
       "mounted_page_components": [
         "ActivitiesPage",
         "AdapterDetailPage",
         "AdapterManagementPage",
+        "BulkEmailOperationWizardPage",
         "CustomerDetailPage",
-        "CustomerEnrichmentPage",
         "CustomersPage",
         "CustomersResponsivePilotPage",
         "DashboardPage",
@@ -301,21 +607,27 @@
         "DataOperationRunResultPage",
         "DataOperationsPage",
         "DatabaseBackupsPage",
+        "EnrichmentOperationPage",
         "EnrichmentRunDetailPage",
         "FairDetailPage",
-        "FairEnrichmentRunPage",
+        "FairStandPage",
         "FairsPage",
         "ImportWizardPage",
         "LoginPage",
         "MailOperationsPage",
         "MailTemplatesPage",
+        "OperationCapabilitiesAdminPage",
         "OperationDetailPage",
-        "OperationWizardPage",
         "OperationsPage",
+        "OrganizationsPage",
+        "QuoteEditorPage",
+        "QuoteTemplatesPage",
+        "ScraperOperationWizardPage",
         "ScraperRunHistoryPage",
         "ScraperTestPage",
         "SmtpAccountsPage",
         "TableStandardSmokePage",
+        "TemplateContentsPage",
         "TodoDetailPage",
         "TodosPage"
       ],
@@ -359,6 +671,8 @@
         "ActivitiesPage.tsx",
         "AdapterDetailPage.tsx",
         "AdapterManagementPage.tsx",
+        "BulkEmailOperationWizardPage.tsx",
+        "CostCatalogPage.tsx",
         "CustomerDetailPage.tsx",
         "CustomerEnrichmentPage.tsx",
         "CustomersPage.tsx",
@@ -369,31 +683,104 @@
         "DataOperationRunResultPage.tsx",
         "DataOperationsPage.tsx",
         "DatabaseBackupsPage.tsx",
+        "EnrichmentOperationPage.tsx",
         "EnrichmentRunDetailPage.tsx",
         "FairDetailPage.tsx",
-        "FairEnrichmentRunPage.tsx",
+        "FairStandCatalogAdminPage.tsx",
+        "FairStandPage.tsx",
+        "FairStandPreviewsAdminPage.tsx",
         "FairsPage.tsx",
         "FollowUpsPage.tsx",
         "ImportWizardPage.tsx",
         "LoginPage.tsx",
         "MailOperationsPage.tsx",
         "MailTemplatesPage.tsx",
+        "OperationCapabilitiesAdminPage.tsx",
         "OperationDetailPage.tsx",
-        "OperationWizardPage.tsx",
         "OperationsPage.tsx",
+        "OrganizationsPage.tsx",
+        "QuoteEditorPage.tsx",
+        "QuoteTemplatesPage.tsx",
+        "RoleManagementPage.tsx",
+        "ScraperOperationWizardPage.tsx",
         "ScraperRunHistoryPage.tsx",
         "ScraperTestPage.tsx",
         "SmtpAccountsPage.tsx",
+        "TemplateContentsPage.tsx",
         "TodoDetailPage.tsx",
-        "TodosPage.tsx"
+        "TodosPage.tsx",
+        "UsersAdminPage.tsx"
       ],
-      "missing_pageshell_on_mounted": [],
-      "unmounted_page_files": [],
-      "routes_missing_smoke_coverage": [],
-      "total_violations": 0,
-      "pass": true
+      "missing_pageshell_on_mounted": [
+        {
+          "file": "frontend/src/pages/EnrichmentOperationPage.tsx",
+          "line": 0,
+          "route_component": "EnrichmentOperationPage",
+          "snippet": "mounted production page missing PageShell"
+        },
+        {
+          "file": "frontend/src/pages/FairStandPage.tsx",
+          "line": 0,
+          "route_component": "FairStandPage",
+          "snippet": "mounted production page missing PageShell"
+        },
+        {
+          "file": "frontend/src/pages/OperationDetailPage.tsx",
+          "line": 0,
+          "route_component": "OperationDetailPage",
+          "snippet": "mounted production page missing PageShell"
+        }
+      ],
+      "unmounted_page_files": [
+        {
+          "file": "frontend/src/pages/CostCatalogPage.tsx",
+          "line": 0,
+          "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
+        },
+        {
+          "file": "frontend/src/pages/CustomerEnrichmentPage.tsx",
+          "line": 0,
+          "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
+        },
+        {
+          "file": "frontend/src/pages/FairStandCatalogAdminPage.tsx",
+          "line": 0,
+          "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
+        },
+        {
+          "file": "frontend/src/pages/FairStandPreviewsAdminPage.tsx",
+          "line": 0,
+          "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
+        },
+        {
+          "file": "frontend/src/pages/RoleManagementPage.tsx",
+          "line": 0,
+          "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
+        },
+        {
+          "file": "frontend/src/pages/UsersAdminPage.tsx",
+          "line": 0,
+          "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
+        }
+      ],
+      "routes_missing_smoke_coverage": [
+        {
+          "file": "frontend/scripts/capture-ui-evidence.mjs",
+          "line": 0,
+          "route": "/operations/duplicate-check/runs/:runId",
+          "snippet": "AppRoute not present in responsive smoke catalog"
+        },
+        {
+          "file": "frontend/scripts/capture-ui-evidence.mjs",
+          "line": 0,
+          "route": "/todos/:id/quote",
+          "snippet": "AppRoute not present in responsive smoke catalog"
+        }
+      ],
+      "total_violations": 11,
+      "pass": false
     },
-    "prior_gates_failed": false,
+    "prior_gates_failed": true,
     "intentional_exceptions": [
       {
         "file": "frontend/src/**/FairBulkEmailWizard.tsx",
@@ -426,10 +813,12 @@
         "snippet": "multi-action form/wizard keeps form-actions in body"
       }
     ],
-    "pass": true,
+    "pass": false,
     "breakpoints_found": [
+      520,
       767,
       768,
+      800,
       1023,
       1024,
       1440
@@ -495,11 +884,11 @@
     }
   },
   "gates": {
-    "P0": true,
-    "P1": true,
-    "P2": true,
-    "P3": true,
-    "FINAL": true,
-    "ALL": true
+    "P0": false,
+    "P1": false,
+    "P2": false,
+    "P3": false,
+    "FINAL": false,
+    "ALL": false
   }
 }

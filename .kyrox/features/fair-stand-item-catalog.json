@@ -20,6 +20,7 @@
     "backend/app/modules/fair_stand/infrastructure/seed_catalog.py",
     "backend/app/modules/fair_stand/infrastructure/catalog_seed_data.py",
     "backend/alembic/versions/0084_fair_stand_item_catalog.py",
+    "backend/alembic/versions/0086_fair_stand_category_integer_id.py",
     "backend/app/api/v1/router.py",
     "frontend/src/pages/FairStandPage.tsx",
     "frontend/src/fairStand/mountFairStand.js",
@@ -70,5 +71,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Fair CRM physically hosts fair_stand_* tables and /api/v1/fair-stand catalog APIs. Domain ownership remains Fair Stand per ADR-0007. No crm_* business FKs. default_color is stored as integer RGB."
+  "notes": "Fair CRM physically hosts fair_stand_* tables and /api/v1/fair-stand catalog APIs. Category identity is database-generated integer id; Item identity remains itemKey. Domain ownership remains Fair Stand per ADR-0007. No crm_* business FKs."
 }

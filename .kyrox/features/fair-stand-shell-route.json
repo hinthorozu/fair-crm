@@ -10,8 +10,13 @@
   "user_facing": true,
   "affected_paths": [
     "frontend/src/pages/FairStandPage.tsx",
+    "frontend/src/pages/FairStandPage.test.ts",
+    "frontend/src/pages/FairStandStandaloneRoute.test.ts",
     "frontend/src/App.tsx",
     "frontend/src/components/layout/NavIcons.tsx",
+    "frontend/src/components/layout/NavLink.tsx",
+    "frontend/src/components/layout/NavLink.test.ts",
+    "frontend/src/components/layout/AppLayout.tsx",
     "frontend/src/labels/uiLabels.ts",
     "frontend/src/permissions/navigationPermissions.ts",
     "frontend/src/permissions/navigationPermissions.test.ts",

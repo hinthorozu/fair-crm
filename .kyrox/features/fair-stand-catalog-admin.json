@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "id": "fair-stand-catalog-admin",
+  "title": "Fair Stand catalog and catalog preview Super Admin CRUD",
+  "feature_type": "system_admin",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "user",
+  "tenant_scope": "system",
+  "user_facing": true,
+  "affected_paths": [
+    "backend/app/modules/fair_stand/api/routes.py",
+    "backend/app/modules/fair_stand/api/dependencies.py",
+    "backend/app/modules/fair_stand/application/admin_catalog.py",
+    "backend/app/modules/fair_stand/application/preview_sanitize.py",
+    "backend/app/modules/fair_stand/application/get_catalog_bootstrap.py",
+    "backend/app/modules/fair_stand/infrastructure/models.py",
+    "backend/app/modules/fair_stand/infrastructure/catalog_repository.py",
+    "backend/app/modules/fair_stand/infrastructure/seed_catalog.py",
+    "backend/app/modules/fair_stand/infrastructure/preview_kind_definitions.py",
+    "backend/alembic/versions/0085_fair_stand_catalog_previews.py",
+    "backend/alembic/versions/0086_fair_stand_category_integer_id.py",
+    "frontend/src/pages/FairStandCatalogAdminPage.tsx",
+    "frontend/src/pages/FairStandPreviewsAdminPage.tsx",
+    "frontend/src/components/admin/AdminSystemLayout.tsx",
+    "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/permissions/fairStandAdminPermissions.ts",
+    "frontend/src/permissions/corePermissions.ts",
+    "scripts/fair_crm_role_matrix.py",
+    ".kyrox/features/fair-stand-catalog-admin.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.admin.fair_stand.catalog.read", "action": "read", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.fair_stand.catalog.create", "action": "create", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.fair_stand.catalog.update", "action": "update", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.fair_stand.catalog.archive", "action": "archive", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.fair_stand.previews.read", "action": "read", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.fair_stand.previews.create", "action": "create", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.fair_stand.previews.update", "action": "update", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.fair_stand.previews.archive", "action": "archive", "scope": "system", "assignable": false }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/admin/fair-stand/catalog", "/admin/fair-stand/previews"],
+    "menu": true,
+    "menu_permission": "fair_crm.admin.fair_stand.catalog.read"
+  },
+  "applicability": {
+    "database": { "status": "required" },
+    "migration": { "status": "required" },
+    "permissions": { "status": "required" },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "na", "reason": "Global Fair Stand product data; no organization_id; SYSTEM Super Admin only." },
+    "audit": { "status": "na", "reason": "No new Fair CRM audit stream; mutations are Super Admin catalog administration." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "required" },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Domain remains Fair Stand; Fair CRM hosts APIs and Admin UI. Runtime catalog bootstrap stays session-authenticated. Admin mutations independently enforce SYSTEM unassignable permissions. Existing fair-stand-item-catalog contract remains the read-only bootstrap host."
+}

@@ -77,7 +77,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    host: "127.0.0.1",
+    host: true,
     fs: {
       allow: fairStandFsAllow,
     },
@@ -99,6 +99,6 @@ export default defineConfig({
   },
   preview: {
     port: 5173,
-    host: "127.0.0.1",
+    host: true,
   },
 });

@@ -693,7 +693,7 @@ function Start-DevFrontend {
     New-Item -ItemType Directory -Force -Path $script:DevLogDir | Out-Null
     $frontendLog = Join-Path $script:DevLogDir "frontend-$($script:DevFrontendPort).log"
     $frontendErr = Join-Path $script:DevLogDir "frontend-$($script:DevFrontendPort).err.log"
-    $frontendArgs = @("run", "dev", "--", "--host", "127.0.0.1", "--port", "$($script:DevFrontendPort)", "--strictPort")
+    $frontendArgs = @("run", "dev", "--", "--host", "--port", "$($script:DevFrontendPort)", "--strictPort")
     $proc = Start-Process -FilePath "npm.cmd" -ArgumentList $frontendArgs -WorkingDirectory $script:DevFrontendDir `
         -RedirectStandardOutput $frontendLog -RedirectStandardError $frontendErr -PassThru -WindowStyle Hidden
     Start-Sleep -Seconds 2

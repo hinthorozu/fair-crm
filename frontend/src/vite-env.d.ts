@@ -16,3 +16,15 @@ interface ImportMeta {
 declare module "@fair-stand/mountFairStand.js" {
   export function mountFairStand(container: HTMLElement): () => void;
 }
+
+declare module "@fair-stand/catalogPreviewRenderer.js" {
+  export function renderCatalogPreview(
+    definition: {
+      id: number;
+      markup: string;
+      cssCode?: string;
+    },
+    context?: Record<string, unknown>,
+    hostDocument?: Document,
+  ): HTMLElement;
+}

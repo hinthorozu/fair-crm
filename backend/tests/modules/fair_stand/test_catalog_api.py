@@ -21,8 +21,12 @@ def test_bootstrap_returns_canonical_aggregates(client, db_session, auth_headers
     assert len(visible) == 58
     assert len(hidden) == 38
     shelf = next(item for item in body["items"] if item["itemKey"] == "shelf_100")
-    assert shelf["catalogCategory"] == "shelf-showcase"
-    assert shelf["catalogPreview"] == "shelf"
+    assert shelf["categoryId"] == 3
+    assert "catalogCategory" not in shelf
+    assert all("catalogKey" not in category for category in body["categories"])
+    assert all(isinstance(category["id"], int) for category in body["categories"])
+    assert shelf["previewId"] == 20
+    assert "catalogPreview" not in shelf
     chair = next(item for item in body["items"] if item["itemKey"] == "chair_eames")
     assert chair["modelFile"] == "eames_chair.glb"
     plant = next(item for item in body["items"] if item["itemKey"] == "EXTRA_INDOOR_PLANT_1")
@@ -43,6 +47,13 @@ def test_bootstrap_returns_canonical_aggregates(client, db_session, auth_headers
     assert showcase["bodyItems"]["glassShelfItemKey"] == "glass_shelf"
     assert "FairStandItemModel" not in body
     assert "SQLAlchemy" not in body
+    assert len(body["previewKinds"]) == 28
+    shelf_preview = next(kind for kind in body["previewKinds"] if kind["id"] == 20)
+    assert "previewKey" not in shelf_preview
+    assert all("previewKey" not in kind for kind in body["previewKinds"])
+    assert all(isinstance(kind["id"], int) for kind in body["previewKinds"])
+    assert "module-drag-shelf" in shelf_preview["markup"]
+    assert shelf_preview["cssCode"]
 
 
 def test_hidden_item_is_not_catalog_visible(client, db_session, auth_headers):
@@ -51,7 +62,8 @@ def test_hidden_item_is_not_catalog_visible(client, db_session, auth_headers):
     response = client.get("/api/v1/fair-stand/catalog/bootstrap", headers=auth_headers)
     panel = next(item for item in response.json()["items"] if item["itemKey"] == "panel_48_5")
     assert panel["catalogVisible"] is False
-    assert panel.get("catalogPreview") is None
+    assert panel.get("previewId") is None
+    assert "catalogPreview" not in panel
 
 
 def test_unknown_item_is_404(client, db_session, auth_headers):

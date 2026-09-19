@@ -1,5 +1,4 @@
 import React from "react";
-import { PageShell } from "../components/ui/PageShell";
 import { buildApiHeaders } from "../config";
 
 export function FairStandPage() {
@@ -24,12 +23,12 @@ export function FairStandPage() {
   }, []);
 
   return (
-    <PageShell fullWidth className="fair-stand-page">
+    <div className="fair-stand-standalone" data-testid="fair-stand-standalone">
       <div
         ref={hostRef}
         className="fair-stand-host"
         data-testid="fair-stand-host"
       />
-    </PageShell>
+    </div>
   );
 }

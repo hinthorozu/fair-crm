@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import inspect, select
 
 from app.modules.fair_stand.application.cycle_validation import CyclicItemCompositionError, assert_acyclic_components
 from app.modules.fair_stand.infrastructure.catalog_seed_data import CATALOG_SEED
@@ -21,9 +21,15 @@ def test_seed_is_idempotent_and_matches_canonical_counts(db_session):
     assert len(visible) == 58
     assert len(components) == 186
     assert {item.item_key for item in items} == {row["item_key"] for row in CATALOG_SEED["items"]}
-    assert {category.catalog_key for category in categories} == {
-        row["catalog_key"] for row in CATALOG_SEED["categories"]
+    assert {category.catalog_name for category in categories} == {
+        row["catalog_name"] for row in CATALOG_SEED["categories"]
     }
+    assert "catalog_key" not in FairStandCategoryModel.__table__.c
+    assert "catalog_key" not in FairStandItemModel.__table__.c
+    assert "category_id" in FairStandItemModel.__table__.c
+    assert all(isinstance(category.id, int) for category in categories)
+    assert {item.category_id for item in visible}.issubset({category.id for category in categories})
+    assert None not in {item.category_id for item in visible}
 
 
 def test_cycle_validation_rejects_loop():
