@@ -36,6 +36,19 @@ def _drop_index_if_exists(name: str, table: str) -> None:
         op.drop_index(name, table_name=table)
 
 
+def _seed_if_empty(bind) -> None:
+    count = bind.execute(sa.text("SELECT COUNT(*) FROM fair_stand_items")).scalar_one()
+    if count:
+        return
+    from sqlalchemy.orm import Session
+
+    from app.modules.fair_stand.infrastructure.seed_catalog import seed_fair_stand_catalog
+
+    session = Session(bind=bind)
+    seed_fair_stand_catalog(session)
+    session.flush()
+
+
 def _assert_backfill(connection) -> None:
     previews = connection.execute(sa.text("SELECT COUNT(*) FROM fair_stand_catalog_preview_kinds")).scalar_one()
     missing_id = connection.execute(
@@ -108,6 +121,7 @@ def upgrade() -> None:
             )
             batch_op.create_check_constraint("ck_fair_stand_items_catalog_visible", VISIBLE_CHECK)
         op.create_index("ix_fair_stand_items_preview_id", "fair_stand_items", ["preview_id"])
+        _seed_if_empty(bind)
         return
 
     op.execute("ALTER TABLE fair_stand_items DROP CONSTRAINT IF EXISTS ck_fair_stand_items_catalog_visible")
@@ -150,6 +164,7 @@ def upgrade() -> None:
         "fair_stand_items",
         VISIBLE_CHECK,
     )
+    _seed_if_empty(bind)
 
 
 def downgrade() -> None:
