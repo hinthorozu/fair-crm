@@ -1,4 +1,4 @@
-from typing import Annotated, Any
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
@@ -85,7 +85,7 @@ def _raise_admin(exc: CatalogAdminError) -> None:
 @router.get("/catalog/bootstrap")
 def get_catalog_bootstrap(
     auth: AuthContext = Depends(require_fair_stand_catalog_access),
-    use_case: Annotated[GetCatalogBootstrapUseCase, Depends(get_catalog_bootstrap_use_case)],
+    use_case: GetCatalogBootstrapUseCase = Depends(get_catalog_bootstrap_use_case),
 ) -> dict[str, Any]:
     _ = auth
     snapshot = use_case.execute()
@@ -108,7 +108,7 @@ def get_catalog_bootstrap(
 def get_item(
     item_key: str,
     auth: AuthContext = Depends(require_fair_stand_catalog_access),
-    use_case: Annotated[GetItemUseCase, Depends(get_item_use_case)],
+    use_case: GetItemUseCase = Depends(get_item_use_case),
 ) -> dict[str, Any]:
     _ = auth
     item = use_case.execute(item_key)
@@ -120,7 +120,7 @@ def get_item(
 @router.get("/admin/categories")
 def admin_list_categories(
     auth: AuthContext = Depends(require_permission(PERMISSION_CATALOG_READ)),
-    service: Annotated[AdminCatalogService, Depends(get_admin_catalog_service)],
+    service: AdminCatalogService = Depends(get_admin_catalog_service),
 ) -> list[dict[str, Any]]:
     _ = auth
     return service.list_categories()
@@ -130,7 +130,7 @@ def admin_list_categories(
 def admin_create_category(
     body: CategoryCreateBody,
     auth: AuthContext = Depends(require_permission(PERMISSION_CATALOG_CREATE)),
-    service: Annotated[AdminCatalogService, Depends(get_admin_catalog_service)],
+    service: AdminCatalogService = Depends(get_admin_catalog_service),
 ) -> dict[str, Any]:
     _ = auth
     try:
@@ -149,7 +149,7 @@ def admin_update_category(
     category_id: int,
     body: CategoryUpdateBody,
     auth: AuthContext = Depends(require_permission(PERMISSION_CATALOG_UPDATE)),
-    service: Annotated[AdminCatalogService, Depends(get_admin_catalog_service)],
+    service: AdminCatalogService = Depends(get_admin_catalog_service),
 ) -> dict[str, Any]:
     _ = auth
     try:
@@ -168,7 +168,7 @@ def admin_update_category(
 def admin_archive_category(
     category_id: int,
     auth: AuthContext = Depends(require_permission(PERMISSION_CATALOG_ARCHIVE)),
-    service: Annotated[AdminCatalogService, Depends(get_admin_catalog_service)],
+    service: AdminCatalogService = Depends(get_admin_catalog_service),
 ) -> dict[str, Any]:
     _ = auth
     try:
@@ -182,7 +182,7 @@ def admin_archive_category(
 def admin_restore_category(
     category_id: int,
     auth: AuthContext = Depends(require_permission(PERMISSION_CATALOG_ARCHIVE)),
-    service: Annotated[AdminCatalogService, Depends(get_admin_catalog_service)],
+    service: AdminCatalogService = Depends(get_admin_catalog_service),
 ) -> dict[str, Any]:
     _ = auth
     try:
@@ -195,7 +195,7 @@ def admin_restore_category(
 @router.get("/admin/items")
 def admin_list_items(
     auth: AuthContext = Depends(require_any_permission(PERMISSION_CATALOG_READ, PERMISSION_CATALOG_UPDATE)),
-    service: Annotated[AdminCatalogService, Depends(get_admin_catalog_service)],
+    service: AdminCatalogService = Depends(get_admin_catalog_service),
 ) -> list[dict[str, Any]]:
     _ = auth
     return service.list_items()
@@ -206,7 +206,7 @@ def admin_update_item_catalog(
     item_key: str,
     body: ItemCatalogUpdateBody,
     auth: AuthContext = Depends(require_permission(PERMISSION_CATALOG_UPDATE)),
-    service: Annotated[AdminCatalogService, Depends(get_admin_catalog_service)],
+    service: AdminCatalogService = Depends(get_admin_catalog_service),
 ) -> dict[str, Any]:
     _ = auth
     try:
@@ -227,7 +227,7 @@ def admin_update_item_catalog(
 @router.get("/admin/previews")
 def admin_list_previews(
     auth: AuthContext = Depends(require_permission(PERMISSION_PREVIEWS_READ)),
-    service: Annotated[AdminCatalogService, Depends(get_admin_catalog_service)],
+    service: AdminCatalogService = Depends(get_admin_catalog_service),
 ) -> list[dict[str, Any]]:
     _ = auth
     return service.list_previews()
@@ -237,7 +237,7 @@ def admin_list_previews(
 def admin_create_preview(
     body: PreviewCreateBody,
     auth: AuthContext = Depends(require_permission(PERMISSION_PREVIEWS_CREATE)),
-    service: Annotated[AdminCatalogService, Depends(get_admin_catalog_service)],
+    service: AdminCatalogService = Depends(get_admin_catalog_service),
 ) -> dict[str, Any]:
     _ = auth
     try:
@@ -258,7 +258,7 @@ def admin_update_preview(
     preview_id: int,
     body: PreviewUpdateBody,
     auth: AuthContext = Depends(require_permission(PERMISSION_PREVIEWS_UPDATE)),
-    service: Annotated[AdminCatalogService, Depends(get_admin_catalog_service)],
+    service: AdminCatalogService = Depends(get_admin_catalog_service),
 ) -> dict[str, Any]:
     _ = auth
     try:
@@ -279,7 +279,7 @@ def admin_update_preview(
 def admin_archive_preview(
     preview_id: int,
     auth: AuthContext = Depends(require_permission(PERMISSION_PREVIEWS_ARCHIVE)),
-    service: Annotated[AdminCatalogService, Depends(get_admin_catalog_service)],
+    service: AdminCatalogService = Depends(get_admin_catalog_service),
 ) -> dict[str, Any]:
     _ = auth
     try:
@@ -293,7 +293,7 @@ def admin_archive_preview(
 def admin_restore_preview(
     preview_id: int,
     auth: AuthContext = Depends(require_permission(PERMISSION_PREVIEWS_ARCHIVE)),
-    service: Annotated[AdminCatalogService, Depends(get_admin_catalog_service)],
+    service: AdminCatalogService = Depends(get_admin_catalog_service),
 ) -> dict[str, Any]:
     _ = auth
     try:
