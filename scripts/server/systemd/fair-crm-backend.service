@@ -1,7 +1,7 @@
 [Unit]
 Description=Fair CRM Backend API
-After=network-online.target kyrox-core.service docker.service
-Wants=network-online.target
+After=network-online.target kyrox-core.service fair-stand.service docker.service
+Wants=network-online.target fair-stand.service
 Requires=kyrox-core.service
 
 [Service]

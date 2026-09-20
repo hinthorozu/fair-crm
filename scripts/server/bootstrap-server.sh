@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Fresh Ubuntu server infrastructure bootstrap for KYROX Core + Fair CRM.
+# Fresh Ubuntu server infrastructure bootstrap for KYROX Core + Fair Stand + Fair CRM.
 #
 # Infrastructure only — does not deploy application code, run migrations,
 # restore databases, or touch backup/restore file directories.
@@ -86,6 +86,7 @@ REPORT_FIREWALL="skipped"
 REPORT_NGINX="skipped"
 REPORT_SSL="skipped"
 REPORT_REPO="skipped"
+REPORT_STAND_REPO="skipped"
 REPORT_POSTGRES="skipped"
 REPORT_REMOTE_POSTGRES="skipped"
 REPORT_ENV_FILES="not checked"
@@ -342,7 +343,7 @@ ensure_remote_postgres_access() {
   fi
 
   local db_name
-  for db_name in fair_crm kyrox_core; do
+  for db_name in fair_crm kyrox_core fair_stand; do
     local db_exists=""
     db_exists="$(docker exec -e PGPASSWORD=postgres "$container" psql -U postgres -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='${db_name}'" 2>/dev/null || true)"
     if [[ "$db_exists" == "1" ]]; then
@@ -394,6 +395,26 @@ ensure_fair_crm_checkout() {
     log "Using current working tree at ${FAIR_CRM_DIR}"
     REPORT_REPO="using working tree"
   fi
+}
+
+ensure_fair_stand_checkout() {
+  if [[ "${SKIP_REPO_CLONE:-0}" == "1" ]]; then
+    REPORT_STAND_REPO="skipped (SKIP_REPO_CLONE=1)"
+    return 0
+  fi
+
+  step "Ensure Fair Stand checkout at ${FAIR_STAND_DIR}"
+  mkdir -p "$(dirname "$FAIR_STAND_DIR")"
+
+  if [[ ! -d "${FAIR_STAND_DIR}/.git" ]]; then
+    require_cmd git
+    git clone --branch "$FAIR_STAND_BRANCH" "$FAIR_STAND_REPO" "$FAIR_STAND_DIR"
+    REPORT_STAND_REPO="cloned (${FAIR_STAND_BRANCH})"
+    return 0
+  fi
+
+  ensure_git_ff_pull "$FAIR_STAND_DIR" "$FAIR_STAND_BRANCH" "backend/.env"
+  REPORT_STAND_REPO="updated (${FAIR_STAND_BRANCH})"
 }
 
 prepare_env_files() {
@@ -485,6 +506,7 @@ print_bootstrap_report() {
   echo "Node.js: ${REPORT_NODE}"
   echo "UFW firewall: ${REPORT_FIREWALL}"
   echo "Fair CRM repo: ${REPORT_REPO}"
+  echo "Fair Stand repo: ${REPORT_STAND_REPO:-skipped}"
   echo "Postgres container: ${REPORT_POSTGRES}"
   echo "Remote Postgres: ${REPORT_REMOTE_POSTGRES}"
   echo "Env files: ${REPORT_ENV_FILES}"
@@ -504,7 +526,7 @@ print_bootstrap_report() {
   echo ""
   echo "Next steps:"
   echo "  1) Review /opt/fair-crm/backend/.env (JWT, DATABASE_URL, KYROX_CORE_BASE_URL)"
-  echo "  2) sudo bash ${FAIR_CRM_DIR}/scripts/server/deploy-all.sh"
+  echo "  2) sudo bash ${FAIR_CRM_DIR}/scripts/server/deploy-all.sh  # clones Core+Stand if needed, creates fair_stand DB, starts core/stand/crm"
   echo "  3) sudo bash ${FAIR_CRM_DIR}/scripts/server/check-server.sh"
   echo "======================================"
 }
@@ -527,6 +549,7 @@ main() {
   configure_interactive_settings
   ensure_dev_seed_password
   ensure_fair_crm_checkout
+  ensure_fair_stand_checkout
 
   if [[ "${SKIP_DOCKER:-0}" != "1" ]]; then
     ensure_docker

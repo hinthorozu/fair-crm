@@ -415,6 +415,74 @@ copy_env_if_missing() {
   warn "Created ${target} from example — review secrets and URLs before production use"
 }
 
+replace_or_append_env_key() {
+  local file="$1"
+  local key="$2"
+  local value="$3"
+  python3 - "$file" "$key" "$value" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+key = sys.argv[2]
+value = sys.argv[3]
+lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+found = False
+out = []
+prefix = f"{key}="
+for line in lines:
+    stripped = line.strip()
+    if stripped.startswith(prefix):
+        out.append(f"{key}={value}")
+        found = True
+    else:
+        out.append(line)
+if not found:
+    out.append(f"{key}={value}")
+path.write_text("\n".join(out) + "\n", encoding="utf-8")
+PY
+}
+
+ensure_fair_stand_backend_env() {
+  local stand_dir="${1:-${FAIR_STAND_DIR}}"
+  local core_dir="${2:-${KYROX_CORE_DIR}}"
+  local target="${stand_dir}/backend/.env"
+  local example="${stand_dir}/backend/.env.example"
+  local created=0
+
+  [[ -d "$stand_dir" ]] || die "Fair Stand checkout missing: ${stand_dir}"
+  mkdir -p "${stand_dir}/backend"
+
+  if [[ -f "$target" ]]; then
+    log "Preserving existing Fair Stand env: ${target}"
+  else
+    [[ -f "$example" ]] || die "Fair Stand env example missing: ${example}"
+    cp "$example" "$target"
+    created=1
+    warn "Created ${target} from example"
+  fi
+
+  local core_jwt db_url current_jwt
+  core_jwt="$(read_env_key "${core_dir}/backend/.env" JWT_SECRET_KEY || true)"
+  [[ -n "$core_jwt" ]] || die "JWT_SECRET_KEY missing in ${core_dir}/backend/.env"
+  db_url="postgresql+psycopg2://${PG_USER}:${PG_PASS}@${PG_HOST}:${PG_PORT}/fair_stand"
+  current_jwt="$(read_env_key "$target" JWT_SECRET_KEY || true)"
+
+  if [[ -z "$current_jwt" || "$current_jwt" == "dev-insecure-change-me-use-env-in-production-32b" ]]; then
+    replace_or_append_env_key "$target" "JWT_SECRET_KEY" "$core_jwt"
+  fi
+  if [[ -z "$(read_env_key "$target" FAIR_STAND_DATABASE_URL || true)" || "$created" == "1" ]]; then
+    replace_or_append_env_key "$target" "FAIR_STAND_DATABASE_URL" "$db_url"
+  fi
+  if [[ -z "$(read_env_key "$target" KYROX_CORE_BASE_URL || true)" ]]; then
+    replace_or_append_env_key "$target" "KYROX_CORE_BASE_URL" "http://127.0.0.1:8000"
+  fi
+  if [[ "$created" == "1" ]]; then
+    replace_or_append_env_key "$target" "APP_ENV" "production"
+    replace_or_append_env_key "$target" "FAIR_STAND_DEV_BYPASS_CORE" "false"
+  fi
+}
+
 ensure_core_backend_env() {
   local core_dir="${1:-${KYROX_CORE_DIR}}"
   local backend_env="${core_dir}/backend/.env"
@@ -476,32 +544,44 @@ EOF
 }
 
 validate_env_files_required() {
-  step "Validate Core and Fair CRM .env files"
+  step "Validate Core, Fair CRM, and Fair Stand .env files"
   local core_env="${KYROX_CORE_DIR}/backend/.env"
   local fair_env="${FAIR_CRM_DIR}/backend/.env"
+  local stand_env="${FAIR_STAND_DIR}/backend/.env"
 
   [[ -f "$core_env" ]] || die "Missing Core env file: ${core_env}"
   [[ -f "$fair_env" ]] || die "Missing Fair CRM env file: ${fair_env}"
+  [[ -f "$stand_env" ]] || die "Missing Fair Stand env file: ${stand_env}"
 
-  local core_jwt fair_jwt fair_core_url
+  local core_jwt fair_jwt stand_jwt fair_core_url stand_core_url
   core_jwt="$(read_env_key "$core_env" JWT_SECRET_KEY || true)"
   fair_jwt="$(read_env_key "$fair_env" JWT_SECRET_KEY || true)"
+  stand_jwt="$(read_env_key "$stand_env" JWT_SECRET_KEY || true)"
   fair_core_url="$(read_env_key "$fair_env" KYROX_CORE_BASE_URL || true)"
+  stand_core_url="$(read_env_key "$stand_env" KYROX_CORE_BASE_URL || true)"
 
   [[ -n "$core_jwt" ]] || die "JWT_SECRET_KEY missing in ${core_env}"
   [[ -n "$fair_jwt" ]] || die "JWT_SECRET_KEY missing in ${fair_env}"
+  [[ -n "$stand_jwt" ]] || die "JWT_SECRET_KEY missing in ${stand_env}"
   [[ "$core_jwt" == "$fair_jwt" ]] || die "JWT_SECRET_KEY mismatch between Core and Fair CRM .env files"
+  [[ "$core_jwt" == "$stand_jwt" ]] || die "JWT_SECRET_KEY mismatch between Core and Fair Stand .env files"
 
   if [[ -n "$fair_core_url" && "$fair_core_url" != "http://127.0.0.1:8000" && "$fair_core_url" != "http://localhost:8000" ]]; then
     warn "Fair CRM KYROX_CORE_BASE_URL=${fair_core_url} (expected http://127.0.0.1:8000 on single-host deploy)"
   else
     log "Fair CRM KYROX_CORE_BASE_URL OK (${fair_core_url:-http://127.0.0.1:8000})"
   fi
+  if [[ -n "$stand_core_url" && "$stand_core_url" != "http://127.0.0.1:8000" && "$stand_core_url" != "http://localhost:8000" ]]; then
+    warn "Fair Stand KYROX_CORE_BASE_URL=${stand_core_url} (expected http://127.0.0.1:8000 on single-host deploy)"
+  else
+    log "Fair Stand KYROX_CORE_BASE_URL OK (${stand_core_url:-http://127.0.0.1:8000})"
+  fi
 }
 
 validate_env_files_check() {
   local core_env="${KYROX_CORE_DIR}/backend/.env"
   local fair_env="${FAIR_CRM_DIR}/backend/.env"
+  local stand_env="${FAIR_STAND_DIR}/backend/.env"
 
   if [[ ! -f "$core_env" ]]; then
     check_fail "Core .env present"
@@ -515,17 +595,26 @@ validate_env_files_check() {
   fi
   check_pass "Fair CRM .env present"
 
-  local core_jwt fair_jwt fair_core_url
+  if [[ ! -f "$stand_env" ]]; then
+    check_fail "Fair Stand .env present"
+    return 0
+  fi
+  check_pass "Fair Stand .env present"
+
+  local core_jwt fair_jwt stand_jwt fair_core_url
   core_jwt="$(read_env_key "$core_env" JWT_SECRET_KEY || true)"
   fair_jwt="$(read_env_key "$fair_env" JWT_SECRET_KEY || true)"
+  stand_jwt="$(read_env_key "$stand_env" JWT_SECRET_KEY || true)"
   fair_core_url="$(read_env_key "$fair_env" KYROX_CORE_BASE_URL || true)"
 
-  if [[ -z "$core_jwt" || -z "$fair_jwt" ]]; then
-    check_fail "JWT_SECRET_KEY configured in both .env files"
+  if [[ -z "$core_jwt" || -z "$fair_jwt" || -z "$stand_jwt" ]]; then
+    check_fail "JWT_SECRET_KEY configured in Core, Fair CRM, and Fair Stand .env files"
   elif [[ "$core_jwt" != "$fair_jwt" ]]; then
     check_fail "JWT_SECRET_KEY match between Core and Fair CRM"
+  elif [[ "$core_jwt" != "$stand_jwt" ]]; then
+    check_fail "JWT_SECRET_KEY match between Core and Fair Stand"
   else
-    check_pass "JWT_SECRET_KEY match between Core and Fair CRM"
+    check_pass "JWT_SECRET_KEY match between Core, Fair CRM, and Fair Stand"
   fi
 
   if [[ -z "$fair_core_url" || "$fair_core_url" == "http://127.0.0.1:8000" || "$fair_core_url" == "http://localhost:8000" ]]; then
@@ -620,11 +709,22 @@ resolve_requirements_file() {
   return 1
 }
 
+alembic_pythonpath() {
+  local project_root="$1"
+  if [[ -d "${project_root}/backend" ]]; then
+    printf '%s\n' "${project_root}/backend"
+  else
+    printf '%s\n' "${project_root}"
+  fi
+}
+
 run_alembic_upgrade() {
   local project_root="$1"
   local venv_python="$2"
   local alembic_ini="${3:-alembic.ini}"
   local database_url="${4:-}"
+  local pythonpath
+  pythonpath="$(alembic_pythonpath "$project_root")"
 
   step "Alembic upgrade head in ${project_root}"
   if [[ -f "${project_root}/${alembic_ini}" ]]; then
@@ -634,7 +734,7 @@ run_alembic_upgrade() {
     fi
     (
       cd "$project_root"
-      env "${env_args[@]}" PYTHONPATH="${project_root}/backend" \
+      env "${env_args[@]}" PYTHONPATH="$pythonpath" \
         "$venv_python" -m alembic -c "$alembic_ini" upgrade head
     )
     return 0
@@ -669,15 +769,22 @@ alembic_revision_snapshot() {
     return 0
   fi
 
-  local alembic_ini="${project_root}/alembic.ini"
-  local -a env_args=(PYTHONPATH="${project_root}/backend")
+  local alembic_cfg_dir="$project_root"
+  local pythonpath
+  pythonpath="$(alembic_pythonpath "$project_root")"
+  if [[ ! -f "${project_root}/alembic.ini" && -f "${project_root}/backend/alembic.ini" ]]; then
+    alembic_cfg_dir="${project_root}/backend"
+    pythonpath="${project_root}/backend"
+  fi
+  local alembic_ini="${alembic_cfg_dir}/alembic.ini"
+  local -a env_args=(PYTHONPATH="$pythonpath")
   if [[ -n "$database_url" ]]; then
     env_args+=(DATABASE_URL="$database_url")
   fi
 
   if [[ -f "$alembic_ini" ]]; then
     (
-      cd "$project_root"
+      cd "$alembic_cfg_dir"
       env "${env_args[@]}" "$venv_python" -m alembic -c alembic.ini "$mode" 2>/dev/null || true
     )
     return 0
@@ -952,6 +1059,12 @@ check_fair_stand_repo() {
     check_fail "Fair Stand dependency install (npm ci / node_modules)"
   fi
 
+  if [[ -x "${dir}/backend/.venv/bin/python" ]]; then
+    check_pass "Fair Stand virtualenv present"
+  else
+    check_fail "Fair Stand virtualenv present"
+  fi
+
   local sha
   sha="$(git_head_sha "$dir")"
   if [[ -n "$sha" && "$sha" != "n/a" && "$sha" != "unknown" ]]; then
@@ -1107,11 +1220,12 @@ normalize_template_output() {
 render_template() {
   local template="$1"
   local output="$2"
-  local service_user core_dir fair_dir
+  local service_user core_dir fair_dir stand_dir
   local -a tokens=(
     DEPLOY_SERVICE_USER
     KYROX_CORE_DIR
     FAIR_CRM_DIR
+    FAIR_STAND_DIR
   )
   local token value escaped pattern
 
@@ -1120,10 +1234,11 @@ render_template() {
   resolve_deploy_service_user
   core_dir="${KYROX_CORE_DIR:-/opt/kyrox-core}"
   fair_dir="${FAIR_CRM_DIR:-/opt/fair-crm}"
+  stand_dir="${FAIR_STAND_DIR:-/opt/fair-stand}"
   service_user="$DEPLOY_SERVICE_USER"
 
-  [[ -n "$core_dir" && -n "$fair_dir" ]] \
-    || die "Template render requires KYROX_CORE_DIR and FAIR_CRM_DIR"
+  [[ -n "$core_dir" && -n "$fair_dir" && -n "$stand_dir" ]] \
+    || die "Template render requires KYROX_CORE_DIR, FAIR_CRM_DIR and FAIR_STAND_DIR"
 
   cp "$template" "$output"
 
@@ -1132,6 +1247,7 @@ render_template() {
       DEPLOY_SERVICE_USER) value="$service_user" ;;
       KYROX_CORE_DIR) value="$core_dir" ;;
       FAIR_CRM_DIR) value="$fair_dir" ;;
+      FAIR_STAND_DIR) value="$stand_dir" ;;
       *) die "Unknown template token: ${token}" ;;
     esac
     escaped="$(escape_sed_replacement "$value")"
@@ -1149,7 +1265,7 @@ assert_rendered_systemd_unit() {
 
   [[ -f "$unit_file" ]] || die "${label} missing after render: ${unit_file}"
 
-  if grep -Eq '@(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR)@|__(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR)__' "$unit_file"; then
+  if grep -Eq '@(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR|FAIR_STAND_DIR)@|__(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR|FAIR_STAND_DIR)__' "$unit_file"; then
     die "${label} has unreplaced template placeholders"
   fi
 
@@ -1562,7 +1678,7 @@ check_firewall_rules() {
   fi
 
   local port
-  for port in 5432 8000 8001; do
+  for port in 5432 8000 8001 8002; do
     if grep -E "${port}/tcp" <<<"$status" | grep -q ALLOW; then
       check_fail "${port} not publicly exposed"
     else
@@ -1669,6 +1785,7 @@ check_port_bindings() {
   check_postgres_port_binding
   check_port_binding_local_only "8000" "KYROX Core"
   check_port_binding_local_only "8001" "Fair CRM"
+  check_port_binding_local_only "8002" "Fair Stand"
   check_port_binding_public "80" "Nginx"
   if get_port_listeners "443" | grep -q .; then
     check_port_binding_public "443" "Nginx HTTPS"
@@ -1745,34 +1862,45 @@ check_nginx_site() {
   else
     check_fail "nginx service active"
   fi
+
+  local site="/etc/nginx/sites-available/fair-crm"
+  if [[ -f "$site" ]] && grep -q '127.0.0.1:8002' "$site" && grep -q '/api/v1/fair-stand/' "$site"; then
+    check_pass "nginx /api/v1/fair-stand/ -> 127.0.0.1:8002"
+  else
+    check_fail "nginx /api/v1/fair-stand/ -> 127.0.0.1:8002"
+  fi
 }
 
 wait_for_http_health() {
   local core_url="$1"
   local fair_url="$2"
-  local timeout="${3:-60}"
+  local stand_url="$3"
+  local timeout="${4:-60}"
   local core_status="000"
   local fair_status="000"
+  local stand_status="000"
   local deadline=$((SECONDS + timeout))
 
   while (( SECONDS < deadline )); do
     core_status="$(http_status "$core_url")"
     fair_status="$(http_status "$fair_url")"
-    if [[ "$core_status" == "200" && "$fair_status" == "200" ]]; then
-      printf '%s %s' "$core_status" "$fair_status"
+    stand_status="$(http_status "$stand_url")"
+    if [[ "$core_status" == "200" && "$fair_status" == "200" && "$stand_status" == "200" ]]; then
+      printf '%s %s %s' "$core_status" "$fair_status" "$stand_status"
       return 0
     fi
     sleep 2
   done
-  printf '%s %s' "$core_status" "$fair_status"
+  printf '%s %s %s' "$core_status" "$fair_status" "$stand_status"
   return 1
 }
 
 check_http_endpoints() {
   local core_url="$1"
   local fair_url="$2"
+  local stand_url="${3:-}"
 
-  local core_status fair_status
+  local core_status fair_status stand_status
   core_status="$(http_status "$core_url")"
   fair_status="$(http_status "$fair_url")"
 
@@ -1786,6 +1914,15 @@ check_http_endpoints() {
     check_pass "Fair CRM health ${fair_status}"
   else
     check_fail "Fair CRM health ${fair_status}"
+  fi
+
+  if [[ -n "$stand_url" ]]; then
+    stand_status="$(http_status "$stand_url")"
+    if [[ "$stand_status" == "200" ]]; then
+      check_pass "Fair Stand health ${stand_status}"
+    else
+      check_fail "Fair Stand health ${stand_status}"
+    fi
   fi
 }
 
@@ -1962,15 +2099,16 @@ print_core_seed_identity_report() {
 
 print_systemd_service_summary() {
   local script_dir="$1"
+  local stand_unit="${FAIR_STAND_DIR}/scripts/server/systemd/fair-stand.service"
   local -a units=(
-    "kyrox-core.service#8000#${KYROX_CORE_DIR}"
-    "fair-crm-backend.service#8001#${FAIR_CRM_DIR}"
+    "kyrox-core.service#8000#${KYROX_CORE_DIR}#${script_dir}/systemd/kyrox-core.service"
+    "fair-stand.service#8002#${FAIR_STAND_DIR}#${stand_unit}"
+    "fair-crm-backend.service#8001#${FAIR_CRM_DIR}#${script_dir}/systemd/fair-crm-backend.service"
   )
   local entry service port root_dir template
   for entry in "${units[@]}"; do
-    IFS='#' read -r service port root_dir <<<"$entry"
-    template="${script_dir}/systemd/${service}"
-    echo "scripts/server/systemd/${service}"
+    IFS='#' read -r service port root_dir template <<<"$entry"
+    echo "${template#${script_dir}/}"
     echo "  bind: 127.0.0.1"
     echo "  port: ${port}"
     if [[ -f "$template" ]]; then
@@ -1980,6 +2118,8 @@ print_systemd_service_summary() {
       echo "  EnvironmentFile=${root_dir}/backend/.env"
       if [[ "$service" == "kyrox-core.service" ]]; then
         echo "  ExecStart=${KYROX_CORE_DIR}/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port ${port}"
+      elif [[ "$service" == "fair-stand.service" ]]; then
+        echo "  ExecStart=${FAIR_STAND_DIR}/backend/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port ${port}"
       else
         echo "  ExecStart=${FAIR_CRM_DIR}/backend/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port ${port}"
       fi
@@ -1990,11 +2130,11 @@ print_systemd_service_summary() {
 
 print_systemd_service_audit() {
   print_systemd_service_summary "$1"
-  local script_dir="$1"
-  local installed
-  for service in kyrox-core.service fair-crm-backend.service; do
+  local installed port
+  for service in kyrox-core.service fair-stand.service fair-crm-backend.service; do
     installed="/etc/systemd/system/${service}"
-    local port="8000"
+    port="8000"
+    [[ "$service" == "fair-stand.service" ]] && port="8002"
     [[ "$service" == "fair-crm-backend.service" ]] && port="8001"
     if [[ -f "$installed" ]]; then
       local verify_rc=0 verify_out=""
@@ -2003,7 +2143,7 @@ print_systemd_service_audit() {
       fi
       if [[ "$verify_rc" -ne 0 ]]; then
         check_fail "${service} unit valid (systemd-analyze: ${verify_out})"
-      elif grep -Eq '@(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR)@|__(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR)__' "$installed"; then
+      elif grep -Eq '@(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR|FAIR_STAND_DIR)@|__(DEPLOY_SERVICE_USER|KYROX_CORE_DIR|FAIR_CRM_DIR|FAIR_STAND_DIR)__' "$installed"; then
         check_fail "${service} unit valid (unreplaced template placeholders in ${installed})"
       elif grep -q '127.0.0.1' "$installed" && grep -q 'Restart=always' "$installed"; then
         check_pass "${service} unit configured (127.0.0.1:${port}, Restart=always)"
@@ -2022,6 +2162,7 @@ print_nginx_config_audit() {
   echo "nginx routing audit:"
   echo "  /              -> ${fair_dir}/frontend/dist"
   echo "  /api/          -> Fair CRM backend 127.0.0.1:8001"
+  echo "  /api/v1/fair-stand/ -> Fair Stand API 127.0.0.1:8002"
   echo "  /kyrox-core/   -> KYROX Core 127.0.0.1:8000"
   echo "  template: scripts/server/nginx/fair-crm.conf"
   if command -v nginx >/dev/null 2>&1; then
@@ -2043,8 +2184,8 @@ resolve_core_db_url() {
     || echo "postgresql://${PG_USER}:${PG_PASS}@${PG_HOST}:${PG_PORT}/kyrox_core"
 }
 
-resolve_fair_db_url() {
-  read_env_key "${FAIR_CRM_DIR}/backend/.env" DATABASE_URL \
-    || read_env_key "${FAIR_CRM_DIR}/backend/.env" FAIR_CRM_DATABASE_URL \
-    || echo "postgresql+psycopg2://${PG_USER}:${PG_PASS}@${PG_HOST}:${PG_PORT}/fair_crm"
+resolve_stand_db_url() {
+  read_env_key "${FAIR_STAND_DIR}/backend/.env" FAIR_STAND_DATABASE_URL \
+    || read_env_key "${FAIR_STAND_DIR}/backend/.env" DATABASE_URL \
+    || echo "postgresql+psycopg2://${PG_USER}:${PG_PASS}@${PG_HOST}:${PG_PORT}/fair_stand"
 }

@@ -9,6 +9,7 @@
 #   ALLOW_RESTORE=true
 #   TARGET_DATABASE_URL=<explicit target database URL>
 #   fair-crm-backend and fair-crm-mail-worker must already be stopped
+#   Fair Stand stays up for a FAIR CRM restore (independent catalog DB)
 #   FAIR CRM restore: kyrox-core must remain active for external reconciliation
 #   KYROX Core restore: kyrox-core must already be stopped; Core-owned CLI
 #                       captures/reconciles lifecycle directly against the DB
@@ -45,7 +46,7 @@ retain_or_clear_lock() {
     log "Restore maintenance lock cleared after certified success"
   elif [[ -e "$MAINTENANCE_LOCK" ]]; then
     warn "Restore did not certify successfully; maintenance lock retained: ${MAINTENANCE_LOCK}"
-    warn "Do not start FAIR CRM or KYROX Core services until the restore failure is reconciled."
+    warn "Do not start FAIR CRM, Fair Stand, or KYROX Core services until the restore failure is reconciled."
   fi
 }
 
@@ -153,16 +154,21 @@ main() {
     step "Start application services"
     if [[ "${EUID}" -ne 0 ]]; then
       if [[ "$TARGET_DATABASE_KEY" == "kyrox_core" ]]; then
-        warn "Run with sudo to start services, or: sudo systemctl start kyrox-core fair-crm-backend fair-crm-mail-worker"
+        warn "Run with sudo to start services, or: sudo systemctl start kyrox-core fair-stand fair-crm-backend fair-crm-mail-worker"
       else
-        warn "Run with sudo to start services, or: sudo systemctl start fair-crm-backend fair-crm-mail-worker"
+        warn "Run with sudo to start services, or: sudo systemctl start fair-stand fair-crm-backend fair-crm-mail-worker"
       fi
     else
       if [[ "$TARGET_DATABASE_KEY" == "kyrox_core" ]]; then
         systemctl start kyrox-core
+        sleep 2
+      fi
+      if systemctl list-unit-files --type=service --no-legend 2>/dev/null | awk '{print $1}' | grep -Fxq "fair-stand.service"; then
+        systemctl start fair-stand
+        sleep 2
       fi
       systemctl start fair-crm-backend fair-crm-mail-worker
-      log "application services started after certified restore"
+      log "application services started after certified restore (core/stand/crm as applicable)"
     fi
   else
     warn "Application services remain in the maintenance state. Review the certified restore log before starting stopped services."

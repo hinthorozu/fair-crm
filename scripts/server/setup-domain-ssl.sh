@@ -160,8 +160,10 @@ check_local_services() {
     || die "FAIR CRM backend is not listening on port 8001"
   is_port_listening 8000 127.0.0.1 \
     || die "KYROX Core is not listening on port 8000"
+  is_port_listening 8002 127.0.0.1 \
+    || die "Fair Stand API is not listening on port 8002"
 
-  REPORT_SERVICES="OK (frontend + 8001 + 8000)"
+  REPORT_SERVICES="OK (frontend + 8000 + 8001 + 8002)"
   log "$REPORT_SERVICES"
 }
 
@@ -360,6 +362,7 @@ final_https_checks() {
   fi
 
   require_routed_url "Public API route" "https://${DOMAIN}/api/"
+  require_routed_url "Public Fair Stand API route" "https://${DOMAIN}/api/v1/fair-stand/"
   require_routed_url "Public KYROX Core route" "https://${DOMAIN}/kyrox-core/"
 
   if command -v ss >/dev/null 2>&1; then
