@@ -56,5 +56,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Adds DatabaseKey.FAIR_STAND to the existing pg_dump/pg_restore Admin flow. Restore is dump-then-migrate: uploaded dumps are valid; alembic upgrade head after pg_restore is the schema control. Universal data package remains fair_crm-only. Cross-database restore stays forbidden. Stand restore stops fair-stand and keeps kyrox-core up; it does not run CRM organization lifecycle reconciliation against the catalog DB."
+  "notes": "Adds DatabaseKey.FAIR_STAND to the existing pg_dump/pg_restore Admin flow. Universal data package remains fair_crm-only. Cross-database restore stays forbidden. Stand restore stops fair-stand and keeps kyrox-core up; it does not run CRM organization lifecycle reconciliation against the catalog DB."
 }
