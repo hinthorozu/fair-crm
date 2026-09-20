@@ -23,6 +23,7 @@ describe("FairStandPage standalone host", () => {
     const source = readFileSync(join(here, "FairStandPage.tsx"), "utf8");
     expect(source).toContain("catalogHeaders: buildApiHeaders()");
     expect(source).toContain('import("@fair-stand/mountFairStand.js")');
+    expect(source).not.toContain("FairStandEmbed");
     expect(source).not.toContain("PageShell");
   });
 });

@@ -11,6 +11,7 @@
   "affected_paths": [
     "frontend/src/pages/FairStandPage.tsx",
     "frontend/src/pages/FairStandPage.test.ts",
+    "frontend/src/pages/FairStandCatalogProxy.test.ts",
     "frontend/src/pages/FairStandStandaloneRoute.test.ts",
     "frontend/src/App.tsx",
     "frontend/src/components/layout/NavIcons.tsx",
@@ -25,6 +26,7 @@
     "frontend/src/utils/documentTitle.test.ts",
     "frontend/src/vite-env.d.ts",
     "frontend/vite.config.ts",
+    "scripts/server/nginx/fair-crm.conf",
     "frontend/package.json",
     "frontend/package-lock.json",
     "frontend/src/fairStand/mountFairStand.js",
@@ -51,7 +53,7 @@
     "migration": { "status": "na", "reason": "No schema or permission-catalog migration." },
     "permissions": { "status": "na", "reason": "No new Fair CRM permission code; the route is session-authenticated like Dashboard." },
     "backend": { "status": "na", "reason": "No Fair CRM backend module is added." },
-    "api": { "status": "na", "reason": "No Fair CRM API contract change." },
+    "api": { "status": "na", "reason": "Shell still bootstraps via same-origin /api/v1/fair-stand/catalog/bootstrap; CRM process does not host that route." },
     "tenant_isolation": { "status": "na", "reason": "The shell does not query tenant-scoped Fair CRM data." },
     "audit": { "status": "na", "reason": "No Fair CRM audit stream is added." },
     "frontend": { "status": "required" },
@@ -66,5 +68,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "CRM hosts Fair Stand via blank iframe + sibling src alias when ../../fair-stand is present. GitHub Actions checks out only fair-crm, so Vite falls back to frontend/src/fairStand/mountFairStand.js. Fair Stand domain/3D remains in the Fair Stand repository."
+  "notes": "CRM mounts Fair Stand into a host div via @fair-stand/mountFairStand.js when the sibling repo is present. GitHub Actions checks out only fair-crm, so Vite falls back to frontend/src/fairStand/mountFairStand.js. Isolation iframe inside mountFairStand is Fair Stand runtime, not a second admin product. Catalog bootstrap uses CRM session headers against the Stand API proxy."
 }

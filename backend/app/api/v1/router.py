@@ -52,7 +52,6 @@ from app.modules.dashboard.api.routes import router as dashboard_router
 from app.modules.operations.api.routes import router as operations_router
 from app.modules.email_webhooks.api.routes import router as email_webhooks_router
 from app.modules.cost_catalog.api.routes import router as cost_catalog_router
-from app.modules.fair_stand.api.routes import router as fair_stand_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
 
@@ -98,4 +97,3 @@ api_v1_router.include_router(follow_ups_router)
 api_v1_router.include_router(operations_router)
 api_v1_router.include_router(email_webhooks_router)
 api_v1_router.include_router(cost_catalog_router)
-api_v1_router.include_router(fair_stand_router)

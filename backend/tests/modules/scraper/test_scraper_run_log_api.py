@@ -1,6 +1,6 @@
 """Tests for scraper run console log API."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from uuid import UUID
 
@@ -28,11 +28,13 @@ def _seed_run_with_logs(db_session, organization_id: UUID):
         organization_id=organization_id,
         started_at=datetime.now(UTC),
     )
+    base = datetime.now(UTC)
     first = logs.append_log(
         run_id=run.id,
         level=ScraperRunLogLevel.INFO,
         step="started",
         message="TÜYAP New adapter çalışıyor",
+        created_at=base,
     )
     second = logs.append_log(
         run_id=run.id,
@@ -40,6 +42,7 @@ def _seed_run_with_logs(db_session, organization_id: UUID):
         step="completed",
         message="490 kayıt tamamlandı",
         metadata={"total_rows": 490},
+        created_at=base + timedelta(seconds=1),
     )
     history.complete_run(
         run.id,

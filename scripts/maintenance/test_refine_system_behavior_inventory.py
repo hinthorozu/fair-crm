@@ -31,6 +31,20 @@ class RefineSystemBehaviorInventoryTests(unittest.TestCase):
         self.assertEqual(target, "kyrox-core")
         self.assertEqual(path, "/api/v1{param}")
 
+    def test_fair_stand_catalog_api_is_cross_service(self) -> None:
+        path, target, _ = refine.eval_path_expression(
+            "`${BASE}/categories`",
+            {"BASE": "/api/v1/fair-stand/admin"},
+        )
+        self.assertEqual(path, "/api/v1/fair-stand/admin/categories")
+        self.assertEqual(target, "fair-stand")
+        literal_path, literal_target, _ = refine.eval_path_expression(
+            '"/api/v1/fair-stand/catalog/bootstrap"',
+            {},
+        )
+        self.assertEqual(literal_path, "/api/v1/fair-stand/catalog/bootstrap")
+        self.assertEqual(literal_target, "fair-stand")
+
     def test_nested_permission_factory_is_resolved(self) -> None:
         tree = ast.parse(
             textwrap.dedent(

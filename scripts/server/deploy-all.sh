@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #
-# Application deploy/update for KYROX Core + Fair CRM + Fair Stand source.
-# Fair Stand is not a separate web service: CRM frontend Vite bundles
-# /opt/fair-stand/src via the @fair-stand alias.
+# Application deploy/update for KYROX Core + Fair CRM.
+# Fair Stand catalog API is an independent process (:8002). This script still
+# pulls Fair Stand source so CRM Vite can compile the configurator mount.
+# It does not start/restart fair-stand.service.
 # Run after bootstrap-server.sh on fresh servers, or alone for updates.
 #
 # Safe deploy contract (backup/restore compatible):
@@ -299,13 +300,19 @@ run_health_checks() {
 }
 
 run_fair_stand_catalog_bootstrap_deploy() {
-  step "Fair Stand catalog bootstrap runtime smoke"
-  if run_fair_stand_catalog_bootstrap_smoke "$FAIR_CRM_PORT" "$CORE_PORT" "deploy"; then
-    REPORT_FAIR_STAND_BOOTSTRAP="PASS"
-    echo "[OK] Fair Stand catalog bootstrap runtime smoke passed"
+  step "Fair Stand API health (independent :8002)"
+  local stand_health
+  stand_health="$(http_status "http://127.0.0.1:8002/health")"
+  if [[ "$stand_health" == "200" ]]; then
+    if run_fair_stand_catalog_bootstrap_smoke "8002" "$CORE_PORT" "check"; then
+      REPORT_FAIR_STAND_BOOTSTRAP="PASS (Stand :8002)"
+    else
+      REPORT_FAIR_STAND_BOOTSTRAP="WARN (Stand health ok, bootstrap failed)"
+      warn "Stand bootstrap against :8002 failed; CRM deploy continues"
+    fi
   else
-    REPORT_FAIR_STAND_BOOTSTRAP="FAIL"
-    die "Fair Stand catalog bootstrap runtime smoke failed (expected HTTP 200 with categories/items/previewKinds arrays)"
+    REPORT_FAIR_STAND_BOOTSTRAP="WARN (Stand :8002 health ${stand_health})"
+    warn "Deploy Fair Stand API separately: /opt/fair-stand/scripts/server/deploy.sh"
   fi
 }
 

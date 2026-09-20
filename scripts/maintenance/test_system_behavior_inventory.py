@@ -127,6 +127,24 @@ class SystemBehaviorInventoryTests(unittest.TestCase):
         categories = {item["category"] for item in result["findings"]}
         self.assertIn("frontend_api_without_backend_route", categories)
 
+    def test_fair_stand_proxy_api_is_not_a_crm_backend_gap(self) -> None:
+        (self.root / "frontend/src/api/fairStandAdmin.ts").write_text(
+            textwrap.dedent(
+                """
+                import { apiRequest } from "./client";
+
+                export async function listFairStandAdminCategories() {
+                  return apiRequest(`/api/v1/fair-stand/admin/categories`);
+                }
+                """
+            ),
+            encoding="utf-8",
+        )
+
+        result = inventory.build_inventory(self.root)
+        categories = {item["category"] for item in result["findings"]}
+        self.assertNotIn("frontend_api_without_backend_route", categories)
+
     def test_nested_typescript_generic_and_method_are_parsed(self) -> None:
         text = """
         export async function load() {

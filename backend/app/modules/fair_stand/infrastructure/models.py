@@ -17,9 +17,11 @@ from sqlalchemy import (
     Uuid,
     text,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-from app.db.base import Base
+
+class Base(DeclarativeBase):
+    """Alembic 0085/0087 seed mapping only. Not part of CRM Base.metadata."""
 
 CASCADE = {"ondelete": "CASCADE", "onupdate": "CASCADE"}
 

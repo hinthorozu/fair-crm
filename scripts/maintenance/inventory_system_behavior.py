@@ -678,6 +678,8 @@ def build_inventory(root: Path) -> dict[str, Any]:
             continue
         matches = backend_index.get(key, [])
         if not matches and str(call.get("path") or "").startswith("/api/"):
+            if str(call.get("path") or "").startswith("/api/v1/fair-stand"):
+                continue
             findings.append(
                 {
                     "category": "frontend_api_without_backend_route",

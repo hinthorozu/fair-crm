@@ -82,6 +82,10 @@ export default defineConfig({
       allow: fairStandFsAllow,
     },
     proxy: {
+      "/api/v1/fair-stand": {
+        target: "http://127.0.0.1:8002",
+        changeOrigin: true,
+      },
       "/api": {
         target: "http://127.0.0.1:8001",
         changeOrigin: true,
