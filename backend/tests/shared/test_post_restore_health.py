@@ -111,3 +111,24 @@ def test_post_restore_health_check_kyrox_core_success():
     assert result.users_count == 5
     assert result.roles_count == 3
     assert "users: 5" in result.summary_text()
+
+
+def test_post_restore_health_check_fair_stand_success():
+    counts = {
+        "fair_stand_categories": 6,
+        "fair_stand_catalog_preview_kinds": 28,
+        "fair_stand_items": 96,
+    }
+    engine = _mock_engine(counts=counts)
+    result = run_post_restore_health_check(
+        database_url="postgresql://postgres:postgres@localhost:5432/fair_stand",
+        database_key="fair_stand",
+        migration_result="success",
+        engine_factory=lambda *args, **kwargs: engine,
+    )
+
+    assert result.ok is True
+    assert result.database_key == "fair_stand"
+    assert result.items_count == 96
+    assert result.categories_count == 6
+    assert "items: 96" in result.summary_text()

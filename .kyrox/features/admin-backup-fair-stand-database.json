@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "id": "admin-backup-fair-stand-database",
+  "title": "Admin backup and restore includes Fair Stand database",
+  "feature_type": "system_admin",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "system",
+  "user_facing": true,
+  "affected_paths": [
+    "backend/app/shared/database_backup/database_keys.py",
+    "backend/app/shared/database_backup/post_restore_health.py",
+    "backend/app/modules/system_admin/maintenance/certified_restore_runner.py",
+    "backend/app/core/config.py",
+    "scripts/server/run-restore-job.sh",
+    "scripts/server/lib/common.sh",
+    "frontend/src/pages/DatabaseBackupsPage.tsx",
+    "frontend/src/types/systemBackup.ts",
+    "frontend/src/labels/adminLabels.ts",
+    "frontend/src/components/admin/RestoreJobDetailModal.tsx",
+    ".kyrox/features/admin-backup-fair-stand-database.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.admin.backups.read", "action": "read", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.backups.create", "action": "create", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.backups.execute", "action": "execute", "scope": "system", "assignable": false }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/admin/system/backups"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "database_key remains String(32); no CRM schema change. Target is the independent fair_stand PostgreSQL database." },
+    "migration": { "status": "na", "reason": "No new CRM Alembic revision." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "na", "reason": "Same system-admin backup jobs; Stand catalog has no organization_id." },
+    "audit": { "status": "na", "reason": "Existing backup/restore audit actions reused." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Existing Database Backups page." },
+    "route_guard": { "status": "na", "reason": "Existing backups route guard." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "na", "reason": "Permission tests unchanged; Stand is a third DatabaseKey option on the existing page." },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Adds DatabaseKey.FAIR_STAND to the existing pg_dump/pg_restore Admin flow. Universal data package remains fair_crm-only. Cross-database restore stays forbidden. Stand restore stops fair-stand and keeps kyrox-core up; it does not run CRM organization lifecycle reconciliation against the catalog DB."
+}

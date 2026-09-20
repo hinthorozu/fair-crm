@@ -219,6 +219,8 @@ class CertifiedRestoreJobMaintenanceRunner:
                         snapshot_json=core_snapshot_json,
                     )
                 )
+            elif database_key == DatabaseKey.FAIR_STAND:
+                return base_health
             else:
                 reconciliation = run_restore_organization_reconciliation(
                     database_url=kwargs["database_url"],

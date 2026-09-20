@@ -114,16 +114,19 @@ function restoreJobFileLabel(job: SystemBackupRestoreJobResponse): string {
 
 function databaseKeyLabel(key: DatabaseKey): string {
   if (key === "kyrox_core") return adminLabels.databaseKeyKyroxCore;
+  if (key === "fair_stand") return adminLabels.databaseKeyFairStand;
   return adminLabels.databaseKeyFairCrm;
 }
 
 function restoreWarningForDatabase(key: DatabaseKey): string {
   if (key === "kyrox_core") return adminLabels.restoreWarningKyroxCore;
+  if (key === "fair_stand") return adminLabels.restoreWarningFairStand;
   return adminLabels.restoreWarningFairCrm;
 }
 
 function restoreUploadWarningForDatabase(key: DatabaseKey): string {
   if (key === "kyrox_core") return adminLabels.restoreUploadWarningKyroxCore;
+  if (key === "fair_stand") return adminLabels.restoreUploadWarningFairStand;
   return adminLabels.restoreUploadWarningFairCrm;
 }
 
@@ -231,6 +234,7 @@ const DELETE_CONFIRM_TEXT = "DELETE";
 function inferDatabaseKeyFromFileName(fileName: string): DatabaseKey | null {
   const name = fileName.toLowerCase();
   if (name.startsWith("kyrox_core_backup_")) return "kyrox_core";
+  if (name.startsWith("fair_stand_backup_")) return "fair_stand";
   if (name.startsWith("fair_crm_backup_") || name.startsWith("fair_crm_data_package_")) return "fair_crm";
   if (name.startsWith("faircrm_backup_") || name.startsWith("faircrm_data_package_")) return "fair_crm";
   return null;
@@ -363,6 +367,11 @@ const DATABASE_KEY_OPTIONS: Array<{
     title: adminLabels.databaseKeyFairCrm,
     description: adminLabels.databaseKeyFairCrmDesc,
   },
+  {
+    value: "fair_stand",
+    title: adminLabels.databaseKeyFairStand,
+    description: adminLabels.databaseKeyFairStandDesc,
+  },
 ];
 
 const BACKUP_FORMAT_OPTIONS: Array<{
@@ -431,16 +440,16 @@ function CreateBackupModalContent({
   };
 
   const canSubmit = selectedDatabaseKeys.length > 0;
-  const includesKyroxCore = selectedDatabaseKeys.includes("kyrox_core");
+  const includesNonCrmDatabase = selectedDatabaseKeys.some((key) => key !== "fair_crm");
   const visibleFormatOptions = BACKUP_FORMAT_OPTIONS.filter(
-    (option) => !(includesKyroxCore && option.value === "universal_data_package"),
+    (option) => !(includesNonCrmDatabase && option.value === "universal_data_package"),
   );
 
   React.useEffect(() => {
-    if (includesKyroxCore && backupFormat === "universal_data_package") {
+    if (includesNonCrmDatabase && backupFormat === "universal_data_package") {
       onBackupFormatChange("postgresql_dump");
     }
-  }, [includesKyroxCore, backupFormat, onBackupFormatChange]);
+  }, [includesNonCrmDatabase, backupFormat, onBackupFormatChange]);
 
   return (
     <div className="backup-create-modal">

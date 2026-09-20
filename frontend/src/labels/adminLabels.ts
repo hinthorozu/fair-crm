@@ -153,8 +153,10 @@ export const adminLabels = {
   databaseKeysLabel: "Yedeklenecek veritabanları",
   databaseKeyKyroxCore: "KYROX Core",
   databaseKeyFairCrm: "FAIR CRM",
+  databaseKeyFairStand: "Fair Stand",
   databaseKeyKyroxCoreDesc: "Kullanıcılar, organizasyonlar, roller, yetkiler ve oturum tabloları",
   databaseKeyFairCrmDesc: "Müşteriler, fuarlar, contacts, görevler, SMTP ve CRM verileri",
+  databaseKeyFairStandDesc: "Stand katalog Item, kategori ve preview tanımları",
   databaseKeysRequired: "En az bir veritabanı seçmelisiniz.",
   colDatabase: "Database",
   colDatabaseKey: "Database Key",
@@ -162,6 +164,8 @@ export const adminLabels = {
 
   restoreWarningFairCrm:
     "FAIR CRM verileri geri yüklenecek. Bu işlem mevcut fair_crm veritabanını siler ve seçili backup dosyasındaki veriyle yeniden yükler. Bu işlem geri alınamaz.",
+  restoreWarningFairStand:
+    "Fair Stand katalog veritabanı geri yüklenecek. Bu işlem mevcut fair_stand veritabanını siler ve seçili backup dosyasındaki katalogla yeniden yükler. Bu işlem geri alınamaz.",
   restoreWarningKyroxCore:
     "DİKKAT: KYROX Core veritabanı geri yüklenecek. Kullanıcılar, roller, yetkiler ve oturum verileri değişecektir. Tüm platform oturumları etkilenebilir. Bu işlem geri alınamaz.",
   restoreWarningKyroxCoreStrong:
@@ -169,6 +173,8 @@ export const adminLabels = {
   restoreUploadDatabaseLabel: "Hedef veritabanı",
   restoreUploadWarningFairCrm:
     "Bu işlem FAIR CRM veritabanını seçilen dosyadaki verilerle değiştirir. Devam etmeden önce güncel yedek aldığınızdan emin olun.",
+  restoreUploadWarningFairStand:
+    "Bu işlem Fair Stand katalog veritabanını seçilen dosyadaki verilerle değiştirir. Devam etmeden önce güncel yedek aldığınızdan emin olun.",
   restoreUploadWarningKyroxCore:
     "DİKKAT: Bu işlem KYROX Core veritabanını değiştirir. Kullanıcılar, roller ve yetkiler etkilenir. Devam etmeden önce güncel yedek aldığınızdan emin olun.",
   restoreJobColSourceDatabase: "Source DB",
