@@ -17,9 +17,6 @@ from app.modules.fair_stand.infrastructure.models import (
     FairStandItemBodyPartModel,
     FairStandItemComponentModel,
     FairStandItemDimensionsModel,
-    FairStandItemInnerCornerModel,
-    FairStandItemInnerCornerReplacementMemberModel,
-    FairStandItemInnerCornerReplacementModel,
     FairStandItemModel,
     FairStandItemSceneDimensionsModel,
     FairStandItemStripOccupancyModel,
@@ -38,9 +35,6 @@ def _stable_uuid(*parts: str) -> UUID:
 
 
 def _clear_catalog(session: Session) -> None:
-    session.execute(delete(FairStandItemInnerCornerReplacementMemberModel))
-    session.execute(delete(FairStandItemInnerCornerReplacementModel))
-    session.execute(delete(FairStandItemInnerCornerModel))
     session.execute(delete(FairStandItemBodyPartModel))
     session.execute(delete(FairStandItemVideoWallModel))
     session.execute(delete(FairStandItemComponentModel))
@@ -108,7 +102,6 @@ def seed_fair_stand_catalog(session: Session) -> None:
                 material=row["material"],
                 default_color=row["default_color"],
                 panel_role=row["panel_role"],
-                nominal_module_width_cm=_dec(row["nominal_module_width_cm"]),
                 connector_type=row["connector_type"],
                 preserve_model_scale=row["preserve_model_scale"],
                 model_rotation_y_deg=_dec(row["model_rotation_y_deg"]),
@@ -183,41 +176,6 @@ def seed_fair_stand_catalog(session: Session) -> None:
                     sort_order=component["sort_order"],
                 )
             )
-        inner = row.get("inner_corner")
-        if inner:
-            session.add(
-                FairStandItemInnerCornerModel(
-                    parent_item_key=item_key,
-                    panel_item_key=inner["panel_item_key"],
-                )
-            )
-            for replacement in inner.get("replacements") or []:
-                replacement_id = _stable_uuid(
-                    "inner-replace", item_key, replacement["replaced_item_key"]
-                )
-                session.add(
-                    FairStandItemInnerCornerReplacementModel(
-                        id=replacement_id,
-                        parent_item_key=item_key,
-                        replaced_item_key=replacement["replaced_item_key"],
-                        sort_order=replacement["sort_order"],
-                    )
-                )
-                for member in replacement.get("members") or []:
-                    session.add(
-                        FairStandItemInnerCornerReplacementMemberModel(
-                            id=_stable_uuid(
-                                "inner-member",
-                                item_key,
-                                replacement["replaced_item_key"],
-                                str(member["sort_order"]),
-                            ),
-                            replacement_id=replacement_id,
-                            child_item_key=member["child_item_key"],
-                            quantity=_dec(member["quantity"]),
-                            sort_order=member["sort_order"],
-                        )
-                    )
         video_wall = row.get("video_wall")
         if video_wall:
             session.add(

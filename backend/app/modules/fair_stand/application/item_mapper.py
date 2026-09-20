@@ -50,8 +50,6 @@ def map_item(row) -> ItemAggregate:
         payload["defaultColor"] = int(row.default_color)
     if row.panel_role is not None:
         payload["panelRole"] = row.panel_role
-    if row.nominal_module_width_cm is not None:
-        payload["nominalModuleWidthCm"] = _num(row.nominal_module_width_cm)
     if row.connector_type is not None:
         payload["connectorType"] = row.connector_type
     if row.preserve_model_scale is not None:
@@ -125,8 +123,7 @@ def map_item(row) -> ItemAggregate:
         payload["defaultScreenFile"] = default_screen
 
     components = sorted(row.components, key=lambda component: component.sort_order)
-    inner = row.inner_corner
-    if components or row.composition_mode or inner:
+    if components or row.composition_mode:
         composition: dict = {}
         if row.composition_mode is not None:
             composition["mode"] = row.composition_mode
@@ -137,21 +134,6 @@ def map_item(row) -> ItemAggregate:
                 {"itemKey": component.child_item_key, "quantity": _num(component.quantity)}
                 for component in components
             ]
-        if inner is not None:
-            inner_payload: dict = {"panelItemKey": inner.panel_item_key}
-            replacements = sorted(inner.replacements, key=lambda replacement: replacement.sort_order)
-            if replacements:
-                inner_payload["itemReplacements"] = [
-                    {
-                        "itemKey": replacement.replaced_item_key,
-                        "items": [
-                            {"itemKey": member.child_item_key, "quantity": _num(member.quantity)}
-                            for member in sorted(replacement.members, key=lambda item: item.sort_order)
-                        ],
-                    }
-                    for replacement in replacements
-                ]
-            composition["innerCorner"] = inner_payload
         payload["composition"] = composition
 
     if row.video_wall is not None:

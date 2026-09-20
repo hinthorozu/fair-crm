@@ -69,10 +69,6 @@ class FairStandItemModel(Base):
             name="ck_fair_stand_items_eye_count",
         ),
         CheckConstraint(
-            "nominal_module_width_cm IS NULL OR nominal_module_width_cm > 0",
-            name="ck_fair_stand_items_nominal_width",
-        ),
-        CheckConstraint(
             "composition_mode IS NULL OR composition_mode IN ('recipe')",
             name="ck_fair_stand_items_composition_mode",
         ),
@@ -113,7 +109,6 @@ class FairStandItemModel(Base):
     material: Mapped[str | None] = mapped_column(String(64), nullable=True)
     default_color: Mapped[int | None] = mapped_column(Integer, nullable=True)
     panel_role: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    nominal_module_width_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
     connector_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
     preserve_model_scale: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     model_rotation_y_deg: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
@@ -145,11 +140,6 @@ class FairStandItemModel(Base):
         back_populates="parent",
         foreign_keys="FairStandItemComponentModel.parent_item_key",
         cascade="all, delete-orphan",
-    )
-    inner_corner: Mapped["FairStandItemInnerCornerModel | None"] = relationship(
-        back_populates="parent",
-        cascade="all, delete-orphan",
-        foreign_keys="FairStandItemInnerCornerModel.parent_item_key",
     )
     video_wall: Mapped["FairStandItemVideoWallModel | None"] = relationship(
         back_populates="parent",
@@ -275,79 +265,6 @@ class FairStandItemComponentModel(Base):
         back_populates="components",
         foreign_keys=[parent_item_key],
     )
-
-
-class FairStandItemInnerCornerModel(Base):
-    __tablename__ = "fair_stand_item_inner_corners"
-
-    parent_item_key: Mapped[str] = mapped_column(
-        String(128),
-        ForeignKey("fair_stand_items.item_key", **CASCADE),
-        primary_key=True,
-    )
-    panel_item_key: Mapped[str] = mapped_column(
-        String(128),
-        ForeignKey("fair_stand_items.item_key", **CASCADE),
-        nullable=False,
-    )
-    parent: Mapped[FairStandItemModel] = relationship(
-        back_populates="inner_corner",
-        foreign_keys=[parent_item_key],
-    )
-    replacements: Mapped[list["FairStandItemInnerCornerReplacementModel"]] = relationship(
-        back_populates="inner_corner", cascade="all, delete-orphan"
-    )
-
-
-class FairStandItemInnerCornerReplacementModel(Base):
-    __tablename__ = "fair_stand_item_inner_corner_replacements"
-    __table_args__ = (
-        UniqueConstraint(
-            "parent_item_key",
-            "replaced_item_key",
-            name="uq_fair_stand_inner_corner_replaced",
-        ),
-    )
-
-    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
-    parent_item_key: Mapped[str] = mapped_column(
-        String(128),
-        ForeignKey("fair_stand_item_inner_corners.parent_item_key", **CASCADE),
-        nullable=False,
-    )
-    replaced_item_key: Mapped[str] = mapped_column(
-        String(128),
-        ForeignKey("fair_stand_items.item_key", **CASCADE),
-        nullable=False,
-    )
-    sort_order: Mapped[int] = mapped_column(Integer, nullable=False)
-    inner_corner: Mapped[FairStandItemInnerCornerModel] = relationship(back_populates="replacements")
-    members: Mapped[list["FairStandItemInnerCornerReplacementMemberModel"]] = relationship(
-        back_populates="replacement", cascade="all, delete-orphan"
-    )
-
-
-class FairStandItemInnerCornerReplacementMemberModel(Base):
-    __tablename__ = "fair_stand_item_inner_corner_replacement_members"
-    __table_args__ = (
-        UniqueConstraint("replacement_id", "sort_order", name="uq_fair_stand_inner_corner_member_sort"),
-        CheckConstraint("quantity > 0", name="ck_fair_stand_inner_corner_member_qty"),
-    )
-
-    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
-    replacement_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True),
-        ForeignKey("fair_stand_item_inner_corner_replacements.id", **CASCADE),
-        nullable=False,
-    )
-    child_item_key: Mapped[str] = mapped_column(
-        String(128),
-        ForeignKey("fair_stand_items.item_key", **CASCADE),
-        nullable=False,
-    )
-    quantity: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
-    sort_order: Mapped[int] = mapped_column(Integer, nullable=False)
-    replacement: Mapped[FairStandItemInnerCornerReplacementModel] = relationship(back_populates="members")
 
 
 class FairStandItemVideoWallModel(Base):
