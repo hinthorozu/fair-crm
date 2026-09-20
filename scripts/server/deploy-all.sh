@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 #
-# Application deploy/update for KYROX Core + Fair CRM.
-# Fair Stand catalog API is an independent process (:8002). This script still
-# pulls Fair Stand source so CRM Vite can compile the configurator mount.
-# It does not start/restart fair-stand.service.
+# Application deploy/update for KYROX Core + Fair Stand API + Fair CRM.
+# One command brings up all three processes (core :8000, stand :8002, crm :8001).
+# Fair Stand source is also pulled so CRM Vite can compile the configurator mount.
+# Stand-only API refresh remains /opt/fair-stand/scripts/server/deploy.sh.
 # Run after bootstrap-server.sh on fresh servers, or alone for updates.
 #
 # Safe deploy contract (backup/restore compatible):
 #   - Git pull + dependency install + Playwright Chromium + frontend build + systemd/nginx reload
-#   - Alembic upgrade head on both databases (required after restore; non-destructive)
+#   - Alembic upgrade head on kyrox_core, fair_stand, and fair_crm (required after restore; non-destructive)
 #   - Backend restart via systemd (normal)
 #   - ensure_database only CREATE DATABASE when missing (no drop/truncate/reset)
 #   - Never runs pg_restore, restore jobs, or backup deletion
@@ -63,8 +63,10 @@ DEPLOY_SERVICE_USER="${DEPLOY_SERVICE_USER:-${SUDO_USER:-$(id -un)}}"
 
 CORE_PORT="${CORE_PORT:-8000}"
 FAIR_CRM_PORT="${FAIR_CRM_PORT:-8001}"
+STAND_PORT="${STAND_PORT:-8002}"
 CORE_HEALTH_PATH="${CORE_HEALTH_PATH:-/api/v1/health}"
 FAIR_CRM_HEALTH_PATH="${FAIR_CRM_HEALTH_PATH:-/health}"
+STAND_HEALTH_PATH="${STAND_HEALTH_PATH:-/health}"
 
 PROTECTED_FAIR_CRM_PATHS=(
   "docker-compose.yml"
@@ -79,14 +81,20 @@ PROTECTED_KYROX_CORE_PATHS=(
   "backend/.env"
   ".env"
 )
+PROTECTED_FAIR_STAND_PATHS=(
+  "backend/.env"
+)
 
 REPORT_CORE_STATUS="unknown"
 REPORT_FAIR_STATUS="unknown"
 REPORT_FRONTEND_BUILD="skipped"
 REPORT_CORE_MIGRATION="not run"
 REPORT_FAIR_MIGRATION="not run"
+REPORT_STAND_MIGRATION="not run"
 REPORT_CORE_HEALTH="000"
 REPORT_FAIR_HEALTH="000"
+REPORT_STAND_HEALTH="000"
+REPORT_STAND_STATUS="unknown"
 REPORT_CORE_HASH="n/a"
 REPORT_FAIR_HASH="n/a"
 REPORT_FAIR_STAND_HASH="n/a"
@@ -214,10 +222,12 @@ manage_systemd_services() {
   local tmp_dir
   tmp_dir="$(mktemp -d)"
   render_template "${SCRIPT_DIR}/systemd/kyrox-core.service" "${tmp_dir}/kyrox-core.service"
+  render_template "${FAIR_STAND_DIR}/scripts/server/systemd/fair-stand.service" "${tmp_dir}/fair-stand.service"
   render_template "${SCRIPT_DIR}/systemd/fair-crm-backend.service" "${tmp_dir}/fair-crm-backend.service"
   render_template "${SCRIPT_DIR}/systemd/fair-crm-mail-worker.service" "${tmp_dir}/fair-crm-mail-worker.service"
 
   install_systemd_unit "${tmp_dir}/kyrox-core.service" "kyrox-core.service"
+  install_systemd_unit "${tmp_dir}/fair-stand.service" "fair-stand.service"
   install_systemd_unit "${tmp_dir}/fair-crm-backend.service" "fair-crm-backend.service"
   install_systemd_unit "${tmp_dir}/fair-crm-mail-worker.service" "fair-crm-mail-worker.service"
   rm -rf "$tmp_dir"
@@ -227,15 +237,18 @@ manage_systemd_services() {
     return 0
   fi
 
-  step "Reload and restart systemd services"
+  step "Reload and restart systemd services (core, stand, crm)"
   systemctl daemon-reload
-  systemctl enable kyrox-core fair-crm-backend fair-crm-mail-worker
+  systemctl enable kyrox-core fair-stand fair-crm-backend fair-crm-mail-worker
   systemctl restart kyrox-core
+  sleep 2
+  systemctl restart fair-stand
   sleep 2
   systemctl restart fair-crm-backend
   systemctl restart fair-crm-mail-worker
 
   REPORT_CORE_STATUS="$(systemctl is-active kyrox-core 2>/dev/null || echo unknown)"
+  REPORT_STAND_STATUS="$(systemctl is-active fair-stand 2>/dev/null || echo unknown)"
   REPORT_FAIR_STATUS="$(systemctl is-active fair-crm-backend 2>/dev/null || echo unknown)"
 }
 
@@ -280,12 +293,13 @@ run_health_checks() {
   step "Health checks"
   local core_url="http://127.0.0.1:${CORE_PORT}${CORE_HEALTH_PATH}"
   local fair_url="http://127.0.0.1:${FAIR_CRM_PORT}${FAIR_CRM_HEALTH_PATH}"
+  local stand_url="http://127.0.0.1:${STAND_PORT}${STAND_HEALTH_PATH}"
   local statuses
 
-  if statuses="$(wait_for_http_health "$core_url" "$fair_url" 60)"; then
-    read -r REPORT_CORE_HEALTH REPORT_FAIR_HEALTH <<<"$statuses"
+  if statuses="$(wait_for_http_health "$core_url" "$fair_url" "$stand_url" 60)"; then
+    read -r REPORT_CORE_HEALTH REPORT_FAIR_HEALTH REPORT_STAND_HEALTH <<<"$statuses"
   else
-    read -r REPORT_CORE_HEALTH REPORT_FAIR_HEALTH <<<"$statuses"
+    read -r REPORT_CORE_HEALTH REPORT_FAIR_HEALTH REPORT_STAND_HEALTH <<<"$statuses"
   fi
 
   if [[ "$REPORT_CORE_HEALTH" != "200" ]]; then
@@ -294,25 +308,21 @@ run_health_checks() {
     warn "Core health ${core_url} => ${REPORT_CORE_HEALTH}; /health => ${legacy_core_health}"
     die "Core health check failed (expected 200 at ${core_url})"
   fi
+  if [[ "$REPORT_STAND_HEALTH" != "200" ]]; then
+    die "Fair Stand health check failed (expected 200 at ${stand_url})"
+  fi
   if [[ "$REPORT_FAIR_HEALTH" != "200" ]]; then
     die "Fair CRM health check failed (expected 200 at ${fair_url})"
   fi
 }
 
 run_fair_stand_catalog_bootstrap_deploy() {
-  step "Fair Stand API health (independent :8002)"
-  local stand_health
-  stand_health="$(http_status "http://127.0.0.1:8002/health")"
-  if [[ "$stand_health" == "200" ]]; then
-    if run_fair_stand_catalog_bootstrap_smoke "8002" "$CORE_PORT" "check"; then
-      REPORT_FAIR_STAND_BOOTSTRAP="PASS (Stand :8002)"
-    else
-      REPORT_FAIR_STAND_BOOTSTRAP="WARN (Stand health ok, bootstrap failed)"
-      warn "Stand bootstrap against :8002 failed; CRM deploy continues"
-    fi
+  step "Fair Stand catalog bootstrap"
+  if run_fair_stand_catalog_bootstrap_smoke "$STAND_PORT" "$CORE_PORT" "deploy"; then
+    REPORT_FAIR_STAND_BOOTSTRAP="PASS (Stand :${STAND_PORT})"
   else
-    REPORT_FAIR_STAND_BOOTSTRAP="WARN (Stand :8002 health ${stand_health})"
-    warn "Deploy Fair Stand API separately: /opt/fair-stand/scripts/server/deploy.sh"
+    REPORT_FAIR_STAND_BOOTSTRAP="FAIL"
+    die "Fair Stand catalog bootstrap failed against 127.0.0.1:${STAND_PORT}"
   fi
 }
 
@@ -399,15 +409,16 @@ maybe_run_post_check() {
 }
 
 print_final_report() {
-  local core_health_label fair_health_label login_label frontend_label nginx_label post_label
+  local core_health_label fair_health_label stand_health_label login_label frontend_label nginx_label post_label
   core_health_label="$(report_pass_fail "$REPORT_CORE_HEALTH")"
   fair_health_label="$(report_pass_fail "$REPORT_FAIR_HEALTH")"
+  stand_health_label="$(report_pass_fail "$REPORT_STAND_HEALTH")"
   login_label="$(report_pass_fail "$REPORT_LOGIN_SMOKE")"
   frontend_label="$(report_pass_fail "$REPORT_FRONTEND_BUILD")"
   nginx_label="$(report_pass_fail "$REPORT_NGINX")"
   post_label="$(report_pass_fail "$REPORT_POST_CHECK")"
 
-  if [[ "$REPORT_FRONTEND_BUILD" == "success" && "$REPORT_FAIR_STAND_BOOTSTRAP" == "PASS" ]]; then
+  if [[ "$REPORT_FRONTEND_BUILD" == "success" && "$REPORT_FAIR_STAND_BOOTSTRAP" == PASS* ]]; then
     REPORT_FINAL_STATUS="deploy complete"
   elif [[ "${DEPLOY_FAILED_STEP:-none}" != "none" ]]; then
     REPORT_FINAL_STATUS="BROKEN"
@@ -426,10 +437,12 @@ print_final_report() {
   echo "fair-stand=${REPORT_FAIR_STAND_HASH}"
   echo ""
   echo "Core health: ${core_health_label}"
+  echo "Fair Stand health: ${stand_health_label}"
   echo "Fair CRM health: ${fair_health_label}"
   echo "Login smoke: ${login_label}"
   echo "Core migration: $(report_pass_fail "$REPORT_CORE_MIGRATION")"
   echo "Fair CRM migration: $(report_pass_fail "$REPORT_FAIR_MIGRATION")"
+  echo "Fair Stand migration: $(report_pass_fail "$REPORT_STAND_MIGRATION")"
   echo "Fair CRM frontend build: ${frontend_label}"
   echo "Fair Stand source integration: ${REPORT_FAIR_STAND_SOURCE}"
   echo "Fair Stand npm ci: ${REPORT_FAIR_STAND_DEPS}"
@@ -457,29 +470,31 @@ print_final_report() {
   echo "4. nginx:"
   echo "   /              -> ${FAIR_CRM_DIR}/frontend/dist"
   echo "   /api/          -> 127.0.0.1:8001"
+  echo "   /api/v1/fair-stand/ -> 127.0.0.1:${STAND_PORT}"
   echo "   /kyrox-core/   -> 127.0.0.1:8000"
   echo "   /fair-stand    -> Fair CRM SPA route (same dist)"
   echo "   nginx -t: ${REPORT_NGINX_TEST}; reload: ${REPORT_NGINX}"
   echo ""
-  echo "5. Health: Core ${REPORT_CORE_HEALTH}, Fair CRM ${REPORT_FAIR_HEALTH}"
+  echo "5. Health: Core ${REPORT_CORE_HEALTH}, Fair Stand ${REPORT_STAND_HEALTH}, Fair CRM ${REPORT_FAIR_HEALTH}"
   echo "6. Login smoke: ${REPORT_LOGIN_SMOKE}"
   echo "7. Admin backups API: ${REPORT_BACKUPS_SMOKE}"
   echo "8. Frontend build: ${REPORT_FRONTEND_BUILD}"
   echo "9. Playwright Chromium: ${REPORT_PLAYWRIGHT_CHROMIUM}"
-  echo "10. Migrations: Core ${REPORT_CORE_MIGRATION}, Fair CRM ${REPORT_FAIR_MIGRATION}"
+  echo "10. Migrations: Core ${REPORT_CORE_MIGRATION}, Fair Stand ${REPORT_STAND_MIGRATION}, Fair CRM ${REPORT_FAIR_MIGRATION}"
   echo "11. Git commits: kyrox-core=${REPORT_CORE_HASH} (${KYROX_CORE_BRANCH}), fair-crm=${REPORT_FAIR_HASH} (${FAIR_CRM_BRANCH}), fair-stand=${REPORT_FAIR_STAND_HASH} (${FAIR_STAND_BRANCH})"
   echo "12. Safe deploy restore: ${REPORT_SAFE_DEPLOY_RESTORE}"
   echo "13. Post-deploy check: ${REPORT_POST_CHECK}"
   echo "14. Push: not run by deploy script (manual git push if needed)"
   echo ""
   echo "Core API: http://127.0.0.1:${CORE_PORT}"
+  echo "Fair Stand API: http://127.0.0.1:${STAND_PORT}"
   echo "Fair CRM API: http://127.0.0.1:${FAIR_CRM_PORT}"
   echo "=============================================="
 }
 
 log_deploy_safety_contract() {
   step "Deploy safety contract (backup/restore compatible)"
-  log "Will run: git pull (core/crm/fair-stand), pip/npm install, Fair Stand npm ci, Playwright Chromium install, alembic upgrade head, systemd restart"
+  log "Will run: git pull (core/crm/fair-stand), pip/npm install, Fair Stand pip + npm ci, Playwright Chromium install, alembic upgrade head (three DBs), systemd restart core then stand then crm"
   log "Will restore safe deploy scripts/templates before fair-crm git pull when locally modified"
   log "Will not: drop/truncate DB, pg_restore, touch backups/ or restore data dirs, overwrite .env"
 }
@@ -513,7 +528,7 @@ main() {
     warn "Fair CRM repo not initialized at ${FAIR_CRM_DIR}; using working tree without git pull"
   fi
 
-  clone_or_update_repo "$FAIR_STAND_DIR" "$FAIR_STAND_REPO" "$FAIR_STAND_BRANCH"
+  clone_or_update_repo "$FAIR_STAND_DIR" "$FAIR_STAND_REPO" "$FAIR_STAND_BRANCH" "${PROTECTED_FAIR_STAND_PATHS[@]}"
   REPORT_FAIR_STAND_STATUS="updated (${FAIR_STAND_BRANCH})"
 
   REPORT_CORE_HASH="$(git_short_hash "$KYROX_CORE_DIR")"
@@ -522,6 +537,7 @@ main() {
 
   setup_python_project "kyrox-core" "$KYROX_CORE_DIR" "${KYROX_CORE_DIR}/.venv"
   setup_python_project "fair-crm" "$FAIR_CRM_DIR" "${FAIR_CRM_DIR}/backend/.venv"
+  setup_python_project "fair-stand" "$FAIR_STAND_DIR" "${FAIR_STAND_DIR}/backend/.venv"
   install_fair_stand_dependencies
 
   # After Fair CRM pip install; before systemd restart / health checks.
@@ -535,6 +551,8 @@ main() {
 
   ensure_database "kyrox_core"
   ensure_database "fair_crm"
+  ensure_database "fair_stand"
+  ensure_fair_stand_backend_env "$FAIR_STAND_DIR" "$KYROX_CORE_DIR"
   ensure_repo_data_dirs "$FAIR_CRM_DIR"
 
   validate_env_files_required
@@ -560,6 +578,13 @@ main() {
   else
     REPORT_FAIR_MIGRATION="failed"
     die "fair-crm alembic upgrade failed"
+  fi
+
+  if run_alembic_upgrade "${FAIR_STAND_DIR}/backend" "${FAIR_STAND_DIR}/backend/.venv/bin/python" "alembic.ini" ""; then
+    REPORT_STAND_MIGRATION="success"
+  else
+    REPORT_STAND_MIGRATION="failed"
+    die "fair-stand alembic upgrade failed"
   fi
 
   manage_systemd_services

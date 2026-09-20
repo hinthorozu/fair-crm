@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Read-only health audit for an existing KYROX Core + Fair CRM server.
+# Read-only health audit for KYROX Core + Fair Stand API + Fair CRM.
 #
 # Usage:
 #   sudo bash /opt/fair-crm/scripts/server/check-server.sh
@@ -21,8 +21,10 @@ FAIR_CRM_DIR="${FAIR_CRM_DIR:-$(cd "${SCRIPT_DIR}/../.." && pwd)}"
 FAIR_STAND_DIR="${FAIR_STAND_DIR:-/opt/fair-stand}"
 CORE_PORT="${CORE_PORT:-8000}"
 FAIR_CRM_PORT="${FAIR_CRM_PORT:-8001}"
+STAND_PORT="${STAND_PORT:-8002}"
 CORE_HEALTH_PATH="${CORE_HEALTH_PATH:-/api/v1/health}"
 FAIR_CRM_HEALTH_PATH="${FAIR_CRM_HEALTH_PATH:-/health}"
+STAND_HEALTH_PATH="${STAND_HEALTH_PATH:-/health}"
 SERVER_BOOTSTRAP_ENV_FILE="${SERVER_BOOTSTRAP_ENV_FILE:-/etc/fair-crm/server-bootstrap.env}"
 DEV_SEED_ENV_FILE="${DEV_SEED_ENV_FILE:-/etc/fair-crm/dev-seed.env}"
 
@@ -145,7 +147,7 @@ check_firewall_rules_exact() {
   fi
 
   local port
-  for port in 5432 8000 8001 15432; do
+  for port in 5432 8000 8001 8002 15432; do
     if awk -v p="$port" '$1 == p || $1 == p "/tcp" { if ($0 ~ /ALLOW/) found=1 } END { exit(found ? 0 : 1) }' <<<"$status"; then
       check_fail "${port} not publicly exposed"
     else
@@ -178,6 +180,7 @@ main() {
   check_postgres_connectivity
   check_database_exists "kyrox_core"
   check_database_exists "fair_crm"
+  check_database_exists "fair_stand"
 
   validate_env_files_check
   check_bootstrap_settings
@@ -191,6 +194,11 @@ main() {
     check_pass "Fair CRM virtualenv present"
   else
     check_fail "Fair CRM virtualenv present"
+  fi
+  if [[ -x "${FAIR_STAND_DIR}/backend/.venv/bin/python" ]]; then
+    check_pass "Fair Stand virtualenv present"
+  else
+    check_fail "Fair Stand virtualenv present"
   fi
   check_playwright_chromium "$FAIR_CRM_DIR"
   if [[ -f "${FAIR_CRM_DIR}/frontend/dist/index.html" ]]; then
@@ -213,8 +221,12 @@ main() {
       "$KYROX_CORE_DIR" "${KYROX_CORE_DIR}/.venv/bin/python" "$core_db_url"
     check_alembic_at_head "fair-crm" "$FAIR_CRM_DIR" "${FAIR_CRM_DIR}/backend/.venv/bin/python" "$fair_db_url"
   fi
+  if [[ -x "${FAIR_STAND_DIR}/backend/.venv/bin/python" ]]; then
+    check_alembic_at_head "fair-stand" "${FAIR_STAND_DIR}/backend" "${FAIR_STAND_DIR}/backend/.venv/bin/python" ""
+  fi
 
   check_systemd_service "kyrox-core.service" "Core"
+  check_systemd_service "fair-stand.service" "Fair Stand"
   check_systemd_service "fair-crm-backend.service" "Fair CRM backend"
 
   check_port_bindings
@@ -223,10 +235,11 @@ main() {
 
   local core_url="http://127.0.0.1:${CORE_PORT}${CORE_HEALTH_PATH}"
   local fair_url="http://127.0.0.1:${FAIR_CRM_PORT}${FAIR_CRM_HEALTH_PATH}"
-  check_http_endpoints "$core_url" "$fair_url"
+  local stand_url="http://127.0.0.1:${STAND_PORT}${STAND_HEALTH_PATH}"
+  check_http_endpoints "$core_url" "$fair_url" "$stand_url"
   run_login_smoke_test "$CORE_PORT" "check"
   run_admin_backups_smoke_test "$FAIR_CRM_PORT" "$CORE_PORT" "check"
-  run_fair_stand_catalog_bootstrap_smoke "8002" "$CORE_PORT" "check"
+  run_fair_stand_catalog_bootstrap_smoke "$STAND_PORT" "$CORE_PORT" "check"
   check_fair_stand_spa_host
 
   echo ""
