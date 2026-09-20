@@ -594,6 +594,7 @@ main() {
   if [[ "${SKIP_NGINX_RELOAD:-0}" != "1" ]]; then
     step "Reload nginx"
     if command -v nginx >/dev/null 2>&1; then
+      bash "${SCRIPT_DIR}/apply-nginx-upload-limit.sh"
       if run_root nginx -t >/dev/null 2>&1; then
         REPORT_NGINX_TEST="ok"
         run_root systemctl reload nginx

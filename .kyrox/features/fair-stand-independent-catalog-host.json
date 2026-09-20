@@ -26,6 +26,7 @@
     "scripts/server/run-restore-job.sh",
     "scripts/server/setup-domain-ssl.sh",
     "scripts/server/bootstrap-server.sh",
+    "scripts/server/apply-nginx-upload-limit.sh",
     "scripts/maintenance/inventory_system_behavior.py",
     "scripts/maintenance/refine_system_behavior_inventory.py",
     "scripts/maintenance/test_system_behavior_inventory.py",
