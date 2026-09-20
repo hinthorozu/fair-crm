@@ -5,7 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 BackupFormatLiteral = Literal["postgresql_dump", "postgresql_sql", "universal_data_package"]
-DatabaseKeyLiteral = Literal["kyrox_core", "fair_crm"]
+DatabaseKeyLiteral = Literal["kyrox_core", "fair_crm", "fair_stand"]
 
 
 class CreateSystemBackupRequest(BaseModel):

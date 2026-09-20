@@ -32,6 +32,15 @@ def _success_post_restore_health(**kwargs) -> PostRestoreHealthResult:
             permissions_count=10,
             memberships_count=7,
         )
+    if database_key == "fair_stand":
+        return PostRestoreHealthResult(
+            ok=True,
+            migration_result=kwargs.get("migration_result", "success"),
+            database_key="fair_stand",
+            categories_count=6,
+            preview_kinds_count=28,
+            items_count=96,
+        )
     return PostRestoreHealthResult(
         ok=True,
         migration_result=kwargs.get("migration_result", "success"),
@@ -705,6 +714,52 @@ def test_restore_kyrox_core_backup(client, auth_headers, backups_root, monkeypat
     assert body["target_database_key"] == "kyrox_core"
 
 
+def test_create_fair_stand_rejects_universal_package(client, auth_headers, backups_root):
+    create = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={"database_keys": ["fair_stand"], "backup_format": "universal_data_package"},
+    )
+    assert create.status_code == 400
+    assert "fair_crm" in create.json()["detail"].lower()
+
+
+def test_create_and_restore_fair_stand_backup(client, auth_headers, backups_root, monkeypatch):
+    from app.shared.database_backup.engine import BackupVerificationResult
+
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+
+    create = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={"database_keys": ["fair_stand"]},
+    )
+    assert create.status_code == 202
+    item = _first_item(create.json())
+    assert item["database_key"] == "fair_stand"
+    assert item["file_name"].startswith("fair_stand_backup_")
+
+    restore = client.post(f"/api/v1/admin/backups/{item['id']}/restore", headers=auth_headers)
+    assert restore.status_code == 202
+    body = restore.json()
+    assert body["source_database_key"] == "fair_stand"
+    assert body["target_database_key"] == "fair_stand"
+
+
+def test_create_multi_database_backup_includes_fair_stand(client, auth_headers, backups_root):
+    create = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={"database_keys": ["kyrox_core", "fair_crm", "fair_stand"], "notes": "trio"},
+    )
+    assert create.status_code == 202
+    items = _batch_items(create.json())
+    assert {item["database_key"] for item in items} == {"kyrox_core", "fair_crm", "fair_stand"}
+
+
 def test_resolve_restore_job_log_path_rejects_traversal(backups_root):
     from datetime import UTC, datetime
     from uuid import uuid4
@@ -757,7 +812,7 @@ def test_resolve_backup_path_accepts_supported_extensions(tmp_path, monkeypatch)
     (root / "backups").mkdir(parents=True)
     monkeypatch.setattr("app.shared.database_backup.paths.get_repo_root", lambda: root)
 
-    for name in ("fair_crm_backup_20260702_120000.dump", "kyrox_core_backup_20260702_120000.dump", "fair_crm_backup_20260702_120000.sql", "fair_crm_data_package_20260702_120000.zip"):
+    for name in ("fair_crm_backup_20260702_120000.dump", "kyrox_core_backup_20260702_120000.dump", "fair_stand_backup_20260702_120000.dump", "fair_crm_backup_20260702_120000.sql", "fair_crm_data_package_20260702_120000.zip"):
         path = resolve_backup_path(name)
         assert path.name == name
 

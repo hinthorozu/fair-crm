@@ -42,6 +42,19 @@ KYROX_CORE_COUNT_TABLES: tuple[str, ...] = (
     "identity_memberships",
 )
 
+FAIR_STAND_CRITICAL_TABLES: tuple[str, ...] = (
+    "alembic_version",
+    "fair_stand_categories",
+    "fair_stand_catalog_preview_kinds",
+    "fair_stand_items",
+)
+
+FAIR_STAND_COUNT_TABLES: tuple[str, ...] = (
+    "fair_stand_categories",
+    "fair_stand_catalog_preview_kinds",
+    "fair_stand_items",
+)
+
 
 @dataclass(frozen=True)
 class PostRestoreHealthResult:
@@ -56,6 +69,9 @@ class PostRestoreHealthResult:
     roles_count: int | None = None
     permissions_count: int | None = None
     memberships_count: int | None = None
+    categories_count: int | None = None
+    preview_kinds_count: int | None = None
+    items_count: int | None = None
     error_message: str | None = None
 
     def summary_text(self) -> str:
@@ -71,6 +87,15 @@ class PostRestoreHealthResult:
                 f"- roles: {self.roles_count}\n"
                 f"- permissions: {self.permissions_count}\n"
                 f"- memberships: {self.memberships_count}"
+            )
+        if self.database_key == DatabaseKey.FAIR_STAND.value:
+            return (
+                "Post-restore health check summary:\n"
+                f"- database: {self.database_key}\n"
+                f"- migration: {self.migration_result}\n"
+                f"- categories: {self.categories_count}\n"
+                f"- preview kinds: {self.preview_kinds_count}\n"
+                f"- items: {self.items_count}"
             )
         return (
             "Post-restore health check summary:\n"
@@ -102,6 +127,14 @@ class PostRestoreHealthResult:
                     f"memberships count: {self.memberships_count}",
                 ]
             )
+        elif self.database_key == DatabaseKey.FAIR_STAND.value:
+            lines.extend(
+                [
+                    f"categories count: {self.categories_count}",
+                    f"preview kinds count: {self.preview_kinds_count}",
+                    f"items count: {self.items_count}",
+                ]
+            )
         else:
             lines.extend(
                 [
@@ -117,12 +150,16 @@ class PostRestoreHealthResult:
 def _critical_tables(database_key: DatabaseKey) -> tuple[str, ...]:
     if database_key == DatabaseKey.KYROX_CORE:
         return KYROX_CORE_CRITICAL_TABLES
+    if database_key == DatabaseKey.FAIR_STAND:
+        return FAIR_STAND_CRITICAL_TABLES
     return FAIR_CRM_CRITICAL_TABLES
 
 
 def _count_tables(database_key: DatabaseKey) -> tuple[str, ...]:
     if database_key == DatabaseKey.KYROX_CORE:
         return KYROX_CORE_COUNT_TABLES
+    if database_key == DatabaseKey.FAIR_STAND:
+        return FAIR_STAND_COUNT_TABLES
     return FAIR_CRM_COUNT_TABLES
 
 
@@ -163,6 +200,17 @@ def run_post_restore_health_check(
                     error_message=f"Missing critical tables: {', '.join(missing_tables)}",
                 )
 
+            if migration_result != "success":
+                return PostRestoreHealthResult(
+                    ok=False,
+                    migration_result=migration_result,
+                    database_key=key.value,
+                    error_message=(
+                        "Post-restore schema upgrade did not complete. "
+                        "Old dumps must run alembic upgrade head after pg_restore."
+                    ),
+                )
+
             counts: dict[str, int] = {}
             for table_name in _count_tables(key):
                 counts[table_name] = int(
@@ -179,6 +227,15 @@ def run_post_restore_health_check(
                 roles_count=counts["identity_roles"],
                 permissions_count=counts["identity_permissions"],
                 memberships_count=counts["identity_memberships"],
+            )
+        if key == DatabaseKey.FAIR_STAND:
+            return PostRestoreHealthResult(
+                ok=True,
+                migration_result=migration_result,
+                database_key=key.value,
+                categories_count=counts["fair_stand_categories"],
+                preview_kinds_count=counts["fair_stand_catalog_preview_kinds"],
+                items_count=counts["fair_stand_items"],
             )
 
         return PostRestoreHealthResult(

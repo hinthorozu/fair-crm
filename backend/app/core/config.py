@@ -60,6 +60,11 @@ class Settings(BaseSettings):
         validation_alias="KYROX_CORE_DATABASE_URL",
     )
     kyrox_core_repo_path: str | None = Field(default=None, validation_alias="KYROX_CORE_REPO_PATH")
+    fair_stand_database_url: str = Field(
+        default="postgresql+psycopg2://postgres:postgres@localhost:5432/fair_stand",
+        validation_alias="FAIR_STAND_DATABASE_URL",
+    )
+    fair_stand_repo_path: str | None = Field(default=None, validation_alias="FAIR_STAND_REPO_PATH")
     jwt_secret_key: str = "change-me-in-production-use-a-long-random-string"
     smtp_secret_encryption_key: str | None = Field(
         default=None,

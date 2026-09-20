@@ -13,6 +13,7 @@ from app.shared.database_backup.formats import BackupFormat
 class DatabaseKey(StrEnum):
     KYROX_CORE = "kyrox_core"
     FAIR_CRM = "fair_crm"
+    FAIR_STAND = "fair_stand"
 
 
 SUPPORTED_DATABASE_KEYS: frozenset[DatabaseKey] = frozenset(DatabaseKey)
@@ -22,6 +23,7 @@ DATABASE_KEY_SORT_FIELDS: frozenset[str] = frozenset(key.value for key in Databa
 DATABASE_LABELS: dict[DatabaseKey, str] = {
     DatabaseKey.KYROX_CORE: "KYROX Core",
     DatabaseKey.FAIR_CRM: "FAIR CRM",
+    DatabaseKey.FAIR_STAND: "Fair Stand",
 }
 
 
@@ -72,6 +74,8 @@ def resolve_database_url(database_key: DatabaseKey | str) -> str:
     settings = get_settings()
     if key == DatabaseKey.KYROX_CORE:
         return settings.kyrox_core_database_url
+    if key == DatabaseKey.FAIR_STAND:
+        return settings.fair_stand_database_url
     return settings.database_url
 
 
@@ -92,18 +96,28 @@ def assert_target_url_matches_database_key(database_url: str, database_key: Data
 
 
 def validate_backup_format_for_database(database_key: DatabaseKey, backup_format: BackupFormat) -> None:
-    if database_key == DatabaseKey.KYROX_CORE and backup_format == BackupFormat.UNIVERSAL_DATA_PACKAGE:
+    if database_key != DatabaseKey.FAIR_CRM and backup_format == BackupFormat.UNIVERSAL_DATA_PACKAGE:
         raise ValueError("Universal data package backups are only supported for fair_crm")
 
 
 def resolve_alembic_workdir(database_key: DatabaseKey | str) -> Path:
     key = DatabaseKey(database_key)
     repo_root = Path(__file__).resolve().parents[4]
+    settings = get_settings()
     if key == DatabaseKey.KYROX_CORE:
-        settings = get_settings()
         if settings.kyrox_core_repo_path:
             return Path(settings.kyrox_core_repo_path).resolve()
         raise ValueError(
             "KYROX_CORE_REPO_PATH is required to run alembic migrations for kyrox_core restores"
+        )
+    if key == DatabaseKey.FAIR_STAND:
+        if settings.fair_stand_repo_path:
+            stand_root = Path(settings.fair_stand_repo_path).resolve()
+            stand_backend = stand_root / "backend"
+            if (stand_backend / "alembic.ini").is_file():
+                return stand_backend
+            return stand_root
+        raise ValueError(
+            "FAIR_STAND_REPO_PATH is required to run alembic migrations for fair_stand restores"
         )
     return repo_root

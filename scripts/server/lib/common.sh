@@ -443,6 +443,24 @@ path.write_text("\n".join(out) + "\n", encoding="utf-8")
 PY
 }
 
+ensure_fair_crm_peer_database_urls() {
+  local fair_env="${FAIR_CRM_DIR}/backend/.env"
+  [[ -f "$fair_env" ]] || return 0
+
+  if [[ -z "$(read_env_key "$fair_env" KYROX_CORE_DATABASE_URL || true)" ]]; then
+    replace_or_append_env_key "$fair_env" "KYROX_CORE_DATABASE_URL" "$(resolve_core_db_url)"
+  fi
+  if [[ -z "$(read_env_key "$fair_env" FAIR_STAND_DATABASE_URL || true)" ]]; then
+    replace_or_append_env_key "$fair_env" "FAIR_STAND_DATABASE_URL" "$(resolve_stand_db_url)"
+  fi
+  if [[ -z "$(read_env_key "$fair_env" KYROX_CORE_REPO_PATH || true)" ]]; then
+    replace_or_append_env_key "$fair_env" "KYROX_CORE_REPO_PATH" "${KYROX_CORE_DIR}"
+  fi
+  if [[ -z "$(read_env_key "$fair_env" FAIR_STAND_REPO_PATH || true)" ]]; then
+    replace_or_append_env_key "$fair_env" "FAIR_STAND_REPO_PATH" "${FAIR_STAND_DIR}"
+  fi
+}
+
 ensure_fair_stand_backend_env() {
   local stand_dir="${1:-${FAIR_STAND_DIR}}"
   local core_dir="${2:-${KYROX_CORE_DIR}}"

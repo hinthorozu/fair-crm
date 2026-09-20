@@ -39,7 +39,9 @@ function restoreJobSourceLabel(sourceType: SystemBackupRestoreJobResponse["sourc
 }
 
 function databaseKeyLabel(key: SystemBackupRestoreJobResponse["source_database_key"]): string {
-  return key === "kyrox_core" ? adminLabels.databaseKeyKyroxCore : adminLabels.databaseKeyFairCrm;
+  if (key === "kyrox_core") return adminLabels.databaseKeyKyroxCore;
+  if (key === "fair_stand") return adminLabels.databaseKeyFairStand;
+  return adminLabels.databaseKeyFairCrm;
 }
 
 function restoreJobFileLabel(job: SystemBackupRestoreJobResponse): string {

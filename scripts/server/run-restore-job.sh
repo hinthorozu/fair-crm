@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 #
-# Execute a persisted Fair CRM restore job (destructive pg_restore).
+# Execute a persisted restore job (destructive pg_restore, then alembic upgrade).
+#
+# Same rule for fair_crm, kyrox_core, and fair_stand:
+#   dump is data; current code migrations bring the schema forward.
+#   Uploaded USB dumps are valid; the dump does not have to exist in this
+#   machine's Admin backup list.
 #
 # NOT invoked by deploy-all.sh. Run manually after creating a restore job in
 # Admin → System → Database Backups.
@@ -10,6 +15,7 @@
 #   TARGET_DATABASE_URL=<explicit target database URL>
 #   fair-crm-backend and fair-crm-mail-worker must already be stopped
 #   Fair Stand stays up for a FAIR CRM restore (independent catalog DB)
+#   Fair Stand restore: fair-stand must already be stopped; kyrox-core stays active
 #   FAIR CRM restore: kyrox-core must remain active for external reconciliation
 #   KYROX Core restore: kyrox-core must already be stopped; Core-owned CLI
 #                       captures/reconciles lifecycle directly against the DB
@@ -17,6 +23,7 @@
 # Usage:
 #   sudo systemctl stop fair-crm-backend fair-crm-mail-worker
 #   # additionally for a Core restore: sudo systemctl stop kyrox-core
+#   # additionally for a Stand restore: sudo systemctl stop fair-stand
 #   export ALLOW_RESTORE=true
 #   export TARGET_DATABASE_URL='postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/fair_crm'
 #   sudo -E /opt/fair-crm/scripts/server/run-restore-job.sh <restore-job-uuid>
@@ -120,6 +127,9 @@ main() {
   if [[ "$TARGET_DATABASE_KEY" == "kyrox_core" ]]; then
     assert_service_inactive "kyrox-core"
   elif [[ "$TARGET_DATABASE_KEY" == "fair_crm" ]]; then
+    assert_service_active "kyrox-core"
+  elif [[ "$TARGET_DATABASE_KEY" == "fair_stand" ]]; then
+    assert_service_inactive "fair-stand"
     assert_service_active "kyrox-core"
   else
     die "Unsupported restore target database key: ${TARGET_DATABASE_KEY}"

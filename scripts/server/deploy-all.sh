@@ -554,6 +554,7 @@ main() {
   ensure_database "fair_crm"
   ensure_database "fair_stand"
   ensure_fair_stand_backend_env "$FAIR_STAND_DIR" "$KYROX_CORE_DIR"
+  ensure_fair_crm_peer_database_urls
   ensure_repo_data_dirs "$FAIR_CRM_DIR"
 
   validate_env_files_required

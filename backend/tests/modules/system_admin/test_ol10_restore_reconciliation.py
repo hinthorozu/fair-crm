@@ -78,9 +78,12 @@ def _restore_job(*, backup: SystemBackup) -> SystemBackupRestoreJob:
     )
 
 
-def test_restore_source_accepts_exact_30_day_boundary(tmp_path: Path) -> None:
+def test_restore_source_accepts_old_tracked_dump(tmp_path: Path) -> None:
     now = datetime(2026, 9, 9, 12, 0, tzinfo=UTC)
-    backup = _backup(organization_id=uuid4(), completed_at=now - timedelta(days=30))
+    backup = _backup(
+        organization_id=uuid4(),
+        completed_at=now - timedelta(days=365),
+    )
     job = _restore_job(backup=backup)
     dump_path = tmp_path / backup.file_name
     dump_path.write_bytes(b"PGDMP-test")
@@ -89,34 +92,28 @@ def test_restore_source_accepts_exact_30_day_boundary(tmp_path: Path) -> None:
         job=job,
         backup=backup,
         dump_path=dump_path,
-        now=now,
-        retention_days=30,
         checksum_file=lambda _: "a" * 64,
     )
 
 
-def test_restore_source_rejects_backup_older_than_30_days(tmp_path: Path) -> None:
+def test_restore_source_accepts_uploaded_dump_for_every_database(tmp_path: Path) -> None:
     now = datetime(2026, 9, 9, 12, 0, tzinfo=UTC)
-    backup = _backup(
-        organization_id=uuid4(),
-        completed_at=now - timedelta(days=30, seconds=1),
-    )
-    job = _restore_job(backup=backup)
-    dump_path = tmp_path / backup.file_name
+    dump_path = tmp_path / "uploaded.dump"
     dump_path.write_bytes(b"PGDMP-test")
-
-    with pytest.raises(ValueError, match="older than the 30-day"):
+    for database_key in (DatabaseKey.FAIR_CRM, DatabaseKey.KYROX_CORE, DatabaseKey.FAIR_STAND):
+        backup = _backup(organization_id=uuid4(), completed_at=now, database_key=database_key)
+        job = _restore_job(backup=backup)
+        job.source_type = RestoreJobSourceType.UPLOADED_FILE
+        job.backup_id = None
         validate_restore_source_provenance(
             job=job,
-            backup=backup,
+            backup=None,
             dump_path=dump_path,
-            now=now,
-            retention_days=30,
             checksum_file=lambda _: "a" * 64,
         )
 
 
-def test_restore_source_rejects_uploaded_dump_without_authoritative_age(tmp_path: Path) -> None:
+def test_restore_source_rejects_uploaded_dump_with_checksum_mismatch(tmp_path: Path) -> None:
     now = datetime(2026, 9, 9, 12, 0, tzinfo=UTC)
     backup = _backup(organization_id=uuid4(), completed_at=now)
     job = _restore_job(backup=backup)
@@ -125,20 +122,16 @@ def test_restore_source_rejects_uploaded_dump_without_authoritative_age(tmp_path
     dump_path = tmp_path / "uploaded.dump"
     dump_path.write_bytes(b"PGDMP-test")
 
-    with pytest.raises(ValueError, match="Uploaded restore source blocked"):
+    with pytest.raises(ValueError, match="uploaded restore provenance"):
         validate_restore_source_provenance(
             job=job,
             backup=None,
             dump_path=dump_path,
-            now=now,
-            retention_days=30,
-            checksum_file=lambda _: "a" * 64,
+            checksum_file=lambda _: "b" * 64,
         )
 
 
-def test_core_restore_requires_tracked_provenance_but_does_not_invent_fair_retention(
-    tmp_path: Path,
-) -> None:
+def test_restore_source_accepts_old_core_dump(tmp_path: Path) -> None:
     now = datetime(2026, 9, 9, 12, 0, tzinfo=UTC)
     backup = _backup(
         organization_id=uuid4(),
@@ -153,8 +146,6 @@ def test_core_restore_requires_tracked_provenance_but_does_not_invent_fair_reten
         job=job,
         backup=backup,
         dump_path=dump_path,
-        now=now,
-        retention_days=30,
         checksum_file=lambda _: "a" * 64,
     )
 

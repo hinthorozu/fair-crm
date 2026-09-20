@@ -1,6 +1,6 @@
 export type BackupFormat = "postgresql_dump" | "postgresql_sql" | "universal_data_package";
 
-export type DatabaseKey = "kyrox_core" | "fair_crm";
+export type DatabaseKey = "kyrox_core" | "fair_crm" | "fair_stand";
 
 export interface SystemBackup {
   id: string;
