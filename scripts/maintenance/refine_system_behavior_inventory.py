@@ -378,19 +378,38 @@ def parse_template_parts(expr: str) -> list[tuple[str, str]] | None:
     return parts
 
 
+FAIR_STAND_API_PREFIX = "/api/v1/fair-stand"
+CROSS_SERVICE_TARGETS = frozenset({"kyrox-core", "fair-stand"})
+PRODUCT_HTTP_TARGETS = frozenset({"fair-crm", "kyrox-core", "fair-stand"})
+
+
+def product_http_target(path: str | None, *, current: str = "unknown") -> str:
+    """Classify a resolved HTTP path. Fair Stand catalog is proxied off-process."""
+
+    if current == "kyrox-core":
+        return current
+    if path and path.startswith(FAIR_STAND_API_PREFIX):
+        return "fair-stand"
+    if current != "unknown":
+        return current
+    if path and path.startswith("/api/"):
+        return "fair-crm"
+    return "unknown"
+
+
 def eval_path_expression(expr: str, constants: dict[str, str]) -> tuple[str | None, str, str]:
-    """Return (path, target, evidence). target=fair-crm|kyrox-core|unknown."""
+    """Return (path, target, evidence). target=fair-crm|kyrox-core|fair-stand|unknown."""
 
     expr = expr.strip()
     if not expr:
         return None, "unknown", "empty"
     if (expr[0:1] in {"'", '"'} and expr[-1:] == expr[0]) and len(expr) >= 2:
         value = expr[1:-1]
-        return value, "fair-crm" if value.startswith("/api/") else "unknown", "literal"
+        return value, product_http_target(value), "literal"
     if IDENTIFIER_RE.fullmatch(expr):
         if expr in constants:
             value = constants[expr]
-            return value, "fair-crm" if value.startswith("/api/") else "unknown", f"const:{expr}"
+            return value, product_http_target(value), f"const:{expr}"
         return None, "unknown", f"identifier:{expr}"
 
     parts = parse_template_parts(expr)
@@ -414,7 +433,7 @@ def eval_path_expression(expr: str, constants: dict[str, str]) -> tuple[str | No
             resolved = constants[inner]
             output.append(resolved)
             if resolved.startswith("/api/") and target == "unknown":
-                target = "fair-crm"
+                target = product_http_target(resolved)
             continue
         lower = inner.lower()
         if (
@@ -425,8 +444,7 @@ def eval_path_expression(expr: str, constants: dict[str, str]) -> tuple[str | No
         output.append("{param}")
 
     result = "".join(output)
-    if target == "unknown" and result.startswith("/api/"):
-        target = "fair-crm"
+    target = product_http_target(result, current=target)
     return result or None, target, "template"
 
 
@@ -470,10 +488,10 @@ def refine_frontend(root: Path, calls: list[dict[str, Any]]) -> None:
         call["target"] = target
         call["path"] = path
         call["match_path"] = normalize_match_path(path)
-        call["resolved"] = bool(path and target in {"fair-crm", "kyrox-core"})
+        call["resolved"] = bool(path and target in PRODUCT_HTTP_TARGETS)
         if target == "unknown" and evidence.startswith("identifier:"):
             call["classification"] = "internal_or_indirect_transport"
-        elif target == "kyrox-core":
+        elif target in CROSS_SERVICE_TARGETS:
             call["classification"] = "cross_service_transport"
         else:
             call["classification"] = "product_http_call"
@@ -507,10 +525,10 @@ def rebuild(root: Path, data: dict[str, Any]) -> dict[str, Any]:
 
     for call in frontend:
         target = call.get("target") or "unknown"
-        if target == "kyrox-core":
+        if target in CROSS_SERVICE_TARGETS:
             cross_service.append(
                 {
-                    "target": "kyrox-core",
+                    "target": target,
                     "method": call.get("method"),
                     "path": call.get("path"),
                     "match_path": call.get("match_path"),

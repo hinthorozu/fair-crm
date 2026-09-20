@@ -226,7 +226,7 @@ main() {
   check_http_endpoints "$core_url" "$fair_url"
   run_login_smoke_test "$CORE_PORT" "check"
   run_admin_backups_smoke_test "$FAIR_CRM_PORT" "$CORE_PORT" "check"
-  run_fair_stand_catalog_bootstrap_smoke "$FAIR_CRM_PORT" "$CORE_PORT" "check"
+  run_fair_stand_catalog_bootstrap_smoke "8002" "$CORE_PORT" "check"
   check_fair_stand_spa_host
 
   echo ""

@@ -9,14 +9,7 @@
   "tenant_scope": "system",
   "user_facing": true,
   "affected_paths": [
-    "backend/app/modules/fair_stand/api/dependencies.py",
-    "backend/app/modules/fair_stand/application/admin_catalog.py",
-    "backend/app/modules/fair_stand/application/preview_sanitize.py",
-    "backend/app/modules/fair_stand/application/get_catalog_bootstrap.py",
-    "backend/app/modules/fair_stand/infrastructure/models.py",
-    "backend/app/modules/fair_stand/infrastructure/catalog_repository.py",
-    "backend/app/modules/fair_stand/infrastructure/seed_catalog.py",
-    "backend/app/modules/fair_stand/infrastructure/preview_kind_definitions.py",
+    "frontend/src/api/fairStandAdmin.ts",
     "backend/alembic/versions/0085_fair_stand_catalog_previews.py",
     "backend/alembic/versions/0086_fair_stand_category_integer_id.py",
     "backend/alembic/versions/0087_fair_stand_preview_integer_id.py",
@@ -54,11 +47,11 @@
     "menu_permission": "fair_crm.admin.fair_stand.catalog.read"
   },
   "applicability": {
-    "database": { "status": "required" },
-    "migration": { "status": "required" },
+    "database": { "status": "na", "reason": "Admin UI does not own catalog tables; live schema is Fair Stand DB." },
+    "migration": { "status": "na", "reason": "CRM 0089 drop is covered by fair-stand-independent-catalog-host / item-catalog contracts." },
     "permissions": { "status": "required" },
-    "backend": { "status": "required" },
-    "api": { "status": "required" },
+    "backend": { "status": "na", "reason": "Admin mutations run on the Fair Stand API behind same-origin proxy." },
+    "api": { "status": "na", "reason": "CRM no longer mounts /api/v1/fair-stand admin routes." },
     "tenant_isolation": { "status": "na", "reason": "Global Fair Stand product data; no organization_id; SYSTEM Super Admin only." },
     "audit": { "status": "na", "reason": "No new Fair CRM audit stream; mutations are Super Admin catalog administration." },
     "frontend": { "status": "required" },
@@ -67,11 +60,11 @@
     "route_guard": { "status": "required" },
     "forms": { "status": "required" },
     "visual_qa": { "status": "required" },
-    "backend_tests": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Admin API tests live in the Fair Stand repository; CRM asserts the routes are not hosted." },
     "frontend_tests": { "status": "required" },
     "runtime_authorization": { "status": "required" },
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Domain remains Fair Stand; Fair CRM hosts APIs and Admin UI. Runtime catalog bootstrap stays session-authenticated in api/routes.py under fair-stand-item-catalog. Admin mutations independently enforce SYSTEM unassignable permissions via Depends(require_permission(...))."
+  "notes": "Domain remains Fair Stand. CRM Admin React pages call same-origin /api/v1/fair-stand/admin which Vite/Nginx proxy to the Fair Stand process. SYSTEM unassignable permissions are enforced by Stand using Core JWT."
 }

@@ -34,7 +34,6 @@ from app.modules.customers.infrastructure.persistence.communication_models impor
     CustomerWebsiteModel,
 )
 from app.modules.customers.infrastructure.persistence.models import CustomerModel  # noqa: F401
-from app.modules.fair_stand.infrastructure.models import FairStandItemModel  # noqa: F401
 from app.modules.fairs.api.dependencies import (
     get_audit_adapter as get_fair_audit_adapter,
     get_authorization_adapter as get_fair_authorization_adapter,
