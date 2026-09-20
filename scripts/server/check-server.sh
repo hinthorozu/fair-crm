@@ -158,6 +158,7 @@ check_firewall_rules_exact() {
 
 main() {
   check_reset_counters
+  assert_db_url_resolvers
 
   echo "FAIR CRM Server Check"
   echo ""

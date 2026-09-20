@@ -2195,3 +2195,10 @@ resolve_stand_db_url() {
     || read_env_key "${FAIR_STAND_DIR}/backend/.env" DATABASE_URL \
     || echo "postgresql+psycopg2://${PG_USER}:${PG_PASS}@${PG_HOST}:${PG_PORT}/fair_stand"
 }
+
+assert_db_url_resolvers() {
+  local fn
+  for fn in resolve_core_db_url resolve_fair_db_url resolve_stand_db_url; do
+    declare -F "$fn" >/dev/null || die "common.sh missing ${fn} (Core/CRM/Stand each keep their own DATABASE_URL helper)"
+  done
+}

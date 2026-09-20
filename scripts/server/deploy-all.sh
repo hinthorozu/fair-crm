@@ -509,6 +509,7 @@ main() {
   require_cmd curl
   require_cmd psql
   resolve_deploy_service_user
+  assert_db_url_resolvers
 
   step "Verify target directories"
   mkdir -p "$(dirname "$KYROX_CORE_DIR")" "$(dirname "$FAIR_CRM_DIR")" "$(dirname "$FAIR_STAND_DIR")"
