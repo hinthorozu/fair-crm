@@ -116,7 +116,7 @@ def test_restore_source_rejects_backup_older_than_30_days(tmp_path: Path) -> Non
         )
 
 
-def test_restore_source_rejects_uploaded_dump_without_authoritative_age(tmp_path: Path) -> None:
+def test_restore_source_accepts_uploaded_dump_with_matching_checksum(tmp_path: Path) -> None:
     now = datetime(2026, 9, 9, 12, 0, tzinfo=UTC)
     backup = _backup(organization_id=uuid4(), completed_at=now)
     job = _restore_job(backup=backup)
@@ -125,14 +125,33 @@ def test_restore_source_rejects_uploaded_dump_without_authoritative_age(tmp_path
     dump_path = tmp_path / "uploaded.dump"
     dump_path.write_bytes(b"PGDMP-test")
 
-    with pytest.raises(ValueError, match="Uploaded restore source blocked"):
+    validate_restore_source_provenance(
+        job=job,
+        backup=None,
+        dump_path=dump_path,
+        now=now,
+        retention_days=30,
+        checksum_file=lambda _: "a" * 64,
+    )
+
+
+def test_restore_source_rejects_uploaded_dump_with_checksum_mismatch(tmp_path: Path) -> None:
+    now = datetime(2026, 9, 9, 12, 0, tzinfo=UTC)
+    backup = _backup(organization_id=uuid4(), completed_at=now)
+    job = _restore_job(backup=backup)
+    job.source_type = RestoreJobSourceType.UPLOADED_FILE
+    job.backup_id = None
+    dump_path = tmp_path / "uploaded.dump"
+    dump_path.write_bytes(b"PGDMP-test")
+
+    with pytest.raises(ValueError, match="uploaded restore provenance"):
         validate_restore_source_provenance(
             job=job,
             backup=None,
             dump_path=dump_path,
             now=now,
             retention_days=30,
-            checksum_file=lambda _: "a" * 64,
+            checksum_file=lambda _: "b" * 64,
         )
 
 

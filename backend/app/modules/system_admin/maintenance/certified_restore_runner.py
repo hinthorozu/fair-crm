@@ -89,17 +89,30 @@ def validate_restore_source_provenance(
 ) -> None:
     """Reject restore sources whose provenance cannot be established.
 
-    OL10's 30-day age limit is a FAIR CRM full-database-backup policy. Core
-    restores still require a tracked completed backup with matching database,
-    filename and checksum, but this function does not invent a Core retention
-    period that the platform policy has not defined.
+    OL10's 30-day age limit is a FAIR CRM full-database-backup policy and applies
+    only to tracked FAIR CRM backups. Uploaded custom dumps remain a supported
+    off-machine restore path: the file must already have been accepted as a
+    PostgreSQL dump for the selected database, and the stored checksum must still
+    match. Core tracked restores still require a completed backup with matching
+    database, filename and checksum, but this function does not invent a Core
+    retention period that the platform policy has not defined.
     """
 
+    if job.source_database_key != job.target_database_key:
+        raise ValueError("Cross-database restore is not permitted")
+
+    if job.source_type == RestoreJobSourceType.UPLOADED_FILE:
+        if job.backup_id is not None or backup is not None:
+            raise ValueError("Uploaded restore must not reference a tracked backup")
+        if not job.checksum_sha256:
+            raise ValueError("Restore source is missing authoritative checksum provenance")
+        actual_checksum = checksum_file(dump_path)
+        if actual_checksum != job.checksum_sha256:
+            raise ValueError("Restore dump checksum no longer matches uploaded restore provenance")
+        return
+
     if job.source_type != RestoreJobSourceType.EXISTING_BACKUP:
-        raise ValueError(
-            "Uploaded restore source blocked: authoritative backup completion provenance "
-            "is unavailable. Restore a tracked database backup instead."
-        )
+        raise ValueError("Unsupported restore source type")
     if job.backup_id is None or backup is None:
         raise ValueError("Tracked restore backup provenance could not be resolved")
     if backup.id != job.backup_id or backup.organization_id != job.organization_id:
@@ -112,8 +125,6 @@ def validate_restore_source_provenance(
         raise ValueError("Only PostgreSQL custom dump backups may be restored")
     if backup.database_key != job.source_database_key:
         raise ValueError("Restore source database does not match tracked backup provenance")
-    if job.source_database_key != job.target_database_key:
-        raise ValueError("Cross-database restore is not permitted")
     if backup.file_name != job.source_file_name:
         raise ValueError("Restore source file does not match tracked backup provenance")
     if not backup.checksum or not job.checksum_sha256:
