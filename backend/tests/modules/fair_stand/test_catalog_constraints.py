@@ -43,9 +43,6 @@ def test_all_fair_stand_foreign_keys_are_cascade_cascade(test_engine):
         "fair_stand_item_strip_occupancy",
         "fair_stand_item_assets",
         "fair_stand_item_components",
-        "fair_stand_item_inner_corners",
-        "fair_stand_item_inner_corner_replacements",
-        "fair_stand_item_inner_corner_replacement_members",
         "fair_stand_item_video_walls",
         "fair_stand_item_body_parts",
     ]
@@ -177,16 +174,22 @@ def test_seed_relation_counts(db_session):
     seed_fair_stand_catalog(db_session)
     db_session.flush()
     assets = db_session.execute(text("SELECT COUNT(*) FROM fair_stand_item_assets")).scalar_one()
-    inner = db_session.execute(text("SELECT COUNT(*) FROM fair_stand_item_inner_corners")).scalar_one()
-    replacements = db_session.execute(text("SELECT COUNT(*) FROM fair_stand_item_inner_corner_replacements")).scalar_one()
-    members = db_session.execute(
-        text("SELECT COUNT(*) FROM fair_stand_item_inner_corner_replacement_members")
-    ).scalar_one()
     bodies = db_session.execute(text("SELECT COUNT(*) FROM fair_stand_item_body_parts")).scalar_one()
     walls = db_session.execute(text("SELECT COUNT(*) FROM fair_stand_item_video_walls")).scalar_one()
+    item_keys = set(db_session.execute(text("SELECT item_key FROM fair_stand_items")).scalars().all())
+    item_columns = {column["name"] for column in inspect(db_session.get_bind()).get_columns("fair_stand_items")}
+    tables = set(inspect(db_session.get_bind()).get_table_names())
     assert assets > 0
-    assert inner > 0
-    assert replacements > 0
-    assert members > 0
     assert bodies > 0
     assert walls > 0
+    assert len(item_keys) == 96
+    assert {
+        "panel_corner_42_5",
+        "panel_corner_92",
+        "panel_corner_142_5",
+        "panel_corner_192",
+    }.issubset(item_keys)
+    assert "nominal_module_width_cm" not in item_columns
+    assert "fair_stand_item_inner_corners" not in tables
+    assert "fair_stand_item_inner_corner_replacements" not in tables
+    assert "fair_stand_item_inner_corner_replacement_members" not in tables

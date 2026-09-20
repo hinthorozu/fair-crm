@@ -45,6 +45,14 @@ def test_bootstrap_returns_canonical_aggregates(client, db_session, auth_headers
     assert vw["videoWall"]["panelItemKey"] == "VIDEO_WALL_PANEL"
     showcase = next(item for item in body["items"] if item["itemKey"] == "wall_showcase_100_2")
     assert showcase["bodyItems"]["glassShelfItemKey"] == "glass_shelf"
+    wall_200 = next(item for item in body["items"] if item["itemKey"] == "wall_200")
+    assert "innerCorner" not in wall_200.get("composition", {})
+    assert "nominalModuleWidthCm" not in wall_200
+    corner = next(item for item in body["items"] if item["itemKey"] == "panel_corner_192")
+    assert corner["panelRole"] == "inner-corner"
+    assert "nominalModuleWidthCm" not in corner
+    assert all("nominalModuleWidthCm" not in item for item in body["items"])
+    assert all("innerCorner" not in item.get("composition", {}) for item in body["items"])
     assert "FairStandItemModel" not in body
     assert "SQLAlchemy" not in body
     assert len(body["previewKinds"]) == 28
@@ -80,3 +88,15 @@ def test_exact_item_lookup(client, db_session, auth_headers):
     assert response.status_code == 200
     assert response.json()["itemKey"] == "shelf_100"
     assert response.json()["type"] == "shelf"
+
+
+def test_corner_panel_item_lookup(client, db_session, auth_headers):
+    seed_fair_stand_catalog(db_session)
+    db_session.flush()
+    response = client.get("/api/v1/fair-stand/items/panel_corner_192", headers=auth_headers)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["itemKey"] == "panel_corner_192"
+    assert body["panelRole"] == "inner-corner"
+    assert "nominalModuleWidthCm" not in body
+    assert "innerCorner" not in body.get("composition", {})

@@ -14,8 +14,6 @@ from app.modules.fair_stand.application.item_mapper import (
 from app.modules.fair_stand.infrastructure.models import (
     FairStandCatalogPreviewKindModel,
     FairStandCategoryModel,
-    FairStandItemInnerCornerModel,
-    FairStandItemInnerCornerReplacementModel,
     FairStandItemModel,
 )
 
@@ -31,9 +29,6 @@ class SqlAlchemyFairStandCatalogRepository:
             selectinload(FairStandItemModel.strip_occupancy),
             selectinload(FairStandItemModel.assets),
             selectinload(FairStandItemModel.components),
-            selectinload(FairStandItemModel.inner_corner)
-            .selectinload(FairStandItemInnerCornerModel.replacements)
-            .selectinload(FairStandItemInnerCornerReplacementModel.members),
             selectinload(FairStandItemModel.video_wall),
             selectinload(FairStandItemModel.body_parts),
         )
