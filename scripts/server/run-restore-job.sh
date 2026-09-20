@@ -4,7 +4,7 @@
 #
 # Same rule for fair_crm, kyrox_core, and fair_stand:
 #   dump is data; current code migrations bring the schema forward.
-#   Uploaded USB dumps are valid; the dump does not have to exist in this
+#   Uploaded dumps are valid; the dump does not have to exist in this
 #   machine's Admin backup list.
 #
 # NOT invoked by deploy-all.sh. Run manually after creating a restore job in

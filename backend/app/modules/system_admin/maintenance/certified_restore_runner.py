@@ -81,7 +81,7 @@ def validate_restore_source_provenance(
 ) -> None:
     """Confirm the restore dump matches the job.
 
-    Restore eligibility is not "this machine's Admin backup row". USB / uploaded
+    Restore eligibility is not "this machine's Admin backup row". Uploaded
     dumps are valid when they are a PostgreSQL dump for the selected database
     and the stored checksum still matches. Tracked list restores additionally
     check file name, format and completion. Schema compatibility is not proven

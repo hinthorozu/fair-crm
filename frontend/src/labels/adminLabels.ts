@@ -172,11 +172,11 @@ export const adminLabels = {
     "KYROX Core restore, platform genelinde kimlik ve yetkilendirme verilerini değiştirir. Production ortamında ekstra dikkat gerektirir.",
   restoreUploadDatabaseLabel: "Hedef veritabanı",
   restoreUploadWarningFairCrm:
-    "Dump içindeki FAIR CRM verisi yüklenir, ardından güncel migration'lar çalışır. USB'den getirilen .dump dosyası da aynı yoldan gider.",
+    "Dump içindeki FAIR CRM verisi yüklenir, ardından güncel migration'lar çalışır. Başka makineden gelen .dump dosyası da aynı yoldan gider.",
   restoreUploadWarningFairStand:
-    "Dump içindeki Fair Stand katalog verisi yüklenir, ardından güncel migration'lar çalışır. USB'den getirilen .dump dosyası da aynı yoldan gider.",
+    "Dump içindeki Fair Stand katalog verisi yüklenir, ardından güncel migration'lar çalışır. Başka makineden gelen .dump dosyası da aynı yoldan gider.",
   restoreUploadWarningKyroxCore:
-    "Dump içindeki KYROX Core verisi yüklenir, ardından güncel migration'lar çalışır. Kullanıcı, rol ve oturum verileri değişir. USB'den getirilen .dump dosyası da aynı yoldan gider.",
+    "Dump içindeki KYROX Core verisi yüklenir, ardından güncel migration'lar çalışır. Kullanıcı, rol ve oturum verileri değişir. Başka makineden gelen .dump dosyası da aynı yoldan gider.",
   restoreJobColSourceDatabase: "Source DB",
   restoreJobColTargetDatabase: "Target DB",
 
@@ -201,7 +201,7 @@ export const adminLabels = {
   restoreFromFile: "Dosyadan Geri Yükle",
   restoreFromFileTitle: "Dosyadan Geri Yükle",
   restoreFromFileWarning:
-    "Seçilen .dump dosyasındaki veri yüklenir, ardından o veritabanının güncel migration'ları çalışır. CRM, Core ve Stand için aynı kural geçerlidir. USB dump da kabul edilir.",
+    "Seçilen .dump dosyasındaki veri yüklenir, ardından o veritabanının güncel migration'ları çalışır. CRM, Core ve Stand için aynı kural geçerlidir.",
   restoreDatabaseTitle: "Restore Database",
   deleteBackupTitle: "Yedeği Sil",
   restoreWarning:
@@ -218,7 +218,7 @@ export const adminLabels = {
   restoreUploadPickButton: "Dosya Seç",
   restoreUploadNoFileSelected: "Dosya seçilmedi",
   restoreUploadHint:
-    "PostgreSQL .dump dosyası yeter. Ev/USB yedekleri de kabul edilir. Restore sonrası kodun güncel şeması (alembic) uygulanır; dump'ın bu makinenin yedek listesinde olması gerekmez.",
+    "PostgreSQL .dump dosyası yeter. Restore sonrası kodun güncel şeması (alembic) uygulanır; dump'ın bu makinenin yedek listesinde olması gerekmez.",
   restoreAcknowledge:
     "Mevcut veritabanının silineceğini ve seçilen dosyadan geri yükleneceğini anlıyorum.",
   restoreFileSizeLabel: "Dosya boyutu",
