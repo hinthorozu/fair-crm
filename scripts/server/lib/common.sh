@@ -2184,6 +2184,12 @@ resolve_core_db_url() {
     || echo "postgresql://${PG_USER}:${PG_PASS}@${PG_HOST}:${PG_PORT}/kyrox_core"
 }
 
+resolve_fair_db_url() {
+  read_env_key "${FAIR_CRM_DIR}/backend/.env" DATABASE_URL \
+    || read_env_key "${FAIR_CRM_DIR}/backend/.env" FAIR_CRM_DATABASE_URL \
+    || echo "postgresql+psycopg2://${PG_USER}:${PG_PASS}@${PG_HOST}:${PG_PORT}/fair_crm"
+}
+
 resolve_stand_db_url() {
   read_env_key "${FAIR_STAND_DIR}/backend/.env" FAIR_STAND_DATABASE_URL \
     || read_env_key "${FAIR_STAND_DIR}/backend/.env" DATABASE_URL \
