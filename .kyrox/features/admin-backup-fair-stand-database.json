@@ -16,6 +16,7 @@
     "scripts/server/run-restore-job.sh",
     "scripts/server/lib/common.sh",
     "frontend/src/pages/DatabaseBackupsPage.tsx",
+    "frontend/src/pages/DatabaseBackupsFairStand.test.ts",
     "frontend/src/types/systemBackup.ts",
     "frontend/src/labels/adminLabels.ts",
     "frontend/src/components/admin/RestoreJobDetailModal.tsx",
@@ -50,7 +51,7 @@
     "forms": { "status": "required" },
     "visual_qa": { "status": "required" },
     "backend_tests": { "status": "required" },
-    "frontend_tests": { "status": "na", "reason": "Permission tests unchanged; Stand is a third DatabaseKey option on the existing page." },
+    "frontend_tests": { "status": "required" },
     "runtime_authorization": { "status": "required" },
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
