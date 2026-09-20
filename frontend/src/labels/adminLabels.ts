@@ -163,20 +163,20 @@ export const adminLabels = {
   colDatabaseLabel: "Database Label",
 
   restoreWarningFairCrm:
-    "FAIR CRM verileri geri yüklenecek. Bu işlem mevcut fair_crm veritabanını siler ve seçili backup dosyasındaki veriyle yeniden yükler. Bu işlem geri alınamaz.",
+    "Dump içindeki FAIR CRM verisi yüklenir, ardından güncel migration'lar çalışır. Bu işlem mevcut fair_crm veritabanının üzerine yazar ve geri alınamaz.",
   restoreWarningFairStand:
-    "Fair Stand katalog veritabanı geri yüklenecek. Bu işlem mevcut fair_stand veritabanını siler ve seçili backup dosyasındaki katalogla yeniden yükler. Bu işlem geri alınamaz.",
+    "Dump içindeki Fair Stand katalog verisi yüklenir, ardından güncel migration'lar çalışır. Bu işlem mevcut fair_stand veritabanının üzerine yazar ve geri alınamaz.",
   restoreWarningKyroxCore:
-    "DİKKAT: KYROX Core veritabanı geri yüklenecek. Kullanıcılar, roller, yetkiler ve oturum verileri değişecektir. Tüm platform oturumları etkilenebilir. Bu işlem geri alınamaz.",
+    "Dump içindeki KYROX Core verisi yüklenir, ardından güncel migration'lar çalışır. Kullanıcı, rol, yetki ve oturum verileri değişir. Bu işlem geri alınamaz.",
   restoreWarningKyroxCoreStrong:
     "KYROX Core restore, platform genelinde kimlik ve yetkilendirme verilerini değiştirir. Production ortamında ekstra dikkat gerektirir.",
   restoreUploadDatabaseLabel: "Hedef veritabanı",
   restoreUploadWarningFairCrm:
-    "Bu işlem FAIR CRM veritabanını seçilen dosyadaki verilerle değiştirir. Devam etmeden önce güncel yedek aldığınızdan emin olun.",
+    "Dump içindeki FAIR CRM verisi yüklenir, ardından güncel migration'lar çalışır. USB'den getirilen .dump dosyası da aynı yoldan gider.",
   restoreUploadWarningFairStand:
-    "Bu işlem Fair Stand katalog veritabanını seçilen dosyadaki verilerle değiştirir. Devam etmeden önce güncel yedek aldığınızdan emin olun.",
+    "Dump içindeki Fair Stand katalog verisi yüklenir, ardından güncel migration'lar çalışır. USB'den getirilen .dump dosyası da aynı yoldan gider.",
   restoreUploadWarningKyroxCore:
-    "DİKKAT: Bu işlem KYROX Core veritabanını değiştirir. Kullanıcılar, roller ve yetkiler etkilenir. Devam etmeden önce güncel yedek aldığınızdan emin olun.",
+    "Dump içindeki KYROX Core verisi yüklenir, ardından güncel migration'lar çalışır. Kullanıcı, rol ve oturum verileri değişir. USB'den getirilen .dump dosyası da aynı yoldan gider.",
   restoreJobColSourceDatabase: "Source DB",
   restoreJobColTargetDatabase: "Target DB",
 
@@ -201,7 +201,7 @@ export const adminLabels = {
   restoreFromFile: "Dosyadan Geri Yükle",
   restoreFromFileTitle: "Dosyadan Geri Yükle",
   restoreFromFileWarning:
-    "Bu işlem mevcut veritabanını seçilen dosyadaki verilerle değiştirir. Devam etmeden önce güncel yedek aldığınızdan emin olun.",
+    "Seçilen .dump dosyasındaki veri yüklenir, ardından o veritabanının güncel migration'ları çalışır. CRM, Core ve Stand için aynı kural geçerlidir. USB dump da kabul edilir.",
   restoreDatabaseTitle: "Restore Database",
   deleteBackupTitle: "Yedeği Sil",
   restoreWarning:
@@ -217,7 +217,8 @@ export const adminLabels = {
   restoreUploadLabel: "Backup dosyası",
   restoreUploadPickButton: "Dosya Seç",
   restoreUploadNoFileSelected: "Dosya seçilmedi",
-  restoreUploadHint: "Yalnızca PostgreSQL custom format (.dump) dosyaları kabul edilir.",
+  restoreUploadHint:
+    "PostgreSQL .dump dosyası yeter. Ev/USB yedekleri de kabul edilir. Restore sonrası kodun güncel şeması (alembic) uygulanır; dump'ın bu makinenin yedek listesinde olması gerekmez.",
   restoreAcknowledge:
     "Mevcut veritabanının silineceğini ve seçilen dosyadan geri yükleneceğini anlıyorum.",
   restoreFileSizeLabel: "Dosya boyutu",

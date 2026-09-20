@@ -1,20 +1,20 @@
-"""OL10-certified restore runner.
+"""Certified restore runner.
 
-This wrapper inserts fail-closed source-provenance and organization-lifecycle
-checks into the existing destructive restore runner without weakening its current
-pg_restore, migration, health, job-state, or audit behavior.
+Restore is dump-then-migrate: pg_restore loads data, alembic upgrade head
+brings the schema to the current code, then health checks fail closed.
+Uploaded dumps are a supported off-machine path. Checksums and database-key
+matching still apply; restore is not limited to backups tracked on this machine.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy.orm import Session
 
-from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.integrations.kyrox_core.lifecycle import OrganizationLifecycleGuard
 from app.integrations.kyrox_core.ports import AuditPort
@@ -72,30 +72,20 @@ class CertifiedPostRestoreHealthResult:
         return f"{base_summary}\n{self.reconciliation.summary_text()}"
 
 
-def _ensure_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-    return value.astimezone(UTC)
-
-
 def validate_restore_source_provenance(
     *,
     job: SystemBackupRestoreJob,
     backup: SystemBackup | None,
     dump_path: Path,
-    now: datetime,
-    retention_days: int,
     checksum_file: Callable[[Path], str],
 ) -> None:
-    """Reject restore sources whose provenance cannot be established.
+    """Confirm the restore dump matches the job.
 
-    OL10's 30-day age limit is a FAIR CRM full-database-backup policy and applies
-    only to tracked FAIR CRM backups. Uploaded custom dumps remain a supported
-    off-machine restore path: the file must already have been accepted as a
-    PostgreSQL dump for the selected database, and the stored checksum must still
-    match. Core tracked restores still require a completed backup with matching
-    database, filename and checksum, but this function does not invent a Core
-    retention period that the platform policy has not defined.
+    Restore eligibility is not "this machine's Admin backup row". USB / uploaded
+    dumps are valid when they are a PostgreSQL dump for the selected database
+    and the stored checksum still matches. Tracked list restores additionally
+    check file name, format and completion. Schema compatibility is not proven
+    here; alembic upgrade head after pg_restore is the schema control.
     """
 
     if job.source_database_key != job.target_database_key:
@@ -132,25 +122,13 @@ def validate_restore_source_provenance(
     if backup.checksum != job.checksum_sha256:
         raise ValueError("Restore job checksum does not match tracked backup provenance")
 
-    completed_at = _ensure_utc(backup.completed_at)
-    current_time = _ensure_utc(now)
-    if completed_at > current_time:
-        raise ValueError("Backup completed_at is in the future")
-    if (
-        job.target_database_key == DatabaseKey.FAIR_CRM
-        and current_time - completed_at > timedelta(days=retention_days)
-    ):
-        raise ValueError(
-            f"Backup is older than the {retention_days}-day restore retention limit"
-        )
-
     actual_checksum = checksum_file(dump_path)
     if actual_checksum != backup.checksum:
         raise ValueError("Restore dump checksum no longer matches tracked backup provenance")
 
 
 class CertifiedRestoreJobMaintenanceRunner:
-    """Execute the existing restore flow with OL10 certification gates."""
+    """Execute dump restore, then current-schema migrations and health checks."""
 
     def __init__(
         self,
@@ -197,13 +175,10 @@ class CertifiedRestoreJobMaintenanceRunner:
         def certified_verify_backup_dump(*, database_url: str, dump_path: Path):
             nonlocal core_snapshot_json
             if job is not None:
-                settings = get_settings()
                 validate_restore_source_provenance(
                     job=job,
                     backup=backup,
                     dump_path=dump_path,
-                    now=self._now_provider(),
-                    retention_days=settings.database_backup_retention_days,
                     checksum_file=sha256_file,
                 )
             verification = original_verify(database_url=database_url, dump_path=dump_path)

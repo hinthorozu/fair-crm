@@ -200,6 +200,17 @@ def run_post_restore_health_check(
                     error_message=f"Missing critical tables: {', '.join(missing_tables)}",
                 )
 
+            if migration_result != "success":
+                return PostRestoreHealthResult(
+                    ok=False,
+                    migration_result=migration_result,
+                    database_key=key.value,
+                    error_message=(
+                        "Post-restore schema upgrade did not complete. "
+                        "Old dumps must run alembic upgrade head after pg_restore."
+                    ),
+                )
+
             counts: dict[str, int] = {}
             for table_name in _count_tables(key):
                 counts[table_name] = int(

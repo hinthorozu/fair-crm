@@ -510,29 +510,25 @@ class RestoreJobMaintenanceRunner:
             self._reset_database_connections()
 
             migration_result = "success"
-            try:
-                alembic_workdir = resolve_alembic_workdir(job.target_database_key)
-                _log("running alembic upgrade head")
-                _log(f"alembic workdir: {alembic_workdir}")
-                result = subprocess.run(
-                    [sys.executable, "-m", "alembic", "upgrade", "head"],
-                    cwd=str(alembic_workdir),
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                )
-                if log_handle:
-                    if result.stdout:
-                        log_handle.write(result.stdout)
-                    if result.stderr:
-                        log_handle.write(result.stderr)
-                    log_handle.flush()
-                if result.returncode != 0:
-                    raise DatabaseBackupError(result.stderr or result.stdout or "alembic upgrade head failed")
-                _log("alembic upgrade head completed")
-            except ValueError as exc:
-                migration_result = "skipped"
-                _log(f"alembic upgrade skipped: {exc}")
+            alembic_workdir = resolve_alembic_workdir(job.target_database_key)
+            _log("running alembic upgrade head")
+            _log(f"alembic workdir: {alembic_workdir}")
+            result = subprocess.run(
+                [sys.executable, "-m", "alembic", "upgrade", "head"],
+                cwd=str(alembic_workdir),
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if log_handle:
+                if result.stdout:
+                    log_handle.write(result.stdout)
+                if result.stderr:
+                    log_handle.write(result.stderr)
+                log_handle.flush()
+            if result.returncode != 0:
+                raise DatabaseBackupError(result.stderr or result.stdout or "alembic upgrade head failed")
+            _log("alembic upgrade head completed")
 
             _log("running post-restore health check")
             health = run_post_restore_health_check(

@@ -67,6 +67,32 @@ def test_post_restore_health_check_success():
     assert any("Post-restore health check passed" in line for line in result.log_lines())
 
 
+@pytest.mark.parametrize("database_key", ["fair_crm", "kyrox_core", "fair_stand"])
+def test_post_restore_health_requires_schema_upgrade_for_every_database(database_key: str):
+    counts = {
+        "crm_customers": 1,
+        "crm_fairs": 1,
+        "crm_contacts": 1,
+        "identity_users": 1,
+        "identity_organizations": 1,
+        "identity_roles": 1,
+        "identity_permissions": 1,
+        "identity_memberships": 1,
+        "fair_stand_categories": 1,
+        "fair_stand_catalog_preview_kinds": 1,
+        "fair_stand_items": 1,
+    }
+    engine = _mock_engine(counts=counts)
+    result = run_post_restore_health_check(
+        database_url=f"postgresql://postgres:postgres@localhost:5432/{database_key}",
+        database_key=database_key,
+        migration_result="skipped",
+        engine_factory=lambda *args, **kwargs: engine,
+    )
+    assert result.ok is False
+    assert "alembic upgrade head" in (result.error_message or "")
+
+
 def test_post_restore_health_check_missing_table_fails():
     engine = _mock_engine(missing_tables=["crm_fairs"])
     result = run_post_restore_health_check(
