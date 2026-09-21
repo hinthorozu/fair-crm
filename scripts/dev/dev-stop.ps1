@@ -4,7 +4,7 @@
   Stop Fair CRM local runtime processes (Core, backend, frontend, optional worker).
 
 .DESCRIPTION
-  Stops KYROX Core (8000), Fair CRM backend (8001), and frontend (5173–5177).
+  Stops KYROX Core (8000), Fair CRM backend (8001), Fair Stand API (8002), and frontend (5173–5177).
   Does not stop Docker infrastructure by default. Pass -StopInfra to run docker compose stop.
 
 .PARAMETER StopInfra
@@ -31,9 +31,9 @@ Write-Host "Repository root: $script:DevRepoRoot"
 
 $cleared = @(Stop-DevRuntimeProcesses -IncludeAltFrontendPorts)
 if ($cleared.Count -gt 0) {
-    Write-Host "Stopped $($cleared.Count) runtime listener(s) (Core + Fair CRM)."
+    Write-Host "Stopped $($cleared.Count) runtime listener(s) (Core + Fair CRM + Fair Stand)."
 } else {
-    Write-Host "No Core/Fair CRM runtime listeners found on standard ports."
+    Write-Host "No Core/Fair CRM/Fair Stand runtime listeners found on standard ports."
 }
 
 if ($StopInfra) {

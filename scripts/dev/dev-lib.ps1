@@ -7,9 +7,14 @@ Set-StrictMode -Version Latest
 
 $script:DevCorePort = 8000
 $script:DevBackendPort = 8001
+$script:DevFairStandPort = 8002
 $script:DevFrontendPort = 5173
 $script:DevFrontendAltPorts = @(5174, 5175, 5176, 5177)
-$script:DevAllRuntimePorts = @($script:DevCorePort, $script:DevBackendPort) + $script:DevFrontendPort + $script:DevFrontendAltPorts
+$script:DevAllRuntimePorts = @(
+    $script:DevCorePort,
+    $script:DevBackendPort,
+    $script:DevFairStandPort
+) + $script:DevFrontendPort + $script:DevFrontendAltPorts
 $script:DevRepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $script:DevBackendDir = Join-Path $script:DevRepoRoot "backend"
 $script:DevFrontendDir = Join-Path $script:DevRepoRoot "frontend"
@@ -380,6 +385,47 @@ function Get-DevDatabaseConnectionInfo {
     }
 }
 
+function Ensure-DevPostgresDatabaseNamed {
+    param([Parameter(Mandatory)][string]$DatabaseName)
+
+    if (-not (Test-ComposeServiceDefined -ServiceName "postgres")) {
+        Write-Host "Compose service 'postgres' not defined - skipping database ensure."
+        return
+    }
+
+    if ($DatabaseName -notmatch '^[A-Za-z_][A-Za-z0-9_]*$') {
+        throw "Invalid database name: $DatabaseName"
+    }
+
+    Write-DevStep "Ensuring PostgreSQL database exists ($DatabaseName)"
+
+    $previousPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        $existsOutput = docker exec $script:DevPostgresContainer `
+            psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$DatabaseName'" 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to query PostgreSQL for database '$DatabaseName': $existsOutput"
+        }
+
+        $existsValue = (($existsOutput | Out-String).Trim())
+        if ($existsValue -eq "1") {
+            Write-Host "Database '$DatabaseName' already exists."
+            return
+        }
+
+        $createOutput = docker exec $script:DevPostgresContainer `
+            psql -U postgres -c "CREATE DATABASE $DatabaseName;" 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "CREATE DATABASE $DatabaseName failed: $createOutput"
+        }
+
+        Write-Host "Created database '$DatabaseName'."
+    } finally {
+        $ErrorActionPreference = $previousPreference
+    }
+}
+
 function Ensure-DevPostgresDatabase {
     if (-not (Test-ComposeServiceDefined -ServiceName "postgres")) {
         Write-Host "Compose service 'postgres' not defined - skipping database ensure."
@@ -387,33 +433,7 @@ function Ensure-DevPostgresDatabase {
     }
 
     $conn = Get-DevDatabaseConnectionInfo
-    Write-DevStep "Ensuring PostgreSQL database exists ($($conn.Database))"
-
-    $previousPreference = $ErrorActionPreference
-    try {
-        $ErrorActionPreference = "Continue"
-        $existsOutput = docker exec $script:DevPostgresContainer `
-            psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$($conn.Database)'" 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to query PostgreSQL for database '$($conn.Database)': $existsOutput"
-        }
-
-        $existsValue = (($existsOutput | Out-String).Trim())
-        if ($existsValue -eq "1") {
-            Write-Host "Database '$($conn.Database)' already exists."
-            return
-        }
-
-        $createOutput = docker exec $script:DevPostgresContainer `
-            psql -U postgres -c "CREATE DATABASE $($conn.Database);" 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            throw "CREATE DATABASE $($conn.Database) failed: $createOutput"
-        }
-
-        Write-Host "Created database '$($conn.Database)'."
-    } finally {
-        $ErrorActionPreference = $previousPreference
-    }
+    Ensure-DevPostgresDatabaseNamed -DatabaseName $conn.Database
 }
 
 function Invoke-DevDatabaseMigrations {
@@ -507,8 +527,173 @@ function Get-DevKyroxCoreRoot {
     return $null
 }
 
+function Get-DevFairStandRoot {
+    $candidates = @()
+    if ($env:FAIR_STAND_ROOT) {
+        $candidates += $env:FAIR_STAND_ROOT
+    }
+    $candidates += (Join-Path (Split-Path $script:DevRepoRoot -Parent) "fair-stand")
+    $candidates += (Join-Path $script:DevRepoRoot "fair-stand")
+
+    foreach ($candidate in $candidates) {
+        if (-not $candidate) { continue }
+        if (Test-Path (Join-Path $candidate "backend\app\main.py")) {
+            return (Resolve-Path $candidate).Path
+        }
+    }
+    return $null
+}
+
+function Get-DevFairStandBackendDir {
+    $root = Get-DevFairStandRoot
+    if (-not $root) { return $null }
+    return (Join-Path $root "backend")
+}
+
+function Get-DevFairStandEnvValue {
+    param([Parameter(Mandatory)][string]$Name)
+
+    $backendDir = Get-DevFairStandBackendDir
+    if (-not $backendDir) { return $null }
+    $envFile = Join-Path $backendDir ".env"
+    if (-not (Test-Path $envFile)) {
+        return $null
+    }
+
+    foreach ($line in Get-Content -LiteralPath $envFile) {
+        if ($line -match '^\s*#' -or $line -notmatch '\S') { continue }
+        if ($line -match "^\s*$([regex]::Escape($Name))\s*=\s*(.+?)\s*$") {
+            return $matches[1].Trim().Trim('"').Trim("'")
+        }
+    }
+
+    return $null
+}
+
+function Get-DevFairStandDatabaseName {
+    $databaseUrl = Get-DevFairStandEnvValue -Name "FAIR_STAND_DATABASE_URL"
+    if (-not $databaseUrl) {
+        $databaseUrl = "postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/fair_stand"
+    }
+    if ($databaseUrl -notmatch '/([^/?]+)(?:\?.*)?$') {
+        throw "Cannot parse FAIR_STAND_DATABASE_URL for database name: $databaseUrl"
+    }
+    $databaseName = $matches[1]
+    if ($databaseName -notmatch '^[A-Za-z_][A-Za-z0-9_]*$') {
+        throw "Invalid Fair Stand database name: $databaseName"
+    }
+    return $databaseName
+}
+
+function Invoke-DevFairStandAlembicCommand {
+    param([Parameter(Mandatory)][string[]]$AlembicArgs)
+
+    $backendDir = Get-DevFairStandBackendDir
+    if (-not $backendDir) {
+        throw "Fair Stand repository not found. Clone fair-stand as a sibling of fair-crm (../fair-stand) or set FAIR_STAND_ROOT."
+    }
+
+    $stdoutFile = New-TemporaryFile
+    $stderrFile = New-TemporaryFile
+    try {
+        $proc = Start-Process -FilePath "python" -ArgumentList (@("-m", "alembic") + $AlembicArgs) `
+            -WorkingDirectory $backendDir `
+            -RedirectStandardOutput $stdoutFile.FullName `
+            -RedirectStandardError $stderrFile.FullName `
+            -Wait -PassThru -NoNewWindow
+        $exitCode = $proc.ExitCode
+        $stdout = (Get-Content -LiteralPath $stdoutFile.FullName -Raw -ErrorAction SilentlyContinue)
+        $stderr = (Get-Content -LiteralPath $stderrFile.FullName -Raw -ErrorAction SilentlyContinue)
+        if ($null -eq $stdout) { $stdout = "" }
+        if ($null -eq $stderr) { $stderr = "" }
+        $combined = ($stdout + [Environment]::NewLine + $stderr).Trim()
+        return [pscustomobject]@{
+            Output   = $combined
+            StdOut   = $stdout.Trim()
+            StdErr   = $stderr.Trim()
+            ExitCode = $exitCode
+        }
+    } finally {
+        Remove-Item -LiteralPath $stdoutFile.FullName, $stderrFile.FullName -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Get-DevFairStandAlembicCurrentRevision {
+    $result = Invoke-DevFairStandAlembicCommand -AlembicArgs @("current")
+    if ($result.ExitCode -ne 0) {
+        throw "Fair Stand alembic current failed: $($result.Output)"
+    }
+
+    $line = @(Get-DevAlembicOutputLines -Text $result.StdOut)
+    if ($line.Count -eq 0) {
+        $line = @(Get-DevAlembicOutputLines -Text $result.Output)
+    }
+    $line = $line | Select-Object -First 1
+    if (-not $line) {
+        return [pscustomobject]@{ Revision = "(none)"; IsHead = $false; Raw = "(none)" }
+    }
+
+    $isHead = $line -match '\(head\)'
+    $revision = ($line -replace '\s*\(head\).*$', '').Trim()
+    if (-not $revision) { $revision = $line.Trim() }
+
+    return [pscustomobject]@{
+        Revision = $revision
+        IsHead   = [bool]$isHead
+        Raw      = $line.Trim()
+    }
+}
+
+function Get-DevFairStandAlembicHeadRevision {
+    $result = Invoke-DevFairStandAlembicCommand -AlembicArgs @("heads")
+    if ($result.ExitCode -ne 0) {
+        throw "Fair Stand alembic heads failed: $($result.Output)"
+    }
+
+    $line = @(Get-DevAlembicOutputLines -Text $result.StdOut)
+    if ($line.Count -eq 0) {
+        $line = @(Get-DevAlembicOutputLines -Text $result.Output)
+    }
+    $line = $line | Select-Object -First 1
+    if ($line -match '^([^\s\(]+)') {
+        return $matches[1].Trim()
+    }
+    return $line.Trim()
+}
+
+function Invoke-DevFairStandDatabaseMigrations {
+    if (-not (Get-DevFairStandRoot)) {
+        throw "Fair Stand repository not found. Clone fair-stand as a sibling of fair-crm (../fair-stand) or set FAIR_STAND_ROOT."
+    }
+
+    Ensure-DevPostgresDatabaseNamed -DatabaseName (Get-DevFairStandDatabaseName)
+
+    Write-DevStep "Checking Fair Stand Alembic revision"
+    $before = Get-DevFairStandAlembicCurrentRevision
+    $head = Get-DevFairStandAlembicHeadRevision
+    Write-Host "Fair Stand current revision: $($before.Raw)"
+    Write-Host "Fair Stand head revision:    $head"
+
+    $upgrade = Invoke-DevFairStandAlembicCommand -AlembicArgs @("upgrade", "head")
+    if ($upgrade.ExitCode -ne 0) {
+        throw "Fair Stand alembic upgrade head failed: $($upgrade.Output)"
+    }
+
+    $after = Get-DevFairStandAlembicCurrentRevision
+    $upToDate = $after.IsHead -or ($after.Revision -eq $head)
+    if (-not $upToDate) {
+        throw "Fair Stand schema verification failed: current=$($after.Revision) head=$head"
+    }
+
+    Write-Host "Fair Stand schema verified at head: $($after.Raw)"
+    return $after
+}
+
 function Show-DevRuntimeSummary {
-    param([string]$AlembicRevision = "")
+    param(
+        [string]$AlembicRevision = "",
+        [string]$FairStandAlembicRevision = ""
+    )
 
     if (-not $AlembicRevision) {
         try {
@@ -517,15 +702,25 @@ function Show-DevRuntimeSummary {
             $AlembicRevision = "(unknown)"
         }
     }
+    if (-not $FairStandAlembicRevision) {
+        try {
+            $FairStandAlembicRevision = (Get-DevFairStandAlembicCurrentRevision).Raw
+        } catch {
+            $FairStandAlembicRevision = "(unknown)"
+        }
+    }
 
     Write-Host ""
     Write-Host "=== Dev Runtime Summary ===" -ForegroundColor Cyan
-    Write-Host "Git branch:       $(Get-DevGitBranch)"
-    Write-Host "Git commit:       $(Get-DevGitCommit)"
-    Write-Host "Alembic revision: $AlembicRevision"
-    Write-Host "Core URL:         http://localhost:$($script:DevCorePort)"
-    Write-Host "Backend URL:      http://localhost:$($script:DevBackendPort)"
-    Write-Host "Frontend URL:     http://localhost:$($script:DevFrontendPort)"
+    Write-Host "Git branch:            $(Get-DevGitBranch)"
+    Write-Host "Git commit:            $(Get-DevGitCommit)"
+    Write-Host "CRM alembic:           $AlembicRevision"
+    Write-Host "Fair Stand alembic:    $FairStandAlembicRevision"
+    Write-Host "Core URL:              http://localhost:$($script:DevCorePort)"
+    Write-Host "CRM backend URL:       http://localhost:$($script:DevBackendPort)"
+    Write-Host "Fair Stand API:        http://localhost:$($script:DevFairStandPort)"
+    Write-Host "Frontend URL:          http://localhost:$($script:DevFrontendPort)"
+    Write-Host "Fair Stand UI:         http://localhost:$($script:DevFrontendPort)/fair-stand"
 }
 
 function Wait-DevRedisHealthy([int]$TimeoutSec = 60) {
@@ -636,6 +831,10 @@ function Test-DevBackendHealthy {
     return Test-DevHttpOk -Url "http://127.0.0.1:$($script:DevBackendPort)/health"
 }
 
+function Test-DevFairStandHealthy {
+    return Test-DevHttpOk -Url "http://127.0.0.1:$($script:DevFairStandPort)/health"
+}
+
 function Test-DevFrontendHealthy {
     $base = "http://127.0.0.1:$($script:DevFrontendPort)"
     return (Test-DevHttpOk -Url $base) -or (Test-DevHttpOk -Url "$base/index.html")
@@ -686,6 +885,25 @@ function Start-DevBackend {
     return [pscustomobject]@{ Process = $proc; Log = $backendLog; ErrLog = $backendErr }
 }
 
+function Start-DevFairStand {
+    $backendDir = Get-DevFairStandBackendDir
+    if (-not $backendDir) {
+        throw "Fair Stand repository not found. Clone fair-stand as a sibling of fair-crm (../fair-stand) or set FAIR_STAND_ROOT."
+    }
+    New-Item -ItemType Directory -Force -Path $script:DevLogDir | Out-Null
+    $standLog = Join-Path $script:DevLogDir "fair-stand-$($script:DevFairStandPort).log"
+    $standErr = Join-Path $script:DevLogDir "fair-stand-$($script:DevFairStandPort).err.log"
+    $standArgs = @("-m", "uvicorn", "app.main:app", "--reload", "--host", "127.0.0.1", "--port", "$($script:DevFairStandPort)")
+    if (Test-Path Env:DATABASE_URL) {
+        Remove-Item Env:DATABASE_URL
+    }
+    Write-Host "Starting Fair Stand from: $backendDir"
+    $proc = Start-Process -FilePath "python" -ArgumentList $standArgs -WorkingDirectory $backendDir `
+        -RedirectStandardOutput $standLog -RedirectStandardError $standErr -PassThru -WindowStyle Hidden
+    Start-Sleep -Seconds 2
+    return [pscustomobject]@{ Process = $proc; Log = $standLog; ErrLog = $standErr }
+}
+
 function Start-DevFrontend {
     if (-not (Test-Path $script:DevFrontendDir)) {
         throw "Frontend directory not found: $script:DevFrontendDir"
@@ -734,7 +952,7 @@ function Stop-DevWorkerIfRunning {
 }
 
 function Stop-DevRuntimeProcesses([switch]$IncludeAltFrontendPorts) {
-    $ports = @($script:DevCorePort, $script:DevBackendPort, $script:DevFrontendPort)
+    $ports = @($script:DevCorePort, $script:DevBackendPort, $script:DevFairStandPort, $script:DevFrontendPort)
     if ($IncludeAltFrontendPorts) {
         $ports += $script:DevFrontendAltPorts
     }
@@ -742,6 +960,7 @@ function Stop-DevRuntimeProcesses([switch]$IncludeAltFrontendPorts) {
     $null = @(Stop-DevOrphanedUvicornWorkers)
     $null = @(Stop-DevFairCrmUvicornProcesses -Port $script:DevCorePort)
     $null = @(Stop-DevFairCrmUvicornProcesses -Port $script:DevBackendPort)
+    $null = @(Stop-DevFairCrmUvicornProcesses -Port $script:DevFairStandPort)
     $null = @(Stop-DevFairCrmViteProcesses)
     $null = @(Stop-DevWorkerIfRunning)
     return @(Stop-DevPortListeners -Ports $ports)
@@ -770,8 +989,11 @@ function Show-DevServiceUrls {
     Write-Host "Core health: $($script:DevCoreHealthUrl)" -ForegroundColor Green
     Write-Host "Backend:  http://localhost:$($script:DevBackendPort)" -ForegroundColor Green
     Write-Host "Swagger:  http://localhost:$($script:DevBackendPort)/docs" -ForegroundColor Green
+    Write-Host "Fair Stand: http://localhost:$($script:DevFairStandPort)" -ForegroundColor Green
+    Write-Host "Stand UI:  http://localhost:$($script:DevFrontendPort)/fair-stand" -ForegroundColor Green
     Write-Host "Frontend: http://localhost:$($script:DevFrontendPort)" -ForegroundColor Green
     Write-Host "Health:   http://localhost:$($script:DevBackendPort)/health" -ForegroundColor Green
+    Write-Host "Stand health: http://localhost:$($script:DevFairStandPort)/health" -ForegroundColor Green
 }
 
 function Show-DevDockerStatus {

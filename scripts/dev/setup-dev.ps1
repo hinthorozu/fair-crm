@@ -589,6 +589,22 @@ if (Test-Path -LiteralPath $backendEnvPath) {
     )
 }
 
+$fairStandRoot = Get-DevFairStandRoot
+if ($fairStandRoot) {
+    $fairStandEnvPath = Join-Path $fairStandRoot "backend\.env"
+    if (Test-Path -LiteralPath $fairStandEnvPath) {
+        Write-SetupResult -Name "fair-stand backend/.env" -Status "PASS" -Detail $fairStandEnvPath
+    } else {
+        Write-SetupResult -Name "fair-stand backend/.env" -Status "FAIL" -Detail (
+            "fair-stand/backend/.env yok. Örnek: Copy-Item fair-stand\backend\.env.example fair-stand\backend\.env"
+        )
+    }
+} else {
+    Write-SetupResult -Name "fair-stand repo" -Status "FAIL" -Detail (
+        "fair-stand kardeş repo bulunamadı (../fair-stand veya FAIR_STAND_ROOT)."
+    )
+}
+
 $dbEndpoint = Get-SetupDatabaseEndpoint -EnvFilePath $backendEnvPath
 if (Test-SetupTcpPort -HostName $dbEndpoint.Host -Port $dbEndpoint.Port) {
     Write-SetupResult -Name "PostgreSQL" -Status "PASS" -Detail (
@@ -631,6 +647,26 @@ if (-not $pythonOk) {
             }
         } catch {
             Write-SetupResult -Name "Backend requirements" -Status "FAIL" -Detail $_.Exception.Message
+        }
+    }
+
+    if ($fairStandRoot) {
+        $fairStandReq = Join-Path $fairStandRoot "backend\requirements.txt"
+        if ($CheckOnly) {
+            Write-SetupResult -Name "Fair Stand requirements" -Status "WARN" -Detail (
+                "Kontrol: python -m pip install -r $fairStandReq"
+            )
+        } else {
+            try {
+                Write-DevStep "Installing Fair Stand Python requirements"
+                python -m pip install -r $fairStandReq
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Fair Stand pip install failed with exit code $LASTEXITCODE"
+                }
+                Write-SetupResult -Name "Fair Stand requirements" -Status "PASS" -Detail "pip install tamamlandı."
+            } catch {
+                Write-SetupResult -Name "Fair Stand requirements" -Status "FAIL" -Detail $_.Exception.Message
+            }
         }
     }
 
