@@ -117,6 +117,10 @@ STEP_HINTS: dict[str, str] = {
     "14b. Role matrix selective authorization (live)": (
         "Live RBAC mismatch — re-run seed and verify Core authorization API matches role matrix."
     ),
+    "15. Create customer": (
+        "Core login replaces the previous session. After 14b, refresh the seed JWT before POST /customers. "
+        "Authorization check failed on create usually means the access token was revoked, not a missing permission."
+    ),
     "Services running": "Start both Core (8000) and Fair CRM (8001) before prod-path e2e.",
 }
 
@@ -647,16 +651,35 @@ def login_role_user(email: str, password: str) -> tuple[str | None, str]:
     return login_resp.json()["access_token"], "ok"
 
 
-def run_live_role_checks(state: dict, org_id: str, password: str) -> tuple[bool, list[str]]:
+def reuse_seed_login_token(*, seed_email: str | None, role_email: str | None, current_token: str | None) -> str | None:
+    """Core login replaces the user's existing session. Reuse the seed JWT when 14b is the same user."""
+    if current_token and role_email and seed_email and role_email == seed_email:
+        return current_token
+    return None
+
+
+def run_live_role_checks(
+    state: dict,
+    org_id: str,
+    password: str,
+    *,
+    current_token: str | None = None,
+) -> tuple[bool, list[str]]:
     """Verify the seeded bootstrap Super Admin without pretending it has a role."""
     role_state = (state.get("roles") or {}).get("organization_admin") or {}
     email = role_state.get("email")
     if not email:
         return False, ["organization_admin: missing seeded email in .dev_state.json"]
 
-    token, error = login_role_user(email, password)
+    token = reuse_seed_login_token(
+        seed_email=state.get("email"),
+        role_email=email,
+        current_token=current_token,
+    )
     if token is None:
-        return False, [f"bootstrap Super Admin: {error}"]
+        token, error = login_role_user(email, password)
+        if token is None:
+            return False, [f"bootstrap Super Admin: {error}"]
 
     headers = {
         "Authorization": f"Bearer {token}",
@@ -993,13 +1016,26 @@ def main(argv: list[str] | None = None) -> int:
         foreign_fair_detail,
     )
 
-    role_checks_ok, role_checks_detail = run_live_role_checks(state, org_id, password)
+    role_checks_ok, role_checks_detail = run_live_role_checks(
+        state,
+        org_id,
+        password,
+        current_token=token,
+    )
     record(
         results,
         "14b. Bootstrap Super Admin authorization (live)",
         role_checks_ok,
         "; ".join(role_checks_detail),
     )
+
+    seed_email = state.get("email", "dev@example.com")
+    refreshed, refresh_error = login_role_user(seed_email, password)
+    if refreshed is None:
+        record(results, "15. Create customer", False, f"JWT refresh failed: {refresh_error}")
+        return _finish(ctx, results, 1)
+    token = refreshed
+    fair_headers["Authorization"] = f"Bearer {token}"
 
     create_resp = httpx.post(
         f"{FAIR_BASE}/api/v1/customers",
