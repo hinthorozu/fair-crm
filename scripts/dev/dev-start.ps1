@@ -1,13 +1,13 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Idempotent Fair CRM development runtime start (Docker infra + Core + backend + frontend).
+  Idempotent Fair CRM development runtime start (Docker infra + Core + CRM + Fair Stand + frontend).
 
 .DESCRIPTION
   Safe to run multiple times. Does not create duplicate Core/backend/frontend processes when
   health checks already pass. Use reset-dev.ps1 to force-kill stale listeners first.
 
-  Start order: KYROX Core (8000) → Fair CRM backend (8001) → frontend (5173).
+  Start order: KYROX Core (8000) → Fair CRM backend (8001) → Fair Stand API (8002) → frontend (5173).
 
 .EXAMPLE
   .\scripts\dev\dev-start.ps1
@@ -43,11 +43,13 @@ Test-DockerEngineReady
 Start-DevDockerInfra
 Wait-DevPostgresHealthy
 $alembicStatus = Invoke-DevDatabaseMigrations
+$fairStandAlembicStatus = Invoke-DevFairStandDatabaseMigrations
 Invoke-DevCoreIdentitySeed
 Wait-DevRedisHealthy
 
 $coreStarted = $false
 $backendStarted = $false
+$fairStandStarted = $false
 $frontendStarted = $false
 
 if (Test-DevCoreHealthy) {
@@ -76,6 +78,19 @@ if (Test-DevBackendHealthy) {
     }
 }
 
+if (Test-DevFairStandHealthy) {
+    Write-Host "Fair Stand already healthy on port $script:DevFairStandPort - skipping start."
+} elseif (Test-DevPortListening -Port $script:DevFairStandPort) {
+    throw "Port $script:DevFairStandPort is in use but /health is not OK. Run .\scripts\dev\reset-dev.ps1 to clear stale processes."
+} else {
+    Write-DevStep "Starting Fair Stand on port $script:DevFairStandPort"
+    $fairStand = Start-DevFairStand
+    $fairStandStarted = $true
+    if (-not (Wait-DevHttpOk -Urls @("http://127.0.0.1:$script:DevFairStandPort/health"))) {
+        throw "Fair Stand failed to start. See $($fairStand.Log) and $($fairStand.ErrLog)"
+    }
+}
+
 if (Test-DevFrontendHealthy) {
     Write-Host "Frontend already healthy on port $script:DevFrontendPort - skipping start."
 } elseif (Test-DevPortListening -Port $script:DevFrontendPort) {
@@ -94,15 +109,16 @@ $workerProc = Start-DevWorkerIfConfigured
 
 Write-Host ""
 Write-Host "Runtime port status:" -ForegroundColor Yellow
-Get-DevPortReport -Ports @($script:DevCorePort, $script:DevBackendPort, $script:DevFrontendPort) | Format-Table -AutoSize
+Get-DevPortReport -Ports @($script:DevCorePort, $script:DevBackendPort, $script:DevFairStandPort, $script:DevFrontendPort) | Format-Table -AutoSize
 
 Show-DevDockerStatus
 
 Write-Host ""
 if ($coreStarted) { Write-Host "KYROX Core started." } else { Write-Host "KYROX Core reused (already running)." }
 if ($backendStarted) { Write-Host "Backend started." } else { Write-Host "Backend reused (already running)." }
+if ($fairStandStarted) { Write-Host "Fair Stand started." } else { Write-Host "Fair Stand reused (already running)." }
 if ($frontendStarted) { Write-Host "Frontend started." } else { Write-Host "Frontend reused (already running)." }
 if ($null -eq $workerProc) { Write-Host "Worker: not configured." } else { Write-Host "Worker launcher PID: $($workerProc.Id)" }
 
-Show-DevRuntimeSummary -AlembicRevision $alembicStatus.Raw
+Show-DevRuntimeSummary -AlembicRevision $alembicStatus.Raw -FairStandAlembicRevision $fairStandAlembicStatus.Raw
 Write-Host "dev-start complete."

@@ -39,6 +39,10 @@ function Test-FrontendHttpHealth {
     return Test-DevFrontendHealthy
 }
 
+function Test-FairStandHttpHealth {
+    return Test-DevFairStandHealthy
+}
+
 Write-Host "=== Dev Auto Start Validation ===" -ForegroundColor Cyan
 Write-Host "Repository: $RepoRoot"
 Write-Host ""
@@ -50,13 +54,17 @@ if ($LASTEXITCODE -ne 0 -and -not $?) {
     Record "Health check (pre)" "FAIL" "dev-start.ps1 failed on initial run"
 } else {
     $backendOk = Test-BackendHttpHealth
+    $fairStandOk = Test-FairStandHttpHealth
     $frontendOk = Test-FrontendHttpHealth
-    if ($backendOk -and $frontendOk) {
+    if ($backendOk -and $fairStandOk -and $frontendOk) {
         $healthBody = (Invoke-WebRequest -Uri "http://127.0.0.1:$($script:DevBackendPort)/health" -UseBasicParsing).Content
+        $standBody = (Invoke-WebRequest -Uri "http://127.0.0.1:$($script:DevFairStandPort)/health" -UseBasicParsing).Content
         Record "Health check - Backend HTTP" "PASS" "/health -> $healthBody"
+        Record "Health check - Fair Stand HTTP" "PASS" "/health -> $standBody"
         Record "Health check - Frontend HTTP" "PASS" "http://127.0.0.1:$($script:DevFrontendPort)/index.html reachable"
     } else {
         Record "Health check - Backend HTTP" $(if ($backendOk) { "PASS" } else { "FAIL" }) ""
+        Record "Health check - Fair Stand HTTP" $(if ($fairStandOk) { "PASS" } else { "FAIL" }) ""
         Record "Health check - Frontend HTTP" $(if ($frontendOk) { "PASS" } else { "FAIL" }) ""
     }
 }

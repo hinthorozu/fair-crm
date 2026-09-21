@@ -1,14 +1,14 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Force-reset Fair CRM local dev runtime (kill stale listeners, restart Core + backend + frontend).
+  Force-reset Fair CRM local dev runtime (kill stale listeners, restart Core + CRM + Fair Stand + frontend).
 
 .DESCRIPTION
   Unlike dev-start.ps1, this always stops existing listeners on standard ports before
   starting fresh processes. Use when ports are stuck or stale uvicorn/vite reloaders remain.
 
-  Clears Core (8000), Fair backend (8001), and frontend (5173–5177), then starts:
-  KYROX Core → Fair CRM backend → frontend.
+  Clears Core (8000), Fair CRM (8001), Fair Stand (8002), and frontend (5173–5177), then starts:
+  KYROX Core → Fair CRM backend → Fair Stand API → frontend.
 
 .EXAMPLE
   .\scripts\dev\reset-dev.ps1
@@ -41,9 +41,10 @@ Test-DockerEngineReady
 Start-DevDockerInfra
 Wait-DevPostgresHealthy
 $alembicStatus = Invoke-DevDatabaseMigrations
+$fairStandAlembicStatus = Invoke-DevFairStandDatabaseMigrations
 Wait-DevRedisHealthy
 
-Write-DevStep "Stopping stale Core + Fair CRM dev processes"
+Write-DevStep "Stopping stale Core + Fair CRM + Fair Stand dev processes"
 $cleared = @(Stop-DevRuntimeProcesses -IncludeAltFrontendPorts)
 if ($cleared.Count -gt 0) {
     Start-Sleep -Seconds 2
@@ -52,7 +53,7 @@ if ($cleared.Count -gt 0) {
     Write-Host "No listeners found on target ports."
 }
 
-foreach ($port in @($script:DevCorePort, $script:DevBackendPort, $script:DevFrontendPort)) {
+foreach ($port in @($script:DevCorePort, $script:DevBackendPort, $script:DevFairStandPort, $script:DevFrontendPort)) {
     if (Test-DevPortListening -Port $port) {
         throw "Port $port is still in use after cleanup. Stop remaining listeners manually."
     }
@@ -63,6 +64,9 @@ $core = Start-DevCore
 
 Write-DevStep "Starting backend on port $script:DevBackendPort"
 $backend = Start-DevBackend
+
+Write-DevStep "Starting Fair Stand on port $script:DevFairStandPort"
+$fairStand = Start-DevFairStand
 
 Write-DevStep "Starting frontend on port $script:DevFrontendPort (strictPort)"
 $frontend = Start-DevFrontend
@@ -107,11 +111,13 @@ function Test-ParticipantsSearchOpenApi([int]$Port) {
 Write-DevStep "Verifying services"
 $coreHealth = $script:DevCoreHealthUrl
 $backendHealth = "http://127.0.0.1:$($script:DevBackendPort)/health"
+$fairStandHealth = "http://127.0.0.1:$($script:DevFairStandPort)/health"
 $swaggerUrl = "http://127.0.0.1:$($script:DevBackendPort)/docs"
 $frontendUrl = "http://127.0.0.1:$($script:DevFrontendPort)/"
 
 $coreOk = Wait-DevHttpOk -Urls @($coreHealth)
 $backendOk = Wait-DevHttpOk -Urls @($backendHealth)
+$fairStandOk = Wait-DevHttpOk -Urls @($fairStandHealth)
 $swaggerOk = Wait-DevHttpOk -Urls @($swaggerUrl)
 $openapiOk = Test-ParticipantsSearchOpenApi -Port $script:DevBackendPort
 $mailTemplateTestEmailOk = Test-MailTemplateTestEmailOpenApi -Port $script:DevBackendPort
@@ -134,6 +140,9 @@ if (-not $coreOk) {
 if (-not $backendOk) {
     throw "Backend failed to start on port $($script:DevBackendPort). See $($backend.Log) and $($backend.ErrLog)"
 }
+if (-not $fairStandOk) {
+    throw "Fair Stand failed to start on port $($script:DevFairStandPort). See $($fairStand.Log) and $($fairStand.ErrLog)"
+}
 if (-not $swaggerOk) {
     throw "Swagger is not reachable at $swaggerUrl"
 }
@@ -153,7 +162,8 @@ if ($escapedPorts.Count -gt 0) {
 Write-Host ""
 Write-Host "Core PID:     $($core.Process.Id) (log: $($core.Log))"
 Write-Host "Backend PID:  $($backend.Process.Id) (log: $($backend.Log))"
+Write-Host "Stand PID:    $($fairStand.Process.Id) (log: $($fairStand.Log))"
 Write-Host "Frontend PID: $($frontend.Process.Id) (log: $($frontend.Log))"
 
-Show-DevRuntimeSummary -AlembicRevision $alembicStatus.Raw
+Show-DevRuntimeSummary -AlembicRevision $alembicStatus.Raw -FairStandAlembicRevision $fairStandAlembicStatus.Raw
 Write-Host "Dev runtime reset complete."
