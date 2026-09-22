@@ -391,6 +391,7 @@ export function FairStandSettingsAdminPage() {
                 <FormField
                   label={adminLabels.fairStandSettingsFieldStripCount}
                   htmlFor="fs-strip-count"
+                  hint={adminLabels.fairStandSettingsFieldStripCountHint}
                   required
                 >
                   <TextInput
@@ -409,6 +410,7 @@ export function FairStandSettingsAdminPage() {
                 <FormField
                   label={adminLabels.fairStandSettingsFieldStripHeight}
                   htmlFor="fs-strip-height"
+                  hint={adminLabels.fairStandSettingsFieldStripHeightHint}
                   required
                 >
                   <TextInput
@@ -437,7 +439,12 @@ export function FairStandSettingsAdminPage() {
                     readOnly
                   />
                 </FormField>
-                <FormField label={adminLabels.fairStandSettingsFieldDepth} htmlFor="fs-depth" required>
+                <FormField
+                  label={adminLabels.fairStandSettingsFieldDepth}
+                  htmlFor="fs-depth"
+                  hint={adminLabels.fairStandSettingsFieldDepthHint}
+                  required
+                >
                   <TextInput
                     id="fs-depth"
                     type="number"
@@ -454,6 +461,7 @@ export function FairStandSettingsAdminPage() {
                 <FormField
                   label={adminLabels.fairStandSettingsFieldFrameWidth}
                   htmlFor="fs-frame-width"
+                  hint={adminLabels.fairStandSettingsFieldFrameWidthHint}
                   required
                 >
                   <TextInput
@@ -472,6 +480,7 @@ export function FairStandSettingsAdminPage() {
                 <FormField
                   label={adminLabels.fairStandSettingsFieldFrameDepth}
                   htmlFor="fs-frame-depth"
+                  hint={adminLabels.fairStandSettingsFieldFrameDepthHint}
                   required
                 >
                   <TextInput
@@ -522,6 +531,7 @@ export function FairStandSettingsAdminPage() {
                 <FormField
                   label={adminLabels.fairStandSettingsFieldMaxUpload}
                   htmlFor="fs-max-upload"
+                  hint={adminLabels.fairStandSettingsFieldMaxUploadHint}
                   required
                 >
                   <TextInput
@@ -541,6 +551,7 @@ export function FairStandSettingsAdminPage() {
               <CheckboxField
                 id="fs-export-visible"
                 label={adminLabels.fairStandSettingsFieldExportVisible}
+                hint={adminLabels.fairStandSettingsFieldExportVisibleHint}
                 checked={settingsForm.export_button_visible}
                 disabled={savingSettings}
                 onChange={(checked) =>
@@ -550,6 +561,7 @@ export function FairStandSettingsAdminPage() {
               <CheckboxField
                 id="fs-import-visible"
                 label={adminLabels.fairStandSettingsFieldImportVisible}
+                hint={adminLabels.fairStandSettingsFieldImportVisibleHint}
                 checked={settingsForm.import_button_visible}
                 disabled={savingSettings}
                 onChange={(checked) =>
