@@ -13,6 +13,7 @@
     "scripts/server/bootstrap-server.sh",
     "scripts/server/check-server.sh",
     "scripts/server/deploy-all.sh",
+    "scripts/server/lib/common.sh",
     "scripts/server/nginx/fair-crm.conf",
     ".kyrox/features/ops-fuar-kyrox-studio-domain-bootstrap-sync.json"
   ],
@@ -48,5 +49,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "setup-domain-ssl and deploy-all sync FAIR_CRM_DOMAIN into /etc/fair-crm/server-bootstrap.env from the live nginx server_name so check-server matches after domain cutovers. Defaults and SPA host Local checks use fuar.kyrox.studio Host header."
+  "notes": "setup-domain-ssl and deploy-all sync FAIR_CRM_DOMAIN into /etc/fair-crm/server-bootstrap.env from the live nginx server_name so check-server matches after domain cutovers. SPA host probe and certbot renew dry-run use the active domain only (Host header + --cert-name) so stale legacy cert lineages do not degrade the check."
 }

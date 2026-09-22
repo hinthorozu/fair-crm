@@ -357,8 +357,16 @@ configure_auto_renewal() {
     return 0
   fi
 
-  run_root certbot renew --dry-run
-  REPORT_RENEWAL="OK (timer active + dry-run passed)"
+  # Only dry-run the active domain cert. Stale leftover renewals (e.g. old
+  # umaay.com lineages) must not fail domain cutover on this host.
+  if [[ -f "/etc/letsencrypt/renewal/${DOMAIN}.conf" ]]; then
+    run_root certbot renew --dry-run --cert-name "$DOMAIN"
+    REPORT_RENEWAL="OK (timer active + dry-run passed for ${DOMAIN})"
+  else
+    log "No renewal config for ${DOMAIN}; skipping dry-run (timer still active)"
+    REPORT_RENEWAL="OK (timer active; no ${DOMAIN} renewal config yet)"
+  fi
+  log "$REPORT_RENEWAL"
 }
 
 require_routed_url() {

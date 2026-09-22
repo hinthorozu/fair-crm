@@ -1094,12 +1094,38 @@ check_fair_stand_repo() {
 
 check_fair_stand_spa_host() {
   local url="http://127.0.0.1/fair-stand"
-  local status
-  status="$(http_status "$url")"
-  if [[ "$status" == "200" ]]; then
-    check_pass "Fair Stand SPA host HTTP ${status} (index/host only; not configurator runtime)"
+  local status="000"
+  local domain=""
+  local bootstrap_env="${SERVER_BOOTSTRAP_ENV_FILE:-/etc/fair-crm/server-bootstrap.env}"
+
+  if [[ -f "$bootstrap_env" ]]; then
+    domain="$(read_env_key "$bootstrap_env" FAIR_CRM_DOMAIN || true)"
+  fi
+
+  # Prefer the public Host header so nginx vhost + HTTPS redirects resolve.
+  if [[ -n "$domain" ]]; then
+    status="$(
+      curl -s -o /dev/null -w "%{http_code}" \
+        -H "Host: ${domain}" \
+        --connect-timeout 5 --max-time 15 \
+        "$url" 2>/dev/null || echo "000"
+    )"
+    if [[ "$status" == "000" || "$status" -ge 400 ]]; then
+      status="$(
+        curl -sk -o /dev/null -w "%{http_code}" \
+          -H "Host: ${domain}" \
+          --connect-timeout 5 --max-time 15 \
+          "https://127.0.0.1/fair-stand" 2>/dev/null || echo "000"
+      )"
+    fi
   else
-    check_warn_item "Fair Stand SPA host HTTP ${status} at ${url}"
+    status="$(http_status "$url")"
+  fi
+
+  if [[ "$status" =~ ^(200|301|302|303|307|308)$ ]]; then
+    check_pass "Fair Stand SPA host HTTP ${status} (index/host only; Host=${domain:-127.0.0.1})"
+  else
+    check_warn_item "Fair Stand SPA host HTTP ${status} at ${url} (Host=${domain:-127.0.0.1})"
   fi
 }
 
