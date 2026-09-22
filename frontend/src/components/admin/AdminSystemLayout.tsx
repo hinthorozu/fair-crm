@@ -77,17 +77,17 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
   ].filter((item) => canAccess(item.id));
   const costItems = canAccess("cost-catalog") ? [{ id: "cost-catalog", label: "Maliyet Kataloğu", path: "/admin/cost-catalog" }] : [];
   const fairStandItems = [
+    ...(canAccess("fair-stand-settings")
+      ? [{ id: "fair-stand-settings", label: "Temel Ayarlar", path: "/admin/fair-stand/settings" }]
+      : []),
     ...(canAccess("fair-stand-catalog")
       ? [{ id: "fair-stand-catalog", label: "Katalog Yönetimi", path: "/admin/fair-stand/catalog" }]
-      : []),
-    ...(canAccess("fair-stand-items")
-      ? [{ id: "fair-stand-items", label: adminLabels.fairStandItemsTitle, path: "/admin/fair-stand/items" }]
       : []),
     ...(canAccess("fair-stand-previews")
       ? [{ id: "fair-stand-previews", label: "Katalog Önizlemeleri", path: "/admin/fair-stand/previews" }]
       : []),
-    ...(canAccess("fair-stand-settings")
-      ? [{ id: "fair-stand-settings", label: "Temel Ayarlar", path: "/admin/fair-stand/settings" }]
+    ...(canAccess("fair-stand-items")
+      ? [{ id: "fair-stand-items", label: adminLabels.fairStandItemsTitle, path: "/admin/fair-stand/items" }]
       : []),
   ];
   const smtpOperationsItems = [
