@@ -4484,16 +4484,3 @@ CATALOG_SEED = {
         },
     ],
 }
-
-from app.modules.fair_stand.infrastructure.item_rotation_seed import apply_item_rotation_fields
-from app.modules.fair_stand.infrastructure.item_surface_flags_seed import apply_item_surface_flags
-from app.modules.fair_stand.infrastructure.item_default_z_seed import apply_item_default_z
-from app.modules.fair_stand.infrastructure.item_snap_seed import apply_item_snap_fields
-from app.modules.fair_stand.infrastructure.item_scene_pose_seed import apply_item_scene_pose
-
-for _item in CATALOG_SEED["items"]:
-    apply_item_rotation_fields(_item)
-    apply_item_surface_flags(_item)
-    apply_item_default_z(_item)
-    apply_item_snap_fields(_item)
-    apply_item_scene_pose(_item)
