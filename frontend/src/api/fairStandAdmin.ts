@@ -102,12 +102,12 @@ export const restoreFairStandAdminPreview = (previewId: number) =>
   });
 
 export type FairStandAdminStandDimensions = {
-  height: number;
-  depth: number;
+  heightCm: number;
+  depthCm: number;
   stripCount: number;
-  stripHeight: number;
-  frameWidth: number;
-  frameDepth: number;
+  stripHeightCm: number;
+  frameWidthCm: number;
+  frameDepthCm: number;
 };
 
 export type FairStandAdminRuntimeSettings = {
@@ -125,12 +125,12 @@ export const getFairStandAdminSettings = () =>
   apiRequest<FairStandAdminSettingsBundle>(`${base}/settings`);
 
 export const updateFairStandAdminStandDimensions = (payload: {
-  height_m: number;
-  depth_m: number;
+  height_cm: number;
+  depth_cm: number;
   strip_count: number;
-  strip_height_m: number;
-  frame_width_m: number;
-  frame_depth_m: number;
+  strip_height_cm: number;
+  frame_width_cm: number;
+  frame_depth_cm: number;
 }) =>
   apiRequest<FairStandAdminStandDimensions>(`${base}/stand-dimensions`, {
     method: "PUT",
