@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "id": "fair-stand-projects-sot",
+  "title": "Fair Stand project SoT in fair_stand DB with org tenancy, disk assets, and IndexedDB cache",
+  "feature_type": "crud_module",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/permissions/corePermissions.ts",
+    "frontend/src/permissions/corePermissions.test.ts",
+    "frontend/src/labels/permissionLabels.ts",
+    "scripts/fair_crm_role_matrix.py",
+    ".kyrox/features/fair-stand-projects-sot.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.fair_stand.projects.read", "action": "read", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.projects.create", "action": "create", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.projects.update", "action": "update", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.projects.delete", "action": "delete", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.projects.execute", "action": "execute", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/fair-stand"],
+    "menu": true,
+    "menu_permission": "fair_crm.fair_stand.projects.read"
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "Project tables live in Fair Stand DB (0012_fair_stand_projects), not fair_crm." },
+    "migration": { "status": "na", "reason": "Stand alembic 0012 + Core 20260922_0067 own schema/permission seeds." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Project API is hosted by Fair Stand service." },
+    "api": { "status": "na", "reason": "CRM proxies /api/v1/fair-stand to Stand; no new CRM routes." },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "na", "reason": "No new Fair CRM audit stream in this slice." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Configurator already routed; no new admin menu item in this slice." },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "na", "reason": "No new CRM form; save/load lives in Stand configurator." },
+    "visual_qa": { "status": "na", "reason": "No new CRM visual surface in this slice." },
+    "backend_tests": { "status": "na", "reason": "API tests live in fair-stand/backend/tests/modules/fair_stand/test_projects_api.py." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "SoT is fair_stand_projects + disk assets {organization_id}/{project_id}/{asset_id}.ext. IndexedDB is cache. Core seeds organization-scoped permissions; Stand enforces them via authorization/check."
+}

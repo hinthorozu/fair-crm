@@ -78,7 +78,7 @@ export function samePermissionIds(left: string[], right: string[]): boolean {
   return left.every((id) => rightSet.has(id));
 }
 
-function groupTitle(group: string): string {
+export function groupTitle(group: string): string {
   const known: Record<string, string> = {
     "audit.logs": "Denetim Kayıtları",
     "settings.platform": "Sistem Ayarları",
@@ -107,6 +107,7 @@ function groupTitle(group: string): string {
     "fair_crm.quotes": "Teklifler",
     "fair_crm.dashboard": "Gösterge Paneli",
     "fair_crm.cost_catalog": "Maliyet Kataloğu",
+    "fair_crm.fair_stand": "Fair Stand Projeleri",
     "fair_crm.admin": "Sistem Yönetimi",
   };
   return known[group] ?? group;
@@ -833,7 +834,7 @@ export function RoleManagementPage() {
       </TabPanel>
 
       <TabPanel id="panel-permissions" labelledBy="tab-permissions" active={tab === "permissions"}>
-        <Card as="section" className="permission-lifecycle-notice"><strong>Global etki alanı</strong><p>Bir izni kilitlemek veya devre dışı bırakmak, OrganizationAdmin dahil tüm rollerden kaldırır. Super Admin erişimi etkilenmez.</p></Card>
+        <Card as="section" className="permission-lifecycle-notice"><strong>Global etki alanı</strong><p>Kilitlemek izni geçici olarak kullanılamaz yapar; rol atamaları korunur ve aktifleştirince erişim devam eder. Devre dışı bırakmak ise izni tüm rollerden kalıcı olarak kaldırır. Super Admin erişimi etkilenmez.</p></Card>
         <div className="permission-lifecycle-toolbar">
           <TextInput id="global-permission-search" value={permissionQuery} onChange={(event) => setPermissionQuery(event.target.value)} placeholder="İzin ara…" aria-label="Global izin ara" />
           <SelectInput id="permission-lifecycle-filter" value={lifecycleFilter} onChange={(event) => setLifecycleFilter(event.target.value as LifecycleFilter)} aria-label="İzin durumu">
@@ -872,7 +873,7 @@ export function RoleManagementPage() {
 
       {deleteTarget ? <ConfirmDialog title="Rolü Sil" message={`${deleteTarget.name} rolü silinecek. Aktif kullanıcıya atanmışsa işlem güvenlik nedeniyle engellenir.`} confirmLabel="Rolü Sil" variant="danger" loading={saving} onCancel={() => setDeleteTarget(null)} onConfirm={() => { if (!organizationId || !canDeleteRole) return; setSaving(true); setError(null); void deleteOrganizationRole(organizationId, deleteTarget.id).then(async () => { setDeleteTarget(null); setSuccess("Rol silindi."); await loadOrganization(); }).catch((err) => setError(errorMessage(err))).finally(() => setSaving(false)); }} /> : null}
       {syncConfirmTarget ? <ConfirmDialog title="Rolü Şablonla Güncelle" message={`${syncConfirmTarget.role.name}: ${syncConfirmTarget.addCount} izin eklenecek, ${syncConfirmTarget.removeCount} izin kaldırılacak.`} confirmLabel="Güncelle" loading={saving} onCancel={() => setSyncConfirmTarget(null)} onConfirm={() => void confirmSync()} /> : null}
-      {permissionStateConfirmTarget ? <ConfirmDialog title="İzin Durumunu Değiştir" message={`${permissionStateConfirmTarget.permission.code}: ${permissionStateConfirmTarget.affectedRoles} rol ve ${permissionStateConfirmTarget.affectedUsers} kullanıcı etkilenecek.`} confirmLabel="Uygula" variant={permissionStateConfirmTarget.state === "inactive" ? "danger" : "default"} loading={saving} onCancel={() => setPermissionStateConfirmTarget(null)} onConfirm={() => void confirmPermissionStateChange()} /> : null}
+      {permissionStateConfirmTarget ? <ConfirmDialog title="İzin Durumunu Değiştir" message={permissionStateConfirmTarget.state === "locked" ? `${permissionStateConfirmTarget.permission.code}: ${permissionStateConfirmTarget.affectedRoles} rol ve ${permissionStateConfirmTarget.affectedUsers} kullanıcı için izin geçici olarak askıya alınacak. Rol atamaları korunur; aktifleştirince erişim devam eder.` : permissionStateConfirmTarget.state === "inactive" ? `${permissionStateConfirmTarget.permission.code}: ${permissionStateConfirmTarget.affectedRoles} rol ve ${permissionStateConfirmTarget.affectedUsers} kullanıcıdan izin kaldırılacak. Yeniden atama gerekir.` : `${permissionStateConfirmTarget.permission.code}: izin yeniden etkinleştirilecek; mevcut rol atamaları devam eder.`} confirmLabel="Uygula" variant={permissionStateConfirmTarget.state === "inactive" ? "danger" : "default"} loading={saving} onCancel={() => setPermissionStateConfirmTarget(null)} onConfirm={() => void confirmPermissionStateChange()} /> : null}
     </PageShell>
   );
 }
