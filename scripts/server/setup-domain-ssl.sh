@@ -6,8 +6,8 @@
 #
 # Usage:
 #   sudo bash /opt/fair-crm/scripts/server/setup-domain-ssl.sh \
-#     --domain faircrm.umaay.com \
-#     --email admin@umaay.com
+#     --domain fuar.kyrox.studio \
+#     --email admin@fuar.kyrox.studio
 #
 # Optional:
 #   --server-ip 64.226.110.223
@@ -45,7 +45,7 @@ Usage:
   sudo bash scripts/server/setup-domain-ssl.sh --domain <domain> --email <admin-email> [options]
 
 Required:
-  --domain <domain>             Public domain, e.g. faircrm.umaay.com
+  --domain <domain>             Public domain, e.g. fuar.kyrox.studio
   --email <admin-email>        Let's Encrypt notification email
 
 Optional:
