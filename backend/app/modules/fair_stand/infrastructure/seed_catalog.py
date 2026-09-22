@@ -162,14 +162,16 @@ def seed_fair_stand_catalog(session: Session) -> None:
                     is_active=True,
                 )
             )
-        for component in row.get("components") or []:
+        for index, component in enumerate(row.get("components") or []):
             edges.append((item_key, component["child_item_key"]))
+            sort_order = int(component["sort_order"]) if "sort_order" in component else index
             session.add(
                 FairStandItemComponentModel(
-                    id=_stable_uuid("component", item_key, component["child_item_key"]),
+                    id=_stable_uuid("component", item_key, str(sort_order)),
                     parent_item_key=item_key,
                     child_item_key=component["child_item_key"],
                     quantity=_dec(component["quantity"]),
+                    sort_order=sort_order,
                 )
             )
         video_wall = row.get("video_wall")
@@ -185,7 +187,6 @@ def seed_fair_stand_catalog(session: Session) -> None:
         for part in row.get("body_parts") or []:
             session.add(
                 FairStandItemBodyPartModel(
-                    id=_stable_uuid("body_part", item_key, part["body_role"]),
                     parent_item_key=item_key,
                     body_role=part["body_role"],
                     child_item_key=part["child_item_key"],

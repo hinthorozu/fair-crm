@@ -4,6 +4,7 @@ import {
   listFairStandAdminItemRecords,
   type FairStandAdminItemRecordSummary,
 } from "../api/fairStandAdmin";
+import { TextInput } from "./ui/form";
 import { adminLabels } from "../labels/adminLabels";
 
 const PAGE_SIZE = 25;
@@ -175,8 +176,8 @@ export function FairStandItemEntitySelect({
 
   return (
     <div className="entity-select" ref={containerRef}>
-      <input
-        id={id}
+      <TextInput
+        id={id ?? "fair-stand-item-entity-select"}
         type="text"
         role="combobox"
         aria-expanded={open}
