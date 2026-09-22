@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "id": "ops-fuar-kyrox-studio-domain-bootstrap-sync",
+  "title": "Sync fuar.kyrox.studio domain into bootstrap env from setup-domain-ssl",
+  "feature_type": "maintenance",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "none",
+  "tenant_scope": "none",
+  "user_facing": false,
+  "affected_paths": [
+    "scripts/server/setup-domain-ssl.sh",
+    "scripts/server/bootstrap-server.sh",
+    "scripts/server/check-server.sh",
+    "scripts/server/deploy-all.sh",
+    "scripts/server/nginx/fair-crm.conf",
+    ".kyrox/features/ops-fuar-kyrox-studio-domain-bootstrap-sync.json"
+  ],
+  "permissions": {
+    "required": false,
+    "reason": "Ops scripts only; no application permission codes.",
+    "items": []
+  },
+  "frontend": {
+    "required": false,
+    "reason": "No UI change; deploy/check/domain scripts only.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No schema change." },
+    "migration": { "status": "na", "reason": "No migration." },
+    "permissions": { "status": "na", "reason": "No permission codes." },
+    "backend": { "status": "na", "reason": "No application backend code." },
+    "api": { "status": "na", "reason": "No API change." },
+    "tenant_isolation": { "status": "na", "reason": "Ops host configuration only." },
+    "audit": { "status": "na", "reason": "No audit stream." },
+    "frontend": { "status": "na", "reason": "No frontend." },
+    "ui_permissions": { "status": "na", "reason": "No UI permissions." },
+    "menu": { "status": "na", "reason": "No menu." },
+    "route_guard": { "status": "na", "reason": "No route." },
+    "forms": { "status": "na", "reason": "No forms." },
+    "visual_qa": { "status": "na", "reason": "No rendered UI." },
+    "backend_tests": { "status": "na", "reason": "Shell ops scripts; verified by check-server/deploy smoke." },
+    "frontend_tests": { "status": "na", "reason": "No frontend." },
+    "runtime_authorization": { "status": "na", "reason": "No authz change." },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "setup-domain-ssl now writes FAIR_CRM_DOMAIN/LETSENCRYPT_EMAIL/SERVER_PUBLIC_IP into /etc/fair-crm/server-bootstrap.env so check-server matches nginx. Defaults and SPA host Local checks use fuar.kyrox.studio Host header."
+}

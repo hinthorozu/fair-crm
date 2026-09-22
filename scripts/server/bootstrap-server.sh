@@ -30,9 +30,9 @@
 #   FAIR_STAND_REPO=https://github.com/hinthorozu/fair-stand.git
 #   FAIR_STAND_BRANCH=main
 #   DEPLOY_SERVICE_USER=ubuntu
-#   FAIR_CRM_DOMAIN=faircrm.domain.com
+#   FAIR_CRM_DOMAIN=fuar.kyrox.studio
 #   SERVER_PUBLIC_IP=203.0.113.10
-#   LETSENCRYPT_EMAIL=admin@example.com
+#   LETSENCRYPT_EMAIL=admin@fuar.kyrox.studio
 #   SERVER_BOOTSTRAP_ENV_FILE=/etc/fair-crm/server-bootstrap.env
 #   DEV_SEED_ENV_FILE=/etc/fair-crm/dev-seed.env
 #   REMOTE_PG_USER=faircrm_remote
@@ -70,9 +70,9 @@ LETSENCRYPT_EMAIL_OVERRIDE="${LETSENCRYPT_EMAIL:-}"
 REMOTE_PG_USER_OVERRIDE="${REMOTE_PG_USER:-}"
 REMOTE_PG_PORT_OVERRIDE="${REMOTE_PG_PORT:-}"
 
-FAIR_CRM_DOMAIN="${FAIR_CRM_DOMAIN_OVERRIDE:-faircrm.domain.com}"
+FAIR_CRM_DOMAIN="${FAIR_CRM_DOMAIN_OVERRIDE:-fuar.kyrox.studio}"
 SERVER_PUBLIC_IP="${SERVER_PUBLIC_IP_OVERRIDE:-}"
-LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL_OVERRIDE:-}"
+LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL_OVERRIDE:-admin@fuar.kyrox.studio}"
 SERVER_BOOTSTRAP_ENV_FILE="${SERVER_BOOTSTRAP_ENV_FILE:-/etc/fair-crm/server-bootstrap.env}"
 DEV_SEED_ENV_FILE="${DEV_SEED_ENV_FILE:-/etc/fair-crm/dev-seed.env}"
 REMOTE_PG_USER="${REMOTE_PG_USER_OVERRIDE:-faircrm_remote}"

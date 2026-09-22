@@ -26,6 +26,7 @@ SERVER_PUBLIC_IP="${SERVER_PUBLIC_IP:-}"
 FAIR_CRM_DIR="${FAIR_CRM_DIR:-/opt/fair-crm}"
 NGINX_SITE_NAME="${NGINX_SITE_NAME:-fair-crm}"
 SKIP_RENEWAL_DRY_RUN="${SKIP_RENEWAL_DRY_RUN:-0}"
+SERVER_BOOTSTRAP_ENV_FILE="${SERVER_BOOTSTRAP_ENV_FILE:-/etc/fair-crm/server-bootstrap.env}"
 
 NGINX_AVAILABLE="/etc/nginx/sites-available/${NGINX_SITE_NAME}"
 NGINX_ENABLED="/etc/nginx/sites-enabled/${NGINX_SITE_NAME}"
@@ -54,9 +55,9 @@ Optional:
   --skip-renewal-dry-run       Skip `certbot renew --dry-run`
   -h, --help                   Show this help
 
-Environment equivalents:
+  Environment equivalents:
   DOMAIN, ADMIN_EMAIL, SERVER_PUBLIC_IP, FAIR_CRM_DIR,
-  NGINX_SITE_NAME, SKIP_RENEWAL_DRY_RUN
+  NGINX_SITE_NAME, SKIP_RENEWAL_DRY_RUN, SERVER_BOOTSTRAP_ENV_FILE
 USAGE
 }
 
@@ -228,6 +229,26 @@ configure_nginx_domain() {
   run_root systemctl enable nginx >/dev/null
   run_root systemctl reload nginx
   REPORT_NGINX="OK (server_name=${DOMAIN})"
+}
+
+persist_bootstrap_domain_settings() {
+  step "Persist domain settings for deploy/check (${SERVER_BOOTSTRAP_ENV_FILE})"
+  run_root mkdir -p "$(dirname "$SERVER_BOOTSTRAP_ENV_FILE")"
+
+  local remote_pg_user remote_pg_port
+  remote_pg_user="$(read_env_key "$SERVER_BOOTSTRAP_ENV_FILE" REMOTE_PG_USER || printf '%s' "faircrm_remote")"
+  remote_pg_port="$(read_env_key "$SERVER_BOOTSTRAP_ENV_FILE" REMOTE_PG_PORT || printf '%s' "15432")"
+
+  {
+    printf 'FAIR_CRM_DOMAIN=%s\n' "$DOMAIN"
+    printf 'SERVER_PUBLIC_IP=%s\n' "$SERVER_PUBLIC_IP"
+    printf 'LETSENCRYPT_EMAIL=%s\n' "$ADMIN_EMAIL"
+    printf 'REMOTE_PG_USER=%s\n' "$remote_pg_user"
+    printf 'REMOTE_PG_PORT=%s\n' "$remote_pg_port"
+  } | run_root tee "$SERVER_BOOTSTRAP_ENV_FILE" >/dev/null
+  run_root chown root:root "$SERVER_BOOTSTRAP_ENV_FILE"
+  run_root chmod 600 "$SERVER_BOOTSTRAP_ENV_FILE"
+  log "Bootstrap domain settings synced: FAIR_CRM_DOMAIN=${DOMAIN}"
 }
 
 configure_firewall() {
@@ -410,6 +431,7 @@ main() {
   check_dns_points_here
   check_local_services
   configure_nginx_domain
+  persist_bootstrap_domain_settings
   configure_firewall
   require_http_ready
   ensure_certbot
