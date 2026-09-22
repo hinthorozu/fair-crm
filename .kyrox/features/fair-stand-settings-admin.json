@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "id": "fair-stand-settings-admin",
+  "title": "Fair Stand temel ayarlar Super Admin UPDATE screen",
+  "feature_type": "system_admin",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "user",
+  "tenant_scope": "system",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/api/fairStandAdmin.ts",
+    "frontend/src/pages/FairStandSettingsAdminPage.tsx",
+    "frontend/src/pages/FairStandSettingsAdminPage.test.ts",
+    "frontend/src/components/admin/AdminSystemLayout.tsx",
+    "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/permissions/fairStandAdminPermissions.ts",
+    "frontend/src/permissions/corePermissions.ts",
+    "frontend/src/permissions/FairStandAdminNavigationPermissions.test.ts",
+    "frontend/src/labels/permissionLabels.ts",
+    "scripts/fair_crm_role_matrix.py",
+    ".kyrox/features/fair-stand-settings-admin.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.admin.fair_stand.settings", "action": "read", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.fair_stand.settings.read", "action": "read", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.fair_stand.settings.update", "action": "update", "scope": "system", "assignable": false }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/admin/fair-stand/settings"],
+    "menu": true,
+    "menu_permission": "fair_crm.admin.fair_stand.settings.read"
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No schema change; singletons already exist in Fair Stand DB." },
+    "migration": { "status": "na", "reason": "Core permission migration lives in kyrox-core 20260922_0068." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Mutations run on Fair Stand API behind same-origin proxy." },
+    "api": { "status": "na", "reason": "CRM does not host /api/v1/fair-stand admin routes." },
+    "tenant_isolation": { "status": "na", "reason": "Global Fair Stand product singletons; SYSTEM Super Admin only." },
+    "audit": { "status": "na", "reason": "No new Fair CRM audit stream." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "required" },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Admin API tests live in fair-stand repository." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Single Admin screen with Stand zarfı + Runtime sections. UPDATE only. Permissions seeded in Core as SYSTEM unassignable; Super Admin bypass grants them. Fair Stand endpoints: GET /admin/settings, PUT /admin/stand-dimensions, PUT /admin/runtime-settings."
+}
