@@ -738,15 +738,28 @@ export const adminLabels = {
   fairStandSettingsDimensionsEditTitle: "Stand zarfını düzenle",
   fairStandSettingsRuntimeEditTitle: "Runtime ayarlarını düzenle",
   fairStandSettingsFieldStripCount: "Şerit sayısı",
+  fairStandSettingsFieldStripCountHint:
+    "Dikey tam boy panel ızgarası kaç şeritten oluşur (ör. 7 → 7×50 cm paneller).",
   fairStandSettingsFieldStripHeight: "Şerit yüksekliği (m)",
+  fairStandSettingsFieldStripHeightHint: "Tek bir şeridin metre cinsinden yüksekliği (ör. 0,5 m).",
   fairStandSettingsFieldHeight: "Tavan yüksekliği (m)",
-  fairStandSettingsFieldHeightHint: "Şerit sayısı × şerit yüksekliği",
+  fairStandSettingsFieldHeightHint:
+    "Otomatik: şerit sayısı × şerit yüksekliği. Stand iskeletinin tavan kotu.",
   fairStandSettingsFieldDepth: "Duvar kalınlığı / derinlik (m)",
+  fairStandSettingsFieldDepthHint: "Stand duvar omurgasının kalınlığı; overlay ve derinlik hesabı buradan gelir.",
   fairStandSettingsFieldFrameWidth: "Çerçeve genişliği (m)",
+  fairStandSettingsFieldFrameWidthHint: "Dikey profil kesit genişliği; görsel iskelet çiziminde kullanılır.",
   fairStandSettingsFieldFrameDepth: "Çerçeve derinliği (m)",
+  fairStandSettingsFieldFrameDepthHint: "Profil / ray derinliği; çerçeve kalınlığının sahne görünümü.",
   fairStandSettingsFieldMaxUpload: "Görsel yükleme tavanı (MB)",
+  fairStandSettingsFieldMaxUploadHint:
+    "Proje yüzey görseli yüklerken izin verilen maksimum dosya boyutu; aşımda popup gösterilir.",
   fairStandSettingsFieldExportVisible: "Dışarı Aktar butonu görünür",
+  fairStandSettingsFieldExportVisibleHint:
+    "Fair Stand arayüzünde Dışarı Aktar (ZIP) butonunu gösterir veya gizler. Güvenlik kilidi değildir.",
   fairStandSettingsFieldImportVisible: "İçe Aktar butonu görünür",
+  fairStandSettingsFieldImportVisibleHint:
+    "Fair Stand arayüzünde İçe Aktar butonunu gösterir veya gizler. Güvenlik kilidi değildir.",
   fairStandSettingsCancel: "Vazgeç",
   fairStandSettingsSave: "Kaydet",
   fairStandSettingsDimensionsSaveSuccess: "Stand zarfı kaydedildi.",
