@@ -48,5 +48,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "setup-domain-ssl now writes FAIR_CRM_DOMAIN/LETSENCRYPT_EMAIL/SERVER_PUBLIC_IP into /etc/fair-crm/server-bootstrap.env so check-server matches nginx. Defaults and SPA host Local checks use fuar.kyrox.studio Host header."
+  "notes": "setup-domain-ssl and deploy-all sync FAIR_CRM_DOMAIN into /etc/fair-crm/server-bootstrap.env from the live nginx server_name so check-server matches after domain cutovers. Defaults and SPA host Local checks use fuar.kyrox.studio Host header."
 }
