@@ -8,17 +8,24 @@ const source = readFileSync(
 ).replace(/\r\n/g, "\n");
 
 describe("Fair Stand settings admin page", () => {
-  it("is update-only with two singleton sections and no create/delete", () => {
-    expect(source).toContain('title="Temel Ayarlar"');
-    expect(source).toContain('title="Stand zarfı"');
-    expect(source).toContain('title="Runtime"');
+  it("uses Fair Stand admin table + modal standards and update-only flow", () => {
+    expect(source).toContain("UniversalDataTable");
+    expect(source).toContain("SectionHeader");
+    expect(source).toContain("FormModal");
+    expect(source).toContain("TableRowActions");
+    expect(source).toContain("FormSection");
+    expect(source).toContain("FormGrid");
+    expect(source).toContain('formWidth="standard"');
+    expect(source).toContain('formWidth="narrow"');
+    expect(source).toContain("adminLabels.fairStandSettingsTitle");
     expect(source).toContain("updateFairStandAdminStandDimensions");
     expect(source).toContain("updateFairStandAdminRuntimeSettings");
     expect(source).toContain("getFairStandAdminSettings");
+    expect(source).toContain('variant="primary"');
+    expect(source).toContain("FAIR_STAND_SETTINGS_READ");
+    expect(source).toContain("FAIR_STAND_SETTINGS_UPDATE");
     expect(source).not.toContain("createFairStand");
     expect(source).not.toContain("deleteFairStand");
     expect(source).not.toContain("archiveFairStand");
-    expect(source).toContain("FAIR_STAND_SETTINGS_READ");
-    expect(source).toContain("FAIR_STAND_SETTINGS_UPDATE");
   });
 });

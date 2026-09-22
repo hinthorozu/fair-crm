@@ -10,15 +10,22 @@ import { Banner } from "../components/ui/Banner";
 import { Button } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
 import { LoadingState } from "../components/ui/LoadingState";
+import { SectionHeader } from "../components/ui/SectionHeader";
+import { TableRowActions } from "../components/ui/TableRowActions";
 import {
   CheckboxField,
   FormDirtyHost,
   FormField,
+  FormGrid,
+  FormModal,
+  FormSection,
   TextInput,
   useReportFormDirty,
 } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
+import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
+import { adminLabels } from "../labels/adminLabels";
 import {
   FAIR_STAND_SETTINGS_READ,
   FAIR_STAND_SETTINGS_UPDATE,
@@ -39,19 +46,8 @@ type SettingsForm = {
   import_button_visible: boolean;
 };
 
-const emptyDimensions: DimensionsForm = {
-  depth_m: "",
-  strip_count: "",
-  strip_height_m: "",
-  frame_width_m: "",
-  frame_depth_m: "",
-};
-
-const emptySettings: SettingsForm = {
-  max_image_upload_mb: "",
-  export_button_visible: true,
-  import_button_visible: true,
-};
+type DimensionsRow = FairStandAdminStandDimensions & { id: 1 };
+type SettingsRow = FairStandAdminRuntimeSettings & { id: 1 };
 
 function FormDirtyReporter<T>({ values, baseline }: { values: T; baseline: T }) {
   useReportFormDirty(values, baseline);
@@ -92,7 +88,7 @@ function computedHeight(form: DimensionsForm): number | null {
 function parsePositiveNumber(raw: string, label: string): number {
   const value = Number(raw);
   if (!Number.isFinite(value) || value <= 0) {
-    throw new Error(`${label} 0'dan büyük bir sayı olmalıdır.`);
+    throw new Error(adminLabels.fairStandSettingsValidationPositiveNumber.replace("{label}", label));
   }
   return value;
 }
@@ -100,9 +96,13 @@ function parsePositiveNumber(raw: string, label: string): number {
 function parsePositiveInt(raw: string, label: string): number {
   const value = Number(raw);
   if (!Number.isInteger(value) || value <= 0) {
-    throw new Error(`${label} 0'dan büyük bir tam sayı olmalıdır.`);
+    throw new Error(adminLabels.fairStandSettingsValidationPositiveInt.replace("{label}", label));
   }
   return value;
+}
+
+function visibleLabel(value: boolean): string {
+  return value ? adminLabels.fairStandSettingsVisibleYes : adminLabels.fairStandSettingsVisibleNo;
 }
 
 export function FairStandSettingsAdminPage() {
@@ -113,10 +113,10 @@ export function FairStandSettingsAdminPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
-  const [dimensionsForm, setDimensionsForm] = React.useState<DimensionsForm>(emptyDimensions);
-  const [dimensionsBaseline, setDimensionsBaseline] = React.useState<DimensionsForm>(emptyDimensions);
-  const [settingsForm, setSettingsForm] = React.useState<SettingsForm>(emptySettings);
-  const [settingsBaseline, setSettingsBaseline] = React.useState<SettingsForm>(emptySettings);
+  const [dimensions, setDimensions] = React.useState<DimensionsRow | null>(null);
+  const [settings, setSettings] = React.useState<SettingsRow | null>(null);
+  const [dimensionsForm, setDimensionsForm] = React.useState<DimensionsForm | null>(null);
+  const [settingsForm, setSettingsForm] = React.useState<SettingsForm | null>(null);
   const [savingDimensions, setSavingDimensions] = React.useState(false);
   const [savingSettings, setSavingSettings] = React.useState(false);
 
@@ -125,14 +125,10 @@ export function FairStandSettingsAdminPage() {
     setError(null);
     try {
       const bundle = await getFairStandAdminSettings();
-      const nextDimensions = dimensionsToForm(bundle.standDimensions);
-      const nextSettings = settingsToForm(bundle.settings);
-      setDimensionsForm(nextDimensions);
-      setDimensionsBaseline(nextDimensions);
-      setSettingsForm(nextSettings);
-      setSettingsBaseline(nextSettings);
+      setDimensions({ id: 1, ...bundle.standDimensions });
+      setSettings({ id: 1, ...bundle.settings });
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Temel ayarlar yüklenemedi.");
+      setError(loadError instanceof Error ? loadError.message : adminLabels.fairStandSettingsLoadError);
     } finally {
       setLoading(false);
     }
@@ -143,131 +139,295 @@ export function FairStandSettingsAdminPage() {
     else setLoading(false);
   }, [canRead, load]);
 
-  const heightM = computedHeight(dimensionsForm);
+  const openDimensionsEdit = () => {
+    if (!dimensions) return;
+    setSuccess(null);
+    setError(null);
+    setDimensionsForm(dimensionsToForm(dimensions));
+  };
 
-  const saveDimensions = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!canUpdate) return;
+  const openSettingsEdit = () => {
+    if (!settings) return;
+    setSuccess(null);
+    setError(null);
+    setSettingsForm(settingsToForm(settings));
+  };
+
+  const closeDimensionsModal = () => setDimensionsForm(null);
+  const closeSettingsModal = () => setSettingsForm(null);
+
+  const saveDimensions = async () => {
+    if (!canUpdate || !dimensionsForm) return;
     setSavingDimensions(true);
     setError(null);
     setSuccess(null);
     try {
-      const stripCount = parsePositiveInt(dimensionsForm.strip_count, "Şerit sayısı");
-      const stripHeight = round3(parsePositiveNumber(dimensionsForm.strip_height_m, "Şerit yüksekliği"));
-      const height = round3(stripCount * stripHeight);
+      const stripCount = parsePositiveInt(
+        dimensionsForm.strip_count,
+        adminLabels.fairStandSettingsFieldStripCount,
+      );
+      const stripHeight = round3(
+        parsePositiveNumber(dimensionsForm.strip_height_m, adminLabels.fairStandSettingsFieldStripHeight),
+      );
       const updated = await updateFairStandAdminStandDimensions({
-        height_m: height,
-        depth_m: round3(parsePositiveNumber(dimensionsForm.depth_m, "Derinlik")),
+        height_m: round3(stripCount * stripHeight),
+        depth_m: round3(parsePositiveNumber(dimensionsForm.depth_m, adminLabels.fairStandSettingsFieldDepth)),
         strip_count: stripCount,
         strip_height_m: stripHeight,
-        frame_width_m: round3(parsePositiveNumber(dimensionsForm.frame_width_m, "Çerçeve genişliği")),
-        frame_depth_m: round3(parsePositiveNumber(dimensionsForm.frame_depth_m, "Çerçeve derinliği")),
+        frame_width_m: round3(
+          parsePositiveNumber(dimensionsForm.frame_width_m, adminLabels.fairStandSettingsFieldFrameWidth),
+        ),
+        frame_depth_m: round3(
+          parsePositiveNumber(dimensionsForm.frame_depth_m, adminLabels.fairStandSettingsFieldFrameDepth),
+        ),
       });
-      const next = dimensionsToForm(updated);
-      setDimensionsForm(next);
-      setDimensionsBaseline(next);
-      setSuccess("Stand zarfı kaydedildi.");
+      setDimensions({ id: 1, ...updated });
+      setDimensionsForm(null);
+      setSuccess(adminLabels.fairStandSettingsDimensionsSaveSuccess);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Stand zarfı kaydedilemedi.");
+      setError(
+        saveError instanceof Error ? saveError.message : adminLabels.fairStandSettingsDimensionsSaveError,
+      );
     } finally {
       setSavingDimensions(false);
     }
   };
 
-  const saveSettings = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!canUpdate) return;
+  const saveSettings = async () => {
+    if (!canUpdate || !settingsForm) return;
     setSavingSettings(true);
     setError(null);
     setSuccess(null);
     try {
       const updated = await updateFairStandAdminRuntimeSettings({
-        max_image_upload_mb: parsePositiveInt(settingsForm.max_image_upload_mb, "Görsel yükleme tavanı"),
+        max_image_upload_mb: parsePositiveInt(
+          settingsForm.max_image_upload_mb,
+          adminLabels.fairStandSettingsFieldMaxUpload,
+        ),
         export_button_visible: settingsForm.export_button_visible,
         import_button_visible: settingsForm.import_button_visible,
       });
-      const next = settingsToForm(updated);
-      setSettingsForm(next);
-      setSettingsBaseline(next);
-      setSuccess("Runtime ayarları kaydedildi.");
+      setSettings({ id: 1, ...updated });
+      setSettingsForm(null);
+      setSuccess(adminLabels.fairStandSettingsRuntimeSaveSuccess);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Runtime ayarları kaydedilemedi.");
+      setError(
+        saveError instanceof Error ? saveError.message : adminLabels.fairStandSettingsRuntimeSaveError,
+      );
     } finally {
       setSavingSettings(false);
     }
   };
 
-  if (!canRead) {
-    return (
-      <PageShell>
-        <PageHeader title="Temel Ayarlar" subtitle="Fair Stand zarfı ve runtime ayarları." />
-        <EmptyState
-          title="Yetki yok"
-          description="Bu ekranı görüntülemek için Fair Stand temel ayar okuma yetkisi gerekir."
-        />
-      </PageShell>
-    );
-  }
+  const dimensionsColumns: UniversalDataTableColumn<DimensionsRow>[] = [
+    { key: "id", title: adminLabels.fairStandSettingsColId, sortable: false, render: (row) => String(row.id) },
+    {
+      key: "height",
+      title: adminLabels.fairStandSettingsColHeight,
+      sortable: false,
+      render: (row) => String(row.height),
+    },
+    {
+      key: "depth",
+      title: adminLabels.fairStandSettingsColDepth,
+      sortable: false,
+      render: (row) => String(row.depth),
+    },
+    {
+      key: "stripCount",
+      title: adminLabels.fairStandSettingsColStripCount,
+      sortable: false,
+      render: (row) => String(row.stripCount),
+    },
+    {
+      key: "stripHeight",
+      title: adminLabels.fairStandSettingsColStripHeight,
+      sortable: false,
+      render: (row) => String(row.stripHeight),
+    },
+    {
+      key: "frameWidth",
+      title: adminLabels.fairStandSettingsColFrameWidth,
+      sortable: false,
+      render: (row) => String(row.frameWidth),
+    },
+    {
+      key: "frameDepth",
+      title: adminLabels.fairStandSettingsColFrameDepth,
+      sortable: false,
+      render: (row) => String(row.frameDepth),
+    },
+    {
+      key: "actions",
+      title: adminLabels.fairStandSettingsColActions,
+      sortable: false,
+      render: () =>
+        canUpdate ? (
+          <TableRowActions>
+            <Button size="sm" variant="secondary" onClick={openDimensionsEdit}>
+              {adminLabels.fairStandSettingsActionEdit}
+            </Button>
+          </TableRowActions>
+        ) : null,
+    },
+  ];
+
+  const settingsColumns: UniversalDataTableColumn<SettingsRow>[] = [
+    { key: "id", title: adminLabels.fairStandSettingsColId, sortable: false, render: (row) => String(row.id) },
+    {
+      key: "maxUpload",
+      title: adminLabels.fairStandSettingsColMaxUpload,
+      sortable: false,
+      render: (row) => String(row.maxImageUploadMb),
+    },
+    {
+      key: "exportVisible",
+      title: adminLabels.fairStandSettingsColExportVisible,
+      sortable: false,
+      render: (row) => visibleLabel(row.exportButtonVisible),
+    },
+    {
+      key: "importVisible",
+      title: adminLabels.fairStandSettingsColImportVisible,
+      sortable: false,
+      render: (row) => visibleLabel(row.importButtonVisible),
+    },
+    {
+      key: "actions",
+      title: adminLabels.fairStandSettingsColActions,
+      sortable: false,
+      render: () =>
+        canUpdate ? (
+          <TableRowActions>
+            <Button size="sm" variant="secondary" onClick={openSettingsEdit}>
+              {adminLabels.fairStandSettingsActionEdit}
+            </Button>
+          </TableRowActions>
+        ) : null,
+    },
+  ];
+
+  const heightM = dimensionsForm ? computedHeight(dimensionsForm) : null;
+  const dimensionsBaseline = dimensions ? dimensionsToForm(dimensions) : null;
+  const settingsBaseline = settings ? settingsToForm(settings) : null;
 
   return (
-    <PageShell className="fair-stand-settings-admin-page">
+    <PageShell>
       <PageHeader
-        title="Temel Ayarlar"
-        subtitle="Stand zarfı ve runtime ayarları. Yalnız güncelleme; oluşturma/silme yok."
+        title={adminLabels.fairStandSettingsTitle}
+        subtitle={adminLabels.fairStandSettingsSubtitle}
       />
       {error ? <Banner variant="error">{error}</Banner> : null}
       {success ? <Banner variant="success">{success}</Banner> : null}
+      {!canRead ? <Banner variant="info">{adminLabels.fairStandSettingsPermissionDenied}</Banner> : null}
       {loading ? <LoadingState /> : null}
 
-      {!loading ? (
+      {canRead && !loading ? (
         <>
-          <section aria-labelledby="fair-stand-dimensions-heading">
-            <PageHeader title="Stand zarfı" subtitle="Tavan yüksekliği = şerit sayısı × şerit yüksekliği." />
-            <h2 id="fair-stand-dimensions-heading" className="sr-only">
-              Stand zarfı
-            </h2>
-            <FormDirtyHost
-              onClose={() => {
-                setDimensionsForm(dimensionsBaseline);
-              }}
-            >
-              <FormDirtyReporter values={dimensionsForm} baseline={dimensionsBaseline} />
-              <form className="crm-form" onSubmit={(event) => void saveDimensions(event)}>
-                <FormField label="Şerit sayısı" htmlFor="fs-strip-count" required>
+          <section>
+            <SectionHeader
+              title={adminLabels.fairStandSettingsDimensionsSection}
+              description={adminLabels.fairStandSettingsDimensionsDescription}
+            />
+            <UniversalDataTable
+              items={dimensions ? [dimensions] : []}
+              columns={dimensionsColumns}
+              rowKey={(row) => String(row.id)}
+              emptyState={
+                <EmptyState
+                  title={adminLabels.fairStandSettingsEmptyTitle}
+                  description={adminLabels.fairStandSettingsEmptyDescription}
+                />
+              }
+            />
+          </section>
+
+          <section>
+            <SectionHeader
+              title={adminLabels.fairStandSettingsRuntimeSection}
+              description={adminLabels.fairStandSettingsRuntimeDescription}
+            />
+            <UniversalDataTable
+              items={settings ? [settings] : []}
+              columns={settingsColumns}
+              rowKey={(row) => String(row.id)}
+              emptyState={
+                <EmptyState
+                  title={adminLabels.fairStandSettingsEmptyTitle}
+                  description={adminLabels.fairStandSettingsEmptyDescription}
+                />
+              }
+            />
+          </section>
+        </>
+      ) : null}
+
+      {dimensionsForm && dimensionsBaseline ? (
+        <FormDirtyHost onClose={closeDimensionsModal}>
+          <FormDirtyReporter values={dimensionsForm} baseline={dimensionsBaseline} />
+          <FormModal
+            title={adminLabels.fairStandSettingsDimensionsEditTitle}
+            onClose={closeDimensionsModal}
+            formWidth="standard"
+            footer={
+              <>
+                <Button variant="secondary" onClick={closeDimensionsModal} disabled={savingDimensions}>
+                  {adminLabels.fairStandSettingsCancel}
+                </Button>
+                <Button
+                  variant="primary"
+                  loading={savingDimensions}
+                  onClick={() => {
+                    void saveDimensions();
+                  }}
+                >
+                  {adminLabels.fairStandSettingsSave}
+                </Button>
+              </>
+            }
+          >
+            <FormSection title={adminLabels.fairStandSettingsDimensionsSection}>
+              <FormGrid columns={2}>
+                <FormField
+                  label={adminLabels.fairStandSettingsFieldStripCount}
+                  htmlFor="fs-strip-count"
+                  required
+                >
                   <TextInput
                     id="fs-strip-count"
                     type="number"
                     min={1}
                     step={1}
                     value={dimensionsForm.strip_count}
-                    disabled={!canUpdate || savingDimensions}
+                    disabled={savingDimensions}
                     onChange={(event) =>
-                      setDimensionsForm((current) => ({ ...current, strip_count: event.target.value }))
+                      setDimensionsForm({ ...dimensionsForm, strip_count: event.target.value })
                     }
                     required
                   />
                 </FormField>
-                <FormField label="Şerit yüksekliği (m)" htmlFor="fs-strip-height" required>
+                <FormField
+                  label={adminLabels.fairStandSettingsFieldStripHeight}
+                  htmlFor="fs-strip-height"
+                  required
+                >
                   <TextInput
                     id="fs-strip-height"
                     type="number"
                     min={0.001}
                     step={0.001}
                     value={dimensionsForm.strip_height_m}
-                    disabled={!canUpdate || savingDimensions}
+                    disabled={savingDimensions}
                     onChange={(event) =>
-                      setDimensionsForm((current) => ({
-                        ...current,
-                        strip_height_m: event.target.value,
-                      }))
+                      setDimensionsForm({ ...dimensionsForm, strip_height_m: event.target.value })
                     }
                     required
                   />
                 </FormField>
                 <FormField
-                  label="Tavan yüksekliği (m)"
+                  label={adminLabels.fairStandSettingsFieldHeight}
                   htmlFor="fs-height"
-                  hint="Şerit sayısı × şerit yüksekliği"
+                  hint={adminLabels.fairStandSettingsFieldHeightHint}
                 >
                   <TextInput
                     id="fs-height"
@@ -277,132 +437,128 @@ export function FairStandSettingsAdminPage() {
                     readOnly
                   />
                 </FormField>
-                <FormField label="Duvar kalınlığı / derinlik (m)" htmlFor="fs-depth" required>
+                <FormField label={adminLabels.fairStandSettingsFieldDepth} htmlFor="fs-depth" required>
                   <TextInput
                     id="fs-depth"
                     type="number"
                     min={0.001}
                     step={0.001}
                     value={dimensionsForm.depth_m}
-                    disabled={!canUpdate || savingDimensions}
+                    disabled={savingDimensions}
                     onChange={(event) =>
-                      setDimensionsForm((current) => ({ ...current, depth_m: event.target.value }))
+                      setDimensionsForm({ ...dimensionsForm, depth_m: event.target.value })
                     }
                     required
                   />
                 </FormField>
-                <FormField label="Çerçeve genişliği (m)" htmlFor="fs-frame-width" required>
+                <FormField
+                  label={adminLabels.fairStandSettingsFieldFrameWidth}
+                  htmlFor="fs-frame-width"
+                  required
+                >
                   <TextInput
                     id="fs-frame-width"
                     type="number"
                     min={0.001}
                     step={0.001}
                     value={dimensionsForm.frame_width_m}
-                    disabled={!canUpdate || savingDimensions}
+                    disabled={savingDimensions}
                     onChange={(event) =>
-                      setDimensionsForm((current) => ({
-                        ...current,
-                        frame_width_m: event.target.value,
-                      }))
+                      setDimensionsForm({ ...dimensionsForm, frame_width_m: event.target.value })
                     }
                     required
                   />
                 </FormField>
-                <FormField label="Çerçeve derinliği (m)" htmlFor="fs-frame-depth" required>
+                <FormField
+                  label={adminLabels.fairStandSettingsFieldFrameDepth}
+                  htmlFor="fs-frame-depth"
+                  required
+                >
                   <TextInput
                     id="fs-frame-depth"
                     type="number"
                     min={0.001}
                     step={0.001}
                     value={dimensionsForm.frame_depth_m}
-                    disabled={!canUpdate || savingDimensions}
+                    disabled={savingDimensions}
                     onChange={(event) =>
-                      setDimensionsForm((current) => ({
-                        ...current,
-                        frame_depth_m: event.target.value,
-                      }))
+                      setDimensionsForm({ ...dimensionsForm, frame_depth_m: event.target.value })
                     }
                     required
                   />
                 </FormField>
-                {canUpdate ? (
-                  <div className="form-actions">
-                    <Button type="submit" loading={savingDimensions}>
-                      Zarfı kaydet
-                    </Button>
-                  </div>
-                ) : null}
-              </form>
-            </FormDirtyHost>
-          </section>
+              </FormGrid>
+            </FormSection>
+          </FormModal>
+        </FormDirtyHost>
+      ) : null}
 
-          <section aria-labelledby="fair-stand-runtime-heading">
-            <PageHeader
-              title="Runtime"
-              subtitle="Görsel yükleme tavanı ve arşiv buton görünürlüğü."
-            />
-            <h2 id="fair-stand-runtime-heading" className="sr-only">
-              Runtime
-            </h2>
-            <FormDirtyHost
-              onClose={() => {
-                setSettingsForm(settingsBaseline);
-              }}
-            >
-              <FormDirtyReporter values={settingsForm} baseline={settingsBaseline} />
-              <form className="crm-form" onSubmit={(event) => void saveSettings(event)}>
-                <FormField label="Görsel yükleme tavanı (MB)" htmlFor="fs-max-upload" required>
+      {settingsForm && settingsBaseline ? (
+        <FormDirtyHost onClose={closeSettingsModal}>
+          <FormDirtyReporter values={settingsForm} baseline={settingsBaseline} />
+          <FormModal
+            title={adminLabels.fairStandSettingsRuntimeEditTitle}
+            onClose={closeSettingsModal}
+            formWidth="narrow"
+            footer={
+              <>
+                <Button variant="secondary" onClick={closeSettingsModal} disabled={savingSettings}>
+                  {adminLabels.fairStandSettingsCancel}
+                </Button>
+                <Button
+                  variant="primary"
+                  loading={savingSettings}
+                  onClick={() => {
+                    void saveSettings();
+                  }}
+                >
+                  {adminLabels.fairStandSettingsSave}
+                </Button>
+              </>
+            }
+          >
+            <FormSection title={adminLabels.fairStandSettingsRuntimeSection}>
+              <FormGrid columns={2}>
+                <FormField
+                  label={adminLabels.fairStandSettingsFieldMaxUpload}
+                  htmlFor="fs-max-upload"
+                  required
+                >
                   <TextInput
                     id="fs-max-upload"
                     type="number"
                     min={1}
                     step={1}
                     value={settingsForm.max_image_upload_mb}
-                    disabled={!canUpdate || savingSettings}
+                    disabled={savingSettings}
                     onChange={(event) =>
-                      setSettingsForm((current) => ({
-                        ...current,
-                        max_image_upload_mb: event.target.value,
-                      }))
+                      setSettingsForm({ ...settingsForm, max_image_upload_mb: event.target.value })
                     }
                     required
                   />
                 </FormField>
-                <CheckboxField
-                  id="fs-export-visible"
-                  label="Dışarı Aktar butonu görünür"
-                  checked={settingsForm.export_button_visible}
-                  disabled={!canUpdate || savingSettings}
-                  onChange={(checked) =>
-                    setSettingsForm((current) => ({
-                      ...current,
-                      export_button_visible: checked,
-                    }))
-                  }
-                />
-                <CheckboxField
-                  id="fs-import-visible"
-                  label="İçe Aktar butonu görünür"
-                  checked={settingsForm.import_button_visible}
-                  disabled={!canUpdate || savingSettings}
-                  onChange={(checked) =>
-                    setSettingsForm((current) => ({
-                      ...current,
-                      import_button_visible: checked,
-                    }))
-                  }
-                />
-                {canUpdate ? (
-                  <div className="form-actions">
-                    <Button type="submit" loading={savingSettings}>
-                      Runtime kaydet
-                    </Button>
-                  </div>
-                ) : null}
-              </form>
-            </FormDirtyHost>
-          </section>
-        </>
+              </FormGrid>
+              <CheckboxField
+                id="fs-export-visible"
+                label={adminLabels.fairStandSettingsFieldExportVisible}
+                checked={settingsForm.export_button_visible}
+                disabled={savingSettings}
+                onChange={(checked) =>
+                  setSettingsForm({ ...settingsForm, export_button_visible: checked })
+                }
+              />
+              <CheckboxField
+                id="fs-import-visible"
+                label={adminLabels.fairStandSettingsFieldImportVisible}
+                checked={settingsForm.import_button_visible}
+                disabled={savingSettings}
+                onChange={(checked) =>
+                  setSettingsForm({ ...settingsForm, import_button_visible: checked })
+                }
+              />
+            </FormSection>
+          </FormModal>
+        </FormDirtyHost>
       ) : null}
     </PageShell>
   );
