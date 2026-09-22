@@ -29,9 +29,11 @@ SERVER_BOOTSTRAP_ENV_FILE="${SERVER_BOOTSTRAP_ENV_FILE:-/etc/fair-crm/server-boo
 DEV_SEED_ENV_FILE="${DEV_SEED_ENV_FILE:-/etc/fair-crm/dev-seed.env}"
 
 check_bootstrap_settings() {
-  local domain="faircrm.domain.com"
+  local domain="fuar.kyrox.studio"
   local public_ip=""
   local letsencrypt_email=""
+  local nginx_site="/etc/nginx/sites-available/fair-crm"
+  local nginx_domain=""
 
   if [[ -f "$SERVER_BOOTSTRAP_ENV_FILE" ]]; then
     check_pass "Bootstrap settings file present"
@@ -40,6 +42,14 @@ check_bootstrap_settings() {
     letsencrypt_email="$(read_env_key "$SERVER_BOOTSTRAP_ENV_FILE" LETSENCRYPT_EMAIL || true)"
   else
     check_warn_item "Bootstrap settings file present (${SERVER_BOOTSTRAP_ENV_FILE})"
+  fi
+
+  if [[ -f "$nginx_site" ]]; then
+    nginx_domain="$(
+      grep -E '^[[:space:]]*server_name[[:space:]]+' "$nginx_site" \
+        | head -n 1 \
+        | sed -E 's/^[[:space:]]*server_name[[:space:]]+//; s/[[:space:]]*;.*$//; s/[[:space:]].*$//'
+    )"
   fi
 
   if [[ -n "$domain" ]]; then
@@ -60,15 +70,18 @@ check_bootstrap_settings() {
     check_warn_item "Let's Encrypt e-mail configured"
   fi
 
-  local nginx_site="/etc/nginx/sites-available/fair-crm"
-  if [[ -f "$nginx_site" ]] && grep -Eq "^[[:space:]]*server_name[[:space:]]+${domain//./\\.};" "$nginx_site"; then
+  if [[ -n "$nginx_domain" && "$nginx_domain" == "$domain" ]]; then
     check_pass "Nginx server_name=${domain}"
+  elif [[ -n "$nginx_domain" ]]; then
+    check_fail "Nginx server_name=${domain} (site has ${nginx_domain}; re-run setup-domain-ssl.sh to sync bootstrap env)"
   else
     check_fail "Nginx server_name=${domain}"
   fi
 
   if [[ -f "/etc/letsencrypt/live/${domain}/fullchain.pem" && -f "/etc/letsencrypt/live/${domain}/privkey.pem" ]]; then
     check_pass "Let's Encrypt certificate present for ${domain}"
+  elif [[ -n "$nginx_domain" && -f "/etc/letsencrypt/live/${nginx_domain}/fullchain.pem" ]]; then
+    check_warn_item "Let's Encrypt certificate present for ${domain} (found live cert for ${nginx_domain})"
   else
     check_warn_item "Let's Encrypt certificate present for ${domain}"
   fi
