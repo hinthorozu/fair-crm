@@ -59,14 +59,6 @@ class FairStandItemModel(Base):
     __tablename__ = "fair_stand_items"
     __table_args__ = (
         CheckConstraint(
-            "panel_role IS NULL OR panel_role IN ('straight', 'inner-corner')",
-            name="ck_fair_stand_items_panel_role",
-        ),
-        CheckConstraint(
-            "connector_type IS NULL OR connector_type IN ('start', 'single', 'double', 'corner')",
-            name="ck_fair_stand_items_connector_type",
-        ),
-        CheckConstraint(
             "eye_count IS NULL OR eye_count IN (2, 3)",
             name="ck_fair_stand_items_eye_count",
         ),
@@ -110,13 +102,10 @@ class FairStandItemModel(Base):
     )
     material: Mapped[str | None] = mapped_column(String(64), nullable=True)
     default_color: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    panel_role: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    connector_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
     preserve_model_scale: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     model_rotation_y_deg: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
     visual_rotation_y_deg: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
     composition_mode: Mapped[str | None] = mapped_column(String(16), nullable=True)
-    composition_module_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
     paintable: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     shape: Mapped[str | None] = mapped_column(String(16), nullable=True)
     variant: Mapped[str | None] = mapped_column(String(64), nullable=True)
@@ -244,7 +233,6 @@ class FairStandItemAssetModel(Base):
 class FairStandItemComponentModel(Base):
     __tablename__ = "fair_stand_item_components"
     __table_args__ = (
-        UniqueConstraint("parent_item_key", "sort_order", name="uq_fair_stand_item_components_sort"),
         CheckConstraint("quantity > 0", name="ck_fair_stand_item_components_quantity"),
         CheckConstraint("parent_item_key <> child_item_key", name="ck_fair_stand_item_components_self"),
         Index("ix_fair_stand_item_components_child", "child_item_key"),
@@ -262,7 +250,6 @@ class FairStandItemComponentModel(Base):
         nullable=False,
     )
     quantity: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
-    sort_order: Mapped[int] = mapped_column(Integer, nullable=False)
     parent: Mapped[FairStandItemModel] = relationship(
         back_populates="components",
         foreign_keys=[parent_item_key],
@@ -297,18 +284,20 @@ class FairStandItemVideoWallModel(Base):
 class FairStandItemBodyPartModel(Base):
     __tablename__ = "fair_stand_item_body_parts"
     __table_args__ = (
+        UniqueConstraint("parent_item_key", "body_role", name="uq_fair_stand_item_body_parts_role"),
         CheckConstraint(
             "body_role IN ('side', 'horizontal', 'glass_shelf')",
             name="ck_fair_stand_body_role",
         ),
     )
 
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
     parent_item_key: Mapped[str] = mapped_column(
         String(128),
         ForeignKey("fair_stand_items.item_key", **CASCADE),
-        primary_key=True,
+        nullable=False,
     )
-    body_role: Mapped[str] = mapped_column(String(32), primary_key=True)
+    body_role: Mapped[str] = mapped_column(String(32), nullable=False)
     child_item_key: Mapped[str] = mapped_column(
         String(128),
         ForeignKey("fair_stand_items.item_key", **CASCADE),

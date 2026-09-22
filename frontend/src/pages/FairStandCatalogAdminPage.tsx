@@ -12,11 +12,13 @@ import {
   type FairStandAdminItem,
   type FairStandAdminPreview,
 } from "../api/fairStandAdmin";
+import { FairStandCatalogPreviewSelect } from "../components/FairStandCatalogPreviewSelect";
 import { Badge } from "../components/ui/Badge";
 import { Banner } from "../components/ui/Banner";
 import { Button } from "../components/ui/Button";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
+import { FilterPanel } from "../components/ui/FilterPanel";
 import { LoadingState } from "../components/ui/LoadingState";
 import { SectionHeader } from "../components/ui/SectionHeader";
 import { TableRowActions } from "../components/ui/TableRowActions";
@@ -58,6 +60,34 @@ type ItemForm = {
 
 const emptyCategory: CategoryForm = { catalog_name: "", catalog_index: "1", is_active: true };
 
+function matchesCategorySearch(row: FairStandAdminCategory, search: string): boolean {
+  const q = search.trim().toLocaleLowerCase("tr-TR");
+  if (!q) return true;
+  return (
+    row.catalogName.toLocaleLowerCase("tr-TR").includes(q) ||
+    String(row.id).includes(q) ||
+    String(row.catalogIndex).includes(q)
+  );
+}
+
+function matchesItemSearch(
+  row: FairStandAdminItem,
+  search: string,
+  categoryName: string | undefined,
+  previewName: string | undefined,
+): boolean {
+  const q = search.trim().toLocaleLowerCase("tr-TR");
+  if (!q) return true;
+  return (
+    row.name.toLocaleLowerCase("tr-TR").includes(q) ||
+    row.itemKey.toLocaleLowerCase("tr-TR").includes(q) ||
+    (categoryName ?? "").toLocaleLowerCase("tr-TR").includes(q) ||
+    (previewName ?? "").toLocaleLowerCase("tr-TR").includes(q) ||
+    (row.categoryId != null && String(row.categoryId).includes(q)) ||
+    (row.previewId != null && String(row.previewId).includes(q))
+  );
+}
+
 function FormDirtyReporter<T>({ values, baseline }: { values: T; baseline: T }) {
   useReportFormDirty(values, baseline);
   return null;
@@ -74,6 +104,8 @@ export function FairStandCatalogAdminPage() {
   const [previews, setPreviews] = React.useState<FairStandAdminPreview[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [categorySearch, setCategorySearch] = React.useState("");
+  const [itemSearch, setItemSearch] = React.useState("");
   const [categoryForm, setCategoryForm] = React.useState<CategoryForm | null>(null);
   const [categoryEditing, setCategoryEditing] = React.useState<FairStandAdminCategory | null>(null);
   const [categoryFormError, setCategoryFormError] = React.useState<string | null>(null);
@@ -92,7 +124,7 @@ export function FairStandCatalogAdminPage() {
       ]);
       setCategories(nextCategories);
       setItems(nextItems);
-      setPreviews(nextPreviews.filter((preview) => preview.isActive));
+      setPreviews(nextPreviews);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : adminLabels.fairStandCatalogLoadError);
     } finally {
@@ -149,6 +181,23 @@ export function FairStandCatalogAdminPage() {
   const previewNameById = React.useMemo(
     () => new Map(previews.map((preview) => [preview.id, preview.displayName])),
     [previews],
+  );
+
+  const filteredCategories = React.useMemo(
+    () => categories.filter((row) => matchesCategorySearch(row, categorySearch)),
+    [categories, categorySearch],
+  );
+  const filteredItems = React.useMemo(
+    () =>
+      items.filter((row) =>
+        matchesItemSearch(
+          row,
+          itemSearch,
+          row.categoryId == null ? undefined : categoryNameById.get(row.categoryId),
+          row.previewId == null ? undefined : previewNameById.get(row.previewId),
+        ),
+      ),
+    [items, itemSearch, categoryNameById, previewNameById],
   );
 
   const categoryColumns: UniversalDataTableColumn<FairStandAdminCategory>[] = [
@@ -313,9 +362,30 @@ export function FairStandCatalogAdminPage() {
               description={adminLabels.fairStandCatalogCategoryDescription}
             />
             <UniversalDataTable
-              items={categories}
+              items={filteredCategories}
               columns={categoryColumns}
               rowKey={(row) => String(row.id)}
+              toolbar={
+                <FilterPanel
+                  actions={
+                    <Button variant="secondary" onClick={() => void load()}>
+                      {adminLabels.fairStandCatalogRefresh}
+                    </Button>
+                  }
+                >
+                  <FormField
+                    label={adminLabels.fairStandCatalogCategoryFilterSearch}
+                    htmlFor="fs-catalog-category-search"
+                  >
+                    <TextInput
+                      id="fs-catalog-category-search"
+                      value={categorySearch}
+                      placeholder={adminLabels.fairStandCatalogCategoryFilterSearchPlaceholder}
+                      onChange={(event) => setCategorySearch(event.target.value)}
+                    />
+                  </FormField>
+                </FilterPanel>
+              }
               emptyState={
                 <EmptyState
                   title={adminLabels.fairStandCatalogCategoryEmptyTitle}
@@ -330,9 +400,24 @@ export function FairStandCatalogAdminPage() {
               description={adminLabels.fairStandCatalogItemDescription}
             />
             <UniversalDataTable
-              items={items}
+              items={filteredItems}
               columns={itemColumns}
               rowKey={(row) => row.itemKey}
+              toolbar={
+                <FilterPanel>
+                  <FormField
+                    label={adminLabels.fairStandCatalogItemFilterSearch}
+                    htmlFor="fs-catalog-item-search"
+                  >
+                    <TextInput
+                      id="fs-catalog-item-search"
+                      value={itemSearch}
+                      placeholder={adminLabels.fairStandCatalogItemFilterSearchPlaceholder}
+                      onChange={(event) => setItemSearch(event.target.value)}
+                    />
+                  </FormField>
+                </FilterPanel>
+              }
               emptyState={
                 <EmptyState
                   title={adminLabels.fairStandCatalogItemEmptyTitle}
@@ -551,20 +636,12 @@ export function FairStandCatalogAdminPage() {
                 hint={adminLabels.fairStandCatalogFieldItemPreviewHint}
                 fullWidth
               >
-                <SelectInput
+                <FairStandCatalogPreviewSelect
                   id="item-preview"
                   value={itemForm.preview_id}
-                  onChange={(event) => setItemForm({ ...itemForm, preview_id: event.target.value })}
-                >
-                  <option value="">{adminLabels.fairStandCatalogSelectPlaceholder}</option>
-                  {previews
-                    .filter((preview) => preview.isActive || preview.id === itemEditing.previewId)
-                    .map((preview) => (
-                      <option key={preview.id} value={String(preview.id)}>
-                        {preview.displayName}
-                      </option>
-                    ))}
-                </SelectInput>
+                  previews={previews}
+                  onChange={(previewId) => setItemForm({ ...itemForm, preview_id: previewId })}
+                />
               </FormField>
             </FormSection>
           </FormModal>

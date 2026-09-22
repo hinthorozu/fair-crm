@@ -29,6 +29,14 @@ describe("Fair Stand previews admin page", () => {
     expect(source).toContain("adminLabels.fairStandPreviewsSectionLivePreview");
   });
 
+  it("exposes table title and client search filter", () => {
+    expect(source).toContain("SectionHeader");
+    expect(source).toContain("FilterPanel");
+    expect(source).toContain("fairStandPreviewsTableTitle");
+    expect(source).toContain("fairStandPreviewsFilterSearch");
+    expect(source).toContain("filteredPreviews");
+  });
+
   it("uses adminLabels copy and field hints", () => {
     expect(source).toContain("adminLabels.fairStandPreviewsTitle");
     expect(source).toContain("adminLabels.fairStandPreviewsFieldNameHint");

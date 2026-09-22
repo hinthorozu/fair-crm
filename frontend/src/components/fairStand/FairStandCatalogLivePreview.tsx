@@ -10,11 +10,17 @@ type PreviewDefinition = {
 export function FairStandCatalogLivePreview({
   definition,
   widthCm = 100,
+  id,
+  className,
 }: {
   definition: PreviewDefinition | null;
   widthCm?: number;
+  id?: string;
+  className?: string;
 }) {
+  const autoId = React.useId();
   const hostRef = React.useRef<HTMLDivElement>(null);
+  const hostId = id ?? `preview-live-${autoId}`;
 
   React.useEffect(() => {
     const host = hostRef.current;
@@ -40,5 +46,12 @@ export function FairStandCatalogLivePreview({
     }
   }, [definition, widthCm]);
 
-  return <div id="preview-live" ref={hostRef} className="fair-stand-admin-live-preview" aria-label="Canlı önizleme" />;
+  return (
+    <div
+      id={hostId}
+      ref={hostRef}
+      className={["fair-stand-admin-live-preview", className].filter(Boolean).join(" ")}
+      aria-label="Canlı önizleme"
+    />
+  );
 }

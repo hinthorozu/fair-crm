@@ -31,6 +31,15 @@ describe("Fair Stand catalog admin page", () => {
     expect(source).toContain("adminLabels.fairStandCatalogItemModalSection");
   });
 
+  it("exposes section titles and client search filters", () => {
+    expect(source).toContain("SectionHeader");
+    expect(source).toContain("FilterPanel");
+    expect(source).toContain("fairStandCatalogCategoryFilterSearch");
+    expect(source).toContain("fairStandCatalogItemFilterSearch");
+    expect(source).toContain("filteredCategories");
+    expect(source).toContain("filteredItems");
+  });
+
   it("uses adminLabels copy and field hints", () => {
     expect(source).toContain("adminLabels.fairStandCatalogTitle");
     expect(source).toContain("adminLabels.fairStandCatalogFieldNameHint");
@@ -41,6 +50,11 @@ describe("Fair Stand catalog admin page", () => {
     expect(source).toContain("adminLabels.fairStandCatalogFieldItemIndexHint");
     expect(source).toContain("adminLabels.fairStandCatalogFieldItemPreviewHint");
     expect(source).not.toContain("Katalog Yönetimi\"");
+  });
+
+  it("uses visual catalog preview select in the item binding modal", () => {
+    expect(source).toContain("FairStandCatalogPreviewSelect");
+    expect(source).toContain("fairStandCatalogFieldItemPreview");
   });
 
   it("uses UniversalDataTable column title, not deprecated header", () => {

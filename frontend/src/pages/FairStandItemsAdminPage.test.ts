@@ -8,22 +8,42 @@ const source = readFileSync(
 ).replace(/\r\n/g, "\n");
 
 describe("Fair Stand items admin page", () => {
-  it("uses list → detail (görüntüle) → full-page create/edit flow without FormModal", () => {
+  it("uses URL routes for list / detail / create / edit without FormModal or viewstate", () => {
     // No popup/modal for create or edit.
     expect(source).not.toContain("FormModal");
+    expect(source).not.toContain('type View = "list" | "detail" | "create" | "edit"');
+    expect(source).not.toContain("setView(");
 
-    // List + detail (önizleme) view flow.
+    // Dedicated URL paths.
+    expect(source).toContain('ITEMS_BASE_PATH = "/admin/fair-stand/items"');
+    expect(source).toContain("itemsCreatePath");
+    expect(source).toContain("itemsDetailPath");
+    expect(source).toContain("itemsEditPath");
+    expect(source).toContain("parseItemsRoute");
+    expect(source).toContain("${ITEMS_BASE_PATH}/new");
+    expect(source).toContain("/edit");
+
+    // List + detail (önizleme) flow.
     expect(source).toContain("UniversalDataTable");
+    expect(source).toContain("FilterPanel");
+    expect(source).toContain("useServerDataTable");
+    expect(source).toContain("table={table}");
     expect(source).toContain("TableRowActions");
     expect(source).toContain("fairStandItemsActionView");
     expect(source).toContain("getFairStandAdminItemRecord");
+    expect(source).toContain("fairStandItemsFilterSearch");
+    expect(source).toContain("fairStandItemsRefresh");
+    expect(source).toContain('className="btn link"');
+    expect(source).toContain("btn link danger");
+    expect(source).toContain("<Badge");
+    expect(source).toContain('variant={row.catalogVisible ? "success" : "neutral"}');
 
     // Full-page forms use FormActions + crm-form--wide, no modal.
     expect(source).toContain("FormActions");
     expect(source).toContain("FormSection");
     expect(source).toContain("FormGrid");
     expect(source).toContain("FormDirtyHost");
-    expect(source).toContain('crm-form crm-form--wide');
+    expect(source).toContain("crm-form crm-form--wide");
     expect(source).toContain("crm-form--narrow");
 
     // Alt items rendered as tables (components / body parts / assets).
@@ -33,9 +53,16 @@ describe("Fair Stand items admin page", () => {
     expect(source).toContain("fairStandItemsAssetsDescription");
     expect(source).toContain("fairStandItemsEmptyComponents");
 
+    expect(source).toContain("listFairStandAdminCategories");
+    expect(source).toContain("listFairStandAdminPreviews");
+    expect(source).toContain("FairStandCatalogPreviewSelect");
+    expect(source).toContain("fairStandCatalogSelectPlaceholder");
+
     // Detail preview + shared hints.
-    expect(source).toContain("DetailField");
-    expect(source).toContain("field-hint");
+    expect(source).toContain("Tabs");
+    expect(source).toContain("TabPanel");
+    expect(source).toContain("detail-grid");
+    expect(source).toContain("fairStandItemsTabGeneral");
     expect(source).toContain("fairStandItemsFieldItemKeyHint");
     expect(source).toContain("fairStandItemsFieldCatalogVisibleHint");
     expect(source).toContain("fairStandItemsFieldStripCountHint");

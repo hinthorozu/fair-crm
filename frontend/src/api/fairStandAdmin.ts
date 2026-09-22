@@ -1,4 +1,7 @@
 import { apiRequest } from "./client";
+import { buildListQueryParams, normalizeStandardListResponse } from "./listTable";
+import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
+import type { StandardListResponse } from "../types/listTable";
 
 const base = "/api/v1/fair-stand/admin";
 
@@ -193,13 +196,17 @@ export type FairStandAdminItemAsset = {
 export type FairStandAdminItemComponent = {
   id: string;
   childItemKey: string;
+  childName: string | null;
+  childType: string | null;
   quantity: number;
-  sortOrder: number;
 };
 
 export type FairStandAdminItemBodyPart = {
+  id: string;
   bodyRole: string;
   childItemKey: string;
+  childName: string | null;
+  childType: string | null;
 };
 
 export type FairStandAdminItemVideoWall = {
@@ -220,8 +227,6 @@ export type FairStandAdminItemRecord = {
   previewId: number | null;
   material: string | null;
   defaultColor: number | null;
-  panelRole: string | null;
-  connectorType: string | null;
   preserveModelScale: boolean | null;
   modelRotationYDeg: number | null;
   visualRotationYDeg: number | null;
@@ -229,7 +234,6 @@ export type FairStandAdminItemRecord = {
   defaultRotationDeg: number | null;
   sideInsertRotation: string | null;
   compositionMode: string | null;
-  compositionModuleType: string | null;
   paintable: boolean | null;
   shape: string | null;
   variant: string | null;
@@ -252,8 +256,75 @@ export type FairStandAdminItemRecord = {
   videoWall: FairStandAdminItemVideoWall | null;
 };
 
-export const listFairStandAdminItemRecords = () =>
-  apiRequest<FairStandAdminItemRecordSummary[]>(`${base}/item-records`);
+export type FairStandAdminItemFieldOptions = {
+  types: string[];
+  units: string[];
+  materials: string[];
+  shapes: string[];
+  variants: string[];
+  compositionModes: string[];
+  sideInsertRotations: string[];
+  snapTargetItemTypes: string[];
+  snapAnchors: string[];
+};
+
+const EMPTY_FIELD_OPTIONS: FairStandAdminItemFieldOptions = {
+  types: [],
+  units: [],
+  materials: [],
+  shapes: [],
+  variants: [],
+  compositionModes: [],
+  sideInsertRotations: [],
+  snapTargetItemTypes: [],
+  snapAnchors: [],
+};
+
+function parseStringList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === "string" && entry.trim() !== "")
+    : [];
+}
+
+export type FairStandAdminItemRecordListResponse =
+  StandardListResponse<FairStandAdminItemRecordSummary> & {
+    filterOptions?: FairStandAdminItemFieldOptions;
+  };
+
+export const listFairStandAdminItemRecords = (
+  params: Partial<ServerTableFetchParams> = {},
+): Promise<FairStandAdminItemRecordListResponse> => {
+  const query = buildListQueryParams({
+    page: params.page,
+    pageSize: params.pageSize,
+    search: params.search,
+    sortBy: params.sortBy,
+    sortOrder: params.sortOrder,
+    filters: params.filters,
+  });
+  return apiRequest<unknown>(`${base}/item-records?${query.toString()}`).then((raw) => {
+    const normalized = normalizeStandardListResponse<FairStandAdminItemRecordSummary>(raw);
+    const data = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+    const options =
+      data.filterOptions && typeof data.filterOptions === "object"
+        ? (data.filterOptions as Record<string, unknown>)
+        : null;
+    return {
+      ...normalized,
+      filterOptions: {
+        types: parseStringList(options?.types),
+        units: parseStringList(options?.units),
+        materials: parseStringList(options?.materials),
+        shapes: parseStringList(options?.shapes),
+        variants: parseStringList(options?.variants),
+        compositionModes: parseStringList(options?.compositionModes),
+        sideInsertRotations: parseStringList(options?.sideInsertRotations),
+        snapTargetItemTypes: parseStringList(options?.snapTargetItemTypes),
+        snapAnchors: parseStringList(options?.snapAnchors),
+      },
+    };
+  });
+};
 
 export const getFairStandAdminItemRecord = (itemKey: string) =>
   apiRequest<FairStandAdminItemRecord>(`${base}/item-records/${encodeURIComponent(itemKey)}`);

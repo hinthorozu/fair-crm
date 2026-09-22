@@ -13,7 +13,9 @@ import { Banner } from "../components/ui/Banner";
 import { Button } from "../components/ui/Button";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
+import { FilterPanel } from "../components/ui/FilterPanel";
 import { LoadingState } from "../components/ui/LoadingState";
+import { SectionHeader } from "../components/ui/SectionHeader";
 import { TableRowActions } from "../components/ui/TableRowActions";
 import {
   CheckboxField,
@@ -54,6 +56,16 @@ const emptyPreview: PreviewForm = {
   is_active: true,
 };
 
+function matchesPreviewSearch(row: FairStandAdminPreview, search: string): boolean {
+  const q = search.trim().toLocaleLowerCase("tr-TR");
+  if (!q) return true;
+  return (
+    row.displayName.toLocaleLowerCase("tr-TR").includes(q) ||
+    String(row.id).includes(q) ||
+    String(row.sortIndex).includes(q)
+  );
+}
+
 function FormDirtyReporter<T>({ values, baseline }: { values: T; baseline: T }) {
   useReportFormDirty(values, baseline);
   return null;
@@ -68,6 +80,7 @@ export function FairStandPreviewsAdminPage() {
   const [previews, setPreviews] = React.useState<FairStandAdminPreview[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [search, setSearch] = React.useState("");
   const [form, setForm] = React.useState<PreviewForm | null>(null);
   const [editing, setEditing] = React.useState<FairStandAdminPreview | null>(null);
   const [archiveTarget, setArchiveTarget] = React.useState<FairStandAdminPreview | null>(null);
@@ -104,6 +117,11 @@ export function FairStandPreviewsAdminPage() {
       is_active: row.isActive,
     });
   };
+
+  const filteredPreviews = React.useMemo(
+    () => previews.filter((row) => matchesPreviewSearch(row, search)),
+    [previews, search],
+  );
 
   const columns: UniversalDataTableColumn<FairStandAdminPreview>[] = [
     { key: "id", title: adminLabels.fairStandPreviewsColId, sortable: false, render: (row) => String(row.id) },
@@ -212,17 +230,44 @@ export function FairStandPreviewsAdminPage() {
       {!canRead ? <Banner variant="info">{adminLabels.fairStandPreviewsPermissionDenied}</Banner> : null}
       {loading ? <LoadingState /> : null}
       {canRead && !loading && !error ? (
-        <UniversalDataTable
-          items={previews}
-          columns={columns}
-          rowKey={(row) => String(row.id)}
-          emptyState={
-            <EmptyState
-              title={adminLabels.fairStandPreviewsEmptyTitle}
-              description={adminLabels.fairStandPreviewsEmptyDescription}
-            />
-          }
-        />
+        <section>
+          <SectionHeader
+            title={adminLabels.fairStandPreviewsTableTitle}
+            description={adminLabels.fairStandPreviewsTableDescription}
+          />
+          <UniversalDataTable
+            items={filteredPreviews}
+            columns={columns}
+            rowKey={(row) => String(row.id)}
+            toolbar={
+              <FilterPanel
+                actions={
+                  <Button variant="secondary" onClick={() => void load()}>
+                    {adminLabels.fairStandPreviewsRefresh}
+                  </Button>
+                }
+              >
+                <FormField
+                  label={adminLabels.fairStandPreviewsFilterSearch}
+                  htmlFor="fs-previews-search"
+                >
+                  <TextInput
+                    id="fs-previews-search"
+                    value={search}
+                    placeholder={adminLabels.fairStandPreviewsFilterSearchPlaceholder}
+                    onChange={(event) => setSearch(event.target.value)}
+                  />
+                </FormField>
+              </FilterPanel>
+            }
+            emptyState={
+              <EmptyState
+                title={adminLabels.fairStandPreviewsEmptyTitle}
+                description={adminLabels.fairStandPreviewsEmptyDescription}
+              />
+            }
+          />
+        </section>
       ) : null}
 
       {form ? (
@@ -360,7 +405,7 @@ export function FairStandPreviewsAdminPage() {
                 htmlFor="preview-live"
                 fullWidth
               >
-                <FairStandCatalogLivePreview definition={liveDefinition} />
+                <FairStandCatalogLivePreview id="preview-live" definition={liveDefinition} />
               </FormField>
             </FormSection>
           </FormModal>
