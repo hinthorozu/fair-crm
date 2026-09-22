@@ -21,8 +21,10 @@ describe("Fair Stand settings admin page", () => {
     expect(source).toContain("updateFairStandAdminStandDimensions");
     expect(source).toContain("updateFairStandAdminRuntimeSettings");
     expect(source).toContain("getFairStandAdminSettings");
-    expect(source).toContain("fairStandSettingsFieldStripCountHint");
+    expect(source).toContain("fairStandSettingsFieldHeightHint");
     expect(source).toContain("fairStandSettingsFieldDepthHint");
+    expect(source).not.toContain("frameWidthCm");
+    expect(source).not.toContain("fairStandSettingsFieldStripCountHint");
     expect(source).toContain("fairStandSettingsFieldMaxUploadHint");
     expect(source).toContain("fairStandSettingsFieldExportVisibleHint");
     expect(source).toContain("FAIR_STAND_SETTINGS_READ");

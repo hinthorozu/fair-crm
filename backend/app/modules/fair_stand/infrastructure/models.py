@@ -149,7 +149,6 @@ class FairStandItemDimensionsModel(Base):
     __table_args__ = (
         CheckConstraint(
             "width_cm IS NOT NULL OR depth_cm IS NOT NULL OR height_cm IS NOT NULL "
-            "OR length_cm IS NOT NULL OR thickness_cm IS NOT NULL "
             "OR mount_height_cm IS NOT NULL OR wall_gap_cm IS NOT NULL",
             name="ck_fair_stand_item_dimensions_present",
         ),
@@ -163,8 +162,6 @@ class FairStandItemDimensionsModel(Base):
     width_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
     depth_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
     height_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
-    length_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
-    thickness_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
     mount_height_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
     wall_gap_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
     item: Mapped[FairStandItemModel] = relationship(back_populates="dimensions")

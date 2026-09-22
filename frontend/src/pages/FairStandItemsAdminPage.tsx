@@ -110,8 +110,6 @@ type EditForm = {
   width_cm: string;
   depth_cm: string;
   height_cm: string;
-  length_cm: string;
-  thickness_cm: string;
   mount_height_cm: string;
   wall_gap_cm: string;
   scene_width_cm: string;
@@ -286,8 +284,6 @@ function detailToForm(detail: FairStandAdminItemRecord): EditForm {
     width_cm: str(dims?.widthCm),
     depth_cm: str(dims?.depthCm),
     height_cm: str(dims?.heightCm),
-    length_cm: str(dims?.lengthCm),
-    thickness_cm: str(dims?.thicknessCm),
     mount_height_cm: str(dims?.mountHeightCm),
     wall_gap_cm: str(dims?.wallGapCm),
     scene_width_cm: str(scene?.widthCm),
@@ -323,8 +319,6 @@ function buildUpdatePayload(form: EditForm): Record<string, unknown> {
     form.width_cm,
     form.depth_cm,
     form.height_cm,
-    form.length_cm,
-    form.thickness_cm,
     form.mount_height_cm,
     form.wall_gap_cm,
   )
@@ -332,8 +326,6 @@ function buildUpdatePayload(form: EditForm): Record<string, unknown> {
         width_cm: optionalNumber(form.width_cm),
         depth_cm: optionalNumber(form.depth_cm),
         height_cm: optionalNumber(form.height_cm),
-        length_cm: optionalNumber(form.length_cm),
-        thickness_cm: optionalNumber(form.thickness_cm),
         mount_height_cm: optionalNumber(form.mount_height_cm),
         wall_gap_cm: optionalNumber(form.wall_gap_cm),
       }
@@ -1582,18 +1574,6 @@ function ItemDetailView({
               <DetailValue value={str(dims?.heightCm)} />
             </DetailItem>
             <DetailItem
-              label={adminLabels.fairStandItemsFieldLengthCm}
-              hint={adminLabels.fairStandItemsFieldLengthCmHint}
-            >
-              <DetailValue value={str(dims?.lengthCm)} />
-            </DetailItem>
-            <DetailItem
-              label={adminLabels.fairStandItemsFieldThicknessCm}
-              hint={adminLabels.fairStandItemsFieldThicknessCmHint}
-            >
-              <DetailValue value={str(dims?.thicknessCm)} />
-            </DetailItem>
-            <DetailItem
               label={adminLabels.fairStandItemsFieldMountHeightCm}
               hint={adminLabels.fairStandItemsFieldMountHeightCmHint}
             >
@@ -2065,12 +2045,6 @@ function ItemEditView({
     ["width_cm", adminLabels.fairStandItemsFieldWidthCm, adminLabels.fairStandItemsFieldWidthCmHint],
     ["depth_cm", adminLabels.fairStandItemsFieldDepthCm, adminLabels.fairStandItemsFieldDepthCmHint],
     ["height_cm", adminLabels.fairStandItemsFieldHeightCm, adminLabels.fairStandItemsFieldHeightCmHint],
-    ["length_cm", adminLabels.fairStandItemsFieldLengthCm, adminLabels.fairStandItemsFieldLengthCmHint],
-    [
-      "thickness_cm",
-      adminLabels.fairStandItemsFieldThicknessCm,
-      adminLabels.fairStandItemsFieldThicknessCmHint,
-    ],
     [
       "mount_height_cm",
       adminLabels.fairStandItemsFieldMountHeightCm,
