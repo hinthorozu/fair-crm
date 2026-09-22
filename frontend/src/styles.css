@@ -1778,6 +1778,13 @@ textarea::placeholder {
   line-height: 1.4;
 }
 
+.field-value {
+  font-size: var(--text-sm);
+  color: var(--text);
+  line-height: var(--leading-snug);
+  word-break: break-word;
+}
+
 .field-error,
 .form-error {
   font-size: 0.78rem;

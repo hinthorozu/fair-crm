@@ -7,6 +7,9 @@ import {
   restoreFairStandAdminItemRecord,
   updateFairStandAdminItemRecord,
   type FairStandAdminItemRecord,
+  type FairStandAdminItemAsset,
+  type FairStandAdminItemBodyPart,
+  type FairStandAdminItemComponent,
   type FairStandAdminItemRecordSummary,
 } from "../api/fairStandAdmin";
 import { Banner } from "../components/ui/Banner";
@@ -17,15 +20,16 @@ import { LoadingState } from "../components/ui/LoadingState";
 import { TableRowActions } from "../components/ui/TableRowActions";
 import {
   CheckboxField,
+  FormActions,
   FormDirtyHost,
   FormField,
   FormGrid,
-  FormModal,
   FormSection,
   TextInput,
+  useFormDirtyCancel,
   useReportFormDirty,
 } from "../components/ui/form";
-import { PageHeader } from "../components/ui/PageHeader";
+import { PageHeader, type PageHeaderAction } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { adminLabels } from "../labels/adminLabels";
@@ -36,6 +40,8 @@ import {
   FAIR_STAND_ITEMS_UPDATE,
   getGrantedFairStandAdminPermissions,
 } from "../permissions/fairStandAdminPermissions";
+
+type View = "list" | "detail" | "create" | "edit";
 
 type CreateForm = {
   item_key: string;
@@ -110,6 +116,10 @@ function FormDirtyReporter<T>({ values, baseline }: { values: T; baseline: T }) 
 
 function str(value: string | number | null | undefined): string {
   return value == null ? "" : String(value);
+}
+
+function yesNo(value: boolean | null | undefined): string {
+  return value ? adminLabels.fairStandItemsYes : adminLabels.fairStandItemsNo;
 }
 
 function optionalNumber(raw: string): number | null {
@@ -314,6 +324,26 @@ function buildUpdatePayload(form: EditForm): Record<string, unknown> {
   };
 }
 
+/** Read-only preview field: label, value (— when empty) and the shared FormField hint. */
+function DetailField({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: React.ReactNode;
+  hint?: string;
+}) {
+  const isEmpty = value == null || value === "";
+  return (
+    <div className="field">
+      <span className="field-label">{label}</span>
+      <div className="field-value">{isEmpty ? "—" : value}</div>
+      {hint ? <span className="field-hint">{hint}</span> : null}
+    </div>
+  );
+}
+
 export function FairStandItemsAdminPage() {
   const granted = React.useMemo(() => getGrantedFairStandAdminPermissions(), []);
   const canRead = granted.has(FAIR_STAND_ITEMS_READ);
@@ -321,17 +351,19 @@ export function FairStandItemsAdminPage() {
   const canUpdate = granted.has(FAIR_STAND_ITEMS_UPDATE);
   const canArchive = granted.has(FAIR_STAND_ITEMS_ARCHIVE);
 
+  const [view, setView] = React.useState<View>("list");
   const [items, setItems] = React.useState<FairStandAdminItemRecordSummary[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
+  const [detail, setDetail] = React.useState<FairStandAdminItemRecord | null>(null);
+  const [detailLoading, setDetailLoading] = React.useState(false);
   const [createForm, setCreateForm] = React.useState<CreateForm | null>(null);
   const [editKey, setEditKey] = React.useState<string | null>(null);
   const [editForm, setEditForm] = React.useState<EditForm | null>(null);
   const [editBaseline, setEditBaseline] = React.useState<EditForm | null>(null);
-  const [editLoading, setEditLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
-  const [archiveTarget, setArchiveTarget] = React.useState<FairStandAdminItemRecordSummary | null>(null);
+  const [archiveTargetKey, setArchiveTargetKey] = React.useState<string | null>(null);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -350,30 +382,66 @@ export function FairStandItemsAdminPage() {
     else setLoading(false);
   }, [canRead, load]);
 
-  const closeCreate = () => setCreateForm(null);
-  const closeEdit = () => {
-    setEditKey(null);
-    setEditForm(null);
-    setEditBaseline(null);
-  };
+  const reloadDetail = React.useCallback(async (itemKey: string) => {
+    try {
+      setDetail(await getFairStandAdminItemRecord(itemKey));
+    } catch (detailError) {
+      setError(
+        detailError instanceof Error ? detailError.message : adminLabels.fairStandItemsDetailLoadError,
+      );
+    }
+  }, []);
 
-  const openEdit = async (row: FairStandAdminItemRecordSummary) => {
-    if (!canUpdate) return;
+  const openDetail = async (itemKey: string) => {
     setSuccess(null);
     setError(null);
-    setEditLoading(true);
-    setEditKey(row.itemKey);
+    setDetailLoading(true);
     try {
-      const detail = await getFairStandAdminItemRecord(row.itemKey);
-      const form = detailToForm(detail);
-      setEditForm(form);
-      setEditBaseline(form);
+      const record = await getFairStandAdminItemRecord(itemKey);
+      setDetail(record);
+      setView("detail");
     } catch (detailError) {
-      setEditKey(null);
-      setError(detailError instanceof Error ? detailError.message : adminLabels.fairStandItemsDetailLoadError);
+      setError(
+        detailError instanceof Error ? detailError.message : adminLabels.fairStandItemsDetailLoadError,
+      );
     } finally {
-      setEditLoading(false);
+      setDetailLoading(false);
     }
+  };
+
+  const backToList = () => {
+    setView("list");
+    setDetail(null);
+  };
+
+  const openCreate = () => {
+    setSuccess(null);
+    setError(null);
+    setCreateForm({ ...emptyCreate });
+    setView("create");
+  };
+
+  const cancelCreate = () => {
+    setCreateForm(null);
+    setView("list");
+  };
+
+  const openEditFromDetail = () => {
+    if (!canUpdate || !detail) return;
+    setSuccess(null);
+    setError(null);
+    const form = detailToForm(detail);
+    setEditKey(detail.itemKey);
+    setEditForm(form);
+    setEditBaseline(form);
+    setView("edit");
+  };
+
+  const backToDetail = () => {
+    setEditForm(null);
+    setEditBaseline(null);
+    setView("detail");
+    if (editKey) void reloadDetail(editKey);
   };
 
   const saveCreate = async () => {
@@ -382,13 +450,15 @@ export function FairStandItemsAdminPage() {
     setError(null);
     setSuccess(null);
     try {
-      await createFairStandAdminItemRecord({
+      const record = await createFairStandAdminItemRecord({
         item_key: requireText(createForm.item_key, adminLabels.fairStandItemsFieldItemKey),
         name: requireText(createForm.name, adminLabels.fairStandItemsFieldName),
         item_type: requireText(createForm.item_type, adminLabels.fairStandItemsFieldItemType),
       });
       setCreateForm(null);
       setSuccess(adminLabels.fairStandItemsSaveSuccess);
+      setDetail(record);
+      setView("detail");
       await load();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : adminLabels.fairStandItemsSaveError);
@@ -403,14 +473,45 @@ export function FairStandItemsAdminPage() {
     setError(null);
     setSuccess(null);
     try {
-      await updateFairStandAdminItemRecord(editKey, buildUpdatePayload(editForm));
-      closeEdit();
+      const record = await updateFairStandAdminItemRecord(editKey, buildUpdatePayload(editForm));
+      setEditForm(null);
+      setEditBaseline(null);
       setSuccess(adminLabels.fairStandItemsSaveSuccess);
+      setDetail(record);
+      setView("detail");
       await load();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : adminLabels.fairStandItemsSaveError);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleArchive = async (itemKey: string) => {
+    try {
+      await archiveFairStandAdminItemRecord(itemKey);
+      setArchiveTargetKey(null);
+      setSuccess(adminLabels.fairStandItemsSaveSuccess);
+      await load();
+      if (detail && detail.itemKey === itemKey) await reloadDetail(itemKey);
+    } catch (archiveError) {
+      setArchiveTargetKey(null);
+      setError(
+        archiveError instanceof Error ? archiveError.message : adminLabels.fairStandItemsArchiveError,
+      );
+    }
+  };
+
+  const handleRestore = async (itemKey: string) => {
+    try {
+      await restoreFairStandAdminItemRecord(itemKey);
+      setSuccess(adminLabels.fairStandItemsSaveSuccess);
+      await load();
+      if (detail && detail.itemKey === itemKey) await reloadDetail(itemKey);
+    } catch (restoreError) {
+      setError(
+        restoreError instanceof Error ? restoreError.message : adminLabels.fairStandItemsRestoreError,
+      );
     }
   };
 
@@ -470,19 +571,17 @@ export function FairStandItemsAdminPage() {
       sortable: false,
       render: (row) => (
         <TableRowActions>
-          {canUpdate ? (
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => {
-                void openEdit(row);
-              }}
-            >
-              {adminLabels.fairStandItemsActionEdit}
-            </Button>
-          ) : null}
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              void openDetail(row.itemKey);
+            }}
+          >
+            {adminLabels.fairStandItemsActionView}
+          </Button>
           {canArchive && row.isActive ? (
-            <Button size="sm" variant="danger" onClick={() => setArchiveTarget(row)}>
+            <Button size="sm" variant="danger" onClick={() => setArchiveTargetKey(row.itemKey)}>
               {adminLabels.fairStandItemsActionArchive}
             </Button>
           ) : null}
@@ -490,19 +589,7 @@ export function FairStandItemsAdminPage() {
             <Button
               size="sm"
               onClick={() => {
-                void (async () => {
-                  try {
-                    await restoreFairStandAdminItemRecord(row.itemKey);
-                    setSuccess(adminLabels.fairStandItemsSaveSuccess);
-                    await load();
-                  } catch (restoreError) {
-                    setError(
-                      restoreError instanceof Error
-                        ? restoreError.message
-                        : adminLabels.fairStandItemsRestoreError,
-                    );
-                  }
-                })();
+                void handleRestore(row.itemKey);
               }}
             >
               {adminLabels.fairStandItemsActionRestore}
@@ -513,756 +600,1365 @@ export function FairStandItemsAdminPage() {
     },
   ];
 
-  return (
-    <PageShell>
-      <PageHeader
-        title={adminLabels.fairStandItemsTitle}
-        subtitle={adminLabels.fairStandItemsSubtitle}
-        actions={
-          canCreate ? (
-            <Button
-              variant="primary"
-              onClick={() => {
-                setSuccess(null);
-                setError(null);
-                setCreateForm({ ...emptyCreate });
-              }}
-            >
-              {adminLabels.fairStandItemsCreate}
-            </Button>
-          ) : null
-        }
-      />
+  const banners = (
+    <>
       {error ? <Banner variant="error">{error}</Banner> : null}
       {success ? <Banner variant="success">{success}</Banner> : null}
-      {!canRead ? <Banner variant="info">{adminLabels.fairStandItemsPermissionDenied}</Banner> : null}
-      {loading || editLoading ? <LoadingState /> : null}
+    </>
+  );
 
-      {canRead && !loading ? (
-        <UniversalDataTable
-          items={items}
-          columns={columns}
-          rowKey={(row) => row.itemKey}
-          emptyState={
-            <EmptyState
-              title={adminLabels.fairStandItemsEmptyTitle}
-              description={adminLabels.fairStandItemsEmptyDescription}
+  return (
+    <PageShell>
+      {view === "list" ? (
+        <>
+          <PageHeader
+            title={adminLabels.fairStandItemsTitle}
+            subtitle={adminLabels.fairStandItemsSubtitle}
+            actions={
+              canCreate ? (
+                <Button variant="primary" onClick={openCreate}>
+                  {adminLabels.fairStandItemsCreate}
+                </Button>
+              ) : null
+            }
+          />
+          {banners}
+          {!canRead ? <Banner variant="info">{adminLabels.fairStandItemsPermissionDenied}</Banner> : null}
+          {loading || detailLoading ? <LoadingState /> : null}
+          {canRead && !loading ? (
+            <UniversalDataTable
+              items={items}
+              columns={columns}
+              rowKey={(row) => row.itemKey}
+              emptyState={
+                <EmptyState
+                  title={adminLabels.fairStandItemsEmptyTitle}
+                  description={adminLabels.fairStandItemsEmptyDescription}
+                />
+              }
             />
-          }
+          ) : null}
+        </>
+      ) : null}
+
+      {view === "detail" && detail ? (
+        <ItemDetailView
+          detail={detail}
+          banners={banners}
+          canUpdate={canUpdate}
+          canArchive={canArchive}
+          onBack={backToList}
+          onEdit={openEditFromDetail}
+          onArchive={() => setArchiveTargetKey(detail.itemKey)}
+          onRestore={() => {
+            void handleRestore(detail.itemKey);
+          }}
         />
       ) : null}
 
-      {createForm ? (
-        <FormDirtyHost onClose={closeCreate}>
-          <FormDirtyReporter values={createForm} baseline={emptyCreate} />
-          <FormModal
-            title={adminLabels.fairStandItemsCreateTitle}
-            onClose={closeCreate}
-            formWidth="narrow"
-            footer={
-              <>
-                <Button variant="secondary" onClick={closeCreate} disabled={saving}>
-                  {adminLabels.fairStandItemsCancel}
-                </Button>
-                <Button
-                  variant="primary"
-                  loading={saving}
-                  onClick={() => {
-                    void saveCreate();
-                  }}
-                >
-                  {adminLabels.fairStandItemsSave}
-                </Button>
-              </>
-            }
-          >
-            <FormSection title={adminLabels.fairStandItemsSectionIdentity}>
-              <FormField
-                label={adminLabels.fairStandItemsFieldItemKey}
-                htmlFor="fs-item-key"
-                hint={adminLabels.fairStandItemsFieldItemKeyHint}
-                required
-              >
-                <TextInput
-                  id="fs-item-key"
-                  value={createForm.item_key}
-                  disabled={saving}
-                  onChange={(event) => setCreateForm({ ...createForm, item_key: event.target.value })}
-                  required
-                />
-              </FormField>
-              <FormField
-                label={adminLabels.fairStandItemsFieldName}
-                htmlFor="fs-item-name"
-                hint={adminLabels.fairStandItemsFieldNameHint}
-                required
-              >
-                <TextInput
-                  id="fs-item-name"
-                  value={createForm.name}
-                  disabled={saving}
-                  onChange={(event) => setCreateForm({ ...createForm, name: event.target.value })}
-                  required
-                />
-              </FormField>
-              <FormField
-                label={adminLabels.fairStandItemsFieldItemType}
-                htmlFor="fs-item-type"
-                hint={adminLabels.fairStandItemsFieldItemTypeHint}
-                required
-              >
-                <TextInput
-                  id="fs-item-type"
-                  value={createForm.item_type}
-                  disabled={saving}
-                  onChange={(event) => setCreateForm({ ...createForm, item_type: event.target.value })}
-                  required
-                />
-              </FormField>
-            </FormSection>
-          </FormModal>
+      {view === "create" && createForm ? (
+        <FormDirtyHost onClose={cancelCreate}>
+          <ItemCreateView
+            form={createForm}
+            saving={saving}
+            banners={banners}
+            onChange={setCreateForm}
+            onSubmit={saveCreate}
+          />
         </FormDirtyHost>
       ) : null}
 
-      {editForm && editBaseline && editKey ? (
-        <FormDirtyHost onClose={closeEdit}>
-          <FormDirtyReporter values={editForm} baseline={editBaseline} />
-          <FormModal
-            title={adminLabels.fairStandItemsEditTitle}
-            onClose={closeEdit}
-            size="lg"
-            formWidth="wide"
-            footer={
-              <>
-                <Button variant="secondary" onClick={closeEdit} disabled={saving}>
-                  {adminLabels.fairStandItemsCancel}
-                </Button>
-                <Button
-                  variant="primary"
-                  loading={saving}
-                  onClick={() => {
-                    void saveEdit();
-                  }}
-                >
-                  {adminLabels.fairStandItemsSave}
-                </Button>
-              </>
-            }
-          >
-            <FormSection title={adminLabels.fairStandItemsSectionIdentity}>
-              <FormField label={adminLabels.fairStandItemsFieldItemKey} htmlFor="fs-edit-item-key">
-                <TextInput id="fs-edit-item-key" value={editKey} readOnly disabled />
-              </FormField>
-              <FormGrid columns={2}>
-                <FormField
-                  label={adminLabels.fairStandItemsFieldName}
-                  htmlFor="fs-edit-name"
-                  hint={adminLabels.fairStandItemsFieldNameHint}
-                  required
-                >
-                  <TextInput
-                    id="fs-edit-name"
-                    value={editForm.name}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, name: event.target.value })}
-                    required
-                  />
-                </FormField>
-                <FormField
-                  label={adminLabels.fairStandItemsFieldItemType}
-                  htmlFor="fs-edit-type"
-                  hint={adminLabels.fairStandItemsFieldItemTypeHint}
-                  required
-                >
-                  <TextInput
-                    id="fs-edit-type"
-                    value={editForm.item_type}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, item_type: event.target.value })}
-                    required
-                  />
-                </FormField>
-                <FormField label={adminLabels.fairStandItemsFieldUnit} htmlFor="fs-edit-unit">
-                  <TextInput
-                    id="fs-edit-unit"
-                    value={editForm.unit}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, unit: event.target.value })}
-                  />
-                </FormField>
-                <FormField label={adminLabels.fairStandItemsFieldMaterial} htmlFor="fs-edit-material">
-                  <TextInput
-                    id="fs-edit-material"
-                    value={editForm.material}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, material: event.target.value })}
-                  />
-                </FormField>
-                <FormField label={adminLabels.fairStandItemsFieldPanelRole} htmlFor="fs-edit-panel-role">
-                  <TextInput
-                    id="fs-edit-panel-role"
-                    value={editForm.panel_role}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, panel_role: event.target.value })}
-                  />
-                </FormField>
-                <FormField label={adminLabels.fairStandItemsFieldConnectorType} htmlFor="fs-edit-connector">
-                  <TextInput
-                    id="fs-edit-connector"
-                    value={editForm.connector_type}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, connector_type: event.target.value })}
-                  />
-                </FormField>
-                <FormField label={adminLabels.fairStandItemsFieldShape} htmlFor="fs-edit-shape">
-                  <TextInput
-                    id="fs-edit-shape"
-                    value={editForm.shape}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, shape: event.target.value })}
-                  />
-                </FormField>
-                <FormField label={adminLabels.fairStandItemsFieldVariant} htmlFor="fs-edit-variant">
-                  <TextInput
-                    id="fs-edit-variant"
-                    value={editForm.variant}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, variant: event.target.value })}
-                  />
-                </FormField>
-                <FormField
-                  label={adminLabels.fairStandItemsFieldDefaultZ}
-                  htmlFor="fs-edit-default-z"
-                  hint={adminLabels.fairStandItemsFieldDefaultZHint}
-                >
-                  <TextInput
-                    id="fs-edit-default-z"
-                    type="number"
-                    value={editForm.default_z_cm}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, default_z_cm: event.target.value })}
-                  />
-                </FormField>
-                <FormField label={adminLabels.fairStandItemsFieldSnapTarget} htmlFor="fs-edit-snap-target">
-                  <TextInput
-                    id="fs-edit-snap-target"
-                    value={editForm.snap_target_item_type}
-                    disabled={saving}
-                    onChange={(event) =>
-                      setEditForm({ ...editForm, snap_target_item_type: event.target.value })
-                    }
-                  />
-                </FormField>
-                <FormField label={adminLabels.fairStandItemsFieldSnapAnchor} htmlFor="fs-edit-snap-anchor">
-                  <TextInput
-                    id="fs-edit-snap-anchor"
-                    value={editForm.snap_anchor}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, snap_anchor: event.target.value })}
-                  />
-                </FormField>
-                <FormField label={adminLabels.fairStandItemsFieldCompositionMode} htmlFor="fs-edit-comp-mode">
-                  <TextInput
-                    id="fs-edit-comp-mode"
-                    value={editForm.composition_mode}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, composition_mode: event.target.value })}
-                  />
-                </FormField>
-              </FormGrid>
-              <CheckboxField
-                id="fs-edit-is-active"
-                label={adminLabels.fairStandItemsFieldIsActive}
-                checked={editForm.is_active}
-                disabled={saving}
-                onChange={(checked) => setEditForm({ ...editForm, is_active: checked })}
-              />
-              <CheckboxField
-                id="fs-edit-is-render"
-                label={adminLabels.fairStandItemsFieldIsRender}
-                hint={adminLabels.fairStandItemsFieldIsRenderHint}
-                checked={editForm.is_render}
-                disabled={saving}
-                onChange={(checked) => setEditForm({ ...editForm, is_render: checked })}
-              />
-              <CheckboxField
-                id="fs-edit-preserve-scale"
-                label={adminLabels.fairStandItemsFieldPreserveModelScale}
-                checked={editForm.preserve_model_scale}
-                disabled={saving}
-                onChange={(checked) => setEditForm({ ...editForm, preserve_model_scale: checked })}
-              />
-              <CheckboxField
-                id="fs-edit-paintable"
-                label={adminLabels.fairStandItemsFieldPaintable}
-                checked={editForm.paintable}
-                disabled={saving}
-                onChange={(checked) => setEditForm({ ...editForm, paintable: checked })}
-              />
-              <CheckboxField
-                id="fs-edit-accepts-color"
-                label={adminLabels.fairStandItemsFieldAcceptsColor}
-                checked={editForm.accepts_color}
-                disabled={saving}
-                onChange={(checked) => setEditForm({ ...editForm, accepts_color: checked })}
-              />
-              <CheckboxField
-                id="fs-edit-accepts-image"
-                label={adminLabels.fairStandItemsFieldAcceptsImage}
-                checked={editForm.accepts_image}
-                disabled={saving}
-                onChange={(checked) => setEditForm({ ...editForm, accepts_image: checked })}
-              />
-              <CheckboxField
-                id="fs-edit-accepts-lightbox"
-                label={adminLabels.fairStandItemsFieldAcceptsLightbox}
-                checked={editForm.accepts_lightbox}
-                disabled={saving}
-                onChange={(checked) => setEditForm({ ...editForm, accepts_lightbox: checked })}
-              />
-              <CheckboxField
-                id="fs-edit-accepts-glass"
-                label={adminLabels.fairStandItemsFieldAcceptsGlass}
-                checked={editForm.accepts_glass}
-                disabled={saving}
-                onChange={(checked) => setEditForm({ ...editForm, accepts_glass: checked })}
-              />
-              <CheckboxField
-                id="fs-edit-accepts-mesh"
-                label={adminLabels.fairStandItemsFieldAcceptsMesh}
-                checked={editForm.accepts_mesh}
-                disabled={saving}
-                onChange={(checked) => setEditForm({ ...editForm, accepts_mesh: checked })}
-              />
-            </FormSection>
-
-            <FormSection title={adminLabels.fairStandItemsSectionCatalog}>
-              <FormGrid columns={2}>
-                <FormField label={adminLabels.fairStandItemsFieldCategoryId} htmlFor="fs-edit-category">
-                  <TextInput
-                    id="fs-edit-category"
-                    type="number"
-                    value={editForm.category_id}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, category_id: event.target.value })}
-                  />
-                </FormField>
-                <FormField label={adminLabels.fairStandItemsFieldCatalogItemIndex} htmlFor="fs-edit-index">
-                  <TextInput
-                    id="fs-edit-index"
-                    type="number"
-                    value={editForm.catalog_item_index}
-                    disabled={saving}
-                    onChange={(event) =>
-                      setEditForm({ ...editForm, catalog_item_index: event.target.value })
-                    }
-                  />
-                </FormField>
-                <FormField label={adminLabels.fairStandItemsFieldPreviewId} htmlFor="fs-edit-preview">
-                  <TextInput
-                    id="fs-edit-preview"
-                    type="number"
-                    value={editForm.preview_id}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, preview_id: event.target.value })}
-                  />
-                </FormField>
-              </FormGrid>
-              <CheckboxField
-                id="fs-edit-catalog-visible"
-                label={adminLabels.fairStandItemsFieldCatalogVisible}
-                hint={adminLabels.fairStandItemsFieldCatalogVisibleHint}
-                checked={editForm.catalog_visible}
-                disabled={saving}
-                onChange={(checked) => setEditForm({ ...editForm, catalog_visible: checked })}
-              />
-            </FormSection>
-
-            <FormSection title={adminLabels.fairStandItemsSectionDimensions}>
-              <FormGrid columns={2}>
-                {(
-                  [
-                    ["width_cm", adminLabels.fairStandItemsFieldWidthCm],
-                    ["depth_cm", adminLabels.fairStandItemsFieldDepthCm],
-                    ["height_cm", adminLabels.fairStandItemsFieldHeightCm],
-                    ["length_cm", adminLabels.fairStandItemsFieldLengthCm],
-                    ["thickness_cm", adminLabels.fairStandItemsFieldThicknessCm],
-                    ["mount_height_cm", adminLabels.fairStandItemsFieldMountHeightCm],
-                    ["wall_gap_cm", adminLabels.fairStandItemsFieldWallGapCm],
-                  ] as const
-                ).map(([key, label]) => (
-                  <FormField key={key} label={label} htmlFor={`fs-edit-${key}`}>
-                    <TextInput
-                      id={`fs-edit-${key}`}
-                      type="number"
-                      value={editForm[key]}
-                      disabled={saving}
-                      onChange={(event) => setEditForm({ ...editForm, [key]: event.target.value })}
-                    />
-                  </FormField>
-                ))}
-              </FormGrid>
-            </FormSection>
-
-            <FormSection title={adminLabels.fairStandItemsSectionSceneDimensions}>
-              <FormGrid columns={2}>
-                <FormField label={adminLabels.fairStandItemsFieldWidthCm} htmlFor="fs-edit-scene-width">
-                  <TextInput
-                    id="fs-edit-scene-width"
-                    type="number"
-                    value={editForm.scene_width_cm}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, scene_width_cm: event.target.value })}
-                  />
-                </FormField>
-                <FormField label={adminLabels.fairStandItemsFieldDepthCm} htmlFor="fs-edit-scene-depth">
-                  <TextInput
-                    id="fs-edit-scene-depth"
-                    type="number"
-                    value={editForm.scene_depth_cm}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, scene_depth_cm: event.target.value })}
-                  />
-                </FormField>
-                <FormField label={adminLabels.fairStandItemsFieldHeightCm} htmlFor="fs-edit-scene-height">
-                  <TextInput
-                    id="fs-edit-scene-height"
-                    type="number"
-                    value={editForm.scene_height_cm}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, scene_height_cm: event.target.value })}
-                  />
-                </FormField>
-              </FormGrid>
-            </FormSection>
-
-            <FormSection title={adminLabels.fairStandItemsSectionStrip}>
-              <FormGrid columns={2}>
-                <FormField
-                  label={adminLabels.fairStandItemsFieldStripAlign}
-                  htmlFor="fs-edit-strip-align"
-                  hint={adminLabels.fairStandItemsFieldStripAlignHint}
-                >
-                  <TextInput
-                    id="fs-edit-strip-align"
-                    value={editForm.strip_align}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, strip_align: event.target.value })}
-                  />
-                </FormField>
-                <FormField
-                  label={adminLabels.fairStandItemsFieldStripCount}
-                  htmlFor="fs-edit-strip-count"
-                  hint={adminLabels.fairStandItemsFieldStripCountHint}
-                >
-                  <TextInput
-                    id="fs-edit-strip-count"
-                    type="number"
-                    value={editForm.strip_count}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, strip_count: event.target.value })}
-                  />
-                </FormField>
-              </FormGrid>
-            </FormSection>
-
-            <FormSection title={adminLabels.fairStandItemsSectionAssets}>
-              {editForm.assets.map((asset, index) => (
-                <FormGrid key={`asset-${index}`} columns={2}>
-                  <FormField
-                    label={adminLabels.fairStandItemsFieldAssetRole}
-                    htmlFor={`fs-asset-role-${index}`}
-                  >
-                    <TextInput
-                      id={`fs-asset-role-${index}`}
-                      value={asset.asset_role}
-                      disabled={saving}
-                      onChange={(event) => {
-                        const assets = [...editForm.assets];
-                        assets[index] = { ...asset, asset_role: event.target.value };
-                        setEditForm({ ...editForm, assets });
-                      }}
-                    />
-                  </FormField>
-                  <FormField
-                    label={adminLabels.fairStandItemsFieldRelativePath}
-                    htmlFor={`fs-asset-path-${index}`}
-                  >
-                    <TextInput
-                      id={`fs-asset-path-${index}`}
-                      value={asset.relative_path}
-                      disabled={saving}
-                      onChange={(event) => {
-                        const assets = [...editForm.assets];
-                        assets[index] = { ...asset, relative_path: event.target.value };
-                        setEditForm({ ...editForm, assets });
-                      }}
-                    />
-                  </FormField>
-                  <CheckboxField
-                    id={`fs-asset-active-${index}`}
-                    label={adminLabels.fairStandItemsFieldAssetActive}
-                    checked={asset.is_active}
-                    disabled={saving}
-                    onChange={(checked) => {
-                      const assets = [...editForm.assets];
-                      assets[index] = { ...asset, is_active: checked };
-                      setEditForm({ ...editForm, assets });
-                    }}
-                  />
-                  <div>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      disabled={saving}
-                      onClick={() =>
-                        setEditForm({
-                          ...editForm,
-                          assets: editForm.assets.filter((_, assetIndex) => assetIndex !== index),
-                        })
-                      }
-                    >
-                      {adminLabels.fairStandItemsRemoveAsset}
-                    </Button>
-                  </div>
-                </FormGrid>
-              ))}
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={saving}
-                onClick={() =>
-                  setEditForm({
-                    ...editForm,
-                    assets: [...editForm.assets, { asset_role: "", relative_path: "", is_active: true }],
-                  })
-                }
-              >
-                {adminLabels.fairStandItemsAddAsset}
-              </Button>
-            </FormSection>
-
-            <FormSection title={adminLabels.fairStandItemsSectionComponents}>
-              {editForm.components.map((component, index) => (
-                <FormGrid key={`component-${index}`} columns={2}>
-                  <FormField
-                    label={adminLabels.fairStandItemsFieldChildItemKey}
-                    htmlFor={`fs-comp-child-${index}`}
-                  >
-                    <TextInput
-                      id={`fs-comp-child-${index}`}
-                      value={component.child_item_key}
-                      disabled={saving}
-                      onChange={(event) => {
-                        const components = [...editForm.components];
-                        components[index] = { ...component, child_item_key: event.target.value };
-                        setEditForm({ ...editForm, components });
-                      }}
-                    />
-                  </FormField>
-                  <FormField
-                    label={adminLabels.fairStandItemsFieldQuantity}
-                    htmlFor={`fs-comp-qty-${index}`}
-                  >
-                    <TextInput
-                      id={`fs-comp-qty-${index}`}
-                      type="number"
-                      value={component.quantity}
-                      disabled={saving}
-                      onChange={(event) => {
-                        const components = [...editForm.components];
-                        components[index] = { ...component, quantity: event.target.value };
-                        setEditForm({ ...editForm, components });
-                      }}
-                    />
-                  </FormField>
-                  <FormField
-                    label={adminLabels.fairStandItemsFieldSortOrder}
-                    htmlFor={`fs-comp-sort-${index}`}
-                  >
-                    <TextInput
-                      id={`fs-comp-sort-${index}`}
-                      type="number"
-                      value={component.sort_order}
-                      disabled={saving}
-                      onChange={(event) => {
-                        const components = [...editForm.components];
-                        components[index] = { ...component, sort_order: event.target.value };
-                        setEditForm({ ...editForm, components });
-                      }}
-                    />
-                  </FormField>
-                  <div>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      disabled={saving}
-                      onClick={() =>
-                        setEditForm({
-                          ...editForm,
-                          components: editForm.components.filter((_, componentIndex) => componentIndex !== index),
-                        })
-                      }
-                    >
-                      {adminLabels.fairStandItemsRemoveComponent}
-                    </Button>
-                  </div>
-                </FormGrid>
-              ))}
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={saving}
-                onClick={() =>
-                  setEditForm({
-                    ...editForm,
-                    components: [
-                      ...editForm.components,
-                      {
-                        child_item_key: "",
-                        quantity: "1",
-                        sort_order: String(editForm.components.length),
-                      },
-                    ],
-                  })
-                }
-              >
-                {adminLabels.fairStandItemsAddComponent}
-              </Button>
-            </FormSection>
-
-            <FormSection title={adminLabels.fairStandItemsSectionBodyParts}>
-              {editForm.body_parts.map((part, index) => (
-                <FormGrid key={`body-${index}`} columns={2}>
-                  <FormField label={adminLabels.fairStandItemsFieldBodyRole} htmlFor={`fs-body-role-${index}`}>
-                    <TextInput
-                      id={`fs-body-role-${index}`}
-                      value={part.body_role}
-                      disabled={saving}
-                      onChange={(event) => {
-                        const body_parts = [...editForm.body_parts];
-                        body_parts[index] = { ...part, body_role: event.target.value };
-                        setEditForm({ ...editForm, body_parts });
-                      }}
-                    />
-                  </FormField>
-                  <FormField
-                    label={adminLabels.fairStandItemsFieldChildItemKey}
-                    htmlFor={`fs-body-child-${index}`}
-                  >
-                    <TextInput
-                      id={`fs-body-child-${index}`}
-                      value={part.child_item_key}
-                      disabled={saving}
-                      onChange={(event) => {
-                        const body_parts = [...editForm.body_parts];
-                        body_parts[index] = { ...part, child_item_key: event.target.value };
-                        setEditForm({ ...editForm, body_parts });
-                      }}
-                    />
-                  </FormField>
-                  <div>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      disabled={saving}
-                      onClick={() =>
-                        setEditForm({
-                          ...editForm,
-                          body_parts: editForm.body_parts.filter((_, partIndex) => partIndex !== index),
-                        })
-                      }
-                    >
-                      {adminLabels.fairStandItemsRemoveBodyPart}
-                    </Button>
-                  </div>
-                </FormGrid>
-              ))}
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={saving}
-                onClick={() =>
-                  setEditForm({
-                    ...editForm,
-                    body_parts: [...editForm.body_parts, { body_role: "", child_item_key: "" }],
-                  })
-                }
-              >
-                {adminLabels.fairStandItemsAddBodyPart}
-              </Button>
-            </FormSection>
-
-            <FormSection title={adminLabels.fairStandItemsSectionVideoWall}>
-              <FormGrid columns={2}>
-                <FormField label={adminLabels.fairStandItemsFieldVideoRows} htmlFor="fs-edit-video-rows">
-                  <TextInput
-                    id="fs-edit-video-rows"
-                    type="number"
-                    value={editForm.video_rows}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, video_rows: event.target.value })}
-                  />
-                </FormField>
-                <FormField label={adminLabels.fairStandItemsFieldVideoCols} htmlFor="fs-edit-video-cols">
-                  <TextInput
-                    id="fs-edit-video-cols"
-                    type="number"
-                    value={editForm.video_cols}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, video_cols: event.target.value })}
-                  />
-                </FormField>
-                <FormField label={adminLabels.fairStandItemsFieldPanelItemKey} htmlFor="fs-edit-panel-key">
-                  <TextInput
-                    id="fs-edit-panel-key"
-                    value={editForm.panel_item_key}
-                    disabled={saving}
-                    onChange={(event) => setEditForm({ ...editForm, panel_item_key: event.target.value })}
-                  />
-                </FormField>
-              </FormGrid>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={saving}
-                onClick={() =>
-                  setEditForm({ ...editForm, video_rows: "", video_cols: "", panel_item_key: "" })
-                }
-              >
-                {adminLabels.fairStandItemsClearVideoWall}
-              </Button>
-            </FormSection>
-          </FormModal>
+      {view === "edit" && editForm && editBaseline && editKey ? (
+        <FormDirtyHost onClose={backToDetail}>
+          <ItemEditView
+            itemKey={editKey}
+            title={detail ? detail.name : editKey}
+            form={editForm}
+            baseline={editBaseline}
+            saving={saving}
+            banners={banners}
+            onChange={setEditForm}
+            onSubmit={saveEdit}
+          />
         </FormDirtyHost>
       ) : null}
 
-      {archiveTarget ? (
+      {archiveTargetKey ? (
         <ConfirmDialog
           title={adminLabels.fairStandItemsArchiveConfirmTitle}
           message={adminLabels.fairStandItemsArchiveConfirmMessage}
           confirmLabel={adminLabels.fairStandItemsArchiveConfirm}
           cancelLabel={adminLabels.fairStandItemsCancel}
-          onCancel={() => setArchiveTarget(null)}
+          onCancel={() => setArchiveTargetKey(null)}
           onConfirm={() => {
-            void (async () => {
-              try {
-                await archiveFairStandAdminItemRecord(archiveTarget.itemKey);
-                setArchiveTarget(null);
-                setSuccess(adminLabels.fairStandItemsSaveSuccess);
-                await load();
-              } catch (archiveError) {
-                setArchiveTarget(null);
-                setError(
-                  archiveError instanceof Error
-                    ? archiveError.message
-                    : adminLabels.fairStandItemsArchiveError,
-                );
-              }
-            })();
+            void handleArchive(archiveTargetKey);
           }}
         />
       ) : null}
     </PageShell>
+  );
+}
+
+const componentColumns: UniversalDataTableColumn<FairStandAdminItemComponent>[] = [
+  {
+    key: "childItemKey",
+    title: adminLabels.fairStandItemsFieldChildItemKey,
+    sortable: false,
+    render: (row) => row.childItemKey,
+  },
+  {
+    key: "quantity",
+    title: adminLabels.fairStandItemsFieldQuantity,
+    sortable: false,
+    render: (row) => String(row.quantity),
+  },
+  {
+    key: "sortOrder",
+    title: adminLabels.fairStandItemsFieldSortOrder,
+    sortable: false,
+    render: (row) => String(row.sortOrder),
+  },
+];
+
+const bodyPartColumns: UniversalDataTableColumn<FairStandAdminItemBodyPart>[] = [
+  {
+    key: "bodyRole",
+    title: adminLabels.fairStandItemsFieldBodyRole,
+    sortable: false,
+    render: (row) => row.bodyRole,
+  },
+  {
+    key: "childItemKey",
+    title: adminLabels.fairStandItemsFieldChildItemKey,
+    sortable: false,
+    render: (row) => row.childItemKey,
+  },
+];
+
+const assetColumns: UniversalDataTableColumn<FairStandAdminItemAsset>[] = [
+  {
+    key: "assetRole",
+    title: adminLabels.fairStandItemsFieldAssetRole,
+    sortable: false,
+    render: (row) => row.assetRole,
+  },
+  {
+    key: "relativePath",
+    title: adminLabels.fairStandItemsFieldRelativePath,
+    sortable: false,
+    render: (row) => row.relativePath,
+  },
+  {
+    key: "isActive",
+    title: adminLabels.fairStandItemsFieldAssetActive,
+    sortable: false,
+    render: (row) => (row.isActive ? adminLabels.fairStandItemsYes : adminLabels.fairStandItemsNo),
+  },
+];
+
+function ItemDetailView({
+  detail,
+  banners,
+  canUpdate,
+  canArchive,
+  onBack,
+  onEdit,
+  onArchive,
+  onRestore,
+}: {
+  detail: FairStandAdminItemRecord;
+  banners: React.ReactNode;
+  canUpdate: boolean;
+  canArchive: boolean;
+  onBack: () => void;
+  onEdit: () => void;
+  onArchive: () => void;
+  onRestore: () => void;
+}) {
+  const actions: PageHeaderAction[] = [];
+  if (canUpdate) {
+    actions.push({
+      id: "edit",
+      label: adminLabels.fairStandItemsActionEdit,
+      onClick: onEdit,
+      variant: "secondary",
+    });
+  }
+  if (canArchive && detail.isActive) {
+    actions.push({
+      id: "archive",
+      label: adminLabels.fairStandItemsActionArchive,
+      onClick: onArchive,
+      variant: "danger",
+    });
+  }
+  if (canArchive && !detail.isActive) {
+    actions.push({
+      id: "restore",
+      label: adminLabels.fairStandItemsActionRestore,
+      onClick: onRestore,
+      variant: "secondary",
+    });
+  }
+
+  const dims = detail.dimensions;
+  const scene = detail.sceneDimensions;
+  const strip = detail.stripOccupancy;
+  const video = detail.videoWall;
+
+  return (
+    <>
+      <PageHeader
+        title={`${detail.name} · ${detail.itemKey}`}
+        subtitle={adminLabels.fairStandItemsDetailSubtitle}
+        breadcrumbs={[
+          { label: adminLabels.fairStandItemsBackToList, onClick: onBack },
+          { label: detail.name, current: true },
+        ]}
+        actions={actions}
+      />
+      {banners}
+
+      <FormSection title={adminLabels.fairStandItemsSectionIdentity}>
+        <FormGrid columns={2}>
+          <DetailField
+            label={adminLabels.fairStandItemsFieldItemKey}
+            value={detail.itemKey}
+            hint={adminLabels.fairStandItemsFieldItemKeyHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldName}
+            value={detail.name}
+            hint={adminLabels.fairStandItemsFieldNameHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldItemType}
+            value={detail.type}
+            hint={adminLabels.fairStandItemsFieldItemTypeHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldUnit}
+            value={detail.unit}
+            hint={adminLabels.fairStandItemsFieldUnitHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldMaterial}
+            value={detail.material}
+            hint={adminLabels.fairStandItemsFieldMaterialHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldPanelRole}
+            value={detail.panelRole}
+            hint={adminLabels.fairStandItemsFieldPanelRoleHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldConnectorType}
+            value={detail.connectorType}
+            hint={adminLabels.fairStandItemsFieldConnectorTypeHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldShape}
+            value={detail.shape}
+            hint={adminLabels.fairStandItemsFieldShapeHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldVariant}
+            value={detail.variant}
+            hint={adminLabels.fairStandItemsFieldVariantHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldCompositionMode}
+            value={detail.compositionMode}
+            hint={adminLabels.fairStandItemsFieldCompositionModeHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldCompositionModuleType}
+            value={detail.compositionModuleType}
+            hint={adminLabels.fairStandItemsFieldCompositionModuleTypeHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldSideInsertRotation}
+            value={detail.sideInsertRotation}
+            hint={adminLabels.fairStandItemsFieldSideInsertRotationHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldSnapTarget}
+            value={detail.snapTargetItemType}
+            hint={adminLabels.fairStandItemsFieldSnapTargetHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldSnapAnchor}
+            value={detail.snapAnchor}
+            hint={adminLabels.fairStandItemsFieldSnapAnchorHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldDefaultZ}
+            value={str(detail.defaultZCm)}
+            hint={adminLabels.fairStandItemsFieldDefaultZHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldDefaultColor}
+            value={str(detail.defaultColor)}
+            hint={adminLabels.fairStandItemsFieldDefaultColorHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldEyeCount}
+            value={str(detail.eyeCount)}
+            hint={adminLabels.fairStandItemsFieldEyeCountHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldModelRotationY}
+            value={str(detail.modelRotationYDeg)}
+            hint={adminLabels.fairStandItemsFieldModelRotationYHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldVisualRotationY}
+            value={str(detail.visualRotationYDeg)}
+            hint={adminLabels.fairStandItemsFieldVisualRotationYHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldRotationStep}
+            value={str(detail.rotationStepDeg)}
+            hint={adminLabels.fairStandItemsFieldRotationStepHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldDefaultRotation}
+            value={str(detail.defaultRotationDeg)}
+            hint={adminLabels.fairStandItemsFieldDefaultRotationHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldIsActive}
+            value={yesNo(detail.isActive)}
+            hint={adminLabels.fairStandItemsFieldIsActiveHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldIsRender}
+            value={yesNo(detail.isRender)}
+            hint={adminLabels.fairStandItemsFieldIsRenderHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldPreserveModelScale}
+            value={yesNo(detail.preserveModelScale)}
+            hint={adminLabels.fairStandItemsFieldPreserveModelScaleHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldPaintable}
+            value={yesNo(detail.paintable)}
+            hint={adminLabels.fairStandItemsFieldPaintableHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldAcceptsColor}
+            value={yesNo(detail.acceptsColor)}
+            hint={adminLabels.fairStandItemsFieldAcceptsColorHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldAcceptsImage}
+            value={yesNo(detail.acceptsImage)}
+            hint={adminLabels.fairStandItemsFieldAcceptsImageHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldAcceptsLightbox}
+            value={yesNo(detail.acceptsLightbox)}
+            hint={adminLabels.fairStandItemsFieldAcceptsLightboxHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldAcceptsGlass}
+            value={yesNo(detail.acceptsGlass)}
+            hint={adminLabels.fairStandItemsFieldAcceptsGlassHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldAcceptsMesh}
+            value={yesNo(detail.acceptsMesh)}
+            hint={adminLabels.fairStandItemsFieldAcceptsMeshHint}
+          />
+        </FormGrid>
+      </FormSection>
+
+      <FormSection title={adminLabels.fairStandItemsSectionCatalog}>
+        <FormGrid columns={2}>
+          <DetailField
+            label={adminLabels.fairStandItemsFieldCatalogVisible}
+            value={yesNo(detail.catalogVisible)}
+            hint={adminLabels.fairStandItemsFieldCatalogVisibleHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldCategoryId}
+            value={str(detail.categoryId)}
+            hint={adminLabels.fairStandItemsFieldCategoryIdHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldCatalogItemIndex}
+            value={str(detail.catalogItemIndex)}
+            hint={adminLabels.fairStandItemsFieldCatalogItemIndexHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldPreviewId}
+            value={str(detail.previewId)}
+            hint={adminLabels.fairStandItemsFieldPreviewIdHint}
+          />
+        </FormGrid>
+      </FormSection>
+
+      <FormSection title={adminLabels.fairStandItemsSectionDimensions}>
+        <FormGrid columns={2}>
+          <DetailField
+            label={adminLabels.fairStandItemsFieldWidthCm}
+            value={str(dims?.widthCm)}
+            hint={adminLabels.fairStandItemsFieldWidthCmHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldDepthCm}
+            value={str(dims?.depthCm)}
+            hint={adminLabels.fairStandItemsFieldDepthCmHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldHeightCm}
+            value={str(dims?.heightCm)}
+            hint={adminLabels.fairStandItemsFieldHeightCmHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldLengthCm}
+            value={str(dims?.lengthCm)}
+            hint={adminLabels.fairStandItemsFieldLengthCmHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldThicknessCm}
+            value={str(dims?.thicknessCm)}
+            hint={adminLabels.fairStandItemsFieldThicknessCmHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldMountHeightCm}
+            value={str(dims?.mountHeightCm)}
+            hint={adminLabels.fairStandItemsFieldMountHeightCmHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldWallGapCm}
+            value={str(dims?.wallGapCm)}
+            hint={adminLabels.fairStandItemsFieldWallGapCmHint}
+          />
+        </FormGrid>
+      </FormSection>
+
+      <FormSection title={adminLabels.fairStandItemsSectionSceneDimensions}>
+        <FormGrid columns={2}>
+          <DetailField
+            label={adminLabels.fairStandItemsFieldWidthCm}
+            value={str(scene?.widthCm)}
+            hint={adminLabels.fairStandItemsFieldSceneWidthCmHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldDepthCm}
+            value={str(scene?.depthCm)}
+            hint={adminLabels.fairStandItemsFieldSceneDepthCmHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldHeightCm}
+            value={str(scene?.heightCm)}
+            hint={adminLabels.fairStandItemsFieldSceneHeightCmHint}
+          />
+        </FormGrid>
+      </FormSection>
+
+      <FormSection title={adminLabels.fairStandItemsSectionStrip}>
+        <FormGrid columns={2}>
+          <DetailField
+            label={adminLabels.fairStandItemsFieldStripAlign}
+            value={strip?.align}
+            hint={adminLabels.fairStandItemsFieldStripAlignHint}
+          />
+          <DetailField
+            label={adminLabels.fairStandItemsFieldStripCount}
+            value={str(strip?.stripCount)}
+            hint={adminLabels.fairStandItemsFieldStripCountHint}
+          />
+        </FormGrid>
+      </FormSection>
+
+      {video ? (
+        <FormSection title={adminLabels.fairStandItemsSectionVideoWall}>
+          <FormGrid columns={2}>
+            <DetailField
+              label={adminLabels.fairStandItemsFieldVideoRows}
+              value={str(video.rows)}
+              hint={adminLabels.fairStandItemsFieldVideoRowsHint}
+            />
+            <DetailField
+              label={adminLabels.fairStandItemsFieldVideoCols}
+              value={str(video.cols)}
+              hint={adminLabels.fairStandItemsFieldVideoColsHint}
+            />
+            <DetailField
+              label={adminLabels.fairStandItemsFieldPanelItemKey}
+              value={video.panelItemKey}
+              hint={adminLabels.fairStandItemsFieldPanelItemKeyHint}
+            />
+          </FormGrid>
+        </FormSection>
+      ) : null}
+
+      <FormSection title={adminLabels.fairStandItemsSectionComponents}>
+        <p className="field-hint">{adminLabels.fairStandItemsComponentsDescription}</p>
+        <UniversalDataTable
+          items={detail.components}
+          columns={componentColumns}
+          rowKey={(row) => row.id}
+          emptyState={<EmptyState title={adminLabels.fairStandItemsEmptyComponents} />}
+        />
+      </FormSection>
+
+      <FormSection title={adminLabels.fairStandItemsSectionBodyParts}>
+        <p className="field-hint">{adminLabels.fairStandItemsBodyPartsDescription}</p>
+        <UniversalDataTable
+          items={detail.bodyParts}
+          columns={bodyPartColumns}
+          rowKey={(row) => `${row.bodyRole}-${row.childItemKey}`}
+          emptyState={<EmptyState title={adminLabels.fairStandItemsEmptyBodyParts} />}
+        />
+      </FormSection>
+
+      <FormSection title={adminLabels.fairStandItemsSectionAssets}>
+        <p className="field-hint">{adminLabels.fairStandItemsAssetsDescription}</p>
+        <UniversalDataTable
+          items={detail.assets}
+          columns={assetColumns}
+          rowKey={(row) => row.id}
+          emptyState={<EmptyState title={adminLabels.fairStandItemsEmptyAssets} />}
+        />
+      </FormSection>
+    </>
+  );
+}
+
+function ItemCreateView({
+  form,
+  saving,
+  banners,
+  onChange,
+  onSubmit,
+}: {
+  form: CreateForm;
+  saving: boolean;
+  banners: React.ReactNode;
+  onChange: (form: CreateForm) => void;
+  onSubmit: () => void;
+}) {
+  const requestBack = useFormDirtyCancel(() => undefined);
+
+  return (
+    <>
+      <FormDirtyReporter values={form} baseline={emptyCreate} />
+      <PageHeader
+        title={adminLabels.fairStandItemsCreateTitle}
+        subtitle={adminLabels.fairStandItemsSubtitle}
+        breadcrumbs={[
+          { label: adminLabels.fairStandItemsBackToList, onClick: requestBack },
+          { label: adminLabels.fairStandItemsCreateTitle, current: true },
+        ]}
+      />
+      {banners}
+      <form
+        className="crm-form crm-form--narrow"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSubmit();
+        }}
+      >
+        <FormSection title={adminLabels.fairStandItemsSectionIdentity}>
+          <FormGrid>
+            <FormField
+              label={adminLabels.fairStandItemsFieldItemKey}
+              htmlFor="fs-item-key"
+              hint={adminLabels.fairStandItemsFieldItemKeyHint}
+              required
+              fullWidth
+            >
+              <TextInput
+                id="fs-item-key"
+                value={form.item_key}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, item_key: event.target.value })}
+                required
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldName}
+              htmlFor="fs-item-name"
+              hint={adminLabels.fairStandItemsFieldNameHint}
+              required
+              fullWidth
+            >
+              <TextInput
+                id="fs-item-name"
+                value={form.name}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, name: event.target.value })}
+                required
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldItemType}
+              htmlFor="fs-item-type"
+              hint={adminLabels.fairStandItemsFieldItemTypeHint}
+              required
+              fullWidth
+            >
+              <TextInput
+                id="fs-item-type"
+                value={form.item_type}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, item_type: event.target.value })}
+                required
+              />
+            </FormField>
+          </FormGrid>
+        </FormSection>
+
+        <FormActions
+          onCancel={requestBack}
+          cancelLabel={adminLabels.fairStandItemsCancel}
+          submitLabel={adminLabels.fairStandItemsSave}
+          saving={saving}
+        />
+      </form>
+    </>
+  );
+}
+
+function ItemEditView({
+  itemKey,
+  title,
+  form,
+  baseline,
+  saving,
+  banners,
+  onChange,
+  onSubmit,
+}: {
+  itemKey: string;
+  title: string;
+  form: EditForm;
+  baseline: EditForm;
+  saving: boolean;
+  banners: React.ReactNode;
+  onChange: (form: EditForm) => void;
+  onSubmit: () => void;
+}) {
+  const requestBack = useFormDirtyCancel(() => undefined);
+
+  const dimensionFields: [keyof EditForm, string, string][] = [
+    ["width_cm", adminLabels.fairStandItemsFieldWidthCm, adminLabels.fairStandItemsFieldWidthCmHint],
+    ["depth_cm", adminLabels.fairStandItemsFieldDepthCm, adminLabels.fairStandItemsFieldDepthCmHint],
+    ["height_cm", adminLabels.fairStandItemsFieldHeightCm, adminLabels.fairStandItemsFieldHeightCmHint],
+    ["length_cm", adminLabels.fairStandItemsFieldLengthCm, adminLabels.fairStandItemsFieldLengthCmHint],
+    [
+      "thickness_cm",
+      adminLabels.fairStandItemsFieldThicknessCm,
+      adminLabels.fairStandItemsFieldThicknessCmHint,
+    ],
+    [
+      "mount_height_cm",
+      adminLabels.fairStandItemsFieldMountHeightCm,
+      adminLabels.fairStandItemsFieldMountHeightCmHint,
+    ],
+    ["wall_gap_cm", adminLabels.fairStandItemsFieldWallGapCm, adminLabels.fairStandItemsFieldWallGapCmHint],
+  ];
+
+  return (
+    <>
+      <FormDirtyReporter values={form} baseline={baseline} />
+      <PageHeader
+        title={`${title} · ${itemKey}`}
+        subtitle={adminLabels.fairStandItemsEditTitle}
+        breadcrumbs={[
+          { label: title, onClick: requestBack },
+          { label: adminLabels.fairStandItemsEditTitle, current: true },
+        ]}
+      />
+      {banners}
+      <form
+        className="crm-form crm-form--wide"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSubmit();
+        }}
+      >
+        <FormSection title={adminLabels.fairStandItemsSectionIdentity}>
+          <FormField
+            label={adminLabels.fairStandItemsFieldItemKey}
+            htmlFor="fs-edit-item-key"
+            hint={adminLabels.fairStandItemsFieldItemKeyHint}
+          >
+            <TextInput id="fs-edit-item-key" value={itemKey} readOnly disabled />
+          </FormField>
+          <FormGrid columns={2}>
+            <FormField
+              label={adminLabels.fairStandItemsFieldName}
+              htmlFor="fs-edit-name"
+              hint={adminLabels.fairStandItemsFieldNameHint}
+              required
+            >
+              <TextInput
+                id="fs-edit-name"
+                value={form.name}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, name: event.target.value })}
+                required
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldItemType}
+              htmlFor="fs-edit-type"
+              hint={adminLabels.fairStandItemsFieldItemTypeHint}
+              required
+            >
+              <TextInput
+                id="fs-edit-type"
+                value={form.item_type}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, item_type: event.target.value })}
+                required
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldUnit}
+              htmlFor="fs-edit-unit"
+              hint={adminLabels.fairStandItemsFieldUnitHint}
+            >
+              <TextInput
+                id="fs-edit-unit"
+                value={form.unit}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, unit: event.target.value })}
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldMaterial}
+              htmlFor="fs-edit-material"
+              hint={adminLabels.fairStandItemsFieldMaterialHint}
+            >
+              <TextInput
+                id="fs-edit-material"
+                value={form.material}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, material: event.target.value })}
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldPanelRole}
+              htmlFor="fs-edit-panel-role"
+              hint={adminLabels.fairStandItemsFieldPanelRoleHint}
+            >
+              <TextInput
+                id="fs-edit-panel-role"
+                value={form.panel_role}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, panel_role: event.target.value })}
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldConnectorType}
+              htmlFor="fs-edit-connector"
+              hint={adminLabels.fairStandItemsFieldConnectorTypeHint}
+            >
+              <TextInput
+                id="fs-edit-connector"
+                value={form.connector_type}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, connector_type: event.target.value })}
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldShape}
+              htmlFor="fs-edit-shape"
+              hint={adminLabels.fairStandItemsFieldShapeHint}
+            >
+              <TextInput
+                id="fs-edit-shape"
+                value={form.shape}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, shape: event.target.value })}
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldVariant}
+              htmlFor="fs-edit-variant"
+              hint={adminLabels.fairStandItemsFieldVariantHint}
+            >
+              <TextInput
+                id="fs-edit-variant"
+                value={form.variant}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, variant: event.target.value })}
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldDefaultZ}
+              htmlFor="fs-edit-default-z"
+              hint={adminLabels.fairStandItemsFieldDefaultZHint}
+            >
+              <TextInput
+                id="fs-edit-default-z"
+                type="number"
+                value={form.default_z_cm}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, default_z_cm: event.target.value })}
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldSnapTarget}
+              htmlFor="fs-edit-snap-target"
+              hint={adminLabels.fairStandItemsFieldSnapTargetHint}
+            >
+              <TextInput
+                id="fs-edit-snap-target"
+                value={form.snap_target_item_type}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, snap_target_item_type: event.target.value })}
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldSnapAnchor}
+              htmlFor="fs-edit-snap-anchor"
+              hint={adminLabels.fairStandItemsFieldSnapAnchorHint}
+            >
+              <TextInput
+                id="fs-edit-snap-anchor"
+                value={form.snap_anchor}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, snap_anchor: event.target.value })}
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldCompositionMode}
+              htmlFor="fs-edit-comp-mode"
+              hint={adminLabels.fairStandItemsFieldCompositionModeHint}
+            >
+              <TextInput
+                id="fs-edit-comp-mode"
+                value={form.composition_mode}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, composition_mode: event.target.value })}
+              />
+            </FormField>
+          </FormGrid>
+          <CheckboxField
+            id="fs-edit-is-active"
+            label={adminLabels.fairStandItemsFieldIsActive}
+            hint={adminLabels.fairStandItemsFieldIsActiveHint}
+            checked={form.is_active}
+            disabled={saving}
+            onChange={(checked) => onChange({ ...form, is_active: checked })}
+          />
+          <CheckboxField
+            id="fs-edit-is-render"
+            label={adminLabels.fairStandItemsFieldIsRender}
+            hint={adminLabels.fairStandItemsFieldIsRenderHint}
+            checked={form.is_render}
+            disabled={saving}
+            onChange={(checked) => onChange({ ...form, is_render: checked })}
+          />
+          <CheckboxField
+            id="fs-edit-preserve-scale"
+            label={adminLabels.fairStandItemsFieldPreserveModelScale}
+            hint={adminLabels.fairStandItemsFieldPreserveModelScaleHint}
+            checked={form.preserve_model_scale}
+            disabled={saving}
+            onChange={(checked) => onChange({ ...form, preserve_model_scale: checked })}
+          />
+          <CheckboxField
+            id="fs-edit-paintable"
+            label={adminLabels.fairStandItemsFieldPaintable}
+            hint={adminLabels.fairStandItemsFieldPaintableHint}
+            checked={form.paintable}
+            disabled={saving}
+            onChange={(checked) => onChange({ ...form, paintable: checked })}
+          />
+          <CheckboxField
+            id="fs-edit-accepts-color"
+            label={adminLabels.fairStandItemsFieldAcceptsColor}
+            hint={adminLabels.fairStandItemsFieldAcceptsColorHint}
+            checked={form.accepts_color}
+            disabled={saving}
+            onChange={(checked) => onChange({ ...form, accepts_color: checked })}
+          />
+          <CheckboxField
+            id="fs-edit-accepts-image"
+            label={adminLabels.fairStandItemsFieldAcceptsImage}
+            hint={adminLabels.fairStandItemsFieldAcceptsImageHint}
+            checked={form.accepts_image}
+            disabled={saving}
+            onChange={(checked) => onChange({ ...form, accepts_image: checked })}
+          />
+          <CheckboxField
+            id="fs-edit-accepts-lightbox"
+            label={adminLabels.fairStandItemsFieldAcceptsLightbox}
+            hint={adminLabels.fairStandItemsFieldAcceptsLightboxHint}
+            checked={form.accepts_lightbox}
+            disabled={saving}
+            onChange={(checked) => onChange({ ...form, accepts_lightbox: checked })}
+          />
+          <CheckboxField
+            id="fs-edit-accepts-glass"
+            label={adminLabels.fairStandItemsFieldAcceptsGlass}
+            hint={adminLabels.fairStandItemsFieldAcceptsGlassHint}
+            checked={form.accepts_glass}
+            disabled={saving}
+            onChange={(checked) => onChange({ ...form, accepts_glass: checked })}
+          />
+          <CheckboxField
+            id="fs-edit-accepts-mesh"
+            label={adminLabels.fairStandItemsFieldAcceptsMesh}
+            hint={adminLabels.fairStandItemsFieldAcceptsMeshHint}
+            checked={form.accepts_mesh}
+            disabled={saving}
+            onChange={(checked) => onChange({ ...form, accepts_mesh: checked })}
+          />
+        </FormSection>
+
+        <FormSection title={adminLabels.fairStandItemsSectionCatalog}>
+          <FormGrid columns={2}>
+            <FormField
+              label={adminLabels.fairStandItemsFieldCategoryId}
+              htmlFor="fs-edit-category"
+              hint={adminLabels.fairStandItemsFieldCategoryIdHint}
+            >
+              <TextInput
+                id="fs-edit-category"
+                type="number"
+                value={form.category_id}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, category_id: event.target.value })}
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldCatalogItemIndex}
+              htmlFor="fs-edit-index"
+              hint={adminLabels.fairStandItemsFieldCatalogItemIndexHint}
+            >
+              <TextInput
+                id="fs-edit-index"
+                type="number"
+                value={form.catalog_item_index}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, catalog_item_index: event.target.value })}
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldPreviewId}
+              htmlFor="fs-edit-preview"
+              hint={adminLabels.fairStandItemsFieldPreviewIdHint}
+            >
+              <TextInput
+                id="fs-edit-preview"
+                type="number"
+                value={form.preview_id}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, preview_id: event.target.value })}
+              />
+            </FormField>
+          </FormGrid>
+          <CheckboxField
+            id="fs-edit-catalog-visible"
+            label={adminLabels.fairStandItemsFieldCatalogVisible}
+            hint={adminLabels.fairStandItemsFieldCatalogVisibleHint}
+            checked={form.catalog_visible}
+            disabled={saving}
+            onChange={(checked) => onChange({ ...form, catalog_visible: checked })}
+          />
+        </FormSection>
+
+        <FormSection title={adminLabels.fairStandItemsSectionDimensions}>
+          <p className="field-hint">{adminLabels.fairStandItemsDimensionsHint}</p>
+          <FormGrid columns={2}>
+            {dimensionFields.map(([key, label, hint]) => (
+              <FormField key={key} label={label} htmlFor={`fs-edit-${key}`} hint={hint}>
+                <TextInput
+                  id={`fs-edit-${key}`}
+                  type="number"
+                  value={form[key] as string}
+                  disabled={saving}
+                  onChange={(event) => onChange({ ...form, [key]: event.target.value })}
+                />
+              </FormField>
+            ))}
+          </FormGrid>
+        </FormSection>
+
+        <FormSection title={adminLabels.fairStandItemsSectionSceneDimensions}>
+          <p className="field-hint">{adminLabels.fairStandItemsSceneDimensionsHint}</p>
+          <FormGrid columns={2}>
+            <FormField
+              label={adminLabels.fairStandItemsFieldWidthCm}
+              htmlFor="fs-edit-scene-width"
+              hint={adminLabels.fairStandItemsFieldSceneWidthCmHint}
+            >
+              <TextInput
+                id="fs-edit-scene-width"
+                type="number"
+                value={form.scene_width_cm}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, scene_width_cm: event.target.value })}
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldDepthCm}
+              htmlFor="fs-edit-scene-depth"
+              hint={adminLabels.fairStandItemsFieldSceneDepthCmHint}
+            >
+              <TextInput
+                id="fs-edit-scene-depth"
+                type="number"
+                value={form.scene_depth_cm}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, scene_depth_cm: event.target.value })}
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldHeightCm}
+              htmlFor="fs-edit-scene-height"
+              hint={adminLabels.fairStandItemsFieldSceneHeightCmHint}
+            >
+              <TextInput
+                id="fs-edit-scene-height"
+                type="number"
+                value={form.scene_height_cm}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, scene_height_cm: event.target.value })}
+              />
+            </FormField>
+          </FormGrid>
+        </FormSection>
+
+        <FormSection title={adminLabels.fairStandItemsSectionStrip}>
+          <FormGrid columns={2}>
+            <FormField
+              label={adminLabels.fairStandItemsFieldStripAlign}
+              htmlFor="fs-edit-strip-align"
+              hint={adminLabels.fairStandItemsFieldStripAlignHint}
+            >
+              <TextInput
+                id="fs-edit-strip-align"
+                value={form.strip_align}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, strip_align: event.target.value })}
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldStripCount}
+              htmlFor="fs-edit-strip-count"
+              hint={adminLabels.fairStandItemsFieldStripCountHint}
+            >
+              <TextInput
+                id="fs-edit-strip-count"
+                type="number"
+                value={form.strip_count}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, strip_count: event.target.value })}
+              />
+            </FormField>
+          </FormGrid>
+        </FormSection>
+
+        <FormSection title={adminLabels.fairStandItemsSectionAssets}>
+          <p className="field-hint">{adminLabels.fairStandItemsAssetsDescription}</p>
+          {form.assets.map((asset, index) => (
+            <FormGrid key={`asset-${index}`} columns={2}>
+              <FormField
+                label={adminLabels.fairStandItemsFieldAssetRole}
+                htmlFor={`fs-asset-role-${index}`}
+                hint={adminLabels.fairStandItemsFieldAssetRoleHint}
+              >
+                <TextInput
+                  id={`fs-asset-role-${index}`}
+                  value={asset.asset_role}
+                  disabled={saving}
+                  onChange={(event) => {
+                    const assets = [...form.assets];
+                    assets[index] = { ...asset, asset_role: event.target.value };
+                    onChange({ ...form, assets });
+                  }}
+                />
+              </FormField>
+              <FormField
+                label={adminLabels.fairStandItemsFieldRelativePath}
+                htmlFor={`fs-asset-path-${index}`}
+                hint={adminLabels.fairStandItemsFieldRelativePathHint}
+              >
+                <TextInput
+                  id={`fs-asset-path-${index}`}
+                  value={asset.relative_path}
+                  disabled={saving}
+                  onChange={(event) => {
+                    const assets = [...form.assets];
+                    assets[index] = { ...asset, relative_path: event.target.value };
+                    onChange({ ...form, assets });
+                  }}
+                />
+              </FormField>
+              <CheckboxField
+                id={`fs-asset-active-${index}`}
+                label={adminLabels.fairStandItemsFieldAssetActive}
+                hint={adminLabels.fairStandItemsFieldAssetActiveHint}
+                checked={asset.is_active}
+                disabled={saving}
+                onChange={(checked) => {
+                  const assets = [...form.assets];
+                  assets[index] = { ...asset, is_active: checked };
+                  onChange({ ...form, assets });
+                }}
+              />
+              <div>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  disabled={saving}
+                  onClick={() =>
+                    onChange({
+                      ...form,
+                      assets: form.assets.filter((_, assetIndex) => assetIndex !== index),
+                    })
+                  }
+                >
+                  {adminLabels.fairStandItemsRemoveAsset}
+                </Button>
+              </div>
+            </FormGrid>
+          ))}
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={saving}
+            onClick={() =>
+              onChange({
+                ...form,
+                assets: [...form.assets, { asset_role: "", relative_path: "", is_active: true }],
+              })
+            }
+          >
+            {adminLabels.fairStandItemsAddAsset}
+          </Button>
+        </FormSection>
+
+        <FormSection title={adminLabels.fairStandItemsSectionComponents}>
+          <p className="field-hint">{adminLabels.fairStandItemsComponentsDescription}</p>
+          {form.components.map((component, index) => (
+            <FormGrid key={`component-${index}`} columns={2}>
+              <FormField
+                label={adminLabels.fairStandItemsFieldChildItemKey}
+                htmlFor={`fs-comp-child-${index}`}
+                hint={adminLabels.fairStandItemsFieldChildItemKeyHint}
+              >
+                <TextInput
+                  id={`fs-comp-child-${index}`}
+                  value={component.child_item_key}
+                  disabled={saving}
+                  onChange={(event) => {
+                    const components = [...form.components];
+                    components[index] = { ...component, child_item_key: event.target.value };
+                    onChange({ ...form, components });
+                  }}
+                />
+              </FormField>
+              <FormField
+                label={adminLabels.fairStandItemsFieldQuantity}
+                htmlFor={`fs-comp-qty-${index}`}
+                hint={adminLabels.fairStandItemsFieldQuantityHint}
+              >
+                <TextInput
+                  id={`fs-comp-qty-${index}`}
+                  type="number"
+                  value={component.quantity}
+                  disabled={saving}
+                  onChange={(event) => {
+                    const components = [...form.components];
+                    components[index] = { ...component, quantity: event.target.value };
+                    onChange({ ...form, components });
+                  }}
+                />
+              </FormField>
+              <FormField
+                label={adminLabels.fairStandItemsFieldSortOrder}
+                htmlFor={`fs-comp-sort-${index}`}
+                hint={adminLabels.fairStandItemsFieldSortOrderHint}
+              >
+                <TextInput
+                  id={`fs-comp-sort-${index}`}
+                  type="number"
+                  value={component.sort_order}
+                  disabled={saving}
+                  onChange={(event) => {
+                    const components = [...form.components];
+                    components[index] = { ...component, sort_order: event.target.value };
+                    onChange({ ...form, components });
+                  }}
+                />
+              </FormField>
+              <div>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  disabled={saving}
+                  onClick={() =>
+                    onChange({
+                      ...form,
+                      components: form.components.filter(
+                        (_, componentIndex) => componentIndex !== index,
+                      ),
+                    })
+                  }
+                >
+                  {adminLabels.fairStandItemsRemoveComponent}
+                </Button>
+              </div>
+            </FormGrid>
+          ))}
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={saving}
+            onClick={() =>
+              onChange({
+                ...form,
+                components: [
+                  ...form.components,
+                  {
+                    child_item_key: "",
+                    quantity: "1",
+                    sort_order: String(form.components.length),
+                  },
+                ],
+              })
+            }
+          >
+            {adminLabels.fairStandItemsAddComponent}
+          </Button>
+        </FormSection>
+
+        <FormSection title={adminLabels.fairStandItemsSectionBodyParts}>
+          {form.body_parts.map((part, index) => (
+            <FormGrid key={`body-${index}`} columns={2}>
+              <FormField
+                label={adminLabels.fairStandItemsFieldBodyRole}
+                htmlFor={`fs-body-role-${index}`}
+                hint={adminLabels.fairStandItemsFieldBodyRoleHint}
+              >
+                <TextInput
+                  id={`fs-body-role-${index}`}
+                  value={part.body_role}
+                  disabled={saving}
+                  onChange={(event) => {
+                    const body_parts = [...form.body_parts];
+                    body_parts[index] = { ...part, body_role: event.target.value };
+                    onChange({ ...form, body_parts });
+                  }}
+                />
+              </FormField>
+              <FormField
+                label={adminLabels.fairStandItemsFieldChildItemKey}
+                htmlFor={`fs-body-child-${index}`}
+                hint={adminLabels.fairStandItemsFieldChildItemKeyHint}
+              >
+                <TextInput
+                  id={`fs-body-child-${index}`}
+                  value={part.child_item_key}
+                  disabled={saving}
+                  onChange={(event) => {
+                    const body_parts = [...form.body_parts];
+                    body_parts[index] = { ...part, child_item_key: event.target.value };
+                    onChange({ ...form, body_parts });
+                  }}
+                />
+              </FormField>
+              <div>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  disabled={saving}
+                  onClick={() =>
+                    onChange({
+                      ...form,
+                      body_parts: form.body_parts.filter((_, partIndex) => partIndex !== index),
+                    })
+                  }
+                >
+                  {adminLabels.fairStandItemsRemoveBodyPart}
+                </Button>
+              </div>
+            </FormGrid>
+          ))}
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={saving}
+            onClick={() =>
+              onChange({
+                ...form,
+                body_parts: [...form.body_parts, { body_role: "", child_item_key: "" }],
+              })
+            }
+          >
+            {adminLabels.fairStandItemsAddBodyPart}
+          </Button>
+        </FormSection>
+
+        <FormSection title={adminLabels.fairStandItemsSectionVideoWall}>
+          <FormGrid columns={2}>
+            <FormField
+              label={adminLabels.fairStandItemsFieldVideoRows}
+              htmlFor="fs-edit-video-rows"
+              hint={adminLabels.fairStandItemsFieldVideoRowsHint}
+            >
+              <TextInput
+                id="fs-edit-video-rows"
+                type="number"
+                value={form.video_rows}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, video_rows: event.target.value })}
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldVideoCols}
+              htmlFor="fs-edit-video-cols"
+              hint={adminLabels.fairStandItemsFieldVideoColsHint}
+            >
+              <TextInput
+                id="fs-edit-video-cols"
+                type="number"
+                value={form.video_cols}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, video_cols: event.target.value })}
+              />
+            </FormField>
+            <FormField
+              label={adminLabels.fairStandItemsFieldPanelItemKey}
+              htmlFor="fs-edit-panel-key"
+              hint={adminLabels.fairStandItemsFieldPanelItemKeyHint}
+            >
+              <TextInput
+                id="fs-edit-panel-key"
+                value={form.panel_item_key}
+                disabled={saving}
+                onChange={(event) => onChange({ ...form, panel_item_key: event.target.value })}
+              />
+            </FormField>
+          </FormGrid>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={saving}
+            onClick={() => onChange({ ...form, video_rows: "", video_cols: "", panel_item_key: "" })}
+          >
+            {adminLabels.fairStandItemsClearVideoWall}
+          </Button>
+        </FormSection>
+
+        <FormActions
+          onCancel={requestBack}
+          cancelLabel={adminLabels.fairStandItemsBack}
+          submitLabel={adminLabels.fairStandItemsSave}
+          saving={saving}
+        />
+      </form>
+    </>
   );
 }
