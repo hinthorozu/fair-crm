@@ -7,6 +7,7 @@ import { FAIR_EMAIL_PERMISSION_EXECUTE } from "./fairEmailPermissions";
 import {
   FAIR_STAND_CATALOG_ADMIN_PERMISSIONS,
   FAIR_STAND_PREVIEWS_ADMIN_PERMISSIONS,
+  FAIR_STAND_SETTINGS_ADMIN_PERMISSIONS,
 } from "./fairStandAdminPermissions";
 import { OPERATION_EXECUTE } from "./operationPermissions";
 import { canReadQuoteEditor } from "./quotePermissions";
@@ -100,6 +101,7 @@ export const MAIN_NAV_REQUIREMENTS: Readonly<Record<string, PermissionRequiremen
       ...COST_CATALOG_ADMIN_PERMISSIONS,
       ...FAIR_STAND_CATALOG_ADMIN_PERMISSIONS,
       ...FAIR_STAND_PREVIEWS_ADMIN_PERMISSIONS,
+      ...FAIR_STAND_SETTINGS_ADMIN_PERMISSIONS,
     ],
   },
 };
@@ -120,6 +122,10 @@ export const ADMIN_NAV_REQUIREMENTS: Readonly<Record<string, PermissionRequireme
   "fair-stand-previews": {
     kind: "any",
     permissions: FAIR_STAND_PREVIEWS_ADMIN_PERMISSIONS,
+  },
+  "fair-stand-settings": {
+    kind: "any",
+    permissions: FAIR_STAND_SETTINGS_ADMIN_PERMISSIONS,
   },
   "email-accounts": { kind: "permission", permission: PERMISSION_EMAIL_ACCOUNTS_READ },
   "mail-templates": { kind: "permission", permission: PERMISSION_MAIL_TEMPLATES_READ },
@@ -205,6 +211,7 @@ export function firstAccessibleAdminPath(
     ["cost-catalog", "/admin/cost-catalog"],
     ["fair-stand-catalog", "/admin/fair-stand/catalog"],
     ["fair-stand-previews", "/admin/fair-stand/previews"],
+    ["fair-stand-settings", "/admin/fair-stand/settings"],
     ["email-accounts", "/admin/email-accounts"],
     ["mail-templates", "/admin/smtp-operations/templates"],
     ["quote-templates", "/admin/smtp-operations/quote-templates"],
@@ -396,6 +403,7 @@ export function canAccessApplicationPath(
   if (pathname === "/admin/cost-catalog") return canAccessAdminSection("cost-catalog", granted);
   if (pathname === "/admin/fair-stand/catalog") return canAccessAdminSection("fair-stand-catalog", granted);
   if (pathname === "/admin/fair-stand/previews") return canAccessAdminSection("fair-stand-previews", granted);
+  if (pathname === "/admin/fair-stand/settings") return canAccessAdminSection("fair-stand-settings", granted);
   if (pathname === "/admin/email-accounts") return canAccessAdminSection("email-accounts", granted);
   if (pathname === "/admin/smtp-operations/templates") {
     return canAccessAdminSection("mail-templates", granted);

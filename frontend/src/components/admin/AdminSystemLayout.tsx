@@ -11,6 +11,7 @@ import { RoleManagementPage } from "../../pages/RoleManagementPage";
 import { CostCatalogPage } from "../../pages/CostCatalogPage";
 import { FairStandCatalogAdminPage } from "../../pages/FairStandCatalogAdminPage";
 import { FairStandPreviewsAdminPage } from "../../pages/FairStandPreviewsAdminPage";
+import { FairStandSettingsAdminPage } from "../../pages/FairStandSettingsAdminPage";
 import { AdminNavIcon, NavIconComingSoon } from "../layout/NavIcons";
 import { NavLink } from "../layout/NavLink";
 import { SidebarCollapseButton } from "../layout/SidebarCollapseButton";
@@ -33,6 +34,7 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
   const costCatalogRouteActive = pathname === "/admin/cost-catalog";
   const fairStandCatalogRouteActive = pathname === "/admin/fair-stand/catalog";
   const fairStandPreviewsRouteActive = pathname === "/admin/fair-stand/previews";
+  const fairStandSettingsRouteActive = pathname === "/admin/fair-stand/settings";
   const resolvedActiveSection = usersRouteActive
     ? "users"
     : rolesRouteActive
@@ -43,7 +45,9 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
           ? "fair-stand-catalog"
           : fairStandPreviewsRouteActive
             ? "fair-stand-previews"
-            : activeSection;
+            : fairStandSettingsRouteActive
+              ? "fair-stand-settings"
+              : activeSection;
   const resolvedChildren = usersRouteActive
     ? <UsersAdminPage />
     : rolesRouteActive
@@ -54,7 +58,9 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
           ? <FairStandCatalogAdminPage />
           : fairStandPreviewsRouteActive
             ? <FairStandPreviewsAdminPage />
-            : children;
+            : fairStandSettingsRouteActive
+              ? <FairStandSettingsAdminPage />
+              : children;
 
   const systemItems = [
     { id: "organizations", label: organizationLabels.nav, path: "/admin/system/organizations" },
@@ -69,6 +75,9 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
       : []),
     ...(canAccess("fair-stand-previews")
       ? [{ id: "fair-stand-previews", label: "Katalog Önizlemeleri", path: "/admin/fair-stand/previews" }]
+      : []),
+    ...(canAccess("fair-stand-settings")
+      ? [{ id: "fair-stand-settings", label: "Temel Ayarlar", path: "/admin/fair-stand/settings" }]
       : []),
   ];
   const smtpOperationsItems = [

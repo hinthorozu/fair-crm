@@ -34,6 +34,8 @@ export const FAIR_CRM_PERMISSION_CODES = [
   "fair_crm.admin.fair_stand.previews.create",
   "fair_crm.admin.fair_stand.previews.read",
   "fair_crm.admin.fair_stand.previews.update",
+  "fair_crm.admin.fair_stand.settings.read",
+  "fair_crm.admin.fair_stand.settings.update",
   "fair_crm.contacts.create",
   "fair_crm.contacts.delete",
   "fair_crm.contacts.read",

@@ -97,3 +97,49 @@ export const restoreFairStandAdminPreview = (previewId: number) =>
   apiRequest<FairStandAdminPreview>(`${base}/previews/${previewId}/restore`, {
     method: "POST",
   });
+
+export type FairStandAdminStandDimensions = {
+  height: number;
+  depth: number;
+  stripCount: number;
+  stripHeight: number;
+  frameWidth: number;
+  frameDepth: number;
+};
+
+export type FairStandAdminRuntimeSettings = {
+  maxImageUploadMb: number;
+  exportButtonVisible: boolean;
+  importButtonVisible: boolean;
+};
+
+export type FairStandAdminSettingsBundle = {
+  standDimensions: FairStandAdminStandDimensions;
+  settings: FairStandAdminRuntimeSettings;
+};
+
+export const getFairStandAdminSettings = () =>
+  apiRequest<FairStandAdminSettingsBundle>(`${base}/settings`);
+
+export const updateFairStandAdminStandDimensions = (payload: {
+  height_m: number;
+  depth_m: number;
+  strip_count: number;
+  strip_height_m: number;
+  frame_width_m: number;
+  frame_depth_m: number;
+}) =>
+  apiRequest<FairStandAdminStandDimensions>(`${base}/stand-dimensions`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
+export const updateFairStandAdminRuntimeSettings = (payload: {
+  max_image_upload_mb: number;
+  export_button_visible: boolean;
+  import_button_visible: boolean;
+}) =>
+  apiRequest<FairStandAdminRuntimeSettings>(`${base}/runtime-settings`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
