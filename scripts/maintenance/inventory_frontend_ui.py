@@ -881,6 +881,7 @@ ROUTE_UNMOUNTED_PAGE_ALLOWLIST = {
     "FollowUpsPage.tsx",
     # AdminSystemLayout nested pages (same host as CostCatalogPage).
     "FairStandCatalogAdminPage.tsx",
+    "FairStandItemsAdminPage.tsx",
     "FairStandPreviewsAdminPage.tsx",
     "FairStandSettingsAdminPage.tsx",
 }

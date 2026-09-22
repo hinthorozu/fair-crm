@@ -73,23 +73,84 @@ function Wait-DevHttpOk([string[]]$Urls, [int]$TimeoutSec = 60) {
     return $false
 }
 
-function Test-DockerEngineReady {
+function Test-DockerEngineResponding {
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-        throw "Docker CLI not found on PATH. Install Docker Desktop and ensure 'docker' is available."
+        return $false
     }
     $previousPreference = $ErrorActionPreference
     try {
         $ErrorActionPreference = "Continue"
         docker info *> $null
-        if ($LASTEXITCODE -ne 0) {
-            throw "Docker Engine is not running. Start Docker Desktop and wait until it reports Ready."
-        }
+        return ($LASTEXITCODE -eq 0)
     } catch {
-        if ($_.Exception.Message -match "Docker Engine is not running") { throw }
-        throw "Docker Engine is not running. Start Docker Desktop and wait until it reports Ready."
+        return $false
     } finally {
         $ErrorActionPreference = $previousPreference
     }
+}
+
+function Get-DockerDesktopExecutable {
+    $candidates = @(
+        (Join-Path $env:ProgramFiles "Docker\Docker\Docker Desktop.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Docker\Docker\Docker Desktop.exe"),
+        (Join-Path $env:LOCALAPPDATA "Docker\Docker Desktop.exe")
+    )
+    foreach ($path in $candidates) {
+        if ($path -and (Test-Path -LiteralPath $path)) {
+            return $path
+        }
+    }
+    return $null
+}
+
+function Start-DockerDesktopAndWait {
+    param([int]$TimeoutSec = 180)
+
+    if (Test-DockerEngineResponding) {
+        return
+    }
+
+    $desktop = Get-DockerDesktopExecutable
+    if (-not $desktop) {
+        throw "Docker Engine is not running and Docker Desktop.exe was not found. Install/start Docker Desktop manually."
+    }
+
+    Write-DevStep "Docker Engine not running - starting Docker Desktop"
+    Write-Host "Launching: $desktop"
+    Start-Process -FilePath $desktop | Out-Null
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-DockerEngineResponding) {
+            Write-Host "Docker Engine is ready."
+            return
+        }
+        Start-Sleep -Seconds 3
+    }
+
+    throw "Docker Engine did not become ready within ${TimeoutSec}s after starting Docker Desktop."
+}
+
+function Test-DockerEngineReady {
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+        throw "Docker CLI not found on PATH. Install Docker Desktop and ensure 'docker' is available."
+    }
+    if (-not (Test-DockerEngineResponding)) {
+        throw "Docker Engine is not running. Start Docker Desktop and wait until it reports Ready."
+    }
+}
+
+function Ensure-DockerEngineReady {
+    param([int]$TimeoutSec = 180)
+
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+        throw "Docker CLI not found on PATH. Install Docker Desktop and ensure 'docker' is available."
+    }
+    if (Test-DockerEngineResponding) {
+        Write-Host "Docker Engine is running."
+        return
+    }
+    Start-DockerDesktopAndWait -TimeoutSec $TimeoutSec
 }
 
 function Get-ComposeServices {
@@ -131,6 +192,95 @@ function Start-DevDockerInfra {
     } finally {
         Pop-Location
     }
+}
+
+function Test-DevDockerInfraHealthy {
+    param([int]$TimeoutSec = 15)
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    while ((Get-Date) -lt $deadline) {
+        $postgresOk = $true
+        $redisOk = $true
+
+        if (Test-ComposeServiceDefined -ServiceName "postgres") {
+            $health = $null
+            try {
+                $health = docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' $script:DevPostgresContainer 2>$null
+            } catch {
+                $health = $null
+            }
+            if ($health -eq "healthy") {
+                $postgresOk = $true
+            } elseif ($health -eq "none") {
+                $running = docker inspect --format '{{.State.Running}}' $script:DevPostgresContainer 2>$null
+                $postgresOk = ($running -eq "true")
+            } else {
+                $postgresOk = $false
+            }
+        }
+
+        if (Test-ComposeServiceDefined -ServiceName "redis") {
+            $containerId = $null
+            try {
+                Push-Location $script:DevRepoRoot
+                $containerId = docker compose ps -q redis 2>$null
+            } finally {
+                Pop-Location
+            }
+            if (-not $containerId) {
+                $redisOk = $false
+            } else {
+                $redisHealth = docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}running{{end}}' $containerId 2>$null
+                $redisOk = ($redisHealth -eq "healthy" -or $redisHealth -eq "running")
+            }
+        }
+
+        if ($postgresOk -and $redisOk) {
+            return $true
+        }
+        Start-Sleep -Seconds 2
+    }
+    return $false
+}
+
+function Repair-DevDockerInfra {
+    Write-DevStep "Docker infra unhealthy - removing containers and bringing them back up"
+    Push-Location $script:DevRepoRoot
+    try {
+        Invoke-DevDockerCompose -ComposeArgs @("down", "--remove-orphans")
+        Invoke-DevDockerCompose -ComposeArgs @("up", "-d", "--force-recreate")
+    } finally {
+        Pop-Location
+    }
+}
+
+function Ensure-DevDockerInfra {
+    param(
+        [int]$EngineTimeoutSec = 180,
+        [int]$HealthTimeoutSec = 120,
+        [switch]$ForceRecreate
+    )
+
+    Ensure-DockerEngineReady -TimeoutSec $EngineTimeoutSec
+
+    if ($ForceRecreate) {
+        Repair-DevDockerInfra
+        Wait-DevPostgresHealthy -TimeoutSec $HealthTimeoutSec
+        Wait-DevRedisHealthy
+        return
+    }
+
+    Start-DevDockerInfra
+
+    if (Test-DevDockerInfraHealthy -TimeoutSec 45) {
+        Write-Host "Docker infrastructure is healthy."
+        return
+    }
+
+    Write-Warning "Docker infrastructure not healthy after compose up. Recreating containers..."
+    Repair-DevDockerInfra
+    Wait-DevPostgresHealthy -TimeoutSec $HealthTimeoutSec
+    Wait-DevRedisHealthy
 }
 
 function Wait-DevPostgresHealthy([int]$TimeoutSec = 120) {
@@ -731,16 +881,21 @@ function Wait-DevRedisHealthy([int]$TimeoutSec = 60) {
 
     Write-DevStep "Waiting for Redis to become healthy"
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
-    while ((Get-Date) -lt $deadline) {
-        $containerId = docker compose ps -q redis 2>$null
-        if ($containerId) {
-            $health = docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}running{{end}}' $containerId 2>$null
-            if ($health -in @("healthy", "running")) {
-                Write-Host "Redis is ready."
-                return
+    Push-Location $script:DevRepoRoot
+    try {
+        while ((Get-Date) -lt $deadline) {
+            $containerId = docker compose ps -q redis 2>$null
+            if ($containerId) {
+                $health = docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}running{{end}}' $containerId 2>$null
+                if ($health -in @("healthy", "running")) {
+                    Write-Host "Redis is ready."
+                    return
+                }
             }
+            Start-Sleep -Seconds 2
         }
-        Start-Sleep -Seconds 2
+    } finally {
+        Pop-Location
     }
 
     throw "Redis did not become healthy within ${TimeoutSec}s. Check: docker compose ps"

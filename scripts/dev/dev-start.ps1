@@ -39,13 +39,10 @@ try {
     $ErrorActionPreference = $previousErrorActionPreference
 }
 
-Test-DockerEngineReady
-Start-DevDockerInfra
-Wait-DevPostgresHealthy
+Ensure-DevDockerInfra
 $alembicStatus = Invoke-DevDatabaseMigrations
 $fairStandAlembicStatus = Invoke-DevFairStandDatabaseMigrations
 Invoke-DevCoreIdentitySeed
-Wait-DevRedisHealthy
 
 $coreStarted = $false
 $backendStarted = $false

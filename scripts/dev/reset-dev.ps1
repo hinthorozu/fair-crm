@@ -10,15 +10,22 @@
   Clears Core (8000), Fair CRM (8001), Fair Stand (8002), and frontend (5173–5177), then starts:
   KYROX Core → Fair CRM backend → Fair Stand API → frontend.
 
+  Also ensures Docker Desktop/Engine is running. If containers are unhealthy, removes them
+  (compose down) and brings them back up (volumes kept).
+
 .EXAMPLE
   .\scripts\dev\reset-dev.ps1
 
 .EXAMPLE
   .\scripts\dev\reset-dev.ps1 -SkipPull
+
+.EXAMPLE
+  .\scripts\dev\reset-dev.ps1 -ForceDockerRecreate
 #>
 [CmdletBinding()]
 param(
-    [switch]$SkipPull
+    [switch]$SkipPull,
+    [switch]$ForceDockerRecreate
 )
 
 Set-StrictMode -Version Latest
@@ -37,12 +44,9 @@ if (-not (Test-Path $script:DevFrontendDir)) {
 }
 
 Invoke-DevPrepareRepository -SkipPull:$SkipPull
-Test-DockerEngineReady
-Start-DevDockerInfra
-Wait-DevPostgresHealthy
+Ensure-DevDockerInfra -ForceRecreate:$ForceDockerRecreate
 $alembicStatus = Invoke-DevDatabaseMigrations
 $fairStandAlembicStatus = Invoke-DevFairStandDatabaseMigrations
-Wait-DevRedisHealthy
 
 Write-DevStep "Stopping stale Core + Fair CRM + Fair Stand dev processes"
 $cleared = @(Stop-DevRuntimeProcesses -IncludeAltFrontendPorts)

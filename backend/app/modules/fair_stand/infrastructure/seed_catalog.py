@@ -101,13 +101,10 @@ def seed_fair_stand_catalog(session: Session) -> None:
                 preview_id=preview_id_by_sort[preview_sort] if preview_sort is not None else None,
                 material=row["material"],
                 default_color=row["default_color"],
-                panel_role=row["panel_role"],
-                connector_type=row["connector_type"],
                 preserve_model_scale=row["preserve_model_scale"],
                 model_rotation_y_deg=_dec(row["model_rotation_y_deg"]),
                 visual_rotation_y_deg=_dec(row["visual_rotation_y_deg"]),
                 composition_mode=row["composition_mode"],
-                composition_module_type=row["composition_module_type"],
                 paintable=row["paintable"],
                 shape=row["shape"],
                 variant=row["variant"],
@@ -165,15 +162,16 @@ def seed_fair_stand_catalog(session: Session) -> None:
                     is_active=True,
                 )
             )
-        for component in row.get("components") or []:
+        for index, component in enumerate(row.get("components") or []):
             edges.append((item_key, component["child_item_key"]))
+            sort_order = int(component["sort_order"]) if "sort_order" in component else index
             session.add(
                 FairStandItemComponentModel(
-                    id=_stable_uuid("component", item_key, str(component["sort_order"])),
+                    id=_stable_uuid("component", item_key, str(sort_order)),
                     parent_item_key=item_key,
                     child_item_key=component["child_item_key"],
                     quantity=_dec(component["quantity"]),
-                    sort_order=component["sort_order"],
+                    sort_order=sort_order,
                 )
             )
         video_wall = row.get("video_wall")

@@ -21,6 +21,7 @@ const RESOURCES: Record<string, ResourceCopy> = {
   "fair_crm.admin.fair_stand.catalog": { title: "Fair Stand katalog", object: "Fair Stand katalog kayıtlarını", singular: "Fair Stand katalog kaydı" },
   "fair_crm.admin.fair_stand.previews": { title: "Fair Stand katalog önizlemesi", object: "Fair Stand katalog önizlemelerini", singular: "Fair Stand katalog önizlemesi" },
   "fair_crm.admin.fair_stand.settings": { title: "Fair Stand temel ayar", object: "Fair Stand temel ayarlarını", singular: "Fair Stand temel ayarı" },
+  "fair_crm.admin.fair_stand.items": { title: "Fair Stand item kayıt", object: "Fair Stand item kayıtlarını", singular: "Fair Stand item kaydı" },
   "fair_crm.fair_stand.projects": { title: "Fair Stand proje", object: "Fair Stand projelerini", singular: "Fair Stand projesi" },
   "fair_crm.contacts": { title: "İletişim kişisi", object: "iletişim kişilerini", singular: "iletişim kişisi" },
   "fair_crm.cost_catalog.categories": { title: "Maliyet kategorisi", object: "maliyet kategorilerini", singular: "maliyet kategorisi" },

@@ -55,8 +55,9 @@ interface UniversalDataTableStandaloneProps<T> extends UniversalDataTableBasePro
   loading?: boolean;
   error?: string | null;
   onRetry?: () => void;
+  /** Optional filter / search toolbar above the table. */
+  toolbar?: React.ReactNode;
   table?: never;
-  toolbar?: never;
   skeletonCols?: never;
   showPagination?: never;
   showBottomPagination?: never;
@@ -193,12 +194,17 @@ export function UniversalDataTable<T>(props: UniversalDataTableProps<T>) {
     );
   }
 
-  const { items, sorting, onSortChange, loading, error, onRetry } = props;
+  const { items, sorting, onSortChange, loading, error, onRetry, toolbar } = props;
   const skeletonCols = Math.max(columns.length, 4);
 
   if (loading && items.length === 0) {
     return (
       <div className="server-data-table-frame">
+        {toolbar ? (
+          <div className="server-data-table-toolbar-panel">
+            <div className="server-data-table-toolbar-slot">{toolbar}</div>
+          </div>
+        ) : null}
         <div className="server-data-table-body">
           <div className="table-wrap table-skeleton-wrap">
             <TableSkeleton rows={6} cols={skeletonCols} />
@@ -209,13 +215,27 @@ export function UniversalDataTable<T>(props: UniversalDataTableProps<T>) {
   }
 
   if (!loading && items.length === 0 && emptyState) {
-    return <>{emptyState}</>;
+    return (
+      <div className="server-data-table-frame">
+        {toolbar ? (
+          <div className="server-data-table-toolbar-panel">
+            <div className="server-data-table-toolbar-slot">{toolbar}</div>
+          </div>
+        ) : null}
+        <div className="server-data-table-body">{emptyState}</div>
+      </div>
+    );
   }
 
   const { main, detailOnly } = splitColumns(columns);
 
   return (
     <div className="server-data-table-frame">
+      {toolbar ? (
+        <div className="server-data-table-toolbar-panel">
+          <div className="server-data-table-toolbar-slot">{toolbar}</div>
+        </div>
+      ) : null}
       <div className="server-data-table-body">
         <WidthResponsiveDataTable
           columns={main}
