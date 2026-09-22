@@ -408,7 +408,12 @@ export function canAccessApplicationPath(
   if (pathname === "/admin/system/backups") return canAccessAdminSection("backups", granted);
   if (pathname === "/admin/cost-catalog") return canAccessAdminSection("cost-catalog", granted);
   if (pathname === "/admin/fair-stand/catalog") return canAccessAdminSection("fair-stand-catalog", granted);
-  if (pathname === "/admin/fair-stand/items") return canAccessAdminSection("fair-stand-items", granted);
+  if (
+    pathname === "/admin/fair-stand/items" ||
+    pathname.startsWith("/admin/fair-stand/items/")
+  ) {
+    return canAccessAdminSection("fair-stand-items", granted);
+  }
   if (pathname === "/admin/fair-stand/previews") return canAccessAdminSection("fair-stand-previews", granted);
   if (pathname === "/admin/fair-stand/settings") return canAccessAdminSection("fair-stand-settings", granted);
   if (pathname === "/admin/email-accounts") return canAccessAdminSection("email-accounts", granted);

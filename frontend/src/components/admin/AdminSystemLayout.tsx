@@ -34,7 +34,8 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
   const rolesRouteActive = pathname === "/admin/system/roles";
   const costCatalogRouteActive = pathname === "/admin/cost-catalog";
   const fairStandCatalogRouteActive = pathname === "/admin/fair-stand/catalog";
-  const fairStandItemsRouteActive = pathname === "/admin/fair-stand/items";
+  const fairStandItemsRouteActive =
+    pathname === "/admin/fair-stand/items" || pathname.startsWith("/admin/fair-stand/items/");
   const fairStandPreviewsRouteActive = pathname === "/admin/fair-stand/previews";
   const fairStandSettingsRouteActive = pathname === "/admin/fair-stand/settings";
   const resolvedActiveSection = usersRouteActive
