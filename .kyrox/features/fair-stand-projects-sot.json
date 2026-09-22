@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "id": "fair-stand-projects-sot",
+  "title": "Fair Stand project SoT permissions and Global İzin lock copy in CRM",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/permissions/corePermissions.ts",
+    "frontend/src/permissions/corePermissions.test.ts",
+    "frontend/src/labels/permissionLabels.ts",
+    "frontend/src/pages/RoleManagementPage.tsx",
+    "frontend/src/pages/RoleManagementPage.test.ts",
+    "scripts/fair_crm_role_matrix.py",
+    ".kyrox/features/fair-stand-projects-sot.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.fair_stand.projects", "action": "read", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.projects.read", "action": "read", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.projects.create", "action": "create", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.projects.update", "action": "update", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.projects.delete", "action": "delete", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.projects.execute", "action": "execute", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/fair-stand"],
+    "menu": true,
+    "menu_permission": "fair_crm.fair_stand.projects.read"
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "Project tables live in Fair Stand DB; CRM does not own schema." },
+    "migration": { "status": "na", "reason": "Stand alembic 0012 and Core 20260922_0067 own schema/permission seeds." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Project API is hosted by Fair Stand; CRM only wires codes and shell access." },
+    "api": { "status": "na", "reason": "CRM proxies /api/v1/fair-stand; no new CRM routes in this slice." },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "na", "reason": "No new Fair CRM audit stream in this slice." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "required" },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "na", "reason": "No new CRM form; save/load lives in Stand configurator." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "API tests live in fair-stand; CRM covers permission/UI tests." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "SoT is fair_stand_projects + disk assets. IndexedDB is cache. Core seeds org-scoped permissions; Stand enforces them. CRM registers codes/labels/matrix and clarifies lock keeps grants while inactive strips."
+}
