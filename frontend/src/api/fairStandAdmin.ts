@@ -104,8 +104,6 @@ export const restoreFairStandAdminPreview = (previewId: number) =>
 export type FairStandAdminStandDimensions = {
   heightCm: number;
   depthCm: number;
-  stripCount: number;
-  stripHeightCm: number;
   frameWidthCm: number;
   frameDepthCm: number;
 };
@@ -127,8 +125,6 @@ export const getFairStandAdminSettings = () =>
 export const updateFairStandAdminStandDimensions = (payload: {
   height_cm: number;
   depth_cm: number;
-  strip_count: number;
-  strip_height_cm: number;
   frame_width_cm: number;
   frame_depth_cm: number;
 }) =>
