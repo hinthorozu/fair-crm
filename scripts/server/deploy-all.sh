@@ -17,8 +17,11 @@
 #   - Preserves server .env keys such as ALLOW_RESTORE and TARGET_DATABASE_URL
 #   - Does not clear system_backup_restore_jobs or other CRM data tables
 #
-# Usage (on server):
+# Usage (on server) — this is the normal update path:
 #   sudo bash /opt/fair-crm/scripts/server/deploy-all.sh
+#
+# Domain/SSL one-time (or domain change) is separate:
+#   sudo bash /opt/fair-crm/scripts/server/setup-domain-ssl.sh --domain fuar.kyrox.studio --email admin@fuar.kyrox.studio
 #
 # Optional environment overrides:
 #   KYROX_CORE_DIR=/opt/kyrox-core
@@ -363,6 +366,62 @@ run_fair_stand_spa_host_check() {
   fi
 }
 
+# Align /etc/fair-crm/server-bootstrap.env with the live nginx server_name so
+# deploy-all + check-server stay consistent after domain cutovers (e.g. umaay -> fuar.kyrox.studio).
+sync_bootstrap_domain_from_nginx() {
+  local bootstrap_env="${SERVER_BOOTSTRAP_ENV_FILE:-/etc/fair-crm/server-bootstrap.env}"
+  local nginx_site="/etc/nginx/sites-available/fair-crm"
+  local nginx_domain=""
+  local current_domain=""
+  local current_email=""
+  local current_ip=""
+  local remote_pg_user remote_pg_port
+
+  [[ "${EUID}" -eq 0 ]] || return 0
+  [[ -f "$nginx_site" ]] || return 0
+
+  nginx_domain="$(
+    grep -E '^[[:space:]]*server_name[[:space:]]+' "$nginx_site" \
+      | head -n 1 \
+      | sed -E 's/^[[:space:]]*server_name[[:space:]]+//; s/[[:space:]]*;.*$//; s/[[:space:]].*$//'
+  )"
+  [[ -n "$nginx_domain" ]] || return 0
+
+  if [[ -f "$bootstrap_env" ]]; then
+    current_domain="$(read_env_key "$bootstrap_env" FAIR_CRM_DOMAIN || true)"
+    current_email="$(read_env_key "$bootstrap_env" LETSENCRYPT_EMAIL || true)"
+    current_ip="$(read_env_key "$bootstrap_env" SERVER_PUBLIC_IP || true)"
+    remote_pg_user="$(read_env_key "$bootstrap_env" REMOTE_PG_USER || printf '%s' "faircrm_remote")"
+    remote_pg_port="$(read_env_key "$bootstrap_env" REMOTE_PG_PORT || printf '%s' "15432")"
+  else
+    remote_pg_user="faircrm_remote"
+    remote_pg_port="15432"
+  fi
+
+  if [[ "$current_domain" == "$nginx_domain" ]]; then
+    log "Bootstrap domain already matches nginx (${nginx_domain})"
+    return 0
+  fi
+
+  step "Sync bootstrap domain from nginx (${current_domain:-<empty>} -> ${nginx_domain})"
+  [[ -n "$current_email" ]] || current_email="admin@${nginx_domain}"
+  [[ -n "$current_ip" ]] || current_ip="$(
+    curl -4fsS --connect-timeout 5 --max-time 10 https://api.ipify.org 2>/dev/null || true
+  )"
+
+  run_root mkdir -p "$(dirname "$bootstrap_env")"
+  {
+    printf 'FAIR_CRM_DOMAIN=%s\n' "$nginx_domain"
+    printf 'SERVER_PUBLIC_IP=%s\n' "$current_ip"
+    printf 'LETSENCRYPT_EMAIL=%s\n' "$current_email"
+    printf 'REMOTE_PG_USER=%s\n' "$remote_pg_user"
+    printf 'REMOTE_PG_PORT=%s\n' "$remote_pg_port"
+  } | run_root tee "$bootstrap_env" >/dev/null
+  run_root chown root:root "$bootstrap_env"
+  run_root chmod 600 "$bootstrap_env"
+  log "Updated ${bootstrap_env}: FAIR_CRM_DOMAIN=${nginx_domain}"
+}
+
 install_fair_stand_dependencies() {
   if [[ "${SKIP_NODE:-0}" != "1" ]]; then
     ensure_nodejs
@@ -639,6 +698,7 @@ main() {
   run_login_smoke_deploy
   run_admin_backups_smoke_deploy
   run_fair_stand_catalog_bootstrap_deploy
+  sync_bootstrap_domain_from_nginx
   run_fair_stand_spa_host_check
   maybe_run_post_check
   print_final_report
