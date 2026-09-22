@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 AUDIT_READ_PERMISSION: Final = "audit.logs.read"
-ROLE_MATRIX_VERSION: Final = 21
+ROLE_MATRIX_VERSION: Final = 22
 
 SYSTEM_PERMISSION_CODES: tuple[str, ...] = (
     "fair_crm.admin.backups.read",
@@ -21,6 +21,10 @@ SYSTEM_PERMISSION_CODES: tuple[str, ...] = (
     "fair_crm.admin.fair_stand.previews.archive",
     "fair_crm.admin.fair_stand.settings.read",
     "fair_crm.admin.fair_stand.settings.update",
+    "fair_crm.admin.fair_stand.items.read",
+    "fair_crm.admin.fair_stand.items.create",
+    "fair_crm.admin.fair_stand.items.update",
+    "fair_crm.admin.fair_stand.items.archive",
     "identity.permissions.lifecycle",
     "identity.role_templates.read",
     "identity.role_templates.manage",

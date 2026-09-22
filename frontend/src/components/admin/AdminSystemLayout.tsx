@@ -10,6 +10,7 @@ import { UsersAdminPage } from "../../pages/UsersAdminPage";
 import { RoleManagementPage } from "../../pages/RoleManagementPage";
 import { CostCatalogPage } from "../../pages/CostCatalogPage";
 import { FairStandCatalogAdminPage } from "../../pages/FairStandCatalogAdminPage";
+import { FairStandItemsAdminPage } from "../../pages/FairStandItemsAdminPage";
 import { FairStandPreviewsAdminPage } from "../../pages/FairStandPreviewsAdminPage";
 import { FairStandSettingsAdminPage } from "../../pages/FairStandSettingsAdminPage";
 import { AdminNavIcon, NavIconComingSoon } from "../layout/NavIcons";
@@ -33,6 +34,7 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
   const rolesRouteActive = pathname === "/admin/system/roles";
   const costCatalogRouteActive = pathname === "/admin/cost-catalog";
   const fairStandCatalogRouteActive = pathname === "/admin/fair-stand/catalog";
+  const fairStandItemsRouteActive = pathname === "/admin/fair-stand/items";
   const fairStandPreviewsRouteActive = pathname === "/admin/fair-stand/previews";
   const fairStandSettingsRouteActive = pathname === "/admin/fair-stand/settings";
   const resolvedActiveSection = usersRouteActive
@@ -43,11 +45,13 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
         ? "cost-catalog"
         : fairStandCatalogRouteActive
           ? "fair-stand-catalog"
-          : fairStandPreviewsRouteActive
-            ? "fair-stand-previews"
-            : fairStandSettingsRouteActive
-              ? "fair-stand-settings"
-              : activeSection;
+          : fairStandItemsRouteActive
+            ? "fair-stand-items"
+            : fairStandPreviewsRouteActive
+              ? "fair-stand-previews"
+              : fairStandSettingsRouteActive
+                ? "fair-stand-settings"
+                : activeSection;
   const resolvedChildren = usersRouteActive
     ? <UsersAdminPage />
     : rolesRouteActive
@@ -56,11 +60,13 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
         ? <CostCatalogPage />
         : fairStandCatalogRouteActive
           ? <FairStandCatalogAdminPage />
-          : fairStandPreviewsRouteActive
-            ? <FairStandPreviewsAdminPage />
-            : fairStandSettingsRouteActive
-              ? <FairStandSettingsAdminPage />
-              : children;
+          : fairStandItemsRouteActive
+            ? <FairStandItemsAdminPage />
+            : fairStandPreviewsRouteActive
+              ? <FairStandPreviewsAdminPage />
+              : fairStandSettingsRouteActive
+                ? <FairStandSettingsAdminPage />
+                : children;
 
   const systemItems = [
     { id: "organizations", label: organizationLabels.nav, path: "/admin/system/organizations" },
@@ -72,6 +78,9 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
   const fairStandItems = [
     ...(canAccess("fair-stand-catalog")
       ? [{ id: "fair-stand-catalog", label: "Katalog Yönetimi", path: "/admin/fair-stand/catalog" }]
+      : []),
+    ...(canAccess("fair-stand-items")
+      ? [{ id: "fair-stand-items", label: adminLabels.fairStandItemsTitle, path: "/admin/fair-stand/items" }]
       : []),
     ...(canAccess("fair-stand-previews")
       ? [{ id: "fair-stand-previews", label: "Katalog Önizlemeleri", path: "/admin/fair-stand/previews" }]

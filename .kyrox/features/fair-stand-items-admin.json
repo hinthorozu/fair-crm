@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "id": "fair-stand-items-admin",
+  "title": "Fair Stand item kayıtları Super Admin CRUD screen",
+  "feature_type": "system_admin",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "user",
+  "tenant_scope": "system",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/api/fairStandAdmin.ts",
+    "frontend/src/pages/FairStandItemsAdminPage.tsx",
+    "frontend/src/pages/FairStandItemsAdminPage.test.ts",
+    "frontend/src/components/admin/AdminSystemLayout.tsx",
+    "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/permissions/fairStandAdminPermissions.ts",
+    "frontend/src/permissions/corePermissions.ts",
+    "frontend/src/permissions/FairStandAdminNavigationPermissions.test.ts",
+    "frontend/src/labels/permissionLabels.ts",
+    "frontend/src/labels/adminLabels.ts",
+    "scripts/fair_crm_role_matrix.py",
+    ".kyrox/features/fair-stand-items-admin.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.admin.fair_stand.items", "action": "read", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.fair_stand.items.read", "action": "read", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.fair_stand.items.create", "action": "create", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.fair_stand.items.update", "action": "update", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.fair_stand.items.archive", "action": "archive", "scope": "system", "assignable": false }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/admin/fair-stand/items"],
+    "menu": true,
+    "menu_permission": "fair_crm.admin.fair_stand.items.read"
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "Item and satellite tables already exist in Fair Stand DB." },
+    "migration": { "status": "na", "reason": "Core permission migration lives in kyrox-core 20260922_0069." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Mutations run on Fair Stand API behind same-origin proxy." },
+    "api": { "status": "na", "reason": "CRM does not host /api/v1/fair-stand admin routes." },
+    "tenant_isolation": { "status": "na", "reason": "Global Fair Stand catalog; SYSTEM Super Admin only." },
+    "audit": { "status": "na", "reason": "No new Fair CRM audit stream." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "required" },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Admin API tests live in fair-stand repository." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Admin screen for fair_stand_items plus satellites (dimensions, scene_dimensions, strip_occupancy, assets, components, body_parts, video_walls). Permissions seeded in Core as SYSTEM unassignable; Super Admin bypass grants them. Fair Stand endpoints: /admin/item-records CRUD + archive/restore."
+}
