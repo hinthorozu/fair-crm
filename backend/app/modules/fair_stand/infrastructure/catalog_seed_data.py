@@ -1472,7 +1472,7 @@ CATALOG_SEED = {
             "assets": [],
         },
         {
-            "item_key": "COAT_RACK",
+            "item_key": "coat_rack",
             "name": "Askılık",
             "item_type": "coat-rack",
             "unit": "adet",
@@ -1512,9 +1512,10 @@ CATALOG_SEED = {
             ],
         },
         {
-            "item_key": "KETTLE",
+            "item_key": "kettle",
             "name": "Kettle",
             "item_type": "kettle",
+            "default_z_cm": 66,
             "unit": "adet",
             "catalog_visible": True,
             "category_index": 5,
@@ -1552,7 +1553,7 @@ CATALOG_SEED = {
             ],
         },
         {
-            "item_key": "MINI_FRIDGE_AVANTI",
+            "item_key": "mini_fridge_avanti",
             "name": "Mini Buzdolabı",
             "item_type": "mini-fridge",
             "unit": "adet",
@@ -1592,7 +1593,7 @@ CATALOG_SEED = {
             ],
         },
         {
-            "item_key": "PLASTIC_TRASH_BIN",
+            "item_key": "plastic_trash_bin",
             "name": "Çöp Kutusu",
             "item_type": "plastic-trash-bin",
             "unit": "adet",
@@ -2024,7 +2025,7 @@ CATALOG_SEED = {
             "assets": [],
         },
         {
-            "item_key": "VIDEO_WALL_PANEL",
+            "item_key": "video_wall_panel",
             "name": "Video Wall Panel",
             "item_type": "video-wall-panel",
             "unit": None,
@@ -2226,7 +2227,7 @@ CATALOG_SEED = {
             "assets": [],
         },
         {
-            "item_key": "EXTRA_INDOOR_PLANT_1",
+            "item_key": "extra_indoor_plant_1",
             "name": "Yapay Çiçek 1",
             "item_type": "indoor-plant-1",
             "unit": None,
@@ -2266,7 +2267,7 @@ CATALOG_SEED = {
             ],
         },
         {
-            "item_key": "EXTRA_LONG_PLANTER_100",
+            "item_key": "extra_long_planter_100",
             "name": "Uzun Saksı 100",
             "item_type": "indoor-plant-1",
             "unit": None,
@@ -2306,7 +2307,7 @@ CATALOG_SEED = {
             ],
         },
         {
-            "item_key": "EXTRA_LONG_PLANTER_150",
+            "item_key": "extra_long_planter_150",
             "name": "Uzun Saksı 150",
             "item_type": "indoor-plant-1",
             "unit": None,
@@ -2346,7 +2347,7 @@ CATALOG_SEED = {
             ],
         },
         {
-            "item_key": "EXTRA_LONG_PLANTER_200",
+            "item_key": "extra_long_planter_200",
             "name": "Uzun Saksı 200",
             "item_type": "indoor-plant-1",
             "unit": None,
@@ -2386,7 +2387,7 @@ CATALOG_SEED = {
             ],
         },
         {
-            "item_key": "TV_42",
+            "item_key": "tv_42",
             "name": "TV 42\"",
             "item_type": "tv",
             "unit": None,
@@ -2430,7 +2431,7 @@ CATALOG_SEED = {
             ],
         },
         {
-            "item_key": "TV_55",
+            "item_key": "tv_55",
             "name": "TV 55\"",
             "item_type": "tv",
             "unit": None,
@@ -2474,7 +2475,7 @@ CATALOG_SEED = {
             ],
         },
         {
-            "item_key": "TV_65",
+            "item_key": "tv_65",
             "name": "TV 65\"",
             "item_type": "tv",
             "unit": None,
@@ -2518,7 +2519,7 @@ CATALOG_SEED = {
             ],
         },
         {
-            "item_key": "VIDEO_WALL_2X2",
+            "item_key": "video_wall_2x2",
             "name": "Video Wall 2×2",
             "item_type": "tv",
             "unit": None,
@@ -2555,7 +2556,7 @@ CATALOG_SEED = {
             "video_wall": {
                 "rows": 2,
                 "cols": 2,
-                "panel_item_key": "VIDEO_WALL_PANEL",
+                "panel_item_key": "video_wall_panel",
             },
             "body_parts": [],
             "assets": [
@@ -2566,7 +2567,7 @@ CATALOG_SEED = {
             ],
         },
         {
-            "item_key": "VIDEO_WALL_3X3",
+            "item_key": "video_wall_3x3",
             "name": "Video Wall 3×3",
             "item_type": "tv",
             "unit": None,
@@ -2603,7 +2604,7 @@ CATALOG_SEED = {
             "video_wall": {
                 "rows": 3,
                 "cols": 3,
-                "panel_item_key": "VIDEO_WALL_PANEL",
+                "panel_item_key": "video_wall_panel",
             },
             "body_parts": [],
             "assets": [
@@ -2678,7 +2679,7 @@ CATALOG_SEED = {
             "assets": [],
         },
         {
-            "item_key": "BASE_100",
+            "item_key": "base_100",
             "name": "Baza 100",
             "item_type": "base",
             "unit": None,
@@ -2746,7 +2747,7 @@ CATALOG_SEED = {
             "assets": [],
         },
         {
-            "item_key": "BASE_150",
+            "item_key": "base_150",
             "name": "Baza 150",
             "item_type": "base",
             "unit": None,
@@ -2814,7 +2815,7 @@ CATALOG_SEED = {
             "assets": [],
         },
         {
-            "item_key": "BASE_200",
+            "item_key": "base_200",
             "name": "Baza 200",
             "item_type": "base",
             "unit": None,
@@ -3086,7 +3087,7 @@ CATALOG_SEED = {
             "assets": [],
         },
         {
-            "item_key": "desk_banko_100_L",
+            "item_key": "desk_banko_100_l",
             "name": "Köşe Banko 100×100",
             "item_type": "counter",
             "unit": None,
@@ -3158,7 +3159,7 @@ CATALOG_SEED = {
             "assets": [],
         },
         {
-            "item_key": "desk_banko_150_L",
+            "item_key": "desk_banko_150_l",
             "name": "Köşe Banko 150×150",
             "item_type": "counter",
             "unit": None,
@@ -3234,7 +3235,7 @@ CATALOG_SEED = {
             "assets": [],
         },
         {
-            "item_key": "desk_banko_200_L",
+            "item_key": "desk_banko_200_l",
             "name": "Köşe Banko 200×200",
             "item_type": "counter",
             "unit": None,
@@ -4483,3 +4484,16 @@ CATALOG_SEED = {
         },
     ],
 }
+
+from app.modules.fair_stand.infrastructure.item_rotation_seed import apply_item_rotation_fields
+from app.modules.fair_stand.infrastructure.item_surface_flags_seed import apply_item_surface_flags
+from app.modules.fair_stand.infrastructure.item_default_z_seed import apply_item_default_z
+from app.modules.fair_stand.infrastructure.item_snap_seed import apply_item_snap_fields
+from app.modules.fair_stand.infrastructure.item_scene_pose_seed import apply_item_scene_pose
+
+for _item in CATALOG_SEED["items"]:
+    apply_item_rotation_fields(_item)
+    apply_item_surface_flags(_item)
+    apply_item_default_z(_item)
+    apply_item_snap_fields(_item)
+    apply_item_scene_pose(_item)
