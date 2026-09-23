@@ -104,6 +104,8 @@ export const restoreFairStandAdminPreview = (previewId: number) =>
 export type FairStandAdminStandDimensions = {
   heightCm: number;
   depthCm: number;
+  frameWidthCm: number;
+  frameDepthCm: number;
 };
 
 export type FairStandAdminRuntimeSettings = {
@@ -123,6 +125,8 @@ export const getFairStandAdminSettings = () =>
 export const updateFairStandAdminStandDimensions = (payload: {
   height_cm: number;
   depth_cm: number;
+  frame_width_cm: number;
+  frame_depth_cm: number;
 }) =>
   apiRequest<FairStandAdminStandDimensions>(`${base}/stand-dimensions`, {
     method: "PUT",

@@ -35,6 +35,8 @@ import {
 type DimensionsForm = {
   height_cm: string;
   depth_cm: string;
+  frame_width_cm: string;
+  frame_depth_cm: string;
 };
 
 type SettingsForm = {
@@ -59,6 +61,8 @@ function dimensionsToForm(row: FairStandAdminStandDimensions): DimensionsForm {
   return {
     height_cm: formatCm(row.heightCm),
     depth_cm: formatCm(row.depthCm),
+    frame_width_cm: formatCm(row.frameWidthCm),
+    frame_depth_cm: formatCm(row.frameDepthCm),
   };
 }
 
@@ -156,6 +160,14 @@ export function FairStandSettingsAdminPage() {
           dimensionsForm.depth_cm,
           adminLabels.fairStandSettingsFieldDepth,
         ),
+        frame_width_cm: parsePositiveNumber(
+          dimensionsForm.frame_width_cm,
+          adminLabels.fairStandSettingsFieldFrameWidth,
+        ),
+        frame_depth_cm: parsePositiveNumber(
+          dimensionsForm.frame_depth_cm,
+          adminLabels.fairStandSettingsFieldFrameDepth,
+        ),
       });
       setDimensions({ id: 1, ...updated });
       setDimensionsForm(null);
@@ -208,6 +220,18 @@ export function FairStandSettingsAdminPage() {
       title: adminLabels.fairStandSettingsColDepth,
       sortable: false,
       render: (row) => formatCm(row.depthCm),
+    },
+    {
+      key: "frameWidth",
+      title: adminLabels.fairStandSettingsColFrameWidth,
+      sortable: false,
+      render: (row) => formatCm(row.frameWidthCm),
+    },
+    {
+      key: "frameDepth",
+      title: adminLabels.fairStandSettingsColFrameDepth,
+      sortable: false,
+      render: (row) => formatCm(row.frameDepthCm),
     },
     {
       key: "actions",
@@ -373,6 +397,44 @@ export function FairStandSettingsAdminPage() {
                     disabled={savingDimensions}
                     onChange={(event) =>
                       setDimensionsForm({ ...dimensionsForm, depth_cm: event.target.value })
+                    }
+                    required
+                  />
+                </FormField>
+                <FormField
+                  label={adminLabels.fairStandSettingsFieldFrameWidth}
+                  htmlFor="fs-frame-width"
+                  hint={adminLabels.fairStandSettingsFieldFrameWidthHint}
+                  required
+                >
+                  <TextInput
+                    id="fs-frame-width"
+                    type="number"
+                    min={0.1}
+                    step={0.1}
+                    value={dimensionsForm.frame_width_cm}
+                    disabled={savingDimensions}
+                    onChange={(event) =>
+                      setDimensionsForm({ ...dimensionsForm, frame_width_cm: event.target.value })
+                    }
+                    required
+                  />
+                </FormField>
+                <FormField
+                  label={adminLabels.fairStandSettingsFieldFrameDepth}
+                  htmlFor="fs-frame-depth"
+                  hint={adminLabels.fairStandSettingsFieldFrameDepthHint}
+                  required
+                >
+                  <TextInput
+                    id="fs-frame-depth"
+                    type="number"
+                    min={0.1}
+                    step={0.1}
+                    value={dimensionsForm.frame_depth_cm}
+                    disabled={savingDimensions}
+                    onChange={(event) =>
+                      setDimensionsForm({ ...dimensionsForm, frame_depth_cm: event.target.value })
                     }
                     required
                   />

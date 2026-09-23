@@ -23,7 +23,8 @@ describe("Fair Stand settings admin page", () => {
     expect(source).toContain("getFairStandAdminSettings");
     expect(source).toContain("fairStandSettingsFieldHeightHint");
     expect(source).toContain("fairStandSettingsFieldDepthHint");
-    expect(source).not.toContain("frameWidthCm");
+    expect(source).toContain("frameWidthCm");
+    expect(source).toContain("fairStandSettingsFieldFrameWidthHint");
     expect(source).not.toContain("fairStandSettingsFieldStripCountHint");
     expect(source).toContain("fairStandSettingsFieldMaxUploadHint");
     expect(source).toContain("fairStandSettingsFieldExportVisibleHint");
