@@ -14,7 +14,7 @@ import { FairStandItemsAdminPage } from "../../pages/FairStandItemsAdminPage";
 import { FairStandPreviewsAdminPage } from "../../pages/FairStandPreviewsAdminPage";
 import { FairStandSettingsAdminPage } from "../../pages/FairStandSettingsAdminPage";
 import {
-  FairStandFamiliesAdminPage,
+  FairStandItemTypesAdminPage,
   FairStandRuleTypesAdminPage,
   FairStandRulesAdminPage,
 } from "../../pages/FairStandSnapCatalogAdminPage";
@@ -41,7 +41,7 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
   const fairStandCatalogRouteActive = pathname === "/admin/fair-stand/catalog";
   const fairStandItemsRouteActive =
     pathname === "/admin/fair-stand/items" || pathname.startsWith("/admin/fair-stand/items/");
-  const fairStandFamiliesRouteActive = pathname === "/admin/fair-stand/families";
+  const fairStandItemTypesRouteActive = pathname === "/admin/fair-stand/item-types";
   const fairStandRuleTypesRouteActive = pathname === "/admin/fair-stand/rule-types";
   const fairStandRulesRouteActive = pathname === "/admin/fair-stand/rules";
   const fairStandPreviewsRouteActive = pathname === "/admin/fair-stand/previews";
@@ -56,8 +56,8 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
           ? "fair-stand-catalog"
           : fairStandItemsRouteActive
             ? "fair-stand-items"
-            : fairStandFamiliesRouteActive
-              ? "fair-stand-families"
+            : fairStandItemTypesRouteActive
+              ? "fair-stand-item-types"
               : fairStandRuleTypesRouteActive
                 ? "fair-stand-rule-types"
                 : fairStandRulesRouteActive
@@ -77,8 +77,8 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
           ? <FairStandCatalogAdminPage />
           : fairStandItemsRouteActive
             ? <FairStandItemsAdminPage />
-            : fairStandFamiliesRouteActive
-              ? <FairStandFamiliesAdminPage />
+            : fairStandItemTypesRouteActive
+              ? <FairStandItemTypesAdminPage />
               : fairStandRuleTypesRouteActive
                 ? <FairStandRuleTypesAdminPage />
                 : fairStandRulesRouteActive
@@ -109,7 +109,11 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
     ...(canAccess("fair-stand-items")
       ? [
           { id: "fair-stand-items", label: adminLabels.fairStandItemsTitle, path: "/admin/fair-stand/items" },
-          { id: "fair-stand-families", label: adminLabels.fairStandFamiliesTitle, path: "/admin/fair-stand/families" },
+          {
+            id: "fair-stand-item-types",
+            label: adminLabels.fairStandItemTypesTitle,
+            path: "/admin/fair-stand/item-types",
+          },
           { id: "fair-stand-rule-types", label: adminLabels.fairStandRuleTypesTitle, path: "/admin/fair-stand/rule-types" },
           { id: "fair-stand-rules", label: adminLabels.fairStandRulesTitle, path: "/admin/fair-stand/rules" },
         ]

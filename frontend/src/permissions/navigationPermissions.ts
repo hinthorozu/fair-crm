@@ -124,7 +124,7 @@ export const ADMIN_NAV_REQUIREMENTS: Readonly<Record<string, PermissionRequireme
     kind: "any",
     permissions: FAIR_STAND_ITEMS_ADMIN_PERMISSIONS,
   },
-  "fair-stand-families": {
+  "fair-stand-item-types": {
     kind: "any",
     permissions: FAIR_STAND_ITEMS_ADMIN_PERMISSIONS,
   },
@@ -230,7 +230,7 @@ export function firstAccessibleAdminPath(
     ["fair-stand-catalog", "/admin/fair-stand/catalog"],
     ["fair-stand-previews", "/admin/fair-stand/previews"],
     ["fair-stand-items", "/admin/fair-stand/items"],
-    ["fair-stand-families", "/admin/fair-stand/families"],
+    ["fair-stand-item-types", "/admin/fair-stand/item-types"],
     ["fair-stand-rule-types", "/admin/fair-stand/rule-types"],
     ["fair-stand-rules", "/admin/fair-stand/rules"],
     ["email-accounts", "/admin/email-accounts"],
@@ -429,8 +429,8 @@ export function canAccessApplicationPath(
   ) {
     return canAccessAdminSection("fair-stand-items", granted);
   }
-  if (pathname === "/admin/fair-stand/families") {
-    return canAccessAdminSection("fair-stand-families", granted);
+  if (pathname === "/admin/fair-stand/item-types") {
+    return canAccessAdminSection("fair-stand-item-types", granted);
   }
   if (pathname === "/admin/fair-stand/rule-types") {
     return canAccessAdminSection("fair-stand-rule-types", granted);

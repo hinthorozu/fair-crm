@@ -85,7 +85,6 @@ type EditForm = {
   variant: string;
   composition_mode: string;
   side_insert_rotation: string;
-  family_id: string;
   snap_requires_rule_id: string;
   snap_provides_rule_id: string;
   default_z_cm: string;
@@ -136,11 +135,27 @@ const EMPTY_FIELD_OPTIONS: FairStandAdminItemFieldOptions = {
   variants: [],
   compositionModes: [],
   sideInsertRotations: [],
-  snapFaces: [],
-  snapEdges: [],
-  families: [],
+  itemTypes: [],
   snapRules: [],
 };
+
+function itemTypeSelectOptions(
+  itemTypes: FairStandAdminItemFieldOptions["itemTypes"],
+  selectedKey: string,
+): React.ReactNode {
+  const keys = new Set(itemTypes.map((row) => row.key));
+  return (
+    <>
+      <option value="">{adminLabels.fairStandCatalogSelectPlaceholder}</option>
+      {selectedKey && !keys.has(selectedKey) ? <option value={selectedKey}>{selectedKey}</option> : null}
+      {itemTypes.map((itemType) => (
+        <option key={itemType.key} value={itemType.key}>
+          {itemType.displayName} ({itemType.key})
+        </option>
+      ))}
+    </>
+  );
+}
 
 function SuggestTextInput({
   id,
@@ -262,7 +277,6 @@ function detailToForm(detail: FairStandAdminItemRecord): EditForm {
     variant: str(detail.variant),
     composition_mode: str(detail.compositionMode),
     side_insert_rotation: str(detail.sideInsertRotation),
-    family_id: str(detail.familyId),
     snap_requires_rule_id: str(detail.snapRequiresRuleId),
     snap_provides_rule_id: str(detail.snapProvidesRuleId),
     default_z_cm: str(detail.defaultZCm),
@@ -367,7 +381,6 @@ function buildUpdatePayload(form: EditForm): Record<string, unknown> {
     variant: form.variant.trim() || null,
     composition_mode: form.composition_mode.trim() || null,
     side_insert_rotation: form.side_insert_rotation.trim() || null,
-    family_id: optionalInt(form.family_id),
     snap_requires_rule_id: optionalInt(form.snap_requires_rule_id),
     snap_provides_rule_id: optionalInt(form.snap_provides_rule_id),
     default_z_cm: optionalNumber(form.default_z_cm) ?? 0,
@@ -1496,12 +1509,6 @@ function ItemDetailView({
               <DetailValue value={detail.sideInsertRotation} />
             </DetailItem>
             <DetailItem
-              label={adminLabels.fairStandItemsFieldFamily}
-              hint={adminLabels.fairStandItemsFieldFamilyHint}
-            >
-              <DetailValue value={detail.familyCode ?? str(detail.familyId)} />
-            </DetailItem>
-            <DetailItem
               label={adminLabels.fairStandItemsFieldSnapRequires}
               hint={adminLabels.fairStandItemsFieldSnapRequiresHint}
             >
@@ -1512,24 +1519,6 @@ function ItemDetailView({
               hint={adminLabels.fairStandItemsFieldSnapProvidesHint}
             >
               <DetailValue value={detail.snapProvides} />
-            </DetailItem>
-            <DetailItem
-              label={adminLabels.fairStandItemsFieldSnapFace}
-              hint={adminLabels.fairStandItemsFieldSnapFaceHint}
-            >
-              <DetailValue value={detail.snapFace} />
-            </DetailItem>
-            <DetailItem
-              label={adminLabels.fairStandItemsFieldSnapEdge}
-              hint={adminLabels.fairStandItemsFieldSnapEdgeHint}
-            >
-              <DetailValue value={detail.snapEdge} />
-            </DetailItem>
-            <DetailItem
-              label={adminLabels.fairStandItemsFieldSnapMountMode}
-              hint={adminLabels.fairStandItemsFieldSnapMountModeHint}
-            >
-              <DetailValue value={detail.snapMountMode} />
             </DetailItem>
             <DetailItem
               label={adminLabels.fairStandItemsFieldDefaultZ}
@@ -1721,8 +1710,6 @@ function ItemCreateView({
 }) {
   const requestBack = useFormDirtyCancel(() => undefined);
   const [itemKeyManual, setItemKeyManual] = React.useState(false);
-  const typeListId = "fs-item-type-options";
-
   return (
     <>
       <FormDirtyReporter values={form} baseline={emptyCreate} />
@@ -1791,15 +1778,15 @@ function ItemCreateView({
               required
               fullWidth
             >
-              <SuggestTextInput
+              <SelectInput
                 id="fs-item-type"
-                listId={typeListId}
-                options={fieldOptions.types}
                 value={form.item_type}
                 disabled={saving}
                 required
-                onChange={(item_type) => onChange({ ...form, item_type })}
-              />
+                onChange={(event) => onChange({ ...form, item_type: event.target.value })}
+              >
+                {itemTypeSelectOptions(fieldOptions.itemTypes, form.item_type)}
+              </SelectInput>
             </FormField>
           </FormGrid>
         </FormSection>
@@ -1853,16 +1840,12 @@ function ItemEditView({
   const [addingBodyPart, setAddingBodyPart] = React.useState(false);
   const [categories, setCategories] = React.useState<FairStandAdminCategory[]>([]);
   const [previews, setPreviews] = React.useState<FairStandAdminPreview[]>([]);
-  const typeListId = "fs-edit-item-type-options";
   const unitListId = "fs-edit-unit-options";
   const materialListId = "fs-edit-material-options";
   const shapeListId = "fs-edit-shape-options";
   const variantListId = "fs-edit-variant-options";
   const compositionModeListId = "fs-edit-comp-mode-options";
   const sideInsertListId = "fs-edit-side-insert-options";
-  const selectedProvideRule = fieldOptions.snapRules.find(
-    (rule) => String(rule.id) === form.snap_provides_rule_id,
-  );
   const componentCount = form.components.length + form.body_parts.length;
   const assetCount = form.assets.length;
   const formRef = React.useRef(form);
@@ -2160,15 +2143,15 @@ function ItemEditView({
                 hint={adminLabels.fairStandItemsFieldItemTypeHint}
                 required
               >
-                <SuggestTextInput
+                <SelectInput
                   id="fs-edit-type"
-                  listId={typeListId}
-                  options={fieldOptions.types}
                   value={form.item_type}
                   disabled={saving}
                   required
-                  onChange={(item_type) => patch("item_type", item_type)}
-                />
+                  onChange={(event) => patch("item_type", event.target.value)}
+                >
+                  {itemTypeSelectOptions(fieldOptions.itemTypes, form.item_type)}
+                </SelectInput>
               </FormField>
               <FormField
                 label={adminLabels.fairStandItemsFieldUnit}
@@ -2424,25 +2407,6 @@ function ItemEditView({
                 />
               </FormField>
               <FormField
-                label={adminLabels.fairStandItemsFieldFamily}
-                htmlFor="fs-edit-family"
-                hint={adminLabels.fairStandItemsFieldFamilyHint}
-              >
-                <SelectInput
-                  id="fs-edit-family"
-                  value={form.family_id}
-                  disabled={saving}
-                  onChange={(event) => patch("family_id", event.target.value)}
-                >
-                  <option value="">{adminLabels.fairStandCatalogSelectPlaceholder}</option>
-                  {fieldOptions.families.map((family) => (
-                    <option key={family.id} value={String(family.id)}>
-                      {family.displayName} ({family.code})
-                    </option>
-                  ))}
-                </SelectInput>
-              </FormField>
-              <FormField
                 label={adminLabels.fairStandItemsFieldSnapRequires}
                 htmlFor="fs-edit-snap-requires"
                 hint={adminLabels.fairStandItemsFieldSnapRequiresHint}
@@ -2456,7 +2420,8 @@ function ItemEditView({
                   <option value="">{adminLabels.fairStandCatalogSelectPlaceholder}</option>
                   {fieldOptions.snapRules.map((rule) => (
                     <option key={rule.id} value={String(rule.id)}>
-                      {rule.displayName} ({rule.code})
+                      {rule.displayName} ({rule.key}
+                      {rule.face || rule.edge ? ` · ${rule.face ?? "—"}/${rule.edge ?? "—"}` : ""})
                     </option>
                   ))}
                 </SelectInput>
@@ -2475,49 +2440,11 @@ function ItemEditView({
                   <option value="">{adminLabels.fairStandCatalogSelectPlaceholder}</option>
                   {fieldOptions.snapRules.map((rule) => (
                     <option key={rule.id} value={String(rule.id)}>
-                      {rule.displayName} ({rule.code})
+                      {rule.displayName} ({rule.key}
+                      {rule.face || rule.edge ? ` · ${rule.face ?? "—"}/${rule.edge ?? "—"}` : ""})
                     </option>
                   ))}
                 </SelectInput>
-              </FormField>
-              <FormField
-                label={adminLabels.fairStandItemsFieldSnapFace}
-                htmlFor="fs-edit-snap-face"
-                hint={adminLabels.fairStandItemsFieldSnapFaceHint}
-              >
-                <TextInput
-                  id="fs-edit-snap-face"
-                  value={selectedProvideRule?.face ?? ""}
-                  disabled
-                />
-              </FormField>
-              <FormField
-                label={adminLabels.fairStandItemsFieldSnapEdge}
-                htmlFor="fs-edit-snap-edge"
-                hint={adminLabels.fairStandItemsFieldSnapEdgeHint}
-              >
-                <TextInput
-                  id="fs-edit-snap-edge"
-                  value={selectedProvideRule?.edge ?? ""}
-                  disabled
-                />
-              </FormField>
-              <FormField
-                label={adminLabels.fairStandItemsFieldSnapMountMode}
-                htmlFor="fs-edit-snap-mount"
-                hint={adminLabels.fairStandItemsFieldSnapMountModeHint}
-              >
-                <TextInput
-                  id="fs-edit-snap-mount"
-                  value={
-                    selectedProvideRule?.mountMode
-                    ?? fieldOptions.snapRules.find(
-                      (rule) => String(rule.id) === form.snap_requires_rule_id,
-                    )?.mountMode
-                    ?? ""
-                  }
-                  disabled
-                />
               </FormField>
               <FormField
                 label={adminLabels.fairStandItemsFieldSideInsertRotation}

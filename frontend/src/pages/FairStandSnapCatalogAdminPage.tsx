@@ -1,21 +1,21 @@
 import React from "react";
 import {
-  archiveFairStandAdminFamily,
+  archiveFairStandAdminItemType,
   archiveFairStandAdminRule,
   archiveFairStandAdminRuleType,
-  createFairStandAdminFamily,
+  createFairStandAdminItemType,
   createFairStandAdminRule,
   createFairStandAdminRuleType,
-  listFairStandAdminFamilies,
+  listFairStandAdminItemTypes,
   listFairStandAdminRules,
   listFairStandAdminRuleTypes,
-  restoreFairStandAdminFamily,
+  restoreFairStandAdminItemType,
   restoreFairStandAdminRule,
   restoreFairStandAdminRuleType,
-  updateFairStandAdminFamily,
+  updateFairStandAdminItemType,
   updateFairStandAdminRule,
   updateFairStandAdminRuleType,
-  type FairStandAdminFamily,
+  type FairStandAdminItemType,
   type FairStandAdminRule,
   type FairStandAdminRuleType,
 } from "../api/fairStandAdmin";
@@ -30,6 +30,7 @@ import {
   FormField,
   FormGrid,
   FormModal,
+  SelectInput,
   TextInput,
   useReportFormDirty,
 } from "../components/ui/form";
@@ -46,31 +47,47 @@ import {
   getGrantedFairStandAdminPermissions,
 } from "../permissions/fairStandAdminPermissions";
 
-type Mode = "families" | "rule-types" | "rules";
+type Mode = "item-types" | "rule-types" | "rules";
 
-type Row = FairStandAdminFamily | FairStandAdminRuleType | FairStandAdminRule;
+type Row = FairStandAdminItemType | FairStandAdminRuleType | FairStandAdminRule;
 
 type FormState = {
-  code: string;
+  key: string;
   display_name: string;
-  sort_index: string;
   is_active: boolean;
   rule_type_id: string;
   face: string;
   edge: string;
-  mount_mode: string;
+  item_type_ids: number[];
 };
 
+/** Backend SNAP_FACES / SNAP_EDGES ile aynı set. */
+const SNAP_FACES = ["front", "back", "top", "bottom", "left", "right"] as const;
+const SNAP_EDGES = ["top", "bottom", "left", "right"] as const;
+
 const emptyForm = (): FormState => ({
-  code: "",
+  key: "",
   display_name: "",
-  sort_index: "0",
   is_active: true,
   rule_type_id: "",
   face: "",
   edge: "",
-  mount_mode: "",
+  item_type_ids: [],
 });
+
+/** Ad → key slug (item key gibi; backend ile aynı fikir). */
+function slugifyKey(value: string): string {
+  return value
+    .trim()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/İ/g, "i")
+    .toLocaleLowerCase("en-US")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64);
+}
 
 function FormDirtyReporter<T>({ values, baseline }: { values: T; baseline: T }) {
   useReportFormDirty(values, baseline);
@@ -78,8 +95,8 @@ function FormDirtyReporter<T>({ values, baseline }: { values: T; baseline: T }) 
 }
 
 function titles(mode: Mode) {
-  if (mode === "families") {
-    return { title: adminLabels.fairStandFamiliesTitle, subtitle: adminLabels.fairStandFamiliesSubtitle };
+  if (mode === "item-types") {
+    return { title: adminLabels.fairStandItemTypesTitle, subtitle: adminLabels.fairStandItemTypesSubtitle };
   }
   if (mode === "rule-types") {
     return { title: adminLabels.fairStandRuleTypesTitle, subtitle: adminLabels.fairStandRuleTypesSubtitle };
@@ -95,25 +112,29 @@ function SnapCatalogPage({ mode }: { mode: Mode }) {
   const canArchive = granted.has(FAIR_STAND_ITEMS_ARCHIVE);
   const [rows, setRows] = React.useState<Row[]>([]);
   const [ruleTypes, setRuleTypes] = React.useState<FairStandAdminRuleType[]>([]);
+  const [itemTypes, setItemTypes] = React.useState<FairStandAdminItemType[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [form, setForm] = React.useState<FormState | null>(null);
   const [editing, setEditing] = React.useState<Row | null>(null);
+  const [keyManual, setKeyManual] = React.useState(false);
   const { title, subtitle } = titles(mode);
 
   const load = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      if (mode === "families") setRows(await listFairStandAdminFamilies());
+      if (mode === "item-types") setRows(await listFairStandAdminItemTypes());
       else if (mode === "rule-types") setRows(await listFairStandAdminRuleTypes());
       else {
-        const [rules, types] = await Promise.all([
+        const [rules, types, itemTypeRows] = await Promise.all([
           listFairStandAdminRules(),
           listFairStandAdminRuleTypes(),
+          listFairStandAdminItemTypes(),
         ]);
         setRows(rules);
         setRuleTypes(types);
+        setItemTypes(itemTypeRows.filter((row) => row.isActive));
       }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : adminLabels.fairStandSnapCatalogLoadError);
@@ -129,9 +150,10 @@ function SnapCatalogPage({ mode }: { mode: Mode }) {
 
   const openCreate = () => {
     setEditing(null);
+    setKeyManual(false);
     const next = emptyForm();
     if (mode === "rules") {
-      const snap = ruleTypes.find((row) => row.code === "snap") ?? ruleTypes[0];
+      const snap = ruleTypes.find((row) => row.key === "snap") ?? ruleTypes[0];
       next.rule_type_id = snap ? String(snap.id) : "";
     }
     setForm(next);
@@ -139,54 +161,53 @@ function SnapCatalogPage({ mode }: { mode: Mode }) {
 
   const openEdit = (row: Row) => {
     setEditing(row);
+    setKeyManual(true);
     setForm({
-      code: row.code,
+      key: row.key,
       display_name: row.displayName,
-      sort_index: "sortIndex" in row ? String(row.sortIndex) : "0",
       is_active: row.isActive,
       rule_type_id: "ruleTypeId" in row ? String(row.ruleTypeId) : "",
       face: "face" in row ? String(row.face ?? "") : "",
       edge: "edge" in row ? String(row.edge ?? "") : "",
-      mount_mode: "mountMode" in row ? String(row.mountMode ?? "") : "",
+      item_type_ids: "itemTypeIds" in row ? [...(row.itemTypeIds ?? [])] : [],
     });
   };
 
   const closeModal = () => {
     setForm(null);
     setEditing(null);
+    setKeyManual(false);
   };
 
   const save = async () => {
     if (!form) return;
-    const code = form.code.trim();
     const display_name = form.display_name.trim();
-    if (!code || !display_name) {
-      setError("Kod ve ad zorunludur.");
+    const key = form.key.trim() || slugifyKey(display_name);
+    if (!display_name) {
+      setError("Ad zorunludur.");
+      return;
+    }
+    if (!key) {
+      setError("Key zorunludur.");
       return;
     }
     try {
-      if (mode === "families") {
-        const payload = {
-          code,
-          display_name,
-          sort_index: Number(form.sort_index) || 0,
-          is_active: form.is_active,
-        };
-        if (editing) await updateFairStandAdminFamily(editing.id, payload);
-        else await createFairStandAdminFamily(payload);
+      if (mode === "item-types") {
+        const payload = { key, display_name, is_active: form.is_active };
+        if (editing) await updateFairStandAdminItemType(editing.id, payload);
+        else await createFairStandAdminItemType(payload);
       } else if (mode === "rule-types") {
-        const payload = { code, display_name, is_active: form.is_active };
+        const payload = { key, display_name, is_active: form.is_active };
         if (editing) await updateFairStandAdminRuleType(editing.id, payload);
         else await createFairStandAdminRuleType(payload);
       } else {
         const payload = {
           rule_type_id: Number(form.rule_type_id),
-          code,
+          key,
           display_name,
           face: form.face.trim() || null,
           edge: form.edge.trim() || null,
-          mount_mode: form.mount_mode.trim() || null,
-          sort_index: Number(form.sort_index) || 0,
+          item_type_ids: form.item_type_ids,
           is_active: form.is_active,
         };
         if (editing) await updateFairStandAdminRule(editing.id, payload);
@@ -201,9 +222,9 @@ function SnapCatalogPage({ mode }: { mode: Mode }) {
 
   const toggleActive = async (row: Row) => {
     try {
-      if (mode === "families") {
-        if (row.isActive) await archiveFairStandAdminFamily(row.id);
-        else await restoreFairStandAdminFamily(row.id);
+      if (mode === "item-types") {
+        if (row.isActive) await archiveFairStandAdminItemType(row.id);
+        else await restoreFairStandAdminItemType(row.id);
       } else if (mode === "rule-types") {
         if (row.isActive) await archiveFairStandAdminRuleType(row.id);
         else await restoreFairStandAdminRuleType(row.id);
@@ -216,35 +237,62 @@ function SnapCatalogPage({ mode }: { mode: Mode }) {
   };
 
   const columns: UniversalDataTableColumn<Row>[] = [
-    { id: "code", header: adminLabels.fairStandSnapCatalogColCode, cell: (row) => row.code },
-    { id: "name", header: adminLabels.fairStandSnapCatalogColName, cell: (row) => row.displayName },
+    {
+      key: "key",
+      title: adminLabels.fairStandSnapCatalogColCode,
+      sortable: false,
+      render: (row) => row.key,
+    },
+    {
+      key: "name",
+      title: adminLabels.fairStandSnapCatalogColName,
+      sortable: false,
+      render: (row) => row.displayName,
+    },
     ...(mode === "rules"
       ? [
           {
-            id: "type",
-            header: adminLabels.fairStandSnapCatalogFieldRuleType,
-            cell: (row: Row) => ("ruleTypeCode" in row ? String(row.ruleTypeCode ?? "") : ""),
+            key: "type",
+            title: adminLabels.fairStandSnapCatalogFieldRuleType,
+            sortable: false,
+            render: (row: Row) => ("ruleTypeKey" in row ? String(row.ruleTypeKey ?? "") : ""),
           },
           {
-            id: "mount",
-            header: adminLabels.fairStandSnapCatalogFieldMountMode,
-            cell: (row: Row) => ("mountMode" in row ? String(row.mountMode ?? "") : ""),
+            key: "face",
+            title: adminLabels.fairStandSnapCatalogFieldFace,
+            sortable: false,
+            render: (row: Row) => ("face" in row ? String(row.face ?? "") : ""),
+          },
+          {
+            key: "edge",
+            title: adminLabels.fairStandSnapCatalogFieldEdge,
+            sortable: false,
+            render: (row: Row) => ("edge" in row ? String(row.edge ?? "") : ""),
+          },
+          {
+            key: "itemTypes",
+            title: adminLabels.fairStandSnapCatalogFieldItemTypes,
+            sortable: false,
+            render: (row: Row) =>
+              "itemTypeKeys" in row ? (row.itemTypeKeys?.length ? row.itemTypeKeys.join(", ") : "—") : "",
           },
         ]
       : []),
     {
-      id: "status",
-      header: adminLabels.fairStandSnapCatalogColStatus,
-      cell: (row) => (
+      key: "status",
+      title: adminLabels.fairStandSnapCatalogColStatus,
+      sortable: false,
+      render: (row) => (
         <Badge variant={row.isActive ? "success" : "neutral"}>
           {row.isActive ? adminLabels.fairStandSnapCatalogActive : adminLabels.fairStandSnapCatalogInactive}
         </Badge>
       ),
     },
     {
-      id: "actions",
-      header: adminLabels.fairStandSnapCatalogColActions,
-      cell: (row) => (
+      key: "actions",
+      title: adminLabels.fairStandSnapCatalogColActions,
+      sortable: false,
+      render: (row) => (
         <TableRowActions>
           {canUpdate ? (
             <Button size="sm" variant="secondary" onClick={() => openEdit(row)}>
@@ -266,16 +314,16 @@ function SnapCatalogPage({ mode }: { mode: Mode }) {
       ),
     },
   ];
+
   const baseline = editing
     ? {
-        code: editing.code,
+        key: editing.key,
         display_name: editing.displayName,
-        sort_index: "sortIndex" in editing ? String(editing.sortIndex) : "0",
         is_active: editing.isActive,
         rule_type_id: "ruleTypeId" in editing ? String(editing.ruleTypeId) : "",
         face: "face" in editing ? String(editing.face ?? "") : "",
         edge: "edge" in editing ? String(editing.edge ?? "") : "",
-        mount_mode: "mountMode" in editing ? String(editing.mountMode ?? "") : "",
+        item_type_ids: "itemTypeIds" in editing ? [...(editing.itemTypeIds ?? [])] : [],
       }
     : emptyForm();
 
@@ -326,34 +374,38 @@ function SnapCatalogPage({ mode }: { mode: Mode }) {
             }
           >
             <FormGrid columns={2}>
-              <FormField label={adminLabels.fairStandSnapCatalogFieldCode} htmlFor="fs-snap-code">
-                <TextInput
-                  id="fs-snap-code"
-                  value={form.code}
-                  onChange={(event) => setForm({ ...form, code: event.target.value })}
-                />
-              </FormField>
               <FormField label={adminLabels.fairStandSnapCatalogFieldName} htmlFor="fs-snap-name">
                 <TextInput
                   id="fs-snap-name"
                   value={form.display_name}
-                  onChange={(event) => setForm({ ...form, display_name: event.target.value })}
+                  onChange={(event) => {
+                    const display_name = event.target.value;
+                    setForm({
+                      ...form,
+                      display_name,
+                      key: keyManual ? form.key : slugifyKey(display_name),
+                    });
+                  }}
                 />
               </FormField>
-              {mode !== "rule-types" ? (
-                <FormField label={adminLabels.fairStandSnapCatalogFieldSort} htmlFor="fs-snap-sort">
-                  <TextInput
-                    id="fs-snap-sort"
-                    type="number"
-                    value={form.sort_index}
-                    onChange={(event) => setForm({ ...form, sort_index: event.target.value })}
-                  />
-                </FormField>
-              ) : null}
+              <FormField
+                label={adminLabels.fairStandSnapCatalogFieldCode}
+                htmlFor="fs-snap-key"
+                hint={adminLabels.fairStandSnapCatalogFieldCodeHint}
+              >
+                <TextInput
+                  id="fs-snap-key"
+                  value={form.key}
+                  onChange={(event) => {
+                    setKeyManual(true);
+                    setForm({ ...form, key: event.target.value });
+                  }}
+                />
+              </FormField>
               {mode === "rules" ? (
                 <>
                   <FormField label={adminLabels.fairStandSnapCatalogFieldRuleType} htmlFor="fs-snap-type">
-                    <select
+                    <SelectInput
                       id="fs-snap-type"
                       value={form.rule_type_id}
                       onChange={(event) => setForm({ ...form, rule_type_id: event.target.value })}
@@ -361,31 +413,74 @@ function SnapCatalogPage({ mode }: { mode: Mode }) {
                       <option value="">—</option>
                       {ruleTypes.map((type) => (
                         <option key={type.id} value={String(type.id)}>
-                          {type.displayName} ({type.code})
+                          {type.displayName} ({type.key})
                         </option>
                       ))}
-                    </select>
+                    </SelectInput>
                   </FormField>
-                  <FormField label={adminLabels.fairStandSnapCatalogFieldFace} htmlFor="fs-snap-face">
-                    <TextInput
+                  <FormField
+                    label={adminLabels.fairStandSnapCatalogFieldFace}
+                    htmlFor="fs-snap-face"
+                    hint={adminLabels.fairStandSnapCatalogFieldFaceHint}
+                  >
+                    <SelectInput
                       id="fs-snap-face"
                       value={form.face}
                       onChange={(event) => setForm({ ...form, face: event.target.value })}
-                    />
+                    >
+                      <option value="">{adminLabels.fairStandSnapCatalogSelectEmpty}</option>
+                      {SNAP_FACES.map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </SelectInput>
                   </FormField>
-                  <FormField label={adminLabels.fairStandSnapCatalogFieldEdge} htmlFor="fs-snap-edge">
-                    <TextInput
+                  <FormField
+                    label={adminLabels.fairStandSnapCatalogFieldEdge}
+                    htmlFor="fs-snap-edge"
+                    hint={adminLabels.fairStandSnapCatalogFieldEdgeHint}
+                  >
+                    <SelectInput
                       id="fs-snap-edge"
                       value={form.edge}
                       onChange={(event) => setForm({ ...form, edge: event.target.value })}
-                    />
+                    >
+                      <option value="">{adminLabels.fairStandSnapCatalogSelectEmpty}</option>
+                      {SNAP_EDGES.map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </SelectInput>
                   </FormField>
-                  <FormField label={adminLabels.fairStandSnapCatalogFieldMountMode} htmlFor="fs-snap-mount">
-                    <TextInput
-                      id="fs-snap-mount"
-                      value={form.mount_mode}
-                      onChange={(event) => setForm({ ...form, mount_mode: event.target.value })}
-                    />
+                  <FormField
+                    label={adminLabels.fairStandSnapCatalogFieldItemTypes}
+                    htmlFor="fs-snap-item-types"
+                    hint={adminLabels.fairStandSnapCatalogFieldItemTypesHint}
+                    fullWidth
+                  >
+                    <div id="fs-snap-item-types" style={{ display: "grid", gap: 8 }}>
+                      {itemTypes.map((itemType) => {
+                        const checked = form.item_type_ids.includes(itemType.id);
+                        return (
+                          <CheckboxField
+                            key={itemType.id}
+                            id={`fs-snap-item-type-${itemType.id}`}
+                            label={`${itemType.displayName} (${itemType.key})`}
+                            checked={checked}
+                            onChange={(nextChecked: boolean) => {
+                              setForm({
+                                ...form,
+                                item_type_ids: nextChecked
+                                  ? [...form.item_type_ids, itemType.id]
+                                  : form.item_type_ids.filter((id) => id !== itemType.id),
+                              });
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
                   </FormField>
                 </>
               ) : null}
@@ -403,8 +498,13 @@ function SnapCatalogPage({ mode }: { mode: Mode }) {
   );
 }
 
+export function FairStandItemTypesAdminPage() {
+  return <SnapCatalogPage mode="item-types" />;
+}
+
+/** @deprecated Use FairStandItemTypesAdminPage */
 export function FairStandFamiliesAdminPage() {
-  return <SnapCatalogPage mode="families" />;
+  return <FairStandItemTypesAdminPage />;
 }
 
 export function FairStandRuleTypesAdminPage() {
