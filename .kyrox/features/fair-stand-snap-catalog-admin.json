@@ -14,6 +14,7 @@
     "frontend/src/pages/FairStandItemsAdminPage.tsx",
     "frontend/src/components/admin/AdminSystemLayout.tsx",
     "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/permissions/FairStandAdminNavigationPermissions.test.ts",
     "frontend/src/labels/adminLabels.ts",
     "scripts/maintenance/inventory_frontend_ui.py",
     ".kyrox/features/fair-stand-snap-catalog-admin.json"
