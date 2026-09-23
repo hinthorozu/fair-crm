@@ -107,16 +107,28 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
       ? [{ id: "fair-stand-previews", label: "Katalog Önizlemeleri", path: "/admin/fair-stand/previews" }]
       : []),
     ...(canAccess("fair-stand-items")
+      ? [{ id: "fair-stand-items", label: adminLabels.fairStandItemsTitle, path: "/admin/fair-stand/items" }]
+      : []),
+    ...(canAccess("fair-stand-item-types")
       ? [
-          { id: "fair-stand-items", label: adminLabels.fairStandItemsTitle, path: "/admin/fair-stand/items" },
           {
             id: "fair-stand-item-types",
             label: adminLabels.fairStandItemTypesTitle,
             path: "/admin/fair-stand/item-types",
           },
-          { id: "fair-stand-rule-types", label: adminLabels.fairStandRuleTypesTitle, path: "/admin/fair-stand/rule-types" },
-          { id: "fair-stand-rules", label: adminLabels.fairStandRulesTitle, path: "/admin/fair-stand/rules" },
         ]
+      : []),
+    ...(canAccess("fair-stand-rule-types")
+      ? [
+          {
+            id: "fair-stand-rule-types",
+            label: adminLabels.fairStandRuleTypesTitle,
+            path: "/admin/fair-stand/rule-types",
+          },
+        ]
+      : []),
+    ...(canAccess("fair-stand-rules")
+      ? [{ id: "fair-stand-rules", label: adminLabels.fairStandRulesTitle, path: "/admin/fair-stand/rules" }]
       : []),
   ];
   const smtpOperationsItems = [

@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "id": "fair-stand-snap-catalog-admin",
+  "title": "Fair Stand item type / rule type / rule Super Admin CRUD",
+  "feature_type": "system_admin",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "user",
+  "tenant_scope": "system",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/api/fairStandAdmin.ts",
+    "frontend/src/pages/FairStandSnapCatalogAdminPage.tsx",
+    "frontend/src/pages/FairStandItemsAdminPage.tsx",
+    "frontend/src/components/admin/AdminSystemLayout.tsx",
+    "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/labels/adminLabels.ts",
+    "scripts/maintenance/inventory_frontend_ui.py",
+    ".kyrox/features/fair-stand-snap-catalog-admin.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.admin.fair_stand.items", "action": "read", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.fair_stand.items.read", "action": "read", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.fair_stand.items.create", "action": "create", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.fair_stand.items.update", "action": "update", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.fair_stand.items.archive", "action": "archive", "scope": "system", "assignable": false }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": [
+      "/admin/fair-stand/item-types",
+      "/admin/fair-stand/rule-types",
+      "/admin/fair-stand/rules"
+    ],
+    "menu": true,
+    "menu_permission": "fair_crm.admin.fair_stand.items.read"
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "item_type / rule tables live in Fair Stand DB; CRM does not own schema." },
+    "migration": { "status": "na", "reason": "Schema migrations ship in fair-stand (0029_item_type_catalog)." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Mutations run on Fair Stand API behind same-origin proxy." },
+    "api": { "status": "na", "reason": "CRM does not host /api/v1/fair-stand admin routes." },
+    "tenant_isolation": { "status": "na", "reason": "Global Fair Stand catalog; SYSTEM Super Admin only." },
+    "audit": { "status": "na", "reason": "No new Fair CRM audit stream." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "required" },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "Admin API tests live in fair-stand repository." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "CRM Admin screens for fair_stand_item_type, fair_stand_rule_type, and fair_stand_rule. Nested under AdminSystemLayout like other Fair Stand admin pages. Rule form binds host item types (M:N); item provides remains optional override on Items admin."
+}
