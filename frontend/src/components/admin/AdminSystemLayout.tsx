@@ -13,6 +13,11 @@ import { FairStandCatalogAdminPage } from "../../pages/FairStandCatalogAdminPage
 import { FairStandItemsAdminPage } from "../../pages/FairStandItemsAdminPage";
 import { FairStandPreviewsAdminPage } from "../../pages/FairStandPreviewsAdminPage";
 import { FairStandSettingsAdminPage } from "../../pages/FairStandSettingsAdminPage";
+import {
+  FairStandFamiliesAdminPage,
+  FairStandRuleTypesAdminPage,
+  FairStandRulesAdminPage,
+} from "../../pages/FairStandSnapCatalogAdminPage";
 import { AdminNavIcon, NavIconComingSoon } from "../layout/NavIcons";
 import { NavLink } from "../layout/NavLink";
 import { SidebarCollapseButton } from "../layout/SidebarCollapseButton";
@@ -36,6 +41,9 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
   const fairStandCatalogRouteActive = pathname === "/admin/fair-stand/catalog";
   const fairStandItemsRouteActive =
     pathname === "/admin/fair-stand/items" || pathname.startsWith("/admin/fair-stand/items/");
+  const fairStandFamiliesRouteActive = pathname === "/admin/fair-stand/families";
+  const fairStandRuleTypesRouteActive = pathname === "/admin/fair-stand/rule-types";
+  const fairStandRulesRouteActive = pathname === "/admin/fair-stand/rules";
   const fairStandPreviewsRouteActive = pathname === "/admin/fair-stand/previews";
   const fairStandSettingsRouteActive = pathname === "/admin/fair-stand/settings";
   const resolvedActiveSection = usersRouteActive
@@ -48,11 +56,17 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
           ? "fair-stand-catalog"
           : fairStandItemsRouteActive
             ? "fair-stand-items"
-            : fairStandPreviewsRouteActive
-              ? "fair-stand-previews"
-              : fairStandSettingsRouteActive
-                ? "fair-stand-settings"
-                : activeSection;
+            : fairStandFamiliesRouteActive
+              ? "fair-stand-families"
+              : fairStandRuleTypesRouteActive
+                ? "fair-stand-rule-types"
+                : fairStandRulesRouteActive
+                  ? "fair-stand-rules"
+                  : fairStandPreviewsRouteActive
+                    ? "fair-stand-previews"
+                    : fairStandSettingsRouteActive
+                      ? "fair-stand-settings"
+                      : activeSection;
   const resolvedChildren = usersRouteActive
     ? <UsersAdminPage />
     : rolesRouteActive
@@ -63,11 +77,17 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
           ? <FairStandCatalogAdminPage />
           : fairStandItemsRouteActive
             ? <FairStandItemsAdminPage />
-            : fairStandPreviewsRouteActive
-              ? <FairStandPreviewsAdminPage />
-              : fairStandSettingsRouteActive
-                ? <FairStandSettingsAdminPage />
-                : children;
+            : fairStandFamiliesRouteActive
+              ? <FairStandFamiliesAdminPage />
+              : fairStandRuleTypesRouteActive
+                ? <FairStandRuleTypesAdminPage />
+                : fairStandRulesRouteActive
+                  ? <FairStandRulesAdminPage />
+                  : fairStandPreviewsRouteActive
+                    ? <FairStandPreviewsAdminPage />
+                    : fairStandSettingsRouteActive
+                      ? <FairStandSettingsAdminPage />
+                      : children;
 
   const systemItems = [
     { id: "organizations", label: organizationLabels.nav, path: "/admin/system/organizations" },
@@ -87,7 +107,12 @@ export function AdminSystemLayout({ children, activeSection, onNavigate, onDisab
       ? [{ id: "fair-stand-previews", label: "Katalog Önizlemeleri", path: "/admin/fair-stand/previews" }]
       : []),
     ...(canAccess("fair-stand-items")
-      ? [{ id: "fair-stand-items", label: adminLabels.fairStandItemsTitle, path: "/admin/fair-stand/items" }]
+      ? [
+          { id: "fair-stand-items", label: adminLabels.fairStandItemsTitle, path: "/admin/fair-stand/items" },
+          { id: "fair-stand-families", label: adminLabels.fairStandFamiliesTitle, path: "/admin/fair-stand/families" },
+          { id: "fair-stand-rule-types", label: adminLabels.fairStandRuleTypesTitle, path: "/admin/fair-stand/rule-types" },
+          { id: "fair-stand-rules", label: adminLabels.fairStandRulesTitle, path: "/admin/fair-stand/rules" },
+        ]
       : []),
   ];
   const smtpOperationsItems = [

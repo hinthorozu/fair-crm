@@ -235,6 +235,15 @@ export type FairStandAdminItemRecord = {
   defaultZCm: number | null;
   snapTargetItemType: string | null;
   snapAnchor: string | null;
+  familyId: number | null;
+  familyCode: string | null;
+  snapRequiresRuleId: number | null;
+  snapProvidesRuleId: number | null;
+  snapRequires: string | null;
+  snapProvides: string | null;
+  snapFace: string | null;
+  snapEdge: string | null;
+  snapMountMode: string | null;
   isRender: boolean;
   acceptsColor: boolean;
   acceptsImage: boolean;
@@ -250,6 +259,21 @@ export type FairStandAdminItemRecord = {
   videoWall: FairStandAdminItemVideoWall | null;
 };
 
+export type FairStandAdminSnapRuleOption = {
+  id: number;
+  code: string;
+  displayName: string;
+  face: string | null;
+  edge: string | null;
+  mountMode: string | null;
+};
+
+export type FairStandAdminFamilyOption = {
+  id: number;
+  code: string;
+  displayName: string;
+};
+
 export type FairStandAdminItemFieldOptions = {
   types: string[];
   units: string[];
@@ -258,8 +282,10 @@ export type FairStandAdminItemFieldOptions = {
   variants: string[];
   compositionModes: string[];
   sideInsertRotations: string[];
-  snapTargetItemTypes: string[];
-  snapAnchors: string[];
+  snapFaces: string[];
+  snapEdges: string[];
+  families: FairStandAdminFamilyOption[];
+  snapRules: FairStandAdminSnapRuleOption[];
 };
 
 const EMPTY_FIELD_OPTIONS: FairStandAdminItemFieldOptions = {
@@ -270,14 +296,53 @@ const EMPTY_FIELD_OPTIONS: FairStandAdminItemFieldOptions = {
   variants: [],
   compositionModes: [],
   sideInsertRotations: [],
-  snapTargetItemTypes: [],
-  snapAnchors: [],
+  snapFaces: [],
+  snapEdges: [],
+  families: [],
+  snapRules: [],
 };
 
 function parseStringList(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((entry): entry is string => typeof entry === "string" && entry.trim() !== "")
     : [];
+}
+
+function parseFamilyOptions(value: unknown): FairStandAdminFamilyOption[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const row = entry as Record<string, unknown>;
+      const id = Number(row.id);
+      if (!Number.isFinite(id)) return null;
+      return {
+        id,
+        code: String(row.code ?? ""),
+        displayName: String(row.displayName ?? row.code ?? ""),
+      };
+    })
+    .filter((row): row is FairStandAdminFamilyOption => row !== null);
+}
+
+function parseSnapRuleOptions(value: unknown): FairStandAdminSnapRuleOption[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const row = entry as Record<string, unknown>;
+      const id = Number(row.id);
+      if (!Number.isFinite(id)) return null;
+      return {
+        id,
+        code: String(row.code ?? ""),
+        displayName: String(row.displayName ?? row.code ?? ""),
+        face: row.face == null ? null : String(row.face),
+        edge: row.edge == null ? null : String(row.edge),
+        mountMode: row.mountMode == null ? null : String(row.mountMode),
+      };
+    })
+    .filter((row): row is FairStandAdminSnapRuleOption => row !== null);
 }
 
 export type FairStandAdminItemRecordListResponse =
@@ -313,8 +378,10 @@ export const listFairStandAdminItemRecords = (
         variants: parseStringList(options?.variants),
         compositionModes: parseStringList(options?.compositionModes),
         sideInsertRotations: parseStringList(options?.sideInsertRotations),
-        snapTargetItemTypes: parseStringList(options?.snapTargetItemTypes),
-        snapAnchors: parseStringList(options?.snapAnchors),
+        snapFaces: parseStringList(options?.snapFaces),
+        snapEdges: parseStringList(options?.snapEdges),
+        families: parseFamilyOptions(options?.families),
+        snapRules: parseSnapRuleOptions(options?.snapRules),
       },
     };
   });
@@ -352,3 +419,108 @@ export const restoreFairStandAdminItemRecord = (itemKey: string) =>
   apiRequest<FairStandAdminItemRecord>(`${base}/item-records/${encodeURIComponent(itemKey)}/restore`, {
     method: "POST",
   });
+
+export type FairStandAdminFamily = {
+  id: number;
+  code: string;
+  displayName: string;
+  sortIndex: number;
+  isActive: boolean;
+};
+
+export type FairStandAdminRuleType = {
+  id: number;
+  code: string;
+  displayName: string;
+  isActive: boolean;
+};
+
+export type FairStandAdminRule = {
+  id: number;
+  ruleTypeId: number;
+  ruleTypeCode: string | null;
+  code: string;
+  displayName: string;
+  face: string | null;
+  edge: string | null;
+  mountMode: string | null;
+  sortIndex: number;
+  isActive: boolean;
+};
+
+export const listFairStandAdminFamilies = () => apiRequest<FairStandAdminFamily[]>(`${base}/families`);
+export const createFairStandAdminFamily = (payload: {
+  code: string;
+  display_name: string;
+  sort_index?: number;
+  is_active?: boolean;
+}) => apiRequest<FairStandAdminFamily>(`${base}/families`, { method: "POST", body: JSON.stringify(payload) });
+export const updateFairStandAdminFamily = (
+  familyId: number,
+  payload: Partial<{ code: string; display_name: string; sort_index: number; is_active: boolean }>,
+) =>
+  apiRequest<FairStandAdminFamily>(`${base}/families/${familyId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+export const archiveFairStandAdminFamily = (familyId: number) =>
+  apiRequest<FairStandAdminFamily>(`${base}/families/${familyId}/archive`, { method: "POST" });
+export const restoreFairStandAdminFamily = (familyId: number) =>
+  apiRequest<FairStandAdminFamily>(`${base}/families/${familyId}/restore`, { method: "POST" });
+
+export const listFairStandAdminRuleTypes = () =>
+  apiRequest<FairStandAdminRuleType[]>(`${base}/rule-types`);
+export const createFairStandAdminRuleType = (payload: {
+  code: string;
+  display_name: string;
+  is_active?: boolean;
+}) =>
+  apiRequest<FairStandAdminRuleType>(`${base}/rule-types`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+export const updateFairStandAdminRuleType = (
+  ruleTypeId: number,
+  payload: Partial<{ code: string; display_name: string; is_active: boolean }>,
+) =>
+  apiRequest<FairStandAdminRuleType>(`${base}/rule-types/${ruleTypeId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+export const archiveFairStandAdminRuleType = (ruleTypeId: number) =>
+  apiRequest<FairStandAdminRuleType>(`${base}/rule-types/${ruleTypeId}/archive`, { method: "POST" });
+export const restoreFairStandAdminRuleType = (ruleTypeId: number) =>
+  apiRequest<FairStandAdminRuleType>(`${base}/rule-types/${ruleTypeId}/restore`, { method: "POST" });
+
+export const listFairStandAdminRules = () => apiRequest<FairStandAdminRule[]>(`${base}/rules`);
+export const createFairStandAdminRule = (payload: {
+  rule_type_id: number;
+  code: string;
+  display_name: string;
+  face?: string | null;
+  edge?: string | null;
+  mount_mode?: string | null;
+  sort_index?: number;
+  is_active?: boolean;
+}) => apiRequest<FairStandAdminRule>(`${base}/rules`, { method: "POST", body: JSON.stringify(payload) });
+export const updateFairStandAdminRule = (
+  ruleId: number,
+  payload: Partial<{
+    rule_type_id: number;
+    code: string;
+    display_name: string;
+    face: string | null;
+    edge: string | null;
+    mount_mode: string | null;
+    sort_index: number;
+    is_active: boolean;
+  }>,
+) =>
+  apiRequest<FairStandAdminRule>(`${base}/rules/${ruleId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+export const archiveFairStandAdminRule = (ruleId: number) =>
+  apiRequest<FairStandAdminRule>(`${base}/rules/${ruleId}/archive`, { method: "POST" });
+export const restoreFairStandAdminRule = (ruleId: number) =>
+  apiRequest<FairStandAdminRule>(`${base}/rules/${ruleId}/restore`, { method: "POST" });

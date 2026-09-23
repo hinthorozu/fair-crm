@@ -85,8 +85,9 @@ type EditForm = {
   variant: string;
   composition_mode: string;
   side_insert_rotation: string;
-  snap_target_item_type: string;
-  snap_anchor: string;
+  family_id: string;
+  snap_requires_rule_id: string;
+  snap_provides_rule_id: string;
   default_z_cm: string;
   default_color: string;
   eye_count: string;
@@ -135,8 +136,10 @@ const EMPTY_FIELD_OPTIONS: FairStandAdminItemFieldOptions = {
   variants: [],
   compositionModes: [],
   sideInsertRotations: [],
-  snapTargetItemTypes: [],
-  snapAnchors: [],
+  snapFaces: [],
+  snapEdges: [],
+  families: [],
+  snapRules: [],
 };
 
 function SuggestTextInput({
@@ -259,8 +262,9 @@ function detailToForm(detail: FairStandAdminItemRecord): EditForm {
     variant: str(detail.variant),
     composition_mode: str(detail.compositionMode),
     side_insert_rotation: str(detail.sideInsertRotation),
-    snap_target_item_type: str(detail.snapTargetItemType),
-    snap_anchor: str(detail.snapAnchor),
+    family_id: str(detail.familyId),
+    snap_requires_rule_id: str(detail.snapRequiresRuleId),
+    snap_provides_rule_id: str(detail.snapProvidesRuleId),
     default_z_cm: str(detail.defaultZCm),
     default_color: str(detail.defaultColor),
     eye_count: str(detail.eyeCount),
@@ -363,8 +367,9 @@ function buildUpdatePayload(form: EditForm): Record<string, unknown> {
     variant: form.variant.trim() || null,
     composition_mode: form.composition_mode.trim() || null,
     side_insert_rotation: form.side_insert_rotation.trim() || null,
-    snap_target_item_type: form.snap_target_item_type.trim() || null,
-    snap_anchor: form.snap_anchor.trim() || null,
+    family_id: optionalInt(form.family_id),
+    snap_requires_rule_id: optionalInt(form.snap_requires_rule_id),
+    snap_provides_rule_id: optionalInt(form.snap_provides_rule_id),
     default_z_cm: optionalNumber(form.default_z_cm) ?? 0,
     default_color: optionalInt(form.default_color),
     eye_count: optionalInt(form.eye_count),
@@ -1491,16 +1496,40 @@ function ItemDetailView({
               <DetailValue value={detail.sideInsertRotation} />
             </DetailItem>
             <DetailItem
-              label={adminLabels.fairStandItemsFieldSnapTarget}
-              hint={adminLabels.fairStandItemsFieldSnapTargetHint}
+              label={adminLabels.fairStandItemsFieldFamily}
+              hint={adminLabels.fairStandItemsFieldFamilyHint}
             >
-              <DetailValue value={detail.snapTargetItemType} />
+              <DetailValue value={detail.familyCode ?? str(detail.familyId)} />
             </DetailItem>
             <DetailItem
-              label={adminLabels.fairStandItemsFieldSnapAnchor}
-              hint={adminLabels.fairStandItemsFieldSnapAnchorHint}
+              label={adminLabels.fairStandItemsFieldSnapRequires}
+              hint={adminLabels.fairStandItemsFieldSnapRequiresHint}
             >
-              <DetailValue value={detail.snapAnchor} />
+              <DetailValue value={detail.snapRequires} />
+            </DetailItem>
+            <DetailItem
+              label={adminLabels.fairStandItemsFieldSnapProvides}
+              hint={adminLabels.fairStandItemsFieldSnapProvidesHint}
+            >
+              <DetailValue value={detail.snapProvides} />
+            </DetailItem>
+            <DetailItem
+              label={adminLabels.fairStandItemsFieldSnapFace}
+              hint={adminLabels.fairStandItemsFieldSnapFaceHint}
+            >
+              <DetailValue value={detail.snapFace} />
+            </DetailItem>
+            <DetailItem
+              label={adminLabels.fairStandItemsFieldSnapEdge}
+              hint={adminLabels.fairStandItemsFieldSnapEdgeHint}
+            >
+              <DetailValue value={detail.snapEdge} />
+            </DetailItem>
+            <DetailItem
+              label={adminLabels.fairStandItemsFieldSnapMountMode}
+              hint={adminLabels.fairStandItemsFieldSnapMountModeHint}
+            >
+              <DetailValue value={detail.snapMountMode} />
             </DetailItem>
             <DetailItem
               label={adminLabels.fairStandItemsFieldDefaultZ}
@@ -1831,8 +1860,9 @@ function ItemEditView({
   const variantListId = "fs-edit-variant-options";
   const compositionModeListId = "fs-edit-comp-mode-options";
   const sideInsertListId = "fs-edit-side-insert-options";
-  const snapTargetListId = "fs-edit-snap-target-options";
-  const snapAnchorListId = "fs-edit-snap-anchor-options";
+  const selectedProvideRule = fieldOptions.snapRules.find(
+    (rule) => String(rule.id) === form.snap_provides_rule_id,
+  );
   const componentCount = form.components.length + form.body_parts.length;
   const assetCount = form.assets.length;
   const formRef = React.useRef(form);
@@ -2394,33 +2424,99 @@ function ItemEditView({
                 />
               </FormField>
               <FormField
-                label={adminLabels.fairStandItemsFieldSnapTarget}
-                htmlFor="fs-edit-snap-target"
-                hint={adminLabels.fairStandItemsFieldSnapTargetHint}
+                label={adminLabels.fairStandItemsFieldFamily}
+                htmlFor="fs-edit-family"
+                hint={adminLabels.fairStandItemsFieldFamilyHint}
               >
-                <SuggestTextInput
-                  id="fs-edit-snap-target"
-                  listId={snapTargetListId}
-                  options={fieldOptions.snapTargetItemTypes}
-                  value={form.snap_target_item_type}
+                <SelectInput
+                  id="fs-edit-family"
+                  value={form.family_id}
                   disabled={saving}
-                  onChange={(snap_target_item_type) =>
-                    patch("snap_target_item_type", snap_target_item_type)
-                  }
+                  onChange={(event) => patch("family_id", event.target.value)}
+                >
+                  <option value="">{adminLabels.fairStandCatalogSelectPlaceholder}</option>
+                  {fieldOptions.families.map((family) => (
+                    <option key={family.id} value={String(family.id)}>
+                      {family.displayName} ({family.code})
+                    </option>
+                  ))}
+                </SelectInput>
+              </FormField>
+              <FormField
+                label={adminLabels.fairStandItemsFieldSnapRequires}
+                htmlFor="fs-edit-snap-requires"
+                hint={adminLabels.fairStandItemsFieldSnapRequiresHint}
+              >
+                <SelectInput
+                  id="fs-edit-snap-requires"
+                  value={form.snap_requires_rule_id}
+                  disabled={saving || Boolean(form.snap_provides_rule_id.trim())}
+                  onChange={(event) => patch("snap_requires_rule_id", event.target.value)}
+                >
+                  <option value="">{adminLabels.fairStandCatalogSelectPlaceholder}</option>
+                  {fieldOptions.snapRules.map((rule) => (
+                    <option key={rule.id} value={String(rule.id)}>
+                      {rule.displayName} ({rule.code})
+                    </option>
+                  ))}
+                </SelectInput>
+              </FormField>
+              <FormField
+                label={adminLabels.fairStandItemsFieldSnapProvides}
+                htmlFor="fs-edit-snap-provides"
+                hint={adminLabels.fairStandItemsFieldSnapProvidesHint}
+              >
+                <SelectInput
+                  id="fs-edit-snap-provides"
+                  value={form.snap_provides_rule_id}
+                  disabled={saving || Boolean(form.snap_requires_rule_id.trim())}
+                  onChange={(event) => patch("snap_provides_rule_id", event.target.value)}
+                >
+                  <option value="">{adminLabels.fairStandCatalogSelectPlaceholder}</option>
+                  {fieldOptions.snapRules.map((rule) => (
+                    <option key={rule.id} value={String(rule.id)}>
+                      {rule.displayName} ({rule.code})
+                    </option>
+                  ))}
+                </SelectInput>
+              </FormField>
+              <FormField
+                label={adminLabels.fairStandItemsFieldSnapFace}
+                htmlFor="fs-edit-snap-face"
+                hint={adminLabels.fairStandItemsFieldSnapFaceHint}
+              >
+                <TextInput
+                  id="fs-edit-snap-face"
+                  value={selectedProvideRule?.face ?? ""}
+                  disabled
                 />
               </FormField>
               <FormField
-                label={adminLabels.fairStandItemsFieldSnapAnchor}
-                htmlFor="fs-edit-snap-anchor"
-                hint={adminLabels.fairStandItemsFieldSnapAnchorHint}
+                label={adminLabels.fairStandItemsFieldSnapEdge}
+                htmlFor="fs-edit-snap-edge"
+                hint={adminLabels.fairStandItemsFieldSnapEdgeHint}
               >
-                <SuggestTextInput
-                  id="fs-edit-snap-anchor"
-                  listId={snapAnchorListId}
-                  options={fieldOptions.snapAnchors}
-                  value={form.snap_anchor}
-                  disabled={saving}
-                  onChange={(snap_anchor) => patch("snap_anchor", snap_anchor)}
+                <TextInput
+                  id="fs-edit-snap-edge"
+                  value={selectedProvideRule?.edge ?? ""}
+                  disabled
+                />
+              </FormField>
+              <FormField
+                label={adminLabels.fairStandItemsFieldSnapMountMode}
+                htmlFor="fs-edit-snap-mount"
+                hint={adminLabels.fairStandItemsFieldSnapMountModeHint}
+              >
+                <TextInput
+                  id="fs-edit-snap-mount"
+                  value={
+                    selectedProvideRule?.mountMode
+                    ?? fieldOptions.snapRules.find(
+                      (rule) => String(rule.id) === form.snap_requires_rule_id,
+                    )?.mountMode
+                    ?? ""
+                  }
+                  disabled
                 />
               </FormField>
               <FormField
