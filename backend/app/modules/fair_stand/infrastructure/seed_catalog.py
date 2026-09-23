@@ -127,8 +127,6 @@ def seed_fair_stand_catalog(session: Session) -> None:
                     width_cm=_dec(dims["width_cm"]),
                     depth_cm=_dec(dims["depth_cm"]),
                     height_cm=_dec(dims["height_cm"]),
-                    length_cm=_dec(dims["length_cm"]),
-                    thickness_cm=_dec(dims["thickness_cm"]),
                     mount_height_cm=_dec(dims["mount_height_cm"]),
                     wall_gap_cm=_dec(dims["wall_gap_cm"]),
                 )

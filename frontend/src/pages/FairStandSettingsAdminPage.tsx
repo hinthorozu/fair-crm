@@ -33,11 +33,10 @@ import {
 } from "../permissions/fairStandAdminPermissions";
 
 type DimensionsForm = {
-  depth_m: string;
-  strip_count: string;
-  strip_height_m: string;
-  frame_width_m: string;
-  frame_depth_m: string;
+  height_cm: string;
+  depth_cm: string;
+  frame_width_cm: string;
+  frame_depth_cm: string;
 };
 
 type SettingsForm = {
@@ -54,17 +53,16 @@ function FormDirtyReporter<T>({ values, baseline }: { values: T; baseline: T }) 
   return null;
 }
 
-function round3(value: number): number {
-  return Math.round(value * 1000) / 1000;
+function formatCm(cm: number): string {
+  return Number.isInteger(cm) ? String(cm) : String(Number(cm.toFixed(3)));
 }
 
 function dimensionsToForm(row: FairStandAdminStandDimensions): DimensionsForm {
   return {
-    depth_m: String(row.depth),
-    strip_count: String(row.stripCount),
-    strip_height_m: String(row.stripHeight),
-    frame_width_m: String(row.frameWidth),
-    frame_depth_m: String(row.frameDepth),
+    height_cm: formatCm(row.heightCm),
+    depth_cm: formatCm(row.depthCm),
+    frame_width_cm: formatCm(row.frameWidthCm),
+    frame_depth_cm: formatCm(row.frameDepthCm),
   };
 }
 
@@ -74,15 +72,6 @@ function settingsToForm(row: FairStandAdminRuntimeSettings): SettingsForm {
     export_button_visible: row.exportButtonVisible,
     import_button_visible: row.importButtonVisible,
   };
-}
-
-function computedHeight(form: DimensionsForm): number | null {
-  const strips = Number(form.strip_count);
-  const stripHeight = Number(form.strip_height_m);
-  if (!Number.isFinite(strips) || !Number.isFinite(stripHeight) || strips <= 0 || stripHeight <= 0) {
-    return null;
-  }
-  return round3(strips * stripHeight);
 }
 
 function parsePositiveNumber(raw: string, label: string): number {
@@ -162,23 +151,22 @@ export function FairStandSettingsAdminPage() {
     setError(null);
     setSuccess(null);
     try {
-      const stripCount = parsePositiveInt(
-        dimensionsForm.strip_count,
-        adminLabels.fairStandSettingsFieldStripCount,
-      );
-      const stripHeight = round3(
-        parsePositiveNumber(dimensionsForm.strip_height_m, adminLabels.fairStandSettingsFieldStripHeight),
-      );
       const updated = await updateFairStandAdminStandDimensions({
-        height_m: round3(stripCount * stripHeight),
-        depth_m: round3(parsePositiveNumber(dimensionsForm.depth_m, adminLabels.fairStandSettingsFieldDepth)),
-        strip_count: stripCount,
-        strip_height_m: stripHeight,
-        frame_width_m: round3(
-          parsePositiveNumber(dimensionsForm.frame_width_m, adminLabels.fairStandSettingsFieldFrameWidth),
+        height_cm: parsePositiveNumber(
+          dimensionsForm.height_cm,
+          adminLabels.fairStandSettingsFieldHeight,
         ),
-        frame_depth_m: round3(
-          parsePositiveNumber(dimensionsForm.frame_depth_m, adminLabels.fairStandSettingsFieldFrameDepth),
+        depth_cm: parsePositiveNumber(
+          dimensionsForm.depth_cm,
+          adminLabels.fairStandSettingsFieldDepth,
+        ),
+        frame_width_cm: parsePositiveNumber(
+          dimensionsForm.frame_width_cm,
+          adminLabels.fairStandSettingsFieldFrameWidth,
+        ),
+        frame_depth_cm: parsePositiveNumber(
+          dimensionsForm.frame_depth_cm,
+          adminLabels.fairStandSettingsFieldFrameDepth,
         ),
       });
       setDimensions({ id: 1, ...updated });
@@ -225,37 +213,25 @@ export function FairStandSettingsAdminPage() {
       key: "height",
       title: adminLabels.fairStandSettingsColHeight,
       sortable: false,
-      render: (row) => String(row.height),
+      render: (row) => formatCm(row.heightCm),
     },
     {
       key: "depth",
       title: adminLabels.fairStandSettingsColDepth,
       sortable: false,
-      render: (row) => String(row.depth),
-    },
-    {
-      key: "stripCount",
-      title: adminLabels.fairStandSettingsColStripCount,
-      sortable: false,
-      render: (row) => String(row.stripCount),
-    },
-    {
-      key: "stripHeight",
-      title: adminLabels.fairStandSettingsColStripHeight,
-      sortable: false,
-      render: (row) => String(row.stripHeight),
+      render: (row) => formatCm(row.depthCm),
     },
     {
       key: "frameWidth",
       title: adminLabels.fairStandSettingsColFrameWidth,
       sortable: false,
-      render: (row) => String(row.frameWidth),
+      render: (row) => formatCm(row.frameWidthCm),
     },
     {
       key: "frameDepth",
       title: adminLabels.fairStandSettingsColFrameDepth,
       sortable: false,
-      render: (row) => String(row.frameDepth),
+      render: (row) => formatCm(row.frameDepthCm),
     },
     {
       key: "actions",
@@ -307,7 +283,6 @@ export function FairStandSettingsAdminPage() {
     },
   ];
 
-  const heightM = dimensionsForm ? computedHeight(dimensionsForm) : null;
   const dimensionsBaseline = dimensions ? dimensionsToForm(dimensions) : null;
   const settingsBaseline = settings ? settingsToForm(settings) : null;
 
@@ -389,54 +364,22 @@ export function FairStandSettingsAdminPage() {
             <FormSection title={adminLabels.fairStandSettingsDimensionsSection}>
               <FormGrid columns={2}>
                 <FormField
-                  label={adminLabels.fairStandSettingsFieldStripCount}
-                  htmlFor="fs-strip-count"
-                  hint={adminLabels.fairStandSettingsFieldStripCountHint}
-                  required
-                >
-                  <TextInput
-                    id="fs-strip-count"
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={dimensionsForm.strip_count}
-                    disabled={savingDimensions}
-                    onChange={(event) =>
-                      setDimensionsForm({ ...dimensionsForm, strip_count: event.target.value })
-                    }
-                    required
-                  />
-                </FormField>
-                <FormField
-                  label={adminLabels.fairStandSettingsFieldStripHeight}
-                  htmlFor="fs-strip-height"
-                  hint={adminLabels.fairStandSettingsFieldStripHeightHint}
-                  required
-                >
-                  <TextInput
-                    id="fs-strip-height"
-                    type="number"
-                    min={0.001}
-                    step={0.001}
-                    value={dimensionsForm.strip_height_m}
-                    disabled={savingDimensions}
-                    onChange={(event) =>
-                      setDimensionsForm({ ...dimensionsForm, strip_height_m: event.target.value })
-                    }
-                    required
-                  />
-                </FormField>
-                <FormField
                   label={adminLabels.fairStandSettingsFieldHeight}
                   htmlFor="fs-height"
                   hint={adminLabels.fairStandSettingsFieldHeightHint}
+                  required
                 >
                   <TextInput
                     id="fs-height"
                     type="number"
-                    value={heightM == null ? "" : String(heightM)}
-                    disabled
-                    readOnly
+                    min={1}
+                    step={1}
+                    value={dimensionsForm.height_cm}
+                    disabled={savingDimensions}
+                    onChange={(event) =>
+                      setDimensionsForm({ ...dimensionsForm, height_cm: event.target.value })
+                    }
+                    required
                   />
                 </FormField>
                 <FormField
@@ -448,12 +391,12 @@ export function FairStandSettingsAdminPage() {
                   <TextInput
                     id="fs-depth"
                     type="number"
-                    min={0.001}
-                    step={0.001}
-                    value={dimensionsForm.depth_m}
+                    min={1}
+                    step={1}
+                    value={dimensionsForm.depth_cm}
                     disabled={savingDimensions}
                     onChange={(event) =>
-                      setDimensionsForm({ ...dimensionsForm, depth_m: event.target.value })
+                      setDimensionsForm({ ...dimensionsForm, depth_cm: event.target.value })
                     }
                     required
                   />
@@ -467,12 +410,12 @@ export function FairStandSettingsAdminPage() {
                   <TextInput
                     id="fs-frame-width"
                     type="number"
-                    min={0.001}
-                    step={0.001}
-                    value={dimensionsForm.frame_width_m}
+                    min={0.1}
+                    step={0.1}
+                    value={dimensionsForm.frame_width_cm}
                     disabled={savingDimensions}
                     onChange={(event) =>
-                      setDimensionsForm({ ...dimensionsForm, frame_width_m: event.target.value })
+                      setDimensionsForm({ ...dimensionsForm, frame_width_cm: event.target.value })
                     }
                     required
                   />
@@ -486,12 +429,12 @@ export function FairStandSettingsAdminPage() {
                   <TextInput
                     id="fs-frame-depth"
                     type="number"
-                    min={0.001}
-                    step={0.001}
-                    value={dimensionsForm.frame_depth_m}
+                    min={0.1}
+                    step={0.1}
+                    value={dimensionsForm.frame_depth_cm}
                     disabled={savingDimensions}
                     onChange={(event) =>
-                      setDimensionsForm({ ...dimensionsForm, frame_depth_m: event.target.value })
+                      setDimensionsForm({ ...dimensionsForm, frame_depth_cm: event.target.value })
                     }
                     required
                   />
