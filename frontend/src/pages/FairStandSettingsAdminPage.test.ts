@@ -24,7 +24,9 @@ describe("Fair Stand settings admin page", () => {
     expect(source).toContain("fairStandSettingsFieldHeightHint");
     expect(source).toContain("fairStandSettingsFieldDepthHint");
     expect(source).toContain("frameWidthCm");
+    expect(source).toContain("panelRailHeightCm");
     expect(source).toContain("fairStandSettingsFieldFrameWidthHint");
+    expect(source).toContain("fairStandSettingsFieldPanelRailHeightHint");
     expect(source).not.toContain("fairStandSettingsFieldStripCountHint");
     expect(source).toContain("fairStandSettingsFieldMaxUploadHint");
     expect(source).toContain("fairStandSettingsFieldExportVisibleHint");

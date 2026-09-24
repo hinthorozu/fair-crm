@@ -106,6 +106,7 @@ export type FairStandAdminStandDimensions = {
   depthCm: number;
   frameWidthCm: number;
   frameDepthCm: number;
+  panelRailHeightCm: number;
 };
 
 export type FairStandAdminRuntimeSettings = {
@@ -127,6 +128,7 @@ export const updateFairStandAdminStandDimensions = (payload: {
   depth_cm: number;
   frame_width_cm: number;
   frame_depth_cm: number;
+  panel_rail_height_cm: number;
 }) =>
   apiRequest<FairStandAdminStandDimensions>(`${base}/stand-dimensions`, {
     method: "PUT",
