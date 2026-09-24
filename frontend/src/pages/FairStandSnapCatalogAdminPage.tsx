@@ -59,11 +59,37 @@ type FormState = {
   face: string;
   edge: string;
   item_type_ids: number[];
+  placement: string;
+  collision: string;
+  move_snap_cm: string;
+  magnetic_snap: string;
+  allow_side_insert: boolean;
+  supports_wall_overlay_mount: boolean;
+  wall_capacity: string;
+  connection_endpoint: string;
+  collision_depth: string;
+  endpoint_contact: string;
+  boundary_snap: string;
+  collision_height: string;
+  overlap_with_types: number[];
+  ghost_kind: string;
+  ghost_renderer: string;
+  ghost_opacity: string;
 };
 
 /** Backend SNAP_FACES / SNAP_EDGES ile aynı set. */
 const SNAP_FACES = ["front", "back", "top", "bottom", "left", "right"] as const;
 const SNAP_EDGES = ["top", "bottom", "left", "right"] as const;
+/** Backend PLACEMENT / COLLISION / MAGNETIC / CAPACITY / kesit3. */
+const ITEM_TYPE_PLACEMENTS = ["wall", "free", "wall-overlay", "top"] as const;
+const ITEM_TYPE_COLLISIONS = ["segment", "footprint", "none"] as const;
+const ITEM_TYPE_MAGNETIC = ["standard", "none", "short-up-joint"] as const;
+const ITEM_TYPE_WALL_CAPACITY = ["include", "exclude"] as const;
+const ITEM_TYPE_CONNECTION_ENDPOINT = ["segment", "logical-fixture"] as const;
+const ITEM_TYPE_COLLISION_DEPTH = ["physical", "wall-backbone"] as const;
+const ITEM_TYPE_ENDPOINT_CONTACT = ["standard", "thin-wall-endpoint"] as const;
+const ITEM_TYPE_BOUNDARY_SNAP = ["stand-edge", "wall-inner-face"] as const;
+const ITEM_TYPE_COLLISION_HEIGHT = ["full"] as const;
 
 const emptyForm = (): FormState => ({
   key: "",
@@ -73,7 +99,83 @@ const emptyForm = (): FormState => ({
   face: "",
   edge: "",
   item_type_ids: [],
+  placement: "wall",
+  collision: "segment",
+  move_snap_cm: "50",
+  magnetic_snap: "standard",
+  allow_side_insert: true,
+  supports_wall_overlay_mount: true,
+  wall_capacity: "include",
+  connection_endpoint: "segment",
+  collision_depth: "physical",
+  endpoint_contact: "standard",
+  boundary_snap: "stand-edge",
+  collision_height: "full",
+  overlap_with_types: [],
+  ghost_kind: "silhouette",
+  ghost_renderer: "module-silhouette",
+  ghost_opacity: "0.38",
 });
+
+function itemTypeBehaviorFromRow(row: Row): Pick<
+  FormState,
+  | "placement"
+  | "collision"
+  | "move_snap_cm"
+  | "magnetic_snap"
+  | "allow_side_insert"
+  | "supports_wall_overlay_mount"
+  | "wall_capacity"
+  | "connection_endpoint"
+  | "collision_depth"
+  | "endpoint_contact"
+  | "boundary_snap"
+  | "collision_height"
+  | "overlap_with_types"
+  | "ghost_kind"
+  | "ghost_renderer"
+  | "ghost_opacity"
+> {
+  if (!("placement" in row)) {
+    return {
+      placement: "wall",
+      collision: "segment",
+      move_snap_cm: "50",
+      magnetic_snap: "standard",
+      allow_side_insert: true,
+      supports_wall_overlay_mount: true,
+      wall_capacity: "include",
+      connection_endpoint: "segment",
+      collision_depth: "physical",
+      endpoint_contact: "standard",
+      boundary_snap: "stand-edge",
+      collision_height: "full",
+      overlap_with_types: [],
+      ghost_kind: "silhouette",
+      ghost_renderer: "module-silhouette",
+      ghost_opacity: "0.38",
+    };
+  }
+  const typed = row as FairStandAdminItemType;
+  return {
+    placement: typed.placement || "wall",
+    collision: typed.collision || "segment",
+    move_snap_cm: String(typed.moveSnapCm ?? 50),
+    magnetic_snap: typed.magneticSnap || "standard",
+    allow_side_insert: typed.allowSideInsert !== false,
+    supports_wall_overlay_mount: typed.supportsWallOverlayMount !== false,
+    wall_capacity: typed.wallCapacity || "include",
+    connection_endpoint: typed.connectionEndpoint || "segment",
+    collision_depth: typed.collisionDepth || "physical",
+    endpoint_contact: typed.endpointContact || "standard",
+    boundary_snap: typed.boundarySnap || "stand-edge",
+    collision_height: typed.collisionHeight || "full",
+    overlap_with_types: [...(typed.overlapItemTypeIds ?? [])],
+    ghost_kind: typed.ghost?.kind || "silhouette",
+    ghost_renderer: typed.ghost?.renderer || "module-silhouette",
+    ghost_opacity: String(typed.ghost?.opacity ?? 0.38),
+  };
+}
 
 /** Ad → key slug (item key gibi; backend ile aynı fikir). */
 function slugifyKey(value: string): string {
@@ -124,8 +226,11 @@ function SnapCatalogPage({ mode }: { mode: Mode }) {
     setLoading(true);
     setError(null);
     try {
-      if (mode === "item-types") setRows(await listFairStandAdminItemTypes());
-      else if (mode === "rule-types") setRows(await listFairStandAdminRuleTypes());
+      if (mode === "item-types") {
+        const itemTypeRows = await listFairStandAdminItemTypes();
+        setRows(itemTypeRows);
+        setItemTypes(itemTypeRows.filter((row) => row.isActive));
+      } else if (mode === "rule-types") setRows(await listFairStandAdminRuleTypes());
       else {
         const [rules, types, itemTypeRows] = await Promise.all([
           listFairStandAdminRules(),
@@ -170,6 +275,7 @@ function SnapCatalogPage({ mode }: { mode: Mode }) {
       face: "face" in row ? String(row.face ?? "") : "",
       edge: "edge" in row ? String(row.edge ?? "") : "",
       item_type_ids: "itemTypeIds" in row ? [...(row.itemTypeIds ?? [])] : [],
+      ...itemTypeBehaviorFromRow(row),
     });
   };
 
@@ -193,7 +299,97 @@ function SnapCatalogPage({ mode }: { mode: Mode }) {
     }
     try {
       if (mode === "item-types") {
-        const payload = { key, display_name, is_active: form.is_active };
+        const moveSnapCm = Number(form.move_snap_cm);
+        if (!ITEM_TYPE_PLACEMENTS.includes(form.placement as (typeof ITEM_TYPE_PLACEMENTS)[number])) {
+          setError(adminLabels.fairStandItemTypesPlacementRequired);
+          return;
+        }
+        if (!ITEM_TYPE_COLLISIONS.includes(form.collision as (typeof ITEM_TYPE_COLLISIONS)[number])) {
+          setError(adminLabels.fairStandItemTypesCollisionRequired);
+          return;
+        }
+        if (!Number.isFinite(moveSnapCm) || moveSnapCm <= 0) {
+          setError(adminLabels.fairStandItemTypesMoveSnapRequired);
+          return;
+        }
+        if (!ITEM_TYPE_MAGNETIC.includes(form.magnetic_snap as (typeof ITEM_TYPE_MAGNETIC)[number])) {
+          setError(adminLabels.fairStandItemTypesMagneticRequired);
+          return;
+        }
+        if (!ITEM_TYPE_WALL_CAPACITY.includes(form.wall_capacity as (typeof ITEM_TYPE_WALL_CAPACITY)[number])) {
+          setError(adminLabels.fairStandItemTypesWallCapacityRequired);
+          return;
+        }
+        if (
+          !ITEM_TYPE_CONNECTION_ENDPOINT.includes(
+            form.connection_endpoint as (typeof ITEM_TYPE_CONNECTION_ENDPOINT)[number],
+          )
+        ) {
+          setError(adminLabels.fairStandItemTypesConnectionEndpointRequired);
+          return;
+        }
+        if (
+          !ITEM_TYPE_COLLISION_DEPTH.includes(
+            form.collision_depth as (typeof ITEM_TYPE_COLLISION_DEPTH)[number],
+          )
+        ) {
+          setError(adminLabels.fairStandItemTypesCollisionDepthRequired);
+          return;
+        }
+        if (
+          !ITEM_TYPE_ENDPOINT_CONTACT.includes(
+            form.endpoint_contact as (typeof ITEM_TYPE_ENDPOINT_CONTACT)[number],
+          )
+        ) {
+          setError(adminLabels.fairStandItemTypesEndpointContactRequired);
+          return;
+        }
+        if (
+          !ITEM_TYPE_BOUNDARY_SNAP.includes(
+            form.boundary_snap as (typeof ITEM_TYPE_BOUNDARY_SNAP)[number],
+          )
+        ) {
+          setError(adminLabels.fairStandItemTypesBoundarySnapRequired);
+          return;
+        }
+        if (
+          !ITEM_TYPE_COLLISION_HEIGHT.includes(
+            form.collision_height as (typeof ITEM_TYPE_COLLISION_HEIGHT)[number],
+          )
+        ) {
+          setError(adminLabels.fairStandItemTypesCollisionHeightRequired);
+          return;
+        }
+        const ghostOpacity = Number(form.ghost_opacity);
+        if (!Number.isFinite(ghostOpacity) || ghostOpacity < 0 || ghostOpacity > 1) {
+          setError(adminLabels.fairStandItemTypesGhostOpacityRequired);
+          return;
+        }
+        if (!form.ghost_kind.trim() || !form.ghost_renderer.trim()) {
+          setError(adminLabels.fairStandItemTypesGhostRequired);
+          return;
+        }
+        const payload = {
+          key,
+          display_name,
+          is_active: form.is_active,
+          placement: form.placement,
+          collision: form.collision,
+          move_snap_cm: Math.trunc(moveSnapCm),
+          magnetic_snap: form.magnetic_snap,
+          allow_side_insert: form.allow_side_insert,
+          supports_wall_overlay_mount: form.supports_wall_overlay_mount,
+          wall_capacity: form.wall_capacity,
+          connection_endpoint: form.connection_endpoint,
+          collision_depth: form.collision_depth,
+          endpoint_contact: form.endpoint_contact,
+          boundary_snap: form.boundary_snap,
+          collision_height: form.collision_height,
+          overlap_item_type_ids: form.overlap_with_types,
+          ghost_kind: form.ghost_kind.trim(),
+          ghost_renderer: form.ghost_renderer.trim(),
+          ghost_opacity: ghostOpacity,
+        };
         if (editing) await updateFairStandAdminItemType(editing.id, payload);
         else await createFairStandAdminItemType(payload);
       } else if (mode === "rule-types") {
@@ -249,6 +445,28 @@ function SnapCatalogPage({ mode }: { mode: Mode }) {
       sortable: false,
       render: (row) => row.displayName,
     },
+    ...(mode === "item-types"
+      ? [
+          {
+            key: "placement",
+            title: adminLabels.fairStandItemTypesColPlacement,
+            sortable: false,
+            render: (row: Row) => ("placement" in row ? String(row.placement ?? "") : ""),
+          },
+          {
+            key: "collision",
+            title: adminLabels.fairStandItemTypesColCollision,
+            sortable: false,
+            render: (row: Row) => ("collision" in row ? String(row.collision ?? "") : ""),
+          },
+          {
+            key: "moveSnapCm",
+            title: adminLabels.fairStandItemTypesColMoveSnap,
+            sortable: false,
+            render: (row: Row) => ("moveSnapCm" in row ? String(row.moveSnapCm ?? "") : ""),
+          },
+        ]
+      : []),
     ...(mode === "rules"
       ? [
           {
@@ -324,6 +542,7 @@ function SnapCatalogPage({ mode }: { mode: Mode }) {
         face: "face" in editing ? String(editing.face ?? "") : "",
         edge: "edge" in editing ? String(editing.edge ?? "") : "",
         item_type_ids: "itemTypeIds" in editing ? [...(editing.itemTypeIds ?? [])] : [],
+        ...itemTypeBehaviorFromRow(editing),
       }
     : emptyForm();
 
@@ -402,6 +621,257 @@ function SnapCatalogPage({ mode }: { mode: Mode }) {
                   }}
                 />
               </FormField>
+              {mode === "item-types" ? (
+                <>
+                  <FormField
+                    label={adminLabels.fairStandItemTypesFieldPlacement}
+                    htmlFor="fs-item-type-placement"
+                    hint={adminLabels.fairStandItemTypesFieldPlacementHint}
+                  >
+                    <SelectInput
+                      id="fs-item-type-placement"
+                      value={form.placement}
+                      onChange={(event) => setForm({ ...form, placement: event.target.value })}
+                    >
+                      <option value="wall">{adminLabels.fairStandItemTypesOptPlacementWall}</option>
+                      <option value="free">{adminLabels.fairStandItemTypesOptPlacementFree}</option>
+                      <option value="wall-overlay">{adminLabels.fairStandItemTypesOptPlacementOverlay}</option>
+                      <option value="top">{adminLabels.fairStandItemTypesOptPlacementTop}</option>
+                    </SelectInput>
+                  </FormField>
+                  <FormField
+                    label={adminLabels.fairStandItemTypesFieldCollision}
+                    htmlFor="fs-item-type-collision"
+                    hint={adminLabels.fairStandItemTypesFieldCollisionHint}
+                  >
+                    <SelectInput
+                      id="fs-item-type-collision"
+                      value={form.collision}
+                      onChange={(event) => setForm({ ...form, collision: event.target.value })}
+                    >
+                      <option value="segment">{adminLabels.fairStandItemTypesOptCollisionSegment}</option>
+                      <option value="footprint">{adminLabels.fairStandItemTypesOptCollisionFootprint}</option>
+                      <option value="none">{adminLabels.fairStandItemTypesOptCollisionNone}</option>
+                    </SelectInput>
+                  </FormField>
+                  <FormField
+                    label={adminLabels.fairStandItemTypesFieldMoveSnap}
+                    htmlFor="fs-item-type-move-snap"
+                    hint={adminLabels.fairStandItemTypesFieldMoveSnapHint}
+                  >
+                    <TextInput
+                      id="fs-item-type-move-snap"
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={form.move_snap_cm}
+                      onChange={(event) => setForm({ ...form, move_snap_cm: event.target.value })}
+                    />
+                  </FormField>
+                  <FormField
+                    label={adminLabels.fairStandItemTypesFieldMagnetic}
+                    htmlFor="fs-item-type-magnetic"
+                    hint={adminLabels.fairStandItemTypesFieldMagneticHint}
+                  >
+                    <SelectInput
+                      id="fs-item-type-magnetic"
+                      value={form.magnetic_snap}
+                      onChange={(event) => setForm({ ...form, magnetic_snap: event.target.value })}
+                    >
+                      <option value="standard">{adminLabels.fairStandItemTypesOptMagneticStandard}</option>
+                      <option value="none">{adminLabels.fairStandItemTypesOptMagneticNone}</option>
+                      <option value="short-up-joint">{adminLabels.fairStandItemTypesOptMagneticShortUp}</option>
+                    </SelectInput>
+                  </FormField>
+                  <FormField
+                    label={adminLabels.fairStandItemTypesFieldWallCapacity}
+                    htmlFor="fs-item-type-wall-capacity"
+                    hint={adminLabels.fairStandItemTypesFieldWallCapacityHint}
+                  >
+                    <SelectInput
+                      id="fs-item-type-wall-capacity"
+                      value={form.wall_capacity}
+                      onChange={(event) => setForm({ ...form, wall_capacity: event.target.value })}
+                    >
+                      <option value="include">{adminLabels.fairStandItemTypesOptCapacityInclude}</option>
+                      <option value="exclude">{adminLabels.fairStandItemTypesOptCapacityExclude}</option>
+                    </SelectInput>
+                  </FormField>
+                  <CheckboxField
+                    id="fs-item-type-allow-side"
+                    label={adminLabels.fairStandItemTypesFieldAllowSide}
+                    hint={adminLabels.fairStandItemTypesFieldAllowSideHint}
+                    checked={form.allow_side_insert}
+                    onChange={(checked: boolean) => setForm({ ...form, allow_side_insert: checked })}
+                  />
+                  <CheckboxField
+                    id="fs-item-type-overlay-mount"
+                    label={adminLabels.fairStandItemTypesFieldOverlayMount}
+                    hint={adminLabels.fairStandItemTypesFieldOverlayMountHint}
+                    checked={form.supports_wall_overlay_mount}
+                    onChange={(checked: boolean) =>
+                      setForm({ ...form, supports_wall_overlay_mount: checked })
+                    }
+                  />
+                  <FormField
+                    label={adminLabels.fairStandItemTypesFieldConnectionEndpoint}
+                    htmlFor="fs-item-type-connection-endpoint"
+                    hint={adminLabels.fairStandItemTypesFieldConnectionEndpointHint}
+                  >
+                    <SelectInput
+                      id="fs-item-type-connection-endpoint"
+                      value={form.connection_endpoint}
+                      onChange={(event) =>
+                        setForm({ ...form, connection_endpoint: event.target.value })
+                      }
+                    >
+                      <option value="segment">{adminLabels.fairStandItemTypesOptEndpointSegment}</option>
+                      <option value="logical-fixture">
+                        {adminLabels.fairStandItemTypesOptEndpointLogical}
+                      </option>
+                    </SelectInput>
+                  </FormField>
+                  <FormField
+                    label={adminLabels.fairStandItemTypesFieldCollisionDepth}
+                    htmlFor="fs-item-type-collision-depth"
+                    hint={adminLabels.fairStandItemTypesFieldCollisionDepthHint}
+                  >
+                    <SelectInput
+                      id="fs-item-type-collision-depth"
+                      value={form.collision_depth}
+                      onChange={(event) =>
+                        setForm({ ...form, collision_depth: event.target.value })
+                      }
+                    >
+                      <option value="physical">{adminLabels.fairStandItemTypesOptDepthPhysical}</option>
+                      <option value="wall-backbone">
+                        {adminLabels.fairStandItemTypesOptDepthBackbone}
+                      </option>
+                    </SelectInput>
+                  </FormField>
+                  <FormField
+                    label={adminLabels.fairStandItemTypesFieldEndpointContact}
+                    htmlFor="fs-item-type-endpoint-contact"
+                    hint={adminLabels.fairStandItemTypesFieldEndpointContactHint}
+                  >
+                    <SelectInput
+                      id="fs-item-type-endpoint-contact"
+                      value={form.endpoint_contact}
+                      onChange={(event) =>
+                        setForm({ ...form, endpoint_contact: event.target.value })
+                      }
+                    >
+                      <option value="standard">{adminLabels.fairStandItemTypesOptContactStandard}</option>
+                      <option value="thin-wall-endpoint">
+                        {adminLabels.fairStandItemTypesOptContactThin}
+                      </option>
+                    </SelectInput>
+                  </FormField>
+                  <FormField
+                    label={adminLabels.fairStandItemTypesFieldBoundarySnap}
+                    htmlFor="fs-item-type-boundary-snap"
+                    hint={adminLabels.fairStandItemTypesFieldBoundarySnapHint}
+                  >
+                    <SelectInput
+                      id="fs-item-type-boundary-snap"
+                      value={form.boundary_snap}
+                      onChange={(event) =>
+                        setForm({ ...form, boundary_snap: event.target.value })
+                      }
+                    >
+                      <option value="stand-edge">{adminLabels.fairStandItemTypesOptBoundaryStand}</option>
+                      <option value="wall-inner-face">
+                        {adminLabels.fairStandItemTypesOptBoundaryInner}
+                      </option>
+                    </SelectInput>
+                  </FormField>
+                  <FormField
+                    label={adminLabels.fairStandItemTypesFieldCollisionHeight}
+                    htmlFor="fs-item-type-collision-height"
+                    hint={adminLabels.fairStandItemTypesFieldCollisionHeightHint}
+                  >
+                    <SelectInput
+                      id="fs-item-type-collision-height"
+                      value={form.collision_height}
+                      onChange={(event) =>
+                        setForm({ ...form, collision_height: event.target.value })
+                      }
+                    >
+                      <option value="full">{adminLabels.fairStandItemTypesOptHeightFull}</option>
+                    </SelectInput>
+                  </FormField>
+                  <FormField
+                    label={adminLabels.fairStandItemTypesFieldOverlap}
+                    htmlFor="fs-item-type-overlap"
+                    hint={adminLabels.fairStandItemTypesFieldOverlapHint}
+                  >
+                    <div id="fs-item-type-overlap" style={{ display: "grid", gap: 6 }}>
+                      {itemTypes
+                        .filter((itemType) => !(editing && "id" in editing && itemType.id === editing.id))
+                        .map((itemType) => {
+                          const checked = form.overlap_with_types.includes(itemType.id);
+                          return (
+                            <CheckboxField
+                              key={itemType.id}
+                              id={`fs-item-type-overlap-${itemType.id}`}
+                              label={`${itemType.displayName} (${itemType.key})`}
+                              checked={checked}
+                              onChange={(next: boolean) =>
+                                setForm({
+                                  ...form,
+                                  overlap_with_types: next
+                                    ? [...form.overlap_with_types, itemType.id]
+                                    : form.overlap_with_types.filter((id) => id !== itemType.id),
+                                })
+                              }
+                            />
+                          );
+                        })}
+                    </div>
+                  </FormField>
+                  <FormField
+                    label={adminLabels.fairStandItemTypesFieldGhostKind}
+                    htmlFor="fs-item-type-ghost-kind"
+                    hint={adminLabels.fairStandItemTypesFieldGhostKindHint}
+                  >
+                    <TextInput
+                      id="fs-item-type-ghost-kind"
+                      value={form.ghost_kind}
+                      onChange={(event) => setForm({ ...form, ghost_kind: event.target.value })}
+                    />
+                  </FormField>
+                  <FormField
+                    label={adminLabels.fairStandItemTypesFieldGhostRenderer}
+                    htmlFor="fs-item-type-ghost-renderer"
+                    hint={adminLabels.fairStandItemTypesFieldGhostRendererHint}
+                  >
+                    <TextInput
+                      id="fs-item-type-ghost-renderer"
+                      value={form.ghost_renderer}
+                      onChange={(event) =>
+                        setForm({ ...form, ghost_renderer: event.target.value })
+                      }
+                    />
+                  </FormField>
+                  <FormField
+                    label={adminLabels.fairStandItemTypesFieldGhostOpacity}
+                    htmlFor="fs-item-type-ghost-opacity"
+                    hint={adminLabels.fairStandItemTypesFieldGhostOpacityHint}
+                  >
+                    <TextInput
+                      id="fs-item-type-ghost-opacity"
+                      type="number"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={form.ghost_opacity}
+                      onChange={(event) =>
+                        setForm({ ...form, ghost_opacity: event.target.value })
+                      }
+                    />
+                  </FormField>
+                </>
+              ) : null}
               {mode === "rules" ? (
                 <>
                   <FormField label={adminLabels.fairStandSnapCatalogFieldRuleType} htmlFor="fs-snap-type">

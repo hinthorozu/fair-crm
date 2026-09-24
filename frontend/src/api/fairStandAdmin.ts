@@ -411,6 +411,25 @@ export type FairStandAdminItemType = {
   id: number;
   key: string;
   displayName: string;
+  placement: string;
+  collision: string;
+  moveSnapCm: number;
+  magneticSnap: string;
+  allowSideInsert: boolean;
+  supportsWallOverlayMount: boolean;
+  wallCapacity: string;
+  connectionEndpoint: string;
+  collisionDepth: string;
+  endpointContact: string;
+  boundarySnap: string;
+  collisionHeight: string;
+  overlapWithTypes: string[];
+  overlapItemTypeIds: number[];
+  ghost: {
+    kind: string;
+    renderer: string;
+    opacity: number;
+  };
   isActive: boolean;
 };
 
@@ -440,6 +459,23 @@ export const createFairStandAdminItemType = (payload: {
   display_name: string;
   key?: string | null;
   is_active?: boolean;
+  placement?: string | null;
+  collision?: string | null;
+  move_snap_cm?: number | null;
+  magnetic_snap?: string | null;
+  allow_side_insert?: boolean | null;
+  supports_wall_overlay_mount?: boolean | null;
+  wall_capacity?: string | null;
+  connection_endpoint?: string | null;
+  collision_depth?: string | null;
+  endpoint_contact?: string | null;
+  boundary_snap?: string | null;
+  collision_height?: string | null;
+  overlap_with_types?: string[] | null;
+  overlap_item_type_ids?: number[] | null;
+  ghost_kind?: string | null;
+  ghost_renderer?: string | null;
+  ghost_opacity?: number | null;
 }) =>
   apiRequest<FairStandAdminItemType>(`${base}/item-types`, {
     method: "POST",
@@ -447,7 +483,28 @@ export const createFairStandAdminItemType = (payload: {
   });
 export const updateFairStandAdminItemType = (
   itemTypeId: number,
-  payload: Partial<{ key: string; display_name: string; is_active: boolean }>,
+  payload: Partial<{
+    key: string;
+    display_name: string;
+    is_active: boolean;
+    placement: string;
+    collision: string;
+    move_snap_cm: number;
+    magnetic_snap: string;
+    allow_side_insert: boolean;
+    supports_wall_overlay_mount: boolean;
+    wall_capacity: string;
+    connection_endpoint: string;
+    collision_depth: string;
+    endpoint_contact: string;
+    boundary_snap: string;
+    collision_height: string;
+    overlap_with_types: string[];
+    overlap_item_type_ids: number[];
+    ghost_kind: string;
+    ghost_renderer: string;
+    ghost_opacity: number;
+  }>,
 ) =>
   apiRequest<FairStandAdminItemType>(`${base}/item-types/${itemTypeId}`, {
     method: "PATCH",
