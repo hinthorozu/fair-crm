@@ -34,8 +34,24 @@ from fair_crm_role_matrix import (  # noqa: E402
 
 CORE_BASE = os.environ.get("KYROX_CORE_BASE_URL", "http://127.0.0.1:8000")
 FAIR_BASE = os.environ.get("FAIR_CRM_BASE_URL", "http://127.0.0.1:8001")
-CORE_DB = os.environ.get("KYROX_CORE_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/kyrox_core")
+CORE_DB = os.environ.get(
+    "KYROX_CORE_DATABASE_URL",
+    "postgresql+psycopg2://postgres:postgres@localhost:5432/kyrox_core",
+)
 FAIR_DB = os.environ.get("DATABASE_URL", "postgresql+psycopg2://postgres:postgres@localhost:5432/fair_crm")
+
+
+def _sqlalchemy_pg_url(url: str) -> str:
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    return url
+
+
+def _psycopg2_dsn(url: str) -> str:
+    return url.replace("postgresql+psycopg2://", "postgresql://", 1)
+
+
+CORE_DB_SQLALCHEMY = _sqlalchemy_pg_url(CORE_DB)
 DEFAULT_DEV_ORG_ID = os.environ.get(
     "FAIR_CRM_DEV_ORGANIZATION_ID",
     "00000000-0000-4000-8000-000000000010",
@@ -296,7 +312,7 @@ def run_migrations(project_root: Path, alembic_ini: str, *, database_url: str | 
 
 
 def get_core_migration_revision() -> str | None:
-    conn = psycopg2.connect(CORE_DB)
+    conn = psycopg2.connect(_psycopg2_dsn(CORE_DB))
     try:
         with conn.cursor() as cur:
             cur.execute(
@@ -323,7 +339,7 @@ def resolve_user_id(state: dict) -> str | None:
     email = state.get("email")
     if not email:
         return None
-    conn = psycopg2.connect(CORE_DB)
+    conn = psycopg2.connect(_psycopg2_dsn(CORE_DB))
     try:
         with conn.cursor() as cur:
             cur.execute("SELECT id FROM identity_users WHERE email = %s LIMIT 1", (email,))
@@ -388,7 +404,7 @@ def verify_seed_state(state: dict) -> tuple[bool, str]:
 
 
 def verify_permissions_sql(user_id: str, org_id: str, codes: tuple[str, ...]) -> tuple[bool, str]:
-    conn = psycopg2.connect(CORE_DB)
+    conn = psycopg2.connect(_psycopg2_dsn(CORE_DB))
     try:
         with conn.cursor() as cur:
             cur.execute(
@@ -439,7 +455,7 @@ def verify_role_matrix_sql(state: dict) -> tuple[bool, str]:
     if not isinstance(roles, dict) or not org_id:
         return False, "seed state missing roles or organization_id"
 
-    conn = psycopg2.connect(CORE_DB)
+    conn = psycopg2.connect(_psycopg2_dsn(CORE_DB))
     try:
         with conn.cursor() as cur:
             problems: list[str] = []
@@ -481,7 +497,7 @@ def verify_role_matrix_sql(state: dict) -> tuple[bool, str]:
 
 
 def verify_no_duplicate_role_permissions() -> tuple[bool, str]:
-    conn = psycopg2.connect(CORE_DB)
+    conn = psycopg2.connect(_psycopg2_dsn(CORE_DB))
     try:
         with conn.cursor() as cur:
             cur.execute(
@@ -507,7 +523,7 @@ def verify_no_duplicate_role_permissions() -> tuple[bool, str]:
 
 
 def verify_organization_admin_permission_count() -> tuple[bool, str]:
-    conn = psycopg2.connect(CORE_DB)
+    conn = psycopg2.connect(_psycopg2_dsn(CORE_DB))
     try:
         with conn.cursor() as cur:
             cur.execute(
@@ -789,7 +805,7 @@ def main(argv: list[str] | None = None) -> int:
     mig_core = run_migrations(
         kyrox_root,
         "alembic.ini",
-        database_url="postgresql://postgres:postgres@localhost:5432/kyrox_core",
+        database_url=CORE_DB_SQLALCHEMY,
     )
     if mig_core.returncode != 0:
         record(results, "3. kyrox-core migrations", False, mig_core.stderr[-500:])
