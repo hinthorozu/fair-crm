@@ -30,7 +30,7 @@ jobs:
 
     env:
       FAIR_CRM_DEV_BYPASS_CORE: "false"
-      KYROX_CORE_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kyrox_core
+      KYROX_CORE_DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/kyrox_core
       DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/fair_crm
       KYROX_CORE_BASE_URL: http://127.0.0.1:8000
       FAIR_CRM_BASE_URL: http://127.0.0.1:8001

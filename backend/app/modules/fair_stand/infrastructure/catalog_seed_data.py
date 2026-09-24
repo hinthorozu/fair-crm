@@ -2677,7 +2677,7 @@ CATALOG_SEED = {
             ],
         },
         {
-            "item_key": "door_100",
+            "item_key": "wall_door_100_350",
             "name": "Depo Kapısı 100",
             "item_type": "door",
             "unit": "adet",
@@ -3383,7 +3383,7 @@ CATALOG_SEED = {
             "assets": [],
         },
         {
-            "item_key": "wall_50",
+            "item_key": "wall_50_350",
             "name": "Panel 50",
             "item_type": "flat-panel",
             "unit": None,
@@ -3444,7 +3444,7 @@ CATALOG_SEED = {
             "assets": [],
         },
         {
-            "item_key": "wall_100",
+            "item_key": "wall_100_350",
             "name": "Panel 100",
             "item_type": "flat-panel",
             "unit": None,
@@ -3505,7 +3505,7 @@ CATALOG_SEED = {
             "assets": [],
         },
         {
-            "item_key": "wall_150",
+            "item_key": "wall_150_350",
             "name": "Panel 150",
             "item_type": "flat-panel",
             "unit": None,
@@ -3566,7 +3566,7 @@ CATALOG_SEED = {
             "assets": [],
         },
         {
-            "item_key": "wall_200",
+            "item_key": "wall_200_350",
             "name": "Panel 200",
             "item_type": "flat-panel",
             "unit": None,
@@ -4139,7 +4139,7 @@ CATALOG_SEED = {
             "assets": [],
         },
         {
-            "item_key": "wall_separator_50",
+            "item_key": "wall_separator_50_350",
             "name": "Separatör 50",
             "item_type": "separator",
             "unit": None,
@@ -4204,7 +4204,7 @@ CATALOG_SEED = {
             "assets": [],
         },
         {
-            "item_key": "wall_separator_100",
+            "item_key": "wall_separator_100_350",
             "name": "Separatör 100",
             "item_type": "separator",
             "unit": None,
@@ -4265,7 +4265,7 @@ CATALOG_SEED = {
             "assets": [],
         },
         {
-            "item_key": "wall_separator_50_sarmasik",
+            "item_key": "wall_separator_50_350_sarmasik",
             "name": "Separatör 50 Sarmaşık",
             "item_type": "separator",
             "unit": None,
@@ -4335,7 +4335,7 @@ CATALOG_SEED = {
             ],
         },
         {
-            "item_key": "wall_separator_100_sarmasik",
+            "item_key": "wall_separator_100_350_sarmasik",
             "name": "Separatör 100 Sarmaşık",
             "item_type": "separator",
             "unit": None,
@@ -4401,7 +4401,7 @@ CATALOG_SEED = {
             ],
         },
         {
-            "item_key": "wall_showcase_100_2",
+            "item_key": "wall_showcase_100_2_350",
             "name": "2 Gözlü Vitrin 100",
             "item_type": "showcase-2",
             "unit": "adet",
@@ -4487,7 +4487,7 @@ CATALOG_SEED = {
             "assets": [],
         },
         {
-            "item_key": "wall_showcase_100_3",
+            "item_key": "wall_showcase_100_3_350",
             "name": "3 Gözlü Vitrin 100",
             "item_type": "showcase-3",
             "unit": "adet",
