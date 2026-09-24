@@ -235,6 +235,10 @@ export type FairStandAdminItemRecord = {
   defaultZCm: number | null;
   snapTargetItemType: string | null;
   snapAnchor: string | null;
+  snapRequiresRuleId: number | null;
+  snapProvidesRuleId: number | null;
+  snapRequires: string | null;
+  snapProvides: string | null;
   isRender: boolean;
   acceptsColor: boolean;
   acceptsImage: boolean;
@@ -250,6 +254,20 @@ export type FairStandAdminItemRecord = {
   videoWall: FairStandAdminItemVideoWall | null;
 };
 
+export type FairStandAdminSnapRuleOption = {
+  id: number;
+  key: string;
+  displayName: string;
+  face: string | null;
+  edge: string | null;
+};
+
+export type FairStandAdminItemTypeOption = {
+  id: number;
+  key: string;
+  displayName: string;
+};
+
 export type FairStandAdminItemFieldOptions = {
   types: string[];
   units: string[];
@@ -258,8 +276,8 @@ export type FairStandAdminItemFieldOptions = {
   variants: string[];
   compositionModes: string[];
   sideInsertRotations: string[];
-  snapTargetItemTypes: string[];
-  snapAnchors: string[];
+  itemTypes: FairStandAdminItemTypeOption[];
+  snapRules: FairStandAdminSnapRuleOption[];
 };
 
 const EMPTY_FIELD_OPTIONS: FairStandAdminItemFieldOptions = {
@@ -270,14 +288,50 @@ const EMPTY_FIELD_OPTIONS: FairStandAdminItemFieldOptions = {
   variants: [],
   compositionModes: [],
   sideInsertRotations: [],
-  snapTargetItemTypes: [],
-  snapAnchors: [],
+  itemTypes: [],
+  snapRules: [],
 };
 
 function parseStringList(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((entry): entry is string => typeof entry === "string" && entry.trim() !== "")
     : [];
+}
+
+function parseItemTypeOptions(value: unknown): FairStandAdminItemTypeOption[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const row = entry as Record<string, unknown>;
+      const id = Number(row.id);
+      if (!Number.isFinite(id)) return null;
+      return {
+        id,
+        key: String(row.key ?? row.code ?? ""),
+        displayName: String(row.displayName ?? row.key ?? row.code ?? ""),
+      };
+    })
+    .filter((row): row is FairStandAdminItemTypeOption => row !== null);
+}
+
+function parseSnapRuleOptions(value: unknown): FairStandAdminSnapRuleOption[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const row = entry as Record<string, unknown>;
+      const id = Number(row.id);
+      if (!Number.isFinite(id)) return null;
+      return {
+        id,
+        key: String(row.key ?? row.code ?? ""),
+        displayName: String(row.displayName ?? row.key ?? row.code ?? ""),
+        face: row.face == null ? null : String(row.face),
+        edge: row.edge == null ? null : String(row.edge),
+      };
+    })
+    .filter((row): row is FairStandAdminSnapRuleOption => row !== null);
 }
 
 export type FairStandAdminItemRecordListResponse =
@@ -313,8 +367,8 @@ export const listFairStandAdminItemRecords = (
         variants: parseStringList(options?.variants),
         compositionModes: parseStringList(options?.compositionModes),
         sideInsertRotations: parseStringList(options?.sideInsertRotations),
-        snapTargetItemTypes: parseStringList(options?.snapTargetItemTypes),
-        snapAnchors: parseStringList(options?.snapAnchors),
+        itemTypes: parseItemTypeOptions(options?.itemTypes),
+        snapRules: parseSnapRuleOptions(options?.snapRules),
       },
     };
   });
@@ -352,3 +406,170 @@ export const restoreFairStandAdminItemRecord = (itemKey: string) =>
   apiRequest<FairStandAdminItemRecord>(`${base}/item-records/${encodeURIComponent(itemKey)}/restore`, {
     method: "POST",
   });
+
+export type FairStandAdminItemType = {
+  id: number;
+  key: string;
+  displayName: string;
+  placement: string;
+  collision: string;
+  moveSnapCm: number;
+  magneticSnap: string;
+  allowSideInsert: boolean;
+  supportsWallOverlayMount: boolean;
+  wallCapacity: string;
+  connectionEndpoint: string;
+  collisionDepth: string;
+  endpointContact: string;
+  boundarySnap: string;
+  collisionHeight: string;
+  overlapWithTypes: string[];
+  overlapItemTypeIds: number[];
+  ghost: {
+    kind: string;
+    renderer: string;
+    opacity: number;
+  };
+  isActive: boolean;
+};
+
+export type FairStandAdminRuleType = {
+  id: number;
+  key: string;
+  displayName: string;
+  isActive: boolean;
+};
+
+export type FairStandAdminRule = {
+  id: number;
+  ruleTypeId: number;
+  ruleTypeKey: string | null;
+  key: string;
+  displayName: string;
+  face: string | null;
+  edge: string | null;
+  itemTypeIds: number[];
+  itemTypeKeys: string[];
+  isActive: boolean;
+};
+
+export const listFairStandAdminItemTypes = () =>
+  apiRequest<FairStandAdminItemType[]>(`${base}/item-types`);
+export const createFairStandAdminItemType = (payload: {
+  display_name: string;
+  key?: string | null;
+  is_active?: boolean;
+  placement?: string | null;
+  collision?: string | null;
+  move_snap_cm?: number | null;
+  magnetic_snap?: string | null;
+  allow_side_insert?: boolean | null;
+  supports_wall_overlay_mount?: boolean | null;
+  wall_capacity?: string | null;
+  connection_endpoint?: string | null;
+  collision_depth?: string | null;
+  endpoint_contact?: string | null;
+  boundary_snap?: string | null;
+  collision_height?: string | null;
+  overlap_with_types?: string[] | null;
+  overlap_item_type_ids?: number[] | null;
+  ghost_kind?: string | null;
+  ghost_renderer?: string | null;
+  ghost_opacity?: number | null;
+}) =>
+  apiRequest<FairStandAdminItemType>(`${base}/item-types`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+export const updateFairStandAdminItemType = (
+  itemTypeId: number,
+  payload: Partial<{
+    key: string;
+    display_name: string;
+    is_active: boolean;
+    placement: string;
+    collision: string;
+    move_snap_cm: number;
+    magnetic_snap: string;
+    allow_side_insert: boolean;
+    supports_wall_overlay_mount: boolean;
+    wall_capacity: string;
+    connection_endpoint: string;
+    collision_depth: string;
+    endpoint_contact: string;
+    boundary_snap: string;
+    collision_height: string;
+    overlap_with_types: string[];
+    overlap_item_type_ids: number[];
+    ghost_kind: string;
+    ghost_renderer: string;
+    ghost_opacity: number;
+  }>,
+) =>
+  apiRequest<FairStandAdminItemType>(`${base}/item-types/${itemTypeId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+export const archiveFairStandAdminItemType = (itemTypeId: number) =>
+  apiRequest<FairStandAdminItemType>(`${base}/item-types/${itemTypeId}/archive`, {
+    method: "POST",
+  });
+export const restoreFairStandAdminItemType = (itemTypeId: number) =>
+  apiRequest<FairStandAdminItemType>(`${base}/item-types/${itemTypeId}/restore`, {
+    method: "POST",
+  });
+
+export const listFairStandAdminRuleTypes = () =>
+  apiRequest<FairStandAdminRuleType[]>(`${base}/rule-types`);
+export const createFairStandAdminRuleType = (payload: {
+  key?: string | null;
+  display_name: string;
+  is_active?: boolean;
+}) =>
+  apiRequest<FairStandAdminRuleType>(`${base}/rule-types`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+export const updateFairStandAdminRuleType = (
+  ruleTypeId: number,
+  payload: Partial<{ key: string; display_name: string; is_active: boolean }>,
+) =>
+  apiRequest<FairStandAdminRuleType>(`${base}/rule-types/${ruleTypeId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+export const archiveFairStandAdminRuleType = (ruleTypeId: number) =>
+  apiRequest<FairStandAdminRuleType>(`${base}/rule-types/${ruleTypeId}/archive`, { method: "POST" });
+export const restoreFairStandAdminRuleType = (ruleTypeId: number) =>
+  apiRequest<FairStandAdminRuleType>(`${base}/rule-types/${ruleTypeId}/restore`, { method: "POST" });
+
+export const listFairStandAdminRules = () => apiRequest<FairStandAdminRule[]>(`${base}/rules`);
+export const createFairStandAdminRule = (payload: {
+  rule_type_id: number;
+  key?: string | null;
+  display_name: string;
+  face?: string | null;
+  edge?: string | null;
+  item_type_ids?: number[];
+  is_active?: boolean;
+}) => apiRequest<FairStandAdminRule>(`${base}/rules`, { method: "POST", body: JSON.stringify(payload) });
+export const updateFairStandAdminRule = (
+  ruleId: number,
+  payload: Partial<{
+    rule_type_id: number;
+    key: string;
+    display_name: string;
+    face: string | null;
+    edge: string | null;
+    item_type_ids: number[];
+    is_active: boolean;
+  }>,
+) =>
+  apiRequest<FairStandAdminRule>(`${base}/rules/${ruleId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+export const archiveFairStandAdminRule = (ruleId: number) =>
+  apiRequest<FairStandAdminRule>(`${base}/rules/${ruleId}/archive`, { method: "POST" });
+export const restoreFairStandAdminRule = (ruleId: number) =>
+  apiRequest<FairStandAdminRule>(`${base}/rules/${ruleId}/restore`, { method: "POST" });

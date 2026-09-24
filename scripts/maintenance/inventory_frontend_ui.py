@@ -884,6 +884,7 @@ ROUTE_UNMOUNTED_PAGE_ALLOWLIST = {
     "FairStandItemsAdminPage.tsx",
     "FairStandPreviewsAdminPage.tsx",
     "FairStandSettingsAdminPage.tsx",
+    "FairStandSnapCatalogAdminPage.tsx",
 }
 
 

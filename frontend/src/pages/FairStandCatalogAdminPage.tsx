@@ -88,6 +88,21 @@ function matchesItemSearch(
   );
 }
 
+function itemCatalogIndexCeiling(
+  items: FairStandAdminItem[],
+  categoryId: number | null,
+  excludeItemKey: string,
+): number {
+  if (categoryId == null || !Number.isFinite(categoryId)) return 1;
+  const peers = items.filter(
+    (item) =>
+      item.catalogVisible &&
+      item.categoryId === categoryId &&
+      item.itemKey !== excludeItemKey,
+  );
+  return peers.length + 1;
+}
+
 function FormDirtyReporter<T>({ values, baseline }: { values: T; baseline: T }) {
   useReportFormDirty(values, baseline);
   return null;
@@ -338,6 +353,28 @@ export function FairStandCatalogAdminPage() {
       }
     : null;
 
+  const itemCategoryId = itemForm?.category_id.trim()
+    ? Number(itemForm.category_id)
+    : null;
+  const itemIndexMax =
+    itemEditing != null
+      ? itemCatalogIndexCeiling(items, itemCategoryId, itemEditing.itemKey)
+      : 1;
+
+  const patchItemForm = (patchValues: Partial<ItemForm>) => {
+    if (!itemForm || !itemEditing) return;
+    const next = { ...itemForm, ...patchValues };
+    const categoryId = next.category_id.trim() ? Number(next.category_id) : null;
+    const max = itemCatalogIndexCeiling(items, categoryId, itemEditing.itemKey);
+    if (next.catalog_visible) {
+      const current = next.catalog_item_index.trim() ? Number(next.catalog_item_index) : NaN;
+      if (!Number.isInteger(current) || current < 1 || current > max) {
+        next.catalog_item_index = String(max);
+      }
+    }
+    setItemForm(next);
+  };
+
   return (
     <PageShell>
       <PageHeader
@@ -557,6 +594,20 @@ export function FairStandCatalogAdminPage() {
                   onClick={() => {
                     void (async () => {
                       try {
+                        if (itemForm.catalog_visible) {
+                          const index = itemForm.catalog_item_index.trim()
+                            ? Number(itemForm.catalog_item_index)
+                            : NaN;
+                          if (!Number.isInteger(index) || index < 1 || index > itemIndexMax) {
+                            setError(
+                              adminLabels.fairStandItemsValidationCatalogIndexRange.replace(
+                                "{max}",
+                                String(itemIndexMax),
+                              ),
+                            );
+                            return;
+                          }
+                        }
                         await updateFairStandAdminItem(itemEditing.itemKey, {
                           catalog_visible: itemForm.catalog_visible,
                           category_id: itemForm.category_id ? Number(itemForm.category_id) : null,
@@ -588,20 +639,20 @@ export function FairStandCatalogAdminPage() {
                 label={adminLabels.fairStandCatalogFieldItemVisible}
                 hint={adminLabels.fairStandCatalogFieldItemVisibleHint}
                 checked={itemForm.catalog_visible}
-                onChange={(checked: boolean) =>
-                  setItemForm({ ...itemForm, catalog_visible: checked })
-                }
+                onChange={(checked: boolean) => patchItemForm({ catalog_visible: checked })}
               />
               <FormGrid columns={2}>
                 <FormField
                   label={adminLabels.fairStandCatalogFieldItemCategory}
                   htmlFor="item-category"
                   hint={adminLabels.fairStandCatalogFieldItemCategoryHint}
+                  required={itemForm.catalog_visible}
                 >
                   <SelectInput
                     id="item-category"
                     value={itemForm.category_id}
-                    onChange={(event) => setItemForm({ ...itemForm, category_id: event.target.value })}
+                    required={itemForm.catalog_visible}
+                    onChange={(event) => patchItemForm({ category_id: event.target.value })}
                   >
                     <option value="">{adminLabels.fairStandCatalogSelectPlaceholder}</option>
                     {categories
@@ -616,14 +667,17 @@ export function FairStandCatalogAdminPage() {
                 <FormField
                   label={adminLabels.fairStandCatalogFieldItemIndex}
                   htmlFor="item-index"
-                  hint={adminLabels.fairStandCatalogFieldItemIndexHint}
+                  hint={`${adminLabels.fairStandCatalogFieldItemIndexHint} (1..${itemIndexMax})`}
+                  required={itemForm.catalog_visible}
                 >
                   <TextInput
                     id="item-index"
                     type="number"
                     min={1}
+                    max={itemForm.catalog_visible ? itemIndexMax : undefined}
                     step={1}
                     value={itemForm.catalog_item_index}
+                    required={itemForm.catalog_visible}
                     onChange={(event) =>
                       setItemForm({ ...itemForm, catalog_item_index: event.target.value })
                     }
@@ -634,6 +688,7 @@ export function FairStandCatalogAdminPage() {
                 label={adminLabels.fairStandCatalogFieldItemPreview}
                 htmlFor="item-preview"
                 hint={adminLabels.fairStandCatalogFieldItemPreviewHint}
+                required={itemForm.catalog_visible}
                 fullWidth
               >
                 <FairStandCatalogPreviewSelect

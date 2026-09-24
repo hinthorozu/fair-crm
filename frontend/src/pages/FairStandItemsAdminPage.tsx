@@ -5,10 +5,12 @@ import {
   getFairStandAdminItemRecord,
   listFairStandAdminCategories,
   listFairStandAdminItemRecords,
+  listFairStandAdminItems,
   listFairStandAdminPreviews,
   restoreFairStandAdminItemRecord,
   updateFairStandAdminItemRecord,
   type FairStandAdminCategory,
+  type FairStandAdminItem,
   type FairStandAdminItemRecord,
   type FairStandAdminItemAsset,
   type FairStandAdminItemBodyPart,
@@ -85,8 +87,8 @@ type EditForm = {
   variant: string;
   composition_mode: string;
   side_insert_rotation: string;
-  snap_target_item_type: string;
-  snap_anchor: string;
+  snap_requires_rule_id: string;
+  snap_provides_rule_id: string;
   default_z_cm: string;
   default_color: string;
   eye_count: string;
@@ -135,9 +137,27 @@ const EMPTY_FIELD_OPTIONS: FairStandAdminItemFieldOptions = {
   variants: [],
   compositionModes: [],
   sideInsertRotations: [],
-  snapTargetItemTypes: [],
-  snapAnchors: [],
+  itemTypes: [],
+  snapRules: [],
 };
+
+function itemTypeSelectOptions(
+  itemTypes: FairStandAdminItemFieldOptions["itemTypes"],
+  selectedKey: string,
+): React.ReactNode {
+  const keys = new Set(itemTypes.map((row) => row.key));
+  return (
+    <>
+      <option value="">{adminLabels.fairStandCatalogSelectPlaceholder}</option>
+      {selectedKey && !keys.has(selectedKey) ? <option value={selectedKey}>{selectedKey}</option> : null}
+      {itemTypes.map((itemType) => (
+        <option key={itemType.key} value={itemType.key}>
+          {itemType.displayName} ({itemType.key})
+        </option>
+      ))}
+    </>
+  );
+}
 
 function SuggestTextInput({
   id,
@@ -259,8 +279,8 @@ function detailToForm(detail: FairStandAdminItemRecord): EditForm {
     variant: str(detail.variant),
     composition_mode: str(detail.compositionMode),
     side_insert_rotation: str(detail.sideInsertRotation),
-    snap_target_item_type: str(detail.snapTargetItemType),
-    snap_anchor: str(detail.snapAnchor),
+    snap_requires_rule_id: str(detail.snapRequiresRuleId),
+    snap_provides_rule_id: str(detail.snapProvidesRuleId),
     default_z_cm: str(detail.defaultZCm),
     default_color: str(detail.defaultColor),
     eye_count: str(detail.eyeCount),
@@ -314,7 +334,22 @@ function detailToForm(detail: FairStandAdminItemRecord): EditForm {
   };
 }
 
-function buildUpdatePayload(form: EditForm): Record<string, unknown> {
+function catalogIndexCeiling(
+  items: FairStandAdminItem[],
+  categoryId: number | null,
+  excludeItemKey: string,
+): number {
+  if (categoryId == null || !Number.isFinite(categoryId)) return 1;
+  const peers = items.filter(
+    (item) =>
+      item.catalogVisible &&
+      item.categoryId === categoryId &&
+      item.itemKey !== excludeItemKey,
+  );
+  return peers.length + 1;
+}
+
+function buildUpdatePayload(form: EditForm, catalogIndexMax?: number): Record<string, unknown> {
   const dimensions = hasAny(
     form.width_cm,
     form.depth_cm,
@@ -354,6 +389,21 @@ function buildUpdatePayload(form: EditForm): Record<string, unknown> {
       }
     : null;
 
+  if (form.catalog_visible) {
+    requireText(form.category_id, adminLabels.fairStandItemsFieldCategoryId);
+    requireText(form.catalog_item_index, adminLabels.fairStandItemsFieldCatalogItemIndex);
+    requireText(form.preview_id, adminLabels.fairStandItemsFieldPreviewId);
+    const index = optionalInt(form.catalog_item_index);
+    if (catalogIndexMax != null && (index == null || index < 1 || index > catalogIndexMax)) {
+      throw new Error(
+        adminLabels.fairStandItemsValidationCatalogIndexRange.replace(
+          "{max}",
+          String(catalogIndexMax),
+        ),
+      );
+    }
+  }
+
   return {
     name: requireText(form.name, adminLabels.fairStandItemsFieldName),
     item_type: requireText(form.item_type, adminLabels.fairStandItemsFieldItemType),
@@ -363,8 +413,8 @@ function buildUpdatePayload(form: EditForm): Record<string, unknown> {
     variant: form.variant.trim() || null,
     composition_mode: form.composition_mode.trim() || null,
     side_insert_rotation: form.side_insert_rotation.trim() || null,
-    snap_target_item_type: form.snap_target_item_type.trim() || null,
-    snap_anchor: form.snap_anchor.trim() || null,
+    snap_requires_rule_id: optionalInt(form.snap_requires_rule_id),
+    snap_provides_rule_id: optionalInt(form.snap_provides_rule_id),
     default_z_cm: optionalNumber(form.default_z_cm) ?? 0,
     default_color: optionalInt(form.default_color),
     eye_count: optionalInt(form.eye_count),
@@ -841,7 +891,7 @@ function ItemsCreatePage({
     setError(null);
     try {
       const record = await createFairStandAdminItemRecord({
-        item_key: requireText(form.item_key, adminLabels.fairStandItemsFieldItemKey),
+        item_key: requireText(slugifyItemKey(form.item_key), adminLabels.fairStandItemsFieldItemKey),
         name: requireText(form.name, adminLabels.fairStandItemsFieldName),
         item_type: requireText(form.item_type, adminLabels.fairStandItemsFieldItemType),
       });
@@ -1031,6 +1081,7 @@ function ItemsEditPage({
   const [error, setError] = React.useState<string | null>(null);
   const [fieldOptions, setFieldOptions] =
     React.useState<FairStandAdminItemFieldOptions>(EMPTY_FIELD_OPTIONS);
+  const [catalogItems, setCatalogItems] = React.useState<FairStandAdminItem[]>([]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -1038,13 +1089,15 @@ function ItemsEditPage({
     void Promise.all([
       getFairStandAdminItemRecord(itemKey),
       listFairStandAdminItemRecords({ page: 1, pageSize: 1 }).catch(() => null),
+      listFairStandAdminItems().catch(() => [] as FairStandAdminItem[]),
     ])
-      .then(([record, listResponse]) => {
+      .then(([record, listResponse, nextCatalogItems]) => {
         if (cancelled) return;
         const next = detailToForm(record);
         setForm(next);
         setBaseline(next);
         setTitle(record.name);
+        setCatalogItems(nextCatalogItems);
         if (listResponse?.filterOptions) {
           setFieldOptions(listResponse.filterOptions);
         }
@@ -1071,7 +1124,9 @@ function ItemsEditPage({
     setSaving(true);
     setError(null);
     try {
-      await updateFairStandAdminItemRecord(itemKey, buildUpdatePayload(form));
+      const categoryId = form.category_id.trim() ? Number(form.category_id) : null;
+      const indexMax = catalogIndexCeiling(catalogItems, categoryId, itemKey);
+      await updateFairStandAdminItemRecord(itemKey, buildUpdatePayload(form, indexMax));
       onSaved(itemKey);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : adminLabels.fairStandItemsSaveError);
@@ -1127,6 +1182,7 @@ function ItemsEditPage({
           form={form}
           baseline={baseline}
           fieldOptions={fieldOptions}
+          catalogItems={catalogItems}
           saving={saving}
           banners={error ? <Banner variant="error">{error}</Banner> : null}
           onChange={setForm}
@@ -1491,16 +1547,16 @@ function ItemDetailView({
               <DetailValue value={detail.sideInsertRotation} />
             </DetailItem>
             <DetailItem
-              label={adminLabels.fairStandItemsFieldSnapTarget}
-              hint={adminLabels.fairStandItemsFieldSnapTargetHint}
+              label={adminLabels.fairStandItemsFieldSnapRequires}
+              hint={adminLabels.fairStandItemsFieldSnapRequiresHint}
             >
-              <DetailValue value={detail.snapTargetItemType} />
+              <DetailValue value={detail.snapRequires} />
             </DetailItem>
             <DetailItem
-              label={adminLabels.fairStandItemsFieldSnapAnchor}
-              hint={adminLabels.fairStandItemsFieldSnapAnchorHint}
+              label={adminLabels.fairStandItemsFieldSnapProvides}
+              hint={adminLabels.fairStandItemsFieldSnapProvidesHint}
             >
-              <DetailValue value={detail.snapAnchor} />
+              <DetailValue value={detail.snapProvides} />
             </DetailItem>
             <DetailItem
               label={adminLabels.fairStandItemsFieldDefaultZ}
@@ -1692,8 +1748,6 @@ function ItemCreateView({
 }) {
   const requestBack = useFormDirtyCancel(() => undefined);
   const [itemKeyManual, setItemKeyManual] = React.useState(false);
-  const typeListId = "fs-item-type-options";
-
   return (
     <>
       <FormDirtyReporter values={form} baseline={emptyCreate} />
@@ -1750,7 +1804,7 @@ function ItemCreateView({
                 disabled={saving}
                 onChange={(event) => {
                   setItemKeyManual(true);
-                  onChange({ ...form, item_key: event.target.value });
+                  onChange({ ...form, item_key: slugifyItemKey(event.target.value) });
                 }}
                 required
               />
@@ -1762,15 +1816,15 @@ function ItemCreateView({
               required
               fullWidth
             >
-              <SuggestTextInput
+              <SelectInput
                 id="fs-item-type"
-                listId={typeListId}
-                options={fieldOptions.types}
                 value={form.item_type}
                 disabled={saving}
                 required
-                onChange={(item_type) => onChange({ ...form, item_type })}
-              />
+                onChange={(event) => onChange({ ...form, item_type: event.target.value })}
+              >
+                {itemTypeSelectOptions(fieldOptions.itemTypes, form.item_type)}
+              </SelectInput>
             </FormField>
           </FormGrid>
         </FormSection>
@@ -1792,6 +1846,7 @@ function ItemEditView({
   form,
   baseline,
   fieldOptions,
+  catalogItems,
   saving,
   banners,
   onChange,
@@ -1802,6 +1857,7 @@ function ItemEditView({
   form: EditForm;
   baseline: EditForm;
   fieldOptions: FairStandAdminItemFieldOptions;
+  catalogItems: FairStandAdminItem[];
   saving: boolean;
   banners: React.ReactNode;
   onChange: (form: EditForm) => void;
@@ -1824,15 +1880,12 @@ function ItemEditView({
   const [addingBodyPart, setAddingBodyPart] = React.useState(false);
   const [categories, setCategories] = React.useState<FairStandAdminCategory[]>([]);
   const [previews, setPreviews] = React.useState<FairStandAdminPreview[]>([]);
-  const typeListId = "fs-edit-item-type-options";
   const unitListId = "fs-edit-unit-options";
   const materialListId = "fs-edit-material-options";
   const shapeListId = "fs-edit-shape-options";
   const variantListId = "fs-edit-variant-options";
   const compositionModeListId = "fs-edit-comp-mode-options";
   const sideInsertListId = "fs-edit-side-insert-options";
-  const snapTargetListId = "fs-edit-snap-target-options";
-  const snapAnchorListId = "fs-edit-snap-anchor-options";
   const componentCount = form.components.length + form.body_parts.length;
   const assetCount = form.assets.length;
   const formRef = React.useRef(form);
@@ -1854,6 +1907,10 @@ function ItemEditView({
   }, []);
 
   const selectedCategoryId = form.category_id.trim() ? Number(form.category_id) : null;
+  const catalogIndexMax = catalogIndexCeiling(catalogItems, selectedCategoryId, itemKey);
+  const catalogIndexHint = form.catalog_visible
+    ? `${adminLabels.fairStandItemsFieldCatalogItemIndexHint} (1..${catalogIndexMax})`
+    : adminLabels.fairStandItemsFieldCatalogItemIndexHint;
   const categoryOptions = React.useMemo(
     () =>
       categories.filter(
@@ -1864,6 +1921,19 @@ function ItemEditView({
 
   const patch = <K extends keyof EditForm>(key: K, value: EditForm[K]) =>
     onChange({ ...form, [key]: value });
+
+  const patchCatalog = (patchValues: Partial<EditForm>) => {
+    const next = { ...form, ...patchValues };
+    const categoryId = next.category_id.trim() ? Number(next.category_id) : null;
+    const max = catalogIndexCeiling(catalogItems, categoryId, itemKey);
+    if (next.catalog_visible) {
+      const current = next.catalog_item_index.trim() ? Number(next.catalog_item_index) : NaN;
+      if (!Number.isInteger(current) || current < 1 || current > max) {
+        next.catalog_item_index = String(max);
+      }
+    }
+    onChange(next);
+  };
 
   const resolveChildMeta = React.useCallback(async (itemKey: string) => {
     const key = itemKey.trim();
@@ -2130,15 +2200,15 @@ function ItemEditView({
                 hint={adminLabels.fairStandItemsFieldItemTypeHint}
                 required
               >
-                <SuggestTextInput
+                <SelectInput
                   id="fs-edit-type"
-                  listId={typeListId}
-                  options={fieldOptions.types}
                   value={form.item_type}
                   disabled={saving}
                   required
-                  onChange={(item_type) => patch("item_type", item_type)}
-                />
+                  onChange={(event) => patch("item_type", event.target.value)}
+                >
+                  {itemTypeSelectOptions(fieldOptions.itemTypes, form.item_type)}
+                </SelectInput>
               </FormField>
               <FormField
                 label={adminLabels.fairStandItemsFieldUnit}
@@ -2241,17 +2311,27 @@ function ItemEditView({
 
           <Card>
             <h3 className="form-section-title">{adminLabels.fairStandItemsSectionCatalog}</h3>
+            <CheckboxField
+              id="fs-edit-catalog-visible"
+              label={adminLabels.fairStandItemsFieldCatalogVisible}
+              hint={adminLabels.fairStandItemsFieldCatalogVisibleHint}
+              checked={form.catalog_visible}
+              disabled={saving}
+              onChange={(checked) => patchCatalog({ catalog_visible: checked })}
+            />
             <FormGrid columns={2}>
               <FormField
                 label={adminLabels.fairStandItemsFieldCategoryId}
                 htmlFor="fs-edit-category"
                 hint={adminLabels.fairStandItemsFieldCategoryIdHint}
+                required={form.catalog_visible}
               >
                 <SelectInput
                   id="fs-edit-category"
                   value={form.category_id}
                   disabled={saving}
-                  onChange={(event) => patch("category_id", event.target.value)}
+                  required={form.catalog_visible}
+                  onChange={(event) => patchCatalog({ category_id: event.target.value })}
                 >
                   <option value="">{adminLabels.fairStandCatalogSelectPlaceholder}</option>
                   {categoryOptions.map((category) => (
@@ -2264,13 +2344,18 @@ function ItemEditView({
               <FormField
                 label={adminLabels.fairStandItemsFieldCatalogItemIndex}
                 htmlFor="fs-edit-index"
-                hint={adminLabels.fairStandItemsFieldCatalogItemIndexHint}
+                hint={catalogIndexHint}
+                required={form.catalog_visible}
               >
                 <TextInput
                   id="fs-edit-index"
                   type="number"
+                  min={1}
+                  max={form.catalog_visible ? catalogIndexMax : undefined}
+                  step={1}
                   value={form.catalog_item_index}
                   disabled={saving}
+                  required={form.catalog_visible}
                   onChange={(event) => patch("catalog_item_index", event.target.value)}
                 />
               </FormField>
@@ -2278,6 +2363,7 @@ function ItemEditView({
                 label={adminLabels.fairStandItemsFieldPreviewId}
                 htmlFor="fs-edit-preview"
                 hint={adminLabels.fairStandItemsFieldPreviewIdHint}
+                required={form.catalog_visible}
                 fullWidth
               >
                 <FairStandCatalogPreviewSelect
@@ -2289,14 +2375,6 @@ function ItemEditView({
                 />
               </FormField>
             </FormGrid>
-            <CheckboxField
-              id="fs-edit-catalog-visible"
-              label={adminLabels.fairStandItemsFieldCatalogVisible}
-              hint={adminLabels.fairStandItemsFieldCatalogVisibleHint}
-              checked={form.catalog_visible}
-              disabled={saving}
-              onChange={(checked) => patch("catalog_visible", checked)}
-            />
           </Card>
 
           <Card>
@@ -2394,34 +2472,44 @@ function ItemEditView({
                 />
               </FormField>
               <FormField
-                label={adminLabels.fairStandItemsFieldSnapTarget}
-                htmlFor="fs-edit-snap-target"
-                hint={adminLabels.fairStandItemsFieldSnapTargetHint}
+                label={adminLabels.fairStandItemsFieldSnapRequires}
+                htmlFor="fs-edit-snap-requires"
+                hint={adminLabels.fairStandItemsFieldSnapRequiresHint}
               >
-                <SuggestTextInput
-                  id="fs-edit-snap-target"
-                  listId={snapTargetListId}
-                  options={fieldOptions.snapTargetItemTypes}
-                  value={form.snap_target_item_type}
-                  disabled={saving}
-                  onChange={(snap_target_item_type) =>
-                    patch("snap_target_item_type", snap_target_item_type)
-                  }
-                />
+                <SelectInput
+                  id="fs-edit-snap-requires"
+                  value={form.snap_requires_rule_id}
+                  disabled={saving || Boolean(form.snap_provides_rule_id.trim())}
+                  onChange={(event) => patch("snap_requires_rule_id", event.target.value)}
+                >
+                  <option value="">{adminLabels.fairStandCatalogSelectPlaceholder}</option>
+                  {fieldOptions.snapRules.map((rule) => (
+                    <option key={rule.id} value={String(rule.id)}>
+                      {rule.displayName} ({rule.key}
+                      {rule.face || rule.edge ? ` · ${rule.face ?? "—"}/${rule.edge ?? "—"}` : ""})
+                    </option>
+                  ))}
+                </SelectInput>
               </FormField>
               <FormField
-                label={adminLabels.fairStandItemsFieldSnapAnchor}
-                htmlFor="fs-edit-snap-anchor"
-                hint={adminLabels.fairStandItemsFieldSnapAnchorHint}
+                label={adminLabels.fairStandItemsFieldSnapProvides}
+                htmlFor="fs-edit-snap-provides"
+                hint={adminLabels.fairStandItemsFieldSnapProvidesHint}
               >
-                <SuggestTextInput
-                  id="fs-edit-snap-anchor"
-                  listId={snapAnchorListId}
-                  options={fieldOptions.snapAnchors}
-                  value={form.snap_anchor}
-                  disabled={saving}
-                  onChange={(snap_anchor) => patch("snap_anchor", snap_anchor)}
-                />
+                <SelectInput
+                  id="fs-edit-snap-provides"
+                  value={form.snap_provides_rule_id}
+                  disabled={saving || Boolean(form.snap_requires_rule_id.trim())}
+                  onChange={(event) => patch("snap_provides_rule_id", event.target.value)}
+                >
+                  <option value="">{adminLabels.fairStandCatalogSelectPlaceholder}</option>
+                  {fieldOptions.snapRules.map((rule) => (
+                    <option key={rule.id} value={String(rule.id)}>
+                      {rule.displayName} ({rule.key}
+                      {rule.face || rule.edge ? ` · ${rule.face ?? "—"}/${rule.edge ?? "—"}` : ""})
+                    </option>
+                  ))}
+                </SelectInput>
               </FormField>
               <FormField
                 label={adminLabels.fairStandItemsFieldSideInsertRotation}
