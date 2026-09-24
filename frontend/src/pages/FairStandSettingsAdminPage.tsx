@@ -37,6 +37,7 @@ type DimensionsForm = {
   depth_cm: string;
   frame_width_cm: string;
   frame_depth_cm: string;
+  panel_rail_height_cm: string;
 };
 
 type SettingsForm = {
@@ -63,6 +64,7 @@ function dimensionsToForm(row: FairStandAdminStandDimensions): DimensionsForm {
     depth_cm: formatCm(row.depthCm),
     frame_width_cm: formatCm(row.frameWidthCm),
     frame_depth_cm: formatCm(row.frameDepthCm),
+    panel_rail_height_cm: formatCm(row.panelRailHeightCm),
   };
 }
 
@@ -168,6 +170,10 @@ export function FairStandSettingsAdminPage() {
           dimensionsForm.frame_depth_cm,
           adminLabels.fairStandSettingsFieldFrameDepth,
         ),
+        panel_rail_height_cm: parsePositiveNumber(
+          dimensionsForm.panel_rail_height_cm,
+          adminLabels.fairStandSettingsFieldPanelRailHeight,
+        ),
       });
       setDimensions({ id: 1, ...updated });
       setDimensionsForm(null);
@@ -232,6 +238,12 @@ export function FairStandSettingsAdminPage() {
       title: adminLabels.fairStandSettingsColFrameDepth,
       sortable: false,
       render: (row) => formatCm(row.frameDepthCm),
+    },
+    {
+      key: "panelRail",
+      title: adminLabels.fairStandSettingsColPanelRailHeight,
+      sortable: false,
+      render: (row) => formatCm(row.panelRailHeightCm),
     },
     {
       key: "actions",
@@ -435,6 +447,28 @@ export function FairStandSettingsAdminPage() {
                     disabled={savingDimensions}
                     onChange={(event) =>
                       setDimensionsForm({ ...dimensionsForm, frame_depth_cm: event.target.value })
+                    }
+                    required
+                  />
+                </FormField>
+                <FormField
+                  label={adminLabels.fairStandSettingsFieldPanelRailHeight}
+                  htmlFor="fs-panel-rail"
+                  hint={adminLabels.fairStandSettingsFieldPanelRailHeightHint}
+                  required
+                >
+                  <TextInput
+                    id="fs-panel-rail"
+                    type="number"
+                    min={0.001}
+                    step={0.1}
+                    value={dimensionsForm.panel_rail_height_cm}
+                    disabled={savingDimensions}
+                    onChange={(event) =>
+                      setDimensionsForm({
+                        ...dimensionsForm,
+                        panel_rail_height_cm: event.target.value,
+                      })
                     }
                     required
                   />

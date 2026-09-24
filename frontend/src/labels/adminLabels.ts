@@ -728,6 +728,7 @@ export const adminLabels = {
   fairStandSettingsColStripHeight: "Şerit yük. (cm)",
   fairStandSettingsColFrameWidth: "Çerçeve gen. (cm)",
   fairStandSettingsColFrameDepth: "Çerçeve der. (cm)",
+  fairStandSettingsColPanelRailHeight: "Panel ray (cm)",
   fairStandSettingsColMaxUpload: "Yükleme tavanı (MB)",
   fairStandSettingsColExportVisible: "Dışarı Aktar",
   fairStandSettingsColImportVisible: "İçe Aktar",
@@ -751,6 +752,9 @@ export const adminLabels = {
   fairStandSettingsFieldFrameWidthHint: "Dikey profil kesit genişliği; görsel iskelet çiziminde kullanılır.",
   fairStandSettingsFieldFrameDepth: "Çerçeve derinliği (cm)",
   fairStandSettingsFieldFrameDepthHint: "Profil / ray derinliği; çerçeve kalınlığının sahne görünümü.",
+  fairStandSettingsFieldPanelRailHeight: "Panel arası ray boşluğu (cm)",
+  fairStandSettingsFieldPanelRailHeightHint:
+    "İki panel bandı arasındaki ince ray yüksekliği (ör. 0.4). Tavanla çarpılmaz; wallGapCm değil.",
   fairStandSettingsFieldMaxUpload: "Görsel yükleme tavanı (MB)",
   fairStandSettingsFieldMaxUploadHint:
     "Proje yüzey görseli yüklerken izin verilen maksimum dosya boyutu; aşımda popup gösterilir.",
