@@ -5,10 +5,12 @@ import {
   getFairStandAdminItemRecord,
   listFairStandAdminCategories,
   listFairStandAdminItemRecords,
+  listFairStandAdminItems,
   listFairStandAdminPreviews,
   restoreFairStandAdminItemRecord,
   updateFairStandAdminItemRecord,
   type FairStandAdminCategory,
+  type FairStandAdminItem,
   type FairStandAdminItemRecord,
   type FairStandAdminItemAsset,
   type FairStandAdminItemBodyPart,
@@ -332,7 +334,22 @@ function detailToForm(detail: FairStandAdminItemRecord): EditForm {
   };
 }
 
-function buildUpdatePayload(form: EditForm): Record<string, unknown> {
+function catalogIndexCeiling(
+  items: FairStandAdminItem[],
+  categoryId: number | null,
+  excludeItemKey: string,
+): number {
+  if (categoryId == null || !Number.isFinite(categoryId)) return 1;
+  const peers = items.filter(
+    (item) =>
+      item.catalogVisible &&
+      item.categoryId === categoryId &&
+      item.itemKey !== excludeItemKey,
+  );
+  return peers.length + 1;
+}
+
+function buildUpdatePayload(form: EditForm, catalogIndexMax?: number): Record<string, unknown> {
   const dimensions = hasAny(
     form.width_cm,
     form.depth_cm,
@@ -371,6 +388,21 @@ function buildUpdatePayload(form: EditForm): Record<string, unknown> {
         panel_item_key: form.panel_item_key.trim(),
       }
     : null;
+
+  if (form.catalog_visible) {
+    requireText(form.category_id, adminLabels.fairStandItemsFieldCategoryId);
+    requireText(form.catalog_item_index, adminLabels.fairStandItemsFieldCatalogItemIndex);
+    requireText(form.preview_id, adminLabels.fairStandItemsFieldPreviewId);
+    const index = optionalInt(form.catalog_item_index);
+    if (catalogIndexMax != null && (index == null || index < 1 || index > catalogIndexMax)) {
+      throw new Error(
+        adminLabels.fairStandItemsValidationCatalogIndexRange.replace(
+          "{max}",
+          String(catalogIndexMax),
+        ),
+      );
+    }
+  }
 
   return {
     name: requireText(form.name, adminLabels.fairStandItemsFieldName),
@@ -859,7 +891,7 @@ function ItemsCreatePage({
     setError(null);
     try {
       const record = await createFairStandAdminItemRecord({
-        item_key: requireText(form.item_key, adminLabels.fairStandItemsFieldItemKey),
+        item_key: requireText(slugifyItemKey(form.item_key), adminLabels.fairStandItemsFieldItemKey),
         name: requireText(form.name, adminLabels.fairStandItemsFieldName),
         item_type: requireText(form.item_type, adminLabels.fairStandItemsFieldItemType),
       });
@@ -1049,6 +1081,7 @@ function ItemsEditPage({
   const [error, setError] = React.useState<string | null>(null);
   const [fieldOptions, setFieldOptions] =
     React.useState<FairStandAdminItemFieldOptions>(EMPTY_FIELD_OPTIONS);
+  const [catalogItems, setCatalogItems] = React.useState<FairStandAdminItem[]>([]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -1056,13 +1089,15 @@ function ItemsEditPage({
     void Promise.all([
       getFairStandAdminItemRecord(itemKey),
       listFairStandAdminItemRecords({ page: 1, pageSize: 1 }).catch(() => null),
+      listFairStandAdminItems().catch(() => [] as FairStandAdminItem[]),
     ])
-      .then(([record, listResponse]) => {
+      .then(([record, listResponse, nextCatalogItems]) => {
         if (cancelled) return;
         const next = detailToForm(record);
         setForm(next);
         setBaseline(next);
         setTitle(record.name);
+        setCatalogItems(nextCatalogItems);
         if (listResponse?.filterOptions) {
           setFieldOptions(listResponse.filterOptions);
         }
@@ -1089,7 +1124,9 @@ function ItemsEditPage({
     setSaving(true);
     setError(null);
     try {
-      await updateFairStandAdminItemRecord(itemKey, buildUpdatePayload(form));
+      const categoryId = form.category_id.trim() ? Number(form.category_id) : null;
+      const indexMax = catalogIndexCeiling(catalogItems, categoryId, itemKey);
+      await updateFairStandAdminItemRecord(itemKey, buildUpdatePayload(form, indexMax));
       onSaved(itemKey);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : adminLabels.fairStandItemsSaveError);
@@ -1145,6 +1182,7 @@ function ItemsEditPage({
           form={form}
           baseline={baseline}
           fieldOptions={fieldOptions}
+          catalogItems={catalogItems}
           saving={saving}
           banners={error ? <Banner variant="error">{error}</Banner> : null}
           onChange={setForm}
@@ -1766,7 +1804,7 @@ function ItemCreateView({
                 disabled={saving}
                 onChange={(event) => {
                   setItemKeyManual(true);
-                  onChange({ ...form, item_key: event.target.value });
+                  onChange({ ...form, item_key: slugifyItemKey(event.target.value) });
                 }}
                 required
               />
@@ -1808,6 +1846,7 @@ function ItemEditView({
   form,
   baseline,
   fieldOptions,
+  catalogItems,
   saving,
   banners,
   onChange,
@@ -1818,6 +1857,7 @@ function ItemEditView({
   form: EditForm;
   baseline: EditForm;
   fieldOptions: FairStandAdminItemFieldOptions;
+  catalogItems: FairStandAdminItem[];
   saving: boolean;
   banners: React.ReactNode;
   onChange: (form: EditForm) => void;
@@ -1867,6 +1907,10 @@ function ItemEditView({
   }, []);
 
   const selectedCategoryId = form.category_id.trim() ? Number(form.category_id) : null;
+  const catalogIndexMax = catalogIndexCeiling(catalogItems, selectedCategoryId, itemKey);
+  const catalogIndexHint = form.catalog_visible
+    ? `${adminLabels.fairStandItemsFieldCatalogItemIndexHint} (1..${catalogIndexMax})`
+    : adminLabels.fairStandItemsFieldCatalogItemIndexHint;
   const categoryOptions = React.useMemo(
     () =>
       categories.filter(
@@ -1877,6 +1921,19 @@ function ItemEditView({
 
   const patch = <K extends keyof EditForm>(key: K, value: EditForm[K]) =>
     onChange({ ...form, [key]: value });
+
+  const patchCatalog = (patchValues: Partial<EditForm>) => {
+    const next = { ...form, ...patchValues };
+    const categoryId = next.category_id.trim() ? Number(next.category_id) : null;
+    const max = catalogIndexCeiling(catalogItems, categoryId, itemKey);
+    if (next.catalog_visible) {
+      const current = next.catalog_item_index.trim() ? Number(next.catalog_item_index) : NaN;
+      if (!Number.isInteger(current) || current < 1 || current > max) {
+        next.catalog_item_index = String(max);
+      }
+    }
+    onChange(next);
+  };
 
   const resolveChildMeta = React.useCallback(async (itemKey: string) => {
     const key = itemKey.trim();
@@ -2254,17 +2311,27 @@ function ItemEditView({
 
           <Card>
             <h3 className="form-section-title">{adminLabels.fairStandItemsSectionCatalog}</h3>
+            <CheckboxField
+              id="fs-edit-catalog-visible"
+              label={adminLabels.fairStandItemsFieldCatalogVisible}
+              hint={adminLabels.fairStandItemsFieldCatalogVisibleHint}
+              checked={form.catalog_visible}
+              disabled={saving}
+              onChange={(checked) => patchCatalog({ catalog_visible: checked })}
+            />
             <FormGrid columns={2}>
               <FormField
                 label={adminLabels.fairStandItemsFieldCategoryId}
                 htmlFor="fs-edit-category"
                 hint={adminLabels.fairStandItemsFieldCategoryIdHint}
+                required={form.catalog_visible}
               >
                 <SelectInput
                   id="fs-edit-category"
                   value={form.category_id}
                   disabled={saving}
-                  onChange={(event) => patch("category_id", event.target.value)}
+                  required={form.catalog_visible}
+                  onChange={(event) => patchCatalog({ category_id: event.target.value })}
                 >
                   <option value="">{adminLabels.fairStandCatalogSelectPlaceholder}</option>
                   {categoryOptions.map((category) => (
@@ -2277,13 +2344,18 @@ function ItemEditView({
               <FormField
                 label={adminLabels.fairStandItemsFieldCatalogItemIndex}
                 htmlFor="fs-edit-index"
-                hint={adminLabels.fairStandItemsFieldCatalogItemIndexHint}
+                hint={catalogIndexHint}
+                required={form.catalog_visible}
               >
                 <TextInput
                   id="fs-edit-index"
                   type="number"
+                  min={1}
+                  max={form.catalog_visible ? catalogIndexMax : undefined}
+                  step={1}
                   value={form.catalog_item_index}
                   disabled={saving}
+                  required={form.catalog_visible}
                   onChange={(event) => patch("catalog_item_index", event.target.value)}
                 />
               </FormField>
@@ -2291,6 +2363,7 @@ function ItemEditView({
                 label={adminLabels.fairStandItemsFieldPreviewId}
                 htmlFor="fs-edit-preview"
                 hint={adminLabels.fairStandItemsFieldPreviewIdHint}
+                required={form.catalog_visible}
                 fullWidth
               >
                 <FairStandCatalogPreviewSelect
@@ -2302,14 +2375,6 @@ function ItemEditView({
                 />
               </FormField>
             </FormGrid>
-            <CheckboxField
-              id="fs-edit-catalog-visible"
-              label={adminLabels.fairStandItemsFieldCatalogVisible}
-              hint={adminLabels.fairStandItemsFieldCatalogVisibleHint}
-              checked={form.catalog_visible}
-              disabled={saving}
-              onChange={(checked) => patch("catalog_visible", checked)}
-            />
           </Card>
 
           <Card>
