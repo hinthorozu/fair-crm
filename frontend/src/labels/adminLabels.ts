@@ -1241,6 +1241,11 @@ export const adminLabels = {
     "Turuncu noktalar köşeler. 1) Kaynak köşe 2) Hedef köşe → yapıştır (rotasyon korunur). Esc: iptal / çık.",
   fairStandItems3dCornerSnapSource: "Kaynak",
   fairStandItems3dCornerSnapPickTarget: "hedef köşeye tıkla",
+  fairStandItems3dLock: "Kilitle",
+  fairStandItems3dUnlock: "Kilidi aç",
+  fairStandItems3dLockHint:
+    "Snap yapıldı — Kilitle: host taşı/döndürünce follower gelir. Follower sürüklenirse kilit açılır. Oturum içi; kayıt absolute pose.",
+  fairStandItems3dLockActive: "Kilitli",
   fairStandItemsSaving: "Kaydediliyor…",
   fairStandItemsBadgeActive: "Aktif",
   fairStandItemsBadgeInactive: "Pasif",

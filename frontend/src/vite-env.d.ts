@@ -43,6 +43,15 @@ declare module "@fair-stand/itemAdminPreview.js" {
     }) => boolean;
     setSnapMode: (enabled: boolean) => boolean;
     getSnapMode: () => boolean;
+    lockPendingPair: () => boolean;
+    unlockAssembly: () => boolean;
+    getLockUiState: () => {
+      lock: {
+        host: { childItemKey: string; instanceIndex: number };
+        follower: { childItemKey: string; instanceIndex: number };
+      } | null;
+      canLock: boolean;
+    };
     dispose: () => void;
   };
   export function envelopeFromForm(input: Record<string, unknown>): Record<string, unknown> | null;

@@ -104,6 +104,11 @@ export function FairStandItem3dPreview({
     cornerKey: string;
     cornerLabel: string;
   } | null>(null);
+  const [canLockPair, setCanLockPair] = React.useState(false);
+  const [assemblyLock, setAssemblyLock] = React.useState<{
+    host: { childItemKey: string; instanceIndex: number };
+    follower: { childItemKey: string; instanceIndex: number };
+  } | null>(null);
   const [status, setStatus] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
@@ -172,6 +177,23 @@ export function FairStandItem3dPreview({
           instanceIndex: Number(session.instanceIndex) || 0,
           cornerKey: String(session.cornerKey),
           cornerLabel: String(session.cornerLabel || session.cornerKey),
+        });
+      },
+      onLockChange: (next) => {
+        setCanLockPair(Boolean(next?.canLock));
+        if (!next?.lock?.host?.childItemKey || !next?.lock?.follower?.childItemKey) {
+          setAssemblyLock(null);
+          return;
+        }
+        setAssemblyLock({
+          host: {
+            childItemKey: String(next.lock.host.childItemKey),
+            instanceIndex: Number(next.lock.host.instanceIndex) || 0,
+          },
+          follower: {
+            childItemKey: String(next.lock.follower.childItemKey),
+            instanceIndex: Number(next.lock.follower.instanceIndex) || 0,
+          },
         });
       },
     });
@@ -246,7 +268,10 @@ export function FairStandItem3dPreview({
     setSelectedPart(null);
     setSnapMode(false);
     setSnapSession(null);
+    setCanLockPair(false);
+    setAssemblyLock(null);
     api.setSnapMode(false);
+    api.unlockAssembly();
     api.setState({
       isRender: form.is_render,
       mode: "envelope",
@@ -375,6 +400,21 @@ export function FairStandItem3dPreview({
       <Button
         type="button"
         size="sm"
+        variant={assemblyLock ? "primary" : "secondary"}
+        disabled={!isRecipe || mode !== "assembly" || (!canLockPair && !assemblyLock)}
+        onClick={() => {
+          if (assemblyLock) {
+            apiRef.current?.unlockAssembly();
+            return;
+          }
+          apiRef.current?.lockPendingPair();
+        }}
+      >
+        {assemblyLock ? adminLabels.fairStandItems3dUnlock : adminLabels.fairStandItems3dLock}
+      </Button>
+      <Button
+        type="button"
+        size="sm"
         variant="secondary"
         className="fair-stand-item-3d-preview__expand"
         aria-pressed={expanded}
@@ -454,11 +494,15 @@ export function FairStandItem3dPreview({
         ) : null}
         <p className="text-muted fair-stand-item-3d-preview__hint">
           {mode === "assembly"
-            ? snapMode
-              ? snapSession
-                ? `${adminLabels.fairStandItems3dCornerSnapSource}: ${snapSession.childItemKey}#${snapSession.instanceIndex} · ${snapSession.cornerLabel} — ${adminLabels.fairStandItems3dCornerSnapPickTarget}`
-                : adminLabels.fairStandItems3dCornerSnapHint
-              : adminLabels.fairStandItems3dAssemblyHint
+            ? assemblyLock
+              ? `${adminLabels.fairStandItems3dLockActive}: ${assemblyLock.follower.childItemKey}#${assemblyLock.follower.instanceIndex} ← ${assemblyLock.host.childItemKey}#${assemblyLock.host.instanceIndex}`
+              : snapMode
+                ? snapSession
+                  ? `${adminLabels.fairStandItems3dCornerSnapSource}: ${snapSession.childItemKey}#${snapSession.instanceIndex} · ${snapSession.cornerLabel} — ${adminLabels.fairStandItems3dCornerSnapPickTarget}`
+                  : adminLabels.fairStandItems3dCornerSnapHint
+                : canLockPair
+                  ? adminLabels.fairStandItems3dLockHint
+                  : adminLabels.fairStandItems3dAssemblyHint
             : adminLabels.fairStandItems3dEnvelopeHint}
           {expanded ? " · Esc: küçült" : null}
         </p>
