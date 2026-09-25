@@ -3241,6 +3241,93 @@ textarea.form-control-textarea {
   overflow: hidden;
 }
 
+.fair-stand-item-3d-preview__canvas .view-cube {
+  position: absolute;
+  z-index: 4;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 96px;
+  padding: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.55);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.11);
+  backdrop-filter: blur(8px);
+  user-select: none;
+}
+
+.fair-stand-item-3d-preview__canvas .view-cube-canvas {
+  width: 86px;
+  height: 86px;
+  overflow: hidden;
+  border-radius: 8px;
+  touch-action: none;
+}
+
+.fair-stand-item-3d-preview__canvas .view-cube-canvas canvas {
+  width: 86px !important;
+  height: 86px !important;
+  cursor: grab;
+}
+
+.fair-stand-item-3d-preview__canvas .view-cube-canvas canvas:active {
+  cursor: grabbing;
+}
+
+.fair-stand-item-3d-preview__canvas .view-cube-home {
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  border-radius: 7px;
+  border: 1px solid #cbd5e1;
+  background: rgba(248, 250, 252, 0.96);
+  color: #475569;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.fair-stand-item-3d-preview__canvas .view-cube-home:hover {
+  border-color: #94a3b8;
+  background: #ffffff;
+}
+
+.fair-stand-item-3d-preview__canvas .projection-control {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 4;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.55);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(5px);
+}
+
+.fair-stand-item-3d-preview__canvas .projection-control button {
+  height: 26px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 6px;
+  font: 700 11px/1 system-ui, sans-serif;
+  cursor: pointer;
+  background: transparent;
+  color: #475569;
+  transition: background 0.15s, color 0.15s;
+}
+
+.fair-stand-item-3d-preview__canvas .projection-control button.is-active {
+  background: #2563eb;
+  color: #ffffff;
+}
+
 .fair-stand-item-3d-preview__panel {
   display: flex;
   flex-direction: column;

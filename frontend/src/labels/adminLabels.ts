@@ -1242,9 +1242,11 @@ export const adminLabels = {
   fairStandItems3dCornerSnapSource: "Kaynak",
   fairStandItems3dCornerSnapPickTarget: "hedef köşeye tıkla",
   fairStandItems3dLock: "Kilitle",
+  fairStandItems3dLockAdd: "Gruba ekle",
+  fairStandItems3dLockRemove: "Gruptan çıkar",
   fairStandItems3dUnlock: "Kilidi aç",
   fairStandItems3dLockHint:
-    "Snap yapıldı — Kilitle: host taşı/döndürünce follower gelir. Follower sürüklenirse kilit açılır. Oturum içi; kayıt absolute pose.",
+    "Snap → Kilitle. 3.+ için snap → Gruba ekle. Seçili parçayı Gruptan çıkar. Oturum içi.",
   fairStandItems3dLockActive: "Kilitli",
   fairStandItemsSaving: "Kaydediliyor…",
   fairStandItemsBadgeActive: "Aktif",

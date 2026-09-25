@@ -106,8 +106,7 @@ export function FairStandItem3dPreview({
   } | null>(null);
   const [canLockPair, setCanLockPair] = React.useState(false);
   const [assemblyLock, setAssemblyLock] = React.useState<{
-    host: { childItemKey: string; instanceIndex: number };
-    follower: { childItemKey: string; instanceIndex: number };
+    members: Array<{ childItemKey: string; instanceIndex: number }>;
   } | null>(null);
   const [status, setStatus] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -181,19 +180,32 @@ export function FairStandItem3dPreview({
       },
       onLockChange: (next) => {
         setCanLockPair(Boolean(next?.canLock));
-        if (!next?.lock?.host?.childItemKey || !next?.lock?.follower?.childItemKey) {
+        const members = Array.isArray(next?.lock?.members) ? next.lock.members : null;
+        if (!members?.length) {
+          // Geriye uyum: host+follower
+          if (next?.lock?.host?.childItemKey && next?.lock?.follower?.childItemKey) {
+            setAssemblyLock({
+              members: [
+                {
+                  childItemKey: String(next.lock.host.childItemKey),
+                  instanceIndex: Number(next.lock.host.instanceIndex) || 0,
+                },
+                {
+                  childItemKey: String(next.lock.follower.childItemKey),
+                  instanceIndex: Number(next.lock.follower.instanceIndex) || 0,
+                },
+              ],
+            });
+            return;
+          }
           setAssemblyLock(null);
           return;
         }
         setAssemblyLock({
-          host: {
-            childItemKey: String(next.lock.host.childItemKey),
-            instanceIndex: Number(next.lock.host.instanceIndex) || 0,
-          },
-          follower: {
-            childItemKey: String(next.lock.follower.childItemKey),
-            instanceIndex: Number(next.lock.follower.instanceIndex) || 0,
-          },
+          members: members.map((m: { childItemKey?: string; instanceIndex?: number }) => ({
+            childItemKey: String(m.childItemKey || ""),
+            instanceIndex: Number(m.instanceIndex) || 0,
+          })),
         });
       },
     });
@@ -403,14 +415,38 @@ export function FairStandItem3dPreview({
         variant={assemblyLock ? "primary" : "secondary"}
         disabled={!isRecipe || mode !== "assembly" || (!canLockPair && !assemblyLock)}
         onClick={() => {
-          if (assemblyLock) {
-            apiRef.current?.unlockAssembly();
+          if (canLockPair) {
+            apiRef.current?.lockPendingPair();
             return;
           }
-          apiRef.current?.lockPendingPair();
+          apiRef.current?.unlockAssembly();
         }}
       >
-        {assemblyLock ? adminLabels.fairStandItems3dUnlock : adminLabels.fairStandItems3dLock}
+        {canLockPair
+          ? assemblyLock
+            ? adminLabels.fairStandItems3dLockAdd
+            : adminLabels.fairStandItems3dLock
+          : adminLabels.fairStandItems3dUnlock}
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="secondary"
+        disabled={
+          !isRecipe
+          || mode !== "assembly"
+          || !selectedPart
+          || !assemblyLock?.members?.some(
+            (m) =>
+              m.childItemKey === selectedPart.childItemKey
+              && m.instanceIndex === selectedPart.instanceIndex,
+          )
+        }
+        onClick={() => {
+          apiRef.current?.removeSelectedFromLock();
+        }}
+      >
+        {adminLabels.fairStandItems3dLockRemove}
       </Button>
       <Button
         type="button"
@@ -495,7 +531,9 @@ export function FairStandItem3dPreview({
         <p className="text-muted fair-stand-item-3d-preview__hint">
           {mode === "assembly"
             ? assemblyLock
-              ? `${adminLabels.fairStandItems3dLockActive}: ${assemblyLock.follower.childItemKey}#${assemblyLock.follower.instanceIndex} ← ${assemblyLock.host.childItemKey}#${assemblyLock.host.instanceIndex}`
+              ? `${adminLabels.fairStandItems3dLockActive} (${assemblyLock.members.length}): ${assemblyLock.members
+                  .map((m) => `${m.childItemKey}#${m.instanceIndex}`)
+                  .join(" + ")}`
               : snapMode
                 ? snapSession
                   ? `${adminLabels.fairStandItems3dCornerSnapSource}: ${snapSession.childItemKey}#${snapSession.instanceIndex} · ${snapSession.cornerLabel} — ${adminLabels.fairStandItems3dCornerSnapPickTarget}`

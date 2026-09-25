@@ -45,10 +45,12 @@ declare module "@fair-stand/itemAdminPreview.js" {
     getSnapMode: () => boolean;
     lockPendingPair: () => boolean;
     unlockAssembly: () => boolean;
+    removeSelectedFromLock: () => boolean;
     getLockUiState: () => {
       lock: {
-        host: { childItemKey: string; instanceIndex: number };
-        follower: { childItemKey: string; instanceIndex: number };
+        members?: Array<{ childItemKey: string; instanceIndex: number }>;
+        host: { childItemKey: string; instanceIndex: number } | null;
+        follower: { childItemKey: string; instanceIndex: number } | null;
       } | null;
       canLock: boolean;
     };
