@@ -73,6 +73,10 @@ describe("Fair Stand items admin page", () => {
     expect(source).toContain("fairStandItemsSectionBodyParts");
     expect(source).toContain("fairStandItemsSectionVideoWall");
 
+    expect(source).toContain("FairStandItem3dPreview");
+    expect(source).toContain("fairStandItemsTabPreview3d");
+    expect(source).toContain('preview3d');
+
     // CRUD + archive/restore API surface preserved.
     expect(source).toContain("listFairStandAdminItemRecords");
     expect(source).toContain("createFairStandAdminItemRecord");

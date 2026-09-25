@@ -28,3 +28,47 @@ declare module "@fair-stand/catalogPreviewRenderer.js" {
     hostDocument?: Document,
   ): HTMLElement;
 }
+
+declare module "@fair-stand/itemAdminPreview.js" {
+  export function mountItemAdminPreview(
+    host: HTMLElement,
+    options?: Record<string, unknown>,
+  ): {
+    setState: (next: Record<string, unknown>) => void;
+    getParts: () => Array<Record<string, unknown>>;
+    setSelectedEuler: (next: {
+      rotationXDeg?: number;
+      rotationYDeg?: number;
+      rotationZDeg?: number;
+    }) => boolean;
+    setSnapMode: (enabled: boolean) => boolean;
+    getSnapMode: () => boolean;
+    dispose: () => void;
+  };
+  export function envelopeFromForm(input: Record<string, unknown>): Record<string, unknown> | null;
+  export function partFromChildRecord(
+    child: Record<string, unknown>,
+    instanceIndex: number,
+    pose?: Record<string, unknown>,
+  ): Record<string, unknown>;
+}
+
+declare module "@fair-stand/itemAssembly.js" {
+  export function mergeAssemblyPoses(
+    bomParts: Array<Record<string, unknown>>,
+    savedParts: Array<Record<string, unknown>>,
+  ): Array<Record<string, unknown>>;
+  export function normalizeAssemblyPartsPayload(
+    parts: unknown,
+  ): Array<{
+    childItemKey: string;
+    instanceIndex: number;
+    xCm: number;
+    yCm: number;
+    zCm: number;
+    rotationXDeg: number;
+    rotationYDeg: number;
+    rotationZDeg: number;
+  }>;
+}
+

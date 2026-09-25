@@ -21,6 +21,7 @@ import {
 } from "../api/fairStandAdmin";
 import { FairStandCatalogPreviewSelect } from "../components/FairStandCatalogPreviewSelect";
 import { FairStandCatalogLivePreview } from "../components/fairStand/FairStandCatalogLivePreview";
+import { FairStandItem3dPreview } from "../components/fairStand/FairStandItem3dPreview";
 import { FairStandItemEntitySelect } from "../components/FairStandItemEntitySelect";
 import { Badge } from "../components/ui/Badge";
 import { Banner } from "../components/ui/Banner";
@@ -539,7 +540,7 @@ function takeItemsFlash(): string | null {
   return message;
 }
 
-type DetailTabId = "general" | "dimensions" | "components" | "assets";
+type DetailTabId = "general" | "dimensions" | "components" | "assets" | "preview3d";
 
 export function FairStandItemsAdminPage() {
   const [pathname, setPathname] = React.useState(() =>
@@ -1075,6 +1076,9 @@ function ItemsEditPage({
   const canUpdate = granted.has(FAIR_STAND_ITEMS_UPDATE);
   const [form, setForm] = React.useState<EditForm | null>(null);
   const [baseline, setBaseline] = React.useState<EditForm | null>(null);
+  const [assemblyParts, setAssemblyParts] = React.useState<
+    import("../api/fairStandAdmin").FairStandAdminItemAssemblyPart[]
+  >([]);
   const [title, setTitle] = React.useState(itemKey);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
@@ -1096,6 +1100,7 @@ function ItemsEditPage({
         const next = detailToForm(record);
         setForm(next);
         setBaseline(next);
+        setAssemblyParts(record.assemblyParts ?? []);
         setTitle(record.name);
         setCatalogItems(nextCatalogItems);
         if (listResponse?.filterOptions) {
@@ -1181,6 +1186,7 @@ function ItemsEditPage({
           title={title}
           form={form}
           baseline={baseline}
+          assemblyParts={assemblyParts}
           fieldOptions={fieldOptions}
           catalogItems={catalogItems}
           saving={saving}
@@ -1845,6 +1851,7 @@ function ItemEditView({
   title,
   form,
   baseline,
+  assemblyParts = [],
   fieldOptions,
   catalogItems,
   saving,
@@ -1856,6 +1863,7 @@ function ItemEditView({
   title: string;
   form: EditForm;
   baseline: EditForm;
+  assemblyParts?: import("../api/fairStandAdmin").FairStandAdminItemAssemblyPart[];
   fieldOptions: FairStandAdminItemFieldOptions;
   catalogItems: FairStandAdminItem[];
   saving: boolean;
@@ -2136,6 +2144,7 @@ function ItemEditView({
       label: adminLabels.fairStandItemsTabAssets,
       badge: assetCount > 0 ? assetCount : undefined,
     },
+    { id: "preview3d" as const, label: adminLabels.fairStandItemsTabPreview3d },
   ];
 
   return (
@@ -2942,6 +2951,22 @@ function ItemEditView({
             >
               {adminLabels.fairStandItemsAddAsset}
             </Button>
+          </Card>
+        </TabPanel>
+
+        <TabPanel
+          id="panel-edit-preview3d"
+          labelledBy="tab-preview3d"
+          active={activeTab === "preview3d"}
+        >
+          <Card>
+            <h3 className="form-section-title">{adminLabels.fairStandItemsTabPreview3d}</h3>
+            <FairStandItem3dPreview
+              itemKey={itemKey}
+              form={form}
+              initialAssemblyParts={assemblyParts}
+              canSaveAssembly={!saving}
+            />
           </Card>
         </TabPanel>
 
