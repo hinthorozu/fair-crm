@@ -8,6 +8,7 @@ import { mergeAssemblyPoses, normalizeAssemblyPartsPayload } from "@fair-stand/i
 import { getFairStandAdminItemRecord, updateFairStandAdminItemAssembly } from "../../api/fairStandAdmin";
 import { Banner } from "../ui/Banner";
 import { Button } from "../ui/Button";
+import { TextInput } from "../ui/form";
 import { adminLabels } from "../../labels/adminLabels";
 
 export type AssemblyPartPose = {
@@ -495,9 +496,10 @@ export function FairStandItem3dPreview({
             </p>
             <div className="fair-stand-item-3d-preview__angles" aria-label="Euler açıları">
               {angleFields.map((field) => (
-                <label key={field.axis} className={`fair-stand-item-3d-preview__angle ${field.className}`}>
+                <label key={field.axis} className={`fair-stand-item-3d-preview__angle ${field.className}`} htmlFor={`fs-3d-euler-${field.axis}`}>
                   <span>{field.label}</span>
-                  <input
+                  <TextInput
+                    id={`fs-3d-euler-${field.axis}`}
                     type="number"
                     step="1"
                     inputMode="decimal"
