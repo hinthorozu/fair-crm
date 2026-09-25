@@ -732,6 +732,7 @@ export const adminLabels = {
   fairStandSettingsColMaxUpload: "Yükleme tavanı (MB)",
   fairStandSettingsColExportVisible: "Dışarı Aktar",
   fairStandSettingsColImportVisible: "İçe Aktar",
+  fairStandSettingsColSaveAsVisible: "Farklı Kaydet",
   fairStandSettingsColActions: "İşlemler",
   fairStandSettingsActionEdit: "Düzenle",
   fairStandSettingsVisibleYes: "Görünür",
@@ -764,6 +765,9 @@ export const adminLabels = {
   fairStandSettingsFieldImportVisible: "İçe Aktar butonu görünür",
   fairStandSettingsFieldImportVisibleHint:
     "Fair Stand arayüzünde İçe Aktar butonunu gösterir veya gizler. Güvenlik kilidi değildir.",
+  fairStandSettingsFieldSaveAsVisible: "Farklı Kaydet butonu görünür",
+  fairStandSettingsFieldSaveAsVisibleHint:
+    "Fair Stand arayüzünde Farklı Kaydet butonunu gösterir veya gizler. Mevcut projeyi yeni UUID ve görsel klasörüyle kopyalar.",
   fairStandSettingsCancel: "Vazgeç",
   fairStandSettingsSave: "Kaydet",
   fairStandSettingsDimensionsSaveSuccess: "Stand zarfı kaydedildi.",

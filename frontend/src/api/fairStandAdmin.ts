@@ -113,6 +113,7 @@ export type FairStandAdminRuntimeSettings = {
   maxImageUploadMb: number;
   exportButtonVisible: boolean;
   importButtonVisible: boolean;
+  saveAsButtonVisible: boolean;
 };
 
 export type FairStandAdminSettingsBundle = {
@@ -139,6 +140,7 @@ export const updateFairStandAdminRuntimeSettings = (payload: {
   max_image_upload_mb: number;
   export_button_visible: boolean;
   import_button_visible: boolean;
+  save_as_button_visible: boolean;
 }) =>
   apiRequest<FairStandAdminRuntimeSettings>(`${base}/runtime-settings`, {
     method: "PUT",

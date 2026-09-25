@@ -44,6 +44,7 @@ type SettingsForm = {
   max_image_upload_mb: string;
   export_button_visible: boolean;
   import_button_visible: boolean;
+  save_as_button_visible: boolean;
 };
 
 type DimensionsRow = FairStandAdminStandDimensions & { id: 1 };
@@ -73,6 +74,7 @@ function settingsToForm(row: FairStandAdminRuntimeSettings): SettingsForm {
     max_image_upload_mb: String(row.maxImageUploadMb),
     export_button_visible: row.exportButtonVisible,
     import_button_visible: row.importButtonVisible,
+    save_as_button_visible: row.saveAsButtonVisible,
   };
 }
 
@@ -200,6 +202,7 @@ export function FairStandSettingsAdminPage() {
         ),
         export_button_visible: settingsForm.export_button_visible,
         import_button_visible: settingsForm.import_button_visible,
+        save_as_button_visible: settingsForm.save_as_button_visible,
       });
       setSettings({ id: 1, ...updated });
       setSettingsForm(null);
@@ -279,6 +282,12 @@ export function FairStandSettingsAdminPage() {
       title: adminLabels.fairStandSettingsColImportVisible,
       sortable: false,
       render: (row) => visibleLabel(row.importButtonVisible),
+    },
+    {
+      key: "saveAsVisible",
+      title: adminLabels.fairStandSettingsColSaveAsVisible,
+      sortable: false,
+      render: (row) => visibleLabel(row.saveAsButtonVisible),
     },
     {
       key: "actions",
@@ -543,6 +552,16 @@ export function FairStandSettingsAdminPage() {
                 disabled={savingSettings}
                 onChange={(checked) =>
                   setSettingsForm({ ...settingsForm, import_button_visible: checked })
+                }
+              />
+              <CheckboxField
+                id="fs-save-as-visible"
+                label={adminLabels.fairStandSettingsFieldSaveAsVisible}
+                hint={adminLabels.fairStandSettingsFieldSaveAsVisibleHint}
+                checked={settingsForm.save_as_button_visible}
+                disabled={savingSettings}
+                onChange={(checked) =>
+                  setSettingsForm({ ...settingsForm, save_as_button_visible: checked })
                 }
               />
             </FormSection>
