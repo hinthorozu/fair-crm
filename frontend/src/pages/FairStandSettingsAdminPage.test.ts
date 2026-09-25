@@ -30,6 +30,7 @@ describe("Fair Stand settings admin page", () => {
     expect(source).not.toContain("fairStandSettingsFieldStripCountHint");
     expect(source).toContain("fairStandSettingsFieldMaxUploadHint");
     expect(source).toContain("fairStandSettingsFieldExportVisibleHint");
+    expect(source).toContain("fairStandSettingsFieldSaveAsVisibleHint");
     expect(source).toContain("FAIR_STAND_SETTINGS_READ");
     expect(source).toContain("FAIR_STAND_SETTINGS_UPDATE");
     expect(source).not.toContain("createFairStand");
