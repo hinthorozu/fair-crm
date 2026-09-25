@@ -213,6 +213,18 @@ export type FairStandAdminItemVideoWall = {
   panelItemKey: string;
 };
 
+export type FairStandAdminItemAssemblyPart = {
+  id?: string;
+  childItemKey: string;
+  instanceIndex: number;
+  xCm: number;
+  yCm: number;
+  zCm: number;
+  rotationXDeg: number;
+  rotationYDeg: number;
+  rotationZDeg: number;
+};
+
 export type FairStandAdminItemRecord = {
   itemKey: string;
   name: string;
@@ -254,6 +266,7 @@ export type FairStandAdminItemRecord = {
   stripOccupancy: FairStandAdminItemStripOccupancy | null;
   assets: FairStandAdminItemAsset[];
   components: FairStandAdminItemComponent[];
+  assemblyParts: FairStandAdminItemAssemblyPart[];
   bodyParts: FairStandAdminItemBodyPart[];
   videoWall: FairStandAdminItemVideoWall | null;
 };
@@ -400,6 +413,29 @@ export const updateFairStandAdminItemRecord = (itemKey: string, payload: Record<
     method: "PUT",
     body: JSON.stringify(payload),
   });
+
+export const updateFairStandAdminItemAssembly = (
+  itemKey: string,
+  payload: {
+    parts: Array<{
+      child_item_key: string;
+      instance_index: number;
+      x_cm: number;
+      y_cm: number;
+      z_cm: number;
+      rotation_x_deg: number;
+      rotation_y_deg: number;
+      rotation_z_deg: number;
+    }>;
+  },
+) =>
+  apiRequest<FairStandAdminItemRecord>(
+    `${base}/item-records/${encodeURIComponent(itemKey)}/assembly`,
+    {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    },
+  );
 
 export const archiveFairStandAdminItemRecord = (itemKey: string) =>
   apiRequest<FairStandAdminItemRecord>(`${base}/item-records/${encodeURIComponent(itemKey)}/archive`, {
