@@ -2650,7 +2650,7 @@ function ItemEditView({
                 htmlFor="fs-edit-default-opacity"
                 hint={adminLabels.fairStandItemsFieldDefaultOpacityHint}
               >
-                <input
+                <TextInput
                   id="fs-edit-default-opacity"
                   type="number"
                   min={0}
