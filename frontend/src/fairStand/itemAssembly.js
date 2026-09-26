@@ -38,6 +38,11 @@ export function mergeAssemblyPoses(bomParts, savedParts) {
   });
 }
 
+/** Standalone stub: no live catalog expand; return saved poses only. */
+export function buildLiveAssemblyParts(_parentItem, savedParts, _getItemFn) {
+  return normalizeAssemblyPartsPayload(savedParts);
+}
+
 export function normalizeAssemblyPartsPayload(parts) {
   if (!Array.isArray(parts)) return [];
   return parts
