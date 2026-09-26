@@ -14,8 +14,12 @@
     "frontend/src/labels/permissionLabels.ts",
     "frontend/src/pages/RoleManagementPage.tsx",
     "frontend/src/pages/RoleManagementPage.test.ts",
+    "frontend/src/pages/StandProjectsPage.tsx",
+    "frontend/src/pages/StandProjectsPage.test.ts",
+    "frontend/src/api/fairStandProjects.ts",
     "scripts/fair_crm_role_matrix.py",
-    ".kyrox/features/fair-stand-projects-sot.json"
+    ".kyrox/features/fair-stand-projects-sot.json",
+    ".kyrox/features/fair-stand-stand-projects-list.json"
   ],
   "permissions": {
     "required": true,
@@ -30,7 +34,7 @@
   },
   "frontend": {
     "required": true,
-    "routes": ["/fair-stand"],
+    "routes": ["/stand-projects", "/stand-projects/new", "/stand-projects/:id"],
     "menu": true,
     "menu_permission": "fair_crm.fair_stand.projects.read"
   },

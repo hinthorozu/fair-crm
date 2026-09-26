@@ -13,6 +13,10 @@
     "frontend/src/pages/FairStandPage.test.ts",
     "frontend/src/pages/FairStandCatalogProxy.test.ts",
     "frontend/src/pages/FairStandStandaloneRoute.test.ts",
+    "frontend/src/pages/StandProjectsPage.tsx",
+    "frontend/src/pages/StandProjectsPage.test.ts",
+    "frontend/src/api/fairStandProjects.ts",
+    "frontend/src/labels/standProjectsLabels.ts",
     "frontend/src/App.tsx",
     "frontend/src/components/layout/NavIcons.tsx",
     "frontend/src/components/layout/NavLink.tsx",
@@ -26,6 +30,7 @@
     "frontend/src/utils/documentTitle.test.ts",
     "frontend/src/vite-env.d.ts",
     "frontend/vite.config.ts",
+    "frontend/scripts/capture-ui-evidence.mjs",
     "scripts/server/nginx/fair-crm.conf",
     "frontend/package.json",
     "frontend/package-lock.json",
@@ -35,38 +40,45 @@
     "scripts/server/deploy-all.sh",
     "scripts/server/check-server.sh",
     "scripts/server/lib/common.sh",
-    ".kyrox/features/fair-stand-shell-route.json"
+    ".kyrox/features/fair-stand-shell-route.json",
+    ".kyrox/features/fair-stand-stand-projects-list.json"
   ],
   "permissions": {
-    "required": false,
-    "reason": "The Fair Stand shell is available to any authenticated CRM session, matching Dashboard; Fair Stand product authorization remains in the Fair Stand runtime, not a new Fair CRM permission code.",
-    "items": []
+    "required": true,
+    "reason": "Standlar nav and configurator routes require fair_crm.fair_stand.projects.* codes.",
+    "items": [
+      { "code": "fair_crm.fair_stand.projects.read", "action": "read", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.projects.create", "action": "create", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.projects.update", "action": "update", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.projects.delete", "action": "delete", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.projects.execute", "action": "execute", "scope": "organization", "assignable": true }
+    ]
   },
   "frontend": {
     "required": true,
-    "routes": ["/fair-stand"],
-    "menu": false,
-    "menu_permission": null
+    "routes": ["/stand-projects", "/stand-projects/new", "/stand-projects/:id"],
+    "menu": true,
+    "menu_permission": "fair_crm.fair_stand.projects.read"
   },
   "applicability": {
-    "database": { "status": "na", "reason": "No Fair CRM persistence is added." },
-    "migration": { "status": "na", "reason": "No schema or permission-catalog migration." },
-    "permissions": { "status": "na", "reason": "No new Fair CRM permission code; the route is session-authenticated like Dashboard." },
-    "backend": { "status": "na", "reason": "No Fair CRM backend module is added." },
-    "api": { "status": "na", "reason": "Shell still bootstraps via same-origin /api/v1/fair-stand/catalog/bootstrap; CRM process does not host that route." },
-    "tenant_isolation": { "status": "na", "reason": "The shell does not query tenant-scoped Fair CRM data." },
+    "database": { "status": "na", "reason": "No Fair CRM persistence is added for the shell mount." },
+    "migration": { "status": "na", "reason": "No schema or permission-catalog migration in this shell contract." },
+    "permissions": { "status": "required", "reason": "Shell/editor routes require Fair Stand projects permissions; list uses read." },
+    "backend": { "status": "na", "reason": "No Fair CRM backend module is added for the shell." },
+    "api": { "status": "na", "reason": "Shell bootstraps via same-origin /api/v1/fair-stand proxy; CRM process does not host Stand routes." },
+    "tenant_isolation": { "status": "required", "reason": "Project open/save is org-scoped via Stand API headers." },
     "audit": { "status": "na", "reason": "No Fair CRM audit stream is added." },
     "frontend": { "status": "required" },
-    "ui_permissions": { "status": "na", "reason": "The shell is available to any authenticated CRM user; no product RBAC control is introduced." },
-    "menu": { "status": "na", "reason": "The nav entry is session-authenticated like Dashboard and is not permission-gated; frontend.menu stays false because no menu_permission code exists." },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "required" },
     "route_guard": { "status": "required" },
     "forms": { "status": "na", "reason": "The shell has no Fair CRM form surface." },
     "visual_qa": { "status": "required" },
-    "backend_tests": { "status": "na", "reason": "No backend production code is in scope." },
+    "backend_tests": { "status": "na", "reason": "No backend production code is in this shell contract." },
     "frontend_tests": { "status": "required" },
-    "runtime_authorization": { "status": "na", "reason": "No new Fair CRM permission is enforced; authenticated session access matches Dashboard." },
+    "runtime_authorization": { "status": "required" },
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "CRM mounts Fair Stand into a host div via @fair-stand/mountFairStand.js when the sibling repo is present. GitHub Actions checks out only fair-crm, so Vite falls back to frontend/src/fairStand/mountFairStand.js. Isolation iframe inside mountFairStand is Fair Stand runtime, not a second admin product. Catalog bootstrap uses CRM session headers against the Stand API proxy."
+  "notes": "Legacy /fair-stand redirects to /stand-projects. Configurator mounts at /stand-projects/new and /stand-projects/:id with capability flags. List/page permissions live in fair-stand-stand-projects-list.json."
 }
