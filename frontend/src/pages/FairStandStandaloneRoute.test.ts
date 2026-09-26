@@ -23,7 +23,7 @@ describe("Stand projects CRM routes", () => {
       app.indexOf("<AppLayout breadcrumbs={breadcrumbs} navItems={navItems}"),
     );
     expect(app).toContain('path: "/stand-projects"');
-    expect(app).not.toContain("openInNewTab: true");
+    expect(app).toContain("openInNewTab: true");
     expect(app).toContain('pathname === "/fair-stand"');
   });
 
