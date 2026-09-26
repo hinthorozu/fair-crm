@@ -25,13 +25,14 @@ FAIR_CRM_COUNT_TABLES: tuple[str, ...] = (
     "crm_contacts",
 )
 
+# identity_memberships was removed in Core 20260817_0057 (direct organization_id ownership).
 KYROX_CORE_CRITICAL_TABLES: tuple[str, ...] = (
     "alembic_version",
     "identity_users",
     "identity_organizations",
     "identity_roles",
     "identity_permissions",
-    "identity_memberships",
+    "identity_user_roles",
 )
 
 KYROX_CORE_COUNT_TABLES: tuple[str, ...] = (
@@ -39,7 +40,7 @@ KYROX_CORE_COUNT_TABLES: tuple[str, ...] = (
     "identity_organizations",
     "identity_roles",
     "identity_permissions",
-    "identity_memberships",
+    "identity_user_roles",
 )
 
 FAIR_STAND_CRITICAL_TABLES: tuple[str, ...] = (
@@ -68,7 +69,8 @@ class PostRestoreHealthResult:
     organizations_count: int | None = None
     roles_count: int | None = None
     permissions_count: int | None = None
-    memberships_count: int | None = None
+    user_roles_count: int | None = None
+    memberships_count: int | None = None  # legacy alias; unused after memberships removal
     categories_count: int | None = None
     preview_kinds_count: int | None = None
     items_count: int | None = None
@@ -86,7 +88,7 @@ class PostRestoreHealthResult:
                 f"- organizations: {self.organizations_count}\n"
                 f"- roles: {self.roles_count}\n"
                 f"- permissions: {self.permissions_count}\n"
-                f"- memberships: {self.memberships_count}"
+                f"- user_roles: {self.user_roles_count}"
             )
         if self.database_key == DatabaseKey.FAIR_STAND.value:
             return (
@@ -124,7 +126,7 @@ class PostRestoreHealthResult:
                     f"organizations count: {self.organizations_count}",
                     f"roles count: {self.roles_count}",
                     f"permissions count: {self.permissions_count}",
-                    f"memberships count: {self.memberships_count}",
+                    f"user_roles count: {self.user_roles_count}",
                 ]
             )
         elif self.database_key == DatabaseKey.FAIR_STAND.value:
@@ -226,7 +228,7 @@ def run_post_restore_health_check(
                 organizations_count=counts["identity_organizations"],
                 roles_count=counts["identity_roles"],
                 permissions_count=counts["identity_permissions"],
-                memberships_count=counts["identity_memberships"],
+                user_roles_count=counts["identity_user_roles"],
             )
         if key == DatabaseKey.FAIR_STAND:
             return PostRestoreHealthResult(

@@ -77,7 +77,7 @@ def test_post_restore_health_requires_schema_upgrade_for_every_database(database
         "identity_organizations": 1,
         "identity_roles": 1,
         "identity_permissions": 1,
-        "identity_memberships": 1,
+        "identity_user_roles": 1,
         "fair_stand_categories": 1,
         "fair_stand_catalog_preview_kinds": 1,
         "fair_stand_items": 1,
@@ -122,7 +122,7 @@ def test_post_restore_health_check_kyrox_core_success():
         "identity_organizations": 2,
         "identity_roles": 3,
         "identity_permissions": 10,
-        "identity_memberships": 7,
+        "identity_user_roles": 7,
     }
     engine = _mock_engine(counts=counts)
     result = run_post_restore_health_check(
@@ -136,7 +136,9 @@ def test_post_restore_health_check_kyrox_core_success():
     assert result.database_key == "kyrox_core"
     assert result.users_count == 5
     assert result.roles_count == 3
+    assert result.user_roles_count == 7
     assert "users: 5" in result.summary_text()
+    assert "user_roles: 7" in result.summary_text()
 
 
 def test_post_restore_health_check_fair_stand_success():
