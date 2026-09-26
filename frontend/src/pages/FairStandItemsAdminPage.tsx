@@ -96,6 +96,7 @@ type EditForm = {
   snap_provides_rule_id: string;
   default_z_cm: string;
   default_color: string;
+  default_opacity: string;
   eye_count: string;
   model_rotation_y_deg: string;
   visual_rotation_y_deg: string;
@@ -400,6 +401,7 @@ function detailToForm(detail: FairStandAdminItemRecord): EditForm {
     snap_provides_rule_id: str(detail.snapProvidesRuleId),
     default_z_cm: str(detail.defaultZCm),
     default_color: str(detail.defaultColor),
+    default_opacity: str(detail.defaultOpacity ?? 1),
     eye_count: str(detail.eyeCount),
     model_rotation_y_deg: str(detail.modelRotationYDeg),
     visual_rotation_y_deg: str(detail.visualRotationYDeg),
@@ -534,6 +536,7 @@ function buildUpdatePayload(form: EditForm, catalogIndexMax?: number): Record<st
     snap_provides_rule_id: optionalInt(form.snap_provides_rule_id),
     default_z_cm: optionalNumber(form.default_z_cm) ?? 0,
     default_color: optionalInt(form.default_color),
+    default_opacity: optionalNumber(form.default_opacity) ?? 1,
     eye_count: optionalInt(form.eye_count),
     model_rotation_y_deg: optionalNumber(form.model_rotation_y_deg),
     visual_rotation_y_deg: optionalNumber(form.visual_rotation_y_deg),
@@ -2640,6 +2643,22 @@ function ItemEditView({
                   value={form.default_color}
                   disabled={saving}
                   onChange={(default_color) => patch("default_color", default_color)}
+                />
+              </FormField>
+              <FormField
+                label={adminLabels.fairStandItemsFieldDefaultOpacity}
+                htmlFor="fs-edit-default-opacity"
+                hint={adminLabels.fairStandItemsFieldDefaultOpacityHint}
+              >
+                <TextInput
+                  id="fs-edit-default-opacity"
+                  type="number"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={form.default_opacity}
+                  disabled={saving}
+                  onChange={(event) => patch("default_opacity", event.target.value)}
                 />
               </FormField>
               <FormField

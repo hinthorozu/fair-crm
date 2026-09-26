@@ -238,6 +238,7 @@ export type FairStandAdminItemRecord = {
   previewId: number | null;
   material: string | null;
   defaultColor: number | null;
+  defaultOpacity: number | null;
   preserveModelScale: boolean | null;
   modelRotationYDeg: number | null;
   visualRotationYDeg: number | null;
