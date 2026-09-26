@@ -1,5 +1,5 @@
 import React from "react";
-import { DataTable, type DataTableColumn } from "./DataTable";
+import { DataTable, type DataTableColumn, type DataTableRowReorderConfig } from "./DataTable";
 import type { SortDirection } from "../../types/listTable";
 import { uiLabels } from "../../labels/uiLabels";
 import { IconButton } from "./IconButton";
@@ -38,6 +38,7 @@ interface WidthResponsiveDataTableProps<T> {
   onRetry?: () => void;
   emptyState?: React.ReactNode;
   className?: string;
+  rowReorder?: DataTableRowReorderConfig;
 }
 
 const EXPAND_COL_ID = "__expand";
@@ -101,6 +102,7 @@ export function WidthResponsiveDataTable<T>({
   onRetry,
   emptyState,
   className = "",
+  rowReorder,
 }: WidthResponsiveDataTableProps<T>) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const measureTableRef = React.useRef<HTMLTableElement>(null);
@@ -328,6 +330,7 @@ export function WidthResponsiveDataTable<T>({
         className={`table-wrap--width-responsive ${className}`.trim()}
         rowClassName={() => "data-table-main-row"}
         renderAfterRow={hasChildContent ? renderAfterRow : undefined}
+        rowReorder={rowReorder}
       />
     </div>
   );

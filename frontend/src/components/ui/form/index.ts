@@ -17,6 +17,7 @@ export {
 } from "./FormDirty";
 export {
   TextInput,
+  ColorInput,
   PasswordInput,
   SelectInput,
   TextareaInput,

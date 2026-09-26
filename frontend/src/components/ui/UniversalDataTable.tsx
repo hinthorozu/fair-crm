@@ -8,6 +8,7 @@ import { TableSkeleton } from "./LoadingState";
 import type { ServerDataTableRowSelectionController } from "../../hooks/useServerDataTableRowSelection";
 import type { ServerDataTableController } from "../../hooks/useServerDataTable";
 import type { SortDirection } from "../../types/listTable";
+import type { DataTableRowReorderConfig } from "./DataTable";
 import { buildUniversalDataTableSelectionColumn } from "./UniversalDataTableSelection";
 
 /** @deprecated Prefer column order for priority. Keep `"technical"` for detail-only fields. */
@@ -57,6 +58,8 @@ interface UniversalDataTableStandaloneProps<T> extends UniversalDataTableBasePro
   onRetry?: () => void;
   /** Optional filter / search toolbar above the table. */
   toolbar?: React.ReactNode;
+  /** Optional HTML5 row drag-and-drop reorder. */
+  rowReorder?: DataTableRowReorderConfig;
   table?: never;
   skeletonCols?: never;
   showPagination?: never;
@@ -194,7 +197,7 @@ export function UniversalDataTable<T>(props: UniversalDataTableProps<T>) {
     );
   }
 
-  const { items, sorting, onSortChange, loading, error, onRetry, toolbar } = props;
+  const { items, sorting, onSortChange, loading, error, onRetry, toolbar, rowReorder } = props;
   const skeletonCols = Math.max(columns.length, 4);
 
   if (loading && items.length === 0) {
@@ -249,6 +252,7 @@ export function UniversalDataTable<T>(props: UniversalDataTableProps<T>) {
           onRetry={onRetry}
           emptyState={emptyState}
           className={className}
+          rowReorder={rowReorder}
         />
       </div>
     </div>

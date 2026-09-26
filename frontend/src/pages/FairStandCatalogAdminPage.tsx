@@ -37,6 +37,7 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { adminLabels } from "../labels/adminLabels";
+import type { SortDirection } from "../types/listTable";
 import {
   FAIR_STAND_CATALOG_ARCHIVE,
   FAIR_STAND_CATALOG_CREATE,
@@ -47,6 +48,7 @@ import {
 import {
   categorySaveErrorMessage,
   categoryWritePayload,
+  moveItemInList,
   nextCatalogIndex,
 } from "../utils/fairStandCategoryAdmin";
 
@@ -58,7 +60,19 @@ type ItemForm = {
   preview_id: string;
 };
 
+type ItemSortField = "item" | "visible" | "category" | "index" | "preview";
+
 const emptyCategory: CategoryForm = { catalog_name: "", catalog_index: "1", is_active: true };
+
+function compareLocale(left: string, right: string): number {
+  return left.localeCompare(right, "tr", { sensitivity: "base", numeric: true });
+}
+
+function compareNullableNumber(left: number | null | undefined, right: number | null | undefined): number {
+  const a = left == null || !Number.isFinite(left) ? Number.POSITIVE_INFINITY : left;
+  const b = right == null || !Number.isFinite(right) ? Number.POSITIVE_INFINITY : right;
+  return a - b;
+}
 
 function matchesCategorySearch(row: FairStandAdminCategory, search: string): boolean {
   const q = search.trim().toLocaleLowerCase("tr-TR");
@@ -121,15 +135,21 @@ export function FairStandCatalogAdminPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [categorySearch, setCategorySearch] = React.useState("");
   const [itemSearch, setItemSearch] = React.useState("");
+  const [itemCategoryFilter, setItemCategoryFilter] = React.useState<string>("all");
+  const [itemSorting, setItemSorting] = React.useState<{
+    field: ItemSortField;
+    direction: SortDirection;
+  }>({ field: "index", direction: "asc" });
   const [categoryForm, setCategoryForm] = React.useState<CategoryForm | null>(null);
   const [categoryEditing, setCategoryEditing] = React.useState<FairStandAdminCategory | null>(null);
   const [categoryFormError, setCategoryFormError] = React.useState<string | null>(null);
   const [itemEditing, setItemEditing] = React.useState<FairStandAdminItem | null>(null);
   const [itemForm, setItemForm] = React.useState<ItemForm | null>(null);
   const [archiveTarget, setArchiveTarget] = React.useState<FairStandAdminCategory | null>(null);
+  const [itemReordering, setItemReordering] = React.useState(false);
 
-  const load = React.useCallback(async () => {
-    setLoading(true);
+  const load = React.useCallback(async (options?: { quiet?: boolean }) => {
+    if (!options?.quiet) setLoading(true);
     setError(null);
     try {
       const [nextCategories, nextItems, nextPreviews] = await Promise.all([
@@ -143,7 +163,7 @@ export function FairStandCatalogAdminPage() {
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : adminLabels.fairStandCatalogLoadError);
     } finally {
-      setLoading(false);
+      if (!options?.quiet) setLoading(false);
     }
   }, []);
 
@@ -204,15 +224,139 @@ export function FairStandCatalogAdminPage() {
   );
   const filteredItems = React.useMemo(
     () =>
-      items.filter((row) =>
-        matchesItemSearch(
+      items.filter((row) => {
+        if (!row.catalogVisible) return false;
+        if (itemCategoryFilter !== "all") {
+          const selectedId = Number(itemCategoryFilter);
+          if (!Number.isFinite(selectedId) || row.categoryId !== selectedId) return false;
+        }
+        return matchesItemSearch(
           row,
           itemSearch,
           row.categoryId == null ? undefined : categoryNameById.get(row.categoryId),
           row.previewId == null ? undefined : previewNameById.get(row.previewId),
-        ),
-      ),
-    [items, itemSearch, categoryNameById, previewNameById],
+        );
+      }),
+    [items, itemSearch, itemCategoryFilter, categoryNameById, previewNameById],
+  );
+
+  const sortedItems = React.useMemo(() => {
+    const rows = [...filteredItems];
+    rows.sort((left, right) => {
+      let result = 0;
+      switch (itemSorting.field) {
+        case "item":
+          result = compareLocale(`${left.name} ${left.itemKey}`, `${right.name} ${right.itemKey}`);
+          break;
+        case "visible":
+          result = Number(left.catalogVisible) - Number(right.catalogVisible);
+          break;
+        case "category": {
+          const leftName =
+            left.categoryId == null
+              ? ""
+              : (categoryNameById.get(left.categoryId) ?? String(left.categoryId));
+          const rightName =
+            right.categoryId == null
+              ? ""
+              : (categoryNameById.get(right.categoryId) ?? String(right.categoryId));
+          result = compareLocale(leftName, rightName);
+          break;
+        }
+        case "index":
+          result = compareNullableNumber(left.catalogItemIndex, right.catalogItemIndex);
+          break;
+        case "preview": {
+          const leftName =
+            left.previewId == null
+              ? ""
+              : (previewNameById.get(left.previewId) ?? String(left.previewId));
+          const rightName =
+            right.previewId == null
+              ? ""
+              : (previewNameById.get(right.previewId) ?? String(right.previewId));
+          result = compareLocale(leftName, rightName);
+          break;
+        }
+        default:
+          result = 0;
+      }
+      if (result === 0) result = compareLocale(left.itemKey, right.itemKey);
+      return itemSorting.direction === "asc" ? result : -result;
+    });
+    return rows;
+  }, [filteredItems, itemSorting, categoryNameById, previewNameById]);
+
+  const changeItemSort = React.useCallback((field: string) => {
+    const nextField = field as ItemSortField;
+    setItemSorting((current) =>
+      current.field === nextField
+        ? { field: nextField, direction: current.direction === "asc" ? "desc" : "asc" }
+        : { field: nextField, direction: "asc" },
+    );
+  }, []);
+
+  const itemReorderEnabled =
+    canUpdate && itemCategoryFilter !== "all" && itemSearch.trim() === "";
+
+  const displayItems = React.useMemo(() => {
+    if (!itemReorderEnabled) return sortedItems;
+    const rows = [...filteredItems];
+    rows.sort((left, right) => {
+      const byIndex = compareNullableNumber(left.catalogItemIndex, right.catalogItemIndex);
+      if (byIndex !== 0) return byIndex;
+      return compareLocale(left.itemKey, right.itemKey);
+    });
+    return rows;
+  }, [itemReorderEnabled, sortedItems, filteredItems]);
+
+  const handleItemReorder = React.useCallback(
+    (fromIndex: number, toIndex: number) => {
+      if (fromIndex === toIndex || itemReordering || !itemReorderEnabled) return;
+      const moved = displayItems[fromIndex];
+      if (!moved || moved.categoryId == null) return;
+      const nextOrder = moveItemInList(displayItems, fromIndex, toIndex);
+      const catalogItemIndex = toIndex + 1;
+
+      setItemReordering(true);
+      setError(null);
+      setItems((previous) => {
+        const indexByKey = new Map(nextOrder.map((row, index) => [row.itemKey, index + 1]));
+        return previous.map((row) => {
+          const nextIndex = indexByKey.get(row.itemKey);
+          if (nextIndex == null) return row;
+          return { ...row, catalogItemIndex: nextIndex };
+        });
+      });
+
+      void (async () => {
+        try {
+          await updateFairStandAdminItem(moved.itemKey, {
+            catalog_item_index: catalogItemIndex,
+          });
+          await load({ quiet: true });
+        } catch (reorderError) {
+          setError(
+            reorderError instanceof Error
+              ? reorderError.message
+              : adminLabels.fairStandCatalogItemReorderError,
+          );
+          await load({ quiet: true });
+        } finally {
+          setItemReordering(false);
+        }
+      })();
+    },
+    [displayItems, itemReorderEnabled, itemReordering, load],
+  );
+
+  const itemCategoryOptions = React.useMemo(
+    () =>
+      categories
+        .filter((category) => category.isActive)
+        .slice()
+        .sort((a, b) => a.catalogIndex - b.catalogIndex || a.catalogName.localeCompare(b.catalogName, "tr")),
+    [categories],
   );
 
   const categoryColumns: UniversalDataTableColumn<FairStandAdminCategory>[] = [
@@ -280,16 +424,31 @@ export function FairStandCatalogAdminPage() {
   ];
 
   const itemColumns: UniversalDataTableColumn<FairStandAdminItem>[] = [
+    ...(itemReorderEnabled
+      ? [
+          {
+            key: "drag",
+            title: adminLabels.fairStandCatalogColDrag,
+            sortable: false,
+            className: "table-drag-col",
+            render: () => (
+              <span className="table-drag-handle" aria-hidden>
+                ⋮⋮
+              </span>
+            ),
+          } satisfies UniversalDataTableColumn<FairStandAdminItem>,
+        ]
+      : []),
     {
       key: "item",
       title: adminLabels.fairStandCatalogColItem,
-      sortable: false,
+      sortable: !itemReorderEnabled,
       render: (row) => `${row.name} (${row.itemKey})`,
     },
     {
       key: "visible",
       title: adminLabels.fairStandCatalogColVisible,
-      sortable: false,
+      sortable: !itemReorderEnabled,
       render: (row) => (
         <Badge variant={row.catalogVisible ? "success" : "neutral"}>
           {row.catalogVisible
@@ -301,7 +460,7 @@ export function FairStandCatalogAdminPage() {
     {
       key: "category",
       title: adminLabels.fairStandCatalogColCategory,
-      sortable: false,
+      sortable: !itemReorderEnabled,
       render: (row) =>
         row.categoryId == null
           ? adminLabels.fairStandCatalogNone
@@ -310,13 +469,13 @@ export function FairStandCatalogAdminPage() {
     {
       key: "index",
       title: adminLabels.fairStandCatalogColIndex,
-      sortable: false,
+      sortable: !itemReorderEnabled,
       render: (row) => String(row.catalogItemIndex ?? adminLabels.fairStandCatalogNone),
     },
     {
       key: "preview",
       title: adminLabels.fairStandCatalogColPreview,
-      sortable: false,
+      sortable: !itemReorderEnabled,
       render: (row) =>
         previewNameById.get(row.previewId ?? -1) ??
         (row.previewId == null ? adminLabels.fairStandCatalogNone : String(row.previewId)),
@@ -436,10 +595,30 @@ export function FairStandCatalogAdminPage() {
               title={adminLabels.fairStandCatalogItemSection}
               description={adminLabels.fairStandCatalogItemDescription}
             />
+            {canUpdate ? (
+              <Banner variant="info">
+                {itemReorderEnabled
+                  ? adminLabels.fairStandCatalogItemReorderActiveHint
+                  : itemCategoryFilter !== "all" && itemSearch.trim()
+                    ? adminLabels.fairStandCatalogItemReorderSearchHint
+                    : adminLabels.fairStandCatalogItemReorderHint}
+              </Banner>
+            ) : null}
             <UniversalDataTable
-              items={filteredItems}
+              items={displayItems}
               columns={itemColumns}
               rowKey={(row) => row.itemKey}
+              sorting={itemReorderEnabled ? { field: "index", direction: "asc" } : itemSorting}
+              onSortChange={itemReorderEnabled ? undefined : changeItemSort}
+              rowReorder={
+                itemReorderEnabled
+                  ? {
+                      enabled: true,
+                      disabled: itemReordering,
+                      onReorder: handleItemReorder,
+                    }
+                  : undefined
+              }
               toolbar={
                 <FilterPanel>
                   <FormField
@@ -453,12 +632,34 @@ export function FairStandCatalogAdminPage() {
                       onChange={(event) => setItemSearch(event.target.value)}
                     />
                   </FormField>
+                  <FormField
+                    label={adminLabels.fairStandCatalogItemFilterCategory}
+                    htmlFor="fs-catalog-item-category"
+                  >
+                    <SelectInput
+                      id="fs-catalog-item-category"
+                      value={itemCategoryFilter}
+                      onChange={(event) => {
+                        setItemCategoryFilter(event.target.value);
+                        if (event.target.value !== "all") {
+                          setItemSorting({ field: "index", direction: "asc" });
+                        }
+                      }}
+                    >
+                      <option value="all">{adminLabels.fairStandCatalogItemFilterCategoryAll}</option>
+                      {itemCategoryOptions.map((category) => (
+                        <option key={category.id} value={String(category.id)}>
+                          {category.catalogName}
+                        </option>
+                      ))}
+                    </SelectInput>
+                  </FormField>
                 </FilterPanel>
               }
               emptyState={
                 <EmptyState
                   title={adminLabels.fairStandCatalogItemEmptyTitle}
-                  description={adminLabels.fairStandCatalogItemEmptyDescription}
+                  description={adminLabels.fairStandCatalogItemEmptyVisibleDescription}
                 />
               }
             />

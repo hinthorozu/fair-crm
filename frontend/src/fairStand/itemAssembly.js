@@ -16,6 +16,9 @@ export function mergeAssemblyPoses(bomParts, savedParts) {
   return (Array.isArray(bomParts) ? bomParts : []).map((part) => {
     const saved = byKey.get(`${part.childItemKey}#${part.instanceIndex}`);
     if (!saved) return { ...part };
+    const lockRaw = saved.lockGroupId ?? saved.lock_group_id;
+    const lockGroupId =
+      Number.isInteger(Number(lockRaw)) && Number(lockRaw) >= 1 ? Number(lockRaw) : null;
     return {
       ...part,
       xCm: Number.isFinite(Number(saved.xCm)) ? Number(saved.xCm) : part.xCm,
@@ -30,6 +33,7 @@ export function mergeAssemblyPoses(bomParts, savedParts) {
       rotationZDeg: Number.isFinite(Number(saved.rotationZDeg))
         ? Number(saved.rotationZDeg)
         : part.rotationZDeg,
+      lockGroupId,
     };
   });
 }
@@ -43,6 +47,9 @@ export function normalizeAssemblyPartsPayload(parts) {
       if (!childItemKey) return null;
       const instanceIndex = Number(row.instanceIndex ?? row.instance_index);
       if (!Number.isInteger(instanceIndex) || instanceIndex < 0) return null;
+      const lockRaw = row.lockGroupId ?? row.lock_group_id;
+      const lockGroupId =
+        Number.isInteger(Number(lockRaw)) && Number(lockRaw) >= 1 ? Number(lockRaw) : null;
       return {
         childItemKey,
         instanceIndex,
@@ -52,6 +59,7 @@ export function normalizeAssemblyPartsPayload(parts) {
         rotationXDeg: Number(row.rotationXDeg ?? row.rotation_x_deg) || 0,
         rotationYDeg: Number(row.rotationYDeg ?? row.rotation_y_deg) || 0,
         rotationZDeg: Number(row.rotationZDeg ?? row.rotation_z_deg) || 0,
+        lockGroupId,
       };
     })
     .filter(Boolean);

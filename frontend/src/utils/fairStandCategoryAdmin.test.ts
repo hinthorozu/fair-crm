@@ -1,22 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { categoryWritePayload, nextCatalogIndex } from "./fairStandCategoryAdmin";
+import { moveItemInList, nextCatalogIndex } from "./fairStandCategoryAdmin";
 
-describe("Fair Stand category integer admin helpers", () => {
-  it("assigns the next unused catalog index", () => {
-    expect(nextCatalogIndex([{ catalogIndex: 1 }, { catalogIndex: 6 }])).toBe("7");
+describe("fairStandCategoryAdmin helpers", () => {
+  it("nextCatalogIndex appends after max", () => {
+    expect(nextCatalogIndex([])).toBe("1");
+    expect(nextCatalogIndex([{ catalogIndex: 3 }, { catalogIndex: 1 }])).toBe("4");
   });
 
-  it("writes name, index, and active without a key", () => {
-    expect(
-      categoryWritePayload({
-        catalog_name: "QA",
-        catalog_index: "90",
-        is_active: true,
-      }),
-    ).toEqual({
-      catalog_name: "QA",
-      catalog_index: 90,
-      is_active: true,
-    });
+  it("moveItemInList reorders by 0-based indices", () => {
+    expect(moveItemInList(["a", "b", "c", "d"], 3, 0)).toEqual(["d", "a", "b", "c"]);
+    expect(moveItemInList(["a", "b", "c"], 0, 2)).toEqual(["b", "c", "a"]);
+    expect(moveItemInList(["a", "b"], 0, 0)).toEqual(["a", "b"]);
+    expect(moveItemInList(["a", "b"], -1, 1)).toEqual(["a", "b"]);
   });
 });

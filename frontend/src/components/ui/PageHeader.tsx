@@ -6,6 +6,8 @@ export interface PageHeaderAction {
   id: string;
   label: string;
   onClick: () => void;
+  /** When set, render real `<a href>` so middle/right-click can open a new tab. */
+  href?: string;
   variant?: PageHeaderActionVariant;
   disabled?: boolean;
   loading?: boolean;
@@ -15,6 +17,8 @@ export interface PageHeaderAction {
 export interface PageHeaderBreadcrumb {
   label: string;
   onClick?: () => void;
+  /** When set, back link is a real `<a href>` (new-tab friendly). */
+  href?: string;
   current?: boolean;
 }
 
@@ -33,6 +37,17 @@ function actionButtonClass(variant: PageHeaderActionVariant = "secondary"): stri
   return "btn secondary";
 }
 
+function isPlainLeftClick(event: React.MouseEvent): boolean {
+  return (
+    !event.defaultPrevented &&
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
+}
+
 function isActionArray(actions: PageHeaderAction[] | React.ReactNode): actions is PageHeaderAction[] {
   return Array.isArray(actions);
 }
@@ -41,18 +56,40 @@ function renderActions(actions: PageHeaderAction[] | React.ReactNode | undefined
   if (!actions) return null;
   if (!isActionArray(actions)) return actions;
   if (actions.length === 0) return null;
-  return actions.map((action) => (
-    <button
-      key={action.id}
-      type="button"
-      className={actionButtonClass(action.variant)}
-      onClick={action.onClick}
-      disabled={action.disabled || action.loading}
-      title={action.title}
-    >
-      {action.loading ? "…" : action.label}
-    </button>
-  ));
+  return actions.map((action) => {
+    const className = actionButtonClass(action.variant);
+    const label = action.loading ? "…" : action.label;
+    const disabled = action.disabled || action.loading;
+    if (action.href && !disabled) {
+      return (
+        <a
+          key={action.id}
+          href={action.href}
+          className={className}
+          title={action.title}
+          onClick={(event) => {
+            if (!isPlainLeftClick(event)) return;
+            event.preventDefault();
+            action.onClick();
+          }}
+        >
+          {label}
+        </a>
+      );
+    }
+    return (
+      <button
+        key={action.id}
+        type="button"
+        className={className}
+        onClick={action.onClick}
+        disabled={disabled}
+        title={action.title}
+      >
+        {label}
+      </button>
+    );
+  });
 }
 
 function renderBackLink(
@@ -60,7 +97,23 @@ function renderBackLink(
   backAction: React.ReactNode | undefined,
 ): React.ReactNode {
   if (breadcrumbs?.length) {
-    const back = breadcrumbs.find((item) => item.onClick && !item.current) ?? breadcrumbs[0];
+    const back =
+      breadcrumbs.find((item) => (item.onClick || item.href) && !item.current) ?? breadcrumbs[0];
+    if (back?.href) {
+      return (
+        <a
+          href={back.href}
+          className="btn link back-link"
+          onClick={(event) => {
+            if (!back.onClick || !isPlainLeftClick(event)) return;
+            event.preventDefault();
+            back.onClick();
+          }}
+        >
+          ← {back.label}
+        </a>
+      );
+    }
     if (back?.onClick) {
       return (
         <button type="button" className="btn link back-link" onClick={back.onClick}>

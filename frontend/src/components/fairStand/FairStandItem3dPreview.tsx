@@ -2,9 +2,8 @@ import React from "react";
 import {
   envelopeFromForm,
   mountItemAdminPreview,
-  partFromChildRecord,
 } from "@fair-stand/itemAdminPreview.js";
-import { mergeAssemblyPoses, normalizeAssemblyPartsPayload } from "@fair-stand/itemAssembly.js";
+import { buildLiveAssemblyParts, normalizeAssemblyPartsPayload } from "@fair-stand/itemAssembly.js";
 import { getFairStandAdminItemRecord, updateFairStandAdminItemAssembly } from "../../api/fairStandAdmin";
 import { Banner } from "../ui/Banner";
 import { Button } from "../ui/Button";
@@ -20,6 +19,7 @@ export type AssemblyPartPose = {
   rotationXDeg: number;
   rotationYDeg: number;
   rotationZDeg: number;
+  lockGroupId?: number | null;
 };
 
 type EulerDraft = {
@@ -45,9 +45,6 @@ type PreviewFormSlice = {
   width_cm: string;
   depth_cm: string;
   height_cm: string;
-  scene_width_cm: string;
-  scene_depth_cm: string;
-  scene_height_cm: string;
   components: Array<{ child_item_key: string; quantity: string }>;
 };
 
@@ -56,19 +53,36 @@ function buildBomPartsFromChildren(
   childByKey: Map<string, Awaited<ReturnType<typeof getFairStandAdminItemRecord>>>,
   saved: AssemblyPartPose[],
 ) {
-  const bom: ReturnType<typeof partFromChildRecord>[] = [];
-  for (const row of components) {
-    const key = row.child_item_key.trim();
-    if (!key) continue;
+  const parent = {
+    composition: {
+      mode: "recipe",
+      items: components
+        .filter((row) => row.child_item_key.trim())
+        .map((row) => ({
+          itemKey: row.child_item_key.trim(),
+          quantity: Number(row.quantity),
+        })),
+    },
+  };
+  return buildLiveAssemblyParts(parent, saved, (key: string) => {
     const child = childByKey.get(key);
-    if (!child || child.isRender !== true) continue;
-    const quantity = Math.round(Number(row.quantity));
-    if (!Number.isFinite(quantity) || quantity <= 0) continue;
-    for (let instanceIndex = 0; instanceIndex < quantity; instanceIndex += 1) {
-      bom.push(partFromChildRecord(child, instanceIndex));
-    }
-  }
-  return mergeAssemblyPoses(bom, saved);
+    if (!child) return null;
+    // Admin kayıt şekli → assembly motorunun beklediği katalog alanları.
+    // 3D önizleme yalnız dimensions kullanır; sceneDimensions gerçek sahnede kalır.
+    return {
+      itemKey: child.itemKey,
+      type: child.type,
+      isRender: child.isRender === true,
+      isActive: child.isActive !== false,
+      defaultColor: child.defaultColor,
+      dimensions: child.dimensions,
+      acceptsColor: child.acceptsColor,
+      acceptsImage: child.acceptsImage,
+      acceptsGlass: child.acceptsGlass,
+      acceptsLightbox: child.acceptsLightbox,
+      acceptsMesh: child.acceptsMesh,
+    };
+  });
 }
 
 export function FairStandItem3dPreview({
@@ -132,9 +146,6 @@ export function FairStandItem3dPreview({
         widthCm: form.width_cm,
         depthCm: form.depth_cm,
         heightCm: form.height_cm,
-        sceneWidthCm: form.scene_width_cm,
-        sceneDepthCm: form.scene_depth_cm,
-        sceneHeightCm: form.scene_height_cm,
         defaultColor: form.default_color,
       }),
       onPartsChange: (parts) => {
@@ -251,7 +262,7 @@ export function FairStandItem3dPreview({
     return () => {
       cancelled = true;
     };
-  }, [form.components]);
+  }, [form.components, mode]);
 
   React.useEffect(() => {
     const api = apiRef.current;
@@ -260,9 +271,6 @@ export function FairStandItem3dPreview({
       widthCm: form.width_cm,
       depthCm: form.depth_cm,
       heightCm: form.height_cm,
-      sceneWidthCm: form.scene_width_cm,
-      sceneDepthCm: form.scene_depth_cm,
-      sceneHeightCm: form.scene_height_cm,
       defaultColor: form.default_color,
     });
     if (mode === "assembly" && isRecipe) {
@@ -276,6 +284,9 @@ export function FairStandItem3dPreview({
           ? null
           : adminLabels.fairStandItems3dNoRenderableChildren,
       });
+      if (!api.getLockUiState?.()?.lock) {
+        api.applyPersistedLockFromParts?.(parts);
+      }
       return;
     }
     setSelectedPart(null);
@@ -293,6 +304,13 @@ export function FairStandItem3dPreview({
       message: null,
     });
   }, [form, mode, isRecipe, childCache]);
+
+  React.useEffect(() => {
+    if (mode !== "assembly" || !isRecipe) return;
+    const api = apiRef.current;
+    if (!api?.applyPersistedLockFromParts) return;
+    api.applyPersistedLockFromParts(partsRef.current);
+  }, [mode, isRecipe, itemKey]);
 
   React.useEffect(() => {
     if (!expanded) return;
@@ -324,9 +342,11 @@ export function FairStandItem3dPreview({
         rotation_x_deg: part.rotationXDeg,
         rotation_y_deg: part.rotationYDeg,
         rotation_z_deg: part.rotationZDeg,
+        lock_group_id: part.lockGroupId ?? null,
       }));
       const saved = await updateFairStandAdminItemAssembly(itemKey, { parts: payload });
       partsRef.current = normalizeAssemblyPartsPayload(saved.assemblyParts ?? []);
+      apiRef.current?.applyPersistedLockFromParts?.(partsRef.current);
       setStatus(adminLabels.fairStandItems3dAssemblySaved);
     } catch (err) {
       setError(err instanceof Error ? err.message : adminLabels.fairStandItems3dAssemblySaveFailed);

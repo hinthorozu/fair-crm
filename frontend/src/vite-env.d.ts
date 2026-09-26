@@ -46,6 +46,7 @@ declare module "@fair-stand/itemAdminPreview.js" {
     lockPendingPair: () => boolean;
     unlockAssembly: () => boolean;
     removeSelectedFromLock: () => boolean;
+    applyPersistedLockFromParts: (parts?: Array<Record<string, unknown>>) => boolean;
     getLockUiState: () => {
       lock: {
         members?: Array<{ childItemKey: string; instanceIndex: number }>;
@@ -65,6 +66,12 @@ declare module "@fair-stand/itemAdminPreview.js" {
 }
 
 declare module "@fair-stand/itemAssembly.js" {
+  export function buildLiveAssemblyParts(
+    parentItem: Record<string, unknown>,
+    savedParts: Array<Record<string, unknown>>,
+    getItemFn: (key: string) => Record<string, unknown> | null,
+  ): Array<Record<string, unknown>>;
+  export function isAssemblyRenderableChild(child: unknown): boolean;
   export function mergeAssemblyPoses(
     bomParts: Array<Record<string, unknown>>,
     savedParts: Array<Record<string, unknown>>,
@@ -80,6 +87,7 @@ declare module "@fair-stand/itemAssembly.js" {
     rotationXDeg: number;
     rotationYDeg: number;
     rotationZDeg: number;
+    lockGroupId: number | null;
   }>;
 }
 

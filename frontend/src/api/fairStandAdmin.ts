@@ -1,4 +1,4 @@
-import { apiRequest } from "./client";
+import { apiRequest, ApiError } from "./client";
 import { buildListQueryParams, normalizeStandardListResponse } from "./listTable";
 import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
 import type { StandardListResponse } from "../types/listTable";
@@ -223,6 +223,7 @@ export type FairStandAdminItemAssemblyPart = {
   rotationXDeg: number;
   rotationYDeg: number;
   rotationZDeg: number;
+  lockGroupId?: number | null;
 };
 
 export type FairStandAdminItemRecord = {
@@ -394,6 +395,17 @@ export const listFairStandAdminItemRecords = (
 export const getFairStandAdminItemRecord = (itemKey: string) =>
   apiRequest<FairStandAdminItemRecord>(`${base}/item-records/${encodeURIComponent(itemKey)}`);
 
+/** True if item_key already exists (same check as create uniqueness). */
+export async function fairStandAdminItemKeyExists(itemKey: string): Promise<boolean> {
+  try {
+    await getFairStandAdminItemRecord(itemKey);
+    return true;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return false;
+    throw error;
+  }
+}
+
 export const createFairStandAdminItemRecord = (payload: {
   item_key: string;
   name: string;
@@ -407,6 +419,18 @@ export const createFairStandAdminItemRecord = (payload: {
     method: "POST",
     body: JSON.stringify(payload),
   });
+
+export const cloneFairStandAdminItemRecord = (
+  sourceItemKey: string,
+  payload: { item_key: string; name: string },
+) =>
+  apiRequest<FairStandAdminItemRecord>(
+    `${base}/item-records/${encodeURIComponent(sourceItemKey)}/clone`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
 
 export const updateFairStandAdminItemRecord = (itemKey: string, payload: Record<string, unknown>) =>
   apiRequest<FairStandAdminItemRecord>(`${base}/item-records/${encodeURIComponent(itemKey)}`, {
@@ -426,6 +450,7 @@ export const updateFairStandAdminItemAssembly = (
       rotation_x_deg: number;
       rotation_y_deg: number;
       rotation_z_deg: number;
+      lock_group_id?: number | null;
     }>;
   },
 ) =>
