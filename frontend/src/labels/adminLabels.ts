@@ -1133,6 +1133,9 @@ export const adminLabels = {
   fairStandItemsFieldDefaultColor: "Varsayılan renk",
   fairStandItemsFieldDefaultColorHint:
     "Sol kutu native renk seçici (damlalık). Yanında HEX. Kayıtta tam sayı (hex int) tutulur. Boş = sistem varsayılanı.",
+  fairStandItemsFieldDefaultOpacity: "Varsayılan opacity",
+  fairStandItemsFieldDefaultOpacityHint:
+    "0–1. Kutu blok vb. saydamlık; instance yerleştirmede ezilebilir. Boş bırakılırsa 1.",
   fairStandItemsFieldEyeCount: "Göz sayısı",
   fairStandItemsFieldEyeCountHint: "Göz / delik adedi; ilgili mobilya itemlerinde.",
   fairStandItemsFieldModelRotationY: "Model rotasyon Y (°)",
