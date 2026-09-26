@@ -54,6 +54,9 @@ export function mountItemAdminPreview(host) {
     removeSelectedFromLock() {
       return false;
     },
+    applyPersistedLockFromParts() {
+      return false;
+    },
     getLockUiState() {
       return { lock: null, canLock: false };
     },

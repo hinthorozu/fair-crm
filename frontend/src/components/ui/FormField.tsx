@@ -5,6 +5,7 @@ export {
   FormSection,
   FormGrid,
   TextInput,
+  ColorInput,
   PasswordInput,
   SelectInput,
   TextareaInput,

@@ -63,6 +63,13 @@ export function renderSortableHeader(
   );
 }
 
+export interface DataTableRowReorderConfig {
+  enabled: boolean;
+  /** 0-based indices in the current `data` array. */
+  onReorder: (fromIndex: number, toIndex: number) => void;
+  disabled?: boolean;
+}
+
 interface DataTableProps<T> {
   columns: DataTableColumn<T>[];
   data: T[];
@@ -78,6 +85,8 @@ interface DataTableProps<T> {
   rowClassName?: (row: T) => string | undefined;
   /** Optional fragment rendered after each main row (expand child rows — ADR-032). */
   renderAfterRow?: (row: T) => React.ReactNode;
+  /** HTML5 drag-and-drop row reorder (standalone lists). */
+  rowReorder?: DataTableRowReorderConfig;
 }
 
 export function DataTable<T>({
@@ -93,7 +102,19 @@ export function DataTable<T>({
   className = "",
   rowClassName,
   renderAfterRow,
+  rowReorder,
 }: DataTableProps<T>) {
+  const [dragFromIndex, setDragFromIndex] = React.useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null);
+  const reorderEnabled = Boolean(rowReorder?.enabled) && !rowReorder?.disabled;
+
+  React.useEffect(() => {
+    if (!reorderEnabled) {
+      setDragFromIndex(null);
+      setDragOverIndex(null);
+    }
+  }, [reorderEnabled]);
+
   if (error) {
     return (
       <div className="table-error-state">
@@ -142,12 +163,71 @@ export function DataTable<T>({
           </tr>
         </thead>
         <tbody>
-          {data.map((row) => {
+          {data.map((row, rowIndex) => {
             const key = rowKey(row);
             const extraClass = rowClassName?.(row);
+            const rowClasses = [
+              extraClass,
+              reorderEnabled ? "data-table-row--reorderable" : null,
+              dragFromIndex === rowIndex ? "data-table-row--dragging" : null,
+              dragOverIndex === rowIndex && dragFromIndex !== rowIndex
+                ? "data-table-row--drag-over"
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" ");
             return (
               <React.Fragment key={key}>
-                <tr className={extraClass}>
+                <tr
+                  className={rowClasses || undefined}
+                  draggable={reorderEnabled}
+                  onDragStart={
+                    reorderEnabled
+                      ? (event) => {
+                          setDragFromIndex(rowIndex);
+                          setDragOverIndex(rowIndex);
+                          event.dataTransfer.effectAllowed = "move";
+                          event.dataTransfer.setData("text/plain", String(rowIndex));
+                        }
+                      : undefined
+                  }
+                  onDragOver={
+                    reorderEnabled
+                      ? (event) => {
+                          event.preventDefault();
+                          event.dataTransfer.dropEffect = "move";
+                          if (dragOverIndex !== rowIndex) setDragOverIndex(rowIndex);
+                        }
+                      : undefined
+                  }
+                  onDrop={
+                    reorderEnabled
+                      ? (event) => {
+                          event.preventDefault();
+                          const raw = event.dataTransfer.getData("text/plain");
+                          const fromIndex = Number.parseInt(raw, 10);
+                          setDragFromIndex(null);
+                          setDragOverIndex(null);
+                          if (
+                            Number.isInteger(fromIndex) &&
+                            fromIndex >= 0 &&
+                            fromIndex < data.length &&
+                            fromIndex !== rowIndex
+                          ) {
+                            rowReorder?.onReorder(fromIndex, rowIndex);
+                          }
+                        }
+                      : undefined
+                  }
+                  onDragEnd={
+                    reorderEnabled
+                      ? () => {
+                          setDragFromIndex(null);
+                          setDragOverIndex(null);
+                        }
+                      : undefined
+                  }
+                >
                   {columns.map((column) => (
                     <td
                       key={column.id}

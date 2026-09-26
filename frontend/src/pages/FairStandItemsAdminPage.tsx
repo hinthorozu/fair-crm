@@ -1,7 +1,9 @@
 import React from "react";
 import {
   archiveFairStandAdminItemRecord,
+  cloneFairStandAdminItemRecord,
   createFairStandAdminItemRecord,
+  fairStandAdminItemKeyExists,
   getFairStandAdminItemRecord,
   listFairStandAdminCategories,
   listFairStandAdminItemRecords,
@@ -21,6 +23,7 @@ import {
 } from "../api/fairStandAdmin";
 import { FairStandCatalogPreviewSelect } from "../components/FairStandCatalogPreviewSelect";
 import { FairStandCatalogLivePreview } from "../components/fairStand/FairStandCatalogLivePreview";
+import { FairStandDefaultColorField } from "../components/fairStand/FairStandDefaultColorField";
 import { FairStandItem3dPreview } from "../components/fairStand/FairStandItem3dPreview";
 import { FairStandItemEntitySelect } from "../components/FairStandItemEntitySelect";
 import { Badge } from "../components/ui/Badge";
@@ -40,6 +43,7 @@ import {
   FormDirtyHost,
   FormField,
   FormGrid,
+  FormModal,
   FormSection,
   SelectInput,
   TextInput,
@@ -223,6 +227,118 @@ function slugifyItemKey(name: string): string {
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "")
     .slice(0, 128);
+}
+
+function suggestCloneItemName(sourceName: string): string {
+  const name = sourceName.trim() || "Item";
+  return `${name} (kopya)`.slice(0, 256);
+}
+
+function CloneItemModal({
+  sourceName,
+  saving,
+  error,
+  onCancel,
+  onSubmit,
+}: {
+  sourceName: string;
+  saving: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onSubmit: (payload: { item_key: string; name: string }) => void;
+}) {
+  const initialName = suggestCloneItemName(sourceName);
+  const [name, setName] = React.useState(initialName);
+  const [itemKey, setItemKey] = React.useState(() => slugifyItemKey(initialName));
+  const [itemKeyManual, setItemKeyManual] = React.useState(false);
+  const [localError, setLocalError] = React.useState<string | null>(null);
+  const [checking, setChecking] = React.useState(false);
+
+  const busy = saving || checking;
+  const displayError = localError ?? error;
+  const formId = "fs-clone-item-form";
+
+  return (
+    <FormModal
+      title={adminLabels.fairStandItemsCloneTitle}
+      onClose={onCancel}
+      footer={
+        <>
+          <Button type="button" variant="secondary" disabled={busy} onClick={onCancel}>
+            {adminLabels.fairStandItemsCancel}
+          </Button>
+          <Button type="submit" form={formId} variant="primary" disabled={busy}>
+            {busy ? adminLabels.fairStandItemsSaving : adminLabels.fairStandItemsCloneSubmit}
+          </Button>
+        </>
+      }
+    >
+      <p className="field-hint">{adminLabels.fairStandItemsCloneHint}</p>
+      {displayError ? <Banner variant="error">{displayError}</Banner> : null}
+      <form
+        id={formId}
+        onSubmit={(event) => {
+          event.preventDefault();
+          setLocalError(null);
+          const nextName = requireText(name, adminLabels.fairStandItemsFieldName);
+          const nextKey = requireText(slugifyItemKey(itemKey), adminLabels.fairStandItemsFieldItemKey);
+          setChecking(true);
+          void fairStandAdminItemKeyExists(nextKey)
+            .then((exists) => {
+              if (exists) {
+                setLocalError(adminLabels.fairStandItemsCloneKeyTaken);
+                return;
+              }
+              onSubmit({ item_key: nextKey, name: nextName });
+            })
+            .catch((checkError) => {
+              setLocalError(
+                checkError instanceof Error ? checkError.message : adminLabels.fairStandItemsCloneError,
+              );
+            })
+            .finally(() => {
+              setChecking(false);
+            });
+        }}
+      >
+        <FormField
+          label={adminLabels.fairStandItemsFieldName}
+          htmlFor="fs-clone-name"
+          hint={adminLabels.fairStandItemsFieldNameHint}
+          required
+        >
+          <TextInput
+            id="fs-clone-name"
+            value={name}
+            disabled={busy}
+            onChange={(event) => {
+              const nextName = event.target.value;
+              setName(nextName);
+              if (!itemKeyManual) setItemKey(slugifyItemKey(nextName));
+            }}
+            required
+          />
+        </FormField>
+        <FormField
+          label={adminLabels.fairStandItemsFieldItemKey}
+          htmlFor="fs-clone-item-key"
+          hint={adminLabels.fairStandItemsFieldItemKeyHint}
+          required
+        >
+          <TextInput
+            id="fs-clone-item-key"
+            value={itemKey}
+            disabled={busy}
+            onChange={(event) => {
+              setItemKeyManual(true);
+              setItemKey(slugifyItemKey(event.target.value));
+            }}
+            required
+          />
+        </FormField>
+      </form>
+    </FormModal>
+  );
 }
 
 function FormDirtyReporter<T>({ values, baseline }: { values: T; baseline: T }) {
@@ -465,6 +581,24 @@ function YesNoBadge({ value }: { value: boolean | null | undefined }) {
   );
 }
 
+function DefaultColorDetail({ value }: { value: number | null | undefined }) {
+  if (value == null || !Number.isInteger(value) || value < 0 || value > 0xffffff) {
+    return <DetailValue value={null} />;
+  }
+  const hex = `#${value.toString(16).padStart(6, "0").toUpperCase()}`;
+  return (
+    <span className="fair-stand-default-color-detail">
+      <span
+        className="fair-stand-default-color-detail__swatch"
+        style={{ backgroundColor: hex }}
+        aria-hidden
+      />
+      <span className="fair-stand-default-color-detail__hex">{hex}</span>
+      <span className="fair-stand-default-color-detail__int">({value})</span>
+    </span>
+  );
+}
+
 function DetailItem({
   label,
   hint,
@@ -508,6 +642,38 @@ function itemsDetailPath(itemKey: string): string {
 
 function itemsEditPath(itemKey: string): string {
   return `${ITEMS_BASE_PATH}/${encodeURIComponent(itemKey)}/edit`;
+}
+
+/** Detail URL with one-shot list action (new-tab / middle-click). */
+function itemsDetailActionPath(itemKey: string, action: "clone" | "archive"): string {
+  return `${itemsDetailPath(itemKey)}?action=${action}`;
+}
+
+function takeDetailActionQuery(): "clone" | "archive" | null {
+  const params = new URLSearchParams(window.location.search);
+  const action = params.get("action");
+  if (action !== "clone" && action !== "archive") return null;
+  params.delete("action");
+  const qs = params.toString();
+  const next = `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`;
+  window.history.replaceState(null, "", next);
+  return action;
+}
+
+/** Left-click → SPA; Ctrl/Cmd/middle/right-click keep native <a> behavior (new tab). */
+function handleSpaLinkClick(event: React.MouseEvent<HTMLAnchorElement>, navigate: () => void): void {
+  if (
+    event.defaultPrevented ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
+  ) {
+    return;
+  }
+  event.preventDefault();
+  navigate();
 }
 
 function normalizePathname(pathname: string): string {
@@ -576,6 +742,7 @@ export function FairStandItemsAdminPage() {
   if (route.kind === "list") {
     return (
       <ItemsListPage
+        createHref={itemsCreatePath()}
         onOpenCreate={() => navigateTo(itemsCreatePath())}
         onOpenDetail={(itemKey) => navigateTo(itemsDetailPath(itemKey))}
       />
@@ -584,6 +751,7 @@ export function FairStandItemsAdminPage() {
   if (route.kind === "create") {
     return (
       <ItemsCreatePage
+        listHref={listUrlRef.current || itemsListPath()}
         onCancel={backToList}
         onCreated={(itemKey) => {
           setItemsFlash(adminLabels.fairStandItemsSaveSuccess);
@@ -596,8 +764,13 @@ export function FairStandItemsAdminPage() {
     return (
       <ItemsDetailPage
         itemKey={route.itemKey}
+        listHref={listUrlRef.current || itemsListPath()}
         onBack={backToList}
         onEdit={(key) => navigateTo(itemsEditPath(key))}
+        onCloned={(key) => {
+          setItemsFlash(adminLabels.fairStandItemsCloneSuccess);
+          navigateTo(itemsDetailPath(key));
+        }}
       />
     );
   }
@@ -614,9 +787,11 @@ export function FairStandItemsAdminPage() {
 }
 
 function ItemsListPage({
+  createHref,
   onOpenCreate,
   onOpenDetail,
 }: {
+  createHref: string;
   onOpenCreate: () => void;
   onOpenDetail: (itemKey: string) => void;
 }) {
@@ -627,6 +802,12 @@ function ItemsListPage({
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(() => takeItemsFlash());
   const [archiveTargetKey, setArchiveTargetKey] = React.useState<string | null>(null);
+  const [cloneTarget, setCloneTarget] = React.useState<{
+    itemKey: string;
+    name: string;
+  } | null>(null);
+  const [cloneSaving, setCloneSaving] = React.useState(false);
+  const [cloneError, setCloneError] = React.useState<string | null>(null);
   const [fieldOptions, setFieldOptions] =
     React.useState<FairStandAdminItemFieldOptions>(EMPTY_FIELD_OPTIONS);
 
@@ -672,6 +853,26 @@ function ItemsListPage({
       setError(
         restoreError instanceof Error ? restoreError.message : adminLabels.fairStandItemsRestoreError,
       );
+    }
+  };
+
+  const handleClone = async (payload: { item_key: string; name: string }) => {
+    if (!cloneTarget) return;
+    setCloneSaving(true);
+    setCloneError(null);
+    try {
+      const record = await cloneFairStandAdminItemRecord(cloneTarget.itemKey, payload);
+      setCloneTarget(null);
+      setSuccess(adminLabels.fairStandItemsCloneSuccess);
+      setError(null);
+      await table.refresh();
+      onOpenDetail(record.itemKey);
+    } catch (cloneErr) {
+      setCloneError(
+        cloneErr instanceof Error ? cloneErr.message : adminLabels.fairStandItemsCloneError,
+      );
+    } finally {
+      setCloneSaving(false);
     }
   };
 
@@ -732,17 +933,37 @@ function ItemsListPage({
       sortable: false,
       render: (row) => (
         <TableRowActions>
-          <button type="button" className="btn link" onClick={() => onOpenDetail(row.itemKey)}>
+          <a
+            href={itemsDetailPath(row.itemKey)}
+            className="btn link"
+            onClick={(event) => handleSpaLinkClick(event, () => onOpenDetail(row.itemKey))}
+          >
             {adminLabels.fairStandItemsActionView}
-          </button>
+          </a>
+          {canCreate ? (
+            <a
+              href={itemsDetailActionPath(row.itemKey, "clone")}
+              className="btn link"
+              onClick={(event) =>
+                handleSpaLinkClick(event, () => {
+                  setCloneError(null);
+                  setCloneTarget({ itemKey: row.itemKey, name: row.name });
+                })
+              }
+            >
+              {adminLabels.fairStandItemsClone}
+            </a>
+          ) : null}
           {canArchive && row.isActive ? (
-            <button
-              type="button"
+            <a
+              href={itemsDetailActionPath(row.itemKey, "archive")}
               className="btn link danger"
-              onClick={() => setArchiveTargetKey(row.itemKey)}
+              onClick={(event) =>
+                handleSpaLinkClick(event, () => setArchiveTargetKey(row.itemKey))
+              }
             >
               {adminLabels.fairStandItemsActionArchive}
-            </button>
+            </a>
           ) : null}
           {canArchive && !row.isActive ? (
             <button
@@ -767,9 +988,13 @@ function ItemsListPage({
         subtitle={adminLabels.fairStandItemsSubtitle}
         actions={
           canCreate ? (
-            <Button variant="primary" onClick={onOpenCreate}>
+            <a
+              href={createHref}
+              className="btn primary"
+              onClick={(event) => handleSpaLinkClick(event, onOpenCreate)}
+            >
               {adminLabels.fairStandItemsCreate}
-            </Button>
+            </a>
           ) : null
         }
       />
@@ -855,14 +1080,30 @@ function ItemsListPage({
           }}
         />
       ) : null}
+      {cloneTarget ? (
+        <CloneItemModal
+          sourceName={cloneTarget.name}
+          saving={cloneSaving}
+          error={cloneError}
+          onCancel={() => {
+            setCloneTarget(null);
+            setCloneError(null);
+          }}
+          onSubmit={(payload) => {
+            void handleClone(payload);
+          }}
+        />
+      ) : null}
     </PageShell>
   );
 }
 
 function ItemsCreatePage({
+  listHref,
   onCancel,
   onCreated,
 }: {
+  listHref: string;
   onCancel: () => void;
   onCreated: (itemKey: string) => void;
 }) {
@@ -891,10 +1132,16 @@ function ItemsCreatePage({
     setSaving(true);
     setError(null);
     try {
+      const item_key = requireText(slugifyItemKey(form.item_key), adminLabels.fairStandItemsFieldItemKey);
+      const name = requireText(form.name, adminLabels.fairStandItemsFieldName);
+      const item_type = requireText(form.item_type, adminLabels.fairStandItemsFieldItemType);
+      if (await fairStandAdminItemKeyExists(item_key)) {
+        throw new Error(adminLabels.fairStandItemsCloneKeyTaken);
+      }
       const record = await createFairStandAdminItemRecord({
-        item_key: requireText(slugifyItemKey(form.item_key), adminLabels.fairStandItemsFieldItemKey),
-        name: requireText(form.name, adminLabels.fairStandItemsFieldName),
-        item_type: requireText(form.item_type, adminLabels.fairStandItemsFieldItemType),
+        item_key,
+        name,
+        item_type,
       });
       onCreated(record.itemKey);
     } catch (saveError) {
@@ -909,9 +1156,9 @@ function ItemsCreatePage({
       <PageShell>
         <PageHeader title={adminLabels.fairStandItemsCreateTitle} />
         <Banner variant="info">{adminLabels.fairStandItemsPermissionDenied}</Banner>
-        <Button variant="secondary" onClick={onCancel}>
+        <a href={listHref} className="btn secondary" onClick={(event) => handleSpaLinkClick(event, onCancel)}>
           {adminLabels.fairStandItemsBackToList}
-        </Button>
+        </a>
       </PageShell>
     );
   }
@@ -920,10 +1167,12 @@ function ItemsCreatePage({
     <PageShell>
       <FormDirtyHost onClose={onCancel}>
         <ItemCreateView
+          listHref={listHref}
           form={form}
           fieldOptions={fieldOptions}
           saving={saving}
           banners={error ? <Banner variant="error">{error}</Banner> : null}
+          onCancel={onCancel}
           onChange={setForm}
           onSubmit={() => {
             void saveCreate();
@@ -936,21 +1185,29 @@ function ItemsCreatePage({
 
 function ItemsDetailPage({
   itemKey,
+  listHref,
   onBack,
   onEdit,
+  onCloned,
 }: {
   itemKey: string;
+  listHref: string;
   onBack: () => void;
   onEdit: (itemKey: string) => void;
+  onCloned: (itemKey: string) => void;
 }) {
   const granted = React.useMemo(() => getGrantedFairStandAdminPermissions(), []);
   const canUpdate = granted.has(FAIR_STAND_ITEMS_UPDATE);
+  const canCreate = granted.has(FAIR_STAND_ITEMS_CREATE);
   const canArchive = granted.has(FAIR_STAND_ITEMS_ARCHIVE);
   const [detail, setDetail] = React.useState<FairStandAdminItemRecord | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(() => takeItemsFlash());
   const [archiveTargetKey, setArchiveTargetKey] = React.useState<string | null>(null);
+  const [cloneOpen, setCloneOpen] = React.useState(false);
+  const [cloneSaving, setCloneSaving] = React.useState(false);
+  const [cloneError, setCloneError] = React.useState<string | null>(null);
 
   const loadDetail = React.useCallback(async () => {
     setLoading(true);
@@ -970,6 +1227,17 @@ function ItemsDetailPage({
   React.useEffect(() => {
     void loadDetail();
   }, [loadDetail]);
+
+  React.useEffect(() => {
+    if (loading || !detail) return;
+    const action = takeDetailActionQuery();
+    if (action === "clone" && canCreate) {
+      setCloneError(null);
+      setCloneOpen(true);
+    } else if (action === "archive" && canArchive && detail.isActive) {
+      setArchiveTargetKey(itemKey);
+    }
+  }, [loading, detail, itemKey, canCreate, canArchive]);
 
   const handleArchive = async () => {
     try {
@@ -1000,6 +1268,22 @@ function ItemsDetailPage({
     }
   };
 
+  const handleClone = async (payload: { item_key: string; name: string }) => {
+    setCloneSaving(true);
+    setCloneError(null);
+    try {
+      const record = await cloneFairStandAdminItemRecord(itemKey, payload);
+      setCloneOpen(false);
+      onCloned(record.itemKey);
+    } catch (cloneErr) {
+      setCloneError(
+        cloneErr instanceof Error ? cloneErr.message : adminLabels.fairStandItemsCloneError,
+      );
+    } finally {
+      setCloneSaving(false);
+    }
+  };
+
   const banners = (
     <>
       {error ? <Banner variant="error">{error}</Banner> : null}
@@ -1021,14 +1305,14 @@ function ItemsDetailPage({
         <PageHeader
           title={itemKey}
           breadcrumbs={[
-            { label: adminLabels.fairStandItemsBackToList, onClick: onBack },
+            { label: adminLabels.fairStandItemsBackToList, href: listHref, onClick: onBack },
             { label: itemKey, current: true },
           ]}
         />
         {banners}
-        <Button variant="secondary" onClick={onBack}>
+        <a href={listHref} className="btn secondary" onClick={(event) => handleSpaLinkClick(event, onBack)}>
           {adminLabels.fairStandItemsBackToList}
-        </Button>
+        </a>
       </PageShell>
     );
   }
@@ -1039,9 +1323,15 @@ function ItemsDetailPage({
         detail={detail}
         banners={banners}
         canUpdate={canUpdate}
+        canCreate={canCreate}
         canArchive={canArchive}
+        listHref={listHref}
         onBack={onBack}
         onEdit={() => onEdit(detail.itemKey)}
+        onClone={() => {
+          setCloneError(null);
+          setCloneOpen(true);
+        }}
         onArchive={() => setArchiveTargetKey(detail.itemKey)}
         onRestore={() => {
           void handleRestore();
@@ -1056,6 +1346,20 @@ function ItemsDetailPage({
           onCancel={() => setArchiveTargetKey(null)}
           onConfirm={() => {
             void handleArchive();
+          }}
+        />
+      ) : null}
+      {cloneOpen ? (
+        <CloneItemModal
+          sourceName={detail.name}
+          saving={cloneSaving}
+          error={cloneError}
+          onCancel={() => {
+            setCloneOpen(false);
+            setCloneError(null);
+          }}
+          onSubmit={(payload) => {
+            void handleClone(payload);
           }}
         />
       ) : null}
@@ -1153,9 +1457,13 @@ function ItemsEditPage({
       <PageShell>
         <PageHeader title={adminLabels.fairStandItemsEditTitle} />
         <Banner variant="info">{adminLabels.fairStandItemsPermissionDenied}</Banner>
-        <Button variant="secondary" onClick={() => onCancel(itemKey)}>
+        <a
+          href={itemsDetailPath(itemKey)}
+          className="btn secondary"
+          onClick={(event) => handleSpaLinkClick(event, () => onCancel(itemKey))}
+        >
           {adminLabels.fairStandItemsBack}
-        </Button>
+        </a>
       </PageShell>
     );
   }
@@ -1166,14 +1474,22 @@ function ItemsEditPage({
         <PageHeader
           title={adminLabels.fairStandItemsEditTitle}
           breadcrumbs={[
-            { label: title, onClick: () => onCancel(itemKey) },
+            {
+              label: title,
+              href: itemsDetailPath(itemKey),
+              onClick: () => onCancel(itemKey),
+            },
             { label: adminLabels.fairStandItemsEditTitle, current: true },
           ]}
         />
         {error ? <Banner variant="error">{error}</Banner> : null}
-        <Button variant="secondary" onClick={() => onCancel(itemKey)}>
+        <a
+          href={itemsDetailPath(itemKey)}
+          className="btn secondary"
+          onClick={(event) => handleSpaLinkClick(event, () => onCancel(itemKey))}
+        >
           {adminLabels.fairStandItemsBack}
-        </Button>
+        </a>
       </PageShell>
     );
   }
@@ -1191,6 +1507,7 @@ function ItemsEditPage({
           catalogItems={catalogItems}
           saving={saving}
           banners={error ? <Banner variant="error">{error}</Banner> : null}
+          onCancel={() => onCancel(itemKey)}
           onChange={setForm}
           onSubmit={() => {
             void saveEdit();
@@ -1284,18 +1601,24 @@ function ItemDetailView({
   detail,
   banners,
   canUpdate,
+  canCreate,
   canArchive,
+  listHref,
   onBack,
   onEdit,
+  onClone,
   onArchive,
   onRestore,
 }: {
   detail: FairStandAdminItemRecord;
   banners: React.ReactNode;
   canUpdate: boolean;
+  canCreate: boolean;
   canArchive: boolean;
+  listHref: string;
   onBack: () => void;
   onEdit: () => void;
+  onClone: () => void;
   onArchive: () => void;
   onRestore: () => void;
 }) {
@@ -1339,14 +1662,25 @@ function ItemDetailView({
     actions.push({
       id: "edit",
       label: adminLabels.fairStandItemsActionEdit,
+      href: itemsEditPath(detail.itemKey),
       onClick: onEdit,
       variant: "primary",
+    });
+  }
+  if (canCreate) {
+    actions.push({
+      id: "clone",
+      label: adminLabels.fairStandItemsClone,
+      href: itemsDetailActionPath(detail.itemKey, "clone"),
+      onClick: onClone,
+      variant: "secondary",
     });
   }
   if (canArchive && detail.isActive) {
     actions.push({
       id: "archive",
       label: adminLabels.fairStandItemsActionArchive,
+      href: itemsDetailActionPath(detail.itemKey, "archive"),
       onClick: onArchive,
       variant: "danger",
     });
@@ -1405,7 +1739,7 @@ function ItemDetailView({
           </>
         }
         breadcrumbs={[
-          { label: adminLabels.fairStandItemsBackToList, onClick: onBack },
+          { label: adminLabels.fairStandItemsBackToList, href: listHref, onClick: onBack },
           { label: detail.name, current: true },
         ]}
         actions={actions}
@@ -1574,7 +1908,7 @@ function ItemDetailView({
               label={adminLabels.fairStandItemsFieldDefaultColor}
               hint={adminLabels.fairStandItemsFieldDefaultColorHint}
             >
-              <DetailValue value={str(detail.defaultColor)} />
+              <DefaultColorDetail value={detail.defaultColor} />
             </DetailItem>
             <DetailItem
               label={adminLabels.fairStandItemsFieldEyeCount}
@@ -1738,21 +2072,25 @@ function ItemDetailView({
 }
 
 function ItemCreateView({
+  listHref,
   form,
   fieldOptions,
   saving,
   banners,
+  onCancel,
   onChange,
   onSubmit,
 }: {
+  listHref: string;
   form: CreateForm;
   fieldOptions: FairStandAdminItemFieldOptions;
   saving: boolean;
   banners: React.ReactNode;
+  onCancel: () => void;
   onChange: (form: CreateForm) => void;
   onSubmit: () => void;
 }) {
-  const requestBack = useFormDirtyCancel(() => undefined);
+  const requestBack = useFormDirtyCancel(onCancel);
   const [itemKeyManual, setItemKeyManual] = React.useState(false);
   return (
     <>
@@ -1761,7 +2099,7 @@ function ItemCreateView({
         title={adminLabels.fairStandItemsCreateTitle}
         subtitle={adminLabels.fairStandItemsSubtitle}
         breadcrumbs={[
-          { label: adminLabels.fairStandItemsBackToList, onClick: requestBack },
+          { label: adminLabels.fairStandItemsBackToList, href: listHref, onClick: requestBack },
           { label: adminLabels.fairStandItemsCreateTitle, current: true },
         ]}
       />
@@ -1856,6 +2194,7 @@ function ItemEditView({
   catalogItems,
   saving,
   banners,
+  onCancel,
   onChange,
   onSubmit,
 }: {
@@ -1868,10 +2207,12 @@ function ItemEditView({
   catalogItems: FairStandAdminItem[];
   saving: boolean;
   banners: React.ReactNode;
+  onCancel: () => void;
   onChange: (form: EditForm) => void;
   onSubmit: () => void;
 }) {
-  const requestBack = useFormDirtyCancel(() => undefined);
+  const detailHref = itemsDetailPath(itemKey);
+  const requestBack = useFormDirtyCancel(onCancel);
   const [activeTab, setActiveTab] = React.useState<DetailTabId>("general");
   const [removeTarget, setRemoveTarget] = React.useState<
     { kind: "component" | "bodyPart"; index: number } | null
@@ -2164,7 +2505,7 @@ function ItemEditView({
           </>
         }
         breadcrumbs={[
-          { label: title, onClick: requestBack },
+          { label: title, href: detailHref, onClick: requestBack },
           { label: adminLabels.fairStandItemsEditTitle, current: true },
         ]}
       />
@@ -2294,12 +2635,11 @@ function ItemEditView({
                 htmlFor="fs-edit-default-color"
                 hint={adminLabels.fairStandItemsFieldDefaultColorHint}
               >
-                <TextInput
+                <FairStandDefaultColorField
                   id="fs-edit-default-color"
-                  type="number"
                   value={form.default_color}
                   disabled={saving}
-                  onChange={(event) => patch("default_color", event.target.value)}
+                  onChange={(default_color) => patch("default_color", default_color)}
                 />
               </FormField>
               <FormField

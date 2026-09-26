@@ -37,6 +37,27 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(func
   );
 });
 
+export interface ColorInputProps
+  extends Omit<TextInputProps, "type"> {}
+
+/** Native color swatch (browser picker / eyedropper). Part of shared form kit. */
+export const ColorInput = React.forwardRef<HTMLInputElement, ColorInputProps>(function ColorInput(
+  { id, className, disabled, "aria-invalid": ariaInvalid, ...rest },
+  ref,
+) {
+  return (
+    <input
+      ref={ref}
+      id={id}
+      type="color"
+      disabled={disabled}
+      aria-invalid={ariaInvalid}
+      className={controlClass(["form-control--color", className].filter(Boolean).join(" "), ariaInvalid === true)}
+      {...rest}
+    />
+  );
+});
+
 export interface PasswordInputProps extends Omit<TextInputProps, "type"> {}
 
 export const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(

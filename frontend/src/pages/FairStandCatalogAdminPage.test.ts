@@ -36,8 +36,20 @@ describe("Fair Stand catalog admin page", () => {
     expect(source).toContain("FilterPanel");
     expect(source).toContain("fairStandCatalogCategoryFilterSearch");
     expect(source).toContain("fairStandCatalogItemFilterSearch");
+    expect(source).toContain("fairStandCatalogItemFilterCategory");
+    expect(source).toContain("itemCategoryFilter");
+    expect(source).toContain("catalogVisible");
     expect(source).toContain("filteredCategories");
     expect(source).toContain("filteredItems");
+    expect(source).toContain("sortedItems");
+    expect(source).toContain("changeItemSort");
+    expect(source).toContain("itemSorting");
+    expect(source).toContain("itemReorderEnabled");
+    expect(source).toContain("handleItemReorder");
+    expect(source).toContain("rowReorder");
+    expect(source).toContain("moveItemInList");
+    expect(source).toContain("displayItems");
+    expect(source).toContain("sortable: !itemReorderEnabled");
   });
 
   it("uses adminLabels copy and field hints", () => {
