@@ -547,7 +547,7 @@ export function App() {
 
   const navItems = [
     { path: "/dashboard", label: uiLabels.navDashboard, icon: <NavIconDashboard />, active: isDashboardActive, onClick: (e: React.MouseEvent) => handleNav("/dashboard", e) },
-    { path: "/stand-projects", label: uiLabels.navStandProjects, icon: <NavIconFairStand />, active: isStandProjectsActive, onClick: (e: React.MouseEvent) => handleNav("/stand-projects", e) },
+    { path: "/stand-projects", label: uiLabels.navStandProjects, icon: <NavIconFairStand />, active: isStandProjectsActive, openInNewTab: true },
     { path: "/customers", label: uiLabels.navCustomers, icon: <NavIconCustomers />, active: isCustomersActive, onClick: (e: React.MouseEvent) => handleNav("/customers", e) },
     { path: "/fairs", label: uiLabels.navFairs, icon: <NavIconFairs />, active: isFairsActive, onClick: (e: React.MouseEvent) => handleNav("/fairs", e) },
     { path: "/todos", label: uiLabels.navTodos, icon: <NavIconTodos />, active: isTodosActive, onClick: (e: React.MouseEvent) => handleNav("/todos", e) },
