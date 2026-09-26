@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import sys
 from enum import StrEnum
 from pathlib import Path
 
@@ -121,3 +123,47 @@ def resolve_alembic_workdir(database_key: DatabaseKey | str) -> Path:
             "FAIR_STAND_REPO_PATH is required to run alembic migrations for fair_stand restores"
         )
     return repo_root
+
+
+def resolve_alembic_python(alembic_workdir: Path) -> str:
+    """Prefer the target repo venv so Core/Stand restores do not reuse Fair CRM packages."""
+    candidates = (
+        alembic_workdir / ".venv" / "bin" / "python",
+        alembic_workdir / ".venv" / "Scripts" / "python.exe",
+        alembic_workdir / "backend" / ".venv" / "bin" / "python",
+        alembic_workdir / "backend" / ".venv" / "Scripts" / "python.exe",
+    )
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate)
+    return sys.executable
+
+
+def resolve_alembic_pythonpath(alembic_workdir: Path) -> str:
+    backend_app = alembic_workdir / "backend" / "app"
+    if backend_app.is_dir():
+        return str((alembic_workdir / "backend").resolve())
+    if (alembic_workdir / "app").is_dir():
+        return str(alembic_workdir.resolve())
+    return str(alembic_workdir.resolve())
+
+
+def build_alembic_environ(
+    *,
+    database_key: DatabaseKey | str,
+    target_database_url: str,
+    alembic_workdir: Path,
+    base_environ: dict[str, str] | None = None,
+) -> dict[str, str]:
+    """Force Alembic onto the restored target DB (do not inherit Fair CRM DATABASE_URL)."""
+    env = dict(base_environ if base_environ is not None else os.environ)
+    key = DatabaseKey(database_key)
+    env["DATABASE_URL"] = target_database_url
+    if key == DatabaseKey.FAIR_CRM:
+        env["FAIR_CRM_DATABASE_URL"] = target_database_url
+    elif key == DatabaseKey.FAIR_STAND:
+        env["FAIR_STAND_DATABASE_URL"] = target_database_url
+    elif key == DatabaseKey.KYROX_CORE:
+        env["KYROX_CORE_DATABASE_URL"] = target_database_url
+    env["PYTHONPATH"] = resolve_alembic_pythonpath(alembic_workdir)
+    return env

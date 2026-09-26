@@ -33,9 +33,12 @@ from app.shared.database_backup.engine import (
 from app.shared.database_backup.database_keys import (
     DatabaseKey,
     assert_target_url_matches_database_key,
+    build_alembic_environ,
+    resolve_alembic_python,
     resolve_alembic_workdir,
     resolve_database_url,
 )
+from app.shared.database_backup.connection import parse_database_url
 from app.shared.database_backup.paths import (
     get_repo_root,
     get_restore_logs_dir,
@@ -511,11 +514,21 @@ class RestoreJobMaintenanceRunner:
 
             migration_result = "success"
             alembic_workdir = resolve_alembic_workdir(job.target_database_key)
+            alembic_python = resolve_alembic_python(alembic_workdir)
+            alembic_env = build_alembic_environ(
+                database_key=job.target_database_key,
+                target_database_url=target_database_url,
+                alembic_workdir=alembic_workdir,
+            )
+            target_db_name = parse_database_url(target_database_url).database
             _log("running alembic upgrade head")
             _log(f"alembic workdir: {alembic_workdir}")
+            _log(f"alembic python: {alembic_python}")
+            _log(f"alembic target database: {target_db_name}")
             result = subprocess.run(
-                [sys.executable, "-m", "alembic", "upgrade", "head"],
+                [alembic_python, "-m", "alembic", "upgrade", "head"],
                 cwd=str(alembic_workdir),
+                env=alembic_env,
                 capture_output=True,
                 text=True,
                 check=False,

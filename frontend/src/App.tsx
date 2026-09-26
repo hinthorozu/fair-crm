@@ -23,6 +23,7 @@ import { OperationCapabilitiesAdminPage } from "./pages/OperationCapabilitiesAdm
 import { ActivitiesPage } from "./pages/ActivitiesPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { FairStandPage } from "./pages/FairStandPage";
+import { StandProjectsPage } from "./pages/StandProjectsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { TodoDetailPage } from "./pages/TodoDetailPage";
 import { TodosPage } from "./pages/TodosPage";
@@ -71,6 +72,15 @@ import { getOperationTypeWizardPath } from "./utils/operationWizardTypes";
 import { useDocumentTitle } from "./hooks/useDocumentTitle";
 import { useAuth } from "./auth/AuthContext";
 import { config } from "./config";
+import {
+  getGrantedCorePermissions,
+  hasGrantedCorePermission,
+} from "./permissions/corePermissions";
+import {
+  PERMISSION_STAND_PROJECTS_CREATE,
+  PERMISSION_STAND_PROJECTS_UPDATE,
+} from "./permissions/navigationPermissions";
+import { standProjectsLabels } from "./labels/standProjectsLabels";
 import "./styles.css";
 
 type AppRoute =
@@ -114,7 +124,9 @@ type AppRoute =
   | "/admin/operation-capabilities"
   | "/imports"
   | "/imports/fair/:fairId"
-  | "/fair-stand"
+  | "/stand-projects"
+  | "/stand-projects/new"
+  | "/stand-projects/:id"
   | "/customers/:id";
 
 interface ParsedRoute {
@@ -128,6 +140,7 @@ interface ParsedRoute {
   dataOperationKey?: string;
   adapterKey?: string;
   runId?: string;
+  projectId?: string;
 }
 
 function parseRoute(location: string): ParsedRoute {
@@ -279,7 +292,19 @@ function parseRoute(location: string): ParsedRoute {
     return { route: "/operations" };
   }
   if (pathname === "/login" || pathname === "/login/") return { route: "/login" };
-  if (pathname === "/fair-stand" || pathname === "/fair-stand/") return { route: "/fair-stand" };
+  if (pathname === "/fair-stand" || pathname === "/fair-stand/") {
+    return { route: "/stand-projects" };
+  }
+  if (pathname === "/stand-projects" || pathname === "/stand-projects/") {
+    return { route: "/stand-projects" };
+  }
+  if (pathname === "/stand-projects/new" || pathname === "/stand-projects/new/") {
+    return { route: "/stand-projects/new" };
+  }
+  const standProjectMatch = pathname.match(/^\/stand-projects\/([^/]+)$/);
+  if (standProjectMatch) {
+    return { route: "/stand-projects/:id", projectId: standProjectMatch[1] };
+  }
   if (pathname === "/dashboard" || pathname === "/") return { route: "/dashboard" };
   if (pathname === "/customers") return { route: "/customers" };
   const customerMatch = pathname.match(/^\/customers\/([^/]+)$/);
@@ -459,6 +484,12 @@ export function App() {
   const goToScraperTest = (adapterKey?: string, runId?: string) => { const params = new URLSearchParams(); if (adapterKey) params.set("adapter_key", adapterKey); if (runId) params.set("run", runId); const qs = params.toString(); const path = `/data-integration/scraper-test${qs ? `?${qs}` : ""}`; runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); };
   const goToAdapterRunDetail = (adapterKey: string, runId: string) => { const path = resolveRunDetailPath(adapterKey, runId); runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); };
   const goToAdmin = (subpath = "/admin/system/backups") => runGuardedNav(() => { navigate(subpath); setParsed(parseRoute(subpath)); setSidebarOpen(false); });
+  const goToStandProjects = () => runGuardedNav(() => { navigate("/stand-projects"); setParsed({ route: "/stand-projects" }); setSidebarOpen(false); });
+  const goToStandProjectNew = () => runGuardedNav(() => { navigate("/stand-projects/new"); setParsed({ route: "/stand-projects/new" }); setSidebarOpen(false); });
+  const goToStandProjectEdit = (projectId: string) => {
+    const path = `/stand-projects/${encodeURIComponent(projectId)}`;
+    runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); });
+  };
 
   const handleLoginSuccess = React.useCallback(() => { window.history.replaceState(null, "", "/dashboard"); setParsed({ route: "/dashboard" }); setSidebarOpen(false); allowedUrlRef.current = "/dashboard"; }, []);
   const handleLogout = React.useCallback(async () => {
@@ -474,6 +505,10 @@ export function App() {
   }, [logout, requestNavigation]);
 
   const isDashboardActive = parsed.route === "/dashboard";
+  const isStandProjectsActive =
+    parsed.route === "/stand-projects" ||
+    parsed.route === "/stand-projects/new" ||
+    parsed.route === "/stand-projects/:id";
   const isCustomersActive = parsed.route === "/customers" || parsed.route === "/customers/:id";
   const isFairsActive = parsed.route === "/fairs" || parsed.route === "/fairs/:id";
   const isTodosActive = parsed.route === "/todos" || parsed.route === "/todos/:id" || parsed.route === "/todos/:id/quote";
@@ -505,12 +540,14 @@ export function App() {
     : parsed.route === "/data-integration/run-history" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navImports, onClick: () => goToDataIntegration() }, { label: scraperLabels.runHistoryTitle, current: true }]
     : isDiActive ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navImports, current: true }]
     : isAdminActive ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navAdmin, onClick: () => goToAdmin() }, { label: parsed.route === "/admin/system/organizations" ? organizationLabels.title : parsed.route === "/admin/email-accounts" ? adminLabels.navSmtpAccounts : parsed.route === "/admin/smtp-operations/templates" ? adminLabels.navMailTemplates : parsed.route === "/admin/smtp-operations/mail-operations" ? adminLabels.navMailOperations : parsed.route === "/admin/operation-capabilities" ? adminLabels.navOperationCapabilities : adminLabels.navDatabaseBackups, current: true }]
+    : parsed.route === "/stand-projects" || parsed.route === "/stand-projects/new" || parsed.route === "/stand-projects/:id"
+      ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: standProjectsLabels.pageTitle, current: true }]
     : parsed.route === "/customers" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: labels.customers, current: true }]
     : [{ label: dashboardLabels.pageTitle, current: true }];
 
   const navItems = [
     { path: "/dashboard", label: uiLabels.navDashboard, icon: <NavIconDashboard />, active: isDashboardActive, onClick: (e: React.MouseEvent) => handleNav("/dashboard", e) },
-    { path: "/fair-stand", label: uiLabels.navFairStand, icon: <NavIconFairStand />, active: false, openInNewTab: true },
+    { path: "/stand-projects", label: uiLabels.navStandProjects, icon: <NavIconFairStand />, active: isStandProjectsActive, onClick: (e: React.MouseEvent) => handleNav("/stand-projects", e) },
     { path: "/customers", label: uiLabels.navCustomers, icon: <NavIconCustomers />, active: isCustomersActive, onClick: (e: React.MouseEvent) => handleNav("/customers", e) },
     { path: "/fairs", label: uiLabels.navFairs, icon: <NavIconFairs />, active: isFairsActive, onClick: (e: React.MouseEvent) => handleNav("/fairs", e) },
     { path: "/todos", label: uiLabels.navTodos, icon: <NavIconTodos />, active: isTodosActive, onClick: (e: React.MouseEvent) => handleNav("/todos", e) },
@@ -552,10 +589,41 @@ export function App() {
   if (import.meta.env.DEV && window.location.pathname === "/dev/customers-responsive-pilot") return <CustomersResponsivePilotPage />;
   if (import.meta.env.DEV && window.location.pathname === "/dev/table-standard-smoke") return <TableStandardSmokePage />;
   if (!isAuthenticated) return <LoginPage onSuccess={handleLoginSuccess} />;
-  if (parsed.route === "/fair-stand") {
+
+  // Legacy bookmark redirect
+  if (window.location.pathname === "/fair-stand" || window.location.pathname === "/fair-stand/") {
+    window.history.replaceState(null, "", "/stand-projects");
+  }
+
+  if (parsed.route === "/stand-projects/new" || parsed.route === "/stand-projects/:id") {
+    const granted = getGrantedCorePermissions();
+    const allowed =
+      parsed.route === "/stand-projects/new"
+        ? hasGrantedCorePermission(granted, PERMISSION_STAND_PROJECTS_CREATE)
+        : hasGrantedCorePermission(granted, PERMISSION_STAND_PROJECTS_UPDATE);
+    if (!allowed) {
+      return (
+        <AppLayout breadcrumbs={breadcrumbs} navItems={navItems} sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((v) => !v)} onLogout={handleLogout}>
+          <PageShell>
+            <PageHeader title={uiLabels.permissionDeniedPageTitle} />
+            <EmptyState
+              title={uiLabels.permissionDeniedTitle}
+              description={uiLabels.permissionDeniedDescription}
+              actionLabel={uiLabels.permissionDeniedBackToDashboard}
+              onAction={goToDashboard}
+            />
+          </PageShell>
+          {confirmDialog}
+        </AppLayout>
+      );
+    }
     return (
       <>
-        <FairStandPage />
+        <FairStandPage
+          mode={parsed.route === "/stand-projects/new" ? "new" : "edit"}
+          projectId={parsed.projectId}
+          onBackToList={goToStandProjects}
+        />
         {confirmDialog}
       </>
     );
@@ -564,6 +632,9 @@ export function App() {
   return (
     <AppLayout breadcrumbs={breadcrumbs} navItems={navItems} sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((v) => !v)} onLogout={handleLogout}>
       {parsed.route === "/dashboard" && <DashboardPage onOpenCustomer={goToCustomerDetail} onNavigate={(path) => { runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); }} />}
+      {parsed.route === "/stand-projects" && (
+        <StandProjectsPage onOpenProject={goToStandProjectEdit} onCreateProject={goToStandProjectNew} />
+      )}
       {parsed.route === "/fairs" && <FairsPage onOpenDetail={goToFairDetail} />}
       {parsed.route === "/fairs/:id" && parsed.fairId && <FairDetailPage fairId={parsed.fairId} onBack={goToFairs} onFairLoaded={setFairName} onOpenCustomer={goToCustomerDetail} onImportParticipants={() => goToImportWizard(parsed.fairId)} />}
       {isDiActive && renderDataIntegration()}

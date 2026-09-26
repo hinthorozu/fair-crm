@@ -10,41 +10,35 @@ function read(relativePath: string): string {
   return readFileSync(join(frontendSrc, relativePath), "utf8");
 }
 
-describe("Fair Stand standalone CRM route", () => {
-  it("keeps /fair-stand authenticated and outside AppLayout", () => {
+describe("Stand projects CRM routes", () => {
+  it("routes list inside AppLayout and editor outside AppLayout", () => {
     const app = read("App.tsx");
-    expect(app).toContain('if (pathname === "/fair-stand" || pathname === "/fair-stand/") return { route: "/fair-stand" }');
-    expect(app).toContain("if (!isAuthenticated) return <LoginPage onSuccess={handleLoginSuccess} />");
-    expect(app).toMatch(/if \(parsed\.route === "\/fair-stand"\) \{\s*return \(/);
-    expect(app).toContain("<FairStandPage />");
-    expect(app).not.toContain("{parsed.route === \"/fair-stand\" && <FairStandPage />}");
-    expect(app).toContain("<AppLayout breadcrumbs={breadcrumbs} navItems={navItems}");
-    expect(app.indexOf("if (parsed.route === \"/fair-stand\")")).toBeLessThan(app.indexOf("<AppLayout breadcrumbs={breadcrumbs} navItems={navItems}"));
+    expect(app).toContain('"/stand-projects"');
+    expect(app).toContain('"/stand-projects/new"');
+    expect(app).toContain('"/stand-projects/:id"');
+    expect(app).toContain("<StandProjectsPage");
+    expect(app).toContain("<FairStandPage");
+    expect(app).toContain('navigate("/stand-projects")');
+    expect(app.indexOf('parsed.route === "/stand-projects/new"')).toBeLessThan(
+      app.indexOf("<AppLayout breadcrumbs={breadcrumbs} navItems={navItems}"),
+    );
+    expect(app).toContain('path: "/stand-projects"');
+    expect(app).not.toContain("openInNewTab: true");
+    expect(app).toContain('pathname === "/fair-stand"');
   });
 
-  it("opens the sidebar Fair Stand item in a new tab via shared NavLink", () => {
-    const app = read("App.tsx");
-    const layout = read("components/layout/AppLayout.tsx");
-    const navLink = read("components/layout/NavLink.tsx");
-    expect(app).toContain('path: "/fair-stand"');
-    expect(app).toContain("openInNewTab: true");
-    expect(app).not.toContain('handleNav("/fair-stand"');
-    expect(layout).toContain("openInNewTab={item.openInNewTab}");
-    expect(navLink).toContain('target={openInNewTab ? "_blank" : undefined}');
-    expect(navLink).toContain('rel={openInNewTab ? "noopener noreferrer" : undefined}');
-  });
-
-  it("uses a full-viewport standalone host without CRM chrome CSS", () => {
+  it("uses a full-viewport standalone host with chrome back bar", () => {
     const css = read("styles.css");
     expect(css).toContain(".fair-stand-standalone");
     expect(css).toContain("height: 100dvh");
+    expect(css).toContain(".fair-stand-chrome");
     expect(css).not.toContain("height: calc(100vh - var(--topbar-height))");
-    expect(css).not.toContain(".app-content:has(.fair-stand-page)");
   });
 
   it("keeps normal CRM routes on AppLayout", () => {
     const app = read("App.tsx");
     expect(app).toContain('{parsed.route === "/dashboard" && <DashboardPage');
     expect(app).toContain('{parsed.route === "/customers" && <CustomersPage');
+    expect(app).toContain('{parsed.route === "/stand-projects" && (');
   });
 });

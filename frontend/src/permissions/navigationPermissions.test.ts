@@ -19,6 +19,9 @@ import {
   PERMISSION_OPERATIONS_CREATE,
   PERMISSION_OPERATIONS_READ,
   PERMISSION_SCRAPER_READ,
+  PERMISSION_STAND_PROJECTS_CREATE,
+  PERMISSION_STAND_PROJECTS_READ,
+  PERMISSION_STAND_PROJECTS_UPDATE,
   PERMISSION_TODOS_READ,
   PERMISSION_USERS_READ,
   resolvePermissionLandingPath,
@@ -33,9 +36,31 @@ describe("navigation permission rules", () => {
     expect(canAccessMainNavigation("/dashboard", granted())).toBe(true);
   });
 
-  it("keeps Fair Stand available to any authenticated CRM user without a product permission", () => {
-    expect(canAccessApplicationPath("/fair-stand", granted())).toBe(true);
-    expect(canAccessMainNavigation("/fair-stand", granted())).toBe(true);
+  it("requires stand project permissions for Standlar routes", () => {
+    expect(canAccessApplicationPath("/stand-projects", granted())).toBe(false);
+    expect(canAccessMainNavigation("/stand-projects", granted())).toBe(false);
+    expect(
+      canAccessApplicationPath("/stand-projects", granted(PERMISSION_STAND_PROJECTS_READ)),
+    ).toBe(true);
+    expect(
+      canAccessMainNavigation("/stand-projects", granted(PERMISSION_STAND_PROJECTS_READ)),
+    ).toBe(true);
+    expect(canAccessApplicationPath("/stand-projects/new", granted())).toBe(false);
+    expect(
+      canAccessApplicationPath("/stand-projects/new", granted(PERMISSION_STAND_PROJECTS_CREATE)),
+    ).toBe(true);
+    expect(
+      canAccessApplicationPath(
+        "/stand-projects/11111111-1111-1111-1111-111111111111",
+        granted(PERMISSION_STAND_PROJECTS_READ),
+      ),
+    ).toBe(false);
+    expect(
+      canAccessApplicationPath(
+        "/stand-projects/11111111-1111-1111-1111-111111111111",
+        granted(PERMISSION_STAND_PROJECTS_UPDATE),
+      ),
+    ).toBe(true);
   });
 
   it("hides a module and blocks its deep link without read permission", () => {

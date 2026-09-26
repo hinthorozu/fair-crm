@@ -48,6 +48,7 @@ function mainNavigationSection(path: string): string {
   if (path.startsWith("/data-integration") || path.startsWith("/imports")) {
     return "/data-integration";
   }
+  if (path.startsWith("/stand-projects")) return "/stand-projects";
   if (path.startsWith("/customers")) return "/customers";
   if (path.startsWith("/fairs")) return "/fairs";
   if (path.startsWith("/todos")) return "/todos";

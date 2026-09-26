@@ -48,6 +48,11 @@ export const PERMISSION_COST_PRODUCTS_READ = "fair_crm.cost_catalog.products.rea
 export const PERMISSION_COST_PRODUCTS_CREATE = "fair_crm.cost_catalog.products.create";
 export const PERMISSION_COST_PRODUCTS_UPDATE = "fair_crm.cost_catalog.products.update";
 export const PERMISSION_COST_PRODUCTS_DELETE = "fair_crm.cost_catalog.products.delete";
+export const PERMISSION_STAND_PROJECTS_READ = "fair_crm.fair_stand.projects.read";
+export const PERMISSION_STAND_PROJECTS_CREATE = "fair_crm.fair_stand.projects.create";
+export const PERMISSION_STAND_PROJECTS_UPDATE = "fair_crm.fair_stand.projects.update";
+export const PERMISSION_STAND_PROJECTS_DELETE = "fair_crm.fair_stand.projects.delete";
+export const PERMISSION_STAND_PROJECTS_EXECUTE = "fair_crm.fair_stand.projects.execute";
 
 export const COST_CATALOG_ADMIN_PERMISSIONS = [
   PERMISSION_COST_CATEGORIES_READ,
@@ -69,7 +74,7 @@ export type PermissionRequirement =
 
 export const MAIN_NAV_REQUIREMENTS: Readonly<Record<string, PermissionRequirement>> = {
   "/dashboard": { kind: "public" },
-  "/fair-stand": { kind: "public" },
+  "/stand-projects": { kind: "permission", permission: PERMISSION_STAND_PROJECTS_READ },
   "/customers": { kind: "permission", permission: PERMISSION_CUSTOMERS_READ },
   "/fairs": { kind: "permission", permission: PERMISSION_FAIRS_READ },
   "/todos": { kind: "permission", permission: PERMISSION_TODOS_READ },
@@ -305,7 +310,17 @@ export function canAccessApplicationPath(
   if (bypass) return true;
   const pathname = normalizePath(path);
 
-  if (pathname === "/" || pathname === "/login" || pathname === "/dashboard" || pathname === "/fair-stand") return true;
+  if (pathname === "/" || pathname === "/login" || pathname === "/dashboard") return true;
+
+  if (pathname === "/stand-projects" || pathname === "/stand-projects/") {
+    return hasGrantedCorePermission(granted, PERMISSION_STAND_PROJECTS_READ);
+  }
+  if (pathname === "/stand-projects/new" || pathname === "/stand-projects/new/") {
+    return hasGrantedCorePermission(granted, PERMISSION_STAND_PROJECTS_CREATE);
+  }
+  if (/^\/stand-projects\/[^/]+$/.test(pathname)) {
+    return hasGrantedCorePermission(granted, PERMISSION_STAND_PROJECTS_UPDATE);
+  }
 
   if (pathname === "/customers" || pathname.startsWith("/customers/")) {
     return hasGrantedCorePermission(granted, PERMISSION_CUSTOMERS_READ);
