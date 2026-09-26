@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "id": "fair-stand-stand-projects-list",
+  "title": "Standlar project list and permission-gated configurator routes",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/StandProjectsPage.tsx",
+    "frontend/src/pages/StandProjectsPage.test.ts",
+    "frontend/src/pages/FairStandPage.tsx",
+    "frontend/src/pages/FairStandPage.test.ts",
+    "frontend/src/pages/FairStandStandaloneRoute.test.ts",
+    "frontend/src/api/fairStandProjects.ts",
+    "frontend/src/labels/standProjectsLabels.ts",
+    "frontend/src/labels/uiLabels.ts",
+    "frontend/src/App.tsx",
+    "frontend/src/components/layout/AppLayout.tsx",
+    "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/permissions/navigationPermissions.test.ts",
+    "frontend/src/styles.css",
+    "frontend/src/utils/documentTitle.ts",
+    "frontend/src/utils/documentTitle.test.ts",
+    "frontend/src/vite-env.d.ts",
+    "frontend/scripts/capture-ui-evidence.mjs",
+    ".kyrox/features/fair-stand-stand-projects-list.json",
+    ".kyrox/features/fair-stand-shell-route.json",
+    ".kyrox/features/fair-stand-projects-sot.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.fair_stand.projects.read", "action": "read", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.projects.create", "action": "create", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.projects.update", "action": "update", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.projects.delete", "action": "delete", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.projects.execute", "action": "execute", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/stand-projects", "/stand-projects/new", "/stand-projects/:id"],
+    "menu": true,
+    "menu_permission": "fair_crm.fair_stand.projects.read"
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "Project rows live in Fair Stand DB; CRM lists via Stand API." },
+    "migration": { "status": "na", "reason": "No CRM schema migration for Standlar list routes." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Project API is hosted by Fair Stand; CRM only mounts list and shell routes." },
+    "api": { "status": "na", "reason": "CRM client calls Stand GET/DELETE; no new CRM backend routes." },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "na", "reason": "No new CRM audit stream for list page." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "required" },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "na", "reason": "List/delete confirm only; editor forms remain in Stand shell." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "API auth tests live in fair-stand; CRM covers UI and nav tests." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Replaces public /fair-stand shell entry with permission-gated Standlar list. Configurator stays standalone at /stand-projects/new and /:id."
+}

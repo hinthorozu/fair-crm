@@ -14,7 +14,23 @@ interface ImportMeta {
 }
 
 declare module "@fair-stand/mountFairStand.js" {
-  export function mountFairStand(container: HTMLElement): () => void;
+  export type FairStandMountCapabilities = {
+    canCreate?: boolean;
+    canUpdate?: boolean;
+    canDelete?: boolean;
+    canExecute?: boolean;
+  };
+
+  export type FairStandMountOptions = {
+    catalogHeaders?: HeadersInit | Record<string, string>;
+    initialProjectId?: string;
+    capabilities?: FairStandMountCapabilities;
+  };
+
+  export function mountFairStand(
+    container: HTMLElement,
+    options?: FairStandMountOptions,
+  ): () => void;
 }
 
 declare module "@fair-stand/catalogPreviewRenderer.js" {

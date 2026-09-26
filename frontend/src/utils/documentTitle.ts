@@ -11,6 +11,7 @@ import { todoLabels } from "../labels/todoLabels";
 import { activityLabels } from "../labels/activityLabels";
 import { operationLabels, operationTypeLabels } from "../labels/operationLabels";
 import { uiLabels } from "../labels/uiLabels";
+import { standProjectsLabels } from "../labels/standProjectsLabels";
 
 export const DOCUMENT_TITLE_BRAND = labels.appTitle;
 
@@ -53,8 +54,12 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
       return authLabels.pageTitle;
     case "/dashboard":
       return dashboardLabels.pageTitle;
-    case "/fair-stand":
-      return uiLabels.navFairStand;
+    case "/stand-projects":
+      return standProjectsLabels.pageTitle;
+    case "/stand-projects/new":
+      return standProjectsLabels.editorNewTitle;
+    case "/stand-projects/:id":
+      return standProjectsLabels.editorEditTitle;
     case "/customers":
       return labels.customers;
     case "/customers/:id":

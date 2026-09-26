@@ -8255,12 +8255,33 @@ html:has(.fair-stand-standalone) #root {
 
 .fair-stand-standalone {
   display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100dvh;
   max-width: none;
   margin: 0;
   padding: 0;
   overflow: hidden;
+}
+
+.fair-stand-chrome {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color, #d7dde5);
+  background: var(--surface, #fff);
+}
+
+.fair-stand-chrome-back {
+  flex: 0 0 auto;
+}
+
+.fair-stand-chrome-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
 }
 
 .fair-stand-standalone .fair-stand-host,
@@ -8273,7 +8294,7 @@ html:has(.fair-stand-standalone) #root {
   min-height: 0;
   margin: 0;
   padding: 0;
-  height: 100%;
+  height: auto;
 }
 
 .fair-stand-host iframe {

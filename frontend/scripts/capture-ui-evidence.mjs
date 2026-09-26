@@ -168,6 +168,14 @@ function buildRoutes(ids) {
   const routes = [
     { route: "/login", url: "/login", kind: "static", production: true },
     { route: "/dashboard", url: "/dashboard", kind: "static", production: true },
+    { route: "/stand-projects", url: "/stand-projects", kind: "static", production: true },
+    { route: "/stand-projects/new", url: "/stand-projects/new", kind: "static", production: true },
+    {
+      route: "/stand-projects/:id",
+      url: "/stand-projects/00000000-0000-4000-8000-000000000001",
+      kind: "detail",
+      production: true,
+    },
     { route: "/customers", url: "/customers", kind: "static", production: true },
     { route: "/customers/:id", url: `/customers/${ids.customer}`, kind: "detail", production: true },
     { route: "/fairs", url: "/fairs", kind: "static", production: true },

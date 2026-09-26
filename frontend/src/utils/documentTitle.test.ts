@@ -5,6 +5,7 @@ import { labels } from "../labels";
 import { scraperLabels } from "../labels/scraperLabels";
 import { operationLabels } from "../labels/operationLabels";
 import { uiLabels } from "../labels/uiLabels";
+import { standProjectsLabels } from "../labels/standProjectsLabels";
 import {
   DUPLICATE_OPERATION_KEY,
   formatDocumentTitle,
@@ -99,7 +100,13 @@ describe("resolvePageTitle", () => {
     ).toBe("tuyap_old");
   });
 
-  it("resolves Fair Stand title", () => {
-    expect(resolvePageTitle({ route: "/fair-stand" })).toBe(uiLabels.navFairStand);
+  it("resolves Stand projects titles", () => {
+    expect(resolvePageTitle({ route: "/stand-projects" })).toBe(standProjectsLabels.pageTitle);
+    expect(resolvePageTitle({ route: "/stand-projects/new" })).toBe(
+      standProjectsLabels.editorNewTitle,
+    );
+    expect(resolvePageTitle({ route: "/stand-projects/:id" })).toBe(
+      standProjectsLabels.editorEditTitle,
+    );
   });
 });

@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "id": "admin-restore-alembic-target-database-url",
+  "title": "Restore runner forces target DATABASE_URL for alembic upgrades",
+  "feature_type": "system_admin",
+  "owner": "fair-crm",
+  "platform_reusability": "existing_core_capability",
+  "trigger": "user",
+  "tenant_scope": "system",
+  "user_facing": false,
+  "affected_paths": [
+    "backend/app/modules/system_admin/application/restore_job_service.py",
+    "backend/app/shared/database_backup/database_keys.py",
+    "backend/tests/shared/test_alembic_restore_environ.py",
+    ".kyrox/features/admin-restore-alembic-target-database-url.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.admin.backups.execute", "action": "execute", "scope": "system", "assignable": false }
+    ]
+  },
+  "frontend": {
+    "required": false,
+    "reason": "No UI change; existing Database Backups restore job uses the fixed alembic environ helper.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No schema change; only alembic env URL selection at restore time." },
+    "migration": { "status": "na", "reason": "No new CRM Alembic revision." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "required", "reason": "build_alembic_environ forces restored DB URL so Core/Stand upgrades do not inherit fair_crm DATABASE_URL." },
+    "api": { "status": "na", "reason": "Uses existing restore job runner; no new HTTP routes." },
+    "tenant_isolation": { "status": "na", "reason": "System-admin restore path; not org-scoped." },
+    "audit": { "status": "na", "reason": "Existing restore job audit reused." },
+    "frontend": { "status": "na", "reason": "No UI change; existing Database Backups page." },
+    "ui_permissions": { "status": "na", "reason": "Existing backup execute permission." },
+    "menu": { "status": "na", "reason": "No menu change." },
+    "route_guard": { "status": "na", "reason": "No route change." },
+    "forms": { "status": "na", "reason": "No form change." },
+    "visual_qa": { "status": "na", "reason": "Backend-only restore env fix." },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "na", "reason": "No frontend behavior change." },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Prevents Core restore from looking for fair-crm Alembic head 0089 when CRM process env still points at fair_crm."
+}
