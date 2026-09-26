@@ -30,7 +30,7 @@ def _success_post_restore_health(**kwargs) -> PostRestoreHealthResult:
             organizations_count=2,
             roles_count=3,
             permissions_count=10,
-            memberships_count=7,
+            user_roles_count=7,
         )
     if database_key == "fair_stand":
         return PostRestoreHealthResult(
