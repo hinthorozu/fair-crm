@@ -25,6 +25,15 @@ describe("Stand projects CRM routes", () => {
     expect(app).toContain('path: "/stand-projects"');
     expect(app).toContain("openInNewTab: true");
     expect(app).toContain('pathname === "/fair-stand"');
+    expect(app).toContain("standCustomerId");
+    expect(app).toContain("onCreateStandProject={goToStandProjectNew}");
+    expect(app).toContain("customerId=${encodeURIComponent(customerId)}");
+    const detail = read("pages/CustomerDetailPage.tsx");
+    expect(detail).toContain('id: "projects"');
+    expect(detail).toContain("listFairStandProjects(customerId)");
+    expect(detail).toContain("PERMISSION_STAND_PROJECTS_READ");
+    expect(detail).toContain("PERMISSION_STAND_PROJECTS_CREATE");
+    expect(detail).toContain("onCreateStandProject(customerId)");
   });
 
   it("uses a full-viewport standalone host with chrome back bar", () => {

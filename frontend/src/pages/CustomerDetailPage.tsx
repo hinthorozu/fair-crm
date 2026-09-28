@@ -13,6 +13,7 @@ import {
   updateParticipation,
 } from "../api/participations";
 import { getCustomer, archiveCustomer, updateCustomer } from "../api/customers";
+import { listFairStandProjects, type FairStandProjectSummary } from "../api/fairStandProjects";
 import {
   createContact,
   deleteContact,
@@ -44,6 +45,7 @@ import {
 } from "../components/ParticipationForm";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { FilterPanel } from "../components/ui/FilterPanel";
+import { EmptyState } from "../components/ui/EmptyState";
 import { LoadingState } from "../components/ui/LoadingState";
 import { FormModal, TextInput } from "../components/ui/form";
 import { PageHeader, type PageHeaderAction } from "../components/ui/PageHeader";
@@ -61,6 +63,7 @@ import { activityLabels } from "../labels/activityLabels";
 import { contactLabels } from "../labels/contactLabels";
 import { customerStatusLabels, customerTypeLabels, customerSourceLabels, labels } from "../labels";
 import { participationLabels } from "../labels/participationLabels";
+import { standProjectsLabels } from "../labels/standProjectsLabels";
 import { uiLabels } from "../labels/uiLabels";
 import type { Activity } from "../types/activity";
 import type { Customer } from "../types/customer";
@@ -93,16 +96,20 @@ const PERMISSION_PARTICIPATIONS_READ = "fair_crm.participations.read";
 const PERMISSION_PARTICIPATIONS_CREATE = "fair_crm.participations.create";
 const PERMISSION_PARTICIPATIONS_UPDATE = "fair_crm.participations.update";
 const PERMISSION_PARTICIPATIONS_DELETE = "fair_crm.participations.delete";
+const PERMISSION_STAND_PROJECTS_READ = "fair_crm.fair_stand.projects.read";
+const PERMISSION_STAND_PROJECTS_CREATE = "fair_crm.fair_stand.projects.create";
 
 interface CustomerDetailPageProps {
   customerId: string;
   onBack: () => void;
   onCustomerLoaded?: (name: string) => void;
+  onOpenStandProject?: (projectId: string) => void;
+  onCreateStandProject?: (customerId: string) => void;
 }
 
-type TabId = "overview" | "contacts" | "activities" | "participations";
+type TabId = "overview" | "contacts" | "activities" | "participations" | "projects";
 
-const VALID_TABS: TabId[] = ["overview", "contacts", "activities", "participations"];
+const VALID_TABS: TabId[] = ["overview", "contacts", "activities", "participations", "projects"];
 
 function tabFromUrl(): TabId {
   const tab = readSearchParams().get("tab");
@@ -121,6 +128,8 @@ export function CustomerDetailPage({
   customerId,
   onBack,
   onCustomerLoaded,
+  onOpenStandProject,
+  onCreateStandProject,
 }: CustomerDetailPageProps) {
   const { session } = useAuth();
   const grantedPermissions = session?.permissions ?? [];
@@ -145,15 +154,18 @@ export function CustomerDetailPage({
   const canParticipationsCreate = hasPermission(PERMISSION_PARTICIPATIONS_CREATE);
   const canParticipationsUpdate = hasPermission(PERMISSION_PARTICIPATIONS_UPDATE);
   const canParticipationsDelete = hasPermission(PERMISSION_PARTICIPATIONS_DELETE);
+  const canStandProjectsRead = hasPermission(PERMISSION_STAND_PROJECTS_READ);
+  const canStandProjectsCreate = hasPermission(PERMISSION_STAND_PROJECTS_CREATE);
 
   const normalizeTab = React.useCallback(
     (tab: TabId): TabId => {
       if (tab === "contacts" && !canContactsRead) return "overview";
       if (tab === "activities" && !canActivitiesRead) return "overview";
       if (tab === "participations" && !canParticipationsRead) return "overview";
+      if (tab === "projects" && !canStandProjectsRead) return "overview";
       return tab;
     },
-    [canActivitiesRead, canContactsRead, canParticipationsRead],
+    [canActivitiesRead, canContactsRead, canParticipationsRead, canStandProjectsRead],
   );
 
   const [customer, setCustomer] = React.useState<Customer | null>(null);
@@ -164,6 +176,9 @@ export function CustomerDetailPage({
   const [contactsTotal, setContactsTotal] = React.useState(0);
   const [activitiesTotal, setActivitiesTotal] = React.useState(0);
   const [participationsTotal, setParticipationsTotal] = React.useState(0);
+  const [standProjects, setStandProjects] = React.useState<FairStandProjectSummary[]>([]);
+  const [standProjectsTotal, setStandProjectsTotal] = React.useState(0);
+  const [standProjectsLoading, setStandProjectsLoading] = React.useState(false);
   const [modal, setModal] = React.useState<
     | "edit-customer"
     | "create-contact"
@@ -484,6 +499,35 @@ export function CustomerDetailPage({
     }
   };
 
+  React.useEffect(() => {
+    if (!canStandProjectsRead || !customer) {
+      setStandProjects([]);
+      setStandProjectsTotal(0);
+      return;
+    }
+    let cancelled = false;
+    setStandProjectsLoading(true);
+    void listFairStandProjects(customerId)
+      .then((rows) => {
+        if (cancelled) return;
+        const sorted = [...rows].sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+        setStandProjects(sorted);
+        setStandProjectsTotal(sorted.length);
+      })
+      .catch((loadError) => {
+        if (cancelled) return;
+        setStandProjects([]);
+        setStandProjectsTotal(0);
+        setError(loadError instanceof ApiError ? loadError.message : standProjectsLabels.loadError);
+      })
+      .finally(() => {
+        if (!cancelled) setStandProjectsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canStandProjectsRead, customer, customerId]);
+
   const tabItems = [
     { id: "overview" as const, label: uiLabels.tabOverview },
     ...(canContactsRead
@@ -510,6 +554,15 @@ export function CustomerDetailPage({
             id: "participations" as const,
             label: uiLabels.tabFairParticipations,
             badge: participationsTotal > 0 ? participationsTotal : undefined,
+          },
+        ]
+      : []),
+    ...(canStandProjectsRead
+      ? [
+          {
+            id: "projects" as const,
+            label: standProjectsLabels.pageTitle,
+            badge: standProjectsTotal > 0 ? standProjectsTotal : undefined,
           },
         ]
       : []),
@@ -881,6 +934,67 @@ export function CustomerDetailPage({
               }
             />
           </ServerDataTableFrame>
+        </TabPanel>
+      ) : null}
+
+      {canStandProjectsRead ? (
+        <TabPanel id="panel-projects" labelledBy="tab-projects" active={activeTab === "projects"}>
+          <div className="table-toolbar">
+            {canStandProjectsCreate && onCreateStandProject ? (
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => onCreateStandProject(customerId)}
+              >
+                {standProjectsLabels.actionCreate}
+              </button>
+            ) : null}
+          </div>
+          {standProjectsLoading ? <LoadingState /> : null}
+          {!standProjectsLoading && standProjects.length === 0 ? (
+            <EmptyState
+              title={standProjectsLabels.emptyTitle}
+              description={standProjectsLabels.emptyDescription}
+              actionLabel={
+                canStandProjectsCreate && onCreateStandProject ? standProjectsLabels.actionCreate : undefined
+              }
+              onAction={
+                canStandProjectsCreate && onCreateStandProject
+                  ? () => onCreateStandProject(customerId)
+                  : undefined
+              }
+            />
+          ) : null}
+          {!standProjectsLoading && standProjects.length > 0 ? (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>{standProjectsLabels.colName}</th>
+                  <th>{standProjectsLabels.colUpdated}</th>
+                  <th>{standProjectsLabels.colActions}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {standProjects.map((project) => (
+                  <tr key={project.id}>
+                    <td>{project.name || "Adsız Proje"}</td>
+                    <td>{new Date(project.updatedAt).toLocaleString("tr-TR")}</td>
+                    <td>
+                      {onOpenStandProject ? (
+                        <button
+                          type="button"
+                          className="btn secondary btn-sm"
+                          onClick={() => onOpenStandProject(project.id)}
+                        >
+                          {standProjectsLabels.actionEdit}
+                        </button>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : null}
         </TabPanel>
       ) : null}
 

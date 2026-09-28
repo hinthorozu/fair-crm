@@ -3000,6 +3000,12 @@ textarea.form-control-textarea {
   box-shadow: var(--shadow-sm);
 }
 
+.entity-select-dropdown-portal {
+  position: fixed;
+  right: auto;
+  z-index: 200;
+}
+
 .entity-select-option {
   display: flex;
   flex-direction: column;

@@ -29,6 +29,7 @@ describe("FairStandPage standalone host", () => {
     const source = readFileSync(join(here, "FairStandPage.tsx"), "utf8");
     expect(source).toContain("catalogHeaders: buildApiHeaders()");
     expect(source).toContain("initialProjectId");
+    expect(source).toContain("customerId: mode === \"new\" ? customerId : undefined");
     expect(source).toContain("capabilities");
     expect(source).toContain('import("@fair-stand/mountFairStand.js")');
     expect(source).not.toContain("FairStandEmbed");

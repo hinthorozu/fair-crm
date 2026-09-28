@@ -16,5 +16,15 @@ describe("StandProjectsPage", () => {
     expect(source).toContain("deleteFairStandProject");
     expect(source).toContain("onCreateProject");
     expect(source).toContain("onOpenProject");
+    expect(source).toContain("assignFairStandProjectCustomer");
+    expect(source).toContain("CUSTOMER_READ");
+    expect(source).toContain("allowClear={false}");
+    expect(source).toContain("standProjectsLabels.colCustomer");
+    expect(source).toContain("standProjectsLabels.temporaryCustomer");
+    expect(source).toContain("standProjectsLabels.actionAssignCustomer");
+    expect(source).toContain("standProjectsLabels.assignCustomerTitle");
+    expect(source).toContain("standProjectsLabels.assignCustomerConfirm");
+    expect(source).toContain("openAssign(row)");
+    expect(source).not.toContain("void assignCustomer(");
   });
 });
