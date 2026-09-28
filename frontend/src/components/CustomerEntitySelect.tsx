@@ -221,8 +221,8 @@ export function CustomerEntitySelect({
         }}
         onKeyDown={handleKeyDown}
       />
-      {open
-        ? createPortal(
+      {open ? (
+        createPortal(
             <div
               id={id ? `${id}-listbox` : undefined}
               ref={listRef}
@@ -283,11 +283,10 @@ export function CustomerEntitySelect({
             })
           )}
           {loadingMore && <div className="entity-select-message">Daha fazla yükleniyor…</div>}
-            </div>
-          ),
+            </div>,
           document.body,
         )
-        : null}
+      ) : null}
     </div>
   );
 }
