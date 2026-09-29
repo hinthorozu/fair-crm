@@ -27,7 +27,17 @@ describe("Stand projects CRM routes", () => {
     expect(app).toContain('pathname === "/fair-stand"');
     expect(app).toContain("standCustomerId");
     expect(app).toContain("onCreateStandProject={goToStandProjectNew}");
+    expect(app).toContain("onOpenProject={goToStandProjectEdit}");
     expect(app).toContain("customerId=${encodeURIComponent(customerId)}");
+    expect(app).toContain("navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false);");
+    expect(app).toContain('window.open(path, "_blank", "noopener,noreferrer")');
+    expect(app).toContain("openStandProjectPath(path)");
+    const newProject = app.slice(app.indexOf("const goToStandProjectNew"), app.indexOf("const goToStandProjectEdit"));
+    expect(newProject).toContain("openStandProjectPath(path)");
+    expect(newProject).not.toContain("navigate(path)");
+    const editProject = app.slice(app.indexOf("const goToStandProjectEdit"), app.indexOf("const handleLoginSuccess"));
+    expect(editProject).toContain("openStandProjectPath(path)");
+    expect(editProject).not.toContain("navigate(path)");
     const detail = read("pages/CustomerDetailPage.tsx");
     expect(detail).toContain('id: "projects"');
     expect(detail).toContain("listFairStandProjects(customerId)");
