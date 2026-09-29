@@ -1,12 +1,16 @@
 import React from "react";
 import { ApiError } from "../api/client";
+import { getCustomer } from "../api/customers";
 import {
+  assignFairStandProjectCustomer,
   deleteFairStandProject,
   listFairStandProjects,
   type FairStandProjectSummary,
 } from "../api/fairStandProjects";
+import { CustomerEntitySelect } from "../components/CustomerEntitySelect";
 import { Banner } from "../components/ui/Banner";
 import { Button } from "../components/ui/Button";
+import { Modal } from "../components/ui/Modal";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
 import { FilterPanel } from "../components/ui/FilterPanel";
@@ -21,6 +25,7 @@ import {
   getGrantedCorePermissions,
   hasGrantedCorePermission,
 } from "../permissions/corePermissions";
+import { CUSTOMER_READ } from "../permissions/customerPermissions";
 import {
   PERMISSION_STAND_PROJECTS_CREATE,
   PERMISSION_STAND_PROJECTS_DELETE,
@@ -37,15 +42,17 @@ function formatProjectTimestamp(ms: number): string {
   }
 }
 
-function matchesSearch(row: FairStandProjectSummary, search: string): boolean {
+function matchesSearch(row: FairStandProjectSummary, search: string, customerName: string): boolean {
   const q = search.trim().toLocaleLowerCase("tr-TR");
   if (!q) return true;
-  return (row.name || "").toLocaleLowerCase("tr-TR").includes(q);
+  const name = (row.name || "").toLocaleLowerCase("tr-TR");
+  const customer = customerName.toLocaleLowerCase("tr-TR");
+  return name.includes(q) || customer.includes(q);
 }
 
 type StandProjectsPageProps = {
   onOpenProject: (projectId: string) => void;
-  onCreateProject: () => void;
+  onCreateProject: (customerId: string) => void;
 };
 
 export function StandProjectsPage({ onOpenProject, onCreateProject }: StandProjectsPageProps) {
@@ -54,13 +61,21 @@ export function StandProjectsPage({ onOpenProject, onCreateProject }: StandProje
   const canCreate = hasGrantedCorePermission(granted, PERMISSION_STAND_PROJECTS_CREATE);
   const canUpdate = hasGrantedCorePermission(granted, PERMISSION_STAND_PROJECTS_UPDATE);
   const canDelete = hasGrantedCorePermission(granted, PERMISSION_STAND_PROJECTS_DELETE);
+  const canReadCustomers = hasGrantedCorePermission(granted, CUSTOMER_READ);
+  const canCreateForCustomer = canCreate && canReadCustomers;
 
   const [projects, setProjects] = React.useState<FairStandProjectSummary[]>([]);
+  const [customerNames, setCustomerNames] = React.useState<Record<string, string>>({});
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [search, setSearch] = React.useState("");
   const [deleting, setDeleting] = React.useState<FairStandProjectSummary | null>(null);
   const [deleteBusy, setDeleteBusy] = React.useState(false);
+  const [pickingCustomer, setPickingCustomer] = React.useState(false);
+  const [pickedCustomerId, setPickedCustomerId] = React.useState("");
+  const [assigning, setAssigning] = React.useState<FairStandProjectSummary | null>(null);
+  const [assignCustomerId, setAssignCustomerId] = React.useState("");
+  const [assignBusy, setAssignBusy] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -86,22 +101,83 @@ export function StandProjectsPage({ onOpenProject, onCreateProject }: StandProje
     else setLoading(false);
   }, [canRead, load]);
 
+  React.useEffect(() => {
+    if (!canReadCustomers) {
+      setCustomerNames({});
+      return;
+    }
+    const ids = [...new Set(projects.map((row) => row.customerId).filter(Boolean))];
+    let cancelled = false;
+    void Promise.all(
+      ids.map(async (id) => {
+        try {
+          const customer = await getCustomer(id);
+          return [id, customer.display_name] as const;
+        } catch {
+          return [id, ""] as const;
+        }
+      }),
+    ).then((entries) => {
+      if (cancelled) return;
+      const next: Record<string, string> = {};
+      for (const [id, name] of entries) {
+        if (name) next[id] = name;
+      }
+      setCustomerNames(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [canReadCustomers, projects]);
+
   const filtered = React.useMemo(
-    () => projects.filter((row) => matchesSearch(row, search)),
-    [projects, search],
+    () => projects.filter((row) => matchesSearch(row, search, customerNames[row.customerId] || "")),
+    [customerNames, projects, search],
   );
 
+  const openCustomerPicker = () => {
+    setPickedCustomerId("");
+    setPickingCustomer(true);
+  };
+
+  const openAssign = (project: FairStandProjectSummary) => {
+    setAssignCustomerId("");
+    setAssigning(project);
+  };
+
+  const saveAssign = async () => {
+    if (!canUpdate || !assigning || !assignCustomerId || assignCustomerId === assigning.customerId) return;
+    setAssignBusy(true);
+    setError(null);
+    try {
+      const updated = await assignFairStandProjectCustomer(assigning.id, assignCustomerId);
+      setProjects((current) =>
+        current.map((row) => (row.id === assigning.id ? { ...row, customerId: updated.customerId } : row)),
+      );
+      setAssigning(null);
+      setAssignCustomerId("");
+    } catch (assignError) {
+      setError(
+        assignError instanceof ApiError || assignError instanceof Error
+          ? assignError.message
+          : standProjectsLabels.assignError,
+      );
+    } finally {
+      setAssignBusy(false);
+    }
+  };
+
   const headerActions = React.useMemo((): PageHeaderAction[] => {
-    if (!canCreate) return [];
+    if (!canCreateForCustomer) return [];
     return [
       {
         id: "create-stand-project",
         label: standProjectsLabels.actionCreate,
         variant: "primary",
-        onClick: onCreateProject,
+        onClick: openCustomerPicker,
       },
     ];
-  }, [canCreate, onCreateProject]);
+  }, [canCreateForCustomer]);
 
   const columns = React.useMemo((): UniversalDataTableColumn<FairStandProjectSummary>[] => {
     const cols: UniversalDataTableColumn<FairStandProjectSummary>[] = [
@@ -110,6 +186,12 @@ export function StandProjectsPage({ onOpenProject, onCreateProject }: StandProje
         title: standProjectsLabels.colName,
         sortable: false,
         render: (row) => row.name || "Adsız Proje",
+      },
+      {
+        key: "customer",
+        title: standProjectsLabels.colCustomer,
+        sortable: false,
+        render: (row) => customerNames[row.customerId] || standProjectsLabels.temporaryCustomer,
       },
       {
         key: "updated",
@@ -136,6 +218,11 @@ export function StandProjectsPage({ onOpenProject, onCreateProject }: StandProje
                 {standProjectsLabels.actionEdit}
               </Button>
             ) : null}
+            {canUpdate && canReadCustomers ? (
+              <Button size="sm" variant="secondary" onClick={() => openAssign(row)}>
+                {standProjectsLabels.actionAssignCustomer}
+              </Button>
+            ) : null}
             {canDelete ? (
               <Button size="sm" variant="danger" onClick={() => setDeleting(row)}>
                 {standProjectsLabels.actionDelete}
@@ -146,7 +233,7 @@ export function StandProjectsPage({ onOpenProject, onCreateProject }: StandProje
       });
     }
     return cols;
-  }, [canDelete, canUpdate, onOpenProject]);
+  }, [canDelete, canReadCustomers, canUpdate, customerNames, onOpenProject]);
 
   const confirmDelete = async () => {
     if (!canDelete || !deleting) return;
@@ -202,12 +289,77 @@ export function StandProjectsPage({ onOpenProject, onCreateProject }: StandProje
         <EmptyState
           title={standProjectsLabels.emptyTitle}
           description={standProjectsLabels.emptyDescription}
-          actionLabel={canCreate ? standProjectsLabels.actionCreate : undefined}
-          onAction={canCreate ? onCreateProject : undefined}
+          actionLabel={canCreateForCustomer ? standProjectsLabels.actionCreate : undefined}
+          onAction={canCreateForCustomer ? openCustomerPicker : undefined}
         />
       ) : null}
       {!loading && filtered.length > 0 ? (
         <UniversalDataTable columns={columns} items={filtered} rowKey={(row) => row.id} />
+      ) : null}
+      {pickingCustomer && canCreateForCustomer ? (
+        <Modal
+          title={standProjectsLabels.pickCustomerTitle}
+          onClose={() => setPickingCustomer(false)}
+          footer={
+            <Button
+              variant="primary"
+              disabled={!pickedCustomerId}
+              onClick={() => {
+                const customerId = pickedCustomerId;
+                setPickingCustomer(false);
+                onCreateProject(customerId);
+              }}
+            >
+              {standProjectsLabels.pickCustomerConfirm}
+            </Button>
+          }
+        >
+          <p>{standProjectsLabels.pickCustomerDescription}</p>
+          <CustomerEntitySelect
+            id="stand-project-new-customer"
+            value={pickedCustomerId}
+            allowClear={false}
+            onChange={setPickedCustomerId}
+          />
+        </Modal>
+      ) : null}
+      {assigning && canUpdate && canReadCustomers ? (
+        <Modal
+          title={standProjectsLabels.assignCustomerTitle}
+          onClose={() => {
+            if (!assignBusy) setAssigning(null);
+          }}
+          footer={
+            <>
+              <Button
+                variant="secondary"
+                disabled={assignBusy}
+                onClick={() => setAssigning(null)}
+              >
+                İptal
+              </Button>
+              <Button
+                variant="primary"
+                disabled={
+                  assignBusy || !assignCustomerId || assignCustomerId === assigning.customerId
+                }
+                onClick={() => {
+                  void saveAssign();
+                }}
+              >
+                {standProjectsLabels.assignCustomerConfirm}
+              </Button>
+            </>
+          }
+        >
+          <p>{standProjectsLabels.assignCustomerDescription(assigning.name || "Adsız Proje")}</p>
+          <CustomerEntitySelect
+            id="stand-project-assign-customer"
+            value={assignCustomerId}
+            allowClear={false}
+            onChange={setAssignCustomerId}
+          />
+        </Modal>
       ) : null}
       {deleting && canDelete ? (
         <ConfirmDialog

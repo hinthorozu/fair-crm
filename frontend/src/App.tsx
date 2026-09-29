@@ -141,6 +141,7 @@ interface ParsedRoute {
   adapterKey?: string;
   runId?: string;
   projectId?: string;
+  standCustomerId?: string;
 }
 
 function parseRoute(location: string): ParsedRoute {
@@ -299,7 +300,10 @@ function parseRoute(location: string): ParsedRoute {
     return { route: "/stand-projects" };
   }
   if (pathname === "/stand-projects/new" || pathname === "/stand-projects/new/") {
-    return { route: "/stand-projects/new" };
+    return {
+      route: "/stand-projects/new",
+      standCustomerId: searchParams.get("customerId") ?? undefined,
+    };
   }
   const standProjectMatch = pathname.match(/^\/stand-projects\/([^/]+)$/);
   if (standProjectMatch) {
@@ -485,7 +489,10 @@ export function App() {
   const goToAdapterRunDetail = (adapterKey: string, runId: string) => { const path = resolveRunDetailPath(adapterKey, runId); runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); };
   const goToAdmin = (subpath = "/admin/system/backups") => runGuardedNav(() => { navigate(subpath); setParsed(parseRoute(subpath)); setSidebarOpen(false); });
   const goToStandProjects = () => runGuardedNav(() => { navigate("/stand-projects"); setParsed({ route: "/stand-projects" }); setSidebarOpen(false); });
-  const goToStandProjectNew = () => runGuardedNav(() => { navigate("/stand-projects/new"); setParsed({ route: "/stand-projects/new" }); setSidebarOpen(false); });
+  const goToStandProjectNew = (customerId: string) => {
+    const path = `/stand-projects/new?customerId=${encodeURIComponent(customerId)}`;
+    runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); });
+  };
   const goToStandProjectEdit = (projectId: string) => {
     const path = `/stand-projects/${encodeURIComponent(projectId)}`;
     runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); });
@@ -622,6 +629,7 @@ export function App() {
         <FairStandPage
           mode={parsed.route === "/stand-projects/new" ? "new" : "edit"}
           projectId={parsed.projectId}
+          customerId={parsed.standCustomerId}
           onBackToList={goToStandProjects}
         />
         {confirmDialog}
@@ -651,7 +659,7 @@ export function App() {
       {parsed.route === "/operations/:id" && parsed.operationId && <OperationDetailPage operationId={parsed.operationId} onBack={goToOperations} onOpenTodo={goToTodoDetail} onOpenImportBatch={(batchId) => goToDataIntegration(`/data-integration/imports/continue/${batchId}`)} />}
       {parsed.route === "/activities" && <ActivitiesPage onOpenCustomer={goToCustomerDetail} />}
       {parsed.route === "/customers" && <CustomersPage onOpenDetail={goToCustomerDetail} />}
-      {parsed.route === "/customers/:id" && parsed.customerId && <CustomerDetailPage customerId={parsed.customerId} onBack={goToCustomers} onCustomerLoaded={setCustomerName} />}
+      {parsed.route === "/customers/:id" && parsed.customerId && <CustomerDetailPage customerId={parsed.customerId} onBack={goToCustomers} onCustomerLoaded={setCustomerName} onOpenStandProject={goToStandProjectEdit} onCreateStandProject={goToStandProjectNew} />}
       {confirmDialog}
     </AppLayout>
   );

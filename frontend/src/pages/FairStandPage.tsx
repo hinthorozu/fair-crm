@@ -15,10 +15,11 @@ import { standProjectsLabels } from "../labels/standProjectsLabels";
 export type FairStandPageProps = {
   mode: "new" | "edit";
   projectId?: string;
+  customerId?: string;
   onBackToList: () => void;
 };
 
-export function FairStandPage({ mode, projectId, onBackToList }: FairStandPageProps) {
+export function FairStandPage({ mode, projectId, customerId, onBackToList }: FairStandPageProps) {
   const hostRef = React.useRef<HTMLDivElement>(null);
   const granted = React.useMemo(() => getGrantedCorePermissions(), []);
   const capabilities = React.useMemo(
@@ -33,7 +34,7 @@ export function FairStandPage({ mode, projectId, onBackToList }: FairStandPagePr
 
   React.useEffect(() => {
     const host = hostRef.current;
-    if (!host) return undefined;
+    if (!host || (mode === "new" && !customerId)) return undefined;
 
     let cancelled = false;
     let unmount: (() => void) | undefined;
@@ -43,6 +44,7 @@ export function FairStandPage({ mode, projectId, onBackToList }: FairStandPagePr
       unmount = mountFairStand(hostRef.current, {
         catalogHeaders: buildApiHeaders(),
         initialProjectId: mode === "edit" ? projectId : undefined,
+        customerId: mode === "new" ? customerId : undefined,
         capabilities,
       });
     });
@@ -51,7 +53,7 @@ export function FairStandPage({ mode, projectId, onBackToList }: FairStandPagePr
       cancelled = true;
       unmount?.();
     };
-  }, [capabilities, mode, projectId]);
+  }, [capabilities, customerId, mode, projectId]);
 
   return (
     <div className="fair-stand-standalone" data-testid="fair-stand-standalone">
@@ -67,7 +69,9 @@ export function FairStandPage({ mode, projectId, onBackToList }: FairStandPagePr
         ref={hostRef}
         className="fair-stand-host"
         data-testid="fair-stand-host"
-      />
+      >
+        {mode === "new" && !customerId ? <p>{standProjectsLabels.missingCustomer}</p> : null}
+      </div>
     </div>
   );
 }

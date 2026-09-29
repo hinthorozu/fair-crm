@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { getCustomer, listCustomers } from "../api/customers";
 import { customerStatusLabels } from "../labels";
 import { todoLabels } from "../labels/todoLabels";
@@ -36,8 +37,10 @@ export function CustomerEntitySelect({
   const [highlightIndex, setHighlightIndex] = React.useState(-1);
 
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const listRef = React.useRef<HTMLDivElement>(null);
   const requestIdRef = React.useRef(0);
+  const [menuBox, setMenuBox] = React.useState({ top: 0, left: 0, width: 0 });
 
   React.useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(searchText), DEBOUNCE_MS);
@@ -97,8 +100,27 @@ export function CustomerEntitySelect({
   }, [open, debouncedSearch, fetchPage]);
 
   React.useEffect(() => {
+    if (!open) return;
+    const placeMenu = () => {
+      const input = inputRef.current;
+      if (!input) return;
+      const rect = input.getBoundingClientRect();
+      setMenuBox({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    };
+    placeMenu();
+    window.addEventListener("resize", placeMenu);
+    window.addEventListener("scroll", placeMenu, true);
+    return () => {
+      window.removeEventListener("resize", placeMenu);
+      window.removeEventListener("scroll", placeMenu, true);
+    };
+  }, [open]);
+
+  React.useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
-      if (containerRef.current?.contains(event.target as Node)) return;
+      const target = event.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      if (listRef.current?.contains(target)) return;
       setOpen(false);
       setSearchText("");
       setHighlightIndex(-1);
@@ -177,6 +199,7 @@ export function CustomerEntitySelect({
   return (
     <div className="entity-select" ref={containerRef}>
       <input
+        ref={inputRef}
         id={id}
         type="text"
         role="combobox"
@@ -198,14 +221,16 @@ export function CustomerEntitySelect({
         }}
         onKeyDown={handleKeyDown}
       />
-      {open && (
-        <div
-          id={id ? `${id}-listbox` : undefined}
-          ref={listRef}
-          className="entity-select-dropdown"
-          role="listbox"
-          onScroll={handleScroll}
-        >
+      {open ? (
+        createPortal(
+            <div
+              id={id ? `${id}-listbox` : undefined}
+              ref={listRef}
+              className="entity-select-dropdown entity-select-dropdown-portal"
+              role="listbox"
+              style={{ top: menuBox.top, left: menuBox.left, width: menuBox.width }}
+              onScroll={handleScroll}
+            >
           {allowClear ? (
             <button
               type="button"
@@ -258,8 +283,10 @@ export function CustomerEntitySelect({
             })
           )}
           {loadingMore && <div className="entity-select-message">Daha fazla yükleniyor…</div>}
-        </div>
-      )}
+            </div>,
+          document.body,
+        )
+      ) : null}
     </div>
   );
 }

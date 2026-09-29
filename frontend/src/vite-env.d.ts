@@ -24,6 +24,7 @@ declare module "@fair-stand/mountFairStand.js" {
   export type FairStandMountOptions = {
     catalogHeaders?: HeadersInit | Record<string, string>;
     initialProjectId?: string;
+    customerId?: string;
     capabilities?: FairStandMountCapabilities;
   };
 
