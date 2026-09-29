@@ -77,5 +77,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Customer UI must mirror effective action permissions across navigation, list/detail pages, buttons, tables, empty-state actions, forms and export. Export uses fair_crm.customers.execute. Nested contact/activity/participation surfaces use their own CRUD permissions. Backend authorization remains the security boundary."
+  "notes": "Customer UI must mirror effective action permissions across navigation, list/detail pages, buttons, tables, empty-state actions, forms and export. Export uses fair_crm.customers.execute. Customer card tabs are Genel Bilgiler, İletişim Kişileri, Aktiviteler, Katıldığı Fuarlar, and Standlar. Katıldığı Fuarlar lists crm_customer_fair_participations rows. Standlar is shown when fair_crm.fair_stand.projects.read is granted. Nested contact/activity/participation surfaces use their own CRUD permissions. Backend authorization remains the security boundary."
 }
