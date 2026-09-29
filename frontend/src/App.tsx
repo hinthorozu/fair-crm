@@ -489,13 +489,16 @@ export function App() {
   const goToAdapterRunDetail = (adapterKey: string, runId: string) => { const path = resolveRunDetailPath(adapterKey, runId); runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); };
   const goToAdmin = (subpath = "/admin/system/backups") => runGuardedNav(() => { navigate(subpath); setParsed(parseRoute(subpath)); setSidebarOpen(false); });
   const goToStandProjects = () => runGuardedNav(() => { navigate("/stand-projects"); setParsed({ route: "/stand-projects" }); setSidebarOpen(false); });
+  const openStandProjectPath = (path: string) => {
+    window.open(path, "_blank", "noopener,noreferrer");
+  };
   const goToStandProjectNew = (customerId: string) => {
     const path = `/stand-projects/new?customerId=${encodeURIComponent(customerId)}`;
-    runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); });
+    openStandProjectPath(path);
   };
   const goToStandProjectEdit = (projectId: string) => {
     const path = `/stand-projects/${encodeURIComponent(projectId)}`;
-    runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); });
+    openStandProjectPath(path);
   };
 
   const handleLoginSuccess = React.useCallback(() => { window.history.replaceState(null, "", "/dashboard"); setParsed({ route: "/dashboard" }); setSidebarOpen(false); allowedUrlRef.current = "/dashboard"; }, []);
