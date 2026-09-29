@@ -51,14 +51,14 @@
     "migration": { "status": "na", "reason": "No CRM schema migration for Standlar list routes." },
     "permissions": { "status": "required" },
     "backend": { "status": "na", "reason": "Project API is hosted by Fair Stand; CRM only mounts list and shell routes." },
-    "api": { "status": "na", "reason": "CRM client calls Stand GET/DELETE; no new CRM backend routes." },
+    "api": { "status": "na", "reason": "CRM client calls Stand GET, DELETE, and PATCH /{id}/customer. No new CRM backend routes." },
     "tenant_isolation": { "status": "required" },
     "audit": { "status": "na", "reason": "No new CRM audit stream for list page." },
     "frontend": { "status": "required" },
     "ui_permissions": { "status": "required" },
     "menu": { "status": "required" },
     "route_guard": { "status": "required" },
-    "forms": { "status": "na", "reason": "List/delete confirm only; editor forms remain in Stand shell." },
+    "forms": { "status": "na", "reason": "List actions column has delete confirm and Başka müşteriye ata confirm. Editor forms remain in the Stand shell." },
     "visual_qa": { "status": "required" },
     "backend_tests": { "status": "na", "reason": "API auth tests live in fair-stand; CRM covers UI and nav tests." },
     "frontend_tests": { "status": "required" },
@@ -66,5 +66,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Replaces public /fair-stand shell entry with permission-gated Standlar list. Configurator stays standalone at /stand-projects/new and /:id."
+  "notes": "Replaces public /fair-stand shell entry with permission-gated Standlar list. Configurator stays standalone at /stand-projects/new and /:id. Assigning a project to another customer is the actions-column confirm dialog; it PATCHes customerId and does not run on drawing save."
 }

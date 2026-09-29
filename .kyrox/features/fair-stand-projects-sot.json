@@ -40,7 +40,7 @@
   },
   "applicability": {
     "database": { "status": "na", "reason": "Project tables live in Fair Stand DB; CRM does not own schema." },
-    "migration": { "status": "na", "reason": "Stand alembic 0012 and Core 20260922_0067 own schema/permission seeds." },
+    "migration": { "status": "na", "reason": "Stand alembic head 0045_project_customer_id and Core 20260922_0067 own the customer UUID column and permission seeds. No crm_customers foreign key." },
     "permissions": { "status": "required" },
     "backend": { "status": "na", "reason": "Project API is hosted by Fair Stand; CRM only wires codes and shell access." },
     "api": { "status": "na", "reason": "CRM proxies /api/v1/fair-stand; no new CRM routes in this slice." },
@@ -58,5 +58,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "SoT is fair_stand_projects + disk assets. IndexedDB is cache. Core seeds org-scoped permissions; Stand enforces them. CRM registers codes/labels/matrix and clarifies lock keeps grants while inactive strips."
+  "notes": "SoT is fair_stand_projects + disk assets. IndexedDB is cache. customer_id is a required UUID with no crm_customers foreign key; empty legacy rows use 00000000-0000-4000-8000-000000000001. Payload is {stand, modules}. Drawing save does not change customer_id. Core seeds org-scoped permissions; Stand enforces them. CRM registers codes/labels/matrix and clarifies lock keeps grants while inactive strips."
 }
