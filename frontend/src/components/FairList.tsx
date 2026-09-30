@@ -119,10 +119,10 @@ function buildFairColumns(props: FairTableProps): UniversalDataTableColumn<Fair>
         <>
           {onOpenDetail ? (
             <button type="button" className="btn link table-link" onClick={() => onOpenDetail(f.id)}>
-              <strong>{f.name}</strong>
+              <strong>{f.display_name}</strong>
             </button>
           ) : (
-            <strong>{f.name}</strong>
+            <strong>{f.display_name}</strong>
           )}
           {f.country && <div className="muted">{f.country}</div>}
           {f.origin === "system" && (

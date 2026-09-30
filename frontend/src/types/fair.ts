@@ -5,6 +5,7 @@ export interface Fair {
   organization_id: string | null;
   origin: "organization" | "system";
   name: string;
+  display_name: string;
   organizer: string | null;
   venue: string | null;
   city: string | null;

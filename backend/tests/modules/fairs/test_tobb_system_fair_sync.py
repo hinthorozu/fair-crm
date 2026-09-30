@@ -11,6 +11,7 @@ from app.modules.fairs.domain.services.normalizers import compute_normalized_nam
 from app.modules.fairs.domain.value_objects import FairStatus
 from app.modules.fairs.infrastructure.persistence.models import FairModel
 from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
+from app.modules.fairs.domain.services.normalizers import system_fair_display_name
 from app.modules.fairs.infrastructure.tobb_calendar import TobbCalendarClient, parse_tobb_calendar_html
 
 _HEADERS = (
@@ -117,6 +118,32 @@ def _system_rows(db_session) -> list[FairModel]:
         .filter(FairModel.origin == "system", FairModel.source == "tobb")
         .all()
     )
+
+
+_LONG_AMBALAJ = (
+    "AVRASYA AMBALAJ 2026- İSTANBUL 31.ULUSLARARASI AMBALAJ ENDÜSTRİSİ FUARI "
+    "(PRİNTPACK&CONVERTİNG-AMBALAJ BASKI TEKNOLOJİLERİ, OLUKLU MUKAVVA-KAĞIT-KARTON "
+    "AMBALAJ ÜRETİM TEKNOLOJİLERİ ÖZEL BÖLÜMÜ) /FOODTECH EURASİA GIDA İÇECEK ÜRETİM "
+    "VE İŞLEME TEKNOLOJİLERİ ÖZEL BÖLÜMÜ"
+)
+
+
+def test_system_fair_display_name_keeps_official_name_and_shortens_catalog_tail():
+    display = system_fair_display_name(name=_LONG_AMBALAJ, city="İSTANBUL", origin="system")
+    assert display == "AVRASYA AMBALAJ 2026 – İSTANBUL"
+    assert _LONG_AMBALAJ.startswith("AVRASYA AMBALAJ 2026- İSTANBUL 31.")
+    assert len(_LONG_AMBALAJ) > len(display)
+
+
+def test_system_fair_display_name_falls_back_when_tail_is_not_a_catalog():
+    official = "ICFE 2026 - INTERNATİONAL CARPET AND FLOORİNG EXPO - HALI, KİLİM FUARI"
+    assert system_fair_display_name(name=official, city="İSTANBUL", origin="system") == official
+    assert system_fair_display_name(name="DENİZLİ 2026", city="DENİZLİ", origin="system") == "DENİZLİ 2026"
+
+
+def test_organization_fair_display_name_is_the_official_name():
+    name = "AVRASYA AMBALAJ 2026- İSTANBUL 31.ULUSLARARASI FUARI"
+    assert system_fair_display_name(name=name, city="İSTANBUL", origin="organization") == name
 
 
 def test_parser_reads_tobb_columns_dates_and_identity_inputs():

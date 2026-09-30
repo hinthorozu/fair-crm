@@ -1,6 +1,7 @@
 from app.modules.fairs.application.commands import FairListResultDto, FairResult
 from app.modules.fairs.domain.entities import Fair
 from app.modules.fairs.domain.ports import FairListResult
+from app.modules.fairs.domain.services.normalizers import system_fair_display_name
 
 
 def fair_to_result(fair: Fair) -> FairResult:
@@ -9,6 +10,7 @@ def fair_to_result(fair: Fair) -> FairResult:
         organization_id=fair.organization_id,
         origin=fair.origin,
         name=fair.name,
+        display_name=system_fair_display_name(name=fair.name, city=fair.city, origin=fair.origin),
         organizer=fair.organizer,
         venue=fair.venue,
         city=fair.city,

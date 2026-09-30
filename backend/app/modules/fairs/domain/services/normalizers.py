@@ -102,6 +102,45 @@ def compute_normalized_name(*, name: str) -> str:
     return normalize_fair_name(name)
 
 
+_DISPLAY_YEAR = re.compile(r"(?<!\d)((?:19|20)\d{2})(?!\d)")
+_CATALOG_TAIL = re.compile(r"^(?:\d+\s*\.|ULUSLARARASI\b|\()")
+_SEPARATORS = " \t-–—,.;/"
+
+
+def _token_in_text(text: str, token: str) -> bool:
+    if not token:
+        return False
+    return re.search(rf"(?<!\w){re.escape(token)}(?!\w)", text) is not None
+
+
+def system_fair_display_name(*, name: str, city: str | None, origin: str) -> str:
+    """Short label for a system fair. Official ``name`` stays unchanged.
+
+    Shortens only when a calendar year is followed by a TOBB catalog tail
+    (edition number, ``ULUSLARARASI``, or a parenthetical section). Otherwise
+    the official name is shown as-is.
+    """
+    if origin != "system":
+        return name
+    match = _DISPLAY_YEAR.search(name)
+    if match is None:
+        return name
+    head = name[: match.start()].strip(_SEPARATORS)
+    tail = name[match.end() :].strip(_SEPARATORS)
+    if not head or head.startswith("(") or not tail:
+        return name
+    city_token = (city or "").strip()
+    description = tail
+    if city_token and tail.startswith(city_token):
+        description = tail[len(city_token) :].strip(_SEPARATORS)
+    if not description or _CATALOG_TAIL.match(description) is None:
+        return name
+    year = match.group(1)
+    if city_token and not _token_in_text(head, city_token):
+        return f"{head} {year} – {city_token}"
+    return f"{head} {year}"
+
+
 def normalize_adapter_key(value: str | None) -> str | None:
     if value is None:
         return None

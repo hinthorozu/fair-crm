@@ -21,6 +21,7 @@ def test_create_and_get_fair(client, auth_headers, organization_id):
     assert create_response.status_code == 201
     body = create_response.json()
     assert body["name"] == "İSTANBUL TEKNOLOJİ FUARI 2026"
+    assert body["display_name"] == body["name"]
     assert body["normalized_name"] == "ISTANBUL TEKNOLOJI FUARI 2026"
     assert body["website"] == "teknova-fuar.com"
     assert body["city"] == "İstanbul"

@@ -102,6 +102,7 @@ function fair(partial: Partial<Fair> = {}): Fair {
     updated_at: "2026-01-01T00:00:00Z",
     deleted_at: null,
     ...partial,
+    display_name: partial.display_name ?? partial.name ?? "Win Eurasia",
   };
 }
 
@@ -184,6 +185,7 @@ describe("system fair frontend", () => {
     const source = readFileSync(path.join(process.cwd(), "src/types/fair.ts"), "utf8");
     expect(source).toContain("organization_id: string | null");
     expect(source).toContain('origin: "organization" | "system"');
+    expect(source).toContain("display_name: string");
     expect(source).toContain("scraped_record_count: number | null");
     expect(source).toContain("scraped_at: string | null");
     const system = fair({ origin: "system", organization_id: null });
@@ -192,6 +194,44 @@ describe("system fair frontend", () => {
     expect(
       systemFairScrapeReady({ scraped_record_count: 427, scraped_at: "2026-09-30T12:00:00Z" }),
     ).toBe(true);
+  });
+
+  it("shows the short display name in the list and the official name on detail", async () => {
+    const official =
+      "AVRASYA AMBALAJ 2026- İSTANBUL 31.ULUSLARARASI AMBALAJ ENDÜSTRİSİ FUARI";
+    const system = fair({
+      origin: "system",
+      name: official,
+      display_name: "AVRASYA AMBALAJ 2026 – İSTANBUL",
+      city: "İSTANBUL",
+    });
+    await render(
+      React.createElement(FairTable, {
+        items: [system],
+        onOpenDetail: vi.fn(),
+        archivingId: null,
+        restoringId: null,
+      }),
+    );
+    expect(container.textContent).toContain("AVRASYA AMBALAJ 2026 – İSTANBUL");
+    expect(container.textContent).not.toContain("31.ULUSLARARASI");
+    expect(container.textContent).toContain(fairLabels.systemFair);
+
+    harness.getFair.mockResolvedValue(system);
+    await render(
+      React.createElement(FairDetailPage, {
+        fairId: system.id,
+        onBack: vi.fn(),
+      }),
+    );
+    for (let attempt = 0; attempt < 8 && !container.textContent?.includes(fairLabels.officialName); attempt += 1) {
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    }
+    expect(container.querySelector("h1")?.textContent).toContain("AVRASYA AMBALAJ 2026 – İSTANBUL");
+    expect(container.textContent).toContain(fairLabels.officialName);
+    expect(container.textContent).toContain(official);
   });
 
   it("renders a system fair row with indicator, scrape metadata, and no customer management actions", async () => {

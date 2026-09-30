@@ -89,6 +89,7 @@ class FairResult:
     organization_id: UUID | None
     origin: str
     name: str
+    display_name: str
     organizer: Optional[str]
     venue: Optional[str]
     city: Optional[str]

@@ -13,6 +13,7 @@ export const fairLabels = {
   restoreError: "Arşivden çıkarma başarısız.",
   nameRequired: "Fuar adı zorunludur.",
   name: "Fuar Adı",
+  officialName: "Resmi fuar adı",
   organizer: "Organizatör",
   venue: "Mekan",
   start_date: "Başlangıç Tarihi",

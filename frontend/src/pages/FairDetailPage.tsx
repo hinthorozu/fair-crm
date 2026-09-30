@@ -524,7 +524,7 @@ export function FairDetailPage({
   return (
     <PageShell>
       <PageHeader
-        title={fair.name}
+        title={fair.display_name}
         subtitle={
           <>
             <Badge variant={fair.status === "archived" ? "danger" : "info"}>
@@ -546,7 +546,7 @@ export function FairDetailPage({
         <Card>
           <dl className="detail-grid">
             <div>
-              <dt>{fairLabels.name}</dt>
+              <dt>{fair.display_name === fair.name ? fairLabels.name : fairLabels.officialName}</dt>
               <dd>{fair.name}</dd>
             </div>
             <div>
