@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import date
 from typing import Protocol
 from uuid import UUID
 
@@ -58,6 +59,8 @@ class FairRepository(Protocol):
         page_size: int = 25,
         sort_by: str = "start_date",
         sort_dir: str = "desc",
+        default_date_order: bool = False,
+        today: date | None = None,
     ) -> FairListResult: ...
 
     def get_system_fair_by_external_id(self, *, source: str, external_id: str) -> Fair | None: ...

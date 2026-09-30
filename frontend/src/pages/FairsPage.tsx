@@ -70,7 +70,6 @@ export function FairsPage({ onOpenDetail, onContinueImport }: FairsPageProps) {
         ...params,
         status: (params.filters.status as FairStatus | undefined) || undefined,
       }),
-    defaultSort: { field: "start_date", direction: "desc" },
     filterKeys: ["status"],
     urlSync: true,
     urlPath: "/fairs",

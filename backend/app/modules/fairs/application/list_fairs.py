@@ -1,4 +1,5 @@
 from dataclasses import replace
+from datetime import date
 
 from app.core.pagination import normalize_page_params, normalize_sort_direction
 from app.modules.fairs.application.commands import FairListResultDto, ListFairsQuery
@@ -34,7 +35,7 @@ class ListFairsUseCase:
         self._repository = repository
         self._run_history_repository = run_history_repository
 
-    def execute(self, query: ListFairsQuery) -> FairListResultDto:
+    def execute(self, query: ListFairsQuery, *, today: date | None = None) -> FairListResultDto:
         page_params = normalize_page_params(query.page, query.page_size)
         sort_by = query.sort_by if query.sort_by in ALLOWED_SORT_FIELDS else DEFAULT_SORT_FIELD
         sort_dir = normalize_sort_direction(query.sort_dir or DEFAULT_SORT_DIRECTION)
@@ -49,6 +50,8 @@ class ListFairsUseCase:
             page_size=page_params.page_size,
             sort_by=sort_by,
             sort_dir=sort_dir,
+            default_date_order=query.default_date_order,
+            today=today if today is not None else date.today(),
         )
         dto = list_result_to_dto(result)
         system_ids = [item.id for item in dto.items if item.origin == "system"]

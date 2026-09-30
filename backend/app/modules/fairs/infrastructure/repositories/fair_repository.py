@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from sqlalchemy import and_, not_, or_
+from sqlalchemy import and_, asc, case, desc, not_, nullslast, or_
 from sqlalchemy.orm import Query, Session
 
 from app.core.pagination import build_order_clause, build_paginated_meta, normalize_page_params
@@ -25,6 +25,22 @@ SEARCH_FIELDS = (
     FairModel.website,
     FairModel.description,
 )
+
+def _default_date_order(today: date):
+    """Upcoming dates ascending, then past dates descending. Null dates stay last."""
+    has_date = FairModel.start_date.isnot(None)
+    upcoming = and_(has_date, FairModel.start_date >= today)
+    past = and_(has_date, FairModel.start_date < today)
+    group = case((upcoming, 0), (past, 1), else_=2)
+    upcoming_key = case((upcoming, FairModel.start_date), else_=None)
+    past_key = case((past, FairModel.start_date), else_=None)
+    return (
+        asc(group),
+        nullslast(asc(upcoming_key)),
+        nullslast(desc(past_key)),
+        asc(FairModel.id),
+    )
+
 
 FAIR_SORT_FIELDS = {
     "created_at": FairModel.created_at,
@@ -317,6 +333,8 @@ class SqlAlchemyFairRepository:
         page_size: int = 25,
         sort_by: str = "start_date",
         sort_dir: str = "desc",
+        default_date_order: bool = False,
+        today: date | None = None,
     ) -> FairListResult:
         page_params = normalize_page_params(page, page_size)
         query = self._filtered_query(
@@ -329,14 +347,17 @@ class SqlAlchemyFairRepository:
         )
 
         total = query.count()
-        sort_column = FAIR_SORT_FIELDS.get(sort_by, FairModel.start_date)
-        nulls_last = sort_by == "start_date"
-        order = build_order_clause(
-            sort_column,
-            sort_dir if sort_dir in ("asc", "desc") else "desc",
-            tie_breaker=FairModel.id,
-            nulls_last=nulls_last,
-        )
+        if default_date_order:
+            order = _default_date_order(today if today is not None else date.today())
+        else:
+            sort_column = FAIR_SORT_FIELDS.get(sort_by, FairModel.start_date)
+            nulls_last = sort_by == "start_date"
+            order = build_order_clause(
+                sort_column,
+                sort_dir if sort_dir in ("asc", "desc") else "desc",
+                tie_breaker=FairModel.id,
+                nulls_last=nulls_last,
+            )
 
         models = (
             query.order_by(*order)
