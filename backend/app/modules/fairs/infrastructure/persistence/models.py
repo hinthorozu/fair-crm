@@ -35,7 +35,7 @@ class FairModel(Base):
     origin: Mapped[str] = mapped_column(String(32), nullable=False, default="organization", server_default="organization")
     source: Mapped[str | None] = mapped_column(String(32))
     external_id: Mapped[str | None] = mapped_column(String(64))
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
     organizer: Mapped[str | None] = mapped_column(String(255))
     venue: Mapped[str | None] = mapped_column(String(255))
     city: Mapped[str | None] = mapped_column(String(100))

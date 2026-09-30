@@ -146,7 +146,7 @@ def test_first_sync_inserts_system_fair(db_session):
     assert fair.organization_id is None
     assert fair.source == "tobb"
     assert fair.external_id == "2026:15"
-    assert fair.name == "İstanbul Fuarı"
+    assert fair.name == "İSTANBUL FUARI"
     assert fair.normalized_name == compute_normalized_name(name="İstanbul Fuarı")
     assert fair.organizer == "TOBB"
     assert fair.venue == "İFM"
@@ -158,6 +158,26 @@ def test_first_sync_inserts_system_fair(db_session):
     assert fair.adapter_key is None
     assert fair.source_url is None
     assert fair.scraper_config is None
+
+
+def test_tobb_insert_and_update_store_turkish_uppercase_name(db_session):
+    inserted_row = _sample_row()
+    inserted_row[3] = "istanbul ışık"
+    inserted = _sync(db_session, _html([inserted_row]))
+    assert inserted.inserted == 1
+    saved = _system_rows(db_session)[0]
+    assert saved.name == "İSTANBUL IŞIK"
+    assert saved.normalized_name == compute_normalized_name(name="istanbul ışık")
+
+    updated_row = _sample_row()
+    updated_row[3] = "izmir şeker öğütme"
+    updated = _sync(db_session, _html([updated_row]))
+    assert updated.updated == 1
+    assert updated.inserted == 0
+    db_session.expire_all()
+    saved = _system_rows(db_session)[0]
+    assert saved.name == "İZMİR ŞEKER ÖĞÜTME"
+    assert saved.normalized_name == compute_normalized_name(name="izmir şeker öğütme")
 
 
 def test_same_sync_updates_existing_without_duplicate(db_session):

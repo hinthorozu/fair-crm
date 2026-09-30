@@ -20,7 +20,7 @@ def test_create_and_get_fair(client, auth_headers, organization_id):
     )
     assert create_response.status_code == 201
     body = create_response.json()
-    assert body["name"] == "İstanbul Teknoloji Fuarı 2026"
+    assert body["name"] == "İSTANBUL TEKNOLOJİ FUARI 2026"
     assert body["normalized_name"] == "ISTANBUL TEKNOLOJI FUARI 2026"
     assert body["website"] == "teknova-fuar.com"
     assert body["city"] == "İstanbul"
@@ -63,7 +63,7 @@ def test_update_fair(client, auth_headers):
         headers=auth_headers,
     )
     assert update_response.status_code == 200
-    assert update_response.json()["name"] == "After Update Fair"
+    assert update_response.json()["name"] == "AFTER UPDATE FAİR"
     assert update_response.json()["status"] == "active"
 
 
@@ -347,7 +347,7 @@ def test_list_fairs_sort_by_name(client, auth_headers):
     )
     assert asc_response.status_code == 200
     names = [item["name"] for item in asc_response.json()["items"]]
-    assert names.index("Alpha Fair") < names.index("Zebra Fair")
+    assert names.index("ALPHA FAİR") < names.index("ZEBRA FAİR")
 
 
 def test_create_fair_invalid_date_range(client, auth_headers):
@@ -514,7 +514,7 @@ def test_update_fair_omitted_fields_are_preserved(client, auth_headers):
     )
     assert update_response.status_code == 200
     body = update_response.json()
-    assert body["name"] == "Omit Fields Fair Renamed"
+    assert body["name"] == "OMİT FİELDS FAİR RENAMED"
     assert body["organizer"] == "Keep Me"
     assert body["website"] == "keep.example"
     assert body["start_date"] == "2026-05-01"
@@ -659,4 +659,39 @@ def test_fair_detail_and_list_include_adapter_fields(client, auth_headers):
     matched = next(item for item in items if item["id"] == fair_id)
     assert matched["adapter_key"] == "tuyap_new"
     assert matched["source_url"] == "https://foodist.example/list"
+
+
+def test_create_and_update_store_turkish_uppercase_name(client, auth_headers):
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={"name": "istanbul izmir ışık çiçek şeker öğütme"},
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 201
+    body = create_response.json()
+    assert body["name"] == "İSTANBUL İZMİR IŞIK ÇİÇEK ŞEKER ÖĞÜTME"
+    fair_id = body["id"]
+
+    update_response = client.patch(
+        f"/api/v1/fairs/{fair_id}",
+        json={"name": "çiçek, şeker, öğütme"},
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["name"] == "ÇİÇEK, ŞEKER, ÖĞÜTME"
+
+
+def test_create_fair_stores_name_longer_than_255(client, auth_headers):
+    long_name = "ışık " + ("pencere " * 60)
+    assert len(long_name.strip()) > 405
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={"name": long_name},
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 201
+    stored = create_response.json()["name"]
+    assert stored == long_name.strip().translate({ord("i"): "İ", ord("ı"): "I"}).upper()
+    assert len(stored) > 405
+    assert stored.startswith("IŞIK ")
 

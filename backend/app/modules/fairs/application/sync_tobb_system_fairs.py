@@ -7,6 +7,7 @@ from app.modules.fairs.domain.entities import Fair
 from app.modules.fairs.domain.exceptions import InvalidFairDateRangeError, InvalidFairNameError
 from app.modules.fairs.domain.ports import FairRepository
 from app.modules.fairs.domain.services.normalizers import (
+    canonicalize_fair_name,
     compute_normalized_name,
     normalize_website,
     resolve_status_for_dates,
@@ -51,8 +52,9 @@ class SyncTobbSystemFairsUseCase:
 
     def _sync_row(self, year: int, row: TobbFairRow, now: datetime) -> str:
         external_id = f"{year}:{row.sequence_no}"
-        normalized_name = compute_normalized_name(name=row.name)
-        if not row.name.strip() or not normalized_name:
+        display_name = canonicalize_fair_name(row.name)
+        normalized_name = compute_normalized_name(name=display_name)
+        if not display_name or not normalized_name:
             raise InvalidFairNameError("name must not be empty")
         if (
             row.start_date
@@ -66,7 +68,14 @@ class SyncTobbSystemFairsUseCase:
             external_id=external_id,
         )
         if existing is not None:
-            self._apply(existing, row, external_id=external_id, normalized_name=normalized_name, now=now)
+            self._apply(
+                existing,
+                row,
+                display_name=display_name,
+                external_id=external_id,
+                normalized_name=normalized_name,
+                now=now,
+            )
             self._repository.update_system_fair(existing)
             return "updated"
 
@@ -79,11 +88,18 @@ class SyncTobbSystemFairsUseCase:
             return "conflict"
         if len(matches) == 1:
             fair = matches[0]
-            self._apply(fair, row, external_id=external_id, normalized_name=normalized_name, now=now)
+            self._apply(
+                fair,
+                row,
+                display_name=display_name,
+                external_id=external_id,
+                normalized_name=normalized_name,
+                now=now,
+            )
             self._repository.update_system_fair(fair)
             return "updated"
 
-        self._repository.add(self._new_fair(row, external_id, normalized_name, now))
+        self._repository.add(self._new_fair(row, display_name, external_id, normalized_name, now))
         return "inserted"
 
     def _apply(
@@ -91,11 +107,12 @@ class SyncTobbSystemFairsUseCase:
         fair: Fair,
         row: TobbFairRow,
         *,
+        display_name: str,
         external_id: str,
         normalized_name: str,
         now: datetime,
     ) -> None:
-        fair.name = row.name.strip()
+        fair.name = display_name
         fair.normalized_name = normalized_name
         fair.organizer = row.organizer
         fair.venue = row.venue
@@ -110,6 +127,7 @@ class SyncTobbSystemFairsUseCase:
     def _new_fair(
         self,
         row: TobbFairRow,
+        display_name: str,
         external_id: str,
         normalized_name: str,
         now: datetime,
@@ -117,7 +135,7 @@ class SyncTobbSystemFairsUseCase:
         return Fair(
             id=uuid4(),
             organization_id=None,
-            name=row.name.strip(),
+            name=display_name,
             organizer=row.organizer,
             venue=row.venue,
             city=row.city,

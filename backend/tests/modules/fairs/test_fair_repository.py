@@ -104,7 +104,7 @@ def test_sort_by_start_date(db_session, organization_id):
         organization_id, sort_by="start_date", sort_dir="asc"
     )
     names = [item.name for item in result.items]
-    assert names.index("Early Fair") < names.index("Late Fair")
+    assert names.index("EARLY FAİR") < names.index("LATE FAİR")
 
 
 def _system_fair(name: str = "System Fair") -> Fair:

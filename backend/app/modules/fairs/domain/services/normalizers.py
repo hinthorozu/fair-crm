@@ -25,6 +25,18 @@ TURKISH_CHAR_MAP = str.maketrans(
 )
 
 
+def canonicalize_fair_name(value: str) -> str:
+    """Stored fair name: Turkish-aware uppercase, independent of process locale.
+
+    i becomes İ and ı becomes I before Unicode uppercase, so dotted and
+    dotless letters stay distinct.
+    """
+    text = value.strip()
+    if not text:
+        return ""
+    return text.translate({ord("i"): "İ", ord("ı"): "I"}).upper()
+
+
 def normalize_fair_name(value: str) -> str:
     text = value.strip()
     if not text:

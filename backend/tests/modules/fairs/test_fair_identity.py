@@ -10,6 +10,7 @@ from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.exc import IntegrityError
 
 from app.modules.fairs.domain.entities import Fair
+from app.modules.fairs.domain.services.normalizers import canonicalize_fair_name, compute_normalized_name
 from app.modules.fairs.domain.value_objects import FairStatus
 from app.modules.fairs.infrastructure.persistence.mappers import (
     entity_to_model,
@@ -52,6 +53,30 @@ def _system_fair(*, source: str, external_id: str) -> Fair:
         source=source,
         external_id=external_id,
     )
+
+
+def test_canonicalize_fair_name_uses_turkish_uppercase():
+    assert canonicalize_fair_name("istanbul") == "İSTANBUL"
+    assert canonicalize_fair_name("izmir") == "İZMİR"
+    assert canonicalize_fair_name("ışık") == "IŞIK"
+    assert canonicalize_fair_name("çiçek") == "ÇİÇEK"
+    assert canonicalize_fair_name("şeker") == "ŞEKER"
+    assert canonicalize_fair_name("öğütme") == "ÖĞÜTME"
+    mixed = "İstanbul mobilya fuarı"
+    canonical = canonicalize_fair_name(mixed)
+    assert canonical == "İSTANBUL MOBİLYA FUARI"
+    assert compute_normalized_name(name=mixed) == compute_normalized_name(name=canonical)
+
+
+def test_organization_fair_create_stores_full_long_name(db_session, organization_id):
+    now = datetime.now(tz=UTC)
+    long_name = "ç" + ("ı" * 410)
+    fair = Fair.create(organization_id=organization_id, name=long_name, now=now)
+    saved = SqlAlchemyFairRepository(db_session).add(fair)
+    db_session.expire_all()
+    loaded = db_session.get(FairModel, saved.id)
+    assert loaded.name == "Ç" + ("I" * 410)
+    assert len(loaded.name) == 411
 
 
 def test_organization_fair_create_keeps_origin_and_organization(db_session, organization_id):

@@ -10,7 +10,7 @@ from app.modules.fairs.domain.value_objects import FairStatus
 
 
 class CreateFairRequest(BaseModel):
-    name: str = Field(..., min_length=1, max_length=255)
+    name: str = Field(..., min_length=1)
     organizer: Optional[str] = Field(default=None, max_length=255)
     venue: Optional[str] = Field(default=None, max_length=255)
     city: Optional[str] = Field(default=None, max_length=100)
@@ -26,7 +26,7 @@ class CreateFairRequest(BaseModel):
 
 
 class UpdateFairRequest(BaseModel):
-    name: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    name: Optional[str] = Field(default=None, min_length=1)
     organizer: Optional[str] = Field(default=None, max_length=255)
     venue: Optional[str] = Field(default=None, max_length=255)
     city: Optional[str] = Field(default=None, max_length=100)

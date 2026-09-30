@@ -11,6 +11,7 @@ from app.modules.fairs.domain.exceptions import (
     InvalidFairNameError,
 )
 from app.modules.fairs.domain.services.normalizers import (
+    canonicalize_fair_name,
     compute_normalized_name,
     normalize_adapter_key,
     normalize_source_url,
@@ -81,7 +82,7 @@ class Fair:
         scraper_config: Optional[dict[str, Any]] = None,
         now: datetime,
     ) -> "Fair":
-        trimmed_name = name.strip()
+        trimmed_name = canonicalize_fair_name(name)
         if not trimmed_name:
             raise InvalidFairNameError("name must not be empty")
 
@@ -154,7 +155,7 @@ class Fair:
         self.ensure_mutable()
 
         if name is not None:
-            trimmed = name.strip()
+            trimmed = canonicalize_fair_name(name)
             if not trimmed:
                 raise InvalidFairNameError("name must not be empty")
             self.name = trimmed
