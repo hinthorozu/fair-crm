@@ -8,6 +8,7 @@ from typing import Any
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.client import HttpAuditAdapter
 from app.integrations.kyrox_core.ports import AuthorizationPort
+from app.modules.fairs.domain.entities import Fair
 from app.modules.fairs.domain.exceptions import FairNotFoundError
 from app.modules.fairs.domain.ports import FairRepository
 from app.modules.imports.application.canonical_batch_mapper import (
@@ -45,7 +46,12 @@ class CreateImportBatchFromCanonicalUseCase:
         self._authorization = authorization
         self._audit = audit
 
-    def execute(self, command: CreateImportBatchFromCanonicalCommand) -> CreateImportBatchFromCanonicalResult:
+    def execute(
+        self,
+        command: CreateImportBatchFromCanonicalCommand,
+        *,
+        resolved_fair: Fair | None = None,
+    ) -> CreateImportBatchFromCanonicalResult:
         if not self._authorization.check_permission(
             organization_id=command.organization_id,
             user_id=command.user_id,
@@ -70,9 +76,16 @@ class CreateImportBatchFromCanonicalUseCase:
 
         fair_name: str | None = None
         if fair_id is not None:
-            fair = self._fair_repository.get_by_id(command.organization_id, fair_id)
-            if fair is None:
-                raise FairNotFoundError("Fair not found")
+            if (
+                resolved_fair is not None
+                and resolved_fair.id == fair_id
+                and resolved_fair.origin == "system"
+            ):
+                fair = resolved_fair
+            else:
+                fair = self._fair_repository.get_by_id(command.organization_id, fair_id)
+                if fair is None:
+                    raise FairNotFoundError("Fair not found")
             fair_name = fair.name
 
         now = datetime.now(tz=UTC)

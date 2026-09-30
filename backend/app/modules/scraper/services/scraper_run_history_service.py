@@ -311,7 +311,7 @@ class ScraperRunHistoryService:
     def get_run_for_organization(
         self,
         run_id: UUID,
-        organization_id: UUID,
+        organization_id: UUID | None,
     ) -> ScraperRunHistory | None:
         return self._repository.get_by_id(run_id, organization_id=organization_id)
 
@@ -368,7 +368,7 @@ class ScraperRunHistoryService:
         self,
         run_id: UUID,
         *,
-        organization_id: UUID,
+        organization_id: UUID | None,
         requested_by: UUID,
         requested_at: datetime | None = None,
     ) -> ScraperRunHistory:
@@ -573,7 +573,7 @@ class ScraperRunHistoryService:
         self,
         run_id: UUID,
         *,
-        organization_id: UUID,
+        organization_id: UUID | None,
         requested_by: UUID,
         wait_seconds: float | None = None,
         poll_seconds: float | None = None,
@@ -672,7 +672,7 @@ class ScraperRunHistoryService:
         self,
         run_id: UUID,
         *,
-        organization_id: UUID,
+        organization_id: UUID | None,
         requested_by: UUID | None = None,
         wait_seconds: float | None = None,
         poll_seconds: float | None = None,

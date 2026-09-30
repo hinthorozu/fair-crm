@@ -48,3 +48,7 @@ class InvalidFairWebsiteError(FairDomainError):
 
 class FairEnrichmentNoCandidatesError(FairDomainError):
     pass
+
+
+class TobbCalendarReadError(FairDomainError):
+    pass

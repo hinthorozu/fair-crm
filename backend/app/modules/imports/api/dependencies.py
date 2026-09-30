@@ -30,6 +30,7 @@ from app.modules.customers.infrastructure.repositories.customer_repository impor
 from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
 from app.modules.data_integration.application.import_job_runner import ImportJobRunner
 from app.modules.data_integration.infrastructure.repositories.job_repository import SqlAlchemyImportJobRepository
+from app.modules.imports.application.analyze_canonical_import import AnalyzeCanonicalImportUseCase
 from app.modules.imports.application.apply_import import ApplyImportUseCase
 from app.modules.imports.application.apply_import_decisions import ApplyImportDecisionsUseCase
 from app.modules.imports.application.delete_import_batch import DeleteImportBatchUseCase
@@ -142,6 +143,23 @@ def get_create_import_batch_from_canonical_use_case(
         batch_repository,
         row_repository,
         SqlAlchemyFairRepository(db),
+        authorization,
+        audit,
+    )
+
+
+def get_analyze_canonical_import_use_case(
+    batch_repository: SqlAlchemyImportBatchRepository = Depends(get_import_batch_repository),
+    row_repository: SqlAlchemyImportRowRepository = Depends(get_import_row_repository),
+    db: Session = Depends(get_db),
+    authorization: AuthorizationPort = Depends(get_authorization_adapter),
+    audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
+) -> AnalyzeCanonicalImportUseCase:
+    return AnalyzeCanonicalImportUseCase(
+        batch_repository,
+        row_repository,
+        SqlAlchemyCustomerRepository(db),
+        SqlAlchemyParticipationRepository(db),
         authorization,
         audit,
     )

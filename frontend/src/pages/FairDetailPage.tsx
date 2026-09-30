@@ -1,5 +1,5 @@
 import React from "react";
-import { getFair, archiveFair, updateFair } from "../api/fairs";
+import { compareSystemFairImport, getFair, archiveFair, runFairScraper, updateFair } from "../api/fairs";
 import { listAdapters, listScraperRuns } from "../api/scraper";
 import {
   createParticipation,
@@ -37,13 +37,14 @@ import {
   DetailWebsite,
 } from "../components/ui/DetailFields";
 import { usePermissions } from "../hooks/usePermissions";
+import { useAuth } from "../auth/AuthContext";
 import { useServerDataTable } from "../hooks/useServerDataTable";
 import { fairLabels, fairStatusLabels } from "../labels/fairLabels";
 import { participationLabels } from "../labels/participationLabels";
 import { importLabels } from "../labels/importLabels";
 import { uiLabels } from "../labels/uiLabels";
 import { labels } from "../labels";
-import type { CreateFairPayload, Fair } from "../types/fair";
+import { systemFairScrapeReady, type CreateFairPayload, type Fair } from "../types/fair";
 import type { SendBulkEmailResponse } from "../types/fairBulkEmail";
 import type { AdapterListItem } from "../types/scraper";
 import { formatAdapterOptionLabel } from "../utils/fairIntegration";
@@ -78,6 +79,7 @@ interface FairDetailPageProps {
   onFairLoaded?: (name: string) => void;
   onOpenCustomer?: (customerId: string) => void;
   onImportParticipants?: () => void;
+  onContinueImport?: (batchId: string) => void;
 }
 
 type TabId = "overview" | "participants";
@@ -96,7 +98,10 @@ export function FairDetailPage({
   onFairLoaded,
   onOpenCustomer,
   onImportParticipants,
+  onContinueImport,
 }: FairDetailPageProps) {
+  const { session } = useAuth();
+  const isSuperAdmin = session?.isSuperAdmin === true;
   const { can } = usePermissions();
   const canUpdateFair = can(FAIR_UPDATE);
   const canDeleteFair = can(FAIR_DELETE);
@@ -122,6 +127,10 @@ export function FairDetailPage({
   const [participantCount, setParticipantCount] = React.useState(0);
   const [adapters, setAdapters] = React.useState<AdapterListItem[]>([]);
   const [runSuccess, setRunSuccess] = React.useState<string | null>(null);
+  const [comparing, setComparing] = React.useState(false);
+  const [scraperRunning, setScraperRunning] = React.useState(false);
+  const comparingRef = React.useRef(false);
+  const scraperRunningRef = React.useRef(false);
   const [lastImportAt, setLastImportAt] = React.useState<string | null>(null);
   const [logsRefreshToken, setLogsRefreshToken] = React.useState(0);
   const [highlightBatchId, setHighlightBatchId] = React.useState<string | null>(null);
@@ -181,7 +190,11 @@ export function FairDetailPage({
       const data = await getFair(fairId);
       setFair(data);
       onFairLoaded?.(data.name);
-      void loadLastImport(fairId);
+      if (data.origin === "system") {
+        setLastImportAt(null);
+      } else {
+        void loadLastImport(fairId);
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Fuar yüklenemedi.");
     } finally {
@@ -301,6 +314,7 @@ export function FairDetailPage({
 
   const handleUpdateFair = async (values: CreateFairPayload) => {
     if (!canUpdateFair) return;
+    if (fair?.origin === "system" && !isSuperAdmin) return;
     await updateFair(fairId, values);
     setModal(null);
     await loadFair();
@@ -356,6 +370,7 @@ export function FairDetailPage({
 
   const handleArchiveFair = async () => {
     if (!canDeleteFair) return;
+    if (fair.origin === "system") return;
     setArchiving(true);
     setError(null);
     try {
@@ -371,50 +386,118 @@ export function FairDetailPage({
 
   const openCreateParticipant = () => {
     if (!canCreateParticipation) return;
+    if (fair.origin === "system") return;
     setEditing(null);
     setModal("create");
   };
 
   const isArchived = fair.status === "archived" || fair.deleted_at !== null;
+  const isSystemFair = fair.origin === "system";
+  const canManageSystemFair = !isSystemFair || isSuperAdmin;
+  const compareReady = systemFairScrapeReady(fair);
+
+  const handleCompare = async () => {
+    if (comparingRef.current) return;
+    if (!isSystemFair || !compareReady) return;
+    comparingRef.current = true;
+    setComparing(true);
+    setError(null);
+    try {
+      const result = await compareSystemFairImport(fair.id);
+      onContinueImport?.(result.batch_id);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : fairLabels.compareError);
+    } finally {
+      comparingRef.current = false;
+      setComparing(false);
+    }
+  };
+
+  const handleRunScraper = async () => {
+    if (scraperRunningRef.current) return;
+    if (!isSystemFair || !isSuperAdmin) return;
+    scraperRunningRef.current = true;
+    setScraperRunning(true);
+    setError(null);
+    setRunSuccess(null);
+    try {
+      await runFairScraper(fair.id);
+      setRunSuccess(fairLabels.runScraperSuccess);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : fairLabels.runScraperError);
+    } finally {
+      scraperRunningRef.current = false;
+      setScraperRunning(false);
+    }
+  };
 
   const headerActions: PageHeaderAction[] = [];
-  if (canUpdateFair) {
+  if (isSystemFair) {
     headerActions.push({
-      id: "edit",
-      label: uiLabels.detailEdit,
-      variant: "primary",
-      onClick: () => setModal("edit-fair"),
-      disabled: isArchived,
+      id: "compare-import",
+      label: fairLabels.compareWithCrm,
+      variant: canManageSystemFair ? "secondary" : "primary",
+      onClick: () => void handleCompare(),
+      disabled: !compareReady,
+      loading: comparing,
+      title: compareReady ? undefined : fairLabels.compareUnavailable,
     });
+  }
+  if (canUpdateFair) {
+    if (canManageSystemFair) {
+      headerActions.push({
+        id: "edit",
+        label: uiLabels.detailEdit,
+        variant: "primary",
+        onClick: () => setModal("edit-fair"),
+        disabled: isArchived,
+      });
+    }
   }
   if (canCreateParticipation) {
-    headerActions.push({
-      id: "add-participant",
-      label: participationLabels.addCompany,
-      variant: "secondary",
-      onClick: openCreateParticipant,
-      disabled: isArchived,
-    });
+    if (!isSystemFair) {
+      headerActions.push({
+        id: "add-participant",
+        label: participationLabels.addCompany,
+        variant: "secondary",
+        onClick: openCreateParticipant,
+        disabled: isArchived,
+      });
+    }
   }
   if (canUpdateParticipation) {
-    headerActions.push({
-      id: "move-customers",
-      label: fairLabels.moveCustomersAction,
-      variant: "secondary",
-      onClick: () => {
-        setMoveTargetFairId("");
-        setModal("move-customers");
-      },
-      disabled: isArchived,
-    });
+    if (!isSystemFair) {
+      headerActions.push({
+        id: "move-customers",
+        label: fairLabels.moveCustomersAction,
+        variant: "secondary",
+        onClick: () => {
+          setMoveTargetFairId("");
+          setModal("move-customers");
+        },
+        disabled: isArchived,
+      });
+    }
   }
   if (canImportParticipants) {
+    if (!isSystemFair) {
+      headerActions.push({
+        id: "import",
+        label: importLabels.importFromFair,
+        variant: "secondary",
+        onClick: () => onImportParticipants?.(),
+        disabled: isArchived || !onImportParticipants,
+      });
+    }
+  }
+  if (isSystemFair && isSuperAdmin) {
     headerActions.push({
-      id: "import",
-      label: importLabels.importFromFair,
+      id: "run-scraper",
+      label: fairLabels.runSystemScraper,
       variant: "secondary",
-      onClick: () => onImportParticipants?.(),
-      disabled: isArchived || !onImportParticipants,
+      onClick: () => void handleRunScraper(),
+      disabled: isArchived,
+      loading: scraperRunning,
     });
   }
   headerActions.push({
@@ -426,24 +509,29 @@ export function FairDetailPage({
     onClick: () => undefined,
   });
   if (canDeleteFair) {
-    headerActions.push({
-      id: "archive",
-      label: labels.archive,
-      variant: "danger",
-      onClick: () => setConfirmArchive(true),
-      disabled: isArchived,
-      loading: archiving,
-    });
+    if (!isSystemFair) {
+      headerActions.push({
+        id: "archive",
+        label: labels.archive,
+        variant: "danger",
+        onClick: () => setConfirmArchive(true),
+        disabled: isArchived,
+        loading: archiving,
+      });
+    }
   }
 
   return (
     <PageShell>
       <PageHeader
-        title={fair.name}
+        title={fair.display_name}
         subtitle={
-          <Badge variant={fair.status === "archived" ? "danger" : "info"}>
-            {fairStatusLabels[fair.status] ?? fair.status}
-          </Badge>
+          <>
+            <Badge variant={fair.status === "archived" ? "danger" : "info"}>
+              {fairStatusLabels[fair.status] ?? fair.status}
+            </Badge>
+            {isSystemFair && <Badge variant="neutral">{fairLabels.systemFair}</Badge>}
+          </>
         }
         breadcrumbs={[{ label: uiLabels.backToFairs, onClick: onBack }]}
         actions={headerActions}
@@ -458,7 +546,7 @@ export function FairDetailPage({
         <Card>
           <dl className="detail-grid">
             <div>
-              <dt>{fairLabels.name}</dt>
+              <dt>{fair.display_name === fair.name ? fairLabels.name : fairLabels.officialName}</dt>
               <dd>{fair.name}</dd>
             </div>
             <div>
@@ -507,6 +595,22 @@ export function FairDetailPage({
                 <DetailDate value={fair.end_date} />
               </dd>
             </div>
+            {isSystemFair && (
+              <>
+                <div>
+                  <dt>{fairLabels.scrapedRecordCount}</dt>
+                  <dd>
+                    {fair.scraped_record_count != null ? `${fair.scraped_record_count} kayıt` : "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{fairLabels.scrapedAt}</dt>
+                  <dd>
+                    <DetailDate value={fair.scraped_at} />
+                  </dd>
+                </div>
+              </>
+            )}
             <div className="full-width">
               <dt>{labels.description}</dt>
               <dd className="detail-multiline">
@@ -516,6 +620,7 @@ export function FairDetailPage({
           </dl>
         </Card>
 
+        {(fair.origin !== "system" || isSuperAdmin) && (
         <Card className="detail-card-spaced">
           <SectionHeader title={fairLabels.dataIntegration} />
           <dl className="detail-grid">
@@ -531,12 +636,14 @@ export function FairDetailPage({
                 <DetailWebsite value={fair.source_url} />
               </dd>
             </div>
-            <div>
-              <dt>{fairLabels.lastImport}</dt>
-              <dd>
-                <DetailDate value={lastImportAt} />
-              </dd>
-            </div>
+            {fair.origin !== "system" && (
+              <div>
+                <dt>{fairLabels.lastImport}</dt>
+                <dd>
+                  <DetailDate value={lastImportAt} />
+                </dd>
+              </div>
+            )}
             <div className="full-width">
               <dt>{fairLabels.scraperConfig}</dt>
               <dd className="detail-multiline">
@@ -545,6 +652,7 @@ export function FairDetailPage({
             </div>
           </dl>
         </Card>
+        )}
 
         <Card className="detail-card-spaced">
           <SectionHeader
@@ -619,7 +727,7 @@ export function FairDetailPage({
               sortField={participantsTable.sorting.field}
               sortDirection={participantsTable.sorting.direction}
               onSortChange={participantsTable.setSort}
-              onCreate={canCreateParticipation ? openCreateParticipant : undefined}
+              onCreate={canCreateParticipation && fair.origin !== "system" ? openCreateParticipant : undefined}
               onEdit={
                 canUpdateParticipation
                   ? (item) => {
@@ -635,7 +743,7 @@ export function FairDetailPage({
         </TabPanel>
       )}
 
-      {modal === "edit-fair" && canUpdateFair && (
+      {modal === "edit-fair" && canUpdateFair && canManageSystemFair && (
         <FormModal title={fairLabels.editFair} onClose={closeModal} size="lg">
           <FairForm
             key={fair.id}
@@ -647,7 +755,7 @@ export function FairDetailPage({
         </FormModal>
       )}
 
-      {modal === "create" && canCreateParticipation && (
+      {modal === "create" && canCreateParticipation && fair.origin !== "system" && (
         <FormModal title={participationLabels.newParticipant} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="fair"
@@ -685,7 +793,7 @@ export function FairDetailPage({
       )}
 
       <MoveCustomersToFairModal
-        open={canUpdateParticipation && modal === "move-customers"}
+        open={canUpdateParticipation && modal === "move-customers" && fair.origin !== "system"}
         sourceFairId={fairId}
         targetFairId={moveTargetFairId}
         moving={movingCustomers}
@@ -706,7 +814,7 @@ export function FairDetailPage({
         />
       )}
 
-      {confirmArchive && canDeleteFair && (
+      {confirmArchive && canDeleteFair && fair.origin !== "system" && (
         <ConfirmDialog
           title={labels.archive}
           message={fairLabels.archiveConfirm}

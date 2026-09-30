@@ -170,7 +170,10 @@ class SqlAlchemyParticipationRepository:
                 CustomerFairParticipationModel.organization_id == organization_id,
                 CustomerFairParticipationModel.customer_id == customer_id,
                 CustomerFairParticipationModel.deleted_at.is_(None),
-                FairModel.organization_id == organization_id,
+                or_(
+                    FairModel.organization_id == organization_id,
+                    FairModel.origin == "system",
+                ),
             )
         )
         if search:

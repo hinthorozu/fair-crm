@@ -36,6 +36,36 @@ class KyroxCoreHttpClient:
         with httpx.Client(timeout=10.0) as client:
             return client.request(method, url, headers=headers, json=json)
 
+    def read_is_super_admin(self, *, access_token: str, organization_id: UUID) -> bool:
+        """Read Core user-management context. Fail closed when the flag is not confirmed."""
+        if not access_token.strip():
+            return False
+        try:
+            response = self.request(
+                "GET",
+                "/api/v1/user-management/context",
+                access_token=access_token,
+                organization_id=organization_id,
+            )
+        except httpx.RequestError as exc:
+            logger.warning("Core super admin lookup unreachable: %s", exc)
+            return False
+        if response.status_code != 200:
+            logger.warning(
+                "Core super admin lookup failed: status=%s body=%s",
+                response.status_code,
+                response.text,
+            )
+            return False
+        try:
+            payload = response.json()
+        except ValueError:
+            logger.warning("Core super admin lookup returned invalid JSON")
+            return False
+        if not isinstance(payload, dict):
+            return False
+        return payload.get("is_super_admin") is True
+
 
 class HttpAuthorizationAdapter(AuthorizationPort):
     def __init__(self, http_client: KyroxCoreHttpClient | None = None) -> None:

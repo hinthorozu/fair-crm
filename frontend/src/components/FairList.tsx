@@ -1,6 +1,7 @@
 import React from "react";
-import type { Fair, FairStatus } from "../types/fair";
+import { systemFairScrapeReady, type Fair, type FairStatus } from "../types/fair";
 import { fairLabels, fairStatusLabels } from "../labels/fairLabels";
+import { formatDetailDate } from "./ui/DetailFields";
 import { uiLabels } from "../labels/uiLabels";
 import { labels } from "../labels";
 import { Badge } from "./ui/Badge";
@@ -66,6 +67,9 @@ interface FairTableProps {
   onRestore: (fair: Fair) => void;
   onOpenDetail?: (fairId: string) => void;
   onCreate?: () => void;
+  onCompare?: (fair: Fair) => void;
+  isSuperAdmin?: boolean;
+  comparingId?: string | null;
   archivingId: string | null;
   restoringId: string | null;
   sortField?: string | null;
@@ -95,7 +99,17 @@ function fairStatusVariant(status: FairStatus): "warning" | "success" | "neutral
 }
 
 function buildFairColumns(props: FairTableProps): UniversalDataTableColumn<Fair>[] {
-  const { onEdit, onArchive, onRestore, onOpenDetail, archivingId, restoringId } = props;
+  const {
+    onEdit,
+    onArchive,
+    onRestore,
+    onOpenDetail,
+    onCompare,
+    isSuperAdmin = false,
+    comparingId = null,
+    archivingId,
+    restoringId,
+  } = props;
   return [
     {
       key: "name",
@@ -105,12 +119,21 @@ function buildFairColumns(props: FairTableProps): UniversalDataTableColumn<Fair>
         <>
           {onOpenDetail ? (
             <button type="button" className="btn link table-link" onClick={() => onOpenDetail(f.id)}>
-              <strong>{f.name}</strong>
+              <strong>{f.display_name}</strong>
             </button>
           ) : (
-            <strong>{f.name}</strong>
+            <strong>{f.display_name}</strong>
           )}
           {f.country && <div className="muted">{f.country}</div>}
+          {f.origin === "system" && (
+            <div className="muted">
+              <Badge variant="info">{fairLabels.systemFair}</Badge>
+              <div>{f.scraped_record_count != null ? `${f.scraped_record_count} kayıt` : "—"}</div>
+              <div>
+                {fairLabels.scrapedAt}: {formatDetailDate(f.scraped_at)}
+              </div>
+            </div>
+          )}
         </>
       ),
     },
@@ -158,6 +181,31 @@ function buildFairColumns(props: FairTableProps): UniversalDataTableColumn<Fair>
       className: "actions",
       render: (f) => {
         const isArchived = isArchivedFair(f);
+        if (f.origin === "system") {
+          const compareReady = systemFairScrapeReady(f);
+          const comparing = comparingId === f.id;
+          return (
+            <TableRowActions>
+              {isSuperAdmin && (
+                <button type="button" className="btn link" onClick={() => onEdit(f)}>
+                  {labels.edit}
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn link"
+                disabled={!compareReady || comparing}
+                title={compareReady ? undefined : fairLabels.compareUnavailable}
+                onClick={() => {
+                  if (!compareReady || comparing) return;
+                  onCompare?.(f);
+                }}
+              >
+                {comparing ? labels.loading : fairLabels.compareWithCrm}
+              </button>
+            </TableRowActions>
+          );
+        }
         return (
           <TableRowActions>
             {isArchived && (

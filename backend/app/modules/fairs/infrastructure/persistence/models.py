@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Date, DateTime, String, Text, Uuid
+from sqlalchemy import CheckConstraint, Date, DateTime, Index, String, Text, Uuid, text
 from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON
@@ -14,10 +14,28 @@ JsonType = JSON().with_variant(SQLiteJSON(), "sqlite")
 
 class FairModel(Base):
     __tablename__ = "crm_fairs"
+    __table_args__ = (
+        CheckConstraint(
+            "(origin = 'organization' AND organization_id IS NOT NULL) "
+            "OR (origin = 'system' AND organization_id IS NULL)",
+            name="ck_crm_fairs_origin_organization",
+        ),
+        Index(
+            "uq_crm_fairs_system_external_id",
+            "source",
+            "external_id",
+            unique=True,
+            postgresql_where=text("origin = 'system'"),
+            sqlite_where=text("origin = 'system'"),
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
-    organization_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    organization_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True, index=True)
+    origin: Mapped[str] = mapped_column(String(32), nullable=False, default="organization", server_default="organization")
+    source: Mapped[str | None] = mapped_column(String(32))
+    external_id: Mapped[str | None] = mapped_column(String(64))
+    name: Mapped[str] = mapped_column(Text, nullable=False)
     organizer: Mapped[str | None] = mapped_column(String(255))
     venue: Mapped[str | None] = mapped_column(String(255))
     city: Mapped[str | None] = mapped_column(String(100))

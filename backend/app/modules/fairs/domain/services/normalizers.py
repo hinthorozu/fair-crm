@@ -25,6 +25,18 @@ TURKISH_CHAR_MAP = str.maketrans(
 )
 
 
+def canonicalize_fair_name(value: str) -> str:
+    """Stored fair name: Turkish-aware uppercase, independent of process locale.
+
+    i becomes İ and ı becomes I before Unicode uppercase, so dotted and
+    dotless letters stay distinct.
+    """
+    text = value.strip()
+    if not text:
+        return ""
+    return text.translate({ord("i"): "İ", ord("ı"): "I"}).upper()
+
+
 def normalize_fair_name(value: str) -> str:
     text = value.strip()
     if not text:
@@ -86,8 +98,68 @@ def resolve_status_for_dates(
     return default
 
 
+def system_fair_status_for_dates(
+    *,
+    start_date: date | None,
+    end_date: date | None,
+    today: date,
+) -> FairStatus | None:
+    """Lifecycle of a system fair from its calendar dates.
+
+    Past when the end date is before today, current when today falls inside
+    the inclusive start/end range, and planned when the start date is still
+    ahead. Returns None when the dates do not decide.
+    """
+    if end_date is not None and end_date < today:
+        return FairStatus.COMPLETED
+    if start_date is not None and start_date > today:
+        return FairStatus.PLANNED
+    if start_date is not None and start_date <= today and (end_date is None or end_date >= today):
+        return FairStatus.ACTIVE
+    return None
+
+
 def compute_normalized_name(*, name: str) -> str:
     return normalize_fair_name(name)
+
+
+_DISPLAY_YEAR = re.compile(r"(?<!\d)((?:19|20)\d{2})(?!\d)")
+_CATALOG_TAIL = re.compile(r"^(?:\d+\s*\.|ULUSLARARASI\b|\()")
+_SEPARATORS = " \t-–—,.;/"
+
+
+def _token_in_text(text: str, token: str) -> bool:
+    if not token:
+        return False
+    return re.search(rf"(?<!\w){re.escape(token)}(?!\w)", text) is not None
+
+
+def system_fair_display_name(*, name: str, city: str | None, origin: str) -> str:
+    """Short label for a system fair. Official ``name`` stays unchanged.
+
+    Shortens only when a calendar year is followed by a TOBB catalog tail
+    (edition number, ``ULUSLARARASI``, or a parenthetical section). Otherwise
+    the official name is shown as-is.
+    """
+    if origin != "system":
+        return name
+    match = _DISPLAY_YEAR.search(name)
+    if match is None:
+        return name
+    head = name[: match.start()].strip(_SEPARATORS)
+    tail = name[match.end() :].strip(_SEPARATORS)
+    if not head or head.startswith("(") or not tail:
+        return name
+    city_token = (city or "").strip()
+    description = tail
+    if city_token and tail.startswith(city_token):
+        description = tail[len(city_token) :].strip(_SEPARATORS)
+    if not description or _CATALOG_TAIL.match(description) is None:
+        return name
+    year = match.group(1)
+    if city_token and not _token_in_text(head, city_token):
+        return f"{head} {year} – {city_token}"
+    return f"{head} {year}"
 
 
 def normalize_adapter_key(value: str | None) -> str | None:

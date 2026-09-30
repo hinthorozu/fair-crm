@@ -21,6 +21,7 @@ def test_create_and_get_fair(client, auth_headers, organization_id):
     assert create_response.status_code == 201
     body = create_response.json()
     assert body["name"] == "İstanbul Teknoloji Fuarı 2026"
+    assert body["display_name"] == body["name"]
     assert body["normalized_name"] == "ISTANBUL TEKNOLOJI FUARI 2026"
     assert body["website"] == "teknova-fuar.com"
     assert body["city"] == "İstanbul"
@@ -659,4 +660,50 @@ def test_fair_detail_and_list_include_adapter_fields(client, auth_headers):
     matched = next(item for item in items if item["id"] == fair_id)
     assert matched["adapter_key"] == "tuyap_new"
     assert matched["source_url"] == "https://foodist.example/list"
+
+
+def test_organization_fair_preserves_entered_name(client, auth_headers):
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={"name": "Preserve Fair"},
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 201
+    body = create_response.json()
+    assert body["name"] == "Preserve Fair"
+    assert body["display_name"] == "Preserve Fair"
+    fair_id = body["id"]
+
+    update_response = client.patch(
+        f"/api/v1/fairs/{fair_id}",
+        json={"name": "Updated Mixed Case Fair"},
+        headers=auth_headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["name"] == "Updated Mixed Case Fair"
+    assert update_response.json()["display_name"] == "Updated Mixed Case Fair"
+
+    turkish = client.post(
+        "/api/v1/fairs",
+        json={"name": "İstanbul Mobilya Fuarı"},
+        headers=auth_headers,
+    )
+    assert turkish.status_code == 201
+    assert turkish.json()["name"] == "İstanbul Mobilya Fuarı"
+    assert turkish.json()["display_name"] == "İstanbul Mobilya Fuarı"
+
+
+def test_create_fair_stores_name_longer_than_255(client, auth_headers):
+    long_name = "ışık " + ("pencere " * 60)
+    assert len(long_name.strip()) > 405
+    create_response = client.post(
+        "/api/v1/fairs",
+        json={"name": long_name},
+        headers=auth_headers,
+    )
+    assert create_response.status_code == 201
+    stored = create_response.json()["name"]
+    assert stored == long_name.strip()
+    assert len(stored) > 405
+    assert stored.startswith("ışık ")
 

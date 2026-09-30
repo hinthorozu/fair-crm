@@ -11,6 +11,7 @@ from app.modules.fairs.domain.exceptions import (
     InvalidFairNameError,
 )
 from app.modules.fairs.domain.services.normalizers import (
+    canonicalize_fair_name,
     compute_normalized_name,
     normalize_adapter_key,
     normalize_source_url,
@@ -18,6 +19,12 @@ from app.modules.fairs.domain.services.normalizers import (
     resolve_status_for_dates,
 )
 from app.modules.fairs.domain.value_objects import FairStatus
+
+
+def _stored_name(name: str, *, origin: str) -> str:
+    if origin == "system":
+        return canonicalize_fair_name(name)
+    return name.strip()
 
 
 def _validate_date_range(start_date: Optional[date], end_date: Optional[date]) -> None:
@@ -38,7 +45,7 @@ def _validate_adapter_fields(
 @dataclass
 class Fair:
     id: UUID
-    organization_id: UUID
+    organization_id: UUID | None
     name: str
     organizer: Optional[str]
     venue: Optional[str]
@@ -57,6 +64,9 @@ class Fair:
     adapter_key: Optional[str] = None
     source_url: Optional[str] = None
     scraper_config: Optional[dict[str, Any]] = None
+    origin: str = "organization"
+    source: Optional[str] = None
+    external_id: Optional[str] = None
 
     @classmethod
     def create(
@@ -78,7 +88,7 @@ class Fair:
         scraper_config: Optional[dict[str, Any]] = None,
         now: datetime,
     ) -> "Fair":
-        trimmed_name = name.strip()
+        trimmed_name = _stored_name(name, origin="organization")
         if not trimmed_name:
             raise InvalidFairNameError("name must not be empty")
 
@@ -117,6 +127,9 @@ class Fair:
             adapter_key=normalized_adapter_key,
             source_url=normalized_source_url,
             scraper_config=scraper_config,
+            origin="organization",
+            source=None,
+            external_id=None,
         )
 
     def ensure_mutable(self) -> None:
@@ -148,7 +161,7 @@ class Fair:
         self.ensure_mutable()
 
         if name is not None:
-            trimmed = name.strip()
+            trimmed = _stored_name(name, origin=self.origin)
             if not trimmed:
                 raise InvalidFairNameError("name must not be empty")
             self.name = trimmed

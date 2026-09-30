@@ -2,8 +2,10 @@ export type FairStatus = "planned" | "active" | "completed" | "cancelled" | "arc
 
 export interface Fair {
   id: string;
-  organization_id: string;
+  organization_id: string | null;
+  origin: "organization" | "system";
   name: string;
+  display_name: string;
   organizer: string | null;
   venue: string | null;
   city: string | null;
@@ -17,9 +19,17 @@ export interface Fair {
   source_url: string | null;
   scraper_config: Record<string, unknown> | null;
   normalized_name: string;
+  scraped_record_count: number | null;
+  scraped_at: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+}
+
+export function systemFairScrapeReady(
+  fair: Pick<Fair, "scraped_record_count" | "scraped_at">,
+): boolean {
+  return fair.scraped_record_count != null && fair.scraped_at != null;
 }
 
 export interface FairListResponse {

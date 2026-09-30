@@ -10,7 +10,7 @@ from app.modules.fairs.domain.value_objects import FairStatus
 
 
 class CreateFairRequest(BaseModel):
-    name: str = Field(..., min_length=1, max_length=255)
+    name: str = Field(..., min_length=1)
     organizer: Optional[str] = Field(default=None, max_length=255)
     venue: Optional[str] = Field(default=None, max_length=255)
     city: Optional[str] = Field(default=None, max_length=100)
@@ -26,7 +26,7 @@ class CreateFairRequest(BaseModel):
 
 
 class UpdateFairRequest(BaseModel):
-    name: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    name: Optional[str] = Field(default=None, min_length=1)
     organizer: Optional[str] = Field(default=None, max_length=255)
     venue: Optional[str] = Field(default=None, max_length=255)
     city: Optional[str] = Field(default=None, max_length=100)
@@ -45,8 +45,10 @@ class FairResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    organization_id: UUID
+    organization_id: UUID | None
+    origin: str
     name: str
+    display_name: str
     organizer: Optional[str]
     venue: Optional[str]
     city: Optional[str]
@@ -63,6 +65,8 @@ class FairResponse(BaseModel):
     adapter_key: Optional[str] = None
     source_url: Optional[str] = None
     scraper_config: Optional[dict[str, Any]] = None
+    scraped_record_count: Optional[int] = None
+    scraped_at: Optional[datetime] = None
 
 
 class FairListResponse(StandardListResponse[FairResponse]):
@@ -71,3 +75,17 @@ class FairListResponse(StandardListResponse[FairResponse]):
 
 class ErrorResponse(BaseModel):
     detail: str
+
+
+class CompareSystemFairImportResponse(BaseModel):
+    batch_id: UUID
+
+
+class SyncTobbSystemFairsRequest(BaseModel):
+    year: int
+
+
+class SyncTobbSystemFairsResponse(BaseModel):
+    inserted: int
+    updated: int
+    conflicts: int

@@ -1,5 +1,7 @@
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any, Optional
+from uuid import UUID
 
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.client import HttpAuditAdapter
@@ -39,10 +41,12 @@ class UpdateFairUseCase:
         repository: FairRepository,
         authorization: AuthorizationPort,
         audit: HttpAuditAdapter,
+        is_super_admin_reader: Callable[[str, UUID], bool] | None = None,
     ) -> None:
         self._repository = repository
         self._authorization = authorization
         self._audit = audit
+        self._is_super_admin = is_super_admin_reader or (lambda _token, _organization_id: False)
 
     def execute(self, command: UpdateFairCommand) -> FairResult:
         if not self._authorization.check_permission(
@@ -53,9 +57,14 @@ class UpdateFairUseCase:
         ):
             raise ForbiddenError("Permission denied")
 
-        fair = self._repository.get_by_id(command.organization_id, command.fair_id)
+        fair = self._repository.get_visible(command.organization_id, command.fair_id)
         if fair is None:
             raise FairNotFoundError("Fair not found")
+        if fair.origin == "system" and not self._is_super_admin(
+            command.access_token,
+            command.organization_id,
+        ):
+            raise ForbiddenError("System fairs are read-only")
 
         now = datetime.now(tz=UTC)
         string_kwargs: dict[str, Any] = {

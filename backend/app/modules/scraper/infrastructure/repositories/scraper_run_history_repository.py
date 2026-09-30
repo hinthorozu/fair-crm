@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import and_, delete, desc, func, select
@@ -17,6 +18,14 @@ from app.modules.scraper.domain.scraper_run_source import ScraperRunSource
 from app.modules.scraper.domain.scraper_run_history_filters import ScraperRunHistoryListFilters
 from app.modules.scraper.infrastructure.handoff_storage import is_safe_handoff_artifact_path
 from app.modules.scraper.infrastructure.persistence.models import ScraperAdapterModel, ScraperRunHistoryModel
+
+
+@dataclass(frozen=True)
+class LatestCompletedSystemRun:
+    run_id: UUID
+    total_rows: int
+    finished_at: datetime | None
+    output_json_path: str | None
 
 
 @dataclass(frozen=True)
@@ -398,6 +407,35 @@ class ScraperRunHistoryRepository:
             return None
         return _to_entity(model)
 
+    def list_latest_completed_system_runs(
+        self, fair_ids: list[UUID]
+    ) -> dict[UUID, LatestCompletedSystemRun]:
+        if not fair_ids:
+            return {}
+        stmt = (
+            select(ScraperRunHistoryModel)
+            .where(
+                ScraperRunHistoryModel.fair_id.in_(fair_ids),
+                ScraperRunHistoryModel.organization_id.is_(None),
+                ScraperRunHistoryModel.status == ScraperRunStatus.COMPLETED.value,
+            )
+            .order_by(
+                desc(ScraperRunHistoryModel.finished_at),
+                desc(ScraperRunHistoryModel.started_at),
+            )
+        )
+        found: dict[UUID, LatestCompletedSystemRun] = {}
+        for model in self._session.scalars(stmt):
+            if model.fair_id is None or model.fair_id in found:
+                continue
+            found[model.fair_id] = LatestCompletedSystemRun(
+                run_id=model.id,
+                total_rows=model.total_rows,
+                finished_at=model.finished_at,
+                output_json_path=model.output_json_path,
+            )
+        return found
+
     def list_running_for_adapter(
         self,
         *,
@@ -453,13 +491,11 @@ class ScraperRunHistoryRepository:
         self,
         run_id: UUID,
         *,
-        organization_id: UUID,
+        organization_id: UUID | None,
     ) -> bool:
-        result = self._session.execute(
-            delete(ScraperRunHistoryModel).where(
-                ScraperRunHistoryModel.id == run_id,
-                ScraperRunHistoryModel.organization_id == organization_id,
-            )
-        )
+        conditions = [ScraperRunHistoryModel.id == run_id]
+        if organization_id is not None:
+            conditions.append(ScraperRunHistoryModel.organization_id == organization_id)
+        result = self._session.execute(delete(ScraperRunHistoryModel).where(*conditions))
         self._session.flush()
         return int(result.rowcount or 0) > 0

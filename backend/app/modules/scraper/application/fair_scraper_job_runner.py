@@ -158,23 +158,25 @@ class FairScraperJobRunner:
     def run_fair_scraper(self, command: FairScraperJobCommand) -> None:
         db = self._session_factory()
         run_logger: ScraperRunLogger | None = None
+        run_organization_id: UUID | None = command.organization_id
         try:
             history_service = create_run_history_service(db)
+            fair_repo = SqlAlchemyFairRepository(db)
+            fair = fair_repo.get_visible(command.organization_id, command.fair_id)
+            if fair is None:
+                logger.warning("Fair not found for scraper run id=%s fair_id=%s", command.run_id, command.fair_id)
+                return
+
+            run_organization_id = fair.organization_id
             if history_service.get_run(
                 command.run_id,
-                organization_id=command.organization_id,
+                organization_id=run_organization_id,
             ) is None:
                 logger.warning(
                     "Fair scraper run not found for organization run_id=%s organization_id=%s",
                     command.run_id,
-                    command.organization_id,
+                    run_organization_id,
                 )
-                return
-
-            fair_repo = SqlAlchemyFairRepository(db)
-            fair = fair_repo.get_by_id(command.organization_id, command.fair_id)
-            if fair is None:
-                logger.warning("Fair not found for scraper run id=%s fair_id=%s", command.run_id, command.fair_id)
                 return
 
             adapter_key = ((command.adapter_key or "").strip() or (fair.adapter_key or "").strip())
@@ -185,6 +187,7 @@ class FairScraperJobRunner:
                     command.run_id,
                     "Adapter or source URL is not configured",
                     command=command,
+                    run_organization_id=run_organization_id,
                 )
                 return
 
@@ -200,7 +203,7 @@ class FairScraperJobRunner:
             cancel_checker = RunCancelChecker(
                 self._session_factory,
                 command.run_id,
-                organization_id=command.organization_id,
+                organization_id=run_organization_id,
             )
             if command.scraper_config is not None:
                 scraper_config = dict(command.scraper_config)
@@ -227,7 +230,13 @@ class FairScraperJobRunner:
 
             clear_validation_cache()
             if cancel_checker.is_cancel_requested():
-                self._cancel_run(db, command.run_id, run_logger=run_logger, command=command)
+                self._cancel_run(
+                    db,
+                    command.run_id,
+                    run_logger=run_logger,
+                    command=command,
+                    run_organization_id=run_organization_id,
+                )
                 return
             try:
                 if self._scrape_executor is not None:
@@ -253,25 +262,49 @@ class FairScraperJobRunner:
                         )
                     )
             except ScraperRunCancelledError:
-                self._cancel_run(db, command.run_id, run_logger=run_logger, command=command)
+                self._cancel_run(
+                    db,
+                    command.run_id,
+                    run_logger=run_logger,
+                    command=command,
+                    run_organization_id=run_organization_id,
+                )
                 return
             except PlaywrightBrowserNotInstalledError as scrape_exc:
                 logger.warning("%s", scrape_exc)
                 if isinstance(run_logger, CappedWarningRunLogger):
                     run_logger.flush_suppressed_warnings()
                 run_logger.error("failed", str(scrape_exc))
-                self._fail_run(db, command.run_id, str(scrape_exc), command=command)
+                self._fail_run(
+                    db,
+                    command.run_id,
+                    str(scrape_exc),
+                    command=command,
+                    run_organization_id=run_organization_id,
+                )
                 return
             except Exception as scrape_exc:
                 logger.exception("Fair scraper scrape failed id=%s", command.run_id)
                 if isinstance(run_logger, CappedWarningRunLogger):
                     run_logger.flush_suppressed_warnings()
                 run_logger.error("failed", str(scrape_exc))
-                self._fail_run(db, command.run_id, str(scrape_exc), command=command)
+                self._fail_run(
+                    db,
+                    command.run_id,
+                    str(scrape_exc),
+                    command=command,
+                    run_organization_id=run_organization_id,
+                )
                 return
 
             if cancel_checker.is_cancel_requested():
-                self._cancel_run(db, command.run_id, run_logger=run_logger, command=command)
+                self._cancel_run(
+                    db,
+                    command.run_id,
+                    run_logger=run_logger,
+                    command=command,
+                    run_organization_id=run_organization_id,
+                )
                 return
 
             self._finalize_successful_scrape(
@@ -282,9 +315,11 @@ class FairScraperJobRunner:
                 handoff=handoff,
                 adapter_key=adapter_key,
                 fair_id=fair.id,
+                fair_organization_id=fair.organization_id,
                 source_url=source_url,
                 requested_fields=requested_fields,
                 output_formats=output_formats,
+                run_organization_id=run_organization_id,
             )
         except Exception as exc:
             logger.exception("Fair scraper run failed id=%s", command.run_id)
@@ -292,7 +327,13 @@ class FairScraperJobRunner:
                 if isinstance(run_logger, CappedWarningRunLogger):
                     run_logger.flush_suppressed_warnings()
                 run_logger.error("failed", str(exc))
-            self._fail_run(db, command.run_id, str(exc), command=command)
+            self._fail_run(
+                db,
+                command.run_id,
+                str(exc),
+                command=command,
+                run_organization_id=run_organization_id,
+            )
         finally:
             db.close()
 
@@ -306,9 +347,11 @@ class FairScraperJobRunner:
         handoff: ScraperImportHandoff,
         adapter_key: str,
         fair_id: UUID,
+        fair_organization_id: UUID | None,
         source_url: str,
         requested_fields: list[str] | None,
         output_formats,
+        run_organization_id: UUID | None,
     ) -> None:
         artifacts: ArtifactExportBundle = export_scraper_artifacts(
             handoff,
@@ -326,7 +369,7 @@ class FairScraperJobRunner:
         total_rows = len(handoff.canonical_rows or [])
         import_batch_id = None
         import_warning: str | None = None
-        if total_rows > 0:
+        if total_rows > 0 and fair_organization_id is not None:
             try:
                 import_batch_id = create_and_analyze_import_batch_from_handoff(
                     db,
@@ -352,7 +395,7 @@ class FairScraperJobRunner:
                     import_warning,
                     metadata={"total_rows": total_rows, "error": str(exc)},
                 )
-        else:
+        elif total_rows == 0:
             run_logger.warning(
                 "no_rows",
                 "Scraper tamamlandı ancak kayıt bulunamadı; import batch oluşturulmadı.",
@@ -373,7 +416,7 @@ class FairScraperJobRunner:
             output_excel_path=artifacts.excel_path,
             import_batch_id=import_batch_id,
             warning_message=warning_message,
-            organization_id=command.organization_id,
+            organization_id=run_organization_id,
         )
         if completed is not None:
             self._sync_linked_operation(db, command, completed)
@@ -420,13 +463,14 @@ class FairScraperJobRunner:
         *,
         run_logger: ScraperRunLogger | None,
         command: FairScraperJobCommand | None = None,
+        run_organization_id: UUID | None = None,
     ) -> None:
         if command is None:
             logger.error("Cannot cancel scraper run without organization context run_id=%s", run_id)
             return
         try:
             history_service = create_run_history_service(db)
-            history_service.mark_cancelling(run_id, organization_id=command.organization_id)
+            history_service.mark_cancelling(run_id, organization_id=run_organization_id)
             if run_logger is not None:
                 if isinstance(run_logger, CappedWarningRunLogger):
                     run_logger.flush_suppressed_warnings()
@@ -434,7 +478,7 @@ class FairScraperJobRunner:
             cancelled = history_service.complete_cancelled_run(
                 run_id,
                 error_message="Kullanıcı tarafından durduruldu.",
-                organization_id=command.organization_id,
+                organization_id=run_organization_id,
             )
             if cancelled is not None:
                 self._sync_linked_operation(db, command, cancelled)
@@ -450,6 +494,7 @@ class FairScraperJobRunner:
         error_message: str,
         *,
         command: FairScraperJobCommand | None = None,
+        run_organization_id: UUID | None = None,
     ) -> None:
         if command is None:
             logger.error("Cannot fail scraper run without organization context run_id=%s", run_id)
@@ -459,7 +504,7 @@ class FairScraperJobRunner:
             failed = history_service.fail_run(
                 run_id,
                 error_message=error_message,
-                organization_id=command.organization_id,
+                organization_id=run_organization_id,
             )
             if failed is not None:
                 self._sync_linked_operation(db, command, failed)

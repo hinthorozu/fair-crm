@@ -1,22 +1,25 @@
 import React from "react";
 import {
   archiveFair,
+  compareSystemFairImport,
   createFair,
   listFairs,
   restoreFair,
+  syncTobbSystemFairs,
   updateFair,
   ApiError,
   formatApiErrorMessage,
 } from "../api/fairs";
+import { useAuth } from "../auth/AuthContext";
 import { FairForm, fairToFormValues } from "../components/FairForm";
 import { FairFilters, FairTable } from "../components/FairList";
 import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
-import { FormModal, runAfterSuccessfulFormSubmit } from "../components/ui/form";
+import { FormModal, runAfterSuccessfulFormSubmit, TextInput } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
 import { usePermissions } from "../hooks/usePermissions";
 import { useServerDataTable } from "../hooks/useServerDataTable";
-import type { CreateFairPayload, Fair, FairStatus } from "../types/fair";
+import { systemFairScrapeReady, type CreateFairPayload, type Fair, type FairStatus } from "../types/fair";
 import { fairLabels } from "../labels/fairLabels";
 import { labels } from "../labels";
 import { Banner } from "../components/ui/Banner";
@@ -28,17 +31,32 @@ type ConfirmAction =
   | { type: "restore"; fair: Fair }
   | null;
 
-interface FairsPageProps {
-  onOpenDetail?: (fairId: string) => void;
+function selectedTobbYear(value: string): number | null {
+  const trimmed = value.trim();
+  if (!/^\d{4}$/.test(trimmed)) return null;
+  return Number(trimmed);
 }
 
-export function FairsPage({ onOpenDetail }: FairsPageProps) {
+interface FairsPageProps {
+  onOpenDetail?: (fairId: string) => void;
+  onContinueImport?: (batchId: string) => void;
+}
+
+export function FairsPage({ onOpenDetail, onContinueImport }: FairsPageProps) {
+  const { session } = useAuth();
+  const isSuperAdmin = session?.isSuperAdmin === true;
   const { can } = usePermissions();
   const canCreate = can(FAIR_CREATE);
   const canUpdate = can(FAIR_UPDATE);
   const canDelete = can(FAIR_DELETE);
 
   const [success, setSuccess] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [comparingId, setComparingId] = React.useState<string | null>(null);
+  const comparingRef = React.useRef(false);
+  const [tobbYear, setTobbYear] = React.useState(() => String(new Date().getFullYear()));
+  const [syncingTobb, setSyncingTobb] = React.useState(false);
+  const syncingTobbRef = React.useRef(false);
   const [modal, setModal] = React.useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = React.useState<Fair | null>(null);
   const [archivingId, setArchivingId] = React.useState<string | null>(null);
@@ -82,6 +100,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
   const handleUpdate = async (values: CreateFairPayload) => {
     if (!canUpdate) return;
     if (!editing) return;
+    if (editing.origin === "system" && !isSuperAdmin) return;
     const updated = await updateFair(editing.id, values);
     if (onOpenDetail) {
       runAfterSuccessfulFormSubmit(() => {
@@ -100,6 +119,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
 
   const handleArchive = async (fair: Fair) => {
     if (!canDelete) return;
+    if (fair.origin === "system") return;
     setArchivingId(fair.id);
     setSuccess(null);
     try {
@@ -115,6 +135,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
 
   const handleRestore = async (fair: Fair) => {
     if (!canDelete) return;
+    if (fair.origin === "system") return;
     setRestoringId(fair.id);
     setSuccess(null);
     try {
@@ -133,10 +154,49 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
     }
   };
 
+  const handleCompare = async (fair: Fair) => {
+    if (comparingRef.current) return;
+    if (fair.origin !== "system" || !systemFairScrapeReady(fair)) return;
+    comparingRef.current = true;
+    setComparingId(fair.id);
+    setError(null);
+    try {
+      const result = await compareSystemFairImport(fair.id);
+      onContinueImport?.(result.batch_id);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : fairLabels.compareError);
+    } finally {
+      comparingRef.current = false;
+      setComparingId(null);
+    }
+  };
+
   const openCreate = () => {
     if (!canCreate) return;
     setEditing(null);
     setModal("create");
+  };
+
+  const handleTobbSync = async () => {
+    if (!isSuperAdmin || syncingTobbRef.current) return;
+    const year = selectedTobbYear(tobbYear);
+    if (year == null) return;
+    syncingTobbRef.current = true;
+    setSyncingTobb(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const result = await syncTobbSystemFairs(year);
+      setSuccess(
+        `TOBB güncellemesi tamamlandı: ${result.inserted} yeni, ${result.updated} güncellendi, ${result.conflicts} çakışma.`,
+      );
+      await table.refresh();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : fairLabels.syncTobbError);
+    } finally {
+      syncingTobbRef.current = false;
+      setSyncingTobb(false);
+    }
   };
 
   const closeModal = React.useCallback(() => setModal(null), []);
@@ -148,10 +208,35 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
         title={fairLabels.fairs}
         subtitle={`${table.pagination.totalItems} kayıt`}
         actions={
-          canCreate ? (
-            <button type="button" className="btn primary" onClick={openCreate}>
-              {fairLabels.newFair}
-            </button>
+          isSuperAdmin || canCreate ? (
+            <>
+              {isSuperAdmin && (
+                <>
+                  <TextInput
+                    id="tobb-sync-year"
+                    type="number"
+                    inputMode="numeric"
+                    aria-label={fairLabels.syncTobbYear}
+                    value={tobbYear}
+                    disabled={syncingTobb}
+                    onChange={(event) => setTobbYear(event.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    disabled={syncingTobb || selectedTobbYear(tobbYear) == null}
+                    onClick={() => void handleTobbSync()}
+                  >
+                    {syncingTobb ? labels.loading : fairLabels.syncTobb}
+                  </button>
+                </>
+              )}
+              {canCreate ? (
+                <button type="button" className="btn primary" onClick={openCreate}>
+                  {fairLabels.newFair}
+                </button>
+              ) : null}
+            </>
           ) : undefined
         }
       />
@@ -182,9 +267,13 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
           emptyDueToFilters={table.hasActiveFilters}
           onOpenDetail={onOpenDetail}
           onCreate={canCreate ? openCreate : undefined}
+          onCompare={(fair) => void handleCompare(fair)}
+          isSuperAdmin={isSuperAdmin}
+          comparingId={comparingId}
           onEdit={
             canUpdate
               ? (fair) => {
+                  if (fair.origin === "system" && !isSuperAdmin) return;
                   setEditing(fair);
                   setModal("edit");
                 }
@@ -196,6 +285,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
       </ServerDataTableFrame>
 
       {success && <Banner variant="success">{success}</Banner>}
+      {error && <Banner variant="error">{error}</Banner>}
 
       {modal === "create" && canCreate && (
         <FormModal title={fairLabels.newFair} onClose={closeModal} size="lg">
@@ -209,7 +299,7 @@ export function FairsPage({ onOpenDetail }: FairsPageProps) {
         </FormModal>
       )}
 
-      {modal === "edit" && editing && canUpdate && (
+      {modal === "edit" && editing && canUpdate && (editing.origin !== "system" || isSuperAdmin) && (
         <FormModal title={fairLabels.editFair} onClose={closeModal} size="lg">
           <FairForm
             key={editing.id}

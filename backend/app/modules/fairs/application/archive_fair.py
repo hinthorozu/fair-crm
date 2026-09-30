@@ -31,9 +31,11 @@ class ArchiveFairUseCase:
         ):
             raise ForbiddenError("Permission denied")
 
-        fair = self._repository.get_by_id(command.organization_id, command.fair_id)
+        fair = self._repository.get_visible(command.organization_id, command.fair_id)
         if fair is None:
             raise FairNotFoundError("Fair not found")
+        if fair.origin == "system":
+            raise ForbiddenError("System fairs are read-only")
 
         now = datetime.now(tz=UTC)
         fair.archive(now=now)

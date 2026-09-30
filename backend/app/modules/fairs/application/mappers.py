@@ -1,13 +1,33 @@
+from datetime import date
+
 from app.modules.fairs.application.commands import FairListResultDto, FairResult
 from app.modules.fairs.domain.entities import Fair
 from app.modules.fairs.domain.ports import FairListResult
+from app.modules.fairs.domain.services.normalizers import (
+    system_fair_display_name,
+    system_fair_status_for_dates,
+)
+from app.modules.fairs.domain.value_objects import FairStatus
+
+
+def _response_status(fair: Fair) -> FairStatus:
+    if fair.origin != "system" or fair.status in {FairStatus.ARCHIVED, FairStatus.CANCELLED}:
+        return fair.status
+    derived = system_fair_status_for_dates(
+        start_date=fair.start_date,
+        end_date=fair.end_date,
+        today=date.today(),
+    )
+    return derived if derived is not None else fair.status
 
 
 def fair_to_result(fair: Fair) -> FairResult:
     return FairResult(
         id=fair.id,
         organization_id=fair.organization_id,
+        origin=fair.origin,
         name=fair.name,
+        display_name=system_fair_display_name(name=fair.name, city=fair.city, origin=fair.origin),
         organizer=fair.organizer,
         venue=fair.venue,
         city=fair.city,
@@ -15,7 +35,7 @@ def fair_to_result(fair: Fair) -> FairResult:
         start_date=fair.start_date,
         end_date=fair.end_date,
         website=fair.website,
-        status=fair.status,
+        status=_response_status(fair),
         description=fair.description,
         normalized_name=fair.normalized_name,
         created_at=fair.created_at,

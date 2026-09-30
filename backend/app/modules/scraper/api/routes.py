@@ -63,6 +63,7 @@ from app.modules.scraper.api.schemas import (
     ScraperRunLogResponse,
 )
 from app.integrations.kyrox_core.auth import AuthContext
+from app.integrations.kyrox_core.super_admin import SuperAdminReader, get_super_admin_reader
 from app.core.config import get_settings
 from app.modules.scraper.core.browser_service import BrowserConfig
 from app.modules.scraper.core.playwright_availability import playwright_browser_unavailable_message
@@ -198,10 +199,21 @@ def _adapter_http_errors(exc: Exception) -> HTTPException:
     raise exc
 
 
+def _run_organization_scope(
+    auth: AuthContext,
+    credentials: HTTPAuthorizationCredentials | None,
+    is_super_admin: SuperAdminReader,
+) -> UUID | None:
+    token = credentials.credentials if credentials is not None and credentials.credentials else ""
+    if is_super_admin(token, auth.organization_id):
+        return None
+    return auth.organization_id
+
+
 def _get_org_scoped_run(
     run_history_service: ScraperRunHistoryService,
     run_id: UUID,
-    organization_id: UUID,
+    organization_id: UUID | None,
 ) -> ScraperRunHistory:
     run = run_history_service.get_run_for_organization(run_id, organization_id)
     if run is None:
@@ -648,6 +660,8 @@ def reset_customer_enrichment_state(
 )
 def list_scraper_runs(
     auth: Annotated[AuthContext, Depends(require_read_permission)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    is_super_admin: Annotated[SuperAdminReader, Depends(get_super_admin_reader)],
     run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
     engine_service: Annotated[AdapterEngineService, Depends(get_adapter_engine_service)],
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
@@ -663,7 +677,7 @@ def list_scraper_runs(
     url: str | None = None,
 ) -> ScraperRunHistoryListResponse:
     filters = ScraperRunHistoryListFilters(
-        organization_id=auth.organization_id,
+        organization_id=_run_organization_scope(auth, credentials, is_super_admin),
         adapter_key=adapter_key,
         adapter_id=adapter_id,
         status=_parse_run_status(status_filter),
@@ -694,11 +708,16 @@ def list_scraper_runs(
 def get_scraper_run(
     run_id: UUID,
     auth: Annotated[AuthContext, Depends(require_read_permission)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    is_super_admin: Annotated[SuperAdminReader, Depends(get_super_admin_reader)],
     run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
     run_log_service: Annotated[ScraperRunLogService, Depends(get_scraper_run_log_service)],
     engine_service: Annotated[AdapterEngineService, Depends(get_adapter_engine_service)],
 ) -> ScraperRunHistoryResponse:
-    row = run_history_service.get_run_row(run_id, organization_id=auth.organization_id)
+    row = run_history_service.get_run_row(
+        run_id,
+        organization_id=_run_organization_scope(auth, credentials, is_super_admin),
+    )
     if row is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -719,13 +738,15 @@ def get_scraper_run(
 def delete_scraper_run(
     run_id: UUID,
     auth: Annotated[AuthContext, Depends(require_delete_permission)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    is_super_admin: Annotated[SuperAdminReader, Depends(get_super_admin_reader)],
     db: Annotated[Session, Depends(get_db)],
     run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
 ) -> None:
     try:
         run_history_service.delete_run(
             run_id,
-            organization_id=auth.organization_id,
+            organization_id=_run_organization_scope(auth, credentials, is_super_admin),
             requested_by=auth.user_id,
         )
     except KeyError as exc:
@@ -749,11 +770,14 @@ def delete_scraper_run(
 def cancel_scraper_run(
     run_id: UUID,
     auth: Annotated[AuthContext, Depends(require_run_permission)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    is_super_admin: Annotated[SuperAdminReader, Depends(get_super_admin_reader)],
     db: Annotated[Session, Depends(get_db)],
     run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
     run_log_service: Annotated[ScraperRunLogService, Depends(get_scraper_run_log_service)],
 ) -> ScraperRunCancelResponse:
-    run = _get_org_scoped_run(run_history_service, run_id, auth.organization_id)
+    organization_id = _run_organization_scope(auth, credentials, is_super_admin)
+    run = _get_org_scoped_run(run_history_service, run_id, organization_id)
     if run.status not in {ScraperRunStatus.RUNNING, ScraperRunStatus.CANCEL_REQUESTED}:
         return ScraperRunCancelResponse(
             job_id=run.id,
@@ -763,7 +787,7 @@ def cancel_scraper_run(
         )
     updated = run_history_service.request_cancel(
         run_id,
-        organization_id=auth.organization_id,
+        organization_id=organization_id,
         requested_by=auth.user_id,
     )
     run_log_service.append_log(
@@ -795,12 +819,18 @@ def cancel_scraper_run(
 def list_scraper_run_logs(
     run_id: UUID,
     auth: Annotated[AuthContext, Depends(require_read_permission)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    is_super_admin: Annotated[SuperAdminReader, Depends(get_super_admin_reader)],
     run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
     run_log_service: Annotated[ScraperRunLogService, Depends(get_scraper_run_log_service)],
     after_id: UUID | None = None,
     limit: Annotated[int, Query(ge=1, le=2000)] = 500,
 ) -> ScraperRunLogListResponse:
-    run = _get_org_scoped_run(run_history_service, run_id, auth.organization_id)
+    run = _get_org_scoped_run(
+        run_history_service,
+        run_id,
+        _run_organization_scope(auth, credentials, is_super_admin),
+    )
     logs = run_log_service.list_logs(run_id, after_id=after_id, limit=limit)
     items = [ScraperRunLogResponse.from_entity(log) for log in logs]
     json_path = resolve_handoff_path(run_id)
@@ -831,6 +861,8 @@ def list_scraper_run_logs(
 def export_scraper_run_logs(
     run_id: UUID,
     auth: Annotated[AuthContext, Depends(require_read_permission)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    is_super_admin: Annotated[SuperAdminReader, Depends(get_super_admin_reader)],
     run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
     run_log_service: Annotated[ScraperRunLogService, Depends(get_scraper_run_log_service)],
     format: Annotated[str, Query(alias="format")],
@@ -840,7 +872,11 @@ def export_scraper_run_logs(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Desteklenmeyen format.",
         )
-    run = _get_org_scoped_run(run_history_service, run_id, auth.organization_id)
+    run = _get_org_scoped_run(
+        run_history_service,
+        run_id,
+        _run_organization_scope(auth, credentials, is_super_admin),
+    )
     if not is_customer_contact_enrichment_adapter(run.adapter_key):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -871,9 +907,15 @@ def export_scraper_run_logs(
 def download_scraper_run_json(
     run_id: UUID,
     auth: Annotated[AuthContext, Depends(require_download_permission)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    is_super_admin: Annotated[SuperAdminReader, Depends(get_super_admin_reader)],
     run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
 ) -> FileResponse:
-    run = _get_org_scoped_run(run_history_service, run_id, auth.organization_id)
+    run = _get_org_scoped_run(
+        run_history_service,
+        run_id,
+        _run_organization_scope(auth, credentials, is_super_admin),
+    )
     if run.status != ScraperRunStatus.COMPLETED:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -899,9 +941,15 @@ def download_scraper_run_json(
 def download_scraper_run_excel(
     run_id: UUID,
     auth: Annotated[AuthContext, Depends(require_download_permission)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    is_super_admin: Annotated[SuperAdminReader, Depends(get_super_admin_reader)],
     run_history_service: Annotated[ScraperRunHistoryService, Depends(get_scraper_run_history_service)],
 ) -> FileResponse:
-    run = _get_org_scoped_run(run_history_service, run_id, auth.organization_id)
+    run = _get_org_scoped_run(
+        run_history_service,
+        run_id,
+        _run_organization_scope(auth, credentials, is_super_admin),
+    )
     if run.status != ScraperRunStatus.COMPLETED:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

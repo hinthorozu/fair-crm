@@ -27,6 +27,9 @@ def model_to_entity(model: FairModel) -> Fair:
         adapter_key=model.adapter_key,
         source_url=model.source_url,
         scraper_config=model.scraper_config,
+        origin=model.origin,
+        source=model.source,
+        external_id=model.external_id,
     )
 
 
@@ -54,6 +57,9 @@ def entity_to_model(fair: Fair) -> FairModel:
         adapter_key=fair.adapter_key,
         source_url=fair.source_url,
         scraper_config=fair.scraper_config,
+        origin=fair.origin,
+        source=fair.source,
+        external_id=fair.external_id,
     )
 
 
@@ -77,3 +83,5 @@ def update_model_from_entity(model: FairModel, fair: Fair) -> None:
     model.adapter_key = fair.adapter_key
     model.source_url = fair.source_url
     model.scraper_config = fair.scraper_config
+    model.source = fair.source
+    model.external_id = fair.external_id
