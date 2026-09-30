@@ -287,6 +287,24 @@ def test_system_fair_missing_from_tobb_is_left_unchanged(db_session):
     assert saved.status == FairStatus.PLANNED.value
 
 
+def test_parser_skips_tobb_summary_footer():
+    second = _sample_row()
+    second[0] = "16"
+    second[3] = "Ankara Fuarı"
+    footer = [""] * len(_HEADERS)
+    footer[3] = "Toplam Fuar Sayısı(2026): 439"
+    rows = parse_tobb_calendar_html(_html([_sample_row(), second, footer]))
+    assert [row.sequence_no for row in rows] == ["15", "16"]
+    assert [row.name for row in rows] == ["İstanbul Fuarı", "Ankara Fuarı"]
+
+
+def test_normal_row_missing_sequence_is_a_failure():
+    broken = _sample_row()
+    broken[0] = ""
+    with pytest.raises(TobbCalendarReadError, match="TOBB sequence number is missing"):
+        parse_tobb_calendar_html(_html([_sample_row(), broken]))
+
+
 def test_missing_table_is_a_failure():
     with pytest.raises(TobbCalendarReadError):
         parse_tobb_calendar_html("<html><body><p>no table</p></body></html>")

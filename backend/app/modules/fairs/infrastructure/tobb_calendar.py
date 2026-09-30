@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from datetime import date, datetime
 
@@ -17,6 +18,7 @@ _REQUIRED_COLUMNS = (
     "Düzenleyici",
     "Web",
 )
+_SUMMARY_NAME = re.compile(r"Toplam Fuar Sayısı\(\d{4}\):\s*\d+\Z")
 
 
 @dataclass(frozen=True)
@@ -48,6 +50,15 @@ def _parse_date(value: str) -> date | None:
         return datetime.strptime(text, "%d.%m.%Y").date()
     except ValueError as exc:
         raise TobbCalendarReadError(f"Invalid TOBB date: {text}") from exc
+
+
+def _is_summary_row(row, name: str) -> bool:
+    classes = row.get("class") or []
+    if "dxbl-grid-footer-row" in classes:
+        return True
+    if row.find(attrs={"dxbl-grid-summary-item": True}) is not None:
+        return True
+    return _SUMMARY_NAME.fullmatch(name) is not None
 
 
 def _find_calendar_table(soup: BeautifulSoup):
@@ -91,6 +102,8 @@ def parse_tobb_calendar_html(html: str) -> list[TobbFairRow]:
             continue
         sequence_no = value("Sıra No").strip()
         name = value("Fuarın Adı").strip()
+        if _is_summary_row(row, name):
+            continue
         if not sequence_no.isdigit():
             raise TobbCalendarReadError("TOBB sequence number is missing")
         if not name:
