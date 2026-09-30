@@ -205,6 +205,10 @@ def list_fairs(
         list_status = None
         list_include_archived = False
 
+    explicit_sort = any(
+        request.query_params.get(name)
+        for name in ("sort", "sort_by", "sort_dir", "direction", "sort_order")
+    )
     list_query = parse_list_query(
         page=page,
         page_size=resolve_page_size_from_request(request, page_size),
@@ -230,6 +234,7 @@ def list_fairs(
             page_size=list_query.page_size,
             sort_by=list_query.sort_by,
             sort_dir=list_query.sort_dir,
+            default_date_order=not explicit_sort,
         )
     )
     filters: dict = {}
@@ -242,8 +247,8 @@ def list_fairs(
 
     return standard_list_from_result(
         result,
-        sort_field=list_query.sort_by,
-        sort_direction=list_query.sort_dir,
+        sort_field=list_query.sort_by if explicit_sort else "",
+        sort_direction=list_query.sort_dir if explicit_sort else "asc",
         filters=filters,
     ).model_copy(
         update={"items": [_to_response(item) for item in result.items]},

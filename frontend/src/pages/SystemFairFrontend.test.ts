@@ -593,6 +593,13 @@ describe("system fair frontend", () => {
     input.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
+  it("loads the fair list without sending an explicit sort", async () => {
+    await renderFairs();
+    const params = harness.listFairs.mock.calls[0]?.[0] as { sortBy?: string | null; sortOrder?: string | null };
+    expect(params.sortBy ?? null).toBeNull();
+    expect(params.sortOrder ?? null).toBeNull();
+  });
+
   it("shows TOBB sync only to the super admin and sends the selected year", async () => {
     harness.isSuperAdmin = false;
     harness.allowPermissions = true;

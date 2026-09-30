@@ -43,6 +43,7 @@ class ListFairsQuery:
     page_size: int = 25
     sort_by: str = "start_date"
     sort_dir: str = "desc"
+    default_date_order: bool = False
 
 
 @dataclass(frozen=True)

@@ -330,6 +330,52 @@ def test_list_fairs_invalid_page_size_validation(client, auth_headers):
     assert response.status_code == 422
 
 
+def test_list_fairs_default_date_order_and_explicit_sort(client, auth_headers, db_session, organization_id, monkeypatch):
+    from datetime import UTC, date, datetime
+
+    from app.modules.fairs.domain.entities import Fair
+    from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
+
+    class _FrozenDate(date):
+        @classmethod
+        def today(cls) -> date:
+            return date(2026, 10, 1)
+
+    monkeypatch.setattr("app.modules.fairs.application.list_fairs.date", _FrozenDate)
+    repo = SqlAlchemyFairRepository(db_session)
+    now = datetime(2026, 10, 1, tzinfo=UTC)
+    for name, start in (
+        ("Api Past", date(2026, 9, 20)),
+        ("Api Future Far", date(2026, 10, 15)),
+        ("Api Future Near", date(2026, 10, 5)),
+    ):
+        repo.add(
+            Fair.create(organization_id=organization_id, name=name, start_date=start, now=now)
+        )
+    db_session.commit()
+
+    default = client.get("/api/v1/fairs?page_size=100", headers=auth_headers)
+    assert default.status_code == 200
+    assert [item["name"] for item in default.json()["items"]] == [
+        "Api Future Near",
+        "Api Future Far",
+        "Api Past",
+    ]
+    assert default.json()["sorting"]["field"] == ""
+
+    explicit = client.get(
+        "/api/v1/fairs?sort_by=start_date&sort_dir=desc&page_size=100",
+        headers=auth_headers,
+    )
+    assert [item["name"] for item in explicit.json()["items"]] == [
+        "Api Future Far",
+        "Api Future Near",
+        "Api Past",
+    ]
+    assert explicit.json()["sorting"]["field"] == "start_date"
+    assert explicit.json()["sorting"]["direction"] == "desc"
+
+
 def test_list_fairs_sort_by_name(client, auth_headers):
     client.post(
         "/api/v1/fairs",
