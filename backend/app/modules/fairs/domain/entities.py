@@ -21,6 +21,12 @@ from app.modules.fairs.domain.services.normalizers import (
 from app.modules.fairs.domain.value_objects import FairStatus
 
 
+def _stored_name(name: str, *, origin: str) -> str:
+    if origin == "system":
+        return canonicalize_fair_name(name)
+    return name.strip()
+
+
 def _validate_date_range(start_date: Optional[date], end_date: Optional[date]) -> None:
     if start_date and end_date and end_date < start_date:
         raise InvalidFairDateRangeError("end_date must not be before start_date")
@@ -82,7 +88,7 @@ class Fair:
         scraper_config: Optional[dict[str, Any]] = None,
         now: datetime,
     ) -> "Fair":
-        trimmed_name = canonicalize_fair_name(name)
+        trimmed_name = _stored_name(name, origin="organization")
         if not trimmed_name:
             raise InvalidFairNameError("name must not be empty")
 
@@ -155,7 +161,7 @@ class Fair:
         self.ensure_mutable()
 
         if name is not None:
-            trimmed = canonicalize_fair_name(name)
+            trimmed = _stored_name(name, origin=self.origin)
             if not trimmed:
                 raise InvalidFairNameError("name must not be empty")
             self.name = trimmed

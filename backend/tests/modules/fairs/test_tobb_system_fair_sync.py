@@ -192,12 +192,12 @@ def test_first_sync_inserts_system_fair(db_session):
 
 def test_tobb_insert_and_update_store_turkish_uppercase_name(db_session):
     inserted_row = _sample_row()
-    inserted_row[3] = "istanbul ışık"
+    inserted_row[3] = "istanbul mobilya fuarı"
     inserted = _sync(db_session, _html([inserted_row]))
     assert inserted.inserted == 1
     saved = _system_rows(db_session)[0]
-    assert saved.name == "İSTANBUL IŞIK"
-    assert saved.normalized_name == compute_normalized_name(name="istanbul ışık")
+    assert saved.name == "İSTANBUL MOBİLYA FUARI"
+    assert saved.normalized_name == compute_normalized_name(name="istanbul mobilya fuarı")
 
     updated_row = _sample_row()
     updated_row[3] = "izmir şeker öğütme"

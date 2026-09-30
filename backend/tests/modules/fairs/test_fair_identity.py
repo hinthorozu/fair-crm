@@ -75,7 +75,7 @@ def test_organization_fair_create_stores_full_long_name(db_session, organization
     saved = SqlAlchemyFairRepository(db_session).add(fair)
     db_session.expire_all()
     loaded = db_session.get(FairModel, saved.id)
-    assert loaded.name == "Ç" + ("I" * 410)
+    assert loaded.name == long_name
     assert len(loaded.name) == 411
 
 
