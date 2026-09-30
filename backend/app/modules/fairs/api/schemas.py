@@ -45,7 +45,8 @@ class FairResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    organization_id: UUID
+    organization_id: UUID | None
+    origin: str
     name: str
     organizer: Optional[str]
     venue: Optional[str]
@@ -63,6 +64,8 @@ class FairResponse(BaseModel):
     adapter_key: Optional[str] = None
     source_url: Optional[str] = None
     scraper_config: Optional[dict[str, Any]] = None
+    scraped_record_count: Optional[int] = None
+    scraped_at: Optional[datetime] = None
 
 
 class FairListResponse(StandardListResponse[FairResponse]):
@@ -71,3 +74,17 @@ class FairListResponse(StandardListResponse[FairResponse]):
 
 class ErrorResponse(BaseModel):
     detail: str
+
+
+class CompareSystemFairImportResponse(BaseModel):
+    batch_id: UUID
+
+
+class SyncTobbSystemFairsRequest(BaseModel):
+    year: int
+
+
+class SyncTobbSystemFairsResponse(BaseModel):
+    inserted: int
+    updated: int
+    conflicts: int

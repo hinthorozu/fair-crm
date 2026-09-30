@@ -38,7 +38,7 @@ def _validate_adapter_fields(
 @dataclass
 class Fair:
     id: UUID
-    organization_id: UUID
+    organization_id: UUID | None
     name: str
     organizer: Optional[str]
     venue: Optional[str]
@@ -57,6 +57,9 @@ class Fair:
     adapter_key: Optional[str] = None
     source_url: Optional[str] = None
     scraper_config: Optional[dict[str, Any]] = None
+    origin: str = "organization"
+    source: Optional[str] = None
+    external_id: Optional[str] = None
 
     @classmethod
     def create(
@@ -117,6 +120,9 @@ class Fair:
             adapter_key=normalized_adapter_key,
             source_url=normalized_source_url,
             scraper_config=scraper_config,
+            origin="organization",
+            source=None,
+            external_id=None,
         )
 
     def ensure_mutable(self) -> None:

@@ -7,6 +7,7 @@ def fair_to_result(fair: Fair) -> FairResult:
     return FairResult(
         id=fair.id,
         organization_id=fair.organization_id,
+        origin=fair.origin,
         name=fair.name,
         organizer=fair.organizer,
         venue=fair.venue,

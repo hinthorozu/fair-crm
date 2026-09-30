@@ -24,6 +24,12 @@ class FairRepository(Protocol):
         self, organization_id: UUID, fair_id: UUID
     ) -> Fair | None: ...
 
+    def get_visible(self, organization_id: UUID, fair_id: UUID) -> Fair | None: ...
+
+    def get_visible_including_archived(
+        self, organization_id: UUID, fair_id: UUID
+    ) -> Fair | None: ...
+
     def update(self, fair: Fair) -> Fair: ...
 
     def list_by_organization(
@@ -39,3 +45,25 @@ class FairRepository(Protocol):
         sort_by: str = "start_date",
         sort_dir: str = "desc",
     ) -> FairListResult: ...
+
+    def list_visible(
+        self,
+        organization_id: UUID,
+        *,
+        status: FairStatus | None = None,
+        include_archived: bool = False,
+        country: str | None = None,
+        search: str | None = None,
+        page: int = 1,
+        page_size: int = 25,
+        sort_by: str = "start_date",
+        sort_dir: str = "desc",
+    ) -> FairListResult: ...
+
+    def get_system_fair_by_external_id(self, *, source: str, external_id: str) -> Fair | None: ...
+
+    def list_system_fairs_by_year_and_name(
+        self, *, source: str, year: int, normalized_name: str
+    ) -> list[Fair]: ...
+
+    def update_system_fair(self, fair: Fair) -> Fair: ...

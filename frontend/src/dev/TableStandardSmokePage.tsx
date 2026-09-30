@@ -51,6 +51,7 @@ function mockFair(partial: Partial<Fair> & Pick<Fair, "id" | "name">): Fair {
   return {
     id,
     organization_id: "00000000-0000-4000-8000-000000000010",
+    origin: "organization",
     name,
     organizer: null,
     venue: null,
@@ -65,6 +66,8 @@ function mockFair(partial: Partial<Fair> & Pick<Fair, "id" | "name">): Fair {
     source_url: null,
     scraper_config: null,
     normalized_name: name.toLowerCase(),
+    scraped_record_count: null,
+    scraped_at: null,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-06-01T00:00:00Z",
     deleted_at: null,

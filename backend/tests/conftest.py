@@ -12,6 +12,7 @@ from app.core.config import get_settings
 from app.db.base import Base
 from app.db.session import get_db
 from app.integrations.kyrox_core.auth import create_test_token
+from app.integrations.kyrox_core.super_admin import get_super_admin_reader
 from app.integrations.kyrox_core.ports import AuthorizationPort
 from app.main import create_app
 from app.modules.activities.api.dependencies import (
@@ -265,6 +266,7 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     app.dependency_overrides[get_outcome_authorization_adapter] = lambda: AllowAllAuthorization()
     app.dependency_overrides[get_outcome_audit_adapter] = lambda: NoOpAudit()
     app.dependency_overrides[get_dashboard_core_http_client] = lambda: AllowOrganizationAccess()
+    app.dependency_overrides[get_super_admin_reader] = lambda: (lambda _access_token, _organization_id: False)
 
     import app.modules.data_integration.api.dependencies as data_integration_dependencies
     import app.modules.imports.api.dependencies as imports_dependencies

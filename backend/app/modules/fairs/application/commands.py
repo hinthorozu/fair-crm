@@ -86,7 +86,8 @@ class RestoreFairCommand:
 @dataclass(frozen=True)
 class FairResult:
     id: UUID
-    organization_id: UUID
+    organization_id: UUID | None
+    origin: str
     name: str
     organizer: Optional[str]
     venue: Optional[str]
@@ -104,6 +105,8 @@ class FairResult:
     adapter_key: Optional[str] = None
     source_url: Optional[str] = None
     scraper_config: Optional[dict[str, Any]] = None
+    scraped_record_count: Optional[int] = None
+    scraped_at: Optional[datetime] = None
 
 
 @dataclass(frozen=True)

@@ -31,11 +31,13 @@ class RestoreFairUseCase:
         ):
             raise ForbiddenError("Permission denied")
 
-        fair = self._repository.get_by_id_including_archived(
+        fair = self._repository.get_visible_including_archived(
             command.organization_id, command.fair_id
         )
         if fair is None:
             raise FairNotFoundError("Fair not found")
+        if fair.origin == "system":
+            raise ForbiddenError("System fairs are read-only")
 
         now = datetime.now(tz=UTC)
         try:

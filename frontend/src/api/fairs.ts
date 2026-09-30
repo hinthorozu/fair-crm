@@ -70,6 +70,30 @@ export function runFairScraper(fairId: string): Promise<ScraperRun> {
   });
 }
 
+export interface SyncTobbSystemFairsResponse {
+  inserted: number;
+  updated: number;
+  conflicts: number;
+}
+
+export function syncTobbSystemFairs(year: number): Promise<SyncTobbSystemFairsResponse> {
+  return apiRequest<SyncTobbSystemFairsResponse>("/api/v1/fairs/system/tobb/sync", {
+    method: "POST",
+    body: JSON.stringify({ year }),
+  });
+}
+
+export interface CompareSystemFairImportResponse {
+  batch_id: string;
+}
+
+export function compareSystemFairImport(fairId: string): Promise<CompareSystemFairImportResponse> {
+  return apiRequest<CompareSystemFairImportResponse>(
+    `/api/v1/fairs/${encodeURIComponent(fairId)}/compare-import`,
+    { method: "POST" },
+  );
+}
+
 export function runFairContactEnrichment(
   fairId: string,
   body: EnrichmentRunPayload = {},

@@ -646,8 +646,8 @@ export function App() {
       {parsed.route === "/stand-projects" && (
         <StandProjectsPage onOpenProject={goToStandProjectEdit} onCreateProject={goToStandProjectNew} />
       )}
-      {parsed.route === "/fairs" && <FairsPage onOpenDetail={goToFairDetail} />}
-      {parsed.route === "/fairs/:id" && parsed.fairId && <FairDetailPage fairId={parsed.fairId} onBack={goToFairs} onFairLoaded={setFairName} onOpenCustomer={goToCustomerDetail} onImportParticipants={() => goToImportWizard(parsed.fairId)} />}
+      {parsed.route === "/fairs" && <FairsPage onOpenDetail={goToFairDetail} onContinueImport={(batchId) => goToDataIntegration(`/data-integration/imports/continue/${batchId}`)} />}
+      {parsed.route === "/fairs/:id" && parsed.fairId && <FairDetailPage fairId={parsed.fairId} onBack={goToFairs} onFairLoaded={setFairName} onOpenCustomer={goToCustomerDetail} onImportParticipants={() => goToImportWizard(parsed.fairId)} onContinueImport={(batchId) => goToDataIntegration(`/data-integration/imports/continue/${batchId}`)} />}
       {isDiActive && renderDataIntegration()}
       {isAdminActive && renderAdminSystem()}
       {parsed.route === "/todos" && <TodosPage onOpenDetail={goToTodoDetail} onOpenQuote={goToQuoteEditor} onOpenCustomer={goToCustomerDetail} />}

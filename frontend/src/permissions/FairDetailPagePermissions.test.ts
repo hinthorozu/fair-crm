@@ -49,7 +49,9 @@ describe("Fair detail permission-controlled surfaces", () => {
     expect(source).toContain("if (canCreateParticipation) {");
     expect(source).toContain("if (canUpdateParticipation) {");
     expect(source).toContain("if (canDeleteFair) {");
-    expect(source).toContain("onCreate={canCreateParticipation ? openCreateParticipant : undefined}");
+    expect(source).toContain(
+      'onCreate={canCreateParticipation && fair.origin !== "system" ? openCreateParticipant : undefined}',
+    );
     expect(source).toContain("onDelete={canDeleteParticipation ? (item) => setConfirmDelete(item) : undefined}");
   });
 
@@ -64,7 +66,7 @@ describe("Fair detail permission-controlled surfaces", () => {
     expect(source).toContain('modal === "edit-fair" && canUpdateFair');
     expect(source).toContain('modal === "create" && canCreateParticipation');
     expect(source).toContain('modal === "edit" && editing && canUpdateParticipation');
-    expect(source).toContain('open={canUpdateParticipation && modal === "move-customers"}');
+    expect(source).toContain('open={canUpdateParticipation && modal === "move-customers" && fair.origin !== "system"}');
     expect(source).toContain("confirmDelete && canDeleteParticipation");
     expect(source).toContain("confirmArchive && canDeleteFair");
   });

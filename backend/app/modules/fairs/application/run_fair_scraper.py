@@ -32,7 +32,7 @@ class RunFairScraperUseCase:
         self._run_history_service = run_history_service
 
     def execute(self, command: RunFairScraperCommand) -> ScraperRunHistory:
-        fair = self._fair_repository.get_by_id(command.organization_id, command.fair_id)
+        fair = self._fair_repository.get_visible(command.organization_id, command.fair_id)
         if fair is None:
             raise FairNotFoundError("Fair not found")
 

@@ -14,17 +14,32 @@ from app.integrations.kyrox_core.dev_bypass import (
     resolve_auth_context,
 )
 from app.integrations.kyrox_core.ports import AuthorizationPort
+from app.integrations.kyrox_core.super_admin import SuperAdminReader, get_super_admin_reader
 from app.modules.fairs.application.archive_fair import ArchiveFairUseCase
+from app.modules.fairs.application.compare_system_fair_import import CompareSystemFairImportUseCase
 from app.modules.fairs.application.create_fair import CreateFairUseCase
 from app.modules.fairs.application.get_fair import GetFairUseCase
 from app.modules.fairs.application.list_fairs import ListFairsUseCase
 from app.modules.fairs.application.restore_fair import RestoreFairUseCase
 from app.modules.fairs.application.run_fair_enrichment import RunFairEnrichmentUseCase
 from app.modules.fairs.application.run_fair_scraper import RunFairScraperUseCase
+from app.modules.fairs.application.sync_tobb_system_fairs import SyncTobbSystemFairsUseCase
 from app.modules.fairs.application.update_fair import UpdateFairUseCase
 from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
+from app.modules.fairs.infrastructure.tobb_calendar import TobbCalendarClient
 from app.modules.scraper.application.fair_scraper_job_runner import FairScraperJobRunner
 from app.modules.scraper.application.enrichment_run_job_runner import EnrichmentRunJobRunner
+from app.modules.imports.api.dependencies import (
+    get_analyze_canonical_import_use_case,
+    get_create_import_batch_from_canonical_use_case,
+)
+from app.modules.imports.application.analyze_canonical_import import AnalyzeCanonicalImportUseCase
+from app.modules.imports.application.create_import_batch_from_canonical import (
+    CreateImportBatchFromCanonicalUseCase,
+)
+from app.modules.scraper.infrastructure.repositories.scraper_run_history_repository import (
+    ScraperRunHistoryRepository,
+)
 from app.modules.scraper.services.scraper_run_history_service import (
     ScraperRunHistoryService,
     create_run_history_service,
@@ -111,24 +126,55 @@ def get_create_fair_use_case(
     return CreateFairUseCase(repository, authorization, audit)
 
 
+def get_scraper_run_history_repository(
+    db: Session = Depends(get_db),
+) -> ScraperRunHistoryRepository:
+    return ScraperRunHistoryRepository(db)
+
+
 def get_get_fair_use_case(
     repository: SqlAlchemyFairRepository = Depends(get_fair_repository),
+    run_history_repository: ScraperRunHistoryRepository = Depends(get_scraper_run_history_repository),
 ) -> GetFairUseCase:
-    return GetFairUseCase(repository)
+    return GetFairUseCase(repository, run_history_repository)
+
+
+def get_compare_system_fair_import_use_case(
+    repository: SqlAlchemyFairRepository = Depends(get_fair_repository),
+    run_history_repository: ScraperRunHistoryRepository = Depends(get_scraper_run_history_repository),
+    create_batch: CreateImportBatchFromCanonicalUseCase = Depends(
+        get_create_import_batch_from_canonical_use_case
+    ),
+    analyze_batch: AnalyzeCanonicalImportUseCase = Depends(get_analyze_canonical_import_use_case),
+) -> CompareSystemFairImportUseCase:
+    return CompareSystemFairImportUseCase(
+        repository,
+        run_history_repository,
+        create_batch,
+        analyze_batch,
+    )
+
+
+def get_sync_tobb_system_fairs_use_case(
+    repository: SqlAlchemyFairRepository = Depends(get_fair_repository),
+) -> SyncTobbSystemFairsUseCase:
+    return SyncTobbSystemFairsUseCase(repository, TobbCalendarClient())
 
 
 def get_list_fairs_use_case(
     repository: SqlAlchemyFairRepository = Depends(get_fair_repository),
+    run_history_repository: ScraperRunHistoryRepository = Depends(get_scraper_run_history_repository),
 ) -> ListFairsUseCase:
-    return ListFairsUseCase(repository)
+    return ListFairsUseCase(repository, run_history_repository)
 
 
 def get_update_fair_use_case(
     repository: SqlAlchemyFairRepository = Depends(get_fair_repository),
     authorization: AuthorizationPort = Depends(get_authorization_adapter),
     audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
+    is_super_admin_reader: SuperAdminReader = Depends(get_super_admin_reader),
 ) -> UpdateFairUseCase:
-    return UpdateFairUseCase(repository, authorization, audit)
+    return UpdateFairUseCase(repository, authorization, audit, is_super_admin_reader)
 
 
 def get_archive_fair_use_case(

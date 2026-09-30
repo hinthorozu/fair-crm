@@ -9,6 +9,7 @@ class AuthContext:
     email: str
     session_id: UUID
     organization_id: UUID
+    is_super_admin: bool = False
 
 
 class AuthorizationPort(Protocol):

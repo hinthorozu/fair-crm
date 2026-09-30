@@ -16,29 +16,40 @@ from app.modules.fairs.application.list_fairs import (
 from app.core.config import get_settings
 from app.core.exceptions import ForbiddenError
 from app.integrations.kyrox_core.auth import AuthContext
+from app.integrations.kyrox_core.super_admin import SuperAdminReader, get_super_admin_reader
 from app.modules.fairs.api.dependencies import (
     get_archive_fair_use_case,
     get_auth_context,
+    get_compare_system_fair_import_use_case,
     get_create_fair_use_case,
+    get_fair_repository,
     get_fair_scraper_job_runner,
     get_enrichment_run_job_runner,
     get_get_fair_use_case,
     get_list_fairs_use_case,
     get_restore_fair_use_case,
     get_run_fair_enrichment_use_case,
+    get_sync_tobb_system_fairs_use_case,
     get_run_fair_scraper_use_case,
     get_update_fair_use_case,
     require_read_permission,
     require_scraper_execute_permission,
 )
 from app.modules.fairs.api.schemas import (
+    CompareSystemFairImportResponse,
     CreateFairRequest,
+    SyncTobbSystemFairsRequest,
+    SyncTobbSystemFairsResponse,
     ErrorResponse,
     FairListResponse,
     FairResponse,
     UpdateFairRequest,
 )
 from app.modules.fairs.application.archive_fair import ArchiveFairUseCase
+from app.modules.fairs.application.compare_system_fair_import import (
+    CompareSystemFairImportCommand,
+    CompareSystemFairImportUseCase,
+)
 from app.modules.fairs.application.commands import (
     ArchiveFairCommand,
     CreateFairCommand,
@@ -53,6 +64,7 @@ from app.modules.fairs.application.list_fairs import ListFairsUseCase
 from app.modules.fairs.application.restore_fair import RestoreFairUseCase
 from app.modules.fairs.application.run_fair_enrichment import RunFairEnrichmentCommand, RunFairEnrichmentUseCase
 from app.modules.fairs.application.run_fair_scraper import RunFairScraperCommand, RunFairScraperUseCase
+from app.modules.fairs.application.sync_tobb_system_fairs import SyncTobbSystemFairsUseCase
 from app.modules.fairs.application.update_fair import UpdateFairUseCase
 from app.modules.fairs.domain.exceptions import (
     FairAlreadyArchivedError,
@@ -67,8 +79,11 @@ from app.modules.fairs.domain.exceptions import (
     InvalidFairNameError,
     InvalidFairSourceUrlError,
     InvalidFairWebsiteError,
+    TobbCalendarReadError,
 )
+from app.modules.imports.domain.exceptions import InvalidCanonicalImportError
 from app.modules.fairs.domain.value_objects import FairStatus
+from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
 from app.modules.scraper.api.schemas import EnrichmentRunRequest, ScraperRunHistoryResponse
 from app.modules.scraper.application.enrichment_run_job_runner import EnrichmentRunJobCommand, EnrichmentRunJobRunner
 from app.modules.scraper.application.fair_scraper_job_runner import FairScraperJobCommand, FairScraperJobRunner
@@ -236,6 +251,38 @@ def list_fairs(
 
 
 @router.post(
+    "/system/tobb/sync",
+    response_model=SyncTobbSystemFairsResponse,
+    responses={
+        400: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+    },
+)
+def sync_tobb_system_fairs(
+    body: SyncTobbSystemFairsRequest,
+    auth: AuthContext = Depends(get_auth_context),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    is_super_admin: SuperAdminReader = Depends(get_super_admin_reader),
+    use_case: SyncTobbSystemFairsUseCase = Depends(get_sync_tobb_system_fairs_use_case),
+) -> SyncTobbSystemFairsResponse:
+    if not is_super_admin(_access_token(credentials), auth.organization_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="System fair sync is restricted")
+    try:
+        result = use_case.execute(body.year)
+    except TobbCalendarReadError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except InvalidFairNameError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except InvalidFairDateRangeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return SyncTobbSystemFairsResponse(
+        inserted=result.inserted,
+        updated=result.updated,
+        conflicts=result.conflicts,
+    )
+
+
+@router.post(
     "/{fair_id}/restore",
     response_model=FairResponse,
     responses={
@@ -334,6 +381,40 @@ def update_fair(
 
 
 @router.post(
+    "/{fair_id}/compare-import",
+    response_model=CompareSystemFairImportResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        400: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+    },
+)
+def compare_system_fair_import(
+    fair_id: UUID,
+    auth: AuthContext = Depends(get_auth_context),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case: CompareSystemFairImportUseCase = Depends(get_compare_system_fair_import_use_case),
+) -> CompareSystemFairImportResponse:
+    try:
+        result = use_case.execute(
+            CompareSystemFairImportCommand(
+                organization_id=auth.organization_id,
+                fair_id=fair_id,
+                user_id=auth.user_id,
+                access_token=_access_token(credentials),
+            )
+        )
+    except FairNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except InvalidCanonicalImportError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return CompareSystemFairImportResponse(batch_id=result.batch_id)
+
+
+@router.post(
     "/{fair_id}/run",
     response_model=ScraperRunHistoryResponse,
     status_code=status.HTTP_202_ACCEPTED,
@@ -351,7 +432,14 @@ def run_fair_scraper(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     use_case: RunFairScraperUseCase = Depends(get_run_fair_scraper_use_case),
     job_runner: FairScraperJobRunner = Depends(get_fair_scraper_job_runner),
+    fair_repository: SqlAlchemyFairRepository = Depends(get_fair_repository),
+    is_super_admin: SuperAdminReader = Depends(get_super_admin_reader),
 ) -> ScraperRunHistoryResponse:
+    fair = fair_repository.get_visible(auth.organization_id, fair_id)
+    if fair is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fair not found")
+    if fair.origin == "system" and not is_super_admin(_access_token(credentials), auth.organization_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="System fair scraper is restricted")
     unavailable = playwright_browser_unavailable_message(BrowserConfig.from_settings(get_settings()))
     if unavailable:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=unavailable)
@@ -403,6 +491,8 @@ def run_fair_scraper_alias(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     use_case: RunFairScraperUseCase = Depends(get_run_fair_scraper_use_case),
     job_runner: FairScraperJobRunner = Depends(get_fair_scraper_job_runner),
+    fair_repository: SqlAlchemyFairRepository = Depends(get_fair_repository),
+    is_super_admin: SuperAdminReader = Depends(get_super_admin_reader),
 ) -> ScraperRunHistoryResponse:
     """Alias for fair automation scraper run (same as POST /fairs/{id}/run)."""
     return run_fair_scraper(
@@ -413,6 +503,8 @@ def run_fair_scraper_alias(
         credentials=credentials,
         use_case=use_case,
         job_runner=job_runner,
+        fair_repository=fair_repository,
+        is_super_admin=is_super_admin,
     )
 
 
