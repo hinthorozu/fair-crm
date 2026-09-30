@@ -361,7 +361,8 @@ def test_list_fairs_default_date_order_and_explicit_sort(client, auth_headers, d
         "Api Future Far",
         "Api Past",
     ]
-    assert default.json()["sorting"]["field"] == ""
+    assert default.json()["sorting"]["field"] == "start_date"
+    assert default.json()["sorting"]["direction"] == "desc"
 
     explicit = client.get(
         "/api/v1/fairs?sort_by=start_date&sort_dir=desc&page_size=100",

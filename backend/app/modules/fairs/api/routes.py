@@ -247,8 +247,8 @@ def list_fairs(
 
     return standard_list_from_result(
         result,
-        sort_field=list_query.sort_by if explicit_sort else "",
-        sort_direction=list_query.sort_dir if explicit_sort else "asc",
+        sort_field=list_query.sort_by,
+        sort_direction=list_query.sort_dir,
         filters=filters,
     ).model_copy(
         update={"items": [_to_response(item) for item in result.items]},
