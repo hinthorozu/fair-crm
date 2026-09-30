@@ -73,11 +73,11 @@ class _HtmlReader:
         return parse_tobb_calendar_html(self.html)
 
 
-def _sync(db_session, html: str, year: int = 2026):
+def _sync(db_session, html: str, year: int = 2026, today: date | None = None):
     return SyncTobbSystemFairsUseCase(
         SqlAlchemyFairRepository(db_session),
         _HtmlReader(html),
-    ).execute(year)
+    ).execute(year, today=today)
 
 
 def _system(
@@ -87,18 +87,21 @@ def _system(
     external_id: str,
     adapter_key: str | None = None,
     source_url: str | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    organizer: str | None = "Old Organizer",
 ) -> Fair:
     now = datetime.now(tz=UTC)
     fair = Fair(
         id=uuid4(),
         organization_id=None,
         name=name,
-        organizer="Old Organizer",
+        organizer=organizer,
         venue="Old Venue",
         city="Ankara",
         country="Türkiye",
-        start_date=None,
-        end_date=None,
+        start_date=start_date,
+        end_date=end_date,
         website=None,
         status=FairStatus.PLANNED,
         description=None,
@@ -439,3 +442,209 @@ def test_non_2xx_tobb_response_is_a_failure():
     client = TobbCalendarClient(transport=httpx.MockTransport(handler))
     with pytest.raises(TobbCalendarReadError):
         client.read(2026)
+
+
+_TODAY = date(2026, 10, 1)
+
+
+def _named_row(
+    *,
+    sequence: str,
+    name: str,
+    start: str,
+    end: str,
+) -> list[str]:
+    row = _sample_row()
+    row[0] = sequence
+    row[1] = start
+    row[2] = end
+    row[3] = name
+    return row
+
+
+def _unchanged(saved: FairModel, *, external_id: str, end: date) -> None:
+    assert saved.external_id == external_id
+    assert saved.end_date == end
+    assert saved.organizer == "Old Organizer"
+    assert saved.venue == "Old Venue"
+    assert saved.name == "X Fuarı"
+
+
+def test_annual_rollover_updates_finished_edition(db_session):
+    existing = _system(
+        db_session,
+        name="X Fuarı",
+        external_id="2026:10",
+        start_date=date(2026, 9, 1),
+        end_date=date(2026, 9, 30),
+    )
+    result = _sync(
+        db_session,
+        _html([_named_row(sequence="25", name="X Fuarı", start="01.08.2027", end="05.08.2027")]),
+        year=2027,
+        today=_TODAY,
+    )
+    assert result.inserted == 0
+    assert result.updated == 1
+    assert result.conflicts == 0
+
+    db_session.expire_all()
+    saved = db_session.get(FairModel, existing.id)
+    assert saved.external_id == "2027:25"
+    assert saved.start_date == date(2027, 8, 1)
+    assert saved.end_date == date(2027, 8, 5)
+    assert saved.name == "X FUARI"
+    assert len(_system_rows(db_session)) == 1
+
+
+def test_annual_rollover_does_not_run_when_edition_ends_today(db_session):
+    existing = _system(
+        db_session,
+        name="X Fuarı",
+        external_id="2026:10",
+        start_date=date(2026, 9, 28),
+        end_date=date(2026, 10, 1),
+    )
+    result = _sync(
+        db_session,
+        _html([_named_row(sequence="25", name="X Fuarı", start="01.08.2027", end="05.08.2027")]),
+        year=2027,
+        today=_TODAY,
+    )
+    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 0)
+    db_session.expire_all()
+    saved = db_session.get(FairModel, existing.id)
+    _unchanged(saved, external_id="2026:10", end=date(2026, 10, 1))
+    assert len(_system_rows(db_session)) == 1
+
+
+def test_annual_rollover_does_not_run_for_a_future_edition(db_session):
+    existing = _system(
+        db_session,
+        name="X Fuarı",
+        external_id="2026:10",
+        start_date=date(2026, 10, 15),
+        end_date=date(2026, 10, 18),
+    )
+    result = _sync(
+        db_session,
+        _html([_named_row(sequence="25", name="X Fuarı", start="03.10.2027", end="06.10.2027")]),
+        year=2027,
+        today=_TODAY,
+    )
+    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 0)
+    db_session.expire_all()
+    _unchanged(db_session.get(FairModel, existing.id), external_id="2026:10", end=date(2026, 10, 18))
+    assert len(_system_rows(db_session)) == 1
+
+
+def test_annual_rollover_does_not_run_while_edition_is_active(db_session):
+    existing = _system(
+        db_session,
+        name="X Fuarı",
+        external_id="2026:10",
+        start_date=date(2026, 9, 28),
+        end_date=date(2026, 10, 3),
+    )
+    result = _sync(
+        db_session,
+        _html([_named_row(sequence="25", name="X Fuarı", start="01.08.2027", end="05.08.2027")]),
+        year=2027,
+        today=_TODAY,
+    )
+    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 0)
+    db_session.expire_all()
+    _unchanged(db_session.get(FairModel, existing.id), external_id="2026:10", end=date(2026, 10, 3))
+    assert len(_system_rows(db_session)) == 1
+
+
+def test_older_sync_year_does_not_downgrade_a_newer_edition(db_session):
+    existing = _system(
+        db_session,
+        name="X Fuarı",
+        external_id="2027:25",
+        start_date=date(2027, 8, 1),
+        end_date=date(2027, 8, 5),
+    )
+    result = _sync(
+        db_session,
+        _html([_named_row(sequence="10", name="X Fuarı", start="01.09.2026", end="05.09.2026")]),
+        year=2026,
+        today=_TODAY,
+    )
+    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 0)
+    db_session.expire_all()
+    saved = db_session.get(FairModel, existing.id)
+    assert saved.external_id == "2027:25"
+    assert saved.start_date == date(2027, 8, 1)
+    assert saved.end_date == date(2027, 8, 5)
+    assert len(_system_rows(db_session)) == 1
+
+
+def test_annual_sync_inserts_when_no_normalized_candidate_exists(db_session):
+    result = _sync(
+        db_session,
+        _html([_named_row(sequence="25", name="Yeni Fuar", start="01.08.2027", end="05.08.2027")]),
+        year=2027,
+        today=_TODAY,
+    )
+    assert result.inserted == 1
+    assert result.updated == 0
+    assert result.conflicts == 0
+    saved = _system_rows(db_session)
+    assert len(saved) == 1
+    assert saved[0].external_id == "2027:25"
+    assert saved[0].name == "YENİ FUAR"
+
+
+def test_multiple_annual_candidates_are_a_conflict(db_session):
+    first = _system(
+        db_session,
+        name="X Fuarı",
+        external_id="2024:3",
+        start_date=date(2024, 9, 1),
+        end_date=date(2024, 9, 5),
+    )
+    second = _system(
+        db_session,
+        name="X Fuarı",
+        external_id="2025:8",
+        start_date=date(2025, 9, 1),
+        end_date=date(2025, 9, 5),
+    )
+    result = _sync(
+        db_session,
+        _html([_named_row(sequence="25", name="X Fuarı", start="01.08.2027", end="05.08.2027")]),
+        year=2027,
+        today=_TODAY,
+    )
+    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 1)
+    db_session.expire_all()
+    assert db_session.get(FairModel, first.id).external_id == "2024:3"
+    assert db_session.get(FairModel, second.id).external_id == "2025:8"
+    assert len(_system_rows(db_session)) == 2
+
+
+def test_same_year_identity_still_updates(db_session):
+    existing = _system(
+        db_session,
+        name="X Fuarı",
+        external_id="2027:25",
+        start_date=date(2027, 1, 1),
+        end_date=date(2027, 1, 4),
+    )
+    result = _sync(
+        db_session,
+        _html([_named_row(sequence="25", name="X Fuarı", start="01.08.2027", end="05.08.2027")]),
+        year=2027,
+        today=_TODAY,
+    )
+    assert result.updated == 1
+    assert result.inserted == 0
+    assert result.conflicts == 0
+    db_session.expire_all()
+    saved = db_session.get(FairModel, existing.id)
+    assert saved.external_id == "2027:25"
+    assert saved.start_date == date(2027, 8, 1)
+    assert saved.end_date == date(2027, 8, 5)
+    assert len(_system_rows(db_session)) == 1
