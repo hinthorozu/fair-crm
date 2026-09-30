@@ -183,6 +183,20 @@ class SqlAlchemyFairRepository:
         )
         return [model_to_entity(model) for model in models]
 
+    def list_system_fairs_by_normalized_name(
+        self, *, source: str, normalized_name: str
+    ) -> list[Fair]:
+        models = (
+            self._session.query(FairModel)
+            .filter(
+                FairModel.origin == "system",
+                FairModel.source == source,
+                FairModel.normalized_name == normalized_name,
+            )
+            .all()
+        )
+        return [model_to_entity(model) for model in models]
+
     def update_system_fair(self, fair: Fair) -> Fair:
         model = (
             self._session.query(FairModel)

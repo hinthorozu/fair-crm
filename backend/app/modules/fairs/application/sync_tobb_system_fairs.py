@@ -19,6 +19,15 @@ TOBB_SOURCE = "tobb"
 TOBB_COUNTRY = "Türkiye"
 
 
+def _edition_year(external_id: str | None) -> int | None:
+    if not external_id or ":" not in external_id:
+        return None
+    prefix = external_id.split(":", 1)[0]
+    if not prefix.isdigit():
+        return None
+    return int(prefix)
+
+
 def _system_status(row: TobbFairRow, today: date, current: FairStatus) -> FairStatus:
     if current == FairStatus.ARCHIVED:
         return current
@@ -46,20 +55,20 @@ class SyncTobbSystemFairsUseCase:
         self._repository = repository
         self._reader = reader
 
-    def execute(self, year: int) -> TobbSyncResult:
+    def execute(self, year: int, *, today: date | None = None) -> TobbSyncResult:
         rows = self._reader.read(year)
         now = datetime.now(tz=UTC)
-        today = date.today()
+        current_day = today if today is not None else date.today()
         inserted = 0
         updated = 0
         conflicts = 0
         for row in rows:
-            outcome = self._sync_row(year, row, now, today)
+            outcome = self._sync_row(year, row, now, current_day)
             if outcome == "inserted":
                 inserted += 1
             elif outcome == "updated":
                 updated += 1
-            else:
+            elif outcome == "conflict":
                 conflicts += 1
         return TobbSyncResult(inserted=inserted, updated=updated, conflicts=conflicts)
 
@@ -114,10 +123,65 @@ class SyncTobbSystemFairsUseCase:
             self._repository.update_system_fair(fair)
             return "updated"
 
+        annual = self._annual_rollover(
+            year,
+            row,
+            display_name=display_name,
+            external_id=external_id,
+            normalized_name=normalized_name,
+            now=now,
+            today=today,
+        )
+        if annual is not None:
+            return annual
+
         self._repository.add(
             self._new_fair(row, display_name, external_id, normalized_name, now, today)
         )
         return "inserted"
+
+    def _annual_rollover(
+        self,
+        year: int,
+        row: TobbFairRow,
+        *,
+        display_name: str,
+        external_id: str,
+        normalized_name: str,
+        now: datetime,
+        today: date,
+    ) -> str | None:
+        candidates = [
+            fair
+            for fair in self._repository.list_system_fairs_by_normalized_name(
+                source=TOBB_SOURCE,
+                normalized_name=normalized_name,
+            )
+            if _edition_year(fair.external_id) not in (None, year)
+        ]
+        if not candidates:
+            return None
+        if len(candidates) > 1:
+            return "conflict"
+        fair = candidates[0]
+        existing_year = _edition_year(fair.external_id)
+        if existing_year is None or year <= existing_year:
+            return "skipped"
+        if fair.end_date is None:
+            return None
+        if not fair.end_date < today:
+            return "skipped"
+        self._apply(
+            fair,
+            row,
+            display_name=display_name,
+            external_id=external_id,
+            normalized_name=normalized_name,
+            now=now,
+            today=today,
+        )
+        self._repository.update_system_fair(fair)
+        return "updated"
 
     def _apply(
         self,
