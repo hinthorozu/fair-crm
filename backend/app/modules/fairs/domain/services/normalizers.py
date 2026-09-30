@@ -98,6 +98,27 @@ def resolve_status_for_dates(
     return default
 
 
+def system_fair_status_for_dates(
+    *,
+    start_date: date | None,
+    end_date: date | None,
+    today: date,
+) -> FairStatus | None:
+    """Lifecycle of a system fair from its calendar dates.
+
+    Past when the end date is before today, current when today falls inside
+    the inclusive start/end range, and planned when the start date is still
+    ahead. Returns None when the dates do not decide.
+    """
+    if end_date is not None and end_date < today:
+        return FairStatus.COMPLETED
+    if start_date is not None and start_date > today:
+        return FairStatus.PLANNED
+    if start_date is not None and start_date <= today and (end_date is None or end_date >= today):
+        return FairStatus.ACTIVE
+    return None
+
+
 def compute_normalized_name(*, name: str) -> str:
     return normalize_fair_name(name)
 

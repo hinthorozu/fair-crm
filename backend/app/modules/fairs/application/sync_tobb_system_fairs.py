@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Protocol
 from uuid import uuid4
 
@@ -10,12 +10,24 @@ from app.modules.fairs.domain.services.normalizers import (
     canonicalize_fair_name,
     compute_normalized_name,
     normalize_website,
-    resolve_status_for_dates,
+    system_fair_status_for_dates,
 )
+from app.modules.fairs.domain.value_objects import FairStatus
 from app.modules.fairs.infrastructure.tobb_calendar import TobbFairRow
 
 TOBB_SOURCE = "tobb"
 TOBB_COUNTRY = "Türkiye"
+
+
+def _system_status(row: TobbFairRow, today: date, current: FairStatus) -> FairStatus:
+    if current == FairStatus.ARCHIVED:
+        return current
+    derived = system_fair_status_for_dates(
+        start_date=row.start_date,
+        end_date=row.end_date,
+        today=today,
+    )
+    return derived if derived is not None else current
 
 
 class TobbCalendarReader(Protocol):
@@ -37,11 +49,12 @@ class SyncTobbSystemFairsUseCase:
     def execute(self, year: int) -> TobbSyncResult:
         rows = self._reader.read(year)
         now = datetime.now(tz=UTC)
+        today = date.today()
         inserted = 0
         updated = 0
         conflicts = 0
         for row in rows:
-            outcome = self._sync_row(year, row, now)
+            outcome = self._sync_row(year, row, now, today)
             if outcome == "inserted":
                 inserted += 1
             elif outcome == "updated":
@@ -50,7 +63,7 @@ class SyncTobbSystemFairsUseCase:
                 conflicts += 1
         return TobbSyncResult(inserted=inserted, updated=updated, conflicts=conflicts)
 
-    def _sync_row(self, year: int, row: TobbFairRow, now: datetime) -> str:
+    def _sync_row(self, year: int, row: TobbFairRow, now: datetime, today: date) -> str:
         external_id = f"{year}:{row.sequence_no}"
         display_name = canonicalize_fair_name(row.name)
         normalized_name = compute_normalized_name(name=display_name)
@@ -75,6 +88,7 @@ class SyncTobbSystemFairsUseCase:
                 external_id=external_id,
                 normalized_name=normalized_name,
                 now=now,
+                today=today,
             )
             self._repository.update_system_fair(existing)
             return "updated"
@@ -95,11 +109,14 @@ class SyncTobbSystemFairsUseCase:
                 external_id=external_id,
                 normalized_name=normalized_name,
                 now=now,
+                today=today,
             )
             self._repository.update_system_fair(fair)
             return "updated"
 
-        self._repository.add(self._new_fair(row, display_name, external_id, normalized_name, now))
+        self._repository.add(
+            self._new_fair(row, display_name, external_id, normalized_name, now, today)
+        )
         return "inserted"
 
     def _apply(
@@ -111,6 +128,7 @@ class SyncTobbSystemFairsUseCase:
         external_id: str,
         normalized_name: str,
         now: datetime,
+        today: date,
     ) -> None:
         fair.name = display_name
         fair.normalized_name = normalized_name
@@ -122,6 +140,7 @@ class SyncTobbSystemFairsUseCase:
         fair.end_date = row.end_date
         fair.website = normalize_website(row.website) if row.website else None
         fair.external_id = external_id
+        fair.status = _system_status(row, today, fair.status)
         fair.updated_at = now
 
     def _new_fair(
@@ -131,6 +150,7 @@ class SyncTobbSystemFairsUseCase:
         external_id: str,
         normalized_name: str,
         now: datetime,
+        today: date,
     ) -> Fair:
         return Fair(
             id=uuid4(),
@@ -143,12 +163,7 @@ class SyncTobbSystemFairsUseCase:
             start_date=row.start_date,
             end_date=row.end_date,
             website=normalize_website(row.website) if row.website else None,
-            status=resolve_status_for_dates(
-                requested_status=None,
-                start_date=row.start_date,
-                end_date=row.end_date,
-                today=now.date(),
-            ),
+            status=_system_status(row, today, FairStatus.PLANNED),
             description=None,
             normalized_name=normalized_name,
             created_at=now,

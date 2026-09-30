@@ -1,5 +1,5 @@
-from datetime import UTC, datetime
-from uuid import uuid4
+from datetime import UTC, date, datetime
+from uuid import UUID, uuid4
 
 from app.integrations.kyrox_core.auth import create_test_token
 from app.modules.fairs.domain.entities import Fair
@@ -15,7 +15,13 @@ def _other_headers(user_id, organization_id) -> dict[str, str]:
     }
 
 
-def _system_fair(name: str = "Shared System Fair") -> Fair:
+def _system_fair(
+    name: str = "Shared System Fair",
+    *,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    external_id: str | None = None,
+) -> Fair:
     now = datetime.now(tz=UTC)
     return Fair(
         id=uuid4(),
@@ -25,8 +31,8 @@ def _system_fair(name: str = "Shared System Fair") -> Fair:
         venue="System Hall",
         city="Ankara",
         country=None,
-        start_date=None,
-        end_date=None,
+        start_date=start_date,
+        end_date=end_date,
         website=None,
         status=FairStatus.PLANNED,
         description=None,
@@ -36,7 +42,7 @@ def _system_fair(name: str = "Shared System Fair") -> Fair:
         deleted_at=None,
         origin="system",
         source="tobb",
-        external_id=str(uuid4()),
+        external_id=external_id or str(uuid4()),
         adapter_key="tobb_calendar",
         source_url="https://fuarlar.tobb.org.tr/FuarTakvimi",
     )
@@ -170,3 +176,64 @@ def test_archived_system_fair_restore_is_forbidden(client, auth_headers, db_sess
 
     db_session.expire_all()
     assert _row_snapshot(db_session, system.id) == before
+
+
+def test_system_fair_list_and_detail_status_follow_dates(
+    client, auth_headers, db_session, organization_id
+):
+    repo = SqlAlchemyFairRepository(db_session)
+    past = repo.add(
+        _system_fair(
+            "January System Fair",
+            start_date=date(2020, 1, 6),
+            end_date=date(2020, 1, 9),
+        )
+    )
+    current = repo.add(
+        _system_fair(
+            "Spanning System Fair",
+            start_date=date(2000, 1, 1),
+            end_date=date(2099, 12, 31),
+        )
+    )
+    future = repo.add(
+        _system_fair(
+            "Future System Fair",
+            start_date=date(2099, 10, 5),
+            end_date=date(2099, 10, 8),
+        )
+    )
+    organization = client.post(
+        "/api/v1/fairs",
+        json={
+            "name": "Past Organization Fair",
+            "status": "active",
+            "start_date": "2020-01-06",
+            "end_date": "2020-01-09",
+        },
+        headers=auth_headers,
+    )
+    assert organization.status_code == 201
+    assert organization.json()["status"] == "active"
+
+    listed = client.get("/api/v1/fairs", headers=auth_headers)
+    assert listed.status_code == 200
+    by_id = {item["id"]: item["status"] for item in listed.json()["items"]}
+    assert by_id[str(past.id)] == "completed"
+    assert by_id[str(current.id)] == "active"
+    assert by_id[str(future.id)] == "planned"
+    assert by_id[organization.json()["id"]] == "active"
+
+    detail = client.get(f"/api/v1/fairs/{past.id}", headers=auth_headers)
+    assert detail.status_code == 200
+    assert detail.json()["status"] == "completed"
+
+    completed = client.get("/api/v1/fairs?status=completed", headers=auth_headers)
+    completed_ids = {item["id"] for item in completed.json()["items"]}
+    assert str(past.id) in completed_ids
+    assert str(future.id) not in completed_ids
+    assert organization.json()["id"] not in completed_ids
+
+    db_session.expire_all()
+    assert db_session.get(FairModel, past.id).status == FairStatus.PLANNED.value
+    assert db_session.get(FairModel, UUID(organization.json()["id"])).status == FairStatus.ACTIVE.value

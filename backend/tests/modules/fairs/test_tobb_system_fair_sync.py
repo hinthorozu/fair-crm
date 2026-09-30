@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from uuid import uuid4
 
 import httpx
@@ -11,7 +11,10 @@ from app.modules.fairs.domain.services.normalizers import compute_normalized_nam
 from app.modules.fairs.domain.value_objects import FairStatus
 from app.modules.fairs.infrastructure.persistence.models import FairModel
 from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
-from app.modules.fairs.domain.services.normalizers import system_fair_display_name
+from app.modules.fairs.domain.services.normalizers import (
+    system_fair_display_name,
+    system_fair_status_for_dates,
+)
 from app.modules.fairs.infrastructure.tobb_calendar import TobbCalendarClient, parse_tobb_calendar_html
 
 _HEADERS = (
@@ -332,6 +335,71 @@ def test_system_fair_missing_from_tobb_is_left_unchanged(db_session):
     assert saved.external_id == "2026:99"
     assert saved.deleted_at is None
     assert saved.status == FairStatus.PLANNED.value
+
+
+def test_system_fair_status_follows_calendar_dates():
+    today = date(2026, 9, 30)
+    assert (
+        system_fair_status_for_dates(
+            start_date=date(2026, 10, 5),
+            end_date=date(2026, 10, 8),
+            today=today,
+        )
+        == FairStatus.PLANNED
+    )
+    assert (
+        system_fair_status_for_dates(
+            start_date=date(2026, 9, 30),
+            end_date=date(2026, 10, 2),
+            today=today,
+        )
+        == FairStatus.ACTIVE
+    )
+    assert (
+        system_fair_status_for_dates(
+            start_date=date(2026, 9, 28),
+            end_date=date(2026, 9, 30),
+            today=today,
+        )
+        == FairStatus.ACTIVE
+    )
+    assert (
+        system_fair_status_for_dates(
+            start_date=date(2026, 9, 20),
+            end_date=date(2026, 9, 29),
+            today=today,
+        )
+        == FairStatus.COMPLETED
+    )
+    assert (
+        system_fair_status_for_dates(
+            start_date=date(2026, 1, 6),
+            end_date=date(2026, 1, 9),
+            today=today,
+        )
+        == FairStatus.COMPLETED
+    )
+    assert (
+        system_fair_status_for_dates(start_date=None, end_date=None, today=today) is None
+    )
+
+
+def test_sync_persists_date_based_status_for_a_past_system_fair(db_session):
+    row = _sample_row()
+    row[1] = "06.01.2026"
+    row[2] = "09.01.2026"
+    result = _sync(db_session, _html([row]))
+    assert result.inserted == 1
+
+    db_session.expire_all()
+    saved = _system_rows(db_session)[0]
+    assert saved.start_date == date(2026, 1, 6)
+    assert saved.end_date == date(2026, 1, 9)
+    assert saved.status == system_fair_status_for_dates(
+        start_date=saved.start_date,
+        end_date=saved.end_date,
+        today=date.today(),
+    ).value
 
 
 def test_parser_skips_tobb_summary_footer():

@@ -8,7 +8,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/client";
 import { FairTable } from "../components/FairList";
-import { fairLabels } from "../labels/fairLabels";
+import { fairLabels, fairStatusLabels } from "../labels/fairLabels";
 import { importLabels } from "../labels/importLabels";
 import { participationLabels } from "../labels/participationLabels";
 import { labels } from "../labels";
@@ -232,6 +232,55 @@ describe("system fair frontend", () => {
     expect(container.querySelector("h1")?.textContent).toContain("AVRASYA AMBALAJ 2026 – İSTANBUL");
     expect(container.textContent).toContain(fairLabels.officialName);
     expect(container.textContent).toContain(official);
+  });
+
+  it("renders the backend status label for system and organization fairs", async () => {
+    const past = fair({
+      id: "past-system",
+      origin: "system",
+      name: "OCAK FUARI",
+      display_name: "OCAK FUARI",
+      status: "completed",
+    });
+    const running = fair({
+      id: "running-system",
+      origin: "system",
+      name: "BUGÜN FUARI",
+      display_name: "BUGÜN FUARI",
+      status: "active",
+    });
+    const organization = fair({
+      id: "org-fair",
+      origin: "organization",
+      name: "Avrasya Ambalaj",
+      status: "planned",
+    });
+    await render(
+      React.createElement(FairTable, {
+        items: [past, running, organization],
+        onOpenDetail: vi.fn(),
+        archivingId: null,
+        restoringId: null,
+      }),
+    );
+    expect(container.textContent).toContain(fairStatusLabels.completed);
+    expect(container.textContent).toContain(fairStatusLabels.active);
+    expect(container.textContent).toContain(fairStatusLabels.planned);
+
+    harness.getFair.mockResolvedValue(past);
+    await render(
+      React.createElement(FairDetailPage, {
+        fairId: past.id,
+        onBack: vi.fn(),
+      }),
+    );
+    for (let attempt = 0; attempt < 8 && !container.textContent?.includes(fairStatusLabels.completed); attempt += 1) {
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    }
+    expect(container.textContent).toContain("OCAK FUARI");
+    expect(container.textContent).toContain(fairStatusLabels.completed);
   });
 
   it("renders a system fair row with indicator, scrape metadata, and no customer management actions", async () => {
