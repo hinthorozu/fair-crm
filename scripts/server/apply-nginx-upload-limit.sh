@@ -22,6 +22,26 @@ import sys
 
 site = Path(sys.argv[1])
 text = site.read_text(encoding="utf-8")
+map_block = """map $http_upgrade $fair_stand_connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+"""
+live_block = """    location ^~ /api/v1/fair-stand/live-shares {
+        proxy_pass http://127.0.0.1:8002;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $fair_stand_connection_upgrade;
+        proxy_buffering off;
+        proxy_read_timeout 120s;
+    }
+
+"""
 block = """    location ^~ /api/v1/fair-stand/ {
         proxy_pass http://127.0.0.1:8002;
         proxy_http_version 1.1;
@@ -35,18 +55,35 @@ block = """    location ^~ /api/v1/fair-stand/ {
 """
 marker = "location /api/"
 needle = "location ^~ /api/v1/fair-stand/"
+live_needle = "location ^~ /api/v1/fair-stand/live-shares"
 
-def patch_server(body: str) -> str:
-    if marker not in body or needle in body:
+def insert_block(body: str, at_marker: str, block_text: str) -> str:
+    idx = body.find(at_marker)
+    if idx < 0:
         return body
-    idx = body.find(marker)
     line_start = body.rfind("\n", 0, idx) + 1
     indent = body[line_start:idx]
     insertion = "\n".join(
         (indent + line[4:] if line.startswith("    ") else indent + line)
-        for line in block.splitlines()
+        for line in block_text.splitlines()
     ) + "\n\n"
     return body[:line_start] + insertion + body[line_start:]
+
+def patch_server(body: str) -> str:
+    if live_needle not in body:
+        anchor = needle if needle in body else marker
+        if anchor in body:
+            body = insert_block(body, anchor, live_block)
+    if marker not in body or needle in body:
+        return body
+    return insert_block(body, marker, block)
+
+text = text.replace(
+    "proxy_set_header Connection $http_connection;",
+    "proxy_set_header Connection $fair_stand_connection_upgrade;",
+)
+if "fair_stand_connection_upgrade" not in text:
+    text = map_block + text
 
 out = []
 rest = text
