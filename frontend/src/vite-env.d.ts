@@ -13,6 +13,18 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
+declare module "@fair-stand/liveTabShare.js" {
+  export function viewerStatusCopy(status: string): string;
+  export function startViewerSession(options: {
+    token: string;
+    videoElement?: HTMLVideoElement | null;
+    location?: Location;
+    WebSocket?: typeof WebSocket;
+    RTCPeerConnection?: typeof RTCPeerConnection;
+    onStatus?: (status: { status: string; message: string }) => void;
+  }): () => void;
+}
+
 declare module "@fair-stand/mountFairStand.js" {
   export type FairStandMountCapabilities = {
     canCreate?: boolean;

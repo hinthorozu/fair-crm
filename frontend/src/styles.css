@@ -8310,3 +8310,28 @@ html:has(.fair-stand-standalone) #root {
   border: 0;
 }
 
+.stand-watch {
+  position: fixed;
+  inset: 0;
+  background: #0b1220;
+  color: #e5e7eb;
+  display: grid;
+}
+
+.stand-watch video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.stand-watch-status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+  font-size: 18px;
+}
+

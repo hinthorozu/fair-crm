@@ -85,6 +85,7 @@ export default defineConfig({
       "/api/v1/fair-stand": {
         target: "http://127.0.0.1:8002",
         changeOrigin: true,
+        ws: true,
       },
       "/api": {
         target: "http://127.0.0.1:8001",

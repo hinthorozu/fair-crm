@@ -168,6 +168,12 @@ function buildRoutes(ids) {
   const routes = [
     { route: "/login", url: "/login", kind: "static", production: true },
     { route: "/dashboard", url: "/dashboard", kind: "static", production: true },
+    {
+      route: "/stand/watch/:token",
+      url: "/stand/watch/ci-watch-token",
+      kind: "public",
+      production: true,
+    },
     { route: "/stand-projects", url: "/stand-projects", kind: "static", production: true },
     { route: "/stand-projects/new", url: "/stand-projects/new", kind: "static", production: true },
     {

@@ -23,6 +23,8 @@ import { OperationCapabilitiesAdminPage } from "./pages/OperationCapabilitiesAdm
 import { ActivitiesPage } from "./pages/ActivitiesPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { FairStandPage } from "./pages/FairStandPage";
+import { StandWatchPage } from "./pages/StandWatchPage";
+import { parseStandWatchToken } from "./pages/standWatchRoute";
 import { StandProjectsPage } from "./pages/StandProjectsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { TodoDetailPage } from "./pages/TodoDetailPage";
@@ -127,6 +129,7 @@ type AppRoute =
   | "/stand-projects"
   | "/stand-projects/new"
   | "/stand-projects/:id"
+  | "/stand/watch/:token"
   | "/customers/:id";
 
 interface ParsedRoute {
@@ -142,6 +145,7 @@ interface ParsedRoute {
   runId?: string;
   projectId?: string;
   standCustomerId?: string;
+  watchToken?: string;
 }
 
 function parseRoute(location: string): ParsedRoute {
@@ -292,6 +296,8 @@ function parseRoute(location: string): ParsedRoute {
     if (operationMatch) return { route: "/operations/:id", operationId: operationMatch[1] };
     return { route: "/operations" };
   }
+  const watchToken = parseStandWatchToken(pathname);
+  if (watchToken) return { route: "/stand/watch/:token", watchToken };
   if (pathname === "/login" || pathname === "/login/") return { route: "/login" };
   if (pathname === "/fair-stand" || pathname === "/fair-stand/") {
     return { route: "/stand-projects" };
@@ -380,6 +386,7 @@ export function App() {
   React.useLayoutEffect(() => {
     const path = window.location.pathname;
     if (import.meta.env.DEV && (path === "/dev/customers-responsive-pilot" || path === "/dev/table-standard-smoke")) return;
+    if (parseStandWatchToken(path)) return;
     if (!isAuthenticated && path !== "/login") {
       window.history.replaceState(null, "", "/login");
       setParsed({ route: "/login" });
@@ -392,6 +399,7 @@ export function App() {
   }, [isAuthenticated]);
 
   React.useEffect(() => {
+    if (parseStandWatchToken(window.location.pathname)) return;
     if (!isAuthenticated) return;
     const path = window.location.pathname;
     if (path === "/") {
@@ -598,6 +606,10 @@ export function App() {
 
   if (import.meta.env.DEV && window.location.pathname === "/dev/customers-responsive-pilot") return <CustomersResponsivePilotPage />;
   if (import.meta.env.DEV && window.location.pathname === "/dev/table-standard-smoke") return <TableStandardSmokePage />;
+  if (parsed.route === "/stand/watch/:token" && parsed.watchToken) {
+    return <StandWatchPage token={parsed.watchToken} />;
+  }
+
   if (!isAuthenticated) return <LoginPage onSuccess={handleLoginSuccess} />;
 
   // Legacy bookmark redirect
