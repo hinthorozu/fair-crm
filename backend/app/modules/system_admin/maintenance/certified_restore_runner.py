@@ -8,6 +8,7 @@ matching still apply; restore is not limited to backups tracked on this machine.
 
 from __future__ import annotations
 
+import copy
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -38,6 +39,7 @@ from app.shared.database_backup.core_restore_lifecycle import (
 )
 from app.shared.database_backup.database_keys import DatabaseKey
 from app.shared.database_backup.formats import BackupFormat
+from app.shared.database_backup.table_selection import SCOPE_SELECTED_TABLES
 from app.shared.database_backup.restore_reconciliation import (
     RestoreOrganizationReconciliationResult,
     run_restore_organization_reconciliation,
@@ -70,6 +72,26 @@ class CertifiedPostRestoreHealthResult:
     def summary_text(self) -> str:
         base_summary = str(getattr(self.base_health, "summary_text")())
         return f"{base_summary}\n{self.reconciliation.summary_text()}"
+
+
+def _is_tracked_full_fair_crm_restore(job: SystemBackupRestoreJob, backup: SystemBackup) -> bool:
+    """Full fair_crm restores are the only path that reloads this catalog row."""
+
+    if job.source_type != RestoreJobSourceType.EXISTING_BACKUP:
+        return False
+    if job.target_database_key != DatabaseKey.FAIR_CRM or backup.database_key != DatabaseKey.FAIR_CRM:
+        return False
+    manifest = job.manifest_json
+    return not (isinstance(manifest, dict) and manifest.get("scope") == SCOPE_SELECTED_TABLES)
+
+
+def _persist_validated_source_backup(session_factory: Callable[[], Session], backup: SystemBackup) -> None:
+    db = session_factory()
+    try:
+        SqlAlchemySystemBackupRepository(db).update(backup)
+        db.commit()
+    finally:
+        db.close()
 
 
 def validate_restore_source_provenance(
@@ -167,13 +189,14 @@ class CertifiedRestoreJobMaintenanceRunner:
             else None
         )
         core_snapshot_json: str | None = None
+        validated_source_backup: SystemBackup | None = None
 
         # sha256_file is defined in the backup engine, while restore_job_service historically
         # did not import it. Import locally so the existing module stays untouched.
         from app.shared.database_backup.engine import sha256_file
 
         def certified_verify_backup_dump(*, database_url: str, dump_path: Path):
-            nonlocal core_snapshot_json
+            nonlocal core_snapshot_json, validated_source_backup
             if job is not None:
                 validate_restore_source_provenance(
                     job=job,
@@ -181,6 +204,8 @@ class CertifiedRestoreJobMaintenanceRunner:
                     dump_path=dump_path,
                     checksum_file=sha256_file,
                 )
+                if backup is not None and _is_tracked_full_fair_crm_restore(job, backup):
+                    validated_source_backup = copy.deepcopy(backup)
             verification = original_verify(database_url=database_url, dump_path=dump_path)
             if job is not None and job.target_database_key == DatabaseKey.KYROX_CORE:
                 # Capture current Core lifecycle truth only after dump verification and
@@ -224,7 +249,10 @@ class CertifiedRestoreJobMaintenanceRunner:
                 session_factory=self._base_session_factory,
                 audit=self._audit,
             )
-            return runner.run(command)
+            exit_code = runner.run(command)
+            if exit_code == 0 and validated_source_backup is not None:
+                _persist_validated_source_backup(self._session_factory, validated_source_backup)
+            return exit_code
         finally:
             restore_job_service.verify_backup_dump = original_verify
             restore_job_service.run_post_restore_health_check = original_health

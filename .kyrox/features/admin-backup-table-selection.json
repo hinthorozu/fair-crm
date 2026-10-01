@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "id": "admin-backup-table-selection",
+  "title": "Optional table selection for database backup and restore",
+  "feature_type": "system_admin",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "user",
+  "tenant_scope": "system",
+  "user_facing": true,
+  "affected_paths": [
+    "backend/app/shared/database_backup/engine.py",
+    "backend/app/shared/database_backup/table_selection.py",
+    "backend/app/modules/system_admin/application/backup_job_runner.py",
+    "backend/app/modules/system_admin/application/backup_service.py",
+    "backend/app/modules/system_admin/application/restore_job_service.py",
+    "backend/app/modules/system_admin/api/routes.py",
+    "backend/app/modules/system_admin/api/schemas.py",
+    "backend/alembic/versions/0092_restore_job_manifest_json.py",
+    "frontend/src/pages/DatabaseBackupsPage.tsx",
+    "frontend/src/api/systemAdmin.ts",
+    "frontend/src/types/systemBackup.ts",
+    ".kyrox/features/admin-backup-table-selection.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.admin.backups.read", "action": "read", "scope": "system", "assignable": false },
+      { "code": "fair_crm.admin.backups.create", "action": "create", "scope": "system", "assignable": false }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/admin/system/backups"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "required" },
+    "migration": { "status": "required" },
+    "permissions": { "status": "required" },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "na", "reason": "Selection stays a system-admin database operation and does not add organization row filters." },
+    "audit": { "status": "required" },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "na", "reason": "Existing Database Backups page and menu entry." },
+    "route_guard": { "status": "na", "reason": "Existing backups route guard is unchanged." },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Optional selected_tables scope on the existing fair-crm pg_dump -Fc and pg_restore flow. Omitted scope, scope=full, and empty tables stay on the full database path. No new permission."
+}

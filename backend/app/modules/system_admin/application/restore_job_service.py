@@ -27,8 +27,13 @@ from app.modules.system_admin.infrastructure.repositories.restore_job_repository
 from app.shared.database_backup.engine import (
     DatabaseBackupError,
     is_custom_pg_dump,
+    list_custom_dump_tables,
     pg_restore_custom,
     verify_backup_dump,
+)
+from app.shared.database_backup.table_selection import (
+    require_tables_in_archive,
+    selected_tables_from_manifest,
 )
 from app.shared.database_backup.database_keys import (
     DatabaseKey,
@@ -503,12 +508,30 @@ class RestoreJobMaintenanceRunner:
 
             verify_backup_dump(database_url=target_database_url, dump_path=dump_path)
             _log("dump validation OK")
+            selected_tables = selected_tables_from_manifest(job.manifest_json)
+            if selected_tables:
+                archive_tables = list_custom_dump_tables(
+                    database_url=target_database_url,
+                    dump_path=dump_path,
+                )
+                require_tables_in_archive(selected_tables, archive_tables)
+                _log("restore scope: selected_tables")
+                _log("selected tables: " + ", ".join(selected_tables))
+            else:
+                _log("restore scope: full")
 
             db.close()
             self._reset_database_connections()
             _log("database connections released before pg_restore")
             _log("starting pg_restore")
-            pg_restore_custom(database_url=target_database_url, dump_path=dump_path)
+            if selected_tables:
+                pg_restore_custom(
+                    database_url=target_database_url,
+                    dump_path=dump_path,
+                    tables=selected_tables,
+                )
+            else:
+                pg_restore_custom(database_url=target_database_url, dump_path=dump_path)
             _log("pg_restore completed")
             self._reset_database_connections()
 

@@ -110,3 +110,39 @@ def test_retention_keeps_exact_30_day_boundary(
     assert result.deleted_count == 0
     assert backup_path.exists() is True
     assert repo.get_by_id(organization_id, backup.id) is not None
+
+
+def test_retention_prunes_selected_table_custom_dump_with_full_dump_policy(
+    db_session,
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    now = datetime(2026, 9, 9, 12, 0, tzinfo=UTC)
+    organization_id = uuid4()
+    backup = _completed_backup(
+        organization_id=organization_id,
+        completed_at=now - timedelta(days=31),
+    )
+    backup.manifest_json = {
+        "scope": "selected_tables",
+        "tables": ["public.crm_quotes"],
+    }
+    repo = SqlAlchemySystemBackupRepository(db_session)
+    repo.add(backup)
+    db_session.commit()
+
+    backup_path = tmp_path / backup.file_name
+    backup_path.write_bytes(b"PGDMP-test")
+    monkeypatch.setattr(
+        "app.shared.database_backup.retention.resolve_backup_path",
+        lambda file_name: tmp_path / file_name,
+    )
+
+    result = prune_expired_fair_crm_full_backups(
+        session=db_session,
+        now=now,
+        retention_days=30,
+    )
+
+    assert result.deleted_count == 1
+    assert backup_path.exists() is False

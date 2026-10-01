@@ -132,6 +132,17 @@ export const adminLabels = {
   newBackup: "+ New Backup",
   newBackupTitle: "Yeni Veritabanı Yedeği",
   formatLabel: "Format",
+  backupScopeLabel: "Yedek kapsamı",
+  restoreScopeLabel: "Geri yükleme kapsamı",
+  scopeFullDatabase: "Tüm veritabanı",
+  scopeFullBackup: "Tüm yedek",
+  scopeSelectedTables: "Seçili tablolar",
+  scopeSelectedHint: "Seçili tablo yedeği için tek veritabanı ve PostgreSQL .dump formatı gerekir.",
+  scopeTablesLoading: "Tablolar yükleniyor…",
+  scopeTablesEmpty: "Seçilebilir tablo bulunamadı.",
+  scopeTablesRequired: "En az bir tablo seçmelisiniz.",
+  scopeDependencyWarning:
+    "Seçilen tablolar, dahil edilmeyen başka tablolara bağımlı olabilir. Gerekli foreign key hedefleri yoksa geri yükleme başarısız olabilir.",
   formatPostgresqlDump: "PostgreSQL Native Backup (.dump)",
   formatPostgresqlDumpDesc:
     "Tam geri yükleme için önerilir. En güvenli restore formatıdır.",

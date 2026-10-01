@@ -1,8 +1,10 @@
+import tempfile
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import FileResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import AliasChoices
@@ -32,6 +34,7 @@ from app.modules.system_admin.api.dependencies import (
     require_admin_read_permission,
 )
 from app.modules.system_admin.api.schemas import (
+    BackupTableCatalogResponse,
     CreateSystemBackupBatchResponse,
     CreateSystemBackupRequest,
     CreateSystemBackupResponse,
@@ -39,6 +42,7 @@ from app.modules.system_admin.api.schemas import (
     DeleteSystemBackupResponse,
     ErrorResponse,
     RestoreJobLogResponse,
+    RestoreSystemBackupRequest,
     SystemBackupRestoreJobResponse,
     SystemBackupResponse,
 )
@@ -57,6 +61,7 @@ from app.modules.system_admin.application.backup_service import (
 from app.shared.database_backup.database_keys import (
     DatabaseKey,
     assert_target_url_matches_database_key,
+    assert_upload_database_key_matches,
     parse_database_keys,
     resolve_database_url,
 )
@@ -73,7 +78,10 @@ from app.modules.system_admin.application.restore_job_service import (
     resolve_restore_job_dump_path,
     resolve_restore_job_log_path,
 )
+from app.shared.database_backup.engine import DatabaseBackupError, is_custom_pg_dump, list_custom_dump_tables
 from app.shared.database_backup.formats import BackupFormat
+from app.shared.database_backup.paths import resolve_backup_path
+from app.shared.database_backup.table_selection import list_public_base_tables
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/admin", tags=["Admin — System"])
@@ -115,6 +123,8 @@ def create_system_backup(
                 notes=body.notes,
                 backup_format=BackupFormat(body.backup_format),
                 database_keys=database_keys,
+                scope=body.scope,
+                tables=body.tables,
             )
         )
     except ForbiddenError as exc:
@@ -143,6 +153,28 @@ def create_system_backup(
             for item in batch.items
         ]
     )
+
+
+@router.get(
+    "/backups/catalog",
+    response_model=BackupTableCatalogResponse,
+    responses={400: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+    summary="List public base tables for a backup target database",
+)
+def list_backup_table_catalog(
+    database_key: str = Query(...),
+    auth: AuthContext = Depends(require_admin_create_permission),
+) -> BackupTableCatalogResponse:
+    # Same operator-organization boundary as the other backup routes.
+    _ = auth.organization_id
+    try:
+        parsed = DatabaseKey(database_key)
+        tables = list_public_base_tables(resolve_database_url(parsed))
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return BackupTableCatalogResponse(database_key=parsed.value, tables=tables)
 
 
 @router.get(
@@ -416,6 +448,46 @@ def delete_restore_job(
 
 
 @router.get(
+    "/backups/{backup_id}/contents",
+    response_model=BackupTableCatalogResponse,
+    responses={400: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    summary="List tables stored in a custom-format backup",
+)
+def list_backup_archive_tables(
+    backup_id: UUID,
+    auth: AuthContext = Depends(require_admin_read_permission),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    use_case=Depends(get_get_backup_use_case),
+) -> BackupTableCatalogResponse:
+    try:
+        backup = use_case.execute(
+            organization_id=auth.organization_id,
+            user_id=auth.user_id,
+            access_token=access_token(credentials),
+            backup_id=backup_id,
+            permission_code="fair_crm.admin.backups.read",
+        )
+    except ForbiddenError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    if backup.backup_format != BackupFormat.POSTGRESQL_DUMP.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only PostgreSQL custom dump backups can be listed",
+        )
+    try:
+        path = resolve_backup_path(backup.file_name)
+        tables = list_custom_dump_tables(
+            database_url=resolve_database_url(backup.database_key),
+            dump_path=path,
+        )
+    except (DatabaseBackupError, ValueError, FileNotFoundError) as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return BackupTableCatalogResponse(database_key=backup.database_key, tables=tables)
+
+
+@router.get(
     "/backups/{backup_id}",
     response_model=SystemBackupResponse,
     responses={403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
@@ -477,6 +549,52 @@ def download_system_backup(
 
 
 @router.post(
+    "/backups/restore/contents",
+    response_model=BackupTableCatalogResponse,
+    responses={400: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+    summary="List tables in an uploaded custom-format dump without creating a restore job",
+)
+async def preview_restore_upload_tables(
+    file: UploadFile = File(...),
+    database_key: str = Form(default=DatabaseKey.FAIR_CRM.value),
+    auth: AuthContext = Depends(require_admin_create_permission),
+) -> BackupTableCatalogResponse:
+    # Same operator-organization boundary as the other backup routes.
+    _ = auth.organization_id
+    original_name = Path(file.filename or "").name
+    payload = await file.read()
+    if not original_name.lower().endswith(".dump"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only .dump files are accepted")
+    if not payload:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file is empty")
+    try:
+        parsed = DatabaseKey(database_key)
+        assert_upload_database_key_matches(file_name=original_name, database_key=parsed)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    with tempfile.NamedTemporaryFile(suffix=".dump", delete=False) as handle:
+        handle.write(payload)
+        temp_path = Path(handle.name)
+    try:
+        if not is_custom_pg_dump(temp_path):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File is not a PostgreSQL custom-format dump",
+            )
+        tables = list_custom_dump_tables(
+            database_url=resolve_database_url(parsed),
+            dump_path=temp_path,
+        )
+    except HTTPException:
+        raise
+    except (DatabaseBackupError, ValueError) as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    finally:
+        temp_path.unlink(missing_ok=True)
+    return BackupTableCatalogResponse(database_key=parsed.value, tables=tables)
+
+
+@router.post(
     "/backups/restore/upload",
     response_model=SystemBackupRestoreJobResponse,
     status_code=status.HTTP_202_ACCEPTED,
@@ -487,6 +605,8 @@ async def restore_system_backup_from_upload(
     file: UploadFile = File(...),
     notes: str | None = Form(default=None),
     database_key: str = Form(default=DatabaseKey.FAIR_CRM.value),
+    scope: str = Form(default="full"),
+    tables: Annotated[list[str] | None, Form()] = None,
     db: Session = Depends(get_db),
     auth: AuthContext = Depends(require_admin_create_permission),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
@@ -506,6 +626,8 @@ async def restore_system_backup_from_upload(
                 file_bytes=payload,
                 notes=notes.strip() if notes else None,
                 database_key=parsed_database_key,
+                scope=scope,
+                tables=tables,
             )
         )
     except ForbiddenError as exc:
@@ -529,11 +651,13 @@ async def restore_system_backup_from_upload(
 )
 def restore_system_backup(
     backup_id: UUID,
+    body: RestoreSystemBackupRequest | None = Body(default=None),
     db: Session = Depends(get_db),
     auth: AuthContext = Depends(require_admin_create_permission),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     use_case=Depends(get_restore_backup_use_case),
 ) -> SystemBackupRestoreJobResponse:
+    request_body = body or RestoreSystemBackupRequest()
     try:
         result = use_case.execute(
             RestoreSystemBackupCommand(
@@ -542,6 +666,8 @@ def restore_system_backup(
                 user_email=auth.email,
                 access_token=access_token(credentials),
                 backup_id=backup_id,
+                scope=request_body.scope,
+                tables=request_body.tables,
             )
         )
     except ForbiddenError as exc:

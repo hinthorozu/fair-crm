@@ -132,6 +132,7 @@ class SystemBackupRestoreJob:
     restore_log_path: str | None
     created_at: datetime
     updated_at: datetime
+    manifest_json: dict | None = None
 
     @classmethod
     def create(
@@ -149,6 +150,7 @@ class SystemBackupRestoreJob:
         requested_by_user_id: UUID,
         requested_by_email: str | None,
         now: datetime,
+        manifest_json: dict | None = None,
     ) -> "SystemBackupRestoreJob":
         job_id = uuid4()
         return cls(
@@ -173,6 +175,7 @@ class SystemBackupRestoreJob:
             restore_log_path=f"data/restore_logs/{job_id}.log",
             created_at=now,
             updated_at=now,
+            manifest_json=manifest_json,
         )
 
     def mark_running(self, *, now: datetime, restore_log_path: str | None = None) -> None:

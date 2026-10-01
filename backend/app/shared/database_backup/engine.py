@@ -4,6 +4,7 @@ import hashlib
 import os
 import shutil
 import subprocess
+import tempfile
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -12,6 +13,12 @@ from pathlib import Path
 from app.core.config import get_settings
 from app.shared.database_backup.connection import PostgresConnection, parse_database_url
 from app.shared.database_backup.paths import get_backups_dir, resolve_backup_path
+from app.shared.database_backup.table_selection import (
+    TableSelectionError,
+    parse_restore_toc_tables,
+    relation_args,
+    restore_list_for_tables,
+)
 
 
 class DatabaseBackupError(Exception):
@@ -133,6 +140,8 @@ def _docker_pg_restore_compat(
     conn: PostgresConnection,
     dump_path: Path,
     list_only: bool,
+    verbose: bool = False,
+    restore_list_path: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
     if not shutil.which("docker"):
         raise DatabaseBackupError(
@@ -150,11 +159,15 @@ def _docker_pg_restore_compat(
         "-v",
         f"{mount_path}:/backup.dump:ro",
     ]
+    if restore_list_path is not None:
+        args.extend(["-v", f"{restore_list_path.resolve()}:/restore.list:ro"])
     if not list_only:
         args.extend(["-e", f"PGPASSWORD={conn.password}"])
     args.extend([image, "pg_restore"])
 
     if list_only:
+        if verbose:
+            args.append("-v")
         args.extend(["-l", "/backup.dump"])
     else:
         args.extend(
@@ -173,9 +186,11 @@ def _docker_pg_restore_compat(
                 "--no-owner",
                 "--no-acl",
                 "--exit-on-error",
-                "/backup.dump",
             ]
         )
+        if restore_list_path is not None:
+            args.extend(["-L", "/restore.list"])
+        args.append("/backup.dump")
 
     return subprocess.run(args, capture_output=True, text=True, check=False)
 
@@ -274,6 +289,7 @@ def pg_dump_custom(
     database_url: str,
     output_path: Path,
     on_stage: StageCallback | None = None,
+    tables: list[str] | None = None,
 ) -> BackupRunResult:
     conn = parse_database_url(database_url)
     toolchain, container = _get_backup_toolchain(conn)
@@ -305,6 +321,7 @@ def pg_dump_custom(
                 str(output_path),
                 "--no-owner",
                 "--no-acl",
+                *relation_args(tables),
             ],
             env=env,
         )
@@ -326,6 +343,7 @@ def pg_dump_custom(
                 remote_path,
                 "--no-owner",
                 "--no-acl",
+                *relation_args(tables),
             ],
         )
         _docker_cp_from(container, remote_path, output_path)
@@ -353,7 +371,7 @@ def is_custom_pg_dump(dump_path: Path) -> bool:
     return header == b"PGDMP"
 
 
-def verify_backup_dump(*, database_url: str, dump_path: Path) -> BackupVerificationResult:
+def read_custom_dump_toc(*, database_url: str, dump_path: Path, verbose: bool = False) -> str:
     conn = parse_database_url(database_url)
     if not dump_path.exists():
         raise DatabaseBackupError(f"Backup file not found: {dump_path}")
@@ -361,91 +379,143 @@ def verify_backup_dump(*, database_url: str, dump_path: Path) -> BackupVerificat
     if size_bytes <= 0:
         raise DatabaseBackupError(f"Backup file is empty: {dump_path}")
 
+    list_args = ["-l"] if not verbose else ["-l", "-v"]
     toolchain, container = _get_toolchain(conn)
     if toolchain == "local":
         pg_restore = _resolve_pg_tool("pg_restore")
         assert pg_restore
-        result = subprocess.run([pg_restore, "-l", str(dump_path)], capture_output=True, text=True, check=False)
+        result = subprocess.run([pg_restore, *list_args, str(dump_path)], capture_output=True, text=True, check=False)
         if result.returncode != 0:
             detail = (result.stderr or result.stdout or "pg_restore -l failed").strip()
             if _is_unsupported_archive_version(detail):
-                result = _docker_pg_restore_compat(conn=conn, dump_path=dump_path, list_only=True)
+                result = _docker_pg_restore_compat(
+                    conn=conn,
+                    dump_path=dump_path,
+                    list_only=True,
+                    verbose=verbose,
+                )
             if result.returncode != 0:
                 raise DatabaseBackupError(result.stderr or result.stdout or detail)
-        lines = result.stdout.splitlines()
-    else:
-        assert container
-        remote_path = f"/tmp/faircrm_verify_{uuid.uuid4().hex}.dump"
-        _docker_cp_to(container, dump_path, remote_path)
-        try:
-            proc = subprocess.run(
-                ["docker", "exec", container, "pg_restore", "-l", remote_path],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            if proc.returncode != 0:
-                detail = (proc.stderr or proc.stdout or "pg_restore -l failed").strip()
-                if _is_unsupported_archive_version(detail):
-                    proc = _docker_pg_restore_compat(conn=conn, dump_path=dump_path, list_only=True)
-                if proc.returncode != 0:
-                    raise DatabaseBackupError(proc.stderr or proc.stdout or detail)
-            lines = proc.stdout.splitlines()
-        finally:
-            _docker_exec(container, ["rm", "-f", remote_path])
+        return result.stdout
 
+    assert container
+    remote_path = f"/tmp/faircrm_verify_{uuid.uuid4().hex}.dump"
+    _docker_cp_to(container, dump_path, remote_path)
+    try:
+        proc = subprocess.run(
+            ["docker", "exec", container, "pg_restore", *list_args, remote_path],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if proc.returncode != 0:
+            detail = (proc.stderr or proc.stdout or "pg_restore -l failed").strip()
+            if _is_unsupported_archive_version(detail):
+                proc = _docker_pg_restore_compat(
+                    conn=conn,
+                    dump_path=dump_path,
+                    list_only=True,
+                    verbose=verbose,
+                )
+            if proc.returncode != 0:
+                raise DatabaseBackupError(proc.stderr or proc.stdout or detail)
+        return proc.stdout
+    finally:
+        _docker_exec(container, ["rm", "-f", remote_path])
+
+
+def list_custom_dump_tables(*, database_url: str, dump_path: Path) -> list[str]:
+    return parse_restore_toc_tables(read_custom_dump_toc(database_url=database_url, dump_path=dump_path))
+
+
+def verify_backup_dump(*, database_url: str, dump_path: Path) -> BackupVerificationResult:
+    if not dump_path.exists():
+        raise DatabaseBackupError(f"Backup file not found: {dump_path}")
+    size_bytes = dump_path.stat().st_size
+    if size_bytes <= 0:
+        raise DatabaseBackupError(f"Backup file is empty: {dump_path}")
+    toc = read_custom_dump_toc(database_url=database_url, dump_path=dump_path)
+    lines = toc.splitlines()
     toc_entry_count = sum(1 for line in lines if ";" in line and any(ch.isdigit() for ch in line))
     return BackupVerificationResult(path=dump_path, size_bytes=size_bytes, toc_entry_count=toc_entry_count)
+
+
+def _write_restore_list(*, database_url: str, dump_path: Path, tables: list[str]) -> Path:
+    try:
+        listing = restore_list_for_tables(
+            read_custom_dump_toc(database_url=database_url, dump_path=dump_path, verbose=True),
+            tables,
+        )
+    except TableSelectionError as exc:
+        raise DatabaseBackupError(str(exc)) from exc
+    handle = tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".list", delete=False)
+    try:
+        handle.write(listing)
+    finally:
+        handle.close()
+    return Path(handle.name)
 
 
 def pg_restore_custom(
     *,
     database_url: str,
     dump_path: Path,
+    tables: list[str] | None = None,
 ) -> None:
     conn = parse_database_url(database_url)
     toolchain, container = _get_toolchain(conn)
-    if toolchain == "local":
-        pg_restore = _resolve_pg_tool("pg_restore")
-        assert pg_restore
-        env = os.environ.copy()
-        env["PGPASSWORD"] = conn.password
-        args = [
-            pg_restore,
-            "-h",
-            conn.host,
-            "-p",
-            str(conn.port),
-            "-U",
-            conn.user,
-            "-d",
-            conn.database,
-            "--clean",
-            "--if-exists",
-            "--single-transaction",
-            "--no-owner",
-            "--no-acl",
-            "--exit-on-error",
-            str(dump_path),
-        ]
-        result = subprocess.run(args, capture_output=True, text=True, env=env, check=False)
-        if result.returncode == 0:
-            return
-        detail = (result.stderr or result.stdout or "").strip()
-        if _is_unsupported_archive_version(detail):
-            compat_result = _docker_pg_restore_compat(conn=conn, dump_path=dump_path, list_only=False)
-            if compat_result.returncode == 0:
-                return
-            compat_detail = (compat_result.stderr or compat_result.stdout or "").strip()
-            raise DatabaseBackupError(compat_detail or detail)
-        raise DatabaseBackupError(detail or f"Command failed: {' '.join(args)}")
-
-    assert container
-    remote_path = f"/tmp/faircrm_restore_{uuid.uuid4().hex}.dump"
-    _docker_cp_to(container, dump_path, remote_path)
+    restore_list_path = _write_restore_list(database_url=database_url, dump_path=dump_path, tables=tables) if tables else None
     try:
-        result = subprocess.run(
-            [
+        if toolchain == "local":
+            pg_restore = _resolve_pg_tool("pg_restore")
+            assert pg_restore
+            env = os.environ.copy()
+            env["PGPASSWORD"] = conn.password
+            args = [
+                pg_restore,
+                "-h",
+                conn.host,
+                "-p",
+                str(conn.port),
+                "-U",
+                conn.user,
+                "-d",
+                conn.database,
+                "--clean",
+                "--if-exists",
+                "--single-transaction",
+                "--no-owner",
+                "--no-acl",
+                "--exit-on-error",
+            ]
+            if restore_list_path is not None:
+                args.extend(["-L", str(restore_list_path)])
+            args.append(str(dump_path))
+            result = subprocess.run(args, capture_output=True, text=True, env=env, check=False)
+            if result.returncode == 0:
+                return
+            detail = (result.stderr or result.stdout or "").strip()
+            if _is_unsupported_archive_version(detail):
+                compat_result = _docker_pg_restore_compat(
+                    conn=conn,
+                    dump_path=dump_path,
+                    list_only=False,
+                    restore_list_path=restore_list_path,
+                )
+                if compat_result.returncode == 0:
+                    return
+                compat_detail = (compat_result.stderr or compat_result.stdout or "").strip()
+                raise DatabaseBackupError(compat_detail or detail)
+            raise DatabaseBackupError(detail or f"Command failed: {' '.join(args)}")
+
+        assert container
+        remote_path = f"/tmp/faircrm_restore_{uuid.uuid4().hex}.dump"
+        remote_list = f"/tmp/faircrm_restore_{uuid.uuid4().hex}.list" if restore_list_path is not None else None
+        _docker_cp_to(container, dump_path, remote_path)
+        if restore_list_path is not None and remote_list is not None:
+            _docker_cp_to(container, restore_list_path, remote_list)
+        try:
+            command = [
                 "docker",
                 "exec",
                 container,
@@ -462,24 +532,34 @@ def pg_restore_custom(
                 "--no-owner",
                 "--no-acl",
                 "--exit-on-error",
-                remote_path,
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode == 0:
-            return
-        detail = (result.stderr or result.stdout or "").strip()
-        if _is_unsupported_archive_version(detail):
-            compat_result = _docker_pg_restore_compat(conn=conn, dump_path=dump_path, list_only=False)
-            if compat_result.returncode == 0:
+            ]
+            if remote_list is not None:
+                command.extend(["-L", remote_list])
+            command.append(remote_path)
+            result = subprocess.run(command, capture_output=True, text=True, check=False)
+            if result.returncode == 0:
                 return
-            compat_detail = (compat_result.stderr or compat_result.stdout or "").strip()
-            raise DatabaseBackupError(compat_detail or detail)
-        raise DatabaseBackupError(detail or "docker exec pg_restore failed")
+            detail = (result.stderr or result.stdout or "").strip()
+            if _is_unsupported_archive_version(detail):
+                compat_result = _docker_pg_restore_compat(
+                    conn=conn,
+                    dump_path=dump_path,
+                    list_only=False,
+                    restore_list_path=restore_list_path,
+                )
+                if compat_result.returncode == 0:
+                    return
+                compat_detail = (compat_result.stderr or compat_result.stdout or "").strip()
+                raise DatabaseBackupError(compat_detail or detail)
+            raise DatabaseBackupError(detail or "docker exec pg_restore failed")
+        finally:
+            cleanup = ["rm", "-f", remote_path]
+            if remote_list is not None:
+                cleanup.append(remote_list)
+            _docker_exec(container, cleanup)
     finally:
-        _docker_exec(container, ["rm", "-f", remote_path])
+        if restore_list_path is not None:
+            restore_list_path.unlink(missing_ok=True)
 
 
 def sha256_file(path: Path) -> str:

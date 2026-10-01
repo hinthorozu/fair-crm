@@ -52,6 +52,7 @@ def _to_entity(model: SystemBackupRestoreJobModel) -> SystemBackupRestoreJob:
         restore_log_path=model.restore_log_path,
         created_at=_ensure_utc(model.created_at),
         updated_at=_ensure_utc(model.updated_at),
+        manifest_json=model.manifest_json,
     )
 
 
@@ -76,6 +77,7 @@ def _to_model(entity: SystemBackupRestoreJob) -> SystemBackupRestoreJobModel:
         failed_at=entity.failed_at,
         error_message=entity.error_message,
         restore_log_path=entity.restore_log_path,
+        manifest_json=entity.manifest_json,
         created_at=entity.created_at,
         updated_at=entity.updated_at,
     )
@@ -97,6 +99,7 @@ def _update_model(model: SystemBackupRestoreJobModel, entity: SystemBackupRestor
     model.failed_at = entity.failed_at
     model.error_message = entity.error_message
     model.restore_log_path = entity.restore_log_path
+    model.manifest_json = entity.manifest_json
     model.updated_at = entity.updated_at
 
 

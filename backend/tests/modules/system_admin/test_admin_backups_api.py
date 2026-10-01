@@ -862,3 +862,636 @@ def test_restore_job_can_be_started_from_api(client, auth_headers, backups_root,
 
     delete_running = client.delete(f"/api/v1/admin/backups/restore-jobs/{job_id}", headers=auth_headers)
     assert delete_running.status_code == 409
+
+
+def _record_pg_dump(monkeypatch):
+    calls: list[dict] = []
+
+    def _dump(**kwargs):
+        calls.append(kwargs)
+        return _fake_pg_dump(
+            database_url=kwargs["database_url"],
+            output_path=kwargs["output_path"],
+            on_stage=kwargs.get("on_stage"),
+        )
+
+    monkeypatch.setattr("app.modules.system_admin.application.backup_job_runner.pg_dump_custom", _dump)
+    return calls
+
+
+def test_omitted_scope_and_empty_tables_stay_full_backup(client, auth_headers, backups_root, monkeypatch):
+    calls = _record_pg_dump(monkeypatch)
+    create = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={"database_keys": ["fair_crm"], "tables": []},
+    )
+    assert create.status_code == 202, create.text
+    item = _first_item(create.json())
+    detail = client.get(f"/api/v1/admin/backups/{item['id']}", headers=auth_headers)
+    assert detail.json()["manifest_json"] == {"scope": "full"}
+    assert "tables" not in calls[0]
+
+
+def test_explicit_full_scope_ignores_table_payload(client, auth_headers, backups_root, monkeypatch):
+    calls = _record_pg_dump(monkeypatch)
+    create = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={"scope": "full", "tables": ["public.crm_quotes"]},
+    )
+    assert create.status_code == 202, create.text
+    item = _first_item(create.json())
+    detail = client.get(f"/api/v1/admin/backups/{item['id']}", headers=auth_headers)
+    assert detail.json()["manifest_json"] == {"scope": "full"}
+    assert "tables" not in calls[0]
+
+
+def test_selected_backup_passes_only_requested_tables(client, auth_headers, backups_root, monkeypatch):
+    calls = _record_pg_dump(monkeypatch)
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.list_public_base_tables",
+        lambda database_url: ["public.crm_quotes", "public.crm_contacts", "public.crm_customers"],
+    )
+    create = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={
+            "database_keys": ["fair_crm"],
+            "scope": "selected_tables",
+            "tables": ["crm_quotes", "public.crm_contacts"],
+        },
+    )
+    assert create.status_code == 202, create.text
+    item = _first_item(create.json())
+    detail = client.get(f"/api/v1/admin/backups/{item['id']}", headers=auth_headers)
+    assert detail.json()["manifest_json"] == {
+        "scope": "selected_tables",
+        "tables": ["public.crm_quotes", "public.crm_contacts"],
+    }
+    assert calls[0]["tables"] == ["public.crm_quotes", "public.crm_contacts"]
+
+
+def test_selected_backup_rejects_unknown_duplicate_and_unsafe_tables(client, auth_headers, monkeypatch):
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.list_public_base_tables",
+        lambda database_url: ["public.crm_quotes"],
+    )
+    unknown = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={"database_keys": ["fair_crm"], "scope": "selected_tables", "tables": ["public.missing_table"]},
+    )
+    assert unknown.status_code == 400
+    duplicate = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={"database_keys": ["fair_crm"], "scope": "selected_tables", "tables": ["crm_quotes", "public.crm_quotes"]},
+    )
+    assert duplicate.status_code == 400
+    unsafe = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={"database_keys": ["fair_crm"], "scope": "selected_tables", "tables": ["public.crm_quotes;drop"]},
+    )
+    assert unsafe.status_code == 400
+    empty = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={"database_keys": ["fair_crm"], "scope": "selected_tables", "tables": []},
+    )
+    assert empty.status_code == 400
+
+
+def test_selected_backup_requires_dump_format_and_one_database(client, auth_headers):
+    sql = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={"backup_format": "postgresql_sql", "scope": "selected_tables", "tables": ["public.crm_quotes"]},
+    )
+    assert sql.status_code == 400
+    multi = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={
+            "database_keys": ["fair_crm", "kyrox_core"],
+            "scope": "selected_tables",
+            "tables": ["public.crm_quotes"],
+        },
+    )
+    assert multi.status_code == 400
+
+
+def test_backup_catalog_is_database_scoped(client, auth_headers, monkeypatch):
+    seen: list[str] = []
+
+    def _catalog(database_url: str) -> list[str]:
+        seen.append(database_url)
+        return ["public.crm_quotes"] if database_url.endswith("/fair_crm") else ["public.identity_users"]
+
+    monkeypatch.setattr("app.modules.system_admin.api.routes.list_public_base_tables", _catalog)
+    monkeypatch.setattr(
+        "app.modules.system_admin.api.routes.resolve_database_url",
+        lambda database_key: f"postgresql://postgres:postgres@localhost:5432/{database_key.value}",
+    )
+    fair = client.get("/api/v1/admin/backups/catalog", headers=auth_headers, params={"database_key": "fair_crm"})
+    core = client.get("/api/v1/admin/backups/catalog", headers=auth_headers, params={"database_key": "kyrox_core"})
+    assert fair.status_code == 200
+    assert fair.json() == {"database_key": "fair_crm", "tables": ["public.crm_quotes"]}
+    assert core.json()["tables"] == ["public.identity_users"]
+    assert seen[0].endswith("/fair_crm")
+    assert seen[1].endswith("/kyrox_core")
+
+
+def test_catalog_forbidden_without_permission(client, auth_headers):
+    from app.modules.system_admin.api.dependencies import get_authorization_adapter
+    from tests.conftest import AllowAllAuthorization, DenyAllAuthorization
+
+    app = client.app
+    app.dependency_overrides[get_authorization_adapter] = lambda: DenyAllAuthorization()
+    try:
+        res = client.get("/api/v1/admin/backups/catalog", headers=auth_headers, params={"database_key": "fair_crm"})
+        assert res.status_code == 403
+    finally:
+        app.dependency_overrides[get_authorization_adapter] = lambda: AllowAllAuthorization()
+
+
+def test_restore_rejects_sql_and_universal_package(client, auth_headers, backups_root):
+    sql = client.post("/api/v1/admin/backups", headers=auth_headers, json={"backup_format": "postgresql_sql"})
+    sql_restore = client.post(
+        f"/api/v1/admin/backups/{_first_item(sql.json())['id']}/restore",
+        headers=auth_headers,
+        json={"scope": "selected_tables", "tables": ["public.crm_quotes"]},
+    )
+    assert sql_restore.status_code == 400
+    package = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={"backup_format": "universal_data_package"},
+    )
+    package_restore = client.post(
+        f"/api/v1/admin/backups/{_first_item(package.json())['id']}/restore",
+        headers=auth_headers,
+    )
+    assert package_restore.status_code == 400
+
+
+def test_selected_restore_rejects_table_missing_from_archive(client, auth_headers, backups_root, monkeypatch):
+    from app.shared.database_backup.engine import BackupVerificationResult
+
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.list_custom_dump_tables",
+        lambda **kwargs: ["public.crm_quotes"],
+    )
+    create = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
+    backup_id = _first_item(create.json())["id"]
+    restore = client.post(
+        f"/api/v1/admin/backups/{backup_id}/restore",
+        headers=auth_headers,
+        json={"scope": "selected_tables", "tables": ["public.crm_contacts"]},
+    )
+    assert restore.status_code == 400
+    assert "crm_contacts" in restore.json()["detail"]
+
+
+def test_full_restore_runner_omits_table_switch_for_legacy_null_manifest(
+    client, auth_headers, backups_root, monkeypatch, db_session
+):
+    from uuid import UUID
+
+    from app.modules.system_admin.application.restore_job_service import (
+        RestoreJobMaintenanceCommand,
+        RestoreJobMaintenanceRunner,
+    )
+    from app.modules.system_admin.infrastructure.persistence.models import SystemBackupRestoreJobModel
+    from app.shared.database_backup.engine import BackupVerificationResult
+
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+    calls: list[dict] = []
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.pg_restore_custom",
+        lambda **kwargs: calls.append(kwargs),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.subprocess.run",
+        lambda *args, **kwargs: type("Proc", (), {"returncode": 0, "stdout": "ok", "stderr": ""})(),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.run_post_restore_health_check",
+        _success_post_restore_health,
+    )
+
+    create = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
+    backup_id = _first_item(create.json())["id"]
+    restore = client.post(f"/api/v1/admin/backups/{backup_id}/restore", headers=auth_headers)
+    assert restore.status_code == 202
+    job_id = UUID(restore.json()["id"])
+    row = db_session.get(SystemBackupRestoreJobModel, job_id)
+    assert row is not None
+    row.manifest_json = None
+    db_session.commit()
+
+    runner = RestoreJobMaintenanceRunner(session_factory=lambda: db_session)
+    assert (
+        runner.run(
+            RestoreJobMaintenanceCommand(
+                job_id=job_id,
+                target_database_url="postgresql://postgres:postgres@localhost:5432/fair_crm",
+                allow_restore=True,
+            )
+        )
+        == 0
+    )
+    assert "tables" not in calls[0]
+
+
+def test_selected_restore_runner_passes_requested_tables(client, auth_headers, backups_root, monkeypatch, db_session):
+    from uuid import UUID
+
+    from app.modules.system_admin.application.restore_job_service import (
+        RestoreJobMaintenanceCommand,
+        RestoreJobMaintenanceRunner,
+    )
+    from app.shared.database_backup.engine import BackupVerificationResult
+
+    archive = ["public.crm_customers", "public.crm_contacts"]
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=2),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.list_custom_dump_tables",
+        lambda **kwargs: archive,
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=2),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.list_custom_dump_tables",
+        lambda **kwargs: archive,
+    )
+    calls: list[dict] = []
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.pg_restore_custom",
+        lambda **kwargs: calls.append(kwargs),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.subprocess.run",
+        lambda *args, **kwargs: type("Proc", (), {"returncode": 0, "stdout": "ok", "stderr": ""})(),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.run_post_restore_health_check",
+        _success_post_restore_health,
+    )
+
+    create = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
+    backup_id = _first_item(create.json())["id"]
+    restore = client.post(
+        f"/api/v1/admin/backups/{backup_id}/restore",
+        headers=auth_headers,
+        json={"scope": "selected_tables", "tables": ["public.crm_customers"]},
+    )
+    assert restore.status_code == 202, restore.text
+    job_id = UUID(restore.json()["id"])
+    runner = RestoreJobMaintenanceRunner(session_factory=lambda: db_session)
+    assert (
+        runner.run(
+            RestoreJobMaintenanceCommand(
+                job_id=job_id,
+                target_database_url="postgresql://postgres:postgres@localhost:5432/fair_crm",
+                allow_restore=True,
+            )
+        )
+        == 0
+    )
+    assert calls[0]["tables"] == ["public.crm_customers"]
+
+
+def _ok_organization_reconciliation(**kwargs):
+    from app.shared.database_backup.restore_reconciliation import RestoreOrganizationReconciliationResult
+
+    _ = kwargs
+    return RestoreOrganizationReconciliationResult(
+        ok=True,
+        organization_count=0,
+        active_count=0,
+        inactive_count=0,
+        deleted_count=0,
+    )
+
+
+def _patch_certified_restore(monkeypatch, *, checksum: str | None = "deadbeef" * 8, pg_restore=None, health=None):
+    from app.shared.database_backup.engine import BackupVerificationResult
+
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.verify_backup_dump",
+        lambda **kwargs: BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.pg_restore_custom",
+        pg_restore or (lambda **kwargs: None),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.subprocess.run",
+        lambda *args, **kwargs: type("Proc", (), {"returncode": 0, "stdout": "ok", "stderr": ""})(),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.run_post_restore_health_check",
+        health or _success_post_restore_health,
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.maintenance.certified_restore_runner.run_restore_organization_reconciliation",
+        _ok_organization_reconciliation,
+    )
+    if checksum is not None:
+        monkeypatch.setattr(
+            "app.shared.database_backup.engine.sha256_file",
+            lambda path: checksum,
+        )
+
+
+def _backup_row(db_session, backup_id: str):
+    from uuid import UUID
+
+    from app.modules.system_admin.infrastructure.persistence.models import SystemBackupModel
+
+    db_session.expire_all()
+    return db_session.get(SystemBackupModel, UUID(backup_id))
+
+
+def _rewind_catalog_row(db_session, backup_id: str, *, stage: str) -> None:
+    row = _backup_row(db_session, backup_id)
+    row.status = "running"
+    row.progress_stage = stage
+    row.file_size = None
+    row.checksum = None
+    row.completed_at = None
+    db_session.commit()
+
+
+def _run_certified(db_session, job_id):
+    from app.modules.system_admin.application.restore_job_service import RestoreJobMaintenanceCommand
+    from app.modules.system_admin.maintenance.certified_restore_runner import (
+        CertifiedRestoreJobMaintenanceRunner,
+    )
+
+    runner = CertifiedRestoreJobMaintenanceRunner(session_factory=lambda: db_session)
+    return runner.run(
+        RestoreJobMaintenanceCommand(
+            job_id=job_id,
+            target_database_url="postgresql://postgres:postgres@localhost:5432/fair_crm",
+            allow_restore=True,
+        )
+    )
+
+
+def test_full_restore_reapplies_validated_source_backup_and_leaves_sibling(
+    client, auth_headers, backups_root, monkeypatch, db_session
+):
+    from uuid import UUID
+
+    source = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
+    source_id = _first_item(source.json())["id"]
+    sibling = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={"database_keys": ["fair_stand"]},
+    )
+    sibling_id = _first_item(sibling.json())["id"]
+    source_row = _backup_row(db_session, source_id)
+    assert source_row.status == "completed"
+    assert source_row.file_size
+    assert source_row.checksum
+    source_row.download_count = 4
+    db_session.commit()
+    preserved = {
+        "file_size": source_row.file_size,
+        "checksum": source_row.checksum,
+        "completed_at": source_row.completed_at,
+        "manifest_json": source_row.manifest_json,
+        "download_count": 4,
+        "file_name": source_row.file_name,
+        "notes": source_row.notes,
+    }
+    _rewind_catalog_row(db_session, sibling_id, stage="preparing")
+    db_session.commit()
+
+    def pg_restore(**kwargs):
+        _ = kwargs
+        _rewind_catalog_row(db_session, source_id, stage="dumping")
+
+    _patch_certified_restore(monkeypatch, pg_restore=pg_restore)
+    restore = client.post(f"/api/v1/admin/backups/{source_id}/restore", headers=auth_headers)
+    assert restore.status_code == 202, restore.text
+
+    assert _run_certified(db_session, UUID(restore.json()["id"])) == 0
+
+    restored = _backup_row(db_session, source_id)
+    assert restored.status == "completed"
+    assert restored.progress_stage == "completed"
+    assert restored.file_size == preserved["file_size"]
+    assert restored.checksum == preserved["checksum"]
+    assert restored.completed_at == preserved["completed_at"]
+    assert restored.manifest_json == preserved["manifest_json"]
+    assert restored.download_count == preserved["download_count"]
+    assert restored.file_name == preserved["file_name"]
+    sibling_row = _backup_row(db_session, sibling_id)
+    assert sibling_row.status == "running"
+    assert sibling_row.progress_stage == "preparing"
+    assert sibling_row.file_size is None
+    assert sibling_row.checksum is None
+
+
+def test_legacy_null_manifest_full_restore_reapplies_source_backup(
+    client, auth_headers, backups_root, monkeypatch, db_session
+):
+    from uuid import UUID
+
+    from app.modules.system_admin.infrastructure.persistence.models import SystemBackupRestoreJobModel
+
+    source = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
+    source_id = _first_item(source.json())["id"]
+    source_row = _backup_row(db_session, source_id)
+    source_row.manifest_json = None
+    checksum = source_row.checksum
+    file_size = source_row.file_size
+    completed_at = source_row.completed_at
+    db_session.commit()
+
+    def pg_restore(**kwargs):
+        assert "tables" not in kwargs
+        _rewind_catalog_row(db_session, source_id, stage="dumping")
+
+    _patch_certified_restore(monkeypatch, pg_restore=pg_restore)
+    restore = client.post(f"/api/v1/admin/backups/{source_id}/restore", headers=auth_headers)
+    job_id = UUID(restore.json()["id"])
+    job = db_session.get(SystemBackupRestoreJobModel, job_id)
+    job.manifest_json = None
+    db_session.commit()
+
+    assert _run_certified(db_session, job_id) == 0
+    restored = _backup_row(db_session, source_id)
+    assert restored.status == "completed"
+    assert restored.file_size == file_size
+    assert restored.checksum == checksum
+    assert restored.completed_at == completed_at
+    assert restored.manifest_json is None
+
+
+def test_selected_restore_does_not_rewrite_catalog_rows(
+    client, auth_headers, backups_root, monkeypatch, db_session
+):
+    from uuid import UUID
+
+    source = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
+    source_id = _first_item(source.json())["id"]
+    sibling = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={"database_keys": ["kyrox_core"]},
+    )
+    sibling_id = _first_item(sibling.json())["id"]
+    _rewind_catalog_row(db_session, sibling_id, stage="preparing")
+    calls: list[dict] = []
+
+    def pg_restore(**kwargs):
+        calls.append(kwargs)
+        _rewind_catalog_row(db_session, source_id, stage="dumping")
+
+    _patch_certified_restore(monkeypatch, pg_restore=pg_restore)
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.verify_backup_dump",
+        lambda **kwargs: __import__(
+            "app.shared.database_backup.engine", fromlist=["BackupVerificationResult"]
+        ).BackupVerificationResult(path=kwargs["dump_path"], size_bytes=32, toc_entry_count=1),
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.backup_service.list_custom_dump_tables",
+        lambda **kwargs: ["public.crm_customers"],
+    )
+    monkeypatch.setattr(
+        "app.modules.system_admin.application.restore_job_service.list_custom_dump_tables",
+        lambda **kwargs: ["public.crm_customers"],
+    )
+    restore = client.post(
+        f"/api/v1/admin/backups/{source_id}/restore",
+        headers=auth_headers,
+        json={"scope": "selected_tables", "tables": ["public.crm_customers"]},
+    )
+    assert restore.status_code == 202, restore.text
+    assert _run_certified(db_session, UUID(restore.json()["id"])) == 0
+    assert calls[0]["tables"] == ["public.crm_customers"]
+    rewound = _backup_row(db_session, source_id)
+    assert rewound.status == "running"
+    assert rewound.progress_stage == "dumping"
+    assert rewound.checksum is None
+    sibling_row = _backup_row(db_session, sibling_id)
+    assert sibling_row.status == "running"
+    assert sibling_row.progress_stage == "preparing"
+
+
+def test_restore_failure_does_not_reapply_source_backup(
+    client, auth_headers, backups_root, monkeypatch, db_session
+):
+    from uuid import UUID
+
+    from app.shared.database_backup.engine import DatabaseBackupError
+
+    source = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
+    source_id = _first_item(source.json())["id"]
+    sibling = client.post(
+        "/api/v1/admin/backups",
+        headers=auth_headers,
+        json={"database_keys": ["fair_stand"]},
+    )
+    sibling_id = _first_item(sibling.json())["id"]
+    _rewind_catalog_row(db_session, sibling_id, stage="preparing")
+
+    def pg_restore(**kwargs):
+        _rewind_catalog_row(db_session, source_id, stage="dumping")
+        raise DatabaseBackupError("pg_restore failed")
+
+    _patch_certified_restore(monkeypatch, pg_restore=pg_restore)
+    restore = client.post(f"/api/v1/admin/backups/{source_id}/restore", headers=auth_headers)
+    assert _run_certified(db_session, UUID(restore.json()["id"])) == 1
+    rewound = _backup_row(db_session, source_id)
+    assert rewound.status == "running"
+    assert rewound.progress_stage == "dumping"
+    assert rewound.file_size is None
+    assert rewound.checksum is None
+    sibling_row = _backup_row(db_session, sibling_id)
+    assert sibling_row.status == "running"
+    assert sibling_row.progress_stage == "preparing"
+
+
+def test_invalid_restore_source_does_not_complete_running_row(
+    client, auth_headers, backups_root, monkeypatch, db_session
+):
+    from uuid import UUID
+
+    calls: list[dict] = []
+
+    def pg_restore(**kwargs):
+        calls.append(kwargs)
+
+    _patch_certified_restore(monkeypatch, checksum="b" * 64, pg_restore=pg_restore)
+
+    def prepare_running_source() -> tuple[str, Path, str]:
+        created = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
+        backup_id = _first_item(created.json())["id"]
+        file_name = _backup_row(db_session, backup_id).file_name
+        restore = client.post(f"/api/v1/admin/backups/{backup_id}/restore", headers=auth_headers)
+        assert restore.status_code == 202, restore.text
+        _rewind_catalog_row(db_session, backup_id, stage="dumping")
+        return backup_id, backups_root / "backups" / file_name, restore.json()["id"]
+
+    completed = client.post("/api/v1/admin/backups", headers=auth_headers, json={})
+    completed_id = _first_item(completed.json())["id"]
+    original_checksum = _backup_row(db_session, completed_id).checksum
+    completed_restore = client.post(f"/api/v1/admin/backups/{completed_id}/restore", headers=auth_headers)
+    assert completed_restore.status_code == 202, completed_restore.text
+    assert _run_certified(db_session, UUID(completed_restore.json()["id"])) == 1
+    assert calls == []
+    unchanged = _backup_row(db_session, completed_id)
+    assert unchanged.status == "completed"
+    assert unchanged.checksum == original_checksum
+
+    source_id, _dump_path, job_id = prepare_running_source()
+    assert _run_certified(db_session, UUID(job_id)) == 1
+    row = _backup_row(db_session, source_id)
+    assert row.status == "running"
+    assert row.checksum is None
+
+    source_id, dump_path, job_id = prepare_running_source()
+    dump_path.unlink()
+    _patch_certified_restore(monkeypatch, pg_restore=pg_restore)
+    assert _run_certified(db_session, UUID(job_id)) == 1
+    row = _backup_row(db_session, source_id)
+    assert row.status == "running"
+    assert row.file_size is None
+
+    source_id, dump_path, job_id = prepare_running_source()
+    dump_path.write_bytes(b"not-a-dump")
+    _patch_certified_restore(monkeypatch, pg_restore=pg_restore)
+    assert _run_certified(db_session, UUID(job_id)) == 1
+    assert calls == []
+    row = _backup_row(db_session, source_id)
+    assert row.status == "running"
+    assert row.file_size is None
+    assert row.checksum is None
