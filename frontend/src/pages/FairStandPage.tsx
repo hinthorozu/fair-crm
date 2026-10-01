@@ -32,6 +32,9 @@ export function FairStandPage({ mode, projectId, customerId, onBackToList }: Fai
     [granted],
   );
 
+  const onBackToListRef = React.useRef(onBackToList);
+  onBackToListRef.current = onBackToList;
+
   React.useEffect(() => {
     const host = hostRef.current;
     if (!host || (mode === "new" && !customerId)) return undefined;
@@ -47,6 +50,18 @@ export function FairStandPage({ mode, projectId, customerId, onBackToList }: Fai
         customerId: mode === "new" ? customerId : undefined,
         capabilities,
       });
+      const sidebar = hostRef.current
+        ?.querySelector("iframe")
+        ?.contentDocument
+        ?.querySelector("#sidebar");
+      const intro = sidebar?.querySelector(".sidebar-intro");
+      if (!sidebar || !intro || sidebar.querySelector(".sidebar-back")) return;
+      const button = sidebar.ownerDocument.createElement("button");
+      button.type = "button";
+      button.className = "sidebar-back";
+      button.textContent = `← ${standProjectsLabels.backToList}`;
+      button.addEventListener("click", () => onBackToListRef.current());
+      sidebar.insertBefore(button, intro);
     });
 
     return () => {
@@ -57,14 +72,6 @@ export function FairStandPage({ mode, projectId, customerId, onBackToList }: Fai
 
   return (
     <div className="fair-stand-standalone" data-testid="fair-stand-standalone">
-      <div className="fair-stand-chrome">
-        <button type="button" className="btn secondary fair-stand-chrome-back" onClick={onBackToList}>
-          ← {standProjectsLabels.backToList}
-        </button>
-        <span className="fair-stand-chrome-title">
-          {mode === "new" ? standProjectsLabels.editorNewTitle : standProjectsLabels.editorEditTitle}
-        </span>
-      </div>
       <div
         ref={hostRef}
         className="fair-stand-host"

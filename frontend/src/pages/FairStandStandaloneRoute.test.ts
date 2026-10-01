@@ -46,11 +46,14 @@ describe("Stand projects CRM routes", () => {
     expect(detail).toContain("onCreateStandProject(customerId)");
   });
 
-  it("uses a full-viewport standalone host with chrome back bar", () => {
+  it("uses a full-viewport standalone host without a top chrome bar", () => {
     const css = read("styles.css");
+    const page = read("pages/FairStandPage.tsx");
     expect(css).toContain(".fair-stand-standalone");
     expect(css).toContain("height: 100dvh");
-    expect(css).toContain(".fair-stand-chrome");
+    expect(css).not.toContain(".fair-stand-chrome");
+    expect(page).toContain('button.className = "sidebar-back"');
+    expect(page).toContain("sidebar.insertBefore(button, intro)");
     expect(css).not.toContain("height: calc(100vh - var(--topbar-height))");
   });
 
