@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "id": "live-tab-share-watch",
+  "title": "Public read-only stand watch page",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "user",
+  "tenant_scope": "none",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/StandWatchPage.tsx",
+    "frontend/src/pages/standWatchRoute.ts",
+    "frontend/src/pages/standWatchRoute.test.ts",
+    "frontend/src/App.tsx",
+    "frontend/src/styles.css",
+    "frontend/src/vite-env.d.ts",
+    "frontend/vite.config.ts",
+    "scripts/server/apply-nginx-upload-limit.sh",
+    "scripts/server/nginx/fair-crm.conf",
+    ".kyrox/features/live-tab-share-watch.json"
+  ],
+  "permissions": {
+    "required": false,
+    "reason": "The watch link is authorized by the unguessable share token. No CRM permission code is added.",
+    "items": []
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/stand/watch/:token"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "No CRM database model changes." },
+    "migration": { "status": "na", "reason": "No CRM schema migration." },
+    "permissions": { "status": "na", "reason": "No CRM permission codes or enforcement changes." },
+    "backend": { "status": "na", "reason": "Signaling stays in Fair Stand. CRM backend is unchanged." },
+    "api": { "status": "na", "reason": "No CRM API contract changes. The watch page calls Fair Stand." },
+    "tenant_isolation": { "status": "na", "reason": "The page is not organization-scoped CRM data." },
+    "audit": { "status": "na", "reason": "No CRM audit behavior changes." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "na", "reason": "The page has no CRM permission guard. The share token is the access check." },
+    "menu": { "status": "na", "reason": "The watch URL is opened from a shared link and is not a navigation item." },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "na", "reason": "The page has no form." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "No CRM backend behavior to test." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "na", "reason": "CRM runtime authorization is unchanged. Login is skipped only for this token route." },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Viewer page renders the Fair Stand WebRTC stream. Nginx proxies /api/v1/fair-stand/live-shares without a trailing slash and with the Upgrade header. Certbot SSL stays in place."
+}
