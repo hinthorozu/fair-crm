@@ -30,9 +30,9 @@
 #   KYROX_CORE_DIR=/opt/kyrox-core
 #   FAIR_CRM_DIR=/opt/fair-crm
 #   FAIR_STAND_DIR=/opt/fair-stand
-#   KYROX_CORE_BRANCH=main
-#   FAIR_CRM_BRANCH=main
-#   FAIR_STAND_BRANCH=main
+#   KYROX_CORE_BRANCH=   boşsa origin varsayılan dalı
+#   FAIR_CRM_BRANCH=     boşsa origin varsayılan dalı
+#   FAIR_STAND_BRANCH=   boşsa origin varsayılan dalı
 #   KYROX_CORE_REPO=https://github.com/hinthorozu/kyrox-core.git
 #   FAIR_STAND_REPO=https://github.com/hinthorozu/fair-stand.git
 #   DEPLOY_SERVICE_USER=ubuntu
@@ -63,9 +63,6 @@ FAIR_CRM_DIR="${FAIR_CRM_DIR:-$(cd "${SCRIPT_DIR}/../.." && pwd)}"
 FAIR_STAND_DIR="${FAIR_STAND_DIR:-/opt/fair-stand}"
 KYROX_CORE_REPO="${KYROX_CORE_REPO:-https://github.com/hinthorozu/kyrox-core.git}"
 FAIR_STAND_REPO="${FAIR_STAND_REPO:-https://github.com/hinthorozu/fair-stand.git}"
-KYROX_CORE_BRANCH="${KYROX_CORE_BRANCH:-main}"
-FAIR_CRM_BRANCH="${FAIR_CRM_BRANCH:-main}"
-FAIR_STAND_BRANCH="${FAIR_STAND_BRANCH:-main}"
 DEPLOY_SERVICE_USER="${DEPLOY_SERVICE_USER:-${SUDO_USER:-$(id -un)}}"
 
 CORE_PORT="${CORE_PORT:-8000}"
@@ -583,7 +580,7 @@ print_final_report() {
 
 log_deploy_safety_contract() {
   step "Deploy safety contract (backup/restore compatible)"
-  log "Will run: git pull (core/crm/fair-stand), pip/npm install, Fair Stand pip + npm ci, Playwright Chromium install, alembic upgrade head (three DBs), Fair Stand catalog reseed from git, systemd restart core then stand then crm"
+  log "Will run: git pull of each repo's origin default branch (core/crm/fair-stand), pip/npm install, Fair Stand pip + npm ci, Playwright Chromium install, alembic upgrade head (three DBs), Fair Stand catalog reseed from git, systemd restart core then stand then crm"
   log "Will restore safe deploy scripts/templates before fair-crm git pull when locally modified"
   log "Will not: drop/truncate DB, pg_restore, touch backups/ or restore data dirs, overwrite .env"
 }
@@ -602,6 +599,13 @@ main() {
 
   step "Verify target directories"
   mkdir -p "$(dirname "$KYROX_CORE_DIR")" "$(dirname "$FAIR_CRM_DIR")" "$(dirname "$FAIR_STAND_DIR")"
+  KYROX_CORE_BRANCH="$(branch_or_origin_default "${KYROX_CORE_BRANCH:-}" "$KYROX_CORE_REPO")"
+  if [[ -d "${FAIR_CRM_DIR}/.git" ]]; then
+    FAIR_CRM_BRANCH="$(branch_or_origin_default "${FAIR_CRM_BRANCH:-}" "$FAIR_CRM_DIR")"
+  else
+    FAIR_CRM_BRANCH="${FAIR_CRM_BRANCH:-}"
+  fi
+  FAIR_STAND_BRANCH="$(branch_or_origin_default "${FAIR_STAND_BRANCH:-}" "$FAIR_STAND_REPO")"
   log "KYROX_CORE_DIR=${KYROX_CORE_DIR} (branch ${KYROX_CORE_BRANCH})"
   log "FAIR_CRM_DIR=${FAIR_CRM_DIR} (branch ${FAIR_CRM_BRANCH})"
   log "FAIR_STAND_DIR=${FAIR_STAND_DIR} (branch ${FAIR_STAND_BRANCH})"

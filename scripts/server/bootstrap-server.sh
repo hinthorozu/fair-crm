@@ -24,11 +24,11 @@
 # Optional environment overrides:
 #   FAIR_CRM_DIR=/opt/fair-crm
 #   FAIR_CRM_REPO=https://github.com/hinthorozu/fair-crm.git
-#   FAIR_CRM_BRANCH=main
+#   FAIR_CRM_BRANCH=     boşsa origin varsayılan dalı
 #   KYROX_CORE_DIR=/opt/kyrox-core
 #   FAIR_STAND_DIR=/opt/fair-stand
 #   FAIR_STAND_REPO=https://github.com/hinthorozu/fair-stand.git
-#   FAIR_STAND_BRANCH=main
+#   FAIR_STAND_BRANCH=   boşsa origin varsayılan dalı
 #   DEPLOY_SERVICE_USER=ubuntu
 #   FAIR_CRM_DOMAIN=fuar.kyrox.studio
 #   SERVER_PUBLIC_IP=203.0.113.10
@@ -59,9 +59,9 @@ FAIR_CRM_DIR="${FAIR_CRM_DIR:-/opt/fair-crm}"
 KYROX_CORE_DIR="${KYROX_CORE_DIR:-/opt/kyrox-core}"
 FAIR_STAND_DIR="${FAIR_STAND_DIR:-/opt/fair-stand}"
 FAIR_CRM_REPO="${FAIR_CRM_REPO:-https://github.com/hinthorozu/fair-crm.git}"
-FAIR_CRM_BRANCH="${FAIR_CRM_BRANCH:-main}"
+FAIR_CRM_BRANCH="${FAIR_CRM_BRANCH:-}"
 FAIR_STAND_REPO="${FAIR_STAND_REPO:-https://github.com/hinthorozu/fair-stand.git}"
-FAIR_STAND_BRANCH="${FAIR_STAND_BRANCH:-main}"
+FAIR_STAND_BRANCH="${FAIR_STAND_BRANCH:-}"
 DEPLOY_SERVICE_USER="${DEPLOY_SERVICE_USER:-${SUDO_USER:-$(id -un)}}"
 
 FAIR_CRM_DOMAIN_OVERRIDE="${FAIR_CRM_DOMAIN:-}"
@@ -370,6 +370,7 @@ ensure_fair_crm_checkout() {
   fi
 
   step "Ensure Fair CRM checkout at ${FAIR_CRM_DIR}"
+  FAIR_CRM_BRANCH="$(branch_or_origin_default "${FAIR_CRM_BRANCH:-}" "$FAIR_CRM_REPO")"
   mkdir -p "$(dirname "$FAIR_CRM_DIR")"
 
   if [[ ! -d "${FAIR_CRM_DIR}/.git" ]]; then
@@ -404,6 +405,7 @@ ensure_fair_stand_checkout() {
   fi
 
   step "Ensure Fair Stand checkout at ${FAIR_STAND_DIR}"
+  FAIR_STAND_BRANCH="$(branch_or_origin_default "${FAIR_STAND_BRANCH:-}" "$FAIR_STAND_REPO")"
   mkdir -p "$(dirname "$FAIR_STAND_DIR")"
 
   if [[ ! -d "${FAIR_STAND_DIR}/.git" ]]; then
