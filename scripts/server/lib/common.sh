@@ -19,12 +19,12 @@ DEV_LOGIN_ORG_ID="${DEV_LOGIN_ORG_ID:-00000000-0000-4000-8000-000000000010}"
 DEV_SEED_ENV_FILE="${DEV_SEED_ENV_FILE:-/etc/fair-crm/dev-seed.env}"
 
 MIN_CORE_SEED_MIGRATION_REVISION="${MIN_CORE_SEED_MIGRATION_REVISION:-20260701_0031}"
-EXPECTED_FAIR_CRM_BRANCH="${EXPECTED_FAIR_CRM_BRANCH:-${FAIR_CRM_BRANCH:-main}}"
-EXPECTED_KYROX_CORE_BRANCH="${EXPECTED_KYROX_CORE_BRANCH:-${KYROX_CORE_BRANCH:-main}}"
+# Boş dal = origin HEAD (GitHub varsayılan dal). main diye sabitlenmez.
+EXPECTED_FAIR_CRM_BRANCH="${EXPECTED_FAIR_CRM_BRANCH:-${FAIR_CRM_BRANCH:-}}"
+EXPECTED_KYROX_CORE_BRANCH="${EXPECTED_KYROX_CORE_BRANCH:-${KYROX_CORE_BRANCH:-}}"
 FAIR_STAND_DIR="${FAIR_STAND_DIR:-/opt/fair-stand}"
 FAIR_STAND_REPO="${FAIR_STAND_REPO:-https://github.com/hinthorozu/fair-stand.git}"
-FAIR_STAND_BRANCH="${FAIR_STAND_BRANCH:-main}"
-EXPECTED_FAIR_STAND_BRANCH="${EXPECTED_FAIR_STAND_BRANCH:-${FAIR_STAND_BRANCH:-main}}"
+EXPECTED_FAIR_STAND_BRANCH="${EXPECTED_FAIR_STAND_BRANCH:-${FAIR_STAND_BRANCH:-}}"
 
 # Frontend engine requirements (vite / tooling) need Node 22.12+.
 REQUIRED_NODEJS_VERSION="${REQUIRED_NODEJS_VERSION:-22.12.0}"
@@ -297,6 +297,34 @@ is_port_listening() {
     nc -z "$host" "$port" >/dev/null 2>&1 && return 0
   fi
   return 1
+}
+
+read_origin_default_branch() {
+  local target="$1"
+  local line branch
+  if [[ -d "${target}/.git" ]]; then
+    line="$(git -C "$target" ls-remote --symref origin HEAD 2>/dev/null | head -n 1 || true)"
+  else
+    line="$(git ls-remote --symref "$target" HEAD 2>/dev/null | head -n 1 || true)"
+  fi
+  [[ "$line" == ref:* ]] || return 1
+  branch="${line#ref: }"
+  branch="${branch%%[[:space:]]*}"
+  branch="${branch#refs/heads/}"
+  [[ -n "$branch" && "$branch" != "HEAD" ]] || return 1
+  printf '%s\n' "$branch"
+}
+
+branch_or_origin_default() {
+  local explicit="$1"
+  local target="$2"
+  local resolved
+  if [[ -n "$explicit" ]]; then
+    printf '%s\n' "$explicit"
+    return 0
+  fi
+  resolved="$(read_origin_default_branch "$target")" || die "origin default branch could not be resolved for ${target}"
+  printf '%s\n' "$resolved"
 }
 
 ensure_git_ff_pull() {
@@ -880,8 +908,16 @@ check_git_branch() {
   local expected_branch="$3"
 
   if [[ ! -d "${dir}/.git" ]]; then
-    check_fail "${label} git branch ${expected_branch}"
+    check_fail "${label} git branch ${expected_branch:-origin-default}"
     return 0
+  fi
+
+  if [[ -z "$expected_branch" ]]; then
+    expected_branch="$(read_origin_default_branch "$dir" || true)"
+    if [[ -z "$expected_branch" ]]; then
+      check_fail "${label} git branch origin-default (unresolved)"
+      return 0
+    fi
   fi
 
   local current_branch
