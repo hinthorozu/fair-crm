@@ -15,6 +15,7 @@ from app.shared.database_backup.engine import DatabaseBackupError, pg_dump_custo
 from app.shared.database_backup.database_keys import DatabaseKey, resolve_database_url
 from app.shared.database_backup.formats import BackupFormat
 from app.shared.database_backup.paths import resolve_backup_path
+from app.shared.database_backup.table_selection import selected_tables_from_manifest
 from app.shared.universal_data_package.service import UniversalDataPackageService
 
 
@@ -66,11 +67,20 @@ class BackupJobRunner:
             try:
                 manifest_json = None
                 if backup.backup_format == BackupFormat.POSTGRESQL_DUMP:
-                    result = pg_dump_custom(
-                        database_url=database_url,
-                        output_path=output_path,
-                        on_stage=on_stage,
-                    )
+                    selected_tables = selected_tables_from_manifest(backup.manifest_json)
+                    if selected_tables:
+                        result = pg_dump_custom(
+                            database_url=database_url,
+                            output_path=output_path,
+                            on_stage=on_stage,
+                            tables=selected_tables,
+                        )
+                    else:
+                        result = pg_dump_custom(
+                            database_url=database_url,
+                            output_path=output_path,
+                            on_stage=on_stage,
+                        )
                 elif backup.backup_format == BackupFormat.POSTGRESQL_SQL:
                     result = pg_dump_plain(
                         database_url=database_url,

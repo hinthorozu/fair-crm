@@ -6,12 +6,25 @@ from pydantic import BaseModel, Field
 
 BackupFormatLiteral = Literal["postgresql_dump", "postgresql_sql", "universal_data_package"]
 DatabaseKeyLiteral = Literal["kyrox_core", "fair_crm", "fair_stand"]
+BackupScopeLiteral = Literal["full", "selected_tables"]
 
 
 class CreateSystemBackupRequest(BaseModel):
     notes: str | None = Field(default=None, max_length=2000)
     backup_format: BackupFormatLiteral = "postgresql_dump"
     database_keys: list[DatabaseKeyLiteral] | None = Field(default=None)
+    scope: BackupScopeLiteral = "full"
+    tables: list[str] | None = None
+
+
+class RestoreSystemBackupRequest(BaseModel):
+    scope: BackupScopeLiteral = "full"
+    tables: list[str] | None = None
+
+
+class BackupTableCatalogResponse(BaseModel):
+    database_key: str
+    tables: list[str]
 
 
 class SystemBackupResponse(BaseModel):

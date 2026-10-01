@@ -5,8 +5,11 @@ import {
   downloadSystemBackup,
   getSystemBackup,
   getRestoreJob,
+  listBackupCatalog,
+  listBackupContents,
   listSystemBackupsTable,
   listRestoreJobsTable,
+  previewRestoreUploadTables,
   restoreSystemBackup,
   restoreSystemBackupFromUpload,
   ApiError,
@@ -35,7 +38,13 @@ import {
   canDeleteAdminBackupOperation,
   canExecuteAdminBackupOperation,
 } from "../permissions/adminBackupPermissions";
-import type { BackupFormat, DatabaseKey, SystemBackup, SystemBackupRestoreJobResponse } from "../types/systemBackup";
+import type {
+  BackupFormat,
+  BackupScope,
+  DatabaseKey,
+  SystemBackup,
+  SystemBackupRestoreJobResponse,
+} from "../types/systemBackup";
 import type { BadgeVariant } from "../components/ui/Badge";
 import { useModalFormCancel, useReportFormDirty } from "../hooks/useModalForm";
 import {
@@ -396,6 +405,81 @@ const BACKUP_FORMAT_OPTIONS: Array<{
   },
 ];
 
+function TableScopeFields({
+  idPrefix,
+  legend,
+  fullLabel,
+  scope,
+  onScopeChange,
+  tables,
+  selectedTables,
+  onToggleTable,
+  loading,
+  loadError,
+  selectionDisabled,
+}: {
+  idPrefix: string;
+  legend: string;
+  fullLabel: string;
+  scope: BackupScope;
+  onScopeChange: (scope: BackupScope) => void;
+  tables: string[];
+  selectedTables: string[];
+  onToggleTable: (table: string) => void;
+  loading: boolean;
+  loadError: string | null;
+  selectionDisabled: boolean;
+}) {
+  return (
+    <section className="backup-create-modal-section">
+      <p className="form-section-title">{legend}</p>
+      <div className="backup-format-cards" role="radiogroup" aria-label={legend}>
+        <div className={`backup-format-card${scope === "full" ? " is-selected" : ""}`}>
+          <RadioField
+            id={`${idPrefix}-scope-full`}
+            name={`${idPrefix}-scope`}
+            label={fullLabel}
+            value="full"
+            checked={scope === "full"}
+            onChange={() => onScopeChange("full")}
+          />
+        </div>
+        <div className={`backup-format-card${scope === "selected_tables" ? " is-selected" : ""}`}>
+          <RadioField
+            id={`${idPrefix}-scope-selected`}
+            name={`${idPrefix}-scope`}
+            label={adminLabels.scopeSelectedTables}
+            value="selected_tables"
+            checked={scope === "selected_tables"}
+            disabled={selectionDisabled}
+            onChange={() => onScopeChange("selected_tables")}
+          />
+        </div>
+      </div>
+      {selectionDisabled ? <span className="field-hint">{adminLabels.scopeSelectedHint}</span> : null}
+      {scope === "selected_tables" ? (
+        <div className="backup-database-options" role="group" aria-label={adminLabels.scopeSelectedTables}>
+          <p className="field-hint">{adminLabels.scopeDependencyWarning}</p>
+          {loading ? <span className="field-hint">{adminLabels.scopeTablesLoading}</span> : null}
+          {loadError ? <FieldError>{loadError}</FieldError> : null}
+          {!loading && !loadError && tables.length === 0 ? (
+            <span className="field-hint">{adminLabels.scopeTablesEmpty}</span>
+          ) : null}
+          {tables.map((table) => (
+            <CheckboxField
+              key={table}
+              id={`${idPrefix}-table-${table}`}
+              label={table}
+              checked={selectedTables.includes(table)}
+              onChange={() => onToggleTable(table)}
+            />
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 interface CreateBackupModalContentProps {
   notes: string;
   onNotesChange: (value: string) => void;
@@ -403,6 +487,13 @@ interface CreateBackupModalContentProps {
   onBackupFormatChange: (value: BackupFormat) => void;
   selectedDatabaseKeys: DatabaseKey[];
   onDatabaseKeysChange: (value: DatabaseKey[]) => void;
+  backupScope: BackupScope;
+  onBackupScopeChange: (value: BackupScope) => void;
+  catalogTables: string[];
+  selectedTables: string[];
+  onToggleTable: (table: string) => void;
+  catalogLoading: boolean;
+  catalogError: string | null;
   createError: string | null;
   creating: boolean;
   onCancel: () => void;
@@ -416,6 +507,13 @@ function CreateBackupModalContent({
   onBackupFormatChange,
   selectedDatabaseKeys,
   onDatabaseKeysChange,
+  backupScope,
+  onBackupScopeChange,
+  catalogTables,
+  selectedTables,
+  onToggleTable,
+  catalogLoading,
+  catalogError,
   createError,
   creating,
   onCancel,
@@ -426,10 +524,12 @@ function CreateBackupModalContent({
       notes: "",
       backupFormat: "postgresql_dump" as BackupFormat,
       selectedDatabaseKeys: ["fair_crm"] as DatabaseKey[],
+      backupScope: "full" as BackupScope,
+      selectedTables: [] as string[],
     }),
     [],
   );
-  useReportFormDirty({ notes, backupFormat, selectedDatabaseKeys }, baseline);
+  useReportFormDirty({ notes, backupFormat, selectedDatabaseKeys, backupScope, selectedTables }, baseline);
 
   const toggleDatabaseKey = (key: DatabaseKey) => {
     onDatabaseKeysChange(
@@ -439,8 +539,8 @@ function CreateBackupModalContent({
     );
   };
 
-  const canSubmit = selectedDatabaseKeys.length > 0;
   const includesNonCrmDatabase = selectedDatabaseKeys.some((key) => key !== "fair_crm");
+  const selectedScopeDisabled = backupFormat !== "postgresql_dump" || selectedDatabaseKeys.length !== 1;
   const visibleFormatOptions = BACKUP_FORMAT_OPTIONS.filter(
     (option) => !(includesNonCrmDatabase && option.value === "universal_data_package"),
   );
@@ -480,7 +580,7 @@ function CreateBackupModalContent({
             );
           })}
         </div>
-        {!canSubmit && <FieldError>{adminLabels.databaseKeysRequired}</FieldError>}
+        {selectedDatabaseKeys.length === 0 && <FieldError>{adminLabels.databaseKeysRequired}</FieldError>}
       </section>
 
       <section className="backup-create-modal-section">
@@ -514,6 +614,20 @@ function CreateBackupModalContent({
           })}
         </div>
       </section>
+
+      <TableScopeFields
+        idPrefix="backup"
+        legend={adminLabels.backupScopeLabel}
+        fullLabel={adminLabels.scopeFullDatabase}
+        scope={backupScope}
+        onScopeChange={onBackupScopeChange}
+        tables={catalogTables}
+        selectedTables={selectedTables}
+        onToggleTable={onToggleTable}
+        loading={catalogLoading}
+        loadError={catalogError}
+        selectionDisabled={selectedScopeDisabled}
+      />
 
       <label className="field backup-create-modal-notes">
         <span className="field-label">{adminLabels.notesLabel}</span>
@@ -562,6 +676,13 @@ interface RestoreBackupConfirmModalProps {
   backup: SystemBackup;
   restoring: boolean;
   error: string | null;
+  restoreScope: BackupScope;
+  onRestoreScopeChange: (value: BackupScope) => void;
+  archiveTables: string[];
+  selectedTables: string[];
+  onToggleTable: (table: string) => void;
+  tablesLoading: boolean;
+  tablesError: string | null;
   onCancel: () => void;
   onConfirm: () => void;
 }
@@ -570,11 +691,19 @@ function RestoreBackupConfirmModal({
   backup,
   restoring,
   error,
+  restoreScope,
+  onRestoreScopeChange,
+  archiveTables,
+  selectedTables,
+  onToggleTable,
+  tablesLoading,
+  tablesError,
   onCancel,
   onConfirm,
 }: RestoreBackupConfirmModalProps) {
   const [confirmText, setConfirmText] = React.useState("");
-  const canConfirm = confirmText === RESTORE_CONFIRM_TEXT;
+  const canConfirm =
+    confirmText === RESTORE_CONFIRM_TEXT && (restoreScope === "full" || selectedTables.length > 0);
 
   return (
     <Modal
@@ -620,6 +749,19 @@ function RestoreBackupConfirmModal({
           <dd>{formatLabel(backup.backup_format)}</dd>
         </dl>
         <p className="text-muted backup-restore-manual-hint">{adminLabels.restoreJobManualHint}</p>
+        <TableScopeFields
+          idPrefix="restore"
+          legend={adminLabels.restoreScopeLabel}
+          fullLabel={adminLabels.scopeFullBackup}
+          scope={restoreScope}
+          onScopeChange={onRestoreScopeChange}
+          tables={archiveTables}
+          selectedTables={selectedTables}
+          onToggleTable={onToggleTable}
+          loading={tablesLoading}
+          loadError={tablesError}
+          selectionDisabled={backup.backup_format !== "postgresql_dump"}
+        />
         <label className="form-field">
           <span>{adminLabels.restoreConfirmLabel}</span>
           <TextInput
@@ -707,6 +849,13 @@ interface RestoreFromFileModalProps {
   confirmText: string;
   restoring: boolean;
   error: string | null;
+  restoreScope: BackupScope;
+  onRestoreScopeChange: (value: BackupScope) => void;
+  archiveTables: string[];
+  selectedTables: string[];
+  onToggleTable: (table: string) => void;
+  tablesLoading: boolean;
+  tablesError: string | null;
   onNotesChange: (value: string) => void;
   onFileChange: (file: File | null) => void;
   onDatabaseKeyChange: (value: DatabaseKey) => void;
@@ -724,6 +873,13 @@ function RestoreFromFileModal({
   confirmText,
   restoring,
   error,
+  restoreScope,
+  onRestoreScopeChange,
+  archiveTables,
+  selectedTables,
+  onToggleTable,
+  tablesLoading,
+  tablesError,
   onNotesChange,
   onFileChange,
   onDatabaseKeyChange,
@@ -748,7 +904,8 @@ function RestoreFromFileModal({
     selectedFile.size > 0 &&
     selectedFile.name.toLowerCase().endsWith(".dump") &&
     acknowledge &&
-    confirmText === RESTORE_CONFIRM_TEXT;
+    confirmText === RESTORE_CONFIRM_TEXT &&
+    (restoreScope === "full" || selectedTables.length > 0);
 
   return (
     <Modal
@@ -856,6 +1013,20 @@ function RestoreFromFileModal({
           )}
         </div>
 
+        <TableScopeFields
+          idPrefix="restore-upload"
+          legend={adminLabels.restoreScopeLabel}
+          fullLabel={adminLabels.scopeFullBackup}
+          scope={restoreScope}
+          onScopeChange={onRestoreScopeChange}
+          tables={archiveTables}
+          selectedTables={selectedTables}
+          onToggleTable={onToggleTable}
+          loading={tablesLoading}
+          loadError={tablesError}
+          selectionDisabled={selectedFile == null}
+        />
+
         <label className="field backup-restore-upload-notes">
           <span className="field-label">{adminLabels.notesLabel}</span>
           <TextareaInput
@@ -945,6 +1116,21 @@ export function DatabaseBackupsPage() {
   const [notes, setNotes] = React.useState("");
   const [backupFormat, setBackupFormat] = React.useState<BackupFormat>("postgresql_dump");
   const [selectedDatabaseKeys, setSelectedDatabaseKeys] = React.useState<DatabaseKey[]>(["fair_crm"]);
+  const [backupScope, setBackupScope] = React.useState<BackupScope>("full");
+  const [selectedBackupTables, setSelectedBackupTables] = React.useState<string[]>([]);
+  const [catalogTables, setCatalogTables] = React.useState<string[]>([]);
+  const [catalogLoading, setCatalogLoading] = React.useState(false);
+  const [catalogError, setCatalogError] = React.useState<string | null>(null);
+  const [restoreScope, setRestoreScope] = React.useState<BackupScope>("full");
+  const [restoreArchiveTables, setRestoreArchiveTables] = React.useState<string[]>([]);
+  const [selectedRestoreTables, setSelectedRestoreTables] = React.useState<string[]>([]);
+  const [restoreTablesLoading, setRestoreTablesLoading] = React.useState(false);
+  const [restoreTablesError, setRestoreTablesError] = React.useState<string | null>(null);
+  const [uploadRestoreScope, setUploadRestoreScope] = React.useState<BackupScope>("full");
+  const [uploadArchiveTables, setUploadArchiveTables] = React.useState<string[]>([]);
+  const [selectedUploadTables, setSelectedUploadTables] = React.useState<string[]>([]);
+  const [uploadTablesLoading, setUploadTablesLoading] = React.useState(false);
+  const [uploadTablesError, setUploadTablesError] = React.useState<string | null>(null);
   const [creating, setCreating] = React.useState(false);
   const [createError, setCreateError] = React.useState<string | null>(null);
   const [detailBackup, setDetailBackup] = React.useState<SystemBackup | null>(null);
@@ -973,6 +1159,99 @@ export function DatabaseBackupsPage() {
     if (!detailRestoreJob) return null;
     return trackedJobs.get(detailRestoreJob.id) ?? detailRestoreJob;
   }, [detailRestoreJob, trackedJobs]);
+
+  React.useEffect(() => {
+    if (backupFormat !== "postgresql_dump" || selectedDatabaseKeys.length !== 1) {
+      if (backupScope === "selected_tables") {
+        setBackupScope("full");
+        setSelectedBackupTables([]);
+      }
+    }
+  }, [backupFormat, selectedDatabaseKeys, backupScope]);
+
+  React.useEffect(() => {
+    if (!showCreateModal || backupScope !== "selected_tables" || selectedDatabaseKeys.length !== 1) {
+      return;
+    }
+    const databaseKey = selectedDatabaseKeys[0];
+    let cancelled = false;
+    setCatalogLoading(true);
+    setCatalogError(null);
+    void listBackupCatalog(databaseKey)
+      .then((result) => {
+        if (!cancelled) setCatalogTables(result.tables);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setCatalogTables([]);
+          setCatalogError(err instanceof ApiError ? err.message : adminLabels.createError);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCatalogLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showCreateModal, backupScope, selectedDatabaseKeys]);
+
+  React.useEffect(() => {
+    if (!restoreTarget || restoreScope !== "selected_tables") return;
+    let cancelled = false;
+    setRestoreTablesLoading(true);
+    setRestoreTablesError(null);
+    void listBackupContents(restoreTarget.id)
+      .then((result) => {
+        if (!cancelled) setRestoreArchiveTables(result.tables);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setRestoreArchiveTables([]);
+          setRestoreTablesError(err instanceof ApiError ? err.message : adminLabels.restoreError);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setRestoreTablesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [restoreTarget, restoreScope]);
+
+  React.useEffect(() => {
+    if (!showRestoreUploadModal || uploadRestoreScope !== "selected_tables" || !restoreUploadFile) return;
+    let cancelled = false;
+    setUploadTablesLoading(true);
+    setUploadTablesError(null);
+    void previewRestoreUploadTables(restoreUploadFile, restoreUploadDatabaseKey)
+      .then((result) => {
+        if (!cancelled) setUploadArchiveTables(result.tables);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setUploadArchiveTables([]);
+          setUploadTablesError(err instanceof ApiError ? err.message : adminLabels.restoreError);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setUploadTablesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showRestoreUploadModal, uploadRestoreScope, restoreUploadFile, restoreUploadDatabaseKey]);
+
+  const toggleNamedTable = (table: string, selected: string[], setSelected: (value: string[]) => void) => {
+    setSelected(selected.includes(table) ? selected.filter((item) => item !== table) : [...selected, table]);
+  };
+
+  const backupCanSubmit =
+    selectedDatabaseKeys.length > 0 &&
+    (backupScope === "full" ||
+      (backupFormat === "postgresql_dump" &&
+        selectedDatabaseKeys.length === 1 &&
+        selectedBackupTables.length > 0 &&
+        !catalogLoading));
 
   React.useEffect(() => {
     syncRestoreJobsFromList(restoreJobsTable.items);
@@ -1017,6 +1296,10 @@ export function DatabaseBackupsPage() {
     setShowCreateModal(false);
     setBackupFormat("postgresql_dump");
     setSelectedDatabaseKeys(["fair_crm"]);
+    setBackupScope("full");
+    setSelectedBackupTables([]);
+    setCatalogTables([]);
+    setCatalogError(null);
     setNotes("");
     setCreateError(null);
   }, []);
@@ -1027,6 +1310,10 @@ export function DatabaseBackupsPage() {
   const closeRestoreConfirm = React.useCallback(() => {
     setRestoreTarget(null);
     setRestoreError(null);
+    setRestoreScope("full");
+    setSelectedRestoreTables([]);
+    setRestoreArchiveTables([]);
+    setRestoreTablesError(null);
   }, []);
 
   const closeDeleteConfirm = React.useCallback(() => {
@@ -1041,6 +1328,10 @@ export function DatabaseBackupsPage() {
     setRestoreUploadDatabaseKey("fair_crm");
     setRestoreUploadAcknowledge(false);
     setRestoreUploadConfirmText("");
+    setUploadRestoreScope("full");
+    setSelectedUploadTables([]);
+    setUploadArchiveTables([]);
+    setUploadTablesError(null);
     setRestoreError(null);
   }, []);
 
@@ -1050,9 +1341,13 @@ export function DatabaseBackupsPage() {
     setRestoreError(null);
     setRestorePollError(null);
     try {
-      const job = await restoreSystemBackup(restoreTarget.id);
+      const job = await restoreSystemBackup(
+        restoreTarget.id,
+        restoreScope,
+        restoreScope === "selected_tables" ? selectedRestoreTables : undefined,
+      );
       trackRestoreJob(job);
-      setRestoreTarget(null);
+      closeRestoreConfirm();
       setDetailBackup(null);
       setNotice(adminLabels.restoreSuccess);
       await restoreJobsTable.refresh();
@@ -1073,6 +1368,8 @@ export function DatabaseBackupsPage() {
         restoreUploadFile,
         restoreUploadDatabaseKey,
         restoreUploadNotes.trim() || null,
+        uploadRestoreScope,
+        uploadRestoreScope === "selected_tables" ? selectedUploadTables : undefined,
       );
       trackRestoreJob(job);
       closeRestoreUploadModal();
@@ -1108,14 +1405,26 @@ export function DatabaseBackupsPage() {
       setCreateError(adminLabels.databaseKeysRequired);
       return;
     }
+    if (backupScope === "selected_tables" && selectedBackupTables.length === 0) {
+      setCreateError(adminLabels.scopeTablesRequired);
+      return;
+    }
     setCreating(true);
     setNotice(null);
     setCreateError(null);
     try {
-      const batch = await createSystemBackup(selectedDatabaseKeys, notes.trim() || null, backupFormat);
+      const batch = await createSystemBackup(
+        selectedDatabaseKeys,
+        notes.trim() || null,
+        backupFormat,
+        backupScope,
+        backupScope === "selected_tables" ? selectedBackupTables : undefined,
+      );
       setShowCreateModal(false);
       setNotes("");
       setSelectedDatabaseKeys(["fair_crm"]);
+      setBackupScope("full");
+      setSelectedBackupTables([]);
       setNotice(adminLabels.backupStarting);
       setPollingIds((prev) => {
         const next = new Set(prev);
@@ -1276,7 +1585,7 @@ export function DatabaseBackupsPage() {
           footer={
             <CreateBackupModalFooter
               creating={creating}
-              canSubmit={selectedDatabaseKeys.length > 0}
+              canSubmit={backupCanSubmit}
               onCancel={closeCreateModal}
               onSubmit={() => void handleCreateBackup()}
             />
@@ -1288,7 +1597,21 @@ export function DatabaseBackupsPage() {
             backupFormat={backupFormat}
             onBackupFormatChange={setBackupFormat}
             selectedDatabaseKeys={selectedDatabaseKeys}
-            onDatabaseKeysChange={setSelectedDatabaseKeys}
+            onDatabaseKeysChange={(keys) => {
+              setSelectedDatabaseKeys(keys);
+              setSelectedBackupTables([]);
+              setCatalogTables([]);
+            }}
+            backupScope={backupScope}
+            onBackupScopeChange={(scope) => {
+              setBackupScope(scope);
+              if (scope === "full") setSelectedBackupTables([]);
+            }}
+            catalogTables={catalogTables}
+            selectedTables={selectedBackupTables}
+            onToggleTable={(table) => toggleNamedTable(table, selectedBackupTables, setSelectedBackupTables)}
+            catalogLoading={catalogLoading}
+            catalogError={catalogError}
             createError={createError}
             creating={creating}
             onCancel={closeCreateModal}
@@ -1372,6 +1695,16 @@ export function DatabaseBackupsPage() {
           backup={restoreTarget}
           restoring={restoring}
           error={restoreError}
+          restoreScope={restoreScope}
+          onRestoreScopeChange={(scope) => {
+            setRestoreScope(scope);
+            if (scope === "full") setSelectedRestoreTables([]);
+          }}
+          archiveTables={restoreArchiveTables}
+          selectedTables={selectedRestoreTables}
+          onToggleTable={(table) => toggleNamedTable(table, selectedRestoreTables, setSelectedRestoreTables)}
+          tablesLoading={restoreTablesLoading}
+          tablesError={restoreTablesError}
           onCancel={closeRestoreConfirm}
           onConfirm={() => void handleRestoreBackup()}
         />
@@ -1415,8 +1748,23 @@ export function DatabaseBackupsPage() {
           confirmText={restoreUploadConfirmText}
           restoring={restoring}
           error={restoreError}
+          restoreScope={uploadRestoreScope}
+          onRestoreScopeChange={(scope) => {
+            setUploadRestoreScope(scope);
+            if (scope === "full") setSelectedUploadTables([]);
+          }}
+          archiveTables={uploadArchiveTables}
+          selectedTables={selectedUploadTables}
+          onToggleTable={(table) => toggleNamedTable(table, selectedUploadTables, setSelectedUploadTables)}
+          tablesLoading={uploadTablesLoading}
+          tablesError={uploadTablesError}
           onNotesChange={setRestoreUploadNotes}
-          onFileChange={setRestoreUploadFile}
+          onFileChange={(file) => {
+            setRestoreUploadFile(file);
+            setSelectedUploadTables([]);
+            setUploadArchiveTables([]);
+            setUploadTablesError(null);
+          }}
           onDatabaseKeyChange={setRestoreUploadDatabaseKey}
           onAcknowledgeChange={setRestoreUploadAcknowledge}
           onConfirmTextChange={setRestoreUploadConfirmText}

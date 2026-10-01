@@ -1,6 +1,13 @@
 export type BackupFormat = "postgresql_dump" | "postgresql_sql" | "universal_data_package";
 
+export type BackupScope = "full" | "selected_tables";
+
 export type DatabaseKey = "kyrox_core" | "fair_crm" | "fair_stand";
+
+export interface BackupTableCatalog {
+  database_key: DatabaseKey;
+  tables: string[];
+}
 
 export interface SystemBackup {
   id: string;

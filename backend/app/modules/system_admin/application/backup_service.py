@@ -26,8 +26,19 @@ from app.shared.database_backup.paths import relative_repo_path
 from app.shared.database_backup.engine import (
     DatabaseBackupError,
     is_custom_pg_dump,
+    list_custom_dump_tables,
     sha256_file,
     verify_backup_dump,
+)
+from app.shared.database_backup.table_selection import (
+    SCOPE_FULL,
+    SCOPE_SELECTED_TABLES,
+    TableSelectionError,
+    list_public_base_tables,
+    require_tables_in_archive,
+    require_tables_in_catalog,
+    resolve_scope,
+    scope_manifest,
 )
 from app.shared.database_backup.formats import BackupFormat
 from app.shared.database_backup.paths import generate_backup_filename, get_restore_uploads_dir, resolve_backup_path
@@ -64,6 +75,8 @@ class CreateSystemBackupCommand:
     notes: str | None
     backup_format: BackupFormat = BackupFormat.POSTGRESQL_DUMP
     database_keys: list[DatabaseKey] | None = None
+    scope: str | None = None
+    tables: list[str] | None = None
 
 
 @dataclass
@@ -103,6 +116,26 @@ class CreateSystemBackupUseCase:
         database_keys = parse_database_keys(
             [key.value for key in command.database_keys] if command.database_keys else None
         )
+        try:
+            resolved_scope, selected_tables = resolve_scope(scope=command.scope, tables=command.tables)
+        except TableSelectionError as exc:
+            raise ValueError(str(exc)) from exc
+        if resolved_scope == SCOPE_SELECTED_TABLES:
+            if command.backup_format != BackupFormat.POSTGRESQL_DUMP:
+                raise ValueError("Selected table backup is only supported for PostgreSQL custom dumps")
+            if len(database_keys) != 1:
+                raise ValueError("Selected table backup requires exactly one database")
+            try:
+                catalog = list_public_base_tables(resolve_database_url(database_keys[0]))
+                require_tables_in_catalog(selected_tables or [], catalog)
+            except TableSelectionError as exc:
+                raise ValueError(str(exc)) from exc
+        backup_manifest = None
+        if command.backup_format != BackupFormat.UNIVERSAL_DATA_PACKAGE:
+            backup_manifest = scope_manifest(
+                scope=resolved_scope,
+                tables=selected_tables,
+            )
         now = datetime.now(tz=UTC)
         results: list[CreateSystemBackupResult] = []
         for database_key in database_keys:
@@ -122,6 +155,7 @@ class CreateSystemBackupUseCase:
                 notes=command.notes,
                 now=now,
             )
+            backup.manifest_json = backup_manifest
             saved = self._repository.add(backup)
             results.append(
                 CreateSystemBackupResult(
@@ -335,6 +369,8 @@ class RestoreSystemBackupCommand:
     user_email: str | None
     access_token: str
     backup_id: UUID
+    scope: str | None = None
+    tables: list[str] | None = None
 
 
 @dataclass
@@ -347,6 +383,8 @@ class RestoreSystemBackupFromUploadCommand:
     file_bytes: bytes
     notes: str | None
     database_key: DatabaseKey
+    scope: str | None = None
+    tables: list[str] | None = None
 
 
 @dataclass
@@ -411,6 +449,27 @@ class DeleteSystemBackupResult:
     file_name: str
 
 
+def _restore_scope_manifest(
+    *,
+    scope: str | None,
+    tables: list[str] | None,
+    database_url: str,
+    dump_path,
+) -> dict:
+    try:
+        resolved_scope, selected_tables = resolve_scope(scope=scope, tables=tables)
+    except TableSelectionError as exc:
+        raise ValueError(str(exc)) from exc
+    if resolved_scope != SCOPE_SELECTED_TABLES:
+        return scope_manifest(scope=SCOPE_FULL)
+    archive_tables = list_custom_dump_tables(database_url=database_url, dump_path=dump_path)
+    try:
+        require_tables_in_archive(selected_tables or [], archive_tables)
+    except TableSelectionError as exc:
+        raise ValueError(str(exc)) from exc
+    return scope_manifest(scope=SCOPE_SELECTED_TABLES, tables=selected_tables)
+
+
 class RestoreSystemBackupUseCase:
     def __init__(
         self,
@@ -454,6 +513,12 @@ class RestoreSystemBackupUseCase:
                 database_url=resolve_database_url(backup.database_key),
                 dump_path=path,
             )
+            restore_manifest = _restore_scope_manifest(
+                scope=command.scope,
+                tables=command.tables,
+                database_url=resolve_database_url(backup.database_key),
+                dump_path=path,
+            )
         except DatabaseBackupError as exc:
             raise ValueError(str(exc)) from exc
 
@@ -471,6 +536,7 @@ class RestoreSystemBackupUseCase:
             requested_by_user_id=command.user_id,
             requested_by_email=command.user_email,
             now=now,
+            manifest_json=restore_manifest,
         )
         saved = self._restore_job_repository.add(job)
         initialize_restore_job_log_file(saved)
@@ -489,6 +555,8 @@ class RestoreSystemBackupUseCase:
                 "checksum_sha256": backup.checksum,
                 "source_database_key": backup.database_key.value,
                 "target_database_key": backup.database_key.value,
+                "scope": restore_manifest.get("scope", SCOPE_FULL),
+                "tables": restore_manifest.get("tables"),
             },
             metadata={"user_id": str(command.user_id), "source": "existing_backup"},
         )
@@ -548,7 +616,13 @@ class RestoreSystemBackupFromUploadUseCase:
                 database_url=resolve_database_url(command.database_key),
                 dump_path=stored_path,
             )
-        except DatabaseBackupError as exc:
+            restore_manifest = _restore_scope_manifest(
+                scope=command.scope,
+                tables=command.tables,
+                database_url=resolve_database_url(command.database_key),
+                dump_path=stored_path,
+            )
+        except (DatabaseBackupError, ValueError) as exc:
             stored_path.unlink(missing_ok=True)
             raise ValueError(str(exc)) from exc
 
@@ -567,6 +641,7 @@ class RestoreSystemBackupFromUploadUseCase:
             requested_by_user_id=command.user_id,
             requested_by_email=command.user_email,
             now=now,
+            manifest_json=restore_manifest,
         )
         saved = self._restore_job_repository.add(job)
         initialize_restore_job_log_file(saved)
@@ -587,6 +662,8 @@ class RestoreSystemBackupFromUploadUseCase:
                 "notes": command.notes,
                 "source_database_key": command.database_key.value,
                 "target_database_key": command.database_key.value,
+                "scope": restore_manifest.get("scope", SCOPE_FULL),
+                "tables": restore_manifest.get("tables"),
             },
             metadata={"user_id": str(command.user_id), "source": "file_upload"},
         )

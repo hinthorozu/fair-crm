@@ -5,6 +5,8 @@ import type { ServerTableFetchParams } from "../hooks/useServerDataTable";
 import type { StandardListResponse } from "../types/listTable";
 import type {
   BackupFormat,
+  BackupScope,
+  BackupTableCatalog,
   CreateSystemBackupBatchResponse,
   DatabaseKey,
   DeleteRestoreJobResponse,
@@ -62,6 +64,8 @@ export async function createSystemBackup(
   databaseKeys: DatabaseKey[],
   notes?: string | null,
   backupFormat: BackupFormat = "postgresql_dump",
+  scope: BackupScope = "full",
+  tables?: string[],
 ): Promise<CreateSystemBackupBatchResponse> {
   return apiRequest<CreateSystemBackupBatchResponse>("/api/v1/admin/backups", {
     method: "POST",
@@ -69,8 +73,20 @@ export async function createSystemBackup(
       database_keys: databaseKeys,
       notes: notes ?? null,
       backup_format: backupFormat,
+      scope,
+      ...(scope === "selected_tables" ? { tables: tables ?? [] } : {}),
     }),
   });
+}
+
+export async function listBackupCatalog(databaseKey: DatabaseKey): Promise<BackupTableCatalog> {
+  return apiRequest<BackupTableCatalog>(
+    `/api/v1/admin/backups/catalog?database_key=${encodeURIComponent(databaseKey)}`,
+  );
+}
+
+export async function listBackupContents(backupId: string): Promise<BackupTableCatalog> {
+  return apiRequest<BackupTableCatalog>(`/api/v1/admin/backups/${backupId}/contents`);
 }
 
 export async function getSystemBackup(id: string): Promise<SystemBackup> {
@@ -103,20 +119,70 @@ export async function downloadSystemBackup(id: string, fileName: string): Promis
   URL.revokeObjectURL(objectUrl);
 }
 
-export async function restoreSystemBackup(backupId: string): Promise<SystemBackupRestoreJobResponse> {
+export async function restoreSystemBackup(
+  backupId: string,
+  scope: BackupScope = "full",
+  tables?: string[],
+): Promise<SystemBackupRestoreJobResponse> {
   return apiRequest<SystemBackupRestoreJobResponse>(`/api/v1/admin/backups/${backupId}/restore`, {
     method: "POST",
+    body: JSON.stringify({
+      scope,
+      ...(scope === "selected_tables" ? { tables: tables ?? [] } : {}),
+    }),
   });
+}
+
+export async function previewRestoreUploadTables(
+  file: File,
+  databaseKey: DatabaseKey,
+): Promise<BackupTableCatalog> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("database_key", databaseKey);
+  const response = await fetchWithTimeout(`${config.apiBaseUrl}/api/v1/admin/backups/restore/contents`, {
+    method: "POST",
+    headers: authHeadersOnly(),
+    body: formData,
+  });
+  const text = await response.text();
+  let data: unknown = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = text;
+    }
+  }
+  if (!response.ok) {
+    let detail = `HTTP ${response.status}`;
+    if (data && typeof data === "object" && "detail" in data) {
+      const value = (data as { detail?: string }).detail;
+      if (value) detail = value;
+    } else if (typeof data === "string" && data) {
+      detail = data;
+    }
+    throw new ApiError(detail, response.status);
+  }
+  return data as BackupTableCatalog;
 }
 
 export async function restoreSystemBackupFromUpload(
   file: File,
   databaseKey: DatabaseKey,
   notes?: string | null,
+  scope: BackupScope = "full",
+  tables?: string[],
 ): Promise<SystemBackupRestoreJobResponse> {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("database_key", databaseKey);
+  formData.append("scope", scope);
+  if (scope === "selected_tables") {
+    for (const table of tables ?? []) {
+      formData.append("tables", table);
+    }
+  }
   if (notes?.trim()) {
     formData.append("notes", notes.trim());
   }
