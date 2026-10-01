@@ -9,6 +9,7 @@
   "tenant_scope": "none",
   "user_facing": true,
   "affected_paths": [
+    "frontend/src/fairStand/liveTabShare.js",
     "frontend/src/pages/StandWatchPage.tsx",
     "frontend/src/pages/standWatchRoute.ts",
     "frontend/src/pages/standWatchRoute.test.ts",
