@@ -18,6 +18,8 @@
     "frontend/src/vite-env.d.ts",
     "frontend/vite.config.ts",
     "scripts/server/apply-nginx-upload-limit.sh",
+    "frontend/scripts/capture-ui-evidence.mjs",
+    "scripts/maintenance/inventory_frontend_ui.py",
     "scripts/server/nginx/fair-crm.conf",
     ".kyrox/features/live-tab-share-watch.json"
   ],

@@ -733,6 +733,18 @@ P3_PAGE_ALLOWLIST_ENTRIES: list[AllowlistEntry] = [
         "Fair Stand is a full-viewport runtime host outside AppLayout; PageShell would add CRM chrome.",
         "fair stand standalone specialty",
     ),
+    AllowlistEntry(
+        "frontend/src/pages/StandWatchPage.tsx",
+        "PageShell missing",
+        "The public watch page is a full-viewport video host outside AppLayout; PageShell would add CRM chrome.",
+        "fair stand watch specialty",
+    ),
+    AllowlistEntry(
+        "frontend/src/pages/standWatchRoute.ts",
+        "PageShell missing",
+        "Token parser for the watch URL. It is not a page and has no shell.",
+        "fair stand watch specialty",
+    ),
 ]
 P3_PAGE_ALLOWLIST = {Path(e.file).name for e in P3_PAGE_ALLOWLIST_ENTRIES}
 
