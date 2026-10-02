@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Patch the live nginx site in place (do not replace the file: certbot SSL stays).
-# - client_max_body_size for backup/restore uploads
-# - /api/v1/fair-stand/ -> 127.0.0.1:8002 ahead of /api/ -> 8001
-# - /api/v1/fair-stand/live-shares upgrades WebSocket without a trailing-slash redirect
+# Add missing nginx directives in place. Existing lines and location blocks stay.
+# - client_max_body_size only when the site has none
+# - /api/v1/fair-stand/ only when that location is missing
+# - /api/v1/fair-stand/live-shares only when that location is missing
 # A failed nginx -t restores the previous site file.
 set -euo pipefail
 
@@ -11,9 +11,7 @@ LIMIT="${FAIR_CRM_NGINX_UPLOAD_LIMIT:-256m}"
 
 [[ -f "$SITE" ]] || exit 0
 
-if grep -Eq '^[[:space:]]*client_max_body_size[[:space:]]+' "$SITE"; then
-  sed -i -E "s|^[[:space:]]*client_max_body_size[[:space:]]+[^;]+;|    client_max_body_size ${LIMIT};|" "$SITE"
-else
+if ! grep -Eq '^[[:space:]]*client_max_body_size[[:space:]]+' "$SITE"; then
   sed -i -E "/^[[:space:]]*server_name[[:space:]].*;/a\\
     client_max_body_size ${LIMIT};" "$SITE"
 fi
@@ -61,25 +59,6 @@ stand_block = """    location ^~ /api/v1/fair-stand/ {
 
 """
 
-def drop_locations(body: str, token: str) -> str:
-    lines = body.splitlines(keepends=True)
-    out = []
-    index = 0
-    while index < len(lines):
-        stripped = lines[index].lstrip()
-        if stripped.startswith("location") and token in stripped:
-            depth = lines[index].count("{") - lines[index].count("}")
-            index += 1
-            while index < len(lines) and depth > 0:
-                depth += lines[index].count("{") - lines[index].count("}")
-                index += 1
-            if index < len(lines) and lines[index].strip() == "":
-                index += 1
-            continue
-        out.append(lines[index])
-        index += 1
-    return "".join(out)
-
 def insert_before(body: str, predicate, block_text: str) -> str:
     lines = body.splitlines(keepends=True)
     for index, line in enumerate(lines):
@@ -103,13 +82,15 @@ def is_stand_location(stripped: str) -> bool:
 def is_api_location(stripped: str) -> bool:
     return stripped.startswith("location /api/") or stripped.startswith("location /api {")
 
+def is_live_location(stripped: str) -> bool:
+    return stripped.startswith("location") and "/api/v1/fair-stand/live-shares" in stripped
+
 def patch_server(body: str) -> str:
-    had_stand = any(is_stand_location(line.lstrip()) for line in body.splitlines())
-    had_api = any(is_api_location(line.lstrip()) for line in body.splitlines())
-    if not had_stand and not had_api:
-        return body
-    body = drop_locations(body, "/api/v1/fair-stand/live-shares")
-    if had_stand or had_api:
+    lines = [line.lstrip() for line in body.splitlines()]
+    had_live = any(is_live_location(line) for line in lines)
+    had_stand = any(is_stand_location(line) for line in lines)
+    had_api = any(is_api_location(line) for line in lines)
+    if not had_live and (had_stand or had_api):
         anchor = is_stand_location if had_stand else is_api_location
         body = insert_before(body, anchor, live_block)
     if not had_stand and had_api:

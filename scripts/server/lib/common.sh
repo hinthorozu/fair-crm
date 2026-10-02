@@ -1896,11 +1896,8 @@ install_nginx_site() {
     rm -f "$rendered"
   fi
 
-  if [[ ! -L "$enabled" ]]; then
+  if [[ ! -e "$enabled" ]]; then
     run_root ln -sf "$available" "$enabled"
-  fi
-  if [[ -L /etc/nginx/sites-enabled/default ]]; then
-    run_root rm -f /etc/nginx/sites-enabled/default
   fi
 
   run_root nginx -t
