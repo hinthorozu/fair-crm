@@ -50,10 +50,7 @@ export function FairStandPage({ mode, projectId, customerId, onBackToList }: Fai
         customerId: mode === "new" ? customerId : undefined,
         capabilities,
       });
-      const sidebar = hostRef.current
-        ?.querySelector("iframe")
-        ?.contentDocument
-        ?.querySelector("#sidebar");
+      const sidebar = hostRef.current?.querySelector("#sidebar");
       const intro = sidebar?.querySelector(".sidebar-intro");
       if (!sidebar || !intro || sidebar.querySelector(".sidebar-back")) return;
       const button = sidebar.ownerDocument.createElement("button");

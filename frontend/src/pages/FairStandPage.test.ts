@@ -33,7 +33,10 @@ describe("FairStandPage standalone host", () => {
     expect(source).toContain("capabilities");
     expect(source).toContain('import("@fair-stand/mountFairStand.js")');
     expect(source).toContain('button.className = "sidebar-back"');
+    expect(source).toContain('hostRef.current?.querySelector("#sidebar")');
     expect(source).toContain("sidebar.insertBefore(button, intro)");
+    expect(source).not.toContain('querySelector("iframe")');
+    expect(source).not.toContain("contentDocument");
     expect(source).not.toContain("FairStandEmbed");
     expect(source).not.toContain("PageShell");
   });
