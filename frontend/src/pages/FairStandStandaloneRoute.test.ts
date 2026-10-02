@@ -44,6 +44,11 @@ describe("Stand projects CRM routes", () => {
     expect(detail).toContain("PERMISSION_STAND_PROJECTS_READ");
     expect(detail).toContain("PERMISSION_STAND_PROJECTS_CREATE");
     expect(detail).toContain("onCreateStandProject(customerId)");
+    expect(detail).toContain("standProjectsLabels.actionEdit");
+    expect(detail).toContain("standProjectsLabels.actionAssignCustomer");
+    expect(detail).toContain("standProjectsLabels.actionDelete");
+    expect(detail).toContain("assignFairStandProjectCustomer");
+    expect(detail).toContain("deleteFairStandProject");
   });
 
   it("uses a full-viewport standalone host without a top chrome bar", () => {

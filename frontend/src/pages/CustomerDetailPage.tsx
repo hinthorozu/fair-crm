@@ -13,7 +13,12 @@ import {
   updateParticipation,
 } from "../api/participations";
 import { getCustomer, archiveCustomer, updateCustomer } from "../api/customers";
-import { listFairStandProjects, type FairStandProjectSummary } from "../api/fairStandProjects";
+import {
+  assignFairStandProjectCustomer,
+  deleteFairStandProject,
+  listFairStandProjects,
+  type FairStandProjectSummary,
+} from "../api/fairStandProjects";
 import {
   createContact,
   deleteContact,
@@ -43,7 +48,11 @@ import {
   participationToFormValues,
   type ParticipationFormValues,
 } from "../components/ParticipationForm";
+import { CustomerEntitySelect } from "../components/CustomerEntitySelect";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { Button } from "../components/ui/Button";
+import { Modal } from "../components/ui/Modal";
+import { TableRowActions } from "../components/ui/TableRowActions";
 import { FilterPanel } from "../components/ui/FilterPanel";
 import { EmptyState } from "../components/ui/EmptyState";
 import { LoadingState } from "../components/ui/LoadingState";
@@ -81,6 +90,7 @@ import { Banner } from "../components/ui/Banner";
 import { PageShell } from "../components/ui/PageShell";
 import { config } from "../config";
 import { hasGrantedCorePermission } from "../permissions/corePermissions";
+import { CUSTOMER_READ } from "../permissions/customerPermissions";
 
 const PERMISSION_CUSTOMERS_UPDATE = "fair_crm.customers.update";
 const PERMISSION_CUSTOMERS_DELETE = "fair_crm.customers.delete";
@@ -98,6 +108,8 @@ const PERMISSION_PARTICIPATIONS_UPDATE = "fair_crm.participations.update";
 const PERMISSION_PARTICIPATIONS_DELETE = "fair_crm.participations.delete";
 const PERMISSION_STAND_PROJECTS_READ = "fair_crm.fair_stand.projects.read";
 const PERMISSION_STAND_PROJECTS_CREATE = "fair_crm.fair_stand.projects.create";
+const PERMISSION_STAND_PROJECTS_UPDATE = "fair_crm.fair_stand.projects.update";
+const PERMISSION_STAND_PROJECTS_DELETE = "fair_crm.fair_stand.projects.delete";
 
 interface CustomerDetailPageProps {
   customerId: string;
@@ -156,6 +168,9 @@ export function CustomerDetailPage({
   const canParticipationsDelete = hasPermission(PERMISSION_PARTICIPATIONS_DELETE);
   const canStandProjectsRead = hasPermission(PERMISSION_STAND_PROJECTS_READ);
   const canStandProjectsCreate = hasPermission(PERMISSION_STAND_PROJECTS_CREATE);
+  const canStandProjectsUpdate = hasPermission(PERMISSION_STAND_PROJECTS_UPDATE);
+  const canStandProjectsDelete = hasPermission(PERMISSION_STAND_PROJECTS_DELETE);
+  const canReadCustomers = hasPermission(CUSTOMER_READ);
 
   const normalizeTab = React.useCallback(
     (tab: TabId): TabId => {
@@ -179,6 +194,11 @@ export function CustomerDetailPage({
   const [standProjects, setStandProjects] = React.useState<FairStandProjectSummary[]>([]);
   const [standProjectsTotal, setStandProjectsTotal] = React.useState(0);
   const [standProjectsLoading, setStandProjectsLoading] = React.useState(false);
+  const [deletingStandProject, setDeletingStandProject] = React.useState<FairStandProjectSummary | null>(null);
+  const [standProjectDeleteBusy, setStandProjectDeleteBusy] = React.useState(false);
+  const [assigningStandProject, setAssigningStandProject] = React.useState<FairStandProjectSummary | null>(null);
+  const [assignStandCustomerId, setAssignStandCustomerId] = React.useState("");
+  const [assignStandBusy, setAssignStandBusy] = React.useState(false);
   const [modal, setModal] = React.useState<
     | "edit-customer"
     | "create-contact"
@@ -527,6 +547,62 @@ export function CustomerDetailPage({
       cancelled = true;
     };
   }, [canStandProjectsRead, customer, customerId]);
+
+  const removeStandProject = (projectId: string) => {
+    setStandProjects((current) => {
+      const next = current.filter((row) => row.id !== projectId);
+      setStandProjectsTotal(next.length);
+      return next;
+    });
+  };
+
+  const saveStandProjectAssign = async () => {
+    if (
+      !canStandProjectsUpdate ||
+      !assigningStandProject ||
+      !assignStandCustomerId ||
+      assignStandCustomerId === assigningStandProject.customerId
+    ) {
+      return;
+    }
+    setAssignStandBusy(true);
+    setError(null);
+    try {
+      await assignFairStandProjectCustomer(assigningStandProject.id, assignStandCustomerId);
+      if (assignStandCustomerId !== customerId) {
+        removeStandProject(assigningStandProject.id);
+      }
+      setAssigningStandProject(null);
+      setAssignStandCustomerId("");
+    } catch (assignError) {
+      setError(
+        assignError instanceof ApiError || assignError instanceof Error
+          ? assignError.message
+          : standProjectsLabels.assignError,
+      );
+    } finally {
+      setAssignStandBusy(false);
+    }
+  };
+
+  const confirmDeleteStandProject = async () => {
+    if (!canStandProjectsDelete || !deletingStandProject) return;
+    setStandProjectDeleteBusy(true);
+    setError(null);
+    try {
+      await deleteFairStandProject(deletingStandProject.id);
+      removeStandProject(deletingStandProject.id);
+      setDeletingStandProject(null);
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof ApiError || deleteError instanceof Error
+          ? deleteError.message
+          : standProjectsLabels.deleteError,
+      );
+    } finally {
+      setStandProjectDeleteBusy(false);
+    }
+  };
 
   const tabItems = [
     { id: "overview" as const, label: uiLabels.tabOverview },
@@ -980,15 +1056,30 @@ export function CustomerDetailPage({
                     <td>{project.name || "Adsız Proje"}</td>
                     <td>{new Date(project.updatedAt).toLocaleString("tr-TR")}</td>
                     <td>
-                      {onOpenStandProject ? (
-                        <button
-                          type="button"
-                          className="btn secondary btn-sm"
-                          onClick={() => onOpenStandProject(project.id)}
-                        >
-                          {standProjectsLabels.actionEdit}
-                        </button>
-                      ) : null}
+                      <TableRowActions>
+                        {canStandProjectsUpdate && onOpenStandProject ? (
+                          <Button size="sm" variant="secondary" onClick={() => onOpenStandProject(project.id)}>
+                            {standProjectsLabels.actionEdit}
+                          </Button>
+                        ) : null}
+                        {canStandProjectsUpdate && canReadCustomers ? (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              setAssignStandCustomerId("");
+                              setAssigningStandProject(project);
+                            }}
+                          >
+                            {standProjectsLabels.actionAssignCustomer}
+                          </Button>
+                        ) : null}
+                        {canStandProjectsDelete ? (
+                          <Button size="sm" variant="danger" onClick={() => setDeletingStandProject(project)}>
+                            {standProjectsLabels.actionDelete}
+                          </Button>
+                        ) : null}
+                      </TableRowActions>
                     </td>
                   </tr>
                 ))}
@@ -1125,6 +1216,63 @@ export function CustomerDetailPage({
           onConfirm={() => void handleDeleteParticipation(confirm.item)}
         />
       )}
+
+      {assigningStandProject && canStandProjectsUpdate && canReadCustomers ? (
+        <Modal
+          title={standProjectsLabels.assignCustomerTitle}
+          onClose={() => {
+            if (!assignStandBusy) setAssigningStandProject(null);
+          }}
+          footer={
+            <>
+              <Button
+                variant="secondary"
+                disabled={assignStandBusy}
+                onClick={() => setAssigningStandProject(null)}
+              >
+                İptal
+              </Button>
+              <Button
+                variant="primary"
+                disabled={
+                  assignStandBusy ||
+                  !assignStandCustomerId ||
+                  assignStandCustomerId === assigningStandProject.customerId
+                }
+                onClick={() => {
+                  void saveStandProjectAssign();
+                }}
+              >
+                {standProjectsLabels.assignCustomerConfirm}
+              </Button>
+            </>
+          }
+        >
+          <p>{standProjectsLabels.assignCustomerDescription(assigningStandProject.name || "Adsız Proje")}</p>
+          <CustomerEntitySelect
+            id="customer-detail-stand-assign"
+            value={assignStandCustomerId}
+            allowClear={false}
+            onChange={setAssignStandCustomerId}
+          />
+        </Modal>
+      ) : null}
+
+      {deletingStandProject && canStandProjectsDelete ? (
+        <ConfirmDialog
+          title={standProjectsLabels.deleteConfirmTitle}
+          message={standProjectsLabels.deleteConfirmDescription(deletingStandProject.name || "Adsız Proje")}
+          confirmLabel={standProjectsLabels.deleteConfirmAction}
+          variant="danger"
+          loading={standProjectDeleteBusy}
+          onCancel={() => {
+            if (!standProjectDeleteBusy) setDeletingStandProject(null);
+          }}
+          onConfirm={() => {
+            void confirmDeleteStandProject();
+          }}
+        />
+      ) : null}
 
       {confirm?.type === "archive" && canCustomerDelete && (
         <ConfirmDialog
