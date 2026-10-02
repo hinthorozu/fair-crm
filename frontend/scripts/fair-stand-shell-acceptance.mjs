@@ -11,36 +11,82 @@ const EMAIL = process.env.FAIR_CRM_DEV_EMAIL || "dev@example.com";
 const PASSWORD = process.env.FAIR_CRM_DEV_PASSWORD || "DevPassword123!";
 
 async function countFairStandRuntime(page) {
-  const frames = page.locator('[data-testid="fair-stand-frame"]');
-  const frameCount = await frames.count();
-  const canvasCount = await page
-    .frameLocator('[data-testid="fair-stand-frame"]')
-    .locator("canvas")
-    .count()
-    .catch(() => 0);
+  const frameCount = await page.locator('[data-testid="fair-stand-frame"]').count();
   const hostCanvasCount = await page.locator('[data-testid="fair-stand-host"] canvas').count();
-  return { frameCount, canvasCount, hostCanvasCount };
+  const mountStyleCount = await page.locator("style[data-fair-stand-mount]").count();
+  return { frameCount, hostCanvasCount, mountStyleCount };
 }
 
-async function assertStandaloneFairStand(page) {
-  if (await page.locator("aside.sidebar").count()) {
-    throw new Error("CRM sidebar is present on standalone /fair-stand");
+function assertSameOrigin(page) {
+  const origin = new URL(page.url()).origin;
+  if (origin !== new URL(BASE).origin) {
+    throw new Error(`Fair Stand left the CRM origin: ${page.url()}`);
+  }
+  if (/5174/.test(page.url())) {
+    throw new Error(`Fair Stand loaded a separate dev server: ${page.url()}`);
+  }
+}
+
+async function assertNoStandLeak(page, where) {
+  const runtime = await countFairStandRuntime(page);
+  if (runtime.frameCount !== 0) {
+    throw new Error(`Fair Stand iframe leaked onto ${where}: ${runtime.frameCount}`);
+  }
+  if (runtime.hostCanvasCount !== 0) {
+    throw new Error(`Fair Stand canvas leaked onto ${where}: ${runtime.hostCanvasCount}`);
+  }
+  if (runtime.mountStyleCount !== 0) {
+    throw new Error(`Fair Stand mount style leaked onto ${where}: ${runtime.mountStyleCount}`);
+  }
+}
+
+async function assertSameDocumentFairStand(page) {
+  assertSameOrigin(page);
+  if (await page.locator(".app-shell").count()) {
+    throw new Error("CRM shell is present on the stand editor");
+  }
+  if (await page.locator("nav.sidebar-nav").count()) {
+    throw new Error("CRM sidebar is present on the stand editor");
   }
   if (await page.locator("header.app-topbar").count()) {
-    throw new Error("CRM topbar is present on standalone /fair-stand");
+    throw new Error("CRM topbar is present on the stand editor");
   }
   if (await page.locator(".breadcrumb").count()) {
-    throw new Error("CRM breadcrumb is present on standalone /fair-stand");
+    throw new Error("CRM breadcrumb is present on the stand editor");
   }
   await page.getByTestId("fair-stand-standalone").waitFor({ state: "visible", timeout: 15_000 });
   await page.getByTestId("fair-stand-host").waitFor({ state: "visible", timeout: 15_000 });
-
-  const frame = page.frameLocator('[data-testid="fair-stand-frame"]');
-  await frame.getByRole("heading", { name: "Maxima Stand Konfigüratörü" }).waitFor({
+  await page.getByRole("heading", { name: "Maxima Konfigüratörü" }).waitFor({
     state: "visible",
     timeout: 30_000,
   });
-  await frame.locator("#viewport-empty").waitFor({ state: "visible", timeout: 15_000 });
+  await page.locator("#viewport-empty").waitFor({ state: "attached", timeout: 15_000 });
+  await page.locator('[data-testid="fair-stand-host"] canvas').first().waitFor({
+    state: "attached",
+    timeout: 30_000,
+  });
+  await page.locator(".sidebar-back").waitFor({ state: "visible", timeout: 15_000 });
+
+  const runtime = await countFairStandRuntime(page);
+  if (runtime.frameCount !== 0) {
+    throw new Error(`Expected no Fair Stand iframe, got ${runtime.frameCount}`);
+  }
+  if (runtime.hostCanvasCount < 1) {
+    throw new Error("Fair Stand canvas is missing from the host document");
+  }
+  if (runtime.mountStyleCount !== 1) {
+    throw new Error(`Expected one Fair Stand mount style, got ${runtime.mountStyleCount}`);
+  }
+
+  const box = await page.getByTestId("fair-stand-standalone").boundingBox();
+  const viewport = page.viewportSize();
+  if (!box || !viewport) throw new Error("Could not measure Fair Stand viewport");
+  if (box.width < viewport.width - 2 || box.height < viewport.height - 2) {
+    throw new Error(
+      `Fair Stand does not fill the viewport: host=${box.width}x${box.height} viewport=${viewport.width}x${viewport.height}`,
+    );
+  }
+  return { box, runtime };
 }
 
 async function main() {
@@ -49,12 +95,8 @@ async function main() {
   const consoleErrors = [];
   const pageErrors = [];
 
-  page.on("console", (msg) => {
-    if (msg.type() !== "error") return;
-    const text = msg.text();
-    const location = msg.location();
-    consoleErrors.push(`${text}${location?.url ? ` @ ${location.url}` : ""}`);
-  });
+  page.on("console", (msg) => recordConsoleError(consoleErrors, msg));
+  page.on("response", (response) => recordFailedResponse(consoleErrors, response));
   page.on("pageerror", (error) => {
     pageErrors.push(error.message);
   });
@@ -70,23 +112,24 @@ async function main() {
       ]);
     }
 
-    const fairStandNav = page.getByRole("link", { name: "Fair Stand" });
+    const fairStandNav = page.getByRole("link", { name: "Standlar" });
     await fairStandNav.waitFor({ state: "visible", timeout: 15_000 });
     await expectNavOpensNewTab(fairStandNav);
 
     const crmPath = new URL(page.url()).pathname;
-    const [standalone] = await Promise.all([
+    const [projectList] = await Promise.all([
       page.waitForEvent("popup"),
       fairStandNav.click(),
     ]);
-    standalone.on("console", (msg) => {
-      if (msg.type() !== "error") return;
-      consoleErrors.push(msg.text());
-    });
-    standalone.on("pageerror", (error) => {
-      pageErrors.push(error.message);
-    });
-    await standalone.waitForURL((url) => url.pathname === "/fair-stand", { timeout: 15_000 });
+    const watchPage = (target) => {
+      target.on("console", (msg) => recordConsoleError(consoleErrors, msg));
+      target.on("pageerror", (error) => {
+        pageErrors.push(error.message);
+      });
+      target.on("response", (response) => recordFailedResponse(consoleErrors, response));
+    };
+    watchPage(projectList);
+    await projectList.waitForURL((url) => url.pathname === "/stand-projects", { timeout: 15_000 });
     if (new URL(page.url()).pathname !== crmPath) {
       throw new Error(`CRM tab navigated away from ${crmPath} to ${page.url()}`);
     }
@@ -94,36 +137,23 @@ async function main() {
       throw new Error("CRM sidebar missing on the original CRM tab");
     }
 
-    await assertStandaloneFairStand(standalone);
+    const editButton = projectList.getByRole("button", { name: "Düzenle" }).first();
+    await editButton.waitFor({ state: "visible", timeout: 15_000 });
+    const [editor] = await Promise.all([
+      projectList.waitForEvent("popup"),
+      editButton.click(),
+    ]);
+    watchPage(editor);
+    await editor.waitForURL((url) => /^\/stand-projects\/[^/]+$/.test(url.pathname), { timeout: 15_000 });
+    const editorState = await assertSameDocumentFairStand(editor);
 
-    const remountRuntime = await countFairStandRuntime(standalone);
-    if (remountRuntime.frameCount !== 1) {
-      throw new Error(`Expected one Fair Stand iframe after mount, got ${remountRuntime.frameCount}`);
-    }
-    if (remountRuntime.hostCanvasCount !== 0) {
-      throw new Error(`Canvas leaked into CRM host: ${remountRuntime.hostCanvasCount}`);
-    }
-
-    const iframeSrc = await standalone.locator('[data-testid="fair-stand-frame"]').getAttribute("src");
-    if (iframeSrc && /5174|fair-stand/i.test(iframeSrc)) {
-      throw new Error(`Fair Stand iframe loaded a separate origin: ${iframeSrc}`);
-    }
-
-    const box = await standalone.getByTestId("fair-stand-standalone").boundingBox();
-    const viewport = standalone.viewportSize();
-    if (!box || !viewport) throw new Error("Could not measure Fair Stand viewport");
-    if (box.width < viewport.width - 2 || box.height < viewport.height - 2) {
-      throw new Error(
-        `Fair Stand does not fill the viewport: host=${box.width}x${box.height} viewport=${viewport.width}x${viewport.height}`,
-      );
-    }
+    await editor.locator(".sidebar-back").click();
+    await editor.waitForURL((url) => url.pathname === "/stand-projects", { timeout: 15_000 });
+    await assertNoStandLeak(editor, "stand project list");
 
     await page.getByRole("link", { name: "Dashboard" }).click();
     await page.waitForURL((url) => url.pathname === "/dashboard", { timeout: 15_000 });
-    const dashboardRuntime = await countFairStandRuntime(page);
-    if (dashboardRuntime.frameCount !== 0) {
-      throw new Error(`Fair Stand iframe leaked onto Dashboard: ${dashboardRuntime.frameCount}`);
-    }
+    await assertNoStandLeak(page, "Dashboard");
 
     const anonymous = await browser.newPage();
     await anonymous.goto(`${BASE}/fair-stand`, { waitUntil: "networkidle" });
@@ -140,11 +170,26 @@ async function main() {
     }
 
     console.log(
-      `fair_stand_standalone_ok iframe_src=${iframeSrc ?? "<none>"} frames=${remountRuntime.frameCount} iframe_canvas=${remountRuntime.canvasCount} size=${Math.round(box.width)}x${Math.round(box.height)}`,
+      `fair_stand_same_document_ok frames=${editorState.runtime.frameCount} host_canvas=${editorState.runtime.hostCanvasCount} styles=${editorState.runtime.mountStyleCount} size=${Math.round(editorState.box.width)}x${Math.round(editorState.box.height)}`,
     );
   } finally {
     await browser.close();
   }
+}
+
+function recordConsoleError(consoleErrors, msg) {
+  if (msg.type() !== "error") return;
+  const text = msg.text();
+  if (text.startsWith("Failed to load resource:")) return;
+  const location = msg.location();
+  consoleErrors.push(`${text}${location?.url ? ` @ ${location.url}` : ""}`);
+}
+
+function recordFailedResponse(consoleErrors, response) {
+  if (response.status() < 400) return;
+  const url = new URL(response.url());
+  if (/^\/api\/v1\/customers\/[^/]+$/.test(url.pathname)) return;
+  consoleErrors.push(`${response.status()} ${response.url()}`);
 }
 
 async function expectNavOpensNewTab(link) {
