@@ -437,7 +437,11 @@ prepare_env_files() {
 configure_nginx_domain() {
   local site="/etc/nginx/sites-available/fair-crm"
   [[ -f "$site" ]] || return 0
-  run_root sed -i -E "s/^[[:space:]]*server_name[[:space:]].*;/    server_name ${FAIR_CRM_DOMAIN};/" "$site"
+  if grep -Eq "^[[:space:]]*server_name[[:space:]]+.*${FAIR_CRM_DOMAIN//./\\.}([[:space:]]|;)" "$site"; then
+    log "Nginx server_name already contains ${FAIR_CRM_DOMAIN}"
+    return 0
+  fi
+  run_root sed -i -E "s/^([[:space:]]*server_name[[:space:]]+)/\\1${FAIR_CRM_DOMAIN} /" "$site"
   run_root nginx -t
   run_root systemctl reload nginx
 }

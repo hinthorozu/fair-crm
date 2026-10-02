@@ -199,12 +199,12 @@ configure_nginx_domain() {
   ensure_nginx_site_exists
   backup_nginx_config
 
-  if grep -Eq "^[[:space:]]*server_name[[:space:]]+${DOMAIN//./\\.}([[:space:]]|;).*" "$NGINX_AVAILABLE"; then
+  if grep -Eq "^[[:space:]]*server_name[[:space:]]+.*${DOMAIN//./\\.}([[:space:]]|;)" "$NGINX_AVAILABLE"; then
     log "Nginx server_name already contains ${DOMAIN}"
   else
     local tmp
     tmp="$(mktemp)"
-    sed -E "0,/^[[:space:]]*server_name[[:space:]]+[^;]+;/s//    server_name ${DOMAIN};/" \
+    sed -E "s/^([[:space:]]*server_name[[:space:]]+)/\\1${DOMAIN} /" \
       "$NGINX_AVAILABLE" >"$tmp"
 
     if cmp -s "$NGINX_AVAILABLE" "$tmp"; then

@@ -9,8 +9,7 @@
 # Safe deploy contract (backup/restore compatible):
 #   - Git pull + dependency install + Playwright Chromium + frontend build + systemd/nginx reload
 #   - Alembic upgrade head on kyrox_core, fair_stand, and fair_crm (required after restore; non-destructive schema)
-#   - Fair Stand catalog reseed from git seed after alembic (item keys/dimensions SoT = repo;
-#     does not wipe projects; preserves existing fair_stand_dimensions / stand envelope row)
+#   - Fair Stand catalog rows stay as stored. Deploy does not delete or reseed them.
 #   - Backend restart via systemd (normal)
 #   - ensure_database only CREATE DATABASE when missing (no drop/truncate/reset)
 #   - Never runs pg_restore, restore jobs, or backup deletion
@@ -18,7 +17,7 @@
 #   - Never overwrites backend/.env or other .env files (copy-if-missing only)
 #   - Preserves server .env keys such as ALLOW_RESTORE and TARGET_DATABASE_URL
 #   - Does not clear system_backup_restore_jobs or other CRM data tables
-#   - SKIP_CATALOG_RESEED=1 to skip Fair Stand catalog reseed (escape hatch)
+#   - Does not run Fair Stand catalog reseed. That script deletes catalog rows.
 #
 # Usage (on server) — this is the normal update path:
 #   sudo bash /opt/fair-crm/scripts/server/deploy-all.sh
@@ -39,7 +38,6 @@
 #   SKIP_FRONTEND_BUILD=1
 #   SKIP_NODE=1
 #   SKIP_CORE_DEV_SEED=1
-#   SKIP_CATALOG_RESEED=1
 #   SKIP_SYSTEMD=1
 #   SKIP_NGINX_RELOAD=1
 #   RUN_POST_CHECK=1
@@ -580,9 +578,9 @@ print_final_report() {
 
 log_deploy_safety_contract() {
   step "Deploy safety contract (backup/restore compatible)"
-  log "Will run: git pull of each repo's origin default branch (core/crm/fair-stand), pip/npm install, Fair Stand pip + npm ci, Playwright Chromium install, alembic upgrade head (three DBs), Fair Stand catalog reseed from git, systemd restart core then stand then crm"
+  log "Will run: git pull of each repo's origin default branch (core/crm/fair-stand), pip/npm install, Fair Stand pip + npm ci, Playwright Chromium install, alembic upgrade head (three DBs), systemd restart core then stand then crm"
   log "Will restore safe deploy scripts/templates before fair-crm git pull when locally modified"
-  log "Will not: drop/truncate DB, pg_restore, touch backups/ or restore data dirs, overwrite .env"
+  log "Will not: drop/truncate DB, delete or reseed Fair Stand catalog rows, pg_restore, touch backups/ or restore data dirs, overwrite .env"
 }
 
 main() {
@@ -682,16 +680,7 @@ main() {
     die "fair-stand alembic upgrade failed"
   fi
 
-  if [[ "${SKIP_CATALOG_RESEED:-0}" == "1" ]]; then
-    log "Fair Stand catalog reseed skipped (SKIP_CATALOG_RESEED=1)"
-  else
-    step "Reseed Fair Stand catalog from git"
-    (
-      cd "${FAIR_STAND_DIR}/backend"
-      PYTHONPATH="${FAIR_STAND_DIR}/backend" \
-        "${FAIR_STAND_DIR}/backend/.venv/bin/python" scripts/resync_catalog_from_seed.py
-    ) || die "fair-stand catalog reseed failed"
-  fi
+  log "Fair Stand catalog rows left untouched"
 
   manage_systemd_services
   build_frontend
