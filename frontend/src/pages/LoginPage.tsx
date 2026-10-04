@@ -1,8 +1,9 @@
 import React from "react";
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import { labels } from "../labels";
+import { formatDocumentTitle } from "../utils/documentTitle";
 import { authLabels } from "../labels/authLabels";
+import { AuthBrand } from "../components/AuthBrand";
 import { Banner } from "../components/ui/Banner";
 import { Card } from "../components/ui/Card";
 import { FormField, PasswordInput, TextInput } from "../components/ui/form";
@@ -33,7 +34,7 @@ export function LoginPage({ onSuccess }: LoginPageProps) {
   const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
-    document.title = `${labels.appTitle} — ${authLabels.pageTitle}`;
+    document.title = formatDocumentTitle(authLabels.pageTitle);
   }, []);
 
   const validate = (): boolean => {
@@ -72,9 +73,7 @@ export function LoginPage({ onSuccess }: LoginPageProps) {
     <div className="login-page">
       <div className="login-page-inner">
         <div className="login-page-brand">
-          <span className="login-page-brand-mark">F</span>
-          <h1 className="login-page-title">{labels.appTitle}</h1>
-          <p className="login-page-subtitle">{authLabels.subtitle}</p>
+          <AuthBrand />
         </div>
 
         <Card className="login-card">

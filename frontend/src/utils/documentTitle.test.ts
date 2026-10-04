@@ -14,12 +14,13 @@ import {
 
 describe("formatDocumentTitle", () => {
   it("uses brand-only title when page title is empty", () => {
-    expect(formatDocumentTitle(null)).toBe("FAIR CRM");
-    expect(formatDocumentTitle("")).toBe("FAIR CRM");
+    expect(formatDocumentTitle(null)).toBe("Kyrox Studio - Fuar CRM");
+    expect(formatDocumentTitle("")).toBe("Kyrox Studio - Fuar CRM");
   });
 
   it("prefixes page title with brand", () => {
-    expect(formatDocumentTitle("Müşteriler")).toBe("FAIR CRM — Müşteriler");
+    expect(formatDocumentTitle("Müşteriler")).toBe("Kyrox Studio - Fuar CRM - Müşteriler");
+    expect(formatDocumentTitle("Standlar")).toBe("Kyrox Studio - Fuar CRM - Standlar");
   });
 });
 

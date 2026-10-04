@@ -6,8 +6,8 @@ import { Card } from "../components/ui/Card";
 import { FormField, PasswordInput } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
-import { labels } from "../labels";
 import { authLabels } from "../labels/authLabels";
+import { formatDocumentTitle } from "../utils/documentTitle";
 
 export function isSecuritySettingsPath(pathname: string): boolean {
   const normalized = pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
@@ -32,7 +32,7 @@ export function SecuritySettingsPage({ accessToken, onPasswordChanged }: Securit
   const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
-    document.title = `${labels.appTitle} — ${authLabels.securityTitle}`;
+    document.title = formatDocumentTitle(authLabels.securityTitle);
   }, []);
 
   const handleSubmit = async (event: React.FormEvent) => {

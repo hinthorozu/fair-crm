@@ -15,6 +15,8 @@
     "backend/alembic/versions/0087_fair_stand_preview_integer_id.py",
     "frontend/src/pages/FairStandCatalogAdminPage.tsx",
     "frontend/src/pages/FairStandCatalogAdminPage.test.ts",
+    "frontend/src/pages/FairStandUnitsAdminPage.tsx",
+    "frontend/src/pages/FairStandUnitsAdminPage.test.ts",
     "frontend/src/pages/FairStandPreviewsAdminPage.tsx",
     "frontend/src/pages/FairStandPage.test.ts",
     "frontend/src/pages/FairStandStandaloneRoute.test.ts",
@@ -42,7 +44,7 @@
   },
   "frontend": {
     "required": true,
-    "routes": ["/admin/fair-stand/catalog", "/admin/fair-stand/previews"],
+    "routes": ["/admin/fair-stand/catalog", "/admin/fair-stand/previews", "/admin/fair-stand/units"],
     "menu": true,
     "menu_permission": "fair_crm.admin.fair_stand.catalog.read"
   },

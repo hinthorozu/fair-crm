@@ -748,10 +748,10 @@ P3_PAGE_ALLOWLIST_ENTRIES: list[AllowlistEntry] = [
 ]
 P3_PAGE_ALLOWLIST = {Path(e.file).name for e in P3_PAGE_ALLOWLIST_ENTRIES}
 
+# Navigation shells must render NavLink. Admin and data-integration links
+# live in the main sidebar tree inside AppLayout, not a second rail.
 P3_REQUIRED_NAVLINK_LAYOUTS = {
     "AppLayout.tsx",
-    "AdminSystemLayout.tsx",
-    "DataIntegrationLayout.tsx",
 }
 
 
@@ -893,6 +893,7 @@ ROUTE_UNMOUNTED_PAGE_ALLOWLIST = {
     "FollowUpsPage.tsx",
     # AdminSystemLayout nested pages (same host as CostCatalogPage).
     "FairStandCatalogAdminPage.tsx",
+    "FairStandUnitsAdminPage.tsx",
     "FairStandItemsAdminPage.tsx",
     "FairStandPreviewsAdminPage.tsx",
     "FairStandSettingsAdminPage.tsx",

@@ -136,24 +136,24 @@ function itemTypeBehaviorFromRow(row: Row): Pick<
   | "ghost_renderer"
   | "ghost_opacity"
 > {
-  if (!("placement" in row)) {
+  if (!("placement" in row) || !row.placement) {
     return {
-      placement: "wall",
-      collision: "segment",
-      move_snap_cm: "50",
-      magnetic_snap: "standard",
-      allow_side_insert: true,
-      supports_wall_overlay_mount: true,
-      wall_capacity: "include",
-      connection_endpoint: "segment",
-      collision_depth: "physical",
-      endpoint_contact: "standard",
-      boundary_snap: "stand-edge",
-      collision_height: "full",
+      placement: "",
+      collision: "",
+      move_snap_cm: "",
+      magnetic_snap: "",
+      allow_side_insert: false,
+      supports_wall_overlay_mount: false,
+      wall_capacity: "",
+      connection_endpoint: "",
+      collision_depth: "",
+      endpoint_contact: "",
+      boundary_snap: "",
+      collision_height: "",
       overlap_with_types: [],
-      ghost_kind: "silhouette",
-      ghost_renderer: "module-silhouette",
-      ghost_opacity: "0.38",
+      ghost_kind: "",
+      ghost_renderer: "",
+      ghost_opacity: "",
     };
   }
   const typed = row as FairStandAdminItemType;
@@ -299,6 +299,28 @@ function SnapCatalogPage({ mode }: { mode: Mode }) {
     }
     try {
       if (mode === "item-types") {
+        const editingHasSceneBehavior = Boolean(
+          editing && "placement" in editing && editing.placement,
+        );
+        if (!form.placement) {
+          if (editingHasSceneBehavior) {
+            setError(adminLabels.fairStandItemTypesPlacementRequired);
+            return;
+          }
+          const classification = {
+            key,
+            display_name,
+            is_active: form.is_active,
+          };
+          if (editing && "id" in editing) {
+            await updateFairStandAdminItemType(editing.id, classification);
+          } else {
+            await createFairStandAdminItemType(classification);
+          }
+          closeModal();
+          await load();
+          return;
+        }
         const moveSnapCm = Number(form.move_snap_cm);
         if (!ITEM_TYPE_PLACEMENTS.includes(form.placement as (typeof ITEM_TYPE_PLACEMENTS)[number])) {
           setError(adminLabels.fairStandItemTypesPlacementRequired);
@@ -633,6 +655,7 @@ function SnapCatalogPage({ mode }: { mode: Mode }) {
                       value={form.placement}
                       onChange={(event) => setForm({ ...form, placement: event.target.value })}
                     >
+                      <option value="">{adminLabels.fairStandItemTypesOptPlacementNone}</option>
                       <option value="wall">{adminLabels.fairStandItemTypesOptPlacementWall}</option>
                       <option value="free">{adminLabels.fairStandItemTypesOptPlacementFree}</option>
                       <option value="wall-overlay">{adminLabels.fairStandItemTypesOptPlacementOverlay}</option>

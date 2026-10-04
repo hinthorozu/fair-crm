@@ -12,6 +12,7 @@ import {
   resolvePermissionSectionLandingPath,
 } from "../../permissions/navigationPermissions";
 import { usePersistedCollapsed } from "../../hooks/usePersistedCollapsed";
+import { BrandMark } from "../BrandMark";
 import { Breadcrumb, type BreadcrumbItem } from "../ui/Breadcrumb";
 import { EmptyState } from "../ui/EmptyState";
 import { IconButton } from "../ui/IconButton";
@@ -19,9 +20,20 @@ import { PageHeader } from "../ui/PageHeader";
 import { PageShell } from "../ui/PageShell";
 import { NavIconMenu } from "./NavIcons";
 import { NavLink } from "./NavLink";
-import { SidebarCollapseButton } from "./SidebarCollapseButton";
 import { SidebarTooltipTarget } from "./SidebarTooltip";
 import { UserMenu } from "./UserMenu";
+
+export interface NavChild {
+  key: string;
+  path?: string;
+  label: string;
+  icon?: React.ReactNode;
+  heading?: boolean;
+  children?: NavChild[];
+  active?: boolean;
+  disabled?: boolean;
+  onClick?: (event: React.MouseEvent) => void;
+}
 
 interface NavItem {
   path: string;
@@ -30,6 +42,7 @@ interface NavItem {
   active: boolean;
   openInNewTab?: boolean;
   onClick?: (e: React.MouseEvent) => void;
+  children?: NavChild[];
 }
 
 interface AppLayoutProps {
@@ -42,6 +55,23 @@ interface AppLayoutProps {
 }
 
 const MAIN_SIDEBAR_STORAGE_KEY = "fair-crm.sidebar.collapsed";
+const NARROW_SIDEBAR_QUERY = "(max-width: 1024px)";
+
+function useNarrowSidebar(): boolean {
+  const [narrow, setNarrow] = React.useState(() =>
+    typeof window !== "undefined" ? window.matchMedia(NARROW_SIDEBAR_QUERY).matches : false,
+  );
+
+  React.useEffect(() => {
+    const media = window.matchMedia(NARROW_SIDEBAR_QUERY);
+    const sync = () => setNarrow(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  return narrow;
+}
 
 function mainNavigationSection(path: string): string {
   if (path.startsWith("/admin")) return "/admin";
@@ -64,6 +94,11 @@ function pushInternalPath(path: string): void {
   window.dispatchEvent(new PopStateEvent("popstate"));
 }
 
+function navBranchActive(child: NavChild): boolean {
+  if (child.active) return true;
+  return child.children?.some(navBranchActive) ?? false;
+}
+
 function pushInternalNavigation(path: string, event: React.MouseEvent): void {
   event.preventDefault();
   pushInternalPath(path);
@@ -80,6 +115,16 @@ export function AppLayout({
   const { session } = useAuth();
   const { collapsed: sidebarCollapsed, toggleCollapsed: toggleSidebarCollapsed } =
     usePersistedCollapsed(MAIN_SIDEBAR_STORAGE_KEY);
+  const [treeOpen, setTreeOpen] = React.useState<Record<string, boolean>>({});
+  const narrowSidebar = useNarrowSidebar();
+  const sidebarExpanded = narrowSidebar ? sidebarOpen : !sidebarCollapsed;
+  const toggleMainSidebar = () => {
+    if (narrowSidebar) {
+      onToggleSidebar?.();
+      return;
+    }
+    toggleSidebarCollapsed();
+  };
   const grantedPermissions = session?.permissions ?? [];
   const bypass = config.devBypassEnabled;
 
@@ -170,51 +215,128 @@ export function AppLayout({
       <aside
         className={`sidebar ${sidebarCollapsed ? "sidebar--collapsed" : ""}`}
         aria-label="Ana menü"
-        aria-expanded={!sidebarCollapsed}
+        aria-expanded={sidebarExpanded}
       >
         <div className="sidebar-header">
           {!sidebarCollapsed ? (
-            <span className="brand">{labels.appTitle}</span>
+            <img className="sidebar-brand-logo" src="/sidebar-logo.png" alt="" width={1024} height={341} />
           ) : (
             <SidebarTooltipTarget label={labels.appTitle} collapsed={sidebarCollapsed}>
-              <span className="brand brand--icon">F</span>
+              <BrandMark className="brand brand--icon" />
             </SidebarTooltipTarget>
           )}
-          <SidebarCollapseButton
-            collapsed={sidebarCollapsed}
-            onToggle={toggleSidebarCollapsed}
-            className="sidebar-header-collapse-btn"
-          />
         </div>
         <nav className="sidebar-nav">
-          {resolvedNavItems.map((item) => (
-            <NavLink
-              key={item.path}
-              variant="sidebar"
-              href={item.path}
-              label={item.label}
-              icon={item.icon}
-              active={item.active}
-              collapsed={sidebarCollapsed}
-              openInNewTab={item.openInNewTab}
-              onClick={item.onClick}
-            />
-          ))}
+          {resolvedNavItems.map((item) => {
+            const children = item.children ?? [];
+            const hasChildren = children.length > 0 && !sidebarCollapsed;
+            const childActive = children.some(navBranchActive);
+            const expanded = treeOpen[item.path] ?? childActive;
+            return (
+              <div key={item.path} className="sidebar-tree-group">
+                <div className="sidebar-tree-row">
+                  {hasChildren ? (
+                    <button
+                      type="button"
+                      className="sidebar-tree-toggle"
+                      aria-expanded={expanded}
+                      aria-label={expanded ? `${item.label} kapat` : `${item.label} aç`}
+                      onClick={() =>
+                        setTreeOpen((current) => ({ ...current, [item.path]: !expanded }))
+                      }
+                    >
+                      {expanded ? "−" : "+"}
+                    </button>
+                  ) : null}
+                  <NavLink
+                    variant="sidebar"
+                    href={item.path}
+                    label={item.label}
+                    icon={item.icon}
+                    active={item.active}
+                    collapsed={sidebarCollapsed}
+                    openInNewTab={item.openInNewTab}
+                    onClick={item.onClick}
+                  />
+                </div>
+                {hasChildren && expanded ? (
+                  <div className="sidebar-tree-children">
+                    {children.map((child) => {
+                      if (!child.heading) {
+                        return (
+                          <NavLink
+                            key={child.key}
+                            variant="sidebar"
+                            href={child.path}
+                            label={child.label}
+                            icon={child.icon ?? null}
+                            active={child.active}
+                            disabled={child.disabled}
+                            className="sidebar-tree-child"
+                            onClick={child.onClick}
+                          />
+                        );
+                      }
+                      const sectionChildren = child.children ?? [];
+                      const sectionExpanded = treeOpen[child.key] ?? false;
+                      return (
+                        <div key={child.key} className="sidebar-tree-section">
+                          <div className="sidebar-tree-row sidebar-tree-heading-row">
+                            <button
+                              type="button"
+                              className="sidebar-tree-toggle"
+                              aria-expanded={sectionExpanded}
+                              aria-label={sectionExpanded ? `${child.label} kapat` : `${child.label} aç`}
+                              onClick={() =>
+                                setTreeOpen((current) => ({
+                                  ...current,
+                                  [child.key]: !sectionExpanded,
+                                }))
+                              }
+                            >
+                              {sectionExpanded ? "−" : "+"}
+                            </button>
+                            <span className="sidebar-tree-heading">{child.label}</span>
+                          </div>
+                          {sectionExpanded ? (
+                            <div className="sidebar-tree-section-children">
+                              {sectionChildren.map((sectionChild) => (
+                                <NavLink
+                                  key={sectionChild.key}
+                                  variant="sidebar"
+                                  href={sectionChild.path}
+                                  label={sectionChild.label}
+                                  icon={sectionChild.icon ?? null}
+                                  active={sectionChild.active}
+                                  disabled={sectionChild.disabled}
+                                  className="sidebar-tree-child"
+                                  onClick={sectionChild.onClick}
+                                />
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </nav>
       </aside>
 
       <div className="app-main">
         <header className="app-topbar">
           <div className="app-topbar-left">
-            {onToggleSidebar && (
-              <IconButton
-                variant="ghost"
-                className="sidebar-toggle"
-                label="Menüyü aç/kapat"
-                icon={<NavIconMenu />}
-                onClick={onToggleSidebar}
-              />
-            )}
+            <IconButton
+              variant="ghost"
+              className="sidebar-toggle"
+              label={sidebarExpanded ? uiLabels.sidebarCollapse : uiLabels.sidebarExpand}
+              icon={<NavIconMenu />}
+              onClick={toggleMainSidebar}
+              aria-expanded={sidebarExpanded}
+            />
             {resolvedBreadcrumbs.length > 0 && <Breadcrumb items={resolvedBreadcrumbs} />}
           </div>
           <UserMenu onLogout={onLogout} />

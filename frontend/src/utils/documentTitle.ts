@@ -13,7 +13,9 @@ import { operationLabels, operationTypeLabels } from "../labels/operationLabels"
 import { uiLabels } from "../labels/uiLabels";
 import { standProjectsLabels } from "../labels/standProjectsLabels";
 
-export const DOCUMENT_TITLE_BRAND = labels.appTitle;
+export const DOCUMENT_TITLE_STUDIO = "Kyrox Studio";
+export const DOCUMENT_TITLE_PRODUCT = "Fuar CRM";
+export const DOCUMENT_TITLE_BRAND = `${DOCUMENT_TITLE_STUDIO} - ${DOCUMENT_TITLE_PRODUCT}`;
 
 export const DUPLICATE_OPERATION_KEY = "duplicate_customer_analysis";
 
@@ -31,7 +33,7 @@ export interface DocumentTitleContext {
 
 export function formatDocumentTitle(pageTitle: string | null | undefined): string {
   const trimmed = pageTitle?.trim();
-  return trimmed ? `${DOCUMENT_TITLE_BRAND} — ${trimmed}` : DOCUMENT_TITLE_BRAND;
+  return trimmed ? `${DOCUMENT_TITLE_BRAND} - ${trimmed}` : DOCUMENT_TITLE_BRAND;
 }
 
 function isDuplicateDataOperationRoute(

@@ -161,7 +161,7 @@ body {
 .sidebar-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem;
   border-bottom: 1px solid var(--border);
@@ -183,6 +183,16 @@ body {
   white-space: nowrap;
 }
 
+.sidebar-brand-logo {
+  display: block;
+  width: 6.6125rem;
+  height: auto;
+  max-width: 100%;
+  margin-inline: auto;
+  object-fit: contain;
+  object-position: center;
+}
+
 .sidebar-header .brand--icon {
   display: inline-flex;
   align-items: center;
@@ -191,8 +201,8 @@ body {
   height: 2rem;
   border-radius: 8px;
   background: var(--primary-soft);
-  color: var(--primary);
-  font-size: 0.95rem;
+  overflow: hidden;
+  padding: 0.05rem;
 }
 
 .sidebar-header-collapse-btn {
@@ -332,6 +342,69 @@ body {
   display: block;
 }
 
+.sidebar-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.sidebar-tree-row .sidebar-link {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-tree-toggle {
+  flex: 0 0 1.15rem;
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
+.sidebar-tree-toggle:hover {
+  color: var(--text);
+  background: var(--neutral-soft);
+}
+
+.sidebar-tree-children {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  margin: 0.1rem 0 0.25rem 1.35rem;
+}
+
+.sidebar-tree-heading-row {
+  margin-top: 0.35rem;
+}
+
+.sidebar-tree-heading {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.sidebar-tree-section-children {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  margin: 0.05rem 0 0.15rem 1.15rem;
+}
+
+.sidebar-tree-child {
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+  min-height: 2rem;
+  font-size: 0.84rem;
+}
+
 .sidebar-link:hover {
   color: var(--text);
   background: var(--neutral-soft);
@@ -363,8 +436,8 @@ textarea:focus-visible {
   box-shadow: var(--focus-ring);
 }
 
-.sidebar-toggle {
-  display: none;
+.btn.icon.sidebar-toggle {
+  display: inline-flex;
 }
 
 .sidebar-overlay {
@@ -3795,11 +3868,7 @@ textarea.form-control-textarea {
 }
 
 .data-integration-layout {
-  display: grid;
-  grid-template-columns: var(--di-subnav-width) minmax(0, 1fr);
-  gap: 1.5rem;
-  align-items: start;
-  transition: grid-template-columns 0.2s ease;
+  display: block;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -3931,11 +4000,7 @@ textarea.form-control-textarea {
 
 /* Nested admin/DI shells: content track must be able to shrink below intrinsic table width */
 .admin-system-layout {
-  display: grid;
-  grid-template-columns: var(--admin-subnav-width) minmax(0, 1fr);
-  gap: 1.5rem;
-  align-items: start;
-  transition: grid-template-columns 0.2s ease;
+  display: block;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -6945,18 +7010,18 @@ textarea.form-control-textarea {
   margin-bottom: 1.25rem;
 }
 
-.login-page-brand-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 12px;
-  background: var(--primary-soft);
-  color: var(--primary);
-  font-weight: 700;
-  font-size: 1.25rem;
-  margin-bottom: 0.75rem;
+.login-page-logo {
+  display: block;
+  width: min(100%, 280px);
+  height: auto;
+  margin: 0 auto 0.65rem;
+}
+
+.brand-mark-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .login-page-title {
