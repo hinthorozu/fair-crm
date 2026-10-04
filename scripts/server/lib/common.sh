@@ -783,7 +783,7 @@ run_alembic_upgrade() {
       env "${env_args[@]}" PYTHONPATH="$pythonpath" \
         "$venv_python" -m alembic -c "$alembic_ini" upgrade head
     )
-    return 0
+    return $?
   fi
 
   log "No ${alembic_ini} in ${project_root}; running programmatic alembic"
