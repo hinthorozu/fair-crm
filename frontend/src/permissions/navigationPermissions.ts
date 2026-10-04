@@ -125,6 +125,10 @@ export const ADMIN_NAV_REQUIREMENTS: Readonly<Record<string, PermissionRequireme
     kind: "any",
     permissions: FAIR_STAND_CATALOG_ADMIN_PERMISSIONS,
   },
+  "fair-stand-units": {
+    kind: "any",
+    permissions: FAIR_STAND_CATALOG_ADMIN_PERMISSIONS,
+  },
   "fair-stand-items": {
     kind: "any",
     permissions: FAIR_STAND_ITEMS_ADMIN_PERMISSIONS,
@@ -234,6 +238,7 @@ export function firstAccessibleAdminPath(
     ["fair-stand-settings", "/admin/fair-stand/settings"],
     ["fair-stand-catalog", "/admin/fair-stand/catalog"],
     ["fair-stand-previews", "/admin/fair-stand/previews"],
+    ["fair-stand-units", "/admin/fair-stand/units"],
     ["fair-stand-items", "/admin/fair-stand/items"],
     ["fair-stand-item-types", "/admin/fair-stand/item-types"],
     ["fair-stand-rule-types", "/admin/fair-stand/rule-types"],
@@ -438,6 +443,7 @@ export function canAccessApplicationPath(
   if (pathname === "/admin/system/backups") return canAccessAdminSection("backups", granted);
   if (pathname === "/admin/cost-catalog") return canAccessAdminSection("cost-catalog", granted);
   if (pathname === "/admin/fair-stand/catalog") return canAccessAdminSection("fair-stand-catalog", granted);
+  if (pathname === "/admin/fair-stand/units") return canAccessAdminSection("fair-stand-units", granted);
   if (
     pathname === "/admin/fair-stand/items" ||
     pathname.startsWith("/admin/fair-stand/items/")

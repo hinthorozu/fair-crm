@@ -24,6 +24,7 @@ function mimeFor(filePath: string): string {
   if (ext === ".glb") return "model/gltf-binary";
   if (ext === ".gltf") return "model/gltf+json";
   if (ext === ".txt") return "text/plain; charset=utf-8";
+  if (ext === ".ico") return "image/x-icon";
   return "application/octet-stream";
 }
 

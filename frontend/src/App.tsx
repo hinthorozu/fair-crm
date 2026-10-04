@@ -40,6 +40,7 @@ import { TableStandardSmokePage } from "./dev/TableStandardSmokePage";
 import { DataIntegrationLayout } from "./components/dataIntegration/DataIntegrationLayout";
 import { AdminSystemLayout } from "./components/admin/AdminSystemLayout";
 import { AppLayout } from "./components/layout/AppLayout";
+import { adminSidebarChildren, dataIntegrationSidebarChildren } from "./components/layout/sidebarTreeItems";
 import {
   NavIconActivities,
   NavIconAdmin,
@@ -338,31 +339,9 @@ function navigate(path: string) {
 
 function isDataIntegrationRoute(route: AppRoute): boolean { return route.startsWith("/data-integration"); }
 function isAdminRoute(route: AppRoute): boolean { return route.startsWith("/admin"); }
-function adminSection(route: AppRoute): string {
-  if (route.includes("/organizations")) return "organizations";
-  if (route.includes("/users")) return "users";
-  if (route.includes("/roles")) return "roles";
-  if (route.includes("/operation-capabilities")) return "operation-capabilities";
-  if (route.includes("/smtp-operations/quote-templates")) return "quote-templates";
-  if (route.includes("/smtp-operations/template-contents")) return "template-contents";
-  if (route.includes("/smtp-operations/templates")) return "mail-templates";
-  if (route.includes("/smtp-operations/mail-operations")) return "mail-operations";
-  if (route.includes("/email-accounts")) return "email-accounts";
-  if (route.includes("/backups")) return "backups";
-  return "backups";
-}
-function diSection(route: AppRoute): string {
-  if (route.includes("/scraper-test")) return "scraper-test";
-  if (route.includes("/runs/") || route.includes("/run-history")) return "run-history";
-  if (route.includes("/adapters")) return "adapters";
-  if (route.includes("/new") || route.includes("/fair/")) return "new";
-  if (route.includes("/jobs")) return "jobs";
-  if (route.includes("/reports")) return "reports";
-  return "imports";
-}
 
 export function App() {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, session } = useAuth();
   const [parsed, setParsed] = React.useState<ParsedRoute>(() => parseRoute(`${window.location.pathname}${window.location.search}`));
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [customerName, setCustomerName] = React.useState<string | null>(null);
@@ -571,12 +550,12 @@ export function App() {
     { path: "/todos", label: uiLabels.navTodos, icon: <NavIconTodos />, active: isTodosActive, onClick: (e: React.MouseEvent) => handleNav("/todos", e) },
     { path: "/operations", label: uiLabels.navOperations, icon: <NavIconOperations />, active: isOperationsActive, onClick: (e: React.MouseEvent) => handleNav("/operations", e) },
     { path: "/activities", label: uiLabels.navActivities, icon: <NavIconActivities />, active: isActivitiesActive, onClick: (e: React.MouseEvent) => handleNav("/activities", e) },
-    { path: "/data-integration/imports", label: uiLabels.navImports, icon: <NavIconDataIntegration />, active: isDiActive, onClick: (e: React.MouseEvent) => handleNav("/data-integration/imports", e) },
-    { path: "/admin/system/backups", label: uiLabels.navAdmin, icon: <NavIconAdmin />, active: isAdminActive, onClick: (e: React.MouseEvent) => handleNav("/admin/system/backups", e) },
+    { path: "/data-integration/imports", label: uiLabels.navImports, icon: <NavIconDataIntegration />, active: isDiActive, onClick: (e: React.MouseEvent) => handleNav("/data-integration/imports", e), children: dataIntegrationSidebarChildren(window.location.pathname.replace(/\/$/, ""), session?.permissions ?? [], config.devBypassEnabled, handleNav, (event) => { event.preventDefault(); setDiNotice(dataIntegrationLabels.comingSoonMessage); if (!isDataIntegrationRoute(parsed.route)) handleNav("/data-integration/imports", event); }) },
+    { path: "/admin/system/backups", label: uiLabels.navAdmin, icon: <NavIconAdmin />, active: isAdminActive, onClick: (e: React.MouseEvent) => handleNav("/admin/system/backups", e), children: adminSidebarChildren(window.location.pathname.replace(/\/$/, ""), session?.permissions ?? [], config.devBypassEnabled, handleNav, (event) => { event.preventDefault(); setAdminNotice(adminLabels.comingSoonMessage); if (!parsed.route.startsWith("/admin")) handleNav("/admin/system/backups", event); }) },
   ];
 
   const renderDataIntegration = () => (
-    <DataIntegrationLayout activeSection={diSection(parsed.route)} onNavigate={(path, e) => handleNav(path, e)} onDisabledClick={() => setDiNotice(dataIntegrationLabels.comingSoonMessage)}>
+    <DataIntegrationLayout>
       {diNotice && <p className="text-muted">{diNotice}</p>}
       {parsed.route === "/data-integration/imports" && <DataIntegrationImportsPage onContinueBatch={(batchId) => goToDataIntegration(`/data-integration/imports/continue/${batchId}`)} />}
       {(parsed.route === "/data-integration/imports/new" || parsed.route === "/data-integration/imports/fair/:fairId") && <ImportWizardPage preselectedFairId={parsed.fairId} onUploadComplete={() => goToDataIntegration("/data-integration/imports")} onMappingSaved={() => goToDataIntegration("/data-integration/imports")} onFinished={() => goToDataIntegration("/data-integration/imports")} />}
@@ -591,7 +570,7 @@ export function App() {
   );
 
   const renderAdminSystem = () => (
-    <AdminSystemLayout activeSection={adminSection(parsed.route)} onNavigate={(path, e) => handleNav(path, e)} onDisabledClick={() => setAdminNotice(adminLabels.comingSoonMessage)}>
+    <AdminSystemLayout>
       {adminNotice && <p className="text-muted">{adminNotice}</p>}
       {parsed.route === "/admin/system/organizations" && <OrganizationsPage />}
       {parsed.route === "/admin/system/backups" && <DatabaseBackupsPage />}

@@ -6,11 +6,12 @@ import {
   resetPassword,
   signupAccount,
 } from "../api/auth";
+import { AuthBrand } from "../components/AuthBrand";
 import { Banner } from "../components/ui/Banner";
 import { Card } from "../components/ui/Card";
 import { PageShell } from "../components/ui/PageShell";
 import { FormField, PasswordInput, TextInput } from "../components/ui/form";
-import { labels } from "../labels";
+import { formatDocumentTitle } from "../utils/documentTitle";
 import { authLabels } from "../labels/authLabels";
 
 export type PublicAuthPath = "/signup" | "/activate" | "/forgot-password" | "/reset-password";
@@ -44,15 +45,14 @@ function PublicAuthFrame({
   children: React.ReactNode;
 }) {
   React.useEffect(() => {
-    document.title = `${labels.appTitle} — ${title}`;
+    document.title = formatDocumentTitle(title);
   }, [title]);
 
   return (
     <PageShell className="login-page" fullWidth>
       <div className="login-page-inner">
         <div className="login-page-brand">
-          <span className="login-page-brand-mark">F</span>
-          <h1 className="login-page-title">{labels.appTitle}</h1>
+          <AuthBrand />
           <p className="login-page-subtitle">{subtitle}</p>
         </div>
         <Card className="login-card">

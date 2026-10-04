@@ -10,7 +10,6 @@ export const authLabels = {
   invalidInput: "Geçersiz giriş bilgileri.",
   loginFailed: "Giriş başarısız. Lütfen tekrar deneyin.",
   networkError: "Kimlik doğrulama sunucusuna ulaşılamadı. KYROX Core çalışıyor mu?",
-  subtitle: "Devam etmek için hesabınızla giriş yapın.",
   forgotPasswordLink: "Şifremi unuttum",
   signupLink: "Hesap oluştur",
   userMenuLabel: "Kullanıcı menüsü",

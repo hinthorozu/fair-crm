@@ -55,6 +55,30 @@ export const restoreFairStandAdminCategory = (categoryId: number) =>
     method: "POST",
   });
 
+export type FairStandAdminUnit = {
+  id: number;
+  unitKey: string;
+  name: string;
+  symbol: string;
+  isActive: boolean;
+};
+
+export const listFairStandAdminUnits = () => apiRequest<FairStandAdminUnit[]>(`${base}/units`);
+export const createFairStandAdminUnit = (payload: { name: string; symbol: string }) =>
+  apiRequest<FairStandAdminUnit>(`${base}/units`, { method: "POST", body: JSON.stringify(payload) });
+export const updateFairStandAdminUnit = (
+  unitId: number,
+  payload: { name: string; symbol: string },
+) =>
+  apiRequest<FairStandAdminUnit>(`${base}/units/${unitId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+export const archiveFairStandAdminUnit = (unitId: number) =>
+  apiRequest<FairStandAdminUnit>(`${base}/units/${unitId}/archive`, { method: "POST" });
+export const restoreFairStandAdminUnit = (unitId: number) =>
+  apiRequest<FairStandAdminUnit>(`${base}/units/${unitId}/restore`, { method: "POST" });
+
 export const listFairStandAdminItems = () => apiRequest<FairStandAdminItem[]>(`${base}/items`);
 export const updateFairStandAdminItem = (
   itemKey: string,
@@ -477,7 +501,7 @@ export type FairStandAdminItemType = {
   id: number;
   key: string;
   displayName: string;
-  placement: string;
+  placement?: string;
   collision: string;
   moveSnapCm: number;
   magneticSnap: string;
