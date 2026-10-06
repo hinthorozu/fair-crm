@@ -287,6 +287,7 @@ export type FairStandAdminItemRecord = {
   acceptsLightbox: boolean;
   acceptsGlass: boolean;
   acceptsMesh: boolean;
+  isCostEnabled: boolean;
   dimensions: FairStandAdminItemDimensions | null;
   sceneDimensions: FairStandAdminItemSceneDimensions | null;
   stripOccupancy: FairStandAdminItemStripOccupancy | null;

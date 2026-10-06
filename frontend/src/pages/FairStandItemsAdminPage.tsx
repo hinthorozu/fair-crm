@@ -111,6 +111,7 @@ type EditForm = {
   accepts_lightbox: boolean;
   accepts_glass: boolean;
   accepts_mesh: boolean;
+  is_cost_enabled: boolean;
   catalog_visible: boolean;
   category_id: string;
   catalog_item_index: string;
@@ -416,6 +417,7 @@ function detailToForm(detail: FairStandAdminItemRecord): EditForm {
     accepts_lightbox: detail.acceptsLightbox,
     accepts_glass: detail.acceptsGlass,
     accepts_mesh: detail.acceptsMesh,
+    is_cost_enabled: detail.isCostEnabled,
     catalog_visible: detail.catalogVisible,
     category_id: str(detail.categoryId),
     catalog_item_index: str(detail.catalogItemIndex),
@@ -551,6 +553,7 @@ function buildUpdatePayload(form: EditForm, catalogIndexMax?: number): Record<st
     accepts_lightbox: form.accepts_lightbox,
     accepts_glass: form.accepts_glass,
     accepts_mesh: form.accepts_mesh,
+    is_cost_enabled: form.is_cost_enabled,
     catalog_visible: form.catalog_visible,
     category_id: optionalInt(form.category_id),
     catalog_item_index: optionalInt(form.catalog_item_index),
@@ -1884,6 +1887,12 @@ function ItemDetailView({
               <YesNoBadge value={detail.acceptsMesh} />
             </DetailItem>
             <DetailItem
+              label={adminLabels.fairStandItemsFieldIsCostEnabled}
+              hint={adminLabels.fairStandItemsFieldIsCostEnabledHint}
+            >
+              <YesNoBadge value={detail.isCostEnabled} />
+            </DetailItem>
+            <DetailItem
               label={adminLabels.fairStandItemsFieldSideInsertRotation}
               hint={adminLabels.fairStandItemsFieldSideInsertRotationHint}
             >
@@ -2819,6 +2828,14 @@ function ItemEditView({
                 checked={form.accepts_mesh}
                 disabled={saving}
                 onChange={(checked) => patch("accepts_mesh", checked)}
+              />
+              <CheckboxField
+                id="fs-edit-is-cost-enabled"
+                label={adminLabels.fairStandItemsFieldIsCostEnabled}
+                hint={adminLabels.fairStandItemsFieldIsCostEnabledHint}
+                checked={form.is_cost_enabled}
+                disabled={saving}
+                onChange={(checked) => patch("is_cost_enabled", checked)}
               />
             </FormGrid>
           </Card>

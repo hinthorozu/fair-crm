@@ -1176,6 +1176,8 @@ export const adminLabels = {
   fairStandItemsFieldAcceptsGlassHint: "Cam yüzey kaplaması uygulanabilir.",
   fairStandItemsFieldAcceptsMesh: "Mesh kabul eder",
   fairStandItemsFieldAcceptsMeshHint: "Özel mesh / doku kaplaması uygulanabilir.",
+  fairStandItemsFieldIsCostEnabled: "Maliyet hesabına dahil",
+  fairStandItemsFieldIsCostEnabledHint: "Açıksa item maliyet hesabına dahil edilir.",
   fairStandItemsFieldCatalogVisible: "Katalogda görünür",
   fairStandItemsFieldCatalogVisibleHint: "Kullanıcı kataloğunda listelensin mi. Açıkken kategori, sıra ve önizleme dolu olmalı.",
   fairStandItemsFieldCategoryId: "Kategori",
