@@ -180,6 +180,7 @@ export type FairStandAdminItemRecordSummary = {
   categoryId: number | null;
   catalogItemIndex: number | null;
   isRender: boolean;
+  isCostEnabled: boolean;
   componentCount: number;
   assetCount: number;
   hasDimensions: boolean;
@@ -287,6 +288,7 @@ export type FairStandAdminItemRecord = {
   acceptsLightbox: boolean;
   acceptsGlass: boolean;
   acceptsMesh: boolean;
+  isCostEnabled: boolean;
   dimensions: FairStandAdminItemDimensions | null;
   sceneDimensions: FairStandAdminItemSceneDimensions | null;
   stripOccupancy: FairStandAdminItemStripOccupancy | null;

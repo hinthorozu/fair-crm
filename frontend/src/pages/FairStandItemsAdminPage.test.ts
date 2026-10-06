@@ -46,6 +46,8 @@ describe("Fair Stand items admin page", () => {
     expect(source).toContain("fairStandItemsCloneSubmit");
     expect(source).toContain("<Badge");
     expect(source).toContain('variant={row.catalogVisible ? "success" : "neutral"}');
+    expect(source).toContain('key: "isCostEnabled"');
+    expect(source).toContain("fairStandItemsColCost");
 
     // Full-page forms use FormActions + crm-form--wide, no modal.
     expect(source).toContain("FormActions");
