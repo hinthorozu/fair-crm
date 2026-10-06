@@ -34,7 +34,13 @@ def ensure_fair_for_participation(
     organization_id: UUID,
     fair_id: UUID,
 ) -> Fair:
-    fair = fair_repository.get_by_id_including_archived(organization_id, fair_id)
+    """Own organization fairs and shared system fairs can hold customers.
+
+    Adding and removing a customer follows the participation permission.
+    The system fair record stays read-only. Another organization's fair
+    is not visible here.
+    """
+    fair = fair_repository.get_visible_including_archived(organization_id, fair_id)
     if fair is None:
         raise FairNotFoundForParticipationError("Fair not found")
     if fair.is_archived():

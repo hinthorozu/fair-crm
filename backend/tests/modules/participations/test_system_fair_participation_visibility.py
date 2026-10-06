@@ -227,10 +227,10 @@ def test_other_organization_fair_participants_stay_not_found(
     assert response.status_code == 404
 
 
-def test_manual_participation_on_system_fair_stays_rejected(
+def test_organization_adds_customer_to_system_fair_without_editing_the_fair(
     client, auth_headers, db_session, organization_id
 ):
-    fair = SqlAlchemyFairRepository(db_session).add(_system_fair("Manual Reject Fair"))
+    fair = SqlAlchemyFairRepository(db_session).add(_system_fair("Manual System Fair"))
     customer = client.post(
         "/api/v1/customers",
         json={"display_name": "Manual Co", "status": "active"},
@@ -242,8 +242,39 @@ def test_manual_participation_on_system_fair_stays_rejected(
         headers=auth_headers,
         json={"customer_id": customer.json()["id"], "fair_id": str(fair.id), "hall": "A"},
     )
-    assert response.status_code == 404
-    assert _participations(db_session, fair.id) == []
+    assert response.status_code == 201, response.text
+    stored = _participations(db_session, fair.id)
+    assert len(stored) == 1
+    assert stored[0].organization_id == organization_id
+    assert stored[0].fair_id == fair.id
+
+    removed = client.delete(
+        f"/api/v1/fair-participations/{response.json()['id']}",
+        headers=auth_headers,
+    )
+    assert removed.status_code == 200, removed.text
+    db_session.expire_all()
+    stored = _participations(db_session, fair.id)
+    assert len(stored) == 1
+    assert stored[0].deleted_at is not None
+    participants = client.get(f"/api/v1/fairs/{fair.id}/participants", headers=auth_headers)
+    assert participants.status_code == 200
+    assert pagination_from(participants.json())["totalItems"] == 0
+
+    unchanged = SqlAlchemyFairRepository(db_session).get_visible(organization_id, fair.id)
+    assert unchanged is not None
+    assert unchanged.origin == "system"
+    assert unchanged.organization_id is None
+    assert unchanged.name == "Manual System Fair"
+
+    edited = client.patch(
+        f"/api/v1/fairs/{fair.id}",
+        headers=auth_headers,
+        json={"name": "Changed Name"},
+    )
+    archived = client.delete(f"/api/v1/fairs/{fair.id}", headers=auth_headers)
+    assert edited.status_code == 403
+    assert archived.status_code == 403
 
 
 def test_organization_fair_participation_lists_stay_available(client, auth_headers):
