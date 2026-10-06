@@ -961,6 +961,7 @@ export const adminLabels = {
   fairStandItemsColType: "Tip",
   fairStandItemsColCatalogVisible: "Katalogda",
   fairStandItemsColIsRender: "Render",
+  fairStandItemsColCost: "Maliyet",
   fairStandItemsColComponentCount: "Bileşen",
   fairStandItemsColAssetCount: "Asset",
   fairStandItemsColStatus: "Durum",

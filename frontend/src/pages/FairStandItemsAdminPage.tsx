@@ -922,6 +922,16 @@ function ItemsListPage({
       ),
     },
     {
+      key: "isCostEnabled",
+      title: adminLabels.fairStandItemsColCost,
+      sortable: true,
+      render: (row) => (
+        <Badge variant={row.isCostEnabled ? "success" : "neutral"}>
+          {row.isCostEnabled ? adminLabels.fairStandItemsYes : adminLabels.fairStandItemsNo}
+        </Badge>
+      ),
+    },
+    {
       key: "status",
       title: adminLabels.fairStandItemsColStatus,
       sortable: true,

@@ -180,6 +180,7 @@ export type FairStandAdminItemRecordSummary = {
   categoryId: number | null;
   catalogItemIndex: number | null;
   isRender: boolean;
+  isCostEnabled: boolean;
   componentCount: number;
   assetCount: number;
   hasDimensions: boolean;
