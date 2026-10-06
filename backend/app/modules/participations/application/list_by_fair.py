@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from app.core.pagination import normalize_page_params, normalize_sort_direction
 from app.modules.fairs.domain.ports import FairRepository
 from app.modules.participations.application.commands import (
@@ -8,7 +6,6 @@ from app.modules.participations.application.commands import (
 )
 from app.modules.participations.application.mappers import fair_row_to_list_item
 from app.modules.participations.application.validators import ensure_fair_for_participation
-from app.modules.participations.domain.exceptions import FairNotFoundForParticipationError
 from app.modules.participations.domain.ports import ParticipationRepository
 
 ALLOWED_SORT_FIELDS = frozenset(
@@ -39,7 +36,9 @@ class ListParticipantsByFairUseCase:
         self._fair_repository = fair_repository
 
     def execute(self, query: ListParticipantsByFairQuery) -> FairParticipantListResultDto:
-        self._accept_visible_fair(query.organization_id, query.fair_id)
+        ensure_fair_for_participation(
+            self._fair_repository, query.organization_id, query.fair_id
+        )
 
         page_params = normalize_page_params(query.page, query.page_size)
         sort_by = query.sort_by if query.sort_by in ALLOWED_SORT_FIELDS else DEFAULT_SORT_FIELD
@@ -63,10 +62,3 @@ class ListParticipantsByFairUseCase:
             total_pages=result.total_pages,
         )
 
-    def _accept_visible_fair(self, organization_id: UUID, fair_id: UUID) -> None:
-        try:
-            ensure_fair_for_participation(self._fair_repository, organization_id, fair_id)
-        except FairNotFoundForParticipationError:
-            visible = self._fair_repository.get_visible(organization_id, fair_id)
-            if visible is None or visible.origin != "system":
-                raise

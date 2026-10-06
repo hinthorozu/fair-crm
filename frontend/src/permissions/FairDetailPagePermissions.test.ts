@@ -50,7 +50,7 @@ describe("Fair detail permission-controlled surfaces", () => {
     expect(source).toContain("if (canUpdateParticipation) {");
     expect(source).toContain("if (canDeleteFair) {");
     expect(source).toContain(
-      'onCreate={canCreateParticipation && fair.origin !== "system" ? openCreateParticipant : undefined}',
+      "onCreate={canCreateParticipation ? openCreateParticipant : undefined}",
     );
     expect(source).toContain("onDelete={canDeleteParticipation ? (item) => setConfirmDelete(item) : undefined}");
   });

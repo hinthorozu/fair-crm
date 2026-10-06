@@ -386,7 +386,6 @@ export function FairDetailPage({
 
   const openCreateParticipant = () => {
     if (!canCreateParticipation) return;
-    if (fair.origin === "system") return;
     setEditing(null);
     setModal("create");
   };
@@ -455,15 +454,13 @@ export function FairDetailPage({
     }
   }
   if (canCreateParticipation) {
-    if (!isSystemFair) {
-      headerActions.push({
-        id: "add-participant",
-        label: participationLabels.addCompany,
-        variant: "secondary",
-        onClick: openCreateParticipant,
-        disabled: isArchived,
-      });
-    }
+    headerActions.push({
+      id: "add-participant",
+      label: participationLabels.addCompany,
+      variant: "secondary",
+      onClick: openCreateParticipant,
+      disabled: isArchived,
+    });
   }
   if (canUpdateParticipation) {
     if (!isSystemFair) {
@@ -727,7 +724,7 @@ export function FairDetailPage({
               sortField={participantsTable.sorting.field}
               sortDirection={participantsTable.sorting.direction}
               onSortChange={participantsTable.setSort}
-              onCreate={canCreateParticipation && fair.origin !== "system" ? openCreateParticipant : undefined}
+              onCreate={canCreateParticipation ? openCreateParticipant : undefined}
               onEdit={
                 canUpdateParticipation
                   ? (item) => {
@@ -755,7 +752,7 @@ export function FairDetailPage({
         </FormModal>
       )}
 
-      {modal === "create" && canCreateParticipation && fair.origin !== "system" && (
+      {modal === "create" && canCreateParticipation && (
         <FormModal title={participationLabels.newParticipant} onClose={closeModal} size="lg">
           <ParticipationForm
             mode="fair"

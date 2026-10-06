@@ -438,7 +438,7 @@ describe("system fair frontend", () => {
     expect(container.textContent).toContain("30.09.2026");
     expect(buttonByText(container, labels.edit)).toBeUndefined();
     expect(buttonByText(container, labels.archive)).toBeUndefined();
-    expect(buttonByText(container, participationLabels.addCompany)).toBeUndefined();
+    expect(buttonByText(container, participationLabels.addCompany)).toBeTruthy();
     expect(buttonByText(container, fairLabels.moveCustomersAction)).toBeUndefined();
     expect(buttonByText(container, importLabels.importFromFair)).toBeUndefined();
     expect(buttonByText(container, fairLabels.runSystemScraper)).toBeUndefined();
