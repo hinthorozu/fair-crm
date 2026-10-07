@@ -53,6 +53,10 @@ export const PERMISSION_STAND_PROJECTS_CREATE = "fair_crm.fair_stand.projects.cr
 export const PERMISSION_STAND_PROJECTS_UPDATE = "fair_crm.fair_stand.projects.update";
 export const PERMISSION_STAND_PROJECTS_DELETE = "fair_crm.fair_stand.projects.delete";
 export const PERMISSION_STAND_PROJECTS_EXECUTE = "fair_crm.fair_stand.projects.execute";
+export const PERMISSION_COST_ITEMS_READ = "fair_crm.fair_stand.cost_items.read";
+export const PERMISSION_COST_ITEMS_CREATE = "fair_crm.fair_stand.cost_items.create";
+export const PERMISSION_COST_ITEMS_UPDATE = "fair_crm.fair_stand.cost_items.update";
+export const PERMISSION_COST_ITEMS_DELETE = "fair_crm.fair_stand.cost_items.delete";
 
 export const COST_CATALOG_ADMIN_PERMISSIONS = [
   PERMISSION_COST_CATEGORIES_READ,
@@ -75,6 +79,7 @@ export type PermissionRequirement =
 export const MAIN_NAV_REQUIREMENTS: Readonly<Record<string, PermissionRequirement>> = {
   "/dashboard": { kind: "public" },
   "/stand-projects": { kind: "permission", permission: PERMISSION_STAND_PROJECTS_READ },
+  "/stand-cost-items": { kind: "permission", permission: PERMISSION_COST_ITEMS_READ },
   "/customers": { kind: "permission", permission: PERMISSION_CUSTOMERS_READ },
   "/fairs": { kind: "permission", permission: PERMISSION_FAIRS_READ },
   "/todos": { kind: "permission", permission: PERMISSION_TODOS_READ },
@@ -325,6 +330,9 @@ export function canAccessApplicationPath(
   }
   if (/^\/stand-projects\/[^/]+$/.test(pathname)) {
     return hasGrantedCorePermission(granted, PERMISSION_STAND_PROJECTS_UPDATE);
+  }
+  if (pathname === "/stand-cost-items") {
+    return hasGrantedCorePermission(granted, PERMISSION_COST_ITEMS_READ);
   }
 
   if (pathname === "/customers" || pathname.startsWith("/customers/")) {

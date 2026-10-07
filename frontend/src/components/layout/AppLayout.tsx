@@ -79,6 +79,7 @@ function mainNavigationSection(path: string): string {
     return "/data-integration";
   }
   if (path.startsWith("/stand-projects")) return "/stand-projects";
+  if (path.startsWith("/stand-cost-items")) return "/stand-cost-items";
   if (path.startsWith("/customers")) return "/customers";
   if (path.startsWith("/fairs")) return "/fairs";
   if (path.startsWith("/todos")) return "/todos";

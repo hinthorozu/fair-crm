@@ -10,6 +10,7 @@ export const uiLabels = {
   navDashboard: "Dashboard",
   navFairStand: "Standlar",
   navStandProjects: "Standlar",
+  navStandCostItems: "Maliyet Kalemleri",
   navFairs: "Fuarlar",
   navTodos: "Görevler",
   navOperations: "Otomasyonlar",

@@ -19,6 +19,7 @@ import {
   PERMISSION_OPERATIONS_CREATE,
   PERMISSION_OPERATIONS_READ,
   PERMISSION_SCRAPER_READ,
+  PERMISSION_COST_ITEMS_READ,
   PERMISSION_STAND_PROJECTS_CREATE,
   PERMISSION_STAND_PROJECTS_READ,
   PERMISSION_STAND_PROJECTS_UPDATE,
@@ -34,6 +35,13 @@ describe("navigation permission rules", () => {
   it("keeps dashboard available without an RBAC permission", () => {
     expect(canAccessApplicationPath("/dashboard", granted())).toBe(true);
     expect(canAccessMainNavigation("/dashboard", granted())).toBe(true);
+  });
+
+  it("requires cost item read permission for Maliyet Kalemleri", () => {
+    expect(canAccessApplicationPath("/stand-cost-items", granted())).toBe(false);
+    expect(canAccessMainNavigation("/stand-cost-items", granted())).toBe(false);
+    expect(canAccessApplicationPath("/stand-cost-items", granted(PERMISSION_COST_ITEMS_READ))).toBe(true);
+    expect(canAccessMainNavigation("/stand-cost-items", granted(PERMISSION_COST_ITEMS_READ))).toBe(true);
   });
 
   it("requires stand project permissions for Standlar routes", () => {

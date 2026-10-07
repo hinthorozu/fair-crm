@@ -11,7 +11,7 @@ afterEach(() => {
 describe("Core permission synchronization", () => {
   it("contains every permission code enforced by the Fair CRM backend and UI guards", () => {
     expect(new Set(FAIR_CRM_PERMISSION_CODES).size).toBe(FAIR_CRM_PERMISSION_CODES.length);
-    expect(FAIR_CRM_PERMISSION_CODES).toHaveLength(117);
+    expect(FAIR_CRM_PERMISSION_CODES).toHaveLength(121);
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.admin.fair_stand.catalog.read");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.admin.fair_stand.previews.archive");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.admin.fair_stand.settings.read");
@@ -20,6 +20,10 @@ describe("Core permission synchronization", () => {
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.admin.fair_stand.items.create");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.admin.fair_stand.items.update");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.admin.fair_stand.items.archive");
+    expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.fair_stand.cost_items.read");
+    expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.fair_stand.cost_items.create");
+    expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.fair_stand.cost_items.update");
+    expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.fair_stand.cost_items.delete");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.fair_stand.projects.read");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.fair_stand.projects.execute");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("identity.organizations.read");
