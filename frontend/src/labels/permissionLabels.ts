@@ -49,6 +49,22 @@ const RESOURCES: Record<string, ResourceCopy> = {
 };
 
 const SPECIAL: Record<string, PermissionDisplayCopy> = {
+  "fair_crm.fair_stand.cost_items.read": {
+    title: "Maliyet kalemi görüntüleme",
+    description: "Maliyet kalemlerini görüntüleyebilir.",
+  },
+  "fair_crm.fair_stand.cost_items.create": {
+    title: "Maliyet kalemi oluşturma",
+    description: "Yeni maliyet kalemi oluşturabilir.",
+  },
+  "fair_crm.fair_stand.cost_items.update": {
+    title: "Maliyet kalemi düzenleme",
+    description: "Maliyet kalemlerini düzenleyebilir.",
+  },
+  "fair_crm.fair_stand.cost_items.delete": {
+    title: "Maliyet kalemi silme",
+    description: "Maliyet kalemlerini silebilir.",
+  },
   "identity.roles.assign": { title: "Rol atama", description: "Kullanıcılara organizasyon rolü atayabilir." },
   "identity.roles.assign_protected": { title: "Korunan rol atama", description: "Kullanıcılara korunan sistem rollerini atayabilir." },
   "identity.role_templates.manage": { title: "Rol şablonlarını yönetme", description: "Varsayılan rol şablonlarını oluşturabilir ve değiştirebilir." },

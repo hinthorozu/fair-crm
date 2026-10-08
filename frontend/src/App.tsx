@@ -26,6 +26,7 @@ import { FairStandPage } from "./pages/FairStandPage";
 import { StandWatchPage } from "./pages/StandWatchPage";
 import { parseStandWatchToken } from "./pages/standWatchRoute";
 import { StandProjectsPage } from "./pages/StandProjectsPage";
+import { StandCostItemsPage } from "./pages/StandCostItemsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { TodoDetailPage } from "./pages/TodoDetailPage";
 import { TodosPage } from "./pages/TodosPage";
@@ -130,6 +131,7 @@ type AppRoute =
   | "/stand-projects"
   | "/stand-projects/new"
   | "/stand-projects/:id"
+  | "/stand-cost-items"
   | "/stand/watch/:token"
   | "/customers/:id";
 
@@ -302,6 +304,9 @@ function parseRoute(location: string): ParsedRoute {
   if (pathname === "/login" || pathname === "/login/") return { route: "/login" };
   if (pathname === "/fair-stand" || pathname === "/fair-stand/") {
     return { route: "/stand-projects" };
+  }
+  if (pathname === "/stand-cost-items" || pathname === "/stand-cost-items/") {
+    return { route: "/stand-cost-items" };
   }
   if (pathname === "/stand-projects" || pathname === "/stand-projects/") {
     return { route: "/stand-projects" };
@@ -506,6 +511,7 @@ export function App() {
     parsed.route === "/stand-projects" ||
     parsed.route === "/stand-projects/new" ||
     parsed.route === "/stand-projects/:id";
+  const isStandCostItemsActive = parsed.route === "/stand-cost-items";
   const isCustomersActive = parsed.route === "/customers" || parsed.route === "/customers/:id";
   const isFairsActive = parsed.route === "/fairs" || parsed.route === "/fairs/:id";
   const isTodosActive = parsed.route === "/todos" || parsed.route === "/todos/:id" || parsed.route === "/todos/:id/quote";
@@ -539,12 +545,15 @@ export function App() {
     : isAdminActive ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navAdmin, onClick: () => goToAdmin() }, { label: parsed.route === "/admin/system/organizations" ? organizationLabels.title : parsed.route === "/admin/email-accounts" ? adminLabels.navSmtpAccounts : parsed.route === "/admin/smtp-operations/templates" ? adminLabels.navMailTemplates : parsed.route === "/admin/smtp-operations/mail-operations" ? adminLabels.navMailOperations : parsed.route === "/admin/operation-capabilities" ? adminLabels.navOperationCapabilities : adminLabels.navDatabaseBackups, current: true }]
     : parsed.route === "/stand-projects" || parsed.route === "/stand-projects/new" || parsed.route === "/stand-projects/:id"
       ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: standProjectsLabels.pageTitle, current: true }]
+    : parsed.route === "/stand-cost-items"
+      ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navStandCostItems, current: true }]
     : parsed.route === "/customers" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: labels.customers, current: true }]
     : [{ label: dashboardLabels.pageTitle, current: true }];
 
   const navItems = [
     { path: "/dashboard", label: uiLabels.navDashboard, icon: <NavIconDashboard />, active: isDashboardActive, onClick: (e: React.MouseEvent) => handleNav("/dashboard", e) },
     { path: "/stand-projects", label: uiLabels.navStandProjects, icon: <NavIconFairStand />, active: isStandProjectsActive, openInNewTab: true },
+    { path: "/stand-cost-items", label: uiLabels.navStandCostItems, icon: <NavIconFairStand />, active: isStandCostItemsActive, onClick: (e: React.MouseEvent) => handleNav("/stand-cost-items", e) },
     { path: "/customers", label: uiLabels.navCustomers, icon: <NavIconCustomers />, active: isCustomersActive, onClick: (e: React.MouseEvent) => handleNav("/customers", e) },
     { path: "/fairs", label: uiLabels.navFairs, icon: <NavIconFairs />, active: isFairsActive, onClick: (e: React.MouseEvent) => handleNav("/fairs", e) },
     { path: "/todos", label: uiLabels.navTodos, icon: <NavIconTodos />, active: isTodosActive, onClick: (e: React.MouseEvent) => handleNav("/todos", e) },
@@ -637,6 +646,7 @@ export function App() {
       {parsed.route === "/stand-projects" && (
         <StandProjectsPage onOpenProject={goToStandProjectEdit} onCreateProject={goToStandProjectNew} />
       )}
+      {parsed.route === "/stand-cost-items" && <StandCostItemsPage />}
       {parsed.route === "/fairs" && <FairsPage onOpenDetail={goToFairDetail} onContinueImport={(batchId) => goToDataIntegration(`/data-integration/imports/continue/${batchId}`)} />}
       {parsed.route === "/fairs/:id" && parsed.fairId && <FairDetailPage fairId={parsed.fairId} onBack={goToFairs} onFairLoaded={setFairName} onOpenCustomer={goToCustomerDetail} onImportParticipants={() => goToImportWizard(parsed.fairId)} onContinueImport={(batchId) => goToDataIntegration(`/data-integration/imports/continue/${batchId}`)} />}
       {isDiActive && renderDataIntegration()}

@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "id": "fair-stand-cost-items",
+  "title": "Organization Fair Stand cost items",
+  "feature_type": "ui_only",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "user",
+  "tenant_scope": "organization",
+  "user_facing": true,
+  "affected_paths": [
+    "frontend/src/pages/StandCostItemsPage.tsx",
+    "frontend/src/pages/StandCostItemsPage.test.ts",
+    "frontend/src/api/fairStandCostItems.ts",
+    "frontend/src/labels/costItemsLabels.ts",
+    "frontend/src/labels/permissionLabels.ts",
+    "frontend/src/labels/uiLabels.ts",
+    "frontend/src/permissions/navigationPermissions.ts",
+    "frontend/src/permissions/navigationPermissions.test.ts",
+    "frontend/src/permissions/corePermissions.ts",
+    "frontend/src/permissions/corePermissions.test.ts",
+    "frontend/src/App.tsx",
+    "frontend/src/components/layout/AppLayout.tsx",
+    "scripts/fair_crm_role_matrix.py",
+    ".kyrox/features/fair-stand-cost-items.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      { "code": "fair_crm.fair_stand.cost_items.read", "action": "read", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.cost_items.create", "action": "create", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.cost_items.update", "action": "update", "scope": "organization", "assignable": true },
+      { "code": "fair_crm.fair_stand.cost_items.delete", "action": "delete", "scope": "organization", "assignable": true }
+    ]
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/stand-cost-items"],
+    "menu": true,
+    "menu_permission": "fair_crm.fair_stand.cost_items.read"
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "Cost item table lives in the Fair Stand database. CRM does not own the schema." },
+    "migration": { "status": "na", "reason": "Fair Stand alembic 0063 extends fair_stand_cost_items. CRM does not own that schema. Core permission codes stay 20261007_0071." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "na", "reason": "Cost item API is hosted by Fair Stand. CRM only wires the screen and permission visibility." },
+    "api": { "status": "na", "reason": "CRM proxies /api/v1/fair-stand. This slice adds no CRM route." },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "na", "reason": "No new Fair CRM audit stream in this slice." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "required" },
+    "menu": { "status": "required" },
+    "route_guard": { "status": "required" },
+    "forms": { "status": "required" },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "na", "reason": "API tests live in fair-stand. CRM covers permission and form validation tests." },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "One screen lists ITEM and MANUAL rows from the Fair Stand cost-items API. ITEM uses the cost-enabled catalog dropdown and stores item_key only. MANUAL stores a name and a Unit Catalog unit_key. Organization id comes from the session header. Permissions stay the existing cost_items codes."
+}
