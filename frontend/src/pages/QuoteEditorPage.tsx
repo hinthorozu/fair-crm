@@ -11,7 +11,7 @@ import { Modal } from "../components/ui/Modal";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
 import { Card } from "../components/ui/Card";
-import { FormField, FormGrid, SelectInput, TextInput } from "../components/ui/form";
+import { CheckboxField, FormField, FormGrid, SelectInput, TextInput } from "../components/ui/form";
 import { canReadQuoteEditor, getQuotePermissions, QUOTE_CREATE, QUOTE_UPDATE } from "../permissions/quotePermissions";
 import type { QuoteSelectedItem } from "../types/quote";
 
@@ -214,7 +214,7 @@ export function QuoteEditorPage({ todoId, onBack }: Props) {
       <FormField label="Durum" htmlFor="quote-status"><SelectInput id="quote-status" value={status} onChange={(e) => setStatus(e.target.value as "draft" | "given")}><option value="draft">Taslak</option><option value="given">Teklif Verildi</option></SelectInput></FormField>
       <FormField label="Stand Bedeli" htmlFor="quote-price"><TextInput id="quote-price" value={price} maxLength={255} placeholder="125.000 TL + %20 KDV" onChange={(e) => setPrice(e.target.value)} /></FormField>
     </FormGrid></Card>
-    {tags.map((tag) => <Card key={tag.id}><h3>{tag.name}</h3>{contents.filter((item) => item.tag_id === tag.id).map((item) => <div key={item.id} className="form-grid" style={{gridTemplateColumns:"40px 1fr 1fr",alignItems:"center",marginBottom:8}}><input type="checkbox" checked={Object.prototype.hasOwnProperty.call(selected, item.id)} onChange={(e) => toggle(item.id, e.target.checked)} aria-label={`${item.title} seç`} /><span>{item.title}</span><TextInput id={`quote-content-${item.id}`} value={selected[item.id] ?? ""} disabled={!Object.prototype.hasOwnProperty.call(selected, item.id)} placeholder="VAR / 1 ADET" onChange={(e) => setSelected((current) => ({ ...current, [item.id]: e.target.value }))} /></div>)}</Card>)}
+    {tags.map((tag) => <Card key={tag.id}><h3>{tag.name}</h3>{contents.filter((item) => item.tag_id === tag.id).map((item) => <div key={item.id} className="form-grid" style={{gridTemplateColumns:"40px 1fr 1fr",alignItems:"center",marginBottom:8}}><CheckboxField id={`quote-select-${item.id}`} label={`${item.title} seç`} hideLabel ariaLabel={`${item.title} seç`} checked={Object.prototype.hasOwnProperty.call(selected, item.id)} onChange={(checked) => toggle(item.id, checked)} /><span>{item.title}</span><TextInput id={`quote-content-${item.id}`} value={selected[item.id] ?? ""} disabled={!Object.prototype.hasOwnProperty.call(selected, item.id)} placeholder="VAR / 1 ADET" onChange={(e) => setSelected((current) => ({ ...current, [item.id]: e.target.value }))} /></div>)}</Card>)}
     {preview ? <Card><div className="form-actions"><h3 style={{marginRight:"auto"}}>Önizleme</h3><button type="button" className="btn secondary" onClick={() => setPreviewOpen(true)}>Önizlemeyi Aç</button></div></Card> : null}
     {previewOpen && preview ? <Modal title="Teklif Önizleme" onClose={() => setPreviewOpen(false)} size="lg" footer={<><button type="button" className="btn secondary" onClick={() => setPreviewOpen(false)}>Kapat</button><button type="button" className="btn primary" onClick={printPdf}>Yazdır / PDF</button></>}>
       <iframe ref={previewRef} title="Teklif önizleme" srcDoc={preview} style={{width:"100%",height:"75vh",border:"1px solid #d8deea",background:"white"}} />

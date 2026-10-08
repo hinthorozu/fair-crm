@@ -18,6 +18,7 @@ export {
 export {
   TextInput,
   ColorInput,
+  FileInput,
   PasswordInput,
   SelectInput,
   TextareaInput,

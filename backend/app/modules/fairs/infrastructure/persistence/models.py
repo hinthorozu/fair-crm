@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, Date, DateTime, Index, String, Text, Uuid, text
+from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Index, String, Text, Uuid, text
 from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON
@@ -10,6 +10,32 @@ from sqlalchemy.types import JSON
 from app.db.base import Base
 
 JsonType = JSON().with_variant(SQLiteJSON(), "sqlite")
+
+
+class SystemFairSeparationModel(Base):
+    """A System Fair the user marked as intentionally distinct inside a shared label."""
+
+    __tablename__ = "crm_system_fair_separations"
+    __table_args__ = (
+        Index(
+            "ix_crm_system_fair_separations_identity",
+            "source",
+            "identity_name",
+            "city_key",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
+    source: Mapped[str] = mapped_column(String(32), nullable=False)
+    identity_name: Mapped[str] = mapped_column(String(500), nullable=False)
+    city_key: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    fair_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("crm_fairs.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 class FairModel(Base):
@@ -28,6 +54,12 @@ class FairModel(Base):
             postgresql_where=text("origin = 'system'"),
             sqlite_where=text("origin = 'system'"),
         ),
+        Index(
+            "ix_crm_fairs_system_identity_name",
+            "origin",
+            "source",
+            "identity_name",
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
@@ -35,6 +67,9 @@ class FairModel(Base):
     origin: Mapped[str] = mapped_column(String(32), nullable=False, default="organization", server_default="organization")
     source: Mapped[str | None] = mapped_column(String(32))
     external_id: Mapped[str | None] = mapped_column(String(64))
+    identity_name: Mapped[str] = mapped_column(
+        String(500), nullable=False, default="", server_default=""
+    )
     name: Mapped[str] = mapped_column(Text, nullable=False)
     organizer: Mapped[str | None] = mapped_column(String(255))
     venue: Mapped[str | None] = mapped_column(String(255))

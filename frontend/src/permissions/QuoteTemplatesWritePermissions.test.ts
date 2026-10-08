@@ -20,6 +20,6 @@ describe("Quote Templates write permissions", () => {
   });
 
   it("hides the modal save action without the matching write capability", () => {
-    expect(source).toContain("{canSaveTemplate ? <button type=\"submit\" className=\"btn primary\"");
+    expect(source).toContain('{canSaveTemplate ? <Button type="submit" form="quote-template-form" variant="primary"');
   });
 });

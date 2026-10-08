@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "id": "system-fair-merge-audit",
+  "title": "System Fair Merge Audit Action",
+  "feature_type": "backend_service",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "user",
+  "tenant_scope": "system",
+  "user_facing": false,
+  "affected_paths": [
+    "backend/app/modules/fairs/application/merge_system_fair.py",
+    "backend/tests/modules/fairs/test_system_fair_duplicate_merge.py",
+    ".kyrox/features/system-fair-merge-audit.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.system_fair.merged",
+        "action": "record the Super Admin merge of one System Fair into another",
+        "scope": "system",
+        "assignable": false
+      }
+    ]
+  },
+  "frontend": {
+    "required": false,
+    "reason": "The audit action is written by the merge service. The fairs page contract covers the review UI.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "na", "reason": "The audit row uses the existing audit store. No new product table is added here." },
+    "migration": { "status": "na", "reason": "No schema change belongs to the audit action itself." },
+    "permissions": { "status": "required" },
+    "backend": { "status": "required" },
+    "api": { "status": "na", "reason": "The HTTP routes stay on the duplicate-merge contract and still use the Super Admin gate." },
+    "tenant_isolation": { "status": "na", "reason": "The action is system-scoped. Organization fairs are rejected by the merge service." },
+    "audit": { "status": "required" },
+    "frontend": { "status": "na", "reason": "No screen is added for the audit action." },
+    "ui_permissions": { "status": "na", "reason": "The review UI stays on the existing Super Admin flag." },
+    "menu": { "status": "na", "reason": "No navigation item is added." },
+    "route_guard": { "status": "na", "reason": "No route guard changes with the audit action." },
+    "forms": { "status": "na", "reason": "No form is added for the audit action." },
+    "visual_qa": { "status": "na", "reason": "The audit action has no visible surface." },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "na", "reason": "The audit action has no frontend behavior." },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "na", "reason": "The merge test asserts the audit action. There is no separate runtime probe." },
+    "deployment": { "status": "na", "reason": "Declaring the audit action does not change the deploy path." }
+  },
+  "notes": "Merging a System Fair records audit action fair_crm.system_fair.merged. The code is system-scoped and is not assigned to roles. Authorization remains the existing Super Admin gate. ADR-039."
+}

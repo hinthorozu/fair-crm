@@ -40,6 +40,7 @@ from app.modules.fairs.api.schemas import (
     CreateFairRequest,
     SyncTobbSystemFairsRequest,
     SyncTobbSystemFairsResponse,
+    TobbSyncConflictItem,
     ErrorResponse,
     FairListResponse,
     FairResponse,
@@ -284,6 +285,15 @@ def sync_tobb_system_fairs(
         inserted=result.inserted,
         updated=result.updated,
         conflicts=result.conflicts,
+        conflict_items=[
+            TobbSyncConflictItem(
+                name=item.name,
+                identity_name=item.identity_name,
+                city=item.city,
+                fair_ids=list(item.fair_ids),
+            )
+            for item in result.conflict_items
+        ],
     )
 
 

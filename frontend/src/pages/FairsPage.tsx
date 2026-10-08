@@ -14,6 +14,7 @@ import { useAuth } from "../auth/AuthContext";
 import { FairForm, fairToFormValues } from "../components/FairForm";
 import { FairFilters, FairTable } from "../components/FairList";
 import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
+import { SystemFairDuplicateReview } from "../components/SystemFairDuplicateReview";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { FormModal, runAfterSuccessfulFormSubmit, TextInput } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
@@ -35,6 +36,22 @@ function selectedTobbYear(value: string): number | null {
   const trimmed = value.trim();
   if (!/^\d{4}$/.test(trimmed)) return null;
   return Number(trimmed);
+}
+
+export function tobbSyncSummary(result: {
+  inserted: number;
+  updated: number;
+  conflicts: number;
+  conflict_items?: { name: string; city: string | null; fair_ids: string[] }[];
+}): string {
+  const base = `TOBB güncellemesi tamamlandı: ${result.inserted} yeni, ${result.updated} güncellendi, ${result.conflicts} çakışma.`;
+  const details = (result.conflict_items ?? []).map((item) => {
+    const city = item.city ? ` / ${item.city}` : "";
+    const ids = item.fair_ids.length ? ` — ${item.fair_ids.join(", ")}` : "";
+    return `${item.name}${city}${ids}`;
+  });
+  if (details.length === 0) return base;
+  return `${base} Çakışan fuarlar: ${details.join("; ")}.`;
 }
 
 interface FairsPageProps {
@@ -186,9 +203,7 @@ export function FairsPage({ onOpenDetail, onContinueImport }: FairsPageProps) {
     setSuccess(null);
     try {
       const result = await syncTobbSystemFairs(year);
-      setSuccess(
-        `TOBB güncellemesi tamamlandı: ${result.inserted} yeni, ${result.updated} güncellendi, ${result.conflicts} çakışma.`,
-      );
+      setSuccess(tobbSyncSummary(result));
       await table.refresh();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : fairLabels.syncTobbError);
@@ -285,6 +300,7 @@ export function FairsPage({ onOpenDetail, onContinueImport }: FairsPageProps) {
 
       {success && <Banner variant="success">{success}</Banner>}
       {error && <Banner variant="error">{error}</Banner>}
+      {isSuperAdmin && <SystemFairDuplicateReview onChanged={() => void table.refresh()} />}
 
       {modal === "create" && canCreate && (
         <FormModal title={fairLabels.newFair} onClose={closeModal} size="lg">

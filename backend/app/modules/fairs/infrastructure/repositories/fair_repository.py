@@ -6,6 +6,7 @@ from sqlalchemy.orm import Query, Session
 
 from app.core.pagination import build_order_clause, build_paginated_meta, normalize_page_params
 from app.modules.fairs.domain.entities import Fair
+from app.modules.fairs.domain.services.normalizers import compute_identity_name
 from app.modules.fairs.domain.ports import FairListResult
 from app.modules.fairs.domain.value_objects import FairStatus
 from app.modules.fairs.infrastructure.persistence.mappers import (
@@ -183,35 +184,35 @@ class SqlAlchemyFairRepository:
         )
         return model_to_entity(model) if model else None
 
-    def list_system_fairs_by_year_and_name(
-        self, *, source: str, year: int, normalized_name: str
-    ) -> list[Fair]:
-        prefix = f"{int(year)}:"
+    def list_system_fairs_for_source(self, *, source: str) -> list[Fair]:
         models = (
             self._session.query(FairModel)
             .filter(
                 FairModel.origin == "system",
                 FairModel.source == source,
-                FairModel.normalized_name == normalized_name,
-                FairModel.external_id.like(f"{prefix}%"),
+                FairModel.deleted_at.is_(None),
             )
             .all()
         )
         return [model_to_entity(model) for model in models]
 
-    def list_system_fairs_by_normalized_name(
-        self, *, source: str, normalized_name: str
-    ) -> list[Fair]:
-        models = (
+    def get_system_fair(self, fair_id: UUID) -> Fair | None:
+        model = (
             self._session.query(FairModel)
-            .filter(
-                FairModel.origin == "system",
-                FairModel.source == source,
-                FairModel.normalized_name == normalized_name,
-            )
+            .filter(FairModel.id == fair_id, FairModel.origin == "system")
+            .one_or_none()
+        )
+        return model_to_entity(model) if model else None
+
+    def list_system_fair_separation_ids(self, *, source: str) -> set[UUID]:
+        from app.modules.fairs.infrastructure.persistence.models import SystemFairSeparationModel
+
+        rows = (
+            self._session.query(SystemFairSeparationModel.fair_id)
+            .filter(SystemFairSeparationModel.source == source)
             .all()
         )
-        return [model_to_entity(model) for model in models]
+        return {row[0] for row in rows}
 
     def update_system_fair(self, fair: Fair) -> Fair:
         model = (
@@ -233,6 +234,7 @@ class SqlAlchemyFairRepository:
         model.end_date = fair.end_date
         model.website = fair.website
         model.external_id = fair.external_id
+        model.identity_name = fair.identity_name or compute_identity_name(name=fair.name)
         model.status = fair.status.value
         model.updated_at = fair.updated_at
         self._session.flush()

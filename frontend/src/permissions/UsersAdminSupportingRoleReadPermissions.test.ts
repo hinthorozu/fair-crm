@@ -25,7 +25,7 @@ describe("Users admin supporting role read permissions", () => {
       "const canOfferCreate = canCreateUsers && canReadRoles && Boolean(organizationId) && roles.length > 0",
     );
     expect(source).toContain(
-      '{canReadRoles ? <label className="form-field"><span className="form-label">Rol',
+      '{canReadRoles ? <FormField label="Rol" htmlFor="user-role"',
     );
     expect(source).toContain(
       ': editing && !form.isSuperAdmin ? <div className="form-field"><span className="form-label">Rol</span><strong>{editing.role?.name ?? "—"}</strong></div> : null}',

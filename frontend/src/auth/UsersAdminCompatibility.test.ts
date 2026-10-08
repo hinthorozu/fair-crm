@@ -19,7 +19,7 @@ describe("P0.2 Super Admin user-management UI compatibility", () => {
 
   it("keeps role and Super Admin controls backend-authoritative", () => {
     expect(source).toContain('setCanManageSuperAdmin(userResult.can_manage_super_admin)');
-    expect(source).toContain('{canManageSuperAdmin ? <label className="form-field"><span className="form-label">Super Admin</span>');
+    expect(source).toContain('{canManageSuperAdmin ? <CheckboxField id="user-super-admin" label="Super Admin"');
     expect(source).toContain('...(canManageSuperAdmin ? { is_super_admin: form.isSuperAdmin } : {})');
     expect(source).toContain('if (!form.isSuperAdmin && !form.roleId)');
   });

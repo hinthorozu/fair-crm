@@ -85,7 +85,74 @@ class SyncTobbSystemFairsRequest(BaseModel):
     year: int
 
 
+class TobbSyncConflictItem(BaseModel):
+    name: str
+    identity_name: str
+    city: str | None = None
+    fair_ids: list[UUID]
+
+
 class SyncTobbSystemFairsResponse(BaseModel):
     inserted: int
     updated: int
     conflicts: int
+    conflict_items: list[TobbSyncConflictItem] = []
+
+
+class SystemFairDuplicateFairResponse(BaseModel):
+    id: UUID
+    name: str
+    city: str | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    organizer: str | None = None
+    website: str | None = None
+    external_id: str | None = None
+    source: str | None = None
+    participations: int
+    todos: int
+    quotes: int
+    imports: int
+    scraper_runs: int
+    has_scraper_config: bool
+
+
+class SystemFairDuplicateGroupResponse(BaseModel):
+    identity_name: str
+    city: str | None = None
+    fairs: list[SystemFairDuplicateFairResponse]
+
+
+class SystemFairDuplicateListResponse(BaseModel):
+    items: list[SystemFairDuplicateGroupResponse]
+
+
+class SystemFairMergePreviewRequest(BaseModel):
+    source_fair_id: UUID
+    target_fair_id: UUID
+
+
+class SystemFairMergeRequest(BaseModel):
+    target_fair_id: UUID
+
+
+class SystemFairKeepSeparateRequest(BaseModel):
+    fair_ids: list[UUID] = Field(min_length=2)
+
+
+class SystemFairMergeBlockResponse(BaseModel):
+    code: str
+    message: str
+
+
+class SystemFairMergePreviewResponse(BaseModel):
+    participations: int
+    todos: int
+    quotes: int
+    activities: int
+    imports: int
+    scraper_runs: int
+    email_batches: int
+    mail_operations: int
+    operations: int
+    blocking_conflicts: list[SystemFairMergeBlockResponse]

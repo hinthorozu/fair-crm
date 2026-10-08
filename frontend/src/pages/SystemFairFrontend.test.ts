@@ -15,7 +15,7 @@ import { labels } from "../labels";
 import { systemFairScrapeReady, type Fair } from "../types/fair";
 import type { StandardListResponse } from "../types/listTable";
 import { FairDetailPage } from "./FairDetailPage";
-import { FairsPage } from "./FairsPage";
+import { FairsPage, tobbSyncSummary } from "./FairsPage";
 
 const harness = vi.hoisted(() => ({
   isSuperAdmin: false,
@@ -25,6 +25,10 @@ const harness = vi.hoisted(() => ({
   compare: vi.fn(),
   runScraper: vi.fn(),
   syncTobb: vi.fn(),
+  listDuplicates: vi.fn(),
+  previewMerge: vi.fn(),
+  mergeFair: vi.fn(),
+  keepSeparate: vi.fn(),
   listAdapters: vi.fn(),
   listScraperRuns: vi.fn(),
   listParticipants: vi.fn(),
@@ -61,6 +65,10 @@ vi.mock("../api/fairs", async () => {
     compareSystemFairImport: (...args: unknown[]) => harness.compare(...args),
     runFairScraper: (...args: unknown[]) => harness.runScraper(...args),
     syncTobbSystemFairs: (...args: unknown[]) => harness.syncTobb(...args),
+    listSystemFairDuplicates: (...args: unknown[]) => harness.listDuplicates(...args),
+    previewSystemFairMerge: (...args: unknown[]) => harness.previewMerge(...args),
+    mergeSystemFair: (...args: unknown[]) => harness.mergeFair(...args),
+    keepSystemFairsSeparate: (...args: unknown[]) => harness.keepSeparate(...args),
   };
 });
 
@@ -141,6 +149,11 @@ describe("system fair frontend", () => {
     harness.compare.mockReset();
     harness.runScraper.mockReset();
     harness.syncTobb.mockReset();
+    harness.listDuplicates.mockReset();
+    harness.previewMerge.mockReset();
+    harness.mergeFair.mockReset();
+    harness.keepSeparate.mockReset();
+    harness.listDuplicates.mockResolvedValue({ items: [] });
     harness.listAdapters.mockReset();
     harness.listScraperRuns.mockReset();
     harness.listParticipants.mockReset();
@@ -649,6 +662,21 @@ describe("system fair frontend", () => {
     expect(container.textContent).toContain(
       "TOBB güncellemesi tamamlandı: 120 yeni, 35 güncellendi, 2 çakışma.",
     );
+    expect(
+      tobbSyncSummary({
+        inserted: 0,
+        updated: 0,
+        conflicts: 1,
+        conflict_items: [
+          {
+            name: "X FUARI",
+            identity_name: "X FUARI",
+            city: "İstanbul",
+            fair_ids: ["id-1", "id-2"],
+          },
+        ],
+      }),
+    ).toContain("Çakışan fuarlar: X FUARI / İstanbul — id-1, id-2.");
     expect(harness.listFairs.mock.calls.length).toBeGreaterThan(callsBeforeResult);
     expect(container.textContent).toContain("Mevcut Fuar");
   });
@@ -665,5 +693,88 @@ describe("system fair frontend", () => {
     expect(container.textContent).toContain("TOBB calendar request timed out");
     expect(harness.listFairs.mock.calls.length).toBe(callsAfterLoad);
     expect(container.textContent).toContain("Mevcut Fuar");
+  });
+
+  it("shows duplicate system fairs only to a super admin and asks before merge", async () => {
+    const group = {
+      identity_name: "KYROX MERGE FAIR",
+      city: "İstanbul",
+      fairs: [
+        {
+          id: "fair-a",
+          name: "KYROX 2026",
+          city: "İstanbul",
+          start_date: "2026-10-01",
+          end_date: "2026-10-04",
+          organizer: "TOBB",
+          website: "https://a.test",
+          external_id: "2026:1",
+          source: "tobb",
+          participations: 1,
+          todos: 2,
+          quotes: 3,
+          imports: 4,
+          scraper_runs: 5,
+          has_scraper_config: false,
+        },
+        {
+          id: "fair-b",
+          name: "KYROX 2027",
+          city: "İstanbul",
+          start_date: "2027-10-01",
+          end_date: "2027-10-04",
+          organizer: "TOBB",
+          website: null,
+          external_id: "2027:2",
+          source: "tobb",
+          participations: 0,
+          todos: 0,
+          quotes: 0,
+          imports: 0,
+          scraper_runs: 0,
+          has_scraper_config: true,
+        },
+      ],
+    };
+    harness.listDuplicates.mockResolvedValue({ items: [group] });
+    await renderFairs();
+    expect(container.textContent).not.toContain(fairLabels.duplicateReviewTitle);
+
+    harness.isSuperAdmin = true;
+    await renderFairs();
+    expect(container.textContent).toContain(fairLabels.duplicateReviewTitle);
+    expect(container.textContent).toContain("KYROX 2026");
+    expect(container.textContent).toContain("Katılım 1");
+    expect(container.textContent).toContain(fairLabels.duplicateScraperConfig);
+
+    const keep = container.querySelector<HTMLInputElement>('input[name="keep-KYROX MERGE FAIR|İstanbul"]');
+    const merge = container.querySelectorAll<HTMLInputElement>(
+      'input[name="merge-KYROX MERGE FAIR|İstanbul"]',
+    );
+    harness.previewMerge.mockResolvedValue({
+      participations: 0,
+      todos: 0,
+      quotes: 0,
+      activities: 0,
+      imports: 0,
+      scraper_runs: 0,
+      email_batches: 0,
+      mail_operations: 0,
+      operations: 0,
+      blocking_conflicts: [],
+    });
+    await act(async () => {
+      keep?.click();
+      merge[1]?.click();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      buttonByText(container, fairLabels.duplicateMergeAction)?.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(harness.previewMerge).toHaveBeenCalledWith("fair-b", "fair-a");
+    expect(container.textContent).toContain(fairLabels.duplicateMergeConfirm);
+    expect(harness.mergeFair).not.toHaveBeenCalled();
   });
 });

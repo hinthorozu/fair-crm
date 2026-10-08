@@ -20,7 +20,7 @@ describe("Template Contents write permissions", () => {
   });
 
   it("hides modal save actions without the matching write capability", () => {
-    expect(source).toContain("{canSaveTag ? <button type=\"submit\" className=\"btn primary\"");
-    expect(source).toContain("{canSaveContent ? <button type=\"submit\" className=\"btn primary\"");
+    expect(source).toContain('{canSaveTag ? <Button type="submit" form="content-tag-form" variant="primary"');
+    expect(source).toContain('{canSaveContent ? <Button type="submit" form="content-form" variant="primary"');
   });
 });

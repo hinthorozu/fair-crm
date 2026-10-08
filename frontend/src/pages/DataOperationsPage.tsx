@@ -19,6 +19,7 @@ import type { DataOperationDefinition, DataOperationRun, DuplicateGroupByField }
 import type { Operation } from "../types/operation";
 import type { BadgeVariant } from "../components/ui/Badge";
 import { Card } from "../components/ui/Card";
+import { FilterPanel } from "../components/ui/FilterPanel";
 import { PageShell } from "../components/ui/PageShell";
 
 const POLL_INTERVAL_MS = 2000;
@@ -284,7 +285,7 @@ export function DuplicateCheckOperationPage({ onOpenResult }: DuplicateCheckOper
                     <h3>{operation.name}</h3>
                     <p className="text-muted">{operation.description}</p>
                     {operation.key === DUPLICATE_ANALYSIS_KEY && (
-                      <div className="data-operation-duplicate-filters">
+                      <FilterPanel className="data-operation-duplicate-filters" ariaLabel={adminLabels.dataOpGroupByLabel}>
                         <fieldset className="data-operation-group-by">
                           <legend>{adminLabels.dataOpGroupByLabel}</legend>
                           <div className="data-operation-group-by-options">
@@ -315,7 +316,7 @@ export function DuplicateCheckOperationPage({ onOpenResult }: DuplicateCheckOper
                             clearOptionLabel={adminLabels.dataOpFairFilterAll}
                           />
                         </div>
-                      </div>
+                      </FilterPanel>
                     )}
                   </div>
                   {canRun ? (

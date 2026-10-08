@@ -52,6 +52,9 @@ from app.modules.dashboard.api.routes import router as dashboard_router
 from app.modules.operations.api.routes import router as operations_router
 from app.modules.email_webhooks.api.routes import router as email_webhooks_router
 from app.modules.cost_catalog.api.routes import router as cost_catalog_router
+from app.modules.fairs.api.system_fair_duplicate_routes import (
+    router as system_fair_duplicate_router,
+)
 
 api_v1_router = APIRouter(prefix="/api/v1")
 
@@ -64,6 +67,7 @@ api_v1_router.include_router(customer_participations_router)
 api_v1_router.include_router(fair_participants_router)
 api_v1_router.include_router(participations_router)
 api_v1_router.include_router(customers_router)
+api_v1_router.include_router(system_fair_duplicate_router)
 api_v1_router.include_router(fairs_router)
 # Compatibility-only mount: keep supported legacy import callers working without publishing this duplicate API surface.
 api_v1_router.include_router(imports_router, prefix="/imports", include_in_schema=False)

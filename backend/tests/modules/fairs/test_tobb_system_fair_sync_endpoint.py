@@ -90,7 +90,12 @@ def test_super_admin_sync_calls_existing_use_case_with_explicit_year(
     )
 
     assert response.status_code == 200
-    assert response.json() == {"inserted": 1, "updated": 0, "conflicts": 0}
+    assert response.json() == {
+        "inserted": 1,
+        "updated": 0,
+        "conflicts": 0,
+        "conflict_items": [],
+    }
     assert reader.years == [2026]
     saved = db_session.query(FairModel).filter(FairModel.external_id == "2026:7").one()
     assert saved.origin == "system"
@@ -110,7 +115,12 @@ def test_sync_response_maps_use_case_counts(client, auth_headers):
     )
 
     assert response.status_code == 200
-    assert response.json() == {"inserted": 120, "updated": 35, "conflicts": 2}
+    assert response.json() == {
+        "inserted": 120,
+        "updated": 35,
+        "conflicts": 2,
+        "conflict_items": [],
+    }
     assert use_case.years == [2024]
 
 
