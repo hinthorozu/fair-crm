@@ -63,7 +63,9 @@ describe("StandCostItemsPage", () => {
   it("shows item fields or manual name and unit catalog fields", () => {
     expect(costItemFormFields("ITEM")).toEqual({ item: true, name: false, unit: false });
     expect(costItemFormFields("MANUAL")).toEqual({ item: false, name: true, unit: true });
-    expect(costItemsLabels.typeItem).toBe("Item");
+    expect(costItemsLabels.typeItem).toBe("Sahne Elemanı");
+    expect(costItemsLabels.fieldItem).toBe("Sahne Elemanı");
+    expect(costItemsLabels.colItem).toBe("Kalem");
     expect(costItemsLabels.typeManual).toBe("Manuel");
     expect(costItemsLabels.colType).toBe("Tür");
     const source = readFileSync(join(here, "StandCostItemsPage.tsx"), "utf8");

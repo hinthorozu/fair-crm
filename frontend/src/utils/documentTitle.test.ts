@@ -109,5 +109,6 @@ describe("resolvePageTitle", () => {
     expect(resolvePageTitle({ route: "/stand-projects/:id" })).toBe(
       standProjectsLabels.editorEditTitle,
     );
+    expect(resolvePageTitle({ route: "/stand-projects/:id/cost" })).toBe("Maliyet Hesapla");
   });
 });

@@ -11,7 +11,7 @@ import { todoLabels } from "../labels/todoLabels";
 import { activityLabels } from "../labels/activityLabels";
 import { operationLabels, operationTypeLabels } from "../labels/operationLabels";
 import { uiLabels } from "../labels/uiLabels";
-import { standProjectsLabels } from "../labels/standProjectsLabels";
+import { standProjectCostLabels, standProjectsLabels } from "../labels/standProjectsLabels";
 
 export const DOCUMENT_TITLE_STUDIO = "Kyrox Studio";
 export const DOCUMENT_TITLE_PRODUCT = "Fuar CRM";
@@ -62,6 +62,8 @@ export function resolvePageTitle(context: DocumentTitleContext): string {
       return standProjectsLabels.editorNewTitle;
     case "/stand-projects/:id":
       return standProjectsLabels.editorEditTitle;
+    case "/stand-projects/:id/cost":
+      return standProjectCostLabels.pageTitle;
     case "/customers":
       return labels.customers;
     case "/customers/:id":

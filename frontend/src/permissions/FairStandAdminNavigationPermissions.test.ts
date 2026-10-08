@@ -6,7 +6,6 @@ import {
 import {
   FAIR_STAND_CATALOG_READ,
   FAIR_STAND_ITEMS_READ,
-  FAIR_STAND_PREVIEWS_READ,
   FAIR_STAND_SETTINGS_READ,
 } from "./fairStandAdminPermissions";
 
@@ -15,7 +14,6 @@ describe("Fair Stand admin navigation", () => {
     const granted = [
       FAIR_STAND_CATALOG_READ,
       FAIR_STAND_ITEMS_READ,
-      FAIR_STAND_PREVIEWS_READ,
       FAIR_STAND_SETTINGS_READ,
     ];
     expect(canAccessAdminSection("fair-stand-catalog", granted)).toBe(true);

@@ -8,6 +8,14 @@ const source = readFileSync(
 ).replace(/\r\n/g, "\n");
 
 describe("Fair Stand previews admin page", () => {
+  it("gates the screen with catalog permissions", () => {
+    expect(source).toContain("FAIR_STAND_CATALOG_READ");
+    expect(source).toContain("FAIR_STAND_CATALOG_CREATE");
+    expect(source).toContain("FAIR_STAND_CATALOG_UPDATE");
+    expect(source).toContain("FAIR_STAND_CATALOG_ARCHIVE");
+    expect(source).not.toContain("fair_crm.admin.fair_stand.previews.");
+  });
+
   it("uses shared PageShell/table/form standards", () => {
     expect(source).toContain("PageShell");
     expect(source).toContain("PageHeader");

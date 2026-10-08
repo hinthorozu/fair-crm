@@ -38,3 +38,18 @@ export function deleteFairStandProject(projectId: string): Promise<void> {
     method: "DELETE",
   });
 }
+
+export type FairStandProjectAsset = {
+  id: string;
+  name: string;
+};
+
+export type FairStandProjectDetail = FairStandProjectSummary & {
+  stand: unknown;
+  modules: unknown[];
+  assets: FairStandProjectAsset[];
+};
+
+export function getFairStandProject(projectId: string): Promise<FairStandProjectDetail> {
+  return apiRequest<FairStandProjectDetail>(`${base}/${encodeURIComponent(projectId)}`);
+}
