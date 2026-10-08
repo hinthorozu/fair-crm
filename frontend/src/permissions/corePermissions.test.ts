@@ -14,7 +14,7 @@ describe("Core permission synchronization", () => {
     expect(FAIR_CRM_PERMISSION_CODES).toHaveLength(117);
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.admin.fair_stand.catalog.read");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.admin.fair_stand.catalog.archive");
-    expect(FAIR_CRM_PERMISSION_CODES.join("\n")).not.toContain("fair_crm.admin.fair_stand.previews.");
+    expect(FAIR_CRM_PERMISSION_CODES.join("\n")).not.toMatch(/fair_stand\.previews\./);
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.admin.fair_stand.settings.read");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.admin.fair_stand.settings.update");
     expect(FAIR_CRM_PERMISSION_CODES).toContain("fair_crm.admin.fair_stand.items.read");

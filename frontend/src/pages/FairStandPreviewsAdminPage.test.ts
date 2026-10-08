@@ -13,7 +13,7 @@ describe("Fair Stand previews admin page", () => {
     expect(source).toContain("FAIR_STAND_CATALOG_CREATE");
     expect(source).toContain("FAIR_STAND_CATALOG_UPDATE");
     expect(source).toContain("FAIR_STAND_CATALOG_ARCHIVE");
-    expect(source).not.toContain("fair_crm.admin.fair_stand.previews.");
+    expect(source).not.toMatch(/fair_stand\.previews\./);
   });
 
   it("uses shared PageShell/table/form standards", () => {
