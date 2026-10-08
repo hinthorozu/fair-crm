@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "id": "system-fair-duplicate-merge",
+  "title": "System Fair Duplicate Review and Safe Merge",
+  "feature_type": "backend_service",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "user",
+  "tenant_scope": "system",
+  "user_facing": true,
+  "affected_paths": [
+    "backend/app/modules/fairs/application/merge_system_fair.py",
+    "backend/app/modules/fairs/application/sync_tobb_system_fairs.py",
+    "backend/app/modules/fairs/domain/exceptions.py",
+    "backend/app/modules/fairs/domain/ports.py",
+    "backend/app/modules/fairs/infrastructure/persistence/models.py",
+    "backend/app/modules/fairs/infrastructure/repositories/fair_repository.py",
+    "backend/app/modules/fairs/api/schemas.py",
+    "backend/app/modules/fairs/api/system_fair_duplicate_routes.py",
+    "backend/app/api/v1/router.py",
+    "backend/app/modules/fairs/api/dependencies.py",
+    "backend/alembic/versions/0094_system_fair_separations.py",
+    "backend/tests/modules/fairs/test_system_fair_duplicate_merge.py",
+    "frontend/src/api/fairs.ts",
+    "frontend/src/components/SystemFairDuplicateReview.tsx",
+    "frontend/src/pages/FairsPage.tsx",
+    "frontend/src/pages/SystemFairFrontend.test.ts",
+    "frontend/src/labels/fairLabels.ts",
+    ".kyrox/features/system-fair-duplicate-merge.json"
+  ],
+  "permissions": {
+    "required": false,
+    "reason": "Merge stays behind the existing Super Admin gate. This change adds no permission code.",
+    "items": []
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/fairs"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "required" },
+    "migration": { "status": "required" },
+    "permissions": { "status": "na", "reason": "No permission catalog change. Merge remains Super Admin only." },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "required" },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "na", "reason": "The action is visible only for the existing Super Admin flag." },
+    "menu": { "status": "na", "reason": "No navigation item is added. Review stays on the fairs page." },
+    "route_guard": { "status": "na", "reason": "The fairs route guard is unchanged." },
+    "forms": { "status": "na", "reason": "Merge uses the existing confirmation dialog and does not add a form." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "Super Admin reviews ambiguous System Fair rows on the fairs page, chooses the kept fair, and merges the other in one transaction. References move before the duplicate is archived. Participation collisions and conflicting scraper metadata block the merge. Keep-separate records that an identity pair is intentionally distinct so later TOBB sync does not report it as a conflict. Organization fairs are rejected. Existing catalog rows are not merged by migration. ADR-039."
+}

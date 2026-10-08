@@ -713,6 +713,127 @@ def compute_p2_violations(ts_files: list[Path]) -> dict:
     }
 
 
+_MODAL_TAG_RE = re.compile(r"</?(?:FormModal|Modal)\b[^>]*?/?>")
+_LOCAL_NAMED_IMPORT_RE = re.compile(
+    r'import\s+(?:type\s+)?\{([^}]+)\}\s+from\s+["\'](\.[^"\']+)["\']'
+)
+_LOCAL_FROM_RE = re.compile(r'from\s+["\'](\.[^"\']+)["\']')
+_PAGE_JSX_RE = re.compile(r"<([A-Z][A-Za-z0-9]*Page)\b")
+
+
+def form_actions_inside_open_modal(text: str, pos: int) -> bool:
+    """True when `pos` sits inside a `<Modal>` / `<FormModal>` element in this file.
+
+    File-wide presence of a modal is not enough: table cells, tab rows, and
+    preview cards in the same module are not modal chrome.
+    """
+    depth = 0
+    for match in _MODAL_TAG_RE.finditer(text):
+        if match.start() >= pos:
+            break
+        token = match.group(0)
+        if token.startswith("</"):
+            depth = max(0, depth - 1)
+        elif token.endswith("/>"):
+            continue
+        else:
+            depth += 1
+    return depth > 0
+
+
+def _imported_component_bindings(blob: str) -> list[str]:
+    names: list[str] = []
+    for part in blob.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if part.startswith("type "):
+            part = part[5:].strip()
+        if " as " in part:
+            part = part.split(" as ", 1)[1].strip()
+        if part and part[0].isupper():
+            names.append(part)
+    return names
+
+
+def resolve_local_module(path: Path, spec: str) -> Path | None:
+    target = (path.parent / spec).resolve()
+    if target.is_file():
+        return target
+    for ext in (".tsx", ".ts"):
+        candidate = Path(str(target) + ext)
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def delegates_pageshell(path: Path, text: str) -> bool:
+    """Page shell is present, or this file only renders a local page that has one.
+
+    Thin route wrappers (EnrichmentOperationPage, OperationDetailPage) do not
+    repeat PageShell; the rendered page module already owns it.
+    """
+    if "PageShell" in text:
+        return True
+    for match in _LOCAL_NAMED_IMPORT_RE.finditer(text):
+        child = resolve_local_module(path, match.group(2))
+        if child is None:
+            continue
+        try:
+            child_text = child.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if "PageShell" not in child_text:
+            continue
+        if any(f"<{local}" in text for local in _imported_component_bindings(match.group(1))):
+            return True
+    return False
+
+
+def _local_modules(path: Path, text: str) -> list[Path]:
+    found: list[Path] = []
+    for match in _LOCAL_FROM_RE.finditer(text):
+        resolved = resolve_local_module(path, match.group(1))
+        if resolved is not None:
+            found.append(resolved)
+    return found
+
+
+def collect_mounted_page_components(max_hops: int = 2) -> list[str]:
+    """Pages mounted from App.tsx, including one nesting level.
+
+    AdminSystemLayout and operation wrappers are mounted by App and render the
+    real page components. Those pages are mounted; they are not orphan files.
+    """
+    if not APP_TSX.exists():
+        return []
+    names: set[str] = set()
+    seen: set[Path] = set()
+    try:
+        app_text = APP_TSX.read_text(encoding="utf-8")
+    except OSError:
+        return []
+    queue: list[tuple[Path, str]] = [(APP_TSX, app_text)]
+    hops = 0
+    while queue and hops <= max_hops:
+        next_queue: list[tuple[Path, str]] = []
+        for path, text in queue:
+            names.update(_PAGE_JSX_RE.findall(text))
+            if hops == max_hops:
+                continue
+            for child in _local_modules(path, text):
+                if child in seen:
+                    continue
+                seen.add(child)
+                try:
+                    next_queue.append((child, child.read_text(encoding="utf-8")))
+                except OSError:
+                    continue
+        queue = next_queue
+        hops += 1
+    return sorted(names)
+
+
 P3_DEFINITION_FILES = {
     "IconButton.tsx",
     "NavLink.tsx",
@@ -823,7 +944,7 @@ def compute_p3_violations(ts_files: list[Path]) -> dict:
         if "/pages/" in r.replace("\\", "/") and path.name not in P3_PAGE_ALLOWLIST:
             if path.name.endswith((".test.ts", ".test.tsx")):
                 continue
-            if "PageShell" not in text:
+            if not delegates_pageshell(path, text):
                 missing_pageshell.append(
                     {
                         "file": r,
@@ -913,11 +1034,8 @@ def extract_app_routes() -> list[str]:
 
 
 def extract_mounted_page_components() -> list[str]:
-    """Page components mounted from App.tsx JSX (`<XxxPage`)."""
-    if not APP_TSX.exists():
-        return []
-    text = APP_TSX.read_text(encoding="utf-8")
-    return sorted(set(re.findall(r"<([A-Z][A-Za-z0-9]*Page)\b", text)))
+    """Page components mounted from App.tsx, including nested layout hosts."""
+    return collect_mounted_page_components()
 
 
 def extract_smoke_covered_routes() -> list[str]:
@@ -967,7 +1085,7 @@ def inventory_routes(ts_files: list[Path]) -> dict:
         if path.name in P3_PAGE_ALLOWLIST:
             continue
         text = path.read_text(encoding="utf-8")
-        if "PageShell" not in text:
+        if not delegates_pageshell(path, text):
             missing_pageshell.append(
                 {
                     "file": rel(path),
@@ -1076,6 +1194,8 @@ def compute_final_violations(
             for m in field_error_re.finditer(text):
                 class_value = m.group(2)
                 if not class_has_token(class_value, "form-actions"):
+                    continue
+                if not form_actions_inside_open_modal(text, m.start()):
                     continue
                 if "modal-footer" in text[max(0, m.start() - 80) : m.start()]:
                     continue

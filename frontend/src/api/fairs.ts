@@ -70,10 +70,89 @@ export function runFairScraper(fairId: string): Promise<ScraperRun> {
   });
 }
 
+export interface TobbSyncConflictItem {
+  name: string;
+  identity_name: string;
+  city: string | null;
+  fair_ids: string[];
+}
+
 export interface SyncTobbSystemFairsResponse {
   inserted: number;
   updated: number;
   conflicts: number;
+  conflict_items?: TobbSyncConflictItem[];
+}
+
+export interface SystemFairDuplicateFair {
+  id: string;
+  name: string;
+  city: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  organizer: string | null;
+  website: string | null;
+  external_id: string | null;
+  source: string | null;
+  participations: number;
+  todos: number;
+  quotes: number;
+  imports: number;
+  scraper_runs: number;
+  has_scraper_config: boolean;
+}
+
+export interface SystemFairDuplicateGroup {
+  identity_name: string;
+  city: string | null;
+  fairs: SystemFairDuplicateFair[];
+}
+
+export interface SystemFairMergePreview {
+  participations: number;
+  todos: number;
+  quotes: number;
+  activities: number;
+  imports: number;
+  scraper_runs: number;
+  email_batches: number;
+  mail_operations: number;
+  operations: number;
+  blocking_conflicts: { code: string; message: string }[];
+}
+
+export function listSystemFairDuplicates(): Promise<{ items: SystemFairDuplicateGroup[] }> {
+  return apiRequest<{ items: SystemFairDuplicateGroup[] }>("/api/v1/fairs/system/duplicates");
+}
+
+export function previewSystemFairMerge(
+  sourceFairId: string,
+  targetFairId: string,
+): Promise<SystemFairMergePreview> {
+  return apiRequest<SystemFairMergePreview>("/api/v1/fairs/system/duplicates/preview", {
+    method: "POST",
+    body: JSON.stringify({ source_fair_id: sourceFairId, target_fair_id: targetFairId }),
+  });
+}
+
+export function mergeSystemFair(
+  sourceFairId: string,
+  targetFairId: string,
+): Promise<SystemFairMergePreview> {
+  return apiRequest<SystemFairMergePreview>(
+    `/api/v1/fairs/system/${encodeURIComponent(sourceFairId)}/merge`,
+    {
+      method: "POST",
+      body: JSON.stringify({ target_fair_id: targetFairId }),
+    },
+  );
+}
+
+export function keepSystemFairsSeparate(fairIds: string[]): Promise<{ separated: number }> {
+  return apiRequest<{ separated: number }>("/api/v1/fairs/system/duplicates/keep-separate", {
+    method: "POST",
+    body: JSON.stringify({ fair_ids: fairIds }),
+  });
 }
 
 export function syncTobbSystemFairs(year: number): Promise<SyncTobbSystemFairsResponse> {

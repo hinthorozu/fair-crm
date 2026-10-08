@@ -52,3 +52,13 @@ class FairEnrichmentNoCandidatesError(FairDomainError):
 
 class TobbCalendarReadError(FairDomainError):
     pass
+
+
+class SystemFairMergeBlockedError(FairDomainError):
+    def __init__(self, conflicts: list[dict[str, str]]) -> None:
+        self.conflicts = conflicts
+        super().__init__("System fair merge is blocked")
+
+
+class SystemFairAlreadyMergedError(FairDomainError):
+    pass

@@ -8322,18 +8322,17 @@ textarea.form-control-textarea {
   gap: var(--space-4);
 }
 
-@media (max-width: 800px) {
+@media (max-width: 767px) {
   .role-scope-card,
-  .role-form-grid {
+  .role-form-grid,
+  .role-summary-grid {
     grid-template-columns: 1fr;
   }
 
-  .role-summary-grid {
-    grid-template-columns: repeat(3, minmax(5rem, 1fr));
-  }
-
   .template-card-header,
-  .permission-lifecycle-row {
+  .permission-lifecycle-row,
+  .permission-matrix-toolbar,
+  .permission-lifecycle-toolbar {
     align-items: stretch;
     flex-direction: column;
   }
@@ -8341,18 +8340,6 @@ textarea.form-control-textarea {
   .template-actions,
   .permission-lifecycle-actions {
     justify-content: flex-start;
-  }
-}
-
-@media (max-width: 520px) {
-  .role-summary-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .permission-matrix-toolbar,
-  .permission-lifecycle-toolbar {
-    align-items: stretch;
-    flex-direction: column;
   }
 
   .permission-lifecycle-toolbar select {

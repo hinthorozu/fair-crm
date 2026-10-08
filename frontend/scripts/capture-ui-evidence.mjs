@@ -195,11 +195,25 @@ function buildRoutes(ids) {
     { route: "/fairs/:id/enrichment", url: `/fairs/${ids.fair}/enrichment`, kind: "detail", production: true },
     { route: "/todos", url: "/todos", kind: "static", production: true },
     { route: "/todos/:id", url: `/todos/${ids.todo}`, kind: "detail", production: true },
+    {
+      route: "/todos/:id/quote",
+      url: ids.todo ? `/todos/${ids.todo}/quote` : null,
+      kind: "detail",
+      production: true,
+    },
     { route: "/follow-ups", url: "/follow-ups", kind: "static", production: true },
     { route: "/activities", url: "/activities", kind: "static", production: true },
     {
       route: "/operations/:id",
       url: ids.operationId ? `/operations/${ids.operationId}` : null,
+      kind: "detail",
+      production: true,
+    },
+    {
+      route: "/operations/duplicate-check/runs/:runId",
+      url: ids.operationId
+        ? `/operations/duplicate-check/runs/${ids.operationId}`
+        : "/operations/duplicate-check/runs/00000000-0000-4000-8000-000000000001",
       kind: "detail",
       production: true,
     },

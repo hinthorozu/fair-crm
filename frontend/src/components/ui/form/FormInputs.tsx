@@ -58,11 +58,37 @@ export const ColorInput = React.forwardRef<HTMLInputElement, ColorInputProps>(fu
   );
 });
 
-export interface PasswordInputProps extends Omit<TextInputProps, "type"> {}
+export interface FileInputProps extends Omit<TextInputProps, "type"> {}
+
+/** Native file picker. Part of the shared form kit (same extension point as ColorInput). */
+export const FileInput = React.forwardRef<HTMLInputElement, FileInputProps>(function FileInput(
+  { id, className, disabled, "aria-invalid": ariaInvalid, ...rest },
+  ref,
+) {
+  return (
+    <input
+      ref={ref}
+      id={id}
+      type="file"
+      disabled={disabled}
+      aria-invalid={ariaInvalid}
+      className={controlClass(className, ariaInvalid === true)}
+      {...rest}
+    />
+  );
+});
+
+export interface PasswordInputProps extends Omit<TextInputProps, "type"> {
+  /** Preserve callers that open the field already revealed. Default stays masked. */
+  initiallyVisible?: boolean;
+}
 
 export const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(
-  function PasswordInput({ id, className, disabled, "aria-invalid": ariaInvalid, ...rest }, ref) {
-    const [visible, setVisible] = React.useState(false);
+  function PasswordInput(
+    { id, className, disabled, "aria-invalid": ariaInvalid, initiallyVisible = false, ...rest },
+    ref,
+  ) {
+    const [visible, setVisible] = React.useState(initiallyVisible);
     const inputRef = React.useRef<HTMLInputElement | null>(null);
     const selectionRef = React.useRef<{ start: number; end: number } | null>(null);
 

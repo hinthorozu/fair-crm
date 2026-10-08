@@ -1,9 +1,1632 @@
 {
-  "catalog": {},
-  "domain_select_wrappers": [],
-  "local_modal_wrappers_without_shared_import": [],
-  "categories": [],
-  "css_override_hotspots": {},
+  "catalog": {
+    "shared_ui_files": [
+      "Badge.tsx",
+      "Banner.tsx",
+      "Breadcrumb.tsx",
+      "Button.tsx",
+      "Card.tsx",
+      "ConfirmDialog.tsx",
+      "DataTable.tsx",
+      "DetailFields.tsx",
+      "Drawer.tsx",
+      "EmptyState.tsx",
+      "FieldError.tsx",
+      "FilterPanel.tsx",
+      "FormActions.tsx",
+      "FormDirty.tsx",
+      "FormField.tsx",
+      "FormField.tsx",
+      "FormGrid.tsx",
+      "FormInputs.tsx",
+      "FormModal.tsx",
+      "FormSection.tsx",
+      "IconButton.tsx",
+      "LoadingState.tsx",
+      "Modal.tsx",
+      "PageHeader.tsx",
+      "PageShell.tsx",
+      "ResponsiveDataTable.tsx",
+      "SectionHeader.tsx",
+      "ServerDataTableFrame.tsx",
+      "TableEntityLink.tsx",
+      "TableRowActions.tsx",
+      "Tabs.tsx",
+      "TechnicalDetails.tsx",
+      "TruncatedText.tsx",
+      "UniversalDataTable.tsx",
+      "UniversalDataTableSelection.tsx",
+      "WidthResponsiveDataTable.tsx"
+    ],
+    "form_kit": [
+      "FieldError.tsx",
+      "FormActions.tsx",
+      "FormDirty.tsx",
+      "FormField.tsx",
+      "FormGrid.tsx",
+      "FormInputs.tsx",
+      "FormModal.tsx",
+      "FormSection.tsx"
+    ],
+    "layout": [
+      "AppLayout.tsx",
+      "NavIcons.tsx",
+      "NavLink.tsx",
+      "SidebarCollapseButton.tsx",
+      "SidebarTooltip.tsx",
+      "sidebarTreeItems.tsx",
+      "UserMenu.tsx"
+    ],
+    "admin_di_layout": [
+      "components/admin/AdminSystemLayout.tsx",
+      "components/dataIntegration/DataIntegrationLayout.tsx"
+    ]
+  },
+  "domain_select_wrappers": [
+    "frontend/src/components/AdapterSelect.tsx",
+    "frontend/src/components/CustomerEntitySelect.tsx",
+    "frontend/src/components/FairEntitySelect.tsx",
+    "frontend/src/components/fairs/FairMultiSelect.tsx",
+    "frontend/src/components/FairStandCatalogPreviewSelect.tsx",
+    "frontend/src/components/FairStandItemEntitySelect.tsx"
+  ],
+  "local_modal_wrappers_without_shared_import": [
+    "frontend/src/hooks/useModalForm.ts",
+    "frontend/src/permissions/CompleteTodoModalPermissions.test.ts",
+    "frontend/src/permissions/DashboardNewTodoModalPermissions.test.ts",
+    "frontend/src/permissions/ManualTaskMailModalPermissions.test.ts"
+  ],
+  "categories": [
+    {
+      "category": "Button",
+      "standard_infra": "`.btn` / `.btn.primary|secondary|danger|ghost|link` (+ kebab aliases) \u2014 no Button component",
+      "total_hits": 523,
+      "standard_hits": 351,
+      "nonstandard_hits": 172,
+      "files_standard": [
+        "frontend/src/auth/SecuritySettingsPage.tsx",
+        "frontend/src/components/ActivityList.tsx",
+        "frontend/src/components/AssignCustomersToFairModal.tsx",
+        "frontend/src/components/ContactList.tsx",
+        "frontend/src/components/CustomerCommunicationFieldList.tsx",
+        "frontend/src/components/CustomerList.tsx",
+        "frontend/src/components/DeleteSelectedCustomersModal.tsx",
+        "frontend/src/components/DuplicateGroupDetailView.tsx",
+        "frontend/src/components/FairList.tsx",
+        "frontend/src/components/MoveCustomersToFairModal.tsx",
+        "frontend/src/components/Pagination.tsx",
+        "frontend/src/components/ParticipationList.tsx",
+        "frontend/src/components/SystemFairDuplicateReview.tsx",
+        "frontend/src/components/admin/RestoreJobDetailModal.tsx",
+        "frontend/src/components/duplicateMerge/CopyableCustomerId.tsx",
+        "frontend/src/components/duplicateMerge/MergeCustomersConfirmModal.tsx",
+        "frontend/src/components/duplicateMerge/MergeSummaryPanel.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchDetailModal.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchLogs.tsx",
+        "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+        "frontend/src/components/mail_templates/MailTemplateActionsMenu.tsx",
+        "frontend/src/components/mail_templates/MailTemplatePreviewPanel.tsx",
+        "frontend/src/components/mail_templates/MailTemplateTestEmailPanel.tsx",
+        "frontend/src/components/scraper/AdapterDetailContent.tsx",
+        "frontend/src/components/scraper/AdapterFormModal.tsx",
+        "frontend/src/components/scraper/AdapterLinkedFairsTab.tsx",
+        "frontend/src/components/scraper/AdapterRunLogConsole.tsx",
+        "frontend/src/components/scraper/EnrichmentRunDetailPanel.tsx",
+        "frontend/src/components/scraper/EnrichmentRunLogExportMenu.tsx",
+        "frontend/src/components/scraper/EnrichmentRunPanel.tsx",
+        "frontend/src/components/scraper/EnrichmentStateResetPanel.tsx",
+        "frontend/src/components/smtp/EmailAccountForm.tsx",
+        "frontend/src/components/todos/ManualTaskMailModal.tsx",
+        "frontend/src/components/todos/TodoStepFieldList.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/components/ui/Button.tsx",
+        "frontend/src/components/ui/ConfirmDialog.tsx",
+        "frontend/src/components/ui/DataTable.tsx",
+        "frontend/src/components/ui/EmptyState.tsx",
+        "frontend/src/components/ui/PageHeader.tsx",
+        "frontend/src/components/ui/ServerDataTableFrame.tsx",
+        "frontend/src/components/ui/TableEntityLink.tsx",
+        "frontend/src/components/ui/TechnicalDetails.tsx",
+        "frontend/src/components/ui/WidthResponsiveDataTable.tsx",
+        "frontend/src/dev/TableStandardSmokePage.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/AdapterDetailPage.tsx",
+        "frontend/src/pages/AdapterManagementPage.tsx",
+        "frontend/src/pages/CostCatalogPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/CustomersPage.tsx",
+        "frontend/src/pages/DashboardPage.tsx",
+        "frontend/src/pages/DataIntegrationImportsPage.tsx",
+        "frontend/src/pages/DataOperationAnalyzeResultPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/DataOperationRunResultPage.tsx",
+        "frontend/src/pages/DataOperationsPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/EnrichmentRunDetailPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairStandItemsAdminPage.test.ts",
+        "frontend/src/pages/FairStandItemsAdminPage.tsx",
+        "frontend/src/pages/FairsPage.tsx",
+        "frontend/src/pages/FollowUpsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/LoginPage.tsx",
+        "frontend/src/pages/MailTemplatesPage.tsx",
+        "frontend/src/pages/OperationCapabilitiesAdminPage.tsx",
+        "frontend/src/pages/OperationDetailPageLegacy.tsx",
+        "frontend/src/pages/OperationsPage.tsx",
+        "frontend/src/pages/OrganizationsPage.tsx",
+        "frontend/src/pages/PublicAuthPages.tsx",
+        "frontend/src/pages/QuoteEditorPage.tsx",
+        "frontend/src/pages/QuoteTemplatesPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPageLegacy.tsx",
+        "frontend/src/pages/SmtpAccountsPage.tsx",
+        "frontend/src/pages/TemplateContentsPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/TodosPage.tsx",
+        "frontend/src/pages/UsersAdminPage.tsx",
+        "frontend/src/permissions/QuoteEditorSavePermissions.test.ts"
+      ],
+      "files_nonstandard": [
+        "frontend/src/components/ActivityList.tsx",
+        "frontend/src/components/AdapterSelect.tsx",
+        "frontend/src/components/AssignCustomersToFairModal.tsx",
+        "frontend/src/components/ContactList.tsx",
+        "frontend/src/components/CustomerCommunicationFieldList.tsx",
+        "frontend/src/components/CustomerEntitySelect.tsx",
+        "frontend/src/components/CustomerList.tsx",
+        "frontend/src/components/DeleteSelectedCustomersModal.tsx",
+        "frontend/src/components/DuplicateGroupDetailView.tsx",
+        "frontend/src/components/FairEntitySelect.tsx",
+        "frontend/src/components/FairList.tsx",
+        "frontend/src/components/FairStandCatalogPreviewSelect.tsx",
+        "frontend/src/components/FairStandItemEntitySelect.tsx",
+        "frontend/src/components/MoveCustomersToFairModal.tsx",
+        "frontend/src/components/Pagination.tsx",
+        "frontend/src/components/ParticipationList.tsx",
+        "frontend/src/components/SystemFairDuplicateReview.tsx",
+        "frontend/src/components/duplicateMerge/CopyableCustomerId.tsx",
+        "frontend/src/components/duplicateMerge/MergeSummaryPanel.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchLogs.tsx",
+        "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+        "frontend/src/components/imports/MergeDiffViewer.tsx",
+        "frontend/src/components/layout/AppLayout.tsx",
+        "frontend/src/components/layout/NavLink.tsx",
+        "frontend/src/components/layout/UserMenu.tsx",
+        "frontend/src/components/mail_operations/MailOperationActionsMenu.tsx",
+        "frontend/src/components/mail_templates/MailTemplateActionsMenu.tsx",
+        "frontend/src/components/mail_templates/MailTemplatePreviewPanel.tsx",
+        "frontend/src/components/mail_templates/MailTemplateTestEmailPanel.tsx",
+        "frontend/src/components/scraper/AdapterFormModal.tsx",
+        "frontend/src/components/scraper/AdapterLinkedFairsTab.tsx",
+        "frontend/src/components/scraper/AdapterRunLogConsole.tsx",
+        "frontend/src/components/scraper/EnrichmentRunDetailPanel.tsx",
+        "frontend/src/components/scraper/EnrichmentRunLogExportMenu.tsx",
+        "frontend/src/components/scraper/EnrichmentRunPanel.tsx",
+        "frontend/src/components/scraper/EnrichmentStateResetPanel.tsx",
+        "frontend/src/components/smtp/EmailAccountForm.tsx",
+        "frontend/src/components/todos/ManualTaskMailModal.tsx",
+        "frontend/src/components/todos/TodoStepFieldList.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/components/ui/Breadcrumb.tsx",
+        "frontend/src/components/ui/Button.tsx",
+        "frontend/src/components/ui/ConfirmDialog.tsx",
+        "frontend/src/components/ui/DataTable.tsx",
+        "frontend/src/components/ui/IconButton.tsx",
+        "frontend/src/components/ui/PageHeader.tsx",
+        "frontend/src/components/ui/TableEntityLink.tsx",
+        "frontend/src/components/ui/Tabs.tsx",
+        "frontend/src/components/ui/TechnicalDetails.tsx",
+        "frontend/src/dev/TableStandardSmokePage.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/AdapterManagementPage.tsx",
+        "frontend/src/pages/CostCatalogPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/DashboardPage.tsx",
+        "frontend/src/pages/DataIntegrationImportsPage.tsx",
+        "frontend/src/pages/DataOperationAnalyzeResultPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/DataOperationsPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairStandItemsAdminPage.tsx",
+        "frontend/src/pages/FairsPage.tsx",
+        "frontend/src/pages/FollowUpsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/OperationCapabilitiesAdminPage.tsx",
+        "frontend/src/pages/OperationDetailPageLegacy.tsx",
+        "frontend/src/pages/OperationsPage.tsx",
+        "frontend/src/pages/OrganizationsPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPageLegacy.tsx",
+        "frontend/src/pages/SmtpAccountsPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/TodosPage.tsx",
+        "frontend/src/pages/UsersAdminPage.tsx",
+        "frontend/src/permissions/ActivitiesPagePermissions.test.ts",
+        "frontend/src/permissions/FairBulkEmailSupportingAccountPermissions.test.ts",
+        "frontend/src/permissions/ManualTaskMailModalPermissions.test.ts"
+      ],
+      "samples_nonstandard": [
+        {
+          "file": "frontend/src/components/ActivityList.tsx",
+          "line": 116,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/AdapterSelect.tsx",
+          "line": 113,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/AdapterSelect.tsx",
+          "line": 125,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/AssignCustomersToFairModal.tsx",
+          "line": 63,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/ContactList.tsx",
+          "line": 86,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/CustomerCommunicationFieldList.tsx",
+          "line": 78,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/CustomerEntitySelect.tsx",
+          "line": 235,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/CustomerEntitySelect.tsx",
+          "line": 260,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/CustomerList.tsx",
+          "line": 57,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/CustomerList.tsx",
+          "line": 238,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/CustomerList.tsx",
+          "line": 253,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/DeleteSelectedCustomersModal.tsx",
+          "line": 34,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/DuplicateGroupDetailView.tsx",
+          "line": 586,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/DuplicateGroupDetailView.tsx",
+          "line": 594,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/DuplicateGroupDetailView.tsx",
+          "line": 645,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/DuplicateGroupDetailView.tsx",
+          "line": 653,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/duplicateMerge/CopyableCustomerId.tsx",
+          "line": 26,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/duplicateMerge/MergeSummaryPanel.tsx",
+          "line": 124,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/FairEntitySelect.tsx",
+          "line": 233,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/FairEntitySelect.tsx",
+          "line": 258,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/FairList.tsx",
+          "line": 194,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/FairList.tsx",
+          "line": 212,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/FairList.tsx",
+          "line": 226,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/fairs/FairBulkEmailBatchLogs.tsx",
+          "line": 151,
+          "snippet": "<button"
+        },
+        {
+          "file": "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+          "line": 446,
+          "snippet": "<button"
+        }
+      ],
+      "notes": "Prefer `Button` from `components/ui/Button`. Class-based `.btn` / `.btn-*` remains supported (same tokens)."
+    },
+    {
+      "category": "Input / TextBox",
+      "standard_infra": "TextInput, PasswordInput (`components/ui/form`)",
+      "total_hits": 206,
+      "standard_hits": 203,
+      "nonstandard_hits": 3,
+      "files_standard": [
+        "frontend/src/auth/SecuritySettingsPage.tsx",
+        "frontend/src/components/ActivityForm.tsx",
+        "frontend/src/components/ContactForm.tsx",
+        "frontend/src/components/CustomerCommunicationFieldList.tsx",
+        "frontend/src/components/CustomerForm.tsx",
+        "frontend/src/components/CustomerList.tsx",
+        "frontend/src/components/FairForm.tsx",
+        "frontend/src/components/FairList.tsx",
+        "frontend/src/components/FairStandItemEntitySelect.tsx",
+        "frontend/src/components/ParticipationForm.tsx",
+        "frontend/src/components/admin/OperationCapabilitiesEditForm.tsx",
+        "frontend/src/components/fairStand/FairStandDefaultColorField.tsx",
+        "frontend/src/components/fairStand/FairStandItem3dPreview.tsx",
+        "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+        "frontend/src/components/mail_templates/MailTemplateForm.tsx",
+        "frontend/src/components/mail_templates/MailTemplateTestEmailPanel.tsx",
+        "frontend/src/components/operations/BulkEmailOperationResultsTable.tsx",
+        "frontend/src/components/operations/BulkEmailPreviewRecipientsTable.tsx",
+        "frontend/src/components/scraper/AdapterForm.tsx",
+        "frontend/src/components/scraper/AdapterRunLogConsole.tsx",
+        "frontend/src/components/scraper/EnrichmentRunPanel.tsx",
+        "frontend/src/components/smtp/EmailAccountForm.tsx",
+        "frontend/src/components/smtp/ProviderAccountConfigPanel.tsx",
+        "frontend/src/components/todos/ManualTaskMailModal.tsx",
+        "frontend/src/components/todos/TodoForm.tsx",
+        "frontend/src/components/todos/TodoStepFieldList.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/components/ui/form/FormInputs.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/AdapterManagementPage.tsx",
+        "frontend/src/pages/BulkEmailOperationWizardPage.tsx",
+        "frontend/src/pages/CostCatalogPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairStandCatalogAdminPage.tsx",
+        "frontend/src/pages/FairStandItemsAdminPage.tsx",
+        "frontend/src/pages/FairStandPreviewsAdminPage.tsx",
+        "frontend/src/pages/FairStandSettingsAdminPage.tsx",
+        "frontend/src/pages/FairStandSnapCatalogAdminPage.tsx",
+        "frontend/src/pages/FairStandUnitsAdminPage.tsx",
+        "frontend/src/pages/FairsPage.tsx",
+        "frontend/src/pages/FollowUpsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/LoginPage.tsx",
+        "frontend/src/pages/MailOperationsPage.tsx",
+        "frontend/src/pages/OperationsPage.tsx",
+        "frontend/src/pages/OrganizationsPage.tsx",
+        "frontend/src/pages/PublicAuthPages.tsx",
+        "frontend/src/pages/QuoteEditorPage.tsx",
+        "frontend/src/pages/QuoteTemplatesPage.tsx",
+        "frontend/src/pages/RoleManagementPage.tsx",
+        "frontend/src/pages/ScraperOperationWizardPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPageLegacy.tsx",
+        "frontend/src/pages/StandCostItemsPage.tsx",
+        "frontend/src/pages/StandProjectCostPage.tsx",
+        "frontend/src/pages/StandProjectsPage.tsx",
+        "frontend/src/pages/TemplateContentsPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/TodosPage.tsx",
+        "frontend/src/pages/UsersAdminPage.tsx"
+      ],
+      "files_nonstandard": [
+        "frontend/src/components/AdapterSelect.tsx",
+        "frontend/src/components/CustomerEntitySelect.tsx",
+        "frontend/src/components/FairEntitySelect.tsx"
+      ],
+      "samples_nonstandard": [
+        {
+          "file": "frontend/src/components/AdapterSelect.tsx",
+          "line": 88,
+          "snippet": "<input",
+          "reason": "raw:<input\\b"
+        },
+        {
+          "file": "frontend/src/components/CustomerEntitySelect.tsx",
+          "line": 201,
+          "snippet": "<input",
+          "reason": "raw:<input\\b"
+        },
+        {
+          "file": "frontend/src/components/FairEntitySelect.tsx",
+          "line": 202,
+          "snippet": "<input",
+          "reason": "raw:<input\\b"
+        }
+      ],
+      "notes": "Shared: TextInput / PasswordInput from ui/form."
+    },
+    {
+      "category": "TextArea",
+      "standard_infra": "TextareaInput (`components/ui/form`)",
+      "total_hits": 27,
+      "standard_hits": 27,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/components/ActivityForm.tsx",
+        "frontend/src/components/ContactForm.tsx",
+        "frontend/src/components/CustomerForm.tsx",
+        "frontend/src/components/FairForm.tsx",
+        "frontend/src/components/ParticipationForm.tsx",
+        "frontend/src/components/mail_templates/MailTemplateForm.tsx",
+        "frontend/src/components/mail_templates/MailTemplatePreviewPanel.tsx",
+        "frontend/src/components/mail_templates/MailTemplateTestEmailPanel.tsx",
+        "frontend/src/components/scraper/AdapterForm.tsx",
+        "frontend/src/components/smtp/ProviderAccountConfigPanel.tsx",
+        "frontend/src/components/todos/CompleteTodoModal.tsx",
+        "frontend/src/components/todos/ManualTaskMailModal.tsx",
+        "frontend/src/components/todos/TodoForm.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/pages/BulkEmailOperationWizardPage.tsx",
+        "frontend/src/pages/CostCatalogPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/FairStandPreviewsAdminPage.tsx",
+        "frontend/src/pages/QuoteTemplatesPage.tsx",
+        "frontend/src/pages/ScraperOperationWizardPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "Shared: TextareaInput from ui/form."
+    },
+    {
+      "category": "Select",
+      "standard_infra": "SelectInput (`components/ui/form`) + domain EntitySelect wrappers",
+      "total_hits": 101,
+      "standard_hits": 99,
+      "nonstandard_hits": 2,
+      "files_standard": [
+        "frontend/src/components/ActivityForm.tsx",
+        "frontend/src/components/CustomerForm.tsx",
+        "frontend/src/components/CustomerList.tsx",
+        "frontend/src/components/FairForm.tsx",
+        "frontend/src/components/FairList.tsx",
+        "frontend/src/components/Pagination.tsx",
+        "frontend/src/components/email/EmailAccountPicker.tsx",
+        "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+        "frontend/src/components/mail_templates/MailTemplateForm.tsx",
+        "frontend/src/components/operations/BulkEmailOperationResultsTable.tsx",
+        "frontend/src/components/operations/BulkEmailPreviewRecipientsTable.tsx",
+        "frontend/src/components/operations/NewOperationTypeModal.tsx",
+        "frontend/src/components/scraper/AdapterForm.tsx",
+        "frontend/src/components/smtp/EmailAccountForm.tsx",
+        "frontend/src/components/smtp/ProviderAccountConfigPanel.tsx",
+        "frontend/src/components/todos/ManualTaskMailModal.tsx",
+        "frontend/src/components/todos/TodoForm.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/BulkEmailOperationWizardPage.tsx",
+        "frontend/src/pages/CostCatalogPage.tsx",
+        "frontend/src/pages/FairStandCatalogAdminPage.tsx",
+        "frontend/src/pages/FairStandItemsAdminPage.tsx",
+        "frontend/src/pages/FairStandSnapCatalogAdminPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/MailOperationsPage.tsx",
+        "frontend/src/pages/MailTemplatesPage.tsx",
+        "frontend/src/pages/OperationsPage.tsx",
+        "frontend/src/pages/QuoteEditorPage.tsx",
+        "frontend/src/pages/RoleManagementPage.tsx",
+        "frontend/src/pages/ScraperOperationWizardPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPageLegacy.tsx",
+        "frontend/src/pages/ScraperTestPage.tsx",
+        "frontend/src/pages/StandCostItemsPage.tsx",
+        "frontend/src/pages/StandProjectCostPage.tsx",
+        "frontend/src/pages/TemplateContentsPage.tsx",
+        "frontend/src/pages/TodosPage.tsx",
+        "frontend/src/pages/UsersAdminPage.tsx",
+        "frontend/src/permissions/ActivitiesPagePermissions.test.ts"
+      ],
+      "files_nonstandard": [
+        "frontend/src/components/imports/ExcelMappingGrid.tsx"
+      ],
+      "samples_nonstandard": [
+        {
+          "file": "frontend/src/components/imports/ExcelMappingGrid.tsx",
+          "line": 55,
+          "snippet": "<select",
+          "reason": "raw:<select\\b"
+        },
+        {
+          "file": "frontend/src/pages/ImportWizardPage.tsx",
+          "line": 1296,
+          "snippet": "<select",
+          "reason": "raw:<select\\b"
+        }
+      ],
+      "notes": "Shared: SelectInput from ui/form. Domain selects (FairEntitySelect, CustomerEntitySelect, AdapterSelect) are OK wrappers."
+    },
+    {
+      "category": "Checkbox / Radio",
+      "standard_infra": "CheckboxField, RadioField (`components/ui/form`)",
+      "total_hits": 91,
+      "standard_hits": 91,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/auth/UsersAdminCompatibility.test.ts",
+        "frontend/src/components/ContactForm.tsx",
+        "frontend/src/components/CustomerCommunicationFieldList.tsx",
+        "frontend/src/components/CustomerForm.tsx",
+        "frontend/src/components/DuplicateGroupDetailView.tsx",
+        "frontend/src/components/SystemFairDuplicateReview.tsx",
+        "frontend/src/components/admin/OperationCapabilitiesEditForm.tsx",
+        "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+        "frontend/src/components/mail_templates/MailTemplateForm.tsx",
+        "frontend/src/components/scraper/AdapterForm.tsx",
+        "frontend/src/components/scraper/AdapterRunLogConsole.tsx",
+        "frontend/src/components/scraper/EnrichmentRunPanel.tsx",
+        "frontend/src/components/scraper/OutputFieldsSection.tsx",
+        "frontend/src/components/smtp/EmailAccountForm.tsx",
+        "frontend/src/components/todos/TodoChecklist.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/components/ui/UniversalDataTableSelection.tsx",
+        "frontend/src/pages/BulkEmailOperationWizardPage.tsx",
+        "frontend/src/pages/DataOperationsPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/FairStandCatalogAdminPage.tsx",
+        "frontend/src/pages/FairStandItemsAdminPage.tsx",
+        "frontend/src/pages/FairStandPreviewsAdminPage.tsx",
+        "frontend/src/pages/FairStandSettingsAdminPage.tsx",
+        "frontend/src/pages/FairStandSnapCatalogAdminPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/QuoteEditorPage.tsx",
+        "frontend/src/pages/RoleManagementPage.tsx",
+        "frontend/src/pages/TodosPage.tsx",
+        "frontend/src/pages/UsersAdminPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "Shared: CheckboxField / RadioField only (ADR-032 \u00a74)."
+    },
+    {
+      "category": "Form",
+      "standard_infra": "FormGrid / FormField / FormSection / FormActions / FormModal",
+      "total_hits": 473,
+      "standard_hits": 473,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/auth/SecuritySettingsPage.tsx",
+        "frontend/src/components/ActivityForm.tsx",
+        "frontend/src/components/ContactForm.tsx",
+        "frontend/src/components/CustomerForm.tsx",
+        "frontend/src/components/FairForm.tsx",
+        "frontend/src/components/ParticipationForm.tsx",
+        "frontend/src/components/admin/OperationCapabilitiesEditForm.tsx",
+        "frontend/src/components/dashboard/DashboardNewTodoModal.tsx",
+        "frontend/src/components/email/EmailAccountPicker.tsx",
+        "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+        "frontend/src/components/fairs/FairMultiSelect.tsx",
+        "frontend/src/components/mail_templates/MailTemplateForm.tsx",
+        "frontend/src/components/mail_templates/MailTemplatePreviewPanel.tsx",
+        "frontend/src/components/mail_templates/MailTemplateTestEmailPanel.tsx",
+        "frontend/src/components/operations/BulkEmailOperationResultsTable.tsx",
+        "frontend/src/components/operations/BulkEmailPreviewRecipientsTable.tsx",
+        "frontend/src/components/operations/NewOperationTypeModal.tsx",
+        "frontend/src/components/scraper/EnrichmentRunPanel.tsx",
+        "frontend/src/components/smtp/EmailAccountForm.tsx",
+        "frontend/src/components/smtp/ProviderAccountConfigPanel.tsx",
+        "frontend/src/components/todos/CompleteTodoModal.tsx",
+        "frontend/src/components/todos/ManualTaskMailModal.tsx",
+        "frontend/src/components/todos/TodoForm.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/pages/BulkEmailOperationWizardPage.tsx",
+        "frontend/src/pages/CostCatalogPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/CustomersPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairStandCatalogAdminPage.tsx",
+        "frontend/src/pages/FairStandItemsAdminPage.tsx",
+        "frontend/src/pages/FairStandPreviewsAdminPage.tsx",
+        "frontend/src/pages/FairStandSettingsAdminPage.tsx",
+        "frontend/src/pages/FairStandSnapCatalogAdminPage.tsx",
+        "frontend/src/pages/FairStandUnitsAdminPage.tsx",
+        "frontend/src/pages/FairsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/LoginPage.tsx",
+        "frontend/src/pages/MailOperationsPage.tsx",
+        "frontend/src/pages/MailTemplatesPage.tsx",
+        "frontend/src/pages/OperationCapabilitiesAdminPage.tsx",
+        "frontend/src/pages/OrganizationsPage.tsx",
+        "frontend/src/pages/PublicAuthPages.tsx",
+        "frontend/src/pages/QuoteEditorPage.tsx",
+        "frontend/src/pages/QuoteTemplatesPage.tsx",
+        "frontend/src/pages/RoleManagementPage.tsx",
+        "frontend/src/pages/ScraperOperationWizardPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPageLegacy.tsx",
+        "frontend/src/pages/ScraperTestPage.tsx",
+        "frontend/src/pages/SmtpAccountsPage.tsx",
+        "frontend/src/pages/StandCostItemsPage.tsx",
+        "frontend/src/pages/StandProjectCostPage.tsx",
+        "frontend/src/pages/StandProjectsPage.tsx",
+        "frontend/src/pages/TemplateContentsPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/TodosPage.tsx",
+        "frontend/src/pages/UsersAdminPage.tsx",
+        "frontend/src/permissions/UsersAdminSupportingRoleReadPermissions.test.ts"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "Shared form kit under components/ui/form (+ legacy FormField.tsx re-export)."
+    },
+    {
+      "category": "Modal / Dialog / Confirmation",
+      "standard_infra": "Modal, ConfirmDialog, FormModal, Drawer (ADR-028)",
+      "total_hits": 111,
+      "standard_hits": 111,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/components/ActivityDetailModal.tsx",
+        "frontend/src/components/AssignCustomersToFairModal.tsx",
+        "frontend/src/components/DeleteSelectedCustomersModal.tsx",
+        "frontend/src/components/MoveCustomersToFairModal.tsx",
+        "frontend/src/components/SystemFairDuplicateReview.tsx",
+        "frontend/src/components/admin/RestoreJobDetailModal.tsx",
+        "frontend/src/components/dashboard/DashboardNewTodoModal.tsx",
+        "frontend/src/components/duplicateMerge/MergeCustomersConfirmModal.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchDetailModal.tsx",
+        "frontend/src/components/mail_operations/MailOperationDetailModal.tsx",
+        "frontend/src/components/mail_operations/MailOperationErrorModal.tsx",
+        "frontend/src/components/mail_operations/MailOperationLogsModal.tsx",
+        "frontend/src/components/operations/NewOperationTypeModal.tsx",
+        "frontend/src/components/scraper/AdapterFormModal.tsx",
+        "frontend/src/components/scraper/EnrichmentRunDetailPanel.tsx",
+        "frontend/src/components/scraper/EnrichmentStateResetPanel.tsx",
+        "frontend/src/components/todos/CompleteTodoModal.tsx",
+        "frontend/src/components/todos/ManualTaskMailModal.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/components/ui/form/FormDirty.tsx",
+        "frontend/src/components/ui/form/FormModal.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/AdapterDetailPage.tsx",
+        "frontend/src/pages/BulkEmailOperationWizardPage.tsx",
+        "frontend/src/pages/CostCatalogPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/CustomersPage.tsx",
+        "frontend/src/pages/DataIntegrationImportsPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairStandCatalogAdminPage.tsx",
+        "frontend/src/pages/FairStandItemsAdminPage.tsx",
+        "frontend/src/pages/FairStandPreviewsAdminPage.tsx",
+        "frontend/src/pages/FairStandSettingsAdminPage.tsx",
+        "frontend/src/pages/FairStandSnapCatalogAdminPage.tsx",
+        "frontend/src/pages/FairStandUnitsAdminPage.tsx",
+        "frontend/src/pages/FairsPage.tsx",
+        "frontend/src/pages/MailOperationsPage.tsx",
+        "frontend/src/pages/MailTemplatesPage.tsx",
+        "frontend/src/pages/OperationCapabilitiesAdminPage.tsx",
+        "frontend/src/pages/OperationDetailPageLegacy.tsx",
+        "frontend/src/pages/OrganizationsPage.tsx",
+        "frontend/src/pages/QuoteEditorPage.tsx",
+        "frontend/src/pages/QuoteTemplatesPage.tsx",
+        "frontend/src/pages/RoleManagementPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPageLegacy.tsx",
+        "frontend/src/pages/SmtpAccountsPage.tsx",
+        "frontend/src/pages/StandCostItemsPage.tsx",
+        "frontend/src/pages/StandProjectsPage.tsx",
+        "frontend/src/pages/TemplateContentsPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/TodosPage.tsx",
+        "frontend/src/pages/UsersAdminPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "ADR-028: Modal + ConfirmDialog (+ FormModal/Drawer)."
+    },
+    {
+      "category": "DataTable / Table",
+      "standard_infra": "UniversalDataTable -> WidthResponsiveDataTable (+ ServerDataTableFrame)",
+      "total_hits": 80,
+      "standard_hits": 75,
+      "nonstandard_hits": 5,
+      "files_standard": [
+        "frontend/src/components/ActivityList.tsx",
+        "frontend/src/components/ContactList.tsx",
+        "frontend/src/components/CustomerList.tsx",
+        "frontend/src/components/FairList.tsx",
+        "frontend/src/components/ParticipationList.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchDetailModal.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchLogs.tsx",
+        "frontend/src/components/imports/MergeDiffViewer.tsx",
+        "frontend/src/components/operations/BulkEmailOperationResultsTable.tsx",
+        "frontend/src/components/operations/BulkEmailPreviewRecipientsTable.tsx",
+        "frontend/src/components/scraper/AdapterDetailContent.tsx",
+        "frontend/src/components/scraper/AdapterLinkedFairsTab.tsx",
+        "frontend/src/components/ui/ResponsiveDataTable.tsx",
+        "frontend/src/components/ui/UniversalDataTable.tsx",
+        "frontend/src/dev/TableStandardSmokePage.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/AdapterManagementPage.tsx",
+        "frontend/src/pages/CostCatalogPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/CustomersPage.tsx",
+        "frontend/src/pages/DashboardPage.tsx",
+        "frontend/src/pages/DataIntegrationImportsPage.tsx",
+        "frontend/src/pages/DataOperationAnalyzeResultPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairStandCatalogAdminPage.tsx",
+        "frontend/src/pages/FairStandItemsAdminPage.tsx",
+        "frontend/src/pages/FairStandPreviewsAdminPage.tsx",
+        "frontend/src/pages/FairStandSettingsAdminPage.tsx",
+        "frontend/src/pages/FairStandSnapCatalogAdminPage.tsx",
+        "frontend/src/pages/FairStandUnitsAdminPage.tsx",
+        "frontend/src/pages/FairsPage.tsx",
+        "frontend/src/pages/FollowUpsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/MailOperationsPage.tsx",
+        "frontend/src/pages/MailTemplatesPage.tsx",
+        "frontend/src/pages/OperationCapabilitiesAdminPage.tsx",
+        "frontend/src/pages/OperationDetailPageLegacy.tsx",
+        "frontend/src/pages/OperationsPage.tsx",
+        "frontend/src/pages/OrganizationsPage.tsx",
+        "frontend/src/pages/QuoteTemplatesPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPageLegacy.tsx",
+        "frontend/src/pages/SmtpAccountsPage.tsx",
+        "frontend/src/pages/StandCostItemsPage.tsx",
+        "frontend/src/pages/StandProjectCostPage.tsx",
+        "frontend/src/pages/StandProjectsPage.tsx",
+        "frontend/src/pages/TemplateContentsPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/TodosPage.tsx",
+        "frontend/src/pages/UsersAdminPage.tsx"
+      ],
+      "files_nonstandard": [
+        "frontend/src/components/imports/ExcelMappingGrid.tsx",
+        "frontend/src/pages/BulkEmailOperationWizardPage.tsx"
+      ],
+      "samples_nonstandard": [
+        {
+          "file": "frontend/src/components/imports/ExcelMappingGrid.tsx",
+          "line": 43,
+          "snippet": "<table className=\"data-table excel-mapping-grid\">",
+          "reason": "raw:<table\\b"
+        },
+        {
+          "file": "frontend/src/pages/BulkEmailOperationWizardPage.tsx",
+          "line": 1184,
+          "snippet": "<table className=\"data-table compact\">",
+          "reason": "raw:<table\\b"
+        },
+        {
+          "file": "frontend/src/pages/CustomerDetailPage.tsx",
+          "line": 1049,
+          "snippet": "<table className=\"data-table\">",
+          "reason": "raw:<table\\b"
+        },
+        {
+          "file": "frontend/src/pages/ImportWizardPage.tsx",
+          "line": 1175,
+          "snippet": "<table className=\"data-table\">",
+          "reason": "raw:<table\\b"
+        },
+        {
+          "file": "frontend/src/pages/ImportWizardPage.tsx",
+          "line": 1277,
+          "snippet": "<table className=\"data-table mapping-table\">",
+          "reason": "raw:<table\\b"
+        }
+      ],
+      "notes": "ADR-032: UniversalDataTable \u2192 WidthResponsiveDataTable. DataTableShell scroll-only for specialty grids."
+    },
+    {
+      "category": "Pagination",
+      "standard_infra": "PaginationBar + ServerDataTableFrame dual pagination",
+      "total_hits": 14,
+      "standard_hits": 14,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/components/ui/ServerDataTableFrame.tsx",
+        "frontend/src/components/ui/UniversalDataTable.tsx",
+        "frontend/src/dev/TableStandardSmokePage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/CustomersPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "PaginationBar + ServerDataTableFrame dual pagination."
+    },
+    {
+      "category": "Filter / Toolbar",
+      "standard_infra": "FilterPanel",
+      "total_hits": 33,
+      "standard_hits": 33,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/components/CustomerList.tsx",
+        "frontend/src/components/FairList.tsx",
+        "frontend/src/components/operations/BulkEmailOperationResultsTable.tsx",
+        "frontend/src/components/operations/BulkEmailPreviewRecipientsTable.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/AdapterManagementPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/DataOperationsPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairStandCatalogAdminPage.tsx",
+        "frontend/src/pages/FairStandItemsAdminPage.tsx",
+        "frontend/src/pages/FairStandPreviewsAdminPage.tsx",
+        "frontend/src/pages/FollowUpsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/MailOperationsPage.tsx",
+        "frontend/src/pages/MailTemplatesPage.tsx",
+        "frontend/src/pages/OperationsPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPageLegacy.tsx",
+        "frontend/src/pages/StandProjectCostPage.tsx",
+        "frontend/src/pages/StandProjectsPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/TodosPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "Shared: FilterPanel. Local `.filters` toolbars are non-standard if not FilterPanel."
+    },
+    {
+      "category": "Card",
+      "standard_infra": "Card (`components/ui/Card`)",
+      "total_hits": 86,
+      "standard_hits": 86,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/auth/SecuritySettingsPage.tsx",
+        "frontend/src/components/DuplicateGroupDetailView.tsx",
+        "frontend/src/components/SystemFairDuplicateReview.tsx",
+        "frontend/src/components/duplicateMerge/MergeSummaryPanel.tsx",
+        "frontend/src/components/scraper/AdapterDetailContent.tsx",
+        "frontend/src/pages/AdapterManagementPage.tsx",
+        "frontend/src/pages/BulkEmailOperationWizardPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/CustomerEnrichmentPage.tsx",
+        "frontend/src/pages/DashboardPage.tsx",
+        "frontend/src/pages/DataOperationAnalyzeResultPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/DataOperationsPage.tsx",
+        "frontend/src/pages/EnrichmentRunDetailPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairStandItemsAdminPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/LoginPage.tsx",
+        "frontend/src/pages/OperationDetailPageLegacy.tsx",
+        "frontend/src/pages/PublicAuthPages.tsx",
+        "frontend/src/pages/QuoteEditorPage.tsx",
+        "frontend/src/pages/RoleManagementPage.tsx",
+        "frontend/src/pages/ScraperOperationWizardPage.tsx",
+        "frontend/src/pages/ScraperTestPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/UsersAdminPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "Shared Card component only. Bare class token `card` on raw elements is a P1 violation."
+    },
+    {
+      "category": "PageHeader",
+      "standard_infra": "PageHeader / SectionHeader",
+      "total_hits": 78,
+      "standard_hits": 78,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/App.tsx",
+        "frontend/src/auth/SecuritySettingsPage.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchLogs.tsx",
+        "frontend/src/components/layout/AppLayout.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/AdapterDetailPage.tsx",
+        "frontend/src/pages/AdapterManagementPage.tsx",
+        "frontend/src/pages/BulkEmailOperationWizardPage.tsx",
+        "frontend/src/pages/CostCatalogPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/CustomerEnrichmentPage.tsx",
+        "frontend/src/pages/CustomersPage.tsx",
+        "frontend/src/pages/DashboardPage.tsx",
+        "frontend/src/pages/DataIntegrationImportsPage.tsx",
+        "frontend/src/pages/DataOperationAnalyzeResultPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/DataOperationRunResultPage.tsx",
+        "frontend/src/pages/DataOperationsPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/EnrichmentRunDetailPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairStandCatalogAdminPage.tsx",
+        "frontend/src/pages/FairStandItemsAdminPage.tsx",
+        "frontend/src/pages/FairStandPreviewsAdminPage.tsx",
+        "frontend/src/pages/FairStandSettingsAdminPage.tsx",
+        "frontend/src/pages/FairStandSnapCatalogAdminPage.tsx",
+        "frontend/src/pages/FairStandUnitsAdminPage.tsx",
+        "frontend/src/pages/FairsPage.tsx",
+        "frontend/src/pages/FollowUpsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/MailOperationsPage.tsx",
+        "frontend/src/pages/MailTemplatesPage.tsx",
+        "frontend/src/pages/OperationCapabilitiesAdminPage.tsx",
+        "frontend/src/pages/OperationDetailPageLegacy.tsx",
+        "frontend/src/pages/OperationsPage.tsx",
+        "frontend/src/pages/OrganizationsPage.tsx",
+        "frontend/src/pages/QuoteEditorPage.tsx",
+        "frontend/src/pages/QuoteTemplatesPage.tsx",
+        "frontend/src/pages/RoleManagementPage.tsx",
+        "frontend/src/pages/ScraperOperationWizardPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPageLegacy.tsx",
+        "frontend/src/pages/ScraperTestPage.tsx",
+        "frontend/src/pages/SmtpAccountsPage.tsx",
+        "frontend/src/pages/StandCostItemsPage.tsx",
+        "frontend/src/pages/StandProjectCostPage.tsx",
+        "frontend/src/pages/StandProjectsPage.tsx",
+        "frontend/src/pages/TemplateContentsPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/TodosPage.tsx",
+        "frontend/src/pages/UsersAdminPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "PageHeader for pages; SectionHeader for nested sections."
+    },
+    {
+      "category": "Layout / Shell",
+      "standard_infra": "AppLayout, AdminSystemLayout, DataIntegrationLayout, Breadcrumb, UserMenu",
+      "total_hits": 7,
+      "standard_hits": 7,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/layout/AppLayout.tsx",
+        "frontend/src/pages/FairStandStandaloneRoute.test.ts"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "App shell + nested Admin/DI layouts."
+    },
+    {
+      "category": "Alert / Toast / Banner",
+      "standard_infra": "Banner (`components/ui/Banner`) \u2014 success/warning/error/info",
+      "total_hits": 169,
+      "standard_hits": 169,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/auth/SecuritySettingsPage.tsx",
+        "frontend/src/components/ActivityForm.tsx",
+        "frontend/src/components/ContactForm.tsx",
+        "frontend/src/components/CustomerForm.tsx",
+        "frontend/src/components/DuplicateGroupDetailView.tsx",
+        "frontend/src/components/FairForm.tsx",
+        "frontend/src/components/ParticipationForm.tsx",
+        "frontend/src/components/SystemFairDuplicateReview.tsx",
+        "frontend/src/components/admin/OperationCapabilitiesEditForm.tsx",
+        "frontend/src/components/duplicateMerge/MergePreviewSummaryContent.tsx",
+        "frontend/src/components/duplicateMerge/MergeSummaryPanel.tsx",
+        "frontend/src/components/fairStand/FairStandItem3dPreview.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchDetailModal.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchLogs.tsx",
+        "frontend/src/components/fairs/FairBulkEmailWizard.tsx",
+        "frontend/src/components/mail_templates/MailTemplateForm.tsx",
+        "frontend/src/components/mail_templates/MailTemplatePreviewPanel.tsx",
+        "frontend/src/components/mail_templates/MailTemplateTestEmailPanel.tsx",
+        "frontend/src/components/operations/NewOperationTypeModal.tsx",
+        "frontend/src/components/scraper/EnrichmentRunDetailPanel.tsx",
+        "frontend/src/components/smtp/EmailAccountForm.tsx",
+        "frontend/src/components/smtp/ProviderAccountConfigPanel.tsx",
+        "frontend/src/components/todos/ManualTaskMailModal.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/components/ui/LoadingState.tsx",
+        "frontend/src/components/ui/ServerDataTableFrame.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/AdapterDetailPage.tsx",
+        "frontend/src/pages/BulkEmailOperationWizardPage.tsx",
+        "frontend/src/pages/CostCatalogPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/CustomerEnrichmentPage.tsx",
+        "frontend/src/pages/CustomersPage.tsx",
+        "frontend/src/pages/DataIntegrationImportsPage.tsx",
+        "frontend/src/pages/DataOperationAnalyzeResultPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/DataOperationRunResultPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairStandCatalogAdminPage.tsx",
+        "frontend/src/pages/FairStandItemsAdminPage.tsx",
+        "frontend/src/pages/FairStandPreviewsAdminPage.tsx",
+        "frontend/src/pages/FairStandSettingsAdminPage.tsx",
+        "frontend/src/pages/FairStandSnapCatalogAdminPage.tsx",
+        "frontend/src/pages/FairStandUnitsAdminPage.tsx",
+        "frontend/src/pages/FairsPage.tsx",
+        "frontend/src/pages/FollowUpsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/LoginPage.tsx",
+        "frontend/src/pages/MailOperationsPage.tsx",
+        "frontend/src/pages/MailTemplatesPage.tsx",
+        "frontend/src/pages/OperationCapabilitiesAdminPage.tsx",
+        "frontend/src/pages/OperationDetailPageLegacy.tsx",
+        "frontend/src/pages/OperationsPage.tsx",
+        "frontend/src/pages/PublicAuthPages.tsx",
+        "frontend/src/pages/QuoteEditorPage.tsx",
+        "frontend/src/pages/QuoteTemplatesPage.tsx",
+        "frontend/src/pages/RoleManagementPage.tsx",
+        "frontend/src/pages/ScraperOperationWizardPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPageLegacy.tsx",
+        "frontend/src/pages/ScraperTestPage.tsx",
+        "frontend/src/pages/SmtpAccountsPage.tsx",
+        "frontend/src/pages/StandCostItemsPage.tsx",
+        "frontend/src/pages/StandProjectCostPage.tsx",
+        "frontend/src/pages/StandProjectsPage.tsx",
+        "frontend/src/pages/TemplateContentsPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/TodosPage.tsx",
+        "frontend/src/pages/UsersAdminPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "Shared Banner (success/warning/error/info). No parallel toast system. Field-level `.form-error` stays with FormField."
+    },
+    {
+      "category": "Other shared UI",
+      "standard_infra": "Tabs, Badge, TruncatedText, TechnicalDetails, EmptyState, LoadingState, DetailFields",
+      "total_hits": 237,
+      "standard_hits": 237,
+      "nonstandard_hits": 0,
+      "files_standard": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/ActivityDetailModal.tsx",
+        "frontend/src/components/ActivityList.tsx",
+        "frontend/src/components/ContactList.tsx",
+        "frontend/src/components/CustomerList.tsx",
+        "frontend/src/components/DuplicateGroupDetailView.tsx",
+        "frontend/src/components/FairList.tsx",
+        "frontend/src/components/ParticipationList.tsx",
+        "frontend/src/components/admin/RestoreJobDetailModal.tsx",
+        "frontend/src/components/duplicateMerge/MergeSummaryPanel.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchDetailModal.tsx",
+        "frontend/src/components/fairs/FairBulkEmailBatchLogs.tsx",
+        "frontend/src/components/imports/MergeDiffViewer.tsx",
+        "frontend/src/components/layout/AppLayout.tsx",
+        "frontend/src/components/operations/BulkEmailOperationResultsTable.tsx",
+        "frontend/src/components/operations/BulkEmailPreviewRecipientsTable.tsx",
+        "frontend/src/components/operations/NewOperationTypeModal.tsx",
+        "frontend/src/components/operations/OperationRunStatusBadge.tsx",
+        "frontend/src/components/scraper/AdapterDetailContent.tsx",
+        "frontend/src/components/scraper/AdapterLinkedFairsTab.tsx",
+        "frontend/src/components/scraper/AdapterRunLogConsole.tsx",
+        "frontend/src/components/scraper/EnrichmentRunDetailPanel.tsx",
+        "frontend/src/components/todos/ManualTaskMailModal.tsx",
+        "frontend/src/components/todos/TodoWorklistActivityModal.tsx",
+        "frontend/src/components/ui/DetailFields.tsx",
+        "frontend/src/components/ui/LoadingState.tsx",
+        "frontend/src/pages/ActivitiesPage.tsx",
+        "frontend/src/pages/AdapterDetailPage.tsx",
+        "frontend/src/pages/AdapterManagementPage.tsx",
+        "frontend/src/pages/BulkEmailOperationWizardPage.tsx",
+        "frontend/src/pages/CostCatalogPage.tsx",
+        "frontend/src/pages/CustomerDetailPage.tsx",
+        "frontend/src/pages/CustomerEnrichmentPage.tsx",
+        "frontend/src/pages/DashboardPage.tsx",
+        "frontend/src/pages/DataIntegrationImportsPage.tsx",
+        "frontend/src/pages/DataOperationAnalyzeResultPage.tsx",
+        "frontend/src/pages/DataOperationDuplicateResultPage.tsx",
+        "frontend/src/pages/DataOperationRunResultPage.tsx",
+        "frontend/src/pages/DataOperationsPage.tsx",
+        "frontend/src/pages/DatabaseBackupsPage.tsx",
+        "frontend/src/pages/FairDetailPage.tsx",
+        "frontend/src/pages/FairStandCatalogAdminPage.tsx",
+        "frontend/src/pages/FairStandItemsAdminPage.test.ts",
+        "frontend/src/pages/FairStandItemsAdminPage.tsx",
+        "frontend/src/pages/FairStandPreviewsAdminPage.tsx",
+        "frontend/src/pages/FairStandSettingsAdminPage.tsx",
+        "frontend/src/pages/FairStandSnapCatalogAdminPage.tsx",
+        "frontend/src/pages/FairStandUnitsAdminPage.tsx",
+        "frontend/src/pages/FollowUpsPage.tsx",
+        "frontend/src/pages/ImportWizardPage.tsx",
+        "frontend/src/pages/MailOperationsPage.tsx",
+        "frontend/src/pages/MailTemplatesPage.tsx",
+        "frontend/src/pages/OperationCapabilitiesAdminPage.tsx",
+        "frontend/src/pages/OperationDetailPageLegacy.tsx",
+        "frontend/src/pages/OperationsPage.tsx",
+        "frontend/src/pages/OrganizationsPage.tsx",
+        "frontend/src/pages/QuoteEditorPage.tsx",
+        "frontend/src/pages/QuoteTemplatesPage.tsx",
+        "frontend/src/pages/RoleManagementPage.tsx",
+        "frontend/src/pages/ScraperOperationWizardPage.tsx",
+        "frontend/src/pages/ScraperRunHistoryPageLegacy.tsx",
+        "frontend/src/pages/ScraperTestPage.tsx",
+        "frontend/src/pages/SmtpAccountsPage.tsx",
+        "frontend/src/pages/StandCostItemsPage.tsx",
+        "frontend/src/pages/StandProjectCostPage.tsx",
+        "frontend/src/pages/StandProjectsPage.tsx",
+        "frontend/src/pages/TemplateContentsPage.tsx",
+        "frontend/src/pages/TodoDetailPage.tsx",
+        "frontend/src/pages/TodosPage.tsx",
+        "frontend/src/pages/UsersAdminPage.tsx"
+      ],
+      "files_nonstandard": [],
+      "samples_nonstandard": [],
+      "notes": "Tabs, Badge, TruncatedText, TechnicalDetails, Empty/Loading states, Detail fields."
+    }
+  ],
+  "css_override_hotspots": {
+    "table_layout_fixed": [
+      {
+        "line": 7551,
+        "snippet": "table-layout: fixed;"
+      }
+    ],
+    "table_layout_fixed_count": 1,
+    "min_width_forced_rem": [
+      {
+        "line": 211,
+        "snippet": "min-width: 2rem;"
+      },
+      {
+        "line": 532,
+        "snippet": "min-width: 12rem;"
+      },
+      {
+        "line": 1778,
+        "snippet": "min-width: 2rem;"
+      },
+      {
+        "line": 2295,
+        "snippet": "min-width: 2rem;"
+      },
+      {
+        "line": 2362,
+        "snippet": "min-width: 11rem;"
+      },
+      {
+        "line": 3636,
+        "snippet": "min-width: 12rem;"
+      },
+      {
+        "line": 3825,
+        "snippet": "min-width: 9rem;"
+      },
+      {
+        "line": 3915,
+        "snippet": "min-width: 2rem;"
+      },
+      {
+        "line": 4040,
+        "snippet": "min-width: 2rem;"
+      },
+      {
+        "line": 6094,
+        "snippet": "min-width: 10rem;"
+      },
+      {
+        "line": 6117,
+        "snippet": "min-width: 14rem;"
+      },
+      {
+        "line": 6302,
+        "snippet": "min-width: 12rem;"
+      },
+      {
+        "line": 6389,
+        "snippet": "min-width: 10rem;"
+      },
+      {
+        "line": 6394,
+        "snippet": "min-width: 12rem;"
+      },
+      {
+        "line": 6413,
+        "snippet": "min-width: 9rem;"
+      },
+      {
+        "line": 6708,
+        "snippet": "min-width: 9rem;"
+      }
+    ],
+    "min_width_forced_rem_count": 16,
+    "min_width_forced_px_large": [
+      {
+        "line": 867,
+        "snippet": "min-width: 180px;"
+      },
+      {
+        "line": 1427,
+        "snippet": "@media (min-width: 768px) {"
+      },
+      {
+        "line": 2265,
+        "snippet": "min-width: 160px;"
+      },
+      {
+        "line": 2286,
+        "snippet": "min-width: 160px;"
+      },
+      {
+        "line": 3591,
+        "snippet": "min-width: 220px;"
+      },
+      {
+        "line": 5228,
+        "snippet": "min-width: 180px;"
+      },
+      {
+        "line": 7619,
+        "snippet": "@media (min-width: 768px) and (max-width: 1023px) {"
+      },
+      {
+        "line": 7748,
+        "snippet": "@media (min-width: 768px) and (max-width: 1023px) {"
+      }
+    ],
+    "min_width_forced_px_large_count": 8,
+    "overflow_x_auto": [
+      {
+        "line": 695,
+        "snippet": "overflow-x: auto;"
+      },
+      {
+        "line": 5310,
+        "snippet": "overflow-x: auto;"
+      },
+      {
+        "line": 7400,
+        "snippet": "overflow-x: auto;"
+      }
+    ],
+    "overflow_x_auto_count": 3,
+    "overflow_x_clip": [
+      {
+        "line": 7574,
+        "snippet": "text-overflow: clip;"
+      },
+      {
+        "line": 7593,
+        "snippet": "text-overflow: clip;"
+      }
+    ],
+    "overflow_x_clip_count": 2,
+    "word_break_all": [
+      {
+        "line": 5413,
+        "snippet": "word-break: break-all;"
+      },
+      {
+        "line": 5924,
+        "snippet": "word-break: break-all;"
+      },
+      {
+        "line": 7115,
+        "snippet": "word-break: break-all;"
+      }
+    ],
+    "word_break_all_count": 3,
+    "page_local_table": [
+      {
+        "line": 3790,
+        "snippet": ".excel-mapping-grid-wrap {"
+      },
+      {
+        "line": 3794,
+        "snippet": ".excel-mapping-grid-meta {"
+      },
+      {
+        "line": 3799,
+        "snippet": ".excel-mapping-grid-scroll {"
+      },
+      {
+        "line": 3806,
+        "snippet": ".excel-mapping-grid {"
+      },
+      {
+        "line": 3812,
+        "snippet": ".excel-mapping-grid th,"
+      },
+      {
+        "line": 3813,
+        "snippet": ".excel-mapping-grid td {"
+      },
+      {
+        "line": 3823,
+        "snippet": ".excel-mapping-col-header {"
+      },
+      {
+        "line": 3828,
+        "snippet": ".excel-mapping-col-select {"
+      },
+      {
+        "line": 3834,
+        "snippet": ".excel-mapping-col-letter {"
+      },
+      {
+        "line": 3839,
+        "snippet": ".excel-mapping-row-num {"
+      },
+      {
+        "line": 5071,
+        "snippet": ".duplicate-groups-page .table-wrap.duplicate-groups-table {"
+      },
+      {
+        "line": 5150,
+        "snippet": ".server-data-table-frame:has(.backups-table) .server-data-table-toolbar-panel {"
+      },
+      {
+        "line": 5157,
+        "snippet": ".server-data-table-frame:has(.backups-table) .server-data-table-pagination {"
+      },
+      {
+        "line": 5163,
+        "snippet": ".table-wrap.backups-table {"
+      },
+      {
+        "line": 5170,
+        "snippet": ".table-wrap.backups-table .data-table th,"
+      },
+      {
+        "line": 5171,
+        "snippet": ".table-wrap.backups-table .data-table td {"
+      },
+      {
+        "line": 5177,
+        "snippet": ".table-wrap.backups-table .data-table th.col-actions,"
+      },
+      {
+        "line": 5178,
+        "snippet": ".table-wrap.backups-table .data-table td.col-actions {"
+      },
+      {
+        "line": 5182,
+        "snippet": ".table-wrap.backups-table .data-table tbody tr {"
+      },
+      {
+        "line": 5186,
+        "snippet": ".table-wrap.backups-table .col-database {"
+      },
+      {
+        "line": 5190,
+        "snippet": ".table-wrap.backups-table .col-backup-name {"
+      },
+      {
+        "line": 5194,
+        "snippet": ".table-wrap.backups-table .col-format {"
+      },
+      {
+        "line": 5198,
+        "snippet": ".table-wrap.backups-table .col-status {"
+      },
+      {
+        "line": 5202,
+        "snippet": ".table-wrap.backups-table .col-size {"
+      },
+      {
+        "line": 5207,
+        "snippet": ".table-wrap.backups-table th.col-size {"
+      },
+      {
+        "line": 5211,
+        "snippet": ".table-wrap.backups-table .col-size .table-sort-header {"
+      },
+      {
+        "line": 5216,
+        "snippet": ".table-wrap.backups-table .col-datetime {"
+      },
+      {
+        "line": 5222,
+        "snippet": ".table-wrap.backups-table .col-created-by {"
+      },
+      {
+        "line": 5226,
+        "snippet": ".table-wrap.backups-table .col-actions {"
+      },
+      {
+        "line": 5236,
+        "snippet": ".table-wrap.backups-table th.col-actions {"
+      },
+      {
+        "line": 5282,
+        "snippet": ".backups-table-actions {"
+      },
+      {
+        "line": 5292,
+        "snippet": ".backups-table-actions .btn.link {"
+      },
+      {
+        "line": 5298,
+        "snippet": ".table-wrap.backups-table .col-created-by {"
+      },
+      {
+        "line": 5302,
+        "snippet": ".table-wrap.backups-table .col-datetime {"
+      },
+      {
+        "line": 5309,
+        "snippet": ".table-wrap.backups-table {"
+      },
+      {
+        "line": 5313,
+        "snippet": ".table-wrap.backups-table .col-created-by {"
+      },
+      {
+        "line": 5324,
+        "snippet": ".server-data-table-frame:has(.backups-table) .server-data-table-toolbar-panel {"
+      },
+      {
+        "line": 5330,
+        "snippet": ".table-wrap.backups-table {"
+      },
+      {
+        "line": 5338,
+        "snippet": ".table-wrap.backups-table .data-table {"
+      },
+      {
+        "line": 5342,
+        "snippet": ".table-wrap.backups-table .data-table thead {"
+      }
+    ],
+    "page_local_table_count": 51,
+    "legacy_card_stack": [
+      {
+        "line": 1458,
+        "snippet": ".table-wrap.table-wrap--cards,"
+      },
+      {
+        "line": 1466,
+        "snippet": ".table-wrap.table-wrap--cards .data-table,"
+      },
+      {
+        "line": 1473,
+        "snippet": ".table-wrap.table-wrap--cards .data-table thead,"
+      },
+      {
+        "line": 1478,
+        "snippet": ".table-wrap.table-wrap--cards .data-table,"
+      },
+      {
+        "line": 1479,
+        "snippet": ".table-wrap.table-wrap--cards .data-table tbody,"
+      },
+      {
+        "line": 1480,
+        "snippet": ".table-wrap.table-wrap--cards .data-table tr,"
+      },
+      {
+        "line": 1484,
+        "snippet": "display: block;"
+      },
+      {
+        "line": 1488,
+        "snippet": ".table-wrap.table-wrap--cards .data-table tr,"
+      },
+      {
+        "line": 1498,
+        "snippet": ".table-wrap.table-wrap--cards .data-table td,"
+      },
+      {
+        "line": 1512,
+        "snippet": ".table-wrap.table-wrap--cards .data-table td::before,"
+      },
+      {
+        "line": 1526,
+        "snippet": ".table-wrap.table-wrap--cards .data-table td.actions,"
+      },
+      {
+        "line": 1534,
+        "snippet": ".table-wrap.table-wrap--cards .data-table td.actions::before,"
+      },
+      {
+        "line": 3871,
+        "snippet": "display: block;"
+      },
+      {
+        "line": 4003,
+        "snippet": "display: block;"
+      },
+      {
+        "line": 5349,
+        "snippet": "display: block;"
+      },
+      {
+        "line": 6422,
+        "snippet": "display: block;"
+      },
+      {
+        "line": 7021,
+        "snippet": "display: block;"
+      },
+      {
+        "line": 7640,
+        "snippet": ".table-wrap.table-wrap--cards,"
+      },
+      {
+        "line": 7654,
+        "snippet": "display: block;"
+      },
+      {
+        "line": 7660,
+        "snippet": "display: block;"
+      },
+      {
+        "line": 7676,
+        "snippet": "display: block;"
+      }
+    ],
+    "legacy_card_stack_count": 21,
+    "btn_aliases_ok": [
+      {
+        "line": 422,
+        "snippet": ".btn-primary:focus-visible,"
+      },
+      {
+        "line": 423,
+        "snippet": ".btn-secondary:focus-visible,"
+      },
+      {
+        "line": 922,
+        "snippet": ".btn-primary {"
+      },
+      {
+        "line": 929,
+        "snippet": ".btn-primary:hover:not(:disabled) {"
+      },
+      {
+        "line": 935,
+        "snippet": ".btn-primary:active:not(:disabled) {"
+      },
+      {
+        "line": 941,
+        "snippet": ".btn-secondary {"
+      },
+      {
+        "line": 948,
+        "snippet": ".btn-secondary:hover:not(:disabled) {"
+      },
+      {
+        "line": 995,
+        "snippet": ".btn-primary:disabled,"
+      },
+      {
+        "line": 996,
+        "snippet": ".btn-secondary:disabled,"
+      },
+      {
+        "line": 7789,
+        "snippet": ".btn-primary,"
+      },
+      {
+        "line": 7790,
+        "snippet": ".btn-secondary,"
+      }
+    ],
+    "btn_aliases_ok_count": 11
+  },
   "routes": {
     "app_routes": [
       "/activities",
@@ -31,7 +1654,6 @@
       "/data-integration/run-history",
       "/data-integration/runs/:runId",
       "/data-integration/scraper-test",
-      "/fair-stand",
       "/fairs",
       "/fairs/:id",
       "/follow-ups",
@@ -45,6 +1667,12 @@
       "/operations/new/duplicate-check",
       "/operations/new/enrichment",
       "/operations/new/scraper",
+      "/stand-cost-items",
+      "/stand-projects",
+      "/stand-projects/:id",
+      "/stand-projects/:id/cost",
+      "/stand-projects/new",
+      "/stand/watch/:token",
       "/todos",
       "/todos/:id",
       "/todos/:id/quote"
@@ -54,20 +1682,38 @@
       "AdapterDetailPage",
       "AdapterManagementPage",
       "BulkEmailOperationWizardPage",
+      "CostCatalogPage",
       "CustomerDetailPage",
+      "CustomerEnrichmentPage",
       "CustomersPage",
       "CustomersResponsivePilotPage",
       "DashboardPage",
       "DataIntegrationImportsPage",
+      "DataOperationAnalyzeResultPage",
+      "DataOperationDuplicateResultPage",
       "DataOperationRunResultPage",
       "DataOperationsPage",
       "DatabaseBackupsPage",
       "EnrichmentOperationPage",
       "EnrichmentRunDetailPage",
       "FairDetailPage",
+      "FairStandCatalogAdminPage",
+      "FairStandItemTypesAdminPage",
+      "FairStandItemsAdminPage",
       "FairStandPage",
+      "FairStandPreviewsAdminPage",
+      "FairStandRuleTypesAdminPage",
+      "FairStandRulesAdminPage",
+      "FairStandSettingsAdminPage",
+      "FairStandUnitsAdminPage",
       "FairsPage",
+      "FollowUpsPage",
       "ImportWizardPage",
+      "ItemsCreatePage",
+      "ItemsDetailPage",
+      "ItemsEditPage",
+      "ItemsListPage",
+      "LegacyOperationDetailPage",
       "LoginPage",
       "MailOperationsPage",
       "MailTemplatesPage",
@@ -75,16 +1721,24 @@
       "OperationDetailPage",
       "OperationsPage",
       "OrganizationsPage",
+      "PageShellBackedScraperRunHistoryPage",
       "QuoteEditorPage",
       "QuoteTemplatesPage",
+      "RoleManagementPage",
       "ScraperOperationWizardPage",
       "ScraperRunHistoryPage",
       "ScraperTestPage",
       "SmtpAccountsPage",
+      "SnapCatalogPage",
+      "StandCostItemsPage",
+      "StandProjectCostPage",
+      "StandProjectsPage",
+      "StandWatchPage",
       "TableStandardSmokePage",
       "TemplateContentsPage",
       "TodoDetailPage",
-      "TodosPage"
+      "TodosPage",
+      "UsersAdminPage"
     ],
     "smoke_covered_routes": [
       "/activities",
@@ -119,8 +1773,15 @@
       "/imports/fair/:fairId",
       "/login",
       "/operations/:id",
+      "/operations/duplicate-check/runs/:runId",
+      "/stand-projects",
+      "/stand-projects/:id",
+      "/stand-projects/:id/cost",
+      "/stand-projects/new",
+      "/stand/watch/:token",
       "/todos",
-      "/todos/:id"
+      "/todos/:id",
+      "/todos/:id/quote"
     ],
     "page_files": [
       "ActivitiesPage.tsx",
@@ -142,8 +1803,12 @@
       "EnrichmentRunDetailPage.tsx",
       "FairDetailPage.tsx",
       "FairStandCatalogAdminPage.tsx",
+      "FairStandItemsAdminPage.tsx",
       "FairStandPage.tsx",
       "FairStandPreviewsAdminPage.tsx",
+      "FairStandSettingsAdminPage.tsx",
+      "FairStandSnapCatalogAdminPage.tsx",
+      "FairStandUnitsAdminPage.tsx",
       "FairsPage.tsx",
       "FollowUpsPage.tsx",
       "ImportWizardPage.tsx",
@@ -161,177 +1826,26 @@
       "ScraperRunHistoryPage.tsx",
       "ScraperTestPage.tsx",
       "SmtpAccountsPage.tsx",
+      "StandCostItemsPage.tsx",
+      "StandProjectCostPage.tsx",
+      "StandProjectsPage.tsx",
+      "StandWatchPage.tsx",
       "TemplateContentsPage.tsx",
       "TodoDetailPage.tsx",
       "TodosPage.tsx",
       "UsersAdminPage.tsx"
     ],
-    "missing_pageshell_on_mounted": [
-      {
-        "file": "frontend/src/pages/EnrichmentOperationPage.tsx",
-        "line": 0,
-        "route_component": "EnrichmentOperationPage",
-        "snippet": "mounted production page missing PageShell"
-      },
-      {
-        "file": "frontend/src/pages/FairStandPage.tsx",
-        "line": 0,
-        "route_component": "FairStandPage",
-        "snippet": "mounted production page missing PageShell"
-      },
-      {
-        "file": "frontend/src/pages/OperationDetailPage.tsx",
-        "line": 0,
-        "route_component": "OperationDetailPage",
-        "snippet": "mounted production page missing PageShell"
-      }
-    ],
-    "unmounted_page_files": [
-      {
-        "file": "frontend/src/pages/CostCatalogPage.tsx",
-        "line": 0,
-        "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
-      },
-      {
-        "file": "frontend/src/pages/CustomerEnrichmentPage.tsx",
-        "line": 0,
-        "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
-      },
-      {
-        "file": "frontend/src/pages/FairStandCatalogAdminPage.tsx",
-        "line": 0,
-        "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
-      },
-      {
-        "file": "frontend/src/pages/FairStandPreviewsAdminPage.tsx",
-        "line": 0,
-        "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
-      },
-      {
-        "file": "frontend/src/pages/RoleManagementPage.tsx",
-        "line": 0,
-        "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
-      },
-      {
-        "file": "frontend/src/pages/UsersAdminPage.tsx",
-        "line": 0,
-        "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
-      }
-    ],
-    "routes_missing_smoke_coverage": [
-      {
-        "file": "frontend/scripts/capture-ui-evidence.mjs",
-        "line": 0,
-        "route": "/operations/duplicate-check/runs/:runId",
-        "snippet": "AppRoute not present in responsive smoke catalog"
-      },
-      {
-        "file": "frontend/scripts/capture-ui-evidence.mjs",
-        "line": 0,
-        "route": "/todos/:id/quote",
-        "snippet": "AppRoute not present in responsive smoke catalog"
-      }
-    ],
-    "total_violations": 11,
-    "pass": false
+    "missing_pageshell_on_mounted": [],
+    "unmounted_page_files": [],
+    "routes_missing_smoke_coverage": [],
+    "total_violations": 0,
+    "pass": true
   },
   "p0": {
-    "total_violations": 15,
-    "bare_checkbox_radio": [
-      {
-        "file": "frontend/src/pages/QuoteEditorPage.tsx",
-        "line": 217,
-        "kind": "checkbox",
-        "snippet": "{tags.map((tag) => <Card key={tag.id}><h3>{tag.name}</h3>{contents.filter((item) => item.tag_id === tag.id).map((item) ="
-      },
-      {
-        "file": "frontend/src/pages/UsersAdminPage.tsx",
-        "line": 264,
-        "kind": "checkbox",
-        "snippet": "{canManageSuperAdmin ? <label className=\"form-field\"><span className=\"form-label\">Super Admin</span><input type=\"checkbo"
-      }
-    ],
-    "local_filters_without_filter_panel": [
-      {
-        "file": "frontend/src/pages/DataOperationsPage.tsx",
-        "line": 287,
-        "snippet": "<div className=\"data-operation-duplicate-filters\">"
-      }
-    ],
-    "raw_form_controls": [
-      {
-        "file": "frontend/src/pages/CostCatalogPage.tsx",
-        "line": 473,
-        "tag": "select",
-        "snippet": "<select"
-      },
-      {
-        "file": "frontend/src/pages/CostCatalogPage.tsx",
-        "line": 519,
-        "tag": "select",
-        "snippet": "<select"
-      },
-      {
-        "file": "frontend/src/pages/CostCatalogPage.tsx",
-        "line": 548,
-        "tag": "select",
-        "snippet": "<select"
-      },
-      {
-        "file": "frontend/src/pages/QuoteEditorPage.tsx",
-        "line": 217,
-        "tag": "input",
-        "snippet": "{tags.map((tag) => <Card key={tag.id}><h3>{tag.name}</h3>{contents.filter((item) => item.tag_id === tag.id).map((item) => <div key={item.id} className=\"form-grid\" style={{gridTemplateColumns:\"40px 1fr"
-      },
-      {
-        "file": "frontend/src/pages/QuoteTemplatesPage.tsx",
-        "line": 133,
-        "tag": "input",
-        "snippet": "<input id=\"quote-template-logo\" className=\"form-control\" type=\"file\" accept=\"image/png,image/jpeg,image/svg+xml,image/webp\" disabled={uploading || !canUploadLogo} onChange={(e) => void upload(e.target"
-      },
-      {
-        "file": "frontend/src/pages/UsersAdminPage.tsx",
-        "line": 238,
-        "tag": "select",
-        "snippet": "<select className=\"input\" value={organizationId} onChange={(event) => changeOrganization(event.target.value)} disabled={saving || Boolean(editing)} required>"
-      },
-      {
-        "file": "frontend/src/pages/UsersAdminPage.tsx",
-        "line": 254,
-        "tag": "select",
-        "snippet": "<div className=\"card\" style={{ marginBottom: 16, padding: 16 }}>{actorIsSuperAdmin ? <label className=\"form-field\"><span className=\"form-label\">Organizasyon</span><select className=\"input\" value={orga"
-      },
-      {
-        "file": "frontend/src/pages/UsersAdminPage.tsx",
-        "line": 260,
-        "tag": "input",
-        "snippet": "<label className=\"form-field\"><span className=\"form-label\">E-posta *</span><input className=\"input\" type=\"email\" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: even"
-      },
-      {
-        "file": "frontend/src/pages/UsersAdminPage.tsx",
-        "line": 261,
-        "tag": "input",
-        "snippet": "<label className=\"form-field\"><span className=\"form-label\">\u015eifre{editing ? \"\" : \" *\"}</span><span style={{ position: \"relative\", display: \"block\" }}><input className=\"input\" type={showPassword ? \"text"
-      },
-      {
-        "file": "frontend/src/pages/UsersAdminPage.tsx",
-        "line": 262,
-        "tag": "select",
-        "snippet": "{canReadRoles ? <label className=\"form-field\"><span className=\"form-label\">Rol{form.isSuperAdmin ? \"\" : \" *\"}</span><select className=\"input\" value={form.roleId} onChange={(event) => setForm((current)"
-      },
-      {
-        "file": "frontend/src/pages/UsersAdminPage.tsx",
-        "line": 263,
-        "tag": "select",
-        "snippet": "<label className=\"form-field\"><span className=\"form-label\">Durum</span><select className=\"input\" value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value"
-      },
-      {
-        "file": "frontend/src/pages/UsersAdminPage.tsx",
-        "line": 264,
-        "tag": "input",
-        "snippet": "{canManageSuperAdmin ? <label className=\"form-field\"><span className=\"form-label\">Super Admin</span><input type=\"checkbox\" checked={form.isSuperAdmin} onChange={(event) => setForm((current) => ({ ...c"
-      }
-    ],
+    "total_violations": 0,
+    "bare_checkbox_radio": [],
+    "local_filters_without_filter_panel": [],
+    "raw_form_controls": [],
     "allowlist": [
       "frontend/src/components/AdapterSelect.tsx",
       "frontend/src/components/CustomerEntitySelect.tsx",
@@ -339,18 +1853,12 @@
       "frontend/src/components/imports/ExcelMappingGrid.tsx",
       "frontend/src/components/ui/form/FormInputs.tsx"
     ],
-    "pass": false
+    "pass": true
   },
   "p1": {
-    "total_violations": 1,
+    "total_violations": 0,
     "bare_alert_toast": [],
-    "bare_card": [
-      {
-        "file": "frontend/src/pages/UsersAdminPage.tsx",
-        "line": 254,
-        "snippet": "<div className=\"card\" style={{ marginBottom: 16, padding: 16 }}>{actorIsSuperAdmin ? <label className=\"form-field\"><span className=\"form-label\">Organizasyon</sp"
-      }
-    ],
+    "bare_card": [],
     "intentional_exceptions": [
       {
         "file": "frontend/src/pages/ImportWizardPage.tsx",
@@ -365,26 +1873,15 @@
     "allowlist_card": [
       "frontend/src/components/ui/Card.tsx"
     ],
-    "pass": false
+    "pass": true
   },
   "p2": {
-    "total_violations": 2,
+    "total_violations": 0,
     "bare_form_error": [],
     "link_button": [],
     "adhoc_empty": [],
     "adhoc_loading": [],
-    "bare_action_wrappers": [
-      {
-        "file": "frontend/src/pages/CostCatalogPage.tsx",
-        "line": 209,
-        "snippet": "<div className=\"table-actions\">"
-      },
-      {
-        "file": "frontend/src/pages/CostCatalogPage.tsx",
-        "line": 269,
-        "snippet": "<div className=\"table-actions\">"
-      }
-    ],
+    "bare_action_wrappers": [],
     "intentional_exceptions": [
       {
         "file": "frontend/src/components/AdapterSelect.tsx",
@@ -405,51 +1902,25 @@
         "snippet": "inline combobox loading text (not page LoadingState)"
       }
     ],
-    "pass": false
+    "pass": true
   },
   "p3": {
-    "total_violations": 5,
+    "total_violations": 0,
     "bare_icon_buttons": [],
     "login_form_error": [],
     "bare_nav_links": [],
-    "missing_pageshell": [
-      {
-        "file": "frontend/src/pages/EnrichmentOperationPage.tsx",
-        "line": 0,
-        "snippet": "page missing PageShell"
-      },
-      {
-        "file": "frontend/src/pages/FairStandPage.tsx",
-        "line": 0,
-        "snippet": "page missing PageShell"
-      },
-      {
-        "file": "frontend/src/pages/FairStandStandaloneRoute.test.ts",
-        "line": 0,
-        "snippet": "page missing PageShell"
-      },
-      {
-        "file": "frontend/src/pages/OperationDetailPage.tsx",
-        "line": 0,
-        "snippet": "page missing PageShell"
-      },
-      {
-        "file": "frontend/src/pages/RoleManagementPage.test.ts",
-        "line": 0,
-        "snippet": "page missing PageShell"
-      }
-    ],
+    "missing_pageshell": [],
     "missing_navlink_layouts": [],
     "intentional_exceptions": [
       {
         "file": "frontend/src/components/ui/WidthResponsiveDataTable.tsx",
-        "line": 280,
+        "line": 284,
         "kind": "table_expand_placeholder_span",
         "snippet": "<span className=\"table-expand-btn\">+</span>"
       },
       {
         "file": "frontend/src/components/ui/WidthResponsiveDataTable.tsx",
-        "line": 299,
+        "line": 303,
         "kind": "table_expand_placeholder_span",
         "snippet": "<span className=\"table-expand-btn\">+</span>"
       },
@@ -466,88 +1937,14 @@
         "snippet": "login brand shell outside AppLayout/PageShell \u2014 intentional"
       }
     ],
-    "pass": false
+    "pass": true
   },
   "final": {
-    "total_violations": 26,
+    "total_violations": 0,
     "bare_field_error": [],
     "bare_modal_actions": [],
-    "form_actions_in_modal": [
-      {
-        "file": "frontend/src/components/admin/RestoreJobDetailModal.tsx",
-        "line": 249,
-        "snippet": "<div className=\"form-actions\">"
-      },
-      {
-        "file": "frontend/src/pages/CostCatalogPage.tsx",
-        "line": 450,
-        "snippet": "<div className=\"form-actions\">"
-      },
-      {
-        "file": "frontend/src/pages/CostCatalogPage.tsx",
-        "line": 566,
-        "snippet": "<div className=\"form-actions\">"
-      },
-      {
-        "file": "frontend/src/pages/OrganizationsPage.tsx",
-        "line": 73,
-        "snippet": "<div className=\"form-actions\">"
-      },
-      {
-        "file": "frontend/src/pages/QuoteEditorPage.tsx",
-        "line": 218,
-        "snippet": "{preview ? <Card><div className=\"form-actions\"><h3 style={{marginRight:\"auto\"}}>\u00d6nizleme</h3><button type=\"button\" class"
-      },
-      {
-        "file": "frontend/src/pages/QuoteTemplatesPage.tsx",
-        "line": 138,
-        "snippet": "<div className=\"form-actions\"><button type=\"button\" className=\"btn secondary\" onClick={close}>\u0130ptal</button>{canSaveTemp"
-      },
-      {
-        "file": "frontend/src/pages/TemplateContentsPage.tsx",
-        "line": 112,
-        "snippet": "{ key: \"actions\", title: \"\u0130\u015flemler\", sortable: false, render: (item) => <div className=\"form-actions\">{canUpdate ? <butt"
-      },
-      {
-        "file": "frontend/src/pages/TemplateContentsPage.tsx",
-        "line": 118,
-        "snippet": "{ key: \"actions\", title: \"\u0130\u015flemler\", sortable: false, render: (item) => <div className=\"form-actions\">{canUpdate ? <butt"
-      },
-      {
-        "file": "frontend/src/pages/TemplateContentsPage.tsx",
-        "line": 124,
-        "snippet": "<div className=\"form-actions\" role=\"tablist\" aria-label=\"\u015eablon i\u00e7eri\u011fi b\u00f6l\u00fcmleri\"><button type=\"button\" className={`btn"
-      },
-      {
-        "file": "frontend/src/pages/TemplateContentsPage.tsx",
-        "line": 127,
-        "snippet": "{modal === \"tag\" ? <FormModal title={editingTag ? \"\u0130\u00e7erik Etiketini D\u00fczenle\" : \"Yeni \u0130\u00e7erik Etiketi\"} onClose={() => set"
-      },
-      {
-        "file": "frontend/src/pages/TemplateContentsPage.tsx",
-        "line": 128,
-        "snippet": "{modal === \"content\" ? <FormModal title={editingContent ? \"\u0130\u00e7eri\u011fi D\u00fczenle\" : \"Yeni \u0130\u00e7erik\"} onClose={() => setModal(nul"
-      },
-      {
-        "file": "frontend/src/pages/UsersAdminPage.tsx",
-        "line": 265,
-        "snippet": "<div className=\"form-actions\"><button type=\"button\" className=\"btn secondary\" onClick={closeForm} disabled={saving}>Vazg"
-      }
-    ],
-    "legacy_breakpoints": [
-      {
-        "file": "frontend/src/styles.css",
-        "line": 7712,
-        "snippet": "@media (max-width: 800px) {",
-        "px": 800
-      },
-      {
-        "file": "frontend/src/styles.css",
-        "line": 7734,
-        "snippet": "@media (max-width: 520px) {",
-        "px": 520
-      }
-    ],
+    "form_actions_in_modal": [],
+    "legacy_breakpoints": [],
     "a11y_icon_buttons_missing_label": [],
     "route_coverage": {
       "app_routes": [
@@ -576,7 +1973,6 @@
         "/data-integration/run-history",
         "/data-integration/runs/:runId",
         "/data-integration/scraper-test",
-        "/fair-stand",
         "/fairs",
         "/fairs/:id",
         "/follow-ups",
@@ -590,6 +1986,12 @@
         "/operations/new/duplicate-check",
         "/operations/new/enrichment",
         "/operations/new/scraper",
+        "/stand-cost-items",
+        "/stand-projects",
+        "/stand-projects/:id",
+        "/stand-projects/:id/cost",
+        "/stand-projects/new",
+        "/stand/watch/:token",
         "/todos",
         "/todos/:id",
         "/todos/:id/quote"
@@ -599,20 +2001,38 @@
         "AdapterDetailPage",
         "AdapterManagementPage",
         "BulkEmailOperationWizardPage",
+        "CostCatalogPage",
         "CustomerDetailPage",
+        "CustomerEnrichmentPage",
         "CustomersPage",
         "CustomersResponsivePilotPage",
         "DashboardPage",
         "DataIntegrationImportsPage",
+        "DataOperationAnalyzeResultPage",
+        "DataOperationDuplicateResultPage",
         "DataOperationRunResultPage",
         "DataOperationsPage",
         "DatabaseBackupsPage",
         "EnrichmentOperationPage",
         "EnrichmentRunDetailPage",
         "FairDetailPage",
+        "FairStandCatalogAdminPage",
+        "FairStandItemTypesAdminPage",
+        "FairStandItemsAdminPage",
         "FairStandPage",
+        "FairStandPreviewsAdminPage",
+        "FairStandRuleTypesAdminPage",
+        "FairStandRulesAdminPage",
+        "FairStandSettingsAdminPage",
+        "FairStandUnitsAdminPage",
         "FairsPage",
+        "FollowUpsPage",
         "ImportWizardPage",
+        "ItemsCreatePage",
+        "ItemsDetailPage",
+        "ItemsEditPage",
+        "ItemsListPage",
+        "LegacyOperationDetailPage",
         "LoginPage",
         "MailOperationsPage",
         "MailTemplatesPage",
@@ -620,16 +2040,24 @@
         "OperationDetailPage",
         "OperationsPage",
         "OrganizationsPage",
+        "PageShellBackedScraperRunHistoryPage",
         "QuoteEditorPage",
         "QuoteTemplatesPage",
+        "RoleManagementPage",
         "ScraperOperationWizardPage",
         "ScraperRunHistoryPage",
         "ScraperTestPage",
         "SmtpAccountsPage",
+        "SnapCatalogPage",
+        "StandCostItemsPage",
+        "StandProjectCostPage",
+        "StandProjectsPage",
+        "StandWatchPage",
         "TableStandardSmokePage",
         "TemplateContentsPage",
         "TodoDetailPage",
-        "TodosPage"
+        "TodosPage",
+        "UsersAdminPage"
       ],
       "smoke_covered_routes": [
         "/activities",
@@ -664,8 +2092,15 @@
         "/imports/fair/:fairId",
         "/login",
         "/operations/:id",
+        "/operations/duplicate-check/runs/:runId",
+        "/stand-projects",
+        "/stand-projects/:id",
+        "/stand-projects/:id/cost",
+        "/stand-projects/new",
+        "/stand/watch/:token",
         "/todos",
-        "/todos/:id"
+        "/todos/:id",
+        "/todos/:id/quote"
       ],
       "page_files": [
         "ActivitiesPage.tsx",
@@ -687,8 +2122,12 @@
         "EnrichmentRunDetailPage.tsx",
         "FairDetailPage.tsx",
         "FairStandCatalogAdminPage.tsx",
+        "FairStandItemsAdminPage.tsx",
         "FairStandPage.tsx",
         "FairStandPreviewsAdminPage.tsx",
+        "FairStandSettingsAdminPage.tsx",
+        "FairStandSnapCatalogAdminPage.tsx",
+        "FairStandUnitsAdminPage.tsx",
         "FairsPage.tsx",
         "FollowUpsPage.tsx",
         "ImportWizardPage.tsx",
@@ -706,81 +2145,22 @@
         "ScraperRunHistoryPage.tsx",
         "ScraperTestPage.tsx",
         "SmtpAccountsPage.tsx",
+        "StandCostItemsPage.tsx",
+        "StandProjectCostPage.tsx",
+        "StandProjectsPage.tsx",
+        "StandWatchPage.tsx",
         "TemplateContentsPage.tsx",
         "TodoDetailPage.tsx",
         "TodosPage.tsx",
         "UsersAdminPage.tsx"
       ],
-      "missing_pageshell_on_mounted": [
-        {
-          "file": "frontend/src/pages/EnrichmentOperationPage.tsx",
-          "line": 0,
-          "route_component": "EnrichmentOperationPage",
-          "snippet": "mounted production page missing PageShell"
-        },
-        {
-          "file": "frontend/src/pages/FairStandPage.tsx",
-          "line": 0,
-          "route_component": "FairStandPage",
-          "snippet": "mounted production page missing PageShell"
-        },
-        {
-          "file": "frontend/src/pages/OperationDetailPage.tsx",
-          "line": 0,
-          "route_component": "OperationDetailPage",
-          "snippet": "mounted production page missing PageShell"
-        }
-      ],
-      "unmounted_page_files": [
-        {
-          "file": "frontend/src/pages/CostCatalogPage.tsx",
-          "line": 0,
-          "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
-        },
-        {
-          "file": "frontend/src/pages/CustomerEnrichmentPage.tsx",
-          "line": 0,
-          "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
-        },
-        {
-          "file": "frontend/src/pages/FairStandCatalogAdminPage.tsx",
-          "line": 0,
-          "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
-        },
-        {
-          "file": "frontend/src/pages/FairStandPreviewsAdminPage.tsx",
-          "line": 0,
-          "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
-        },
-        {
-          "file": "frontend/src/pages/RoleManagementPage.tsx",
-          "line": 0,
-          "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
-        },
-        {
-          "file": "frontend/src/pages/UsersAdminPage.tsx",
-          "line": 0,
-          "snippet": "page file not mounted from App.tsx \u2014 add route mount or allowlist"
-        }
-      ],
-      "routes_missing_smoke_coverage": [
-        {
-          "file": "frontend/scripts/capture-ui-evidence.mjs",
-          "line": 0,
-          "route": "/operations/duplicate-check/runs/:runId",
-          "snippet": "AppRoute not present in responsive smoke catalog"
-        },
-        {
-          "file": "frontend/scripts/capture-ui-evidence.mjs",
-          "line": 0,
-          "route": "/todos/:id/quote",
-          "snippet": "AppRoute not present in responsive smoke catalog"
-        }
-      ],
-      "total_violations": 11,
-      "pass": false
+      "missing_pageshell_on_mounted": [],
+      "unmounted_page_files": [],
+      "routes_missing_smoke_coverage": [],
+      "total_violations": 0,
+      "pass": true
     },
-    "prior_gates_failed": true,
+    "prior_gates_failed": false,
     "intentional_exceptions": [
       {
         "file": "frontend/src/**/FairBulkEmailWizard.tsx",
@@ -813,12 +2193,10 @@
         "snippet": "multi-action form/wizard keeps form-actions in body"
       }
     ],
-    "pass": false,
+    "pass": true,
     "breakpoints_found": [
-      520,
       767,
       768,
-      800,
       1023,
       1024,
       1440
@@ -878,17 +2256,35 @@
           "pattern": "PageShell missing",
           "reason": "Auth brand shell is outside AppLayout; PageShell is for in-app pages only.",
           "owner": "auth shell specialty"
+        },
+        {
+          "file": "frontend/src/pages/FairStandPage.tsx",
+          "pattern": "PageShell missing",
+          "reason": "Fair Stand is a full-viewport runtime host outside AppLayout; PageShell would add CRM chrome.",
+          "owner": "fair stand standalone specialty"
+        },
+        {
+          "file": "frontend/src/pages/StandWatchPage.tsx",
+          "pattern": "PageShell missing",
+          "reason": "The public watch page is a full-viewport video host outside AppLayout; PageShell would add CRM chrome.",
+          "owner": "fair stand watch specialty"
+        },
+        {
+          "file": "frontend/src/pages/standWatchRoute.ts",
+          "pattern": "PageShell missing",
+          "reason": "Token parser for the watch URL. It is not a page and has no shell.",
+          "owner": "fair stand watch specialty"
         }
       ],
       "rule": "Allowlist requires file + pattern + reason + owner. 'specialty' alone is invalid."
     }
   },
   "gates": {
-    "P0": false,
-    "P1": false,
-    "P2": false,
-    "P3": false,
-    "FINAL": false,
-    "ALL": false
+    "P0": true,
+    "P1": true,
+    "P2": true,
+    "P3": true,
+    "FINAL": true,
+    "ALL": true
   }
 }

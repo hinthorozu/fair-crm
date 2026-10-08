@@ -123,6 +123,53 @@ def compute_normalized_name(*, name: str) -> str:
     return normalize_fair_name(name)
 
 
+_YEAR_TOKEN = re.compile(r"^(?:19|20)\d{2}$")
+_ORDINAL_TOKEN = re.compile(r"^(\d+)(?:ST|ND|RD|TH)$")
+
+
+def _edition_number(token: str) -> str | None:
+    """Edition marker carried in a fair name. Calendar years are not editions."""
+    if _YEAR_TOKEN.fullmatch(token):
+        return None
+    if token.isdigit():
+        return token
+    ordinal = _ORDINAL_TOKEN.fullmatch(token)
+    if ordinal is not None:
+        return ordinal.group(1)
+    return None
+
+
+def compute_identity_name(*, name: str) -> str:
+    """Persistent System Fair label.
+
+    ``normalized_name`` keeps the official wording, including the calendar year
+    and edition number. This label removes only those occurrence tokens so two
+    years of the same fair can be compared. It does not merge same-year editions;
+    callers still use :func:`edition_key` for that guard.
+    """
+    normalized = normalize_fair_name(name)
+    kept = [
+        token
+        for token in normalized.split()
+        if not _YEAR_TOKEN.fullmatch(token) and _edition_number(token) is None
+    ]
+    return " ".join(kept)
+
+
+def edition_key(name: str) -> tuple[str, ...]:
+    """Non-year numbers in a fair name, in order. Empty when the name has none."""
+    normalized = normalize_fair_name(name)
+    return tuple(
+        number
+        for token in normalized.split()
+        if (number := _edition_number(token)) is not None
+    )
+
+
+def fair_city_key(city: str | None) -> str:
+    return normalize_fair_name(city or "")
+
+
 _DISPLAY_YEAR = re.compile(r"(?<!\d)((?:19|20)\d{2})(?!\d)")
 _CATALOG_TAIL = re.compile(r"^(?:\d+\s*\.|ULUSLARARASI\b|\()")
 _SEPARATORS = " \t-–—,.;/"

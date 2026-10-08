@@ -58,6 +58,16 @@ export const fairLabels = {
   syncTobb: "TOBB'dan Güncelle",
   syncTobbYear: "Yıl",
   syncTobbError: "TOBB güncellemesi tamamlanamadı.",
+  duplicateReviewTitle: "Muhtemel Mükerrer System Fair",
+  duplicateKeep: "Korunacak Fuar",
+  duplicateMerge: "Birleştirilecek Fuar",
+  duplicateMergeAction: "İçeri Al / Birleştir",
+  duplicateKeepSeparate: "Ayrı Tut",
+  duplicateMergeConfirm:
+    "Bu işlem geri alınamaz. Bağlı kayıtlar seçilen fuara taşınacaktır.",
+  duplicateMergeError: "Birleştirme tamamlanamadı.",
+  duplicateKeepSeparateError: "Ayrı tutma kaydedilemedi.",
+  duplicateScraperConfig: "Scraper ayarı var",
   runScraperRunning: "Scraper çalışıyor…",
 
   enrichFairPermissionDenied: "Zenginleştirme çalıştırma yetkiniz yok (fair_crm.scraper.run).",

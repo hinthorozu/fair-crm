@@ -23,6 +23,7 @@ from app.modules.fairs.application.list_fairs import ListFairsUseCase
 from app.modules.fairs.application.restore_fair import RestoreFairUseCase
 from app.modules.fairs.application.run_fair_enrichment import RunFairEnrichmentUseCase
 from app.modules.fairs.application.run_fair_scraper import RunFairScraperUseCase
+from app.modules.fairs.application.merge_system_fair import SystemFairDuplicateService
 from app.modules.fairs.application.sync_tobb_system_fairs import SyncTobbSystemFairsUseCase
 from app.modules.fairs.application.update_fair import UpdateFairUseCase
 from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
@@ -159,6 +160,14 @@ def get_sync_tobb_system_fairs_use_case(
     repository: SqlAlchemyFairRepository = Depends(get_fair_repository),
 ) -> SyncTobbSystemFairsUseCase:
     return SyncTobbSystemFairsUseCase(repository, TobbCalendarClient())
+
+
+def get_system_fair_duplicate_service(
+    db: Session = Depends(get_db),
+    repository: SqlAlchemyFairRepository = Depends(get_fair_repository),
+    audit: HttpAuditAdapter | NoOpAuditAdapter = Depends(get_audit_adapter),
+) -> SystemFairDuplicateService:
+    return SystemFairDuplicateService(db, repository, audit)
 
 
 def get_list_fairs_use_case(

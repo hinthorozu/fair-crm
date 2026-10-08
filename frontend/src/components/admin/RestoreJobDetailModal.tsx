@@ -13,6 +13,7 @@ import {
   shouldPollRestoreJobStatus,
 } from "../../utils/restoreJobStatus";
 import { Badge } from "../ui/Badge";
+import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import type { BadgeVariant } from "../ui/Badge";
 
@@ -184,7 +185,23 @@ export function RestoreJobDetailModal({ job, onClose, onJobUpdated, onDeleted }:
   const showLogPlaceholder = !logLoading && !logExists;
 
   return (
-    <Modal title={adminLabels.restoreJobDetailsTitle} onClose={onClose} size="lg">
+    <Modal
+      title={adminLabels.restoreJobDetailsTitle}
+      onClose={onClose}
+      size="lg"
+      footer={canDelete ? (
+          <Button
+            type="button"
+            variant="danger"
+            disabled={deleting || uiStatus === "running"}
+            title={uiStatus === "running" ? adminLabels.restoreJobDeleteRunningHint : undefined}
+            onClick={() => void handleDelete()}
+          >
+            {deleting ? adminLabels.restoreJobDeleting : adminLabels.restoreJobDelete}
+          </Button>
+        ) : null
+      }
+    >
       {liveJob.error_message && (
         <div className="restore-job-detail-error" role="alert">
           {liveJob.error_message}
@@ -247,19 +264,6 @@ export function RestoreJobDetailModal({ job, onClose, onJobUpdated, onDeleted }:
           </pre>
         )}
       </div>
-      {canDelete ? (
-        <div className="form-actions">
-          <button
-            type="button"
-            className="btn danger"
-            disabled={deleting || uiStatus === "running"}
-            title={uiStatus === "running" ? adminLabels.restoreJobDeleteRunningHint : undefined}
-            onClick={() => void handleDelete()}
-          >
-            {deleting ? adminLabels.restoreJobDeleting : adminLabels.restoreJobDelete}
-          </button>
-        </div>
-      ) : null}
     </Modal>
   );
 }

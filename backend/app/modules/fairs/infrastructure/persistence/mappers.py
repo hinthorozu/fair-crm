@@ -1,6 +1,13 @@
 from app.modules.fairs.domain.entities import Fair
+from app.modules.fairs.domain.services.normalizers import compute_identity_name
 from app.modules.fairs.domain.value_objects import FairStatus
 from app.modules.fairs.infrastructure.persistence.models import FairModel
+
+
+def _identity_name(fair: Fair) -> str:
+    if fair.identity_name:
+        return fair.identity_name
+    return compute_identity_name(name=fair.name)
 
 
 def model_to_entity(model: FairModel) -> Fair:
@@ -30,6 +37,7 @@ def model_to_entity(model: FairModel) -> Fair:
         origin=model.origin,
         source=model.source,
         external_id=model.external_id,
+        identity_name=model.identity_name,
     )
 
 
@@ -60,6 +68,7 @@ def entity_to_model(fair: Fair) -> FairModel:
         origin=fair.origin,
         source=fair.source,
         external_id=fair.external_id,
+        identity_name=_identity_name(fair),
     )
 
 
@@ -85,3 +94,4 @@ def update_model_from_entity(model: FairModel, fair: Fair) -> None:
     model.scraper_config = fair.scraper_config
     model.source = fair.source
     model.external_id = fair.external_id
+    model.identity_name = _identity_name(fair)

@@ -11,10 +11,12 @@ import {
   updateCostProduct,
 } from "../api/costCatalog";
 import { Banner } from "../components/ui/Banner";
+import { Button } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
-import { FormField, FormModal, TextareaInput, TextInput } from "../components/ui/form";
+import { FormField, FormModal, SelectInput, TextareaInput, TextInput } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
+import { TableRowActions } from "../components/ui/TableRowActions";
 import {
   UniversalDataTable,
   type UniversalDataTableColumn,
@@ -190,10 +192,10 @@ export function CostCatalogPage() {
       key: "actions",
       title: "İşlemler",
       render: (item) => (
-        <div className="table-actions">
+        <TableRowActions>
           {canCategoryUpdate ? (
-            <button
-              className="btn secondary"
+            <Button
+              variant="link"
               type="button"
               onClick={() => {
                 setCategoryValues({
@@ -206,18 +208,19 @@ export function CostCatalogPage() {
               }}
             >
               Düzenle
-            </button>
+            </Button>
           ) : null}
           {canCategoryDelete ? (
-            <button
-              className="btn danger"
+            <Button
+              variant="link"
+              danger
               type="button"
               onClick={() => void removeCategory(item)}
             >
               Sil
-            </button>
+            </Button>
           ) : null}
-        </div>
+        </TableRowActions>
       ),
     },
   ];
@@ -250,10 +253,10 @@ export function CostCatalogPage() {
       key: "actions",
       title: "İşlemler",
       render: (item) => (
-        <div className="table-actions">
+        <TableRowActions>
           {canProductUpdate ? (
-            <button
-              className="btn secondary"
+            <Button
+              variant="link"
               type="button"
               onClick={() => {
                 setProductValues({
@@ -269,18 +272,19 @@ export function CostCatalogPage() {
               }}
             >
               Düzenle
-            </button>
+            </Button>
           ) : null}
           {canProductDelete ? (
-            <button
-              className="btn danger"
+            <Button
+              variant="link"
+              danger
               type="button"
               onClick={() => void removeProduct(item)}
             >
               Sil
-            </button>
+            </Button>
           ) : null}
-        </div>
+        </TableRowActions>
       ),
     },
   ];
@@ -388,8 +392,18 @@ export function CostCatalogPage() {
         <FormModal
           title={categoryEditing ? "Kategoriyi Düzenle" : "Yeni Kategori"}
           onClose={() => setCategoryEditing(undefined)}
+          footer={
+            <>
+              <Button type="button" variant="secondary" onClick={() => setCategoryEditing(undefined)}>
+                İptal
+              </Button>
+              <Button type="submit" form="cost-category-form" variant="primary" disabled={saving}>
+                {saving ? "Kaydediliyor…" : "Kaydet"}
+              </Button>
+            </>
+          }
         >
-          <form className="crm-form" onSubmit={saveCategory}>
+          <form id="cost-category-form" className="crm-form" onSubmit={saveCategory}>
             <FormField label="Ad" htmlFor="cost-category-name">
               <TextInput
                 id="cost-category-name"
@@ -431,18 +445,6 @@ export function CostCatalogPage() {
                 }
               />
             </FormField>
-            <div className="form-actions">
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={() => setCategoryEditing(undefined)}
-              >
-                İptal
-              </button>
-              <button type="submit" className="btn primary" disabled={saving}>
-                {saving ? "Kaydediliyor…" : "Kaydet"}
-              </button>
-            </div>
           </form>
         </FormModal>
       ) : null}
@@ -451,12 +453,21 @@ export function CostCatalogPage() {
         <FormModal
           title={productEditing ? "Ürünü Düzenle" : "Yeni Ürün"}
           onClose={() => setProductEditing(undefined)}
+          footer={
+            <>
+              <Button type="button" variant="secondary" onClick={() => setProductEditing(undefined)}>
+                İptal
+              </Button>
+              <Button type="submit" form="cost-product-form" variant="primary" disabled={saving}>
+                {saving ? "Kaydediliyor…" : "Kaydet"}
+              </Button>
+            </>
+          }
         >
-          <form className="crm-form" onSubmit={saveProduct}>
+          <form id="cost-product-form" className="crm-form" onSubmit={saveProduct}>
             <FormField label="Kategori" htmlFor="cost-product-category">
-              <select
+              <SelectInput
                 id="cost-product-category"
-                className="form-control"
                 value={productValues.category_id}
                 onChange={(e) =>
                   setProductValues({ ...productValues, category_id: e.target.value })
@@ -468,7 +479,7 @@ export function CostCatalogPage() {
                     {option.name}
                   </option>
                 ))}
-              </select>
+              </SelectInput>
             </FormField>
             <FormField label="Ad" htmlFor="cost-product-name">
               <TextInput
@@ -500,9 +511,8 @@ export function CostCatalogPage() {
               />
             </FormField>
             <FormField label="Birim" htmlFor="cost-product-unit">
-              <select
+              <SelectInput
                 id="cost-product-unit"
-                className="form-control"
                 value={productValues.unit}
                 onChange={(e) =>
                   setProductValues({ ...productValues, unit: e.target.value as CostUnit })
@@ -513,7 +523,7 @@ export function CostCatalogPage() {
                     {unit}
                   </option>
                 ))}
-              </select>
+              </SelectInput>
             </FormField>
             <FormField label="Birim fiyat" htmlFor="cost-product-price">
               <TextInput
@@ -529,9 +539,8 @@ export function CostCatalogPage() {
               />
             </FormField>
             <FormField label="Para birimi" htmlFor="cost-product-currency">
-              <select
+              <SelectInput
                 id="cost-product-currency"
-                className="form-control"
                 value={productValues.currency}
                 onChange={(e) =>
                   setProductValues({
@@ -545,20 +554,8 @@ export function CostCatalogPage() {
                     {currency}
                   </option>
                 ))}
-              </select>
+              </SelectInput>
             </FormField>
-            <div className="form-actions">
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={() => setProductEditing(undefined)}
-              >
-                İptal
-              </button>
-              <button type="submit" className="btn primary" disabled={saving}>
-                {saving ? "Kaydediliyor…" : "Kaydet"}
-              </button>
-            </div>
           </form>
         </FormModal>
       ) : null}

@@ -14,11 +14,19 @@ import {
   type ManagedOrganization,
   type ManagedUser,
 } from "../api/userManagement";
-import { NavIconEye, NavIconEyeOff } from "../components/layout/NavIcons";
 import { Banner } from "../components/ui/Banner";
+import { Button } from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
-import { FormModal } from "../components/ui/form";
+import {
+  CheckboxField,
+  FormField,
+  FormModal,
+  PasswordInput,
+  SelectInput,
+  TextInput,
+} from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageShell } from "../components/ui/PageShell";
 import { TableRowActions } from "../components/ui/TableRowActions";
@@ -66,7 +74,6 @@ export function UsersAdminPage() {
   const [success, setSuccess] = React.useState<string | null>(null);
   const [editing, setEditing] = React.useState<ManagedUser | null | undefined>(undefined);
   const [form, setForm] = React.useState<UserFormState>(EMPTY_FORM);
-  const [showPassword, setShowPassword] = React.useState(true);
   const [formError, setFormError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<ManagedUser | null>(null);
@@ -157,7 +164,6 @@ export function UsersAdminPage() {
     if (!canCreateUsers || !canReadRoles) return;
     setEditing(null);
     setForm({ ...EMPTY_FORM, roleId: roles[0]?.id ?? "" });
-    setShowPassword(true);
     setFormError(null);
   };
 
@@ -165,7 +171,7 @@ export function UsersAdminPage() {
     if (!canUpdateUsers) return;
     setEditing(user);
     setForm({ email: user.email, password: "", roleId: user.role?.id ?? roles[0]?.id ?? "", status: user.status === "inactive" ? "inactive" : "active", isSuperAdmin: Boolean(user.is_super_admin) });
-    setShowPassword(true); setFormError(null);
+    setFormError(null);
   };
 
   const closeForm = () => { if (saving) return; setEditing(undefined); setFormError(null); };
@@ -233,13 +239,12 @@ export function UsersAdminPage() {
   const selectedOrganization = organizations.find((item) => item.id === organizationId) ?? null;
 
   const organizationField = actorIsSuperAdmin ? (
-    <label className="form-field">
-      <span className="form-label">Organizasyon *</span>
-      <select className="input" value={organizationId} onChange={(event) => changeOrganization(event.target.value)} disabled={saving || Boolean(editing)} required>
+    <FormField label="Organizasyon" htmlFor="user-organization" required>
+      <SelectInput id="user-organization" value={organizationId} onChange={(event) => changeOrganization(event.target.value)} disabled={saving || Boolean(editing)} required>
         <option value="">Organizasyon seçin</option>
         {organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}
-      </select>
-    </label>
+      </SelectInput>
+    </FormField>
   ) : (
     <div className="form-field"><span className="form-label">Organizasyon</span><strong>{selectedOrganization?.name ?? "Organizasyon bulunamadı"}</strong></div>
   );
@@ -251,18 +256,17 @@ export function UsersAdminPage() {
     {success ? <Banner variant="success">{success}</Banner> : null}
     {error ? <Banner variant="error">{error}</Banner> : null}
     {roleLoadError ? <Banner variant="warning">{roleLoadError}</Banner> : null}
-    <div className="card" style={{ marginBottom: 16, padding: 16 }}>{actorIsSuperAdmin ? <label className="form-field"><span className="form-label">Organizasyon</span><select className="input" value={organizationId} onChange={(event) => changeOrganization(event.target.value)}><option value="">Organizasyon seçin</option>{organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}</select></label> : <div className="form-field"><span className="form-label">Organizasyon</span><strong>{selectedOrganization?.name ?? "Organizasyon bulunamadı"}</strong></div>}</div>
+    <Card style={{ marginBottom: 16 }}>{actorIsSuperAdmin ? <FormField label="Organizasyon" htmlFor="users-organization-filter"><SelectInput id="users-organization-filter" value={organizationId} onChange={(event) => changeOrganization(event.target.value)}><option value="">Organizasyon seçin</option>{organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}</SelectInput></FormField> : <div className="form-field"><span className="form-label">Organizasyon</span><strong>{selectedOrganization?.name ?? "Organizasyon bulunamadı"}</strong></div>}</Card>
     <UniversalDataTable items={users} columns={columns} rowKey={(user) => user.id} loading={loading} error={error} onRetry={() => void loadUsers()} emptyState={<EmptyState title="Kullanıcı bulunamadı" actionLabel={canOfferCreate ? "Yeni Kullanıcı" : undefined} onAction={canOfferCreate ? openCreate : undefined} />} />
     {canRestoreUsers ? <div style={{ marginTop: 24 }}><h3>Silinen Kullanıcılar</h3><UniversalDataTable items={deletedUsers} columns={deletedColumns} rowKey={(user) => user.id} loading={loading} emptyState={<EmptyState title="Silinen kullanıcı bulunamadı" />} /></div> : null}
-    {formOpen ? <FormModal title={editing ? "Kullanıcıyı Düzenle" : "Yeni Kullanıcı"} onClose={closeForm} formWidth="standard"><form onSubmit={submit} className="crm-form-stack">
+    {formOpen ? <FormModal title={editing ? "Kullanıcıyı Düzenle" : "Yeni Kullanıcı"} onClose={closeForm} formWidth="standard" footer={<><Button type="button" variant="secondary" onClick={closeForm} disabled={saving}>Vazgeç</Button><Button type="submit" form="managed-user-form" variant="primary" disabled={saving}>{saving ? "Kaydediliyor…" : "Kaydet"}</Button></>}><form id="managed-user-form" onSubmit={submit} className="crm-form-stack">
       {formError ? <Banner variant="error">{formError}</Banner> : null}
       {organizationField}
-      <label className="form-field"><span className="form-label">E-posta *</span><input className="input" type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} required disabled={saving} /></label>
-      <label className="form-field"><span className="form-label">Şifre{editing ? "" : " *"}</span><span style={{ position: "relative", display: "block" }}><input className="input" type={showPassword ? "text" : "password"} value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} required={!editing} disabled={saving} autoComplete="new-password" style={{ width: "100%", paddingRight: 44 }} /><button type="button" onClick={() => setShowPassword((current) => !current)} disabled={saving} aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"} title={showPassword ? "Şifreyi gizle" : "Şifreyi göster"} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 0, border: 0, background: "transparent", color: "inherit", cursor: "pointer" }}>{showPassword ? <NavIconEyeOff /> : <NavIconEye />}</button></span>{editing ? <span className="form-hint">Değiştirmeyecekseniz boş bırakın.</span> : null}</label>
-      {canReadRoles ? <label className="form-field"><span className="form-label">Rol{form.isSuperAdmin ? "" : " *"}</span><select className="input" value={form.roleId} onChange={(event) => setForm((current) => ({ ...current, roleId: event.target.value }))} required={!form.isSuperAdmin} disabled={saving || form.isSuperAdmin}><option value="">{form.isSuperAdmin ? "Super Admin rol kullanmaz" : "Rol seçin"}</option>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select></label> : editing && !form.isSuperAdmin ? <div className="form-field"><span className="form-label">Rol</span><strong>{editing.role?.name ?? "—"}</strong></div> : null}
-      <label className="form-field"><span className="form-label">Durum</span><select className="input" value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as "active" | "inactive" }))} disabled={saving}><option value="active">Aktif</option><option value="inactive">Pasif</option></select></label>
-      {canManageSuperAdmin ? <label className="form-field"><span className="form-label">Super Admin</span><input type="checkbox" checked={form.isSuperAdmin} onChange={(event) => setForm((current) => ({ ...current, isSuperAdmin: event.target.checked, roleId: event.target.checked ? "" : current.roleId }))} disabled={saving} /></label> : null}
-      <div className="form-actions"><button type="button" className="btn secondary" onClick={closeForm} disabled={saving}>Vazgeç</button><button type="submit" className="btn primary" disabled={saving}>{saving ? "Kaydediliyor…" : "Kaydet"}</button></div>
+      <FormField label="E-posta" htmlFor="user-email" required><TextInput id="user-email" type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} required disabled={saving} /></FormField>
+      <FormField label="Şifre" htmlFor="user-password" required={!editing} hint={editing ? "Değiştirmeyecekseniz boş bırakın." : undefined}><PasswordInput id="user-password" initiallyVisible value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} required={!editing} disabled={saving} autoComplete="new-password" /></FormField>
+      {canReadRoles ? <FormField label="Rol" htmlFor="user-role" required={!form.isSuperAdmin}><SelectInput id="user-role" value={form.roleId} onChange={(event) => setForm((current) => ({ ...current, roleId: event.target.value }))} required={!form.isSuperAdmin} disabled={saving || form.isSuperAdmin}><option value="">{form.isSuperAdmin ? "Super Admin rol kullanmaz" : "Rol seçin"}</option>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</SelectInput></FormField> : editing && !form.isSuperAdmin ? <div className="form-field"><span className="form-label">Rol</span><strong>{editing.role?.name ?? "—"}</strong></div> : null}
+      <FormField label="Durum" htmlFor="user-status"><SelectInput id="user-status" value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as "active" | "inactive" }))} disabled={saving}><option value="active">Aktif</option><option value="inactive">Pasif</option></SelectInput></FormField>
+      {canManageSuperAdmin ? <CheckboxField id="user-super-admin" label="Super Admin" checked={form.isSuperAdmin} disabled={saving} onChange={(checked) => setForm((current) => ({ ...current, isSuperAdmin: checked, roleId: checked ? "" : current.roleId }))} /> : null}
     </form></FormModal> : null}
     {deleteTarget && canDeleteUsers ? <ConfirmDialog title="Kullanıcıyı Sil" message={`${deleteTarget.email} kullanıcısı bu organizasyondan kaldırılacak.`} confirmLabel="Sil" variant="danger" loading={deleting} onCancel={() => setDeleteTarget(null)} onConfirm={() => void confirmDelete()} /> : null}
   </PageShell>;

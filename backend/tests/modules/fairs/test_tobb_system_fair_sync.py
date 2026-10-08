@@ -7,7 +7,11 @@ import pytest
 from app.modules.fairs.application.sync_tobb_system_fairs import SyncTobbSystemFairsUseCase
 from app.modules.fairs.domain.entities import Fair
 from app.modules.fairs.domain.exceptions import TobbCalendarReadError
-from app.modules.fairs.domain.services.normalizers import compute_normalized_name
+from app.modules.fairs.domain.services.normalizers import (
+    compute_identity_name,
+    compute_normalized_name,
+    edition_key,
+)
 from app.modules.fairs.domain.value_objects import FairStatus
 from app.modules.fairs.infrastructure.persistence.models import FairModel
 from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
@@ -90,6 +94,8 @@ def _system(
     start_date: date | None = None,
     end_date: date | None = None,
     organizer: str | None = "Old Organizer",
+    city: str = "İstanbul",
+    scraper_config: dict | None = None,
 ) -> Fair:
     now = datetime.now(tz=UTC)
     fair = Fair(
@@ -98,7 +104,7 @@ def _system(
         name=name,
         organizer=organizer,
         venue="Old Venue",
-        city="Ankara",
+        city=city,
         country="Türkiye",
         start_date=start_date,
         end_date=end_date,
@@ -114,6 +120,7 @@ def _system(
         external_id=external_id,
         adapter_key=adapter_key,
         source_url=source_url,
+        scraper_config=scraper_config,
     )
     return SqlAlchemyFairRepository(db_session).add(fair)
 
@@ -203,14 +210,16 @@ def test_tobb_insert_and_update_store_turkish_uppercase_name(db_session):
     assert saved.normalized_name == compute_normalized_name(name="istanbul mobilya fuarı")
 
     updated_row = _sample_row()
-    updated_row[3] = "izmir şeker öğütme"
+    updated_row[0] = "40"
+    updated_row[3] = "istanbul mobilya fuarı"
     updated = _sync(db_session, _html([updated_row]))
     assert updated.updated == 1
     assert updated.inserted == 0
     db_session.expire_all()
     saved = _system_rows(db_session)[0]
-    assert saved.name == "İZMİR ŞEKER ÖĞÜTME"
-    assert saved.normalized_name == compute_normalized_name(name="izmir şeker öğütme")
+    assert saved.name == "İSTANBUL MOBİLYA FUARI"
+    assert saved.external_id == "2026:40"
+    assert len(_system_rows(db_session)) == 1
 
 
 def test_same_sync_updates_existing_without_duplicate(db_session):
@@ -229,6 +238,7 @@ def test_same_external_id_updates_changed_fields_without_touching_scraper_fields
         external_id="2026:15",
         adapter_key="keep-adapter",
         source_url="https://participant.example/list",
+        scraper_config={"max_pages": 2},
     )
     changed = _sample_row()
     changed[9] = "Yeni Düzenleyici"
@@ -242,6 +252,7 @@ def test_same_external_id_updates_changed_fields_without_touching_scraper_fields
     assert saved.external_id == "2026:15"
     assert saved.adapter_key == "keep-adapter"
     assert saved.source_url == "https://participant.example/list"
+    assert saved.scraper_config == {"max_pages": 2}
     assert len(_system_rows(db_session)) == 1
 
 
@@ -282,6 +293,10 @@ def test_fallback_conflict_does_not_insert_or_update(db_session):
     assert result.inserted == 0
     assert result.updated == 0
     assert result.conflicts == 1
+    assert {fair_id for item in result.conflict_items for fair_id in item.fair_ids} == {
+        first.id,
+        second.id,
+    }
 
     db_session.expire_all()
     assert len(_system_rows(db_session)) == 2
@@ -315,16 +330,18 @@ def test_organization_fair_with_same_name_is_not_matched(db_session, organizatio
     assert len(_system_rows(db_session)) == 1
 
 
-def test_same_name_in_another_year_is_not_a_fallback_match(db_session):
+def test_same_logical_fair_in_another_year_updates_the_existing_row(db_session):
     previous = _system(db_session, name="İstanbul Fuarı", external_id="2025:15")
     result = _sync(db_session, _html([_sample_row()]), year=2026)
-    assert result.inserted == 1
-    assert result.updated == 0
+    assert result.inserted == 0
+    assert result.updated == 1
+    assert result.conflicts == 0
 
     db_session.expire_all()
-    assert db_session.get(FairModel, previous.id).external_id == "2025:15"
-    current = [row for row in _system_rows(db_session) if row.external_id == "2026:15"]
-    assert len(current) == 1
+    saved = db_session.get(FairModel, previous.id)
+    assert saved.external_id == "2026:15"
+    assert saved.start_date.isoformat() == "2026-03-01"
+    assert len(_system_rows(db_session)) == 1
 
 
 def test_system_fair_missing_from_tobb_is_left_unchanged(db_session):
@@ -462,14 +479,6 @@ def _named_row(
     return row
 
 
-def _unchanged(saved: FairModel, *, external_id: str, end: date) -> None:
-    assert saved.external_id == external_id
-    assert saved.end_date == end
-    assert saved.organizer == "Old Organizer"
-    assert saved.venue == "Old Venue"
-    assert saved.name == "X Fuarı"
-
-
 def test_annual_rollover_updates_finished_edition(db_session):
     existing = _system(
         db_session,
@@ -497,7 +506,7 @@ def test_annual_rollover_updates_finished_edition(db_session):
     assert len(_system_rows(db_session)) == 1
 
 
-def test_annual_rollover_does_not_run_when_edition_ends_today(db_session):
+def test_next_year_updates_when_the_current_edition_ends_today(db_session):
     existing = _system(
         db_session,
         name="X Fuarı",
@@ -511,14 +520,15 @@ def test_annual_rollover_does_not_run_when_edition_ends_today(db_session):
         year=2027,
         today=_TODAY,
     )
-    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 0)
+    assert (result.inserted, result.updated, result.conflicts) == (0, 1, 0)
     db_session.expire_all()
     saved = db_session.get(FairModel, existing.id)
-    _unchanged(saved, external_id="2026:10", end=date(2026, 10, 1))
+    assert saved.external_id == "2027:25"
+    assert saved.end_date == date(2027, 8, 5)
     assert len(_system_rows(db_session)) == 1
 
 
-def test_annual_rollover_does_not_run_for_a_future_edition(db_session):
+def test_next_year_updates_a_future_edition(db_session):
     existing = _system(
         db_session,
         name="X Fuarı",
@@ -532,13 +542,16 @@ def test_annual_rollover_does_not_run_for_a_future_edition(db_session):
         year=2027,
         today=_TODAY,
     )
-    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 0)
+    assert (result.inserted, result.updated, result.conflicts) == (0, 1, 0)
     db_session.expire_all()
-    _unchanged(db_session.get(FairModel, existing.id), external_id="2026:10", end=date(2026, 10, 18))
+    saved = db_session.get(FairModel, existing.id)
+    assert saved.external_id == "2027:25"
+    assert saved.start_date == date(2027, 10, 3)
+    assert saved.end_date == date(2027, 10, 6)
     assert len(_system_rows(db_session)) == 1
 
 
-def test_annual_rollover_does_not_run_while_edition_is_active(db_session):
+def test_next_year_updates_while_the_current_edition_is_active(db_session):
     existing = _system(
         db_session,
         name="X Fuarı",
@@ -552,9 +565,11 @@ def test_annual_rollover_does_not_run_while_edition_is_active(db_session):
         year=2027,
         today=_TODAY,
     )
-    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 0)
+    assert (result.inserted, result.updated, result.conflicts) == (0, 1, 0)
     db_session.expire_all()
-    _unchanged(db_session.get(FairModel, existing.id), external_id="2026:10", end=date(2026, 10, 3))
+    saved = db_session.get(FairModel, existing.id)
+    assert saved.external_id == "2027:25"
+    assert saved.end_date == date(2027, 8, 5)
     assert len(_system_rows(db_session)) == 1
 
 
@@ -572,12 +587,15 @@ def test_older_sync_year_does_not_downgrade_a_newer_edition(db_session):
         year=2026,
         today=_TODAY,
     )
-    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 0)
+    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 1)
+    assert result.conflict_items[0].name == "X FUARI"
+    assert result.conflict_items[0].fair_ids == (existing.id,)
     db_session.expire_all()
     saved = db_session.get(FairModel, existing.id)
     assert saved.external_id == "2027:25"
     assert saved.start_date == date(2027, 8, 1)
     assert saved.end_date == date(2027, 8, 5)
+    assert saved.organizer == "Old Organizer"
     assert len(_system_rows(db_session)) == 1
 
 
@@ -619,9 +637,11 @@ def test_multiple_annual_candidates_are_a_conflict(db_session):
         today=_TODAY,
     )
     assert (result.inserted, result.updated, result.conflicts) == (0, 0, 1)
+    assert set(result.conflict_items[0].fair_ids) == {first.id, second.id}
     db_session.expire_all()
     assert db_session.get(FairModel, first.id).external_id == "2024:3"
     assert db_session.get(FairModel, second.id).external_id == "2025:8"
+    assert db_session.get(FairModel, first.id).organizer == "Old Organizer"
     assert len(_system_rows(db_session)) == 2
 
 
@@ -648,3 +668,191 @@ def test_same_year_identity_still_updates(db_session):
     assert saved.start_date == date(2027, 8, 1)
     assert saved.end_date == date(2027, 8, 5)
     assert len(_system_rows(db_session)) == 1
+
+
+def test_identity_name_drops_year_and_edition_without_changing_normalized_name():
+    raw = "AVRASYA AMBALAJ 2026- İSTANBUL 31.ULUSLARARASI FUARI"
+    later = "AVRASYA AMBALAJ 2027- İSTANBUL 32.ULUSLARARASI FUARI"
+    assert compute_identity_name(name=raw) == compute_identity_name(name=later)
+    assert "2026" in compute_normalized_name(name=raw)
+    assert "31" not in compute_identity_name(name=raw).split()
+    assert edition_key(raw) == ("31",)
+    assert edition_key("IJS 31st İstanbul") == ("31",)
+    assert edition_key("31'inci fuar") == ("31",)
+    assert edition_key("SHOW XXXI") == ()
+    assert "XXXI" in compute_identity_name(name="SHOW XXXI")
+
+
+def test_next_year_edition_updates_the_same_system_fair(db_session):
+    existing = _system(
+        db_session,
+        name="AVRASYA AMBALAJ 2026- İSTANBUL 31.ULUSLARARASI FUARI",
+        external_id="2026:4",
+        start_date=date(2026, 10, 10),
+        end_date=date(2026, 10, 13),
+        city="İstanbul",
+    )
+    result = _sync(
+        db_session,
+        _html(
+            [
+                _named_row(
+                    sequence="80",
+                    name="AVRASYA AMBALAJ 2027- İSTANBUL 32.ULUSLARARASI FUARI",
+                    start="17.10.2027",
+                    end="20.10.2027",
+                )
+            ]
+        ),
+        year=2027,
+        today=_TODAY,
+    )
+    assert (result.inserted, result.updated, result.conflicts) == (0, 1, 0)
+    db_session.expire_all()
+    saved = db_session.get(FairModel, existing.id)
+    assert saved.external_id == "2027:80"
+    assert saved.start_date == date(2027, 10, 17)
+    assert saved.end_date == date(2027, 10, 20)
+    assert "32" in saved.name
+    assert len(_system_rows(db_session)) == 1
+
+
+def test_date_correction_updates_the_same_fair(db_session):
+    existing = _system(
+        db_session,
+        name="AVRASYA AMBALAJ 2026- İSTANBUL 31.ULUSLARARASI FUARI",
+        external_id="2026:4",
+        start_date=date(2026, 10, 10),
+        end_date=date(2026, 10, 13),
+    )
+    result = _sync(
+        db_session,
+        _html(
+            [
+                _named_row(
+                    sequence="4",
+                    name="AVRASYA AMBALAJ 2026- İSTANBUL 31.ULUSLARARASI FUARI",
+                    start="17.10.2026",
+                    end="20.10.2026",
+                )
+            ]
+        ),
+        year=2026,
+        today=_TODAY,
+    )
+    assert result.updated == 1
+    assert result.inserted == 0
+    db_session.expire_all()
+    saved = db_session.get(FairModel, existing.id)
+    assert saved.start_date == date(2026, 10, 17)
+    assert saved.end_date == date(2026, 10, 20)
+    assert len(_system_rows(db_session)) == 1
+
+
+def test_same_year_second_edition_is_not_merged(db_session):
+    result = _sync(
+        db_session,
+        _html(
+            [
+                _named_row(
+                    sequence="59",
+                    name="IJS İSTANBUL 2026 59. ULUSLARARASI MÜCEVHER FUARI",
+                    start="01.10.2026",
+                    end="04.10.2026",
+                ),
+                _named_row(
+                    sequence="60",
+                    name="IJS İSTANBUL 2026 60. ULUSLARARASI MÜCEVHER FUARI",
+                    start="01.03.2026",
+                    end="04.03.2026",
+                ),
+            ]
+        ),
+        year=2026,
+        today=_TODAY,
+    )
+    assert (result.inserted, result.updated, result.conflicts) == (2, 0, 0)
+    saved = _system_rows(db_session)
+    assert len(saved) == 2
+    assert {row.external_id for row in saved} == {"2026:59", "2026:60"}
+    assert all("59" in row.name or "60" in row.name for row in saved)
+
+
+def test_later_same_year_edition_does_not_overwrite_the_first(db_session):
+    first = _system(
+        db_session,
+        name="IJS İSTANBUL 2026 59. ULUSLARARASI MÜCEVHER FUARI",
+        external_id="2026:59",
+        start_date=date(2026, 10, 1),
+        end_date=date(2026, 10, 4),
+        organizer="IJS Organizer",
+    )
+    result = _sync(
+        db_session,
+        _html(
+            [
+                _named_row(
+                    sequence="60",
+                    name="IJS İSTANBUL 2026 60. ULUSLARARASI MÜCEVHER FUARI",
+                    start="01.03.2026",
+                    end="04.03.2026",
+                )
+            ]
+        ),
+        year=2026,
+        today=_TODAY,
+    )
+    assert result.inserted == 1
+    assert result.updated == 0
+    db_session.expire_all()
+    kept = db_session.get(FairModel, first.id)
+    assert kept.external_id == "2026:59"
+    assert kept.organizer == "IJS Organizer"
+    assert kept.start_date == date(2026, 10, 1)
+    assert len(_system_rows(db_session)) == 2
+
+
+def test_next_year_multi_edition_family_does_not_cross_match(db_session):
+    first = _system(
+        db_session,
+        name="IJS İSTANBUL 2026 59. ULUSLARARASI MÜCEVHER FUARI",
+        external_id="2026:59",
+        start_date=date(2026, 10, 1),
+        end_date=date(2026, 10, 4),
+    )
+    second = _system(
+        db_session,
+        name="IJS İSTANBUL 2026 60. ULUSLARARASI MÜCEVHER FUARI",
+        external_id="2026:60",
+        start_date=date(2026, 3, 1),
+        end_date=date(2026, 3, 4),
+    )
+    result = _sync(
+        db_session,
+        _html(
+            [
+                _named_row(
+                    sequence="61",
+                    name="IJS İSTANBUL 2027 61. ULUSLARARASI MÜCEVHER FUARI",
+                    start="01.10.2027",
+                    end="04.10.2027",
+                ),
+                _named_row(
+                    sequence="62",
+                    name="IJS İSTANBUL 2027 62. ULUSLARARASI MÜCEVHER FUARI",
+                    start="01.03.2027",
+                    end="04.03.2027",
+                ),
+            ]
+        ),
+        year=2027,
+        today=_TODAY,
+    )
+    assert result.inserted == 0
+    assert result.updated == 0
+    assert result.conflicts == 2
+    assert all(set(item.fair_ids) == {first.id, second.id} for item in result.conflict_items)
+    db_session.expire_all()
+    assert db_session.get(FairModel, first.id).external_id == "2026:59"
+    assert db_session.get(FairModel, second.id).external_id == "2026:60"
+    assert len(_system_rows(db_session)) == 2

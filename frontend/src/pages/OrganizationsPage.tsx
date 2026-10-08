@@ -9,6 +9,7 @@ import {
   type Organization,
 } from "../api/organizations";
 import { useAuth } from "../auth/AuthContext";
+import { Button } from "../components/ui/Button";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
 import { FormField, FormModal, TextInput, runAfterSuccessfulFormSubmit } from "../components/ui/form";
@@ -31,15 +32,27 @@ interface OrganizationFormProps {
   initialName: string;
   saving: boolean;
   error: string | null;
-  onCancel: () => void;
   onSubmit: (name: string) => Promise<void>;
 }
 
-function OrganizationForm({ initialName, saving, error, onCancel, onSubmit }: OrganizationFormProps) {
+function OrganizationFormFooter({ saving, onCancel }: { saving: boolean; onCancel: () => void }) {
+  const cancel = useModalFormCancel(onCancel);
+  return (
+    <>
+      <Button type="button" variant="secondary" onClick={cancel} disabled={saving}>
+        {organizationLabels.cancel}
+      </Button>
+      <Button type="submit" form="organization-form" variant="primary" disabled={saving}>
+        {organizationLabels.save}
+      </Button>
+    </>
+  );
+}
+
+function OrganizationForm({ initialName, saving, error, onSubmit }: OrganizationFormProps) {
   const [name, setName] = React.useState(initialName);
   const [validationError, setValidationError] = React.useState<string | null>(null);
   useReportFormDirty({ name }, { name: initialName });
-  const cancel = useModalFormCancel(onCancel);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -70,14 +83,6 @@ function OrganizationForm({ initialName, saving, error, onCancel, onSubmit }: Or
           aria-invalid={Boolean(validationError || error)}
         />
       </FormField>
-      <div className="form-actions">
-        <button type="button" className="btn secondary" onClick={cancel} disabled={saving}>
-          {organizationLabels.cancel}
-        </button>
-        <button type="submit" className="btn primary" disabled={saving}>
-          {organizationLabels.save}
-        </button>
-      </div>
     </form>
   );
 }
@@ -245,13 +250,13 @@ export function OrganizationsPage() {
           title={editing ? organizationLabels.editOrganization : organizationLabels.newOrganization}
           onClose={closeForm}
           formWidth="narrow"
+          footer={<OrganizationFormFooter saving={saving} onCancel={closeForm} />}
         >
           <OrganizationForm
             key={editing?.id ?? "new-organization"}
             initialName={editing?.name ?? ""}
             saving={saving}
             error={formError}
-            onCancel={closeForm}
             onSubmit={saveOrganization}
           />
         </FormModal>

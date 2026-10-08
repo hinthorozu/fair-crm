@@ -67,6 +67,7 @@ class Fair:
     origin: str = "organization"
     source: Optional[str] = None
     external_id: Optional[str] = None
+    identity_name: Optional[str] = None
 
     @classmethod
     def create(

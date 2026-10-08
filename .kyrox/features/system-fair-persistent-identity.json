@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "id": "system-fair-persistent-identity",
+  "title": "System Fair Persistent Identity",
+  "feature_type": "backend_service",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "user",
+  "tenant_scope": "system",
+  "user_facing": true,
+  "affected_paths": [
+    "backend/app/modules/fairs/application/sync_tobb_system_fairs.py",
+    "backend/app/modules/fairs/domain/services/normalizers.py",
+    "backend/app/modules/fairs/domain/entities.py",
+    "backend/app/modules/fairs/domain/ports.py",
+    "backend/app/modules/fairs/infrastructure/persistence/models.py",
+    "backend/app/modules/fairs/infrastructure/persistence/mappers.py",
+    "backend/app/modules/fairs/infrastructure/repositories/fair_repository.py",
+    "backend/app/modules/fairs/api/schemas.py",
+    "backend/app/modules/fairs/api/routes.py",
+    "backend/alembic/versions/0093_system_fair_identity_name.py",
+    "backend/tests/modules/fairs/test_tobb_system_fair_sync.py",
+    "backend/tests/modules/fairs/test_tobb_system_fair_sync_endpoint.py",
+    "frontend/src/api/fairs.ts",
+    "frontend/src/pages/FairsPage.tsx",
+    "frontend/src/pages/SystemFairFrontend.test.ts",
+    ".kyrox/features/system-fair-persistent-identity.json"
+  ],
+  "permissions": {
+    "required": false,
+    "reason": "TOBB sync stays behind the existing Super Admin gate. This change adds no permission code.",
+    "items": []
+  },
+  "frontend": {
+    "required": true,
+    "routes": ["/fairs"],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": { "status": "required" },
+    "migration": { "status": "required" },
+    "permissions": { "status": "na", "reason": "No permission catalog change. Sync remains Super Admin only." },
+    "backend": { "status": "required" },
+    "api": { "status": "required" },
+    "tenant_isolation": { "status": "required" },
+    "audit": { "status": "na", "reason": "Sync does not add an audit event and does not merge existing rows." },
+    "frontend": { "status": "required" },
+    "ui_permissions": { "status": "na", "reason": "The Super Admin TOBB action visibility is unchanged." },
+    "menu": { "status": "na", "reason": "No navigation item is added or retargeted." },
+    "route_guard": { "status": "na", "reason": "The fairs route guard is unchanged." },
+    "forms": { "status": "na", "reason": "No form fields are added. Only the sync result text changes." },
+    "visual_qa": { "status": "required" },
+    "backend_tests": { "status": "required" },
+    "frontend_tests": { "status": "required" },
+    "runtime_authorization": { "status": "required" },
+    "runtime_verification": { "status": "required" },
+    "deployment": { "status": "required" }
+  },
+  "notes": "System Fair matching ignores calendar year, schedule dates, TOBB sequence and edition number. identity_name is the persistent label; normalized_name still stores the official wording. A second edition in the same year is not overwritten. Two or more possible matches produce a conflict that names the incoming fair and the involved fair ids. Organization fairs are excluded. Scraper fields are not overwritten. Existing duplicate rows are not merged, re-pointed or deleted. ADR-038 supersedes ADR-037 for catalog identity."
+}

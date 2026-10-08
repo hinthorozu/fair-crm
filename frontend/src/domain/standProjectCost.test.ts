@@ -213,4 +213,19 @@ describe("stand project cost sheet", () => {
     expect(sheet.rows[0].quantity).toBe(1.5);
     expect(sheet.rows[0].purchaseTotal).toBe(7500);
   });
+
+  it("prices a tulle_fabric square-metre BOM line through the item key", () => {
+    const sheet = buildStandProjectCostSheet({
+      bomLines: [{ itemKey: "tulle_fabric", name: "Tül", quantity: 15, unit: "metre_kare" }],
+      costItems: [itemPrice("tulle_fabric", "200.00", "300.00")],
+      manualEntries: [],
+      units,
+    });
+    expect(sheet.rows).toHaveLength(1);
+    expect(sheet.rows[0].name).toBe("Tül");
+    expect(sheet.rows[0].quantity).toBe(15);
+    expect(sheet.rows[0].unitLabel).toBe("Metre Kare");
+    expect(sheet.rows[0].purchaseTotal).toBe(3000);
+    expect(sheet.rows[0].saleTotal).toBe(4500);
+  });
 });
