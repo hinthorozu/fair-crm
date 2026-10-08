@@ -16,6 +16,8 @@
     "frontend/src/pages/CustomerDetailPage.tsx",
     "frontend/src/domain/standProjectCost.ts",
     "frontend/src/domain/standProjectCost.test.ts",
+    "frontend/src/domain/standProjectCostWorkbook.ts",
+    "frontend/src/domain/standProjectCostWorkbook.test.ts",
     "frontend/src/domain/loadStandProjectCost.ts",
     "frontend/src/fairStand/catalog.js",
     "frontend/src/fairStand/runtimeSettings.js",
@@ -80,5 +82,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Replaces public /fair-stand shell entry with permission-gated Standlar list. Configurator stays standalone at /stand-projects/new and /:id. Assigning a project to another customer is the actions-column confirm dialog; it PATCHes customerId and does not run on drawing save. Maliyet Hesapla opens /stand-projects/:id/cost from the Standlar and customer project action columns. It reads the current project, runs the existing resolveProjectBom, and matches ITEM cost rows by item_key. MANUAL rows are selected on the page with a quantity and are not stored. A BOM-sourced row is labeled Sahne Elemanı; a manual row stays Manuel. The row source code stays BOM. The route requires projects.read and the existing cost_items.read permission. No new permission and no cost snapshot."
+  "notes": "Replaces public /fair-stand shell entry with permission-gated Standlar list. Configurator stays standalone at /stand-projects/new and /:id. Assigning a project to another customer is the actions-column confirm dialog; it PATCHes customerId and does not run on drawing save. Maliyet Hesapla opens /stand-projects/:id/cost from the Standlar and customer project action columns. It reads the current project, runs the existing resolveProjectBom, and matches ITEM cost rows by item_key. MANUAL rows are selected on the page with a quantity and are not stored. A BOM-sourced row is labeled Sahne Elemanı; a manual row stays Manuel. The row source code stays BOM. The route requires projects.read and the existing cost_items.read permission. No new permission and no cost snapshot. Excel İndir downloads the current visible cost rows and totals as a local xlsx named from the project. The file is not stored."
 }
