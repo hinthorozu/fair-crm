@@ -180,7 +180,7 @@ class CreateOperationUseCase:
             raise InvalidOperationConfigError("Fair repository is required for fair sources")
         missing: list[str] = []
         for fair_id in source_ids:
-            fair = self._fair_repository.get_by_id(organization_id, fair_id)
+            fair = self._fair_repository.get_visible(organization_id, fair_id)
             if fair is None:
                 missing.append(str(fair_id))
         if missing:

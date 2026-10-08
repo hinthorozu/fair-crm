@@ -45,7 +45,7 @@ def resolve_fair_name(
 ) -> str | None:
     if fair_id is None:
         return None
-    fair = fair_repository.get_by_id(organization_id, fair_id)
+    fair = fair_repository.get_visible(organization_id, fair_id)
     return fair.name if fair is not None else None
 
 
@@ -57,7 +57,7 @@ def build_fair_name_lookup(
 ) -> dict[UUID, str]:
     lookup: dict[UUID, str] = {}
     for fair_id in fair_ids:
-        fair = fair_repository.get_by_id(organization_id, fair_id)
+        fair = fair_repository.get_visible(organization_id, fair_id)
         if fair is not None:
             lookup[fair_id] = fair.name
     return lookup

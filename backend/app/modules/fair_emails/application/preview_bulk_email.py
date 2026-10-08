@@ -61,7 +61,7 @@ class PreviewFairBulkEmailUseCase:
         ):
             raise ForbiddenError("Permission denied")
 
-        fair = self._fair_repository.get_by_id(command.organization_id, command.fair_id)
+        fair = self._fair_repository.get_visible(command.organization_id, command.fair_id)
         if fair is None:
             raise FairNotFoundError("Fair not found")
         if fair.deleted_at is not None:

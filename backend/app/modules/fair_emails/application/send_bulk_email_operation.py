@@ -233,7 +233,7 @@ class SendBulkEmailOperationUseCase:
             raise ValueError("En az bir fuar seçin.")
 
         for fair_id in fair_ids:
-            fair = self._fair_repository.get_by_id(command.organization_id, fair_id)
+            fair = self._fair_repository.get_visible(command.organization_id, fair_id)
             if fair is None:
                 raise FairNotFoundError("Fair not found")
             if fair.deleted_at is not None:

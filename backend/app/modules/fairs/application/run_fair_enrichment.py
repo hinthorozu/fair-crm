@@ -42,7 +42,7 @@ class RunFairEnrichmentUseCase:
         self._session = session
 
     def execute(self, command: RunFairEnrichmentCommand) -> ScraperRunHistory:
-        fair = self._fair_repository.get_by_id(command.organization_id, command.fair_id)
+        fair = self._fair_repository.get_visible(command.organization_id, command.fair_id)
         if fair is None:
             raise FairNotFoundError("Fair not found")
 
@@ -73,7 +73,7 @@ class RunFairEnrichmentUseCase:
             input_url=None,
             fair_name=fair.name,
             fair_year=fair_year,
-            organization_id=fair.organization_id,
+            organization_id=command.organization_id,
             fair_id=fair.id,
             run_source=ScraperRunSource.ENRICHMENT,
         )

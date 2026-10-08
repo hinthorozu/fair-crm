@@ -221,19 +221,12 @@ def analyze_customer_groups_by_field(
 
     fair_name: str | None = None
     if fair_id is not None:
-        from app.modules.fairs.infrastructure.persistence.models import FairModel
+        from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
 
-        fair_row = (
-            session.query(FairModel)
-            .filter(
-                FairModel.organization_id == organization_id,
-                FairModel.id == fair_id,
-            )
-            .one_or_none()
-        )
-        if fair_row is None:
+        fair = SqlAlchemyFairRepository(session).get_visible(organization_id, fair_id)
+        if fair is None:
             raise ValueError("Fair not found")
-        fair_name = fair_row.name
+        fair_name = fair.name
 
     customer_query = exclude_merge_deleted_customers(
         session.query(CustomerModel)

@@ -11,7 +11,7 @@ def ensure_source_fair_exists(
     organization_id: UUID,
     source_fair_id: UUID,
 ) -> None:
-    fair = fair_repository.get_by_id(organization_id, source_fair_id)
+    fair = fair_repository.get_visible(organization_id, source_fair_id)
     if fair is None:
         raise FairNotFoundError("Fair not found")
 

@@ -236,7 +236,7 @@ class MailSendOperationDispatcher:
 
         fair_name = ""
         if fair_id is not None:
-            fair = SqlAlchemyFairRepository(self._session).get_by_id(organization_id, fair_id)
+            fair = SqlAlchemyFairRepository(self._session).get_visible(organization_id, fair_id)
             fair_name = fair.name if fair else ""
         template = self._template_repository.get_by_id(organization_id, template_id)
         template_name = template.name if template else ""

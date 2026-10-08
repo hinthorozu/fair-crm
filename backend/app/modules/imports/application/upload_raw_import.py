@@ -53,7 +53,7 @@ class UploadRawImportUseCase:
             SourceConnection(payload=command.file_content, file_name=command.file_name),
         )
 
-        fair = self._fair_repository.get_by_id(command.organization_id, command.fair_id)
+        fair = self._fair_repository.get_visible(command.organization_id, command.fair_id)
         if fair is None:
             raise FairNotFoundError("Fair not found")
 
