@@ -34,6 +34,15 @@ describe("StandProjectCostPage", () => {
     expect(loader).toContain("getFairStandProject");
     expect(loader).toContain("listFairStandCostItems");
     expect(loader).toContain("resolveProjectBom");
+    const fallback = (file: string) => readFileSync(join(here, "../fairStand", file), "utf8");
+    expect(fallback("catalog.js")).toContain("export function initializeCatalogCategories");
+    expect(fallback("catalog.js")).toContain("export function initializeCatalogPreviews");
+    expect(fallback("runtimeSettings.js")).toContain("export function initializeRuntimeSettings");
+    expect(fallback("standDimensions.js")).toContain("export function initializeStandDimensions");
+    expect(fallback("items.js")).toContain("export function initializeItemRegistry");
+    expect(fallback("items.js")).toContain("export function initializeSnapRuleRegistry");
+    expect(fallback("items.js")).toContain("export function initializeItemTypeRegistry");
+    expect(fallback("projectBom.js")).toContain("export function resolveProjectBom");
     expect(loader).toContain('"/api/v1/fair-stand/catalog/bootstrap"');
     expect(loader).not.toContain("organizationId:");
   });
