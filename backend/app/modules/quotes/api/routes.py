@@ -12,7 +12,7 @@ from app.integrations.kyrox_core.auth import AuthContext
 from app.modules.activities.domain.entities import Activity
 from app.modules.activities.infrastructure.repositories.activity_repository import SqlAlchemyActivityRepository
 from app.modules.customers.infrastructure.persistence.models import CustomerModel
-from app.modules.fairs.infrastructure.persistence.models import FairModel
+from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
 from app.modules.quote_templates.infrastructure.logo_storage import logo_src_for_render
 from app.modules.quote_templates.infrastructure.models import QuoteTemplateModel, QuoteTemplateVersionModel
 from app.modules.quotes.api.dependencies import require_create_permission, require_delete_permission, require_read_permission, require_update_permission
@@ -114,13 +114,7 @@ def _render(row: QuoteModel, db: Session) -> str:
             CustomerModel.deleted_at.is_(None),
         )
     )
-    fair = db.scalar(
-        select(FairModel).where(
-            FairModel.id == row.fair_id,
-            FairModel.organization_id == row.organization_id,
-            FairModel.deleted_at.is_(None),
-        )
-    )
+    fair = SqlAlchemyFairRepository(db).get_visible(row.organization_id, row.fair_id)
     template = db.scalar(
         select(QuoteTemplateModel).where(
             QuoteTemplateModel.id == row.template_id,

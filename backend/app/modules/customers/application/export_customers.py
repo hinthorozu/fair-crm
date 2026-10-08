@@ -8,7 +8,7 @@ from io import BytesIO
 from uuid import UUID
 
 from openpyxl import Workbook
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.core.pagination import normalize_sort_direction
@@ -65,7 +65,11 @@ def _load_fair_names_by_customer(
             FairModel,
             and_(
                 FairModel.id == CustomerFairParticipationModel.fair_id,
-                FairModel.organization_id == organization_id,
+                FairModel.deleted_at.is_(None),
+                or_(
+                    FairModel.organization_id == organization_id,
+                    FairModel.origin == "system",
+                ),
             ),
         )
         .filter(

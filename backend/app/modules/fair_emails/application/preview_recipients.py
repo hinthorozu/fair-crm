@@ -30,7 +30,7 @@ class PreviewFairEmailRecipientsUseCase:
         ):
             raise ForbiddenError("Permission denied")
 
-        fair = self._fair_repository.get_by_id(query.organization_id, query.fair_id)
+        fair = self._fair_repository.get_visible(query.organization_id, query.fair_id)
         if fair is None:
             raise FairNotFoundError("Fair not found")
         if fair.deleted_at is not None:

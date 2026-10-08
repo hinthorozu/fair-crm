@@ -45,7 +45,7 @@ def create_and_analyze_import_batch_from_handoff(
     """Persist canonical scraper handoff as import batch and run CRM matching."""
     is_enrichment = is_customer_contact_enrichment_adapter(adapter_key)
     if fair_id is not None:
-        fair = SqlAlchemyFairRepository(db).get_by_id(organization_id, fair_id)
+        fair = SqlAlchemyFairRepository(db).get_visible(organization_id, fair_id)
         if fair is None:
             raise InvalidCanonicalImportError("Fair not found for import automation")
     elif not is_enrichment:

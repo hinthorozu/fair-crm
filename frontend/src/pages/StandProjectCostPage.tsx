@@ -24,7 +24,9 @@ import {
   type CostSheetRow,
   type ManualCostEntry,
 } from "../domain/standProjectCost";
+import { buildStandProjectCostWorkbook, costWorkbookFileName } from "../domain/standProjectCostWorkbook";
 import { standProjectCostLabels, standProjectsLabels } from "../labels/standProjectsLabels";
+import { triggerBlobDownload } from "../utils/downloadBlob";
 import { getGrantedCorePermissions, hasGrantedCorePermission } from "../permissions/corePermissions";
 import { PERMISSION_COST_ITEMS_READ, PERMISSION_STAND_PROJECTS_READ } from "../permissions/navigationPermissions";
 import type { SortDirection } from "../types/listTable";
@@ -212,12 +214,24 @@ export function StandProjectCostPage({ projectId, onBack }: StandProjectCostPage
 
   const headerActions = React.useMemo((): PageHeaderAction[] => [
     {
+      id: "export-stand-cost",
+      label: standProjectCostLabels.exportExcel,
+      variant: "secondary",
+      disabled: !loaded || !sheet || sheet.rows.length === 0,
+      onClick: () => {
+        if (!loaded || !sheet) return;
+        void buildStandProjectCostWorkbook(visibleRows, sheet.totals).then((blob) => {
+          triggerBlobDownload(blob, costWorkbookFileName(loaded.projectName));
+        });
+      },
+    },
+    {
       id: "back-stand-projects",
       label: standProjectsLabels.backToList,
       variant: "secondary",
       onClick: onBack,
     },
-  ], [onBack]);
+  ], [loaded, onBack, sheet, visibleRows]);
 
   if (!canRead) {
     return (

@@ -536,7 +536,7 @@ class ProcessFairEmailBatchUseCase:
             return ""
         from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
 
-        fair = SqlAlchemyFairRepository(self._session).get_by_id(organization_id, fair_id)
+        fair = SqlAlchemyFairRepository(self._session).get_visible(organization_id, fair_id)
         return fair.name if fair else ""
 
     def _build_variables(self, organization_id: UUID, fair_name: str, outbox) -> dict[str, str]:

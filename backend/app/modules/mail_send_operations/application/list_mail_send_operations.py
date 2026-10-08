@@ -181,7 +181,7 @@ def build_mail_send_operation_list_item(
     if record.fair_id is not None:
         fair_name = fair_cache.get(record.fair_id)
         if fair_name is None:
-            fair = fair_repository.get_by_id(organization_id, record.fair_id)
+            fair = fair_repository.get_visible(organization_id, record.fair_id)
             fair_name = fair.name if fair is not None else None
             if fair_name is not None:
                 fair_cache[record.fair_id] = fair_name

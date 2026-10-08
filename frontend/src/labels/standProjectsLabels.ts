@@ -39,6 +39,7 @@ export const standProjectsLabels = {
 
 export const standProjectCostLabels = {
   pageTitle: "Maliyet Hesapla",
+  exportExcel: "Excel İndir",
   pageSubtitle: "Güncel stand, güncel sahne elemanları ve güncel maliyet kalemlerinden hesaplanır. Bu hesap kaydedilmez.",
   denied: "Bu sayfayı görüntüleme yetkiniz yok.",
   loading: "Maliyet hesaplanıyor…",

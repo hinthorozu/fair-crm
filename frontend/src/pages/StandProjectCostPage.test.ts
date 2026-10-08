@@ -56,5 +56,8 @@ describe("StandProjectCostPage", () => {
     expect(sheet).toContain('source: "BOM"');
     const page = readFileSync(join(here, "StandProjectCostPage.tsx"), "utf8");
     expect(page).toContain('row.source === "BOM"');
+    expect(page).toContain("standProjectCostLabels.exportExcel");
+    expect(page).toContain("buildStandProjectCostWorkbook(visibleRows, sheet.totals)");
+    expect(standProjectCostLabels.exportExcel).toBe("Excel İndir");
   });
 });

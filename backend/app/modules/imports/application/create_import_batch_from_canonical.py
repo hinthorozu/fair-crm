@@ -83,7 +83,7 @@ class CreateImportBatchFromCanonicalUseCase:
             ):
                 fair = resolved_fair
             else:
-                fair = self._fair_repository.get_by_id(command.organization_id, fair_id)
+                fair = self._fair_repository.get_visible(command.organization_id, fair_id)
                 if fair is None:
                     raise FairNotFoundError("Fair not found")
             fair_name = fair.name
