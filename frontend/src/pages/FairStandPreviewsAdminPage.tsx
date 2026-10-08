@@ -33,10 +33,10 @@ import { PageShell } from "../components/ui/PageShell";
 import { UniversalDataTable, type UniversalDataTableColumn } from "../components/ui/UniversalDataTable";
 import { adminLabels } from "../labels/adminLabels";
 import {
-  FAIR_STAND_PREVIEWS_ARCHIVE,
-  FAIR_STAND_PREVIEWS_CREATE,
-  FAIR_STAND_PREVIEWS_READ,
-  FAIR_STAND_PREVIEWS_UPDATE,
+  FAIR_STAND_CATALOG_ARCHIVE,
+  FAIR_STAND_CATALOG_CREATE,
+  FAIR_STAND_CATALOG_READ,
+  FAIR_STAND_CATALOG_UPDATE,
   getGrantedFairStandAdminPermissions,
 } from "../permissions/fairStandAdminPermissions";
 
@@ -73,10 +73,10 @@ function FormDirtyReporter<T>({ values, baseline }: { values: T; baseline: T }) 
 
 export function FairStandPreviewsAdminPage() {
   const granted = React.useMemo(() => getGrantedFairStandAdminPermissions(), []);
-  const canRead = granted.has(FAIR_STAND_PREVIEWS_READ);
-  const canCreate = granted.has(FAIR_STAND_PREVIEWS_CREATE);
-  const canUpdate = granted.has(FAIR_STAND_PREVIEWS_UPDATE);
-  const canArchive = granted.has(FAIR_STAND_PREVIEWS_ARCHIVE);
+  const canRead = granted.has(FAIR_STAND_CATALOG_READ);
+  const canCreate = granted.has(FAIR_STAND_CATALOG_CREATE);
+  const canUpdate = granted.has(FAIR_STAND_CATALOG_UPDATE);
+  const canArchive = granted.has(FAIR_STAND_CATALOG_ARCHIVE);
   const [previews, setPreviews] = React.useState<FairStandAdminPreview[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);

@@ -110,6 +110,7 @@ const PERMISSION_STAND_PROJECTS_READ = "fair_crm.fair_stand.projects.read";
 const PERMISSION_STAND_PROJECTS_CREATE = "fair_crm.fair_stand.projects.create";
 const PERMISSION_STAND_PROJECTS_UPDATE = "fair_crm.fair_stand.projects.update";
 const PERMISSION_STAND_PROJECTS_DELETE = "fair_crm.fair_stand.projects.delete";
+const PERMISSION_COST_ITEMS_READ = "fair_crm.fair_stand.cost_items.read";
 
 interface CustomerDetailPageProps {
   customerId: string;
@@ -117,6 +118,7 @@ interface CustomerDetailPageProps {
   onCustomerLoaded?: (name: string) => void;
   onOpenStandProject?: (projectId: string) => void;
   onCreateStandProject?: (customerId: string) => void;
+  onCalculateStandProject?: (projectId: string) => void;
 }
 
 type TabId = "overview" | "contacts" | "activities" | "participations" | "projects";
@@ -142,6 +144,7 @@ export function CustomerDetailPage({
   onCustomerLoaded,
   onOpenStandProject,
   onCreateStandProject,
+  onCalculateStandProject,
 }: CustomerDetailPageProps) {
   const { session } = useAuth();
   const grantedPermissions = session?.permissions ?? [];
@@ -170,6 +173,7 @@ export function CustomerDetailPage({
   const canStandProjectsCreate = hasPermission(PERMISSION_STAND_PROJECTS_CREATE);
   const canStandProjectsUpdate = hasPermission(PERMISSION_STAND_PROJECTS_UPDATE);
   const canStandProjectsDelete = hasPermission(PERMISSION_STAND_PROJECTS_DELETE);
+  const canCalculateStandProject = canStandProjectsRead && hasPermission(PERMISSION_COST_ITEMS_READ);
   const canReadCustomers = hasPermission(CUSTOMER_READ);
 
   const normalizeTab = React.useCallback(
@@ -1057,6 +1061,11 @@ export function CustomerDetailPage({
                     <td>{new Date(project.updatedAt).toLocaleString("tr-TR")}</td>
                     <td>
                       <TableRowActions>
+                        {canCalculateStandProject && onCalculateStandProject ? (
+                          <Button size="sm" variant="secondary" onClick={() => onCalculateStandProject(project.id)}>
+                            {standProjectsLabels.actionCalculate}
+                          </Button>
+                        ) : null}
                         {canStandProjectsUpdate && onOpenStandProject ? (
                           <Button size="sm" variant="secondary" onClick={() => onOpenStandProject(project.id)}>
                             {standProjectsLabels.actionEdit}

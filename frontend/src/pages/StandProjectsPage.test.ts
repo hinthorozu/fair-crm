@@ -18,6 +18,9 @@ describe("StandProjectsPage", () => {
     expect(source).toContain("onOpenProject");
     expect(source).toContain("onCreateProject(customerId)");
     expect(source).toContain("onOpenProject(row.id)");
+    expect(source).toContain("PERMISSION_COST_ITEMS_READ");
+    expect(source).toContain("standProjectsLabels.actionCalculate");
+    expect(source).toContain("onCalculateProject(row.id)");
     expect(source).toContain("assignFairStandProjectCustomer");
     expect(source).toContain("CUSTOMER_READ");
     expect(source).toContain("allowClear={false}");

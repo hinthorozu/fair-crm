@@ -120,3 +120,30 @@ declare module "@fair-stand/itemAssembly.js" {
   }>;
 }
 
+declare module "@fair-stand/catalog.js" {
+  export function initializeCatalogCategories(categories: unknown[]): void;
+  export function initializeCatalogPreviews(previews: unknown[]): void;
+}
+
+declare module "@fair-stand/runtimeSettings.js" {
+  export function initializeRuntimeSettings(raw: unknown): void;
+}
+
+declare module "@fair-stand/standDimensions.js" {
+  export function initializeStandDimensions(raw: unknown): void;
+}
+
+declare module "@fair-stand/items.js" {
+  export function initializeItemRegistry(items: unknown[]): void;
+  export function initializeSnapRuleRegistry(rules: unknown[]): void;
+  export function initializeItemTypeRegistry(itemTypes: unknown[]): void;
+}
+
+declare module "@fair-stand/projectBom.js" {
+  export function resolveProjectBom(
+    modules: unknown[],
+    stand: unknown,
+    assetNames: Record<string, string> | null,
+  ): { lines?: Array<{ itemKey: unknown; name?: unknown; quantity?: unknown; unit?: unknown }> };
+}
+

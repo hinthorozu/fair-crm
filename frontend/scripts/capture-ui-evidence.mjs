@@ -182,6 +182,12 @@ function buildRoutes(ids) {
       kind: "detail",
       production: true,
     },
+    {
+      route: "/stand-projects/:id/cost",
+      url: "/stand-projects/00000000-0000-4000-8000-000000000001/cost",
+      kind: "detail",
+      production: true,
+    },
     { route: "/customers", url: "/customers", kind: "static", production: true },
     { route: "/customers/:id", url: `/customers/${ids.customer}`, kind: "detail", production: true },
     { route: "/fairs", url: "/fairs", kind: "static", production: true },

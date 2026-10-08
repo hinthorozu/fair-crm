@@ -26,6 +26,7 @@ import { FairStandPage } from "./pages/FairStandPage";
 import { StandWatchPage } from "./pages/StandWatchPage";
 import { parseStandWatchToken } from "./pages/standWatchRoute";
 import { StandProjectsPage } from "./pages/StandProjectsPage";
+import { StandProjectCostPage } from "./pages/StandProjectCostPage";
 import { StandCostItemsPage } from "./pages/StandCostItemsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { TodoDetailPage } from "./pages/TodoDetailPage";
@@ -84,7 +85,7 @@ import {
   PERMISSION_STAND_PROJECTS_CREATE,
   PERMISSION_STAND_PROJECTS_UPDATE,
 } from "./permissions/navigationPermissions";
-import { standProjectsLabels } from "./labels/standProjectsLabels";
+import { standProjectCostLabels, standProjectsLabels } from "./labels/standProjectsLabels";
 import "./styles.css";
 
 type AppRoute =
@@ -131,6 +132,7 @@ type AppRoute =
   | "/stand-projects"
   | "/stand-projects/new"
   | "/stand-projects/:id"
+  | "/stand-projects/:id/cost"
   | "/stand-cost-items"
   | "/stand/watch/:token"
   | "/customers/:id";
@@ -317,6 +319,10 @@ function parseRoute(location: string): ParsedRoute {
       standCustomerId: searchParams.get("customerId") ?? undefined,
     };
   }
+  const standProjectCostMatch = pathname.match(/^\/stand-projects\/([^/]+)\/cost$/);
+  if (standProjectCostMatch) {
+    return { route: "/stand-projects/:id/cost", projectId: standProjectCostMatch[1] };
+  }
   const standProjectMatch = pathname.match(/^\/stand-projects\/([^/]+)$/);
   if (standProjectMatch) {
     return { route: "/stand-projects/:id", projectId: standProjectMatch[1] };
@@ -492,6 +498,10 @@ export function App() {
     const path = `/stand-projects/${encodeURIComponent(projectId)}`;
     openStandProjectPath(path);
   };
+  const goToStandProjectCost = (projectId: string) => {
+    const path = `/stand-projects/${encodeURIComponent(projectId)}/cost`;
+    openStandProjectPath(path);
+  };
 
   const handleLoginSuccess = React.useCallback(() => { window.history.replaceState(null, "", "/dashboard"); setParsed({ route: "/dashboard" }); setSidebarOpen(false); allowedUrlRef.current = "/dashboard"; }, []);
   const handleLogout = React.useCallback(async () => {
@@ -510,7 +520,8 @@ export function App() {
   const isStandProjectsActive =
     parsed.route === "/stand-projects" ||
     parsed.route === "/stand-projects/new" ||
-    parsed.route === "/stand-projects/:id";
+    parsed.route === "/stand-projects/:id" ||
+    parsed.route === "/stand-projects/:id/cost";
   const isStandCostItemsActive = parsed.route === "/stand-cost-items";
   const isCustomersActive = parsed.route === "/customers" || parsed.route === "/customers/:id";
   const isFairsActive = parsed.route === "/fairs" || parsed.route === "/fairs/:id";
@@ -543,6 +554,8 @@ export function App() {
     : parsed.route === "/data-integration/run-history" ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navImports, onClick: () => goToDataIntegration() }, { label: scraperLabels.runHistoryTitle, current: true }]
     : isDiActive ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navImports, current: true }]
     : isAdminActive ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: uiLabels.navAdmin, onClick: () => goToAdmin() }, { label: parsed.route === "/admin/system/organizations" ? organizationLabels.title : parsed.route === "/admin/email-accounts" ? adminLabels.navSmtpAccounts : parsed.route === "/admin/smtp-operations/templates" ? adminLabels.navMailTemplates : parsed.route === "/admin/smtp-operations/mail-operations" ? adminLabels.navMailOperations : parsed.route === "/admin/operation-capabilities" ? adminLabels.navOperationCapabilities : adminLabels.navDatabaseBackups, current: true }]
+    : parsed.route === "/stand-projects/:id/cost"
+      ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: standProjectsLabels.pageTitle, onClick: goToStandProjects }, { label: standProjectCostLabels.pageTitle, current: true }]
     : parsed.route === "/stand-projects" || parsed.route === "/stand-projects/new" || parsed.route === "/stand-projects/:id"
       ? [{ label: uiLabels.breadcrumbHome, onClick: goToDashboard }, { label: standProjectsLabels.pageTitle, current: true }]
     : parsed.route === "/stand-cost-items"
@@ -644,7 +657,10 @@ export function App() {
     <AppLayout breadcrumbs={breadcrumbs} navItems={navItems} sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((v) => !v)} onLogout={handleLogout}>
       {parsed.route === "/dashboard" && <DashboardPage onOpenCustomer={goToCustomerDetail} onNavigate={(path) => { runGuardedNav(() => { navigate(path); setParsed(parseRoute(path)); setSidebarOpen(false); }); }} />}
       {parsed.route === "/stand-projects" && (
-        <StandProjectsPage onOpenProject={goToStandProjectEdit} onCreateProject={goToStandProjectNew} />
+        <StandProjectsPage onOpenProject={goToStandProjectEdit} onCreateProject={goToStandProjectNew} onCalculateProject={goToStandProjectCost} />
+      )}
+      {parsed.route === "/stand-projects/:id/cost" && parsed.projectId && (
+        <StandProjectCostPage projectId={parsed.projectId} onBack={goToStandProjects} />
       )}
       {parsed.route === "/stand-cost-items" && <StandCostItemsPage />}
       {parsed.route === "/fairs" && <FairsPage onOpenDetail={goToFairDetail} onContinueImport={(batchId) => goToDataIntegration(`/data-integration/imports/continue/${batchId}`)} />}
@@ -663,7 +679,7 @@ export function App() {
       {parsed.route === "/operations/:id" && parsed.operationId && <OperationDetailPage operationId={parsed.operationId} onBack={goToOperations} onOpenTodo={goToTodoDetail} onOpenImportBatch={(batchId) => goToDataIntegration(`/data-integration/imports/continue/${batchId}`)} />}
       {parsed.route === "/activities" && <ActivitiesPage onOpenCustomer={goToCustomerDetail} />}
       {parsed.route === "/customers" && <CustomersPage onOpenDetail={goToCustomerDetail} />}
-      {parsed.route === "/customers/:id" && parsed.customerId && <CustomerDetailPage customerId={parsed.customerId} onBack={goToCustomers} onCustomerLoaded={setCustomerName} onOpenStandProject={goToStandProjectEdit} onCreateStandProject={goToStandProjectNew} />}
+      {parsed.route === "/customers/:id" && parsed.customerId && <CustomerDetailPage customerId={parsed.customerId} onBack={goToCustomers} onCustomerLoaded={setCustomerName} onOpenStandProject={goToStandProjectEdit} onCreateStandProject={goToStandProjectNew} onCalculateStandProject={goToStandProjectCost} />}
       {confirmDialog}
     </AppLayout>
   );

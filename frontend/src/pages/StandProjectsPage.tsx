@@ -27,6 +27,7 @@ import {
 } from "../permissions/corePermissions";
 import { CUSTOMER_READ } from "../permissions/customerPermissions";
 import {
+  PERMISSION_COST_ITEMS_READ,
   PERMISSION_STAND_PROJECTS_CREATE,
   PERMISSION_STAND_PROJECTS_DELETE,
   PERMISSION_STAND_PROJECTS_READ,
@@ -53,11 +54,13 @@ function matchesSearch(row: FairStandProjectSummary, search: string, customerNam
 type StandProjectsPageProps = {
   onOpenProject: (projectId: string) => void;
   onCreateProject: (customerId: string) => void;
+  onCalculateProject: (projectId: string) => void;
 };
 
-export function StandProjectsPage({ onOpenProject, onCreateProject }: StandProjectsPageProps) {
+export function StandProjectsPage({ onOpenProject, onCreateProject, onCalculateProject }: StandProjectsPageProps) {
   const granted = React.useMemo(() => getGrantedCorePermissions(), []);
   const canRead = hasGrantedCorePermission(granted, PERMISSION_STAND_PROJECTS_READ);
+  const canCalculate = canRead && hasGrantedCorePermission(granted, PERMISSION_COST_ITEMS_READ);
   const canCreate = hasGrantedCorePermission(granted, PERMISSION_STAND_PROJECTS_CREATE);
   const canUpdate = hasGrantedCorePermission(granted, PERMISSION_STAND_PROJECTS_UPDATE);
   const canDelete = hasGrantedCorePermission(granted, PERMISSION_STAND_PROJECTS_DELETE);
@@ -206,13 +209,18 @@ export function StandProjectsPage({ onOpenProject, onCreateProject }: StandProje
         render: (row) => formatProjectTimestamp(row.createdAt),
       },
     ];
-    if (canUpdate || canDelete) {
+    if (canUpdate || canDelete || canCalculate) {
       cols.push({
         key: "actions",
         title: standProjectsLabels.colActions,
         sortable: false,
         render: (row) => (
           <TableRowActions>
+            {canCalculate ? (
+              <Button size="sm" variant="secondary" onClick={() => onCalculateProject(row.id)}>
+                {standProjectsLabels.actionCalculate}
+              </Button>
+            ) : null}
             {canUpdate ? (
               <Button size="sm" variant="secondary" onClick={() => onOpenProject(row.id)}>
                 {standProjectsLabels.actionEdit}
@@ -233,7 +241,7 @@ export function StandProjectsPage({ onOpenProject, onCreateProject }: StandProje
       });
     }
     return cols;
-  }, [canDelete, canReadCustomers, canUpdate, customerNames, onOpenProject]);
+  }, [canCalculate, canDelete, canReadCustomers, canUpdate, customerNames, onCalculateProject, onOpenProject]);
 
   const confirmDelete = async () => {
     if (!canDelete || !deleting) return;

@@ -65,6 +65,24 @@ describe("navigation permission rules", () => {
     ).toBe(false);
     expect(
       canAccessApplicationPath(
+        "/stand-projects/11111111-1111-1111-1111-111111111111/cost",
+        granted(PERMISSION_STAND_PROJECTS_READ),
+      ),
+    ).toBe(false);
+    expect(
+      canAccessApplicationPath(
+        "/stand-projects/11111111-1111-1111-1111-111111111111/cost",
+        granted(PERMISSION_COST_ITEMS_READ),
+      ),
+    ).toBe(false);
+    expect(
+      canAccessApplicationPath(
+        "/stand-projects/11111111-1111-1111-1111-111111111111/cost",
+        granted(PERMISSION_STAND_PROJECTS_READ, PERMISSION_COST_ITEMS_READ),
+      ),
+    ).toBe(true);
+    expect(
+      canAccessApplicationPath(
         "/stand-projects/11111111-1111-1111-1111-111111111111",
         granted(PERMISSION_STAND_PROJECTS_UPDATE),
       ),

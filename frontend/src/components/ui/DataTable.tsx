@@ -87,6 +87,8 @@ interface DataTableProps<T> {
   renderAfterRow?: (row: T) => React.ReactNode;
   /** HTML5 drag-and-drop row reorder (standalone lists). */
   rowReorder?: DataTableRowReorderConfig;
+  /** Optional totals band rendered above the header and again at the bottom. */
+  summary?: React.ReactNode;
 }
 
 export function DataTable<T>({
@@ -103,6 +105,7 @@ export function DataTable<T>({
   rowClassName,
   renderAfterRow,
   rowReorder,
+  summary,
 }: DataTableProps<T>) {
   const [dragFromIndex, setDragFromIndex] = React.useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null);
@@ -134,6 +137,13 @@ export function DataTable<T>({
 
   const activeField = sorting?.field ?? null;
   const direction = sorting?.direction ?? null;
+  const summaryRow = () => (
+    summary ? (
+      <tr className="data-table-total-band">
+        <td colSpan={columns.length}>{summary}</td>
+      </tr>
+    ) : null
+  );
 
   return (
     <div
@@ -144,6 +154,7 @@ export function DataTable<T>({
     >
       <table className="data-table">
         <thead>
+          {summaryRow()}
           <tr>
             {columns.map((column) => (
               <th key={column.id} className={column.className}>
@@ -243,6 +254,7 @@ export function DataTable<T>({
             );
           })}
         </tbody>
+        {summary ? <tfoot>{summaryRow()}</tfoot> : null}
       </table>
     </div>
   );

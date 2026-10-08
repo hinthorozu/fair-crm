@@ -7,7 +7,6 @@ import { FAIR_EMAIL_PERMISSION_EXECUTE } from "./fairEmailPermissions";
 import {
   FAIR_STAND_CATALOG_ADMIN_PERMISSIONS,
   FAIR_STAND_ITEMS_ADMIN_PERMISSIONS,
-  FAIR_STAND_PREVIEWS_ADMIN_PERMISSIONS,
   FAIR_STAND_SETTINGS_ADMIN_PERMISSIONS,
 } from "./fairStandAdminPermissions";
 import { OPERATION_EXECUTE } from "./operationPermissions";
@@ -111,7 +110,6 @@ export const MAIN_NAV_REQUIREMENTS: Readonly<Record<string, PermissionRequiremen
       PERMISSION_OPERATIONS_READ,
       ...COST_CATALOG_ADMIN_PERMISSIONS,
       ...FAIR_STAND_CATALOG_ADMIN_PERMISSIONS,
-      ...FAIR_STAND_PREVIEWS_ADMIN_PERMISSIONS,
       ...FAIR_STAND_SETTINGS_ADMIN_PERMISSIONS,
     ],
   },
@@ -152,7 +150,7 @@ export const ADMIN_NAV_REQUIREMENTS: Readonly<Record<string, PermissionRequireme
   },
   "fair-stand-previews": {
     kind: "any",
-    permissions: FAIR_STAND_PREVIEWS_ADMIN_PERMISSIONS,
+    permissions: FAIR_STAND_CATALOG_ADMIN_PERMISSIONS,
   },
   "fair-stand-settings": {
     kind: "any",
@@ -327,6 +325,10 @@ export function canAccessApplicationPath(
   }
   if (pathname === "/stand-projects/new" || pathname === "/stand-projects/new/") {
     return hasGrantedCorePermission(granted, PERMISSION_STAND_PROJECTS_CREATE);
+  }
+  if (/^\/stand-projects\/[^/]+\/cost$/.test(pathname)) {
+    return hasGrantedCorePermission(granted, PERMISSION_STAND_PROJECTS_READ)
+      && hasGrantedCorePermission(granted, PERMISSION_COST_ITEMS_READ);
   }
   if (/^\/stand-projects\/[^/]+$/.test(pathname)) {
     return hasGrantedCorePermission(granted, PERMISSION_STAND_PROJECTS_UPDATE);

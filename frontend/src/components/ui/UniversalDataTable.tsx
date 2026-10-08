@@ -60,6 +60,8 @@ interface UniversalDataTableStandaloneProps<T> extends UniversalDataTableBasePro
   toolbar?: React.ReactNode;
   /** Optional HTML5 row drag-and-drop reorder. */
   rowReorder?: DataTableRowReorderConfig;
+  /** Totals band above the header and at the bottom of this list. */
+  summary?: React.ReactNode;
   table?: never;
   skeletonCols?: never;
   showPagination?: never;
@@ -81,6 +83,8 @@ interface UniversalDataTableServerProps<T> extends UniversalDataTableBaseProps<T
   loading?: never;
   error?: never;
   onRetry?: never;
+  rowReorder?: never;
+  summary?: never;
 }
 
 export type UniversalDataTableProps<T> =
@@ -197,7 +201,7 @@ export function UniversalDataTable<T>(props: UniversalDataTableProps<T>) {
     );
   }
 
-  const { items, sorting, onSortChange, loading, error, onRetry, toolbar, rowReorder } = props;
+  const { items, sorting, onSortChange, loading, error, onRetry, toolbar, rowReorder, summary } = props;
   const skeletonCols = Math.max(columns.length, 4);
 
   if (loading && items.length === 0) {
@@ -253,6 +257,7 @@ export function UniversalDataTable<T>(props: UniversalDataTableProps<T>) {
           emptyState={emptyState}
           className={className}
           rowReorder={rowReorder}
+          summary={summary}
         />
       </div>
     </div>

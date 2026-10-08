@@ -39,6 +39,7 @@ interface WidthResponsiveDataTableProps<T> {
   emptyState?: React.ReactNode;
   className?: string;
   rowReorder?: DataTableRowReorderConfig;
+  summary?: React.ReactNode;
 }
 
 const EXPAND_COL_ID = "__expand";
@@ -103,6 +104,7 @@ export function WidthResponsiveDataTable<T>({
   emptyState,
   className = "",
   rowReorder,
+  summary,
 }: WidthResponsiveDataTableProps<T>) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const measureTableRef = React.useRef<HTMLTableElement>(null);
@@ -331,6 +333,7 @@ export function WidthResponsiveDataTable<T>({
         rowClassName={() => "data-table-main-row"}
         renderAfterRow={hasChildContent ? renderAfterRow : undefined}
         rowReorder={rowReorder}
+        summary={summary}
       />
     </div>
   );
