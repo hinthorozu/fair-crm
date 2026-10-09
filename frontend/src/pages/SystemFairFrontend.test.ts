@@ -12,7 +12,7 @@ import { fairLabels, fairStatusLabels } from "../labels/fairLabels";
 import { importLabels } from "../labels/importLabels";
 import { participationLabels } from "../labels/participationLabels";
 import { labels } from "../labels";
-import { systemFairScrapeReady, type Fair } from "../types/fair";
+import { fairDisplayLabel, systemFairScrapeReady, type Fair } from "../types/fair";
 import type { StandardListResponse } from "../types/listTable";
 import { FairDetailPage } from "./FairDetailPage";
 import { FairsPage, tobbSyncSummary } from "./FairsPage";
@@ -207,6 +207,15 @@ describe("system fair frontend", () => {
     expect(
       systemFairScrapeReady({ scraped_record_count: 427, scraped_at: "2026-09-30T12:00:00Z" }),
     ).toBe(true);
+  });
+
+  it("shows the short display name instead of the official TOBB title", () => {
+    const official =
+      "9. ANALYTECH ULUSLARARASI ANALİZ VE LABARATUVAR TEKNOLOJİLERİ, EKİPMANLARI FUARI";
+    expect(
+      fairDisplayLabel({ display_name: "ANALYTECH", name: official }),
+    ).toBe("ANALYTECH");
+    expect(fairDisplayLabel({ display_name: "   ", name: official })).toBe(official);
   });
 
   it("shows the short display name in the list and the official name on detail", async () => {

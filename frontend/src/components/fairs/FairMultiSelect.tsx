@@ -5,6 +5,7 @@ import { NavIconClose } from "../layout/NavIcons";
 import { IconButton } from "../ui/IconButton";
 import { FormField, FormGrid } from "../ui/form";
 import { operationLabels } from "../../labels/operationLabels";
+import { fairDisplayLabel } from "../../types/fair";
 
 export type FairMultiSelectItem = {
   id: string;
@@ -72,7 +73,7 @@ export function FairMultiSelect({
         onChange(
           selected.some((item) => item.id === fair.id)
             ? selected
-            : [...selected, { id: fair.id, name: fair.name }],
+            : [...selected, { id: fair.id, name: fairDisplayLabel(fair) }],
         );
         setPickerId("");
         onSelectionMutated?.();

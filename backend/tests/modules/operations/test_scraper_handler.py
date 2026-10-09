@@ -38,16 +38,19 @@ class _FakeFair:
         self.start_date = kwargs.get("start_date")
         self.deleted_at = kwargs.get("deleted_at")
         self.status = kwargs.get("status", "active")
+        self.origin = kwargs.get("origin", "organization")
 
 
 class _FakeFairRepo:
     def __init__(self, fair: _FakeFair | None):
         self._fair = fair
 
-    def get_by_id(self, organization_id, fair_id):
-        if self._fair is None:
+    def get_visible(self, organization_id, fair_id):
+        if self._fair is None or self._fair.id != fair_id:
             return None
-        if self._fair.organization_id != organization_id or self._fair.id != fair_id:
+        if self._fair.origin == "system":
+            return self._fair
+        if self._fair.organization_id != organization_id:
             return None
         return self._fair
 
@@ -195,6 +198,54 @@ def test_validate_create_accepts_source_url_override_when_fair_url_missing():
         organization_id=org_id,
     )
     assert result.ok is True
+
+
+def test_validate_create_accepts_system_fair_for_the_acting_organization():
+    fair_id = uuid4()
+    org_id = uuid4()
+    fair = _FakeFair(
+        id=fair_id,
+        organization_id=None,
+        origin="system",
+        adapter_key="tuyap_new",
+        source_url="https://packagingfair.com/katilimci-listesi",
+    )
+    handler = ScraperHandler(
+        fair_repository=_FakeFairRepo(fair),
+        adapter_service=_FakeAdapterService(),
+    )
+    result = handler.validate_create(
+        source_kind=SourceKind.FAIR,
+        source_config={"source_ids": [str(fair_id)]},
+        type_config={
+            "adapter_key": "tuyap_new",
+            "requested_fields": ["customerName", "email"],
+        },
+        run_settings={},
+        organization_id=org_id,
+    )
+    assert result.ok is True
+
+
+def test_validate_create_rejects_another_organizations_fair():
+    fair_id = uuid4()
+    fair = _FakeFair(id=fair_id, organization_id=uuid4(), adapter_key="tuyap_new")
+    handler = ScraperHandler(
+        fair_repository=_FakeFairRepo(fair),
+        adapter_service=_FakeAdapterService(),
+    )
+    result = handler.validate_create(
+        source_kind=SourceKind.FAIR,
+        source_config={"source_ids": [str(fair_id)]},
+        type_config={
+            "adapter_key": "tuyap_new",
+            "requested_fields": ["customerName", "email"],
+        },
+        run_settings={},
+        organization_id=uuid4(),
+    )
+    assert result.ok is False
+    assert "fair not found" in result.errors
 
 
 def test_on_start_schedules_job_and_links_scraper_run():

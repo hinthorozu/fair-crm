@@ -33,7 +33,7 @@ class ScraperRunHistoryModel(Base):
         index=True,
     )
     input_url: Mapped[str | None] = mapped_column(Text(), nullable=True)
-    fair_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    fair_name: Mapped[str | None] = mapped_column(Text(), nullable=True)
     fair_year: Mapped[int | None] = mapped_column(Integer(), nullable=True)
     total_rows: Mapped[int] = mapped_column(Integer(), nullable=False, default=0)
     website_count: Mapped[int] = mapped_column(Integer(), nullable=False, default=0)

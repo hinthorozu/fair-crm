@@ -3,8 +3,11 @@
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
+from sqlalchemy import Text
+
 from app.modules.scraper.domain.scraper_run_history import ScraperRunStatus
 from app.modules.scraper.exporters.scraper_import_exporter import ScraperImportHandoff
+from app.modules.scraper.infrastructure.persistence.models import ScraperRunHistoryModel
 from app.modules.scraper.infrastructure.repositories.scraper_run_history_repository import (
     ScraperRunHistoryRepository,
 )
@@ -198,3 +201,27 @@ def test_dashboard_run_stats_are_organization_scoped(db_session):
     assert stats_a["failed_scraper_count"] == 1
     assert stats_b["last_run_adapter"] == ScraperSiteKey.TUYAP_OLD
     assert stats_b["failed_scraper_count"] == 0
+
+
+def test_start_run_persists_official_tobb_title_longer_than_255(db_session):
+    official = (
+        "AVRASYA AMBALAJ 2026- İSTANBUL 31.ULUSLARARASI AMBALAJ ENDÜSTRİSİ FUARI "
+        "(PRİNTPACK&CONVERTİNG-AMBALAJ BASKI TEKNOLOJİLERİ, OLUKLU MUKAVVA-KAĞIT-KARTON "
+        "AMBALAJ ÜRETİM TEKNOLOJİLERİ ÖZEL BÖLÜMÜ) /FOODTECH EURASİA GIDA İÇECEK ÜRETİM "
+        "VE İŞLEME TEKNOLOJİLERİ ÖZEL BÖLÜMÜ"
+    )
+    assert len(official) > 255
+    column = ScraperRunHistoryModel.__table__.c.fair_name
+    assert isinstance(column.type, Text)
+    assert column.type.length is None
+    service = ScraperRunHistoryService(ScraperRunHistoryRepository(db_session))
+    run = service.start_run(
+        adapter_key=ScraperSiteKey.TUYAP_NEW,
+        input_url="https://packagingfair.com/katilimci-listesi",
+        fair_name=official,
+        fair_year=2026,
+    )
+    db_session.flush()
+    stored = service.get_run(run.id, organization_id=None)
+    assert stored is not None
+    assert stored.fair_name == official
