@@ -4,6 +4,7 @@ export const organizationLabels = {
   newOrganization: "Yeni Organizasyon",
   editOrganization: "Organizasyonu Düzenle",
   organizationName: "Organizasyon Adı",
+  organizationId: "UUID",
   nameRequired: "Organizasyon adı zorunludur.",
   save: "Kaydet",
   cancel: "İptal",

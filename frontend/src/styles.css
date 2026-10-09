@@ -7565,6 +7565,11 @@ textarea.form-control-textarea {
   text-overflow: ellipsis;
 }
 
+.table-wrap.table-wrap--width-responsive .data-table td.col-uuid {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
 .table-wrap.table-wrap--width-responsive .data-table th.col-wrap,
 .table-wrap.table-wrap--width-responsive .data-table td.col-wrap {
   white-space: normal;
