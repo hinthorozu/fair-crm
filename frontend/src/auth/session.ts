@@ -6,6 +6,7 @@ const STORAGE_KEY = "fair-crm.auth.session";
 export interface AuthSession {
   accessToken: string;
   organizationId: string;
+  organizationName?: string;
   email?: string;
   permissions?: string[];
   isSuperAdmin?: boolean;
@@ -54,6 +55,7 @@ export function readSession(): AuthSession | null {
     return {
       accessToken: parsed.accessToken,
       organizationId: parsed.organizationId,
+      organizationName: typeof parsed.organizationName === "string" ? parsed.organizationName : undefined,
       email: parsed.email,
       permissions,
       isSuperAdmin: normalizeSuperAdmin(parsed.isSuperAdmin),
@@ -101,6 +103,7 @@ export function saveSession(session: AuthSession): void {
   const payload: AuthSession = {
     accessToken: session.accessToken,
     organizationId: session.organizationId,
+    organizationName: session.organizationName,
     email: session.email,
     permissions,
     isSuperAdmin: normalizeSuperAdmin(session.isSuperAdmin),

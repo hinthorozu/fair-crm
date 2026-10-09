@@ -73,7 +73,7 @@ export function UserMenu({ onLogout }: UserMenuProps) {
               <span className="user-menu-meta-label">{email}</span>
               {organizationId ? (
                 <span className="user-menu-meta-sub">
-                  {authLabels.organization}: {organizationId.slice(0, 8)}…
+                  {authLabels.organization}: {session?.organizationName || `${organizationId.slice(0, 8)}…`}
                 </span>
               ) : null}
             </div>
