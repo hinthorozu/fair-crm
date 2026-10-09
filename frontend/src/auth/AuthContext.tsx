@@ -13,7 +13,7 @@ import {
   SESSION_UPDATED_EVENT,
   type AuthSession,
 } from "./session";
-import { resolveSessionSuperAdmin } from "./superAdminResolver";
+import { resolveSessionIdentity } from "./superAdminResolver";
 
 interface AuthContextValue {
   session: AuthSession | null;
@@ -26,23 +26,29 @@ const AuthContext = React.createContext<AuthContextValue | null>(null);
 
 async function withCorePermissions(session: AuthSession): Promise<AuthSession> {
   let organizationId = session.organizationId;
+  let organizationName = session.organizationName;
+  let isSuperAdmin = false;
+  try {
+    const identity = await resolveSessionIdentity(config.coreBaseUrl, session.accessToken);
+    isSuperAdmin = identity.isSuperAdmin;
+    if (identity.organizationId) {
+      organizationId = identity.organizationId;
+      organizationName = identity.organizationName ?? undefined;
+    }
+  } catch {
+    // Platform identity resolution fails closed.
+    isSuperAdmin = false;
+  }
+
   try {
     organizationId = await resolveSessionOrganizationId(
       config.coreBaseUrl,
       session.accessToken,
-      session.organizationId,
+      organizationId,
     );
   } catch {
     // Keep the current organization as a temporary fallback. Permission loading
     // below will still fail closed when that organization is not valid.
-  }
-
-  let isSuperAdmin = false;
-  try {
-    isSuperAdmin = await resolveSessionSuperAdmin(config.coreBaseUrl, session.accessToken);
-  } catch {
-    // Platform identity resolution fails closed.
-    isSuperAdmin = false;
   }
 
   try {
@@ -51,9 +57,9 @@ async function withCorePermissions(session: AuthSession): Promise<AuthSession> {
       session.accessToken,
       organizationId,
     );
-    return { ...session, organizationId, permissions, isSuperAdmin };
+    return { ...session, organizationId, organizationName, permissions, isSuperAdmin };
   } catch {
-    return { ...session, organizationId, permissions: [], isSuperAdmin };
+    return { ...session, organizationId, organizationName, permissions: [], isSuperAdmin };
   }
 }
 

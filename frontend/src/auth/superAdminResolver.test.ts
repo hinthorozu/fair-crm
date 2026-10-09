@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { resolveSessionSuperAdmin } from "./superAdminResolver";
+import { resolveSessionIdentity, resolveSessionSuperAdmin } from "./superAdminResolver";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -23,6 +23,29 @@ describe("resolveSessionSuperAdmin", () => {
         headers: { Authorization: "Bearer jwt-token" },
       }),
     );
+  });
+
+  it("uses the user's own organization instead of a session default", async () => {
+    const organizationId = "b056434b-7b10-4490-b451-39629698e206";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            is_super_admin: true,
+            organization_id: organizationId,
+            organizations: [{ id: organizationId, name: "Umaay Mimarlık", slug: "umaay" }],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      ),
+    );
+
+    await expect(resolveSessionIdentity("http://core.test", "jwt-token")).resolves.toEqual({
+      isSuperAdmin: true,
+      organizationId,
+      organizationName: "Umaay Mimarlık",
+    });
   });
 
   it("rejects invalid identity payloads instead of inferring Super Admin", async () => {

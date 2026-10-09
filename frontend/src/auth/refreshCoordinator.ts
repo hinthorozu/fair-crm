@@ -9,13 +9,26 @@ import {
   saveSession,
   type AuthSession,
 } from "./session";
-import { resolveSessionSuperAdmin } from "./superAdminResolver";
+import { resolveSessionIdentity } from "./superAdminResolver";
 
 let inflightRefresh: Promise<string | null> | null = null;
 
 async function applyAccessToken(accessToken: string, expiresIn: number): Promise<void> {
   const current = readSession();
   let organizationId = current?.organizationId ?? config.organizationId;
+  let organizationName = current?.organizationName;
+  let isSuperAdmin = false;
+  try {
+    const identity = await resolveSessionIdentity(config.coreBaseUrl, accessToken);
+    isSuperAdmin = identity.isSuperAdmin;
+    if (identity.organizationId) {
+      organizationId = identity.organizationId;
+      organizationName = identity.organizationName ?? undefined;
+    }
+  } catch {
+    isSuperAdmin = false;
+  }
+
   try {
     organizationId = await resolveSessionOrganizationId(
       config.coreBaseUrl,
@@ -24,13 +37,6 @@ async function applyAccessToken(accessToken: string, expiresIn: number): Promise
     );
   } catch {
     // Keep the previous organization only as a fail-closed fallback.
-  }
-
-  let isSuperAdmin = false;
-  try {
-    isSuperAdmin = await resolveSessionSuperAdmin(config.coreBaseUrl, accessToken);
-  } catch {
-    isSuperAdmin = false;
   }
 
   let permissions: string[] = [];
@@ -46,6 +52,7 @@ async function applyAccessToken(accessToken: string, expiresIn: number): Promise
   const next: AuthSession = {
     accessToken,
     organizationId,
+    organizationName,
     email: current?.email,
     permissions,
     isSuperAdmin,

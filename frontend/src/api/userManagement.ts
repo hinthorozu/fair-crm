@@ -16,6 +16,7 @@ export interface ManagedOrganization {
 
 export interface UserManagementContext {
   is_super_admin: boolean;
+  organization_id?: string | null;
   organizations: ManagedOrganization[];
 }
 
