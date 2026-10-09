@@ -184,6 +184,14 @@ export function OrganizationsPage() {
         sortable: false,
         render: (organization) => organization.name,
       },
+      {
+        key: "id",
+        title: organizationLabels.organizationId,
+        sortable: false,
+        className: "col-uuid",
+        allowWrap: true,
+        render: (organization) => organization.id,
+      },
       ...(canUpdateOrganizations || canDeleteOrganizations
         ? [{
             key: "actions",
