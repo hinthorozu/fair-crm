@@ -33,7 +33,7 @@ import {
   wizardStepLabels,
 } from "../labels/operationLabels";
 import { SCRAPER_PERMISSION_EXECUTE } from "../permissions/scraperPermissions";
-import type { Fair } from "../types/fair";
+import { fairDisplayLabel, type Fair } from "../types/fair";
 import type { AdapterListItem, RequestedOutputField, ScraperManifest } from "../types/scraper";
 import {
   filterRequestedFieldsByCapabilities,
@@ -202,7 +202,7 @@ function ScraperOperationWizardPageInner({
         setAdapterKey(nextAdapter);
         setSourceUrl((nextFair.source_url || "").trim());
         setScraperConfigText(formatScraperConfigJson(nextFair.scraper_config));
-        setTitle(`${nextFair.name} scraper`);
+        setTitle(`${fairDisplayLabel(nextFair)} scraper`);
         loadedFairIdRef.current = selectedFairId;
 
         if (!cancelled) {
@@ -325,7 +325,7 @@ function ScraperOperationWizardPageInner({
 
     return {
       operation_type: "scraper" as const,
-      title: title.trim() || fair?.name || operationTypeLabels.scraper,
+      title: title.trim() || (fair ? fairDisplayLabel(fair) : "") || operationTypeLabels.scraper,
       source_kind: "fair" as const,
       source_ids: [selectedFairId],
       type_config: typeConfig,
@@ -487,7 +487,7 @@ function ScraperOperationWizardPageInner({
           <dl className="detail-grid">
             <div>
               <dt>{operationLabels.stepFair}</dt>
-              <dd>{fair?.name || "—"}</dd>
+              <dd>{fair ? fairDisplayLabel(fair) : "—"}</dd>
             </div>
             <div>
               <dt>{operationLabels.stepAdapter}</dt>

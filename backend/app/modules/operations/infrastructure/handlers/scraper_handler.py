@@ -254,7 +254,7 @@ class ScraperHandler:
             raise InvalidOperationConfigError("; ".join(validation.errors))
 
         fair_id = extract_source_ids(operation.source_config)[0]
-        fair = self._fair_repository.get_by_id(operation.organization_id, fair_id)
+        fair = self._fair_repository.get_visible(operation.organization_id, fair_id)
         if fair is None:
             raise InvalidOperationConfigError("Fair not found")
 
@@ -350,7 +350,7 @@ class ScraperHandler:
         if not adapter.is_active:
             errors.append(f"adapter is not active: {adapter_key}")
 
-        fair = self._fair_repository.get_by_id(organization_id, fair_id)
+        fair = self._fair_repository.get_visible(organization_id, fair_id)
         if fair is None:
             errors.append("fair not found")
             return errors

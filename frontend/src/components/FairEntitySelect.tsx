@@ -1,7 +1,7 @@
 import React from "react";
 import { getFair, listFairs } from "../api/fairs";
 import { fairLabels, fairStatusLabels } from "../labels/fairLabels";
-import type { Fair } from "../types/fair";
+import { fairDisplayLabel, type Fair } from "../types/fair";
 
 const PAGE_SIZE = 25;
 const DEBOUNCE_MS = 300;
@@ -195,7 +195,7 @@ export function FairEntitySelect({
     }
   };
 
-  const inputValue = open ? searchText : (selectedFair?.name ?? "");
+  const inputValue = open ? searchText : (selectedFair ? fairDisplayLabel(selectedFair) : "");
 
   return (
     <div className="entity-select" ref={containerRef}>
@@ -270,7 +270,7 @@ export function FairEntitySelect({
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => selectFair(fair)}
                 >
-                  <span className="entity-select-option-label">{fair.name}</span>
+                  <span className="entity-select-option-label">{fairDisplayLabel(fair)}</span>
                   <span className="entity-select-option-meta">
                     {fair.start_date ?? "—"} · {fairStatusLabels[fair.status] ?? fair.status}
                   </span>

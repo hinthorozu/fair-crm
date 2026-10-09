@@ -26,6 +26,11 @@ export interface Fair {
   deleted_at: string | null;
 }
 
+export function fairDisplayLabel(fair: Pick<Fair, "display_name" | "name">): string {
+  const label = fair.display_name.trim();
+  return label || fair.name;
+}
+
 export function systemFairScrapeReady(
   fair: Pick<Fair, "scraped_record_count" | "scraped_at">,
 ): boolean {
