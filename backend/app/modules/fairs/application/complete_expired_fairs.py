@@ -37,6 +37,7 @@ def complete_expired_fairs(session: Session, *, today: date, now: datetime) -> i
 
 
 def main() -> int:
+    logging.basicConfig(level=logging.INFO)
     now = datetime.now(tz=UTC)
     today = now.astimezone(ISTANBUL).date()
     with SessionLocal() as session:
