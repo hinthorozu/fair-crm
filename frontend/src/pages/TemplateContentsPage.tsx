@@ -120,7 +120,7 @@ export function TemplateContentsPage() {
   ];
 
   const action = canCreate ? <button type="button" className="btn primary" onClick={section === "tags" ? openTag : openContent} disabled={section === "contents" && tags.length === 0}>{section === "tags" ? "+ Etiket Ekle" : "+ İçerik Ekle"}</button> : null;
-  return <PageShell className="template-contents-page">
+  return <PageShell fullWidth className="template-contents-page">
     <PageHeader title="Şablon İçerikleri" subtitle="Tekliflerde tekrar kullanılacak etiketli içerikleri yönetin" actions={action} />
     <div className="form-actions" role="tablist" aria-label="Şablon içeriği bölümleri"><button type="button" className={`btn ${section === "tags" ? "primary" : "secondary"}`} onClick={() => setSection("tags")}>İçerik Etiketleri</button><button type="button" className={`btn ${section === "contents" ? "primary" : "secondary"}`} onClick={() => setSection("contents")}>İçerikler</button></div>
     {error ? <Banner variant="error">{error}</Banner> : null}

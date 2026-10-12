@@ -507,7 +507,7 @@ export function SmtpAccountsPage() {
   );
 
   return (
-    <PageShell className="smtp-accounts-page email-accounts-page">
+    <PageShell fullWidth className="smtp-accounts-page email-accounts-page">
       <PageHeader
         title={adminLabels.smtpTitle}
         subtitle={adminLabels.smtpSubtitle}

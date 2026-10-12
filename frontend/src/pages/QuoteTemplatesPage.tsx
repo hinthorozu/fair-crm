@@ -123,7 +123,7 @@ export function QuoteTemplatesPage() {
     { key: "actions", title: "İşlemler", render: (item) => canUpdate ? <button type="button" className="btn secondary" onClick={() => openEdit(item)}>Düzenle</button> : "—" },
   ];
 
-  return <PageShell className="quote-templates-page">
+  return <PageShell fullWidth className="quote-templates-page">
     <PageHeader title="Teklif Şablonları" subtitle="Tekliflerde kullanılacak versiyonlu HTML/CSS şablonlarını yönetin" actions={canCreate ? <button type="button" className="btn primary" onClick={openCreate}>+ Şablon Ekle</button> : null} />
     {error ? <Banner variant="error">{error}</Banner> : null}
     <UniversalDataTable items={items} columns={columns} rowKey={(item) => item.id} loading={loading} onRetry={() => void load()} emptyState={<EmptyState title="Henüz teklif şablonu yok" description="İlk teklif şablonunuzu oluşturun." actionLabel={canCreate ? "+ Şablon Ekle" : undefined} onAction={canCreate ? openCreate : undefined} />} />

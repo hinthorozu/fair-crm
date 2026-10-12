@@ -176,7 +176,7 @@ export function OperationCapabilitiesAdminPage() {
   );
 
   return (
-    <PageShell className="operation-capabilities-admin-page">
+    <PageShell fullWidth className="operation-capabilities-admin-page">
       <PageHeader
         title={adminLabels.operationCapabilitiesTitle}
         subtitle={adminLabels.operationCapabilitiesSubtitle}

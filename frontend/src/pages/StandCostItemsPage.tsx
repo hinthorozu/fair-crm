@@ -332,7 +332,7 @@ export function StandCostItemsPage() {
     saving || (creating && fields.item && !itemKey) || (creating && fields.name && !manualName.trim()) || (creating && fields.unit && !unitKey);
 
   return (
-    <PageShell>
+    <PageShell fullWidth>
       <PageHeader
         title={costItemsLabels.pageTitle}
         subtitle={costItemsLabels.pageSubtitle}

@@ -306,7 +306,7 @@ export function DataIntegrationImportsPage({
   );
 
   return (
-    <PageShell>
+    <PageShell fullWidth>
       <PageHeader title={dataIntegrationLabels.importsTitle} subtitle={dataIntegrationLabels.importsSubtitle} />
 
       {successMessage && <Banner variant="success" as="p">{successMessage}</Banner>}
