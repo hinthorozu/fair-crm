@@ -217,7 +217,7 @@ export function FairsPage({ onOpenDetail, onContinueImport }: FairsPageProps) {
   const closeConfirm = React.useCallback(() => setConfirm(null), []);
 
   return (
-    <PageShell>
+    <PageShell fullWidth>
       <PageHeader
         title={fairLabels.fairs}
         subtitle={`${table.pagination.totalItems} kayıt`}

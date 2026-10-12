@@ -359,7 +359,7 @@ export function FollowUpsPage({
   }
 
   return (
-    <PageShell className="follow-ups-page">
+    <PageShell fullWidth className="follow-ups-page">
       <PageHeader title={followUpLabels.pageTitle} />
       {body}
     </PageShell>

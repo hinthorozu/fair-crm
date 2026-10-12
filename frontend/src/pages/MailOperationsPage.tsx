@@ -290,7 +290,7 @@ export function MailOperationsPage() {
   const errorRecord = dialog?.type === "error" ? dialog.record : null;
 
   return (
-    <PageShell className="mail-operations-page">
+    <PageShell fullWidth className="mail-operations-page">
       <PageHeader
         title={adminLabels.mailOperationsTitle}
         subtitle={adminLabels.mailOperationsSubtitle}

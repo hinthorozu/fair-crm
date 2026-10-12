@@ -313,7 +313,7 @@ export function AdapterManagementPage({
   );
 
   return (
-    <PageShell className="adapter-management-page duplicate-groups-page">
+    <PageShell fullWidth className="adapter-management-page duplicate-groups-page">
       <PageHeader title={scraperLabels.pageTitle} subtitle={scraperLabels.pageSubtitle} />
 
       {summary ? <SummaryCards summary={summary} lastRunLabel={lastRunLabel} /> : null}

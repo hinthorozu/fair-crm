@@ -259,7 +259,7 @@ export function ActivitiesPage({ onOpenCustomer }: ActivitiesPageProps) {
   );
 
   return (
-    <PageShell className="activities-page">
+    <PageShell fullWidth className="activities-page">
       <PageHeader
         title={activityLabels.pageTitle}
         subtitle={`${table.pagination.totalItems} kayıt`}
