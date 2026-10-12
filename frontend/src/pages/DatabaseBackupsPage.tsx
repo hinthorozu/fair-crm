@@ -1495,7 +1495,7 @@ export function DatabaseBackupsPage() {
   );
 
   return (
-    <PageShell>
+    <PageShell fullWidth>
       <PageHeader
         title={adminLabels.backupsTitle}
         subtitle={adminLabels.backupsSubtitle}

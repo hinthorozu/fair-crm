@@ -307,7 +307,7 @@ export function OperationsPage({ onOpenDetail, onSelectType }: OperationsPagePro
   );
 
   return (
-    <PageShell className="operations-page">
+    <PageShell fullWidth className="operations-page">
       <PageHeader
         title={operationLabels.pageTitle}
         subtitle={`${table.pagination.totalItems} kayıt`}

@@ -225,7 +225,7 @@ export function OrganizationsPage() {
   const formOpen = editing !== undefined;
 
   return (
-    <PageShell>
+    <PageShell fullWidth>
       <PageHeader
         title={organizationLabels.title}
         actions={

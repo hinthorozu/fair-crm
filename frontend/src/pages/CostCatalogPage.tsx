@@ -290,7 +290,7 @@ export function CostCatalogPage() {
   ];
 
   return (
-    <PageShell className="cost-catalog-page">
+    <PageShell fullWidth className="cost-catalog-page">
       <PageHeader
         title="Maliyet Kataloğu"
         subtitle="Organizasyonunuza ait maliyet kategorilerini ve ürünlerini yönetin"

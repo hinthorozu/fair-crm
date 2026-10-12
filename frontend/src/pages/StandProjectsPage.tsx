@@ -275,7 +275,7 @@ export function StandProjectsPage({ onOpenProject, onCreateProject, onCalculateP
   }
 
   return (
-    <PageShell>
+    <PageShell fullWidth>
       <PageHeader
         title={standProjectsLabels.pageTitle}
         subtitle={standProjectsLabels.pageSubtitle}

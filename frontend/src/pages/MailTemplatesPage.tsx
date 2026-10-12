@@ -337,7 +337,7 @@ export function MailTemplatesPage() {
   );
 
   return (
-    <PageShell className="mail-templates-page">
+    <PageShell fullWidth className="mail-templates-page">
       <PageHeader
         title={adminLabels.mailTemplatesTitle}
         subtitle={adminLabels.mailTemplatesSubtitle}

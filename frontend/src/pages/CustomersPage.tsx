@@ -186,7 +186,7 @@ export function CustomersPage({ onOpenDetail }: { onOpenDetail?: (customerId: st
   const closeConfirm = React.useCallback(() => setConfirm(null), []);
 
   return (
-    <PageShell>
+    <PageShell fullWidth>
       <PageHeader
         title={labels.customers}
         subtitle={`${table.pagination.totalItems} kayıt`}

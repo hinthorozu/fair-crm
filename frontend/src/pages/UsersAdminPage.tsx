@@ -251,7 +251,7 @@ export function UsersAdminPage() {
 
   const canOfferCreate = canCreateUsers && canReadRoles && Boolean(organizationId) && roles.length > 0;
 
-  return <PageShell>
+  return <PageShell fullWidth>
     <PageHeader title="Kullanıcılar" actions={canOfferCreate ? <button type="button" className="btn primary" onClick={openCreate}>Yeni Kullanıcı</button> : undefined} />
     {success ? <Banner variant="success">{success}</Banner> : null}
     {error ? <Banner variant="error">{error}</Banner> : null}

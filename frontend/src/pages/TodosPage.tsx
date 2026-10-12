@@ -624,7 +624,7 @@ export function TodosPage({ onOpenDetail, onOpenQuote, onOpenCustomer }: TodosPa
   );
 
   return (
-    <PageShell className="todos-page">
+    <PageShell fullWidth className="todos-page">
       <PageHeader
         title={todoLabels.pageTitle}
         subtitle={headerSubtitle}
