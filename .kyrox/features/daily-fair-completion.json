@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "id": "daily-fair-completion",
+  "title": "Daily Fair Completion",
+  "feature_type": "scheduled_job",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "scheduled",
+  "tenant_scope": "mixed",
+  "user_facing": false,
+  "affected_paths": [
+    ".kyrox/features/daily-fair-completion.json",
+    "backend/app/modules/fairs/application/complete_expired_fairs.py",
+    "backend/tests/modules/fairs/test_daily_fair_completion.py",
+    "scripts/server/systemd/fair-crm-fair-completion.service",
+    "scripts/server/systemd/fair-crm-fair-completion.timer"
+  ],
+  "permissions": {
+    "required": false,
+    "reason": "Trusted scheduled maintenance; no end-user trigger.",
+    "items": []
+  },
+  "frontend": {
+    "required": false,
+    "reason": "No UI surface.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": {
+      "status": "na",
+      "reason": "Existing crm_fairs fields are updated; no new storage."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "No schema or permission changes."
+    },
+    "permissions": {
+      "status": "na",
+      "reason": "Internal scheduler only; no user action."
+    },
+    "backend": {
+      "status": "required"
+    },
+    "api": {
+      "status": "na",
+      "reason": "No new API endpoints."
+    },
+    "tenant_isolation": {
+      "status": "required"
+    },
+    "audit": {
+      "status": "required"
+    },
+    "frontend": {
+      "status": "na",
+      "reason": "No frontend change."
+    },
+    "ui_permissions": {
+      "status": "na",
+      "reason": "No UI permissions changed."
+    },
+    "menu": {
+      "status": "na",
+      "reason": "No menu entry."
+    },
+    "route_guard": {
+      "status": "na",
+      "reason": "No route change."
+    },
+    "forms": {
+      "status": "na",
+      "reason": "No forms changed."
+    },
+    "visual_qa": {
+      "status": "na",
+      "reason": "No UI changes."
+    },
+    "backend_tests": {
+      "status": "required"
+    },
+    "frontend_tests": {
+      "status": "na",
+      "reason": "No frontend behavior changed."
+    },
+    "runtime_authorization": {
+      "status": "na",
+      "reason": "Scheduler does not receive end-user JWT authorization."
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
+  },
+  "notes": "Daily 00:30 Europe/Istanbul persistent systemd timer runs one-shot job. Conditional SQL updates existing system and organization fairs with end_date earlier than the Istanbul calendar day, excluding cancelled, archived, completed and soft-deleted. Operations are transactional, retry-safe, logged; deployment must enable timer and verify live runtime."
+}

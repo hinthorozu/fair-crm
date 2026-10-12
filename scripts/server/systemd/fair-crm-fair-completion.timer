@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Fair CRM fair completion daily at 00:30 Istanbul time
+
+[Timer]
+OnCalendar=*-*-* 00:30:00 Europe/Istanbul
+Persistent=true
+Unit=fair-crm-fair-completion.service
+
+[Install]
+WantedBy=timers.target
