@@ -1,5 +1,7 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from uuid import uuid4
+
+import pytest
 
 from app.modules.fairs.application.complete_expired_fairs import (
     ISTANBUL,
@@ -29,29 +31,60 @@ def _fair(session, *, origin, status, end_date, deleted=False):
     return model.id
 
 
-def test_completion_covers_both_origins_and_preserves_exclusions(db_session):
-    yesterday = date(2026, 10, 12)
+@pytest.mark.parametrize("origin", ["system", "organization"])
+@pytest.mark.parametrize(
+    ("status", "expected"),
+    [
+        ("planned", "completed"),
+        ("active", "completed"),
+        ("cancelled", "cancelled"),
+        ("archived", "archived"),
+        ("completed", "completed"),
+    ],
+)
+def test_expired_fair_status_matrix(db_session, origin, status, expected):
     today = date(2026, 10, 13)
-    cases = [
-        ("system", "planned", yesterday, False, "completed"),
-        ("organization", "active", yesterday, False, "completed"),
-        ("organization", "planned", today, False, "planned"),
-        ("system", "active", date(2026, 10, 14), False, "active"),
-        ("system", "planned", None, False, "planned"),
-        ("organization", "cancelled", yesterday, False, "cancelled"),
-        ("system", "archived", yesterday, False, "archived"),
-        ("organization", "active", yesterday, True, "active"),
-        ("system", "completed", yesterday, False, "completed"),
-    ]
-    ids = [
-        _fair(db_session, origin=origin, status=status, end_date=end, deleted=deleted)
-        for origin, status, end, deleted, _ in cases
-    ]
+    fair_id = _fair(
+        db_session,
+        origin=origin,
+        status=status,
+        end_date=today - timedelta(days=1),
+    )
+    original_updated_at = db_session.get(FairModel, fair_id).updated_at
     now = datetime(2026, 10, 12, 21, 30, tzinfo=UTC)
-    assert complete_expired_fairs(db_session, today=today, now=now) == 2
+
+    assert complete_expired_fairs(db_session, today=today, now=now) == (
+        1 if status in {"planned", "active"} else 0
+    )
     db_session.expire_all()
-    assert [db_session.get(FairModel, key).status for key in ids] == [case[4] for case in cases]
+    fair = db_session.get(FairModel, fair_id)
+    assert fair.status == expected
+    if status in {"planned", "active"}:
+        assert fair.updated_at.replace(tzinfo=None) == now.replace(tzinfo=None)
+    else:
+        assert fair.updated_at == original_updated_at
     assert complete_expired_fairs(db_session, today=today, now=now) == 0
+
+
+@pytest.mark.parametrize("origin", ["system", "organization"])
+@pytest.mark.parametrize("end_date", [None, date(2026, 10, 13), date(2026, 10, 14)])
+def test_not_expired_fairs_unchanged(db_session, origin, end_date):
+    fair_id = _fair(db_session, origin=origin, status="planned", end_date=end_date)
+    now = datetime(2026, 10, 12, 21, 30, tzinfo=UTC)
+    assert complete_expired_fairs(db_session, today=date(2026, 10, 13), now=now) == 0
+    db_session.expire_all()
+    assert db_session.get(FairModel, fair_id).status == "planned"
+
+
+@pytest.mark.parametrize("origin", ["system", "organization"])
+def test_soft_deleted_expired_fair_unchanged(db_session, origin):
+    fair_id = _fair(
+        db_session, origin=origin, status="active", end_date=date(2026, 10, 12), deleted=True
+    )
+    now = datetime(2026, 10, 12, 21, 30, tzinfo=UTC)
+    assert complete_expired_fairs(db_session, today=date(2026, 10, 13), now=now) == 0
+    db_session.expire_all()
+    assert db_session.get(FairModel, fair_id).status == "active"
 
 
 def test_istanbul_calendar_boundary():
