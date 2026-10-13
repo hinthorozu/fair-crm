@@ -102,6 +102,8 @@ function detailFromBody(data: unknown, status: number): string {
           })
           .filter(Boolean)
           .join("; ") || detail;
+      } else if (raw && typeof raw === "object" && "message" in raw) {
+        detail = String((raw as {message: unknown}).message);
       } else {
         detail = String(raw);
       }

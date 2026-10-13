@@ -28,6 +28,11 @@ from app.modules.fairs.application.sync_tobb_system_fairs import SyncTobbSystemF
 from app.modules.fairs.application.update_fair import UpdateFairUseCase
 from app.modules.fairs.infrastructure.repositories.fair_repository import SqlAlchemyFairRepository
 from app.modules.fairs.infrastructure.tobb_calendar import TobbCalendarClient
+from app.modules.fairs.infrastructure.tobb_review_repository import SqlAlchemyTobbReviewRepository
+from app.modules.fairs.infrastructure.tobb_run_repository import SqlAlchemyTobbRunRepository
+from app.modules.fairs.application.tobb_sync_job_runner import TobbSyncJobRunner
+from app.modules.fairs.application.tobb_workflow_service import TobbWorkflowService
+from app.shared.background_jobs import schedule_detached_blocking_job
 from app.modules.scraper.application.fair_scraper_job_runner import FairScraperJobRunner
 from app.modules.scraper.application.enrichment_run_job_runner import EnrichmentRunJobRunner
 from app.modules.imports.api.dependencies import (
@@ -54,6 +59,10 @@ PERMISSION_SCRAPER_EXECUTE = "fair_crm.scraper.execute"
 
 def get_fair_repository(db: Session = Depends(get_db)) -> SqlAlchemyFairRepository:
     return SqlAlchemyFairRepository(db)
+
+
+def get_tobb_review_repository(db: Session = Depends(get_db)) -> SqlAlchemyTobbReviewRepository:
+    return SqlAlchemyTobbReviewRepository(db)
 
 
 def get_authorization_adapter() -> AuthorizationPort:
@@ -158,8 +167,9 @@ def get_compare_system_fair_import_use_case(
 
 def get_sync_tobb_system_fairs_use_case(
     repository: SqlAlchemyFairRepository = Depends(get_fair_repository),
+    reviews: SqlAlchemyTobbReviewRepository = Depends(get_tobb_review_repository),
 ) -> SyncTobbSystemFairsUseCase:
-    return SyncTobbSystemFairsUseCase(repository, TobbCalendarClient())
+    return SyncTobbSystemFairsUseCase(repository, TobbCalendarClient(), reviews)
 
 
 def get_system_fair_duplicate_service(
@@ -231,3 +241,16 @@ def get_run_fair_enrichment_use_case(
     db: Session = Depends(get_db),
 ) -> RunFairEnrichmentUseCase:
     return RunFairEnrichmentUseCase(repository, run_history_service, db)
+
+
+def get_tobb_job_runner() -> TobbSyncJobRunner:
+    return TobbSyncJobRunner()
+
+
+def get_tobb_workflow_service(
+    db: Session = Depends(get_db),
+    reviews: SqlAlchemyTobbReviewRepository = Depends(get_tobb_review_repository),
+    runner: TobbSyncJobRunner = Depends(get_tobb_job_runner),
+    audit=Depends(get_audit_adapter),
+) -> TobbWorkflowService:
+    return TobbWorkflowService(reviews, SqlAlchemyTobbRunRepository(db), runner, schedule_detached_blocking_job, audit)

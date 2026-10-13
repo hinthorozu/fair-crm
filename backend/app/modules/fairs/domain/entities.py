@@ -68,6 +68,7 @@ class Fair:
     source: Optional[str] = None
     external_id: Optional[str] = None
     identity_name: Optional[str] = None
+    tobb_date_revision: int = 0
 
     @classmethod
     def create(
@@ -180,6 +181,8 @@ class Fair:
         new_start = None if clear_start_date else (start_date if start_date is not None else self.start_date)
         new_end = None if clear_end_date else (end_date if end_date is not None else self.end_date)
         _validate_date_range(new_start, new_end)
+        if self.origin == "system" and (new_start, new_end) != (self.start_date, self.end_date):
+            self.tobb_date_revision += 1
         if clear_start_date or start_date is not None:
             self.start_date = new_start
         if clear_end_date or end_date is not None:

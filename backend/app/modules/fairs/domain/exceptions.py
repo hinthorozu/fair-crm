@@ -62,3 +62,13 @@ class SystemFairMergeBlockedError(FairDomainError):
 
 class SystemFairAlreadyMergedError(FairDomainError):
     pass
+
+
+class TobbReviewConflict(ValueError):
+    def __init__(self, message: str, current: dict | None = None):
+        super().__init__(message)
+        self.current = current
+
+
+class TobbRunNotFound(ValueError):
+    pass

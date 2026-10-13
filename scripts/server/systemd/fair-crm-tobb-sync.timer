@@ -1,0 +1,10 @@
+[Unit]
+Description=Weekly TOBB catalog sync at Monday 03:00 Istanbul
+
+[Timer]
+OnCalendar=Mon *-*-* 03:00:00 Europe/Istanbul
+Persistent=false
+Unit=fair-crm-tobb-sync.service
+
+[Install]
+WantedBy=timers.target

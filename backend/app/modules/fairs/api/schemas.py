@@ -92,11 +92,21 @@ class TobbSyncConflictItem(BaseModel):
     fair_ids: list[UUID]
 
 
+class TobbSyncDateChangeWarning(BaseModel):
+    fair_id: UUID
+    name: str
+    old_start_date: date | None = None
+    old_end_date: date | None = None
+    new_start_date: date | None = None
+    new_end_date: date | None = None
+
+
 class SyncTobbSystemFairsResponse(BaseModel):
     inserted: int
     updated: int
     conflicts: int
     conflict_items: list[TobbSyncConflictItem] = []
+    date_change_warnings: list[TobbSyncDateChangeWarning] = []
 
 
 class SystemFairDuplicateFairResponse(BaseModel):

@@ -184,16 +184,17 @@ class SqlAlchemyFairRepository:
         )
         return model_to_entity(model) if model else None
 
-    def list_system_fairs_for_source(self, *, source: str) -> list[Fair]:
-        models = (
+    def list_system_fairs_for_source(self, *, source: str, include_archived: bool = False) -> list[Fair]:
+        query = (
             self._session.query(FairModel)
             .filter(
                 FairModel.origin == "system",
                 FairModel.source == source,
-                FairModel.deleted_at.is_(None),
             )
-            .all()
         )
+        if not include_archived:
+            query = query.filter(FairModel.deleted_at.is_(None))
+        models = query.all()
         return [model_to_entity(model) for model in models]
 
     def get_system_fair(self, fair_id: UUID) -> Fair | None:

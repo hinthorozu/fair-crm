@@ -92,6 +92,9 @@ class Settings(BaseSettings):
         validation_alias="FAIR_CRM_REFRESH_COOKIE_SAMESITE",
     )
     kyrox_core_base_url: str = "http://localhost:8000"
+    kyrox_core_product_notification_token: str | None = Field(
+        default=None, validation_alias="KYROX_CORE_PRODUCT_NOTIFICATION_TOKEN",
+    )
     kyrox_core_product_lifecycle_token: str = Field(
         default="dev-insecure-product-lifecycle-token-change-me",
         validation_alias="KYROX_CORE_PRODUCT_LIFECYCLE_TOKEN",

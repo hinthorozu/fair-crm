@@ -38,6 +38,7 @@ def model_to_entity(model: FairModel) -> Fair:
         source=model.source,
         external_id=model.external_id,
         identity_name=model.identity_name,
+        tobb_date_revision=model.tobb_date_revision,
     )
 
 
@@ -69,6 +70,7 @@ def entity_to_model(fair: Fair) -> FairModel:
         source=fair.source,
         external_id=fair.external_id,
         identity_name=_identity_name(fair),
+        tobb_date_revision=fair.tobb_date_revision,
     )
 
 
@@ -95,3 +97,4 @@ def update_model_from_entity(model: FairModel, fair: Fair) -> None:
     model.source = fair.source
     model.external_id = fair.external_id
     model.identity_name = _identity_name(fair)
+    model.tobb_date_revision = fair.tobb_date_revision

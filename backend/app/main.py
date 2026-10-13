@@ -116,7 +116,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(StarletteHTTPException)
     async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
-        detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+        detail = exc.detail if isinstance(exc.detail, (str, dict, list)) else str(exc.detail)
         return _json_response(request, exc.status_code, {"detail": detail})
 
     @app.exception_handler(RequestValidationError)

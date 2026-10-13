@@ -11,6 +11,7 @@ from app.modules.scraper.domain.scraper_run_source import ScraperRunSource
 
 
 class ScraperRunStatus(StrEnum):
+    QUEUED = "queued"
     RUNNING = "running"
     CANCEL_REQUESTED = "cancel_requested"
     CANCELLING = "cancelling"
@@ -21,6 +22,7 @@ class ScraperRunStatus(StrEnum):
 
 ACTIVE_SCRAPER_RUN_STATUSES = frozenset(
     {
+        ScraperRunStatus.QUEUED,
         ScraperRunStatus.RUNNING,
         ScraperRunStatus.CANCEL_REQUESTED,
         ScraperRunStatus.CANCELLING,
