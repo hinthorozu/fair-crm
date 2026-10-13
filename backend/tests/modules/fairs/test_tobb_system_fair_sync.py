@@ -91,8 +91,8 @@ def _system(
     external_id: str,
     adapter_key: str | None = None,
     source_url: str | None = None,
-    start_date: date | None = None,
-    end_date: date | None = None,
+    start_date: date | None = date(2026, 3, 1),
+    end_date: date | None = date(2026, 3, 4),
     organizer: str | None = "Old Organizer",
     city: str = "İstanbul",
     scraper_config: dict | None = None,
@@ -248,7 +248,9 @@ def test_same_external_id_updates_changed_fields_without_touching_scraper_fields
 
     db_session.expire_all()
     saved = db_session.get(FairModel, existing.id)
-    assert saved.organizer == "Yeni Düzenleyici"
+    assert saved.organizer == "Old Organizer"
+    assert any(item["kind"] == "organizer" and item["proposed_values"] == {"organizer": "Yeni Düzenleyici"}
+               for item in result.changes if item["action"] == "review")
     assert saved.external_id == "2026:15"
     assert saved.adapter_key == "keep-adapter"
     assert saved.source_url == "https://participant.example/list"
@@ -257,7 +259,8 @@ def test_same_external_id_updates_changed_fields_without_touching_scraper_fields
 
 
 def test_changed_sequence_matches_same_year_name_and_updates_external_id(db_session):
-    existing = _system(db_session, name="İstanbul Fuarı", external_id="2026:15")
+    existing = _system(db_session, name="İstanbul Fuarı", external_id="2026:15",
+                       start_date=date(2026, 3, 1), end_date=date(2026, 3, 4))
     moved = _sample_row()
     moved[0] = "99"
     result = _sync(db_session, _html([moved]))
@@ -331,7 +334,8 @@ def test_organization_fair_with_same_name_is_not_matched(db_session, organizatio
 
 
 def test_same_logical_fair_in_another_year_updates_the_existing_row(db_session):
-    previous = _system(db_session, name="İstanbul Fuarı", external_id="2025:15")
+    previous = _system(db_session, name="İstanbul Fuarı", external_id="2025:15",
+                       start_date=date(2025, 3, 1), end_date=date(2025, 3, 4))
     result = _sync(db_session, _html([_sample_row()]), year=2026)
     assert result.inserted == 0
     assert result.updated == 1
@@ -502,11 +506,11 @@ def test_annual_rollover_updates_finished_edition(db_session):
     assert saved.external_id == "2027:25"
     assert saved.start_date == date(2027, 8, 1)
     assert saved.end_date == date(2027, 8, 5)
-    assert saved.name == "X FUARI"
+    assert saved.name == "X Fuarı"
     assert len(_system_rows(db_session)) == 1
 
 
-def test_next_year_updates_when_the_current_edition_ends_today(db_session):
+def test_next_year_is_blocked_when_the_current_edition_ends_today(db_session):
     existing = _system(
         db_session,
         name="X Fuarı",
@@ -520,15 +524,15 @@ def test_next_year_updates_when_the_current_edition_ends_today(db_session):
         year=2027,
         today=_TODAY,
     )
-    assert (result.inserted, result.updated, result.conflicts) == (0, 1, 0)
+    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 0)
     db_session.expire_all()
     saved = db_session.get(FairModel, existing.id)
-    assert saved.external_id == "2027:25"
-    assert saved.end_date == date(2027, 8, 5)
+    assert saved.external_id == "2026:10"
+    assert saved.end_date == date(2026, 10, 1)
     assert len(_system_rows(db_session)) == 1
 
 
-def test_next_year_updates_a_future_edition(db_session):
+def test_next_year_is_blocked_for_a_future_edition(db_session):
     existing = _system(
         db_session,
         name="X Fuarı",
@@ -542,16 +546,16 @@ def test_next_year_updates_a_future_edition(db_session):
         year=2027,
         today=_TODAY,
     )
-    assert (result.inserted, result.updated, result.conflicts) == (0, 1, 0)
+    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 0)
     db_session.expire_all()
     saved = db_session.get(FairModel, existing.id)
-    assert saved.external_id == "2027:25"
-    assert saved.start_date == date(2027, 10, 3)
-    assert saved.end_date == date(2027, 10, 6)
+    assert saved.external_id == "2026:10"
+    assert saved.start_date == date(2026, 10, 15)
+    assert saved.end_date == date(2026, 10, 18)
     assert len(_system_rows(db_session)) == 1
 
 
-def test_next_year_updates_while_the_current_edition_is_active(db_session):
+def test_next_year_is_blocked_while_the_current_edition_is_active(db_session):
     existing = _system(
         db_session,
         name="X Fuarı",
@@ -565,11 +569,11 @@ def test_next_year_updates_while_the_current_edition_is_active(db_session):
         year=2027,
         today=_TODAY,
     )
-    assert (result.inserted, result.updated, result.conflicts) == (0, 1, 0)
+    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 0)
     db_session.expire_all()
     saved = db_session.get(FairModel, existing.id)
-    assert saved.external_id == "2027:25"
-    assert saved.end_date == date(2027, 8, 5)
+    assert saved.external_id == "2026:10"
+    assert saved.end_date == date(2026, 10, 3)
     assert len(_system_rows(db_session)) == 1
 
 
@@ -645,7 +649,7 @@ def test_multiple_annual_candidates_are_a_conflict(db_session):
     assert len(_system_rows(db_session)) == 2
 
 
-def test_same_year_identity_still_updates(db_session):
+def test_same_reference_date_correction_warns_without_update(db_session):
     existing = _system(
         db_session,
         name="X Fuarı",
@@ -659,14 +663,15 @@ def test_same_year_identity_still_updates(db_session):
         year=2027,
         today=_TODAY,
     )
-    assert result.updated == 1
+    assert result.updated == 0
     assert result.inserted == 0
     assert result.conflicts == 0
     db_session.expire_all()
     saved = db_session.get(FairModel, existing.id)
     assert saved.external_id == "2027:25"
-    assert saved.start_date == date(2027, 8, 1)
-    assert saved.end_date == date(2027, 8, 5)
+    assert saved.start_date == date(2027, 1, 1)
+    assert saved.end_date == date(2027, 1, 4)
+    assert len(result.date_change_warnings) == 1
     assert len(_system_rows(db_session)) == 1
 
 
@@ -705,19 +710,20 @@ def test_next_year_edition_updates_the_same_system_fair(db_session):
             ]
         ),
         year=2027,
-        today=_TODAY,
+        today=date(2026, 10, 14),
     )
+
     assert (result.inserted, result.updated, result.conflicts) == (0, 1, 0)
     db_session.expire_all()
     saved = db_session.get(FairModel, existing.id)
     assert saved.external_id == "2027:80"
     assert saved.start_date == date(2027, 10, 17)
     assert saved.end_date == date(2027, 10, 20)
-    assert "32" in saved.name
+    assert saved.name == existing.name
     assert len(_system_rows(db_session)) == 1
 
 
-def test_date_correction_updates_the_same_fair(db_session):
+def test_date_correction_warns_and_preserves_the_same_fair(db_session):
     existing = _system(
         db_session,
         name="AVRASYA AMBALAJ 2026- İSTANBUL 31.ULUSLARARASI FUARI",
@@ -740,16 +746,21 @@ def test_date_correction_updates_the_same_fair(db_session):
         year=2026,
         today=_TODAY,
     )
-    assert result.updated == 1
+    assert result.updated == 0
     assert result.inserted == 0
     db_session.expire_all()
     saved = db_session.get(FairModel, existing.id)
-    assert saved.start_date == date(2026, 10, 17)
-    assert saved.end_date == date(2026, 10, 20)
+    assert saved.start_date == date(2026, 10, 10)
+    assert saved.end_date == date(2026, 10, 13)
+    assert len(result.date_change_warnings) == 1
+    warning = result.date_change_warnings[0]
+    assert warning.fair_id == existing.id
+    assert warning.old_end_date == date(2026, 10, 13)
+    assert warning.new_end_date == date(2026, 10, 20)
     assert len(_system_rows(db_session)) == 1
 
 
-def test_same_year_second_edition_is_not_merged(db_session):
+def test_same_year_editions_insert_only_the_ongoing_edition(db_session):
     result = _sync(
         db_session,
         _html(
@@ -771,11 +782,18 @@ def test_same_year_second_edition_is_not_merged(db_session):
         year=2026,
         today=_TODAY,
     )
-    assert (result.inserted, result.updated, result.conflicts) == (2, 0, 0)
+    assert (result.inserted, result.updated, result.conflicts) == (1, 0, 0)
     saved = _system_rows(db_session)
-    assert len(saved) == 2
-    assert {row.external_id for row in saved} == {"2026:59", "2026:60"}
-    assert all("59" in row.name or "60" in row.name for row in saved)
+    assert len(saved) == 1
+    assert saved[0].external_id == "2026:59"
+    repeated = _sync(db_session, _html([
+        _named_row(sequence="59", name="IJS İSTANBUL 2026 59. ULUSLARARASI MÜCEVHER FUARI",
+                   start="01.10.2026", end="04.10.2026"),
+        _named_row(sequence="60", name="IJS İSTANBUL 2026 60. ULUSLARARASI MÜCEVHER FUARI",
+                   start="01.03.2026", end="04.03.2026"),
+    ]), today=_TODAY)
+    assert (repeated.inserted, repeated.updated, repeated.conflicts) == (0, 1, 0)
+    assert len(_system_rows(db_session)) == 1
 
 
 def test_later_same_year_edition_does_not_overwrite_the_first(db_session):
@@ -802,14 +820,14 @@ def test_later_same_year_edition_does_not_overwrite_the_first(db_session):
         year=2026,
         today=_TODAY,
     )
-    assert result.inserted == 1
+    assert result.inserted == 0
     assert result.updated == 0
     db_session.expire_all()
     kept = db_session.get(FairModel, first.id)
     assert kept.external_id == "2026:59"
     assert kept.organizer == "IJS Organizer"
     assert kept.start_date == date(2026, 10, 1)
-    assert len(_system_rows(db_session)) == 2
+    assert len(_system_rows(db_session)) == 1
 
 
 def test_next_year_multi_edition_family_does_not_cross_match(db_session):
@@ -856,3 +874,213 @@ def test_next_year_multi_edition_family_does_not_cross_match(db_session):
     assert db_session.get(FairModel, first.id).external_id == "2026:59"
     assert db_session.get(FairModel, second.id).external_id == "2026:60"
     assert len(_system_rows(db_session)) == 2
+
+
+@pytest.mark.parametrize("today, updated", [
+    (date(2026, 10, 19), 0), (date(2026, 10, 20), 0), (date(2026, 10, 21), 1),
+])
+def test_rollover_requires_strictly_past_end_date(db_session, today, updated):
+    fair = _system(db_session, name="IJS İSTANBUL", external_id="2026:59",
+                   start_date=date(2026, 10, 15), end_date=date(2026, 10, 20))
+    row = _named_row(sequence="61", name="61. IJS İSTANBUL 2027",
+                     start="02.03.2027", end="05.03.2027")
+    result = _sync(db_session, _html([row]), year=2027, today=today)
+    assert (result.inserted, result.updated, result.conflicts) == (0, updated, 0)
+    db_session.expire_all()
+    saved = db_session.get(FairModel, fair.id)
+    assert saved.name == "IJS İSTANBUL"
+    assert saved.end_date == (date(2027, 3, 5) if updated else date(2026, 10, 20))
+    assert len(_system_rows(db_session)) == 1
+
+
+def test_short_manual_name_matches_long_title_and_survives_repeated_sync(db_session):
+    fair = _system(db_session, name="ANALYTECH", external_id="2026:9",
+                   adapter_key="keep", source_url="https://example.test/participants",
+                   scraper_config={"max_pages": 5})
+    row = _sample_row()
+    row[0] = "9"
+    row[3] = "9. ANALYTECH ULUSLARARASI ANALİZ VE LABORATUVAR TEKNOLOJİLERİ FUARI"
+    for _ in range(2):
+        result = _sync(db_session, _html([row]), today=_TODAY)
+        assert (result.inserted, result.updated, result.conflicts) == (0, 1, 0)
+        db_session.expire_all()
+        saved = db_session.get(FairModel, fair.id)
+        assert saved.name == "ANALYTECH"
+        assert saved.normalized_name == compute_normalized_name(name=row[3])
+        assert saved.identity_name == compute_identity_name(name=row[3])
+        assert (saved.adapter_key, saved.source_url, saved.scraper_config) == (
+            "keep", "https://example.test/participants", {"max_pages": 5},
+        )
+        assert len(_system_rows(db_session)) == 1
+
+
+@pytest.mark.parametrize("short_name, city", [
+    ("ANALY", "İstanbul"), ("ANALYTECH", "Ankara"), ("FUARI", "İstanbul"),
+])
+def test_substring_generic_word_or_other_city_does_not_match(db_session, short_name, city):
+    existing = _system(db_session, name=short_name, external_id="2026:1", city=city)
+    row = _sample_row()
+    row[3] = "9. ANALYTECH ULUSLARARASI ANALİZ FUARI"
+    result = _sync(db_session, _html([row]), today=_TODAY)
+    assert (result.inserted, result.updated, result.conflicts) == ((0, 0, 1) if city == "Ankara" else (1, 0, 0))
+    db_session.expire_all()
+    assert db_session.get(FairModel, existing.id).name == short_name
+    assert len(_system_rows(db_session)) == (1 if city == "Ankara" else 2)
+
+
+def test_exact_match_does_not_hide_another_short_name_candidate(db_session):
+    title = "9. ANALYTECH ULUSLARARASI ANALİZ FUARI"
+    short = _system(db_session, name="ANALYTECH", external_id="2026:1")
+    exact = _system(db_session, name=title, external_id="2026:2")
+    row = _sample_row()
+    row[3] = title
+    result = _sync(db_session, _html([row]), today=_TODAY)
+    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 1)
+    assert set(result.conflict_items[0].fair_ids) == {short.id, exact.id}
+    db_session.expire_all()
+    assert db_session.get(FairModel, short.id).external_id == "2026:1"
+    assert db_session.get(FairModel, exact.id).external_id == "2026:2"
+
+
+def test_same_year_new_edition_reuses_fair_id_after_expiry(db_session):
+    fair = _system(db_session, name="59. IJS İSTANBUL", external_id="2026:59",
+                   start_date=date(2026, 3, 1), end_date=date(2026, 3, 4))
+    row = _named_row(sequence="60", name="60. IJS İSTANBUL",
+                     start="01.10.2026", end="04.10.2026")
+    result = _sync(db_session, _html([row]), today=_TODAY)
+    assert (result.inserted, result.updated, result.conflicts) == (0, 1, 0)
+    db_session.expire_all()
+    saved = db_session.get(FairModel, fair.id)
+    assert saved.external_id == "2026:60"
+    assert saved.name == fair.name
+    assert saved.start_date == date(2026, 10, 1)
+    assert len(_system_rows(db_session)) == 1
+
+
+@pytest.mark.parametrize("end_date", [None, date(2026, 10, 20)])
+def test_unknown_or_active_end_date_blocks_same_year_new_edition(db_session, end_date):
+    fair = _system(db_session, name="59. IJS İSTANBUL", external_id="2026:59",
+                   start_date=date(2026, 10, 15), end_date=end_date)
+    row = _named_row(sequence="60", name="60. IJS İSTANBUL",
+                     start="11.11.2026", end="14.11.2026")
+    result = _sync(db_session, _html([row]), today=date(2026, 10, 19))
+    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 0)
+    assert not result.date_change_warnings
+    db_session.expire_all()
+    assert db_session.get(FairModel, fair.id).end_date == end_date
+    assert len(_system_rows(db_session)) == 1
+
+
+@pytest.mark.parametrize("today", [date(2026, 10, 19), date(2026, 10, 20), date(2026, 10, 21)])
+def test_ambalaj_date_change_warns_and_preserves_all_fields(db_session, today):
+    fair = _system(db_session, name="AVRASYA AMBALAJ", external_id="2026:31",
+                   start_date=date(2026, 10, 17), end_date=date(2026, 10, 20),
+                   adapter_key="tuyap_new", source_url="https://example.test/participants",
+                   scraper_config={"max_pages": 2})
+    row = _named_row(sequence="31", name="31. AVRASYA AMBALAJ 2026 ULUSLARARASI FUARI",
+                     start="08.11.2026", end="11.11.2026")
+    before = {column.name: getattr(db_session.get(FairModel, fair.id), column.name)
+              for column in FairModel.__table__.columns}
+    for _ in range(2):
+        result = _sync(db_session, _html([row]), today=today)
+        assert (result.inserted, result.updated, result.conflicts) == (0, 0, 0)
+        assert len(result.date_change_warnings) == 1
+        warning = result.date_change_warnings[0]
+        assert (warning.fair_id, warning.name) == (fair.id, "AVRASYA AMBALAJ")
+        assert (warning.old_start_date, warning.old_end_date) == (date(2026, 10, 17), date(2026, 10, 20))
+        assert (warning.new_start_date, warning.new_end_date) == (date(2026, 11, 8), date(2026, 11, 11))
+        db_session.expire_all()
+        saved = db_session.get(FairModel, fair.id)
+        assert {column.name: getattr(saved, column.name) for column in FairModel.__table__.columns} == before
+
+
+def test_reused_sequence_does_not_mutate_a_blocked_unrelated_fair(db_session):
+    holder = _system(db_session, name="IJS İSTANBUL", external_id="2026:15",
+                     start_date=date(2026, 10, 15), end_date=date(2026, 10, 20))
+    result = _sync(db_session, _html([_sample_row()]), today=date(2026, 10, 19))
+    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 1)
+    db_session.expire_all()
+    assert db_session.get(FairModel, holder.id).external_id == "2026:15"
+    assert len(_system_rows(db_session)) == 1
+
+
+def test_multiple_editions_without_unique_ongoing_occurrence_fail_closed(db_session):
+    rows = [_named_row(sequence=str(number), name=f"{number}. IJS İSTANBUL",
+                       start=start, end=end) for number, start, end in [
+        (59, "01.03.2026", "04.03.2026"), (60, "01.11.2026", "04.11.2026"),
+    ]]
+    result = _sync(db_session, _html(rows), today=_TODAY)
+    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 2)
+    assert not _system_rows(db_session)
+
+
+def test_rollover_preserves_customer_participations_in_both_organizations(db_session, organization_id, other_organization_id):
+    from app.modules.customers.infrastructure.persistence.models import CustomerModel
+    from app.modules.participations.infrastructure.persistence.models import CustomerFairParticipationModel
+
+    fair = _system(db_session, name="ANALYTECH", external_id="2026:9")
+    now = datetime.now(tz=UTC)
+    children = []
+    for org_id in (organization_id, other_organization_id):
+        customer = CustomerModel(id=uuid4(), organization_id=org_id, display_name="Customer",
+                                 normalized_name="customer", customer_type="lead", status="active",
+                                 source="manual", created_at=now, updated_at=now)
+        db_session.add(customer)
+        db_session.flush()
+        participation = CustomerFairParticipationModel(
+            id=uuid4(), organization_id=org_id, customer_id=customer.id, fair_id=fair.id,
+            hall="H1", stand="S1", notes="keep", participation_status="exhibitor",
+            is_active=True, created_at=now, updated_at=now,
+        )
+        db_session.add(participation)
+        db_session.flush()
+        children.append((org_id, customer.id, participation.id))
+    row = _named_row(sequence="10", name="10. ANALYTECH 2027 ULUSLARARASI FUARI",
+                     start="01.03.2027", end="04.03.2027")
+    result = _sync(db_session, _html([row]), year=2027, today=_TODAY)
+    assert (result.inserted, result.updated, result.conflicts) == (0, 1, 0)
+    db_session.expire_all()
+    for org_id, customer_id, participation_id in children:
+        saved = db_session.get(CustomerFairParticipationModel, participation_id)
+        assert (saved.organization_id, saved.customer_id, saved.fair_id, saved.notes) == (
+            org_id, customer_id, fair.id, "keep",
+        )
+        assert db_session.get(CustomerModel, customer_id).organization_id == org_id
+    assert len(_system_rows(db_session)) == 1
+
+
+def test_correction_warning_blocks_rollover_even_if_another_edition_is_available(db_session):
+    fair = _system(db_session, name="31. AVRASYA AMBALAJ", external_id="2026:31",
+                   start_date=date(2026, 10, 17), end_date=date(2026, 10, 20))
+    rows = [
+        _named_row(sequence="31", name="31. AVRASYA AMBALAJ", start="08.11.2026", end="11.11.2026"),
+        _named_row(sequence="32", name="32. AVRASYA AMBALAJ", start="01.12.2026", end="04.12.2026"),
+    ]
+    result = _sync(db_session, _html(rows), today=date(2026, 10, 21))
+    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 0)
+    assert len(result.date_change_warnings) == 1
+    db_session.expire_all()
+    assert db_session.get(FairModel, fair.id).end_date == date(2026, 10, 20)
+    assert len(_system_rows(db_session)) == 1
+
+
+def test_unknown_same_year_edition_is_not_guessed_from_a_changed_sequence(db_session):
+    fair = _system(db_session, name="AVRASYA AMBALAJ", external_id="2026:31",
+                   start_date=date(2026, 10, 17), end_date=date(2026, 10, 20))
+    row = _named_row(sequence="32", name="AVRASYA AMBALAJ", start="08.11.2026", end="11.11.2026")
+    result = _sync(db_session, _html([row]), today=date(2026, 10, 21))
+    assert (result.inserted, result.updated, result.conflicts) == (0, 0, 1)
+    db_session.expire_all()
+    assert db_session.get(FairModel, fair.id).end_date == date(2026, 10, 20)
+
+
+def test_archived_identity_requires_review_instead_of_automatic_recreation(db_session):
+    fair = _system(db_session, name="İstanbul Fuarı", external_id="2025:15")
+    stored = db_session.get(FairModel, fair.id)
+    stored.deleted_at = datetime.now(UTC)
+    db_session.flush()
+    result = _sync(db_session, _html([_sample_row()]), today=date(2026, 10, 12))
+    assert result.inserted == 0
+    assert result.conflicts == 1
+    assert len(_system_rows(db_session)) == 1
+    assert stored.deleted_at is not None

@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, Uuid
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, Uuid, text
 from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
@@ -18,6 +18,11 @@ JsonType = JSON().with_variant(SQLiteJSON(), "sqlite")
 
 class ScraperRunHistoryModel(Base):
     __tablename__ = "scraper_run_history"
+    __table_args__ = (
+        Index("uq_scraper_history_active_tobb", "adapter_key", unique=True,
+              postgresql_where=text("adapter_key = 'tobb_calendar' AND status IN ('queued', 'running', 'cancel_requested', 'cancelling')"),
+              sqlite_where=text("adapter_key = 'tobb_calendar' AND status IN ('queued', 'running', 'cancel_requested', 'cancelling')")),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid(), primary_key=True, default=uuid4)
     adapter_key: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
@@ -59,6 +64,8 @@ class ScraperRunHistoryModel(Base):
     last_heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     progress_current: Mapped[int | None] = mapped_column(Integer(), nullable=True)
     progress_total: Mapped[int | None] = mapped_column(Integer(), nullable=True)
+    requested_by: Mapped[UUID | None] = mapped_column(Uuid(), nullable=True)
+    summary_json: Mapped[dict[str, Any] | None] = mapped_column(JsonType, nullable=True)
 
     logs: Mapped[list["ScraperRunLogModel"]] = relationship(
         "ScraperRunLogModel",

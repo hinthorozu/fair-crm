@@ -34,7 +34,7 @@ function errorMessage(data: unknown, fallback: string): string {
   return fallback;
 }
 
-async function coreRequest<T>(
+export async function coreRequest<T>(
   path: string,
   init: RequestInit = {},
   organizationId?: string,

@@ -574,10 +574,16 @@ def test_keep_separate_stops_the_matcher_repeating_the_conflict(db_session):
     updated = SyncTobbSystemFairsUseCase(
         SqlAlchemyFairRepository(db_session), _Reader(same_year)
     ).execute(2027)
-    assert updated.updated == 1
+    assert updated.updated == 0
     assert updated.conflicts == 0
+    assert len(updated.date_change_warnings) == 1
+    assert updated.date_change_warnings[0].fair_id == newer.id
     db_session.expire_all()
-    assert db_session.get(FairModel, newer.id).website == "updated.example"
+    saved = db_session.get(FairModel, newer.id)
+    assert saved.website == "https://example.test"
+    assert saved.start_date == date(2027, 3, 1)
+    assert saved.end_date == date(2027, 3, 4)
+    assert saved.external_id == "2027:32"
 
 
 def test_organization_admin_cannot_merge_and_super_admin_can(

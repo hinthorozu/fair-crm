@@ -41,6 +41,7 @@ from app.modules.fairs.api.schemas import (
     SyncTobbSystemFairsRequest,
     SyncTobbSystemFairsResponse,
     TobbSyncConflictItem,
+    TobbSyncDateChangeWarning,
     ErrorResponse,
     FairListResponse,
     FairResponse,
@@ -253,47 +254,6 @@ def list_fairs(
         filters=filters,
     ).model_copy(
         update={"items": [_to_response(item) for item in result.items]},
-    )
-
-
-@router.post(
-    "/system/tobb/sync",
-    response_model=SyncTobbSystemFairsResponse,
-    responses={
-        400: {"model": ErrorResponse},
-        403: {"model": ErrorResponse},
-    },
-)
-def sync_tobb_system_fairs(
-    body: SyncTobbSystemFairsRequest,
-    auth: AuthContext = Depends(get_auth_context),
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    is_super_admin: SuperAdminReader = Depends(get_super_admin_reader),
-    use_case: SyncTobbSystemFairsUseCase = Depends(get_sync_tobb_system_fairs_use_case),
-) -> SyncTobbSystemFairsResponse:
-    if not is_super_admin(_access_token(credentials), auth.organization_id):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="System fair sync is restricted")
-    try:
-        result = use_case.execute(body.year)
-    except TobbCalendarReadError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except InvalidFairNameError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except InvalidFairDateRangeError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return SyncTobbSystemFairsResponse(
-        inserted=result.inserted,
-        updated=result.updated,
-        conflicts=result.conflicts,
-        conflict_items=[
-            TobbSyncConflictItem(
-                name=item.name,
-                identity_name=item.identity_name,
-                city=item.city,
-                fair_ids=list(item.fair_ids),
-            )
-            for item in result.conflict_items
-        ],
     )
 
 

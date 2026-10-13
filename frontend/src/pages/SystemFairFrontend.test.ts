@@ -25,6 +25,9 @@ const harness = vi.hoisted(() => ({
   compare: vi.fn(),
   runScraper: vi.fn(),
   syncTobb: vi.fn(),
+  getTobbRun: vi.fn(),
+  listTobbReviews: vi.fn(),
+  applyTobb: vi.fn(),
   listDuplicates: vi.fn(),
   previewMerge: vi.fn(),
   mergeFair: vi.fn(),
@@ -32,6 +35,17 @@ const harness = vi.hoisted(() => ({
   listAdapters: vi.fn(),
   listScraperRuns: vi.fn(),
   listParticipants: vi.fn(),
+}));
+
+vi.mock("../api/tobb", () => ({
+  startTobbPreview: (...args: unknown[]) => harness.syncTobb(...args),
+  getTobbRun: (...args: unknown[]) => harness.getTobbRun(...args),
+  listTobbReviews: (...args: unknown[]) => harness.listTobbReviews(...args),
+  listTobbRuns: async () => ({items: []}),
+  listTobbMappings: async () => ({items: []}),
+  listSystemInAppNotifications: async () => [],
+  applyTobbPreview: (...args: unknown[]) => harness.applyTobb(...args),
+  cancelTobbRun: vi.fn(), retryTobbRun: vi.fn(), decideTobbReview: vi.fn(), bulkTobbDates: vi.fn(), changeTobbMapping: vi.fn(),
 }));
 
 vi.mock("../auth/AuthContext", () => ({
@@ -149,6 +163,12 @@ describe("system fair frontend", () => {
     harness.compare.mockReset();
     harness.runScraper.mockReset();
     harness.syncTobb.mockReset();
+    harness.getTobbRun.mockReset();
+    harness.listTobbReviews.mockReset();
+    harness.applyTobb.mockReset();
+    harness.listTobbReviews.mockResolvedValue({items: [], counts: {}, pending_count: 0});
+    harness.getTobbRun.mockResolvedValue({id: "run-1", status: "completed", started_at: "2026-10-12T00:00:00Z", duration_ms: 100,
+      summary: {phase: "preview_ready", years: [2024], year_results: {"2024": {status: "preview_ready", attempts: 1, changes: [], inserted: 120, updated: 35, reviews: 2}}}});
     harness.listDuplicates.mockReset();
     harness.previewMerge.mockReset();
     harness.mergeFair.mockReset();
@@ -645,7 +665,7 @@ describe("system fair frontend", () => {
     await renderFairs();
     expect(buttonByText(container, fairLabels.syncTobb)).toBeTruthy();
 
-    let release: (value: { inserted: number; updated: number; conflicts: number }) => void = () => undefined;
+    let release: (value: {run: {id: string}; started: boolean}) => void = () => undefined;
     harness.syncTobb.mockImplementation(
       () =>
         new Promise((resolve) => {
@@ -664,12 +684,12 @@ describe("system fair frontend", () => {
     expect(harness.syncTobb).toHaveBeenCalledWith(2024);
     const callsBeforeResult = harness.listFairs.mock.calls.length;
     await act(async () => {
-      release({ inserted: 120, updated: 35, conflicts: 2 });
+      release({run: {id: "run-1"}, started: true});
       await Promise.resolve();
       await Promise.resolve();
     });
     expect(container.textContent).toContain(
-      "TOBB güncellemesi tamamlandı: 120 yeni, 35 güncellendi, 2 çakışma.",
+      "120 yeni · 35 güncelleme · 2 inceleme",
     );
     expect(
       tobbSyncSummary({
@@ -686,7 +706,7 @@ describe("system fair frontend", () => {
         ],
       }),
     ).toContain("Çakışan fuarlar: X FUARI / İstanbul — id-1, id-2.");
-    expect(harness.listFairs.mock.calls.length).toBeGreaterThan(callsBeforeResult);
+    expect(harness.listFairs.mock.calls.length).toBe(callsBeforeResult);
     expect(container.textContent).toContain("Mevcut Fuar");
   });
 
@@ -702,6 +722,30 @@ describe("system fair frontend", () => {
     expect(container.textContent).toContain("TOBB calendar request timed out");
     expect(harness.listFairs.mock.calls.length).toBe(callsAfterLoad);
     expect(container.textContent).toContain("Mevcut Fuar");
+  });
+
+  it("previews both schedules and requires explicit apply when the same edition moves", async () => {
+    harness.isSuperAdmin = true;
+    await renderFairs();
+    harness.syncTobb.mockResolvedValue({run: {id: "run-1"}, started: true});
+    harness.getTobbRun.mockResolvedValue({id: "run-1", status: "completed", started_at: "2026-10-12T00:00:00Z", duration_ms: 100,
+      summary: {phase: "preview_ready", years: [2026], year_results: {"2026": {status: "preview_ready", attempts: 1, changes: [{
+        action: "review", kind: "dates", name: "AVRASYA AMBALAJ",
+        stored_values: {start_date: "2026-10-17", end_date: "2026-10-20"},
+        proposed_values: {start_date: "2026-11-08", end_date: "2026-11-11"},
+      }]}}}});
+    await act(async () => {
+      buttonByText(container, fairLabels.syncTobb)?.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(container.textContent).toContain("AVRASYA AMBALAJ");
+    expect(container.textContent).toContain("17.10.2026 – 20.10.2026");
+    expect(container.textContent).toContain("08.11.2026 – 11.11.2026");
+    expect(buttonByText(container, "Senkronizasyonu Uygula")).toBeTruthy();
+    expect(harness.applyTobb).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Mevcut Fuar");
+
   });
 
   it("shows duplicate system fairs only to a super admin and asks before merge", async () => {

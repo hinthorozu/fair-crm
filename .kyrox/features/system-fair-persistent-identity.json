@@ -5,57 +5,129 @@
   "feature_type": "backend_service",
   "owner": "fair-crm",
   "platform_reusability": "product_specific",
-  "trigger": "user",
+  "trigger": "mixed",
   "tenant_scope": "system",
   "user_facing": true,
   "affected_paths": [
-    "backend/app/modules/fairs/application/sync_tobb_system_fairs.py",
-    "backend/app/modules/fairs/domain/services/normalizers.py",
-    "backend/app/modules/fairs/domain/entities.py",
-    "backend/app/modules/fairs/domain/ports.py",
-    "backend/app/modules/fairs/infrastructure/persistence/models.py",
-    "backend/app/modules/fairs/infrastructure/persistence/mappers.py",
-    "backend/app/modules/fairs/infrastructure/repositories/fair_repository.py",
-    "backend/app/modules/fairs/api/schemas.py",
-    "backend/app/modules/fairs/api/routes.py",
+    ".kyrox/features/system-fair-persistent-identity.json",
     "backend/alembic/versions/0093_system_fair_identity_name.py",
+    "backend/alembic/versions/0096_tobb_review_workflow.py",
+    "backend/alembic/versions/0097_tobb_run_history.py",
+    "backend/alembic/versions/0098_tobb_manual_date_revision.py",
+    "backend/app/api/v1/router.py",
+    "backend/app/core/config.py",
+    "backend/app/main.py",
+    "backend/app/modules/fairs/api/dependencies.py",
+    "backend/app/modules/fairs/api/routes.py",
+    "backend/app/modules/fairs/api/schemas.py",
+    "backend/app/modules/fairs/api/tobb_review_routes.py",
+    "backend/app/modules/fairs/application/sync_tobb_system_fairs.py",
+    "backend/app/modules/fairs/application/tobb_sync_job_runner.py",
+    "backend/app/modules/fairs/application/tobb_weekly_sync.py",
+    "backend/app/modules/fairs/application/tobb_workflow_service.py",
+    "backend/app/modules/fairs/domain/entities.py",
+    "backend/app/modules/fairs/domain/exceptions.py",
+    "backend/app/modules/fairs/domain/ports.py",
+    "backend/app/modules/fairs/domain/services/normalizers.py",
+    "backend/app/modules/fairs/domain/services/tobb_decisions.py",
+    "backend/app/modules/fairs/infrastructure/persistence/mappers.py",
+    "backend/app/modules/fairs/infrastructure/persistence/models.py",
+    "backend/app/modules/fairs/infrastructure/repositories/fair_repository.py",
+    "backend/app/modules/fairs/infrastructure/tobb_review_repository.py",
+    "backend/app/modules/fairs/infrastructure/tobb_run_repository.py",
+    "backend/app/modules/scraper/domain/scraper_run_history.py",
+    "backend/app/modules/scraper/domain/scraper_run_source.py",
+    "backend/app/modules/scraper/infrastructure/persistence/models.py",
+    "backend/tests/modules/fairs/test_system_fair_duplicate_merge.py",
+    "backend/tests/modules/fairs/test_tobb_review_workflow.py",
+    "backend/tests/modules/fairs/test_tobb_sync_jobs.py",
     "backend/tests/modules/fairs/test_tobb_system_fair_sync.py",
     "backend/tests/modules/fairs/test_tobb_system_fair_sync_endpoint.py",
+    "frontend/src/api/client.ts",
     "frontend/src/api/fairs.ts",
+    "frontend/src/api/organizations.ts",
+    "frontend/src/api/tobb.ts",
+    "frontend/src/components/FairEntitySelect.tsx",
+    "frontend/src/components/TobbWorkflow.test.ts",
+    "frontend/src/components/TobbWorkflow.tsx",
+    "frontend/src/labels/fairLabels.ts",
+    "frontend/src/labels/tobbLabels.ts",
     "frontend/src/pages/FairsPage.tsx",
     "frontend/src/pages/SystemFairFrontend.test.ts",
-    ".kyrox/features/system-fair-persistent-identity.json"
+    "scripts/server/systemd/fair-crm-tobb-sync.service",
+    "scripts/server/systemd/fair-crm-tobb-sync.timer"
   ],
   "permissions": {
     "required": false,
-    "reason": "TOBB sync stays behind the existing Super Admin gate. This change adds no permission code.",
+    "reason": "All TOBB routes use the existing DB-backed Super Admin flag; audit-only action codes are declared separately and are not route permissions.",
     "items": []
   },
   "frontend": {
     "required": true,
-    "routes": ["/fairs"],
+    "routes": [
+      "/fairs"
+    ],
     "menu": false,
     "menu_permission": null
   },
   "applicability": {
-    "database": { "status": "required" },
-    "migration": { "status": "required" },
-    "permissions": { "status": "na", "reason": "No permission catalog change. Sync remains Super Admin only." },
-    "backend": { "status": "required" },
-    "api": { "status": "required" },
-    "tenant_isolation": { "status": "required" },
-    "audit": { "status": "na", "reason": "Sync does not add an audit event and does not merge existing rows." },
-    "frontend": { "status": "required" },
-    "ui_permissions": { "status": "na", "reason": "The Super Admin TOBB action visibility is unchanged." },
-    "menu": { "status": "na", "reason": "No navigation item is added or retargeted." },
-    "route_guard": { "status": "na", "reason": "The fairs route guard is unchanged." },
-    "forms": { "status": "na", "reason": "No form fields are added. Only the sync result text changes." },
-    "visual_qa": { "status": "required" },
-    "backend_tests": { "status": "required" },
-    "frontend_tests": { "status": "required" },
-    "runtime_authorization": { "status": "required" },
-    "runtime_verification": { "status": "required" },
-    "deployment": { "status": "required" }
+    "database": {
+      "status": "required"
+    },
+    "migration": {
+      "status": "required"
+    },
+    "permissions": {
+      "status": "na",
+      "reason": "No assignable permission is introduced; the existing Super Admin guard is authoritative and audit-only codes are on the TOBB audit contract."
+    },
+    "backend": {
+      "status": "required"
+    },
+    "api": {
+      "status": "required"
+    },
+    "tenant_isolation": {
+      "status": "required"
+    },
+    "audit": {
+      "status": "required"
+    },
+    "frontend": {
+      "status": "required"
+    },
+    "ui_permissions": {
+      "status": "required"
+    },
+    "menu": {
+      "status": "na",
+      "reason": "No navigation item is added or retargeted."
+    },
+    "route_guard": {
+      "status": "na",
+      "reason": "The fairs route guard is unchanged."
+    },
+    "forms": {
+      "status": "required"
+    },
+    "visual_qa": {
+      "status": "required"
+    },
+    "backend_tests": {
+      "status": "required"
+    },
+    "frontend_tests": {
+      "status": "required"
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "required"
+    }
   },
-  "notes": "System Fair matching ignores calendar year, schedule dates, TOBB sequence and edition number. identity_name is the persistent label; normalized_name still stores the official wording. A second edition in the same year is not overwritten. Two or more possible matches produce a conflict that names the incoming fair and the involved fair ids. Organization fairs are excluded. Scraper fields are not overwritten. Existing duplicate rows are not merged, re-pointed or deleted. ADR-038 supersedes ADR-037 for catalog identity."
+  "notes": "ADR-038 and ADR-040: preserve persistent fair ids, names, tenant relationships and scraper settings. Exact/whole-word identity plus city matching; ambiguous names/cities/editions require durable Super Admin review, remembered and correctable mappings. Expiry lock is stored end_date < Istanbul today, including after manual selection. Dates apply/keep as a pair; independent organizer/venue/website decisions, no blank clearing, optimistic review versions plus row locks, rejected identical suggestions suppressed until source/baseline changes. Manual sync only fetches a preview before explicit Apply; source/catalog digests reject stale previews. Reuse detached executor, scraper_run_history/log, cooperative cancellation/stale heartbeat policy and existing systemd scheduling pattern; one globally active system TOBB run, org NULL, Monday 03:00 Istanbul, no catch-up, current/next years, bounded independent year retries/partial results. Fairs-page shared tables/filter/control/dirty primitives expose review, selected-date bulk actions, preview, run history and mapping corrections alongside existing duplicate merge. Core existing notifications module owns in-app persistence and SA inbox; public HTTP and a purpose-separated worker notification credential, never a persisted user JWT. New audit action codes are system-scoped, not role-assignable. SaaS impact: system/tenant isolation, Core ownership, auth, job concurrency/retry/cancel/audit, secret boundary, migrations and real UI/runtime evidence required. No billing/entitlement/quota/org lifecycle/tenant deletion changes. GitHub PR/CI/merge requires strict-green verification; production deployment is outside this delivery."
 }

@@ -5,16 +5,18 @@ import {
   createFair,
   listFairs,
   restoreFair,
-  syncTobbSystemFairs,
   updateFair,
   ApiError,
   formatApiErrorMessage,
+  type TobbSyncDateChangeWarning,
 } from "../api/fairs";
 import { useAuth } from "../auth/AuthContext";
 import { FairForm, fairToFormValues } from "../components/FairForm";
 import { FairFilters, FairTable } from "../components/FairList";
 import { ServerDataTableFrame } from "../components/ui/ServerDataTableFrame";
 import { SystemFairDuplicateReview } from "../components/SystemFairDuplicateReview";
+import { TobbWorkflow } from "../components/TobbWorkflow";
+import { startTobbPreview } from "../api/tobb";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { FormModal, runAfterSuccessfulFormSubmit, TextInput } from "../components/ui/form";
 import { PageHeader } from "../components/ui/PageHeader";
@@ -54,12 +56,20 @@ export function tobbSyncSummary(result: {
   return `${base} Çakışan fuarlar: ${details.join("; ")}.`;
 }
 
+export function tobbDateChangeWarningText(item: TobbSyncDateChangeWarning): string {
+  const displayDate = (value: string | null) => value ? value.split("-").reverse().join(".") : "—";
+  return fairLabels.tobbDateChangeWarning(item.name,
+    `${displayDate(item.old_start_date)} – ${displayDate(item.old_end_date)}`,
+    `${displayDate(item.new_start_date)} – ${displayDate(item.new_end_date)}`);
+}
+
 interface FairsPageProps {
   onOpenDetail?: (fairId: string) => void;
   onContinueImport?: (batchId: string) => void;
 }
 
 export function FairsPage({ onOpenDetail, onContinueImport }: FairsPageProps) {
+  const [tobbRunId, setTobbRunId] = React.useState<string | null>(() => new URLSearchParams(window.location.search).get("tobb_run"));
   const { session } = useAuth();
   const isSuperAdmin = session?.isSuperAdmin === true;
   const { can } = usePermissions();
@@ -202,9 +212,9 @@ export function FairsPage({ onOpenDetail, onContinueImport }: FairsPageProps) {
     setError(null);
     setSuccess(null);
     try {
-      const result = await syncTobbSystemFairs(year);
-      setSuccess(tobbSyncSummary(result));
-      await table.refresh();
+      const result = await startTobbPreview(year);
+      setTobbRunId(result.run.id);
+      setSuccess(result.started ? "TOBB önizlemesi hazırlanıyor. Fuarlar henüz değiştirilmedi." : "Aktif TOBB çalışması gösteriliyor.");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : fairLabels.syncTobbError);
     } finally {
@@ -300,7 +310,10 @@ export function FairsPage({ onOpenDetail, onContinueImport }: FairsPageProps) {
 
       {success && <Banner variant="success">{success}</Banner>}
       {error && <Banner variant="error">{error}</Banner>}
-      {isSuperAdmin && <SystemFairDuplicateReview onChanged={() => void table.refresh()} />}
+      {isSuperAdmin && <>
+        <TobbWorkflow runId={tobbRunId} onRunSelected={setTobbRunId} onChanged={() => void table.refresh()} />
+        <SystemFairDuplicateReview onChanged={() => void table.refresh()} />
+      </>}
 
       {modal === "create" && canCreate && (
         <FormModal title={fairLabels.newFair} onClose={closeModal} size="lg">

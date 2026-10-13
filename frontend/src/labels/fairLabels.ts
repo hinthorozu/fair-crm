@@ -1,4 +1,6 @@
 export const fairLabels = {
+  tobbDateChangeWarning: (name: string, oldDates: string, newDates: string) =>
+    `${name}: TOBB'da aynı edisyonun tarihi değişmiş. Kayıtlı: ${oldDates}. TOBB: ${newDates}. Mevcut tarihler korundu.`,
   fairs: "Fuarlar",
   newFair: "Yeni Fuar",
   editFair: "Fuar Düzenle",

@@ -144,8 +144,7 @@ def compute_identity_name(*, name: str) -> str:
 
     ``normalized_name`` keeps the official wording, including the calendar year
     and edition number. This label removes only those occurrence tokens so two
-    years of the same fair can be compared. It does not merge same-year editions;
-    callers still use :func:`edition_key` for that guard.
+    years and editions of the same fair can be compared.
     """
     normalized = normalize_fair_name(name)
     kept = [
@@ -154,6 +153,20 @@ def compute_identity_name(*, name: str) -> str:
         if not _YEAR_TOKEN.fullmatch(token) and _edition_number(token) is None
     ]
     return " ".join(kept)
+
+
+def fair_identity_names_match(left: str, right: str) -> bool:
+    """Exact identity or a whole, informative word sequence; never substring fuzzing."""
+    left_tokens = compute_identity_name(name=left).split()
+    right_tokens = compute_identity_name(name=right).split()
+    if not left_tokens or not right_tokens:
+        return False
+    if left_tokens == right_tokens:
+        return True
+    short, long = sorted((left_tokens, right_tokens), key=len)
+    if all(token in {"FUAR", "FUARI", "FAIR", "EXHIBITION", "ULUSLARARASI"} for token in short):
+        return False
+    return any(long[index:index + len(short)] == short for index in range(len(long) - len(short) + 1))
 
 
 def edition_key(name: str) -> tuple[str, ...]:

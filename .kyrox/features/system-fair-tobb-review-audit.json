@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "id": "system-fair-tobb-review-audit",
+  "title": "System Fair TOBB Review Audit Actions",
+  "feature_type": "backend_service",
+  "owner": "fair-crm",
+  "platform_reusability": "product_specific",
+  "trigger": "user",
+  "tenant_scope": "system",
+  "user_facing": false,
+  "affected_paths": [
+    "backend/app/modules/fairs/application/tobb_workflow_service.py",
+    "backend/tests/modules/fairs/test_tobb_review_workflow.py",
+    ".kyrox/features/system-fair-tobb-review-audit.json"
+  ],
+  "permissions": {
+    "required": true,
+    "items": [
+      {
+        "code": "fair_crm.tobb.review_decided",
+        "action": "audit a Super Admin TOBB proposal decision",
+        "scope": "system",
+        "assignable": false
+      },
+      {
+        "code": "fair_crm.tobb.mapping_changed",
+        "action": "audit correction of a TOBB identity mapping without moving tenant data",
+        "scope": "system",
+        "assignable": false
+      }
+    ]
+  },
+  "frontend": {
+    "required": false,
+    "reason": "The audit action is written by the merge service. The fairs page contract covers the review UI.",
+    "routes": [],
+    "menu": false,
+    "menu_permission": null
+  },
+  "applicability": {
+    "database": {
+      "status": "na",
+      "reason": "The audit row uses the existing audit store. No new product table is added here."
+    },
+    "migration": {
+      "status": "na",
+      "reason": "No schema change belongs to the audit action itself."
+    },
+    "permissions": {
+      "status": "required"
+    },
+    "backend": {
+      "status": "required"
+    },
+    "api": {
+      "status": "na",
+      "reason": "The HTTP routes stay on the duplicate-merge contract and still use the Super Admin gate."
+    },
+    "tenant_isolation": {
+      "status": "na",
+      "reason": "The action is system-scoped. Organization fairs are rejected by the merge service."
+    },
+    "audit": {
+      "status": "required"
+    },
+    "frontend": {
+      "status": "na",
+      "reason": "No screen is added for the audit action."
+    },
+    "ui_permissions": {
+      "status": "na",
+      "reason": "The review UI stays on the existing Super Admin flag."
+    },
+    "menu": {
+      "status": "na",
+      "reason": "No navigation item is added."
+    },
+    "route_guard": {
+      "status": "na",
+      "reason": "No route guard changes with the audit action."
+    },
+    "forms": {
+      "status": "na",
+      "reason": "No form is added for the audit action."
+    },
+    "visual_qa": {
+      "status": "na",
+      "reason": "The audit action has no visible surface."
+    },
+    "backend_tests": {
+      "status": "required"
+    },
+    "frontend_tests": {
+      "status": "na",
+      "reason": "The audit action has no frontend behavior."
+    },
+    "runtime_authorization": {
+      "status": "required"
+    },
+    "runtime_verification": {
+      "status": "required"
+    },
+    "deployment": {
+      "status": "na",
+      "reason": "Declaring the audit action does not change the deploy path."
+    }
+  },
+  "notes": "ADR-040: TOBB review decisions and mapping corrections record existing Core audit events fair_crm.tobb.review_decided and fair_crm.tobb.mapping_changed. These are audit action codes, not route permission guards; system scope, not role-assignable. API authorization remains the existing Core DB Super Admin flag. Audit records include actor, compared fields, chosen target/source edition and system-scope metadata. No tenant relationships are moved and no second audit store is created. Real Core audit writes and ordinary-admin denials are required acceptance evidence."
+}

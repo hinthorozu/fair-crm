@@ -5,6 +5,7 @@ from app.modules.activities.api.routes import customer_activities_router, router
 from app.modules.contacts.api.routes import customer_contacts_router, router as contacts_router
 from app.modules.customers.api.routes import router as customers_router
 from app.modules.fairs.api.routes import router as fairs_router
+from app.modules.fairs.api.tobb_review_routes import router as tobb_review_router
 from app.modules.data_integration.api.routes import router as data_integration_router
 from app.modules.imports.api.routes import router as imports_router
 from app.modules.system_admin.api.routes import router as system_admin_router
@@ -69,6 +70,7 @@ api_v1_router.include_router(participations_router)
 api_v1_router.include_router(customers_router)
 api_v1_router.include_router(system_fair_duplicate_router)
 api_v1_router.include_router(fairs_router)
+api_v1_router.include_router(tobb_review_router)
 # Compatibility-only mount: keep supported legacy import callers working without publishing this duplicate API surface.
 api_v1_router.include_router(imports_router, prefix="/imports", include_in_schema=False)
 api_v1_router.include_router(imports_router, prefix="/data-integration/imports")

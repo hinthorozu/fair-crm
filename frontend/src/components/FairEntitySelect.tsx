@@ -17,6 +17,8 @@ export interface FairEntitySelectProps {
   clearOptionLabel?: string;
   /** Fair ids that must not appear in the dropdown (e.g. current source fair). */
   excludeFairIds?: string[];
+  /** System catalog mapping never accepts organization-owned fairs. */
+  systemOnly?: boolean;
 }
 
 function isArchived(fair: Fair): boolean {
@@ -32,6 +34,7 @@ export function FairEntitySelect({
   allowClear = false,
   clearOptionLabel,
   excludeFairIds = [],
+  systemOnly = false,
 }: FairEntitySelectProps) {
   const clearLabel = clearOptionLabel ?? fairLabels.clearSelection;
   const excludedKey = excludeFairIds.filter(Boolean).slice().sort().join("|");
@@ -90,7 +93,7 @@ export function FairEntitySelect({
       if (reqId !== requestIdRef.current) return;
 
       const visible = res.items.filter(
-        (fair) => !isArchived(fair) && !excludedIds.has(fair.id),
+        (fair) => !isArchived(fair) && !excludedIds.has(fair.id) && (!systemOnly || fair.origin === "system"),
       );
       setItems((prev) => {
         if (!append) return visible;
@@ -107,7 +110,7 @@ export function FairEntitySelect({
         setLoadingMore(false);
       }
     }
-  }, [excludedIds]);
+  }, [excludedIds, systemOnly]);
 
   React.useEffect(() => {
     if (!open) return;

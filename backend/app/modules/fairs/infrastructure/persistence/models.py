@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Index, String, Text, Uuid, text
+from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Index, Integer, String, Text, Uuid, text
 from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON
@@ -10,6 +10,41 @@ from sqlalchemy.types import JSON
 from app.db.base import Base
 
 JsonType = JSON().with_variant(SQLiteJSON(), "sqlite")
+
+
+class TobbFairMappingModel(Base):
+    __tablename__ = "crm_tobb_fair_mappings"
+    __table_args__ = (Index("uq_crm_tobb_mapping_identity_city", "identity_name", "city_key", unique=True),)
+    id: Mapped[UUID] = mapped_column(Uuid(), primary_key=True)
+    identity_name: Mapped[str] = mapped_column(String(500), nullable=False)
+    city_key: Mapped[str] = mapped_column(String(500), nullable=False)
+    fair_id: Mapped[UUID] = mapped_column(Uuid(), ForeignKey("crm_fairs.id", ondelete="CASCADE"), nullable=False)
+    decided_by: Mapped[UUID] = mapped_column(Uuid(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class TobbFairReviewModel(Base):
+    __tablename__ = "crm_tobb_fair_reviews"
+    __table_args__ = (
+        Index("uq_crm_tobb_review_pending", "review_key", unique=True,
+              postgresql_where=text("status = 'pending'"), sqlite_where=text("status = 'pending'")),
+        Index("ix_crm_tobb_review_status_kind", "status", "kind"),
+    )
+    id: Mapped[UUID] = mapped_column(Uuid(), primary_key=True)
+    review_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    fair_id: Mapped[UUID | None] = mapped_column(Uuid(), ForeignKey("crm_fairs.id", ondelete="SET NULL"))
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    name: Mapped[str] = mapped_column(Text(), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    version: Mapped[int] = mapped_column(Integer(), nullable=False, default=1)
+    stored_values: Mapped[dict] = mapped_column(JsonType, nullable=False)
+    proposed_values: Mapped[dict] = mapped_column(JsonType, nullable=False)
+    source_row: Mapped[dict] = mapped_column(JsonType, nullable=False)
+    decided_by: Mapped[UUID | None] = mapped_column(Uuid())
+    decision: Mapped[str | None] = mapped_column(String(32))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class SystemFairSeparationModel(Base):
@@ -77,6 +112,7 @@ class FairModel(Base):
     country: Mapped[str | None] = mapped_column(String(100))
     start_date: Mapped[date | None] = mapped_column(Date)
     end_date: Mapped[date | None] = mapped_column(Date)
+    tobb_date_revision: Mapped[int] = mapped_column(Integer(), nullable=False, default=0, server_default="0")
     website: Mapped[str | None] = mapped_column(String(255))
     status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(Text)

@@ -6,6 +6,7 @@ import type { CreateFairPayload, Fair, UpdateFairPayload, FairStatus } from "../
 import type { EnrichmentRunPayload, ScraperRun } from "../types/scraper";
 import { FAIR_READ } from "../permissions/fairPermissions";
 import { getGrantedCorePermissions } from "../permissions/corePermissions";
+import { startTobbPreview } from "./tobb";
 
 const FAIR_READ_DENIED = `Fuar bilgilerini görüntüleme yetkiniz yok (${FAIR_READ}).`;
 
@@ -77,11 +78,21 @@ export interface TobbSyncConflictItem {
   fair_ids: string[];
 }
 
+export interface TobbSyncDateChangeWarning {
+  fair_id: string;
+  name: string;
+  old_start_date: string | null;
+  old_end_date: string | null;
+  new_start_date: string | null;
+  new_end_date: string | null;
+}
+
 export interface SyncTobbSystemFairsResponse {
   inserted: number;
   updated: number;
   conflicts: number;
   conflict_items?: TobbSyncConflictItem[];
+  date_change_warnings?: TobbSyncDateChangeWarning[];
 }
 
 export interface SystemFairDuplicateFair {
@@ -155,11 +166,8 @@ export function keepSystemFairsSeparate(fairIds: string[]): Promise<{ separated:
   });
 }
 
-export function syncTobbSystemFairs(year: number): Promise<SyncTobbSystemFairsResponse> {
-  return apiRequest<SyncTobbSystemFairsResponse>("/api/v1/fairs/system/tobb/sync", {
-    method: "POST",
-    body: JSON.stringify({ year }),
-  });
+export function syncTobbSystemFairs(year: number): ReturnType<typeof startTobbPreview> {
+  return startTobbPreview(year);
 }
 
 export interface CompareSystemFairImportResponse {
