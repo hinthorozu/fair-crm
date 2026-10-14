@@ -596,12 +596,12 @@ if ($fairStandRoot) {
         Write-SetupResult -Name "fair-stand backend/.env" -Status "PASS" -Detail $fairStandEnvPath
     } else {
         Write-SetupResult -Name "fair-stand backend/.env" -Status "FAIL" -Detail (
-            "fair-stand/backend/.env yok. Örnek: Copy-Item fair-stand\backend\.env.example fair-stand\backend\.env"
+            "kyrox-fair-stand/backend/.env yok. Örnek: Copy-Item kyrox-fair-stand\backend\.env.example kyrox-fair-stand\backend\.env"
         )
     }
 } else {
     Write-SetupResult -Name "fair-stand repo" -Status "FAIL" -Detail (
-        "fair-stand kardeş repo bulunamadı (../fair-stand veya FAIR_STAND_ROOT)."
+        "kyrox-fair-stand kardeş repo bulunamadı (../kyrox-fair-stand veya FAIR_STAND_ROOT)."
     )
 }
 

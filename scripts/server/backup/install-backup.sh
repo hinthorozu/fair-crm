@@ -6,7 +6,7 @@
 # Tekrar çalıştırılabilir: önceki cevaplar varsayılan olarak gelir.
 #
 # Kullanım:
-#   sudo bash /opt/kyrox/fair-crm/scripts/server/backup/install-backup.sh
+#   sudo bash /opt/kyrox/kyrox-fair-crm/scripts/server/backup/install-backup.sh
 #
 # Seçenekler:
 #   --yes      Soru sormadan mevcut/varsayılan ayarlarla kur (Drive bağlantısı
@@ -112,7 +112,7 @@ HOST_NAME="$(hostname -f 2>/dev/null || hostname)"
 # Önceki kurulumun cevapları varsayılan olur.
 APP_DIRS=""
 EXCLUDE_NAMES=".venv node_modules dist"
-EXCLUDE_PATHS="fair-crm/backups"
+EXCLUDE_PATHS="kyrox-fair-crm/backups fair-crm/backups"
 PG_CONTAINERS=""
 PG_USER="postgres"
 RCLONE_REMOTE=""

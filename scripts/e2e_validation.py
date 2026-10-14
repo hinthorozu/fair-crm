@@ -75,7 +75,7 @@ REQUIRED_PERMISSIONS = (
 STEP_HINTS: dict[str, str] = {
     "1. PostgreSQL reachable": "Start PostgreSQL (docker compose up -d) and verify postgres://localhost:5432 is reachable.",
     "2. kyrox-core repository present": (
-        "Clone kyrox-core as a sibling of fair-crm or set KYROX_CORE_ROOT to the repository path."
+        "Clone kyrox-core as a sibling of kyrox-fair-crm or set KYROX_CORE_ROOT to the repository path."
     ),
     "3. kyrox-core migrations": (
         f"Run Core migrations: cd kyrox-core && python -m alembic upgrade head "

@@ -682,7 +682,7 @@ function Get-DevFairStandRoot {
     if ($env:FAIR_STAND_ROOT) {
         $candidates += $env:FAIR_STAND_ROOT
     }
-    $candidates += (Join-Path (Split-Path $script:DevRepoRoot -Parent) "fair-stand")
+    $candidates += (Join-Path (Split-Path $script:DevRepoRoot -Parent) "kyrox-fair-stand")
     $candidates += (Join-Path $script:DevRepoRoot "fair-stand")
 
     foreach ($candidate in $candidates) {
@@ -740,7 +740,7 @@ function Invoke-DevFairStandAlembicCommand {
 
     $backendDir = Get-DevFairStandBackendDir
     if (-not $backendDir) {
-        throw "Fair Stand repository not found. Clone fair-stand as a sibling of fair-crm (../fair-stand) or set FAIR_STAND_ROOT."
+        throw "Fair Stand repository not found. Clone kyrox-fair-stand as a sibling of kyrox-fair-crm (../kyrox-fair-stand) or set FAIR_STAND_ROOT."
     }
 
     $stdoutFile = New-TemporaryFile
@@ -813,7 +813,7 @@ function Get-DevFairStandAlembicHeadRevision {
 
 function Invoke-DevFairStandDatabaseMigrations {
     if (-not (Get-DevFairStandRoot)) {
-        throw "Fair Stand repository not found. Clone fair-stand as a sibling of fair-crm (../fair-stand) or set FAIR_STAND_ROOT."
+        throw "Fair Stand repository not found. Clone kyrox-fair-stand as a sibling of kyrox-fair-crm (../kyrox-fair-stand) or set FAIR_STAND_ROOT."
     }
 
     Ensure-DevPostgresDatabaseNamed -DatabaseName (Get-DevFairStandDatabaseName)
@@ -999,7 +999,7 @@ function Start-DevCore {
     $coreRoot = Get-DevKyroxCoreRoot
     if (-not $coreRoot) {
         throw @"
-KYROX Core repository not found. Clone kyrox-core as a sibling of fair-crm (../kyrox-core) or set KYROX_CORE_ROOT to the repository path.
+KYROX Core repository not found. Clone kyrox-core as a sibling of kyrox-fair-crm (../kyrox-core) or set KYROX_CORE_ROOT to the repository path.
 "@
     }
     $coreBackendDir = Join-Path $coreRoot "backend"
@@ -1043,7 +1043,7 @@ function Start-DevBackend {
 function Start-DevFairStand {
     $backendDir = Get-DevFairStandBackendDir
     if (-not $backendDir) {
-        throw "Fair Stand repository not found. Clone fair-stand as a sibling of fair-crm (../fair-stand) or set FAIR_STAND_ROOT."
+        throw "Fair Stand repository not found. Clone kyrox-fair-stand as a sibling of kyrox-fair-crm (../kyrox-fair-stand) or set FAIR_STAND_ROOT."
     }
     New-Item -ItemType Directory -Force -Path $script:DevLogDir | Out-Null
     $standLog = Join-Path $script:DevLogDir "fair-stand-$($script:DevFairStandPort).log"

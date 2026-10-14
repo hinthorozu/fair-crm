@@ -1,3 +1,7 @@
+# Pinned so the project (and its kyrox_pg_data volume) keeps the same name
+# whatever the checkout directory is called, e.g. /opt/kyrox/kyrox-fair-crm.
+name: fair-crm
+
 services:
   postgres:
     image: postgres:18-alpine

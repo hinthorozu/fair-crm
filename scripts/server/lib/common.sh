@@ -22,9 +22,9 @@ MIN_CORE_SEED_MIGRATION_REVISION="${MIN_CORE_SEED_MIGRATION_REVISION:-20260701_0
 # Boş dal = origin HEAD (GitHub varsayılan dal). main diye sabitlenmez.
 EXPECTED_FAIR_CRM_BRANCH="${EXPECTED_FAIR_CRM_BRANCH:-${FAIR_CRM_BRANCH:-}}"
 EXPECTED_KYROX_CORE_BRANCH="${EXPECTED_KYROX_CORE_BRANCH:-${KYROX_CORE_BRANCH:-}}"
-# Kyrox projeleri tek kök altında: ${KYROX_ROOT}/fair-crm, fair-stand, kyrox-core.
+# Kyrox projeleri tek kök altında, GitHub repo adlarıyla: ${KYROX_ROOT}/kyrox-fair-crm, kyrox-fair-stand, kyrox-core.
 KYROX_ROOT="${KYROX_ROOT:-/opt/kyrox}"
-FAIR_STAND_DIR="${FAIR_STAND_DIR:-${KYROX_ROOT}/fair-stand}"
+FAIR_STAND_DIR="${FAIR_STAND_DIR:-${KYROX_ROOT}/kyrox-fair-stand}"
 FAIR_STAND_REPO="${FAIR_STAND_REPO:-https://github.com/kyrox-studio/kyrox-fair-stand.git}"
 EXPECTED_FAIR_STAND_BRANCH="${EXPECTED_FAIR_STAND_BRANCH:-${FAIR_STAND_BRANCH:-}}"
 
@@ -285,8 +285,8 @@ git_head_sha() {
 
 print_integrated_git_commits() {
   echo "kyrox-core=$(git_short_hash "${KYROX_CORE_DIR:-${KYROX_ROOT}/kyrox-core}")"
-  echo "fair-crm=$(git_short_hash "${FAIR_CRM_DIR:-${KYROX_ROOT}/fair-crm}")"
-  echo "fair-stand=$(git_short_hash "${FAIR_STAND_DIR:-${KYROX_ROOT}/fair-stand}")"
+  echo "fair-crm=$(git_short_hash "${FAIR_CRM_DIR:-${KYROX_ROOT}/kyrox-fair-crm}")"
+  echo "fair-stand=$(git_short_hash "${FAIR_STAND_DIR:-${KYROX_ROOT}/kyrox-fair-stand}")"
 }
 
 is_port_listening() {
@@ -1315,8 +1315,8 @@ render_template() {
 
   resolve_deploy_service_user
   core_dir="${KYROX_CORE_DIR:-${KYROX_ROOT}/kyrox-core}"
-  fair_dir="${FAIR_CRM_DIR:-${KYROX_ROOT}/fair-crm}"
-  stand_dir="${FAIR_STAND_DIR:-${KYROX_ROOT}/fair-stand}"
+  fair_dir="${FAIR_CRM_DIR:-${KYROX_ROOT}/kyrox-fair-crm}"
+  stand_dir="${FAIR_STAND_DIR:-${KYROX_ROOT}/kyrox-fair-stand}"
   service_user="$DEPLOY_SERVICE_USER"
 
   [[ -n "$core_dir" && -n "$fair_dir" && -n "$stand_dir" ]] \

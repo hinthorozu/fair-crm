@@ -4,7 +4,7 @@
 # Yedek önce sunucuya (BACKUP_ROOT) yazılır, sonra rclone ile Google Drive'a yüklenir.
 #
 # Kurulum (cron, rclone, ayar dosyası):
-#   sudo bash /opt/kyrox/fair-crm/scripts/server/backup/install-backup.sh
+#   sudo bash /opt/kyrox/kyrox-fair-crm/scripts/server/backup/install-backup.sh
 #
 # Elle çalıştırma:
 #   sudo kyrox-backup
@@ -25,7 +25,7 @@ BACKUP_ROOT="${BACKUP_ROOT:-/var/backups/kyrox}"
 APP_DIRS="${APP_DIRS:-}"
 # Her derinlikte atlanacak, yeniden kurulabilen klasör adları.
 EXCLUDE_NAMES="${EXCLUDE_NAMES:-.venv node_modules dist}"
-# Atlanacak belirli yollar, proje klasörünün üst dizinine göre (ör. fair-crm/backups).
+# Atlanacak belirli yollar, proje klasörünün üst dizinine göre (ör. kyrox-fair-crm/backups).
 EXCLUDE_PATHS="${EXCLUDE_PATHS:-}"
 # Dump alınacak PostgreSQL Docker konteynerleri.
 PG_CONTAINERS="${PG_CONTAINERS:-}"
