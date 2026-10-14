@@ -220,7 +220,7 @@ export function AppLayout({
       >
         <div className="sidebar-header">
           {!sidebarCollapsed ? (
-            <img className="sidebar-brand-logo" src="/sidebar-logo.png" alt="" width={1024} height={341} />
+            <img className="sidebar-brand-logo" src="/sidebar-logo.png" alt="" width={1024} height={326} />
           ) : (
             <SidebarTooltipTarget label={labels.appTitle} collapsed={sidebarCollapsed}>
               <BrandMark className="brand brand--icon" />
