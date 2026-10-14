@@ -1,51 +1,87 @@
-# Günlük yedek (yerel + Google Drive)
+# Günlük yedek (sunucu + Google Drive)
 
-Her gün proje dosyalarını, PostgreSQL veritabanlarını ve sunucu ayarlarını yedekler; yedeği önce sunucuya yazar, sonra Google Drive'a yükler.
+Her gün proje dosyalarını, PostgreSQL veritabanlarını ve sunucu ayarlarını yedekler. Yedek önce sunucuya yazılır, sonra Google Drive'a yüklenir.
 
 | Dosya | Görevi |
 |---|---|
-| `install-backup.sh` | Bir sunucuya kurulum: rclone, Drive bağlantısı, ayar dosyası, cron, logrotate |
-| `kyrox-backup.sh` | Her gece çalışan yedek betiği (`/usr/local/sbin/kyrox-backup` olarak kurulur) |
+| `install-backup.sh` | Kurulum sihirbazı: adım adım sorar, ayarları yazar, cron ve Drive bağlantısını kurar |
+| `kyrox-backup.sh` | Her gece çalışan yedek (`/usr/local/sbin/kyrox-backup` olarak kurulur) |
 
-## Kurulum
+## Kurulum: adım adım
+
+Sunucuya bağlanın ve sihirbazı çalıştırın:
 
 ```bash
 sudo bash /opt/fair-crm/scripts/server/backup/install-backup.sh
 ```
 
-Betik `/opt` altındaki git projelerini ve Docker'daki PostgreSQL konteynerlerini kendisi bulur. Drive bağlantısı için bir kez onay ister:
+Bilgisayarınızdan tek komutla bağlanıp başlatmak için (`-t` şart, yoksa sihirbaz soru soramaz):
 
-1. Tarayıcısı olan bilgisayarda rclone kurun (Windows: `winget install Rclone.Rclone`).
-2. `rclone authorize "drive"` çalıştırın, açılan sayfada Google hesabıyla izin verin.
-3. Çıkan `{"access_token": ...}` satırını sunucudaki soruya yapıştırın.
+```bash
+ssh -t kullanici@sunucu "sudo bash /opt/fair-crm/scripts/server/backup/install-backup.sh"
+```
 
-Kurulum sonunda bir deneme yedeği alınır ve Drive'a yüklenir.
+Her soruda köşeli parantezdeki değer varsayılandır. Kabul etmek için yalnızca Enter'a basın.
 
-Seçenekler: `--time 03:30`, `--remote-name gdrive`, `--drive-folder Kyrox-Yedek`, `--skip-drive` (yalnız yerel), `--no-test`.
+**Adım 1: Proje klasörleri.** Sihirbaz `/opt` altındaki git projelerini bulup gösterir, ör. `[/opt/fair-crm /opt/fair-stand /opt/kyrox-core]`. Doğruysa Enter. Eksik ya da fazla varsa klasörleri boşlukla ayırarak yazın.
+
+**Adım 2: Veritabanları.** Çalışan PostgreSQL Docker konteynerlerini gösterir, ör. `[kyrox-postgres-dev]`. Doğruysa Enter. Konteynerdeki bütün veritabanları yedeklenir.
+
+**Adım 3: Saat.** Yedeğin her gün alınacağı saat, ör. `[03:30]`. Enter ya da `04:00` gibi bir saat.
+
+**Adım 4: Sunucuda kaç gün.** `[3]`. Sunucuda en son kaç günün yedeği tutulsun.
+
+**Adım 5: Google Drive.**
+- `Yedekler Google Drive'a da yüklensin mi? [E/h]`: Enter (evet). Yalnız sunucuda tutmak için `h`.
+- `Drive'daki klasör adı [Kyrox-Yedek]`: Enter.
+- `Drive'da kaç gün [14]`: Enter.
+
+**Adım 6: Özet.** Seçtikleriniz listelenir. `Bu ayarlarla kurulsun mu? [E/h]`: Enter.
+
+**Google hesabı izni (yalnız ilk kurulumda).** Sihirbaz bir token ister. Bu kısım **sunucuda değil, kendi bilgisayarınızda** yapılır:
+
+1. Bilgisayarınızda PowerShell açın, rclone'u kurun (bir kez yeterli):
+   ```bash
+   winget install Rclone.Rclone
+   ```
+   PowerShell'i kapatıp yeniden açın.
+2. Şunu çalıştırın:
+   ```bash
+   rclone authorize "drive"
+   ```
+3. Tarayıcı açılır. Yedeklerin gideceği Google hesabıyla giriş yapıp izin verin. "Success" yazısını görünce PowerShell'e dönün.
+4. PowerShell'de `{"access_token":` ile başlayıp `}` ile biten uzun satırın **tamamını** kopyalayın.
+5. Sunucudaki `Token:` sorusuna yapıştırıp Enter'a basın.
+
+Token yanlışsa sihirbaz tekrar ister. Vazgeçmek için boş bırakıp Enter'a basın; yedek yalnız sunucuda tutulur, Drive'ı sonra sihirbazı tekrar çalıştırarak bağlayabilirsiniz.
+
+**Adım 7: Kurulum.** Sihirbaz ayarları yazar, yedeği zamanlar ve sorar: `Şimdi bir deneme yedeği alınsın mı? [E/h]`. Enter. Birkaç dakika sonra `Deneme yedeği başarılı.` yazısını görürsünüz; Drive'da `Kyrox-Yedek/<sunucu adı>/<tarih>` klasörü oluşur.
+
+Bundan sonra yedek her gün kendiliğinden alınır; bir şey yapmanız gerekmez.
+
+## Sonradan
+
+| Ne | Nasıl |
+|---|---|
+| Ayarları değiştirmek | Sihirbazı tekrar çalıştırın; önceki cevaplar varsayılan olarak gelir |
+| Drive'ı başka hesaba bağlamak | Sihirbazı tekrar çalıştırın, "Başka bir Google hesabına bağlamak ister misiniz?" sorusuna `e` |
+| Elle yedek almak | `sudo kyrox-backup` |
+| Son yedeğin sonucunu görmek | `tail -30 /var/log/kyrox-backup.log` |
+| Soru sormadan kurmak | `sudo bash .../install-backup.sh --yes` (Drive bağlantısı yoksa yalnız sunucuda tutar) |
+
+Google hesabının şifresi değişirse ya da rclone'un erişimi kaldırılırsa Drive yüklemesi durur; logda hata görünür. Sihirbazı tekrar çalıştırıp yeni token yapıştırın.
 
 ## Neler yedeklenir
 
-- **Projeler** (`APP_DIRS`): `.env`, `.git`, yüklenen dosyalar ve `data/` dahil. `.venv`, `node_modules` ve `dist` atlanır; bunlar deploy ile yeniden kurulur. `fair-crm/backups` (uygulamanın kendi dump'ları) atlanır, veritabanları ayrıca yedeklenir.
-- **Veritabanları** (`PG_CONTAINERS`): her konteyner için roller (`__globals.sql`) ve `postgres` dışındaki her veritabanı (`pg_dump -Fc`).
+- **Projeler**: `.env`, `.git`, yüklenen dosyalar ve `data/` dahil. `.venv`, `node_modules` ve `dist` atlanır; bunlar deploy ile yeniden kurulur. `fair-crm/backups` (uygulamanın kendi dump'ları) atlanır, veritabanları ayrıca yedeklenir.
+- **Veritabanları**: her konteyner için roller (`__globals.sql`) ve `postgres` dışındaki her veritabanı (`pg_dump -Fc`).
 - **Sunucu ayarları**: `/etc/nginx`, `/etc/letsencrypt`, `/etc/systemd/system`, `/etc/cron.d`, `/etc/fair-crm`, root crontab, paket ve Docker listeleri.
 
-Her yedek klasöründe `MANIFEST.txt` ve `SHA256SUMS` bulunur. Drive'a yükleme `rclone check` ile doğrulanır.
+Her yedek klasöründe `MANIFEST.txt` ve `SHA256SUMS` bulunur. Drive'a yükleme `rclone check` ile doğrulanır. Drive'daki eski yedekler çöp kutusuna gitmeden silinir.
 
-Yedekler şifrelenmez. `.env` dosyaları ve SSL anahtarları içerdiğinden Drive hesabının güvenliği (iki adımlı doğrulama) önemlidir.
+Yedekler şifrelenmez. `.env` dosyaları ve SSL anahtarları içerdiğinden Google hesabında iki adımlı doğrulama açık olmalı.
 
-## Ayarlar
-
-`/etc/kyrox-backup.env` dosyasından değiştirilir; bir sonraki çalıştırmada geçerli olur.
-
-| Ayar | Varsayılan |
-|---|---|
-| `BACKUP_ROOT` | `/var/backups/kyrox` |
-| `LOCAL_RETENTION_DAYS` | 3 |
-| `REMOTE_RETENTION_DAYS` | 14 (eski yedekler Drive çöp kutusuna gitmeden silinir) |
-| `RCLONE_REMOTE` | `gdrive:Kyrox-Yedek/<sunucu adı>`; boşsa Drive'a yüklenmez |
-| `MIN_FREE_MB` | 2048; daha az boş yer varsa yedek başlamaz |
-
-Log: `/var/log/kyrox-backup.log`. Elle çalıştırma: `sudo kyrox-backup`.
+Ayarlar `/etc/kyrox-backup.env` dosyasındadır (sihirbaz yazar).
 
 ## Geri yükleme
 
