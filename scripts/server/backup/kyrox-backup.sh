@@ -4,7 +4,7 @@
 # Yedek önce sunucuya (BACKUP_ROOT) yazılır, sonra rclone ile Google Drive'a yüklenir.
 #
 # Kurulum (cron, rclone, ayar dosyası):
-#   sudo bash /opt/fair-crm/scripts/server/backup/install-backup.sh
+#   sudo bash /opt/kyrox/fair-crm/scripts/server/backup/install-backup.sh
 #
 # Elle çalıştırma:
 #   sudo kyrox-backup

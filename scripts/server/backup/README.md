@@ -12,18 +12,18 @@ Her gün proje dosyalarını, PostgreSQL veritabanlarını ve sunucu ayarların�
 Sunucuya bağlanın ve sihirbazı çalıştırın:
 
 ```bash
-sudo bash /opt/fair-crm/scripts/server/backup/install-backup.sh
+sudo bash /opt/kyrox/fair-crm/scripts/server/backup/install-backup.sh
 ```
 
 Bilgisayarınızdan tek komutla bağlanıp başlatmak için (`-t` şart, yoksa sihirbaz soru soramaz):
 
 ```bash
-ssh -t kullanici@sunucu "sudo bash /opt/fair-crm/scripts/server/backup/install-backup.sh"
+ssh -t kullanici@sunucu "sudo bash /opt/kyrox/fair-crm/scripts/server/backup/install-backup.sh"
 ```
 
 Her soruda köşeli parantezdeki değer varsayılandır. Kabul etmek için yalnızca Enter'a basın.
 
-**Adım 1: Proje klasörleri.** Sihirbaz `/opt` altındaki git projelerini bulup gösterir, ör. `[/opt/fair-crm /opt/fair-stand /opt/kyrox-core]`. Doğruysa Enter. Eksik ya da fazla varsa klasörleri boşlukla ayırarak yazın.
+**Adım 1: Proje klasörleri.** Sihirbaz `/opt/kyrox` (ve eski düzen için `/opt`) altındaki git projelerini bulup gösterir, ör. `[/opt/kyrox/fair-crm /opt/kyrox/fair-stand /opt/kyrox/kyrox-core]`. Doğruysa Enter. Eksik ya da fazla varsa klasörleri boşlukla ayırarak yazın.
 
 **Adım 2: Veritabanları.** Çalışan PostgreSQL Docker konteynerlerini gösterir, ör. `[kyrox-postgres-dev]`. Doğruysa Enter. Konteynerdeki bütün veritabanları yedeklenir.
 
