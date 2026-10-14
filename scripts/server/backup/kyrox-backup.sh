@@ -67,7 +67,7 @@ chmod 700 "$BACKUP_ROOT"
 free_mb="$(df -Pm "$BACKUP_ROOT" | awk 'NR==2 {print $4}')"
 (( free_mb >= MIN_FREE_MB )) || die "${BACKUP_ROOT} üzerinde yeterli yer yok: ${free_mb} MB boş, en az ${MIN_FREE_MB} MB gerekli"
 
-STAMP="$(date +%Y-%m-%d_%H%M)"
+STAMP="$(date +%Y-%m-%d_%H%M%S)"
 DEST="${BACKUP_ROOT}/${STAMP}"
 PARTIAL="${DEST}.partial"
 [[ ! -e "$DEST" ]] || die "${DEST} zaten var"
@@ -172,7 +172,7 @@ else
 fi
 
 # 5) Yerel saklama
-find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d -name '20??-??-??_????' \
+find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d -name '20??-??-??_??????' \
   -mmin +$(( LOCAL_RETENTION_DAYS * 1440 )) -exec rm -rf -- {} +
 find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d -name '*.partial' -mmin +1440 -exec rm -rf -- {} +
 log "Yerelde ${LOCAL_RETENTION_DAYS} günden eski yedekler temizlendi"
