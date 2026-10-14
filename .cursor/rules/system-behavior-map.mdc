@@ -6,7 +6,7 @@ alwaysApply: true
 
 For any material change to UI actions, API calls, backend routes, permissions, organization scoping, jobs, workers, webhooks or side effects:
 
-1. Read the canonical KYROX standard at `hinthorozu/kyrox-platform/standards/development/SYSTEM_BEHAVIOR_MAP_STANDARD.md` together with the existing Feature Delivery and Quality Gate standards.
+1. Read the canonical KYROX standard at `kyrox-studio/kyrox-platform/standards/development/SYSTEM_BEHAVIOR_MAP_STANDARD.md` together with the existing Feature Delivery and Quality Gate standards.
 2. Inspect the existing implementation before editing; do not infer behavior from names alone.
 3. Preserve the separation between authorization and organization/tenant isolation.
 4. Update implementation, tests and feature contracts when applicable.
