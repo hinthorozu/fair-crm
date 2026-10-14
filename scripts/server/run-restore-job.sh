@@ -21,10 +21,10 @@
 #   # additionally for a Stand restore: sudo systemctl stop fair-stand
 #   export ALLOW_RESTORE=true
 #   export TARGET_DATABASE_URL='postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/fair_crm'
-#   sudo -E /opt/fair-crm/scripts/server/run-restore-job.sh <restore-job-uuid>
+#   sudo -E /opt/kyrox/kyrox-fair-crm/scripts/server/run-restore-job.sh <restore-job-uuid>
 #
 # Optional:
-#   FAIR_CRM_DIR=/opt/fair-crm
+#   FAIR_CRM_DIR=/opt/kyrox/kyrox-fair-crm
 #   RESTART_BACKEND=1   # restart appropriate services only after certified success
 #
 set -euo pipefail

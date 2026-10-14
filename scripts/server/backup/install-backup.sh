@@ -6,7 +6,7 @@
 # Tekrar çalıştırılabilir: önceki cevaplar varsayılan olarak gelir.
 #
 # Kullanım:
-#   sudo bash /opt/fair-crm/scripts/server/backup/install-backup.sh
+#   sudo bash /opt/kyrox/kyrox-fair-crm/scripts/server/backup/install-backup.sh
 #
 # Seçenekler:
 #   --yes      Soru sormadan mevcut/varsayılan ayarlarla kur (Drive bağlantısı
@@ -112,7 +112,7 @@ HOST_NAME="$(hostname -f 2>/dev/null || hostname)"
 # Önceki kurulumun cevapları varsayılan olur.
 APP_DIRS=""
 EXCLUDE_NAMES=".venv node_modules dist"
-EXCLUDE_PATHS="fair-crm/backups"
+EXCLUDE_PATHS="kyrox-fair-crm/backups fair-crm/backups"
 PG_CONTAINERS=""
 PG_USER="postgres"
 RCLONE_REMOTE=""
@@ -143,14 +143,25 @@ fi
 
 # ADIM 1: projeler
 step_title 1 "Yedeklenecek proje klasörleri"
+KYROX_ROOT="${KYROX_ROOT:-/opt/kyrox}"
 discovered_apps=()
-for dir in /opt/*/; do
+# Projeler ${KYROX_ROOT} altında; eski düzendeki sunucular için /opt de taranır.
+for dir in "${KYROX_ROOT}"/*/ /opt/*/; do
   dir="${dir%/}"
-  [[ -d "${dir}/.git" ]] && discovered_apps+=("$dir")
+  [[ -d "${dir}/.git" && ! -L "$dir" ]] && discovered_apps+=("$dir")
 done
-echo "/opt altında bulunan git projeleri: ${discovered_apps[*]:-(yok)}"
+echo "Bulunan git projeleri (${KYROX_ROOT} ve /opt): ${discovered_apps[*]:-(yok)}"
 echo "Klasörleri boşlukla ayırarak yazın. .venv, node_modules ve dist her zaman atlanır."
-default_apps="${APP_DIRS:-${discovered_apps[*]:-}}"
+# Önceki cevaptaki klasörler artık yoksa (ör. taşındıysa) bulunanlar önerilir.
+existing_apps=()
+for dir in $APP_DIRS; do
+  [[ -d "$dir" ]] && existing_apps+=("$dir")
+done
+if (( ${#existing_apps[@]} > 0 )); then
+  default_apps="${existing_apps[*]}"
+else
+  default_apps="${discovered_apps[*]:-}"
+fi
 APP_DIRS="$(ask "Proje klasörleri" "$default_apps")"
 for dir in $APP_DIRS; do
   [[ -d "$dir" ]] || echo "  UYARI: ${dir} şu an yok; yedek alınırken atlanır."

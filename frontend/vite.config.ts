@@ -5,7 +5,9 @@ import { defineConfig, type PreviewServer, type ViteDevServer } from "vite";
 import react from "@vitejs/plugin-react";
 
 const frontendRoot = path.dirname(fileURLToPath(import.meta.url));
-const fairStandRoot = path.resolve(frontendRoot, "../../fair-stand");
+// Sibling Fair Stand checkout, named like its GitHub repo (kyrox-fair-stand).
+const fairStandRoot =
+  process.env.FAIR_STAND_ROOT || path.resolve(frontendRoot, "../../kyrox-fair-stand");
 const fairStandSrc = path.resolve(fairStandRoot, "src");
 const fairStandPublic = path.resolve(fairStandRoot, "public");
 const fairStandFallbackSrc = path.resolve(frontendRoot, "src/fairStand");

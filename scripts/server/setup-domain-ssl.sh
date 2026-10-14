@@ -5,13 +5,13 @@
 # Run after bootstrap-server.sh and application deploy are complete.
 #
 # Usage:
-#   sudo bash /opt/fair-crm/scripts/server/setup-domain-ssl.sh \
+#   sudo bash /opt/kyrox/kyrox-fair-crm/scripts/server/setup-domain-ssl.sh \
 #     --domain fuar.kyrox.studio \
 #     --email admin@fuar.kyrox.studio
 #
 # Optional:
 #   --server-ip 64.226.110.223
-#   --fair-crm-dir /opt/fair-crm
+#   --fair-crm-dir /opt/kyrox/kyrox-fair-crm
 #   --skip-renewal-dry-run
 #
 set -euo pipefail
@@ -23,7 +23,7 @@ source "${SCRIPT_DIR}/lib/common.sh"
 DOMAIN="${DOMAIN:-}"
 ADMIN_EMAIL="${ADMIN_EMAIL:-}"
 SERVER_PUBLIC_IP="${SERVER_PUBLIC_IP:-}"
-FAIR_CRM_DIR="${FAIR_CRM_DIR:-/opt/fair-crm}"
+FAIR_CRM_DIR="${FAIR_CRM_DIR:-${KYROX_ROOT}/kyrox-fair-crm}"
 NGINX_SITE_NAME="${NGINX_SITE_NAME:-fair-crm}"
 SKIP_RENEWAL_DRY_RUN="${SKIP_RENEWAL_DRY_RUN:-0}"
 SERVER_BOOTSTRAP_ENV_FILE="${SERVER_BOOTSTRAP_ENV_FILE:-/etc/fair-crm/server-bootstrap.env}"
@@ -51,7 +51,7 @@ Required:
 
 Optional:
   --server-ip <ipv4>           Expected server public IPv4. Auto-detected if omitted.
-  --fair-crm-dir <path>        FAIR CRM checkout. Default: /opt/fair-crm
+  --fair-crm-dir <path>        FAIR CRM checkout. Default: /opt/kyrox/kyrox-fair-crm
   --skip-renewal-dry-run       Skip `certbot renew --dry-run`
   -h, --help                   Show this help
 

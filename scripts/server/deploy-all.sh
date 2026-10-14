@@ -3,7 +3,7 @@
 # Application deploy/update for KYROX Core + Fair Stand API + Fair CRM.
 # One command brings up all three processes (core :8000, stand :8002, crm :8001).
 # Fair Stand source is also pulled so CRM Vite can compile the configurator mount.
-# Stand-only API refresh remains /opt/fair-stand/scripts/server/deploy.sh.
+# Stand-only API refresh remains /opt/kyrox/kyrox-fair-stand/scripts/server/deploy.sh.
 # Run after bootstrap-server.sh on fresh servers, or alone for updates.
 #
 # Safe deploy contract (backup/restore compatible):
@@ -20,15 +20,15 @@
 #   - Does not run Fair Stand catalog reseed. That script deletes catalog rows.
 #
 # Usage (on server) — this is the normal update path:
-#   sudo bash /opt/fair-crm/scripts/server/deploy-all.sh
+#   sudo bash /opt/kyrox/kyrox-fair-crm/scripts/server/deploy-all.sh
 #
 # Domain/SSL one-time (or domain change) is separate:
-#   sudo bash /opt/fair-crm/scripts/server/setup-domain-ssl.sh --domain fuar.kyrox.studio --email admin@fuar.kyrox.studio
+#   sudo bash /opt/kyrox/kyrox-fair-crm/scripts/server/setup-domain-ssl.sh --domain fuar.kyrox.studio --email admin@fuar.kyrox.studio
 #
 # Optional environment overrides:
-#   KYROX_CORE_DIR=/opt/kyrox-core
-#   FAIR_CRM_DIR=/opt/fair-crm
-#   FAIR_STAND_DIR=/opt/fair-stand
+#   KYROX_CORE_DIR=/opt/kyrox/kyrox-core
+#   FAIR_CRM_DIR=/opt/kyrox/kyrox-fair-crm
+#   FAIR_STAND_DIR=/opt/kyrox/kyrox-fair-stand
 #   KYROX_CORE_BRANCH=   boşsa origin varsayılan dalı
 #   FAIR_CRM_BRANCH=     boşsa origin varsayılan dalı
 #   FAIR_STAND_BRANCH=   boşsa origin varsayılan dalı
@@ -56,9 +56,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "${SCRIPT_DIR}/lib/common.sh"
 
-KYROX_CORE_DIR="${KYROX_CORE_DIR:-/opt/kyrox-core}"
+KYROX_CORE_DIR="${KYROX_CORE_DIR:-${KYROX_ROOT}/kyrox-core}"
 FAIR_CRM_DIR="${FAIR_CRM_DIR:-$(cd "${SCRIPT_DIR}/../.." && pwd)}"
-FAIR_STAND_DIR="${FAIR_STAND_DIR:-/opt/fair-stand}"
+FAIR_STAND_DIR="${FAIR_STAND_DIR:-${KYROX_ROOT}/kyrox-fair-stand}"
 KYROX_CORE_REPO="${KYROX_CORE_REPO:-https://github.com/kyrox-studio/kyrox-core.git}"
 FAIR_STAND_REPO="${FAIR_STAND_REPO:-https://github.com/kyrox-studio/kyrox-fair-stand.git}"
 DEPLOY_SERVICE_USER="${DEPLOY_SERVICE_USER:-${SUDO_USER:-$(id -un)}}"

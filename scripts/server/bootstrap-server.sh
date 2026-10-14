@@ -7,26 +7,26 @@
 # After bootstrap, run deploy-all.sh for application deployment/updates.
 #
 # Usage:
-#   sudo bash /opt/fair-crm/scripts/server/bootstrap-server.sh
+#   sudo bash /opt/kyrox/kyrox-fair-crm/scripts/server/bootstrap-server.sh
 #
 # Fresh Ubuntu (empty server):
 #   sudo apt update && sudo apt install -y git
-#   sudo git clone -b main https://github.com/kyrox-studio/kyrox-fair-crm.git /opt/fair-crm
-#   sudo bash /opt/fair-crm/scripts/server/bootstrap-server.sh
-#   sudo nano /opt/fair-crm/backend/.env
-#   sudo bash /opt/fair-crm/scripts/server/deploy-all.sh
-#   sudo bash /opt/fair-crm/scripts/server/check-server.sh
+#   sudo git clone -b main https://github.com/kyrox-studio/kyrox-fair-crm.git /opt/kyrox/kyrox-fair-crm
+#   sudo bash /opt/kyrox/kyrox-fair-crm/scripts/server/bootstrap-server.sh
+#   sudo nano /opt/kyrox/kyrox-fair-crm/backend/.env
+#   sudo bash /opt/kyrox/kyrox-fair-crm/scripts/server/deploy-all.sh
+#   sudo bash /opt/kyrox/kyrox-fair-crm/scripts/server/check-server.sh
 #
 # Interactive fresh-server setup asks for missing operator-controlled values.
 # Re-runs reuse values persisted in /etc/fair-crm/server-bootstrap.env.
 # Existing files/settings are preserved whenever possible.
 #
 # Optional environment overrides:
-#   FAIR_CRM_DIR=/opt/fair-crm
+#   FAIR_CRM_DIR=/opt/kyrox/kyrox-fair-crm
 #   FAIR_CRM_REPO=https://github.com/kyrox-studio/kyrox-fair-crm.git
 #   FAIR_CRM_BRANCH=     boşsa origin varsayılan dalı
-#   KYROX_CORE_DIR=/opt/kyrox-core
-#   FAIR_STAND_DIR=/opt/fair-stand
+#   KYROX_CORE_DIR=/opt/kyrox/kyrox-core
+#   FAIR_STAND_DIR=/opt/kyrox/kyrox-fair-stand
 #   FAIR_STAND_REPO=https://github.com/kyrox-studio/kyrox-fair-stand.git
 #   FAIR_STAND_BRANCH=   boşsa origin varsayılan dalı
 #   DEPLOY_SERVICE_USER=ubuntu
@@ -55,9 +55,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "${SCRIPT_DIR}/lib/common.sh"
 
-FAIR_CRM_DIR="${FAIR_CRM_DIR:-/opt/fair-crm}"
-KYROX_CORE_DIR="${KYROX_CORE_DIR:-/opt/kyrox-core}"
-FAIR_STAND_DIR="${FAIR_STAND_DIR:-/opt/fair-stand}"
+FAIR_CRM_DIR="${FAIR_CRM_DIR:-${KYROX_ROOT}/kyrox-fair-crm}"
+KYROX_CORE_DIR="${KYROX_CORE_DIR:-${KYROX_ROOT}/kyrox-core}"
+FAIR_STAND_DIR="${FAIR_STAND_DIR:-${KYROX_ROOT}/kyrox-fair-stand}"
 FAIR_CRM_REPO="${FAIR_CRM_REPO:-https://github.com/kyrox-studio/kyrox-fair-crm.git}"
 FAIR_CRM_BRANCH="${FAIR_CRM_BRANCH:-}"
 FAIR_STAND_REPO="${FAIR_STAND_REPO:-https://github.com/kyrox-studio/kyrox-fair-stand.git}"
@@ -531,7 +531,7 @@ print_bootstrap_report() {
   echo "FAIR_STAND_BRANCH: ${FAIR_STAND_BRANCH}"
   echo ""
   echo "Next steps:"
-  echo "  1) Review /opt/fair-crm/backend/.env (JWT, DATABASE_URL, KYROX_CORE_BASE_URL)"
+  echo "  1) Review /opt/kyrox/kyrox-fair-crm/backend/.env (JWT, DATABASE_URL, KYROX_CORE_BASE_URL)"
   echo "  2) sudo bash ${FAIR_CRM_DIR}/scripts/server/deploy-all.sh  # clones Core+Stand if needed, creates fair_stand DB, starts core/stand/crm"
   echo "  3) sudo bash ${FAIR_CRM_DIR}/scripts/server/check-server.sh"
   echo "======================================"

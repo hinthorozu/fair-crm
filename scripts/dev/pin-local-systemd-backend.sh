@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Pin systemd 8001 to this Fair CRM checkout instead of /opt/fair-crm.
+# Pin systemd 8001 to this Fair CRM checkout instead of /opt/kyrox/kyrox-fair-crm.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WS="$(cd "$SCRIPT_DIR/../.." && pwd)"
 DROP="/etc/systemd/system/fair-crm-backend.service.d"
 mkdir -p "$DROP"
 cat > "$DROP/local-workspace.conf" <<EOF
-# Local-dev override: 8001 serves the Kyrox workspace Fair CRM, not /opt/fair-crm.
+# Local-dev override: 8001 serves the Kyrox workspace Fair CRM, not /opt/kyrox/kyrox-fair-crm.
 [Service]
 WorkingDirectory=$WS/backend
 Environment=PYTHONPATH=$WS/backend
 EnvironmentFile=-$WS/backend/.env
 ExecStart=
-ExecStart=/opt/fair-crm/backend/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
+ExecStart=/opt/kyrox/kyrox-fair-crm/backend/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
 EOF
 systemctl daemon-reload
 systemctl enable fair-crm-backend.service

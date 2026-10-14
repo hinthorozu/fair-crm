@@ -3,7 +3,7 @@
 # Read-only health audit for KYROX Core + Fair Stand API + Fair CRM.
 #
 # Usage:
-#   sudo bash /opt/fair-crm/scripts/server/check-server.sh
+#   sudo bash /opt/kyrox/kyrox-fair-crm/scripts/server/check-server.sh
 #
 # Exit codes:
 #   0 = HEALTHY (or DEGRADED unless CHECK_STRICT=1)
@@ -16,9 +16,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
 
 CHECK_QUIET=1
-KYROX_CORE_DIR="${KYROX_CORE_DIR:-/opt/kyrox-core}"
+KYROX_CORE_DIR="${KYROX_CORE_DIR:-${KYROX_ROOT}/kyrox-core}"
 FAIR_CRM_DIR="${FAIR_CRM_DIR:-$(cd "${SCRIPT_DIR}/../.." && pwd)}"
-FAIR_STAND_DIR="${FAIR_STAND_DIR:-/opt/fair-stand}"
+FAIR_STAND_DIR="${FAIR_STAND_DIR:-${KYROX_ROOT}/kyrox-fair-stand}"
 CORE_PORT="${CORE_PORT:-8000}"
 FAIR_CRM_PORT="${FAIR_CRM_PORT:-8001}"
 STAND_PORT="${STAND_PORT:-8002}"
