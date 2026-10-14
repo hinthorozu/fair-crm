@@ -33,7 +33,7 @@
 #   FAIR_CRM_BRANCH=     boşsa origin varsayılan dalı
 #   FAIR_STAND_BRANCH=   boşsa origin varsayılan dalı
 #   KYROX_CORE_REPO=https://github.com/kyrox-studio/kyrox-core.git
-#   FAIR_STAND_REPO=https://github.com/kyrox-studio/fair-stand.git
+#   FAIR_STAND_REPO=https://github.com/kyrox-studio/kyrox-fair-stand.git
 #   DEPLOY_SERVICE_USER=ubuntu
 #   SKIP_FRONTEND_BUILD=1
 #   SKIP_NODE=1
@@ -60,7 +60,7 @@ KYROX_CORE_DIR="${KYROX_CORE_DIR:-/opt/kyrox-core}"
 FAIR_CRM_DIR="${FAIR_CRM_DIR:-$(cd "${SCRIPT_DIR}/../.." && pwd)}"
 FAIR_STAND_DIR="${FAIR_STAND_DIR:-/opt/fair-stand}"
 KYROX_CORE_REPO="${KYROX_CORE_REPO:-https://github.com/kyrox-studio/kyrox-core.git}"
-FAIR_STAND_REPO="${FAIR_STAND_REPO:-https://github.com/kyrox-studio/fair-stand.git}"
+FAIR_STAND_REPO="${FAIR_STAND_REPO:-https://github.com/kyrox-studio/kyrox-fair-stand.git}"
 DEPLOY_SERVICE_USER="${DEPLOY_SERVICE_USER:-${SUDO_USER:-$(id -un)}}"
 
 CORE_PORT="${CORE_PORT:-8000}"

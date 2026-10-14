@@ -11,7 +11,7 @@
 #
 # Fresh Ubuntu (empty server):
 #   sudo apt update && sudo apt install -y git
-#   sudo git clone -b main https://github.com/kyrox-studio/fair-crm.git /opt/fair-crm
+#   sudo git clone -b main https://github.com/kyrox-studio/kyrox-fair-crm.git /opt/fair-crm
 #   sudo bash /opt/fair-crm/scripts/server/bootstrap-server.sh
 #   sudo nano /opt/fair-crm/backend/.env
 #   sudo bash /opt/fair-crm/scripts/server/deploy-all.sh
@@ -23,11 +23,11 @@
 #
 # Optional environment overrides:
 #   FAIR_CRM_DIR=/opt/fair-crm
-#   FAIR_CRM_REPO=https://github.com/kyrox-studio/fair-crm.git
+#   FAIR_CRM_REPO=https://github.com/kyrox-studio/kyrox-fair-crm.git
 #   FAIR_CRM_BRANCH=     boşsa origin varsayılan dalı
 #   KYROX_CORE_DIR=/opt/kyrox-core
 #   FAIR_STAND_DIR=/opt/fair-stand
-#   FAIR_STAND_REPO=https://github.com/kyrox-studio/fair-stand.git
+#   FAIR_STAND_REPO=https://github.com/kyrox-studio/kyrox-fair-stand.git
 #   FAIR_STAND_BRANCH=   boşsa origin varsayılan dalı
 #   DEPLOY_SERVICE_USER=ubuntu
 #   FAIR_CRM_DOMAIN=fuar.kyrox.studio
@@ -58,9 +58,9 @@ source "${SCRIPT_DIR}/lib/common.sh"
 FAIR_CRM_DIR="${FAIR_CRM_DIR:-/opt/fair-crm}"
 KYROX_CORE_DIR="${KYROX_CORE_DIR:-/opt/kyrox-core}"
 FAIR_STAND_DIR="${FAIR_STAND_DIR:-/opt/fair-stand}"
-FAIR_CRM_REPO="${FAIR_CRM_REPO:-https://github.com/kyrox-studio/fair-crm.git}"
+FAIR_CRM_REPO="${FAIR_CRM_REPO:-https://github.com/kyrox-studio/kyrox-fair-crm.git}"
 FAIR_CRM_BRANCH="${FAIR_CRM_BRANCH:-}"
-FAIR_STAND_REPO="${FAIR_STAND_REPO:-https://github.com/kyrox-studio/fair-stand.git}"
+FAIR_STAND_REPO="${FAIR_STAND_REPO:-https://github.com/kyrox-studio/kyrox-fair-stand.git}"
 FAIR_STAND_BRANCH="${FAIR_STAND_BRANCH:-}"
 DEPLOY_SERVICE_USER="${DEPLOY_SERVICE_USER:-${SUDO_USER:-$(id -un)}}"
 
