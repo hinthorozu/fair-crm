@@ -6,6 +6,7 @@ Her gün proje dosyalarını, PostgreSQL veritabanlarını ve sunucu ayarların�
 |---|---|
 | `install-backup.sh` | Kurulum sihirbazı: adım adım sorar, ayarları yazar, cron ve Drive bağlantısını kurar |
 | `kyrox-backup.sh` | Her gece çalışan yedek (`/usr/local/sbin/kyrox-backup` olarak kurulur) |
+| `kyrox-restore.sh` | Geri yükleme sihirbazı ve `--deneme` ile canlıya dokunmayan tatbikat (aşağıda) |
 
 ## Kurulum: adım adım
 
@@ -85,27 +86,45 @@ Yedekler şifrelenmez. `.env` dosyaları ve SSL anahtarları içerdiğinden Goog
 
 Ayarlar `/etc/kyrox-backup.env` dosyasındadır (sihirbaz yazar).
 
-## Geri yükleme
+## Geri yükleme: `kyrox-restore.sh`
+
+### Tatbikat (canlıya dokunmaz)
+
+Yedeğin gerçekten geri yüklenebildiğini, çalışan sunucuda hiçbir şeyi değiştirmeden sınar:
 
 ```bash
-# Drive'dan indir
-rclone copy gdrive:Kyrox-Yedek/<sunucu>/<tarih> /root/restore
-cd /root/restore && sha256sum -c SHA256SUMS
-
-# Proje dosyaları
-tar -C /opt -xzpf app/fair-crm.tar.gz
-
-# Veritabanı (önce roller, sonra veritabanı)
-docker exec -i kyrox-db psql -U postgres < db/kyrox-db__globals.sql
-docker exec -i kyrox-db pg_restore -U postgres -d postgres --create --clean --if-exists < db/kyrox-db__fair_crm.dump
-
-# kyrox.studio (WordPress): önce kapsayıcıları başlatın (kyrox-web/sunucu, docker compose up -d)
-docker stop kyrox-web
-zcat db/kyrox-web-db__all.sql.gz | docker exec -i kyrox-web-db sh -c 'exec mariadb -uroot -p"$MARIADB_ROOT_PASSWORD"'
-tar -C "$(docker volume inspect -f '{{.Mountpoint}}' kyrox-web-html)" -xzpf volume/kyrox-web-html.tar.gz
-docker start kyrox-web
+ssh -t kullanici@sunucu "sudo bash /opt/kyrox/kyrox-fair-crm/scripts/server/backup/kyrox-restore.sh --deneme"
 ```
 
-Yedek sihirbazı MariaDB konteynerlerini ve WordPress'in volume'larını kendisi bulur; kyrox.studio kurulduktan sonra sihirbazı bir kez tekrar çalıştırmak yeterlidir.
+Sağlama toplamlarını ve arşivleri kontrol eder. PostgreSQL dökümlerini geçici bir kapsayıcıya açıp tablo sayılarını dökümle karşılaştırır, MariaDB dökümünü de geçici bir kapsayıcıya açar. Proje, volume ve ayar arşivlerindeki dosyaları sayar. Bitince geçici kapsayıcıları siler. En son `Tatbikat başarılı` yazmalı.
 
-Ardından `.venv` ve `node_modules` için `scripts/server/deploy-all.sh` çalıştırılır.
+### Yeni sunucuya taşıma
+
+1. Boş Ubuntu'da altyapıyı kurun:
+   ```bash
+   sudo apt update && sudo apt install -y git
+   sudo git clone https://github.com/kyrox-studio/kyrox-fair-crm.git /opt/kyrox/kyrox-fair-crm
+   sudo bash /opt/kyrox/kyrox-fair-crm/scripts/server/bootstrap-server.sh
+   ```
+2. Sihirbazı çalıştırın:
+   ```bash
+   sudo bash /opt/kyrox/kyrox-fair-crm/scripts/server/backup/kyrox-restore.sh
+   ```
+
+| Adım | Ne olur | Ne yazarsınız |
+|---|---|---|
+| 1. Ön kontroller | root, docker; sunucuda çalışan Kyrox servisi varsa uyarır ve onay ister (varsayılan hayır) | — |
+| 2. Yedeği seç | Sunucudaki yedekleri listeler; yoksa ya da istemezseniz Drive'dan seçtirir (gerekirse Drive token'ı ister, kurulumdaki gibi) | numara (Enter = en yeni) |
+| 3. Sağlamlık | `SHA256SUMS` ve bütün arşivler kontrol edilir; içerik listelenir | — |
+| 4. Neler | Projeler, PostgreSQL, WordPress, sunucu ayarları ayrı ayrı sorulur; Kyrox servisleri durdurulur | Enter… |
+| 5. Projeler | `/opt/kyrox/<ad>` olarak açılır (`.env` dahil). Var olan klasör silinmez, kenara alınır. Eski düzenin `fair-crm` yedeği `kyrox-fair-crm` olarak açılır | — |
+| 6. PostgreSQL | `kyrox-db` gerekirse başlatılır; önce roller, sonra her veritabanı geri yüklenir. Var olan veritabanının önce kopyası alınır. Tablo sayısı dökümle karşılaştırılır | Enter, onay |
+| 7. WordPress | MariaDB dökümü ve WordPress dosyaları (`kyrox-web-html`) geri yüklenir; önceki halin kopyası alınır | — |
+| 8. Sunucu ayarları | nginx, SSL sertifikaları, Kyrox servis tanımları, cron, `/etc/fair-crm`, yedek ayarı ayrı ayrı sorulur. `nginx -t` geçmezse nginx yeniden yüklenmez | Enter… |
+| 9. Başlat | `deploy-all.sh` (bağımlılıklar, şema güncellemesi, servisler) çalıştırılır; sağlık kontrolü yazılır | Enter |
+
+Üzerine yazılan her şeyin (klasörler, veritabanları, volume'lar, ayar dosyaları) kopyası `/var/backups/kyrox/geri-yukleme-oncesi-<tarih>/` altında kalır.
+
+3. Bilgisayarınızın `hosts` dosyasına yeni IP'yi yazıp siteleri deneyin. Eski sunucu bu sırada çalışmaya devam eder.
+4. Natro'da A kayıtlarını yeni IP'ye çevirin. MX kayıtlarına dokunmayın.
+5. Gece yedeğini yeni sunucuda kurun (`install-backup.sh`); DNS yayılınca `sudo certbot renew --dry-run`.
