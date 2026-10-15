@@ -21,7 +21,9 @@ param(
     [string]$NewVolume = "kyrox-db-data",
     # Test için: başka bir docker-compose.yml klasörü ve dev süreçlerine dokunmama.
     [string]$ComposeDir = "",
-    [switch]$SkipDevStop
+    [switch]$SkipDevStop,
+    # Önceki başarısız bir denemeden kalan yeni volume'u silip baştan kopyala.
+    [switch]$DiscardStaleNewVolume
 )
 
 Set-StrictMode -Version Latest
@@ -82,9 +84,28 @@ function Get-DbSnapshot([string]$Container) {
 
 function Write-Rollback {
     Write-Host ""
-    Write-Host "Geri donmek icin (eski volume ve konteyner duruyor):"
+    Write-Host "Sonradan geri dönmek gerekirse (eski volume ve konteyner duruyor):"
     Write-Host "  docker stop $NewContainer"
     Write-Host "  docker start $OldContainer"
+}
+
+# Eski konteyner durdurulduktan sonra bir adım başarısız olursa eski düzene döner:
+# bu çalıştırmada oluşan yeni konteyner ve kopya kaldırılır, eski konteyner başlatılır.
+$script:OldStopped = $false
+$script:NewVolumeCreated = $false
+$script:NewStarted = $false
+function Invoke-Rollback {
+    if ($script:NewStarted) { Test-DockerCommand rm -f $NewContainer | Out-Null }
+    if ($script:NewVolumeCreated) { Test-DockerCommand volume rm $NewVolume | Out-Null }
+    if ($script:OldStopped) {
+        Write-Step "Geri alınıyor: $OldContainer başlatılıyor"
+        Test-DockerCommand start $OldContainer | Out-Null
+        for ($i = 0; $i -lt 30; $i++) {
+            if (Test-DockerCommand exec $OldContainer pg_isready -U $PgUser -q) { break }
+            Start-Sleep -Seconds 2
+        }
+        Write-Step "Eski düzene dönüldü; eski volume'a dokunulmadı. Dev ortamı için: .\scripts\dev\reset-dev.ps1"
+    }
 }
 
 if (-not (Select-String -Path $ComposeFile -Pattern "container_name: $NewContainer" -Quiet) -or
@@ -98,8 +119,16 @@ if ((Test-DockerObject "container" $NewContainer) -and -not (Test-ContainerRunni
 }
 if (-not (Test-DockerObject "container" $OldContainer)) { throw "$OldContainer konteyneri yok." }
 if (-not (Test-DockerObject "volume" $OldVolume)) { throw "$OldVolume volume'u yok." }
-if (Test-DockerObject "volume" $NewVolume) { throw "$NewVolume zaten var; üzerine yazmamak için durduruldu." }
 if (-not (Test-ContainerRunning $OldContainer)) { throw "$OldContainer çalışmıyor; önce Docker Desktop'ı ve konteyneri başlatın." }
+if (Test-DockerObject "volume" $NewVolume) {
+    $kullanan = @(Invoke-Docker ps -a --filter "volume=$NewVolume" --format "{{.Names}}" | Where-Object { $_ })
+    if ($DiscardStaleNewVolume -and $kullanan.Count -eq 0) {
+        Write-Step "Önceki denemeden kalan $NewVolume siliniyor (hiçbir konteyner kullanmıyor; eski volume çalışır durumda)"
+        Invoke-Docker volume rm $NewVolume | Out-Null
+    } else {
+        throw "$NewVolume zaten var; üzerine yazmamak için durduruldu. Önceki başarısız denemeden kaldıysa -DiscardStaleNewVolume ile çalıştırın."
+    }
+}
 $image = (Invoke-Docker inspect -f "{{.Config.Image}}" $OldContainer | Select-Object -First 1).ToString().Trim()
 
 try {
@@ -125,18 +154,23 @@ try {
     }
 
     Write-Step "4) $OldContainer durduruluyor (silinmiyor)"
+    $script:OldStopped = $true
     Invoke-Docker stop $OldContainer | Out-Null
 
     Write-Step "5) Veri $OldVolume -> $NewVolume kopyalanıyor"
+    $script:NewVolumeCreated = $true
     Invoke-Docker volume create $NewVolume | Out-Null
     Invoke-Docker run --rm -v "${OldVolume}:/from:ro" -v "${NewVolume}:/to" $image sh -c "cp -a /from/. /to/" | Out-Null
+    # Her dosyanın içeriği (md5) ve dizin/bağlantı listesi karşılaştırılır; diskte kaplanan
+    # blok alanı (du) kopyada farklı olabileceği için boyut karşılaştırılmaz.
     # No double quotes inside the sh script: Windows PowerShell 5.1 strips them from native arguments.
-    $sizeScript = 'a=$(du -s /from | cut -f1); b=$(find /from | wc -l); c=$(du -s /to | cut -f1); d=$(find /to | wc -l); echo $a $b $c $d'
-    $sizes = (Invoke-Docker run --rm -v "${OldVolume}:/from:ro" -v "${NewVolume}:/to:ro" $image sh -c $sizeScript | Select-Object -Last 1).ToString().Trim() -split '\s+'
-    Write-Host "   eski: $($sizes[0]) KB / $($sizes[1]) dosya   yeni: $($sizes[2]) KB / $($sizes[3]) dosya"
-    if ($sizes[0] -ne $sizes[2] -or $sizes[1] -ne $sizes[3]) { throw "Kopya eslesmiyor." }
+    $verifyScript = 'cd /from && find . -type f -print0 | sort -z | xargs -0 md5sum > /tmp/a; cd /to && find . -type f -print0 | sort -z | xargs -0 md5sum > /tmp/b; ad=$(cd /from && find . ! -type f | sort | md5sum | head -c 32); bd=$(cd /to && find . ! -type f | sort | md5sum | head -c 32); if cmp -s /tmp/a /tmp/b && [ $ad = $bd ]; then echo ESIT $(wc -l < /tmp/a); else echo FARKLI $(wc -l < /tmp/a) $(wc -l < /tmp/b); fi'
+    $verify = (Invoke-Docker run --rm -v "${OldVolume}:/from:ro" -v "${NewVolume}:/to:ro" $image sh -c $verifyScript | Select-Object -Last 1).ToString().Trim()
+    Write-Host "   içerik karşılaştırması: $verify"
+    if (-not $verify.StartsWith("ESIT")) { throw "Kopya eslesmiyor ($verify)." }
 
     Write-Step "6) $NewContainer başlatılıyor"
+    $script:NewStarted = $true
     Push-Location $ComposeDir
     try { Invoke-Docker compose up -d postgres | Out-Null } finally { Pop-Location }
     $healthy = $false
@@ -153,7 +187,7 @@ try {
 }
 catch {
     Write-Host "HATA: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Rollback
+    Invoke-Rollback
     exit 1
 }
 
