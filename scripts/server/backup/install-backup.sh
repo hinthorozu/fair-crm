@@ -154,15 +154,21 @@ for dir in "${KYROX_ROOT}"/*/ /opt/*/; do
 done
 echo "Bulunan git projeleri (${KYROX_ROOT} ve /opt): ${discovered_apps[*]:-(yok)}"
 echo "Klasörleri boşlukla ayırarak yazın. .venv, node_modules ve dist her zaman atlanır."
-# Önceki cevaptaki klasörler artık yoksa (ör. taşındıysa) bulunanlar önerilir.
+# Öneri: önceki cevaptan hâlâ var olan klasörler + sonradan eklenen yeni projeler
+# (tekrarsız, sıralı). Taşınıp artık olmayan klasörler önerilmez.
 existing_apps=()
 for dir in $APP_DIRS; do
-  [[ -d "$dir" ]] && existing_apps+=("$dir")
+  [[ -d "$dir" ]] && existing_apps+=("${dir%/}")
 done
-if (( ${#existing_apps[@]} > 0 )); then
-  default_apps="${existing_apps[*]}"
-else
-  default_apps="${discovered_apps[*]:-}"
+new_apps=()
+if [[ -n "$APP_DIRS" ]]; then
+  for dir in "${discovered_apps[@]}"; do
+    [[ " ${existing_apps[*]} " == *" ${dir} "* ]] || new_apps+=("$dir")
+  done
+fi
+default_apps="$(printf '%s\n' "${existing_apps[@]}" "${discovered_apps[@]}" | sed '/^$/d' | sort -u | paste -sd' ' -)"
+if (( ${#new_apps[@]} > 0 )); then
+  echo "Önceki kurulumdan sonra eklenen yeni projeler (öneriye katıldı): ${new_apps[*]}"
 fi
 APP_DIRS="$(ask "Proje klasörleri" "$default_apps")"
 for dir in $APP_DIRS; do
