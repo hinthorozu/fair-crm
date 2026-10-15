@@ -43,7 +43,7 @@ function psql(sql) {
       "exec",
       "-e",
       "PGPASSWORD=postgres",
-      "kyrox-postgres-dev",
+      "kyrox-db",
       "psql",
       "-U",
       "postgres",

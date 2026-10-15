@@ -1500,7 +1500,7 @@ check_docker_postgres() {
   check_pass "Docker service active"
 
   parse_compose_postgres "$compose_file"
-  local container="${COMPOSE_PG_CONTAINER:-kyrox-postgres-dev}"
+  local container="${COMPOSE_PG_CONTAINER:-kyrox-db}"
   if docker ps --format '{{.Names}}' | grep -qx "$container"; then
     check_pass "PostgreSQL container running"
   else

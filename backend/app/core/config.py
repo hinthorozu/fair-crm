@@ -108,7 +108,7 @@ class Settings(BaseSettings):
     dev_user_email: str = Field(default="dev@example.com", validation_alias="FAIR_CRM_DEV_USER_EMAIL")
     dev_organization_id: UUID | None = Field(default=None, validation_alias="FAIR_CRM_DEV_ORGANIZATION_ID")
     postgres_docker_container: str = Field(
-        default="kyrox-postgres-dev",
+        default="kyrox-db",
         validation_alias="FAIR_CRM_POSTGRES_DOCKER_CONTAINER",
     )
     database_restore_enabled: bool = Field(

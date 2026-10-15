@@ -3,7 +3,7 @@
 # Switches dev Docker Postgres to MD5 password auth. Safe for local dev only.
 
 param(
-    [string]$ContainerName = "kyrox-postgres-dev",
+    [string]$ContainerName = "kyrox-db",
     [string]$Password = "postgres"
 )
 

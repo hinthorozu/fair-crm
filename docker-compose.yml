@@ -1,11 +1,14 @@
-# Pinned so the project (and its kyrox_pg_data volume) keeps the same name
-# whatever the checkout directory is called, e.g. /opt/kyrox/kyrox-fair-crm.
-name: fair-crm
+# Shared PostgreSQL for Kyrox Core, Fair CRM and Fair Stand.
+# The project, container and volume names are pinned so they do not depend on
+# the checkout directory name (e.g. /opt/kyrox/kyrox-fair-crm).
+# Moving data from the previous fair-crm_kyrox_pg_data volume:
+#   scripts/server/migrate-db-volume.sh (server) or scripts/dev/migrate-db-volume.ps1 (local)
+name: kyrox
 
 services:
   postgres:
     image: postgres:18-alpine
-    container_name: kyrox-postgres-dev
+    container_name: kyrox-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
@@ -13,7 +16,7 @@ services:
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
-      - kyrox_pg_data:/var/lib/postgresql
+      - kyrox_db_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -21,4 +24,5 @@ services:
       retries: 10
 
 volumes:
-  kyrox_pg_data:
+  kyrox_db_data:
+    name: kyrox-db-data

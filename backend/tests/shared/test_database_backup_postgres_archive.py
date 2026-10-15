@@ -12,7 +12,7 @@ import pytest
 
 from app.shared.database_backup.table_selection import parse_restore_toc_tables, restore_list_for_tables
 
-CONTAINER = "kyrox-postgres-dev"
+CONTAINER = "kyrox-db"
 SOURCE_DB = "kyrox_tblsel_probe"
 RESTORE_DB = "kyrox_tblsel_restore"
 
@@ -29,7 +29,7 @@ def _docker_ready() -> bool:
     return proc.returncode == 0 and proc.stdout.strip() == "true"
 
 
-pytestmark = pytest.mark.skipif(not _docker_ready(), reason="kyrox-postgres-dev is not running")
+pytestmark = pytest.mark.skipif(not _docker_ready(), reason="kyrox-db is not running")
 
 
 def _psql(database: str, sql: str) -> str:

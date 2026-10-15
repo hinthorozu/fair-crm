@@ -38,7 +38,7 @@ def test_pg_restore_local_is_atomic(tmp_path, monkeypatch):
 def test_pg_restore_docker_is_atomic(tmp_path, monkeypatch):
     commands: list[list[str]] = []
     exec_calls: list[list[str]] = []
-    monkeypatch.setattr(engine, "_get_toolchain", lambda conn: ("docker", "kyrox-postgres-dev"))
+    monkeypatch.setattr(engine, "_get_toolchain", lambda conn: ("docker", "kyrox-db"))
     monkeypatch.setattr(engine, "_docker_cp_to", lambda container, local_path, remote_path: None)
     monkeypatch.setattr(engine, "_docker_exec", lambda container, args: exec_calls.append(args))
 
@@ -55,7 +55,7 @@ def test_pg_restore_docker_is_atomic(tmp_path, monkeypatch):
 
     assert len(commands) == 1
     restore_command = commands[0]
-    assert restore_command[:3] == ["docker", "exec", "kyrox-postgres-dev"]
+    assert restore_command[:3] == ["docker", "exec", "kyrox-db"]
     assert "--clean" in restore_command
     assert "--if-exists" in restore_command
     assert "--single-transaction" in restore_command

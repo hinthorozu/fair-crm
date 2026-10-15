@@ -2,7 +2,7 @@
 # Run after upgrading to Navicat 16+ / modern pgAdmin.
 
 param(
-    [string]$ContainerName = "kyrox-postgres-dev",
+    [string]$ContainerName = "kyrox-db",
     [string]$Password = "postgres"
 )
 
