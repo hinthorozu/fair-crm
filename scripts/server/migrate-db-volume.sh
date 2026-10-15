@@ -30,20 +30,60 @@ SERVICES="${SERVICES-kyrox-core fair-crm-backend fair-crm-mail-worker fair-stand
 DUMP_ROOT="${DUMP_ROOT:-/var/backups/kyrox}"
 BACKUP_ENV="${BACKUP_ENV:-/etc/kyrox-backup.env}"
 
-log() { echo "[$(date +%T)] $*"; }
-die() { echo "[$(date +%T)] HATA: $*" >&2; exit 1; }
-trap 'echo "[$(date +%T)] HATA: satır ${LINENO}: ${BASH_COMMAND}" >&2; print_rollback >&2' ERR
+# Önceki başarısız bir denemeden kalan yeni volume'u silip baştan kopyala (yalnız açıkça istenirse).
+DISCARD_STALE_NEW_VOLUME="${DISCARD_STALE_NEW_VOLUME:-0}"
 
 STOPPED_SERVICES=""
+OLD_STOPPED=0
+NEW_VOLUME_CREATED=0
+NEW_STARTED=0
+ROLLING_BACK=0
+
+log() { echo "[$(date +%T)] $*"; }
+
+# Servisler durdurulduktan sonra bir adım başarısız olursa eski düzene kendiliğinden döner:
+# bu çalıştırmada oluşan yeni konteyner ve kopya kaldırılır, eski konteyner ve servisler başlatılır.
+rollback() {
+  [[ "$ROLLING_BACK" == 1 ]] && return 0
+  ROLLING_BACK=1
+  trap - ERR
+  set +e
+  if [[ "$NEW_STARTED" == 1 ]]; then
+    docker rm -f "$NEW_CONTAINER" >/dev/null 2>&1
+  fi
+  if [[ "$NEW_VOLUME_CREATED" == 1 ]]; then
+    docker volume rm "$NEW_VOLUME" >/dev/null 2>&1
+  fi
+  if [[ "$OLD_STOPPED" == 1 ]]; then
+    log "Geri alınıyor: ${OLD_CONTAINER} başlatılıyor"
+    docker start "$OLD_CONTAINER" >/dev/null
+    wait_healthy "$OLD_CONTAINER" || echo "[$(date +%T)] UYARI: ${OLD_CONTAINER} sağlıklı açılmadı" >&2
+  fi
+  if [[ -n "$STOPPED_SERVICES" ]]; then
+    log "Geri alınıyor: servisler başlatılıyor:${STOPPED_SERVICES}"
+    # shellcheck disable=SC2086
+    systemctl start $STOPPED_SERVICES
+  fi
+  if [[ -n "${T0:-}" ]]; then
+    log "Eski düzene dönüldü. Kesinti: $(( $(date +%s) - T0 )) sn. Eski volume'a dokunulmadı."
+  fi
+}
+
+die() {
+  echo "[$(date +%T)] HATA: $*" >&2
+  rollback
+  exit 1
+}
+trap 'echo "[$(date +%T)] HATA: satır ${LINENO}: ${BASH_COMMAND}" >&2; rollback; exit 1' ERR
 
 print_rollback() {
   cat <<EOF
 
-Geri dönmek için (eski volume ve konteyner duruyor):
-  docker stop ${NEW_CONTAINER} 2>/dev/null || true
+Sonradan geri dönmek gerekirse (eski volume ve konteyner duruyor):
+  docker stop ${NEW_CONTAINER}
   docker start ${OLD_CONTAINER}
   sed -i 's/\b${NEW_CONTAINER}\b/${OLD_CONTAINER}/' ${BACKUP_ENV}   # varsa
-  systemctl start ${SERVICES}
+  systemctl restart ${SERVICES}
 Uygulamalar veritabanına localhost:5432 ile bağlandığı için başka ayar gerekmez.
 EOF
 }
@@ -83,8 +123,16 @@ if container_exists "$NEW_CONTAINER" && ! { container_exists "$OLD_CONTAINER" &&
 fi
 container_exists "$OLD_CONTAINER" || die "${OLD_CONTAINER} konteyneri yok"
 volume_exists "$OLD_VOLUME" || die "${OLD_VOLUME} volume'u yok"
-volume_exists "$NEW_VOLUME" && die "${NEW_VOLUME} zaten var; üzerine yazmamak için durduruldu"
 [[ "$(docker inspect -f '{{.State.Running}}' "$OLD_CONTAINER")" == true ]] || die "${OLD_CONTAINER} çalışmıyor; önce başlatın"
+if volume_exists "$NEW_VOLUME"; then
+  kullanan="$(docker ps -a --filter "volume=${NEW_VOLUME}" --format '{{.Names}}')"
+  if [[ "$DISCARD_STALE_NEW_VOLUME" == 1 && -z "$kullanan" ]]; then
+    log "Önceki denemeden kalan ${NEW_VOLUME} siliniyor (hiçbir konteyner kullanmıyor; eski volume çalışır durumda)"
+    docker volume rm "$NEW_VOLUME" >/dev/null
+  else
+    die "${NEW_VOLUME} zaten var${kullanan:+ (kullanan: ${kullanan})}; üzerine yazmamak için durduruldu. Önceki başarısız denemeden kaldıysa DISCARD_STALE_NEW_VOLUME=1 ile çalıştırın."
+  fi
+fi
 IMAGE="$(docker inspect -f '{{.Config.Image}}' "$OLD_CONTAINER")"
 
 log "1) Öncesi: veritabanları ve tablo sayıları"
@@ -113,19 +161,28 @@ fi
 log "   durdurulan:${STOPPED_SERVICES:- (yok)}"
 
 log "4) ${OLD_CONTAINER} durduruluyor (silinmiyor)"
+OLD_STOPPED=1
 docker stop "$OLD_CONTAINER" >/dev/null
 
 log "5) Veri ${OLD_VOLUME} -> ${NEW_VOLUME} kopyalanıyor"
+NEW_VOLUME_CREATED=1
 docker volume create "$NEW_VOLUME" >/dev/null
 docker run --rm -v "${OLD_VOLUME}:/from:ro" -v "${NEW_VOLUME}:/to" "$IMAGE" sh -c 'cp -a /from/. /to/'
-SIZES="$(docker run --rm -v "${OLD_VOLUME}:/from:ro" -v "${NEW_VOLUME}:/to:ro" "$IMAGE" sh -c \
-  'echo "$(du -s /from | cut -f1) $(find /from | wc -l) $(du -s /to | cut -f1) $(find /to | wc -l)"')"
-read -r from_kb from_n to_kb to_n <<<"$SIZES"
-log "   eski: ${from_kb} KB / ${from_n} dosya   yeni: ${to_kb} KB / ${to_n} dosya"
-[[ "$from_kb" == "$to_kb" && "$from_n" == "$to_n" ]] || die "kopya eşleşmiyor"
+# Her dosyanın içeriği (md5) ve dizin/bağlantı listesi karşılaştırılır. Diskte kaplanan blok
+# alanı (du) kopyada farklı olabilir; o yüzden boyut değil içerik karşılaştırılır.
+VERIFY_SCRIPT='cd /from && find . -type f -print0 | sort -z | xargs -0 md5sum > /tmp/a
+cd /to && find . -type f -print0 | sort -z | xargs -0 md5sum > /tmp/b
+ad=$(cd /from && find . ! -type f | sort | md5sum | head -c 32)
+bd=$(cd /to && find . ! -type f | sort | md5sum | head -c 32)
+if cmp -s /tmp/a /tmp/b && [ $ad = $bd ]; then echo ESIT $(wc -l < /tmp/a); else echo FARKLI $(wc -l < /tmp/a) $(wc -l < /tmp/b); fi'
+VERIFY="$(docker run --rm -v "${OLD_VOLUME}:/from:ro" -v "${NEW_VOLUME}:/to:ro" "$IMAGE" sh -c "$VERIFY_SCRIPT")"
+log "   içerik karşılaştırması: ${VERIFY}"
+[[ "$VERIFY" == ESIT* ]] || die "kopya eşleşmiyor (${VERIFY})"
 
 log "6) ${NEW_CONTAINER} başlatılıyor"
-(cd "$REPO_DIR" && docker compose up -d postgres)
+NEW_STARTED=1
+# Alt kabuk yok: hata olursa geri dönüş bir kez, bu kabukta çalışır.
+docker compose --project-directory "$REPO_DIR" -f "$COMPOSE_FILE" up -d postgres
 wait_healthy "$NEW_CONTAINER" || die "${NEW_CONTAINER} sağlıklı açılmadı"
 
 log "7) Sonrası: veritabanları ve tablo sayıları"
@@ -144,6 +201,7 @@ if [[ -n "$STOPPED_SERVICES" ]]; then
   systemctl start $STOPPED_SERVICES
 fi
 log "Kesinti: $(( $(date +%s) - T0 )) sn"
+trap - ERR
 
 log "Tamam. Eski volume (${OLD_VOLUME}) ve durdurulmuş ${OLD_CONTAINER} yerinde duruyor."
 log "Her şey çalışıyorsa sonra elle silinebilir: docker rm ${OLD_CONTAINER}; docker volume rm ${OLD_VOLUME}"
