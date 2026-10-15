@@ -325,9 +325,9 @@ ensure_remote_postgres_access() {
     return 0
   fi
 
-  local container="kyrox-postgres-dev"
+  local container="kyrox-db"
   container="$(grep -E 'container_name:' "$compose_file" | head -n1 | sed -E 's/.*container_name:[[:space:]]*//; s/[[:space:]]+$//' || true)"
-  container="${container:-kyrox-postgres-dev}"
+  container="${container:-kyrox-db}"
 
   docker compose -f "$compose_file" up -d postgres
 

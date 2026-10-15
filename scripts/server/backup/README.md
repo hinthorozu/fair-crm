@@ -25,7 +25,7 @@ Her soruda köşeli parantezdeki değer varsayılandır. Kabul etmek için yaln�
 
 **Adım 1: Proje klasörleri.** Sihirbaz `/opt/kyrox` (ve eski düzen için `/opt`) altındaki git projelerini bulup gösterir, ör. `[/opt/kyrox/kyrox-fair-crm /opt/kyrox/kyrox-fair-stand /opt/kyrox/kyrox-core]`. Doğruysa Enter. Eksik ya da fazla varsa klasörleri boşlukla ayırarak yazın.
 
-**Adım 2: Veritabanları.** Çalışan PostgreSQL Docker konteynerlerini gösterir, ör. `[kyrox-postgres-dev]`. Doğruysa Enter. Konteynerdeki bütün veritabanları yedeklenir.
+**Adım 2: Veritabanları.** Çalışan PostgreSQL Docker konteynerlerini gösterir, ör. `[kyrox-db]`. Doğruysa Enter. Konteynerdeki bütün veritabanları yedeklenir.
 
 **Adım 3: Saat.** Yedeğin her gün alınacağı saat, ör. `[03:30]`. Enter ya da `04:00` gibi bir saat.
 
@@ -94,8 +94,8 @@ cd /root/restore && sha256sum -c SHA256SUMS
 tar -C /opt -xzpf app/fair-crm.tar.gz
 
 # Veritabanı (önce roller, sonra veritabanı)
-docker exec -i kyrox-postgres-dev psql -U postgres < db/kyrox-postgres-dev__globals.sql
-docker exec -i kyrox-postgres-dev pg_restore -U postgres -d postgres --create --clean --if-exists < db/kyrox-postgres-dev__fair_crm.dump
+docker exec -i kyrox-db psql -U postgres < db/kyrox-db__globals.sql
+docker exec -i kyrox-db pg_restore -U postgres -d postgres --create --clean --if-exists < db/kyrox-db__fair_crm.dump
 ```
 
 Ardından `.venv` ve `node_modules` için `scripts/server/deploy-all.sh` çalıştırılır.

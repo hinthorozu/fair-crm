@@ -81,7 +81,7 @@ def _get_toolchain(conn: PostgresConnection) -> tuple[str, str | None]:
     if pg_dump and pg_restore:
         return "local", None
     settings = get_settings()
-    container = getattr(settings, "postgres_docker_container", "kyrox-postgres-dev")
+    container = getattr(settings, "postgres_docker_container", "kyrox-db")
     if conn.is_localhost and _docker_container_running(container):
         return "docker", container
     raise DatabaseBackupError(
@@ -92,7 +92,7 @@ def _get_toolchain(conn: PostgresConnection) -> tuple[str, str | None]:
 
 def _get_backup_toolchain(conn: PostgresConnection) -> tuple[str, str | None]:
     settings = get_settings()
-    container = getattr(settings, "postgres_docker_container", "kyrox-postgres-dev")
+    container = getattr(settings, "postgres_docker_container", "kyrox-db")
     if conn.is_localhost and _docker_container_running(container):
         return "docker", container
     pg_dump = _resolve_pg_tool("pg_dump")

@@ -19,7 +19,7 @@ $script:DevRepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $script:DevBackendDir = Join-Path $script:DevRepoRoot "backend"
 $script:DevFrontendDir = Join-Path $script:DevRepoRoot "frontend"
 $script:DevLogDir = Join-Path $script:DevRepoRoot "scripts\dev\logs"
-$script:DevPostgresContainer = "kyrox-postgres-dev"
+$script:DevPostgresContainer = "kyrox-db"
 $script:DevCoreHealthUrl = "http://127.0.0.1:$($script:DevCorePort)/api/v1/health"
 
 function Write-DevStep([string]$Message) {

@@ -146,7 +146,7 @@ setup_python_project() {
 
 repair_local_postgres_password_if_needed() {
   local host_normalized="${PG_HOST,,}"
-  local container="${POSTGRES_DOCKER_CONTAINER:-kyrox-postgres-dev}"
+  local container="${POSTGRES_DOCKER_CONTAINER:-kyrox-db}"
 
   if [[ "$PG_USER" != "postgres" ]]; then
     return 1

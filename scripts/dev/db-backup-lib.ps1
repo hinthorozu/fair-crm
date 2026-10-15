@@ -1,7 +1,7 @@
 # Shared helpers for Fair CRM PostgreSQL backup/restore dev utilities.
 Set-StrictMode -Version Latest
 
-$script:DefaultDockerContainer = "kyrox-postgres-dev"
+$script:DefaultDockerContainer = "kyrox-db"
 
 function Get-FairCrmRepoRoot {
     return (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
