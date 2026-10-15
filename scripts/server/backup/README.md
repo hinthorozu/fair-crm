@@ -74,7 +74,9 @@ Google hesabının şifresi değişirse ya da rclone'un erişimi kaldırılırsa
 ## Neler yedeklenir
 
 - **Projeler**: `.env`, `.git`, yüklenen dosyalar ve `data/` dahil. `.venv`, `node_modules` ve `dist` atlanır; bunlar deploy ile yeniden kurulur. `kyrox-fair-crm/backups` (uygulamanın kendi dump'ları) atlanır, veritabanları ayrıca yedeklenir.
-- **Veritabanları**: her konteyner için roller (`__globals.sql`) ve `postgres` dışındaki her veritabanı (`pg_dump -Fc`).
+- **PostgreSQL** (`PG_CONTAINERS`): her konteyner için roller (`__globals.sql`) ve `postgres` dışındaki her veritabanı (`pg_dump -Fc`).
+- **MariaDB/MySQL** (`MYSQL_CONTAINERS`, ör. kyrox.studio WordPress veritabanı): bütün veritabanları, kullanıcılar ve yetkiler tek tutarlı dump olarak (`__all.sql.gz`). Root şifresi konteynerin kendi ortamından okunur; ayar dosyasına yazılmaz.
+- **Docker volume'ları** (`VOLUMES`, ör. `kyrox-web-html`): WordPress dosyaları ve yüklenen görseller olduğu gibi arşivlenir (`volume/<ad>.tar.gz`).
 - **Sunucu ayarları**: `/etc/nginx`, `/etc/letsencrypt`, `/etc/systemd/system`, `/etc/cron.d`, `/etc/fair-crm`, root crontab, paket ve Docker listeleri.
 
 Her yedek klasöründe `MANIFEST.txt` ve `SHA256SUMS` bulunur. Drive'a yükleme `rclone check` ile doğrulanır. Drive'daki eski yedekler çöp kutusuna gitmeden silinir.
@@ -96,6 +98,14 @@ tar -C /opt -xzpf app/fair-crm.tar.gz
 # Veritabanı (önce roller, sonra veritabanı)
 docker exec -i kyrox-db psql -U postgres < db/kyrox-db__globals.sql
 docker exec -i kyrox-db pg_restore -U postgres -d postgres --create --clean --if-exists < db/kyrox-db__fair_crm.dump
+
+# kyrox.studio (WordPress): önce kapsayıcıları başlatın (kyrox-web/sunucu, docker compose up -d)
+docker stop kyrox-web
+zcat db/kyrox-web-db__all.sql.gz | docker exec -i kyrox-web-db sh -c 'exec mariadb -uroot -p"$MARIADB_ROOT_PASSWORD"'
+tar -C "$(docker volume inspect -f '{{.Mountpoint}}' kyrox-web-html)" -xzpf volume/kyrox-web-html.tar.gz
+docker start kyrox-web
 ```
+
+Yedek sihirbazı MariaDB konteynerlerini ve WordPress'in volume'larını kendisi bulur; kyrox.studio kurulduktan sonra sihirbazı bir kez tekrar çalıştırmak yeterlidir.
 
 Ardından `.venv` ve `node_modules` için `scripts/server/deploy-all.sh` çalıştırılır.

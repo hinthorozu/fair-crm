@@ -114,6 +114,8 @@ APP_DIRS=""
 EXCLUDE_NAMES=".venv node_modules dist"
 EXCLUDE_PATHS="kyrox-fair-crm/backups fair-crm/backups"
 PG_CONTAINERS=""
+MYSQL_CONTAINERS=""
+VOLUMES=""
 PG_USER="postgres"
 RCLONE_REMOTE=""
 LOCAL_RETENTION_DAYS=3
@@ -167,18 +169,41 @@ for dir in $APP_DIRS; do
   [[ -d "$dir" ]] || echo "  UYARI: ${dir} şu an yok; yedek alınırken atlanır."
 done
 
-# ADIM 2: veritabanları
-step_title 2 "Yedeklenecek PostgreSQL konteynerleri"
+# Önceki cevaptaki adlardan hâlâ var olanlar; hiçbiri yoksa (ör. konteyner yeniden adlandırıldıysa) bulunanlar.
+onceki_ya_da_bulunan() {
+  local onceki="$1" bulunan="$2" tur="$3" ad var=()
+  for ad in $onceki; do
+    docker "$tur" inspect "$ad" >/dev/null 2>&1 && var+=("$ad")
+  done
+  if (( ${#var[@]} > 0 )); then printf '%s' "${var[*]}"; else printf '%s' "$bulunan"; fi
+}
+
+# ADIM 2: veritabanları ve Docker volume'ları
+step_title 2 "Yedeklenecek veritabanları ve Docker volume'ları"
 discovered_pg=()
+discovered_mysql=()
+discovered_vol=()
 if command -v docker >/dev/null 2>&1; then
   while read -r name image; do
-    [[ "$image" == postgres* || "$image" == */postgres* ]] && discovered_pg+=("$name")
+    case "$image" in
+      postgres*|*/postgres*) discovered_pg+=("$name") ;;
+      mariadb*|*/mariadb*|mysql*|*/mysql*) discovered_mysql+=("$name") ;;
+      wordpress*|*/wordpress*)
+        # WordPress dosyaları ve yüklenen görseller: konteynere bağlı adlandırılmış volume'lar.
+        while read -r vol; do
+          [[ -n "$vol" ]] && discovered_vol+=("$vol")
+        done < <(docker inspect -f '{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}}{{"\n"}}{{end}}{{end}}' "$name")
+        ;;
+    esac
   done < <(docker ps --format '{{.Names}} {{.Image}}')
 fi
 echo "Çalışan PostgreSQL konteynerleri: ${discovered_pg[*]:-(yok)}"
-echo "Her konteynerdeki bütün veritabanları yedeklenir. Veritabanı yoksa boş bırakın."
-default_pg="${PG_CONTAINERS:-${discovered_pg[*]:-}}"
-PG_CONTAINERS="$(ask "Konteyner adları" "$default_pg")"
+echo "Çalışan MariaDB/MySQL konteynerleri: ${discovered_mysql[*]:-(yok)}"
+echo "WordPress volume'ları: ${discovered_vol[*]:-(yok)}"
+echo "Her konteynerdeki bütün veritabanları yedeklenir. Olmayanı boş bırakın."
+PG_CONTAINERS="$(ask "PostgreSQL konteynerleri" "$(onceki_ya_da_bulunan "$PG_CONTAINERS" "${discovered_pg[*]:-}" container)")"
+MYSQL_CONTAINERS="$(ask "MariaDB/MySQL konteynerleri" "$(onceki_ya_da_bulunan "${MYSQL_CONTAINERS:-}" "${discovered_mysql[*]:-}" container)")"
+VOLUMES="$(ask "Arşivlenecek Docker volume'ları" "$(onceki_ya_da_bulunan "${VOLUMES:-}" "${discovered_vol[*]:-}" volume)")"
 
 # ADIM 3: saat
 step_title 3 "Yedeğin her gün alınacağı saat"
@@ -224,7 +249,9 @@ fi
 # ADIM 6: özet ve onay
 step_title 6 "Özet"
 echo "  Proje klasörleri : ${APP_DIRS:-(yok)}"
-echo "  Veritabanları    : ${PG_CONTAINERS:-(yok)}"
+echo "  PostgreSQL       : ${PG_CONTAINERS:-(yok)}"
+echo "  MariaDB/MySQL    : ${MYSQL_CONTAINERS:-(yok)}"
+echo "  Docker volume    : ${VOLUMES:-(yok)}"
 echo "  Saat             : her gün ${RUN_TIME}"
 echo "  Sunucuda         : ${BACKUP_ROOT}, ${LOCAL_RETENTION_DAYS} gün"
 if (( USE_DRIVE == 1 )); then
@@ -337,6 +364,11 @@ EXCLUDE_NAMES="${EXCLUDE_NAMES}"
 EXCLUDE_PATHS="${EXCLUDE_PATHS}"
 PG_CONTAINERS="${PG_CONTAINERS}"
 PG_USER="${PG_USER}"
+
+# Dump alınacak MariaDB/MySQL konteynerleri (root şifresi konteynerin kendi ortamından okunur).
+MYSQL_CONTAINERS="${MYSQL_CONTAINERS}"
+# Olduğu gibi arşivlenecek Docker volume'ları (ör. WordPress dosyaları).
+VOLUMES="${VOLUMES}"
 RCLONE_REMOTE="${RCLONE_REMOTE}"
 RCLONE_CONFIG="${RCLONE_CONFIG_PATH}"
 LOCAL_RETENTION_DAYS=${LOCAL_RETENTION_DAYS}

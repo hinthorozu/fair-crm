@@ -30,6 +30,11 @@ EXCLUDE_PATHS="${EXCLUDE_PATHS:-}"
 # Dump alınacak PostgreSQL Docker konteynerleri.
 PG_CONTAINERS="${PG_CONTAINERS:-}"
 PG_USER="${PG_USER:-postgres}"
+# Dump alınacak MariaDB/MySQL Docker konteynerleri (ör. kyrox.studio WordPress veritabanı).
+# Root şifresi konteynerin kendi MARIADB_ROOT_PASSWORD / MYSQL_ROOT_PASSWORD ortamından okunur.
+MYSQL_CONTAINERS="${MYSQL_CONTAINERS:-}"
+# Olduğu gibi arşivlenecek Docker volume'ları (ör. WordPress dosyaları ve yüklenen görseller).
+VOLUMES="${VOLUMES:-}"
 SYSTEM_PATHS="${SYSTEM_PATHS:-/etc/nginx /etc/letsencrypt /etc/systemd/system /etc/cron.d /etc/fair-crm /etc/kyrox-backup.env}"
 # rclone hedefi, ör. gdrive:Kyrox-Yedek/srv.example.com. Boşsa yalnız yerel yedek alınır.
 RCLONE_REMOTE="${RCLONE_REMOTE:-}"
@@ -79,7 +84,7 @@ cleanup_partial() {
 }
 trap cleanup_partial EXIT
 
-mkdir -p "$PARTIAL/app" "$PARTIAL/db" "$PARTIAL/system"
+mkdir -p "$PARTIAL/app" "$PARTIAL/db" "$PARTIAL/volume" "$PARTIAL/system"
 chmod 700 "$PARTIAL"
 log "Yedek başladı: ${DEST}"
 
@@ -122,7 +127,23 @@ for container in $PG_CONTAINERS; do
   done
 done
 
-# 3) Sunucu ayarları
+for container in $MYSQL_CONTAINERS; do
+  # Tek tutarlı anlık görüntü (InnoDB), kullanıcılar ve yetkiler dahil.
+  # Değişkenler konteynerin içinde açılır (tek tırnak bilerek).
+  # shellcheck disable=SC2016
+  docker exec "$container" sh -c 'exec "$(command -v mariadb-dump || command -v mysqldump)" -uroot -p"${MARIADB_ROOT_PASSWORD:-$MYSQL_ROOT_PASSWORD}" --all-databases --single-transaction --routines --events --triggers' \
+    | gzip > "$PARTIAL/db/${container}__all.sql.gz"
+  log "Veritabanı: ${container} (MariaDB, tümü) ($(du -h "$PARTIAL/db/${container}__all.sql.gz" | cut -f1))"
+done
+
+# 3) Docker volume'ları
+for volume in $VOLUMES; do
+  kaynak="$(docker volume inspect -f '{{.Mountpoint}}' "$volume")"
+  run_tar -C "$kaynak" --numeric-owner -czpf "$PARTIAL/volume/${volume}.tar.gz" .
+  log "Volume: ${volume} ($(du -h "$PARTIAL/volume/${volume}.tar.gz" | cut -f1))"
+done
+
+# 4) Sunucu ayarları
 system_paths=()
 for path in $SYSTEM_PATHS; do
   if [[ -e "$path" ]]; then
@@ -149,6 +170,8 @@ systemctl list-units --type=service --state=running --no-pager --no-legend > "$P
   echo "exclude_names=${EXCLUDE_NAMES}"
   echo "exclude_paths=${EXCLUDE_PATHS}"
   echo "pg_containers=${PG_CONTAINERS}"
+  echo "mysql_containers=${MYSQL_CONTAINERS}"
+  echo "volumes=${VOLUMES}"
 } > "$PARTIAL/MANIFEST.txt"
 
 (cd "$PARTIAL" && find . -type f ! -name SHA256SUMS -exec sha256sum {} + > SHA256SUMS)
@@ -156,7 +179,7 @@ chmod -R go-rwx "$PARTIAL"
 mv "$PARTIAL" "$DEST"
 log "Yerel yedek hazır: ${DEST} ($(du -sh "$DEST" | cut -f1))"
 
-# 4) Google Drive
+# 5) Google Drive
 if [[ -n "$RCLONE_REMOTE" ]]; then
   remote_dir="${RCLONE_REMOTE%/}/${STAMP}"
   log "Drive'a yükleniyor: ${remote_dir}"
@@ -171,7 +194,7 @@ else
   log "RCLONE_REMOTE boş; Drive'a yükleme atlandı"
 fi
 
-# 5) Yerel saklama
+# 6) Yerel saklama
 find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d -name '20??-??-??_??????' \
   -mmin +$(( LOCAL_RETENTION_DAYS * 1440 )) -exec rm -rf -- {} +
 find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d -name '*.partial' -mmin +1440 -exec rm -rf -- {} +
