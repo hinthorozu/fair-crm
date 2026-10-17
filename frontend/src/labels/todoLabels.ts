@@ -80,6 +80,8 @@ export const todoLabels = {
   fieldCustomerPlaceholder: "Müşteri seçin",
   fieldCustomerClear: "Müşteri seçimini kaldır",
   fieldCustomerNoResults: "Müşteri bulunamadı.",
+  fieldCustomerLoading: "Yükleniyor…",
+  fieldCustomerSearching: "Aranıyor…",
   customerReadPermissionRequired: "Müşteri seçimini görüntülemek veya değiştirmek için müşteri görüntüleme yetkisi gerekir.",
   fieldSourceFair: "Kaynak fuar",
   fieldSourceFairHint: "İsteğe bağlı. Fuar bağlı çalışma listesi için seçin.",

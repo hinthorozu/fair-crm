@@ -29,6 +29,9 @@
     "frontend/src/pages/FairStandStandaloneRoute.test.ts",
     "frontend/src/api/fairStandProjects.ts",
     "frontend/src/labels/standProjectsLabels.ts",
+    "frontend/src/labels/todoLabels.ts",
+    "frontend/src/components/CustomerEntitySelect.tsx",
+    "frontend/src/components/CustomerEntitySelect.test.ts",
     "frontend/src/labels/uiLabels.ts",
     "frontend/src/App.tsx",
     "frontend/src/components/layout/AppLayout.tsx",
@@ -82,5 +85,5 @@
     "runtime_verification": { "status": "required" },
     "deployment": { "status": "required" }
   },
-  "notes": "Replaces public /fair-stand shell entry with permission-gated Standlar list. Configurator stays standalone at /stand-projects/new and /:id. Assigning a project to another customer is the actions-column confirm dialog; it PATCHes customerId and does not run on drawing save. Maliyet Hesapla opens /stand-projects/:id/cost from the Standlar and customer project action columns. It reads the current project, runs the existing resolveProjectBom, and matches ITEM cost rows by item_key. MANUAL rows are selected on the page with a quantity and are not stored. A BOM-sourced row is labeled Sahne Elemanı; a manual row stays Manuel. The row source code stays BOM. The route requires projects.read and the existing cost_items.read permission. No new permission and no cost snapshot. Excel İndir downloads the current visible cost rows and totals as a local xlsx named from the project. The file is not stored."
+  "notes": "Replaces public /fair-stand shell entry with permission-gated Standlar list. Configurator stays standalone at /stand-projects/new and /:id. Assigning a project to another customer is the actions-column confirm dialog; it PATCHes customerId and does not run on drawing save. Maliyet Hesapla opens /stand-projects/:id/cost from the Standlar and customer project action columns. It reads the current project, runs the existing resolveProjectBom, and matches ITEM cost rows by item_key. MANUAL rows are selected on the page with a quantity and are not stored. A BOM-sourced row is labeled Sahne Elemanı; a manual row stays Manuel. The row source code stays BOM. The route requires projects.read and the existing cost_items.read permission. No new permission and no cost snapshot. Excel İndir downloads the current visible cost rows and totals as a local xlsx named from the project. The file is not stored. The customer picker hides results of an older search until the typed search answers, so a row from the previous list cannot be picked while typing; focus alone does not open it, so a dialog's autofocus does not cover the footer buttons. After reassignment the row takes the returned updatedAt, and customer names resolve one by one and stay cached across reassignments."
 }

@@ -29,6 +29,9 @@ export function CustomerEntitySelect({
   const [searchText, setSearchText] = React.useState("");
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
   const [items, setItems] = React.useState<Customer[]>([]);
+  // Search term the listed items belong to. While the user is still typing (debounce)
+  // or the request is in flight, older results stay hidden so they cannot be picked.
+  const [itemsSearch, setItemsSearch] = React.useState<string | null>(null);
   const [page, setPage] = React.useState(1);
   const [hasNext, setHasNext] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -82,10 +85,14 @@ export function CustomerEntitySelect({
         const seen = new Set(prev.map((customer) => customer.id));
         return [...prev, ...res.items.filter((customer) => !seen.has(customer.id))];
       });
+      if (!append) setItemsSearch(search.trim());
       setHasNext(res.pagination.hasNext);
       setPage(pageNum);
     } catch {
-      if (reqId === requestIdRef.current && !append) setItems([]);
+      if (reqId === requestIdRef.current && !append) {
+        setItems([]);
+        setItemsSearch(search.trim());
+      }
     } finally {
       if (reqId === requestIdRef.current) {
         setLoading(false);
@@ -153,6 +160,15 @@ export function CustomerEntitySelect({
     setHighlightIndex(-1);
   };
 
+  const resultsCurrent = itemsSearch !== null && itemsSearch === searchText.trim();
+  const visibleItems = resultsCurrent ? items : [];
+
+  const openMenu = () => {
+    if (open) return;
+    setOpen(true);
+    setSearchText("");
+  };
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Escape") {
       setOpen(false);
@@ -162,14 +178,14 @@ export function CustomerEntitySelect({
     }
 
     if (!open && (event.key === "ArrowDown" || event.key === "Enter")) {
-      setOpen(true);
+      openMenu();
       return;
     }
 
     if (!open) return;
 
     const optionOffset = allowClear ? 1 : 0;
-    const maxIndex = items.length - 1 + optionOffset;
+    const maxIndex = visibleItems.length - 1 + optionOffset;
 
     if (event.key === "ArrowDown") {
       event.preventDefault();
@@ -189,7 +205,7 @@ export function CustomerEntitySelect({
         clearSelection();
         return;
       }
-      const item = items[highlightIndex - optionOffset];
+      const item = visibleItems[highlightIndex - optionOffset];
       if (item) selectCustomer(item);
     }
   };
@@ -215,10 +231,9 @@ export function CustomerEntitySelect({
           setOpen(true);
           setHighlightIndex(-1);
         }}
-        onFocus={() => {
-          setOpen(true);
-          setSearchText("");
-        }}
+        // Focus alone does not open the list: a dialog's autofocus would otherwise
+        // cover its footer buttons. Click, typing or the arrow key opens it.
+        onClick={openMenu}
         onKeyDown={handleKeyDown}
       />
       {open ? (
@@ -249,12 +264,14 @@ export function CustomerEntitySelect({
               <span className="entity-select-option-label">{todoLabels.fieldCustomerClear}</span>
             </button>
           ) : null}
-          {loading && items.length === 0 ? (
-            <div className="entity-select-message">Yükleniyor…</div>
-          ) : items.length === 0 ? (
+          {!resultsCurrent ? (
+            <div className="entity-select-message">
+              {searchText.trim() ? todoLabels.fieldCustomerSearching : todoLabels.fieldCustomerLoading}
+            </div>
+          ) : visibleItems.length === 0 ? (
             <div className="entity-select-message">{todoLabels.fieldCustomerNoResults}</div>
           ) : (
-            items.map((customer, index) => {
+            visibleItems.map((customer, index) => {
               const optionIndex = index + (allowClear ? 1 : 0);
               return (
                 <button

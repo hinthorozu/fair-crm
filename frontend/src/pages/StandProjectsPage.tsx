@@ -104,30 +104,29 @@ export function StandProjectsPage({ onOpenProject, onCreateProject, onCalculateP
     else setLoading(false);
   }, [canRead, load]);
 
+  // Names already resolved are kept, so a reassignment fetches only the new customer.
+  // Each name is shown as soon as it arrives; a failed lookup is stored as "" and falls
+  // back to the temporary label.
+  const customerNamesRef = React.useRef(customerNames);
+  customerNamesRef.current = customerNames;
+
   React.useEffect(() => {
     if (!canReadCustomers) {
       setCustomerNames({});
       return;
     }
     const ids = [...new Set(projects.map((row) => row.customerId).filter(Boolean))];
+    const missing = ids.filter((id) => !(id in customerNamesRef.current));
     let cancelled = false;
-    void Promise.all(
-      ids.map(async (id) => {
-        try {
-          const customer = await getCustomer(id);
-          return [id, customer.display_name] as const;
-        } catch {
-          return [id, ""] as const;
-        }
-      }),
-    ).then((entries) => {
-      if (cancelled) return;
-      const next: Record<string, string> = {};
-      for (const [id, name] of entries) {
-        if (name) next[id] = name;
-      }
-      setCustomerNames(next);
-    });
+    for (const id of missing) {
+      void getCustomer(id)
+        .then((customer) => customer.display_name || "")
+        .catch(() => "")
+        .then((name) => {
+          if (cancelled) return;
+          setCustomerNames((current) => ({ ...current, [id]: name }));
+        });
+    }
     return () => {
       cancelled = true;
     };
@@ -155,7 +154,11 @@ export function StandProjectsPage({ onOpenProject, onCreateProject, onCalculateP
     try {
       const updated = await assignFairStandProjectCustomer(assigning.id, assignCustomerId);
       setProjects((current) =>
-        current.map((row) => (row.id === assigning.id ? { ...row, customerId: updated.customerId } : row)),
+        current.map((row) =>
+          row.id === assigning.id
+            ? { ...row, customerId: updated.customerId, updatedAt: updated.updatedAt ?? row.updatedAt }
+            : row,
+        ),
       );
       setAssigning(null);
       setAssignCustomerId("");
