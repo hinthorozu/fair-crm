@@ -32,4 +32,13 @@ describe("StandProjectsPage", () => {
     expect(source).toContain("openAssign(row)");
     expect(source).not.toContain("void assignCustomer(");
   });
+
+  it("refreshes the row after reassignment and shows customer names as they arrive", () => {
+    const source = readFileSync(join(here, "StandProjectsPage.tsx"), "utf8");
+    expect(source).toContain("updatedAt: updated.updatedAt ?? row.updatedAt");
+    // Names resolve one by one and resolved names are kept across reassignments.
+    expect(source).toContain("const missing = ids.filter((id) => !(id in customerNamesRef.current));");
+    expect(source).toContain("setCustomerNames((current) => ({ ...current, [id]: name }));");
+    expect(source).not.toContain("void Promise.all(");
+  });
 });
